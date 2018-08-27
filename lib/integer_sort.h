@@ -44,7 +44,7 @@ void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
   if (n < (1 << 12) || depth > 2) {
     auto cmp = [&](T a, T b) { return g(a) < g(b); };
     if (In.start() != Out.start())
-      parallel_for(size_t i = 0; i < n; i++) Out[i] = In[i];
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { Out[i] = In[i]; });
     quicksort(Out.start(), n, cmp);
     return;
   }
@@ -77,10 +77,10 @@ void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
 
   // recurse on each bucket
   if (shift_bits > 0) {
-    parallel_for_1(size_t i = 0; i < num_buckets; i++) {
+    parallel_for_bc(i, 0, num_buckets, true, {
       auto out_slice = Out.slice(bucket_offsets[i], bucket_offsets[i + 1]);
       integer_sort<KT>(out_slice, out_slice, g, shift_bits, depth + 1);
-    }
+    });
   }
 }
 }  // namespace pbbs

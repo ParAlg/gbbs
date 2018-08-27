@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 namespace pbbs {
 // the following parameter can be tuned
 constexpr const size_t _binary_search_base = 16;

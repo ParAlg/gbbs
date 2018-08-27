@@ -103,7 +103,7 @@ auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.get_array(), true);
   frontier.toSparse();
-  granular_for(i, 0, frontier.size(), (frontier.size() > 2000), {
+  parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
     uintE v = frontier.s[i];
     table.insert(make_tuple(v, label_start + i));
   });
@@ -129,7 +129,7 @@ auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
     size_t sum = pbbs::reduce_add(im);
     table.maybe_resize(sum);
 
-    granular_for(i, 0, frontier.size(), (frontier.size() > 2000), {
+    parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
       uintE v = frontier.s[i];
       bits[v] = 0;  // reset flag
     });
@@ -208,8 +208,7 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
        << " vertices. Num remaining = " << P.size() << endl;
 
   // Assign labels from [0...zero.size())
-  parallel_for(size_t i = 0; i < zero.size(); i++) labels[zero[i]] =
-      i | TOP_BIT;
+  parallel_for_bc(i, 0, zero.size(), (zero.size() > pbbs::kSequentialForThreshold), { labels[zero[i]] = i | TOP_BIT; });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
   double step_multiplier = beta;
@@ -234,7 +233,7 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
       size_t label = label_offset;
-      parallel_for(size_t i = 0; i < n; i++) {
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -242,7 +241,7 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
         } else if (inv || outv) {
           labels[i] = label;
         }
-      }
+      });
       free(in_visits);
       free(out_visits);
       label_offset += 1;
@@ -292,7 +291,7 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
 
       size_t label = cur_label_offset;
 
-      parallel_for(size_t i = 0; i < n; i++) {
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -300,7 +299,7 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
         } else if (inv || outv) {
           labels[i] = label;
         }
-      }
+      });
       free(in_visits);
       free(out_visits);
       ft.stop();
@@ -368,7 +367,7 @@ template <class Seq>
 size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
-  parallel_for(size_t i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (labels[i] == 0) {
       cout << "unlabeled" << endl;
       exit(0);
@@ -377,7 +376,7 @@ size_t num_scc(Seq& labels) {
     if (!flags[label]) {
       flags[label] = 1;
     }
-  }
+  });
   pbbs::scan_add(flags, flags);
   size_t n_scc = flags[n];
   cout << "n_scc = " << flags[n] << endl;

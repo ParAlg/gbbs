@@ -91,12 +91,12 @@ namespace pbbs {
     s_size_t *counts = new_array_no_init<s_size_t>(m, 1);
 
     // sort each block
-    parallel_for_1 (s_size_t i = 0; i < num_blocks; ++i) {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       s_size_t start = std::min(i * block_size, n);
       s_size_t end =  std::min(start + block_size, n);
       _seq_count_sort<b_size_t>(A, B, get_key, start, end,
 				counts + i*num_buckets, num_buckets);
-    }
+    });
 
     return make_tuple(B, counts, num_blocks);
   }

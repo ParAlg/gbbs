@@ -41,11 +41,11 @@ inline size_t num_blocks(size_t n, size_t block_size) {
 template <class F>
 void sliced_for(size_t n, size_t block_size, const F& f) {
   size_t l = num_blocks(n, block_size);
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * block_size;
     size_t e = min(s + block_size, n);
     f(i, s, e);
-  }
+  });
 }
 
 template <class Seq, class F>
@@ -249,7 +249,8 @@ auto filter(In_Seq In, Pred p, flags fl = no_flag,
     return std::move(filter_serial(In, p, fl, _Out));
   }
   auto Flags = array_imap<bool>(n);
-  parallel_for(size_t i = 0; i < n; i++) Flags[i] = (bool)p(In[i]);
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { Flags[i] = (bool)p(In[i]);});
+
   auto ret = pack(In, Flags, fl, _Out);
   return std::move(ret);
 }
@@ -304,7 +305,7 @@ size_t filterf(T* In, T* Out, size_t n, PRED p) {
   if (n < b) return filter_seq(In, Out, n, p);
   size_t l = num_blocks(n, b);
   size_t* Sums = new_array_no_init<size_t>(l + 1);
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * b;
     size_t e = min(s + b, n);
     size_t k = s;
@@ -312,17 +313,17 @@ size_t filterf(T* In, T* Out, size_t n, PRED p) {
       if (p(In[j])) In[k++] = In[j];
     }
     Sums[i] = k - s;
-  }
+  });
   auto isums = array_imap<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     T* I = In + i * b;
     T* O = Out + Sums[i];
     for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
       O[j] = I[j];
     }
-  }
+  });
   free(Sums);
   return m;
 }
@@ -341,7 +342,7 @@ size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   }
   size_t l = num_blocks(n, b);
   size_t* Sums = new_array_no_init<size_t>(l + 1);
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * b;
     size_t e = min(s + b, n);
     size_t k = s;
@@ -349,17 +350,17 @@ size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
       if (p(In[j])) In[k++] = In[j];
     }
     Sums[i] = k - s;
-  }
+  });
   auto isums = array_imap<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     T* I = In + i * b;
     size_t si = out_off + Sums[i];
     for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
       out(si + j, I[j]);
     }
-  }
+  });
   free(Sums);
   return m;
 }
@@ -371,7 +372,7 @@ size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
   if (n < b) return filter_seq(In, Out, n, p);
   size_t l = num_blocks(n, b);
   b = num_blocks(n, l);
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * b;
     size_t e = min(s + b, n);
     size_t k = s;
@@ -385,18 +386,18 @@ size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
       }
     }
     Sums[i] = k - s;
-  }
+  });
   auto isums = array_imap<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
-  parallel_for_1(size_t i = 0; i < l; i++) {
+  parallel_for_bc(i, 0, l, (l > 1), {
     T* I = In + i * b;
     T* O = Out + Sums[i];
     for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
       O[j] = I[j];
       I[j] = empty;
     }
-  }
+  });
   return m;
 }
 

@@ -122,10 +122,10 @@ auto BC(graph<vertex<W>>& GA, const uintE& start) {
   auto Dependencies = array_imap<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  parallel_for(long i = 0; i < n; i++) { NumPaths[i] = 1 / NumPaths[i]; }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { NumPaths[i] = 1 / NumPaths[i]; });
 
   Levels[round].del();
-  parallel_for(long i = 0; i < n; i++) { Visited[i] = 0; }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { Visited[i] = 0; });
   Frontier = Levels[round - 1];
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
 
@@ -146,9 +146,9 @@ auto BC(graph<vertex<W>>& GA, const uintE& start) {
   Frontier.del();
 
   // Update dependencies scores
-  parallel_for(long i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
-  }
+  });
   double tt = bc_t.stop();
   return std::move(Dependencies);
 }

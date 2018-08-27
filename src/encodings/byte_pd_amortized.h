@@ -352,7 +352,7 @@ namespace bytepd_amortized {
         }
       }
 
-      granular_for(i, 1, num_blocks, (num_blocks > 2) && par, {
+      parallel_for_bc(i, 1, num_blocks, (num_blocks > 2) && par, {
         uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
         uintE start_offset = *((uintE*)finger);
         uintE end_offset = (i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])));
@@ -397,7 +397,7 @@ namespace bytepd_amortized {
         }
       }
 
-      granular_for(i, 1, num_blocks, (num_blocks > 2) && par, {
+      parallel_for_bc(i, 1, num_blocks, (num_blocks > 2) && par, {
         uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
         uintE start_offset = *((uintE*)finger);
         uintE end_offset = (i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])));
@@ -463,7 +463,7 @@ namespace bytepd_amortized {
       if (num_blocks > 100) { block_outputs = newA(E, num_blocks); }
       else { block_outputs = (E*)stk; }
 
-      granular_for(i, 0, num_blocks, (num_blocks > 2) && par, {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
         uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
         uintE start_offset = *((uintE*)finger);
         uintE end_offset = (i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])));
@@ -786,7 +786,7 @@ namespace bytepd_amortized {
       if (degree > 100) {
         U = newA(uintEW, degree);
       }
-      granular_for(i, 0, num_blocks, (num_blocks > 2) && par, {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
         uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
         uintE start_offset = *((uintE*)finger);
         uintE end_offset = (i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])));
@@ -811,7 +811,7 @@ namespace bytepd_amortized {
       uintE* offs = ((new_blocks+1) <= 100) ? offs_stack : newA(uintE, new_blocks+1);
 
       // 3. Compute #bytes per new block
-      granular_for(i, 0, new_blocks, (new_blocks > 2) && par, {
+      parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
         size_t start = i*PARALLEL_DEGREE;
         size_t end = start + min<size_t>(PARALLEL_DEGREE, degree-start);
         uintE bytes = 0;
@@ -838,7 +838,7 @@ namespace bytepd_amortized {
       *virtual_degree_ptr = degree; // update the virtual degree
       // block_offsets are unchanged
       nghs_start = edge_start + (new_blocks-1)*sizeof(uintE) + sizeof(uintE); // update ngh_start
-      granular_for(i, 0, new_blocks, (new_blocks > 2) && par, {
+      parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
         size_t start = i*PARALLEL_DEGREE;
         size_t end = start + min<size_t>(PARALLEL_DEGREE, degree-start);
         uchar* finger = nghs_start + bytes_imap[i];
@@ -882,7 +882,7 @@ namespace bytepd_amortized {
     size_t block_cts_stack[100];
     size_t* block_cts = (num_blocks > 100) ? newA(size_t, num_blocks+1) : block_cts_stack;
 
-    granular_for(i, 0, num_blocks, (num_blocks > 2) && par, {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
       uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
       uintE* block_deg_ptr = (uintE*)finger;
       uintE start_offset = *block_deg_ptr;
@@ -939,7 +939,7 @@ namespace bytepd_amortized {
     auto scan_cts = make_array_imap(block_cts, num_blocks+1);
     size_t deg_remaining = pbbs::scan_add(scan_cts, scan_cts);
 
-    granular_for(i, 0, num_blocks, (num_blocks > 1000), {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1000), {
       uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
       uintE* block_deg_ptr = (uintE*)finger;
       *block_deg_ptr = scan_cts[i];
@@ -1020,7 +1020,7 @@ namespace bytepd_amortized {
         uintE first_offset = *((uintE*)first_finger);
         size_t last_offset = 0;
 
-        granular_for(i, start_block, end_block, (total_blocks > 2), {
+        parallel_for_bc(i, start_block, end_block, (total_blocks > 2), {
           uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
           uintE start_offset = *((uintE*)finger) - first_offset;
           uintE end_offset = ((i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])))) - first_offset;

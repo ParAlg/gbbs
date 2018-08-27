@@ -148,11 +148,11 @@ struct array_imap {
   template <class F>
   array_imap(const size_t n, F f)
       : s(pbbs::new_array_no_init<E>(n)), e(s + n), allocated(true) {
-    granular_for(i, 0, n, (n > 2000), { s[i] = f(i); });
+    parallel_for_bc(i, 0, n, (n > 2000), { s[i] = f(i); });
   };
   array_imap(const size_t n, const E e)
       : s(pbbs::new_array_no_init<E>(n)), e(s + n), allocated(true) {
-    granular_for(i, 0, n, (n > 2000), { s[i] = e; });
+    parallel_for_bc(i, 0, n, (n > 2000), { s[i] = e; });
   };
   ~array_imap() { free_mem(); }
 
@@ -193,7 +193,7 @@ struct array_imap {
     if (allocated) {
       size_t n = e - s;
       auto A = pbbs::new_array_no_init<E>(n);
-      granular_for(i, 0, n, (n > 200), { A[i] = s[i]; });
+      parallel_for_bc(i, 0, n, (n > 200), { A[i] = s[i]; });
       auto ret = array_imap<E>(A, n);
       ret.allocated = true;
       return ret;

@@ -120,16 +120,18 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     E* sample_set = new_array<E>(sample_set_size);
 
     // generate "random" samples with oversampling
-    parallel_for(size_t j = 0; j < sample_set_size; ++j) sample_set[j] =
-        A[hash64(j) % n];
+    parallel_for_bc(j, 0, sample_set_size, (sample_set_size > pbbs::kSequentialForThreshold), {
+      sample_set[j] = A[hash64(j) % n];
+    });
 
     // sort the samples
     quicksort(sample_set, sample_set_size, f);
 
     // subselect samples at even stride
     E* pivots = new_array<E>(num_buckets - 1);
-    parallel_for(size_t k = 0; k < num_buckets - 1; ++k) pivots[k] =
-        sample_set[OVER_SAMPLE * k];
+    parallel_for_bc(k, 0, (num_buckets-1), ((num_buckets-1) > pbbs::kSequentialForThreshold), {
+      pivots[k] = sample_set[OVER_SAMPLE * k];
+    });
 
     delete_array(sample_set, sample_set_size);
 
@@ -143,7 +145,7 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
 
     // sort each block and merge with samples to get counts for each bucket
     s_size_t* counts = new_array_no_init<s_size_t>(m, 1);
-    parallel_for_1(size_t i = 0; i < num_blocks; ++i) {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t offset = i * block_size;
       size_t size = (i < num_blocks - 1) ? block_size : n - offset;
       if (!inplace)
@@ -152,7 +154,7 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
       quicksort(B + offset, size, f);
       merge_seq(B + offset, pivots, counts + i * num_buckets, size,
                 num_buckets - 1, f);
-    }
+    });
     // std::cout << "first part: " << t.get_next() << std::endl;
 
     // move data from blocks to buckets
@@ -163,7 +165,7 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     // std::cout << "transpose: " << t.get_next() << std::endl;
 
     // sort within each bucket
-    parallel_for_1(size_t i = 0; i < num_buckets; ++i) {
+    parallel_for_bc(i, 0, num_buckets, (num_blocks > 1), {
       size_t start = bucket_offsets[i];
       size_t end = bucket_offsets[i + 1];
 
@@ -176,7 +178,7 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
         // move back to B (use memcpy to avoid initializers or overloaded =)
         memcpy((char*)(B + start), (char*)(C + start),
                (end - start) * sizeof(E));
-    }
+    });
     // std::cout << "final part: " << t.get_next() << std::endl;
     delete_array(pivots, num_buckets - 1);
     free(bucket_offsets);

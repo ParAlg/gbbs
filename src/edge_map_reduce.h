@@ -37,7 +37,7 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f, bool o
   uintT m = V.size();
   V.toSparse();
   auto degrees = array_imap<uintT>(m);
-  granular_for(i, 0, m, (m > 2000), {
+  parallel_for_bc(i, 0, m, (m > 2000), {
     vertex v = G[V.vtx(i)];
     uintE degree = (out_ngh) ? v.getOutDegree() : v.getInDegree();
     degrees[i] = degree;
@@ -54,13 +54,13 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f, bool o
   };
 
   if (out_ngh) {
-    granular_for(i, 0, m, (edgeCount > 2000), {
+    parallel_for_bc(i, 0, m, (edgeCount > 2000), {
       uintT o = degrees[i];
       auto v = V.vtx(i);
       G[v].template copyOutNgh(v, o, f, gen);
     });
   } else {
-    granular_for(i, 0, m, (edgeCount > 2000), {
+    parallel_for_bc(i, 0, m, (edgeCount > 2000), {
       uintT o = degrees[i];
       auto v = V.vtx(i);
       G[v].template copyInNgh(v, o, f, gen);

@@ -39,9 +39,9 @@ namespace ldd_utils {
     // Create (ln n)/beta levels
     uintE last_round = total_rounds(n, beta);
     auto shifts = array_imap<uintE>(last_round + 1);
-    parallel_for(intT i = 0; i < last_round; i++) {
+    parallel_for_bc(i, 0, last_round, (last_round > pbbs::kSequentialForThreshold), {
       shifts[i] = floor(exp(i * beta));
-    }
+    });
     shifts[last_round] = 0;
     pbbs::scan_add(shifts, shifts);
     return shifts;
@@ -51,11 +51,11 @@ namespace ldd_utils {
   void num_clusters(Seq& s) {
     size_t n = s.size();
     auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
-    parallel_for(size_t i = 0; i < n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       if (!flags[s[i]]) {
         flags[s[i]] = 1;
       }
-    }
+    });
     size_t n_clusters = pbbs::reduce_add(flags);
     cout << "num. clusters = " << pbbs::reduce_add(flags) << endl;
   }
@@ -64,13 +64,13 @@ namespace ldd_utils {
   void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
     size_t n = GA.n;
     auto ic_edges = array_imap<size_t>(n, [&](size_t i) { return 0; });
-    parallel_for(size_t i=0; i<n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       auto pred = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
         return s[src] != s[ngh];
       };
       size_t ct = GA.V[i].countOutNgh(i, pred);
       ic_edges[i] = ct;
-    }
+    });
     cout << "num. intercluster edges = " << pbbs::reduce_add(ic_edges) << endl;
   }
 }
@@ -111,7 +111,7 @@ auto LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto cluster_ids = array_imap<uintE>(n);
-  parallel_for(size_t i = 0; i < n; i++) { cluster_ids[i] = UINT_E_MAX; }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { cluster_ids[i] = UINT_E_MAX; });
 
   size_t last_round = ldd_utils::total_rounds(n, beta);
   size_t round = 0, num_visited = 0;
@@ -134,7 +134,7 @@ auto LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbs::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.start(), new_centers.size());
-      granular_for(i, 0, new_centers.size(), (new_centers.size() > 2000),
+      parallel_for_bc(i, 0, new_centers.size(), (new_centers.size() > 2000),
                    { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
     }

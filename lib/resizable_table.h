@@ -93,7 +93,7 @@ class resizable_table {
   size_t ne;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for(size_t i = 0; i < n; i++) A[i] = kv;
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { A[i] = kv; });
   }
 
   inline size_t firstIndex(K& k) { return hashToRange(key_hash(k), mask); }
@@ -173,11 +173,11 @@ class resizable_table {
       size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
       table = (T*)aligned_alloc(line_size, bytes);
       clearA(table, m, empty);
-      parallel_for(size_t i = 0; i < old_m; i++) {
+      parallel_for_bc(i, 0, old_m, (old_m > pbbs::kSequentialForThreshold), {
         if (std::get<0>(old_t[i]) != empty_key) {
           insert(old_t[i]);
         }
-      }
+      });
       update_nelms();
       if (alloc) {
         free(old_t);
@@ -280,11 +280,11 @@ class resizable_table {
 
   template <class F>
   void map(F& f) {
-    parallel_for(size_t i = 0; i < m; i++) {
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
       if (std::get<0>(table[i]) != empty_key) {
         f(table[i]);
       }
-    }
+    });
   }
 
   auto entries() {
@@ -295,7 +295,7 @@ class resizable_table {
   }
 
   void clear() {
-    parallel_for(size_t i = 0; i < m; i++) { table[i] = empty; }
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { table[i] = empty; });
   }
 };
 

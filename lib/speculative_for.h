@@ -76,14 +76,14 @@ intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
     intT size = std::min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for(intT i = 0; i < size; i++) {
+    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
-    }
+    });
 
-    parallel_for(intT i = 0; i < size; i++) {
+    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
       if (keep[i]) keep[i] = !step.commit(I[i]);
-    }
+    });
 
     // keep iterations that failed for next round. Written into Inext
     auto seq = pbbs::pack(I.slice(0, size), keep, pbbs::no_flag, Inext.start());
@@ -128,14 +128,16 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
     intT size = min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for(intT i = 0; i < size; i++) {
+//    parallel_for(intT i = 0; i < size; i++) {
+    parallel_for_bc(i, 0, size, (size > 2048), {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
-    }
+    });
 
-    parallel_for(intT i = 0; i < size; i++) {
+//    parallel_for(intT i = 0; i < size; i++) {
+    parallel_for_bc(i, 0, size, (size > 2048), {
       if (keep[i]) keep[i] = !step.commit(I[i]);
-    }
+    });
 
     // keep iterations that failed for next round. Written into Inext
     auto seq = pbbs::pack(I.slice(0, size), keep, pbbs::no_flag, Inext.start());

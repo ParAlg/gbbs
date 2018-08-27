@@ -86,7 +86,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F, class G>
   inline void decodeNghs(vertex<W>* v, uintE vtx_id, tuple<uintE, W>* nghs,
       uintE d, F &f, G &g) {
-    granular_for(j, 0, d, (d > 1000), {
+    parallel_for_bc(j, 0, d, (d > 1000), {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);
       if (f.cond(ngh)) {
@@ -101,7 +101,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F, class G>
   inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
       tuple<uintE, W>* nghs, uintE d, uintT o, F &f, G &g) {
-    granular_for(j, 0, d, (d > 1000), {
+    parallel_for_bc(j, 0, d, (d > 1000), {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);
       if (f.cond(ngh)) {
@@ -182,7 +182,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F>
   inline void mapNghs(vertex<W>* v, uintE vtx_id, tuple<uintE, W>* nghs,
        uintE d, F& f, bool parallel) {
-    granular_for(j, 0, d, (d > 1000 && parallel), {
+    parallel_for_bc(j, 0, d, (d > 1000 && parallel), {
       uintE ngh = v->getOutNeighbor(j);
       f(vtx_id, ngh, v->getOutWeight(j));
     });
@@ -208,7 +208,7 @@ namespace vertex {
         auto in_im = make_array_imap(nghs, d);
         auto s = pbbs::filter(in_im, pc, pbbs::no_flag, tmp);
         size_t k = s.size();
-        granular_for(i, 0, k, (k > 2000), {
+        parallel_for_bc(i, 0, k, (k > 2000), {
           out(i, tmp[i]);
         });
       }
@@ -246,7 +246,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F, class G>
   inline void copyNghs(vertex<W>* v, uintE vtx_id, tuple<uintE, W>* nghs,
       uintE d, uintT o, F& f, G& g) {
-    granular_for(j, 0, d, (d > 1000), {
+    parallel_for_bc(j, 0, d, (d > 1000), {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);
       auto val = f(vtx_id, ngh, get<1>(nw));

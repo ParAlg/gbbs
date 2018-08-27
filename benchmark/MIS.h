@@ -39,17 +39,17 @@ auto verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
       d[ngh] = 1;
     }
   };
-  parallel_for(size_t i = 0; i < GA.n; i++) {
+  parallel_for_bc(i, 0, GA.n, true, {
     if (in_mis[i]) {
       GA.V[i].mapOutNgh(i, map_f);
     }
-  }
+  });
   bool ok = true;
-  parallel_for(size_t i = 0; i < GA.n; i++) {
+  parallel_for_bc(i, 0, GA.n, true, {
     if (in_mis[i]) {
       assert(!d[i]);
     }
-  }
+  });
   auto mis_int =
       make_in_imap<size_t>(GA.n, [&](size_t i) { return (size_t)in_mis[i]; });
   size_t mis_size = pbbs::reduce_add(mis_int);
@@ -74,17 +74,17 @@ auto get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
         dense[ngh] = 1;
       }
     };
-    parallel_for(size_t i = 0; i < vs.size(); i++) {
+    parallel_for_bc(i, 0, vs.size(), true, {
       uintE v = vs.vtx(i);
       GA.V[v].mapOutNgh(v, map_f);
-    }
+    });
     return vertexSubset(GA.n, dense.get_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
     auto ht = make_sparse_table<uintE, pbbs::empty>(
         sum_d, make_tuple(UINT_E_MAX, pbbs::empty()),
         [&](const uintE& k) { return pbbs::hash64(k); });
     vs.toSparse();
-    parallel_for(size_t i = 0; i < vs.size(); i++) {
+    parallel_for_bc(i, 0, vs.size(), true, {
       auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
         if (p(ngh)) {
           ht.insert(make_tuple(ngh, pbbs::empty()));
@@ -92,7 +92,7 @@ auto get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
       };
       uintE v = vs.vtx(i);
       GA.V[v].mapOutNgh(v, map_f);
-    }
+    });
     auto nghs = ht.entries();
     ht.del();
     return vertexSubset(GA.n, nghs.size(), (uintE*)nghs.get_array());
@@ -155,14 +155,14 @@ auto MIS(graph<vertex<W>>& GA) {
   // compute the priority DAG
   auto priorities = array_imap<intE>(n);
   auto perm = pbbs::random_permutation<uintE>(n);
-  parallel_for(size_t i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, true, {
     uintE our_pri = perm[i];
     auto count_f = wrap_f<W>([&](uintE src, uintE ngh) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
     });
     priorities[i] = GA.V[i].countOutNgh(i, count_f);
-  }
+  });
 
   // compute the initial rootset
   auto zero_map =
@@ -269,13 +269,13 @@ template <template <class W> class vertex, class W, class Seq>
 auto verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   size_t n = GA.n;
   auto ok = array_imap<bool>(n, [&](size_t i) { return 1; });
-  parallel_for(size_t i=0; i<n; i++) {
+  parallel_for_bc(i, 0, n, true, {
     auto pred = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
-  }
+  });
   auto ok_imap = make_in_imap<size_t>(n, [&] (size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_imap);
   if (n_ok == n) {

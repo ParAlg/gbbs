@@ -128,7 +128,7 @@ namespace pbbs {
     size_t size;
     hist_table(KV _empty, size_t _size) : empty(_empty), size(_size) {
       table = newA(KV, size);
-      parallel_for (size_t i=0; i<size; i++) { table[i] = empty; }
+      parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
     }
     hist_table() {}
 
@@ -137,7 +137,7 @@ namespace pbbs {
         free(table);
         table = newA(KV, req_size);
         size = req_size;
-        parallel_for (size_t i=0; i<size; i++) { table[i] = empty; }
+        parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
         cout << "resized to: " << size << endl;
       }
     }
@@ -176,7 +176,7 @@ namespace pbbs {
 
 #define S_STRIDE 64
     size_t* bkt_counts = new_array_no_init<size_t>(num_buckets*S_STRIDE);
-    granular_for(i, 0, num_buckets, num_buckets>1, {
+    parallel_for_bc(i, 0, num_buckets, num_buckets>1, {
       bkt_counts[i*S_STRIDE] = 0;
       if (i == (num_buckets-1)) {
         size_t ct = 0;
@@ -226,14 +226,14 @@ namespace pbbs {
     ht.resize(ht_offs[num_buckets]);
 
     // (3) insert elms into per-bucket hash table (par)
-    parallel_for(size_t i=0; i<num_buckets; i++) {
+    parallel_for_bc(i, 0, num_buckets, (num_buckets>1), {
       size_t ht_start = ht_offs[i];
       size_t ht_size = ht_offs[i+1] - ht_start;
 
       size_t k = 0;
       if (ht_size > 0) {
         KV* my_ht = &(table[ht_start]);
-        sequentialHT<K, V> S(my_ht, ht_size, empty);
+        sequentialHT<K COMMA V> S(my_ht, ht_size, empty);
 
         for (size_t j=0; j<num_blocks; j++) {
           size_t start = std::min(j * block_size, n);
@@ -257,7 +257,7 @@ namespace pbbs {
         k = S.compactIntoSelf(apply_f);
       }
       out_offs[i] = k;
-    }
+    });
 
     // (4) scan
     size_t ct = 0;
@@ -272,7 +272,7 @@ namespace pbbs {
     O* res = newA(O, ct);
 
     // (5) map compacted hts to output, clear hts
-    granular_for(i, 0, num_buckets, (num_buckets>1), {
+    parallel_for_bc(i, 0, num_buckets, (num_buckets>1), {
       size_t o = out_offs[i];
       size_t k = out_offs[(i+1)] - o;
 
@@ -346,7 +346,7 @@ namespace pbbs {
 
 #define S_STRIDE 64
     size_t* bkt_counts = new_array_no_init<size_t>(num_total_buckets*S_STRIDE);
-    granular_for(i, 0, num_actual_buckets, num_actual_buckets>1, {
+    parallel_for_bc(i, 0, num_actual_buckets, num_actual_buckets>1, {
       bkt_counts[i*S_STRIDE] = 0;
       if (i == (num_total_buckets-1)) {
         size_t ct = 0;
@@ -409,7 +409,7 @@ namespace pbbs {
 
     // (3) insert elms into per-bucket hash table (par)
 
-    parallel_for (size_t i=0; i<num_actual_buckets; i++) {
+    parallel_for_bc(i, 0, num_actual_buckets, (num_actual_buckets>1), {
       if (i < num_buckets) {
         size_t ht_start = ht_offs[i];
         size_t ht_size = ht_offs[i+1] - ht_start;
@@ -417,7 +417,7 @@ namespace pbbs {
         size_t k = 0;
         if (ht_size > 0) {
           KV* my_ht = &(table[ht_start]);
-          sequentialHT<K, V> S(my_ht, ht_size, empty);
+          sequentialHT<K COMMA V> S(my_ht, ht_size, empty);
 
           for (size_t j=0; j<num_blocks; j++) {
             size_t start = std::min(j * block_size, n);
@@ -470,7 +470,7 @@ namespace pbbs {
         Maybe<O> value = apply_f(make_tuple(key, total_ct));
         heavy_cts[bkt_id] = value;
       }
-    }
+    });
 
     // (4) scan
     size_t ct = 0;
@@ -495,7 +495,7 @@ namespace pbbs {
     O* res = newA(O, ct);
 
     // (5) map compacted hts to output, clear hts
-    granular_for(i, 0, num_buckets, (num_buckets>1), {
+    parallel_for_bc(i, 0, num_buckets, (num_buckets>1), {
       size_t o = out_offs[i];
       size_t k = out_offs[(i+1)] - o;
 
@@ -587,7 +587,7 @@ namespace pbbs {
 
 #define S_STRIDE 64
     size_t* bkt_counts = new_array_no_init<size_t>(num_buckets*S_STRIDE);
-    granular_for(i, 0, num_buckets, num_buckets>1, {
+    parallel_for_bc(i, 0, num_buckets, num_buckets>1, {
       bkt_counts[i*S_STRIDE] = 0;
       if (i == (num_buckets-1)) {
         size_t ct = 0;
@@ -624,7 +624,7 @@ namespace pbbs {
     O* out = newA(O, ht_offs[num_buckets]);
 
     // (3) insert elms into per-bucket hash table (par)
-    parallel_for(size_t i=0; i<num_buckets; i++) {
+    parallel_for_bc(i, 0, num_buckets, (num_buckets>1), {
       size_t ht_start = ht_offs[i];
       size_t ht_size = ht_offs[i+1] - ht_start;
 
@@ -632,7 +632,7 @@ namespace pbbs {
       KV* table = ht.table;
       if (ht_size > 0) {
         KV* my_ht = &(table[ht_start]);
-        sequentialHT<K, V> S(my_ht, ht_size, ht.empty);
+        sequentialHT<K COMMA V> S(my_ht, ht_size, ht.empty);
 
         O* my_out = &(out[ht_start]);
 
@@ -658,7 +658,7 @@ namespace pbbs {
         k = S.compactInto(apply_f, my_out);
       }
       out_offs[i] = k;
-    }
+    });
 
     // (4) scan
     size_t ct = 0;
@@ -673,7 +673,7 @@ namespace pbbs {
     O* res = newA(O, ct);
 
     // (5) map compacted hts to output, clear hts
-    granular_for(i, 0, num_buckets, (num_buckets>1), {
+    parallel_for_bc(i, 0, num_buckets, (num_buckets>1), {
       size_t o = out_offs[i];
       size_t k = out_offs[(i+1)] - o;
 

@@ -68,7 +68,7 @@ auto BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      parallel_for(long i = 0; i < n; i++) SP[i] = -(INT_E_MAX / 2);
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { SP[i] = -(INT_E_MAX / 2); });
       break;
     }
     auto em_f =

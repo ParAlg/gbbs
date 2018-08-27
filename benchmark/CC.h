@@ -37,14 +37,14 @@ size_t RelabelIds(Seq& ids) {
   using T = typename Seq::T;
   size_t n = ids.size();
   auto inverse_map = array_imap<T>(n + 1);
-  parallel_for(long i = 0; i < n; i++) { inverse_map[i] = 0; }
-  parallel_for(long i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { inverse_map[i] = 0; });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
-  }
+  });
   pbbs::scan_add(inverse_map, inverse_map);
 
   size_t new_n = inverse_map[n];
-  parallel_for(long i = 0; i < n; i++) { ids[i] = inverse_map[ids[i]]; }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { ids[i] = inverse_map[ids[i]]; });
   return new_n;
 }
 
@@ -66,9 +66,9 @@ auto contract(graph<vertex<W> >& GA, Seq& clusters, size_t num_clusters) {
     uintE c_ngh = clusters[ngh];
     return c_src < c_ngh;
   };
-  parallel_for(size_t i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     deg_map[i] = GA.V[i].countOutNgh(i, pred);
-  }
+  });
   deg_map[n] = 0;
   pbbs::scan_add(deg_map, deg_map);
   count_t.stop();
@@ -89,7 +89,7 @@ auto contract(graph<vertex<W> >& GA, Seq& clusters, size_t num_clusters) {
       edge_table.insert(make_tuple(make_tuple(c_src, c_ngh), pbbs::empty()));
     }
   };
-  parallel_for(size_t i = 0; i < n; i++) { GA.V[i].mapOutNgh(i, map_f, true); }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {GA.V[i].mapOutNgh(i, map_f, true); });
   auto e2 = edge_table.entries();
   auto edges = make_array_imap<K>((K*)e2.start(), e2.size());
   ins_t.stop();
@@ -97,21 +97,21 @@ auto contract(graph<vertex<W> >& GA, Seq& clusters, size_t num_clusters) {
 
   // Pack out singleton clusters
   auto flags = array_imap<uintE>(num_clusters + 1, [](size_t i) { return 0; });
-  parallel_for(size_t i = 0; i < edges.size(); i++) {
+  parallel_for_bc(i, 0, edges.size(), (edges.size() > pbbs::kSequentialForThreshold), {
     auto e = edges[i];
-    uintE u = get<0>(e), v = get<1>(e);
+    uintE u = get<0>(e) COMMA v = get<1>(e);
     if (!flags(u)) flags[u] = 1;
     if (!flags(v)) flags[v] = 1;
-  }
+  })
   pbbs::scan_add(flags, flags);
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = array_imap<uintE>(num_ns_clusters);
-  parallel_for(size_t i = 0; i < num_clusters; i++) {
+  parallel_for_bc(i, 0, num_clusters, (num_clusters > pbbs::kSequentialForThreshold), {
     if (flags[i] != flags[i + 1]) {
       mapping[flags[i]] = i;
     }
-  }
+  });
 
   auto sym_edges = array_imap<K>(2 * edges.size(), [&](size_t i) {
     size_t src_edge = i / 2;
@@ -162,7 +162,7 @@ auto CC_impl(graph<vertex>& GA, double beta, size_t level, bool pack = false,
   if (GC.m == 0) return clusters;
 
   auto new_labels = CC_impl(GC, beta, level + 1);
-  parallel_for(size_t i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton
@@ -170,7 +170,7 @@ auto CC_impl(graph<vertex>& GA, double beta, size_t level, bool pack = false,
       // component. mapping maps this back to the original label range.
       clusters[i] = mapping[new_labels[gc_cluster]];
     }
-  }
+  });
   return clusters;
 }
 
@@ -178,11 +178,11 @@ template <class Seq>
 size_t num_cc(Seq& labels) {
   size_t n = labels.size();
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
-  parallel_for(size_t i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }
-  }
+  });
   pbbs::scan_add(flags, flags);
   size_t n_cc = flags[n];
   cout << "n_cc = " << flags[n] << endl;

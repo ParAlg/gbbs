@@ -37,14 +37,6 @@ constexpr uintE COVERED = ((uintE)INT_E_MAX) - 1;
 constexpr double epsilon = 0.01;
 const double x = 1.0 / log(1.0 + sc::epsilon);
 
-template <class intT>
-auto rand_perm(size_t n, pbbs::random r = pbbs::default_random) {
-  auto id = array_imap<intT>(n);
-  parallel_for(size_t i = 0; i < n; i++) { id[i] = i; }
-  pbbs::random_shuffle(id, r);
-  return std::move(id);
-}
-
 template <class W>
 struct Visit_Elms {
   uintE* elms;
@@ -113,12 +105,12 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     permt.start();
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
-    auto P = sc::rand_perm<uintE>(still_active.size(), r);
-    parallel_for(size_t i = 0; i < still_active.size(); i++) {
+    auto P = pbbs::random_permutation<uintE>(still_active.size(), r);
+    parallel_for_bc(i, 0, still_active.size(), (still_active.size() > pbbs::kSequentialForThreshold), {
       uintE v = still_active.vtx(i);
       uintE pv = P[i];
       perm[v] = pv;
-    }
+    });
     P.del();
     permt.stop();
 

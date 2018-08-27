@@ -247,7 +247,7 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = array_imap<uintE>(indices.size() + 1);
-  granular_for(i, 0, indices.size(), (indices.size() > 2000), {
+  parallel_for_bc(i, 0, indices.size(), (indices.size() > 2000), {
     vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize;
   });
   vertex_offs[indices.size()] = 0;
@@ -260,7 +260,7 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
     size_t vtx_off = vertex_offs[i];
     size_t num_blocks = vertex_offs[i+1] - vtx_off;
     size_t degree = degree_imap[i];
-    granular_for(j, 0, num_blocks, (num_blocks > 1000), {
+    parallel_for_bc(j, 0, num_blocks, (num_blocks > 1000), {
       size_t block_deg = min((j+1)*kEMBlockSize, degree) - j*kEMBlockSize;
       blocks[vtx_off + j] = block(i, j);
       degrees[vtx_off + j] = block_deg;
@@ -437,7 +437,7 @@ vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS &vs, F f,
 
   vs.toSparse();
   vertex* frontier_vertices = newA(vertex, m);
-  granular_for(i, 0, vs.size(), (vs.size() > 1000), {
+  parallel_for_bc(i, 0, vs.size(), (vs.size() > 1000), {
     frontier_vertices[i] = GA.V[vs.vtx(i)];
   });
   auto degree_im = make_in_imap<size_t>(vs.size(), [&] (size_t i) {
@@ -482,7 +482,7 @@ vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA, vertexSubset& vs, P& p,
     return vertexSubsetData<uintE>(n);
   }
   auto space = array_imap<uintT>(m);
-  granular_for(i, 0, m, (m > 2000), {
+  parallel_for_bc(i, 0, m, (m > 2000), {
     uintE v = vs.vtx(i);
     space[i] = G[v].calculateOutTemporarySpace();
   });

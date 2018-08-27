@@ -56,11 +56,11 @@ uintE* rankNodes(vertex* V, size_t n) {
 
   timer t;
   t.start();
-  parallel_for(size_t i = 0; i < n; i++) o[i] = i;
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {o[i] = i;});
   pbbs::sample_sort(o, n, [&](const uintE u, const uintE v) {
     return V[u].getOutDegree() < V[v].getOutDegree();
   });
-  parallel_for(size_t i = 0; i < n; i++) r[o[i]] = i;
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {r[o[i]] = i;});
   t.stop();
   t.reportTotal("Rank time");
   free(o);
@@ -91,7 +91,7 @@ size_t Triangle(graph<vertex<W>>& GA) {
     counts[i] = 0;
   }
   bool* frontier = newA(bool, n);
-  { parallel_for(long i = 0; i < n; i++) frontier[i] = 1; }
+  { parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { frontier[i] = 1; }); }
   vertexSubset Frontier(n, n, frontier);
 
   // 1. Rank vertices based on degree

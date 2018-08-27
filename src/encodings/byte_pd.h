@@ -223,7 +223,7 @@ namespace bytepd {
         if (!t(source, ngh, pbbs::empty(), edgeID)) return;
       }
       //do remaining chunks in parallel
-      granular_for(i, 1, num_blocks, par, {
+      parallel_for_bc(i, 1, num_blocks, par, {
         size_t o = i*PARALLEL_DEGREE;
         size_t end = min<long>(o+PARALLEL_DEGREE,degree);
         uchar* finger = edge_start + block_offsets[i-1];
@@ -261,7 +261,7 @@ namespace bytepd {
         if (!t(source, ngh, weight, edgeID)) return;
       }
       //do remaining chunks in parallel
-      granular_for(i, 1, num_blocks, par, {
+      parallel_for_bc(i, 1, num_blocks, par, {
         size_t o = i*PARALLEL_DEGREE;
         size_t end = min<long>(o+PARALLEL_DEGREE,degree);
         uchar* finger = edge_start + block_offsets[i-1];
@@ -292,7 +292,7 @@ namespace bytepd {
       if (num_blocks > 1000) { block_outputs = newA(E, num_blocks); }
       else { block_outputs = (E*)stk; }
 
-      granular_for(i, 0, num_blocks, (num_blocks > 2) && par, {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
         size_t start = i*PARALLEL_DEGREE;
         size_t end = min<long>(start+PARALLEL_DEGREE,degree);
         uchar* finger = edge_start +
@@ -539,7 +539,7 @@ namespace bytepd {
       uintE* block_bytes;
       if (num_blocks > 100) { block_bytes = newA(uintE, num_blocks); }
       else { block_bytes = (uintE*)stk; }
-      granular_for(i, 0, num_blocks, (num_blocks > 10), {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 10), {
         // calculate size in bytes of this block
         uintE start = i*PARALLEL_DEGREE;
         uintE end = start + min<uintE>(PARALLEL_DEGREE, d - start);
@@ -863,7 +863,7 @@ namespace bytepd {
         return pred(source, get<0>(nw), get<1>(nw));
       };
       uintE k = pbbs::filterf(tmp, tmp2, degree, pd);
-      granular_for(i, 0, k, (k > 2000), {
+      parallel_for_bc(i, 0, k, (k > 2000), {
         out(i, tmp2[i]);
       });
       return k;

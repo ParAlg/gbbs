@@ -71,17 +71,17 @@ struct sequence {
   sequence(const size_t n, T v)
       : s(pbbs::new_array_no_init<E>(n, 1)), allocated(true) {
     e = s + n;
-    parallel_for(size_t i = 0; i < n; i++) new ((void*)(s + i)) T(v);
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { new ((void*)(s + i)) T(v); });
   };
 
   template <typename Func>
   sequence(const size_t n, Func fun)
       : s(pbbs::new_array_no_init<E>(n)), allocated(true) {
     e = s + n;
-    parallel_for(size_t i = 0; i < n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       T x = fun(i);
       new ((void*)(s + i)) T(x);
-    }
+    });
   }
 
   sequence(E* s, const size_t n, bool allocated = false)
@@ -95,7 +95,7 @@ struct sequence {
   template <typename X, typename F>
   static sequence<X> tabulate(size_t n, F f) {
     X* r = pbbs::new_array_no_init<X>(n);
-    parallel_for(size_t i = 0; i < n; i++) new ((void*)(r + i)) X(f(i));
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { new ((void*)(r + i)) X(f(i)); });
     sequence<X> y(r, n);
     y.allocated = true;
     return y;
@@ -127,7 +127,7 @@ struct sequence {
     if (allocated) {
       size_t n = e - s;
       auto A = pbbs::new_array<E>(n);
-      granular_for(i, 0, n, (n > 2000), { A[i] = s[i]; });
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { A[i] = s[i]; });
       return sequence(A, n, true);
     } else {
       return sequence(s, e);

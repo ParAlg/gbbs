@@ -54,7 +54,7 @@ static void setWorkers(int n) {
 static inline int get_worker_num() { return __cilkrts_get_worker_number(); }
 
 template <typename Lf, typename Rf>
-static void par_do(bool do_parallel, Lf left, Rf right) {
+static inline void par_do(bool do_parallel, Lf left, Rf right) {
   if (do_parallel) {
     cilk_spawn right();
     left();
@@ -66,7 +66,7 @@ static void par_do(bool do_parallel, Lf left, Rf right) {
 }
 
 template <typename Lf, typename Mf, typename Rf>
-static void par_do3(bool do_parallel, Lf left, Mf mid, Rf right) {
+static inline void par_do3(bool do_parallel, Lf left, Mf mid, Rf right) {
   if (do_parallel) {
     cilk_spawn mid();
     cilk_spawn right();
@@ -80,7 +80,7 @@ static void par_do3(bool do_parallel, Lf left, Mf mid, Rf right) {
 }
 
 template <typename F>
-static void par_for(size_t start, size_t end, size_t granularity, F f) {
+static inline void par_for(size_t start, size_t end, size_t granularity, F f) {
   if ((end - start) <= granularity)
     for (size_t i = start; i < end; i++) f(i);
   else {
@@ -147,13 +147,25 @@ void increase_stack_size() {
   }
 }
 
-#define granular_for(_i, _start, _end, _cond, _body) { \
+#define parallel_for_bc(_i, _start, _end, _cond, _body) { \
   if (_cond) { \
     {parallel_for(size_t _i=_start; _i < _end; _i++) { \
       _body \
     }} \
   } else { \
     {for (size_t _i=_start; _i < _end; _i++) { \
+      _body \
+    }} \
+  } \
+  }
+
+#define parallel_for_bc_inc(_i, _start, _end, _inc, _cond, _body) { \
+  if (_cond) { \
+    {parallel_for(size_t _i=_start; _i < _end; _inc) { \
+      _body \
+    }} \
+  } else { \
+    {for (size_t _i=_start; _i < _end; _inc) { \
       _body \
     }} \
   } \
@@ -216,7 +228,7 @@ E* new_array_no_init(size_t n, bool touch_pages = false) {
   }
   // a hack to make sure tlb is full for huge pages
   if (touch_pages)
-    parallel_for(size_t i = 0; i < bytes; i = i + (1 << 21))((bool*)r)[i] = 0;
+    parallel_for_bc_inc(i, 0, bytes, i = i + (1 << 21), true, { ((bool*)r)[i] = 0; });
   return r;
 }
 
@@ -225,10 +237,7 @@ template <typename E>
 E* new_array(size_t n) {
   E* r = new_array_no_init<E>(n);
   if (!std::is_trivially_default_constructible<E>::value) {
-    if (n > 2048)
-      parallel_for(size_t i = 0; i < n; i++) new ((void*)(r + i)) E;
-    else
-      for (size_t i = 0; i < n; i++) new ((void*)(r + i)) E;
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {new ((void*)(r + i)) E; });
   }
   return r;
 }
@@ -238,10 +247,7 @@ template <typename E>
 void delete_array(E* A, size_t n) {
   // C++14 -- suppored by gnu C++11
   if (!std::is_trivially_destructible<E>::value) {
-    if (n > 2048)
-      parallel_for(size_t i = 0; i < n; i++) A[i].~E();
-    else
-      for (size_t i = 0; i < n; i++) A[i].~E();
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {A[i].~E(); });
   }
   free(A);
 }

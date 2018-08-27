@@ -47,10 +47,10 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s, uintE component_id=UINT_
   _seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
   auto labels = array_imap<tuple<uintE, uintE>>(n);
-  parallel_for(size_t i = 0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     labels[i] =
         make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
-  }
+  });
 
   auto bits = array_imap<uintE>(n, (uintE)0);
   auto flags = array_imap<bool>(n, false);
@@ -92,7 +92,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s, uintE component_id=UINT_
       }
     }
   };
-  parallel_for(size_t i = 0; i < n; i++) { GA.V[i].mapOutNgh(i, map_bc_label); }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { GA.V[i].mapOutNgh(i, map_bc_label); });
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();

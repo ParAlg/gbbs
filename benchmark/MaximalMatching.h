@@ -94,9 +94,9 @@ edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
   perm_t.start();
   auto perm = pbbs::random_permutation<uintT>(E.non_zeros);
   auto out = array_imap<edge>(E.non_zeros);
-  parallel_for(size_t i = 0; i < E.non_zeros; i++) {
+  parallel_for_bc(i, 0, E.non_zeros, (E.non_zeros > pbbs::kSequentialForThreshold), {
     out[i] = e_arr[perm[i]];  // gather or scatter?
-  }
+  });
   E.del();
   E.E = out.get_array();
   perm_t.stop();
@@ -134,9 +134,9 @@ edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
   perm_t.start();
   auto perm = pbbs::random_permutation<uintT>(E.non_zeros);
   auto out = array_imap<edge>(E.non_zeros);
-  parallel_for(size_t i = 0; i < E.non_zeros; i++) {
+  parallel_for_bc(i, 0, E.non_zeros, (E.non_zeros > pbbs::kSequentialForThreshold), {
     out[i] = e_arr[perm[i]];  // gather or scatter?
-  }
+  });
   E.del();
   E.E = out.get_array();
   perm_t.stop();
@@ -187,7 +187,7 @@ auto MaximalMatching(graph<vertex<W>>& G) {
     auto e_added =
         pbbs::filter(eim, [](edge e) { return get<0>(e) & mm::TOP_BIT; });
     auto sizes = array_imap<size_t>(e_added.size());
-    parallel_for(size_t i = 0; i < e_added.size(); i++) {
+    parallel_for_bc(i, 0, e_added.size(), (e_added.size() > pbbs::kSequentialForThreshold), {
       const auto& e = e_added[i];
       uintE u = get<0>(e) & mm::VAL_MASK;
       uintE v = get<1>(e) & mm::VAL_MASK;
@@ -196,7 +196,7 @@ auto MaximalMatching(graph<vertex<W>>& G) {
       G.V[u].setOutDegree(0);
       G.V[v].setOutDegree(0);
       sizes[i] = deg_u + deg_v;
-    }
+    });
     size_t total_size = pbbs::reduce_add(sizes);
     G.m -= total_size;
     cout << "removed: " << total_size << " many edges" << endl;
@@ -223,16 +223,16 @@ void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   auto matched = array_imap<uintE>(n, [] (size_t i) { return 0; });
 
   // Check that this is a valid matching
-  parallel_for(size_t i=0; i<matching.size(); i++) {
+  parallel_for_bc(i, 0, matching.size(), (matching.size() > pbbs::kSequentialForThreshold), {
     const auto& edge = matching[i];
     pbbs::write_add(&matched[get<0>(edge)], 1);
     pbbs::write_add(&matched[get<1>(edge)], 1);
-  }
+  });
 
   bool valid = true;
-  parallel_for(size_t i=0; i<n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (matched[i] > 1) valid = false;
-  }
+  });
   assert(valid == true);
 
   // Check maximality of the matching
@@ -243,9 +243,9 @@ void verify_matching(graph<vertex<W>>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  parallel_for(size_t i=0; i<n; i++) {
+  parallel_for_bc(i, 0, n, true, {
     G.V[i].mapOutNgh(i, map2_f);
-  }
+  });
 
   auto ok_im = make_in_imap<size_t>(n, [&] (size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_im);

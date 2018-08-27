@@ -155,7 +155,7 @@ void p_quicksort(SeqA In, SeqA Out, const F& f, bool swap = 0) {
               if (!mid_eq)
                 p_quicksort(Out.slice(l, m), In.slice(l, m), f, !swap);
               else if (swap)
-                parallel_for(size_t i = l; i < m; i++) In[i] = Out[i];
+                parallel_for_bc(i, l, m, ((m - l) > pbbs::kSequentialForThreshold), { In[i] = Out[i]; });
             },
             [&]() { p_quicksort(Out.slice(m, n), In.slice(m, n), f, !swap); });
   }

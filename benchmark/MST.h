@@ -63,7 +63,7 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
   };
 
   uintE* edge_ids = newA(uintE, m);
-  parallel_for(size_t i = 0; i < m; i++) { edge_ids[i] = i; }
+  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
   auto new_mst_edges = array_imap<uintE>(n, UINT_E_MAX);
@@ -78,7 +78,7 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
 
     timer init_t;
     init_t.start();
-    granular_for(i, 0, n, (n > 2000), {
+    parallel_for_bc(i, 0, n, (n > 2000), {
       uintE v = vtxs[i];
       min_edges[v] = ct();
     });
@@ -87,19 +87,19 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
     // 1. writeMin to select the minimum edge out of each component.
     timer min_t;
     min_t.start();
-    parallel_for(size_t i = 0; i < m; i++) {
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
       uintE e_id = edge_ids[i];
       const edge& e = edges[e_id];
       ct cas_e(e_id, get<2>(e));
       writeMin(min_edges + get<0>(e), cas_e, less);
       writeMin(min_edges + get<1>(e), cas_e, less);
-    }
+    });
     min_t.stop();  // min_t.reportTotal("write min time");
 
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
     mark_t.start();
-    parallel_for(size_t i = 0; i < n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintE v = vtxs[i];
       const auto& e = min_edges[v];
       if (e.index == UINT_E_MAX) {
@@ -124,7 +124,7 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
           new_mst_edges[i] = ind;
         }
       }
-    }
+    });
     mark_t.stop();  // mark_t.reportTotal("mark time");
 
     // 3. filter out the new MST edges.
@@ -138,14 +138,14 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
     // 4. pointer jump to find component centers.
     timer jump_t;
     jump_t.start();
-    parallel_for(size_t i = 0; i < n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintE v = vtxs[i];
       size_t ctr = 0;
       while (parents[v] != parents[parents[v]]) {
         parents[v] = parents[parents[v]];
         ctr++;
       }
-    }
+    });
     jump_t.stop();  // jump_t.reportTotal("jump time");
 
     // 5. compact the vertices (pack out the roots)
@@ -162,7 +162,7 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
     // 6. relabel the edges with the new roots.
     timer relab_t;
     relab_t.start();
-    parallel_for(size_t i = 0; i < m; i++) {
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
       size_t e_id = edge_ids[i];
       edge& e = edges[e_id];
       uintE u = get<0>(e);
@@ -176,7 +176,7 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
       if (pu == pv) {
         edge_ids[i] |= TOP_BIT;
       }
-    }
+    });
     relab_t.stop();  // relab_t.reportTotal("relabel time");
 
     // 7. filter (or ignore) self-edges.
@@ -232,15 +232,15 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   size_t m = G.m;
 
   auto vertex_offs = array_imap<long>(G.n);
-  parallel_for(size_t i = 0; i < G.n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     vertex_offs[i] = G.V[i].getOutDegree();
-  }
+  });
   pbbs::scan_add(vertex_offs, vertex_offs, pbbs::fl_scan_inclusive);
 
   auto sample_edges = array_imap<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
 
-  parallel_for(size_t i = 0; i < sample_size; i++) {
+  parallel_for_bc(i, 0, sample_size, (sample_size > pbbs::kSequentialForThreshold), {
     size_t sample_edge = r.ith_rand(i) % m;
     uintE vtx = pbbs::binary_search(vertex_offs, sample_edge, lte);
     size_t vtx_off = vertex_offs[vtx];
@@ -252,7 +252,7 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
     W wgh;
     std::tie(ngh, wgh) = G.V[vtx].get_ith_out_neighbor(vtx, ith);
     sample_edges[i] = make_tuple(vtx, ngh, wgh);
-  }
+  });
 
   auto cmp_by_wgh = [](const edge& l, const edge& r) {
     return get<2>(l) < get<2>(r);
@@ -267,7 +267,7 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   size_t first_ind = 0;
   size_t last_ind = 0;
   size_t ssize = sample_edges.size();
-  parallel_for(size_t i = 0; i < ssize; i++) {
+  parallel_for_bc(i, 0, ssize, (ssize > pbbs::kSequentialForThreshold), {
     if (get<2>(sample_edges[i]) == split_weight) {
       if (i == 0 || (get<2>(sample_edges[i - 1]) != split_weight)) {
         first_ind = i;
@@ -276,7 +276,7 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
         last_ind = i;
       }
     }
-  }
+  });
 
   size_t weight_size = (last_ind - first_ind + 1);
   double split_wgh_fraction = ((1.0 * (last_ind - first_ind + 1)) / ssize);
@@ -302,7 +302,7 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
     size_t range = (1L << pbbs::log2_up(G.m)) - 1;
     size_t threshold = frac_to_take * range;
    // account for filtering directed edges
-    threshold *=  (first_round ? 2.0 : 1.0)
+    threshold *=  (first_round ? 2.0 : 1.0);
     auto filter_split_wgh_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       if (src > ngh) return 1;
       if (wgh < split_weight) {
@@ -337,7 +337,7 @@ uint32_t* MST(graph<vertex<W>>& GA, bool largemem = false) {
 
   size_t n_active = n;
   uintE* vtxs = newA(uintE, n_active);
-  parallel_for(size_t i = 0; i < n; i++) { vtxs[i] = i; }
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { vtxs[i] = i; });
   uintE* next_vtxs = newA(uintE, n_active);
 
   size_t round = 0;
@@ -367,13 +367,13 @@ uint32_t* MST(graph<vertex<W>>& GA, bool largemem = false) {
 
     // relabel edges
     auto edges = E.E;
-    parallel_for(size_t i = 0; i < n_edges; i++) {
+    parallel_for_bc(i, 0, n_edges, (n_edges > pbbs::kSequentialForThreshold), {
       edge& e = edges[i];
       uintE u = get<0>(e);
       uintE v = get<1>(e);
       get<0>(e) = parents[u];
       get<1>(e) = parents[v];
-    }
+    });
 
     // run Boruvka on the prefix and add new edges to mst_edges
     timer bt;
@@ -392,18 +392,17 @@ uint32_t* MST(graph<vertex<W>>& GA, bool largemem = false) {
     n_active += seq::packIndex(vtxs + n_active, exhausted.start(), (uintE)n);
     pack_t.stop();  // pack_t.reportTotal("reactivation pack");
 
-    parallel_for(size_t i = 0; i < n; i++) if (exhausted[i]) exhausted[i] =
-        false;
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { if (exhausted[i]) exhausted[i] = false; });
 
     // pointer jump: vertices that were made inactive could have had their
     // parents change.
-    parallel_for(size_t i = 0; i < n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       size_t ctr = 0;
       while (parents[i] != parents[parents[i]]) {
         parents[i] = parents[parents[i]];
         ctr++;
       }
-    }
+    });
 
     // pack out all edges in the graph that are shortcut by the added edges
     auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {

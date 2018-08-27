@@ -42,7 +42,8 @@ class sparse_additive_map {
   bool alloc;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for(size_t i = 0; i < n; i++) A[i] = kv;
+    parallel_for_bc(i, 0, n, (n > 2048), { A[i] = kv; });
+//    parallel_for(size_t i = 0; i < n; i++) A[i] = kv;
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
@@ -128,6 +129,6 @@ class sparse_additive_map {
   }
 
   void clear() {
-    parallel_for(size_t i = 0; i < m; i++) { table[i] = empty; }
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { table[i] = empty; });
   }
 };

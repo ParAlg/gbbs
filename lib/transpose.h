@@ -35,21 +35,21 @@ struct transpose {
   void transR(size_t rStart, size_t rCount, size_t rLength, size_t cStart,
               size_t cCount, size_t cLength) {
     if (cCount < TRANS_THRESHHOLD && rCount < TRANS_THRESHHOLD) {
-      parallel_for(size_t i = rStart; i < rStart + rCount;
-                   i++) for (size_t j = cStart; j < cStart + cCount; j++)
+      parallel_for_bc(i, rStart, (rStart + rCount), true, {
+        for (size_t j = cStart; j < cStart + cCount; j++) {
           B[j * cLength + i] = A[i * rLength + j];
+        }
+      });
     } else if (cCount > rCount) {
       size_t l1 = cCount / 2;
       size_t l2 = cCount - cCount / 2;
-      cilk_spawn this->transR(rStart, rCount, rLength, cStart, l1, cLength);
-      transR(rStart, rCount, rLength, cStart + l1, l2, cLength);
-      cilk_sync;
+      par_do(true, [&] () { this->transR(rStart, rCount, rLength, cStart, l1, cLength); },
+        [&] () { transR(rStart, rCount, rLength, cStart + l1, l2, cLength); });
     } else {
       size_t l1 = rCount / 2;
       size_t l2 = rCount - rCount / 2;
-      cilk_spawn this->transR(rStart, l1, rLength, cStart, cCount, cLength);
-      transR(rStart + l1, l2, rLength, cStart, cCount, cLength);
-      cilk_sync;
+      par_do(true, [&] () { this->transR(rStart, l1, rLength, cStart, cCount, cLength); },
+        [&] () { transR(rStart + l1, l2, rLength, cStart, cCount, cLength); });
     }
   }
 
@@ -69,26 +69,25 @@ struct blockTrans {
   void transR(size_t rStart, size_t rCount, size_t rLength, size_t cStart,
               size_t cCount, size_t cLength) {
     if (cCount < TRANS_THRESHHOLD && rCount < TRANS_THRESHHOLD) {
-      parallel_for(size_t i = rStart; i < rStart + rCount;
-                   i++) for (size_t j = cStart; j < cStart + cCount; j++) {
-        E *pa = A + OA[i * rLength + j];
-        E *pb = B + OB[j * cLength + i];
-        size_t l = L[i * rLength + j];
-        const size_t bytes = l * sizeof(E);
-        for (size_t k = 0; k < bytes; k++) ((char *)pb)[k] = ((char *)pa)[k];
-      }
+      parallel_for_bc(i, rStart, (rStart + rCount), true, {
+        for (size_t j = cStart; j < cStart + cCount; j++) {
+          E *pa = A + OA[i * rLength + j];
+          E *pb = B + OB[j * cLength + i];
+          size_t l = L[i * rLength + j];
+          const size_t bytes = l * sizeof(E);
+          for (size_t k = 0; k < bytes; k++) ((char *)pb)[k] = ((char *)pa)[k];
+        }
+      });
     } else if (cCount > rCount) {
       size_t l1 = cCount / 2;
       size_t l2 = cCount - cCount / 2;
-      cilk_spawn this->transR(rStart, rCount, rLength, cStart, l1, cLength);
-      transR(rStart, rCount, rLength, cStart + l1, l2, cLength);
-      cilk_sync;
+      par_do(true, [&] () { this->transR(rStart, rCount, rLength, cStart, l1, cLength); },
+        [&] () { transR(rStart, rCount, rLength, cStart + l1, l2, cLength); });
     } else {
       size_t l1 = rCount / 2;
       size_t l2 = rCount - rCount / 2;
-      cilk_spawn this->transR(rStart, l1, rLength, cStart, cCount, cLength);
-      transR(rStart + l1, l2, rLength, cStart, cCount, cLength);
-      cilk_sync;
+      par_do(true, [&] () { this->transR(rStart, l1, rLength, cStart, cCount, cLength); },
+        [&] () { transR(rStart + l1, l2, rLength, cStart, cCount, cLength); });
     }
   }
 
@@ -126,16 +125,16 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
     if (sum != n) abort();
 
     // send each key to correct location within its bucket
-    parallel_for_1(size_t i = 0; i < num_blocks; i++) {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t s_offset = i * block_size;
       for (size_t j = 0; j < num_buckets; j++) {
         size_t d_offset = dest_offsets[i + num_blocks * j];
         size_t len = counts[i * num_buckets + j];
-        for (size_t k = 0; k < len; k++)
+        for (size_t k = 0; k < len; k++) {
           move_uninitialized(To[d_offset++], From[s_offset++]);
-        // memcpy((char*) (To+d_offset), (char*) (From+s_offset),len*sizeof(E));
+        }
       }
-    }
+    });
   } else {  // for larger input do cache efficient transpose
     sequence<s_size_t> source_offsets(m);
     sequence<s_size_t> seq_counts(counts, m);
