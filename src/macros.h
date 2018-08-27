@@ -26,6 +26,9 @@
 #include <limits.h>
 #include "../lib/macros.h"
 
+typedef unsigned int uint;
+typedef unsigned long ulong;
+
 // size of edge-offsets.
 // If the number of edges is more than sizeof(MAX_UINT),
 // you should set the LONG flag on the command line.

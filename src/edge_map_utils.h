@@ -29,6 +29,7 @@
 
 #include <type_traits>
 
+#include "maybe.h"
 #include "../lib/binary_search.h"
 
 // Standard version of edgeMapDense.

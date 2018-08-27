@@ -25,9 +25,88 @@
 #include <iostream>
 #include <math.h>
 #include "utils.h"
-#include "transpose.h"
 
 using namespace std;
+
+namespace oldtranspose {
+
+#define _TRANS_THRESHHOLD 64
+
+template <class E, class intT>
+struct transpose {
+  E *A, *B;
+  transpose(E *AA, E *BB) : A(AA), B(BB) {}
+
+  void transR(intT rStart, intT rCount, intT rLength,
+	      intT cStart, intT cCount, intT cLength) {
+    //cout << "cc,rc: " << cCount << "," << rCount << endl;
+    if (cCount < _TRANS_THRESHHOLD && rCount < _TRANS_THRESHHOLD) {
+      for (intT i=rStart; i < rStart + rCount; i++)
+	for (intT j=cStart; j < cStart + cCount; j++)
+	  B[j*cLength + i] = A[i*rLength + j];
+    } else if (cCount > rCount) {
+      intT l1 = cCount/2;
+      intT l2 = cCount - cCount/2;
+      cilk_spawn this->transR(rStart,rCount,rLength,cStart,l1,cLength);
+      transR(rStart,rCount,rLength,cStart + l1,l2,cLength);
+      cilk_sync;
+    } else {
+      intT l1 = rCount/2;
+      intT l2 = rCount - rCount/2;
+      cilk_spawn this->transR(rStart,l1,rLength,cStart,cCount,cLength);
+      transR(rStart + l1,l2,rLength,cStart,cCount,cLength);
+      cilk_sync;
+    }
+  }
+
+  void trans(intT rCount, intT cCount) {
+    transR(0,rCount,cCount,0,cCount,rCount);
+  }
+};
+
+template <class E, class intT>
+struct blockTrans {
+  E *A, *B;
+  intT *OA, *OB, *L;
+
+  blockTrans(E *AA, E *BB, intT *OOA, intT *OOB, intT *LL)
+    : A(AA), B(BB), OA(OOA), OB(OOB), L(LL) {}
+
+  void transR(intT rStart, intT rCount, intT rLength,
+	     intT cStart, intT cCount, intT cLength) {
+    //cout << "cc,rc: " << cCount << "," << rCount << endl;
+    if (cCount < _TRANS_THRESHHOLD && rCount < _TRANS_THRESHHOLD) {
+      for (intT i=rStart; i < rStart + rCount; i++)
+	for (intT j=cStart; j < cStart + cCount; j++) {
+	  E* pa = A+OA[i*rLength + j];
+	  E* pb = B+OB[j*cLength + i];
+	  intT l = L[i*rLength + j];
+	  //cout << "pa,pb,l: " << pa << "," << pb << "," << l << endl;
+	  for (intT k=0; k < l; k++) *(pb++) = *(pa++);
+	}
+    } else if (cCount > rCount) {
+      intT l1 = cCount/2;
+      intT l2 = cCount - cCount/2;
+      cilk_spawn this->transR(rStart,rCount,rLength,cStart,l1,cLength);
+      transR(rStart,rCount,rLength,cStart + l1,l2,cLength);
+      cilk_sync;
+    } else {
+      intT l1 = rCount/2;
+      intT l2 = rCount - rCount/2;
+      cilk_spawn this->transR(rStart,l1,rLength,cStart,cCount,cLength);
+      transR(rStart + l1,l2,rLength,cStart,cCount,cLength);
+      cilk_sync;
+    }
+  }
+
+  void trans(intT rCount, intT cCount) {
+    transR(0,rCount,cCount,0,cCount,rCount);
+  }
+
+} ;
+
+} //namespace oldtranspose
+
 
 template <class E1, class E2>
   struct firstF {E1 operator() (std::pair<E1,E2> a) {return a.first;} };
@@ -107,22 +186,22 @@ namespace intSort {
     bint* oA = (bint*) (BK+blocks);
     bint* oB = (bint*) (BK+2*blocks);
 
-    parallel_for_1 (long i=0; i < blocks; i++) {
+    parallel_for_bc(i, 0, blocks, true, {
       bint od = i*nn;
       long nni = min(max<long>(n-od,0),nn);
       radixBlock(A+od, B, Tmp+od, cnts + m*i, oB + m*i, od, nni, m, extract);
-    }
+    });
 
-    transpose<bint,bint>(cnts, oA).trans(blocks, m);
+    oldtranspose::transpose<bint,bint>(cnts, oA).trans(blocks, m);
 
     long ss;
     if (top)
-      ss = seq::scan(oA, oA, blocks*m, addF<bint>(),(bint)0);
+      ss = ligra_utils::seq::scan(oA, oA, blocks*m, ligra_utils::addF<bint>(),(bint)0);
     else
-      ss = seq::scanSerial(oA, oA, blocks*m, addF<bint>(),(bint)0);
+      ss = ligra_utils::seq::scanSerial(oA, oA, blocks*m, ligra_utils::addF<bint>(),(bint)0);
     //utils::myAssert(ss == n, "radixStep: sizes don't match");
 
-    blockTrans<E,bint>(B, A, oB, oA, cnts).trans(blocks, m);
+    oldtranspose::blockTrans<E,bint>(B, A, oB, oA, cnts).trans(blocks, m);
 
     // put the offsets for each bucket in the first bucket set of BK
     for (long j = 0; j < m; j++) BK[0][j] = oA[j*blocks];
@@ -166,7 +245,7 @@ namespace intSort {
       bint* offsets = BK[0];
       long remain = numBK - BUCKETS - 1;
       float y = remain / (float) n;
-      parallel_for (int i = 0; i < BUCKETS; i++) {
+      parallel_for_bc(i, 0, BUCKETS, true, {
 	long segOffset = offsets[i];
 	long segNextOffset = (i == BUCKETS-1) ? n : offsets[i+1];
 	long segLen = segNextOffset - segOffset;
@@ -176,7 +255,7 @@ namespace intSort {
 	radixLoopTopDown(A + segOffset, B + segOffset, Tmp + segOffset,
 			 BK + blocksOffset, blockLen, segLen,
 			 bits-MAX_RADIX, f);
-      }
+      });
     } else {
       radixLoopBottomUp(A, B, Tmp, BK, numBK, n, bits, false, f);
     }
@@ -213,24 +292,26 @@ namespace intSort {
       radixStep(A, B, Tmp, BK, numBK, n, (long) 1 << bits, true,
 		eBits<E,F>(bits,0,f));
       if (bucketOffsets != NULL) {
-	parallel_for (long i = 0; i < m; i++)
-	  bucketOffsets[i] = BK[0][i];
+        parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+          bucketOffsets[i] = BK[0][i];
+        });
       }
       return;
-    } else if (bottomUp)
+    } else if (bottomUp) {
       radixLoopBottomUp(A, B, Tmp, BK, numBK, n, bits, true, f);
-    else
+    } else {
       radixLoopTopDown(A, B, Tmp, BK, numBK, n, bits, f);
+    }
     if (bucketOffsets != NULL) {
-      {parallel_for (long i=0; i < m; i++) bucketOffsets[i] = n;}
-      {parallel_for (long i=0; i < n-1; i++) {
-	  long v = f(A[i]);
-	  long vn = f(A[i+1]);
-	  if (v != vn) bucketOffsets[vn] = i+1;
-	}}
+      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { bucketOffsets[i] = n;});
+      parallel_for_bc(i, 0, n-1, (n-1 > pbbs::kSequentialForThreshold), {
+    	  long v = f(A[i]);
+    	  long vn = f(A[i+1]);
+    	  if (v != vn) bucketOffsets[vn] = i+1;
+    	});
       bucketOffsets[f(A[0])] = 0;
-      seq::scanIBack(bucketOffsets, bucketOffsets, m,
-			  minF<oint>(), (oint) n);
+      ligra_utils::seq::scanIBack(bucketOffsets, bucketOffsets, m,
+			  ligra_utils::minF<oint>(), (oint) n);
     }
   }
 
@@ -277,25 +358,25 @@ namespace intSort {
 };
 
 static void integerSort(uintT *A, long n) {
-  long maxV = seq::reduce(A, n, maxF<uintT>());
-  intSort::iSort(A, n, maxV+1,  identityF<uintT>());
+  long maxV = ligra_utils::seq::reduce(A, n, ligra_utils::maxF<uintT>());
+  intSort::iSort(A, n, maxV+1,  ligra_utils::identityF<uintT>());
 }
 
 static void integerSort(uintT *A, long n, char* s) {
-  long maxV = seq::reduce(A,n,maxF<uintT>());
-  intSort::iSort(A, n, maxV+1, s, identityF<uintT>());
+  long maxV = ligra_utils::seq::reduce(A,n,ligra_utils::maxF<uintT>());
+  intSort::iSort(A, n, maxV+1, s, ligra_utils::identityF<uintT>());
 }
 
 template <class T>
 void integerSort(pair<uintT,T> *A, long n) {
-  long maxV = seq::mapReduce<uintT>(A,n,maxF<uintT>(),
+  long maxV = ligra_utils::seq::mapReduce<uintT>(A,n,ligra_utils::maxF<uintT>(),
 					firstF<uintT,T>());
   intSort::iSort(A, n, maxV+1, firstF<uintT,T>());
 }
 
 template <class T>
 void integerSort(pair<uintT,T> *A, long n, char* s) {
-  long maxV = seq::mapReduce<uintT>(A,n,maxF<uintT>(),
+  long maxV = ligra_utils::seq::mapReduce<uintT>(A,n,ligra_utils::maxF<uintT>(),
 					firstF<uintT,T>());
   intSort::iSort(A, n, maxV+1, s, firstF<uintT,T>());
 }

@@ -708,11 +708,11 @@ namespace bytepd {
     if (num_blocks > 100) { block_bytes = newA(uintE, num_blocks+1); }
     else { block_bytes = (uintE*)stk; }
 
-    parallel_for (size_t i=0; i<num_blocks; i++) {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       uintE start = i*PARALLEL_DEGREE;
       uintE end = min<uintE>(start+PARALLEL_DEGREE, d);
       block_bytes[i] = compute_block_size(edges, start, end, source);
-    }
+    });
     block_bytes[num_blocks] = 0;
 
     uintE edges_offset = (num_blocks-1)*sizeof(uintE);
@@ -729,12 +729,12 @@ namespace bytepd {
       cout << "d = " << d << " to exactly the same space" << endl;
     }
 
-    parallel_for(size_t i=1; i<num_blocks; i++) {
+    parallel_for_bc(i, 1, num_blocks, (num_blocks > 1), {
       // store offset to start of this block from edgeArray
       block_offsets[i-1] = edges_offset + bytes_imap[i];
-    }
+    });
 
-    parallel_for (size_t i=0; i<num_blocks; i++) {
+    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       uintE start = i*PARALLEL_DEGREE;
       uintE end = min<uintE>(start+PARALLEL_DEGREE, d);
       long write_offset = (i == 0) ? edges_offset : block_offsets[i-1];
@@ -752,7 +752,7 @@ namespace bytepd {
       }
       long block_space = write_offset - start_offset;
       assert(block_space == (bytes_imap[i+1] - bytes_imap[i]));
-    }
+    });
     if (num_blocks > 100) { free(block_bytes); }
   }
 
@@ -788,7 +788,7 @@ namespace bytepd {
 
 
       uchar* mf = 0;
-      parallel_for(size_t i=0; i<num_blocks; i++) {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
         size_t start = i*PARALLEL_DEGREE;
         size_t end = min<long>(start+PARALLEL_DEGREE,degree);
         uchar* finger = edge_start +
@@ -797,7 +797,7 @@ namespace bytepd {
         if (i == num_blocks-1) {
           mf = last_finger;
         }
-      }
+      });
 
       // filter edges into tmp2
       tuple<uintE, W>* tmp2 = our_tmp + degree;
@@ -849,13 +849,13 @@ namespace bytepd {
       size_t num_blocks = 1+(degree-1)/PARALLEL_DEGREE;
       uintE* block_offsets = (uintE*)edge_start;
 
-      parallel_for(size_t i=0; i<num_blocks; i++) {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
         size_t start = i*PARALLEL_DEGREE;
         size_t end = min<long>(start+PARALLEL_DEGREE,degree);
         uchar* finger = edge_start +
           ((i == 0) ? (num_blocks-1)*sizeof(uintE) : block_offsets[i-1]);
         decode_block(finger, tmp, start, end, source);
-      }
+      });
 
       // filter edges into tmp2
       tuple<uintE, W>* tmp2 = tmp + degree;
@@ -879,23 +879,26 @@ namespace bytepd {
     uintE **edgePts = newA(uintE*, n);
     long *charsUsedArr = newA(long, n);
     long *compressionStarts = newA(long, n+1);
-    {parallel_for(long i=0; i<n; i++) {
-      charsUsedArr[i] = ceil((Degrees[i] * 9) / 8) + 4;
-    }}
-    long toAlloc = seq::plusScan(charsUsedArr,charsUsedArr,n);
+    {
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+        charsUsedArr[i] = ceil((Degrees[i] * 9) / 8) + 4;
+      });
+    }
+    long toAlloc = ligra_utils::seq::plusScan(charsUsedArr,charsUsedArr,n);
     uintE* iEdges = newA(uintE,toAlloc);
 
-    {parallel_for(long i=0; i<n; i++) {
+    {
+      parallel_for_bc(i, 0, n, true, {
         edgePts[i] = iEdges+charsUsedArr[i];
-        long charsUsed =
-  	sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]),
+        long charsUsed = sequentialCompressEdgeSet((uchar *)(iEdges+charsUsedArr[i]),
   				  0, Degrees[i],
   				  i, edges + offsets[i]);
         charsUsedArr[i] = charsUsed;
-    }}
+      });
+    }
 
     // produce the total space needed for all compressed lists in chars.
-    long totalSpace = seq::plusScan(charsUsedArr, compressionStarts, n);
+    long totalSpace = ligra_utils::seq::plusScan(charsUsedArr, compressionStarts, n);
     compressionStarts[n] = totalSpace;
     free(charsUsedArr);
 
@@ -904,11 +907,13 @@ namespace bytepd {
     float avgBitsPerEdge = (float)totalSpace*8 / (float)m;
     cout << "Average bits per edge: " << avgBitsPerEdge << endl;
 
-    {parallel_for(long i=0; i<n; i++) {
+    {
+      parallel_for_bc(i, 0, n, true, {
         long o = compressionStarts[i];
-      memcpy(finalArr + o, (uchar *)(edgePts[i]), compressionStarts[i+1]-o);
-      offsets[i] = o;
-    }}
+        memcpy(finalArr + o, (uchar *)(edgePts[i]), compressionStarts[i+1]-o);
+        offsets[i] = o;
+      });
+    }
     offsets[n] = totalSpace;
     free(iEdges);
     free(edgePts);
@@ -954,18 +959,18 @@ namespace bytepd {
     cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
     auto bytes_used = newA(size_t, n+1);
 
-    parallel_for(size_t i=0; i<n; i++) {
+    parallel_for_bc(i, 0, n, true, {
       bytes_used[i] = compute_size_in_bytes(edges + offsets[i], i, Degrees[i]);
-    }
+    });
     bytes_used[n] = 0;
-    size_t total_bytes = seq::plusScan(bytes_used, bytes_used, n+1);
+    size_t total_bytes = ligra_utils::seq::plusScan(bytes_used, bytes_used, n+1);
     uchar* edges_c = newA(uchar, total_bytes);
 
-    parallel_for (long i=0; i<n; i++) {
+    parallel_for_bc(i, 0, n, true, {
       long last_offset = sequentialCompressWeightedEdgeSet(edges_c, bytes_used[i], Degrees[i], i, edges + offsets[i]);
       long bytes = last_offset - bytes_used[i];
       assert(bytes <= (bytes_used[i+1] - bytes_used[i]));
-    }
+    });
 
     float avgBitsPerEdge = (float)total_bytes*8 / (float)m;
     cout << "Average bits per edge: " << avgBitsPerEdge << endl;
@@ -977,9 +982,9 @@ namespace bytepd {
   //  cout << "decoding 692, deg = " << Degrees[692] << endl;
   //  decode<intE>(t, edges_c + bytes_used[692], 692, Degrees[692], false);
 
-    parallel_for(long i=0; i<n+1; i++) {
+    parallel_for_bc(i, 0, n+1, (n+1 > pbbs::kSequentialForThreshold), {
       offsets[i] = bytes_used[i];
-    }
+    });
     cout << "finished compressing, bytes used = " << total_bytes << endl;
     cout << "would have been, " << (m * 8) << endl;
     return edges_c;

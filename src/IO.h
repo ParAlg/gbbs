@@ -84,7 +84,7 @@ inline bool isSpace(char c) {
   }
 }
 
-_seq<char> mmapStringFromFile(const char *filename) {
+ligra_utils::_seq<char> mmapStringFromFile(const char *filename) {
   struct stat sb;
   int fd = open(filename, O_RDONLY);
   if (fd == -1) {
@@ -120,10 +120,10 @@ _seq<char> mmapStringFromFile(const char *filename) {
 //  cout << "mmapped" << endl;
 //  free(bytes);
 //  exit(0);
-  return _seq<char>(p, n);
+  return ligra_utils::_seq<char>(p, n);
 }
 
-_seq<char> readStringFromFile(char *fileName) {
+ligra_utils::_seq<char> readStringFromFile(char *fileName) {
   ifstream file (fileName, ios::in | ios::binary | ios::ate);
   if (!file.is_open()) {
     std::cout << "Unable to open file: " << fileName << std::endl;
@@ -135,32 +135,36 @@ _seq<char> readStringFromFile(char *fileName) {
   char* bytes = newA(char,n+1);
   file.read (bytes,n);
   file.close();
-  return _seq<char>(bytes,n);
+  return ligra_utils::_seq<char>(bytes,n);
 }
 
 // parallel code for converting a string to words
 words stringToWords(char *Str, long n) {
-  {parallel_for (long i=0; i < n; i++)
-      if (isSpace(Str[i])) Str[i] = 0; }
+  {parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      if (isSpace(Str[i])) Str[i] = 0; }); }
 
   // mark start of words
   bool *FL = newA(bool,n);
   FL[0] = Str[0];
-  {parallel_for (long i=1; i < n; i++) FL[i] = Str[i] && !Str[i-1];}
+  {
+    parallel_for_bc(i, 1, n, (n > pbbs::kSequentialForThreshold), { FL[i] = Str[i] && !Str[i-1];});
+  }
 
 //  cout << "n (strlen) = " << n << endl;
 //  auto im = make_in_imap<size_t>(n, [&] (size_t i) { return FL[i]; });
 //  cout << " sum is : " << pbbs::reduce_add(im) << endl;
 
   // offset for each start of word
-  _seq<long> Off = seq::packIndex<long>(FL, n);
+  ligra_utils::_seq<long> Off = ligra_utils::seq::packIndex<long>(FL, n);
 //  cout << "pack returned " << Off.n << endl;
   long m = Off.n;
   long *offsets = Off.A;
 
   // pointer to each start of word
   char **SA = newA(char*, m);
-  {parallel_for (long j=0; j < m; j++) SA[j] = Str+offsets[j];}
+  {
+    parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold), {SA[j] = Str+offsets[j];});
+  }
 
   free(offsets); free(FL);
   return words(Str,n,SA,m);
@@ -175,12 +179,12 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
   using wvtx = vertex<intE>;
   words W;
   if (mmap) {
-    _seq<char> S = mmapStringFromFile(fname);
+    ligra_utils::_seq<char> S = mmapStringFromFile(fname);
     char *bytes = newA(char, S.n);
     // Cannot mutate the graph unless we copy.
-    parallel_for(size_t i=0; i<S.n; i++) {
+    parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold), {
       bytes[i] = S.A[i];
-    }
+    });
     if (munmap(S.A, S.n) == -1) {
       perror("munmap");
       exit(-1);
@@ -188,7 +192,7 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
     S.A = bytes;
     W = stringToWords(S.A, S.n);
   } else {
-    _seq<char> S = readStringFromFile(fname);
+    ligra_utils::_seq<char> S = readStringFromFile(fname);
     W = stringToWords(S.A, S.n);
   }
   assert(W.Strings[0] == (string) "WeightedAdjacencyGraph");
@@ -202,31 +206,32 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
   using VW = tuple<uintE, intE>;
   tuple<uintE, intE>* edges = newA(VW,2*m);
 
-  {parallel_for(long i=0; i < n; i++) offsets[i] = atol(W.Strings[i + 3]);}
-  {parallel_for(long i=0; i<m; i++) {
-    edges[i] = make_tuple(atol(W.Strings[i+n+3]), atol(W.Strings[i+n+m+3]));
-  }}
+  {parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { offsets[i] = atol(W.Strings[i + 3]);}); }
+  {parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),{
+    edges[i] = make_tuple(atol(W.Strings[i+n+3]), atol(W.Strings[i+n+m+3])); });
+  }
   //W.del(); // to deal with performance bug in malloc
 
   wvtx* v = newA(wvtx,n);
 
-  {parallel_for (uintT i=0; i < n; i++) {
+  {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintT o = offsets[i];
     uintT l = ((i == n-1) ? m : offsets[i+1])-offsets[i];
     v[i].setOutDegree(l);
-    v[i].setOutNeighbors(edges+o);
-  }}
+    v[i].setOutNeighbors(edges+o); });
+  }
 
   if(!isSymmetric) {
     uintT* tOffsets = newA(uintT,n);
-    {parallel_for(long i=0;i<n;i++) tOffsets[i] = INT_T_MAX;}
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { tOffsets[i] = INT_T_MAX;});
     intTriple* temp = newA(intTriple,m);
-    {parallel_for(long i=0;i<n;i++){
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = offsets[i];
       for(uintT j=0;j<v[i].getOutDegree();j++) {
         temp[o+j] = make_pair(v[i].getOutNeighbor(j),make_pair(i,v[i].getOutWeight(j)));
       }
-    }}
+    });
     free(offsets);
 
     intSort::iSort(temp,m,n+1,getFirst<intPair>());
@@ -235,25 +240,25 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
     VW* inEdges = newA(VW,m);
     inEdges[0] = make_tuple(temp[0].second.first, temp[0].second.second);
 
-    {parallel_for(long i=1;i<m;i++) {
+    parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
       inEdges[i] = make_tuple(temp[i].second.first, temp[i].second.second);
       if(temp[i].first != temp[i-1].first) {
       	tOffsets[temp[i].first] = i;
       }
-    }}
+    });
 
     free(temp);
 
     //fill in offsets of degree 0 vertices by taking closest non-zero
     //offset to the right
-    seq::scanIBack(tOffsets,tOffsets,n,minF<uintT>(),(uintT)m);
+    ligra_utils::seq::scanIBack(tOffsets,tOffsets,n,ligra_utils::minF<uintT>(),(uintT)m);
 
-    {parallel_for(long i=0;i<n;i++){
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = tOffsets[i];
       uintT l = ((i == n-1) ? m : tOffsets[i+1])-tOffsets[i];
       v[i].setInDegree(l);
       v[i].setInNeighbors(inEdges+o);
-    }}
+    });
 
     free(tOffsets);
     return graph<wvtx>(v,n,m,get_deletion_fn(v, inEdges, edges), get_copy_fn(v, inEdges, edges, n, m, m, m));
@@ -269,12 +274,12 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
   using wvtx = vertex<pbbs::empty>;
   words W;
   if (mmap) {
-    _seq<char> S = mmapStringFromFile(fname);
+    ligra_utils::_seq<char> S = mmapStringFromFile(fname);
     char *bytes = newA(char, S.n);
     // Cannot mutate the graph unless we copy.
-    parallel_for(size_t i=0; i<S.n; i++) {
+    parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold), {
       bytes[i] = S.A[i];
-    }
+    });
     if (munmap(S.A, S.n) == -1) {
       perror("munmap");
       exit(-1);
@@ -282,7 +287,7 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
     S.A = bytes;
     W = stringToWords(S.A, S.n);
   } else {
-    _seq<char> S = readStringFromFile(fname);
+    ligra_utils::_seq<char> S = readStringFromFile(fname);
     W = stringToWords(S.A, S.n);
   }
   assert(W.Strings[0] == (string) "AdjacencyGraph");
@@ -297,31 +302,33 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
   uintT* offsets = newA(uintT,n);
   uintE* edges = newA(uintE,m);
 
-  {parallel_for(long i=0; i < n; i++) offsets[i] = atol(W.Strings[i + 3]);}
-  {parallel_for(long i=0; i<m; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    offsets[i] = atol(W.Strings[i + 3]);});
+  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     edges[i] = atol(W.Strings[i+n+3]);
-  }}
+  });
   //W.del(); // to deal with performance bug in malloc
 
   wvtx* v = newA(wvtx,n);
 
-  {parallel_for (uintT i=0; i < n; i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintT o = offsets[i];
     uintT l = ((i == n-1) ? m : offsets[i+1])-offsets[i];
     v[i].setOutDegree(l);
     v[i].setOutNeighbors(((tuple<uintE, pbbs::empty>*)(edges+o)));
-  }}
+  });
 
   if(!isSymmetric) {
     uintT* tOffsets = newA(uintT,n);
-    {parallel_for(long i=0;i<n;i++) tOffsets[i] = INT_T_MAX;}
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      tOffsets[i] = INT_T_MAX;});
     intPair* temp = newA(intPair,m);
-    {parallel_for(long i=0;i<n;i++){
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = offsets[i];
       for(uintT j=0;j<v[i].getOutDegree();j++){
         temp[o+j] = make_pair(v[i].getOutNeighbor(j),i);
       }
-    }}
+    });
     free(offsets);
 
     intSort::iSort(temp,m,n+1,getFirst<uintE>());
@@ -329,25 +336,25 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
     tOffsets[temp[0].first] = 0;
     uintE* inEdges = newA(uintE,m);
     inEdges[0] = temp[0].second;
-    {parallel_for(long i=1;i<m;i++) {
+    parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
       inEdges[i] = temp[i].second;
       if(temp[i].first != temp[i-1].first) {
         tOffsets[temp[i].first] = i;
       }
-    }}
+    });
 
     free(temp);
 
     //fill in offsets of degree 0 vertices by taking closest non-zero
     //offset to the right
-    seq::scanIBack(tOffsets,tOffsets,n,minF<uintT>(),(uintT)m);
+    ligra_utils::seq::scanIBack(tOffsets,tOffsets,n,ligra_utils::minF<uintT>(),(uintT)m);
 
-    {parallel_for(long i=0;i<n;i++){
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = tOffsets[i];
       uintT l = ((i == n-1) ? m : tOffsets[i+1])-tOffsets[i];
       v[i].setInDegree(l);
       v[i].setInNeighbors((tuple<uintE, pbbs::empty>*)(inEdges+o));
-    }}
+    });
 
     free(tOffsets);
     return graph<wvtx>(v,n,m,get_deletion_fn(v, inEdges, edges),
@@ -374,15 +381,15 @@ graph<vertex<W> > readCompressedGraph(char* fname, bool isSymmetric, bool mmap, 
   char* s;
   using w_vertex = vertex<W>;
   if (mmap) {
-    _seq<char> S = mmapStringFromFile(fname);
+    ligra_utils::_seq<char> S = mmapStringFromFile(fname);
     s = S.A;
     if (mmapcopy) {
       cout << "Copying compressed graph" << endl;
       // Cannot mutate graph unless we copy.
       char *bytes = newA(char, S.n);
-      parallel_for(size_t i=0; i<S.n; i++) {
+      parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold), {
         bytes[i] = S.A[i];
-      }
+      });
       if (munmap(S.A, S.n) == -1) {
         perror("munmap");
         exit(-1);
@@ -493,20 +500,20 @@ graph<vertex<W> > readCompressedGraph(char* fname, bool isSymmetric, bool mmap, 
   }
 
   w_vertex *V = newA(w_vertex,n);
-  parallel_for(long i=0;i<n;i++) {
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     long o = offsets[i];
     uintT d = Degrees[i];
     V[i].setOutDegree(d);
     V[i].setOutNeighbors(edges+o);
-  }
+  });
 
   if(!isSymmetric) {
-    parallel_for(long i=0;i<n;i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       long o = inOffsets[i];
       uintT d = inDegrees[i];
       V[i].setInDegree(d);
       V[i].setInNeighbors(inEdges+o);
-    }
+    });
     graph<w_vertex> G(V,n,m,get_deletion_fn(V, s), get_copy_fn(V, inEdges, edges, n, m, totalSpace, inTotalSpace));
     return G;
   } else {

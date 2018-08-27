@@ -118,9 +118,10 @@ struct vertexSubsetData {
   void toDense() {
     if (d == NULL) {
       d = newA(D, n);
-      {parallel_for(long i=0;i<n;i++) std::get<0>(d[i]) = false;}
-      {parallel_for(long i=0;i<m;i++)
-        d[std::get<0>(s[i])] = make_tuple(true, std::get<1>(s[i]));}
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+        std::get<0>(d[i]) = false; });
+      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+        d[std::get<0>(s[i])] = make_tuple(true, std::get<1>(s[i])); });
     }
     isDense = true;
   }
@@ -238,8 +239,10 @@ struct vertexSubsetData<pbbs::empty> {
   void toDense() {
     if (d == NULL) {
       d = newA(bool,n);
-      {parallel_for(long i=0;i<n;i++) d[i] = 0;}
-      {parallel_for(long i=0;i<m;i++) d[s[i]] = 1;}
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+        d[i] = 0;});
+      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+        d[s[i]] = 1;});
     }
     isDense = true;
   }

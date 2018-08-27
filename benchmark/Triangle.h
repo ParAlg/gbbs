@@ -77,7 +77,7 @@ template <template <class W> class vertex, class W>
 size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
                      vertexSubset& Frontier) {
   emdf(DG, Frontier, wrap_em_f<W>(countF<vertex, W>(DG.V, counts)), no_output);
-  size_t count = seq::plusReduce(counts, 16 * getWorkers());
+  size_t count = ligra_utils::seq::plusReduce(counts, 16 * getWorkers());
   return count;
 }
 

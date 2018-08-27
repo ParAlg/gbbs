@@ -70,14 +70,14 @@ namespace vertex {
         if(!f.cond(vtx_id)) break;
       }
     } else {
-      parallel_for(size_t j=0; j<d; j++) {
+      parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
         auto nw = nghs[j];
         uintE ngh = get<0>(nw);
         if (vertexSubset.isIn(ngh)) {
           auto m = f.updateAtomic(ngh, vtx_id, get<1>(nw));
           g(vtx_id, m);
         }
-      }
+      });
     }
   }
 
@@ -86,7 +86,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F, class G>
   inline void decodeNghs(vertex<W>* v, uintE vtx_id, tuple<uintE, W>* nghs,
       uintE d, F &f, G &g) {
-    parallel_for_bc(j, 0, d, (d > 1000), {
+    parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);
       if (f.cond(ngh)) {
@@ -101,7 +101,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F, class G>
   inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
       tuple<uintE, W>* nghs, uintE d, uintT o, F &f, G &g) {
-    parallel_for_bc(j, 0, d, (d > 1000), {
+    parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);
       if (f.cond(ngh)) {
@@ -182,7 +182,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F>
   inline void mapNghs(vertex<W>* v, uintE vtx_id, tuple<uintE, W>* nghs,
        uintE d, F& f, bool parallel) {
-    parallel_for_bc(j, 0, d, (d > 1000 && parallel), {
+    parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold && parallel), {
       uintE ngh = v->getOutNeighbor(j);
       f(vtx_id, ngh, v->getOutWeight(j));
     });
@@ -208,7 +208,7 @@ namespace vertex {
         auto in_im = make_array_imap(nghs, d);
         auto s = pbbs::filter(in_im, pc, pbbs::no_flag, tmp);
         size_t k = s.size();
-        parallel_for_bc(i, 0, k, (k > 2000), {
+        parallel_for_bc(i, 0, k, (k > pbbs::kSequentialForThreshold), {
           out(i, tmp[i]);
         });
       }
@@ -232,9 +232,9 @@ namespace vertex {
       return k;
     } else {
       // copy to tmp
-      parallel_for(size_t i=0; i<d; i++) {
+      parallel_for_bc(i, 0, d, (d > pbbs::kSequentialForThreshold), {
         tmp[i] = nghs[i];
-      }
+      });
       auto pc = [&] (const tuple<uintE, W>& nw) {
         return p(vtx_id, get<0>(nw), get<1>(nw));
       };
@@ -246,7 +246,7 @@ namespace vertex {
   template <template <typename W> class vertex, class W, class F, class G>
   inline void copyNghs(vertex<W>* v, uintE vtx_id, tuple<uintE, W>* nghs,
       uintE d, uintT o, F& f, G& g) {
-    parallel_for_bc(j, 0, d, (d > 1000), {
+    parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);
       auto val = f(vtx_id, ngh, get<1>(nw));

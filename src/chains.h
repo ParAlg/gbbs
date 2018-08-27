@@ -88,13 +88,13 @@ auto remove_chains(graph<vertex<W>>& GA) {
   auto flags_in = array_imap<bool>(n, false);
   auto flags_out = array_imap<bool>(n, false);
 
-  parallel_for(size_t i=0; i<in_vs.size(); i++) {
+  parallel_for_bc(i, 0, in_vs.size(), (in_vs.size() > pbbs::kSequentialForThreshold), {
     flags_in[in_vs.vtx(i)] = true;
-  }
+  });
 
-  parallel_for(size_t i=0; i<out_vs.size(); i++) {
+  parallel_for_bc(i, 0, out_vs.size(), (out_vs.size() > pbbs::kSequentialForThreshold), {
     flags_out[out_vs.vtx(i)] = true;
-  }
+  });
 
   size_t nr = 0;
   while (in_vs.size() > 0 || out_vs.size() > 0) {
@@ -102,25 +102,25 @@ auto remove_chains(graph<vertex<W>>& GA) {
     cout << "ins = " << in_vs.size() << " outs = " << out_vs.size() << endl;
     if (in_vs.size() > 0) {
       in_vs.toSparse();
-      parallel_for(size_t i=0; i<in_vs.size(); i++) {
+      parallel_for_bc(i, 0, in_vs.size(), (in_vs.size() > pbbs::kSequentialForThreshold), {
         uintE v = in_vs.vtx(i);
         assert(flags_in[v]);
         if (!chains[v]) {
           chains[v] = true;
         }
-      }
+      });
       auto next_in = edgeMap(GA, in_vs, make_decr<W>(in_d, flags_in));
       in_vs.del(); in_vs = next_in;
     }
     if (out_vs.size() > 0) {
       out_vs.toSparse();
-      parallel_for(size_t i=0; i<out_vs.size(); i++) {
+      parallel_for_bc(i, 0, out_vs.size(), (out_vs.size() > pbbs::kSequentialForThreshold), {
         uintE v = out_vs.vtx(i);
         assert(flags_out[v]);
         if (!chains[v]) {
           chains[v] = true;
         }
-      }
+      });
       auto next_out = edgeMap(GA, out_vs, make_decr<W>(out_d, flags_out), -1, in_edges);
       out_vs.del(); out_vs = next_out;
     }

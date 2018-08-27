@@ -26,7 +26,6 @@
 #pragma once
 
 #include <math.h>
-#include "parse_command_line.h"
 #include "utils.h"
 
 #include <cstring>
@@ -64,22 +63,25 @@ namespace benchIO {
 
   // parallel code for converting a string to words
   words stringToWords(char *Str, long n) {
-    parallel_for (long i=0; i < n; i++)
-      if (isSpace(Str[i])) Str[i] = 0;
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      if (isSpace(Str[i])) Str[i] = 0; });
 
     // mark start of words
     bool *FL = newA(bool,n);
     FL[0] = Str[0];
-    parallel_for (long i=1; i < n; i++) FL[i] = Str[i] && !Str[i-1];
+    parallel_for_bc(i, 1, n, (n > pbbs::kSequentialForThreshold), {
+      FL[i] = Str[i] && !Str[i-1];
+    });
 
     // offset for each start of word
-    _seq<long> Off = seq::packIndex<long>(FL, n);
+    ligra_utils::_seq<long> Off = ligra_utils::seq::packIndex<long>(FL, n);
     long m = Off.n;
     long *offsets = Off.A;
 
     // pointer to each start of word
     char **SA = newA(char*, m);
-    parallel_for (long j=0; j < m; j++) SA[j] = Str+offsets[j];
+    parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold), {
+      SA[j] = Str+offsets[j]; });
 
     free(offsets); free(FL);
     return words(Str,n,SA,m);
@@ -129,25 +131,26 @@ namespace benchIO {
   struct notZero { bool operator() (char A) {return A > 0;}};
 
   template <class T>
-  _seq<char> arrayToString(T* A, long n) {
+  ligra_utils::_seq<char> arrayToString(T* A, long n) {
     long* L = newA(long,n);
-    {parallel_for(long i=0; i < n; i++) L[i] = xToStringLen(A[i])+1;}
-    long m = seq::scan(L,L,n,addF<long>(),(long) 0);
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      L[i] = xToStringLen(A[i])+1; });
+    long m = ligra_utils::seq::scan(L,L,n,ligra_utils::addF<long>(),(long) 0);
     char* B = newA(char,m);
-    parallel_for(long j=0; j < m; j++)
-      B[j] = 0;
-    parallel_for(long i=0; i < n-1; i++) {
+    parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold), {
+      B[j] = 0; });
+    parallel_for_bc(i, 0, n-1, (n-1 > pbbs::kSequentialForThreshold), {
       xToString(B + L[i],A[i]);
       B[L[i+1] - 1] = '\n';
-    }
+    });
     xToString(B + L[n-1],A[n-1]);
     B[m-1] = '\n';
     free(L);
     char* C = newA(char,m+1);
-    long mm = seq::filter(B,C,m,notZero());
+    long mm = ligra_utils::seq::filter(B,C,m,notZero());
     C[mm] = 0;
     free(B);
-    return _seq<char>(C,mm);
+    return ligra_utils::_seq<char>(C,mm);
   }
 
   template <class T>
@@ -157,7 +160,7 @@ namespace benchIO {
     while (offset < n) {
       // Generates a string for a sequence of size at most BSIZE
       // and then wrties it to the output stream
-      _seq<char> S = arrayToString(A+offset,min(BSIZE,n-offset));
+      ligra_utils::_seq<char> S = arrayToString(A+offset,min(BSIZE,n-offset));
       os.write(S.A, S.n);
       S.del();
       offset += BSIZE;
@@ -172,7 +175,7 @@ namespace benchIO {
       // Generates a string for a sequence of size at most BSIZE
       // and then wrties it to the output stream
       cout << "Writing offset = " << offset << endl;
-      _seq<char> S = arrayToString(A + offset, min(BSIZE, n - offset));
+      ligra_utils::_seq<char> S = arrayToString(A + offset, min(BSIZE, n - offset));
       os.write(S.A, S.n);
       S.del();
       offset += BSIZE;
@@ -192,7 +195,7 @@ namespace benchIO {
     return 0;
   }
 
-  _seq<char> readStringFromFile(char *fileName) {
+  ligra_utils::_seq<char> readStringFromFile(char *fileName) {
     ifstream file (fileName, ios::in | ios::binary | ios::ate);
     if (!file.is_open()) {
       std::cout << "Unable to open file: " << fileName << std::endl;
@@ -204,6 +207,6 @@ namespace benchIO {
     char* bytes = newA(char,n+1);
     file.read (bytes,n);
     file.close();
-    return _seq<char>(bytes,n);
+    return ligra_utils::_seq<char>(bytes,n);
   }
 };

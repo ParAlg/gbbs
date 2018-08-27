@@ -161,7 +161,6 @@ class sparse_table {
 
   void clear() {
     parallel_for_bc(i, 0, m, (m > 2048), { table[i] = empty; });
-//    parallel_for(size_t i = 0; i < m; i++) { table[i] = empty; }
   }
 };
 

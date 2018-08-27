@@ -389,7 +389,7 @@ uint32_t* MST(graph<vertex<W>>& GA, bool largemem = false) {
     auto vtx_im = make_array_imap(vtxs, n);
     timer pack_t;
     pack_t.start();
-    n_active += seq::packIndex(vtxs + n_active, exhausted.start(), (uintE)n);
+    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.start(), (uintE)n);
     pack_t.stop();  // pack_t.reportTotal("reactivation pack");
 
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { if (exhausted[i]) exhausted[i] = false; });
@@ -563,7 +563,7 @@ uint32_t* MST(graph<vertex<W>>& GA) {
 
     // 2. initialize reservations, copy edge info, and run UF step.
     auto R = newA(res, n);
-    parallel_for(size_t i = 0; i < n; i++) { R[i] = res(); }
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { R[i] = res(); });
     array_imap<bool> mstFlags =
         array_imap<bool>(n_edges, [](size_t i) { return 0; });
 

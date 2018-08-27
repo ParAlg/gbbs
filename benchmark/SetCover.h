@@ -153,7 +153,7 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
       }
       return false;
     };
-    edgeMap(G, still_active, EdgeMap_F<W, decltype(reset_f)>(reset_f), -1,
+    edgeMap(G, still_active, ligra_utils::EdgeMap_F<W, decltype(reset_f)>(reset_f), -1,
             no_output | dense_forward);
     emt.stop();
 

@@ -44,7 +44,7 @@
 template <template <typename W> class vertex, class W>
 void BiconnectivityStats(graph<vertex<W>>& GA, char* s, uintE component_id=UINT_E_MAX) {
   size_t n = GA.n;
-  _seq<char> S = readStringFromFile(s);
+  ligra_utils::_seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
   auto labels = array_imap<tuple<uintE, uintE>>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {

@@ -170,7 +170,7 @@ struct buckets {
        uintE* outs = pbbs::new_array_no_init<uintE>((num_blocks+1) * total_buckets);
 
        // 1. Compute per-block histograms
-       parallel_for_1(size_t i=0; i<num_blocks; i++) {
+       parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
          size_t s = i * block_size;
          size_t e = min(s + block_size, k);
          uintE* hist = &(hists[i*total_buckets]);
@@ -183,7 +183,7 @@ struct buckets {
              hist[b]++;
            }
          }
-       }
+       });
 
       // 2. Aggregate histograms into a single histogram.
       auto get = [&] (size_t i) {
@@ -206,16 +206,16 @@ struct buckets {
       }
 
       // 4. Compute the starting offsets for each block.
-      parallel_for(size_t i=0; i<total_buckets; i++) {
+      parallel_for_bc(i, 0, total_buckets, (total_buckets > 1), {
         size_t start = outs[i*num_blocks];
         for (size_t j=0; j<num_blocks; j++) {
           hists[(i*num_blocks + j)*CACHE_LINE_S] = outs[i*num_blocks + j] - start;
         }
-      }
+      });
 
       // 5. Iterate over blocks again. Insert (id, bkt) into bkt[hists[bkt]]
       // and increment hists[bkt].
-      parallel_for_1 (size_t i=0; i<num_blocks; i++) {
+      parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
          size_t s = i * block_size;
          size_t e = min(s + block_size, k);
          // our buckets are now spread out, across outs
@@ -229,7 +229,7 @@ struct buckets {
              hists[(b*num_blocks + i)*CACHE_LINE_S]++;
            }
          }
-      }
+      });
 
       // 6. Finally, update the size of each bucket.
       for (size_t i=0; i<total_buckets; i++) {
@@ -285,9 +285,9 @@ struct buckets {
       auto _d = d;
       auto tmp = array_imap<uintE>(m);
       uintE* A = bkts[open_buckets].A;
-      parallel_for(size_t i=0; i<m; i++) {
+      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
         tmp[i] = A[i];
-      }
+      });
       if (order == increasing) {
         cur_range++; // increment range
       } else {

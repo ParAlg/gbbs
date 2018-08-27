@@ -46,14 +46,14 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
 
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
-    _seq<char> S = readStringFromFile(in_f);
+    ligra_utils::_seq<char> S = readStringFromFile(in_f);
     auto W = stringToWords(S.A, S.n);
     size_t ms = atol(W.Strings[0]);
     using edge = tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
-    parallel_for(size_t i=0; i<ms; i++) {
+    parallel_for_bc(i, 0, ms, (ms > pbbs::kSequentialForThreshold), {
       matching[i] = make_tuple(atol(W.Strings[1 + 2*i]), atol(W.Strings[2*(i+1)]));
-    }
+    });
     verify_matching(GA, matching);
     exit(0);
   }

@@ -32,9 +32,9 @@ struct UnionFind {
   UnionFind(size_t _n) :
     n(_n) {
     parents = newA(intT, n);
-    parallel_for(size_t i=0; i<n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       parents[i] = -1;
-    }
+    });
   }
 
   intT find(int32_t i) {

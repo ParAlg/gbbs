@@ -31,17 +31,17 @@
 #include <algorithm>
 #include <limits.h>
 
-#include "vertex.h"
 #include "compressed_vertex.h"
-#include "vertex_subset.h"
+#include "edge_map_utils.h"
 #include "graph.h"
 #include "IO.h"
-#include "edge_map_utils.h"
+#include "parse_command_line.h"
+#include "vertex_subset.h"
+#include "vertex.h"
 
-#include "oldlib/gettime.h"
-#include "oldlib/parse_command_line.h"
 #include "oldlib/utils.h"
 
+#include "../lib/get_time.h"
 #include "../lib/index_map.h"
 #include "../lib/binary_search.h"
 
@@ -126,24 +126,24 @@ vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset, F &f, co
   if (should_output(fl)) {
     D* next = newA(D, n);
     auto g = get_emdense_gen<data>(next);
-    parallel_for (long v=0; v<n; v++) {
+    parallel_for_bc(v, 0, n, true, {
       std::get<0>(next[v]) = 0;
       if (f.cond(v)) {
         (fl & in_edges) ?
         G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel) :
         G[v].decodeInNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel);
       }
-    }
+    });
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_nooutput_gen<data>();
-    parallel_for (long v=0; v<n; v++) {
+    parallel_for_bc(v, 0, n, true, {
       if (f.cond(v)) {
         (fl & in_edges) ?
         G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel) :
         G[v].decodeInNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel);
       }
-    }
+    });
     return vertexSubsetData<data>(n);
   }
 }
@@ -157,24 +157,24 @@ vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA, VS& vertexSubset, F
   if (should_output(fl)) {
     D* next = newA(D, n);
     auto g = get_emdense_forward_gen<data>(next);
-    parallel_for(long i=0;i<n;i++) { std::get<0>(next[i]) = 0; }
-    parallel_for (long i=0; i<n; i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { std::get<0>(next[i]) = 0; });
+    parallel_for_bc(i, 0, n, true, {
       if (vertexSubset.isIn(i)) {
         (fl & in_edges) ?
         G[i].decodeInNgh(i, f, g) :
         G[i].decodeOutNgh(i, f, g);
       }
-    }
+    });
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_forward_nooutput_gen<data>();
-    parallel_for (long i=0; i<n; i++) {
+    parallel_for_bc(i, 0, n, true, {
       if (vertexSubset.isIn(i)) {
         (fl & in_edges) ?
         G[i].decodeInNgh(i, f, g) :
         G[i].decodeOutNgh(i, f, g);
       }
-    }
+    });
     return vertexSubsetData<data>(n);
   }
 }
@@ -194,21 +194,21 @@ vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA, vertex* frontier_vertice
     size_t outEdgeCount = pbbs::scan_add(offsets, offsets);
     outEdges = newA(S, outEdgeCount);
     auto g = get_emsparse_gen<data>(outEdges);
-    parallel_for (size_t i = 0; i < m; i++) {
-      uintT v = indices.vtx(i), o = offsets[i];
+    parallel_for_bc(i, 0, m, true, {
+      uintT v = indices.vtx(i); uintT o = offsets[i];
       vertex vert = frontier_vertices[i];
       (fl & in_edges) ? vert.decodeInNghSparse(v, o, f, g) : vert.decodeOutNghSparse(v, o, f, g);
-    }
+    });
     offsets.del();
 
     S* nextIndices = newA(S, outEdgeCount);
     if (fl & remove_duplicates) {
       if (GA.flags == NULL) {
         GA.flags = newA(uintE, n);
-        parallel_for(long i=0;i<n;i++) { GA.flags[i]=UINT_E_MAX; }
+        parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { GA.flags[i]=UINT_E_MAX; });
       }
       auto get_key = [&] (size_t i) -> uintE& { return std::get<0>(outEdges[i]); };
-      remDuplicates(get_key, GA.flags, outEdgeCount, n);
+      ligra_utils::remDuplicates(get_key, GA.flags, outEdgeCount, n);
     }
     auto p = [] (tuple<uintE, data>& v) { return std::get<0>(v) != UINT_E_MAX; };
     size_t nextM = pbbs::filterf(outEdges, nextIndices, outEdgeCount, p);
@@ -217,11 +217,11 @@ vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA, vertex* frontier_vertice
   }
 
   auto g = get_emsparse_nooutput_gen<data>();
-  parallel_for (size_t i = 0; i < m; i++) {
+  parallel_for_bc(i, 0, m, true, {
     uintT v = indices.vtx(i);
     vertex vert = frontier_vertices[i];
     (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g) : vert.decodeOutNghSparse(v, 0, f, g);
-  }
+  });
   return vertexSubsetData<data>(n);
 }
 
@@ -256,7 +256,7 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
   auto degrees = array_imap<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan.
-  parallel_for(size_t i=0; i<indices.size(); i++) {
+  parallel_for_bc(i, 0, indices.size(), true, {
     size_t vtx_off = vertex_offs[i];
     size_t num_blocks = vertex_offs[i+1] - vtx_off;
     size_t degree = degree_imap[i];
@@ -265,7 +265,7 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
       blocks[vtx_off + j] = block(i, j);
       degrees[vtx_off + j] = block_deg;
     });
-  }
+  });
   pbbs::scan_add(degrees, degrees, pbbs::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks-1];
 
@@ -273,18 +273,18 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
   size_t n_threads = nblocks(outEdgeCount, kEMBlockSize);
   size_t* thread_offs = newA(size_t, n_threads+1);
   auto lt = [] (const uintT& l, const uintT& r) { return l < r; };
-  parallel_for(size_t i=0; i<n_threads; i++) {
+  parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
     size_t start_off = i*kEMBlockSize;
     thread_offs[i] = pbbs::binary_search(degrees, start_off, lt);
-  }
+  });
   thread_offs[n_threads] = num_blocks;
 
   // 4. Run each thread in parallel
   auto cts = array_imap<uintE>(n_threads+1);
   S* outEdges = newA(S, outEdgeCount);
   auto g = get_emsparse_blocked_gen<data>(outEdges);
-  parallel_for (size_t i=0; i<n_threads; i++) {
-    size_t start = thread_offs[i], end = thread_offs[i+1];
+  parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
+    size_t start = thread_offs[i]; size_t end = thread_offs[i+1];
     // <= kEMBlockSize edges in this range, sequentially process
     if (start != end && start != num_blocks) {
       size_t start_offset = (start == 0) ? 0 : degrees[start-1];
@@ -304,14 +304,14 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
     } else {
       cts[i] = 0;
     }
-  }
+  });
   cts[n_threads] = 0;
   long out_size = pbbs::scan_add(cts, cts);
 
   // 5. Use cts to get
   S* out = newA(S, out_size);
-  parallel_for (size_t i=0; i<n_threads; i++) {
-    size_t start = thread_offs[i], end = thread_offs[i+1];
+  parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
+    size_t start = thread_offs[i]; size_t end = thread_offs[i+1];
     if (start != end) {
       size_t start_offset = (start == 0) ? 0 : degrees[start-1];
       size_t out_offset = cts[i];
@@ -320,16 +320,16 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
         out[out_offset + j] = outEdges[start_offset + j];
       }
     }
-  }
+  });
   free(outEdges); free(thread_offs); cts.del(); vertex_offs.del(); blocks.del(); degrees.del();
 
   if (fl & remove_duplicates) {
     if (GA.flags == NULL) {
       GA.flags = newA(uintE, n);
-      parallel_for(size_t i=0;i<n;i++) { GA.flags[i]=UINT_E_MAX; }
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { GA.flags[i]=UINT_E_MAX; });
     }
     auto get_key = [&] (size_t i) -> uintE& { return std::get<0>(out[i]); };
-    remDuplicates(get_key, GA.flags, out_size, n);
+    ligra_utils::remDuplicates(get_key, GA.flags, out_size, n);
     S* nextIndices = newA(S, out_size);
     auto p = [] (tuple<uintE, data>& v) { return std::get<0>(v) != UINT_E_MAX; };
     size_t nextM = pbbs::filterf(out, nextIndices, out_size, p);
@@ -346,11 +346,11 @@ vertexSubsetData<data> edgeMapSparse_no_filter(graph<vertex>& GA,
   using S = tuple<uintE, data>;
   size_t n = indices.n;
   uintT* offsets = newA(uintT, indices.size());
-  parallel_for(size_t i=0; i<indices.size(); i++) {
+  parallel_for_bc(i, 0, indices.size(), (indices.size() > pbbs::kSequentialForThreshold), {
     offsets[i] = (fl & in_edges) ? frontier_vertices[i].getInDegree() :
                                    frontier_vertices[i].getOutDegree();
-  }
-  size_t outEdgeCount = seq::plusScan(offsets, offsets, m);
+  });
+  size_t outEdgeCount = ligra_utils::seq::plusScan(offsets, offsets, m);
   S* outEdges = newA(S, outEdgeCount);
 
   auto g = get_emsparse_blocked_gen<data>(outEdges);
@@ -363,13 +363,13 @@ vertexSubsetData<data> edgeMapSparse_no_filter(graph<vertex>& GA,
 
   auto offsets_m = make_in_imap<uintT>(m, [&] (size_t i) { return offsets[i]; });
   auto lt = [] (const uintT& l, const uintT& r) { return l < r; };
-  parallel_for(size_t i=0; i<n_blocks; i++) {
+  parallel_for_bc(i, 0, n_blocks, (n_blocks > 1), {
     size_t s_val = i*kEMBlockSize;
     block_offs[i] = pbbs::binary_search(offsets_m, s_val, lt);
-  }
+  });
   block_offs[n_blocks] = m;
-  parallel_for (size_t i=0; i<n_blocks; i++) {
-    size_t start = block_offs[i], end = block_offs[i+1];
+  parallel_for_bc(i, 0, n_blocks, (n_blocks > 1), {
+    size_t start = block_offs[i]; size_t end = block_offs[i+1];
     if ((i == n_blocks-1) || start != end) {
       // start and end are offsets in [m]
       size_t start_o = offsets[start];
@@ -384,14 +384,14 @@ vertexSubsetData<data> edgeMapSparse_no_filter(graph<vertex>& GA,
     } else {
       cts[i] = 0;
     }
-  }
+  });
 
-  long outSize = seq::plusScan(cts, cts, n_blocks);
+  long outSize = ligra_utils::seq::plusScan(cts, cts, n_blocks);
   cts[n_blocks] = outSize;
 
   S* out = newA(S, outSize);
 
-  parallel_for (size_t i=0; i<n_blocks; i++) {
+  parallel_for_bc(i, 0, n_blocks, (n_blocks > 1), {
     if ((i == n_blocks-1) || block_offs[i] != block_offs[i+1]) {
       size_t start = block_offs[i];
       size_t start_o = offsets[start];
@@ -401,16 +401,16 @@ vertexSubsetData<data> edgeMapSparse_no_filter(graph<vertex>& GA,
         out[out_off + j] = outEdges[start_o + j];
       }
     }
-  }
+  });
   free(outEdges); free(cts); free(block_offs); free(offsets);
 
   if (fl & remove_duplicates) {
     if (GA.flags == NULL) {
       GA.flags = newA(uintE, n);
-      parallel_for(size_t i=0;i<n;i++) { GA.flags[i]=UINT_E_MAX; }
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { GA.flags[i]=UINT_E_MAX; });
     }
     auto get_key = [&] (size_t i) -> uintE& { return std::get<0>(out[i]); };
-    remDuplicates(get_key, GA.flags, outSize, n);
+    ligra_utils::remDuplicates(get_key, GA.flags, outSize, n);
     S* nextIndices = newA(S, outSize);
     auto p = [] (tuple<uintE, data>& v) { return std::get<0>(v) != UINT_E_MAX; };
     size_t nextM = pbbs::filterf(out, nextIndices, outSize, p);
@@ -491,19 +491,19 @@ vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA, vertexSubset& vs, P& p,
   S* outV;
   if (should_output(fl)) {
     outV = newA(S, vs.size());
-    parallel_for (size_t i=0; i<m; i++) {
+    parallel_for_bc(i, 0, m, true, {
       uintE v = vs.vtx(i);
-      tuple<uintE, W>* tmp_v = tmp.start() + space[i];
+      tuple<uintE COMMA W>* tmp_v = tmp.start() + space[i];
       size_t ct = G[v].packOutNgh(v, p, tmp_v);
       outV[i] = make_tuple(v, ct);
-    }
+    });
     return vertexSubsetData<uintE>(n, m, outV);
   } else {
-    parallel_for (size_t i=0; i<m; i++) {
+    parallel_for_bc(i, 0, m, true, {
       uintE v = vs.vtx(i);
-      tuple<uintE, W>* tmp_v = tmp.start() + space[i];
+      tuple<uintE COMMA W>* tmp_v = tmp.start() + space[i];
       G[v].packOutNgh(v, p, tmp_v);
-    }
+    });
     return vertexSubsetData<uintE>(n);
   }
 }
@@ -525,16 +525,16 @@ vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA, vertexSubset& vs, P
     outV = newA(S, vs.size());
   }
   if (should_output(fl)) {
-    parallel_for (size_t i=0; i<m; i++) {
+    parallel_for_bc(i, 0, m, true, {
       uintE v = vs.vtx(i);
       size_t ct = G[v].countOutNgh(v, p);
       outV[i] = make_tuple(v, ct);
-    }
+    });
   } else {
-    parallel_for (size_t i=0; i<m; i++) {
+    parallel_for_bc(i, 0, m, true, {
       uintE v = vs.vtx(i);
       size_t ct = G[v].countOutNgh(v, p);
-    }
+    });
   }
   if (should_output(fl)) {
     return vertexSubsetData<uintE>(n, m, outV);
@@ -552,15 +552,15 @@ template <class F, class VS, typename std::enable_if<
 void vertexMap(VS& V, F f) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if(V.dense()) {
-    parallel_for(long i=0;i<n;i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       if(V.isIn(i)) {
         f(i, V.ithData(i));
       }
-    }
+    });
   } else {
-    parallel_for(long i=0;i<m;i++) {
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
       f(V.vtx(i), V.vtxData(i));
-    }
+    });
   }
 }
 
@@ -569,15 +569,15 @@ template <class VS, class F, typename std::enable_if<
 void vertexMap(VS& V, F f) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if(V.dense()) {
-    parallel_for(long i=0;i<n;i++) {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       if(V.isIn(i)) {
         f(i);
       }
-    }
+    });
   } else {
-    parallel_for(long i=0;i<m;i++) {
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
       f(V.vtx(i));
-    }
+    });
   }
 }
 
@@ -588,9 +588,9 @@ vertexSubset vertexFilter(vertexSubset V, F filter) {
   long n = V.numRows(), m = V.numNonzeros();
   V.toDense();
   bool* d_out = newA(bool,n);
-  {parallel_for(long i=0;i<n;i++) d_out[i] = 0;}
-  {parallel_for(long i=0;i<n;i++)
-      if(V.d[i]) d_out[i] = filter(i);}
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {d_out[i] = 0;});
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      if(V.d[i]) d_out[i] = filter(i);});
   return vertexSubset(n,d_out);
 }
 
@@ -602,10 +602,10 @@ vertexSubset vertexFilter2(vertexSubset V, F filter) {
   }
   bool* bits = newA(bool, m);
   V.toSparse();
-  {parallel_for(size_t i=0; i<m; i++) {
+  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     uintE v = V.vtx(i);
     bits[i] = filter(v);
-  }}
+  });
   auto v_imap = make_in_imap<uintE>(m, [&] (size_t i) { return V.vtx(i); });
   auto bits_m = make_in_imap<bool>(m, [&] (size_t i) { return bits[i]; });
   auto out = pbbs::pack(v_imap, bits_m);
@@ -622,10 +622,10 @@ vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
   }
   bool* bits = newA(bool, m);
   V.toSparse();
-  parallel_for(size_t i=0; i<m; i++) {
+  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     auto t = V.vtxAndData(i);
     bits[i] = filter(std::get<0>(t), std::get<1>(t));
-  }
+  });
   auto v_imap = make_in_imap<uintE>(m, [&] (size_t i) { return V.vtx(i); });
   auto bits_m = make_in_imap<bool>(m, [&] (size_t i) { return bits[i]; });
   auto out = pbbs::pack(v_imap, bits_m);
@@ -641,21 +641,21 @@ vertexSubset add_to_vsubset(vertexSubset& vs, uintE *new_verts,
     uintE num_new_verts) {
   const size_t n = vs.numRows();
   if (vs.isDense) {
-    parallel_for (long i = 0; i < num_new_verts; i++) {
+    parallel_for_bc(i, 0, num_new_verts, (num_new_verts > pbbs::kSequentialForThreshold), {
       vs.d[new_verts[i]] = true;
-    }
+    });
     vs.m += num_new_verts;
   } else {
     const long vs_size = vs.numNonzeros();
     const long new_size = num_new_verts + vs_size;
     uintE* all_verts = newA(uintE, new_size);
-    parallel_for (long i = 0; i < new_size; i++) {
+    parallel_for_bc(i, 0, new_size, (new_size > pbbs::kSequentialForThreshold), {
       if (i < vs_size) {
         all_verts[i] = vs.s[i];
       } else {
         all_verts[i] = new_verts[i - vs_size];
       }
-    }
+    });
     uintE* old_s = vs.s;
     vs.s = all_verts;
     vs.m = new_size;

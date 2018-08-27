@@ -42,7 +42,7 @@ void SetCover_runner(graph<vertex>& GA, commandLine P) {
   auto cover = SetCover(GA, num_buckets);
   cover.del();
   t.stop();
-  t.reportTotal();
+  t.reportTotal("SetCover Time");
 
   // Set-cover mutates the underlying graph (unless it is copied, which
   // we don't do to prevent memory issues), so we make sure the algorithm is run
