@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 // Contains helper functions and special cases of edgeMap. Most of these
 // functions are specialized for the type of data written per vertex using tools
@@ -29,44 +29,53 @@
 
 #include <type_traits>
 
-#include "maybe.h"
 #include "../lib/binary_search.h"
+#include "maybe.h"
 
 // Standard version of edgeMapDense.
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_gen(tuple<bool, data>* next) {
-  return [next] (uintE ngh, bool m=false) {
-    if (m) next[ngh] = make_tuple(1, pbbs::empty()); };
+  return [next](uintE ngh, bool m = false) {
+    if (m) next[ngh] = make_tuple(1, pbbs::empty());
+  };
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_gen(tuple<bool, data>* next) {
-  return [next] (uintE ngh, Maybe<data> m=Maybe<data>()) {
-    if (m.exists) next[ngh] = make_tuple(1, m.t); };
+  return [next](uintE ngh, Maybe<data> m = Maybe<data>()) {
+    if (m.exists) next[ngh] = make_tuple(1, m.t);
+  };
 }
 
 // Standard version of edgeMapDenseForward.
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_forward_gen(tuple<bool, data>* next) {
-  return [next] (uintE ngh, bool m=false) {
-    if (m) next[ngh] = make_tuple(1, pbbs::empty()); };
+  return [next](uintE ngh, bool m = false) {
+    if (m) next[ngh] = make_tuple(1, pbbs::empty());
+  };
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_forward_gen(tuple<bool, data>* next) {
-  return [next] (uintE ngh, Maybe<data> m=Maybe<data>()) {
-    if (m.exists) next[ngh] = make_tuple(1, m.t); };
+  return [next](uintE ngh, Maybe<data> m = Maybe<data>()) {
+    if (m.exists) next[ngh] = make_tuple(1, m.t);
+  };
 }
 
 // Standard version of edgeMapSparse.
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emsparse_gen(tuple<uintE, data>* outEdges) {
-  return [outEdges] (uintE ngh, uintT offset, bool m=false) {
+  return [outEdges](uintE ngh, uintT offset, bool m = false) {
     if (m) {
       outEdges[offset] = make_tuple(ngh, pbbs::empty());
     } else {
@@ -75,10 +84,11 @@ auto get_emsparse_gen(tuple<uintE, data>* outEdges) {
   };
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emsparse_gen(tuple<uintE, data>* outEdges) {
-  return [outEdges] (uintE ngh, uintT offset, Maybe<data> m=Maybe<data>()) {
+  return [outEdges](uintE ngh, uintT offset, Maybe<data> m = Maybe<data>()) {
     if (m.exists) {
       outEdges[offset] = make_tuple(ngh, m.t);
     } else {
@@ -90,10 +100,11 @@ auto get_emsparse_gen(tuple<uintE, data>* outEdges) {
 // edgeMapSparse_no_filter
 // Version of edgeMapSparse that binary-searches and packs out blocks of the
 // next frontier.
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emsparse_blocked_gen(tuple<uintE, data>* outEdges) {
-  return [outEdges] (uintE ngh, uintT offset, bool m=false) {
+  return [outEdges](uintE ngh, uintT offset, bool m = false) {
     if (m) {
       outEdges[offset] = make_tuple(ngh, pbbs::empty());
       return true;
@@ -102,10 +113,11 @@ auto get_emsparse_blocked_gen(tuple<uintE, data>* outEdges) {
   };
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emsparse_blocked_gen(tuple<uintE, data>* outEdges) {
-  return [outEdges] (uintE ngh, uintT offset, Maybe<data> m=Maybe<data>()) {
+  return [outEdges](uintE ngh, uintT offset, Maybe<data> m = Maybe<data>()) {
     if (m.exists) {
       outEdges[offset] = make_tuple(ngh, m.t);
       return true;
@@ -114,42 +126,45 @@ auto get_emsparse_blocked_gen(tuple<uintE, data>* outEdges) {
   };
 }
 
-
-
-
 // Gen-functions that produce no output
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emsparse_nooutput_gen() {
-  return [&] (uintE ngh, uintE offset, bool m=false) { };
+  return [&](uintE ngh, uintE offset, bool m = false) {};
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emsparse_nooutput_gen() {
-  return [&] (uintE ngh, uintE offset, Maybe<data> m=Maybe<data>()) { };
+  return [&](uintE ngh, uintE offset, Maybe<data> m = Maybe<data>()) {};
 }
 
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_nooutput_gen() {
-  return [&] (uintE ngh, bool m=false) { };
+  return [&](uintE ngh, bool m = false) {};
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_nooutput_gen() {
-  return [&] (uintE ngh, Maybe<data> m=Maybe<data>()) { };
+  return [&](uintE ngh, Maybe<data> m = Maybe<data>()) {};
 }
 
-template <typename data, typename std::enable_if<
-  std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_forward_nooutput_gen() {
-  return [&] (uintE ngh, bool m=false) { };
+  return [&](uintE ngh, bool m = false) {};
 }
 
-template <typename data, typename std::enable_if<
-  !std::is_same<data, pbbs::empty>::value, int>::type=0 >
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbs::empty>::value,
+                                  int>::type = 0>
 auto get_emdense_forward_nooutput_gen() {
-  return [&] (uintE ngh, Maybe<data> m=Maybe<data>()) { };
+  return [&](uintE ngh, Maybe<data> m = Maybe<data>()) {};
 }

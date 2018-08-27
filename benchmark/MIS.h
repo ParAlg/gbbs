@@ -3,24 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -264,24 +263,23 @@ auto MIS(graph<vertex<W>>& GA) {
 }
 };  // namespace MIS_spec_for
 
-
 template <template <class W> class vertex, class W, class Seq>
 auto verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   size_t n = GA.n;
   auto ok = array_imap<bool>(n, [&](size_t i) { return 1; });
   parallel_for_bc(i, 0, n, true, {
-    auto pred = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+    auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
-  auto ok_imap = make_in_imap<size_t>(n, [&] (size_t i) { return ok[i]; });
+  auto ok_imap = make_in_imap<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_imap);
   if (n_ok == n) {
     cout << "valid MIS" << endl;
   } else {
-    cout << "invalid MIS, " << (n - n_ok) << " vertices saw bad neighborhoods" << endl;
+    cout << "invalid MIS, " << (n - n_ok) << " vertices saw bad neighborhoods"
+         << endl;
   }
 }
-

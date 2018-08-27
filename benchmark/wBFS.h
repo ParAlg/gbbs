@@ -3,24 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -76,9 +75,11 @@ template <
 auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
           bool largemem = false, bool no_blocked = false) {
   auto before_state = get_pcm_state();
-  timer t; t.start();
+  timer t;
+  t.start();
 
-  timer init; init.start();
+  timer init;
+  init.start();
   auto V = G.V;
   size_t n = G.n, m = G.m;
 
@@ -103,7 +104,8 @@ auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
     oldDist = dest;  // write back
   };
 
-  init.stop(); init.reportTotal("init time");
+  init.stop();
+  init.reportTotal("init time");
   timer bt, emt;
   auto bkt = b.next_bucket();
   size_t rd = 0;
@@ -119,13 +121,15 @@ auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
         edgeMapData<uintE>(G, active, wbfs::Visit_F(dists), G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
-    emt.stop(); bt.start();
+    emt.stop();
+    bt.start();
     if (res.dense()) {
       b.update_buckets(res.get_fn_repr(), n);
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.del(); active.del();
+    res.del();
+    active.del();
     bkt = b.next_bucket();
     bt.stop();
     rd++;

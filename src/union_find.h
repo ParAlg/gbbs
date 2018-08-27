@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -29,19 +29,18 @@
 struct UnionFind {
   size_t n;
   intT* parents;
-  UnionFind(size_t _n) :
-    n(_n) {
+  UnionFind(size_t _n) : n(_n) {
     parents = newA(intT, n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
-      parents[i] = -1;
-    });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { parents[i] = -1; });
   }
 
   intT find(int32_t i) {
     if (parents[i] < 0) return i;
     intT j = parents[i];
     if (parents[j] < 0) return j;
-    do j = parents[j];
+    do
+      j = parents[j];
     while (parents[j] >= 0);
     intT tmp;
     while ((tmp = parents[i]) != j) {
@@ -51,14 +50,9 @@ struct UnionFind {
     return j;
   }
 
-  void link(intT u, intT v) {
-    parents[u] = v;
-  }
+  void link(intT u, intT v) { parents[u] = v; }
 
-  void del() {
-    free(parents);
-  }
-
+  void del() { free(parents); }
 };
 
 // edges: <uintE, uintE, W>
@@ -74,12 +68,10 @@ struct UnionFindStep {
 
   size_t n;
 
-  void del() {
-    free(indices);
-  }
+  void del() { free(indices); }
 
-  UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf) :
-    E(_E), R(_R), inST(ist), uf(_uf) {
+  UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf)
+      : E(_E), R(_R), inST(ist), uf(_uf) {
     n = uf.n;
     indices = newA(storage, E.non_zeros);
   }
@@ -93,9 +85,11 @@ struct UnionFindStep {
       indices[i] = make_tuple(u, v);
       R[v].reserve(i);
       R[u].reserve(i);
-      assert(u < n); assert(v < n);
-      return 1; // active
-    } else return 0; // done
+      assert(u < n);
+      assert(v < n);
+      return 1;  // active
+    } else
+      return 0;  // done
   }
 
   bool commit(intT i) {
@@ -107,17 +101,18 @@ struct UnionFindStep {
       cout << "u = " << u << " v = " << v << " i = " << i << endl;
       exit(0);
     }
-//    assert(u < n); assert(v < n);
+    //    assert(u < n); assert(v < n);
     if (R[v].checkReset(i)) {
       R[u].checkReset(i);
       uf.link(v, u);
       inST[i] = 1;
-      return 1;}
-    else if (R[u].checkReset(i)) {
+      return 1;
+    } else if (R[u].checkReset(i)) {
       uf.link(u, v);
       inST[i] = 1;
-      return 1; }
-    else return 0;
+      return 1;
+    } else
+      return 0;
   }
 };
 
@@ -125,4 +120,3 @@ template <class intT, class Edges, class R, class ST, class UF>
 auto make_uf_step(Edges& e, R r, ST& ist, UF& uf) {
   return UnionFindStep<intT, Edges, ST, UF>(e, r, ist, uf);
 }
-

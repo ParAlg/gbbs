@@ -22,9 +22,9 @@
 
 #pragma once
 
+#include <tuple>
 #include "sequence_ops.h"
 #include "utilities.h"
-#include <tuple>
 
 // TODO: see if striding by an entire page reduces times more.
 #define CACHE_STRIDE 128
@@ -93,7 +93,8 @@ class resizable_table {
   size_t ne;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { A[i] = kv; });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { A[i] = kv; });
   }
 
   inline size_t firstIndex(K& k) { return hashToRange(key_hash(k), mask); }
@@ -196,7 +197,8 @@ class resizable_table {
     V& v = std::get<1>(kv);
     size_t h = firstIndex(k);
     while (1) {
-      if (std::get<0>(table[h]) == empty_key && pbbs::CAS(&table[h], empty, kv)) {
+      if (std::get<0>(table[h]) == empty_key &&
+          pbbs::CAS(&table[h], empty, kv)) {
         size_t wn = get_worker_num();
         cts[wn * CACHE_STRIDE]++;
         return 1;
@@ -295,7 +297,8 @@ class resizable_table {
   }
 
   void clear() {
-    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { table[i] = empty; });
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+                    { table[i] = empty; });
   }
 };
 

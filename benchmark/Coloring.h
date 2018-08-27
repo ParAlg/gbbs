@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -32,7 +32,7 @@
 
 namespace coloring {
 template <template <typename W> class vertex, class W, class Seq>
-uintE color(graph<vertex<W> >& GA, uintE v, Seq& colors) {
+uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
   uintE deg = GA.V[v].getOutDegree();
   if (deg > 0) {
     bool* bits;
@@ -86,7 +86,7 @@ struct coloring_f {
 };
 
 template <template <typename W> class vertex, class W>
-array_imap<uintE> Coloring(graph<vertex<W> >& GA, bool lf=false) {
+array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   timer color_t;
   color_t.start();
   timer initt;
@@ -105,7 +105,7 @@ array_imap<uintE> Coloring(graph<vertex<W> >& GA, bool lf=false) {
     parallel_for_bc(i, 0, n, true, {
       uintE our_deg = GA.V[i].getOutDegree();
       uintE i_p = P[i];
-      auto count_f = wrap_f<W>([&] (uintE src, uintE ngh) {
+      auto count_f = wrap_f<W>([&](uintE src, uintE ngh) {
         uintE ngh_deg = GA.V[ngh].getOutDegree();
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       });
@@ -159,14 +159,14 @@ void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
   auto ok = array_imap<bool>(n);
   parallel_for_bc(i, 0, n, true, {
     uintE src_color = colors[i];
-    auto pred = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+    auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       uintE ngh_color = colors[ngh];
       return src_color == ngh_color;
     };
     size_t ct = G.V[i].countOutNgh(i, pred);
     ok[i] = (ct > 0);
   });
-  auto im = make_in_imap<size_t>(n, [&] (size_t i) { return (size_t)ok[i]; });
+  auto im = make_in_imap<size_t>(n, [&](size_t i) { return (size_t)ok[i]; });
   size_t ct = pbbs::reduce_add(im);
   cout << "ct = " << ct << endl;
   if (ct > 0) {

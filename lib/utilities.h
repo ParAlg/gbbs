@@ -147,28 +147,34 @@ void increase_stack_size() {
   }
 }
 
-#define parallel_for_bc(_i, _start, _end, _cond, _body) { \
-  if (_cond) { \
-    {parallel_for(size_t _i=_start; _i < _end; _i++) { \
-      _body \
-    }} \
-  } else { \
-    {for (size_t _i=_start; _i < _end; _i++) { \
-      _body \
-    }} \
-  } \
+#define parallel_for_bc(_i, _start, _end, _cond, _body)             \
+  {                                                                 \
+    if (_cond) {                                                    \
+      {                                                             \
+        parallel_for(size_t _i = _start; _i < _end; _i++) { _body } \
+      }                                                             \
+    } else {                                                        \
+      {                                                             \
+        for (size_t _i = _start; _i < _end; _i++) {                 \
+          _body                                                     \
+        }                                                           \
+      }                                                             \
+    }                                                               \
   }
 
-#define parallel_for_bc_inc(_i, _start, _end, _inc, _cond, _body) { \
-  if (_cond) { \
-    {parallel_for(size_t _i=_start; _i < _end; _inc) { \
-      _body \
-    }} \
-  } else { \
-    {for (size_t _i=_start; _i < _end; _inc) { \
-      _body \
-    }} \
-  } \
+#define parallel_for_bc_inc(_i, _start, _end, _inc, _cond, _body)   \
+  {                                                                 \
+    if (_cond) {                                                    \
+      {                                                             \
+        parallel_for(size_t _i = _start; _i < _end; _inc) { _body } \
+      }                                                             \
+    } else {                                                        \
+      {                                                             \
+        for (size_t _i = _start; _i < _end; _inc) {                 \
+          _body                                                     \
+        }                                                           \
+      }                                                             \
+    }                                                               \
   }
 
 namespace pbbs {
@@ -228,7 +234,8 @@ E* new_array_no_init(size_t n, bool touch_pages = false) {
   }
   // a hack to make sure tlb is full for huge pages
   if (touch_pages)
-    parallel_for_bc_inc(i, 0, bytes, i = i + (1 << 21), true, { ((bool*)r)[i] = 0; });
+    parallel_for_bc_inc(i, 0, bytes, i = i + (1 << 21), true,
+                        { ((bool*)r)[i] = 0; });
   return r;
 }
 
@@ -237,7 +244,8 @@ template <typename E>
 E* new_array(size_t n) {
   E* r = new_array_no_init<E>(n);
   if (!std::is_trivially_default_constructible<E>::value) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {new ((void*)(r + i)) E; });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { new ((void*)(r + i)) E; });
   }
   return r;
 }
@@ -247,7 +255,8 @@ template <typename E>
 void delete_array(E* A, size_t n) {
   // C++14 -- suppored by gnu C++11
   if (!std::is_trivially_destructible<E>::value) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {A[i].~E(); });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { A[i].~E(); });
   }
   free(A);
 }
@@ -258,15 +267,17 @@ inline bool CAS_GCC(ET* ptr, ET oldv, ET newv) {
 }
 
 template <class ET>
-inline bool CAS(ET *ptr, ET oldv, ET newv) {
+inline bool CAS(ET* ptr, ET oldv, ET newv) {
   if (sizeof(ET) == 1) {
-    return __sync_bool_compare_and_swap((bool*)ptr, *((bool*)&oldv), *((bool*)&newv));
+    return __sync_bool_compare_and_swap((bool*)ptr, *((bool*)&oldv),
+                                        *((bool*)&newv));
   } else if (sizeof(ET) == 4) {
-    return __sync_bool_compare_and_swap((int*)ptr, *((int*)&oldv), *((int*)&newv));
+    return __sync_bool_compare_and_swap((int*)ptr, *((int*)&oldv),
+                                        *((int*)&newv));
   } else if (sizeof(ET) == 8) {
-    return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv), *((long*)&newv));
-  }
-  else {
+    return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
+                                        *((long*)&newv));
+  } else {
     std::cout << "CAS bad length : " << sizeof(ET) << std::endl;
     abort();
   }

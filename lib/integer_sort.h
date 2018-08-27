@@ -44,7 +44,8 @@ void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
   if (n < (1 << 12) || depth > 2) {
     auto cmp = [&](T a, T b) { return g(a) < g(b); };
     if (In.start() != Out.start())
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { Out[i] = In[i]; });
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                      { Out[i] = In[i]; });
     quicksort(Out.start(), n, cmp);
     return;
   }

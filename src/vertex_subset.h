@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -39,26 +39,25 @@ struct vertexSubsetData {
   using D = tuple<bool, data>;
 
   // An empty vertex set.
-  vertexSubsetData(size_t _n) : n(_n), m(0), d(NULL), s(NULL), isDense(0) { }
+  vertexSubsetData(size_t _n) : n(_n), m(0), d(NULL), s(NULL), isDense(0) {}
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData(long _n, long _m, S* indices)
-  : n(_n), m(_m), s(indices), d(NULL), isDense(0) { }
+      : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData(long _n, long _m, D* _d)
-  : n(_n), m(_m), s(NULL), d(_d), isDense(1) { }
+      : n(_n), m(_m), s(NULL), d(_d), isDense(1) {}
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData(long _n, D* _d)
-  : n(_n), s(NULL), d(_d), isDense(1) {
-    auto d_map = make_in_imap<size_t>(n, [&] (size_t i) { return (size_t)get<0>(_d[i]); });
+  vertexSubsetData(long _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1) {
+    auto d_map = make_in_imap<size_t>(
+        n, [&](size_t i) { return (size_t)get<0>(_d[i]); });
     m = pbbs::reduce_add(d_map);
   }
 
-  vertexSubsetData()
-  : n(0), m(0), s(NULL), d(NULL), isDense(0) { }
+  vertexSubsetData() : n(0), m(0), s(NULL), d(NULL), isDense(0) {}
 
   void del() {
     if (d != NULL) free(d);
@@ -78,13 +77,13 @@ struct vertexSubsetData {
   auto get_fn_repr() const {
     std::function<Maybe<tuple<uintE, data>>(const uintE&)> fn;
     if (isDense) {
-      fn = [&] (const uintE& v) -> Maybe<tuple<uintE, data>> {
+      fn = [&](const uintE& v) -> Maybe<tuple<uintE, data>> {
         auto ret = Maybe<tuple<uintE, data>>(make_tuple(v, std::get<1>(d[v])));
         ret.exists = std::get<0>(d[v]);
         return ret;
       };
     } else {
-      fn = [&] (const uintE& i) -> Maybe<tuple<uintE, data>> {
+      fn = [&](const uintE& i) -> Maybe<tuple<uintE, data>> {
         return Maybe<tuple<uintE, data>>(s[i]);
       };
     }
@@ -97,12 +96,13 @@ struct vertexSubsetData {
   long numRows() { return n; }
   long numNonzeros() { return m; }
 
-  bool isEmpty() { return m==0; }
+  bool isEmpty() { return m == 0; }
   bool dense() { return isDense; }
 
   void toSparse() {
     if (s == NULL && m > 0) {
-      auto f = make_in_imap<D>(n, [&] (size_t i) -> tuple<bool, data> { return d[i]; });
+      auto f = make_in_imap<D>(
+          n, [&](size_t i) -> tuple<bool, data> { return d[i]; });
       auto out = pbbs::pack_index_and_data<uintE, data>(f, n);
       out.allocated = false;
       s = out.s;
@@ -118,14 +118,14 @@ struct vertexSubsetData {
   void toDense() {
     if (d == NULL) {
       d = newA(D, n);
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
-        std::get<0>(d[i]) = false; });
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                      { std::get<0>(d[i]) = false; });
       parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
-        d[std::get<0>(s[i])] = make_tuple(true, std::get<1>(s[i])); });
+        d[std::get<0>(s[i])] = make_tuple(true, std::get<1>(s[i]));
+      });
     }
     isDense = true;
   }
-
 
   S* s;
   D* d;
@@ -139,42 +139,45 @@ struct vertexSubsetData<pbbs::empty> {
   using S = uintE;
 
   // An empty vertex set.
-  vertexSubsetData<pbbs::empty>(size_t _n) : n(_n), m(0), d(NULL), s(NULL), isDense(0) {}
+  vertexSubsetData<pbbs::empty>(size_t _n)
+      : n(_n), m(0), d(NULL), s(NULL), isDense(0) {}
 
   // A vertexSubset with a single vertex.
   vertexSubsetData<pbbs::empty>(long _n, uintE v)
-  : n(_n), m(1), d(NULL), isDense(0) {
+      : n(_n), m(1), d(NULL), isDense(0) {
     s = newA(uintE, 1);
     s[0] = v;
   }
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData<pbbs::empty>(long _n, long _m, S* indices)
-  : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
+      : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData<pbbs::empty>(long _n, long _m, tuple<uintE, pbbs::empty>* indices)
-  : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0) {}
+  vertexSubsetData<pbbs::empty>(long _n, long _m,
+                                tuple<uintE, pbbs::empty>* indices)
+      : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0) {}
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData<pbbs::empty>(long _n, long _m, bool* _d)
-  : n(_n), m(_m), s(NULL), d(_d), isDense(1)  {}
+      : n(_n), m(_m), s(NULL), d(_d), isDense(1) {}
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
   vertexSubsetData<pbbs::empty>(long _n, bool* _d)
-  : n(_n), s(NULL), d(_d), isDense(1) {
-    auto d_map = make_in_imap<size_t>(n, [&] (size_t i) { return _d[i]; });
-    auto f = [&] (size_t i, size_t j) { return i + j; };
+      : n(_n), s(NULL), d(_d), isDense(1) {
+    auto d_map = make_in_imap<size_t>(n, [&](size_t i) { return _d[i]; });
+    auto f = [&](size_t i, size_t j) { return i + j; };
     m = pbbs::reduce(d_map, f);
   }
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
- vertexSubsetData<pbbs::empty>(long _n, tuple<bool, pbbs::empty>* _d)
-  : n(_n), s(NULL), d((bool*)_d), isDense(1)  {
-    auto d_map = make_in_imap<size_t>(n, [&] (size_t i) { return get<0>(_d[i]); });
-    auto f = [&] (size_t i, size_t j) { return i + j; };
+  vertexSubsetData<pbbs::empty>(long _n, tuple<bool, pbbs::empty>* _d)
+      : n(_n), s(NULL), d((bool*)_d), isDense(1) {
+    auto d_map =
+        make_in_imap<size_t>(n, [&](size_t i) { return get<0>(_d[i]); });
+    auto f = [&](size_t i, size_t j) { return i + j; };
     m = pbbs::reduce(d_map, f);
   }
 
@@ -186,7 +189,9 @@ struct vertexSubsetData<pbbs::empty> {
   // Sparse
   inline uintE& vtx(const uintE& i) const { return s[i]; }
   inline pbbs::empty vtxData(const uintE& i) const { return pbbs::empty(); }
-  inline tuple<uintE, pbbs::empty> vtxAndData(const uintE& i) const { return make_tuple(s[i], pbbs::empty()); }
+  inline tuple<uintE, pbbs::empty> vtxAndData(const uintE& i) const {
+    return make_tuple(s[i], pbbs::empty());
+  }
 
   // Dense
   inline bool isIn(const uintE& v) const { return d[v]; }
@@ -196,14 +201,16 @@ struct vertexSubsetData<pbbs::empty> {
   auto get_fn_repr() const {
     std::function<Maybe<tuple<uintE, pbbs::empty>>(const uintE&)> fn;
     if (isDense) {
-      fn = [&] (const uintE& v) -> Maybe<tuple<uintE, pbbs::empty>> {
-        auto ret = Maybe<tuple<uintE, pbbs::empty>>(make_tuple(v, pbbs::empty()));
+      fn = [&](const uintE& v) -> Maybe<tuple<uintE, pbbs::empty>> {
+        auto ret =
+            Maybe<tuple<uintE, pbbs::empty>>(make_tuple(v, pbbs::empty()));
         ret.exists = d[v];
         return ret;
       };
     } else {
-      fn = [&] (const uintE& i) -> Maybe<tuple<uintE, pbbs::empty>> {
-        return Maybe<tuple<uintE, pbbs::empty>>(make_tuple(s[i], pbbs::empty()));
+      fn = [&](const uintE& i) -> Maybe<tuple<uintE, pbbs::empty>> {
+        return Maybe<tuple<uintE, pbbs::empty>>(
+            make_tuple(s[i], pbbs::empty()));
       };
     }
     return fn;
@@ -215,20 +222,21 @@ struct vertexSubsetData<pbbs::empty> {
   long numRows() { return n; }
   long numNonzeros() { return m; }
 
-  bool isEmpty() { return m==0; }
+  bool isEmpty() { return m == 0; }
   bool dense() { return isDense; }
 
   void toSparse() {
     if (s == NULL && m > 0) {
       auto _d = d;
-      auto f = [&] (size_t i) { return _d[i]; };
+      auto f = [&](size_t i) { return _d[i]; };
       auto f_in = make_in_imap<bool>(n, f);
       auto out = pbbs::pack_index<uintE>(f_in);
       out.allocated = false;
       s = out.s;
       if (out.size() != m) {
         cout << "bad stored value of m" << endl;
-        cout << "out.size = " << out.size() << " m = " << m << " n = " << n << endl;
+        cout << "out.size = " << out.size() << " m = " << m << " n = " << n
+             << endl;
         abort();
       }
     }
@@ -238,11 +246,11 @@ struct vertexSubsetData<pbbs::empty> {
   // Converts to dense but keeps sparse representation if it exists.
   void toDense() {
     if (d == NULL) {
-      d = newA(bool,n);
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
-        d[i] = 0;});
-      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
-        d[s[i]] = 1;});
+      d = newA(bool, n);
+      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                      { d[i] = 0; });
+      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+                      { d[s[i]] = 1; });
     }
     isDense = true;
   }

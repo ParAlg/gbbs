@@ -24,9 +24,9 @@
 
 #include <iostream>
 #include "index_map.h"
+#include "macros.h"
 #include "seq.h"
 #include "utilities.h"
-#include "macros.h"
 
 namespace pbbs {
 using namespace std;
@@ -249,7 +249,8 @@ auto filter(In_Seq In, Pred p, flags fl = no_flag,
     return std::move(filter_serial(In, p, fl, _Out));
   }
   auto Flags = array_imap<bool>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { Flags[i] = (bool)p(In[i]);});
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { Flags[i] = (bool)p(In[i]); });
 
   auto ret = pack(In, Flags, fl, _Out);
   return std::move(ret);

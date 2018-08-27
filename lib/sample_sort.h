@@ -120,18 +120,18 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     E* sample_set = new_array<E>(sample_set_size);
 
     // generate "random" samples with oversampling
-    parallel_for_bc(j, 0, sample_set_size, (sample_set_size > pbbs::kSequentialForThreshold), {
-      sample_set[j] = A[hash64(j) % n];
-    });
+    parallel_for_bc(j, 0, sample_set_size,
+                    (sample_set_size > pbbs::kSequentialForThreshold),
+                    { sample_set[j] = A[hash64(j) % n]; });
 
     // sort the samples
     quicksort(sample_set, sample_set_size, f);
 
     // subselect samples at even stride
     E* pivots = new_array<E>(num_buckets - 1);
-    parallel_for_bc(k, 0, (num_buckets-1), ((num_buckets-1) > pbbs::kSequentialForThreshold), {
-      pivots[k] = sample_set[OVER_SAMPLE * k];
-    });
+    parallel_for_bc(k, 0, (num_buckets - 1),
+                    ((num_buckets - 1) > pbbs::kSequentialForThreshold),
+                    { pivots[k] = sample_set[OVER_SAMPLE * k]; });
 
     delete_array(sample_set, sample_set_size);
 

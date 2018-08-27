@@ -40,8 +40,8 @@ struct dyn_arr {
 
   dyn_arr() : A(NULL), size(0), capacity(0), alloc(false) {}
   dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = newA(E, s); }
-  dyn_arr(E* _A, long _size, long _capacity, bool _alloc) :
-    A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
+  dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
+      : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
 
   void del() {
     if (alloc) {
@@ -54,7 +54,7 @@ struct dyn_arr {
 
   inline void resize(size_t n) {
     if (n + size > capacity) {
-      size_t new_capacity = std::max(2*(n + size), (size_t)MIN_BKT_SIZE);
+      size_t new_capacity = std::max(2 * (n + size), (size_t)MIN_BKT_SIZE);
       E* nA = newA(E, new_capacity);
       parallel_for_bc(i, 0, size, 2000, nA[i] = A[i];);
       if (alloc) {
@@ -66,9 +66,7 @@ struct dyn_arr {
     }
   }
 
-  inline void insert(E val, size_t pos) {
-    A[size + pos] = val;
-  }
+  inline void insert(E val, size_t pos) { A[size + pos] = val; }
 
   inline void push_back(E val) {
     A[size] = val;
@@ -77,9 +75,7 @@ struct dyn_arr {
 
   template <class F>
   void map(F f) {
-    parallel_for_bc (i, 0, size, (size > 2000) , {
-      f(A[i]);
-    });
+    parallel_for_bc(i, 0, size, (size > 2000), { f(A[i]); });
   }
 
   template <class F>
@@ -95,7 +91,4 @@ struct dyn_arr {
     parallel_for_bc(i, 0, n, 2000, A[size + i] = f(i););
     size += n;
   }
-
 };
-
-

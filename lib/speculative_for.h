@@ -69,7 +69,8 @@ intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
 
   while (numberDone < e) {
     if (round++ > maxTries) {
-      std::cout << "speculative_for: too many iterations, increase maxTries" << std::endl;
+      std::cout << "speculative_for: too many iterations, increase maxTries"
+                << std::endl;
       abort();
     }
 
@@ -121,7 +122,8 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
 
   while (numberDone < e) {
     if (round++ > maxTries) {
-      std::cout << "speculative_for: too many iterations, increase maxTries" << std::endl;
+      std::cout << "speculative_for: too many iterations, increase maxTries"
+                << std::endl;
       abort();
     }
 
@@ -147,8 +149,9 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
 
     // adjust round size based on number of failed attempts
     if (float(numberKeep) / float(size) > .2)
-      currentRoundSize = std::max(currentRoundSize / 2,
-                             std::max(maxRoundSize / 64 + 1, (intT)numberKeep));
+      currentRoundSize =
+          std::max(currentRoundSize / 2,
+                   std::max(maxRoundSize / 64 + 1, (intT)numberKeep));
     else if (float(numberKeep) / float(size) < .1)
       currentRoundSize = min(currentRoundSize * 2, maxRoundSize);
     //    cout << size << " : " << numberKeep << " : " << numberDone << endl;

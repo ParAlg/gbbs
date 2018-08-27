@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -29,8 +29,8 @@
 #include "lib/sample_sort.h"
 #include "lib/sparse_table.h"
 #include "lib/speculative_for.h"
-#include "oldlib/benchIO.h"
 #include "ligra.h"
+#include "oldlib/benchIO.h"
 
 namespace bc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -275,14 +275,16 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
       }
     }
   });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { GA.V[i].mapOutNgh(i, map_f); });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { GA.V[i].mapOutNgh(i, map_f); });
   map_e.stop();
   map_e.reportTotal("map edges time");
 
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { cts[i] = Tree.V[i].getOutDegree(); });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { cts[i] = Tree.V[i].getOutDegree(); });
 
   vs = vertexSubset(n, leafs.size(), leafs.get_array());
   rds = 0, tv = 0;
@@ -393,7 +395,8 @@ auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
   ccpred.start();
   // 1. Pack out all critical edges
   auto active = newA(bool, n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { active[i] = true; });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { active[i] = true; });
   auto vs_active = vertexSubset(n, n, active);
   auto pack_predicate = wrap_f<W>([&](const uintE& src, const uintE& ngh) {
     return not_critical_edge(src, ngh);
@@ -429,14 +432,13 @@ auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
     }
 
     auto tups = array_imap<pair<uintE, uintE>>(n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
-      tups[i] = make_pair(Parents[i] & bc::VAL_MASK, cc[i]);
-    });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { tups[i] = make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     benchIO::writeArrayToStream(out, tups.start(), n);
-//    for (size_t i = 0; i < n; i++) {
-//      out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << endl;
-//    }
+    //    for (size_t i = 0; i < n; i++) {
+    //      out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << endl;
+    //    }
     out.close();
   }
   cout << "BC done" << endl;

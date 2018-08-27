@@ -3,24 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
-
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -63,7 +62,8 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
   };
 
   uintE* edge_ids = newA(uintE, m);
-  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { edge_ids[i] = i; });
+  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+                  { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
   auto new_mst_edges = array_imap<uintE>(n, UINT_E_MAX);
@@ -232,27 +232,27 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   size_t m = G.m;
 
   auto vertex_offs = array_imap<long>(G.n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
-    vertex_offs[i] = G.V[i].getOutDegree();
-  });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { vertex_offs[i] = G.V[i].getOutDegree(); });
   pbbs::scan_add(vertex_offs, vertex_offs, pbbs::fl_scan_inclusive);
 
   auto sample_edges = array_imap<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
 
-  parallel_for_bc(i, 0, sample_size, (sample_size > pbbs::kSequentialForThreshold), {
-    size_t sample_edge = r.ith_rand(i) % m;
-    uintE vtx = pbbs::binary_search(vertex_offs, sample_edge, lte);
-    size_t vtx_off = vertex_offs[vtx];
-    size_t deg = G.V[vtx].getOutDegree();
-    assert(sample_edge < vtx_off);
-    size_t ith = vertex_offs[vtx] - sample_edge - 1;
-    assert(ith < deg);
-    uintE ngh;
-    W wgh;
-    std::tie(ngh, wgh) = G.V[vtx].get_ith_out_neighbor(vtx, ith);
-    sample_edges[i] = make_tuple(vtx, ngh, wgh);
-  });
+  parallel_for_bc(
+      i, 0, sample_size, (sample_size > pbbs::kSequentialForThreshold), {
+        size_t sample_edge = r.ith_rand(i) % m;
+        uintE vtx = pbbs::binary_search(vertex_offs, sample_edge, lte);
+        size_t vtx_off = vertex_offs[vtx];
+        size_t deg = G.V[vtx].getOutDegree();
+        assert(sample_edge < vtx_off);
+        size_t ith = vertex_offs[vtx] - sample_edge - 1;
+        assert(ith < deg);
+        uintE ngh;
+        W wgh;
+        std::tie(ngh, wgh) = G.V[vtx].get_ith_out_neighbor(vtx, ith);
+        sample_edges[i] = make_tuple(vtx, ngh, wgh);
+      });
 
   auto cmp_by_wgh = [](const edge& l, const edge& r) {
     return get<2>(l) < get<2>(r);
@@ -281,13 +281,13 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   size_t weight_size = (last_ind - first_ind + 1);
   double split_wgh_fraction = ((1.0 * (last_ind - first_ind + 1)) / ssize);
   cout << "split wgh is: " << split_weight << endl;
-  cout << "fraction of sample composed by split_wgh = " <<  split_wgh_fraction << endl;
-
+  cout << "fraction of sample composed by split_wgh = " << split_wgh_fraction
+       << endl;
 
   // 3. filter edges based on splitter
   if (split_wgh_fraction < 0.2) {
     auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-      if (src > ngh) return 1; // filter out
+      if (src > ngh) return 1;  // filter out
       if (wgh <= split_weight) {
         return 2;  // return in array
       }
@@ -297,13 +297,14 @@ edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   } else {
     // Special pred for performing extra hashing on edges with weight ==
     // split_wgh.
-    double frac_to_take = (1.0*(ind - first_ind)) / weight_size;
+    double frac_to_take = (1.0 * (ind - first_ind)) / weight_size;
     cout << "frac of split_weight to take: " << frac_to_take << endl;
     size_t range = (1L << pbbs::log2_up(G.m)) - 1;
     size_t threshold = frac_to_take * range;
-   // account for filtering directed edges
-    threshold *=  (first_round ? 2.0 : 1.0);
-    auto filter_split_wgh_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+    // account for filtering directed edges
+    threshold *= (first_round ? 2.0 : 1.0);
+    auto filter_split_wgh_pred = [&](const uintE& src, const uintE& ngh,
+                                     const W& wgh) {
       if (src > ngh) return 1;
       if (wgh < split_weight) {
         return 2;  // return in array
@@ -337,7 +338,8 @@ uint32_t* MST(graph<vertex<W>>& GA, bool largemem = false) {
 
   size_t n_active = n;
   uintE* vtxs = newA(uintE, n_active);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { vtxs[i] = i; });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { vtxs[i] = i; });
   uintE* next_vtxs = newA(uintE, n_active);
 
   size_t round = 0;
@@ -389,10 +391,13 @@ uint32_t* MST(graph<vertex<W>>& GA, bool largemem = false) {
     auto vtx_im = make_array_imap(vtxs, n);
     timer pack_t;
     pack_t.start();
-    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.start(), (uintE)n);
+    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.start(),
+                                            (uintE)n);
     pack_t.stop();  // pack_t.reportTotal("reactivation pack");
 
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { if (exhausted[i]) exhausted[i] = false; });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      if (exhausted[i]) exhausted[i] = false;
+    });
 
     // pointer jump: vertices that were made inactive could have had their
     // parents change.
@@ -563,7 +568,8 @@ uint32_t* MST(graph<vertex<W>>& GA) {
 
     // 2. initialize reservations, copy edge info, and run UF step.
     auto R = newA(res, n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { R[i] = res(); });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { R[i] = res(); });
     array_imap<bool> mstFlags =
         array_imap<bool>(n_edges, [](size_t i) { return 0; });
 

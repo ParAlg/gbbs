@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #pragma once
 
@@ -37,14 +37,16 @@ size_t RelabelIds(Seq& ids) {
   using T = typename Seq::T;
   size_t n = ids.size();
   auto inverse_map = array_imap<T>(n + 1);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { inverse_map[i] = 0; });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { inverse_map[i] = 0; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
   });
   pbbs::scan_add(inverse_map, inverse_map);
 
   size_t new_n = inverse_map[n];
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { ids[i] = inverse_map[ids[i]]; });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { ids[i] = inverse_map[ids[i]]; });
   return new_n;
 }
 
@@ -66,9 +68,8 @@ auto contract(graph<vertex<W> >& GA, Seq& clusters, size_t num_clusters) {
     uintE c_ngh = clusters[ngh];
     return c_src < c_ngh;
   };
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
-    deg_map[i] = GA.V[i].countOutNgh(i, pred);
-  });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
   deg_map[n] = 0;
   pbbs::scan_add(deg_map, deg_map);
   count_t.stop();
@@ -89,7 +90,8 @@ auto contract(graph<vertex<W> >& GA, Seq& clusters, size_t num_clusters) {
       edge_table.insert(make_tuple(make_tuple(c_src, c_ngh), pbbs::empty()));
     }
   };
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {GA.V[i].mapOutNgh(i, map_f, true); });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { GA.V[i].mapOutNgh(i, map_f, true); });
   auto e2 = edge_table.entries();
   auto edges = make_array_imap<K>((K*)e2.start(), e2.size());
   ins_t.stop();
@@ -97,21 +99,22 @@ auto contract(graph<vertex<W> >& GA, Seq& clusters, size_t num_clusters) {
 
   // Pack out singleton clusters
   auto flags = array_imap<uintE>(num_clusters + 1, [](size_t i) { return 0; });
-  parallel_for_bc(i, 0, edges.size(), (edges.size() > pbbs::kSequentialForThreshold), {
-    auto e = edges[i];
-    uintE u = get<0>(e) COMMA v = get<1>(e);
-    if (!flags(u)) flags[u] = 1;
-    if (!flags(v)) flags[v] = 1;
-  })
-  pbbs::scan_add(flags, flags);
+  parallel_for_bc(i, 0, edges.size(),
+                  (edges.size() > pbbs::kSequentialForThreshold), {
+                    auto e = edges[i];
+                    uintE u = get<0>(e) COMMA v = get<1>(e);
+                    if (!flags(u)) flags[u] = 1;
+                    if (!flags(v)) flags[v] = 1;
+                  }) pbbs::scan_add(flags, flags);
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = array_imap<uintE>(num_ns_clusters);
-  parallel_for_bc(i, 0, num_clusters, (num_clusters > pbbs::kSequentialForThreshold), {
-    if (flags[i] != flags[i + 1]) {
-      mapping[flags[i]] = i;
-    }
-  });
+  parallel_for_bc(i, 0, num_clusters,
+                  (num_clusters > pbbs::kSequentialForThreshold), {
+                    if (flags[i] != flags[i + 1]) {
+                      mapping[flags[i]] = i;
+                    }
+                  });
 
   auto sym_edges = array_imap<K>(2 * edges.size(), [&](size_t i) {
     size_t src_edge = i / 2;

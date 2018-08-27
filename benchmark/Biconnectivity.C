@@ -3,23 +3,23 @@
 // in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
 //
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 // Usage:
 // numactl -i all ./Biconnectivity -s -m com-orkut.ungraph.txt_SJ
@@ -34,15 +34,17 @@
 //           number of biconnected components.
 //
 // ex computing #biccs:
-// > numactl -i all ./Biconnectivity -of orkut_bcs.out -s -m com-orkut.ungraph.txt_SJ
-// > numactl -i all ./Biconnectivity -if orkut_bcs.out -s -m com-orkut.ungraph.txt_SJ
+// > numactl -i all ./Biconnectivity -of orkut_bcs.out -s -m
+// com-orkut.ungraph.txt_SJ > numactl -i all ./Biconnectivity -if orkut_bcs.out
+// -s -m com-orkut.ungraph.txt_SJ
 
 #include "Biconnectivity.h"
 #include "lib/sparse_additive_map.h"
 #include "ligra.h"
 
 template <template <typename W> class vertex, class W>
-void BiconnectivityStats(graph<vertex<W>>& GA, char* s, uintE component_id=UINT_E_MAX) {
+void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
+                         uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
   ligra_utils::_seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
@@ -72,7 +74,6 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s, uintE component_id=UINT_
     return (uintE)1;
   };
 
-
   size_t mask = (1 << 12) - 1;
   auto empty = make_tuple(UINT_E_MAX, UINT_E_MAX);
   auto ST = sparse_additive_map<uintE, uintE>(n, empty);
@@ -92,18 +93,23 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s, uintE component_id=UINT_
       }
     }
   };
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { GA.V[i].mapOutNgh(i, map_bc_label); });
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { GA.V[i].mapOutNgh(i, map_bc_label); });
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();
-    auto cmp_snd = [&] (const tuple<uintE, uintE>& l, const tuple<uintE, uintE>& r) { return get<1>(l) > get<1>(r); };
+    auto cmp_snd = [&](const tuple<uintE, uintE>& l,
+                       const tuple<uintE, uintE>& r) {
+      return get<1>(l) > get<1>(r);
+    };
     pbbs::sample_sort(ET.start(), ET.size(), cmp_snd);
-    for (size_t i=0; i<std::min((size_t)10, ET.size()); i++) {
+    for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       cout << get<0>(ET[i]) << " " << get<1>(ET[i]) << endl;
     }
   } else {
     // reduce flags
-    auto flags_imap = make_in_imap<size_t>(n, [&] (size_t i) { return (size_t)flags[i]; });
+    auto flags_imap =
+        make_in_imap<size_t>(n, [&](size_t i) { return (size_t)flags[i]; });
     cout << "Largest component size = " << pbbs::reduce_add(flags_imap) << endl;
   }
 
@@ -124,7 +130,8 @@ template <class vertex>
 void Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
   auto in_f = P.getOptionValue("-if");
   auto out_f = P.getOptionValue("-of");
-  uintE largest_cc_id = static_cast<uintE>(P.getOptionLongValue("-largestid", UINT_E_MAX));
+  uintE largest_cc_id =
+      static_cast<uintE>(P.getOptionLongValue("-largestid", UINT_E_MAX));
   assert(P.getOptionValue("-s"));
   if (in_f) {
     BiconnectivityStats(GA, in_f, largest_cc_id);

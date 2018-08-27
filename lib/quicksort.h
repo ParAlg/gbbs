@@ -23,8 +23,8 @@
 #pragma once
 
 #include <algorithm>
-#include "utilities.h"
 #include "seq.h"
+#include "utilities.h"
 
 namespace pbbs {
 
@@ -149,15 +149,16 @@ void p_quicksort(SeqA In, SeqA Out, const F& f, bool swap = 0) {
     size_t l = std::get<0>(X);
     size_t m = std::get<1>(X);
     bool mid_eq = std::get<2>(X);
-    par_do3(true,
-            [&]() { p_quicksort(Out.slice(0, l), In.slice(0, l), f, !swap); },
-            [&]() {
-              if (!mid_eq)
-                p_quicksort(Out.slice(l, m), In.slice(l, m), f, !swap);
-              else if (swap)
-                parallel_for_bc(i, l, m, ((m - l) > pbbs::kSequentialForThreshold), { In[i] = Out[i]; });
-            },
-            [&]() { p_quicksort(Out.slice(m, n), In.slice(m, n), f, !swap); });
+    par_do3(
+        true, [&]() { p_quicksort(Out.slice(0, l), In.slice(0, l), f, !swap); },
+        [&]() {
+          if (!mid_eq)
+            p_quicksort(Out.slice(l, m), In.slice(l, m), f, !swap);
+          else if (swap)
+            parallel_for_bc(i, l, m, ((m - l) > pbbs::kSequentialForThreshold),
+                            { In[i] = Out[i]; });
+        },
+        [&]() { p_quicksort(Out.slice(m, n), In.slice(m, n), f, !swap); });
   }
 }
 

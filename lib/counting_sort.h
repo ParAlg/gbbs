@@ -119,13 +119,13 @@ sequence<size_t> _count_sort(InS In, OutS Out, KeyS Keys, size_t num_buckets) {
   s_size_t* counts = new_array_no_init<s_size_t>(m, 1);
 
   // sort each block
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
-      s_size_t start = std::min(i * block_size, n);
-      s_size_t end = std::min(start + block_size, n);
-      _seq_count_sort<b_size_t COMMA s_size_t>(In.slice(start, end), B + start,
-                                          Keys.slice(start, end),
-                                          counts + i * num_buckets, num_buckets);
-    });
+  parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    s_size_t start = std::min(i * block_size, n);
+    s_size_t end = std::min(start + block_size, n);
+    _seq_count_sort<b_size_t COMMA s_size_t>(
+        In.slice(start, end), B + start, Keys.slice(start, end),
+        counts + i * num_buckets, num_buckets);
+  });
 
   OutS C = Out;
   size_t* bucket_offsets = transpose_buckets(

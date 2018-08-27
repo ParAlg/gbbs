@@ -43,7 +43,8 @@ class sparse_table {
   KeyHash& key_hash;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { A[i] = kv; });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
