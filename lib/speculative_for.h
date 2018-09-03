@@ -130,12 +130,12 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
     intT size = min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for_bc(i, 0, size, (size > 2048), {
+    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
     });
 
-    parallel_for_bc(i, 0, size, (size > 2048), {
+    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
       if (keep[i]) keep[i] = !step.commit(I[i]);
     });
 

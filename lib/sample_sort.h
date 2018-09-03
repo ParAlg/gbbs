@@ -165,7 +165,7 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     // std::cout << "transpose: " << t.get_next() << std::endl;
 
     // sort within each bucket
-    parallel_for_bc(i, 0, num_buckets, (num_blocks > 1), {
+    parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
       size_t start = bucket_offsets[i];
       size_t end = bucket_offsets[i + 1];
 

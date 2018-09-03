@@ -250,7 +250,7 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = array_imap<uintE>(indices.size() + 1);
-  parallel_for_bc(i, 0, indices.size(), (indices.size() > 2000), {
+  parallel_for_bc(i, 0, indices.size(), (indices.size() > pbbs::kSequentialForThreshold), {
     vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize;
   });
   vertex_offs[indices.size()] = 0;
@@ -479,7 +479,7 @@ vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   } else {
     // Overheads for edgeMapBlocked not worth it on very small frontiers.
     auto vs_out =
-        (should_output(fl) && fl & sparse_blocked && out_degrees > 2000)
+        (should_output(fl) && fl & sparse_blocked && out_degrees > pbbs::kSequentialForThreshold)
             ? edgeMapBlocked<data, vertex, VS, F>(GA, frontier_vertices, vs,
                                                   vs.numNonzeros(), f, fl)
             :
@@ -514,7 +514,7 @@ vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA, vertexSubset& vs, P& p,
     return vertexSubsetData<uintE>(n);
   }
   auto space = array_imap<uintT>(m);
-  parallel_for_bc(i, 0, m, (m > 2000), {
+  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     uintE v = vs.vtx(i);
     space[i] = G[v].calculateOutTemporarySpace();
   });

@@ -62,7 +62,7 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
                                  tuple<uintE, W>* nghs, uintE d,
                                  VS& vertexSubset, F& f, G& g,
                                  bool parallel = 0) {
-  if (!parallel || d < 1000) {
+  if (!parallel || d < pbbs::kSequentialForThreshold) {
     for (size_t j = 0; j < d; j++) {
       auto nw = nghs[j];
       uintE ngh = get<0>(nw);

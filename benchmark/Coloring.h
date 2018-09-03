@@ -23,12 +23,10 @@
 
 #pragma once
 
-#include "bucket.h"
 #include "ligra.h"
 
 #include "lib/index_map.h"
 #include "lib/random_shuffle.h"
-#include "lib/sparse_table.h"
 
 namespace coloring {
 template <template <typename W> class vertex, class W, class Seq>
@@ -42,7 +40,7 @@ uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     else
       bits = (bool*)s_bits;
 
-    parallel_for_bc(i, 0, deg, (deg > 2000), { bits[i] = 0; });
+    parallel_for_bc(i, 0, deg, (deg > pbbs::kSequentialForThreshold), { bits[i] = 0; });
     auto map_f = wrap_f<W>([&](uintE src, uintE ngh) {
       uintE color = colors[ngh];
       if (color < deg) {

@@ -114,7 +114,7 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   pbbs::sample_sort(edges.start(), edges.size(), sort_tup);
 
   auto starts = array_imap<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
-  parallel_for_bc(i, 0, edges.size(), (n > pbbs::kSequentialForThreshold), {
+  parallel_for_bc(i, 0, edges.size(), (edges.size() > pbbs::kSequentialForThreshold), {
     if (i == 0 || get<0>(edges[i]) != get<0>(edges[i - 1])) {
       starts[get<0>(edges[i])] = i;
     }
@@ -195,7 +195,7 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   pren.start();
   auto PN = array_imap<uintE>(n);
   vs = vertexSubset(n, s_copy.size(), s_copy.get_array());
-  parallel_for_bc(i, 0, Sources.size(), (n > pbbs::kSequentialForThreshold), {
+  parallel_for_bc(i, 0, Sources.size(), (Sources.size() > pbbs::kSequentialForThreshold), {
     uintE v = s_copy[i];
     PN[v] = 0;
   });
@@ -211,7 +211,7 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
     });
     auto tot = pbbs::scan_add(offsets, offsets);
     auto next_vs = array_imap<uintE>(tot);
-    parallel_for_bc(i, 0, vs.size(), (n > pbbs::kSequentialForThreshold), {
+    parallel_for_bc(i, 0, vs.size(), (vs.size() > pbbs::kSequentialForThreshold), {
       uintE v = vs.s[i];
       uintE off = offsets[i];
       uintE deg_v = Tree.V[v].getOutDegree();

@@ -78,7 +78,7 @@ auto Boruvka(edge_array<W>& E, uintE*& vtxs, uintE*& next_vtxs, M& min_edges,
 
     timer init_t;
     init_t.start();
-    parallel_for_bc(i, 0, n, (n > 2000), {
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintE v = vtxs[i];
       min_edges[v] = ct();
     });
