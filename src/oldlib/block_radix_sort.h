@@ -362,7 +362,7 @@ template <class E, class F>
 void iSortBottomUp(E *A, long n, long m, F f) {
   iSort(A, (unsigned long *)NULL, n, m, true, f);
 }
-};
+};  // namespace intSort
 
 static void integerSort(uintT *A, long n) {
   long maxV = ligra_utils::seq::reduce(A, n, ligra_utils::maxF<uintT>());

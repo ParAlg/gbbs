@@ -102,10 +102,11 @@ auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.get_array(), true);
   frontier.toSparse();
-  parallel_for_bc(i, 0, frontier.size(), (frontier.size() > pbbs::kSequentialForThreshold), {
-    uintE v = frontier.s[i];
-    table.insert(make_tuple(v, label_start + i));
-  });
+  parallel_for_bc(i, 0, frontier.size(),
+                  (frontier.size() > pbbs::kSequentialForThreshold), {
+                    uintE v = frontier.s[i];
+                    table.insert(make_tuple(v, label_start + i));
+                  });
   table.update_nelms();
 
   size_t rd = 0;
@@ -128,10 +129,11 @@ auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
     size_t sum = pbbs::reduce_add(im);
     table.maybe_resize(sum);
 
-    parallel_for_bc(i, 0, frontier.size(), (frontier.size() > pbbs::kSequentialForThreshold), {
-      uintE v = frontier.s[i];
-      bits[v] = 0;  // reset flag
-    });
+    parallel_for_bc(i, 0, frontier.size(),
+                    (frontier.size() > pbbs::kSequentialForThreshold), {
+                      uintE v = frontier.s[i];
+                      bits[v] = 0;  // reset flag
+                    });
 
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);

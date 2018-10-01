@@ -1025,7 +1025,7 @@ uchar* parallelCompressWeightedEdges(tuple<uintE, intE>* edges, uintT* offsets,
   //  auto t = [] (const uintE& s, const uintE& n, const intE& wgh, const
   //  size_t& num ) {
   ////    cout << "s " << s << " n " << n << " w " << wgh << " num = " << num <<
-  ///endl;
+  /// endl;
   //    return true;
   //  };
   //  cout << "decoding 692, deg = " << Degrees[692] << endl;

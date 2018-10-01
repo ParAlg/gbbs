@@ -114,11 +114,12 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   pbbs::sample_sort(edges.start(), edges.size(), sort_tup);
 
   auto starts = array_imap<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
-  parallel_for_bc(i, 0, edges.size(), (edges.size() > pbbs::kSequentialForThreshold), {
-    if (i == 0 || get<0>(edges[i]) != get<0>(edges[i - 1])) {
-      starts[get<0>(edges[i])] = i;
-    }
-  });
+  parallel_for_bc(i, 0, edges.size(),
+                  (edges.size() > pbbs::kSequentialForThreshold), {
+                    if (i == 0 || get<0>(edges[i]) != get<0>(edges[i - 1])) {
+                      starts[get<0>(edges[i])] = i;
+                    }
+                  });
   starts[n] = edges.size();
 
   timer seq;
@@ -195,10 +196,11 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   pren.start();
   auto PN = array_imap<uintE>(n);
   vs = vertexSubset(n, s_copy.size(), s_copy.get_array());
-  parallel_for_bc(i, 0, Sources.size(), (Sources.size() > pbbs::kSequentialForThreshold), {
-    uintE v = s_copy[i];
-    PN[v] = 0;
-  });
+  parallel_for_bc(i, 0, Sources.size(),
+                  (Sources.size() > pbbs::kSequentialForThreshold), {
+                    uintE v = s_copy[i];
+                    PN[v] = 0;
+                  });
   rds = 0;
   tv = 0;
   while (!vs.isEmpty()) {
@@ -211,36 +213,38 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
     });
     auto tot = pbbs::scan_add(offsets, offsets);
     auto next_vs = array_imap<uintE>(tot);
-    parallel_for_bc(i, 0, vs.size(), (vs.size() > pbbs::kSequentialForThreshold), {
-      uintE v = vs.s[i];
-      uintE off = offsets[i];
-      uintE deg_v = Tree.V[v].getOutDegree();
-      uintE preorder_number = PN[v] + 1;
+    parallel_for_bc(i, 0, vs.size(),
+                    (vs.size() > pbbs::kSequentialForThreshold), {
+                      uintE v = vs.s[i];
+                      uintE off = offsets[i];
+                      uintE deg_v = Tree.V[v].getOutDegree();
+                      uintE preorder_number = PN[v] + 1;
 
-      // should be tuned
-      if (deg_v < 4000) {
-        // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
-        for (size_t j = 0; j < deg_v; j++) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
-          PN[ngh] = preorder_number;
-          preorder_number += aug_sizes[ngh];
-          next_vs[off + j] = ngh;
-        }
-      } else {
-        auto A = array_imap<uintE>(deg_v);
-        parallel_for_bc(j, 0, deg_v, true, {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
-          A[j] = aug_sizes[ngh];
-        });
-        pbbs::scan_add(A, A);
-        parallel_for_bc(j, 0, deg_v, true, {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
-          uintE pn = preorder_number + A[j];
-          PN[ngh] = pn;
-          next_vs[off + j] = ngh;
-        });
-      }
-    });
+                      // should be tuned
+                      if (deg_v < 4000) {
+                        // Min and max in any vertex are [PN[v], PN[v] +
+                        // aug_sizes[v])
+                        for (size_t j = 0; j < deg_v; j++) {
+                          uintE ngh = Tree.V[v].getOutNeighbor(j);
+                          PN[ngh] = preorder_number;
+                          preorder_number += aug_sizes[ngh];
+                          next_vs[off + j] = ngh;
+                        }
+                      } else {
+                        auto A = array_imap<uintE>(deg_v);
+                        parallel_for_bc(j, 0, deg_v, true, {
+                          uintE ngh = Tree.V[v].getOutNeighbor(j);
+                          A[j] = aug_sizes[ngh];
+                        });
+                        pbbs::scan_add(A, A);
+                        parallel_for_bc(j, 0, deg_v, true, {
+                          uintE ngh = Tree.V[v].getOutNeighbor(j);
+                          uintE pn = preorder_number + A[j];
+                          PN[ngh] = pn;
+                          next_vs[off + j] = ngh;
+                        });
+                      }
+                    });
     vs.del();
     vs = vertexSubset(n, next_vs.size(), next_vs.get_array());
   }

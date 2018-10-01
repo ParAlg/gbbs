@@ -134,7 +134,8 @@ auto LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbs::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.start(), new_centers.size());
-      parallel_for_bc(i, 0, new_centers.size(), (new_centers.size() > pbbs::kSequentialForThreshold),
+      parallel_for_bc(i, 0, new_centers.size(),
+                      (new_centers.size() > pbbs::kSequentialForThreshold),
                       { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
     }

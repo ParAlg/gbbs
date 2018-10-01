@@ -23,9 +23,9 @@
 #pragma once
 #include <math.h>
 #include <stdio.h>
-#include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 #include "../lib/counting_sort_no_transpose.h"
 #include "sequential_ht.h"

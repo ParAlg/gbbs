@@ -250,9 +250,9 @@ auto edgeMapBlocked(graph<vertex>& GA, vertex* frontier_vertices, VS& indices,
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = array_imap<uintE>(indices.size() + 1);
-  parallel_for_bc(i, 0, indices.size(), (indices.size() > pbbs::kSequentialForThreshold), {
-    vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize;
-  });
+  parallel_for_bc(
+      i, 0, indices.size(), (indices.size() > pbbs::kSequentialForThreshold),
+      { vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbs::scan_add(vertex_offs, vertex_offs);
   auto blocks = array_imap<block>(num_blocks);
@@ -478,15 +478,15 @@ vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
                : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
   } else {
     // Overheads for edgeMapBlocked not worth it on very small frontiers.
-    auto vs_out =
-        (should_output(fl) && fl & sparse_blocked && out_degrees > pbbs::kSequentialForThreshold)
-            ? edgeMapBlocked<data, vertex, VS, F>(GA, frontier_vertices, vs,
-                                                  vs.numNonzeros(), f, fl)
-            :
-            //      edgeMapSparse_no_filter<data, vertex, VS, F>(GA,
-            //      frontier_vertices, vs, vs.numNonzeros(), f, fl) :
-            edgeMapSparse<data, vertex, VS, F>(GA, frontier_vertices, vs,
-                                               vs.numNonzeros(), f, fl);
+    auto vs_out = (should_output(fl) && fl & sparse_blocked &&
+                   out_degrees > pbbs::kSequentialForThreshold)
+                      ? edgeMapBlocked<data, vertex, VS, F>(
+                            GA, frontier_vertices, vs, vs.numNonzeros(), f, fl)
+                      :
+                      //      edgeMapSparse_no_filter<data, vertex, VS, F>(GA,
+                      //      frontier_vertices, vs, vs.numNonzeros(), f, fl) :
+                      edgeMapSparse<data, vertex, VS, F>(
+                          GA, frontier_vertices, vs, vs.numNonzeros(), f, fl);
     free(frontier_vertices);
     return vs_out;
   }

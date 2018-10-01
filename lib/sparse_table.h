@@ -161,7 +161,8 @@ class sparse_table {
   }
 
   void clear() {
-    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), { table[i] = empty; });
+    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+                    { table[i] = empty; });
   }
 };
 
