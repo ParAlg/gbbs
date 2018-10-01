@@ -26,6 +26,7 @@
 
 #include <stdlib.h>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include "compressed_vertex.h"
 #include "vertex.h"
