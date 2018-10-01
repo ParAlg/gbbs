@@ -102,7 +102,7 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
     });
     graph<vertex> G = graph<vertex>(NV, n, m, get_deletion_fn(NV, NE));
     G.copy_fn = get_copy_fn(NV, NE, n, m, sizeofe);
-    //    cout << "Returning copied graph" << endl;
+    //    std::cout << "Returning copied graph" << "\n";
     return G;
   };
   return std::bind(df, V, edges, n, m, sizeofe);
@@ -228,8 +228,8 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
 struct print_t {
   bool srcTarg(uintE src, uintE ngh, uintE edgesRead) {
-    cout << "src = " << src << " ngh = " << ngh << " edge# " << edgesRead
-         << endl;
+    std::cout << "src = " << src << " ngh = " << ngh << " edge# " << edgesRead
+              << "\n";
     return true;
   }
 };
@@ -245,7 +245,8 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   size_t n = G.n;
   w_vertex* V = G.V;
 
-  cout << "Filtering" << endl;
+  std::cout << "Filtering"
+            << "\n";
   // 1. Calculate total size
   auto degrees = array_imap<uintE>(n);
   auto byte_offsets = array_imap<uintT>(n + 1);
@@ -277,7 +278,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   });
   byte_offsets[n] = 0;
   size_t last_offset = pbbs::scan_add(byte_offsets, byte_offsets);
-  cout << " size is: " << last_offset << endl;
+  std::cout << " size is: " << last_offset << "\n";
 
   auto edges = array_imap<uchar>(last_offset);
 
@@ -295,9 +296,9 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
         long nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
             edges.start() + byte_offsets[i], 0, new_deg, i, f_it);
         if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
-          cout << "degree is: " << new_deg << " nbytes should be: "
-               << (byte_offsets[i + 1] - byte_offsets[i])
-               << " but is: " << nbytes << endl;
+          std::cout << "degree is: " << new_deg << " nbytes should be: "
+                    << (byte_offsets[i + 1] - byte_offsets[i])
+                    << " but is: " << nbytes << "\n";
           assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
         }
       }
@@ -319,7 +320,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
   auto deg_map = make_in_imap<size_t>(n, [&](size_t i) { return degrees[i]; });
   uintT total_deg = pbbs::reduce_add(deg_map);
-  cout << "Filtered, total_deg = " << total_deg << endl;
+  std::cout << "Filtered, total_deg = " << total_deg << "\n";
   return graph<cav_byte<W>>(AV, G.n, total_deg,
                             get_deletion_fn(AV, edges.get_array()));
 }
@@ -404,8 +405,8 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
   size_t output_size = std::get<1>(vtx_offs[n]);
-  cout << "tmp space to allocate = " << total_space
-       << " output size = " << output_size << endl;
+  std::cout << "tmp space to allocate = " << total_space
+            << " output size = " << output_size << "\n";
   auto arr = array_imap<edge>(output_size);
   auto tmp = array_imap<std::tuple<uintE, W>>(total_space);
 
@@ -457,7 +458,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     offs[i] = std::make_tuple(G.V[i].countOutNgh(i, p),
                               G.V[i].calculateOutTemporarySpace());
   });
-  //  cout << "fall e" << endl;
+  //  std::cout << "fall e" << "\n";
   offs[n] = std::make_tuple(0, 0);
   auto scan_f = [](const std::tuple<uintT, uintT>& l,
                    const std::tuple<uintT, uintT>& r) {
@@ -467,7 +468,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
   pbbs::scan(offs, offs, scan_f, std::make_tuple(0, 0));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = array_imap<std::tuple<uintE, W>>(total_space);
-  cout << "tmp space allocated = " << total_space << endl;
+  std::cout << "tmp space allocated = " << total_space << "\n";
 
   size_t total_edges = std::get<0>(offs[n]);
   auto arr = array_imap<edge>(total_edges);
@@ -487,7 +488,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     };
     parallel_for_bc(i, 0, n, true, { for_inner(i); });
   }
-  //  cout << "G.m = " << G.m << "arr.size = " << arr.size() << endl;
+  //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
   return edge_array<W>(arr.get_array(), n, n, arr.size());
 }
@@ -555,7 +556,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
   using V = symmetricVertex<W>;
   using edge = std::tuple<uintE, uintE, W>;
   size_t m = A.non_zeros;
-  size_t n = max<size_t>(A.num_cols, A.num_rows);
+  size_t n = std::max<size_t>(A.num_cols, A.num_rows);
 
   if (m == 0) {
     std::function<void()> del = []() {};

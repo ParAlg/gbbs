@@ -104,8 +104,9 @@ struct buckets {
       size_t max_b = pbbs::reduce(imap, max);
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
-      cout << "Unknown order: " << order
-           << ". Must be one of {increasing, decreasing}" << endl;
+      std::cout << "Unknown order: " << order
+                << ". Must be one of {increasing, decreasing}"
+                << "\n";
       abort();
     }
 
@@ -182,7 +183,7 @@ struct buckets {
     // 1. Compute per-block histograms
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t s = i * block_size;
-      size_t e = min(s + block_size, k);
+      size_t e = std::min(s + block_size, k);
       uintE* hist = &(hists[i * total_buckets]);
 
       for (size_t j = 0; j < total_buckets; j++) {
@@ -230,7 +231,7 @@ struct buckets {
     // and increment hists[bkt].
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t s = i * block_size;
-      size_t e = min(s + block_size, k);
+      size_t e = std::min(s + block_size, k);
       // our buckets are now spread out, across outs
       for (size_t j = s; j < e; j++) {
         auto m = f(j);
@@ -314,10 +315,11 @@ struct buckets {
     };
 
     if (m != num_elms) {
-      cout << "m = " << m << " num_elms = " << num_elms << endl;
+      std::cout << "m = " << m << " num_elms = " << num_elms << "\n";
       cur_bkt = 0;
-      cout << "curBkt = " << get_cur_bucket_num() << endl;
-      cout << "mismatch" << endl;
+      std::cout << "curBkt = " << get_cur_bucket_num() << "\n";
+      std::cout << "mismatch"
+                << "\n";
       assert(m == num_elms);  // corrruption in bucket structure.
     }
     update_buckets(g, m);

@@ -110,7 +110,8 @@ struct vertexSubsetData {
       out.allocated = false;
       s = out.s;
       if (out.size() != m) {
-        cout << "bad stored value of m" << endl;
+        std::cout << "bad stored value of m"
+                  << "\n";
         abort();
       }
     }
@@ -244,9 +245,10 @@ struct vertexSubsetData<pbbs::empty> {
       out.allocated = false;
       s = out.s;
       if (out.size() != m) {
-        cout << "bad stored value of m" << endl;
-        cout << "out.size = " << out.size() << " m = " << m << " n = " << n
-             << endl;
+        std::cout << "bad stored value of m"
+                  << "\n";
+        std::cout << "out.size = " << out.size() << " m = " << m << " n = " << n
+                  << "\n";
         abort();
       }
     }

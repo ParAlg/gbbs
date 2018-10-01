@@ -570,8 +570,8 @@ struct asymmetricVertex {
   void setInDegree(uintE _d) { inDegree = _d; }
   void setOutDegree(uintE _d) { outDegree = _d; }
   void flipEdges() {
-    swap(inNeighbors, outNeighbors);
-    swap(inDegree, outDegree);
+    std::swap(inNeighbors, outNeighbors);
+    std::swap(inDegree, outDegree);
   }
 
   auto getInIter(uintE id) -> vertex_ops::iter<W> {

@@ -59,7 +59,7 @@ inline W eatWeight(uchar*& start) {
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
 inline void print_weight(W& wgh) {
-  cout << wgh << endl;
+  std::cout << wgh << "\n";
 }
 
 template <class W,
@@ -891,7 +891,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // 3. Compute #bytes per new block
     parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = start + min<size_t>(PARALLEL_DEGREE, degree - start);
+      size_t end = start + std::min<size_t>(PARALLEL_DEGREE, degree - start);
       uintE bytes = 0;
       bytes += sizeof(uintE);  // block_deg
       uchar tmp[16];
@@ -923,7 +923,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
                  sizeof(uintE);  // update ngh_start
     parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = start + min<size_t>(PARALLEL_DEGREE, degree - start);
+      size_t end = start + std::min<size_t>(PARALLEL_DEGREE, degree - start);
       uchar* finger = nghs_start + bytes_imap[i];
       // update block offsets with the distance from the start
       if (i > 0) {
@@ -1126,7 +1126,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
 
     while (blocks_finished < num_blocks) {
       size_t start_block = blocks_finished;
-      size_t end_block = min(start_block + blocks_per_iter, num_blocks);
+      size_t end_block = std::min(start_block + blocks_per_iter, num_blocks);
       size_t total_blocks = end_block - start_block;
 
       uchar* first_finger = (start_block > 0)
@@ -1177,7 +1177,7 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
         (num_blocks - 1) * sizeof(uintE);  // virtual deg + block_offs
     for (size_t i = 0; i < num_blocks; i++) {
       size_t o = i * PARALLEL_DEGREE;
-      size_t end = min<size_t>(PARALLEL_DEGREE, degree - o);
+      size_t end = std::min<size_t>(PARALLEL_DEGREE, degree - o);
 
       if (i > 0)
         block_offsets[i - 1] =
@@ -1195,8 +1195,8 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
           compressFirstEdge(edgeArray, current_offset, source, last_ngh);
       auto decf = eatFirstEdge(test_fing, source);
       if (decf != last_ngh) {
-        cout << "first enc: " << source << " and " << last_ngh << " got back "
-             << decf << endl;
+        std::cout << "first enc: " << source << " and " << last_ngh
+                  << " got back " << decf << "\n";
       }
       //        assert(eatFirstEdge(test_fing, source) == last_ngh);
       current_offset =
@@ -1209,7 +1209,8 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
         current_offset = compressEdge(edgeArray, current_offset, difference);
         auto dec = eatEdge(test_fing);
         if (dec != difference) {
-          cout << "src = " << source << " enc = " << std::get<0>(nxt) << endl;
+          std::cout << "src = " << source << " enc = " << std::get<0>(nxt)
+                    << "\n";
         }
         //          assert(eatEdge(test_fing) == std::get<0>(nxt));
         current_offset =

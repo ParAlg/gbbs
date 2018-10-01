@@ -65,12 +65,12 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
   // back in to verify correctness.
   auto of = P.getOptionValue("-of");
   if (of) {
-    cout << "outfile is = " << of << endl;
+    std::cout << "outfile is = " << of << "\n";
     ofstream out(of, ofstream::out);
-    out << matching.size() << endl;
+    out << matching.size() << "\n";
     for (size_t i = 0; i < matching.size(); i++) {
       auto e = matching[i];
-      out << (get<0>(e) & mm::VAL_MASK) << " " << get<1>(e) << endl;
+      out << (get<0>(e) & mm::VAL_MASK) << " " << get<1>(e) << "\n";
     }
     out.close();
   }

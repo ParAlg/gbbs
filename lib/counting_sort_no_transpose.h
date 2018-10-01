@@ -79,7 +79,7 @@ inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
 
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_blocks = (size_t)(n < 20000000) ? (sqrt / 10) : sqrt;
-  num_blocks = min(num_blocks, _cs_max_blocks);
+  num_blocks = std::min(num_blocks, _cs_max_blocks);
   num_blocks = 1 << log2_up(num_blocks);
 
   // if insufficient parallelism, sort sequentially

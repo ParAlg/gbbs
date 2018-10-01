@@ -105,7 +105,8 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
-  cout << "dense" << endl;
+  std::cout << "dense"
+            << "\n";
   using D = std::tuple<bool, data>;
   long n = GA.n;
   vertex* G = GA.V;
@@ -140,7 +141,8 @@ template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
                                                   VS& vertexSubset, F& f,
                                                   const flags fl) {
-  cout << "Dense Forward" << endl;
+  std::cout << "Dense Forward"
+            << "\n";
   using D = std::tuple<bool, data>;
   long n = GA.n;
   vertex* G = GA.V;
@@ -248,7 +250,7 @@ struct block {
   uintE block_num;
   block(uintE _id, uintE _b) : id(_id), block_num(_b) {}
   block() {}
-  void print() { cout << id << " " << block_num << endl; }
+  void print() { std::cout << id << " " << block_num << "\n"; }
 };
 
 #ifdef AMORTIZEDPD
@@ -284,7 +286,8 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     size_t num_blocks = vertex_offs[i + 1] - vtx_off;
     size_t degree = degree_imap[i];
     parallel_for_bc(j, 0, num_blocks, (num_blocks > 1000), {
-      size_t block_deg = min((j + 1) * kEMBlockSize, degree) - j * kEMBlockSize;
+      size_t block_deg =
+          std::min((j + 1) * kEMBlockSize, degree) - j * kEMBlockSize;
       blocks[vtx_off + j] = block(i, j);
       degrees[vtx_off + j] = block_deg;
     });
@@ -546,7 +549,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
     space[i] = G[v].calculateOutTemporarySpace();
   });
   long total_space = pbbs::scan_add(space, space);
-  cout << "packNghs: total space allocated = " << total_space << endl;
+  std::cout << "packNghs: total space allocated = " << total_space << "\n";
   auto tmp = array_imap<std::tuple<uintE, W>>(
       total_space);  // careful when total_space == 0
   S* outV;
@@ -743,41 +746,49 @@ inline bool cond_true(intT d) { return 1; }
 inline void print_pcm_stats(SystemCounterState& before_sstate,
                             SystemCounterState& after_sstate, size_t rounds,
                             double elapsed) {
-  cout << "Instructions per clock:        "
-       << (getIPC(before_sstate, after_sstate) / rounds) << endl;
-  cout << "Total Cycles:                  "
-       << (getCycles(before_sstate, after_sstate) / rounds) << endl;
-  cout << "========= Cache misses/hits =========" << endl;
-  cout << "L2 Hit ratio:                  "
-       << (getL2CacheHitRatio(before_sstate, after_sstate) / rounds) << endl;
-  cout << "L3 Hit ratio:                  "
-       << (getL3CacheHitRatio(before_sstate, after_sstate) / rounds) << endl;
-  cout << "L2 Misses:                     "
-       << (getL2CacheMisses(before_sstate, after_sstate) / rounds) << endl;
-  cout << "L2 Hits:                       "
-       << (getL2CacheHits(before_sstate, after_sstate) / rounds) << endl;
-  cout << "L3 Misses:                     "
-       << (getL3CacheMisses(before_sstate, after_sstate) / rounds) << endl;
-  cout << "L3 Hits:                       "
-       << (getL3CacheHits(before_sstate, after_sstate) / rounds) << endl;
-  cout << "========= Bytes read/written =========" << endl;
+  std::cout << "Instructions per clock:        "
+            << (getIPC(before_sstate, after_sstate) / rounds) << "\n";
+  std::cout << "Total Cycles:                  "
+            << (getCycles(before_sstate, after_sstate) / rounds) << "\n";
+  std::cout << "========= Cache misses/hits ========="
+            << "\n";
+  std::cout << "L2 Hit ratio:                  "
+            << (getL2CacheHitRatio(before_sstate, after_sstate) / rounds)
+            << "\n";
+  std::cout << "L3 Hit ratio:                  "
+            << (getL3CacheHitRatio(before_sstate, after_sstate) / rounds)
+            << "\n";
+  std::cout << "L2 Misses:                     "
+            << (getL2CacheMisses(before_sstate, after_sstate) / rounds) << "\n";
+  std::cout << "L2 Hits:                       "
+            << (getL2CacheHits(before_sstate, after_sstate) / rounds) << "\n";
+  std::cout << "L3 Misses:                     "
+            << (getL3CacheMisses(before_sstate, after_sstate) / rounds) << "\n";
+  std::cout << "L3 Hits:                       "
+            << (getL3CacheHits(before_sstate, after_sstate) / rounds) << "\n";
+  std::cout << "========= Bytes read/written ========="
+            << "\n";
   auto bytes_read = getBytesReadFromMC(before_sstate, after_sstate) / rounds;
   auto bytes_written =
       getBytesWrittenToMC(before_sstate, after_sstate) / rounds;
   size_t GB = 1024 * 1024 * 1024;
   auto throughput = ((bytes_read + bytes_written) / elapsed) / GB;
-  cout << "Bytes read:                    " << bytes_read << endl;
-  cout << "Bytes written:                 " << bytes_written << endl;
-  cout << "Throughput: " << throughput << " GB/s" << endl;
-  cout << "========= Other statistics =========" << endl;
-  cout << "Average relative frequency:    "
-       << (getActiveRelativeFrequency(before_sstate, after_sstate) / rounds)
-       << endl;
+  std::cout << "Bytes read:                    " << bytes_read << "\n";
+  std::cout << "Bytes written:                 " << bytes_written << "\n";
+  std::cout << "Throughput: " << throughput << " GB/s"
+            << "\n";
+  std::cout << "========= Other statistics ========="
+            << "\n";
+  std::cout << "Average relative frequency:    "
+            << (getActiveRelativeFrequency(before_sstate, after_sstate) /
+                rounds)
+            << "\n";
 }
 inline void pcm_init() {
   auto* m = PCM::getInstance();
   if (m->program() != PCM::Success) {
-    cout << "Could not enable program counters" << endl;
+    std::cout << "Could not enable program counters"
+              << "\n";
     exit(0);
   }
 }
@@ -799,7 +810,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     nextTime("Running time");                                        \
   }                                                                  \
   auto time_per_iter = st.stop() / rounds;                           \
-  cout << "time per iter: " << time_per_iter << endl;                \
+  std::cout << "time per iter: " << time_per_iter << "\n";           \
   auto after_state = get_pcm_state();                                \
   print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
   G.del();
@@ -814,7 +825,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool weighted = P.getOptionValue("-w");                                    \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    cout << "mmapcopy = " << mmapcopy << endl;                                 \
+    std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
     long rounds = P.getOptionLongValue("-rounds", 3);                          \
     pcm_init();                                                                \
     if (compressed) {                                                          \

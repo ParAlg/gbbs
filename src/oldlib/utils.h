@@ -42,7 +42,7 @@ inline bool CAS(ET* ptr, ET oldv, ET newv) {
     return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
                                         *((long*)&newv));
   } else {
-    std::cout << "CAS bad length : " << sizeof(ET) << std::endl;
+    std::cout << "CAS bad length : " << sizeof(ET) << "\n";
     abort();
   }
 }
@@ -216,7 +216,7 @@ struct getAF {
     intT _l = nblocks(_n, _bsize);             \
     parallel_for_bc(_i, 0, _l, (_l > 1), {     \
       intT _s = _ss + _i * (_bsize);           \
-      intT _e = min(_s + (_bsize), _ee);       \
+      intT _e = std::min(_s + (_bsize), _ee);  \
       _body                                    \
     });                                        \
   }

@@ -139,8 +139,8 @@ inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   emt.reportTotal("edge map time");
   auto dist_im = make_in_imap<size_t>(
       n, [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; });
-  cout << "max dist = " << pbbs::reduce_max(dist_im) << endl;
-  cout << "n rounds = " << rd << endl;
+  std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
+  std::cout << "n rounds = " << rd << "\n";
 
   double time_per_iter = t.stop();
   auto after_state = get_pcm_state();

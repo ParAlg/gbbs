@@ -81,7 +81,8 @@ inline size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
 template <template <class W> class vertex, class W, class F>
 inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
                                     const F& f) {
-  cout << "Starting counting " << endl;
+  std::cout << "Starting counting "
+            << "\n";
   size_t n = DG.n;
 
   auto parallel_work = sequence<size_t>(n);
@@ -99,8 +100,8 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
 
   size_t n_blocks = nworkers() * 8;
   size_t work_per_block = total_work / n_blocks;
-  cout << "Total work = " << total_work << " nblocks = " << n_blocks
-       << " work per block = " << work_per_block << endl;
+  std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
+            << " work per block = " << work_per_block << "\n";
 
   auto V = DG.V;
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
@@ -157,7 +158,7 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
   ct.start();
 
   size_t count = CountDirectedBalanced(DG, counts.start(), f);
-  cout << "Num triangles = " << count << endl;
+  std::cout << "Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
   ct.reportTotal("count time");

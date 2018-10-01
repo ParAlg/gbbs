@@ -81,7 +81,7 @@ struct timer {
 
   void report(double time, std::string str) {
     std::cout << name << ": " << str << ": " << std::setprecision(3) << time
-              << std::endl;
+              << "\n";
   }
 
   void total() {

@@ -68,7 +68,8 @@ struct coloring_f {
   coloring_f(intE* _p) : p(_p) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (s == d) {
-      cout << "error" << endl;
+      std::cout << "error"
+                << "\n";
       exit(-1);
     }
     p[d]--;
@@ -76,7 +77,8 @@ struct coloring_f {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (s == d) {
-      cout << "error" << endl;
+      std::cout << "error"
+                << "\n";
       exit(-1);
     }
     return (pbbs::xadd(&p[d], -1) == 1);
@@ -95,7 +97,8 @@ inline array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   auto colors = array_imap<uintE>(n, [](size_t i) { return UINT_E_MAX; });
 
   if (lf) {
-    cout << "Running LF" << endl;
+    std::cout << "Running LF"
+              << "\n";
     // LF heuristic
     auto P = pbbs::random_permutation<uintE>(n);
     parallel_for_bc(i, 0, n, true, {
@@ -108,7 +111,8 @@ inline array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
       priorities[i] = GA.V[i].countOutNgh(i, count_f);
     });
   } else {
-    cout << "Running LLF" << endl;
+    std::cout << "Running LLF"
+              << "\n";
     // LLF heuristic
     auto P = pbbs::random_permutation<uintE>(n);
     parallel_for_bc(i, 0, n, true, {
@@ -154,7 +158,7 @@ inline array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     roots = new_roots;
     rounds++;
   }
-  cout << "Total rounds = " << rounds << endl;
+  std::cout << "Total rounds = " << rounds << "\n";
   color_t.reportTotal("coloring time");
   em_t.reportTotal("edge map time");
   return colors;
@@ -175,10 +179,12 @@ inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
   });
   auto im = make_in_imap<size_t>(n, [&](size_t i) { return (size_t)ok[i]; });
   size_t ct = pbbs::reduce_add(im);
-  cout << "ct = " << ct << endl;
+  std::cout << "ct = " << ct << "\n";
   if (ct > 0) {
-    cout << "Invalid coloring" << endl;
+    std::cout << "Invalid coloring"
+              << "\n";
   } else {
-    cout << "Valid coloring" << endl;
+    std::cout << "Valid coloring"
+              << "\n";
   }
 }

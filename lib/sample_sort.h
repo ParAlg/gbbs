@@ -144,7 +144,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     else
       Bs = sequence<E>(new_array_no_init<E>(n, 1), n);
     E* B = Bs.start();
-    // std::cout << "sample and copy: " << t.get_next() << std::endl;
+    // std::cout << "sample and copy: " << t.get_next() << "\n";
 
     // sort each block and merge with samples to get counts for each bucket
     timer it;
@@ -165,7 +165,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     });
     it.stop();
     it.reportTotal("quicksorts time");
-    // std::cout << "first part: " << t.get_next() << std::endl;
+    // std::cout << "first part: " << t.get_next() << "\n";
 
     it.start();
     // move data from blocks to buckets
@@ -175,7 +175,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     free(counts);
     it.stop();
     it.reportTotal("transpose time");
-    // std::cout << "transpose: " << t.get_next() << std::endl;
+    // std::cout << "transpose: " << t.get_next() << "\n";
 
     it.start();
     // sort within each bucket
@@ -195,7 +195,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     });
     it.stop();
     it.reportTotal("sort within buckets time");
-    // std::cout << "final part: " << t.get_next() << std::endl;
+    // std::cout << "final part: " << t.get_next() << "\n";
     delete_array(pivots, num_buckets - 1);
     free(bucket_offsets);
     if (inplace) {

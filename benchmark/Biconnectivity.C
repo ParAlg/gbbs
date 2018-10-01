@@ -104,13 +104,14 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
     };
     pbbs::sample_sort(ET.start(), ET.size(), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
-      cout << get<0>(ET[i]) << " " << get<1>(ET[i]) << endl;
+      std::cout << get<0>(ET[i]) << " " << get<1>(ET[i]) << "\n";
     }
   } else {
     // reduce flags
     auto flags_imap =
         make_in_imap<size_t>(n, [&](size_t i) { return (size_t)flags[i]; });
-    cout << "Largest component size = " << pbbs::reduce_add(flags_imap) << endl;
+    std::cout << "Largest component size = " << pbbs::reduce_add(flags_imap)
+              << "\n";
   }
 
   // The size of a biconnected component as the number of vertices that
@@ -123,7 +124,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   // vertices (the definition maps edges -> components, so isolated vertices
   // don't contribute to any meaningful components).
   uintE total_biccs = pbbs::scan_add(bits, bits);
-  cout << "num biconnected components = " << total_biccs << endl;
+  std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 
 template <class vertex>

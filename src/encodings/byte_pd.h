@@ -220,7 +220,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
         edge_start;  // use beginning of edgeArray for offsets into edge list
     uchar* finger = edge_start + (num_blocks - 1) * sizeof(uintE);
     // do first chunk
-    size_t end = min<long>(PARALLEL_DEGREE, degree);
+    size_t end = std::min<long>(PARALLEL_DEGREE, degree);
 
     // Eat first edge, which is compressed specially
     uintE ngh = eatFirstEdge(finger, source);
@@ -233,7 +233,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
     // do remaining chunks in parallel
     parallel_for_bc(i, 1, num_blocks, par, {
       size_t o = i * PARALLEL_DEGREE;
-      size_t end = min<long>(o + PARALLEL_DEGREE, degree);
+      size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
       // Eat first edge, which is compressed specially
       uintE ngh = eatFirstEdge(finger, source);
@@ -259,7 +259,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
         edge_start;  // use beginning of edgeArray for offsets into edge list
     uchar* finger = edge_start + (num_blocks - 1) * sizeof(uintE);
     // do first chunk
-    size_t end = min<long>(PARALLEL_DEGREE, degree);
+    size_t end = std::min<long>(PARALLEL_DEGREE, degree);
 
     // Eat first edge, which is compressed specially
     uintE ngh = eatFirstEdge(finger, source);
@@ -274,7 +274,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
     // do remaining chunks in parallel
     parallel_for_bc(i, 1, num_blocks, par, {
       size_t o = i * PARALLEL_DEGREE;
-      size_t end = min<long>(o + PARALLEL_DEGREE, degree);
+      size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
       // Eat first edge, which is compressed specially
       uintE ngh = eatFirstEdge(finger, source);
@@ -308,7 +308,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
 
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = min<long>(start + PARALLEL_DEGREE, degree);
+      size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
                                              : block_offsets[i - 1]);
 
@@ -553,7 +553,7 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 10), {
       // calculate size in bytes of this block
       uintE start = i * PARALLEL_DEGREE;
-      uintE end = start + min<uintE>(PARALLEL_DEGREE, d - start);
+      uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
     auto bytes_imap = make_array_imap(block_bytes, num_blocks);
@@ -580,7 +580,7 @@ long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
     current_offset += (num_blocks - 1) * sizeof(uintE);  // block_offs
     for (long i = 0; i < num_blocks; i++) {
       size_t o = i * PARALLEL_DEGREE;
-      size_t end = min<size_t>(PARALLEL_DEGREE, degree - o);
+      size_t end = std::min<size_t>(PARALLEL_DEGREE, degree - o);
 
       if (i > 0)
         block_offsets[i - 1] =
@@ -626,7 +626,7 @@ long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
     current_offset += (num_blocks - 1) * sizeof(uintE);
     for (long i = 0; i < num_blocks; i++) {
       long o = i * PARALLEL_DEGREE;
-      long end = min<long>(PARALLEL_DEGREE, degree - o);
+      long end = std::min<long>(PARALLEL_DEGREE, degree - o);
       uintE* edges_i = edges + o;
       if (i > 0)
         block_offsets[i - 1] =
@@ -709,7 +709,7 @@ inline size_t filterBlock(P pred, uchar* edge_start, const uintE& source,
     uchar* finger =
         edge_start + ((i == 0) ? edges_offset : block_offsets[i - 1]);
     uintE start = i * PARALLEL_DEGREE;
-    uintE end = min<uintE>(start + PARALLEL_DEGREE, degree);
+    uintE end = std::min<uintE>(start + PARALLEL_DEGREE, degree);
 
     uintE ngh = eatFirstEdge(finger, source);
     W wgh = eatWeight<W>(finger);
@@ -742,7 +742,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
 
   parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
     uintE start = i * PARALLEL_DEGREE;
-    uintE end = min<uintE>(start + PARALLEL_DEGREE, d);
+    uintE end = std::min<uintE>(start + PARALLEL_DEGREE, d);
     block_bytes[i] = compute_block_size(edges, start, end, source);
   });
   block_bytes[num_blocks] = 0;
@@ -754,11 +754,13 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE total_space = pbbs::scan_add(bytes_imap, bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
-    cout << "Space error!" << endl;
+    std::cout << "Space error!"
+              << "\n";
     exit(0);
   }
   if (total_space == (last_finger - edgeArray)) {
-    cout << "d = " << d << " to exactly the same space" << endl;
+    std::cout << "d = " << d << " to exactly the same space"
+              << "\n";
   }
 
   parallel_for_bc(i, 1, num_blocks, (num_blocks > 1), {
@@ -768,7 +770,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
 
   parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
     uintE start = i * PARALLEL_DEGREE;
-    uintE end = min<uintE>(start + PARALLEL_DEGREE, d);
+    uintE end = std::min<uintE>(start + PARALLEL_DEGREE, d);
     long write_offset = (i == 0) ? edges_offset : block_offsets[i - 1];
     auto nw = edges[start];
     write_offset =
@@ -822,7 +824,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     uchar* mf = 0;
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = min<long>(start + PARALLEL_DEGREE, degree);
+      size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
                                              : block_offsets[i - 1]);
       uchar* last_finger = decode_block(finger, our_tmp, start, end, source);
@@ -884,7 +886,7 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
 
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = min<long>(start + PARALLEL_DEGREE, degree);
+      size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
                                              : block_offsets[i - 1]);
       decode_block(finger, tmp, start, end, source);
@@ -907,7 +909,8 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
 */
 uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
                              uintE* Degrees) {
-  cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
+  std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
+            << "\n";
   uintE** edgePts = newA(uintE*, n);
   long* charsUsedArr = newA(long, n);
   long* compressionStarts = newA(long, n + 1);
@@ -935,9 +938,9 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   free(charsUsedArr);
 
   uchar* finalArr = newA(uchar, totalSpace);
-  cout << "total space requested is : " << totalSpace << endl;
+  std::cout << "total space requested is : " << totalSpace << "\n";
   float avgBitsPerEdge = (float)totalSpace * 8 / (float)m;
-  cout << "Average bits per edge: " << avgBitsPerEdge << endl;
+  std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
 
   {
     parallel_for_bc(i, 0, n, true, {
@@ -950,8 +953,8 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   free(iEdges);
   free(edgePts);
   free(compressionStarts);
-  cout << "finished compressing, bytes used = " << totalSpace << endl;
-  cout << "would have been, " << (m * 4) << endl;
+  std::cout << "finished compressing, bytes used = " << totalSpace << "\n";
+  std::cout << "would have been, " << (m * 4) << "\n";
   return ((uintE*)finalArr);
 }
 
@@ -967,7 +970,7 @@ long sequentialCompressWeightedEdgeSet(uchar* edgeArray, long current_offset,
 
     for (long i = 0; i < num_blocks; i++) {
       long start = i * PARALLEL_DEGREE;
-      long end = start + min<long>(PARALLEL_DEGREE, degree - start);
+      long end = start + std::min<long>(PARALLEL_DEGREE, degree - start);
       if (i > 0) block_offsets[i - 1] = current_offset - start_offset;
 
       auto nw = edges[start];
@@ -993,7 +996,8 @@ long sequentialCompressWeightedEdgeSet(uchar* edgeArray, long current_offset,
 uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
                                      uintT* offsets, long n, long m,
                                      uintE* Degrees) {
-  cout << "parallel compressing, (n,m) = (" << n << "," << m << ")" << endl;
+  std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
+            << "\n";
   auto bytes_used = newA(size_t, n + 1);
 
   parallel_for_bc(i, 0, n, true, {
@@ -1010,21 +1014,22 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   });
 
   float avgBitsPerEdge = (float)total_bytes * 8 / (float)m;
-  cout << "Average bits per edge: " << avgBitsPerEdge << endl;
+  std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
 
   //  auto t = [] (const uintE& s, const uintE& n, const intE& wgh, const
   //  size_t& num ) {
-  ////    cout << "s " << s << " n " << n << " w " << wgh << " num = " << num <<
-  /// endl;
+  ////    std::cout << "s " << s << " n " << n << " w " << wgh << " num = " <<
+  /// num <<
+  /// "\n";
   //    return true;
   //  };
-  //  cout << "decoding 692, deg = " << Degrees[692] << endl;
+  //  std::cout << "decoding 692, deg = " << Degrees[692] << "\n";
   //  decode<intE>(t, edges_c + bytes_used[692], 692, Degrees[692], false);
 
   parallel_for_bc(i, 0, n + 1, (n + 1 > pbbs::kSequentialForThreshold),
                   { offsets[i] = bytes_used[i]; });
-  cout << "finished compressing, bytes used = " << total_bytes << endl;
-  cout << "would have been, " << (m * 8) << endl;
+  std::cout << "finished compressing, bytes used = " << total_bytes << "\n";
+  std::cout << "would have been, " << (m * 8) << "\n";
   return edges_c;
 }
 

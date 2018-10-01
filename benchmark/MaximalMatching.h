@@ -110,7 +110,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
   size_t m = G.m / 2;  // assume sym
   bool finish = (m <= k);
 
-  cout << "Threshold, using m = " << m << endl;
+  std::cout << "Threshold, using m = " << m << "\n";
   size_t range = pbbs::log2_up(G.m);
   range = 1L << range;
   range -= 1;
@@ -182,8 +182,8 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
                                   [&](size_t i) { return e_arr.E[i]; });
     gete.stop();
 
-    cout << "Got: " << e_arr.non_zeros << " edges "
-         << " G.m is now: " << G.m << endl;
+    std::cout << "Got: " << e_arr.non_zeros << " edges "
+              << " G.m is now: " << G.m << "\n";
     mm::matchStep<W> mStep(e_arr.E, R.start(), matched.start());
     eff.start();
     eff_for<uintE>(mStep, 0, e_arr.non_zeros, 50, 0, G.n);
@@ -205,14 +205,15 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
                     });
     size_t total_size = pbbs::reduce_add(sizes);
     G.m -= total_size;
-    cout << "removed: " << total_size << " many edges" << endl;
+    std::cout << "removed: " << total_size << " many edges"
+              << "\n";
 
     matching.copyIn(e_added, e_added.size());
 
     round++;
     r = r.next();
   }
-  cout << "matching size = " << matching.size << endl;
+  std::cout << "matching size = " << matching.size << "\n";
   auto ret = make_array_imap<edge>(matching.A, matching.size);
   ret.allocated = true;
   mt.stop();
@@ -255,9 +256,10 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   auto ok_im = make_in_imap<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_im);
   if (n == n_ok) {
-    cout << "Matching OK! matching size is: " << matching.size() << endl;
+    std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
   } else {
-    cout << "Matching invalid---" << (n - n_ok)
-         << " vertices saw bad neighborhoods." << endl;
+    std::cout << "Matching invalid---" << (n - n_ok)
+              << " vertices saw bad neighborhoods."
+              << "\n";
   }
 }

@@ -31,7 +31,7 @@
 
 namespace ldd_utils {
 inline size_t total_rounds(size_t n, double beta) {
-  return min<uintE>(n + 1, 2 + ceil(log(n) / beta));
+  return std::min<uintE>(n + 1, 2 + ceil(log(n) / beta));
 }
 
 // Shifts[i] is the start of the vertices to take on round i
@@ -56,7 +56,7 @@ inline void num_clusters(Seq& s) {
       flags[s[i]] = 1;
     }
   });
-  cout << "num. clusters = " << pbbs::reduce_add(flags) << endl;
+  std::cout << "num. clusters = " << pbbs::reduce_add(flags) << "\n";
 }
 
 template <template <typename W> class vertex, class W, class Seq>
@@ -70,7 +70,8 @@ inline void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ic_edges[i] = ct;
   });
-  cout << "num. intercluster edges = " << pbbs::reduce_add(ic_edges) << endl;
+  std::cout << "num. intercluster edges = " << pbbs::reduce_add(ic_edges)
+            << "\n";
 }
 }  // namespace ldd_utils
 
@@ -122,7 +123,7 @@ inline array_imap<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
   size_t num_added = 0;
   while (num_visited < n) {
     size_t start = shifts[round];
-    size_t end = min(static_cast<size_t>(shifts[round + 1]), n);
+    size_t end = std::min(static_cast<size_t>(shifts[round + 1]), n);
     size_t num_to_add = end - start;
     if (num_to_add > 0) {
       assert((num_added + num_to_add) <= n);

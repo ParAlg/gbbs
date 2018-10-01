@@ -75,7 +75,8 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
   size_t round = 0;
 
   while (n > 1 && m > 0) {
-    cout << "Boruvka round: " << round << " n: " << n << " m: " << m << endl;
+    std::cout << "Boruvka round: " << round << " n: " << n << " m: " << m
+              << "\n";
 
     timer init_t;
     init_t.start();
@@ -133,7 +134,8 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     filter_t.start();
     n_in_mst += pbbs::filterf(new_mst_edges.start(), mst + n_in_mst, n,
                               [](uintE v) { return v != UINT_E_MAX; });
-    cout << "      " << n_in_mst << " edges added to mst." << endl;
+    std::cout << "      " << n_in_mst << " edges added to mst."
+              << "\n";
     filter_t.stop();  // filter_t.reportTotal("filter time");
 
     // 4. pointer jump to find component centers.
@@ -158,7 +160,8 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     n = V_im.size();
     std::swap(vtxs, next_vtxs);
     compact_t.stop();  // compact_t.reportTotal("compact time");
-    cout << "      " << n << " vertices remain." << endl;
+    std::cout << "      " << n << " vertices remain."
+              << "\n";
 
     // 6. relabel the edges with the new roots.
     timer relab_t;
@@ -194,12 +197,13 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
       m = A.size();
       assert(!A.allocated);
     }
-    cout << "filter, m is now " << m << " n is now " << n << endl;
+    std::cout << "filter, m is now " << m << " n is now " << n << "\n";
     std::swap(edge_ids, next_edge_ids);
     round++;
   }
 
-  cout << "Boruvka finished: total edges added to MST = " << n_in_mst << endl;
+  std::cout << "Boruvka finished: total edges added to MST = " << n_in_mst
+            << "\n";
   auto mst_im = make_array_imap(mst, n_in_mst);
   mst_im.allocated = true;
   return mst_im;
@@ -278,9 +282,9 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
 
   size_t weight_size = (last_ind - first_ind + 1);
   double split_wgh_fraction = ((1.0 * (last_ind - first_ind + 1)) / ssize);
-  cout << "split wgh is: " << split_weight << endl;
-  cout << "fraction of sample composed by split_wgh = " << split_wgh_fraction
-       << endl;
+  std::cout << "split wgh is: " << split_weight << "\n";
+  std::cout << "fraction of sample composed by split_wgh = "
+            << split_wgh_fraction << "\n";
 
   // 3. filter edges based on splitter
   if (split_wgh_fraction < 0.2) {
@@ -296,7 +300,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
     // Special pred for performing extra hashing on edges with weight ==
     // split_wgh.
     double frac_to_take = (1.0 * (ind - first_ind)) / weight_size;
-    cout << "frac of split_weight to take: " << frac_to_take << endl;
+    std::cout << "frac of split_weight to take: " << frac_to_take << "\n";
     size_t range = (1L << pbbs::log2_up(G.m)) - 1;
     size_t threshold = frac_to_take * range;
     // account for filtering directed edges
@@ -325,7 +329,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   using ct = cas_type;
 
   size_t n = GA.n;
-  cout << "n = " << n << endl;
+  std::cout << "n = " << n << "\n";
   auto r = pbbs::default_random;
 
   auto exhausted = array_imap<bool>(n, [](size_t i) { return false; });
@@ -344,15 +348,15 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   while (GA.m > 0) {
     timer round_t;
     round_t.start();
-    cout << endl;
-    cout << "round = " << round << " n_active = " << n_active
-         << " GA.m = " << GA.m << " MST size = " << mst_edges.size << endl;
+    std::cout << "\n";
+    std::cout << "round = " << round << " n_active = " << n_active
+              << " GA.m = " << GA.m << " MST size = " << mst_edges.size << "\n";
 
     // find a prefix of lowest-weight edges.
-    size_t split_idx = min((3 * n) / 2, (size_t)GA.m);
+    size_t split_idx = std::min((3 * n) / 2, (size_t)GA.m);
     if (largemem) {
-      split_idx = (round == 0) ? min((9 * n) / 8, (size_t)GA.m)
-                               : min(n / 2, (size_t)GA.m);
+      split_idx = (round == 0) ? std::min((9 * n) / 8, (size_t)GA.m)
+                               : std::min(n / 2, (size_t)GA.m);
     }
 
     timer get_t;
@@ -362,8 +366,8 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     get_t.stop();
     get_t.reportTotal("get time");
     size_t n_edges = E.non_zeros;
-    cout << "Prefix size = " << split_idx << " #edges = " << n_edges
-         << " G.m is now = " << GA.m << endl;
+    std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
+              << " G.m is now = " << GA.m << "\n";
 
     // relabel edges
     auto edges = E.E;
@@ -413,23 +417,23 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
       auto c_ngh = parents[ngh];
       return c_src == c_ngh;
     };
-    cout << "Filtering G, m = " << GA.m << endl;
+    std::cout << "Filtering G, m = " << GA.m << "\n";
     timer filter_t;
     filter_t.start();
     filter_edges(GA, filter_pred);
     filter_t.stop();
     filter_t.reportTotal("filter time");
-    cout << "After filter, m is now " << GA.m << endl;
+    std::cout << "After filter, m is now " << GA.m << "\n";
     round++;
     round_t.stop();
     round_t.reportTotal("round time");
 
     r = r.next();
   }
-  cout << "#edges in output mst: " << mst_edges.size << endl;
+  std::cout << "#edges in output mst: " << mst_edges.size << "\n";
   auto wgh_imap = make_in_imap<size_t>(
       mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
-  cout << "total weight = " << pbbs::reduce_add(wgh_imap) << endl;
+  std::cout << "total weight = " << pbbs::reduce_add(wgh_imap) << "\n";
 
   mst_edges.del();
   free(min_edges);
@@ -439,7 +443,8 @@ template <
     template <class W> class vertex, class W,
     typename std::enable_if<std::is_same<W, pbbs::empty>::value, int>::type = 0>
 inline uint32_t* MST(graph<vertex<W>>& GA, bool largeem = false) {
-  cout << "Unimplemented for unweighted graphs" << endl;
+  std::cout << "Unimplemented for unweighted graphs"
+            << "\n";
   exit(0);
 }
 }  // namespace MST_boruvka
@@ -478,9 +483,9 @@ inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
     auto c_ngh = uf.find(ngh);
     return c_src == c_ngh;
   };
-  cout << "Calling filter, G.m = " << G.m << endl;
+  std::cout << "Calling filter, G.m = " << G.m << "\n";
   filter_edges(G, filter_pred);
-  cout << "G.m is now " << G.m << endl;
+  std::cout << "G.m is now " << G.m << "\n";
 }
 
 template <template <class W> class vertex, class W, class UF>
@@ -504,7 +509,8 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
   };
   auto sampled_e = sample_edges(G, pred);
   if (sampled_e.non_zeros == 0) {
-    cout << "non_zeros = 0" << endl;
+    std::cout << "non_zeros = 0"
+              << "\n";
     exit(0);
     return get_remaining(G, k, uf, r);
   }
@@ -519,7 +525,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
   auto splitter = sampled_e.E[ind];
   int32_t split_weight = std::get<2>(splitter);
   sampled_e.del();
-  cout << "split wgh is: " << split_weight << endl;
+  std::cout << "split wgh is: " << split_weight << "\n";
 
   // 3. Filter edges based on splitter
   auto filter_pred = [&](const uint32_t& src, const uintE& ngh, const W& wgh) {
@@ -551,9 +557,9 @@ inline void MST(graph<vertex<W>>& GA) {
 
   size_t iter = 0;
   while (GA.m > 0) {
-    cout << "iter = " << iter << " m = " << GA.m << endl;
+    std::cout << "iter = " << iter << " m = " << GA.m << "\n";
     // 1. get weight of k'th smallest edge, and all edges smaller.
-    size_t split_idx = min(n, (size_t)GA.m);
+    size_t split_idx = std::min(n, (size_t)GA.m);
     timer get_t;
     get_t.start();
     auto edges = get_top_k(GA, split_idx, uf, r, (iter == 0));
@@ -565,8 +571,8 @@ inline void MST(graph<vertex<W>>& GA) {
       return std::get<2>(l) < std::get<2>(r);
     };
     pbbs::sample_sort(edges.E, n_edges, cmp_by_wgh);
-    cout << "Prefix size = " << split_idx << " #edges = " << n_edges
-         << " G.m is now = " << GA.m << endl;
+    std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
+              << " G.m is now = " << GA.m << "\n";
 
     // 2. initialize reservations, copy edge info, and run UF step.
     auto R = newA(res, n);
@@ -583,7 +589,7 @@ inline void MST(graph<vertex<W>>& GA) {
     auto edge_im =
         make_in_imap<edge_t>(n_edges, [&](size_t i) { return edges.E[i]; });
     auto edges_ret = pbbs::pack(edge_im, mstFlags);
-    cout << "added " << edges_ret.size() << endl;
+    std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
     edges.del();
     mstFlags.del();
@@ -595,10 +601,10 @@ inline void MST(graph<vertex<W>>& GA) {
     pack_t.reportTotal("pack time");
     iter++;
   }
-  cout << "n in mst: " << mst_edges.size << endl;
+  std::cout << "n in mst: " << mst_edges.size << "\n";
   auto wgh_imap = make_in_imap<size_t>(
       mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
-  cout << "wgh = " << pbbs::reduce_add(wgh_imap) << endl;
+  std::cout << "wgh = " << pbbs::reduce_add(wgh_imap) << "\n";
 
   mst_edges.del();
 }

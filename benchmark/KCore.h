@@ -55,7 +55,7 @@ inline array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
       if (deg > k) {
-        uintE new_deg = max(deg - edgesRemoved, k);
+        uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
         uintE bkt = b.get_bucket(deg, new_deg);
         return wrap(v, bkt);
@@ -72,7 +72,7 @@ inline array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     active.del();
     rho++;
   }
-  cout << "rho = " << rho << " k_{max} = " << k_max << endl;
+  std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
   bt.reportTotal("bucket time");
   return D;
 }
@@ -124,7 +124,7 @@ inline array_imap<uintE> KCore_FA(graph<vertex<W> >& GA,
       uintE deg = D[v];
       uintE edgesRemoved = ER[v];
       ER[v] = 0;
-      uintE new_deg = max(deg - edgesRemoved, k);
+      uintE new_deg = std::max(deg - edgesRemoved, k);
       D[v] = new_deg;
       bkt = b.get_bucket(deg, new_deg);
     };
@@ -142,6 +142,6 @@ inline array_imap<uintE> KCore_FA(graph<vertex<W> >& GA,
     active.del();
     rho++;
   }
-  cout << "rho = " << rho << " k_{max} = " << k_max << endl;
+  std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
   return D;
 }

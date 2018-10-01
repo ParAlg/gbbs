@@ -43,7 +43,7 @@ inline void sliced_for(size_t n, size_t block_size, const F& f) {
   size_t l = num_blocks(n, block_size);
   parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * block_size;
-    size_t e = min(s + block_size, n);
+    size_t e = std::min(s + block_size, n);
     f(i, s, e);
   });
 }
@@ -313,7 +313,7 @@ inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
   size_t* Sums = new_array_no_init<size_t>(l + 1);
   parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * b;
-    size_t e = min(s + b, n);
+    size_t e = std::min(s + b, n);
     size_t k = s;
     for (size_t j = s; j < e; j++) {
       if (p(In[j])) In[k++] = In[j];
@@ -350,7 +350,7 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   size_t* Sums = new_array_no_init<size_t>(l + 1);
   parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * b;
-    size_t e = min(s + b, n);
+    size_t e = std::min(s + b, n);
     size_t k = s;
     for (size_t j = s; j < e; j++) {
       if (p(In[j])) In[k++] = In[j];
@@ -380,7 +380,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
   b = num_blocks(n, l);
   parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * b;
-    size_t e = min(s + b, n);
+    size_t e = std::min(s + b, n);
     size_t k = s;
     for (size_t j = s; j < e; j++) {
       if (p(In[j])) {

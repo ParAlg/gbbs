@@ -149,7 +149,7 @@ struct hist_table {
       table = newA(KV, rounded_size);
       size = rounded_size;
       parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
-      cout << "resized to: " << size << endl;
+      std::cout << "resized to: " << size << "\n";
     }
   }
 
@@ -169,7 +169,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
-  num_buckets = min(num_buckets, _hist_max_buckets);
+  num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   // (1) count-sort based on bucket
   size_t low_mask = ~((size_t)15);
@@ -233,8 +233,8 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
     }
   }
   //    if (n > 100000) {
-  //      cout << "n = " << n << " min size = " << min_size << " max size = " <<
-  //      max_size << " avg size = " << avg_size << endl;
+  //      std::cout << "n = " << n << " min size = " << min_size << " max size =
+  //      " << max_size << " avg size = " << avg_size << "\n";
   //    }
 
   ht.resize(ht_offs[num_buckets]);
@@ -343,7 +343,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
-  num_buckets = min(num_buckets, _hist_max_buckets);
+  num_buckets = std::min(num_buckets, _hist_max_buckets);
   size_t bits = log2_up(num_buckets);
 
   auto gb = get_bucket<K, A>(get_key, n, bits);
@@ -355,7 +355,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   bool heavy = (num_heavy > 0);
   size_t num_total_buckets = (heavy) ? 2 * num_buckets : num_buckets;
   size_t num_actual_buckets = num_buckets + num_heavy;
-  //    cout << "gb.k = " << num_heavy << " num bkt = " << num_buckets << endl;
+  //    std::cout << "gb.k = " << num_heavy << " num bkt = " << num_buckets <<
+  //    "\n";
 
   K* elms;
   size_t* counts;
@@ -408,8 +409,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
     //      for (size_t i=0; i<num_heavy; i++) {
     //        heavy_cts[i] = Maybe<O>();
-    //        cout << "cnt i = " << i << " = " <<
-    //        bkt_counts[(num_buckets+i)*S_STRIDE] << endl;
+    //        std::cout << "cnt i = " << i << " = " <<
+    //        bkt_counts[(num_buckets+i)*S_STRIDE] << "\n";
     //      }
   }
 
@@ -433,9 +434,10 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   }
 
   //    if (n > 100000) {
-  //      cout << "n = " << n << " min size = " << min_size << " max size = " <<
-  //      max_size << " avg size = " << avg_size << endl; //" k = " << gb.k <<
-  //      endl;
+  //      std::cout << "n = " << n << " min size = " << min_size << " max size =
+  //      " << max_size << " avg size = " << avg_size << "\n"; //" k = " << gb.k
+  //      <<
+  //      "\n";
   //    }
 
   ht.resize(ht_offs[num_buckets]);
@@ -613,7 +615,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
-  num_buckets = min(num_buckets, _hist_max_buckets);
+  num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   //    auto gb = get_bucket<K, B>(get_key, n, bits);
   // (1) count-sort based on bucket

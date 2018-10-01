@@ -54,7 +54,7 @@ inline array_imap<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
   vertexSubset Frontier(GA.n, src);
   size_t reachable = 0;
   while (!Frontier.isEmpty()) {
-    cout << Frontier.size() << endl;
+    std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
         edgeMap(GA, Frontier, BFS_F<W>(Parents.start()), -1, sparse_blocked);
@@ -62,6 +62,6 @@ inline array_imap<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
     Frontier = output;
   }
   Frontier.del();
-  cout << "Reachable: " << reachable << endl;
+  std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }

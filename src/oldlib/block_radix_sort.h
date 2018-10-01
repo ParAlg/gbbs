@@ -39,7 +39,7 @@ struct transpose {
 
   void transR(intT rStart, intT rCount, intT rLength, intT cStart, intT cCount,
               intT cLength) {
-    // cout << "cc,rc: " << cCount << "," << rCount << endl;
+    // std::cout << "cc,rc: " << cCount << "," << rCount << "\n";
     if (cCount < _TRANS_THRESHHOLD && rCount < _TRANS_THRESHHOLD) {
       for (intT i = rStart; i < rStart + rCount; i++)
         for (intT j = cStart; j < cStart + cCount; j++)
@@ -82,14 +82,14 @@ struct blockTrans {
 
   void transR(intT rStart, intT rCount, intT rLength, intT cStart, intT cCount,
               intT cLength) {
-    // cout << "cc,rc: " << cCount << "," << rCount << endl;
+    // std::cout << "cc,rc: " << cCount << "," << rCount << "\n";
     if (cCount < _TRANS_THRESHHOLD && rCount < _TRANS_THRESHHOLD) {
       for (intT i = rStart; i < rStart + rCount; i++)
         for (intT j = cStart; j < cStart + cCount; j++) {
           E *pa = A + OA[i * rLength + j];
           E *pb = B + OB[j * cLength + i];
           intT l = L[i * rLength + j];
-          // cout << "pa,pb,l: " << pa << "," << pb << "," << l << endl;
+          // std::cout << "pa,pb,l: " << pa << "," << pb << "," << l << "\n";
           for (intT k = 0; k < l; k++) *(pb++) = *(pa++);
         }
     } else if (cCount > rCount) {
@@ -191,7 +191,7 @@ inline void radixStep(E *A, E *B, bIndexT *Tmp, bint (*BK)[BUCKETS], long numBK,
                       long n, long m, bool top, F extract) {
   // need 3 bucket sets per block
   long expand = (sizeof(E) <= 4) ? 64 : 32;
-  long blocks = min(numBK / 3, (1 + n / (BUCKETS * expand)));
+  long blocks = std::min(numBK / 3, (1 + n / (BUCKETS * expand)));
 
   if (blocks < 2) {
     radixStepSerial(A, B, Tmp, BK[0], n, m, extract);
@@ -204,7 +204,7 @@ inline void radixStep(E *A, E *B, bIndexT *Tmp, bint (*BK)[BUCKETS], long numBK,
 
   parallel_for_bc(i, 0, blocks, true, {
     bint od = i * nn;
-    long nni = min(max<long>(n - od, 0), nn);
+    long nni = std::min(std::max<long>(n - od, 0), nn);
     radixBlock(A + od, B, Tmp + od, cnts + m * i, oB + m * i, od, nni, m,
                extract);
   });

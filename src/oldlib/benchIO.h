@@ -97,7 +97,7 @@ inline words stringToWords(char* Str, long n) {
 inline int writeStringToFile(char* S, long n, char* fileName) {
   std::ofstream file(fileName, std::ios::out | std::ios::binary);
   if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fileName << std::endl;
+    std::cout << "Unable to open file: " << fileName << "\n";
     return 1;
   }
   file.write(S, n);
@@ -169,7 +169,7 @@ inline void writeArrayToStream(std::ofstream& os, T* A, long n) {
     // Generates a string for a sequence of size at most BSIZE
     // and then wrties it to the output stream
     ligra_utils::_seq<char> S =
-        arrayToString(A + offset, min(BSIZE, n - offset));
+        arrayToString(A + offset, std::min(BSIZE, n - offset));
     os.write(S.A, S.n);
     S.del();
     offset += BSIZE;
@@ -183,9 +183,9 @@ inline void writeArrayToStream(std::ofstream& os, T* A, size_t n) {
   while (offset < n) {
     // Generates a string for a sequence of size at most BSIZE
     // and then wrties it to the output stream
-    cout << "Writing offset = " << offset << endl;
+    std::cout << "Writing offset = " << offset << "\n";
     ligra_utils::_seq<char> S =
-        arrayToString(A + offset, min(BSIZE, n - offset));
+        arrayToString(A + offset, std::min(BSIZE, n - offset));
     os.write(S.A, S.n);
     S.del();
     offset += BSIZE;
@@ -196,10 +196,10 @@ template <class T>
 inline int writeArrayToFile(std::string header, T* A, long n, char* fileName) {
   std::ofstream file(fileName, std::ios::out | std::ios::binary);
   if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fileName << std::endl;
+    std::cout << "Unable to open file: " << fileName << "\n";
     return 1;
   }
-  file << header << endl;
+  file << header << "\n";
   writeArrayToStream(file, A, n);
   file.close();
   return 0;
@@ -208,7 +208,7 @@ inline int writeArrayToFile(std::string header, T* A, long n, char* fileName) {
 inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fileName << std::endl;
+    std::cout << "Unable to open file: " << fileName << "\n";
     abort();
   }
   long end = file.tellg();

@@ -130,7 +130,7 @@ inline std::tuple<size_t, size_t, bool> p_split3(SeqA A, SeqA B,
   sort5(A.get_array(), n, f);
   E p1 = A[1];
   E p2 = A[3];
-  //  cout << p1 << ", " << p2 << ", " << endl;
+  //  std::cout << p1 << ", " << p2 << ", " << "\n";
   if (!f(A[0], A[1])) p1 = p2;  // if few elements less than p1, then set to p2
   if (!f(A[3], A[4]))
     p2 = p1;  // if few elements greater than p2, then set to p1

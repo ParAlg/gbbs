@@ -101,7 +101,7 @@ struct UnionFindStep {
     auto st = indices[i];
     intT u = std::get<0>(st), v = std::get<1>(st);
     if (u >= n || v >= n) {
-      cout << "u = " << u << " v = " << v << " i = " << i << endl;
+      std::cout << "u = " << u << " v = " << v << " i = " << i << "\n";
       exit(0);
     }
     //    assert(u < n); assert(v < n);

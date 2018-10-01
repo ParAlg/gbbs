@@ -207,7 +207,7 @@ inline size_t num_cc(Seq& labels) {
     }
   });
   pbbs::scan_add(flags, flags);
-  cout << "n_cc = " << flags[n] << endl;
+  std::cout << "n_cc = " << flags[n] << "\n";
 }
 
 template <class Seq>
@@ -218,7 +218,7 @@ inline size_t largest_cc(Seq& labels) {
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
-  cout << "largest_cc has size: " << pbbs::reduce_max(flags) << endl;
+  std::cout << "largest_cc has size: " << pbbs::reduce_max(flags) << "\n";
 }
 
 template <class vertex>

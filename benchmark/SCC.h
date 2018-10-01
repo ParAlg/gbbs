@@ -207,8 +207,8 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   auto zero = pbbs::filter(v_im, zero_pred);
   auto P = pbbs::filter(v_im, not_zero_pred);
   pbbs::random_shuffle(P);
-  cout << "Filtered: " << zero.size()
-       << " vertices. Num remaining = " << P.size() << endl;
+  std::cout << "Filtered: " << zero.size()
+            << " vertices. Num remaining = " << P.size() << "\n";
 
   // Assign labels from [0...zero.size())
   parallel_for_bc(i, 0, zero.size(),
@@ -258,14 +258,14 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   }
 
   auto Q = pbbs::filter(P, [&](uintE v) { return !(labels[v] & TOP_BIT); });
-  cout << "After first round, Q = " << Q.size()
-       << " vertices remain. Total done = " << (n - Q.size()) << endl;
+  std::cout << "After first round, Q = " << Q.size()
+            << " vertices remain. Total done = " << (n - Q.size()) << "\n";
 
   while (finished < Q.size()) {
     timer rt;
     rt.start();
     // Running searches between P[cur_offset, end)
-    size_t end = min(cur_offset + step_size, Q.size());
+    size_t end = std::min(cur_offset + step_size, Q.size());
     size_t vs_size = end - cur_offset;
     finished += vs_size;
     step_size = ceil(step_size * step_multiplier);
@@ -278,10 +278,10 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     auto centers = pbbs::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
 
-    cout << "round = " << cur_round << " n_centers = " << centers.size()
-         << " originally was " << vs_size
-         << " centers. Total vertices remaining = " << (Q.size() - finished)
-         << endl;
+    std::cout << "round = " << cur_round << " n_centers = " << centers.size()
+              << " originally was " << vs_size
+              << " centers. Total vertices remaining = "
+              << (Q.size() - finished) << "\n";
 
     if (centers.size() == 0) continue;
 
@@ -318,13 +318,15 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     auto in_f = vertexSubset(n, centers.size(), centers.get_array());
     auto in_table =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
-    cout << "Finished in search" << endl;
+    std::cout << "Finished in search"
+              << "\n";
 
     auto out_f = vertexSubset(n, centers_2.size(), centers_2.get_array());
     auto out_table = multi_search(GA, labels, bits, out_f, cur_label_offset);
-    cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne << endl;
-    cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
-         << endl;
+    std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
+              << "\n";
+    std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
+              << "\n";
 
     auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
     auto& larger_t = (in_table.m > out_table.m) ? in_table : out_table;
@@ -376,7 +378,8 @@ inline size_t num_scc(Seq& labels) {
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (labels[i] == 0) {
-      cout << "unlabeled" << endl;
+      std::cout << "unlabeled"
+                << "\n";
       exit(0);
     }
     size_t label = labels[i] & VAL_MASK;
@@ -386,7 +389,7 @@ inline size_t num_scc(Seq& labels) {
   });
   pbbs::scan_add(flags, flags);
   size_t n_scc = flags[n];
-  cout << "n_scc = " << flags[n] << endl;
+  std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;
 }
 
@@ -399,10 +402,11 @@ inline void scc_stats(Seq& labels) {
     flags[label]++;
   }
   size_t maxv = pbbs::reduce_max(flags);
-  cout << "Largest SCC has " << maxv << " vertices" << endl;
+  std::cout << "Largest SCC has " << maxv << " vertices"
+            << "\n";
   for (size_t i = 0; i < n; i++) {
     if (flags[i] == maxv) {
-      cout << "max flag = " << i << endl;
+      std::cout << "max flag = " << i << "\n";
     }
   }
 }

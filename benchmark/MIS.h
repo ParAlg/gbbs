@@ -53,10 +53,12 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
       make_in_imap<size_t>(GA.n, [&](size_t i) { return (size_t)in_mis[i]; });
   size_t mis_size = pbbs::reduce_add(mis_int);
   if (pbbs::reduce_add(d) != (GA.n - mis_size)) {
-    cout << "MIS incorrect" << endl;
+    std::cout << "MIS incorrect"
+              << "\n";
     assert(false);
   }
-  cout << "MIS Ok" << endl;
+  std::cout << "MIS Ok"
+            << "\n";
 }
 
 template <template <class W> class vertex, class W, class VS, class P>
@@ -177,8 +179,8 @@ inline array_imap<bool> MIS(graph<vertex<W>>& GA) {
   init_t.reportTotal("init");
   while (finished != n) {
     assert(roots.size() > 0);
-    cout << "round = " << rounds << " size = " << roots.size()
-         << " remaining = " << (n - finished) << endl;
+    std::cout << "round = " << rounds << " size = " << roots.size()
+              << " remaining = " << (n - finished) << "\n";
 
     // set the roots in the MIS
     vertexMap(roots, [&](uintE v) { in_mis[v] = true; });
@@ -280,9 +282,11 @@ inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   auto ok_imap = make_in_imap<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_imap);
   if (n_ok == n) {
-    cout << "valid MIS" << endl;
+    std::cout << "valid MIS"
+              << "\n";
   } else {
-    cout << "invalid MIS, " << (n - n_ok) << " vertices saw bad neighborhoods"
-         << endl;
+    std::cout << "invalid MIS, " << (n - n_ok)
+              << " vertices saw bad neighborhoods"
+              << "\n";
   }
 }

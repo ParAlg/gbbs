@@ -126,7 +126,7 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
   //    perror("munmap");
   //    exit(-1);
   //  }
-  //  cout << "mmapped" << endl;
+  //  std::cout << "mmapped" << "\n";
   //  free(bytes);
   //  exit(0);
   return ligra_utils::_seq<char>(p, n);
@@ -135,7 +135,7 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
 inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fileName << std::endl;
+    std::cout << "Unable to open file: " << fileName << "\n";
     abort();
   }
   long end = file.tellg();
@@ -163,13 +163,13 @@ inline words stringToWords(char* Str, long n) {
                     { FL[i] = Str[i] && !Str[i - 1]; });
   }
 
-  //  cout << "n (strlen) = " << n << endl;
+  //  std::cout << "n (strlen) = " << n << "\n";
   //  auto im = make_in_imap<size_t>(n, [&] (size_t i) { return FL[i]; });
-  //  cout << " sum is : " << pbbs::reduce_add(im) << endl;
+  //  std::cout << " sum is : " << pbbs::reduce_add(im) << "\n";
 
   // offset for each start of word
   ligra_utils::_seq<long> Off = ligra_utils::seq::packIndex<long>(FL, n);
-  //  cout << "pack returned " << Off.n << endl;
+  //  std::cout << "pack returned " << Off.n << "\n";
   long m = Off.n;
   long* offsets = Off.A;
 
@@ -217,10 +217,10 @@ inline graph<vertex<intE>> readWeightedGraph(
   long n = atol(W.Strings[1]);
   long m = atol(W.Strings[2]);
   if (len != (n + 2 * m + 2)) {
-    cout << W.Strings[0] << endl;
-    cout << "len = " << len << endl;
-    cout << "n = " << n << " m = " << m << endl;
-    cout << "should be : " << (n + 2 * m + 2) << endl;
+    std::cout << W.Strings[0] << "\n";
+    std::cout << "len = " << len << "\n";
+    std::cout << "n = " << n << " m = " << m << "\n";
+    std::cout << "should be : " << (n + 2 * m + 2) << "\n";
     assert(false);  // invalid format
   }
 
@@ -335,7 +335,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
   long n = atol(W.Strings[1]);
   long m = atol(W.Strings[2]);
 
-  cout << "n = " << n << " m = " << m << " len = " << len << endl;
+  std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
   assert(len == n + m + 2);
 
   uintT* offsets = newA(uintT, n);
@@ -432,7 +432,8 @@ inline graph<vertex<W>> readCompressedGraph(
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
       s = S.A;
       if (mmapcopy) {
-        cout << "Copying compressed graph" << endl;
+        std::cout << "Copying compressed graph"
+                  << "\n";
         // Cannot mutate graph unless we copy.
         char* bytes = newA(char, S.n);
         parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
@@ -446,9 +447,10 @@ inline graph<vertex<W>> readCompressedGraph(
     } else {
       int fd;
       if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
-        cout << "input opened!" << endl;
+        std::cout << "input opened!"
+                  << "\n";
       } else {
-        cout << "can't open input file!";
+        std::cout << "can't open input file!";
       }
       //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
 
@@ -456,38 +458,42 @@ inline graph<vertex<W>> readCompressedGraph(
       lseek(fd, 0, 0);
       s = (char*)memalign(4096 * 2, fsize + 4096);
 
-      cout << "fsize = " << fsize << endl;
+      std::cout << "fsize = " << fsize << "\n";
 
       size_t sz = 0;
 
       size_t pgsize = getpagesize();
-      cout << "pgsize = " << pgsize << endl;
+      std::cout << "pgsize = " << pgsize << "\n";
 
       size_t read_size = 1024 * 1024 * 1024;
       if (sz + read_size > fsize) {
         size_t k = std::ceil((fsize - sz) / pgsize);
         read_size = std::max(k * pgsize, pgsize);
-        cout << "set read size to: " << read_size << " " << (fsize - sz)
-             << " bytes left" << endl;
+        std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+                  << " bytes left"
+                  << "\n";
       }
 
       while (sz + read_size < fsize) {
         void* buf = s + sz;
-        cout << "reading: " << read_size << endl;
+        std::cout << "reading: " << read_size << "\n";
         sz += read(fd, buf, read_size);
-        cout << "read: " << sz << " bytes" << endl;
+        std::cout << "read: " << sz << " bytes"
+                  << "\n";
         if (sz + read_size > fsize) {
           size_t k = std::ceil((fsize - sz) / pgsize);
           read_size = std::max(k * pgsize, pgsize);
-          cout << "set read size to: " << read_size << " " << (fsize - sz)
-               << " bytes left" << endl;
+          std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+                    << " bytes left"
+                    << "\n";
         }
       }
       if (sz < fsize) {
-        cout << "last read: rem = " << (fsize - sz) << endl;
+        std::cout << "last read: rem = " << (fsize - sz) << "\n";
         void* buf = s + sz;
         sz += read(fd, buf, pgsize);
-        cout << "read " << sz << " bytes " << endl;
+        std::cout << "read " << sz << " bytes "
+                  << "\n";
       }
 
       //    while (sz < fsize) {
@@ -495,22 +501,23 @@ inline graph<vertex<W>> readCompressedGraph(
       //      size_t read_size = pgsize;
       ////      size_t read_size = std::min(pgsize, rem);
       //      void* buf = s + sz;
-      //      cout << "reading: " << read_size << endl;
+      //      std::cout << "reading: " << read_size << "\n";
       //      sz += read(fd, buf, read_size);
-      //      cout << "read: " << sz << " bytes" << endl;
+      //      std::cout << "read: " << sz << " bytes" << "\n";
       //    }
-      //    cout << "Finished: read " << sz << " out of fsize = " << fsize <<
-      //    endl;
+      //    std::cout << "Finished: read " << sz << " out of fsize = " << fsize
+      //    <<
+      //    "\n";
       close(fd);
 
       //    std::ifstream in(fname,std::ifstream::in |std::ios::binary);
       //    in.seekg(0,std::ios::end);
       //    long size = in.tellg();
       //    in.seekg(0);
-      //    cout << "size = " << size << endl;
+      //    std::cout << "size = " << size << "\n";
       //    s = (char*) malloc(size);
       //    in.read(s,size);
-      //    cout << "Finished read" << endl;
+      //    std::cout << "Finished read" << "\n";
       //    in.close();
     }
   } else {
@@ -520,8 +527,10 @@ inline graph<vertex<W>> readCompressedGraph(
   long* sizes = (long*)s;
   long n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace << endl;
-  cout << "reading file..." << endl;
+  std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
+            << "\n";
+  std::cout << "reading file..."
+            << "\n";
 
   uintT* offsets = (uintT*)(s + 3 * sizeof(long));
   long skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
@@ -538,7 +547,7 @@ inline graph<vertex<W>> readCompressedGraph(
     uchar* inData = (uchar*)(s + skip);
     sizes = (long*)inData;
     inTotalSpace = sizes[0];
-    cout << "inTotalSpace = " << inTotalSpace << endl;
+    std::cout << "inTotalSpace = " << inTotalSpace << "\n";
     skip += sizeof(long);
     inOffsets = (uintT*)(s + skip);
     skip += (n + 1) * sizeof(uintT);
@@ -601,9 +610,9 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
   graph<w_vertex> G(V, n, m, deletion_fn, copy_fn);
 
   auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-    CHECK_LT(u, n) << "u = " << u << " is larger than n = " << n << endl;
+    CHECK_LT(u, n) << "u = " << u << " is larger than n = " << n << "\n";
     CHECK_LT(v, n) << "v = " << v << " is larger than n = " << n << " u = " << u
-                   << endl;
+                   << "\n";
     return u ^ v;
   };
   auto reduce_f = [&](const uintE& l, const uintE& r) -> uintE {

@@ -423,14 +423,14 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   //  }
   //  pbbs::scan_add(flags, flags);
   //  size_t n_cc = flags[n];
-  //  cout << "num biconnected components, including isolated vertices = " <<
-  //  flags[n] << endl;
+  //  std::cout << "num biconnected components, including isolated vertices = "
+  //  << flags[n] << "\n";
 
   if (out_f) {
-    cout << "Writing labels to file: " << out_f << endl;
+    std::cout << "Writing labels to file: " << out_f << "\n";
     std::ofstream out(out_f, std::ofstream::out);
     if (!out.is_open()) {
-      std::cout << "Unable to open file " << out_f << std::endl;
+      std::cout << "Unable to open file " << out_f << "\n";
       exit(0);
     }
 
@@ -440,11 +440,12 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
     benchIO::writeArrayToStream(out, tups.start(), n);
     //    for (size_t i = 0; i < n; i++) {
-    //      out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << endl;
+    //      out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
     //    }
     out.close();
   }
-  cout << "BC done" << endl;
+  std::cout << "BC done"
+            << "\n";
   free(MM_A);
   free(PN_A);
   free(aug_sizes_A);

@@ -81,7 +81,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     }
     bktt.stop();
 
-    cout << "packing, active.size = " << active.size() << endl;
+    std::cout << "packing, active.size = " << active.size() << "\n";
     packt.start();
     // 1. sets -> elements (Pack out sets and update their degree)
     auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
@@ -89,7 +89,8 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = ct; };
     auto packed_vtxs = edgeMapFilter(G, active, pack_predicate, pack_edges);
-    cout << "packed" << endl;
+    std::cout << "packed"
+              << "\n";
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
@@ -114,9 +115,9 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     P.del();
     permt.stop();
 
-    cout << "Round = " << rounds << " bkt = " << cur_bkt
-         << " active = " << active.size()
-         << " stillactive = " << still_active.size() << endl;
+    std::cout << "Round = " << rounds << " bkt = " << cur_bkt
+              << " active = " << active.size()
+              << " stillactive = " << still_active.size() << "\n";
 
     emt.start();
     // 2. sets -> elements (writeMin to acquire neighboring elements)
@@ -169,7 +170,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
         bkt = b.get_bucket(cur_bkt, get_bucket_clamped(dv));
       return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
-    cout << "cover.size = " << cover.size << endl;
+    std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());
     active.del();
     still_active.del();
@@ -186,9 +187,9 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   auto elm_cov = make_in_imap<uintE>(
       G.n, [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); });
   size_t elms_cov = pbbs::reduce_add(elm_cov);
-  cout << "|V| = " << G.n << " |E| = " << G.m << endl;
-  cout << "|cover|: " << cover.size << endl;
-  cout << "Rounds: " << rounds << endl;
-  cout << "Num_uncovered = " << (G.n - elms_cov) << endl;
+  std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
+  std::cout << "|cover|: " << cover.size << "\n";
+  std::cout << "Rounds: " << rounds << "\n";
+  std::cout << "Num_uncovered = " << (G.n - elms_cov) << "\n";
   return cover;
 }
