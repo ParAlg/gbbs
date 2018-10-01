@@ -32,6 +32,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "get_time.h"
 #include "quicksort.h"
 #include "sequence_ops.h"
 #include "transpose.h"
@@ -46,11 +48,11 @@ constexpr const size_t OVER_SAMPLE = 8;
 // use different parameters for pointer and non-pointer types
 // and depending on size
 template <typename E>
-bool is_pointer(E x) {
+inline bool is_pointer(E x) {
   return 0;
 }
 template <typename E>
-bool is_pointer(E* x) {
+inline bool is_pointer(E* x) {
   return 1;
 }
 // template<typename E, typename V> bool is_pointer(std::pair<E*,V> x) {return
@@ -60,7 +62,8 @@ bool is_pointer(E* x) {
 // values of Sb
 // Sa and Sb must be sorted
 template <typename E, typename BinPred, typename s_size_t>
-void merge_seq(E* sA, E* sB, s_size_t* sC, size_t lA, size_t lB, BinPred f) {
+inline void merge_seq(E* sA, E* sB, s_size_t* sC, size_t lA, size_t lB,
+                      BinPred f) {
   if (lA == 0 || lB == 0) return;
   E* eA = sA + lA;
   E* eB = sB + lB;
@@ -87,7 +90,7 @@ void merge_seq(E* sA, E* sB, s_size_t* sC, size_t lA, size_t lB, BinPred f) {
 }
 
 template <typename s_size_t = size_t, class Seq, typename BinPred>
-auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
+inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     -> sequence<typename Seq::T> {
   using E = typename Seq::T;
   size_t n = A.size();
@@ -144,7 +147,12 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     // std::cout << "sample and copy: " << t.get_next() << std::endl;
 
     // sort each block and merge with samples to get counts for each bucket
+    timer it;
+    it.start();
     s_size_t* counts = new_array_no_init<s_size_t>(m, 1);
+    it.stop();
+    it.reportTotal("initialize m array time");
+    it.start();
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
       size_t offset = i * block_size;
       size_t size = (i < num_blocks - 1) ? block_size : n - offset;
@@ -155,17 +163,23 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
       merge_seq(B + offset, pivots, counts + i * num_buckets, size,
                 num_buckets - 1, f);
     });
+    it.stop();
+    it.reportTotal("quicksorts time");
     // std::cout << "first part: " << t.get_next() << std::endl;
 
+    it.start();
     // move data from blocks to buckets
     E* C = new_array_no_init<E>(n, 1);
     size_t* bucket_offsets =
         transpose_buckets(B, C, counts, n, block_size, num_blocks, num_buckets);
     free(counts);
+    it.stop();
+    it.reportTotal("transpose time");
     // std::cout << "transpose: " << t.get_next() << std::endl;
 
+    it.start();
     // sort within each bucket
-    parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
+    parallel_for_bc(i, 0, num_buckets, (num_blocks > 1), {
       size_t start = bucket_offsets[i];
       size_t end = bucket_offsets[i + 1];
 
@@ -179,6 +193,8 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
         memcpy((char*)(B + start), (char*)(C + start),
                (end - start) * sizeof(E));
     });
+    it.stop();
+    it.reportTotal("sort within buckets time");
     // std::cout << "final part: " << t.get_next() << std::endl;
     delete_array(pivots, num_buckets - 1);
     free(bucket_offsets);
@@ -193,7 +209,7 @@ auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
 }
 
 template <class Seq, typename BinPred>
-auto sample_sort(Seq A, const BinPred& f, bool inplace = false)
+inline auto sample_sort(Seq A, const BinPred& f, bool inplace = false)
     -> sequence<typename Seq::T> {
   if (A.size() < ((size_t)1) << 32)
     return sample_sort_<unsigned int>(A, f, inplace);
@@ -202,7 +218,7 @@ auto sample_sort(Seq A, const BinPred& f, bool inplace = false)
 }
 
 template <typename E, typename BinPred, typename s_size_t>
-void sample_sort(E* A, s_size_t n, const BinPred& f) {
+inline void sample_sort(E* A, s_size_t n, const BinPred& f) {
   sequence<E> B(A, A + n);
   sample_sort_<s_size_t>(B, f, true);
 }

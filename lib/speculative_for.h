@@ -53,8 +53,8 @@ inline void reserveLoc(intT& x, intT i) {
 
 // granularity is some constant.
 template <class intT, class S>
-intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
-             long maxTries = std::numeric_limits<long>::max()) {
+inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
+                    long maxTries = std::numeric_limits<long>::max()) {
   intT maxRoundSize = (e - s) / granularity + 1;
   intT currentRoundSize = maxRoundSize;
 
@@ -103,8 +103,8 @@ intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
 }
 
 template <class intT, class S>
-intT speculative_for(S step, intT s, intT e, intT granularity,
-                     bool hasState = 1, long maxTries = -1) {
+inline intT speculative_for(S step, intT s, intT e, intT granularity,
+                            bool hasState = 1, long maxTries = -1) {
   if (maxTries < 0) {
     maxTries = 100 + 200 * granularity;
   }
@@ -130,12 +130,12 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
     intT size = min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
+    parallel_for_bc(i, 0, size, (size > 2048), {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
     });
 
-    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
+    parallel_for_bc(i, 0, size, (size > 2048), {
       if (keep[i]) keep[i] = !step.commit(I[i]);
     });
 

@@ -33,8 +33,9 @@ struct BFS_F {
     if (Parents[d] == UINT_E_MAX) {
       Parents[d] = s;
       return 1;
-    } else
+    } else {
       return 0;
+    }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
     return (CAS(&Parents[d], UINT_E_MAX, s));
@@ -43,7 +44,7 @@ struct BFS_F {
 };
 
 template <template <class W> class vertex, class W>
-auto BFS(graph<vertex<W> >& GA, uintE src) {
+inline array_imap<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
   using w_vertex = vertex<W>;
 
   // Creates Parents array, initialized to all -1, except for src.

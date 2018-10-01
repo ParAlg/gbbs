@@ -37,7 +37,7 @@ constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
 };  // namespace bc
 
-using labels = tuple<uintE, uintE>;
+using labels = std::tuple<uintE, uintE>;
 
 // Used to compute the size of each subtree (leaffix)
 struct AugF {
@@ -67,12 +67,12 @@ struct MinMaxF {
   MinMaxF(labels* _MM, intE* _cts) : MM(_MM), cts(_cts) {}
   bool update(const uintE& s, const uintE& d) {
     labels lab_s = MM[s];
-    uintE low = get<0>(lab_s), high = get<1>(lab_s);
-    if (low < get<0>(MM[d])) {
-      get<0>(MM[d]) = low;
+    uintE low = std::get<0>(lab_s), high = std::get<1>(lab_s);
+    if (low < std::get<0>(MM[d])) {
+      std::get<0>(MM[d]) = low;
     }
-    if (high > get<1>(MM[d])) {
-      get<1>(MM[d]) = high;
+    if (high > std::get<1>(MM[d])) {
+      std::get<1>(MM[d]) = high;
     }
     uintE ct = cts[d] - 1;
     cts[d] = ct;
@@ -80,12 +80,12 @@ struct MinMaxF {
   }
   bool updateAtomic(const uintE& s, const uintE& d) {
     labels lab_s = MM[s];
-    uintE low = get<0>(lab_s), high = get<1>(lab_s);
-    if (low < get<0>(MM[d])) {
-      writeMin(&get<0>(MM[d]), low);
+    uintE low = std::get<0>(lab_s), high = std::get<1>(lab_s);
+    if (low < std::get<0>(MM[d])) {
+      writeMin(&std::get<0>(MM[d]), low);
     }
-    if (high > get<1>(MM[d])) {
-      writeMax(&get<1>(MM[d]), high);
+    if (high > std::get<1>(MM[d])) {
+      writeMax(&std::get<1>(MM[d]), high);
     }
     intE res = writeAdd(&cts[d], -1);
     return (res == 0);
@@ -94,32 +94,33 @@ struct MinMaxF {
 };
 
 template <template <typename W> class vertex, class W, class Seq>
-auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
+inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
+                                                           uintE* Parents,
+                                                           Seq& Sources) {
   using w_vertex = vertex<W>;
   size_t n = GA.n;
-  using edge = tuple<uintE, uintE>;
+  using edge = std::tuple<uintE, uintE>;
   auto out_edges = array_imap<edge>(
-      n, [](size_t i) { return make_tuple(UINT_E_MAX, UINT_E_MAX); });
+      n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintE p_i = Parents[i];
     if (p_i != i) {
-      out_edges[i] = make_tuple(p_i, i);
+      out_edges[i] = std::make_tuple(p_i, i);
     }
   });
 
   auto edges = pbbs::filter(
-      out_edges, [](const edge& e) { return get<0>(e) != UINT_E_MAX; });
+      out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.del();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
   pbbs::sample_sort(edges.start(), edges.size(), sort_tup);
 
   auto starts = array_imap<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
-  parallel_for_bc(i, 0, edges.size(),
-                  (edges.size() > pbbs::kSequentialForThreshold), {
-                    if (i == 0 || get<0>(edges[i]) != get<0>(edges[i - 1])) {
-                      starts[get<0>(edges[i])] = i;
-                    }
-                  });
+  parallel_for_bc(i, 0, edges.size(), (n > pbbs::kSequentialForThreshold), {
+    if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
+      starts[std::get<0>(edges[i])] = i;
+    }
+  });
   starts[n] = edges.size();
 
   timer seq;
@@ -132,8 +133,8 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   seq.stop();
   seq.reportTotal("seq time");
 
-  auto nghs = array_imap<uintE>(edges.size(),
-                                [&](size_t i) { return get<1>(edges[i]); });
+  auto nghs = array_imap<uintE>(
+      edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
   edges.del();
 
   timer augs;
@@ -145,11 +146,12 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
     v[i].setOutDegree(out_deg);
-    v[i].setOutNeighbors((tuple<uintE, pbbs::empty>*)(nghs.start() + out_off));
+    v[i].setOutNeighbors(
+        (std::tuple<uintE, pbbs::empty>*)(nghs.start() + out_off));
     uintE parent = Parents[i];
     if (parent != i) {
       v[i].setInDegree(1);
-      v[i].setInNeighbors(((tuple<uintE, pbbs::empty>*)(Parents + i)));
+      v[i].setInNeighbors(((std::tuple<uintE, pbbs::empty>*)(Parents + i)));
     } else {
       v[i].setInDegree(0);
       v[i].setInNeighbors(nullptr);
@@ -173,7 +175,6 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   size_t rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
-    size_t et;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     auto output = edgeMap(
@@ -196,55 +197,51 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   pren.start();
   auto PN = array_imap<uintE>(n);
   vs = vertexSubset(n, s_copy.size(), s_copy.get_array());
-  parallel_for_bc(i, 0, Sources.size(),
-                  (Sources.size() > pbbs::kSequentialForThreshold), {
-                    uintE v = s_copy[i];
-                    PN[v] = 0;
-                  });
+  parallel_for_bc(i, 0, Sources.size(), (n > pbbs::kSequentialForThreshold), {
+    uintE v = s_copy[i];
+    PN[v] = 0;
+  });
   rds = 0;
   tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
-    size_t et;
     auto offsets = array_imap<uintE>(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
       return Tree.V[v].getOutDegree();
     });
     auto tot = pbbs::scan_add(offsets, offsets);
     auto next_vs = array_imap<uintE>(tot);
-    parallel_for_bc(i, 0, vs.size(),
-                    (vs.size() > pbbs::kSequentialForThreshold), {
-                      uintE v = vs.s[i];
-                      uintE off = offsets[i];
-                      uintE deg_v = Tree.V[v].getOutDegree();
-                      uintE preorder_number = PN[v] + 1;
+    parallel_for_bc(i, 0, vs.size(), (n > pbbs::kSequentialForThreshold), {
+      uintE v = vs.s[i];
+      uintE off = offsets[i];
+      uintE deg_v = Tree.V[v].getOutDegree();
+      uintE preorder_number = PN[v] + 1;
 
-                      // should be tuned
-                      if (deg_v < 4000) {
-                        // Min and max in any vertex are [PN[v], PN[v] +
-                        // aug_sizes[v])
-                        for (size_t j = 0; j < deg_v; j++) {
-                          uintE ngh = Tree.V[v].getOutNeighbor(j);
-                          PN[ngh] = preorder_number;
-                          preorder_number += aug_sizes[ngh];
-                          next_vs[off + j] = ngh;
-                        }
-                      } else {
-                        auto A = array_imap<uintE>(deg_v);
-                        parallel_for_bc(j, 0, deg_v, true, {
-                          uintE ngh = Tree.V[v].getOutNeighbor(j);
-                          A[j] = aug_sizes[ngh];
-                        });
-                        pbbs::scan_add(A, A);
-                        parallel_for_bc(j, 0, deg_v, true, {
-                          uintE ngh = Tree.V[v].getOutNeighbor(j);
-                          uintE pn = preorder_number + A[j];
-                          PN[ngh] = pn;
-                          next_vs[off + j] = ngh;
-                        });
-                      }
-                    });
+      // should be tuned
+      if (deg_v < 4000) {
+        // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
+        for (size_t j = 0; j < deg_v; j++) {
+          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          PN[ngh] = preorder_number;
+          preorder_number += aug_sizes[ngh];
+          next_vs[off + j] = ngh;
+        }
+      } else {
+        auto A = array_imap<uintE>(deg_v);
+        parallel_for_bc(j, 0, deg_v, true, {
+          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          A[j] = aug_sizes[ngh];
+        });
+        pbbs::scan_add(A, A);
+        parallel_for_bc(j, 0, deg_v, true, {
+          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE pn = preorder_number + A[j];
+          PN[ngh] = pn;
+          next_vs[off + j] = ngh;
+        });
+      }
+    });
     vs.del();
     vs = vertexSubset(n, next_vs.size(), next_vs.get_array());
   }
@@ -256,29 +253,29 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
   // Map all edges and update labels.
   auto MM = array_imap<labels>(n, [&](size_t i) {
     uintE pn_i = PN[i];
-    return make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
+    return std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
   });
   // Note that we have to exclude tree edges: it's all edges spliced in with
   // the exception of tree edges.
-  auto map_f = wrap_f<W>([&](const uintE& u, const uintE& v) {
+  auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {  // see if assigning roles helps temp loc later.
       if (u == Parents[v] || v == Parents[u]) {
         return;
       }
       uintE p_u = PN[u];
       uintE p_v = PN[v];
-      if (p_u < get<0>(MM[v])) {
-        writeMin(&get<0>(MM[v]), p_u);
-      } else if (p_u > get<1>(MM[v])) {
-        writeMax(&get<1>(MM[v]), p_u);
+      if (p_u < std::get<0>(MM[v])) {
+        writeMin(&std::get<0>(MM[v]), p_u);
+      } else if (p_u > std::get<1>(MM[v])) {
+        writeMax(&std::get<1>(MM[v]), p_u);
       }
-      if (p_v < get<0>(MM[u])) {
-        writeMin(&get<0>(MM[u]), p_v);
-      } else if (p_v > get<1>(MM[u])) {
-        writeMax(&get<1>(MM[u]), p_v);
+      if (p_v < std::get<0>(MM[u])) {
+        writeMin(&std::get<0>(MM[u]), p_v);
+      } else if (p_v > std::get<1>(MM[u])) {
+        writeMax(&std::get<1>(MM[u]), p_v);
       }
     }
-  });
+  };
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { GA.V[i].mapOutNgh(i, map_f); });
   map_e.stop();
@@ -310,7 +307,7 @@ auto preorder_number(graph<vertex<W>>& GA, uintE* Parents, Seq& Sources) {
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
-  return make_tuple(MM.get_array(), PN.get_array(), aug_sizes.get_array());
+  return std::make_tuple(MM.get_array(), PN.get_array(), aug_sizes.get_array());
 }
 
 // Deterministic version
@@ -329,7 +326,7 @@ struct BC_BFS_F {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
+inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
   size_t n = GA.n;
   auto Parents = array_imap<uintE>(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
@@ -348,7 +345,7 @@ uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
 }
 
 template <class Seq>
-auto cc_sources(Seq& labels) {
+inline array_imap<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
@@ -360,8 +357,9 @@ auto cc_sources(Seq& labels) {
 }
 
 template <template <class W> class vertex, class W>
-auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
-                           uintE* PN_A, uintE* aug_sizes_A, char* out_f) {
+inline std::tuple<uintE*, uintE*> critical_connectivity(
+    graph<vertex<W>>& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
+    uintE* aug_sizes_A, char* out_f) {
   timer ccc;
   ccc.start();
   size_t n = GA.n;
@@ -375,7 +373,8 @@ auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
       labels clab = MM[i];
       uintE first_p = PN[pi];
       uintE last_p = first_p + aug_sizes[pi];  // not inclusive
-      if ((first_p <= get<0>(clab)) && (get<1>(clab) < last_p)) {  // critical
+      if ((first_p <= std::get<0>(clab)) &&
+          (std::get<1>(clab) < last_p)) {  // critical
         Parents[i] |= bc::TOP_BIT;
       }
     }
@@ -402,9 +401,9 @@ auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { active[i] = true; });
   auto vs_active = vertexSubset(n, n, active);
-  auto pack_predicate = wrap_f<W>([&](const uintE& src, const uintE& ngh) {
+  auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return not_critical_edge(src, ngh);
-  });
+  };
   edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
   vs_active.del();
 
@@ -429,13 +428,13 @@ auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
 
   if (out_f) {
     cout << "Writing labels to file: " << out_f << endl;
-    ofstream out(out_f, ofstream::out);
+    std::ofstream out(out_f, std::ofstream::out);
     if (!out.is_open()) {
       std::cout << "Unable to open file " << out_f << std::endl;
       exit(0);
     }
 
-    auto tups = array_imap<pair<uintE, uintE>>(n);
+    auto tups = array_imap<std::pair<uintE, uintE>>(n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { tups[i] = make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
@@ -451,26 +450,26 @@ auto critical_connectivity(graph<vertex<W>>& GA, uintE* Parents, labels* MM_A,
   free(aug_sizes_A);
   ccc.stop();
   ccc.reportTotal("critical conn time");
-  return make_tuple(Parents, cc);
+  return std::make_tuple(Parents, cc.get_array());
 }
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
 template <class vertex>
-auto Biconnectivity(graph<vertex>& GA, char* out_f = 0) {
+inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
+                                                 char* out_f = 0) {
   size_t n = GA.n;
 
   timer fcc;
   fcc.start();
-  uintE* Components = cc::CC(GA, 0.2, false);
+  array_imap<uintE> Components = cc::CC(GA, 0.2, false);
   fcc.stop();
   fcc.reportTotal("first cc");
-  auto c_im = make_in_imap<uintE>(n, [&](size_t i) { return Components[i]; });
 
   timer sc;
   sc.start();
-  auto Sources = cc_sources(c_im);
-  free(Components);
+  auto Sources = cc_sources(Components);
+  Components.del();
 
   auto Sources_copy = Sources.copy();
   auto Centers = vertexSubset(n, Sources.size(), Sources.get_array());
@@ -490,5 +489,6 @@ auto Biconnectivity(graph<vertex>& GA, char* out_f = 0) {
   pn.stop();
   pn.reportTotal("preorder time");
 
-  critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes, out_f);
+  return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
+                               out_f);
 }

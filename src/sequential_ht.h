@@ -23,12 +23,16 @@
 // SOFTWARE.
 #pragma once
 
+#include "lib/utilities.h"
 #include "maybe.h"
-using namespace std;
 
 template <class K, class V>
 class sequentialHT {
-  typedef tuple<K, V> T;
+  // Note that if compiling without compiler-llvm-libcxx, std::tuple<..> must be
+  // changed to absl::container_internal::CompressedTuple. Otherwise the empty
+  // base class optimization that eliminates storage for empty structs will not
+  // get performed, causing poor performance, and possibly bugs.
+  typedef std::tuple<K, V> T;
 
  public:
   size_t m;
@@ -41,34 +45,35 @@ class sequentialHT {
   inline size_t firstIndex(K v) { return toRange(pbbs::hash64(v)); }
   inline size_t incrementIndex(size_t h) { return toRange(h + 1); }
 
-  sequentialHT(T* _table, size_t size, float loadFactor, tuple<K, V> _empty)
+  sequentialHT(T* _table, size_t size, float loadFactor,
+               std::tuple<K, V> _empty)
       : m((size_t)1 << pbbs::log2_up((size_t)(loadFactor * size))),
         mask(m - 1),
         table(_table),
         empty(_empty) {
-    max_key = get<0>(empty);
+    max_key = std::get<0>(empty);
   }
 
   // m must be a power of two
-  sequentialHT(T* _table, size_t _m, tuple<K, V> _empty)
+  sequentialHT(T* _table, size_t _m, std::tuple<K, V> _empty)
       : m((size_t)_m), mask(m - 1), table(_table), empty(_empty) {
-    max_key = get<0>(empty);
+    max_key = std::get<0>(empty);
   }
 
   template <class M, class F>
-  inline void insertF(tuple<K, M>& v, F& f) {
-    K vKey = get<0>(v);
+  inline void insertF(std::tuple<K, M>& v, F& f) {
+    K vKey = std::get<0>(v);
     size_t h = firstIndex(vKey);
     while (1) {
-      auto k = get<0>(table[h]);
+      auto k = std::get<0>(table[h]);
       if (k == max_key) {
-        get<0>(table[h]) = vKey;
-        V cur = get<1>(table[h]);
-        get<1>(table[h]) = f(cur, v);
+        std::get<0>(table[h]) = vKey;
+        V cur = std::get<1>(table[h]);
+        std::get<1>(table[h]) = f(cur, v);
         return;
       } else if (k == vKey) {
-        V cur = get<1>(table[h]);
-        get<1>(table[h]) = f(cur, v);
+        V cur = std::get<1>(table[h]);
+        std::get<1>(table[h]) = f(cur, v);
         return;
       }
       h = incrementIndex(h);
@@ -79,12 +84,12 @@ class sequentialHT {
   inline bool insertAdd(K& vKey) {
     size_t h = firstIndex(vKey);
     while (1) {
-      auto k = get<0>(table[h]);
+      auto k = std::get<0>(table[h]);
       if (k == max_key) {
-        table[h] = make_tuple(vKey, 1);
+        table[h] = std::make_tuple(vKey, 1);
         return true;
       } else if (k == vKey) {
-        get<1>(table[h])++;
+        std::get<1>(table[h])++;
         return false;
       }
       h = incrementIndex(h);
@@ -93,15 +98,15 @@ class sequentialHT {
 
   // V must support ++, T<1> must be numeric
   inline bool insertAdd(T& v) {
-    const K& vKey = get<0>(v);
+    const K& vKey = std::get<0>(v);
     size_t h = firstIndex(vKey);
     while (1) {
-      auto k = get<0>(table[h]);
+      auto k = std::get<0>(table[h]);
       if (k == max_key) {
-        table[h] = make_tuple(vKey, 1);
+        table[h] = std::make_tuple(vKey, 1);
         return true;
       } else if (k == vKey) {
-        get<1>(table[h]) += get<1>(v);
+        std::get<1>(table[h]) += std::get<1>(v);
         return false;
       }
       h = incrementIndex(h);
@@ -112,9 +117,9 @@ class sequentialHT {
     size_t h = firstIndex(v);
     T c = table[h];
     while (1) {
-      if (get<0>(c) == max_key) {
+      if (std::get<0>(c) == max_key) {
         return empty;
-      } else if (get<0>(c) == v) {
+      } else if (std::get<0>(c) == v) {
         return c;
       }
       h = incrementIndex(h);
@@ -128,7 +133,7 @@ class sequentialHT {
     size_t k = 0;
     for (size_t i = 0; i < m; i++) {
       auto kv = table[i];
-      auto key = get<0>(kv);
+      auto key = std::get<0>(kv);
       if (key != max_key) {
         table[i] = empty;
         Maybe<E> value = f(kv);
@@ -140,13 +145,13 @@ class sequentialHT {
     return k;
   }
 
-  // F : KV -> Maybe<tuple<uintE,?>>
+  // F : KV -> Maybe<std::tuple<uintE,?>>
   template <class F>
   inline size_t compactIntoSelf(F& f) {
     size_t k = 0;
     for (size_t i = 0; i < m; i++) {
       auto kv = table[i];
-      auto key = get<0>(kv);
+      auto key = std::get<0>(kv);
       if (key != max_key) {
         table[i] = empty;
         auto value = f(kv);

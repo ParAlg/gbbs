@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include <tuple>
+
 #include "lib/index_map.h"
 #include "lib/speculative_for.h"
+#include "macros.h"
 
 struct UnionFind {
   size_t n;
@@ -59,7 +62,7 @@ struct UnionFind {
 template <class intT, class Edges, class ST, class UF>
 struct UnionFindStep {
   using res = reservation<intT>;
-  using storage = tuple<intT, intT>;
+  using storage = std::tuple<intT, intT>;
   Edges& E;
   res* R;
   ST& inST;
@@ -79,10 +82,10 @@ struct UnionFindStep {
   bool reserve(intT i) {
     assert(i < E.non_zeros);
     auto e = E.E[i];
-    intT u = uf.find(get<0>(e));
-    intT v = uf.find(get<1>(e));
+    intT u = uf.find(std::get<0>(e));
+    intT v = uf.find(std::get<1>(e));
     if (u != v) {
-      indices[i] = make_tuple(u, v);
+      indices[i] = std::make_tuple(u, v);
       R[v].reserve(i);
       R[u].reserve(i);
       assert(u < n);
@@ -96,7 +99,7 @@ struct UnionFindStep {
     assert(i < E.non_zeros);
     // read back u and v from 'reserve'
     auto st = indices[i];
-    intT u = get<0>(st), v = get<1>(st);
+    intT u = std::get<0>(st), v = std::get<1>(st);
     if (u >= n || v >= n) {
       cout << "u = " << u << " v = " << v << " i = " << i << endl;
       exit(0);
@@ -117,6 +120,7 @@ struct UnionFindStep {
 };
 
 template <class intT, class Edges, class R, class ST, class UF>
-auto make_uf_step(Edges& e, R r, ST& ist, UF& uf) {
+inline UnionFindStep<intT, Edges, ST, UF> make_uf_step(Edges& e, R r, ST& ist,
+                                                       UF& uf) {
   return UnionFindStep<intT, Edges, ST, UF>(e, r, ist, uf);
 }

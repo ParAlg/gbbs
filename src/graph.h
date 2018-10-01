@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <string>
 #pragma once
 
 #include <stdlib.h>
@@ -29,8 +30,8 @@
 #include "compressed_vertex.h"
 #include "vertex.h"
 
-#include "../lib/integer_sort.h"
-using namespace std;
+#include "lib/get_time.h"
+#include "lib/integer_sort.h"
 
 // **************************************************************
 //    ADJACENCY ARRAY REPRESENTATION
@@ -48,7 +49,7 @@ struct graph {
 
   graph(vertex* _V, long _n, long _m, std::function<void()> _d,
         uintE* _flags = NULL)
-      : V(_V), n(_n), m(_m), flags(_flags), transposed(0), deletion_fn(_d) {}
+      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d) {}
 
   graph(vertex* _V, long _n, long _m, std::function<void()> _d,
         std::function<graph<vertex>()> _c, uintE* _flags = NULL)
@@ -60,7 +61,7 @@ struct graph {
         deletion_fn(_d),
         copy_fn(_c) {}
 
-  auto copy() { return copy_fn(); }
+  auto copy() -> graph<vertex> { return copy_fn(); }
 
   void del() {
     if (flags != NULL) free(flags);
@@ -68,7 +69,7 @@ struct graph {
   }
 };
 
-auto get_deletion_fn(void* V, void* edges) {
+inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
   auto df = [&](void* V, void* edges) {
     free(V);
     free(edges);
@@ -76,7 +77,8 @@ auto get_deletion_fn(void* V, void* edges) {
   return std::bind(df, V, edges);
 }
 
-auto get_deletion_fn(void* V, void* in_edges, void* out_edges) {
+inline auto get_deletion_fn(void* V, void* in_edges, void* out_edges)
+    -> std::function<void()> {
   auto df = [&](void* V, void* in_edges, void* out_edges) {
     free(V);
     free(in_edges);
@@ -86,8 +88,8 @@ auto get_deletion_fn(void* V, void* in_edges, void* out_edges) {
 }
 
 template <class vertex, class E>
-std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
-                                           size_t m, size_t sizeofe) {
+inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
+                                                  size_t m, size_t sizeofe) {
   auto df = [&](vertex* V, E* edges, size_t n, size_t m, size_t sizeofe) {
     auto NV = newA(vertex, n);
     auto NE = newA(E, sizeofe);
@@ -107,9 +109,10 @@ std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
 }
 
 template <class vertex, class E>
-std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges, E* out_edges,
-                                           size_t n, size_t m, size_t m_in,
-                                           size_t m_out) {
+inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
+                                                  E* out_edges, size_t n,
+                                                  size_t m, size_t m_in,
+                                                  size_t m_out) {
   auto df = [&](vertex* V, E* in_edges, E* out_edges, size_t n, size_t m,
                 size_t m_in, size_t m_out) {
     auto NV = newA(vertex, n);
@@ -135,16 +138,11 @@ std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges, E* out_edges,
   return std::bind(df, V, in_edges, out_edges, n, m, m_in, m_out);
 }
 
-auto get_copy_fn(void* V, void* in_edges, void* out_edges) {
-  auto df = [&](void* V, void* in_edges, void* out_edges) {};
-  return std::bind(df, V, in_edges, out_edges);
-}
-
 template <
-    template <class W> typename vertex, class W, typename P,
+    template <class W> class vertex, class W, typename P,
     typename std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value,
                             int>::type = 0>
-auto filter_graph(graph<vertex<W>>& G, P& pred) {
+inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = G.n;
   w_vertex* V = G.V;
@@ -178,7 +176,7 @@ auto filter_graph(graph<vertex<W>>& G, P& pred) {
   assert(G.m / 2 == outEdgeCount);
   assert(G.m / 2 == inEdgeCount);
 
-  using edge = tuple<uintE, W>;
+  using edge = std::tuple<uintE, W>;
 
   auto out_edges = array_imap<edge>(outEdgeCount);
   auto in_edges = array_imap<edge>(inEdgeCount);
@@ -191,12 +189,10 @@ auto filter_graph(graph<vertex<W>>& G, P& pred) {
       edge* nghs = u.getOutNeighbors();
       edge* dir_nghs = out_edges.start() + out_offset;
       auto pred_c = [&](const edge& e) {
-        return pred(i, get<0>(e), get<1>(e));
+        return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im = make_in_imap<edge>(d, [&](size_t i) { return nghs[i]; });
       auto res = pbbs::filter(n_im, pred_c, pbbs::no_flag, dir_nghs);
-      size_t k = res.size();
-      assert(k == (out_edge_sizes[i + 1] - out_offset));
     }
   });
 
@@ -209,12 +205,10 @@ auto filter_graph(graph<vertex<W>>& G, P& pred) {
       edge* dir_nghs = in_edges.start() + in_offset;
 
       auto pred_c = [&](const edge& e) {
-        return pred(get<0>(e), i, get<1>(e));
+        return pred(std::get<0>(e), i, std::get<1>(e));
       };
       auto n_im = make_in_imap<edge>(d, [&](size_t i) { return nghs[i]; });
       auto res = pbbs::filter(n_im, pred_c, pbbs::no_flag, dir_nghs);
-      size_t k = res.size();
-      assert(k == (in_edge_sizes[i + 1] - in_offset));
     }
   });
 
@@ -241,11 +235,12 @@ struct print_t {
 };
 
 // byte version
-template <
-    template <class W> typename vertex, class W, typename P,
-    typename std::enable_if<
-        std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, int>::type = 0>
-auto filter_graph(graph<vertex<W>>& G, P& pred) {
+template <template <class W> class vertex, class W, typename P,
+          typename std::enable_if<
+              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value ||
+                  std::is_same<vertex<W>, csv_byte<W>>::value,
+              int>::type = 0>
+inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = G.n;
   w_vertex* V = G.V;
@@ -263,11 +258,11 @@ auto filter_graph(graph<vertex<W>>& G, P& pred) {
       if (pred(u, v, w)) {
         long bytes = 0;
         if (deg == 0) {
-          bytes = compression::compressFirstEdge(tmp, bytes, u, v);
-          bytes = compression::compressWeight<W>(tmp, bytes, w);
+          bytes = encodings::byte::compressFirstEdge(tmp, bytes, u, v);
+          bytes = encodings::byte::compressWeight<W>(tmp, bytes, w);
         } else {
-          bytes = compression::compressEdge(tmp, bytes, v - last_ngh);
-          bytes = compression::compressWeight<W>(tmp, bytes, w);
+          bytes = encodings::byte::compressEdge(tmp, bytes, v - last_ngh);
+          bytes = encodings::byte::compressWeight<W>(tmp, bytes, w);
         }
         last_ngh = v;
         total_bytes += bytes;
@@ -286,26 +281,30 @@ auto filter_graph(graph<vertex<W>>& G, P& pred) {
 
   auto edges = array_imap<uchar>(last_offset);
 
-  parallel_for_bc(i, 0, n, true, {
-    uintE new_deg = degrees[i];
-    if (new_deg > 0) {
-      auto app_pred = [&](tuple<uintE COMMA W> val) {
-        return pred(i, get<0>(val), get<1>(val));
-      };
+  {
+    auto for_inner = [&](size_t i) {
+      uintE new_deg = degrees[i];
+      if (new_deg > 0) {
+        auto app_pred = [&](std::tuple<uintE, W> val) {
+          return pred(i, std::get<0>(val), std::get<1>(val));
+        };
 
-      auto iter = V[i].getOutIter(i);
-      auto f_it =
-          ligra_utils::make_filter_iter<tuple<uintE COMMA W>>(iter, app_pred);
-      long nbytes = byte::sequentialCompressEdgeSet<W>(
-          edges.start() + byte_offsets[i], 0, new_deg, i, f_it);
-      if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
-        cout << "degree is: " << new_deg
-             << " nbytes should be: " << (byte_offsets[i + 1] - byte_offsets[i])
-             << " but is: " << nbytes << endl;
-        assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
+        auto iter = V[i].getOutIter(i);
+        auto f_it =
+            ligra_utils::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
+        long nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
+            edges.start() + byte_offsets[i], 0, new_deg, i, f_it);
+        if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
+          cout << "degree is: " << new_deg << " nbytes should be: "
+               << (byte_offsets[i + 1] - byte_offsets[i])
+               << " but is: " << nbytes << endl;
+          assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
+        }
       }
-    }
-  });
+    };
+
+    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+  }
 
   auto AV = newA(cav_byte<W>, n);
   parallel_for_bc(i, 0, n, true, {
@@ -326,27 +325,27 @@ auto filter_graph(graph<vertex<W>>& G, P& pred) {
 }
 
 template <
-    template <class W> typename vertex, class W, typename P,
+    template <class W> class vertex, class W, typename P,
     typename std::enable_if<std::is_same<vertex<W>, asymmetricVertex<W>>::value,
                             int>::type = 0>
-auto filter_graph(graph<vertex<W>>& G, P& pred) {
-  exit(0);
+inline auto filter_graph(graph<vertex<W>>& G, P& pred) -> decltype(G) {
+  assert(false);  // Not implemented for directed graphs
   return G;
 }
 
 template <
-    template <class W> typename vertex, class W, typename P,
+    template <class W> class vertex, class W, typename P,
     typename std::enable_if<
         std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
-auto filter_graph(graph<vertex<W>>& G, P& pred) {
-  exit(0);
+inline auto filter_graph(graph<vertex<W>>& G, P& pred) -> decltype(G) {
+  assert(false);  // Not implemented for directed graphs
   return G;
 }
 
 // Edge Array Representation
 template <class W>
 struct edge_array {
-  using edge = tuple<uintE, uintE, W>;
+  using edge = std::tuple<uintE, uintE, W>;
   edge* E;
   // for sq matrices, num_rows == num_cols
   size_t num_rows;
@@ -367,45 +366,48 @@ struct edge_array {
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
 template <template <class W> class vertex, class W, class P>
-edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
-  using edge = tuple<uintE, uintE, W>;
+inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
+  using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
-  auto vtx_offs = array_imap<tuple<size_t, size_t, size_t>>(n + 1);
+  auto vtx_offs = array_imap<std::tuple<size_t, size_t, size_t>>(n + 1);
 
   // 1. map and write the # filtered edges for each vtx into vtx_offs
-  tuple<uintT, uintT> id =
-      make_tuple(0, 0);  // #vals == 1, #vals == 2, space to allocate
+  std::tuple<uintT, uintT> id =
+      std::make_tuple(0, 0);  // #vals == 1, #vals == 2, space to allocate
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     uintE pr = pred(src, ngh, wgh);
-    return make_tuple<uintT, uintT>(pr == 1, pr == 2);
+    return std::make_tuple<uintT, uintT>(pr == 1, pr == 2);
   };
-  auto red_f = [](const tuple<uintT, uintT>& l, const tuple<uintT, uintT>& r) {
-    return make_tuple(get<0>(l) + get<0>(r), get<1>(l) + get<1>(r));
+  auto red_f = [](const std::tuple<uintT, uintT>& l,
+                  const std::tuple<uintT, uintT>& r) {
+    return std::make_tuple(std::get<0>(l) + std::get<0>(r),
+                           std::get<1>(l) + std::get<1>(r));
   };
   parallel_for_bc(i, 0, n, true, {
     auto res = G.V[i].reduceOutNgh(i, id, map_f, red_f);
-    if (get<0>(res) > 0 || get<1>(res) > 0) {
-      vtx_offs[i] = make_tuple(get<0>(res), get<1>(res),
-                               G.V[i].calculateOutTemporarySpace());
+    if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
+      vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res),
+                                    G.V[i].calculateOutTemporarySpace());
     } else {
-      vtx_offs[i] = make_tuple(get<0>(res), get<1>(res), 0);
+      vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res), 0);
     }
   });
-  vtx_offs[n] = make_tuple(0, 0, 0);
-  auto scan_f = [](const tuple<uintT, uintT, uintT>& l,
-                   const tuple<uintT, uintT, uintT>& r) {
-    return make_tuple(get<0>(l) + get<0>(r), get<1>(l) + get<1>(r),
-                      get<2>(l) + get<2>(r));
+  vtx_offs[n] = std::make_tuple(0, 0, 0);
+  auto scan_f = [](const std::tuple<uintT, uintT, uintT>& l,
+                   const std::tuple<uintT, uintT, uintT>& r) {
+    return std::make_tuple(std::get<0>(l) + std::get<0>(r),
+                           std::get<1>(l) + std::get<1>(r),
+                           std::get<2>(l) + std::get<2>(r));
   };
-  pbbs::scan(vtx_offs, vtx_offs, scan_f, make_tuple(0, 0, 0));
+  pbbs::scan(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0, 0));
 
   size_t total_space =
-      get<2>(vtx_offs[n]);  // total space needed for all vertices
-  size_t output_size = get<1>(vtx_offs[n]);
+      std::get<2>(vtx_offs[n]);  // total space needed for all vertices
+  size_t output_size = std::get<1>(vtx_offs[n]);
   cout << "tmp space to allocate = " << total_space
        << " output size = " << output_size << endl;
   auto arr = array_imap<edge>(output_size);
-  auto tmp = array_imap<tuple<uintE, W>>(total_space);
+  auto tmp = array_imap<std::tuple<uintE, W>>(total_space);
 
   auto pred_two = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return pred(src, ngh, wgh) == 2;
@@ -417,24 +419,27 @@ edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
   };
 
   // 2. pack and write out
-  parallel_for_bc(i, 0, n, true, {
-    size_t off = get<1>(vtx_offs[i]);
-    size_t n_one = get<0>(vtx_offs[i + 1]) - get<0>(vtx_offs[i]);
-    size_t n_two = get<1>(vtx_offs[i + 1]) - off;
-    size_t n_to_pack = n_one + n_two;
-    if (n_to_pack > 0) {
-      tuple<uintE COMMA W>* tmp_v = tmp.start() + get<2>(vtx_offs[i]);
-      auto out_f = [&](size_t j, const tuple<uintE, W>& nw) {
-        arr[off + j] = make_tuple(i, get<0>(nw), get<1>(nw));
-      };
-      // Filter out edges where pred == 2.
-      if (n_two > 0) {
-        G.V[i].filterOutNgh(i, pred_two, out_f, tmp_v);
+  {
+    auto for_inner = [&](size_t i) {
+      size_t off = std::get<1>(vtx_offs[i]);
+      size_t n_one = std::get<0>(vtx_offs[i + 1]) - std::get<0>(vtx_offs[i]);
+      size_t n_two = std::get<1>(vtx_offs[i + 1]) - off;
+      size_t n_to_pack = n_one + n_two;
+      if (n_to_pack > 0) {
+        std::tuple<uintE, W>* tmp_v = tmp.start() + std::get<2>(vtx_offs[i]);
+        auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
+          arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
+        };
+        // Filter out edges where pred == 2.
+        if (n_two > 0) {
+          G.V[i].filterOutNgh(i, pred_two, out_f, tmp_v);
+        }
+        // Pack out any non-zero edges
+        G.V[i].packOutNgh(i, pred_zero, tmp_v);
       }
-      // Pack out any non-zero edges
-      G.V[i].packOutNgh(i, pred_zero, tmp_v);
-    }
-  });
+    };
+    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+  }
   auto degree_imap =
       make_in_imap<size_t>(n, [&](size_t i) { return G.V[i].getOutDegree(); });
 
@@ -444,39 +449,44 @@ edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
 
 // Used by MaximalMatching.
 template <template <class W> class vertex, class W, class P>
-edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
-  using edge = tuple<uintE, uintE, W>;
+inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
+  using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
-  auto offs = array_imap<tuple<uintT, uintT>>(n + 1);
+  auto offs = array_imap<std::tuple<uintT, uintT>>(n + 1);
   parallel_for_bc(i, 0, n, true, {
-    offs[i] = make_tuple(G.V[i].countOutNgh(i, p),
-                         G.V[i].calculateOutTemporarySpace());
+    offs[i] = std::make_tuple(G.V[i].countOutNgh(i, p),
+                              G.V[i].calculateOutTemporarySpace());
   });
   //  cout << "fall e" << endl;
-  offs[n] = make_tuple(0, 0);
-  auto scan_f = [](const tuple<uintT, uintT>& l, const tuple<uintT, uintT>& r) {
-    return make_tuple(get<0>(l) + get<0>(r), get<1>(l) + get<1>(r));
+  offs[n] = std::make_tuple(0, 0);
+  auto scan_f = [](const std::tuple<uintT, uintT>& l,
+                   const std::tuple<uintT, uintT>& r) {
+    return std::make_tuple(std::get<0>(l) + std::get<0>(r),
+                           std::get<1>(l) + std::get<1>(r));
   };
-  pbbs::scan(offs, offs, scan_f, make_tuple(0, 0));
-  size_t total_space = get<1>(offs[n]);
-  auto tmp = array_imap<tuple<uintE, W>>(total_space);
+  pbbs::scan(offs, offs, scan_f, std::make_tuple(0, 0));
+  size_t total_space = std::get<1>(offs[n]);
+  auto tmp = array_imap<std::tuple<uintE, W>>(total_space);
   cout << "tmp space allocated = " << total_space << endl;
 
-  size_t total_edges = get<0>(offs[n]);
+  size_t total_edges = std::get<0>(offs[n]);
   auto arr = array_imap<edge>(total_edges);
 
-  parallel_for_bc(i, 0, n, true, {
-    size_t off = get<0>(offs[i]);
-    if (G.V[i].getOutDegree() > 0) {
-      tuple<uintE COMMA W>* tmp_v = tmp.start() + get<1>(offs[i]);
-      auto out_f = [&](size_t j, const tuple<uintE, W>& nw) {
-        arr[off + j] = make_tuple(i, get<0>(nw), get<1>(nw));
-      };
-      G.V[i].filterOutNgh(i, p, out_f, tmp_v);
-      G.V[i].setOutDegree(0);
-      G.V[i].setInDegree(0);
-    }
-  });
+  {
+    auto for_inner = [&](size_t i) {
+      size_t off = std::get<0>(offs[i]);
+      if (G.V[i].getOutDegree() > 0) {
+        std::tuple<uintE, W>* tmp_v = tmp.start() + std::get<1>(offs[i]);
+        auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
+          arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
+        };
+        G.V[i].filterOutNgh(i, p, out_f, tmp_v);
+        G.V[i].setOutDegree(0);
+        G.V[i].setInDegree(0);
+      }
+    };
+    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+  }
   //  cout << "G.m = " << G.m << "arr.size = " << arr.size() << endl;
   G.m = 0;
   return edge_array<W>(arr.get_array(), n, n, arr.size());
@@ -485,10 +495,10 @@ edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
 // pred(src, ngh, wgh) == 1 is returned in the output edge array.
 template <template <class W> class vertex, class W, class P>
-edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
-  using edge = tuple<uintE, uintE, W>;
+inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
+  using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
-  auto vtx_offs = array_imap<tuple<size_t, size_t>>(n + 1);
+  auto vtx_offs = array_imap<std::tuple<size_t, size_t>>(n + 1);
 
   // 1. Compute the # filtered edges and tmp-space required for each vtx.
   uintE id = 0;
@@ -499,45 +509,51 @@ edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
   parallel_for_bc(i, 0, n, true, {
     uintE ct = G.V[i].reduceOutNgh(i, id, map_f, red_f);
     if (ct > 0) {
-      vtx_offs[i] = make_tuple(ct, G.V[i].calculateOutTemporarySpace());
+      vtx_offs[i] = std::make_tuple(ct, G.V[i].calculateOutTemporarySpace());
     } else {
-      vtx_offs[i] = make_tuple(0, 0);
+      vtx_offs[i] = std::make_tuple(0, 0);
     }
   });
-  vtx_offs[n] = make_tuple(0, 0);
-  auto scan_f = [](const tuple<size_t, size_t>& l,
-                   const tuple<size_t, size_t>& r) {
-    return make_tuple(get<0>(l) + get<0>(r), get<1>(l) + get<1>(r));
+  vtx_offs[n] = std::make_tuple(0, 0);
+  auto scan_f = [](const std::tuple<size_t, size_t>& l,
+                   const std::tuple<size_t, size_t>& r) {
+    return std::make_tuple(std::get<0>(l) + std::get<0>(r),
+                           std::get<1>(l) + std::get<1>(r));
   };
-  pbbs::scan(vtx_offs, vtx_offs, scan_f, make_tuple(0, 0));
+  pbbs::scan(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0));
 
-  size_t output_size = get<0>(vtx_offs[n]);
+  size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = array_imap<edge>(output_size);
 
-  size_t tmp_space = get<1>(vtx_offs[n]);
-  auto tmp = array_imap<tuple<uintE, W>>(tmp_space);
+  size_t tmp_space = std::get<1>(vtx_offs[n]);
+  auto tmp = array_imap<std::tuple<uintE, W>>(tmp_space);
 
   // 2. Filter edges into output arr.
-  parallel_for_bc(i, 0, n, true, {
-    size_t off = get<0>(vtx_offs[i]);
-    size_t n_to_pack = get<0>(vtx_offs[i + 1]) - off;
-    if (n_to_pack > 0) {
-      tuple<uintE COMMA W>* tmp_v = tmp.start() + get<1>(vtx_offs[i]);
-      auto out_f = [&](size_t j, const tuple<uintE, W>& nw) {
-        output_arr[off + j] = make_tuple(i, get<0>(nw), get<1>(nw));
-      };
-      G.V[i].filterOutNgh(i, pred, out_f, tmp_v);
-    }
-  });
+  {
+    auto for_inner = [&](size_t i) {
+      size_t off = std::get<0>(vtx_offs[i]);
+      size_t n_to_pack = std::get<0>(vtx_offs[i + 1]) - off;
+      if (n_to_pack > 0) {
+        std::tuple<uintE, W>* tmp_v = tmp.start() + std::get<1>(vtx_offs[i]);
+        auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
+          output_arr[off + j] =
+              std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
+        };
+        G.V[i].filterOutNgh(i, pred, out_f, tmp_v);
+      }
+    };
+    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+  }
   return edge_array<W>(output_arr.get_array(), n, n, output_arr.size());
 }
 
 // Mutates (sorts) the underlying array
 // Returns an unweighted, symmetric graph
 template <class W>
-auto sym_graph_from_edges(edge_array<W>& A, bool is_sorted = false) {
+inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
+                                                      bool is_sorted = false) {
   using V = symmetricVertex<W>;
-  using edge = tuple<uintE, uintE, W>;
+  using edge = std::tuple<uintE, uintE, W>;
   size_t m = A.non_zeros;
   size_t n = max<size_t>(A.num_cols, A.num_rows);
 
@@ -557,25 +573,25 @@ auto sym_graph_from_edges(edge_array<W>& A, bool is_sorted = false) {
 
   auto Am = make_array_imap<edge>(A.E, m);
   if (!is_sorted) {
-    auto first = [](tuple<uintE, uintE, W> a) { return get<0>(a); };
+    auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbs::log2_up(n);
-    pbbs::integer_sort<uintE>(Am, Am, first, bits);
+    pbbs::integer_sort(Am, Am, first, bits);
   }
 
   auto starts = array_imap<uintT>(n);
   V* v = pbbs::new_array_no_init<V>(n);
   auto edges = array_imap<uintE>(m, [&](size_t i) {
     // Fuse loops over edges (check if this helps)
-    if (i == 0 || (get<0>(Am[i]) != get<0>(Am[i - 1]))) {
-      starts[get<0>(Am[i])] = i;
+    if (i == 0 || (std::get<0>(Am[i]) != std::get<0>(Am[i - 1]))) {
+      starts[std::get<0>(Am[i])] = i;
     }
-    return get<1>(Am[i]);
+    return std::get<1>(Am[i]);
   });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintT o = starts[i];
     size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
     v[i].degree = degree;
-    v[i].neighbors = ((tuple<uintE, W>*)(edges.start() + o));
+    v[i].neighbors = ((std::tuple<uintE, W>*)(edges.start() + o));
   });
   return graph<V>(v, n, m, get_deletion_fn(v, edges.get_array()));
 }

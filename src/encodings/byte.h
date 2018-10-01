@@ -29,24 +29,29 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <tuple>
 #include <type_traits>
 
-#include "../macros.h"
-#include "../oldlib/utils.h"
+#include "macros.h"
+#include "oldlib/utils.h"
 
+namespace encodings {
 namespace byte {
 
 inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
 
-template <class W,
-          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-inline W eatWeight(uchar*& start) {
-  return (W)pbbs::empty();
+// Read an empty weight (noop)
+template <class W, typename std::enable_if<std::is_same<W, pbbs::empty>::value,
+                                           int>::type = 0>
+inline pbbs::empty eatWeight(uchar*& start) {
+  return pbbs::empty();
 }
 
+// Read an integer weight. Weights can be negative, so read using signed VarInt8
+// logic.
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-inline W eatWeight(uchar*& start) {
+inline intE eatWeight(uchar*& start) {
   uchar fb = *start++;
   intE edgeRead = (fb & 0x3f);
   if (LAST_BIT_SET(fb)) {
@@ -62,6 +67,15 @@ inline W eatWeight(uchar*& start) {
     }
   }
   return (fb & 0x40) ? -edgeRead : edgeRead;
+}
+
+// Read a float weight.
+template <class W,
+          typename std::enable_if<std::is_same<W, float>::value, int>::type = 0>
+inline float eatWeight(uchar*& start) {
+  float* float_start = (float*)start;
+  start += sizeof(float);
+  return *float_start;
 }
 
 inline intE eatFirstEdge(uchar*& start, uintE source) {
@@ -119,17 +133,31 @@ inline void decode(T t, uchar* edgeStart, const uintE& source,
   }
 }
 
+template <class W>
+inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
+                                             uintE degree, size_t i) {
+  if (degree == 0) {
+    assert(false);  // Trying to access edge i = " << i << " from zero deg vtx
+  }
+  uintE ngh = eatFirstEdge(edge_start, source);
+  W wgh = eatWeight<W>(edge_start);
+  for (size_t k = 1; k < i; k++) {
+    ngh += eatEdge(edge_start);
+    wgh = eatWeight<W>(edge_start);
+  }
+  return std::make_tuple(ngh, wgh);
+}
+
 template <class W, class T>
 inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
                              const uintT& degree, uintE block_size,
                              uintE block_num) {
-  assert(false);
+  assert(false);  // Unimplemented
 }
 
 template <class W, class E, class M, class R>
-inline auto map_reduce(uchar* edge_start, const uintE& source,
-                       const uintT& degree, E id, M& m, R& r,
-                       const bool par = true) {
+inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
+                    E id, M& m, R& r, const bool par = true) {
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
     W wgh = eatWeight<W>(edge_start);
@@ -147,15 +175,13 @@ inline auto map_reduce(uchar* edge_start, const uintE& source,
 /*
   Compresses the first edge, writing target-source and a sign bit.
 */
-long compressFirstEdge(uchar* start, long offset, long source, long target) {
-  uchar* saveStart = start;
-  long saveOffset = offset;
-
+inline long compressFirstEdge(uchar* start, long offset, long source,
+                              long target) {
   long diff = target - source;
   long preCompress = diff;
   int bytesUsed = 0;
   uchar firstByte = 0;
-  uintE toCompress = abs(preCompress);
+  uintE toCompress = std::abs(preCompress);
   firstByte = toCompress & 0x3f;  // 0011|1111
   if (preCompress < 0) {
     firstByte |= 0x40;
@@ -183,8 +209,8 @@ long compressFirstEdge(uchar* start, long offset, long source, long target) {
   return offset;
 }
 
-template <class W,
-          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
+template <class W, typename std::enable_if<std::is_same<W, pbbs::empty>::value,
+                                           int>::type = 0>
 inline long compressWeight(uchar* start, long offset, W weight) {
   return offset;
 }
@@ -195,7 +221,15 @@ inline long compressWeight(uchar* start, long offset, W weight) {
   return compressFirstEdge(start, offset, 0, weight);
 }
 
-long compressEdge(uchar* start, long curOffset, uintE diff) {
+template <class W,
+          typename std::enable_if<std::is_same<W, float>::value, int>::type = 0>
+inline long compressWeight(uchar* start, long offset, W weight) {
+  float* float_start = (float*)(start + offset);
+  *float_start = weight;
+  return offset + sizeof(float);
+}
+
+inline long compressEdge(uchar* start, long curOffset, uintE diff) {
   uchar curByte = diff & 0x7f;
   int bytesUsed = 0;
   while ((curByte > 0) || (diff > 0)) {
@@ -214,8 +248,8 @@ long compressEdge(uchar* start, long curOffset, uintE diff) {
 }
 
 template <class W, class P>
-inline size_t pack(P pred, uchar* edge_start, const uintE& source,
-                   const uintE& degree, tuple<uintE, W>* tmp) {
+inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
+                   const uintE& degree, std::tuple<uintE, W>* tmp) {
   size_t new_deg = 0;
   if (degree > 0) {
     uchar* finger = edge_start;  // read-finger
@@ -251,7 +285,7 @@ inline size_t pack(P pred, uchar* edge_start, const uintE& source,
 
 template <class W, class P, class O>
 inline size_t filter(P pred, uchar* edge_start, const uintE& source,
-                     const uintE& degree, tuple<uintE, W>* tmp, O& out) {
+                     const uintE& degree, std::tuple<uintE, W>* tmp, O& out) {
   if (degree > 0) {
     uchar* finger = edge_start;  // read-finger
     // Consume the specially encoded first value
@@ -259,13 +293,13 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
     W wgh = eatWeight<W>(finger);
     uintE k = 0;
     if (pred(source, ngh, wgh)) {
-      out(k++, make_tuple(ngh, wgh));
+      out(k++, std::make_tuple(ngh, wgh));
     }
     for (size_t i = 1; i < degree; i++) {
       ngh += eatEdge(finger);
       wgh = eatWeight<W>(finger);
       if (pred(source, ngh, wgh)) {
-        out(k++, make_tuple(ngh, wgh));
+        out(k++, std::make_tuple(ngh, wgh));
       }
     }
     return k;
@@ -274,22 +308,21 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class I>
-long sequentialCompressEdgeSet(uchar* edgeArray, long currentOffset, uintE deg,
-                               uintE src, I& it) {
+inline long sequentialCompressEdgeSet(uchar* edgeArray, long currentOffset,
+                                      uintE deg, uintE src, I& it) {
   if (deg > 0) {
     // Compress the first edge whole, which is signed difference coded
-    uintE prev = get<0>(it.cur());
-    W w = get<1>(it.cur());
-    long old_off = currentOffset;
+    uintE prev = std::get<0>(it.cur());
+    W w = std::get<1>(it.cur());
     currentOffset = compressFirstEdge(edgeArray, currentOffset, src, prev);
     currentOffset = compressWeight<W>(edgeArray, currentOffset, w);
     for (size_t eid = 1; eid < deg; eid++) {
       // Store difference between cur and prev edge.
-      uintE difference = get<0>(it.next()) - prev;
+      uintE difference = std::get<0>(it.next()) - prev;
       currentOffset = compressEdge(edgeArray, currentOffset, difference);
       currentOffset =
-          compressWeight<W>(edgeArray, currentOffset, get<1>(it.cur()));
-      prev = get<0>(it.cur());
+          compressWeight<W>(edgeArray, currentOffset, std::get<1>(it.cur()));
+      prev = std::get<0>(it.cur());
     }
   }
   return currentOffset;
@@ -299,24 +332,24 @@ template <class W>
 struct iter {
   uchar* finger;
   uintE src;
-  tuple<uintE, W> last_edge;
+  std::tuple<uintE, W> last_edge;
   uintE degree;
   uintE proc;
 
   iter(uchar* _finger, uintT _degree, uintE _src)
       : finger(_finger), degree(_degree), src(_src), proc(0) {
     if (degree > 0) {
-      get<0>(last_edge) = eatFirstEdge(finger, src);
-      get<1>(last_edge) = eatWeight<W>(finger);
+      std::get<0>(last_edge) = eatFirstEdge(finger, src);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
       proc = 1;
     }
   }
 
-  inline tuple<uintE, W> cur() { return last_edge; }
+  inline std::tuple<uintE, W> cur() { return last_edge; }
 
-  inline tuple<uintE, W> next() {
-    get<0>(last_edge) += eatEdge(finger);
-    get<1>(last_edge) = eatWeight<W>(finger);
+  inline std::tuple<uintE, W> next() {
+    std::get<0>(last_edge) += eatEdge(finger);
+    std::get<1>(last_edge) = eatWeight<W>(finger);
     proc++;
     return last_edge;
   }
@@ -325,15 +358,15 @@ struct iter {
 };
 
 template <class W>
-size_t intersect(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
-                 uintE l1_src, uintE l2_src) {
+inline size_t intersect(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
+                        uintE l1_src, uintE l2_src) {
   if (l1_size == 0 || l2_size == 0) return 0;
   auto it_1 = iter<W>(l1, l1_size, l1_src);
   auto it_2 = iter<W>(l2, l2_size, l2_src);
   size_t i = 0, j = 0, ct = 0;
   while (i < l1_size && j < l2_size) {
-    uintE e1 = get<0>(it_1.cur());
-    uintE e2 = get<0>(it_2.cur());
+    uintE e1 = std::get<0>(it_1.cur());
+    uintE e2 = std::get<0>(it_2.cur());
     if (e1 == e2) {
       i++, j++, it_1.next(), it_2.next(), ct++;
     } else if (e1 < e2) {
@@ -345,4 +378,27 @@ size_t intersect(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
   return ct;
 }
 
+template <class W, class F>
+size_t intersect_f(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
+                   uintE l1_src, uintE l2_src, const F& f) {
+  if (l1_size == 0 || l2_size == 0) return 0;
+  auto it_1 = iter<W>(l1, l1_size, l1_src);
+  auto it_2 = iter<W>(l2, l2_size, l2_src);
+  size_t i = 0, j = 0, ct = 0;
+  while (i < l1_size && j < l2_size) {
+    uintE e1 = std::get<0>(it_1.cur());
+    uintE e2 = std::get<0>(it_2.cur());
+    if (e1 == e2) {
+      f(l1_src, l2_src, e1);
+      i++, j++, it_1.next(), it_2.next(), ct++;
+    } else if (e1 < e2) {
+      i++, it_1.next();
+    } else {
+      j++, it_2.next();
+    }
+  }
+  return ct;
+}
+
 };  // namespace byte
+}  // namespace encodings

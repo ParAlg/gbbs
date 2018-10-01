@@ -61,12 +61,12 @@ struct Decr {
 };
 
 template <class W, class L, class B>
-auto make_decr(L& cts, B& fl) {
+inline auto make_decr(L& cts, B& fl) {
   return Decr<W, L, B>(cts, fl);
 }
 
 template <template <class W> class vertex, class W>
-auto remove_chains(graph<vertex<W>>& GA) {
+inline auto remove_chains(graph<vertex<W>>& GA) {
   const size_t n = GA.n;
   const size_t m = GA.m;
   auto in_d =

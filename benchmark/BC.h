@@ -49,7 +49,7 @@ struct BC_F {
 };
 
 template <class W, class S, class V>
-auto make_bc_f(S& scores, V& visited) {
+inline BC_F<W, S, V> make_bc_f(S& scores, V& visited) {
   return BC_F<W, S, V>(scores, visited);
 }
 
@@ -65,7 +65,7 @@ struct BC_Vertex_F {
 };
 
 template <class V>
-auto make_bc_vertex_f(V& visited) {
+inline BC_Vertex_F<V> make_bc_vertex_f(V& visited) {
   return BC_Vertex_F<V>(visited);
 }
 
@@ -84,14 +84,13 @@ struct BC_Back_Vertex_F {
 };
 
 template <class V, class D>
-auto make_bc_back_vertex_f(V& visited, D& dependencies, D& num_paths) {
+inline BC_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
+                                                    D& num_paths) {
   return BC_Back_Vertex_F<V, D>(visited, dependencies, num_paths);
 }
 
 template <template <class W> class vertex, class W>
-auto BC(graph<vertex<W>>& GA, const uintE& start) {
-  timer bc_t;
-  bc_t.start();
+inline array_imap<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   using w_vertex = vertex<W>;
   size_t n = GA.n;
 
@@ -103,12 +102,11 @@ auto BC(graph<vertex<W>>& GA, const uintE& start) {
 
   vertexSubset Frontier(n, start);
 
-  vector<vertexSubset> Levels;
+  std::vector<vertexSubset> Levels;
 
   long round = 0;
   while (!Frontier.isEmpty()) {
     round++;
-    cout << Frontier.size() << endl;
     //      vertexSubset output = edgeMap(GA, Frontier,
     //      make_bc_f<W>(NumPaths,Visited), -1, sparse_blocked | dense_forward);
     vertexSubset output = edgeMap(GA, Frontier, make_bc_f<W>(NumPaths, Visited),
@@ -151,7 +149,6 @@ auto BC(graph<vertex<W>>& GA, const uintE& start) {
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
-  double tt = bc_t.stop();
-  return std::move(Dependencies);
+  return Dependencies;
 }
 }  // namespace bc

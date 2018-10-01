@@ -21,7 +21,10 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+
 #include <stdio.h>
+#include <tuple>
+
 #include "sequence_ops.h"
 #include "utilities.h"
 
@@ -69,8 +72,9 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
 // internally sorted into num_buckets buckets.
 template <typename b_size_t, typename s_size_t, typename E, typename I,
           typename F>
-inline tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key, s_size_t n,
-                                                  s_size_t num_buckets) {
+inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
+                                                       s_size_t n,
+                                                       s_size_t num_buckets) {
   // pad to 16 buckets to avoid false sharing (does not affect results)
 
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
@@ -84,7 +88,7 @@ inline tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key, s_size_t n,
     E* B = new_array_no_init<E>(n);
     _seq_count_sort<b_size_t>(A, B, get_key, (s_size_t)0, n, counts,
                               num_buckets);
-    return make_tuple(B, counts, (s_size_t)1);
+    return std::make_tuple(B, counts, (s_size_t)1);
   }
 
   s_size_t block_size = ((n - 1) / num_blocks) + 1;
@@ -102,7 +106,7 @@ inline tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key, s_size_t n,
                               counts + i * num_buckets, num_buckets);
   });
 
-  return make_tuple(B, counts, num_blocks);
+  return std::make_tuple(B, counts, num_blocks);
 }
 
 }  // namespace pbbs

@@ -37,8 +37,8 @@ namespace pbbs {
 // Allows forking a state into multiple states
 struct random {
  public:
-  random(size_t seed) : state(seed){};
-  random() : state(0){};
+  random(size_t seed) : state(seed) {}
+  random() : state(0) {}
   random fork(uint64_t i) { return random(hash64(hash64(i + state))); }
   random next() { return fork(0); }
   size_t ith_rand(uint64_t i) { return hash64(i + state); }

@@ -28,8 +28,6 @@
 #include "lib/speculative_for.h"
 #include "ligra.h"
 
-using namespace std;
-
 namespace mm {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
@@ -37,15 +35,15 @@ constexpr size_t n_filter_steps = 5;
 
 template <class W>
 struct matchStep {
-  using edge = tuple<uintE, uintE, W>;
+  using edge = std::tuple<uintE, uintE, W>;
   edge* E;
   uintE* R;
   bool* matched;
   matchStep(edge* _E, uintE* _R, bool* m) : E(_E), R(_R), matched(m) {}
 
   bool reserve(uintE i) {
-    uintE u = get<0>(E[i]);
-    uintE v = get<1>(E[i]);
+    uintE u = std::get<0>(E[i]);
+    uintE v = std::get<1>(E[i]);
     if (matched[u] || matched[v] || (u == v)) return 0;
     reserveLoc<uintE>(R[u], i);
     reserveLoc<uintE>(R[v], i);
@@ -53,15 +51,16 @@ struct matchStep {
   }
 
   bool commit(uintE i) {
-    uintE u = get<0>(E[i]);
-    uintE v = get<1>(E[i]);
+    uintE u = std::get<0>(E[i]);
+    uintE v = std::get<1>(E[i]);
     if (R[v] == i) {
       R[v] = UINT_E_MAX;
       if (R[u] == i) {
         matched[u] = matched[v] = 1;
         R[u] = UINT_E_MAX;
         // mark edge
-        E[i] = make_tuple(get<0>(E[i]) |= TOP_BIT, get<1>(E[i]), get<2>(E[i]));
+        E[i] = std::make_tuple(std::get<0>(E[i]) |= TOP_BIT, std::get<1>(E[i]),
+                               std::get<2>(E[i]));
         return 1;
       }
     } else if (R[u] == i)
@@ -70,9 +69,9 @@ struct matchStep {
   }
 };
 
-size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
+inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
 
-size_t key_for_pair(uintE k1, uintE k2, pbbs::random rnd) {
+inline size_t key_for_pair(uintE k1, uintE k2, pbbs::random rnd) {
   size_t l = std::min(k1, k2);
   size_t r = std::max(k1, k2);
   size_t key = (l << 32) + r;
@@ -80,9 +79,9 @@ size_t key_for_pair(uintE k1, uintE k2, pbbs::random rnd) {
 }
 
 template <template <class W> class vertex, class W>
-edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
-                            pbbs::random rnd) {
-  using edge = tuple<uintE, uintE, W>;
+inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
+                                   pbbs::random rnd) {
+  using edge = std::tuple<uintE, uintE, W>;
   auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return !(matched[src] || matched[ngh]) && (src < ngh);
   };
@@ -105,9 +104,9 @@ edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
 }
 
 template <template <class W> class vertex, class W>
-edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
-                        pbbs::random r) {
-  using edge = tuple<uintE, uintE, W>;
+inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
+                               pbbs::random r) {
+  using edge = std::tuple<uintE, uintE, W>;
   size_t m = G.m / 2;  // assume sym
   bool finish = (m <= k);
 
@@ -126,7 +125,11 @@ edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
     }
     return 0;  // keep in graph, not in edgearr
   };
+  timer fet;
+  fet.start();
   auto E = filter_edges(G, pred);
+  fet.stop();
+  fet.reportTotal("Filter edges time");
 
   // permute the retrieved edges
   auto e_arr = E.E;
@@ -151,8 +154,9 @@ edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <template <class W> class vertex, class W>
-auto MaximalMatching(graph<vertex<W>>& G) {
-  using edge = tuple<uintE, uintE, W>;
+inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
+    graph<vertex<W>>& G) {
+  using edge = std::tuple<uintE, uintE, W>;
 
   timer mt;
   mt.start();
@@ -186,13 +190,13 @@ auto MaximalMatching(graph<vertex<W>>& G) {
     eff.stop();
 
     auto e_added =
-        pbbs::filter(eim, [](edge e) { return get<0>(e) & mm::TOP_BIT; });
+        pbbs::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
     auto sizes = array_imap<size_t>(e_added.size());
     parallel_for_bc(i, 0, e_added.size(),
                     (e_added.size() > pbbs::kSequentialForThreshold), {
                       const auto& e = e_added[i];
-                      uintE u = get<0>(e) & mm::VAL_MASK;
-                      uintE v = get<1>(e) & mm::VAL_MASK;
+                      uintE u = std::get<0>(e) & mm::VAL_MASK;
+                      uintE v = std::get<1>(e) & mm::VAL_MASK;
                       uintE deg_u = G.V[u].getOutDegree();
                       uintE deg_v = G.V[v].getOutDegree();
                       G.V[u].setOutDegree(0);
@@ -219,7 +223,7 @@ auto MaximalMatching(graph<vertex<W>>& G) {
 }
 
 template <template <class W> class vertex, class W, class Seq>
-void verify_matching(graph<vertex<W>>& G, Seq& matching) {
+inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   size_t n = G.n;
   auto ok = array_imap<bool>(n, [](size_t i) { return 1; });
   auto matched = array_imap<uintE>(n, [](size_t i) { return 0; });
@@ -228,8 +232,8 @@ void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   parallel_for_bc(i, 0, matching.size(),
                   (matching.size() > pbbs::kSequentialForThreshold), {
                     const auto& edge = matching[i];
-                    pbbs::write_add(&matched[get<0>(edge)], 1);
-                    pbbs::write_add(&matched[get<1>(edge)], 1);
+                    pbbs::write_add(&matched[std::get<0>(edge)], 1);
+                    pbbs::write_add(&matched[std::get<1>(edge)], 1);
                   });
 
   bool valid = true;

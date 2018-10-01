@@ -40,14 +40,14 @@
 #include <limits>
 #include <tuple>
 
+#include "maybe.h"
 #include "vertex_subset.h"
 
-#include "../lib/dyn_arr.h"
-#include "maybe.h"
+#include "lib/dyn_arr.h"
+#include "lib/macros.h"
+#include "lib/utilities.h"
 
 #define CACHE_LINE_S 64
-
-using namespace std;
 
 typedef uintE bucket_id;
 typedef uintE bucket_dest;
@@ -86,7 +86,8 @@ struct buckets {
         total_buckets(_total_buckets),
         cur_bkt(0),
         max_bkt(_total_buckets),
-        num_elms(0) {
+        num_elms(0),
+        allocated(true) {
     // Initialize array consisting of the materialized buckets.
     bkts = pbbs::new_array<id_dyn_arr>(total_buckets);
 
@@ -110,12 +111,12 @@ struct buckets {
 
     // Update buckets with all (id, bucket) pairs. Identifiers with bkt =
     // null_bkt are ignored by update_buckets.
-    auto get_id_and_bkt = [&](uintE i) -> Maybe<tuple<uintE, uintE> > {
+    auto get_id_and_bkt = [&](uintE i) -> Maybe<std::tuple<uintE, uintE> > {
       uintE bkt = _d(i);
       if (bkt != null_bkt) {
         bkt = to_range(bkt);
       }
-      return Maybe<tuple<uintE, uintE> >(make_tuple(i, bkt));
+      return Maybe<std::tuple<uintE, uintE> >(std::make_tuple(i, bkt));
     };
     update_buckets(get_id_and_bkt, n);
   }
@@ -147,13 +148,23 @@ struct buckets {
     return null_bkt;
   }
 
+  void del() {
+    if (allocated) {
+      for (size_t i = 0; i < total_buckets; i++) {
+        bkts[i].del();
+      }
+      free(bkts);
+      allocated = false;
+    }
+  }
+
   // Updates k identifiers in the bucket structure. The i'th identifier and
   // its bucket_dest are given by F(i).
   template <class F>
   inline size_t update_buckets(F f, size_t k) {
     size_t num_blocks = k / 4096;
-    int num_threads = getWorkers();
-    if (k < 4096 || num_threads == 1) {
+    int num_threads = nworkers();
+    if (k < pbbs::kSequentialForThreshold || num_threads == 1) {
       return update_buckets_seq(f, k);
     }
 
@@ -256,6 +267,7 @@ struct buckets {
   size_t num_elms;
   size_t open_buckets;
   size_t total_buckets;
+  bool allocated;
 
   template <class F>
   inline size_t update_buckets_seq(F& f, size_t n) {
@@ -295,10 +307,10 @@ struct buckets {
     }
     bkts[open_buckets].size = 0;  // reset size
 
-    auto g = [&](uintE i) -> Maybe<tuple<uintE, uintE> > {
+    auto g = [&](uintE i) -> Maybe<std::tuple<uintE, uintE> > {
       uintE v = tmp[i];
       uintE bkt = to_range(_d(v));
-      return Maybe<tuple<uintE, uintE> >(make_tuple(v, bkt));
+      return Maybe<std::tuple<uintE, uintE> >(std::make_tuple(v, bkt));
     };
 
     if (m != num_elms) {
@@ -308,8 +320,7 @@ struct buckets {
       cout << "mismatch" << endl;
       assert(m == num_elms);  // corrruption in bucket structure.
     }
-    size_t updated = update_buckets(g, m);
-    size_t num_in_range = updated - bkts[open_buckets].size;
+    update_buckets(g, m);
     num_elms -= m;
   }
 
@@ -372,7 +383,7 @@ struct buckets {
 };
 
 template <class D>
-buckets<D> make_buckets(size_t n, D d, bucket_order order,
-                        size_t total_buckets = 128) {
+inline buckets<D> make_buckets(size_t n, D d, bucket_order order,
+                               size_t total_buckets = 128) {
   return buckets<D>(n, d, order, total_buckets);
 }

@@ -24,6 +24,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <cstdint>
+
 #include "counting_sort.h"
 #include "quicksort.h"
 #include "utilities.h"
@@ -34,9 +35,9 @@ namespace pbbs {
 // g extracts the integer keys from In
 // val_bits specifies how many bits there are in the integer
 // In and Out can be the same sequence (will return in place).
-template <typename KT, typename InS, typename OutS, typename Get_Key>
-void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
-                  size_t depth = 0) {
+template <typename InS, typename OutS, typename Get_Key>
+inline void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
+                         size_t depth = 0) {
   using T = typename InS::T;
   size_t n = In.size();
 
@@ -80,7 +81,7 @@ void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
   if (shift_bits > 0) {
     parallel_for_bc(i, 0, num_buckets, true, {
       auto out_slice = Out.slice(bucket_offsets[i], bucket_offsets[i + 1]);
-      integer_sort<KT>(out_slice, out_slice, g, shift_bits, depth + 1);
+      integer_sort(out_slice, out_slice, g, shift_bits, depth + 1);
     });
   }
 }

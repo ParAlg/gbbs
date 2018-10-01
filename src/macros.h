@@ -24,7 +24,9 @@
 #pragma once
 
 #include <limits.h>
-#include "../lib/macros.h"
+#include "lib/macros.h"
+
+#define LONG 1
 
 typedef unsigned int uint;
 typedef unsigned long ulong;

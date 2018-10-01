@@ -72,8 +72,9 @@ struct Visit_F {
 template <
     template <typename W> class vertex, class W,
     typename std::enable_if<std::is_same<W, int32_t>::value, int>::type = 0>
-auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
-          bool largemem = false, bool no_blocked = false) {
+inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
+                              size_t num_buckets = 128, bool largemem = false,
+                              bool no_blocked = false) {
   auto before_state = get_pcm_state();
   timer t;
   t.start();
@@ -81,7 +82,7 @@ auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
   timer init;
   init.start();
   auto V = G.V;
-  size_t n = G.n, m = G.m;
+  size_t n = G.n;
 
   auto dists = array_imap<uintE>(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
@@ -151,10 +152,10 @@ auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
 template <
     template <typename W> class vertex, class W,
     typename std::enable_if<!std::is_same<W, int32_t>::value, int>::type = 0>
-auto wBFS(graph<vertex<W>>& G, uintE src, size_t num_buckets = 128,
-          bool largemem = false, bool no_blocked = false) {
+inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
+                              size_t num_buckets = 128, bool largemem = false,
+                              bool no_blocked = false) {
+  assert(false);  // Unimplemented for unweighted graphs; use a regular BFS.
   auto dists = array_imap<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
-  cout << "Unimplemented for unweighted graphs; use a regular BFS." << endl;
-  exit(0);
   return dists;
 }

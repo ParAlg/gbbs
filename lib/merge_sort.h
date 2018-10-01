@@ -21,6 +21,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+
 #include "quicksort.h"  // needed for insertion_sort
 #include "utilities.h"
 
@@ -29,7 +30,7 @@ namespace pbbs {
 // If swap=0, reads from In and writes to Out,
 // If swap=1, reads from In and writes to In (Out is temp space)
 template <class SeqA, class SeqB, class F>
-void merge_sort(SeqA Out, SeqB In, const F& f, bool swap = 0) {
+inline void merge_sort(SeqA Out, SeqB In, const F& f, bool swap = 0) {
   size_t n = In.size();
   if (n < 24) {
     pbbs::insertion_sort(In.get_array(), n, f);

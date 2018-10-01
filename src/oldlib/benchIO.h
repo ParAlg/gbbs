@@ -25,6 +25,7 @@
 #pragma once
 
 #include <math.h>
+#include "lib/utilities.h"
 #include "utils.h"
 
 #include <algorithm>
@@ -32,7 +33,6 @@
 #include <iostream>
 
 namespace benchIO {
-using namespace std;
 
 // A structure that keeps a sequence of strings all allocated from
 // the same block of memory
@@ -43,7 +43,7 @@ struct words {
   char** Strings;  // pointers to strings (all should be null terminated)
   words() {}
   words(char* C, long nn, char** S, long mm)
-      : Chars(C), n(nn), Strings(S), m(mm) {}
+      : n(nn), Chars(C), m(mm), Strings(S) {}
   void del() {
     free(Chars);
     free(Strings);
@@ -68,7 +68,7 @@ struct toLong {
 };
 
 // parallel code for converting a string to words
-words stringToWords(char* Str, long n) {
+inline words stringToWords(char* Str, long n) {
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (isSpace(Str[i])) Str[i] = 0;
   });
@@ -94,8 +94,8 @@ words stringToWords(char* Str, long n) {
   return words(Str, n, SA, m);
 }
 
-int writeStringToFile(char* S, long n, char* fileName) {
-  ofstream file(fileName, ios::out | ios::binary);
+inline int writeStringToFile(char* S, long n, char* fileName) {
+  std::ofstream file(fileName, std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     std::cout << "Unable to open file: " << fileName << std::endl;
     return 1;
@@ -124,11 +124,11 @@ inline int xToStringLen(char* a) { return strlen(a) + 1; }
 inline void xToString(char* s, char* a) { sprintf(s, "%s", a); }
 
 template <class A, class B>
-inline int xToStringLen(pair<A, B> a) {
+inline int xToStringLen(std::pair<A, B> a) {
   return xToStringLen(a.first) + xToStringLen(a.second) + 1;
 }
 template <class A, class B>
-inline void xToString(char* s, pair<A, B> a) {
+inline void xToString(char* s, std::pair<A, B> a) {
   int l = xToStringLen(a.first);
   xToString(s, a.first);
   s[l] = ' ';
@@ -140,7 +140,7 @@ struct notZero {
 };
 
 template <class T>
-ligra_utils::_seq<char> arrayToString(T* A, long n) {
+inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
   long* L = newA(long, n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { L[i] = xToStringLen(A[i]) + 1; });
@@ -162,7 +162,7 @@ ligra_utils::_seq<char> arrayToString(T* A, long n) {
 }
 
 template <class T>
-void writeArrayToStream(ofstream& os, T* A, long n) {
+inline void writeArrayToStream(std::ofstream& os, T* A, long n) {
   long BSIZE = 1000000;
   long offset = 0;
   while (offset < n) {
@@ -177,7 +177,7 @@ void writeArrayToStream(ofstream& os, T* A, long n) {
 }
 
 template <class T>
-void writeArrayToStream(ofstream& os, T* A, size_t n) {
+inline void writeArrayToStream(std::ofstream& os, T* A, size_t n) {
   size_t BSIZE = 1000000;
   size_t offset = 0;
   while (offset < n) {
@@ -193,8 +193,8 @@ void writeArrayToStream(ofstream& os, T* A, size_t n) {
 }
 
 template <class T>
-int writeArrayToFile(string header, T* A, long n, char* fileName) {
-  ofstream file(fileName, ios::out | ios::binary);
+inline int writeArrayToFile(std::string header, T* A, long n, char* fileName) {
+  std::ofstream file(fileName, std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     std::cout << "Unable to open file: " << fileName << std::endl;
     return 1;
@@ -205,14 +205,14 @@ int writeArrayToFile(string header, T* A, long n, char* fileName) {
   return 0;
 }
 
-ligra_utils::_seq<char> readStringFromFile(char* fileName) {
-  ifstream file(fileName, ios::in | ios::binary | ios::ate);
+inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
+  std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
     std::cout << "Unable to open file: " << fileName << std::endl;
     abort();
   }
   long end = file.tellg();
-  file.seekg(0, ios::beg);
+  file.seekg(0, std::ios::beg);
   long n = end - file.tellg();
   char* bytes = newA(char, n + 1);
   file.read(bytes, n);

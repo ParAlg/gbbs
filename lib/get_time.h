@@ -98,7 +98,3 @@ struct timer {
     if (on) report(get_next(), str);
   }
 };
-
-static timer _tm;
-#define startTime() _tm.start();
-#define nextTime(_string) _tm.next(_string);

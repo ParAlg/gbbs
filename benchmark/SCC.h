@@ -28,7 +28,10 @@
 #include "lib/resizable_table.h"
 #include "lib/sparse_table.h"
 
-#include "chains.h"
+// The include below is currently not useful, as the majority of out/in-degree
+// one vertices are removed in a single round of peeling (so multiple rounds are
+// not necessary, at least on the graphs we tested on).
+//#include "third_party/gbbs/src/chains.h"
 #include "ligra.h"
 
 constexpr size_t TOP_BIT = ((size_t)LONG_MAX) + 1;
@@ -36,7 +39,7 @@ constexpr size_t VAL_MASK = LONG_MAX;
 
 using K = uintE;
 using V = uintE;
-using T = tuple<K, V>;
+using T = std::tuple<K, V>;
 
 using label_type = size_t;
 
@@ -62,13 +65,13 @@ struct Search_F {
       // iterate through s's labels.
       if (s_iter.init()) {
         auto table_entry = s_iter.next();
-        uintE s_label = get<1>(table_entry);
-        labels_changed |= tab.insert(make_tuple(d, s_label));
+        uintE s_label = std::get<1>(table_entry);
+        labels_changed |= tab.insert(std::make_tuple(d, s_label));
 
         while (s_iter.has_next()) {
           auto table_entry = s_iter.next();
-          uintE s_label = get<1>(table_entry);
-          labels_changed |= tab.insert(make_tuple(d, s_label));
+          uintE s_label = std::get<1>(table_entry);
+          labels_changed |= tab.insert(std::make_tuple(d, s_label));
         }
       }
       if (labels_changed) {
@@ -87,26 +90,27 @@ struct Search_F {
 };
 
 template <class W, class Seq, class Tab>
-auto make_search_f(Tab& tab, Seq& labels, bool* bits) {
+inline Search_F<W, Seq, Tab> make_search_f(Tab& tab, Seq& labels, bool* bits) {
   return Search_F<W, Seq, Tab>(tab, labels, bits);
 }
 
 template <template <class W> class vertex, class W, class Seq, class VS>
-auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
-                  size_t label_start, const flags fl = 0) {
-  size_t n = GA.n;
+inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
+                                                   Seq& labels, bool* bits,
+                                                   VS& frontier,
+                                                   size_t label_start,
+                                                   const flags fl = 0) {
   // table stores (vertex, label) pairs
-  T empty = make_tuple(UINT_E_MAX, UINT_E_MAX);
+  T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << pbbs::log2_up(frontier.size() * 2);
   auto table_backing = array_imap<T>(backing_size);
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.get_array(), true);
   frontier.toSparse();
-  parallel_for_bc(i, 0, frontier.size(),
-                  (frontier.size() > pbbs::kSequentialForThreshold), {
-                    uintE v = frontier.s[i];
-                    table.insert(make_tuple(v, label_start + i));
-                  });
+  parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
+    uintE v = frontier.s[i];
+    table.insert(std::make_tuple(v, label_start + i));
+  });
   table.update_nelms();
 
   size_t rd = 0;
@@ -115,7 +119,6 @@ auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
 
     auto im = make_in_imap<size_t>(frontier.size(), [&](size_t i) {
       uintE v = frontier.s[i];
-      uintE v_lab = labels[v];
       size_t n_labels = table.num_appearances(v);
       auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
         // can only add labels to vertices in our subproblem
@@ -129,11 +132,10 @@ auto multi_search(graph<vertex<W>>& GA, Seq& labels, bool* bits, VS& frontier,
     size_t sum = pbbs::reduce_add(im);
     table.maybe_resize(sum);
 
-    parallel_for_bc(i, 0, frontier.size(),
-                    (frontier.size() > pbbs::kSequentialForThreshold), {
-                      uintE v = frontier.s[i];
-                      bits[v] = 0;  // reset flag
-                    });
+    parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
+      uintE v = frontier.s[i];
+      bits[v] = 0;  // reset flag
+    });
 
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
@@ -161,13 +163,13 @@ struct First_Search {
 };
 
 template <class V, class L>
-auto make_first_search(V& visited, L& labels) {
+inline First_Search<V, L> make_first_search(V& visited, L& labels) {
   return First_Search<V, L>(visited, labels);
 }
 
 template <template <class W> class vertex, class W, class L>
-auto first_search(graph<vertex<W>>& GA, L& labels, uintE start,
-                  size_t label_start, const flags fl = 0) {
+inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
+                          size_t label_start, const flags fl = 0) {
   size_t n = GA.n;
 
   auto Flags = array_imap<bool>(n, false);
@@ -186,7 +188,7 @@ auto first_search(graph<vertex<W>>& GA, L& labels, uintE start,
 }
 
 template <class vertex>
-auto SCC(graph<vertex>& GA, double beta = 1.1) {
+inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   timer initt;
   initt.start();
   size_t n = GA.n;
@@ -225,13 +227,15 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
   {
     timer hd;
     hd.start();
-    auto deg_im = make_in_imap<tuple<uintE, uintE>>(
-        n, [&](size_t i) { return make_tuple(i, GA.V[i].getOutDegree()); });
-    tuple<uintE, uintE> sAndD = pbbs::reduce(
-        deg_im, [](const tuple<uintE, uintE>& l, const tuple<uintE, uintE>& r) {
-          return (get<1>(l) > get<1>(r)) ? l : r;
+    auto deg_im = make_in_imap<std::tuple<uintE, uintE>>(n, [&](size_t i) {
+      return std::make_tuple(i, GA.V[i].getOutDegree());
+    });
+    std::tuple<uintE, uintE> sAndD =
+        pbbs::reduce(deg_im, [](const std::tuple<uintE, uintE>& l,
+                                const std::tuple<uintE, uintE>& r) {
+          return (std::get<1>(l) > std::get<1>(r)) ? l : r;
         });
-    uintE start = get<0>(sAndD);
+    uintE start = std::get<0>(sAndD);
     if (!(labels[start] & TOP_BIT)) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
@@ -326,9 +330,9 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
     auto& larger_t = (in_table.m > out_table.m) ? in_table : out_table;
 
     // intersect the tables
-    auto map_f = [&](const tuple<K, V>& kev) {
-      uintE v = get<0>(kev);
-      size_t label = get<1>(kev);
+    auto map_f = [&](const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      size_t label = std::get<1>(kev);
       if (larger_t.contains(v, label)) {
         // in 'label' scc
         // Max visitor from this SCC acquires it.
@@ -340,9 +344,9 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
     smaller_t.map(map_f);
 
     // set the subproblems
-    auto sp_map = [&](const tuple<K, V>& kev) {
-      uintE v = get<0>(kev);
-      size_t label = get<1>(kev);
+    auto sp_map = [&](const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      size_t label = std::get<1>(kev);
       // note that if v is already in an SCC (from (1)), the writeMax will
       // read, compare and fail, as the top bit is already set.
       writeMax(&labels[v], label);
@@ -359,7 +363,7 @@ auto SCC(graph<vertex>& GA, double beta = 1.1) {
 }
 
 template <class Seq>
-size_t num_done(Seq& labels) {
+inline size_t num_done(Seq& labels) {
   auto im = make_in_imap<size_t>(labels.size(), [&](size_t i) {
     return ((size_t)((labels[i] & TOP_BIT) > 0));
   });
@@ -367,7 +371,7 @@ size_t num_done(Seq& labels) {
 }
 
 template <class Seq>
-size_t num_scc(Seq& labels) {
+inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
@@ -387,7 +391,7 @@ size_t num_scc(Seq& labels) {
 }
 
 template <class Seq>
-void scc_stats(Seq& labels) {
+inline void scc_stats(Seq& labels) {
   size_t n = labels.size();
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {

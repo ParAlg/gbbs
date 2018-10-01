@@ -23,13 +23,13 @@
 #pragma once
 
 #include <iostream>
+
 #include "index_map.h"
 #include "macros.h"
 #include "seq.h"
 #include "utilities.h"
 
 namespace pbbs {
-using namespace std;
 
 constexpr const size_t _log_block_size = 12;
 constexpr const size_t _block_size = (1 << _log_block_size);
@@ -39,7 +39,7 @@ inline size_t num_blocks(size_t n, size_t block_size) {
 }
 
 template <class F>
-void sliced_for(size_t n, size_t block_size, const F& f) {
+inline void sliced_for(size_t n, size_t block_size, const F& f) {
   size_t l = num_blocks(n, block_size);
   parallel_for_bc(i, 0, l, (l > 1), {
     size_t s = i * block_size;
@@ -49,7 +49,7 @@ void sliced_for(size_t n, size_t block_size, const F& f) {
 }
 
 template <class Seq, class F>
-auto reduce_serial(Seq A, const F& f) -> typename Seq::T {
+inline auto reduce_serial(Seq A, const F& f) -> typename Seq::T {
   using T = typename Seq::T;
   T r = A[0];
   for (size_t j = 1; j < A.size(); j++) r = f(r, A[j]);
@@ -57,7 +57,7 @@ auto reduce_serial(Seq A, const F& f) -> typename Seq::T {
 }
 
 template <class Seq, class F>
-auto reduce(Seq A, const F& f, flags fl = no_flag) -> typename Seq::T {
+inline auto reduce(Seq A, const F& f, flags fl = no_flag) -> typename Seq::T {
   using T = typename Seq::T;
   size_t n = A.size();
   size_t l = num_blocks(n, _block_size);
@@ -72,7 +72,7 @@ auto reduce(Seq A, const F& f, flags fl = no_flag) -> typename Seq::T {
 
 // sums I with + (can be any type with + defined)
 template <class Seq>
-auto reduce_add(Seq I, flags fl = no_flag) -> typename Seq::T {
+inline auto reduce_add(Seq I, flags fl = no_flag) -> typename Seq::T {
   using T = typename Seq::T;
   auto add = [](T x, T y) { return x + y; };
   return reduce(I, add, fl);
@@ -80,7 +80,7 @@ auto reduce_add(Seq I, flags fl = no_flag) -> typename Seq::T {
 
 // sums I with max
 template <class Seq>
-auto reduce_max(Seq I, flags fl = no_flag) -> typename Seq::T {
+inline auto reduce_max(Seq I, flags fl = no_flag) -> typename Seq::T {
   using T = typename Seq::T;
   auto add = [](T x, T y) { return std::max(x, y); };
   return reduce(I, add, fl);
@@ -88,7 +88,7 @@ auto reduce_max(Seq I, flags fl = no_flag) -> typename Seq::T {
 
 // sums I with max
 template <class Seq>
-auto reduce_min(Seq I, flags fl = no_flag) -> typename Seq::T {
+inline auto reduce_min(Seq I, flags fl = no_flag) -> typename Seq::T {
   using T = typename Seq::T;
   auto add = [](T x, T y) { return std::min(x, y); };
   return reduce(I, add, fl);
@@ -96,7 +96,7 @@ auto reduce_min(Seq I, flags fl = no_flag) -> typename Seq::T {
 
 // sums I with max
 template <class Seq>
-auto reduce_xor(Seq I, flags fl = no_flag) -> typename Seq::T {
+inline auto reduce_xor(Seq I, flags fl = no_flag) -> typename Seq::T {
   using T = typename Seq::T;
   auto add = [](T x, T y) { return x ^ y; };
   return reduce(I, add, fl);
@@ -107,8 +107,9 @@ const flags fl_scan_inclusive = (1 << 4);
 // serial scan with combining function f and start value zero
 // fl_scan_inclusive indicates it includes the current location
 template <class In_Seq, class Out_Seq, class F>
-auto scan_serial(In_Seq In, Out_Seq Out, const F& f, typename In_Seq::T zero,
-                 flags fl = no_flag) -> typename In_Seq::T {
+inline auto scan_serial(In_Seq In, Out_Seq Out, const F& f,
+                        typename In_Seq::T zero, flags fl = no_flag) ->
+    typename In_Seq::T {
   using T = typename In_Seq::T;
   T r = zero;
   size_t n = In.size();
@@ -130,8 +131,8 @@ auto scan_serial(In_Seq In, Out_Seq Out, const F& f, typename In_Seq::T zero,
 
 // parallel version of scan_serial -- see comments above
 template <class In_Seq, class Out_Seq, class F>
-auto scan(In_Seq In, Out_Seq Out, const F& f, typename In_Seq::T zero,
-          flags fl = no_flag) -> typename In_Seq::T {
+inline auto scan(In_Seq In, Out_Seq Out, const F& f, typename In_Seq::T zero,
+                 flags fl = no_flag) -> typename In_Seq::T {
   using T = typename In_Seq::T;
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
@@ -148,7 +149,7 @@ auto scan(In_Seq In, Out_Seq Out, const F& f, typename In_Seq::T zero,
 }
 
 template <class In_Seq, class Out_Seq>
-auto scan_add(In_Seq In, Out_Seq Out, flags fl = no_flag) ->
+inline auto scan_add(In_Seq In, Out_Seq Out, flags fl = no_flag) ->
     typename In_Seq::T {
   using T = typename In_Seq::T;
   auto add = [](T x, T y) { return x + y; };
@@ -156,14 +157,15 @@ auto scan_add(In_Seq In, Out_Seq Out, flags fl = no_flag) ->
 }
 
 template <class Seq>
-size_t sum_flags_serial(Seq I) {
+inline size_t sum_flags_serial(Seq I) {
   size_t r = 0;
   for (size_t j = 0; j < I.size(); j++) r += I[j];
   return r;
 }
 
 template <class In_Seq, class Bool_Seq>
-auto pack_serial(In_Seq In, Bool_Seq Fl, typename In_Seq::T* _Out = nullptr)
+inline auto pack_serial(In_Seq In, Bool_Seq Fl,
+                        typename In_Seq::T* _Out = nullptr)
     -> sequence<typename In_Seq::T> {
   using T = typename In_Seq::T;
   size_t n = In.size();
@@ -176,15 +178,16 @@ auto pack_serial(In_Seq In, Bool_Seq Fl, typename In_Seq::T* _Out = nullptr)
 }
 
 template <class In_Seq, class Bool_Seq>
-void pack_serial_at(In_Seq In, typename In_Seq::T* Out, Bool_Seq Fl) {
+inline void pack_serial_at(In_Seq In, typename In_Seq::T* Out, Bool_Seq Fl) {
   size_t k = 0;
   for (size_t i = 0; i < In.size(); i++)
     if (Fl[i]) assign_uninitialized(Out[k++], In[i]);
 }
 
 template <class In_Seq, class Bool_Seq>
-auto pack(In_Seq In, Bool_Seq Fl, flags fl = no_flag,
-          typename In_Seq::T* _Out = nullptr) -> sequence<typename In_Seq::T> {
+inline auto pack(In_Seq In, Bool_Seq Fl, flags fl = no_flag,
+                 typename In_Seq::T* _Out = nullptr)
+    -> sequence<typename In_Seq::T> {
   using T = typename In_Seq::T;
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
@@ -204,25 +207,26 @@ auto pack(In_Seq In, Bool_Seq Fl, flags fl = no_flag,
 }
 
 template <class Idx_Type, class Bool_Seq>
-sequence<Idx_Type> pack_index(Bool_Seq Fl, flags fl = no_flag) {
+inline sequence<Idx_Type> pack_index(Bool_Seq Fl, flags fl = no_flag) {
   auto identity = [](size_t i) { return (Idx_Type)i; };
   return pack(make_sequence<Idx_Type>(Fl.size(), identity), Fl, fl);
 }
 
 template <class Idx_Type, class D, class F>
-sequence<tuple<Idx_Type, D> > pack_index_and_data(F& f, size_t size,
-                                                  flags fl = no_flag) {
+inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
+    F& f, size_t size, flags fl = no_flag) {
   auto identity = [&](size_t i) {
-    return make_tuple((Idx_Type)i, get<1>(f(i)));
+    return std::make_tuple((Idx_Type)i, std::get<1>(f(i)));
   };
   auto flgs_in =
-      make_in_imap<bool>(size, [&](size_t i) { return get<0>(f(i)); });
-  return pack(make_in_imap<tuple<Idx_Type, D> >(size, identity), flgs_in, fl);
+      make_in_imap<bool>(size, [&](size_t i) { return std::get<0>(f(i)); });
+  return pack(make_in_imap<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
+              fl);
 }
 
 template <class In_Seq, class Pred>
-auto filter_serial(In_Seq In, Pred p, flags fl = no_flag,
-                   typename In_Seq::T* _Out = nullptr)
+inline auto filter_serial(In_Seq In, Pred p, flags fl = no_flag,
+                          typename In_Seq::T* _Out = nullptr)
     -> sequence<typename In_Seq::T> {
   using T = typename In_Seq::T;
   size_t n = In.size();
@@ -240,8 +244,9 @@ auto filter_serial(In_Seq In, Pred p, flags fl = no_flag,
 }
 
 template <class In_Seq, class Pred>
-auto filter(In_Seq In, Pred p, flags fl = no_flag,
-            typename In_Seq::T* _Out = nullptr) {
+inline sequence<typename In_Seq::T> filter(In_Seq In, Pred p,
+                                           flags fl = no_flag,
+                                           typename In_Seq::T* _Out = nullptr) {
   using T = typename In_Seq::T;
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
@@ -257,8 +262,8 @@ auto filter(In_Seq In, Pred p, flags fl = no_flag,
 }
 
 template <class In_Seq, class Out_Seq, class Char_Seq>
-pair<size_t, size_t> split_three(In_Seq In, Out_Seq Out, Char_Seq Fl,
-                                 flags fl = no_flag) {
+inline std::pair<size_t, size_t> split_three(In_Seq In, Out_Seq Out,
+                                             Char_Seq Fl, flags fl = no_flag) {
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
   sequence<size_t> Sums0(l);
@@ -287,11 +292,11 @@ pair<size_t, size_t> split_three(In_Seq In, Out_Seq Out, Char_Seq Fl,
         Out[c2++] = In[j];
     }
   });
-  return make_pair(m0, m1);
+  return std::make_pair(m0, m1);
 }
 
 template <class T, class Pred>
-size_t filter_seq(T* in, T* out, size_t n, Pred p) {
+inline size_t filter_seq(T* in, T* out, size_t n, Pred p) {
   size_t k = 0;
   for (size_t i = 0; i < n; i++)
     if (p(in[i])) out[k++] = in[i];
@@ -301,7 +306,7 @@ size_t filter_seq(T* in, T* out, size_t n, Pred p) {
 // Faster for a small number in output (about 40% or less)
 // Destroys the input.   Does not need a bool array.
 template <class T, class PRED>
-size_t filterf(T* In, T* Out, size_t n, PRED p) {
+inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
   size_t b = _F_BSIZE;
   if (n < b) return filter_seq(In, Out, n, p);
   size_t l = num_blocks(n, b);
@@ -332,7 +337,7 @@ size_t filterf(T* In, T* Out, size_t n, PRED p) {
 // Faster for a small number in output (about 40% or less)
 // Destroys the input.   Does not need a bool array.
 template <class T, class PRED, class OUT>
-size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
+inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   size_t b = _F_BSIZE;
   if (n < b) {
     size_t k = out_off;
@@ -367,8 +372,8 @@ size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
 }
 
 template <class T, class PRED>
-size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
-                         size_t* Sums) {
+inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
+                                size_t* Sums) {
   size_t b = _F_BSIZE;
   if (n < b) return filter_seq(In, Out, n, p);
   size_t l = num_blocks(n, b);

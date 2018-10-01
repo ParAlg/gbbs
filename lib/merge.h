@@ -21,6 +21,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+
 #include "binary_search.h"
 #include "utilities.h"
 
@@ -30,7 +31,7 @@ namespace pbbs {
 constexpr const size_t _merge_base = 8196;
 
 template <class SeqA, class SeqB, class SeqR, class F>
-void seq_merge(SeqA A, SeqB B, SeqR R, const F& f) {
+inline void seq_merge(SeqA A, SeqB B, SeqR R, const F& f) {
   using T = typename SeqA::T;
   size_t nA = A.size();
   size_t nB = B.size();
@@ -64,7 +65,7 @@ void seq_merge(SeqA A, SeqB B, SeqR R, const F& f) {
 }
 
 template <class SeqA, class SeqB, class SeqR, class F>
-void merge(SeqA A, SeqB B, SeqR R, const F& f) {
+inline void merge(SeqA A, SeqB B, SeqR R, const F& f) {
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;

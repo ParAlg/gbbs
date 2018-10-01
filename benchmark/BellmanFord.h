@@ -57,7 +57,7 @@ struct BF_Vertex_F {
 };
 
 template <template <class W> class vertex, class W>
-auto BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
+inline array_imap<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   size_t n = GA.n;
   auto Visited = array_imap<int>(n, 0);
   auto SP = array_imap<intE>(n, INT_MAX / 2);
