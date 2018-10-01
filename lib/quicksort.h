@@ -112,11 +112,11 @@ inline void quicksort(E* A, size_t n, const BinPred& f) {
     E* L = std::get<0>(X);
     E* M = std::get<1>(X);
     bool mid_eq = std::get<2>(X);
-    pbbs::par_do3(true, [&]() { quicksort(A, L - A, f); },
-                  [&]() {
-                    if (!mid_eq) quicksort(L, M - L, f);
-                  },
-                  [&]() { quicksort(M, A + n - M, f); });
+    par_do3(true, [&]() { quicksort(A, L - A, f); },
+            [&]() {
+              if (!mid_eq) quicksort(L, M - L, f);
+            },
+            [&]() { quicksort(M, A + n - M, f); });
   }
 }
 
@@ -156,22 +156,22 @@ inline void p_quicksort(SeqA In, SeqB Out, const F& f, bool swap = 0,
     size_t l = std::get<0>(X);
     size_t m = std::get<1>(X);
     bool mid_eq = std::get<2>(X);
-    pbbs::par_do3(
-        true,
-        [&]() {
-          p_quicksort(Out.slice(0, l), In.slice(0, l), f, !swap, cut_size);
-        },
-        [&]() {
-          if (!mid_eq)
-            p_quicksort(Out.slice(l, m), In.slice(l, m), f, !swap, cut_size);
-          else if (swap) {
-            auto copy_f = [&](size_t i) { In[i] = Out[i]; };
-            par_for(l, m, 4000, copy_f);
-          }
-        },
-        [&]() {
-          p_quicksort(Out.slice(m, n), In.slice(m, n), f, !swap, cut_size);
-        });
+    par_do3(true,
+            [&]() {
+              p_quicksort(Out.slice(0, l), In.slice(0, l), f, !swap, cut_size);
+            },
+            [&]() {
+              if (!mid_eq)
+                p_quicksort(Out.slice(l, m), In.slice(l, m), f, !swap,
+                            cut_size);
+              else if (swap) {
+                auto copy_f = [&](size_t i) { In[i] = Out[i]; };
+                par_for(l, m, 4000, copy_f);
+              }
+            },
+            [&]() {
+              p_quicksort(Out.slice(m, n), In.slice(m, n), f, !swap, cut_size);
+            });
   }
 }
 

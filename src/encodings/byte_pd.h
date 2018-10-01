@@ -444,8 +444,8 @@ inline uintE intersect(seq_info u, seq_info v) {
     uintE mU = u.pivot_block();
     uintE mV = v.binary_search(pivot);
     uintE lA = 0, rA = 0;
-    pbbs::par_do(true, [&]() { lA = intersect(u.cut(0, mU), v.cut(0, mV)); },
-                 [&]() { rA = intersect(u.cut(mU, mU), v.cut(0, mV)); });
+    par_do(true, [&]() { lA = intersect(u.cut(0, mU), v.cut(0, mV)); },
+           [&]() { rA = intersect(u.cut(mU, mU), v.cut(0, mV)); });
     return lA + rA;
   }
 }

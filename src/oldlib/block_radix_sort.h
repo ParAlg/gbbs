@@ -53,7 +53,7 @@ struct transpose {
       auto r = [&]() {
         transR(rStart, rCount, rLength, cStart + l1, l2, cLength);
       };
-      pbbs::par_do(true, l, r);
+      par_do(true, l, r);
     } else {
       intT l1 = rCount / 2;
       intT l2 = rCount - rCount / 2;
@@ -63,7 +63,7 @@ struct transpose {
       auto r = [&]() {
         transR(rStart + l1, l2, rLength, cStart, cCount, cLength);
       };
-      pbbs::par_do(true, l, r);
+      par_do(true, l, r);
     }
   }
 
@@ -101,7 +101,7 @@ struct blockTrans {
       auto r = [&]() {
         transR(rStart, rCount, rLength, cStart + l1, l2, cLength);
       };
-      pbbs::par_do(true, l, r);
+      par_do(true, l, r);
     } else {
       intT l1 = rCount / 2;
       intT l2 = rCount - rCount / 2;
@@ -111,7 +111,7 @@ struct blockTrans {
       auto r = [&]() {
         transR(rStart + l1, l2, rLength, cStart, cCount, cLength);
       };
-      pbbs::par_do(true, l, r);
+      par_do(true, l, r);
     }
   }
 
