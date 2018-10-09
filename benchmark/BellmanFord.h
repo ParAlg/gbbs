@@ -57,7 +57,7 @@ struct BF_Vertex_F {
 };
 
 template <template <class W> class vertex, class W>
-auto BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
+inline array_imap<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   size_t n = GA.n;
   auto Visited = array_imap<int>(n, 0);
   auto SP = array_imap<intE>(n, INT_MAX / 2);
@@ -77,14 +77,14 @@ auto BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
     auto output =
         edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.start()));
-    cout << output.size() << endl;
+    std::cout << output.size() << "\n";
     Frontier.del();
     Frontier = output;
     round++;
   }
   auto dist_im = make_in_imap<size_t>(
       n, [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; });
-  cout << "max dist = " << pbbs::reduce_max(dist_im) << endl;
-  cout << "n rounds = " << round << endl;
+  std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
+  std::cout << "n rounds = " << round << "\n";
   return SP;
 }

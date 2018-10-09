@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 // legacy memory allocation macro
 #define newA(__E, __n) (__E*)malloc((__n) * sizeof(__E))
 
@@ -31,7 +33,7 @@
 #define _F_BSIZE (2 * _SCAN_BSIZE)
 
 namespace pbbs {
-constexpr const size_t kSequentialForThreshold = 2048;
+constexpr const size_t kSequentialForThreshold = 100000;
 }  // namespace pbbs
 
 #define COMMA ,

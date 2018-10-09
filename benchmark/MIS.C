@@ -46,7 +46,7 @@ void MIS_runner(graph<vertex>& GA, commandLine P) {
     auto size_imap =
         make_in_imap<size_t>(GA.n, [&](size_t i) { return (MIS[i] == 1); });
     if (P.getOptionValue("-stats")) {
-      cout << "MIS size: " << pbbs::reduce_add(size_imap) << endl;
+      std::cout << "MIS size: " << pbbs::reduce_add(size_imap) << "\n";
     }
     if (P.getOptionValue("-verify")) {
       verify_MIS(GA, size_imap);
@@ -56,7 +56,7 @@ void MIS_runner(graph<vertex>& GA, commandLine P) {
     auto size_imap =
         make_in_imap<size_t>(GA.n, [&](size_t i) { return MIS[i]; });
     if (P.getOptionValue("-stats")) {
-      cout << "MIS size: " << pbbs::reduce_add(size_imap) << endl;
+      std::cout << "MIS size: " << pbbs::reduce_add(size_imap) << "\n";
     }
     if (P.getOptionValue("-verify")) {
       verify_MIS(GA, size_imap);

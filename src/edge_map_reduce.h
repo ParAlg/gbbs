@@ -24,6 +24,7 @@
 #pragma once
 
 #include "histogram.h"
+#include "lib/macros.h"
 #include "ligra.h"
 
 #include <type_traits>
@@ -47,12 +48,12 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   if (edgeCount == 0) {
     return vertexSubsetData<E>(GA.n);
   }
-  typedef tuple<uintE, E> VE;
+  typedef std::tuple<uintE, E> VE;
   VE* edges = pbbs::new_array_no_init<VE>(edgeCount);
 
   auto gen = [&](const uintE& ngh, const uintE& offset,
                  const Maybe<E>& val = Maybe<E>()) {
-    edges[offset] = make_tuple(ngh, val.t);
+    edges[offset] = std::make_tuple(ngh, val.t);
   };
 
   if (out_ngh) {
@@ -72,25 +73,18 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   return vs;
 }
 
-template <class W, class Map>
-auto wrap_map_f(Map& map_f) {
-  return [&](const uintE& src, const uintE& ngh, const W& e) {
-    return map_f(src, ngh);
-  };
-}
-
 template <class V, template <typename W> class vertex, class W>
 struct EdgeMap {
   using K = uintE;  // keys are always uintE's (vertex-identifiers)
-  using KV = tuple<K, V>;
+  using KV = std::tuple<K, V>;
   using w_vertex = vertex<W>;
   graph<w_vertex>& G;
   pbbs::hist_table<K, V> ht;
 
   EdgeMap(graph<w_vertex>& _G, KV _empty,
-          size_t ht_size = numeric_limits<size_t>::max())
+          size_t ht_size = std::numeric_limits<size_t>::max())
       : G(_G) {
-    if (ht_size == numeric_limits<size_t>::max()) {
+    if (ht_size == std::numeric_limits<size_t>::max()) {
       ht_size = G.m / 20;
     }
     ht = pbbs::hist_table<K, V>(_empty, ht_size);
@@ -108,21 +102,23 @@ struct EdgeMap {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
 
-    auto wrapped_map_f = wrap_map_f<W>(map_f);
+    auto wrapped_map_f = [&](const uintE& src, const uintE& ngh, const W& e) {
+      return map_f(src, ngh);
+    };
 
     auto oneHop =
         edgeMapInduced<M, w_vertex, VS>(G, vs, wrapped_map_f, out_ngh);
     oneHop.toSparse();
 
-    auto get_elm = make_in_imap<tuple<K, M> >(
+    auto get_elm = make_in_imap<std::tuple<K, M> >(
         oneHop.size(), [&](size_t i) { return oneHop.vtxAndData(i); });
     auto get_key = make_in_imap<uintE>(
         oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
 
-    auto q = [&](sequentialHT<K, V>& S, tuple<K, M> v) -> void {
+    auto q = [&](sequentialHT<K, V>& S, std::tuple<K, M> v) -> void {
       S.template insertF<M>(v, reduce_f);
     };
-    auto res = pbbs::histogram_reduce<tuple<K, M>, tuple<K, O> >(
+    auto res = pbbs::histogram_reduce<std::tuple<K, M>, std::tuple<K, O> >(
         get_elm, get_key, oneHop.size(), q, apply_f, ht);
     oneHop.del();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
@@ -134,7 +130,8 @@ struct EdgeMap {
     auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
       return pbbs::empty();
     };
-    auto reduce_f = [&](const uintE& cur, const tuple<uintE, pbbs::empty>& r) {
+    auto reduce_f = [&](const uintE& cur,
+                        const std::tuple<uintE, pbbs::empty>& r) {
       return cur + 1;
     };
     size_t m = vs.size();
@@ -147,8 +144,8 @@ struct EdgeMap {
 
     auto get_key = make_in_imap<uintE>(
         oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
-    auto res =
-        pbbs::histogram<tuple<uintE, O> >(get_key, oneHop.size(), apply_f, ht);
+    auto res = pbbs::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
+                                                      apply_f, ht);
     oneHop.del();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }

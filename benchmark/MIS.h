@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "lib/index_map.h"
 #include "lib/random_shuffle.h"
 #include "lib/sparse_table.h"
 #include "lib/speculative_for.h"
@@ -31,7 +32,7 @@
 namespace MIS_rootset {
 
 template <template <class W> class vertex, class W, class Fl>
-auto verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
+inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
   auto d = array_imap<uintE>(GA.n, (uintE)0);
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     if (!d[ngh]) {
@@ -43,7 +44,6 @@ auto verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
       GA.V[i].mapOutNgh(i, map_f);
     }
   });
-  bool ok = true;
   parallel_for_bc(i, 0, GA.n, true, {
     if (in_mis[i]) {
       assert(!d[i]);
@@ -52,16 +52,19 @@ auto verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
   auto mis_int =
       make_in_imap<size_t>(GA.n, [&](size_t i) { return (size_t)in_mis[i]; });
   size_t mis_size = pbbs::reduce_add(mis_int);
-  assert(pbbs::reduce_add(d) == (GA.n - mis_size));
-  cout << "MIS Ok" << endl;
+  if (pbbs::reduce_add(d) != (GA.n - mis_size)) {
+    std::cout << "MIS incorrect"
+              << "\n";
+    assert(false);
+  }
+  std::cout << "MIS Ok"
+            << "\n";
 }
 
 template <template <class W> class vertex, class W, class VS, class P>
-auto get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
-  size_t n = GA.n;
+inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
   vs.toSparse();
   assert(!vs.isDense);
-  size_t m = vs.size();
   auto deg_im = make_in_imap<size_t>(
       vs.size(), [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); });
   size_t sum_d = pbbs::reduce_add(deg_im);
@@ -80,13 +83,13 @@ auto get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     return vertexSubset(GA.n, dense.get_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
     auto ht = make_sparse_table<uintE, pbbs::empty>(
-        sum_d, make_tuple(UINT_E_MAX, pbbs::empty()),
+        sum_d, std::make_tuple(UINT_E_MAX, pbbs::empty()),
         [&](const uintE& k) { return pbbs::hash64(k); });
     vs.toSparse();
     parallel_for_bc(i, 0, vs.size(), true, {
       auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
         if (p(ngh)) {
-          ht.insert(make_tuple(ngh, pbbs::empty()));
+          ht.insert(std::make_tuple(ngh, pbbs::empty()));
         }
       };
       uintE v = vs.vtx(i);
@@ -146,7 +149,7 @@ struct mis_f_2 {
 };
 
 template <template <class W> class vertex, class W>
-auto MIS(graph<vertex<W>>& GA) {
+inline array_imap<bool> MIS(graph<vertex<W>>& GA) {
   timer init_t;
   init_t.start();
   size_t n = GA.n;
@@ -156,10 +159,10 @@ auto MIS(graph<vertex<W>>& GA) {
   auto perm = pbbs::random_permutation<uintE>(n);
   parallel_for_bc(i, 0, n, true, {
     uintE our_pri = perm[i];
-    auto count_f = wrap_f<W>([&](uintE src, uintE ngh) {
+    auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
-    });
+    };
     priorities[i] = GA.V[i].countOutNgh(i, count_f);
   });
 
@@ -176,8 +179,8 @@ auto MIS(graph<vertex<W>>& GA) {
   init_t.reportTotal("init");
   while (finished != n) {
     assert(roots.size() > 0);
-    cout << "round = " << rounds << " size = " << roots.size()
-         << " remaining = " << (n - finished) << endl;
+    std::cout << "round = " << rounds << " size = " << roots.size()
+              << " remaining = " << (n - finished) << "\n";
 
     // set the roots in the MIS
     vertexMap(roots, [&](uintE v) { in_mis[v] = true; });
@@ -206,7 +209,7 @@ auto MIS(graph<vertex<W>>& GA) {
     roots = new_roots;
     rounds++;
   }
-  return std::move(in_mis);
+  return in_mis;
 }
 }  // namespace MIS_rootset
 
@@ -228,22 +231,24 @@ struct MISstep {
     // decode neighbor
     FlagsNext[i] = 1;
 
-    auto map_f =
-        wrap_f<W>([&](const uintE& src, const uintE& ngh) -> tuple<int, int> {
-          if (ngh < src) {
-            auto fl = Flags[ngh];
-            return make_tuple(fl == 1, fl == 0);
-          }
-          return make_tuple(0, 0);
-        });
-    auto red_f = [&](const tuple<int, int>& l, const tuple<int, int>& r) {
-      return make_tuple(get<0>(l) + get<0>(r), get<1>(l) + get<1>(r));
+    auto map_f = [&](const uintE& src, const uintE& ngh,
+                     const W& wgh) -> std::tuple<int, int> {
+      if (ngh < src) {
+        auto fl = Flags[ngh];
+        return std::make_tuple(fl == 1, fl == 0);
+      }
+      return std::make_tuple(0, 0);
     };
-    auto id = make_tuple(0, 0);
+    auto red_f = [&](const std::tuple<int, int>& l,
+                     const std::tuple<int, int>& r) {
+      return std::make_tuple(std::get<0>(l) + std::get<0>(r),
+                             std::get<1>(l) + std::get<1>(r));
+    };
+    auto id = std::make_tuple(0, 0);
     auto res = G.V[i].reduceOutNgh(i, id, map_f, red_f);
-    if (get<0>(res) > 0) {
+    if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
-    } else if (get<1>(res) > 0) {
+    } else if (std::get<1>(res) > 0) {
       FlagsNext[i] = 0;
     }
     return 1;
@@ -253,18 +258,18 @@ struct MISstep {
 };
 
 template <template <class W> class vertex, class W>
-auto MIS(graph<vertex<W>>& GA) {
+inline array_imap<char> MIS(graph<vertex<W>>& GA) {
   size_t n = GA.n;
   auto Flags = array_imap<char>(n, [&](size_t i) { return 0; });
   auto FlagsNext = array_imap<char>(n);
   auto mis = MISstep<vertex, W>(FlagsNext.start(), Flags.start(), GA);
   eff_for<uintE>(mis, 0, n, 50);
-  return std::move(Flags);
+  return Flags;
 }
 };  // namespace MIS_spec_for
 
 template <template <class W> class vertex, class W, class Seq>
-auto verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
+inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   size_t n = GA.n;
   auto ok = array_imap<bool>(n, [&](size_t i) { return 1; });
   parallel_for_bc(i, 0, n, true, {
@@ -277,9 +282,11 @@ auto verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   auto ok_imap = make_in_imap<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_imap);
   if (n_ok == n) {
-    cout << "valid MIS" << endl;
+    std::cout << "valid MIS"
+              << "\n";
   } else {
-    cout << "invalid MIS, " << (n - n_ok) << " vertices saw bad neighborhoods"
-         << endl;
+    std::cout << "invalid MIS, " << (n - n_ok)
+              << " vertices saw bad neighborhoods"
+              << "\n";
   }
 }

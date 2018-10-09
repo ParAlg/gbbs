@@ -25,10 +25,11 @@
 
 #include "bucket.h"
 #include "edge_map_reduce.h"
+#include "ligra.h"
+
 #include "lib/index_map.h"
 #include "lib/random.h"
 #include "lib/random_shuffle.h"
-#include "ligra.h"
 
 namespace sc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -42,7 +43,6 @@ struct Visit_Elms {
   uintE* perm;
   Visit_Elms(uintE* _elms, uintE* _perm) : elms(_elms), perm(_perm) {}
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    uintE oval = elms[d];
     uintE p_s = perm[s];
     writeMin(&(elms[d]), p_s);
     return false;
@@ -55,7 +55,7 @@ struct Visit_Elms {
 }  // namespace sc
 
 template <template <class W> class vertex, class W>
-dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
+inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   auto Elms = array_imap<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
   auto D =
       array_imap<uintE>(G.n, [&](size_t i) { return G.V[i].getOutDegree(); });
@@ -81,7 +81,7 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     }
     bktt.stop();
 
-    cout << "packing, active.size = " << active.size() << endl;
+    std::cout << "packing, active.size = " << active.size() << "\n";
     packt.start();
     // 1. sets -> elements (Pack out sets and update their degree)
     auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
@@ -89,7 +89,8 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = ct; };
     auto packed_vtxs = edgeMapFilter(G, active, pack_predicate, pack_edges);
-    cout << "packed" << endl;
+    std::cout << "packed"
+              << "\n";
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
@@ -114,9 +115,9 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     P.del();
     permt.stop();
 
-    cout << "Round = " << rounds << " bkt = " << cur_bkt
-         << " active = " << active.size()
-         << " stillactive = " << still_active.size() << endl;
+    std::cout << "Round = " << rounds << " bkt = " << cur_bkt
+              << " active = " << active.size()
+              << " stillactive = " << still_active.size() << "\n";
 
     emt.start();
     // 2. sets -> elements (writeMin to acquire neighboring elements)
@@ -126,9 +127,9 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     // 3. sets -> elements (count and add to cover if enough elms were won)
     const size_t low_threshold =
         std::max((size_t)ceil(pow(1.0 + sc::epsilon, cur_bkt - 1)), (size_t)1);
-    auto won_ngh_f = wrap_f<W>([&](const uintE& u, const uintE& v) -> bool {
+    auto won_ngh_f = [&](const uintE& u, const uintE& v, const W& wgh) -> bool {
       return Elms[v] == perm[u];
-    });
+    };
     auto threshold_f = [&](const uintE& v, const uintE& numWon) {
       if (numWon >= low_threshold) D[v] |= sc::TOP_BIT;
     };
@@ -161,15 +162,15 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     bktt.start();
     // Rebucket the active sets. Ignore those that joined the cover.
     active.toSparse();
-    auto f = [&](size_t i) -> Maybe<tuple<uintE, uintE>> {
+    auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
       const uintE dv = D(v);
       uintE bkt = UINT_E_MAX;
       if (!(dv & sc::TOP_BIT))
         bkt = b.get_bucket(cur_bkt, get_bucket_clamped(dv));
-      return Maybe<tuple<uintE, uintE>>(make_tuple(v, bkt));
+      return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
-    cout << "cover.size = " << cover.size << endl;
+    std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());
     active.del();
     still_active.del();
@@ -177,6 +178,7 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
     bktt.stop();
     r = r.next();
   }
+  b.del();
 
   bktt.reportTotal("bucket");
   packt.reportTotal("pack");
@@ -185,9 +187,9 @@ dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 128) {
   auto elm_cov = make_in_imap<uintE>(
       G.n, [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); });
   size_t elms_cov = pbbs::reduce_add(elm_cov);
-  cout << "|V| = " << G.n << " |E| = " << G.m << endl;
-  cout << "|cover|: " << cover.size << endl;
-  cout << "Rounds: " << rounds << endl;
-  cout << "Num_uncovered = " << (G.n - elms_cov) << endl;
-  return std::move(cover);
+  std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
+  std::cout << "|cover|: " << cover.size << "\n";
+  std::cout << "Rounds: " << rounds << "\n";
+  std::cout << "Num_uncovered = " << (G.n - elms_cov) << "\n";
+  return cover;
 }

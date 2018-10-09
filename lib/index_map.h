@@ -79,7 +79,7 @@ struct in_imap {
 
 // used so second template argument can be inferred
 template <class E, class F>
-in_imap<E, F> make_in_imap(size_t n, F f) {
+inline in_imap<E, F> make_in_imap(size_t n, F f) {
   return in_imap<E, F>(n, f);
 }
 
@@ -102,7 +102,7 @@ struct out_imap {
 
 // used so second template argument can be inferred
 template <class E, class F>
-out_imap<E, F> make_out_imap(size_t n, F f) {
+inline out_imap<E, F> make_out_imap(size_t n, F f) {
   return out_imap<E, F>(n, f);
 }
 
@@ -127,7 +127,7 @@ struct iter_imap {
 
 // used so template argument can be inferred
 template <class Iterator>
-iter_imap<Iterator> make_iter_imap(Iterator s, Iterator e) {
+inline iter_imap<Iterator> make_iter_imap(Iterator s, Iterator e) {
   return iter_imap<Iterator>(s, e);
 }
 
@@ -142,17 +142,18 @@ struct array_imap {
   array_imap(array_imap&& b) : s(b.s), e(b.e), allocated(b.allocated) {
     b.allocated = false;
   }
-  array_imap(E* s, size_t n) : s(s), e(s + n), allocated(false){};
+  array_imap(E* s, size_t n, bool _allocated = false)
+      : s(s), e(s + n), allocated(_allocated){};
   array_imap(const size_t n)
       : s(pbbs::new_array<E>(n)), e(s + n), allocated(true){};
   template <class F>
   array_imap(const size_t n, F f)
       : s(pbbs::new_array_no_init<E>(n)), e(s + n), allocated(true) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { s[i] = f(i); });
+    parallel_for_bc(i, 0, n, (n > 2000), { s[i] = f(i); });
   };
   array_imap(const size_t n, const E e)
       : s(pbbs::new_array_no_init<E>(n)), e(s + n), allocated(true) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { s[i] = e; });
+    parallel_for_bc(i, 0, n, (n > 2000), { s[i] = e; });
   };
   ~array_imap() { free_mem(); }
 
@@ -193,7 +194,7 @@ struct array_imap {
     if (allocated) {
       size_t n = e - s;
       auto A = pbbs::new_array_no_init<E>(n);
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { A[i] = s[i]; });
+      parallel_for_bc(i, 0, n, (n > 200), { A[i] = s[i]; });
       auto ret = array_imap<E>(A, n);
       ret.allocated = true;
       return ret;
@@ -224,6 +225,6 @@ struct array_imap {
 
 // used so template argument can be inferred
 template <class E>
-array_imap<E> make_array_imap(E* A, size_t n) {
+inline array_imap<E> make_array_imap(E* A, size_t n) {
   return array_imap<E>(A, n);
 }

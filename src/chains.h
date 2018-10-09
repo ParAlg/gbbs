@@ -61,12 +61,12 @@ struct Decr {
 };
 
 template <class W, class L, class B>
-auto make_decr(L& cts, B& fl) {
+inline auto make_decr(L& cts, B& fl) {
   return Decr<W, L, B>(cts, fl);
 }
 
 template <template <class W> class vertex, class W>
-auto remove_chains(graph<vertex<W>>& GA) {
+inline auto remove_chains(graph<vertex<W>>& GA) {
   const size_t n = GA.n;
   const size_t m = GA.m;
   auto in_d =
@@ -104,7 +104,8 @@ auto remove_chains(graph<vertex<W>>& GA) {
   size_t nr = 0;
   while (in_vs.size() > 0 || out_vs.size() > 0) {
     nr++;
-    cout << "ins = " << in_vs.size() << " outs = " << out_vs.size() << endl;
+    std::cout << "ins = " << in_vs.size() << " outs = " << out_vs.size()
+              << "\n";
     if (in_vs.size() > 0) {
       in_vs.toSparse();
       parallel_for_bc(i, 0, in_vs.size(),
@@ -137,7 +138,7 @@ auto remove_chains(graph<vertex<W>>& GA) {
   }
   auto chain_im =
       make_in_imap<size_t>(n, [&](size_t i) { return (size_t)chains[i]; });
-  cout << "total zero = " << pbbs::reduce_add(chain_im) << endl;
-  cout << "nr = " << nr << endl;
+  std::cout << "total zero = " << pbbs::reduce_add(chain_im) << "\n";
+  std::cout << "nr = " << nr << "\n";
   return chains;
 }

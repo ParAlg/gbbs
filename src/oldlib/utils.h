@@ -26,10 +26,9 @@
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
-#include "../lib/utilities.h"
-#include "macros.h"
 
-using namespace std;
+#include "lib/utilities.h"
+#include "macros.h"
 
 template <class ET>
 inline bool CAS(ET* ptr, ET oldv, ET newv) {
@@ -43,7 +42,7 @@ inline bool CAS(ET* ptr, ET oldv, ET newv) {
     return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
                                         *((long*)&newv));
   } else {
-    std::cout << "CAS bad length : " << sizeof(ET) << std::endl;
+    std::cout << "CAS bad length : " << sizeof(ET) << "\n";
     abort();
   }
 }
@@ -147,7 +146,7 @@ struct filter_iter {
 };
 
 template <class E, class I, class P>
-auto make_filter_iter(I& _it, P& _pr) {
+inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
   return filter_iter<E, I, P>(_it, _pr);
 }
 
@@ -168,7 +167,7 @@ struct EdgeMap_F {
 };
 
 template <class W, class F>
-auto make_em_f(F f) {
+inline EdgeMap_F<W, F> make_em_f(F f) {
   return EdgeMap_F<W, F>(f);
 }
 
@@ -217,20 +216,20 @@ struct getAF {
     intT _l = nblocks(_n, _bsize);             \
     parallel_for_bc(_i, 0, _l, (_l > 1), {     \
       intT _s = _ss + _i * (_bsize);           \
-      intT _e = min(_s + (_bsize), _ee);       \
+      intT _e = std::min(_s + (_bsize), _ee);  \
       _body                                    \
     });                                        \
   }
 
 template <class OT, class intT, class F, class G>
-OT reduceSerial(intT s, intT e, F f, G g) {
+inline OT reduceSerial(intT s, intT e, F f, G g) {
   OT r = g(s);
   for (intT j = s + 1; j < e; j++) r = f(r, g(j));
   return r;
 }
 
 template <class OT, class intT, class F, class G>
-OT reduce(intT s, intT e, F f, G g) {
+inline OT reduce(intT s, intT e, F f, G g) {
   intT l = nblocks(e - s, _SCAN_BSIZE);
   if (l <= 1) return reduceSerial<OT>(s, e, f, g);
   OT* Sums = newA(OT, l);
@@ -241,12 +240,12 @@ OT reduce(intT s, intT e, F f, G g) {
 }
 
 template <class OT, class intT, class F>
-OT reduce(OT* A, intT n, F f) {
+inline OT reduce(OT* A, intT n, F f) {
   return reduce<OT>((intT)0, n, f, getA<OT, intT>(A));
 }
 
 template <class OT, class intT>
-OT plusReduce(OT* A, intT n) {
+inline OT plusReduce(OT* A, intT n) {
   return reduce<OT>((intT)0, n, addF<OT>(), getA<OT, intT>(A));
 }
 
@@ -254,18 +253,18 @@ OT plusReduce(OT* A, intT n) {
 // f is the reduce function
 // need to specify OT since it is not an argument
 template <class OT, class IT, class intT, class F, class G>
-OT mapReduce(IT* A, intT n, F f, G g) {
+inline OT mapReduce(IT* A, intT n, F f, G g) {
   return reduce<OT>((intT)0, n, f, getAF<IT, OT, intT, G>(A, g));
 }
 
 template <class intT>
-intT sum(bool* In, intT n) {
+inline intT sum(bool* In, intT n) {
   return reduce<intT>((intT)0, n, addF<intT>(), boolGetA<intT>(In));
 }
 
 template <class ET, class intT, class F, class G>
-ET scanSerial(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive,
-              bool back) {
+inline ET scanSerial(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive,
+                     bool back) {
   ET r = zero;
   if (inclusive) {
     if (back)
@@ -290,13 +289,14 @@ ET scanSerial(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive,
 }
 
 template <class ET, class intT, class F>
-ET scanSerial(ET* In, ET* Out, intT n, F f, ET zero) {
+inline ET scanSerial(ET* In, ET* Out, intT n, F f, ET zero) {
   return scanSerial(Out, (intT)0, n, f, getA<ET, intT>(In), zero, false, false);
 }
 
 // back indicates it runs in reverse direction
 template <class ET, class intT, class F, class G>
-ET scan(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive, bool back) {
+inline ET scan(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive,
+               bool back) {
   intT n = e - s;
   intT l = nblocks(n, _SCAN_BSIZE);
   if (l <= 2) return scanSerial(Out, s, e, f, g, zero, inclusive, back);
@@ -310,27 +310,27 @@ ET scan(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive, bool back) {
 }
 
 template <class ET, class intT, class F>
-ET scan(ET* In, ET* Out, intT n, F f, ET zero) {
+inline ET scan(ET* In, ET* Out, intT n, F f, ET zero) {
   return scan(Out, (intT)0, n, f, getA<ET, intT>(In), zero, false, false);
 }
 
 template <class ET, class intT, class F>
-ET scanI(ET* In, ET* Out, intT n, F f, ET zero) {
+inline ET scanI(ET* In, ET* Out, intT n, F f, ET zero) {
   return scan(Out, (intT)0, n, f, getA<ET, intT>(In), zero, true, false);
 }
 
 template <class ET, class intT, class F>
-ET scanBack(ET* In, ET* Out, intT n, F f, ET zero) {
+inline ET scanBack(ET* In, ET* Out, intT n, F f, ET zero) {
   return scan(Out, (intT)0, n, f, getA<ET, intT>(In), zero, false, true);
 }
 
 template <class ET, class intT, class F>
-ET scanIBack(ET* In, ET* Out, intT n, F f, ET zero) {
+inline ET scanIBack(ET* In, ET* Out, intT n, F f, ET zero) {
   return scan(Out, (intT)0, n, f, getA<ET, intT>(In), zero, true, true);
 }
 
 template <class ET, class intT>
-ET plusScan(ET* In, ET* Out, intT n) {
+inline ET plusScan(ET* In, ET* Out, intT n) {
   return scan(Out, (intT)0, n, addF<ET>(), getA<ET, intT>(In), (ET)0, false,
               false);
 }
@@ -340,13 +340,13 @@ ET plusScan(ET* In, ET* Out, intT n) {
 // them as an integer
 // Only optimized when n is a multiple of 512 and Fl is 4byte aligned
 template <class intT>
-intT sumFlagsSerial(bool* Fl, intT n) {
+inline intT sumFlagsSerial(bool* Fl, intT n) {
   intT r = 0;
   if (n >= 128 && (n & 511) == 0 && ((long)Fl & 3) == 0) {
     int* IFl = (int*)Fl;
-    for (int k = 0; k < (n >> 9); k++) {
-      int rr = 0;
-      for (int j = 0; j < 128; j++) rr += IFl[j];
+    for (size_t k = 0; k < (n >> 9); k++) {
+      size_t rr = 0;
+      for (size_t j = 0; j < 128; j++) rr += IFl[j];
       r += (rr & 255) + ((rr >> 8) & 255) + ((rr >> 16) & 255) +
            ((rr >> 24) & 255);
       IFl += 128;
@@ -357,7 +357,7 @@ intT sumFlagsSerial(bool* Fl, intT n) {
 }
 
 template <class ET, class intT, class F>
-_seq<ET> packSerial(ET* Out, bool* Fl, intT s, intT e, F f) {
+inline _seq<ET> packSerial(ET* Out, bool* Fl, intT s, intT e, F f) {
   if (Out == NULL) {
     intT m = sumFlagsSerial(Fl + s, e - s);
     Out = newA(ET, m);
@@ -369,7 +369,7 @@ _seq<ET> packSerial(ET* Out, bool* Fl, intT s, intT e, F f) {
 }
 
 template <class ET, class intT, class F>
-_seq<ET> pack(ET* Out, bool* Fl, intT s, intT e, F f) {
+inline _seq<ET> pack(ET* Out, bool* Fl, intT s, intT e, F f) {
   intT l = nblocks(e - s, _F_BSIZE);
   if (l <= 1) return packSerial(Out, Fl, s, e, f);
   intT* Sums = newA(intT, l);
@@ -382,22 +382,22 @@ _seq<ET> pack(ET* Out, bool* Fl, intT s, intT e, F f) {
 }
 
 template <class ET, class intT>
-intT pack(ET* In, ET* Out, bool* Fl, intT n) {
+inline intT pack(ET* In, ET* Out, bool* Fl, intT n) {
   return pack(Out, Fl, (intT)0, n, getA<ET, intT>(In)).n;
 }
 
 template <class intT>
-_seq<intT> packIndex(bool* Fl, intT n) {
+inline _seq<intT> packIndex(bool* Fl, intT n) {
   return pack((intT*)NULL, Fl, (intT)0, n, identityF<intT>());
 }
 
 template <class intT>
-intT packIndex(intT* Out, bool* Fl, intT n) {
+inline intT packIndex(intT* Out, bool* Fl, intT n) {
   return pack(Out, Fl, (intT)0, n, identityF<intT>()).n;
 }
 
 template <class ET, class intT, class PRED>
-intT filter(ET* In, ET* Out, bool* Fl, intT n, PRED p) {
+inline intT filter(ET* In, ET* Out, bool* Fl, intT n, PRED p) {
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { Fl[i] = (bool)p(In[i]); });
   intT m = pack(In, Out, Fl, n);
@@ -405,7 +405,7 @@ intT filter(ET* In, ET* Out, bool* Fl, intT n, PRED p) {
 }
 
 template <class ET, class intT, class PRED>
-intT filter(ET* In, ET* Out, intT n, PRED p) {
+inline intT filter(ET* In, ET* Out, intT n, PRED p) {
   bool* Fl = newA(bool, n);
   intT m = filter(In, Out, Fl, n, p);
   free(Fl);
@@ -439,7 +439,7 @@ inline ulong hashInt(ulong a) {
 // Sets all duplicate values in the array to UINT_E_MAX and resets flags to
 // UINT_E_MAX.
 template <class G>
-void remDuplicates(G& get_key, uintE* flags, long m, long n) {
+inline void remDuplicates(G& get_key, uintE* flags, long m, long n) {
   parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     uintE key = get_key(i);
     if (key != UINT_E_MAX && flags[key] == UINT_E_MAX) {

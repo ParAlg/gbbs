@@ -29,15 +29,17 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <tuple>
 
-#include "../../lib/binary_search.h"
-#include "../../lib/index_map.h"
-#include "../../lib/seq.h"
-#include "../../lib/sequence_ops.h"
-#include "../../lib/utilities.h"
+#include "lib/binary_search.h"
+#include "lib/index_map.h"
+#include "lib/seq.h"
+#include "lib/sequence_ops.h"
+#include "lib/utilities.h"
 
-#include "../oldlib/utils.h"
+#include "oldlib/utils.h"
 
+namespace encodings {
 namespace bytepd_amortized {
 
 inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
@@ -57,7 +59,7 @@ inline W eatWeight(uchar*& start) {
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
 inline void print_weight(W& wgh) {
-  cout << wgh << endl;
+  std::cout << wgh << "\n";
 }
 
 template <class W,
@@ -125,15 +127,13 @@ inline uintE eatEdge(uchar*& start) {
 /*
   Compresses the first edge, writing target-source and a sign bit.
 */
-long compressFirstEdge(uchar* start, long offset, long source, long target) {
-  uchar* saveStart = start;
-  long saveOffset = offset;
-
+inline long compressFirstEdge(uchar* start, long offset, long source,
+                              long target) {
   long diff = target - source;
   long preCompress = diff;
   int bytesUsed = 0;
   uchar firstByte = 0;
-  uintE toCompress = abs(preCompress);
+  uintE toCompress = std::abs(preCompress);
   firstByte = toCompress & 0x3f;  // 0011|1111
   if (preCompress < 0) {
     firstByte |= 0x40;
@@ -176,7 +176,7 @@ inline long compressWeight(uchar* start, long offset, W weight) {
 /*
   Should provide the difference between this edge and the previous edge
 */
-long compressEdge(uchar* start, long curOffset, uintE e) {
+inline long compressEdge(uchar* start, long curOffset, uintE e) {
   uchar curByte = e & 0x7f;
   int bytesUsed = 0;
   while ((curByte > 0) || (e > 0)) {
@@ -205,7 +205,7 @@ struct iter {
   uintE cur_chunk;
   uintE cur_chunk_degree;
 
-  tuple<uintE, W> last_edge;
+  std::tuple<uintE, W> last_edge;
   uintE read_in_block;
   uintE read_total;
 
@@ -229,8 +229,8 @@ struct iter {
     cur_chunk_degree = end_offset - start_offset;
     finger += sizeof(uintE);
     if (start_offset < end_offset) {
-      get<0>(last_edge) = eatFirstEdge(finger, src);
-      get<1>(last_edge) = eatWeight<W>(finger);
+      std::get<0>(last_edge) = eatFirstEdge(finger, src);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
     } else {
       for (cur_chunk = 1; cur_chunk < num_blocks; cur_chunk++) {
         finger = base + block_offsets[cur_chunk - 1];
@@ -242,8 +242,8 @@ struct iter {
         finger += sizeof(uintE);
 
         if (start_offset < end_offset) {
-          get<0>(last_edge) = eatFirstEdge(finger, src);
-          get<1>(last_edge) = eatWeight<W>(finger);
+          std::get<0>(last_edge) = eatFirstEdge(finger, src);
+          std::get<1>(last_edge) = eatWeight<W>(finger);
           break;
         }
       }
@@ -252,9 +252,9 @@ struct iter {
     read_in_block = 1;
   }
 
-  inline tuple<uintE, W> cur() { return last_edge; }
+  inline std::tuple<uintE, W> cur() { return last_edge; }
 
-  inline tuple<uintE, W> next() {
+  inline std::tuple<uintE, W> next() {
     if (read_in_block == cur_chunk_degree) {
       cur_chunk_degree = 0;
       uintE* block_offsets = (uintE*)(base + sizeof(uintE));
@@ -269,12 +269,12 @@ struct iter {
         cur_chunk_degree = end_offset - start_offset;
       }
 
-      get<0>(last_edge) = eatFirstEdge(finger, src);
-      get<1>(last_edge) = eatWeight<W>(finger);
+      std::get<0>(last_edge) = eatFirstEdge(finger, src);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
       read_in_block = 1;
     } else {
-      get<0>(last_edge) += eatEdge(finger);
-      get<1>(last_edge) = eatWeight<W>(finger);
+      std::get<0>(last_edge) += eatEdge(finger);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
       read_in_block++;
     }
     read_total++;
@@ -293,7 +293,7 @@ struct simple_iter {
 
   uintE cur_chunk;
 
-  tuple<uintE, W> last_edge;
+  std::tuple<uintE, W> last_edge;
   uintE proc;
 
   simple_iter(uchar* _base, uintT _degree, uintE _src)
@@ -302,23 +302,23 @@ struct simple_iter {
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     finger = base + (num_blocks - 1) * sizeof(uintE) + 2 * sizeof(uintE);
 
-    get<0>(last_edge) = eatFirstEdge(finger, src);
-    get<1>(last_edge) = eatWeight<W>(finger);
+    std::get<0>(last_edge) = eatFirstEdge(finger, src);
+    std::get<1>(last_edge) = eatWeight<W>(finger);
     proc = 1;
   }
 
-  inline tuple<uintE, W> cur() { return last_edge; }
+  inline std::tuple<uintE, W> cur() { return last_edge; }
 
-  inline tuple<uintE, W> next() {
+  inline std::tuple<uintE, W> next() {
     if (proc == PARALLEL_DEGREE) {
       finger += sizeof(uintE);  // skip block start
-      get<0>(last_edge) = eatFirstEdge(finger, src);
-      get<1>(last_edge) = eatWeight<W>(finger);
+      std::get<0>(last_edge) = eatFirstEdge(finger, src);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
       proc = 1;
       cur_chunk++;
     } else {
-      get<0>(last_edge) += eatEdge(finger);
-      get<1>(last_edge) = eatWeight<W>(finger);
+      std::get<0>(last_edge) += eatEdge(finger);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
       proc++;
     }
     return last_edge;
@@ -473,9 +473,8 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class E, class M, class R>
-inline auto map_reduce(uchar* edge_start, const uintE& source,
-                       const uintT& degree, E id, M& m, R& r,
-                       const bool par = true) {
+inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
+                    E id, M& m, R& r, const bool par = true) {
   if (degree > 0) {
     uintE virtual_degree = *((uintE*)edge_start);
     size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
@@ -541,15 +540,15 @@ inline auto map_reduce(uchar* edge_start, const uintE& source,
 //   is gt than ours. This wastes at most |block-size| amount of work in the
 //   intersection.
 template <class W>
-size_t intersect(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
-                 uintE l1_src, uintE l2_src) {
+inline size_t intersect(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
+                        uintE l1_src, uintE l2_src) {
   if (l1_size == 0 || l2_size == 0) return 0;
   auto it_1 = simple_iter<W>(l1, l1_size, l1_src);
   auto it_2 = simple_iter<W>(l2, l2_size, l2_src);
   size_t i = 0, j = 0, ct = 0;
   while (i < l1_size && j < l2_size) {
-    uintE e1 = get<0>(it_1.cur());
-    uintE e2 = get<0>(it_2.cur());
+    uintE e1 = std::get<0>(it_1.cur());
+    uintE e2 = std::get<0>(it_2.cur());
     if (e1 == e2) {
       i++, j++, it_1.next(), it_2.next(), ct++;
     } else if (e1 < e2) {
@@ -561,17 +560,37 @@ size_t intersect(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
   return ct;
 }
 
+template <class W, class F>
+size_t intersect_f(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
+                   uintE l1_src, uintE l2_src, const F& f) {
+  if (l1_size == 0 || l2_size == 0) return 0;
+  auto it_1 = simple_iter<W>(l1, l1_size, l1_src);
+  auto it_2 = simple_iter<W>(l2, l2_size, l2_src);
+  size_t i = 0, j = 0, ct = 0;
+  while (i < l1_size && j < l2_size) {
+    uintE e1 = std::get<0>(it_1.cur());
+    uintE e2 = std::get<0>(it_2.cur());
+    if (e1 == e2) {
+      f(l1_src, l2_src, e1);
+      i++, j++, it_1.next(), it_2.next(), ct++;
+    } else if (e1 < e2) {
+      i++, it_1.next();
+    } else {
+      j++, it_2.next();
+    }
+  }
+  return ct;
+}
+
 template <class W>
-inline tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
-                                        uintE degree, size_t i) {
+inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
+                                             uintE degree, size_t i) {
   uintE virtual_degree = *((uintE*)edge_start);
   size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
   uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
   uchar* nghs_start =
       edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
   auto blocks_imap = make_in_imap<size_t>(num_blocks, [&](size_t j) {
-    uchar* finger = (j > 0) ? (edge_start + block_offsets[j - 1]) : nghs_start;
-    uintE start = *((uintE*)finger);
     uintE end = (j == (num_blocks - 1))
                     ? degree
                     : (*((uintE*)(edge_start + block_offsets[j])));
@@ -586,23 +605,17 @@ inline tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   uchar* finger =
       (block > 0) ? (edge_start + block_offsets[block - 1]) : nghs_start;
   uintE start = *((uintE*)finger);
-  uintE end = (block == (num_blocks - 1))
-                  ? degree
-                  : (*((uintE*)(edge_start + block_offsets[block])));
   finger += sizeof(uintE);
-  assert(start < end);
-  assert(start <= i);
-  assert(i < end);
   uintE ngh = eatFirstEdge(finger, source);
   W wgh = eatWeight<W>(finger);
   if (i == start) {
-    return make_tuple(ngh, wgh);
+    return std::make_tuple(ngh, wgh);
   }
   for (size_t edgeID = start + 1; edgeID < i; edgeID++) {
     ngh += eatEdge(finger);
     wgh = eatWeight<W>(finger);
   }
-  return make_tuple(ngh, wgh);
+  return std::make_tuple(ngh, wgh);
 }
 
 //  #define SEQ_THRESH 10
@@ -672,7 +685,8 @@ inline tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 //  inline uintE seq_intersect(seq_info u, seq_info v) { uintE ngh_u[1000];
 //    uchar* finger = u.get_start_of_block(u.start);
 //    return 0;
-//  //  decode_block<pbbs::empty>(finger, (tuple<uintE, pbbs::empty>*)ngh_u, 0,
+//  //  decode_block<pbbs::empty>(finger, (std::tuple<uintE,
+//  pbbs::empty>*)ngh_u, 0,
 //  }
 //
 //  inline uintE intersect(seq_info u, seq_info v) {
@@ -763,7 +777,7 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
 
   // 2. Scan to compute block offsets
   auto bytes_imap = make_array_imap(offs, new_blocks + 1);
-  size_t total_space = pbbs::scan_add(bytes_imap, bytes_imap);
+  pbbs::scan_add(bytes_imap, bytes_imap);
 
   // 3. Compress each block
   nghs_start = edge_start + (new_blocks - 1) * sizeof(uintE) + sizeof(uintE);
@@ -829,7 +843,7 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
 
 template <class W>
 inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
-                   tuple<uintE, W>* tmp_space, bool par = true) {
+                   std::tuple<uintE, W>* tmp_space, bool par = true) {
   // No need to repack if degree == 0; all other methods abort when the vertex
   // degree is 0.
   if (degree > 0) {
@@ -840,7 +854,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
         edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
 
     // 1. Copy all live edges into U
-    using uintEW = tuple<uintE, W>;
+    using uintEW = std::tuple<uintE, W>;
     uintEW tmp_stack[100];
     uintEW* U = tmp_stack;
     if (degree > 100) {
@@ -858,12 +872,12 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
       if (start_offset < end_offset) {
         uintE ngh = eatFirstEdge(finger, source);
         W wgh = eatWeight<W>(finger);
-        U[start_offset] = make_tuple(ngh, wgh);
+        U[start_offset] = std::make_tuple(ngh, wgh);
         for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
           // Eat the next 'edge', which is a difference, and reconstruct edge.
           ngh += eatEdge(finger);
           wgh = eatWeight<W>(finger);
-          U[edgeID] = make_tuple(ngh, wgh);
+          U[edgeID] = std::make_tuple(ngh, wgh);
         }
       }
     });
@@ -877,20 +891,20 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // 3. Compute #bytes per new block
     parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = start + min<size_t>(PARALLEL_DEGREE, degree - start);
+      size_t end = start + std::min<size_t>(PARALLEL_DEGREE, degree - start);
       uintE bytes = 0;
       bytes += sizeof(uintE);  // block_deg
       uchar tmp[16];
       auto nw = U[start];
-      uintE off = compressFirstEdge(tmp, 0, source, get<0>(nw));
+      uintE off = compressFirstEdge(tmp, 0, source, std::get<0>(nw));
       bytes += off;
-      off = compressWeight<W>(tmp, 0, get<1>(nw));
+      off = compressWeight<W>(tmp, 0, std::get<1>(nw));
       bytes += off;
       for (size_t edgeI = start + 1; edgeI < end; edgeI++) {
-        uintE difference = get<0>(U[edgeI]) - get<0>(U[edgeI - 1]);
+        uintE difference = std::get<0>(U[edgeI]) - std::get<0>(U[edgeI - 1]);
         off = compressEdge(tmp, 0, difference);
         bytes += off;
-        off = compressWeight<W>(tmp, 0, get<1>(U[edgeI]));
+        off = compressWeight<W>(tmp, 0, std::get<1>(U[edgeI]));
         bytes += off;
       }
       offs[i] = bytes;
@@ -899,7 +913,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // 4. Scan to compute offset for each block
     offs[new_blocks] = 0;
     auto bytes_imap = make_array_imap(offs, new_blocks + 1);
-    size_t total_space = pbbs::scan_add(bytes_imap, bytes_imap);
+    pbbs::scan_add(bytes_imap, bytes_imap);
 
     // 5. Repack each block
     uintE* virtual_degree_ptr = (uintE*)edge_start;
@@ -909,7 +923,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
                  sizeof(uintE);  // update ngh_start
     parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
       size_t start = i * PARALLEL_DEGREE;
-      size_t end = start + min<size_t>(PARALLEL_DEGREE, degree - start);
+      size_t end = start + std::min<size_t>(PARALLEL_DEGREE, degree - start);
       uchar* finger = nghs_start + bytes_imap[i];
       // update block offsets with the distance from the start
       if (i > 0) {
@@ -923,15 +937,17 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
 
       auto nw = U[start];
       current_offset =
-          compressFirstEdge(finger, current_offset, source, get<0>(nw));
-      current_offset = compressWeight<W>(finger, current_offset, get<1>(nw));
-      uintE last_ngh = get<0>(nw);
+          compressFirstEdge(finger, current_offset, source, std::get<0>(nw));
+      current_offset =
+          compressWeight<W>(finger, current_offset, std::get<1>(nw));
+      uintE last_ngh = std::get<0>(nw);
       for (size_t j = start + 1; j < end; j++) {
         auto nw = U[j];
-        uintE difference = get<0>(nw) - last_ngh;
+        uintE difference = std::get<0>(nw) - last_ngh;
         current_offset = compressEdge(finger, current_offset, difference);
-        current_offset = compressWeight<W>(finger, current_offset, get<1>(nw));
-        last_ngh = get<0>(nw);
+        current_offset =
+            compressWeight<W>(finger, current_offset, std::get<1>(nw));
+        last_ngh = std::get<0>(nw);
       }
     });
 
@@ -946,9 +962,9 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
 
 template <class W, class P>
 inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
-                   const uintE& degree, tuple<uintE, W>* tmp_space,
+                   const uintE& degree, std::tuple<uintE, W>* tmp_space,
                    bool par = true) {
-  using uintEW = tuple<uintE, W>;
+  using uintEW = std::tuple<uintE, W>;
   uintE virtual_degree = *((uintE*)edge_start);
   size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
 
@@ -981,13 +997,13 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
       uintE ngh = eatFirstEdge(finger, source);
       W wgh = eatWeight<W>(finger);
       if (pred(source, ngh, wgh)) {
-        tmp[ct++] = make_tuple(ngh, wgh);
+        tmp[ct++] = std::make_tuple(ngh, wgh);
       }
       for (size_t i = 1; i < block_deg; i++) {
         ngh += eatEdge(finger);
         wgh = eatWeight<W>(finger);
         if (pred(source, ngh, wgh)) {
-          tmp[ct++] = make_tuple(ngh, wgh);
+          tmp[ct++] = std::make_tuple(ngh, wgh);
         }
       }
       final_off =
@@ -1002,15 +1018,16 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uchar* write_finger = finger + sizeof(uintE);
-      offset = compressFirstEdge(write_finger, offset, source, get<0>(tmp[0]));
-      offset = compressWeight<W>(write_finger, offset, get<1>(tmp[0]));
-      uintE last_ngh = get<0>(tmp[0]);
+      offset =
+          compressFirstEdge(write_finger, offset, source, std::get<0>(tmp[0]));
+      offset = compressWeight<W>(write_finger, offset, std::get<1>(tmp[0]));
+      uintE last_ngh = std::get<0>(tmp[0]);
       for (size_t i = 1; i < ct; i++) {
         const auto& e = tmp[i];
-        uintE difference = get<0>(e) - last_ngh;
+        uintE difference = std::get<0>(e) - last_ngh;
         offset = compressEdge(write_finger, offset, difference);
-        offset = compressWeight<W>(write_finger, offset, get<1>(e));
-        last_ngh = get<0>(e);
+        offset = compressWeight<W>(write_finger, offset, std::get<1>(e));
+        last_ngh = std::get<0>(e);
       }
     }
 
@@ -1042,17 +1059,17 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 }
 
 template <class W>
-void decode_block(uchar* finger, tuple<uintE, W>* out, size_t start, size_t end,
-                  const uintE& source) {
+inline void decode_block(uchar* finger, std::tuple<uintE, W>* out, size_t start,
+                         size_t end, const uintE& source) {
   if (end - start > 0) {
     uintE ngh = eatFirstEdge(finger, source);
     W wgh = eatWeight<W>(finger);
-    out[start] = make_tuple(ngh, wgh);
+    out[start] = std::make_tuple(ngh, wgh);
     for (size_t i = start + 1; i < end; i++) {
       // Eat the next 'edge', which is a difference, and reconstruct edge.
       ngh += eatEdge(finger);
       W wgh = eatWeight<W>(finger);
-      out[i] = make_tuple(ngh, wgh);
+      out[i] = std::make_tuple(ngh, wgh);
     }
   }
 }
@@ -1078,13 +1095,13 @@ inline void filter_sequential(P pred, uchar* edge_start, const uintE& source,
       uintE ngh = eatFirstEdge(finger, source);
       W wgh = eatWeight<W>(finger);
       if (pred(source, ngh, wgh)) {
-        out(k++, make_tuple(ngh, wgh));
+        out(k++, std::make_tuple(ngh, wgh));
       }
       for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
         ngh += eatEdge(finger);
         wgh = eatWeight<W>(finger);
         if (pred(source, ngh, wgh)) {
-          out(k++, make_tuple(ngh, wgh));
+          out(k++, std::make_tuple(ngh, wgh));
         }
       }
     }
@@ -1093,7 +1110,7 @@ inline void filter_sequential(P pred, uchar* edge_start, const uintE& source,
 
 template <class W, class P, class O>
 inline void filter(P pred, uchar* edge_start, const uintE& source,
-                   const uintE& degree, tuple<uintE, W>* tmp, O& out) {
+                   const uintE& degree, std::tuple<uintE, W>* tmp, O& out) {
   if (degree <= PD_PACK_THRESHOLD && degree > 0) {
     filter_sequential<W, P, O>(pred, edge_start, source, degree, out);
   } else if (degree > 0) {
@@ -1109,7 +1126,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
 
     while (blocks_finished < num_blocks) {
       size_t start_block = blocks_finished;
-      size_t end_block = min(start_block + blocks_per_iter, num_blocks);
+      size_t end_block = std::min(start_block + blocks_per_iter, num_blocks);
       size_t total_blocks = end_block - start_block;
 
       uchar* first_finger = (start_block > 0)
@@ -1135,8 +1152,8 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
       });
 
       // filter edges into tmp2
-      auto pd = [&](const tuple<uintE, W>& nw) {
-        return pred(source, get<0>(nw), get<1>(nw));
+      auto pd = [&](const std::tuple<uintE, W>& nw) {
+        return pred(source, std::get<0>(nw), std::get<1>(nw));
       };
       uintE k = pbbs::filterf(tmp, last_offset, pd, out, out_off);
       out_off += k;
@@ -1147,8 +1164,8 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class I>
-long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
-                               uintT degree, uintE source, I& it) {
+inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
+                                      uintT degree, uintE source, I& it) {
   if (degree > 0) {
     size_t start_offset = current_offset;
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
@@ -1160,7 +1177,7 @@ long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
         (num_blocks - 1) * sizeof(uintE);  // virtual deg + block_offs
     for (size_t i = 0; i < num_blocks; i++) {
       size_t o = i * PARALLEL_DEGREE;
-      size_t end = min<size_t>(PARALLEL_DEGREE, degree - o);
+      size_t end = std::min<size_t>(PARALLEL_DEGREE, degree - o);
 
       if (i > 0)
         block_offsets[i - 1] =
@@ -1170,37 +1187,39 @@ long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
       *block_deg = o;
       current_offset += sizeof(uintE);
 
-      tuple<uintE, W> lst = (i == 0) ? it.cur() : it.next();
-      uintE last_ngh = get<0>(lst);
+      std::tuple<uintE, W> lst = (i == 0) ? it.cur() : it.next();
+      uintE last_ngh = std::get<0>(lst);
 
       uchar* test_fing = edgeArray + current_offset;
       current_offset =
           compressFirstEdge(edgeArray, current_offset, source, last_ngh);
       auto decf = eatFirstEdge(test_fing, source);
       if (decf != last_ngh) {
-        cout << "first enc: " << source << " and " << last_ngh << " got back "
-             << decf << endl;
+        std::cout << "first enc: " << source << " and " << last_ngh
+                  << " got back " << decf << "\n";
       }
       //        assert(eatFirstEdge(test_fing, source) == last_ngh);
       current_offset =
-          compressWeight<W>(edgeArray, current_offset, get<1>(lst));
+          compressWeight<W>(edgeArray, current_offset, std::get<1>(lst));
       for (size_t edgeI = 1; edgeI < end; edgeI++) {
-        tuple<uintE, W> nxt = it.next();
-        uintE difference = get<0>(nxt) - last_ngh;
+        std::tuple<uintE, W> nxt = it.next();
+        uintE difference = std::get<0>(nxt) - last_ngh;
 
         test_fing = edgeArray + current_offset;
         current_offset = compressEdge(edgeArray, current_offset, difference);
         auto dec = eatEdge(test_fing);
         if (dec != difference) {
-          cout << "src = " << source << " enc = " << get<0>(nxt) << endl;
+          std::cout << "src = " << source << " enc = " << std::get<0>(nxt)
+                    << "\n";
         }
-        //          assert(eatEdge(test_fing) == get<0>(nxt));
+        //          assert(eatEdge(test_fing) == std::get<0>(nxt));
         current_offset =
-            compressWeight<W>(edgeArray, current_offset, get<1>(nxt));
-        last_ngh = get<0>(nxt);
+            compressWeight<W>(edgeArray, current_offset, std::get<1>(nxt));
+        last_ngh = std::get<0>(nxt);
       }
     }
   }
   return current_offset;
 }
 };  // namespace bytepd_amortized
+}  // namespace encodings

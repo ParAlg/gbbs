@@ -47,7 +47,8 @@ static void setWorkers(int n) {
   std::stringstream ss;
   ss << n;
   if (0 != __cilkrts_set_param("nworkers", ss.str().c_str())) {
-    std::cerr << "failed to set worker count!" << std::endl;
+    std::cerr << "failed to set worker count!"
+              << "\n";
     std::abort();
   }
 }
@@ -278,7 +279,7 @@ inline bool CAS(ET* ptr, ET oldv, ET newv) {
     return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
                                         *((long*)&newv));
   } else {
-    std::cout << "CAS bad length : " << sizeof(ET) << std::endl;
+    std::cout << "CAS bad length : " << sizeof(ET) << "\n";
     abort();
   }
 }
@@ -314,7 +315,8 @@ inline ET xadd(ET* variable, ET value) {
   } else if (sizeof(ET) == 4) {
     return xaddi((int*)variable, (int)value);
   } else {
-    std::cout << "xadd bad length" << std::endl;
+    std::cout << "xadd bad length"
+              << "\n";
     abort();
   }
 }

@@ -187,7 +187,7 @@ class resizable_table {
     }
   }
 
-  auto get_iter(K k) {
+  iter_kv<K, V> get_iter(K k) {
     size_t h = firstIndex(k);
     return iter_kv<K, V>(k, h, mask, table, empty_key);
   }
@@ -289,7 +289,7 @@ class resizable_table {
     });
   }
 
-  auto entries() {
+  array_imap<T> entries() {
     T* out = newA(T, m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     size_t new_m = pbbs::filterf(table, out, m, pred);
@@ -303,6 +303,7 @@ class resizable_table {
 };
 
 template <class K, class V, class KeyHash>
-auto make_resizable_table(size_t m, std::tuple<K, V> empty, KeyHash key_hash) {
+inline resizable_table<K, V, KeyHash> make_resizable_table(
+    size_t m, std::tuple<K, V> empty, KeyHash key_hash) {
   return resizable_table<K, V, KeyHash>(m, empty, key_hash);
 }

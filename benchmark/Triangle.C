@@ -38,15 +38,15 @@ void Triangle_runner(graph<vertex>& GA, commandLine P) {
   assert(P.getOption("-s"));
   size_t count = 0;
   count = Triangle(GA);
-  cout << "triangle count = " << count << endl;
+  std::cout << "triangle count = " << count << "\n";
   if (P.getOption("-stats")) {
     auto wedge_im = make_in_imap<size_t>(GA.n, [&](size_t i) {
       size_t deg = GA.V[i].getOutDegree();
       return (deg * deg - 1) / 2;
     });
     size_t n_wedges = pbbs::reduce_add(wedge_im);
-    cout << "n_wedges = " << n_wedges << endl;
-    cout << "triangle density = " << ((3.0 * count) / n_wedges) << endl;
+    std::cout << "n_wedges = " << n_wedges << "\n";
+    std::cout << "triangle density = " << ((3.0 * count) / n_wedges) << "\n";
   }
 }
 

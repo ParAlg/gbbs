@@ -27,12 +27,10 @@
 #include "sequence_ops.h"
 #include "utilities.h"
 
-using namespace std;
-
 template <class K, class V>
 class sparse_additive_map {
  public:
-  using T = tuple<K, V>;
+  using T = std::tuple<K, V>;
 
   size_t m;
   size_t mask;
@@ -42,7 +40,7 @@ class sparse_additive_map {
   bool alloc;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { A[i] = kv; });
+    parallel_for_bc(i, 0, n, (n > 2048), { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
@@ -87,7 +85,7 @@ class sparse_additive_map {
     alloc = false;
   }
 
-  bool insert(tuple<K, V> kv) {
+  bool insert(std::tuple<K, V> kv) {
     K k = get<0>(kv);
     V v = get<1>(kv);
     size_t h = firstIndex(k);

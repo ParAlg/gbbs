@@ -53,8 +53,8 @@ inline void reserveLoc(intT& x, intT i) {
 
 // granularity is some constant.
 template <class intT, class S>
-intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
-             long maxTries = std::numeric_limits<long>::max()) {
+inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
+                    long maxTries = std::numeric_limits<long>::max()) {
   intT maxRoundSize = (e - s) / granularity + 1;
   intT currentRoundSize = maxRoundSize;
 
@@ -70,7 +70,7 @@ intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
   while (numberDone < e) {
     if (round++ > maxTries) {
       std::cout << "speculative_for: too many iterations, increase maxTries"
-                << std::endl;
+                << "\n";
       abort();
     }
 
@@ -103,8 +103,8 @@ intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
 }
 
 template <class intT, class S>
-intT speculative_for(S step, intT s, intT e, intT granularity,
-                     bool hasState = 1, long maxTries = -1) {
+inline intT speculative_for(S step, intT s, intT e, intT granularity,
+                            bool hasState = 1, long maxTries = -1) {
   if (maxTries < 0) {
     maxTries = 100 + 200 * granularity;
   }
@@ -123,19 +123,19 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
   while (numberDone < e) {
     if (round++ > maxTries) {
       std::cout << "speculative_for: too many iterations, increase maxTries"
-                << std::endl;
+                << "\n";
       abort();
     }
 
-    intT size = min(currentRoundSize, (intT)(e - numberDone));
+    intT size = std::min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
+    parallel_for_bc(i, 0, size, (size > 2048), {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
     });
 
-    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
+    parallel_for_bc(i, 0, size, (size > 2048), {
       if (keep[i]) keep[i] = !step.commit(I[i]);
     });
 
@@ -153,8 +153,9 @@ intT speculative_for(S step, intT s, intT e, intT granularity,
           std::max(currentRoundSize / 2,
                    std::max(maxRoundSize / 64 + 1, (intT)numberKeep));
     else if (float(numberKeep) / float(size) < .1)
-      currentRoundSize = min(currentRoundSize * 2, maxRoundSize);
-    //    cout << size << " : " << numberKeep << " : " << numberDone << endl;
+      currentRoundSize = std::min(currentRoundSize * 2, maxRoundSize);
+    //    std::cout << size << " : " << numberKeep << " : " << numberDone <<
+    //    "\n";
   }
   return totalProcessed;
 }

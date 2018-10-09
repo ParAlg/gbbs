@@ -21,6 +21,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+
+#include "seq.h"
+#include "sequence_ops.h"
 #include "utilities.h"
 
 namespace pbbs {
@@ -35,7 +38,7 @@ struct transpose {
   void transR(size_t rStart, size_t rCount, size_t rLength, size_t cStart,
               size_t cCount, size_t cLength) {
     if (cCount < TRANS_THRESHHOLD && rCount < TRANS_THRESHHOLD) {
-      parallel_for_bc(i, rStart, (rStart + rCount), true, {
+      parallel_for_bc(i, rStart, (rStart + rCount), false, {
         for (size_t j = cStart; j < cStart + cCount; j++) {
           B[j * cLength + i] = A[i * rLength + j];
         }
@@ -73,7 +76,7 @@ struct blockTrans {
   void transR(size_t rStart, size_t rCount, size_t rLength, size_t cStart,
               size_t cCount, size_t cLength) {
     if (cCount < TRANS_THRESHHOLD && rCount < TRANS_THRESHHOLD) {
-      parallel_for_bc(i, rStart, (rStart + rCount), true, {
+      parallel_for_bc(i, rStart, (rStart + rCount), false, {
         for (size_t j = cStart; j < cStart + cCount; j++) {
           E *pa = A + OA[i * rLength + j];
           E *pb = B + OB[j * cLength + i];
@@ -107,13 +110,13 @@ struct blockTrans {
 // Moves values from blocks to buckets
 // From is sorted by key within each block, in block major
 // counts is the # of keys in each bucket for each block, in block major
-// From and To are of lenght n
+// From and To are of length n
 // counts is of length num_blocks * num_buckets
 // Data is memcpy'd into To avoiding initializers and overloaded =
 template <typename E, typename s_size_t>
-size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
-                          size_t block_size, size_t num_blocks,
-                          size_t num_buckets) {
+inline size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
+                                 size_t block_size, size_t num_blocks,
+                                 size_t num_buckets) {
   size_t m = num_buckets * num_blocks;
   sequence<s_size_t> dest_offsets(m);
 
@@ -121,7 +124,8 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
     size_t block_bits = log2_up(num_blocks);
     size_t block_mask = num_blocks - 1;
     if ((size_t)1 << block_bits != num_blocks) {
-      cout << "in transpose_buckets: num_blocks must be a power or 2" << endl;
+      std::cout << "in transpose_buckets: num_blocks must be a power or 2"
+                << "\n";
       abort();
     }
 

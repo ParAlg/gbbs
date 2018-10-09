@@ -21,35 +21,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <algorithm>
 #include "lib/sample_sort.h"
 #include "ligra.h"
 
 template <template <class W> class vertex, class W>
 struct countF {
   using w_vertex = vertex<W>;
-  size_t* counts;
   w_vertex* V;
+  size_t* counts;
   countF(w_vertex* _V, size_t* _counts) : V(_V), counts(_counts) {}
 
   inline bool update(uintE s, uintE d) {
-    size_t ct = V[s].intersect(&V[d], s, d);
-    int w = __cilkrts_get_worker_number();
-    counts[w << 4] += ct;
+    writeAdd(&counts[s], V[s].intersect(&V[d], s, d));
     return 1;
   }
 
   inline bool updateAtomic(uintE s, uintE d) {
-    size_t ct = V[s].intersect(&V[d], s, d);
-    int w = __cilkrts_get_worker_number();
-    counts[w << 4] += ct;
+    writeAdd(&counts[s], V[s].intersect(&V[d], s, d));
     return 1;
   }
-
   inline bool cond(uintE d) { return cond_true(d); }
 };
 
 template <class vertex>
-uintE* rankNodes(vertex* V, size_t n) {
+inline uintE* rankNodes(vertex* V, size_t n) {
   uintE* r = newA(uintE, n);
   uintE* o = newA(uintE, n);
 
@@ -69,33 +65,80 @@ uintE* rankNodes(vertex* V, size_t n) {
 
 // Directly call edgemap dense-forward.
 template <class vertex, class VS, class F>
-vertexSubset emdf(graph<vertex> GA, VS& vs, F f, const flags& fl = 0) {
+inline vertexSubset emdf(graph<vertex> GA, VS& vs, F f, const flags& fl = 0) {
   return edgeMapDenseForward<pbbs::empty>(GA, vs, f, fl);
 }
 
 template <template <class W> class vertex, class W>
-size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
-                     vertexSubset& Frontier) {
+inline size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
+                            vertexSubset& Frontier) {
   emdf(DG, Frontier, wrap_em_f<W>(countF<vertex, W>(DG.V, counts)), no_output);
-  size_t count = ligra_utils::seq::plusReduce(counts, 16 * getWorkers());
+  auto count_seq = array_imap<size_t>(counts, DG.n);
+  size_t count = pbbs::reduce_add(count_seq);
   return count;
 }
 
-template <template <class W> class vertex, class W>
-size_t Triangle(graph<vertex<W>>& GA) {
+template <template <class W> class vertex, class W, class F>
+inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
+                                    const F& f) {
+  std::cout << "Starting counting "
+            << "\n";
+  size_t n = DG.n;
+
+  auto parallel_work = sequence<size_t>(n);
+  {
+    auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
+      return DG.V[v].getOutDegree();
+    };
+    auto reduce_f = [&](const size_t& l, const size_t& r) { return l + r; };
+    size_t id = 0;
+    parallel_for_bc(i, 0, n, true, {
+      parallel_work[i] = DG.V[i].reduceOutNgh(i, id, map_f, reduce_f);
+    });
+  }
+  size_t total_work = pbbs::scan_add(parallel_work, parallel_work);
+
+  size_t n_blocks = nworkers() * 8;
+  size_t work_per_block = total_work / n_blocks;
+  std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
+            << " work per block = " << work_per_block << "\n";
+
+  auto V = DG.V;
+  auto run_intersection = [&](size_t start_ind, size_t end_ind) {
+    for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
+      auto vtx = V[i];
+      size_t total_ct = 0;
+      auto map_f = [&](uintE u, uintE v, W wgh) {
+        total_ct += vtx.intersect_f(&V[v], u, v, f);
+      };
+      vtx.mapOutNgh(i, map_f, false);  // run map sequentially
+      counts[i] = total_ct;
+    }
+  };
+
+  parallel_for_bc(i, 0, n_blocks, true, {
+    size_t start = i * work_per_block;
+    size_t end = (i + 1) * work_per_block;
+    auto less_fn = std::less<size_t>();
+    size_t start_ind = pbbs::binary_search(parallel_work, start, less_fn);
+    size_t end_ind = pbbs::binary_search(parallel_work, end, less_fn);
+    run_intersection(start_ind, end_ind);
+  });
+
+  auto count_seq = array_imap<size_t>(counts, DG.n);
+  size_t count = pbbs::reduce_add(count_seq);
+
+  return count;
+}
+
+template <template <class W> class vertex, class W, class F>
+inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
   timer gt;
   gt.start();
   uintT n = GA.n;
-  size_t* counts = newA(size_t, 16 * getWorkers());
-  for (size_t i = 0; i < 16 * getWorkers(); i++) {
-    counts[i] = 0;
-  }
-  bool* frontier = newA(bool, n);
-  {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
-                    { frontier[i] = 1; });
-  }
-  vertexSubset Frontier(n, n, frontier);
+  auto counts = sequence<size_t>(n);
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                  { counts[i] = 0; });
 
   // 1. Rank vertices based on degree
   uintE* rank = rankNodes(GA.V, GA.n);
@@ -103,8 +146,9 @@ size_t Triangle(graph<vertex<W>>& GA) {
   // 2. Direct edges to point from lower to higher rank vertices.
   // Note that we currently only store out-neighbors for this graph to save
   // memory.
-  auto pack_predicate = wrap_f<W>(
-      [&](const uintE& u, const uintE& v) { return rank[u] < rank[v]; });
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return rank[u] < rank[v];
+  };
   auto DG = filter_graph<vertex, W>(GA, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
@@ -112,12 +156,12 @@ size_t Triangle(graph<vertex<W>>& GA) {
   // 3. Count triangles on the digraph
   timer ct;
   ct.start();
-  size_t count = CountDirected(DG, counts, Frontier);
-  Frontier.del();
-  free(counts);
-  size_t tot = 0;
+
+  size_t count = CountDirectedBalanced(DG, counts.start(), f);
+  std::cout << "Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
   ct.reportTotal("count time");
+  free(rank);
   return count;
 }

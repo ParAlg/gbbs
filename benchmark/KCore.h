@@ -30,13 +30,12 @@
 #include "lib/index_map.h"
 
 template <template <typename W> class vertex, class W>
-array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
+inline array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   const size_t n = GA.n;
-  const size_t m = GA.m;
   auto D =
       array_imap<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
 
-  auto em = EdgeMap<uintE, vertex, W>(GA, make_tuple(UINT_E_MAX, 0),
+  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
   auto b = make_buckets(n, D, increasing, num_buckets);
   timer bt;
@@ -51,17 +50,17 @@ array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
 
-    auto apply_f =
-        [&](const tuple<uintE, uintE>& p) -> const Maybe<tuple<uintE, uintE> > {
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const Maybe<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
       if (deg > k) {
-        uintE new_deg = max(deg - edgesRemoved, k);
+        uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
         uintE bkt = b.get_bucket(deg, new_deg);
         return wrap(v, bkt);
       }
-      return Maybe<tuple<uintE, uintE> >();
+      return Maybe<std::tuple<uintE, uintE> >();
     };
 
     vertexSubsetData<uintE> moved =
@@ -73,9 +72,9 @@ array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     active.del();
     rho++;
   }
-  cout << "rho = " << rho << " k_{max} = " << k_max << endl;
+  std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
   bt.reportTotal("bucket time");
-  return std::move(D);
+  return D;
 }
 
 template <class W>
@@ -84,14 +83,15 @@ struct kcore_fetch_add {
   uintE* D;
   uintE k;
   kcore_fetch_add(uintE* _er, uintE* _D, uintE _k) : er(_er), D(_D), k(_k) {}
-  inline auto update(const uintE& s, const uintE& d, const W& w) {
+  inline Maybe<uintE> update(const uintE& s, const uintE& d, const W& w) {
     er[d]++;
     if (er[d] == 1) {
       return Maybe<uintE>((uintE)0);
     }
     return Maybe<uintE>();
   }
-  inline auto updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
+  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
+                                   const W& wgh) {
     if (writeAdd(&er[d], (uintE)1) == 1) {
       return Maybe<uintE>((uintE)0);
     }
@@ -101,9 +101,9 @@ struct kcore_fetch_add {
 };
 
 template <template <typename W> class vertex, class W>
-auto KCore_FA(graph<vertex<W> >& GA, size_t num_buckets = 16) {
+inline array_imap<uintE> KCore_FA(graph<vertex<W> >& GA,
+                                  size_t num_buckets = 16) {
   const size_t n = GA.n;
-  const size_t m = GA.m;
   auto D =
       array_imap<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
   auto ER = array_imap<uintE>(n, [&](size_t i) { return 0; });
@@ -124,7 +124,7 @@ auto KCore_FA(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       uintE deg = D[v];
       uintE edgesRemoved = ER[v];
       ER[v] = 0;
-      uintE new_deg = max(deg - edgesRemoved, k);
+      uintE new_deg = std::max(deg - edgesRemoved, k);
       D[v] = new_deg;
       bkt = b.get_bucket(deg, new_deg);
     };
@@ -142,6 +142,6 @@ auto KCore_FA(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     active.del();
     rho++;
   }
-  cout << "rho = " << rho << " k_{max} = " << k_max << endl;
-  return std::move(D);
+  std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
+  return D;
 }

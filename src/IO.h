@@ -21,6 +21,7 @@
 // LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#include <string>
 #pragma once
 
 #include <fcntl.h>
@@ -35,29 +36,28 @@
 #include <iostream>
 
 #include "graph.h"
+#include "lib/utilities.h"
 #include "oldlib/block_radix_sort.h"
 #include "oldlib/utils.h"
 
-using namespace std;
-
-typedef pair<uintE, uintE> intPair;
-typedef pair<uintE, pair<uintE, intE> > intTriple;
+typedef std::pair<uintE, uintE> intPair;
+typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
 
 template <class E>
 struct pairFirstCmp {
-  bool operator()(pair<uintE, E> a, pair<uintE, E> b) {
+  bool operator()(std::pair<uintE, E> a, std::pair<uintE, E> b) {
     return a.first < b.first;
   }
 };
 
 template <class E>
 struct getFirst {
-  uintE operator()(pair<uintE, E> a) { return a.first; }
+  uintE operator()(std::pair<uintE, E> a) { return a.first; }
 };
 
 template <class IntType>
 struct pairBothCmp {
-  bool operator()(pair<uintE, IntType> a, pair<uintE, IntType> b) {
+  bool operator()(std::pair<uintE, IntType> a, std::pair<uintE, IntType> b) {
     if (a.first != b.first) return a.first < b.first;
     return a.second < b.second;
   }
@@ -72,7 +72,7 @@ struct words {
   char** Strings;  // pointers to strings (all should be null terminated)
   words() {}
   words(char* C, long nn, char** S, long mm)
-      : Chars(C), n(nn), Strings(S), m(mm) {}
+      : n(nn), Chars(C), m(mm), Strings(S) {}
   void del() {
     free(Chars);
     free(Strings);
@@ -92,7 +92,7 @@ inline bool isSpace(char c) {
   }
 }
 
-ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
+inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
   struct stat sb;
   int fd = open(filename, O_RDONLY);
   if (fd == -1) {
@@ -126,20 +126,20 @@ ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
   //    perror("munmap");
   //    exit(-1);
   //  }
-  //  cout << "mmapped" << endl;
+  //  std::cout << "mmapped" << "\n";
   //  free(bytes);
   //  exit(0);
   return ligra_utils::_seq<char>(p, n);
 }
 
-ligra_utils::_seq<char> readStringFromFile(char* fileName) {
-  ifstream file(fileName, ios::in | ios::binary | ios::ate);
+inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
+  std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fileName << std::endl;
+    std::cout << "Unable to open file: " << fileName << "\n";
     abort();
   }
   long end = file.tellg();
-  file.seekg(0, ios::beg);
+  file.seekg(0, std::ios::beg);
   long n = end - file.tellg();
   char* bytes = newA(char, n + 1);
   file.read(bytes, n);
@@ -148,7 +148,7 @@ ligra_utils::_seq<char> readStringFromFile(char* fileName) {
 }
 
 // parallel code for converting a string to words
-words stringToWords(char* Str, long n) {
+inline words stringToWords(char* Str, long n) {
   {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       if (isSpace(Str[i])) Str[i] = 0;
@@ -163,13 +163,13 @@ words stringToWords(char* Str, long n) {
                     { FL[i] = Str[i] && !Str[i - 1]; });
   }
 
-  //  cout << "n (strlen) = " << n << endl;
+  //  std::cout << "n (strlen) = " << n << "\n";
   //  auto im = make_in_imap<size_t>(n, [&] (size_t i) { return FL[i]; });
-  //  cout << " sum is : " << pbbs::reduce_add(im) << endl;
+  //  std::cout << " sum is : " << pbbs::reduce_add(im) << "\n";
 
   // offset for each start of word
   ligra_utils::_seq<long> Off = ligra_utils::seq::packIndex<long>(FL, n);
-  //  cout << "pack returned " << Off.n << endl;
+  //  std::cout << "pack returned " << Off.n << "\n";
   long m = Off.n;
   long* offsets = Off.A;
 
@@ -186,35 +186,47 @@ words stringToWords(char* Str, long n) {
 }
 
 template <template <typename W> class vertex>
-auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
+inline graph<vertex<intE>> readWeightedGraph(
+    char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
+    size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using wvtx = vertex<intE>;
   words W;
-  if (mmap) {
-    ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-    char* bytes = newA(char, S.n);
-    // Cannot mutate the graph unless we copy.
-    parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
-                    { bytes[i] = S.A[i]; });
-    if (munmap(S.A, S.n) == -1) {
-      perror("munmap");
-      exit(-1);
+  if (bytes == nullptr) {
+    if (mmap) {
+      ligra_utils::_seq<char> S = mmapStringFromFile(fname);
+      char* bytes = newA(char, S.n);
+      // Cannot mutate the graph unless we copy.
+      parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
+                      { bytes[i] = S.A[i]; });
+      if (munmap(S.A, S.n) == -1) {
+        perror("munmap");
+        exit(-1);
+      }
+      S.A = bytes;
+      W = stringToWords(S.A, S.n);
+    } else {
+      ligra_utils::_seq<char> S = readStringFromFile(fname);
+      W = stringToWords(S.A, S.n);
     }
-    S.A = bytes;
-    W = stringToWords(S.A, S.n);
   } else {
-    ligra_utils::_seq<char> S = readStringFromFile(fname);
-    W = stringToWords(S.A, S.n);
+    W = stringToWords(bytes, bytes_size);
   }
-  assert(W.Strings[0] == (string) "WeightedAdjacencyGraph");
+  assert(W.Strings[0] == (std::string) "WeightedAdjacencyGraph");
 
   long len = W.m - 1;
   long n = atol(W.Strings[1]);
   long m = atol(W.Strings[2]);
-  assert(len == n + 2 * m + 2);
+  if (len != (n + 2 * m + 2)) {
+    std::cout << W.Strings[0] << "\n";
+    std::cout << "len = " << len << "\n";
+    std::cout << "n = " << n << " m = " << m << "\n";
+    std::cout << "should be : " << (n + 2 * m + 2) << "\n";
+    assert(false);  // invalid format
+  }
 
   uintT* offsets = newA(uintT, n);
-  using VW = tuple<uintE, intE>;
-  tuple<uintE, intE>* edges = newA(VW, 2 * m);
+  using VW = std::tuple<uintE, intE>;
+  std::tuple<uintE, intE>* edges = newA(VW, 2 * m);
 
   {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
@@ -222,8 +234,8 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
   }
   {
     parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
-      edges[i] = make_tuple(atol(W.Strings[i + n + 3]),
-                            atol(W.Strings[i + n + m + 3]));
+      edges[i] = std::make_tuple(atol(W.Strings[i + n + 3]),
+                                 atol(W.Strings[i + n + m + 3]));
     });
   }
   // W.del(); // to deal with performance bug in malloc
@@ -247,8 +259,8 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
-        temp[o + j] = make_pair(v[i].getOutNeighbor(j),
-                                make_pair(i, v[i].getOutWeight(j)));
+        temp[o + j] = std::make_pair(v[i].getOutNeighbor(j),
+                                     std::make_pair(i, v[i].getOutWeight(j)));
       }
     });
     free(offsets);
@@ -257,10 +269,10 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
 
     tOffsets[temp[0].first] = 0;
     VW* inEdges = newA(VW, m);
-    inEdges[0] = make_tuple(temp[0].second.first, temp[0].second.second);
+    inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
     parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
-      inEdges[i] = make_tuple(temp[i].second.first, temp[i].second.second);
+      inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
       }
@@ -291,32 +303,39 @@ auto readWeightedGraph(char* fname, bool isSymmetric, bool mmap) {
 }
 
 template <template <typename W> class vertex>
-auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
+inline graph<vertex<pbbs::empty>> readUnweightedGraph(
+    char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
+    size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using wvtx = vertex<pbbs::empty>;
   words W;
-  if (mmap) {
-    ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-    char* bytes = newA(char, S.n);
-    // Cannot mutate the graph unless we copy.
-    parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
-                    { bytes[i] = S.A[i]; });
-    if (munmap(S.A, S.n) == -1) {
-      perror("munmap");
-      exit(-1);
+  if (bytes == nullptr) {
+    if (mmap) {
+      ligra_utils::_seq<char> S = mmapStringFromFile(fname);
+      char* bytes = newA(char, S.n);
+      // Cannot mutate the graph unless we copy.
+      parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
+                      { bytes[i] = S.A[i]; });
+      if (munmap(S.A, S.n) == -1) {
+        perror("munmap");
+        exit(-1);
+      }
+      S.A = bytes;
+      W = stringToWords(S.A, S.n);
+    } else {
+      ligra_utils::_seq<char> S = readStringFromFile(fname);
+      W = stringToWords(S.A, S.n);
     }
-    S.A = bytes;
-    W = stringToWords(S.A, S.n);
   } else {
-    ligra_utils::_seq<char> S = readStringFromFile(fname);
-    W = stringToWords(S.A, S.n);
+    W = stringToWords(bytes, bytes_size);
   }
-  assert(W.Strings[0] == (string) "AdjacencyGraph");
+  assert(W.Strings[0] == (std::string) "AdjacencyGraph");
+  // TODO(laxmand): ensure that S is properly freed here
 
   long len = W.m - 1;
   long n = atol(W.Strings[1]);
   long m = atol(W.Strings[2]);
 
-  cout << "n = " << n << " m = " << m << " len = " << len << endl;
+  std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
   assert(len == n + m + 2);
 
   uintT* offsets = newA(uintT, n);
@@ -326,7 +345,7 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
                   { offsets[i] = atol(W.Strings[i + 3]); });
   parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
                   { edges[i] = atol(W.Strings[i + n + 3]); });
-  // W.del(); // to deal with performance bug in malloc
+  W.del();  // to deal with performance bug in malloc
 
   wvtx* v = newA(wvtx, n);
 
@@ -334,7 +353,7 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
     uintT o = offsets[i];
     uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
     v[i].setOutDegree(l);
-    v[i].setOutNeighbors(((tuple<uintE, pbbs::empty>*)(edges + o)));
+    v[i].setOutNeighbors(((std::tuple<uintE, pbbs::empty>*)(edges + o)));
   });
 
   if (!isSymmetric) {
@@ -345,7 +364,7 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
-        temp[o + j] = make_pair(v[i].getOutNeighbor(j), i);
+        temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
       }
     });
     free(offsets);
@@ -373,130 +392,145 @@ auto readUnweightedGraph(char* fname, bool isSymmetric, bool mmap) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
-      v[i].setInNeighbors((tuple<uintE, pbbs::empty>*)(inEdges + o));
+      v[i].setInNeighbors((std::tuple<uintE, pbbs::empty>*)(inEdges + o));
     });
 
     free(tOffsets);
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, inEdges, edges),
-        get_copy_fn(v, (tuple<uintE, pbbs::empty>*)inEdges,
-                    (tuple<uintE, pbbs::empty>*)edges, n, m, m, m));
+        get_copy_fn(v, (std::tuple<uintE, pbbs::empty>*)inEdges,
+                    (std::tuple<uintE, pbbs::empty>*)edges, n, m, m, m));
   } else {
     free(offsets);
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, edges),
-        get_copy_fn(v, (tuple<uintE, pbbs::empty>*)edges, n, m, m));
+        get_copy_fn(v, (std::tuple<uintE, pbbs::empty>*)edges, n, m, m));
   }
 }
 
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-string print_wgh(W wgh) {
+inline string print_wgh(W wgh) {
   return "";
 }
 
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-string print_wgh(W wgh) {
+inline string print_wgh(W wgh) {
   return std::to_string(wgh);
 }
 
 template <template <typename W> class vertex, class W>
-graph<vertex<W> > readCompressedGraph(char* fname, bool isSymmetric, bool mmap,
-                                      bool mmapcopy) {
+inline graph<vertex<W>> readCompressedGraph(
+    char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
+    char* bytes = nullptr,
+    size_t bytes_size = std::numeric_limits<size_t>::max()) {
   char* s;
   using w_vertex = vertex<W>;
-  if (mmap) {
-    ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-    s = S.A;
-    if (mmapcopy) {
-      cout << "Copying compressed graph" << endl;
-      // Cannot mutate graph unless we copy.
-      char* bytes = newA(char, S.n);
-      parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
-                      { bytes[i] = S.A[i]; });
-      if (munmap(S.A, S.n) == -1) {
-        perror("munmap");
-        exit(-1);
+  if (bytes == nullptr) {
+    if (mmap) {
+      ligra_utils::_seq<char> S = mmapStringFromFile(fname);
+      s = S.A;
+      if (mmapcopy) {
+        std::cout << "Copying compressed graph"
+                  << "\n";
+        // Cannot mutate graph unless we copy.
+        char* bytes = newA(char, S.n);
+        parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
+                        { bytes[i] = S.A[i]; });
+        if (munmap(S.A, S.n) == -1) {
+          perror("munmap");
+          exit(-1);
+        }
+        s = bytes;
       }
-      s = bytes;
-    }
-  } else {
-    int fd;
-    if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
-      cout << "input opened!" << endl;
     } else {
-      cout << "can't open input file!";
-    }
-    //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+      int fd;
+      if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
+        std::cout << "input opened!"
+                  << "\n";
+      } else {
+        std::cout << "can't open input file!";
+      }
+      //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
 
-    size_t fsize = lseek(fd, 0, SEEK_END);
-    lseek(fd, 0, 0);
-    s = (char*)memalign(4096 * 2, fsize + 4096);
+      size_t fsize = lseek(fd, 0, SEEK_END);
+      lseek(fd, 0, 0);
+      s = (char*)memalign(4096 * 2, fsize + 4096);
 
-    cout << "fsize = " << fsize << endl;
+      std::cout << "fsize = " << fsize << "\n";
 
-    size_t sz = 0;
+      size_t sz = 0;
 
-    size_t pgsize = getpagesize();
-    cout << "pgsize = " << pgsize << endl;
+      size_t pgsize = getpagesize();
+      std::cout << "pgsize = " << pgsize << "\n";
 
-    size_t read_size = 1024 * 1024 * 1024;
-    if (sz + read_size > fsize) {
-      size_t k = std::ceil((fsize - sz) / pgsize);
-      read_size = std::max(k * pgsize, pgsize);
-      cout << "set read size to: " << read_size << " " << (fsize - sz)
-           << " bytes left" << endl;
-    }
-
-    while (sz + read_size < fsize) {
-      void* buf = s + sz;
-      cout << "reading: " << read_size << endl;
-      sz += read(fd, buf, read_size);
-      cout << "read: " << sz << " bytes" << endl;
+      size_t read_size = 1024 * 1024 * 1024;
       if (sz + read_size > fsize) {
         size_t k = std::ceil((fsize - sz) / pgsize);
         read_size = std::max(k * pgsize, pgsize);
-        cout << "set read size to: " << read_size << " " << (fsize - sz)
-             << " bytes left" << endl;
+        std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+                  << " bytes left"
+                  << "\n";
       }
-    }
-    if (sz < fsize) {
-      cout << "last read: rem = " << (fsize - sz) << endl;
-      void* buf = s + sz;
-      sz += read(fd, buf, pgsize);
-      cout << "read " << sz << " bytes " << endl;
-    }
 
-    //    while (sz < fsize) {
-    //      size_t rem = fsize - sz;
-    //      size_t read_size = pgsize;
-    ////      size_t read_size = std::min(pgsize, rem);
-    //      void* buf = s + sz;
-    //      cout << "reading: " << read_size << endl;
-    //      sz += read(fd, buf, read_size);
-    //      cout << "read: " << sz << " bytes" << endl;
-    //    }
-    //    cout << "Finished: read " << sz << " out of fsize = " << fsize <<
-    //    endl;
-    close(fd);
+      while (sz + read_size < fsize) {
+        void* buf = s + sz;
+        std::cout << "reading: " << read_size << "\n";
+        sz += read(fd, buf, read_size);
+        std::cout << "read: " << sz << " bytes"
+                  << "\n";
+        if (sz + read_size > fsize) {
+          size_t k = std::ceil((fsize - sz) / pgsize);
+          read_size = std::max(k * pgsize, pgsize);
+          std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+                    << " bytes left"
+                    << "\n";
+        }
+      }
+      if (sz < fsize) {
+        std::cout << "last read: rem = " << (fsize - sz) << "\n";
+        void* buf = s + sz;
+        sz += read(fd, buf, pgsize);
+        std::cout << "read " << sz << " bytes "
+                  << "\n";
+      }
 
-    //    ifstream in(fname,ifstream::in |ios::binary);
-    //    in.seekg(0,ios::end);
-    //    long size = in.tellg();
-    //    in.seekg(0);
-    //    cout << "size = " << size << endl;
-    //    s = (char*) malloc(size);
-    //    in.read(s,size);
-    //    cout << "Finished read" << endl;
-    //    in.close();
+      //    while (sz < fsize) {
+      //      size_t rem = fsize - sz;
+      //      size_t read_size = pgsize;
+      ////      size_t read_size = std::min(pgsize, rem);
+      //      void* buf = s + sz;
+      //      std::cout << "reading: " << read_size << "\n";
+      //      sz += read(fd, buf, read_size);
+      //      std::cout << "read: " << sz << " bytes" << "\n";
+      //    }
+      //    std::cout << "Finished: read " << sz << " out of fsize = " << fsize
+      //    <<
+      //    "\n";
+      close(fd);
+
+      //    std::ifstream in(fname,std::ifstream::in |std::ios::binary);
+      //    in.seekg(0,std::ios::end);
+      //    long size = in.tellg();
+      //    in.seekg(0);
+      //    std::cout << "size = " << size << "\n";
+      //    s = (char*) malloc(size);
+      //    in.read(s,size);
+      //    std::cout << "Finished read" << "\n";
+      //    in.close();
+    }
+  } else {
+    s = bytes;
   }
 
   long* sizes = (long*)s;
   long n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace << endl;
-  cout << "reading file..." << endl;
+  std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
+            << "\n";
+  std::cout << "reading file..."
+            << "\n";
 
   uintT* offsets = (uintT*)(s + 3 * sizeof(long));
   long skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
@@ -513,7 +547,7 @@ graph<vertex<W> > readCompressedGraph(char* fname, bool isSymmetric, bool mmap,
     uchar* inData = (uchar*)(s + skip);
     sizes = (long*)inData;
     inTotalSpace = sizes[0];
-    cout << "inTotalSpace = " << inTotalSpace << endl;
+    std::cout << "inTotalSpace = " << inTotalSpace << "\n";
     skip += sizeof(long);
     inOffsets = (uintT*)(s + skip);
     skip += (n + 1) * sizeof(uintT);
@@ -550,4 +584,47 @@ graph<vertex<W> > readCompressedGraph(char* fname, bool isSymmetric, bool mmap,
                       get_copy_fn(V, edges, n, m, totalSpace));
     return G;
   }
+}
+
+// Caller is responsible for deleting offsets, degrees. 'edges' is owned by the
+// returned graph and will be deleted when it is destroyed.
+template <template <typename W> class vertex, class W>
+inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
+                                                     uintT* offsets,
+                                                     uintE* degrees,
+                                                     uchar* edges) {
+  using w_vertex = vertex<W>;
+  w_vertex* V = newA(w_vertex, n);
+  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    long o = offsets[i];
+    uintT d = degrees[i];
+    V[i].setOutDegree(d);
+    V[i].setOutNeighbors(edges + o);
+  });
+
+  size_t total_space = offsets[n];
+
+  std::function<void()> deletion_fn = get_deletion_fn(V, edges);
+  std::function<graph<w_vertex>()> copy_fn =
+      get_copy_fn(V, edges, n, m, total_space);
+  graph<w_vertex> G(V, n, m, deletion_fn, copy_fn);
+
+  auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+    CHECK_LT(u, n) << "u = " << u << " is larger than n = " << n << "\n";
+    CHECK_LT(v, n) << "v = " << v << " is larger than n = " << n << " u = " << u
+                   << "\n";
+    return u ^ v;
+  };
+  auto reduce_f = [&](const uintE& l, const uintE& r) -> uintE {
+    return l ^ r;
+  };
+  auto xors = sequence<uintE>(n, (uintE)0);
+
+  parallel_for_bc(i, 0, n, true, {
+    xors[i] = G.V[i].reduceOutNgh(i, (uintE)0, map_f, reduce_f);
+  });
+  uintE xors_sum = pbbs::reduce_xor(xors);
+  CHECK_EQ(xors_sum, 0) << "Input graph is not undirected---exiting.";
+
+  return G;
 }

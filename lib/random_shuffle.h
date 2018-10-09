@@ -21,9 +21,11 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+
 #include <math.h>
 #include <stdio.h>
 #include <cstdint>
+
 #include "counting_sort.h"
 #include "random.h"
 #include "utilities.h"
@@ -31,7 +33,7 @@
 namespace pbbs {
 
 template <typename Seq>
-void seq_random_shuffle(Seq A, random r = default_random) {
+inline void seq_random_shuffle(Seq A, random r = default_random) {
   size_t n = A.size();
   // the Knuth shuffle
   if (n < 2) return;
@@ -40,7 +42,7 @@ void seq_random_shuffle(Seq A, random r = default_random) {
 }
 
 template <typename Seq>
-void random_shuffle(Seq A, random r = default_random) {
+inline void random_shuffle(Seq A, random r = default_random) {
   size_t n = A.size();
   if (n < SEQ_THRESHOLD) {
     seq_random_shuffle(A);
@@ -70,7 +72,8 @@ void random_shuffle(Seq A, random r = default_random) {
 }
 
 template <class intT>
-auto random_permutation(size_t n, random r = default_random) {
+inline array_imap<intT> random_permutation(size_t n,
+                                           random r = default_random) {
   auto id = array_imap<intT>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { id[i] = i; });
   pbbs::random_shuffle(id, r);

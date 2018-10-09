@@ -21,13 +21,16 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
+
 #include <math.h>
 #include <stdio.h>
-#include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <tuple>
 
-#include "../lib/counting_sort_no_transpose.h"
+#include "lib/counting_sort_no_transpose.h"
+#include "lib/macros.h"
 #include "sequential_ht.h"
 
 namespace pbbs {
@@ -38,7 +41,7 @@ constexpr const size_t _hist_seq_threshold = 2048;
 
 template <typename E, class B>
 struct get_bucket {
-  tuple<E, int>* hash_table;
+  std::tuple<E, int>* hash_table;
   size_t table_mask;
   size_t low_mask;
   size_t bucket_mask;
@@ -46,7 +49,7 @@ struct get_bucket {
   int k;
   B& I;
 
-  tuple<E*, int> heavy_hitters(size_t n, size_t count) {
+  std::tuple<E*, int> heavy_hitters(size_t n, size_t count) {
     E* sample = newA(E, count);
     for (size_t i = 0; i < count; i++) {
       sample[i] = I[hash64(i) % n];
@@ -65,21 +68,21 @@ struct get_bucket {
         c = 0;
       }
     }
-    return make_tuple(sample, k);
+    return std::make_tuple(sample, k);
   }
 
-  tuple<E, int>* make_hash_table(E* entries, size_t n, size_t table_size,
-                                 size_t table_mask) {
-    using ttype = tuple<E, int>;
+  std::tuple<E, int>* make_hash_table(E* entries, size_t n, size_t table_size,
+                                      size_t table_mask) {
+    using ttype = std::tuple<E, int>;
     auto table = newA(ttype, table_size);
-    for (size_t i = 0; i < table_size; i++) table[i] = make_pair(0, -1);
+    for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
       size_t h = hash64(entries[i]) & table_mask;
-      while (get<1>(table[h]) != -1) {
+      while (std::get<1>(table[h]) != -1) {
         h = (h + 1) & table_mask;
       }
-      table[h] = make_pair(entries[i], n_distinct++);
+      table[h] = std::make_pair(entries[i], n_distinct++);
     }
     return table;
   }
@@ -129,7 +132,7 @@ struct get_bucket {
 
 template <class K, class V>
 struct hist_table {
-  using KV = tuple<K, V>;
+  using KV = std::tuple<K, V>;
   KV empty;
   KV* table;
   size_t size;
@@ -141,11 +144,12 @@ struct hist_table {
 
   void resize(size_t req_size) {
     if (req_size > size) {
+      size_t rounded_size = (1L << pbbs::log2_up<size_t>(req_size));
       free(table);
-      table = newA(KV, req_size);
-      size = req_size;
+      table = newA(KV, rounded_size);
+      size = rounded_size;
       parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
-      cout << "resized to: " << size << endl;
+      std::cout << "resized to: " << size << "\n";
     }
   }
 
@@ -157,15 +161,15 @@ struct hist_table {
 };
 
 template <class O, class K, class V, class A, class Apply>
-inline pair<size_t, O*> histogram_medium(A& get_key, size_t n, Apply& apply_f,
-                                         hist_table<K, V>& ht) {
-  using KV = tuple<K, V>;
+inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
+                                              Apply& apply_f,
+                                              hist_table<K, V>& ht) {
+  using KV = std::tuple<K, V>;
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
-  num_buckets = min(num_buckets, _hist_max_buckets);
-  size_t bits = log2_up(num_buckets);
+  num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   // (1) count-sort based on bucket
   size_t low_mask = ~((size_t)15);
@@ -209,14 +213,11 @@ inline pair<size_t, O*> histogram_medium(A& get_key, size_t n, Apply& apply_f,
 
   array_imap<size_t> out_offs = array_imap<size_t>(num_buckets + 1);
   array_imap<size_t> ht_offs = array_imap<size_t>(num_buckets + 1);
-  auto empty = ht.empty;
-  KV* table = ht.table;
 
   // (2) process each bucket, compute the size of each HT and scan (seq)
   ht_offs[0] = 0;
   size_t min_size = std::numeric_limits<size_t>::max();
   size_t max_size = 0;
-  size_t avg_size = std::ceil(n / num_buckets);
   for (size_t i = 0; i < num_buckets; i++) {
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
@@ -232,45 +233,50 @@ inline pair<size_t, O*> histogram_medium(A& get_key, size_t n, Apply& apply_f,
     }
   }
   //    if (n > 100000) {
-  //      cout << "n = " << n << " min size = " << min_size << " max size = " <<
-  //      max_size << " avg size = " << avg_size << endl;
+  //      std::cout << "n = " << n << " min size = " << min_size << " max size =
+  //      " << max_size << " avg size = " << avg_size << "\n";
   //    }
 
   ht.resize(ht_offs[num_buckets]);
+  KV* table = ht.table;
+  auto empty = ht.empty;
 
   // (3) insert elms into per-bucket hash table (par)
-  parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
-    size_t ht_start = ht_offs[i];
-    size_t ht_size = ht_offs[i + 1] - ht_start;
+  {
+    auto inner_for = [&](size_t i) {
+      size_t ht_start = ht_offs[i];
+      size_t ht_size = ht_offs[i + 1] - ht_start;
 
-    size_t k = 0;
-    if (ht_size > 0) {
-      KV* my_ht = &(table[ht_start]);
-      sequentialHT<K COMMA V> S(my_ht, ht_size, empty);
+      size_t k = 0;
+      if (ht_size > 0) {
+        KV* my_ht = &(table[ht_start]);
+        sequentialHT<K, V> S(my_ht, ht_size, empty);
 
-      for (size_t j = 0; j < num_blocks; j++) {
-        size_t start = std::min(j * block_size, n);
-        size_t end = std::min(start + block_size, n);
-        size_t ct = 0;
-        size_t off = 0;
-        if (i == (num_buckets - 1)) {
-          off = counts[j * num_buckets + i];
-          ct = (end - start) - off;
-        } else {
-          off = counts[j * num_buckets + i];
-          ct = counts[j * num_buckets + i + 1] - off;
+        for (size_t j = 0; j < num_blocks; j++) {
+          size_t start = std::min(j * block_size, n);
+          size_t end = std::min(start + block_size, n);
+          size_t ct = 0;
+          size_t off = 0;
+          if (i == (num_buckets - 1)) {
+            off = counts[j * num_buckets + i];
+            ct = (end - start) - off;
+          } else {
+            off = counts[j * num_buckets + i];
+            ct = counts[j * num_buckets + i + 1] - off;
+          }
+          off += start;
+          for (size_t k = 0; k < ct; k++) {
+            K a = elms[off + k];
+            S.insertAdd(a);
+          }
         }
-        off += start;
-        for (size_t k = 0; k < ct; k++) {
-          K a = elms[off + k];
-          S.insertAdd(a);
-        }
+
+        k = S.compactIntoSelf(apply_f);
       }
-
-      k = S.compactIntoSelf(apply_f);
-    }
-    out_offs[i] = k;
-  });
+      out_offs[i] = k;
+    };
+    parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), { inner_for(i); });
+  }
 
   // (4) scan
   size_t ct = 0;
@@ -305,16 +311,16 @@ inline pair<size_t, O*> histogram_medium(A& get_key, size_t n, Apply& apply_f,
   free(elms);
   free(counts);
   free(bkt_counts);
-  return make_pair(num_distinct, res);
+  return std::make_pair(num_distinct, res);
 }
 
 template <class O, class K, class V, class A, class Apply>
-inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
-                                  hist_table<K, V>& ht) {
-  using KV = tuple<K, V>;
-  int nworkers = getWorkers();
+inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
+                                       hist_table<K, V>& ht) {
+  using KV = std::tuple<K, V>;
+  int num_workers = nworkers();
 
-  if (n < _hist_seq_threshold || nworkers == 1) {
+  if (n < _hist_seq_threshold || num_workers == 1) {
     size_t pn = pbbs::log2_up((intT)(n + 1));
     size_t rs = 1L << pn;
     ht.resize(rs);
@@ -326,7 +332,7 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
     O* out = newA(O, ct);
     size_t k = S.compactInto(apply_f, out);
-    return make_pair(k, out);
+    return std::make_pair(k, out);
   }
 
   if (n < 5000000) {
@@ -337,7 +343,7 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
-  num_buckets = min(num_buckets, _hist_max_buckets);
+  num_buckets = std::min(num_buckets, _hist_max_buckets);
   size_t bits = log2_up(num_buckets);
 
   auto gb = get_bucket<K, A>(get_key, n, bits);
@@ -349,7 +355,8 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   bool heavy = (num_heavy > 0);
   size_t num_total_buckets = (heavy) ? 2 * num_buckets : num_buckets;
   size_t num_actual_buckets = num_buckets + num_heavy;
-  //    cout << "gb.k = " << num_heavy << " num bkt = " << num_buckets << endl;
+  //    std::cout << "gb.k = " << num_heavy << " num bkt = " << num_buckets <<
+  //    "\n";
 
   K* elms;
   size_t* counts;
@@ -402,8 +409,8 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
     //      for (size_t i=0; i<num_heavy; i++) {
     //        heavy_cts[i] = Maybe<O>();
-    //        cout << "cnt i = " << i << " = " <<
-    //        bkt_counts[(num_buckets+i)*S_STRIDE] << endl;
+    //        std::cout << "cnt i = " << i << " = " <<
+    //        bkt_counts[(num_buckets+i)*S_STRIDE] << "\n";
     //      }
   }
 
@@ -411,7 +418,6 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   ht_offs[0] = 0;
   size_t min_size = std::numeric_limits<size_t>::max();
   size_t max_size = 0;
-  size_t avg_size = std::ceil(n / num_buckets);
   for (size_t i = 0; i < num_buckets; i++) {
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
@@ -428,25 +434,54 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   }
 
   //    if (n > 100000) {
-  //      cout << "n = " << n << " min size = " << min_size << " max size = " <<
-  //      max_size << " avg size = " << avg_size << endl; //" k = " << gb.k <<
-  //      endl;
+  //      std::cout << "n = " << n << " min size = " << min_size << " max size =
+  //      " << max_size << " avg size = " << avg_size << "\n"; //" k = " << gb.k
+  //      <<
+  //      "\n";
   //    }
 
   ht.resize(ht_offs[num_buckets]);
 
   // (3) insert elms into per-bucket hash table (par)
+  {
+    auto for_inner = [&](size_t i) {
+      if (i < num_buckets) {
+        size_t ht_start = ht_offs[i];
+        size_t ht_size = ht_offs[i + 1] - ht_start;
 
-  parallel_for_bc(i, 0, num_actual_buckets, (num_actual_buckets > 1), {
-    if (i < num_buckets) {
-      size_t ht_start = ht_offs[i];
-      size_t ht_size = ht_offs[i + 1] - ht_start;
+        size_t k = 0;
+        if (ht_size > 0) {
+          KV* my_ht = &(table[ht_start]);
+          sequentialHT<K, V> S(my_ht, ht_size, empty);
 
-      size_t k = 0;
-      if (ht_size > 0) {
-        KV* my_ht = &(table[ht_start]);
-        sequentialHT<K COMMA V> S(my_ht, ht_size, empty);
+          for (size_t j = 0; j < num_blocks; j++) {
+            size_t start = std::min(j * block_size, n);
+            size_t end = std::min(start + block_size, n);
+            size_t ct = 0;
+            size_t off = 0;
+            if (i == (num_total_buckets - 1)) {
+              off = counts[j * num_total_buckets + i];
+              ct = (end - start) - off;
+            } else {
+              off = counts[j * num_total_buckets + i];
+              ct = counts[j * num_total_buckets + i + 1] - off;
+            }
+            off += start;
+            for (size_t k = 0; k < ct; k++) {
+              K a = elms[off + k];
+              S.insertAdd(a);
+            }
+          }
 
+          k = S.compactIntoSelf(apply_f);
+        }
+        out_offs[i] = k;
+      } else {
+        // heavy bucket
+        size_t bkt_id = i - num_buckets;
+        K key;
+        bool is_set = false;
+        size_t total_ct = 0;
         for (size_t j = 0; j < num_blocks; j++) {
           size_t start = std::min(j * block_size, n);
           size_t end = std::min(start + block_size, n);
@@ -460,46 +495,21 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
             ct = counts[j * num_total_buckets + i + 1] - off;
           }
           off += start;
-          for (size_t k = 0; k < ct; k++) {
-            K a = elms[off + k];
-            S.insertAdd(a);
+          if (!is_set && ct) {
+            key = elms[off];
+            is_set = true;
           }
+          total_ct += ct;
         }
+        assert(is_set);
 
-        k = S.compactIntoSelf(apply_f);
+        Maybe<O> value = apply_f(std::make_tuple(key, total_ct));
+        heavy_cts[bkt_id] = value;
       }
-      out_offs[i] = k;
-    } else {
-      // heavy bucket
-      size_t bkt_id = i - num_buckets;
-      K key;
-      bool is_set = false;
-      size_t total_ct = 0;
-      for (size_t j = 0; j < num_blocks; j++) {
-        size_t start = std::min(j * block_size, n);
-        size_t end = std::min(start + block_size, n);
-        size_t ct = 0;
-        size_t off = 0;
-        if (i == (num_total_buckets - 1)) {
-          off = counts[j * num_total_buckets + i];
-          ct = (end - start) - off;
-        } else {
-          off = counts[j * num_total_buckets + i];
-          ct = counts[j * num_total_buckets + i + 1] - off;
-        }
-        off += start;
-        if (!is_set && ct) {
-          key = elms[off];
-          is_set = true;
-        }
-        total_ct += ct;
-      }
-      assert(is_set);
-
-      Maybe<O> value = apply_f(make_tuple(key, total_ct));
-      heavy_cts[bkt_id] = value;
-    }
-  });
+    };
+    parallel_for_bc(i, 0, num_actual_buckets, (num_actual_buckets > 1),
+                    { for_inner(i); });
+  }
 
   // (4) scan
   size_t ct = 0;
@@ -558,15 +568,16 @@ inline pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     free(heavy_cts);
   }
 
-  return make_pair(num_distinct, res);
+  return std::make_pair(num_distinct, res);
 }
 
 template <class E, class O, class K, class V, class A, class Reduce,
           class Apply>
-inline pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
-                                             Reduce& reduce_f, Apply& apply_f,
-                                             hist_table<K, V>& ht) {
-  typedef tuple<K, V> KV;
+inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
+                                                  Reduce& reduce_f,
+                                                  Apply& apply_f,
+                                                  hist_table<K, V>& ht) {
+  typedef std::tuple<K, V> KV;
   size_t pn = pbbs::log2_up((intT)(n + 1));
   size_t rs = 1L << pn;
   ht.resize(rs);
@@ -577,7 +588,7 @@ inline pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
   }
   O* out = newA(O, n);
   size_t k = S.compactInto(apply_f, out);
-  return make_pair(k, out);
+  return std::make_pair(k, out);
 }
 
 // Issue: want to make the type that's count-sort'd independent of K,V
@@ -585,17 +596,17 @@ inline pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
 // B : inmap<keys> (numeric so that we can hash)
 // E : type of intermediate elements (what we count sort)
 // Q : reduction (seqHT<uintE, E>&, E&) -> void
-// F : tuple<K, Elm> -> Maybe<uintE>
+// F : std::tuple<K, Elm> -> Maybe<uintE>
 template <class E, class O, class K, class V, class A, class B, class Reduce,
           class Apply>
-inline pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
-                                         Reduce& reduce_f, Apply& apply_f,
-                                         hist_table<K, V>& ht) {
-  typedef tuple<K, V> KV;
+inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
+                                              Reduce& reduce_f, Apply& apply_f,
+                                              hist_table<K, V>& ht) {
+  typedef std::tuple<K, V> KV;
 
-  int nworkers = getWorkers();
+  int num_workers = nworkers();
 
-  if (n < _hist_seq_threshold || nworkers == 1) {
+  if (n < _hist_seq_threshold || num_workers == 1) {
     auto r = seq_histogram_reduce<E, O>(get_elm, n, reduce_f, apply_f, ht);
     return r;
   }
@@ -604,8 +615,7 @@ inline pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
-  num_buckets = min(num_buckets, _hist_max_buckets);
-  size_t bits = log2_up(num_buckets);
+  num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   //    auto gb = get_bucket<K, B>(get_key, n, bits);
   // (1) count-sort based on bucket
@@ -663,41 +673,44 @@ inline pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   O* out = newA(O, ht_offs[num_buckets]);
 
   // (3) insert elms into per-bucket hash table (par)
-  parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
-    size_t ht_start = ht_offs[i];
-    size_t ht_size = ht_offs[i + 1] - ht_start;
+  {
+    auto for_inner = [&](size_t i) {
+      size_t ht_start = ht_offs[i];
+      size_t ht_size = ht_offs[i + 1] - ht_start;
 
-    size_t k = 0;
-    KV* table = ht.table;
-    if (ht_size > 0) {
-      KV* my_ht = &(table[ht_start]);
-      sequentialHT<K COMMA V> S(my_ht, ht_size, ht.empty);
+      size_t k = 0;
+      KV* table = ht.table;
+      if (ht_size > 0) {
+        KV* my_ht = &(table[ht_start]);
+        sequentialHT<K, V> S(my_ht, ht_size, ht.empty);
 
-      O* my_out = &(out[ht_start]);
+        O* my_out = &(out[ht_start]);
 
-      for (size_t j = 0; j < num_blocks; j++) {
-        size_t start = std::min(j * block_size, n);
-        size_t end = std::min(start + block_size, n);
-        size_t ct = 0;
-        size_t off = 0;
-        if (i == (num_buckets - 1)) {
-          off = counts[j * num_buckets + i];
-          ct = (end - start) - off;
-        } else {
-          off = counts[j * num_buckets + i];
-          ct = counts[j * num_buckets + i + 1] - off;
+        for (size_t j = 0; j < num_blocks; j++) {
+          size_t start = std::min(j * block_size, n);
+          size_t end = std::min(start + block_size, n);
+          size_t ct = 0;
+          size_t off = 0;
+          if (i == (num_buckets - 1)) {
+            off = counts[j * num_buckets + i];
+            ct = (end - start) - off;
+          } else {
+            off = counts[j * num_buckets + i];
+            ct = counts[j * num_buckets + i + 1] - off;
+          }
+          off += start;
+          for (size_t k = 0; k < ct; k++) {
+            E a = elms[off + k];
+            reduce_f(S, a);
+          }
         }
-        off += start;
-        for (size_t k = 0; k < ct; k++) {
-          E a = elms[off + k];
-          reduce_f(S, a);
-        }
+
+        k = S.compactInto(apply_f, my_out);
       }
-
-      k = S.compactInto(apply_f, my_out);
-    }
-    out_offs[i] = k;
-  });
+      out_offs[i] = k;
+    };
+    parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), { for_inner(i); });
+  }
 
   // (4) scan
   size_t ct = 0;
@@ -732,14 +745,15 @@ inline pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   free(counts);
   free(bkt_counts);
   free(out);
-  return make_pair(num_distinct, res);
+  return std::make_pair(num_distinct, res);
 }
 
 //  template <class E, class A, class F, class Timer>
-//  inline pair<size_t, tuple<E, E>*> histogram(A& get_elm, size_t n, F& f,
-//  hist_table<E, E>& ht, Timer& t) {
+//  inline std::pair<size_t, std::tuple<E, E>*> histogram(A& get_elm, size_t n,
+//  F& f, hist_table<E, E>& ht, Timer& t) {
 //    auto q = [] (sequentialHT<E, E>& S, E v) -> void { S.insertAdd(v); };
-//    return histogram_reduce<E, tuple<E, E>>(get_elm, get_elm, n, q, f, ht, t);
+//    return histogram_reduce<E, std::tuple<E, E>>(get_elm, get_elm, n, q, f,
+//    ht, t);
 //  }
 
 }  // namespace pbbs
