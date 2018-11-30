@@ -345,7 +345,7 @@ inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
 }
 
 template <class Seq>
-inline array_imap<uintE> cc_sources(Seq& labels) {
+inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
   auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
@@ -436,7 +436,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
     auto tups = array_imap<std::pair<uintE, uintE>>(n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
-                    { tups[i] = make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
+                    { tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     benchIO::writeArrayToStream(out, tups.start(), n);
     //    for (size_t i = 0; i < n; i++) {

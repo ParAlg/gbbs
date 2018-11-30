@@ -48,11 +48,11 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
     ligra_utils::_seq<char> S = readStringFromFile(in_f);
     auto W = stringToWords(S.A, S.n);
     size_t ms = atol(W.Strings[0]);
-    using edge = tuple<uintE, uintE>;
+    using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
     parallel_for_bc(i, 0, ms, (ms > pbbs::kSequentialForThreshold), {
       matching[i] =
-          make_tuple(atol(W.Strings[1 + 2 * i]), atol(W.Strings[2 * (i + 1)]));
+          std::make_tuple(atol(W.Strings[1 + 2 * i]), atol(W.Strings[2 * (i + 1)]));
     });
     verify_matching(GA, matching);
     exit(0);
@@ -66,11 +66,11 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
   auto of = P.getOptionValue("-of");
   if (of) {
     std::cout << "outfile is = " << of << "\n";
-    ofstream out(of, ofstream::out);
+    std::ofstream out(of, std::ofstream::out);
     out << matching.size() << "\n";
     for (size_t i = 0; i < matching.size(); i++) {
       auto e = matching[i];
-      out << (get<0>(e) & mm::VAL_MASK) << " " << get<1>(e) << "\n";
+      out << (std::get<0>(e) & mm::VAL_MASK) << " " << std::get<1>(e) << "\n";
     }
     out.close();
   }

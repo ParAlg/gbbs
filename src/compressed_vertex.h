@@ -212,10 +212,10 @@ struct compressedSymmetricVertex {
   void flipEdges() {}
   void del() {}
 
-  auto getOutIter(uintE id) -> encodings::byte::iter<W> {
+  auto getOutIter(uintE id) -> decltype(C::iter(getInNeighbors(), getInDegree(), id)) {
     return C::iter(getOutNeighbors(), getOutDegree(), id);
   }
-  auto getInIter(uintE id) -> encodings::byte::iter<W> {
+  auto getInIter(uintE id) -> decltype(C::iter(getInNeighbors(), getInDegree(), id)) {
     return C::iter(getInNeighbors(), getInDegree(), id);
   }
 

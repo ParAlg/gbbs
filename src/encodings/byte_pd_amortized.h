@@ -209,6 +209,8 @@ struct iter {
   uintE read_in_block;
   uintE read_total;
 
+  iter() { }
+
   iter(uchar* _base, uintT _degree, uintE _src)
       : base(_base),
         degree(_degree),

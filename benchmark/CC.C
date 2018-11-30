@@ -49,7 +49,7 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
     cc::num_cc(cc_im);
     cc::largest_cc(cc_im);
   }
-  free(components);
+  components.del();
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can
     // only be run once unless the input graph is copied.

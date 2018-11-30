@@ -74,12 +74,10 @@ struct Wrap_Default_F {
   F f;
   D def;
   Wrap_Default_F(F _f, D _def) : f(_f), def(_def) {}
-  inline auto update(const uintE& s, const uintE& d, const W& e)
-      -> decltype(f.update) {
+  inline bool update(const uintE& s, const uintE& d, const W& e) {
     return f.update(s, d, def);
   }
-  inline auto updateAtomic(const uintE& s, const uintE& d, const W& e)
-      -> decltype(f.updateAtomic) {
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& e) {
     return f.updateAtomic(s, d, def);
   }
   inline bool cond(const uintE& d) { return f.cond(d); }

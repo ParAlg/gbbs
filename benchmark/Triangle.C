@@ -37,7 +37,8 @@ template <class vertex>
 void Triangle_runner(graph<vertex>& GA, commandLine P) {
   assert(P.getOption("-s"));
   size_t count = 0;
-  count = Triangle(GA);
+  auto f = [&] (uintE u, uintE v, uintE w) { };
+  count = Triangle(GA, f);
   std::cout << "triangle count = " << count << "\n";
   if (P.getOption("-stats")) {
     auto wedge_im = make_in_imap<size_t>(GA.n, [&](size_t i) {

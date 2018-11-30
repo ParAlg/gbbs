@@ -65,7 +65,7 @@ class sparse_additive_map {
       : m((size_t)1 << pbbs::log2_up((size_t)(1.1 * _m))),
         mask(m - 1),
         empty(_empty),
-        empty_key(get<0>(empty)) {
+        empty_key(std::get<0>(empty)) {
     size_t line_size = 64;
     size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
     table = (T*)aligned_alloc(line_size, bytes);
@@ -80,17 +80,17 @@ class sparse_additive_map {
         mask(m - 1),
         table(_tab),
         empty(_empty),
-        empty_key(get<0>(empty)) {
+        empty_key(std::get<0>(empty)) {
     clearA(table, m, empty);
     alloc = false;
   }
 
   bool insert(std::tuple<K, V> kv) {
-    K k = get<0>(kv);
-    V v = get<1>(kv);
+    K k = std::get<0>(kv);
+    V v = std::get<1>(kv);
     size_t h = firstIndex(k);
     while (1) {
-      if (get<0>(table[h]) == empty_key) {
+      if (std::get<0>(table[h]) == empty_key) {
         if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return 1;
@@ -108,9 +108,9 @@ class sparse_additive_map {
   bool contains(K k) {
     size_t h = firstIndex(k);
     while (1) {
-      if (get<0>(table[h]) == k) {
+      if (std::get<0>(table[h]) == k) {
         return 1;
-      } else if (get<0>(table[h]) == empty_key) {
+      } else if (std::get<0>(table[h]) == empty_key) {
         return 0;
       }
       h = incrementIndex(h);
@@ -120,7 +120,7 @@ class sparse_additive_map {
 
   auto entries() {
     T* out = newA(T, m);
-    auto pred = [&](T& t) { return get<0>(t) != empty_key; };
+    auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     size_t new_m = pbbs::filterf(table, out, m, pred);
     return make_array_imap<T>(out, new_m);
   }

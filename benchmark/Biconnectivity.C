@@ -48,10 +48,10 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   size_t n = GA.n;
   ligra_utils::_seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
-  auto labels = array_imap<tuple<uintE, uintE>>(n);
+  auto labels = array_imap<std::tuple<uintE, uintE>>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     labels[i] =
-        make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
+        std::make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
   });
 
   auto bits = array_imap<uintE>(n, (uintE)0);
@@ -60,22 +60,22 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   auto bicc_label = [&](const uintE& u, const uintE& v) {
     auto lab_u = labels[u];
     auto lab_v = labels[v];
-    uintE p_u = get<0>(lab_u);
-    uintE p_v = get<0>(lab_v);
+    uintE p_u = std::get<0>(lab_u);
+    uintE p_v = std::get<0>(lab_v);
     if (v == p_u) {
-      return get<1>(lab_u);
+      return std::get<1>(lab_u);
     } else if (u == p_v) {
-      return get<1>(lab_v);
+      return std::get<1>(lab_v);
     } else {
-      assert(get<1>(lab_u) == get<1>(lab_v));
-      return get<1>(lab_u);
+      assert(std::get<1>(lab_u) == std::get<1>(lab_v));
+      return std::get<1>(lab_u);
     }
     exit(0);
     return (uintE)1;
   };
 
   size_t mask = (1 << 12) - 1;
-  auto empty = make_tuple(UINT_E_MAX, UINT_E_MAX);
+  auto empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   auto ST = sparse_additive_map<uintE, uintE>(n, empty);
 
   auto map_bc_label = [&](const uintE& src, const uintE& ngh, const W& wgh) {
@@ -85,7 +85,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
     }
     size_t key = (static_cast<size_t>(src) << 32) + static_cast<size_t>(ngh);
     if ((pbbs::hash64(key) & mask) == 0) {
-      ST.insert(make_tuple(label, 1));
+      ST.insert(std::make_tuple(label, 1));
     }
     if (component_id != UINT_E_MAX) {
       if (label == component_id && !flags[src]) {
@@ -98,13 +98,13 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();
-    auto cmp_snd = [&](const tuple<uintE, uintE>& l,
-                       const tuple<uintE, uintE>& r) {
-      return get<1>(l) > get<1>(r);
+    auto cmp_snd = [&](const std::tuple<uintE, uintE>& l,
+                       const std::tuple<uintE, uintE>& r) {
+      return std::get<1>(l) > std::get<1>(r);
     };
     pbbs::sample_sort(ET.start(), ET.size(), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
-      std::cout << get<0>(ET[i]) << " " << get<1>(ET[i]) << "\n";
+      std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }
   } else {
     // reduce flags
