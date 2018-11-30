@@ -410,13 +410,13 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
 
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-inline string print_wgh(W wgh) {
+inline std::string print_wgh(W wgh) {
   return "";
 }
 
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-inline string print_wgh(W wgh) {
+inline std::string print_wgh(W wgh) {
   return std::to_string(wgh);
 }
 
@@ -610,9 +610,9 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
   graph<w_vertex> G(V, n, m, deletion_fn, copy_fn);
 
   auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-    CHECK_LT(u, n) << "u = " << u << " is larger than n = " << n << "\n";
-    CHECK_LT(v, n) << "v = " << v << " is larger than n = " << n << " u = " << u
-                   << "\n";
+//    CHECK_LT(u, n) << "u = " << u << " is larger than n = " << n << "\n";
+//    CHECK_LT(v, n) << "v = " << v << " is larger than n = " << n << " u = " << u
+//                   << "\n";
     return u ^ v;
   };
   auto reduce_f = [&](const uintE& l, const uintE& r) -> uintE {
@@ -624,7 +624,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
     xors[i] = G.V[i].reduceOutNgh(i, (uintE)0, map_f, reduce_f);
   });
   uintE xors_sum = pbbs::reduce_xor(xors);
-  CHECK_EQ(xors_sum, 0) << "Input graph is not undirected---exiting.";
+  assert(xors_sum == 0) << "Input graph is not undirected---exiting.";
 
   return G;
 }

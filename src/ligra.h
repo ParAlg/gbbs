@@ -805,9 +805,9 @@ inline size_t get_pcm_state() { return (size_t)1; }
   timer st;                                                          \
   st.start();                                                        \
   for (int r = 0; r < rounds; r++) {                                 \
-    startTime();                                                     \
+    timer at; at.start();                                            \
     APP(G, P);                                                       \
-    nextTime("Running time");                                        \
+    at.stop(); at.reportTotal("Running time");                       \
   }                                                                  \
   auto time_per_iter = st.stop() / rounds;                           \
   std::cout << "time per iter: " << time_per_iter << "\n";           \
