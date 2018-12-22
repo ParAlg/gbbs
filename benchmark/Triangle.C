@@ -41,7 +41,7 @@ void Triangle_runner(graph<vertex>& GA, commandLine P) {
   count = Triangle(GA, f);
   std::cout << "triangle count = " << count << "\n";
   if (P.getOption("-stats")) {
-    auto wedge_im = make_in_imap<size_t>(GA.n, [&](size_t i) {
+    auto wedge_im = make_sequence<size_t>(GA.n, [&](size_t i) {
       size_t deg = GA.V[i].getOutDegree();
       return (deg * deg - 1) / 2;
     });

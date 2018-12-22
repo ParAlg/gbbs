@@ -27,7 +27,6 @@
 #include "edge_map_reduce.h"
 #include "ligra.h"
 
-#include "lib/index_map.h"
 #include "lib/random.h"
 #include "lib/random_shuffle.h"
 
@@ -56,16 +55,16 @@ struct Visit_Elms {
 
 template <template <class W> class vertex, class W>
 inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
-  auto Elms = array_imap<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
   auto D =
-      array_imap<uintE>(G.n, [&](size_t i) { return G.V[i].getOutDegree(); });
+      sequence<uintE>(G.n, [&](size_t i) { return G.V[i].getOutDegree(); });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
   auto bucket_f = [&](size_t i) { return get_bucket_clamped(D(i)); };
   auto b = make_buckets(G.n, bucket_f, decreasing, num_buckets);
 
-  auto perm = array_imap<uintE>(G.n);
+  auto perm = sequence<uintE>(G.n);
   timer bktt, packt, permt, emt;
 
   size_t rounds = 0;
@@ -184,7 +183,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   packt.reportTotal("pack");
   permt.reportTotal("perm");
   emt.reportTotal("emap");
-  auto elm_cov = make_in_imap<uintE>(
+  auto elm_cov = make_sequence<uintE>(
       G.n, [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); });
   size_t elms_cov = pbbs::reduce_add(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";

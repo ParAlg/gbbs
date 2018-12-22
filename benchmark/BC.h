@@ -24,6 +24,7 @@
 #pragma once
 
 #include <vector>
+#include "lib/seq.h"
 #include "ligra.h"
 
 namespace bc {
@@ -90,14 +91,14 @@ inline BC_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
 }
 
 template <template <class W> class vertex, class W>
-inline array_imap<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
+inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   using w_vertex = vertex<W>;
   size_t n = GA.n;
 
-  auto NumPaths = array_imap<fType>(n, [](size_t i) { return 0.0; });
+  auto NumPaths = sequence<fType>(n, [](size_t i) { return 0.0; });
   NumPaths[start] = 1.0;
 
-  auto Visited = array_imap<bool>(n, [](size_t i) { return 0; });
+  auto Visited = sequence<bool>(n, [](size_t i) { return 0; });
   Visited[start] = 1;
 
   vertexSubset Frontier(n, start);
@@ -117,7 +118,7 @@ inline array_imap<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   }
   Levels.push_back(Frontier);
 
-  auto Dependencies = array_imap<fType>(n, [](size_t i) { return 0.0; });
+  auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),

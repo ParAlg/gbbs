@@ -103,7 +103,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << pbbs::log2_up(frontier.size() * 2);
-  auto table_backing = array_imap<T>(backing_size);
+  auto table_backing = sequence<T>(backing_size);
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.get_array(), true);
   frontier.toSparse();
@@ -117,7 +117,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
   while (!frontier.isEmpty()) {
     frontier.toSparse();
 
-    auto im = make_in_imap<size_t>(frontier.size(), [&](size_t i) {
+    auto im = make_sequence<size_t>(frontier.size(), [&](size_t i) {
       uintE v = frontier.s[i];
       size_t n_labels = table.num_appearances(v);
       auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
@@ -172,7 +172,7 @@ inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
                           size_t label_start, const flags fl = 0) {
   size_t n = GA.n;
 
-  auto Flags = array_imap<bool>(n, false);
+  auto Flags = sequence<bool>(n, false);
   Flags[start] = true;
 
   auto frontier = vertexSubset(n, start);
@@ -188,16 +188,16 @@ inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
 }
 
 template <class vertex>
-inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
+inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   timer initt;
   initt.start();
   size_t n = GA.n;
   // Everyone's initial label is 0 (all in the same subproblem)
-  auto labels = array_imap<label_type>(n, [](size_t) { return 0; });
-  auto ba = array_imap<bool>(n, false);
+  auto labels = sequence<label_type>(n, [](size_t) { return 0; });
+  auto ba = sequence<bool>(n, false);
   auto bits = ba.get_array();
 
-  auto v_im = make_in_imap<uintE>(n, [](size_t i) { return i; });
+  auto v_im = make_sequence<uintE>(n, [](size_t i) { return i; });
   auto zero_pred = [&](size_t i) {
     return (GA.V[i].getOutDegree() == 0) || (GA.V[i].getInDegree() == 0);
   };
@@ -219,7 +219,7 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   double step_multiplier = beta;
   size_t label_offset = zero.size() + 1;
 
-  auto done_im = make_in_imap<size_t>(
+  auto done_im = make_sequence<size_t>(
       n, [&](size_t i) { return (bool)(labels[i] & TOP_BIT); });
   initt.stop();
   initt.reportTotal("init");
@@ -227,7 +227,7 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   {
     timer hd;
     hd.start();
-    auto deg_im = make_in_imap<std::tuple<uintE, uintE>>(n, [&](size_t i) {
+    auto deg_im = make_sequence<std::tuple<uintE, uintE>>(n, [&](size_t i) {
       return std::make_tuple(i, GA.V[i].getOutDegree());
     });
     std::tuple<uintE, uintE> sAndD =
@@ -273,7 +273,7 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = make_in_imap<uintE>(
+    auto centers_pre_filter = make_sequence<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
     auto centers = pbbs::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
@@ -366,7 +366,7 @@ inline array_imap<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
 
 template <class Seq>
 inline size_t num_done(Seq& labels) {
-  auto im = make_in_imap<size_t>(labels.size(), [&](size_t i) {
+  auto im = make_sequence<size_t>(labels.size(), [&](size_t i) {
     return ((size_t)((labels[i] & TOP_BIT) > 0));
   });
   return pbbs::reduce_add(im);
@@ -375,7 +375,7 @@ inline size_t num_done(Seq& labels) {
 template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (labels[i] == 0) {
       std::cout << "unlabeled"
@@ -396,7 +396,7 @@ inline size_t num_scc(Seq& labels) {
 template <class Seq>
 inline void scc_stats(Seq& labels) {
   size_t n = labels.size();
-  auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     size_t label = labels[i] & VAL_MASK;
     flags[label]++;

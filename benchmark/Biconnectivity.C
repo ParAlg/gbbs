@@ -48,14 +48,14 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   size_t n = GA.n;
   ligra_utils::_seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
-  auto labels = array_imap<std::tuple<uintE, uintE>>(n);
+  auto labels = sequence<std::tuple<uintE, uintE>>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     labels[i] =
         std::make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
   });
 
-  auto bits = array_imap<uintE>(n, (uintE)0);
-  auto flags = array_imap<bool>(n, false);
+  auto bits = sequence<uintE>(n, (uintE)0);
+  auto flags = sequence<bool>(n, false);
 
   auto bicc_label = [&](const uintE& u, const uintE& v) {
     auto lab_u = labels[u];
@@ -109,7 +109,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   } else {
     // reduce flags
     auto flags_imap =
-        make_in_imap<size_t>(n, [&](size_t i) { return (size_t)flags[i]; });
+        make_sequence<size_t>(n, [&](size_t i) { return (size_t)flags[i]; });
     std::cout << "Largest component size = " << pbbs::reduce_add(flags_imap)
               << "\n";
   }

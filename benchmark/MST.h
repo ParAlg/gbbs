@@ -51,7 +51,7 @@ struct cas_type {
 };
 
 template <class W, class M, class P, class D>
-inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
+inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
                                  uintE*& next_vtxs, M& min_edges, P& parents,
                                  D& exhausted, size_t& n) {
   using ct = cas_type;
@@ -67,8 +67,8 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
                   { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
-  auto new_mst_edges = array_imap<uintE>(n, UINT_E_MAX);
-  auto is_root = array_imap<bool>(n);
+  auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
+  auto is_root = sequence<bool>(n);
 
   uintE* mst = newA(uintE, n);
   size_t n_in_mst = 0;
@@ -154,7 +154,7 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 5. compact the vertices (pack out the roots)
     timer compact_t;
     compact_t.start();
-    auto vtxs_im = make_array_imap(vtxs, n);
+    auto vtxs_im = sequence<uintE>(vtxs, n);
     auto V_im = pbbs::pack(vtxs_im, is_root, pbbs::no_flag, next_vtxs);
     assert(!V_im.allocated);
     n = V_im.size();
@@ -184,9 +184,9 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     relab_t.stop();  // relab_t.reportTotal("relabel time");
 
     // 7. filter (or ignore) self-edges.
-    auto self_loop_im = make_in_imap<bool>(
+    auto self_loop_im = make_sequence<bool>(
         n, [&](size_t i) { return !(edge_ids[i] & TOP_BIT); });
-    auto edge_ids_im = make_array_imap(edge_ids, m);
+    auto edge_ids_im = sequence<uintE>(edge_ids, m);
     if (round == 0) {
       auto A = pbbs::pack(edge_ids_im, self_loop_im);
       m = A.size();
@@ -204,8 +204,7 @@ inline array_imap<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
 
   std::cout << "Boruvka finished: total edges added to MST = " << n_in_mst
             << "\n";
-  auto mst_im = make_array_imap(mst, n_in_mst);
-  mst_im.allocated = true;
+  auto mst_im = sequence<uintE>(mst, n_in_mst, true); // allocated
   return mst_im;
 }
 
@@ -236,12 +235,12 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   size_t n = G.n;
   size_t m = G.m;
 
-  auto vertex_offs = array_imap<long>(G.n);
+  auto vertex_offs = sequence<long>(G.n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { vertex_offs[i] = G.V[i].getOutDegree(); });
   pbbs::scan_add(vertex_offs, vertex_offs, pbbs::fl_scan_inclusive);
 
-  auto sample_edges = array_imap<edge>(sample_size);
+  auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
 
   parallel_for_bc(
@@ -332,8 +331,8 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   std::cout << "n = " << n << "\n";
   auto r = pbbs::default_random;
 
-  auto exhausted = array_imap<bool>(n, [](size_t i) { return false; });
-  auto parents = array_imap<uintE>(n, [](size_t i) { return i; });
+  auto exhausted = sequence<bool>(n, [](size_t i) { return false; });
+  auto parents = sequence<uintE>(n, [](size_t i) { return i; });
   auto mst_edges = dyn_arr<edge>(n);
 
   auto min_edges = newA(ct, n);
@@ -390,7 +389,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
                       edge_ids.size());
 
     // reactivate vertices and reset exhausted
-    auto vtx_im = make_array_imap(vtxs, n);
+    auto vtx_im = sequence<uintE>(vtxs, n);
     timer pack_t;
     pack_t.start();
     n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.start(),
@@ -431,7 +430,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     r = r.next();
   }
   std::cout << "#edges in output mst: " << mst_edges.size << "\n";
-  auto wgh_imap = make_in_imap<size_t>(
+  auto wgh_imap = make_sequence<size_t>(
       mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
   std::cout << "total weight = " << pbbs::reduce_add(wgh_imap) << "\n";
 
@@ -578,8 +577,8 @@ inline void MST(graph<vertex<W>>& GA) {
     auto R = newA(res, n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { R[i] = res(); });
-    array_imap<bool> mstFlags =
-        array_imap<bool>(n_edges, [](size_t i) { return 0; });
+    sequence<bool> mstFlags =
+        sequence<bool>(n_edges, [](size_t i) { return 0; });
 
     auto UFStep = make_uf_step<uintE>(edges, R, mstFlags, uf);
     speculative_for<uintE>(UFStep, 0, n_edges, 8);
@@ -587,7 +586,7 @@ inline void MST(graph<vertex<W>>& GA) {
     UFStep.del();
     free(R);
     auto edge_im =
-        make_in_imap<edge_t>(n_edges, [&](size_t i) { return edges.E[i]; });
+        make_sequence<edge_t>(n_edges, [&](size_t i) { return edges.E[i]; });
     auto edges_ret = pbbs::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
@@ -602,7 +601,7 @@ inline void MST(graph<vertex<W>>& GA) {
     iter++;
   }
   std::cout << "n in mst: " << mst_edges.size << "\n";
-  auto wgh_imap = make_in_imap<size_t>(
+  auto wgh_imap = make_sequence<size_t>(
       mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
   std::cout << "wgh = " << pbbs::reduce_add(wgh_imap) << "\n";
 

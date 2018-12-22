@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "lib/index_map.h"
 #include "lib/random_shuffle.h"
 #include "lib/sparse_table.h"
 #include "lib/speculative_for.h"
@@ -33,7 +32,7 @@ namespace MIS_rootset {
 
 template <template <class W> class vertex, class W, class Fl>
 inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
-  auto d = array_imap<uintE>(GA.n, (uintE)0);
+  auto d = sequence<uintE>(GA.n, (uintE)0);
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     if (!d[ngh]) {
       d[ngh] = 1;
@@ -50,7 +49,7 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
     }
   });
   auto mis_int =
-      make_in_imap<size_t>(GA.n, [&](size_t i) { return (size_t)in_mis[i]; });
+      make_sequence<size_t>(GA.n, [&](size_t i) { return (size_t)in_mis[i]; });
   size_t mis_size = pbbs::reduce_add(mis_int);
   if (pbbs::reduce_add(d) != (GA.n - mis_size)) {
     std::cout << "MIS incorrect"
@@ -65,12 +64,12 @@ template <template <class W> class vertex, class W, class VS, class P>
 inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
   vs.toSparse();
   assert(!vs.isDense);
-  auto deg_im = make_in_imap<size_t>(
+  auto deg_im = make_sequence<size_t>(
       vs.size(), [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); });
   size_t sum_d = pbbs::reduce_add(deg_im);
 
   if (sum_d > GA.m / 100) {  // dense forward case
-    auto dense = array_imap<bool>(GA.n, false);
+    auto dense = sequence<bool>(GA.n, false);
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       if (p(ngh) && !dense[ngh]) {
         dense[ngh] = 1;
@@ -149,13 +148,13 @@ struct mis_f_2 {
 };
 
 template <template <class W> class vertex, class W>
-inline array_imap<bool> MIS(graph<vertex<W>>& GA) {
+inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   timer init_t;
   init_t.start();
   size_t n = GA.n;
 
   // compute the priority DAG
-  auto priorities = array_imap<intE>(n);
+  auto priorities = sequence<intE>(n);
   auto perm = pbbs::random_permutation<uintE>(n);
   parallel_for_bc(i, 0, n, true, {
     uintE our_pri = perm[i];
@@ -168,11 +167,11 @@ inline array_imap<bool> MIS(graph<vertex<W>>& GA) {
 
   // compute the initial rootset
   auto zero_map =
-      make_in_imap<bool>(n, [&](size_t i) { return priorities[i] == 0; });
+      make_sequence<bool>(n, [&](size_t i) { return priorities[i] == 0; });
   auto init = pbbs::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, init.size(), init.get_array());
 
-  auto in_mis = array_imap<bool>(n, false);
+  auto in_mis = sequence<bool>(n, false);
   size_t finished = 0;
   size_t rounds = 0;
   init_t.stop();
@@ -258,10 +257,10 @@ struct MISstep {
 };
 
 template <template <class W> class vertex, class W>
-inline array_imap<char> MIS(graph<vertex<W>>& GA) {
+inline sequence<char> MIS(graph<vertex<W>>& GA) {
   size_t n = GA.n;
-  auto Flags = array_imap<char>(n, [&](size_t i) { return 0; });
-  auto FlagsNext = array_imap<char>(n);
+  auto Flags = sequence<char>(n, [&](size_t i) { return 0; });
+  auto FlagsNext = sequence<char>(n);
   auto mis = MISstep<vertex, W>(FlagsNext.start(), Flags.start(), GA);
   eff_for<uintE>(mis, 0, n, 50);
   return Flags;
@@ -271,7 +270,7 @@ inline array_imap<char> MIS(graph<vertex<W>>& GA) {
 template <template <class W> class vertex, class W, class Seq>
 inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   size_t n = GA.n;
-  auto ok = array_imap<bool>(n, [&](size_t i) { return 1; });
+  auto ok = sequence<bool>(n, [&](size_t i) { return 1; });
   parallel_for_bc(i, 0, n, true, {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
@@ -279,7 +278,7 @@ inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
-  auto ok_imap = make_in_imap<size_t>(n, [&](size_t i) { return ok[i]; });
+  auto ok_imap = make_sequence<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MIS"

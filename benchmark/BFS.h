@@ -44,11 +44,11 @@ struct BFS_F {
 };
 
 template <template <class W> class vertex, class W>
-inline array_imap<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
+inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
   using w_vertex = vertex<W>;
 
   // Creates Parents array, initialized to all -1, except for src.
-  auto Parents = array_imap<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Parents = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
   vertexSubset Frontier(GA.n, src);

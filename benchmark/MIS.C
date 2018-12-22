@@ -44,7 +44,7 @@ void MIS_runner(graph<vertex>& GA, commandLine P) {
     auto MIS = MIS_spec_for::MIS(GA);
     // in spec_for, MIS[i] == 1 indicates that i was chosen
     auto size_imap =
-        make_in_imap<size_t>(GA.n, [&](size_t i) { return (MIS[i] == 1); });
+        make_sequence<size_t>(GA.n, [&](size_t i) { return (MIS[i] == 1); });
     if (P.getOptionValue("-stats")) {
       std::cout << "MIS size: " << pbbs::reduce_add(size_imap) << "\n";
     }
@@ -54,7 +54,7 @@ void MIS_runner(graph<vertex>& GA, commandLine P) {
   } else {
     auto MIS = MIS_rootset::MIS(GA);
     auto size_imap =
-        make_in_imap<size_t>(GA.n, [&](size_t i) { return MIS[i]; });
+        make_sequence<size_t>(GA.n, [&](size_t i) { return MIS[i]; });
     if (P.getOptionValue("-stats")) {
       std::cout << "MIS size: " << pbbs::reduce_add(size_imap) << "\n";
     }

@@ -73,7 +73,7 @@ template <template <class W> class vertex, class W>
 inline size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
                             vertexSubset& Frontier) {
   emdf(DG, Frontier, wrap_em_f<W>(countF<vertex, W>(DG.V, counts)), no_output);
-  auto count_seq = array_imap<size_t>(counts, DG.n);
+  auto count_seq = sequence<size_t>(counts, DG.n);
   size_t count = pbbs::reduce_add(count_seq);
   return count;
 }
@@ -125,7 +125,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     run_intersection(start_ind, end_ind);
   });
 
-  auto count_seq = array_imap<size_t>(counts, DG.n);
+  auto count_seq = sequence<size_t>(counts, DG.n);
   size_t count = pbbs::reduce_add(count_seq);
 
   return count;

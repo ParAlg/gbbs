@@ -100,7 +100,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   using w_vertex = vertex<W>;
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
-  auto out_edges = array_imap<edge>(
+  auto out_edges = sequence<edge>(
       n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintE p_i = Parents[i];
@@ -115,7 +115,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
   pbbs::sample_sort(edges.start(), edges.size(), sort_tup);
 
-  auto starts = array_imap<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
+  auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
   parallel_for_bc(i, 0, edges.size(), (n > pbbs::kSequentialForThreshold), {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
       starts[std::get<0>(edges[i])] = i;
@@ -133,7 +133,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   seq.stop();
   seq.reportTotal("seq time");
 
-  auto nghs = array_imap<uintE>(
+  auto nghs = sequence<uintE>(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
   edges.del();
 
@@ -160,10 +160,10 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   auto Tree = graph<vtx>(v, n, nghs.size(), []() {});
 
   // 1. Leaffix for Augmented Sizes
-  auto aug_sizes = array_imap<uintE>(n, [](size_t i) { return 1; });
+  auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
   auto cts =
-      array_imap<intE>(n, [&](size_t i) { return Tree.V[i].getOutDegree(); });
-  auto leaf_im = make_in_imap<bool>(n, [&](size_t i) {
+      sequence<intE>(n, [&](size_t i) { return Tree.V[i].getOutDegree(); });
+  auto leaf_im = make_sequence<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
     size_t deg = s_n - s_i;
@@ -195,7 +195,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
 
   timer pren;
   pren.start();
-  auto PN = array_imap<uintE>(n);
+  auto PN = sequence<uintE>(n);
   vs = vertexSubset(n, s_copy.size(), s_copy.get_array());
   parallel_for_bc(i, 0, Sources.size(), (n > pbbs::kSequentialForThreshold), {
     uintE v = s_copy[i];
@@ -206,12 +206,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
-    auto offsets = array_imap<uintE>(vs.size(), [&](size_t i) {
+    auto offsets = sequence<uintE>(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
       return Tree.V[v].getOutDegree();
     });
     auto tot = pbbs::scan_add(offsets, offsets);
-    auto next_vs = array_imap<uintE>(tot);
+    auto next_vs = sequence<uintE>(tot);
     parallel_for_bc(i, 0, vs.size(), (n > pbbs::kSequentialForThreshold), {
       uintE v = vs.s[i];
       uintE off = offsets[i];
@@ -228,7 +228,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
           next_vs[off + j] = ngh;
         }
       } else {
-        auto A = array_imap<uintE>(deg_v);
+        auto A = sequence<uintE>(deg_v);
         parallel_for_bc(j, 0, deg_v, true, {
           uintE ngh = Tree.V[v].getOutNeighbor(j);
           A[j] = aug_sizes[ngh];
@@ -251,7 +251,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   timer map_e;
   map_e.start();
   // Map all edges and update labels.
-  auto MM = array_imap<labels>(n, [&](size_t i) {
+  auto MM = sequence<labels>(n, [&](size_t i) {
     uintE pn_i = PN[i];
     return std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
   });
@@ -328,7 +328,7 @@ struct BC_BFS_F {
 template <template <typename W> class vertex, class W, class VS>
 inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
   size_t n = GA.n;
-  auto Parents = array_imap<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
   parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
     uintE v = frontier.s[i];
@@ -347,7 +347,7 @@ inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
 template <class Seq>
 inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
-  auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintE label = labels[i];
     writeMin(&flags[label], (uintE)i);
@@ -363,9 +363,9 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   timer ccc;
   ccc.start();
   size_t n = GA.n;
-  auto MM = make_array_imap(MM_A, n);
-  auto PN = make_array_imap(PN_A, n);
-  auto aug_sizes = make_array_imap(aug_sizes_A, n);
+  auto MM = sequence<labels>(MM_A, n);
+  auto PN = sequence<uintE>(PN_A, n);
+  auto aug_sizes = sequence<uintE>(aug_sizes_A, n);
 
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintE pi = Parents[i];
@@ -415,7 +415,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
   // Note that counting components here will count initially isolated vertices
   // as distinct components.
-  //  auto flags = array_imap<uintE>(n+1, [&] (size_t i) { return 0; });
+  //  auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
   //  parallel_for(size_t i=0; i<n; i++) {
   //    if (!flags[cc[i]]) {
   //      flags[cc[i]] = 1;
@@ -434,7 +434,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
       exit(0);
     }
 
-    auto tups = array_imap<std::pair<uintE, uintE>>(n);
+    auto tups = sequence<std::pair<uintE, uintE>>(n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
@@ -463,7 +463,7 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
 
   timer fcc;
   fcc.start();
-  array_imap<uintE> Components = cc::CC(GA, 0.2, false);
+  sequence<uintE> Components = cc::CC(GA, 0.2, false);
   fcc.stop();
   fcc.reportTotal("first cc");
 

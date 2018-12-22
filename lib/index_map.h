@@ -139,6 +139,7 @@ struct array_imap {
   array_imap() : allocated(false) {}
   // copy constructor
   array_imap(const array_imap& b) : s(b.s), e(b.e), allocated(false) {}
+  // move constructor
   array_imap(array_imap&& b) : s(b.s), e(b.e), allocated(b.allocated) {
     b.allocated = false;
   }

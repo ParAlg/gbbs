@@ -72,9 +72,9 @@ inline void random_shuffle(Seq A, random r = default_random) {
 }
 
 template <class intT>
-inline array_imap<intT> random_permutation(size_t n,
+inline sequence<intT> random_permutation(size_t n,
                                            random r = default_random) {
-  auto id = array_imap<intT>(n);
+  auto id = sequence<intT>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { id[i] = i; });
   pbbs::random_shuffle(id, r);
   return id;

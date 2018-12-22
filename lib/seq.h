@@ -29,10 +29,10 @@ struct sequence {
  public:
   using T = E;
 
-  sequence() {}
+  sequence() : allocated(false) {}
 
   // copy constructor
-  sequence(sequence& a) : s(a.s), e(a.e), allocated(false) {}
+  sequence(const sequence& a) : s(a.s), e(a.e), allocated(false) {}
 
   // move constructor
   sequence(sequence&& b) : s(b.s), e(b.e), allocated(b.allocated) {
@@ -108,6 +108,7 @@ struct sequence {
   }
 
   E& operator[](const size_t i) const { return s[i]; }
+  E& operator()(const size_t i) const { return s[i]; }
 
   sequence slice(size_t ss, size_t ee) { return sequence(s + ss, s + ee); }
 
@@ -173,6 +174,6 @@ struct func_sequence {
 
 // used so second template argument can be inferred
 template <class E, class F>
-inline func_sequence<E, F> make_sequence(size_t n, F& f) {
+inline func_sequence<E, F> make_sequence(size_t n, F f) {
   return func_sequence<E, F>(n, f);
 }

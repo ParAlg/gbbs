@@ -91,7 +91,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
   timer perm_t;
   perm_t.start();
   auto perm = pbbs::random_permutation<uintT>(E.non_zeros);
-  auto out = array_imap<edge>(E.non_zeros);
+  auto out = sequence<edge>(E.non_zeros);
   parallel_for_bc(i, 0, E.non_zeros,
                   (E.non_zeros > pbbs::kSequentialForThreshold), {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
@@ -136,7 +136,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
   timer perm_t;
   perm_t.start();
   auto perm = pbbs::random_permutation<uintT>(E.non_zeros);
-  auto out = array_imap<edge>(E.non_zeros);
+  auto out = sequence<edge>(E.non_zeros);
   parallel_for_bc(i, 0, E.non_zeros,
                   (E.non_zeros > pbbs::kSequentialForThreshold), {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
@@ -154,7 +154,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <template <class W> class vertex, class W>
-inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
+inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     graph<vertex<W>>& G) {
   using edge = std::tuple<uintE, uintE, W>;
 
@@ -163,8 +163,8 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
   size_t n = G.n;
   auto r = pbbs::default_random;
 
-  auto R = array_imap<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
-  auto matched = array_imap<bool>(n, [&](size_t i) { return false; });
+  auto R = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
+  auto matched = sequence<bool>(n, [&](size_t i) { return false; });
 
   size_t k = ((3 * G.n) / 2);
   auto matching = dyn_arr<edge>(n);
@@ -178,7 +178,7 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
                      ? mm::get_edges(G, k, matched.start(), r)
                      : mm::get_all_edges(G, matched.start(), r);
 
-    auto eim = make_in_imap<edge>(e_arr.non_zeros,
+    auto eim = make_sequence<edge>(e_arr.non_zeros,
                                   [&](size_t i) { return e_arr.E[i]; });
     gete.stop();
 
@@ -191,7 +191,7 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
 
     auto e_added =
         pbbs::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
-    auto sizes = array_imap<size_t>(e_added.size());
+    auto sizes = sequence<size_t>(e_added.size());
     parallel_for_bc(i, 0, e_added.size(),
                     (e_added.size() > pbbs::kSequentialForThreshold), {
                       const auto& e = e_added[i];
@@ -214,8 +214,7 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
     r = r.next();
   }
   std::cout << "matching size = " << matching.size << "\n";
-  auto ret = make_array_imap<edge>(matching.A, matching.size);
-  ret.allocated = true;
+  auto ret = sequence<edge>(matching.A, matching.size, true); // allocated
   mt.stop();
   mt.reportTotal("Matching time");
   eff.reportTotal("eff for time");
@@ -226,8 +225,8 @@ inline array_imap<std::tuple<uintE, uintE, W>> MaximalMatching(
 template <template <class W> class vertex, class W, class Seq>
 inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   size_t n = G.n;
-  auto ok = array_imap<bool>(n, [](size_t i) { return 1; });
-  auto matched = array_imap<uintE>(n, [](size_t i) { return 0; });
+  auto ok = sequence<bool>(n, [](size_t i) { return 1; });
+  auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
 
   // Check that this is a valid matching
   parallel_for_bc(i, 0, matching.size(),
@@ -253,7 +252,7 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   };
   parallel_for_bc(i, 0, n, true, { G.V[i].mapOutNgh(i, map2_f); });
 
-  auto ok_im = make_in_imap<size_t>(n, [&](size_t i) { return ok[i]; });
+  auto ok_im = make_sequence<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";

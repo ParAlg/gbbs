@@ -25,7 +25,6 @@
 
 #include "ligra.h"
 
-#include "lib/index_map.h"
 #include "lib/random_shuffle.h"
 
 namespace coloring {
@@ -49,7 +48,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
       }
     };
     GA.V[v].mapOutNgh(v, map_f, pbbs::fl_sequential);
-    auto im = make_in_imap<uintE>(
+    auto im = make_sequence<uintE>(
         deg, [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; });
     auto min_f = [](uintE l, uintE r) { return std::min(l, r); };
     uintE color = pbbs::reduce(im, min_f, pbbs::fl_sequential);
@@ -87,14 +86,14 @@ struct coloring_f {
 };
 
 template <template <typename W> class vertex, class W>
-inline array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
+inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   timer initt;
   initt.start();
   const size_t n = GA.n;
 
   // For each vertex count the number of out-neighbors with log-degree >= us
-  auto priorities = array_imap<intE>(n);
-  auto colors = array_imap<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto priorities = sequence<intE>(n);
+  auto colors = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
 
   if (lf) {
     std::cout << "Running LF"
@@ -128,7 +127,7 @@ inline array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   }
 
   auto zero_map =
-      make_in_imap<bool>(n, [&](size_t i) { return priorities[i] == 0; });
+      make_sequence<bool>(n, [&](size_t i) { return priorities[i] == 0; });
   auto init = pbbs::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, init.size(), init.get_array());
   initt.reportTotal("init time");
@@ -167,7 +166,7 @@ inline array_imap<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
 template <template <typename W> class vertex, class W, class Seq>
 inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
   size_t n = G.n;
-  auto ok = array_imap<bool>(n);
+  auto ok = sequence<bool>(n);
   parallel_for_bc(i, 0, n, true, {
     uintE src_color = colors[i];
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
@@ -177,7 +176,7 @@ inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
     size_t ct = G.V[i].countOutNgh(i, pred);
     ok[i] = (ct > 0);
   });
-  auto im = make_in_imap<size_t>(n, [&](size_t i) { return (size_t)ok[i]; });
+  auto im = make_sequence<size_t>(n, [&](size_t i) { return (size_t)ok[i]; });
   size_t ct = pbbs::reduce_add(im);
   std::cout << "ct = " << ct << "\n";
   if (ct > 0) {

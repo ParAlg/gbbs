@@ -36,7 +36,7 @@ template <class Seq>
 inline size_t RelabelIds(Seq& ids) {
   using T = typename Seq::T;
   size_t n = ids.size();
-  auto inverse_map = array_imap<T>(n + 1);
+  auto inverse_map = sequence<T>(n + 1);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { inverse_map[i] = 0; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
@@ -51,8 +51,8 @@ inline size_t RelabelIds(Seq& ids) {
 }
 
 template <template <typename W> class vertex, class W, class Seq, class EO>
-inline std::tuple<graph<symmetricVertex<pbbs::empty>>, array_imap<uintE>,
-                  array_imap<uintE>>
+inline std::tuple<graph<symmetricVertex<pbbs::empty>>, sequence<uintE>,
+                  sequence<uintE>>
 contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
   // Remove duplicates by hashing
   using K = std::tuple<uintE, uintE>;
@@ -63,7 +63,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
 
   timer count_t;
   count_t.start();
-  auto deg_map = array_imap<uintE>(n + 1);
+  auto deg_map = sequence<uintE>(n + 1);
   auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
     if (oracle(src, ngh, w)) {
       uintE c_src = clusters[src];
@@ -102,12 +102,12 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
   parallel_for_bc(i, 0, n, true, { GA.V[i].mapOutNgh(i, map_f); });
   auto e2 = edge_table.entries();
   edge_table.del();
-  auto edges = array_imap<KV>(e2.start(), e2.size(), true);
+  auto edges = sequence<KV>(e2.start(), e2.size(), true);
   ins_t.stop();
   ins_t.reportTotal("ins time");
 
   // Pack out singleton clusters
-  auto flags = array_imap<uintE>(num_clusters + 1, [](size_t i) { return 0; });
+  auto flags = sequence<uintE>(num_clusters + 1, [](size_t i) { return 0; });
 
   parallel_for_bc(i, 0, edges.size(),
                   (edges.size() > pbbs::kSequentialForThreshold), {
@@ -120,7 +120,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
   pbbs::scan_add(flags, flags);
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
-  auto mapping = array_imap<uintE>(num_ns_clusters);
+  auto mapping = sequence<uintE>(num_ns_clusters);
   parallel_for_bc(i, 0, num_clusters,
                   (num_clusters > pbbs::kSequentialForThreshold), {
                     if (flags[i] != flags[i + 1]) {
@@ -128,7 +128,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
                     }
                   });
 
-  auto sym_edges = array_imap<K>(2 * edges.size(), [&](size_t i) {
+  auto sym_edges = sequence<K>(2 * edges.size(), [&](size_t i) {
     size_t src_edge = i / 2;
     if (i % 2) {
       return std::make_tuple(flags[std::get<0>(std::get<0>(edges[src_edge]))],
@@ -148,7 +148,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
 }
 
 template <template <class W> class vertex, class W>
-inline array_imap<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
+inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
                                  size_t level, bool pack = false,
                                  bool permute = false) {
   size_t n = GA.n;
@@ -200,7 +200,7 @@ inline array_imap<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
 template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
@@ -214,7 +214,7 @@ template <class Seq>
 inline size_t largest_cc(Seq& labels) {
   size_t n = labels.size();
   // could histogram to do this in parallel.
-  auto flags = array_imap<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
@@ -222,13 +222,13 @@ inline size_t largest_cc(Seq& labels) {
 }
 
 template <class vertex>
-inline array_imap<uintE> CC(graph<vertex>& GA, double beta = 0.2,
+inline sequence<uintE> CC(graph<vertex>& GA, double beta = 0.2,
                             bool pack = false) {
   return CC_impl(GA, beta, 0, pack, true);
 }
 
 template <class vertex, class EO>
-inline array_imap<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
+inline sequence<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
                                         double beta, size_t level,
                                         bool pack = false,
                                         bool permute = false) {
@@ -275,7 +275,7 @@ inline array_imap<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
 
 // Connectivity with an edge oracle
 template <class vertex, class EO>
-inline array_imap<uintE> CC_oracle(graph<vertex>& GA, EO& oracle,
+inline sequence<uintE> CC_oracle(graph<vertex>& GA, EO& oracle,
                                    double beta = 0.2, bool pack = false) {
   return CC_oracle_impl(GA, oracle, beta, 0, pack, true);
 }

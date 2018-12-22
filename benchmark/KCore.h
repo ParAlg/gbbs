@@ -27,13 +27,12 @@
 #include "edge_map_reduce.h"
 #include "ligra.h"
 
-#include "lib/index_map.h"
 
 template <template <typename W> class vertex, class W>
-inline array_imap<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
+inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   const size_t n = GA.n;
   auto D =
-      array_imap<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
 
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
@@ -101,12 +100,12 @@ struct kcore_fetch_add {
 };
 
 template <template <typename W> class vertex, class W>
-inline array_imap<uintE> KCore_FA(graph<vertex<W> >& GA,
+inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
                                   size_t num_buckets = 16) {
   const size_t n = GA.n;
   auto D =
-      array_imap<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
-  auto ER = array_imap<uintE>(n, [&](size_t i) { return 0; });
+      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+  auto ER = sequence<uintE>(n, [&](size_t i) { return 0; });
 
   auto b = make_buckets(n, D, increasing, num_buckets);
 

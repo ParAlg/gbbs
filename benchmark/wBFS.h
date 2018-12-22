@@ -25,7 +25,6 @@
 
 #include <cmath>
 #include "bucket.h"
-#include "lib/index_map.h"
 #include "ligra.h"
 
 namespace wbfs {
@@ -33,8 +32,8 @@ constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
 
 struct Visit_F {
-  array_imap<uintE>& dists;
-  Visit_F(array_imap<uintE>& _dists) : dists(_dists) {}
+  sequence<uintE>& dists;
+  Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
 
   inline Maybe<uintE> update(const uintE& s, const uintE& d, const intE& w) {
     uintE oval = dists.s[d];
@@ -72,7 +71,7 @@ struct Visit_F {
 template <
     template <typename W> class vertex, class W,
     typename std::enable_if<std::is_same<W, int32_t>::value, int>::type = 0>
-inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
+inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
   auto before_state = get_pcm_state();
@@ -84,7 +83,7 @@ inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   auto V = G.V;
   size_t n = G.n;
 
-  auto dists = array_imap<uintE>(n, [&](size_t i) { return INT_E_MAX; });
+  auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
   auto get_bkt = [&](const uintE& dist) -> const uintE {
@@ -137,7 +136,7 @@ inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   }
   bt.reportTotal("bucket time");
   emt.reportTotal("edge map time");
-  auto dist_im = make_in_imap<size_t>(
+  auto dist_im = make_sequence<size_t>(
       n, [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; });
   std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
@@ -152,10 +151,10 @@ inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
 template <
     template <typename W> class vertex, class W,
     typename std::enable_if<!std::is_same<W, int32_t>::value, int>::type = 0>
-inline array_imap<uintE> wBFS(graph<vertex<W>>& G, uintE src,
+inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
   assert(false);  // Unimplemented for unweighted graphs; use a regular BFS.
-  auto dists = array_imap<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
+  auto dists = sequence<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
   return dists;
 }
