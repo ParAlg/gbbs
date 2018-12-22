@@ -70,11 +70,11 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
   const size_t n = GA.n;
   const size_t m = GA.m;
   auto in_d =
-      array_imap<intE>(n, [&](size_t i) { return GA.V[i].getInDegree(); });
+      sequence<intE>(n, [&](size_t i) { return GA.V[i].getInDegree(); });
   auto out_d =
-      array_imap<intE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<intE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
 
-  auto in_v = make_in_imap<uintE>(n, [&](size_t i) { return i; });
+  auto in_v = make_sequence<uintE>(n, [&](size_t i) { return i; });
   auto in_ends = pbbs::filter(in_v, [&](uintE v) { return in_d[v] == 0; });
   auto out_ends = pbbs::filter(in_v, [&](uintE v) { return out_d[v] == 0; });
 
@@ -89,9 +89,9 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
                          ((tuple<uintE, pbbs::empty>*)out_ends.get_array()))
           : vertexSubset(n);
 
-  auto chains = array_imap<bool>(n, false);
-  auto flags_in = array_imap<bool>(n, false);
-  auto flags_out = array_imap<bool>(n, false);
+  auto chains = sequence<bool>(n, false);
+  auto flags_in = sequence<bool>(n, false);
+  auto flags_out = sequence<bool>(n, false);
 
   parallel_for_bc(i, 0, in_vs.size(),
                   (in_vs.size() > pbbs::kSequentialForThreshold),
@@ -137,7 +137,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
     }
   }
   auto chain_im =
-      make_in_imap<size_t>(n, [&](size_t i) { return (size_t)chains[i]; });
+      make_sequence<size_t>(n, [&](size_t i) { return (size_t)chains[i]; });
   std::cout << "total zero = " << pbbs::reduce_add(chain_im) << "\n";
   std::cout << "nr = " << nr << "\n";
   return chains;

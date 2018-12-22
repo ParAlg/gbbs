@@ -93,12 +93,12 @@ struct buckets {
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
-      auto imap = make_in_imap<uintE>(n, [&](size_t i) { return d(i); });
+      auto imap = make_sequence<uintE>(n, [&](size_t i) { return d(i); });
       auto min = [](uintE x, uintE y) { return std::min(x, y); };
       size_t min_b = pbbs::reduce(imap, min);
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
-      auto imap = make_in_imap<uintE>(
+      auto imap = make_sequence<uintE>(
           n, [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); });
       auto max = [](uintE x, uintE y) { return std::max(x, y); };
       size_t max_b = pbbs::reduce(imap, max);
@@ -205,8 +205,8 @@ struct buckets {
       return hists[col * total_buckets + row];
     };
 
-    auto in_map = make_in_imap<uintE>(num_blocks * total_buckets, get);
-    auto out_map = array_imap<uintE>(outs, num_blocks * total_buckets);
+    auto in_map = make_sequence<uintE>(num_blocks * total_buckets, get);
+    auto out_map = sequence<uintE>(outs, num_blocks * total_buckets);
 
     size_t sum = pbbs::scan_add(in_map, out_map);
     outs[num_blocks * total_buckets] = sum;
@@ -297,7 +297,7 @@ struct buckets {
   inline void unpack() {
     size_t m = bkts[open_buckets].size;
     auto _d = d;
-    auto tmp = array_imap<uintE>(m);
+    auto tmp = sequence<uintE>(m);
     uintE* A = bkts[open_buckets].A;
     parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
                     { tmp[i] = A[i]; });

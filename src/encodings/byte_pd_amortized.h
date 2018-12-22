@@ -32,7 +32,6 @@
 #include <tuple>
 
 #include "lib/binary_search.h"
-#include "lib/index_map.h"
 #include "lib/seq.h"
 #include "lib/sequence_ops.h"
 #include "lib/utilities.h"
@@ -516,7 +515,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs[i] = cur;
     });
 
-    auto im = make_array_imap(block_outputs, num_blocks);
+    auto im = make_sequence(block_outputs, num_blocks);
     E res = pbbs::reduce(im, r);
     if (num_blocks > 100) {
       free(block_outputs);
@@ -592,7 +591,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
   uchar* nghs_start =
       edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
-  auto blocks_imap = make_in_imap<size_t>(num_blocks, [&](size_t j) {
+  auto blocks_imap = make_sequence<size_t>(num_blocks, [&](size_t j) {
     uintE end = (j == (num_blocks - 1))
                     ? degree
                     : (*((uintE*)(edge_start + block_offsets[j])));
@@ -656,7 +655,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 //
 //    uintE binary_search(uintE pivot) {
 //      uintE* offs = (uintE*)edge_start;
-//      auto start_im = make_in_imap<uintE>(size(), [&] (size_t i) {
+//      auto start_im = make_sequence<uintE>(size(), [&] (size_t i) {
 //        uchar* finger = edge_start + offs[start + i];
 //        return eatFirstEdge(finger, source_id);
 //      });
@@ -778,7 +777,7 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
   }
 
   // 2. Scan to compute block offsets
-  auto bytes_imap = make_array_imap(offs, new_blocks + 1);
+  auto bytes_imap = make_sequence(offs, new_blocks + 1);
   pbbs::scan_add(bytes_imap, bytes_imap);
 
   // 3. Compress each block
@@ -914,7 +913,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
 
     // 4. Scan to compute offset for each block
     offs[new_blocks] = 0;
-    auto bytes_imap = make_array_imap(offs, new_blocks + 1);
+    auto bytes_imap = make_sequence(offs, new_blocks + 1);
     pbbs::scan_add(bytes_imap, bytes_imap);
 
     // 5. Repack each block
@@ -1038,7 +1037,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   // 2. Scan block_cts to get offsets within blocks
   block_cts[num_blocks] = 0;
-  auto scan_cts = make_array_imap(block_cts, num_blocks + 1);
+  auto scan_cts = make_sequence(block_cts, num_blocks + 1);
   size_t deg_remaining = pbbs::scan_add(scan_cts, scan_cts);
 
   parallel_for_bc(i, 0, num_blocks, (num_blocks > 1000), {

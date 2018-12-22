@@ -25,7 +25,6 @@
 
 #include <tuple>
 
-#include "lib/index_map.h"
 #include "lib/speculative_for.h"
 #include "macros.h"
 

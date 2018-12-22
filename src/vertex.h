@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "lib/index_map.h"
 #include "lib/sequence_ops.h"
 #include "macros.h"
 
@@ -192,7 +191,7 @@ template <template <typename W> class vertex, class W, class F>
 inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
                         uintE d, F& f, bool parallel = true) {
   if (d == 0) return 0;
-  auto im = make_in_imap<size_t>(d, [&](size_t i) {
+  auto im = make_sequence<size_t>(d, [&](size_t i) {
     auto nw = nghs[i];
     return f(vtx_id, std::get<0>(nw), std::get<1>(nw));
   });
@@ -204,7 +203,7 @@ template <template <typename W> class vertex, class W, class E, class M,
 inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                     uintE d, E id, M& m, R& r) {
   if (d == 0) return id;
-  auto im = make_in_imap<E>(d, [&](size_t i) {
+  auto im = make_sequence<E>(d, [&](size_t i) {
     auto nw = nghs[i];
     return m(vtx_id, std::get<0>(nw), std::get<1>(nw));
   });
@@ -237,7 +236,7 @@ inline void filterNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
       auto pc = [&](const std::tuple<uintE, W>& nw) {
         return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
       };
-      auto in_im = make_array_imap(nghs, d);
+      auto in_im = make_sequence(nghs, d);
       auto s = pbbs::filter(in_im, pc, pbbs::no_flag, tmp);
       size_t k = s.size();
       parallel_for_bc(i, 0, k, (k > pbbs::kSequentialForThreshold),

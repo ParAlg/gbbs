@@ -38,7 +38,7 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   vertex* G = GA.V;
   uintT m = V.size();
   V.toSparse();
-  auto degrees = array_imap<uintT>(m);
+  auto degrees = sequence<uintT>(m);
   parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     vertex v = G[V.vtx(i)];
     uintE degree = (out_ngh) ? v.getOutDegree() : v.getInDegree();
@@ -110,9 +110,9 @@ struct EdgeMap {
         edgeMapInduced<M, w_vertex, VS>(G, vs, wrapped_map_f, out_ngh);
     oneHop.toSparse();
 
-    auto get_elm = make_in_imap<std::tuple<K, M> >(
+    auto get_elm = make_sequence<std::tuple<K, M> >(
         oneHop.size(), [&](size_t i) { return oneHop.vtxAndData(i); });
-    auto get_key = make_in_imap<uintE>(
+    auto get_key = make_sequence<uintE>(
         oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
 
     auto q = [&](sequentialHT<K, V>& S, std::tuple<K, M> v) -> void {
@@ -142,7 +142,7 @@ struct EdgeMap {
         edgeMapInduced<pbbs::empty, w_vertex, VS>(G, vs, map_f, out_ngh);
     oneHop.toSparse();
 
-    auto get_key = make_in_imap<uintE>(
+    auto get_key = make_sequence<uintE>(
         oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
     auto res = pbbs::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                       apply_f, ht);

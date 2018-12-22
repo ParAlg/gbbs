@@ -211,8 +211,8 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
     }
   });
 
-  array_imap<size_t> out_offs = array_imap<size_t>(num_buckets + 1);
-  array_imap<size_t> ht_offs = array_imap<size_t>(num_buckets + 1);
+  sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
+  sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
 
   // (2) process each bucket, compute the size of each HT and scan (seq)
   ht_offs[0] = 0;
@@ -393,8 +393,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   });
 
-  array_imap<size_t> out_offs = array_imap<size_t>(num_buckets + 1);
-  array_imap<size_t> ht_offs = array_imap<size_t>(num_buckets + 1);
+  sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
+  sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
   auto empty = ht.empty;
   KV* table = ht.table;
 
@@ -655,8 +655,8 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
     }
   });
 
-  array_imap<size_t> out_offs = array_imap<size_t>(num_buckets + 1);
-  array_imap<size_t> ht_offs = array_imap<size_t>(num_buckets + 1);
+  sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
+  sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
 
   // (2) process each bucket, compute the size of each HT and scan (seq)
   ht_offs[0] = 0;

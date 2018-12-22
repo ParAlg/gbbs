@@ -177,3 +177,8 @@ template <class E, class F>
 inline func_sequence<E, F> make_sequence(size_t n, F f) {
   return func_sequence<E, F>(n, f);
 }
+
+template <class E>
+inline sequence<E> make_sequence(E* A, size_t n) {
+  return sequence<E>(A, n);
+}

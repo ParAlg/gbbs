@@ -43,7 +43,6 @@
 
 #include "../lib/binary_search.h"
 #include "../lib/get_time.h"
-#include "../lib/index_map.h"
 
 typedef uint32_t flags;
 const flags no_output = 1;
@@ -178,7 +177,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
   S* outEdges;
 
   if (should_output(fl)) {
-    auto offsets = array_imap<uintT>(indices.size(), [&](size_t i) {
+    auto offsets = sequence<uintT>(indices.size(), [&](size_t i) {
       return (fl & in_edges) ? frontier_vertices[i].getInDegree()
                              : frontier_vertices[i].getOutDegree();
     });
@@ -263,20 +262,20 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
-  auto degree_imap = make_in_imap<uintE>(indices.size(), [&](size_t i) {
+  auto degree_imap = make_sequence<uintE>(indices.size(), [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
                            : frontier_vertices[i].getOutVirtualDegree();
   });
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
-  auto vertex_offs = array_imap<uintE>(indices.size() + 1);
+  auto vertex_offs = sequence<uintE>(indices.size() + 1);
   parallel_for_bc(
       i, 0, indices.size(), (indices.size() > pbbs::kSequentialForThreshold),
       { vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbs::scan_add(vertex_offs, vertex_offs);
-  auto blocks = array_imap<block>(num_blocks);
-  auto degrees = array_imap<uintT>(num_blocks);
+  auto blocks = sequence<block>(num_blocks);
+  auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan.
   parallel_for_bc(i, 0, indices.size(), true, {
@@ -304,7 +303,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   thread_offs[n_threads] = num_blocks;
 
   // 4. Run each thread in parallel
-  auto cts = array_imap<uintE>(n_threads + 1);
+  auto cts = sequence<uintE>(n_threads + 1);
   S* outEdges = newA(S, outEdgeCount);
   auto g = get_emsparse_blocked_gen<data>(outEdges);
   parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
@@ -388,14 +387,14 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
-  auto degree_imap = make_in_imap<uintE>(indices.size(), [&](size_t i) {
+  auto degree_imap = make_sequence<uintE>(indices.size(), [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
                            : frontier_vertices[i].getOutVirtualDegree();
   });
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   size_t num_blocks = indices.size();
-  auto degrees = array_imap<uintT>(num_blocks);
+  auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan.
   parallel_for_bc(i, 0, indices.size(), true, { degrees[i] = degree_imap[i]; });
@@ -414,7 +413,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   thread_offs[n_threads] = num_blocks;
 
   // 4. Run each thread in parallel
-  auto cts = array_imap<uintE>(n_threads + 1);
+  auto cts = sequence<uintE>(n_threads + 1);
   S* outEdges = newA(S, outEdgeCount);
   auto g = get_emsparse_blocked_gen<data>(outEdges);
   parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
@@ -498,7 +497,7 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   vertex* frontier_vertices = newA(vertex, m);
   parallel_for_bc(i, 0, vs.size(), (vs.size() > pbbs::kSequentialForThreshold),
                   { frontier_vertices[i] = GA.V[vs.vtx(i)]; });
-  auto degree_im = make_in_imap<size_t>(vs.size(), [&](size_t i) {
+  auto degree_im = make_sequence<size_t>(vs.size(), [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInDegree()
                            : frontier_vertices[i].getOutDegree();
   });
@@ -541,14 +540,14 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  auto space = array_imap<uintT>(m);
+  auto space = sequence<uintT>(m);
   parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
     uintE v = vs.vtx(i);
     space[i] = G[v].calculateOutTemporarySpace();
   });
   long total_space = pbbs::scan_add(space, space);
   std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  auto tmp = array_imap<std::tuple<uintE, W>>(
+  auto tmp = sequence<std::tuple<uintE, W>>(
       total_space);  // careful when total_space == 0
   S* outV;
   if (should_output(fl)) {
@@ -678,8 +677,8 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
     uintE v = V.vtx(i);
     bits[i] = filter(v);
   });
-  auto v_imap = make_in_imap<uintE>(m, [&](size_t i) { return V.vtx(i); });
-  auto bits_m = make_in_imap<bool>(m, [&](size_t i) { return bits[i]; });
+  auto v_imap = make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
+  auto bits_m = make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbs::pack(v_imap, bits_m);
   out.allocated = false;
   free(bits);
@@ -698,8 +697,8 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
     auto t = V.vtxAndData(i);
     bits[i] = filter(std::get<0>(t), std::get<1>(t));
   });
-  auto v_imap = make_in_imap<uintE>(m, [&](size_t i) { return V.vtx(i); });
-  auto bits_m = make_in_imap<bool>(m, [&](size_t i) { return bits[i]; });
+  auto v_imap = make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
+  auto bits_m = make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbs::pack(v_imap, bits_m);
   out.allocated = false;
   free(bits);

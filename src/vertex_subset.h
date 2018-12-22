@@ -26,7 +26,6 @@
 #include <functional>
 #include <limits>
 
-#include "lib/index_map.h"
 #include "lib/sequence_ops.h"
 #include "maybe.h"
 
@@ -49,7 +48,7 @@ struct vertexSubsetData {
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
   vertexSubsetData(long _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1) {
-    auto d_map = make_in_imap<size_t>(
+    auto d_map = make_sequence<size_t>(
         n, [&](size_t i) { return (size_t)std::get<0>(_d[i]); });
     m = pbbs::reduce_add(d_map);
   }
@@ -104,7 +103,7 @@ struct vertexSubsetData {
 
   void toSparse() {
     if (s == NULL && m > 0) {
-      auto f = make_in_imap<D>(
+      auto f = make_sequence<D>(
           n, [&](size_t i) -> std::tuple<bool, data> { return d[i]; });
       auto out = pbbs::pack_index_and_data<uintE, data>(f, n);
       out.allocated = false;
@@ -170,7 +169,7 @@ struct vertexSubsetData<pbbs::empty> {
   // number of nonzeros and store in m.
   vertexSubsetData<pbbs::empty>(long _n, bool* _d)
       : n(_n), s(NULL), d(_d), isDense(1) {
-    auto d_map = make_in_imap<size_t>(n, [&](size_t i) { return _d[i]; });
+    auto d_map = make_sequence<size_t>(n, [&](size_t i) { return _d[i]; });
     auto f = [&](size_t i, size_t j) { return i + j; };
     m = pbbs::reduce(d_map, f);
   }
@@ -180,7 +179,7 @@ struct vertexSubsetData<pbbs::empty> {
   vertexSubsetData<pbbs::empty>(long _n, std::tuple<bool, pbbs::empty>* _d)
       : n(_n), s(NULL), d((bool*)_d), isDense(1) {
     auto d_map =
-        make_in_imap<size_t>(n, [&](size_t i) { return std::get<0>(_d[i]); });
+        make_sequence<size_t>(n, [&](size_t i) { return std::get<0>(_d[i]); });
     auto f = [&](size_t i, size_t j) { return i + j; };
     m = pbbs::reduce(d_map, f);
   }
@@ -240,7 +239,7 @@ struct vertexSubsetData<pbbs::empty> {
     if (s == NULL && m > 0) {
       auto _d = d;
       auto f = [&](size_t i) { return _d[i]; };
-      auto f_in = make_in_imap<bool>(n, f);
+      auto f_in = make_sequence<bool>(n, f);
       auto out = pbbs::pack_index<uintE>(f_in);
       out.allocated = false;
       s = out.s;

@@ -32,7 +32,6 @@
 #include <tuple>
 
 #include "lib/binary_search.h"
-#include "lib/index_map.h"
 #include "lib/seq.h"
 #include "lib/sequence_ops.h"
 #include "lib/utilities.h"
@@ -324,7 +323,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs[i] = cur;
     });
 
-    auto im = make_array_imap(block_outputs, num_blocks);
+    auto im = make_sequence(block_outputs, num_blocks);
     E res = pbbs::reduce(im, r);
     if (num_blocks > 1000) {
       free(block_outputs);
@@ -398,7 +397,7 @@ struct seq_info {
 
   uintE binary_search(uintE pivot) {
     uintE* offs = (uintE*)edge_start;
-    auto start_im = make_in_imap<uintE>(size(), [&](size_t i) {
+    auto start_im = make_sequence<uintE>(size(), [&](size_t i) {
       uchar* finger = edge_start + offs[start + i];
       return eatFirstEdge(finger, source_id);
     });
@@ -556,7 +555,7 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
-    auto bytes_imap = make_array_imap(block_bytes, num_blocks);
+    auto bytes_imap = make_sequence(block_bytes, num_blocks);
     size_t total_space = pbbs::scan_add(bytes_imap, bytes_imap);
 
     // add in space for storing offsets to the start of each block
@@ -750,7 +749,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
   uintE* block_offsets = (uintE*)edgeArray;
 
-  auto bytes_imap = make_array_imap(block_bytes, num_blocks + 1);
+  auto bytes_imap = make_sequence(block_bytes, num_blocks + 1);
   uintE total_space = pbbs::scan_add(bytes_imap, bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
