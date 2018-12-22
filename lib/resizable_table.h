@@ -289,11 +289,11 @@ class resizable_table {
     });
   }
 
-  array_imap<T> entries() {
+  sequence<T> entries() {
     T* out = newA(T, m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     size_t new_m = pbbs::filterf(table, out, m, pred);
-    return make_array_imap<T>(out, new_m);
+    return make_sequence<T>(out, new_m);
   }
 
   void clear() {

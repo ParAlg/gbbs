@@ -24,7 +24,6 @@
 
 #include <iostream>
 
-#include "index_map.h"
 #include "macros.h"
 #include "seq.h"
 #include "utilities.h"
@@ -219,8 +218,8 @@ inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
     return std::make_tuple((Idx_Type)i, std::get<1>(f(i)));
   };
   auto flgs_in =
-      make_in_imap<bool>(size, [&](size_t i) { return std::get<0>(f(i)); });
-  return pack(make_in_imap<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
+      make_sequence<bool>(size, [&](size_t i) { return std::get<0>(f(i)); });
+  return pack(make_sequence<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
               fl);
 }
 
@@ -230,7 +229,7 @@ inline auto filter_serial(In_Seq In, Pred p, flags fl = no_flag,
     -> sequence<typename In_Seq::T> {
   using T = typename In_Seq::T;
   size_t n = In.size();
-  auto Fl = make_in_imap<bool>(n, [&](size_t i) { return p(In[i]); });
+  auto Fl = make_sequence<bool>(n, [&](size_t i) { return p(In[i]); });
   size_t m = sum_flags_serial(Fl);
   T* Out = (_Out) ? _Out : new_array_no_init<T>(m);
   size_t k = 0;
@@ -253,7 +252,7 @@ inline sequence<typename In_Seq::T> filter(In_Seq In, Pred p,
   if (l <= 1 || fl & fl_sequential) {
     return std::move(filter_serial(In, p, fl, _Out));
   }
-  auto Flags = array_imap<bool>(n);
+  auto Flags = sequence<bool>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { Flags[i] = (bool)p(In[i]); });
 
@@ -320,7 +319,7 @@ inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
     }
     Sums[i] = k - s;
   });
-  auto isums = array_imap<size_t>(Sums, l);
+  auto isums = sequence<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
   parallel_for_bc(i, 0, l, (l > 1), {
@@ -357,7 +356,7 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
     }
     Sums[i] = k - s;
   });
-  auto isums = array_imap<size_t>(Sums, l);
+  auto isums = sequence<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
   parallel_for_bc(i, 0, l, (l > 1), {
@@ -393,7 +392,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
     }
     Sums[i] = k - s;
   });
-  auto isums = array_imap<size_t>(Sums, l);
+  auto isums = sequence<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
   parallel_for_bc(i, 0, l, (l > 1), {
@@ -427,7 +426,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
 //   size_t *sums_true = new_array_no_init<size_t>(l);
 //   blocked_for (i, s, e, _F_BSIZE,
 // 		 sums_true[i] = sum_flags_serial(Fl+s, e-s););
-//   auto sums = array_imap<size_t>(sums_true, l);
+//   auto sums = sequence<size_t>(sums_true, l);
 //   size_t num_true = scan_add(sums, sums);
 //   size_t num_false = (e - s) - num_true;
 //   T* out_true = Out + num_false;

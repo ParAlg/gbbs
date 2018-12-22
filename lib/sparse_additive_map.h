@@ -122,7 +122,7 @@ class sparse_additive_map {
     T* out = newA(T, m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     size_t new_m = pbbs::filterf(table, out, m, pred);
-    return make_array_imap<T>(out, new_m);
+    return sequence<T>(out, new_m, true); // allocated
   }
 
   void clear() {
