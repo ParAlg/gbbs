@@ -100,9 +100,8 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
     }
   };
   parallel_for_bc(i, 0, n, true, { GA.V[i].mapOutNgh(i, map_f); });
-  auto e2 = edge_table.entries();
+  auto edges = edge_table.entries();
   edge_table.del();
-  auto edges = sequence<KV>(e2.start(), e2.size(), true);
   ins_t.stop();
   ins_t.reportTotal("ins time");
 
