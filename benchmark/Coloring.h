@@ -53,7 +53,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     auto min_f = [](uintE l, uintE r) { return std::min(l, r); };
     uintE color = pbbs::reduce(im, min_f, pbbs::fl_sequential);
     if (deg > 1000) {
-      free(bits);
+      pbbs::free_array(bits);
     }
     return (color == UINT_E_MAX) ? (deg + 1) : color;
   }

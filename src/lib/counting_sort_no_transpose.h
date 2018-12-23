@@ -25,8 +25,8 @@
 #include <stdio.h>
 #include <tuple>
 
-#include "sequence_ops.h"
-#include "utilities.h"
+#include "lib/sequence_ops.h"
+#include "lib/utilities.h"
 
 namespace pbbs {
 

@@ -435,7 +435,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   std::cout << "total weight = " << pbbs::reduce_add(wgh_imap) << "\n";
 
   mst_edges.del();
-  free(min_edges);
+  pbbs::free_array(min_edges);
 }
 
 template <
@@ -584,7 +584,7 @@ inline void MST(graph<vertex<W>>& GA) {
     speculative_for<uintE>(UFStep, 0, n_edges, 8);
 
     UFStep.del();
-    free(R);
+    pbbs::free_array(R);
     auto edge_im =
         make_sequence<edge_t>(n_edges, [&](size_t i) { return edges.E[i]; });
     auto edges_ret = pbbs::pack(edge_im, mstFlags);

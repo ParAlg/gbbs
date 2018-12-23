@@ -371,4 +371,13 @@ static int log2_up(T i) {
   }
   return a;
 }
+
+void free_array(void* a) {
+  free(a);
+}
+
 };  // namespace pbbs
+
+// legacy memory allocation macro
+//#define newA(__E, __n) (__E*)malloc((__n) * sizeof(__E))
+#define newA(__E, __n) pbbs::new_array_no_init<__E>(__n)

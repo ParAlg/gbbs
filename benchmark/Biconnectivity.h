@@ -300,7 +300,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     vs = output;
   }
   // Delete tree
-  free(v);
+  pbbs::free_array(v);
   nghs.del();
   leaff.stop();
   leaff.reportTotal("leaffix to update min max time");
@@ -446,9 +446,9 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   }
   std::cout << "BC done"
             << "\n";
-  free(MM_A);
-  free(PN_A);
-  free(aug_sizes_A);
+  pbbs::free_array(MM_A);
+  pbbs::free_array(PN_A);
+  pbbs::free_array(aug_sizes_A);
   ccc.stop();
   ccc.reportTotal("critical conn time");
   return std::make_tuple(Parents, cc.get_array());

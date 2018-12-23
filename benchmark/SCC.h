@@ -249,8 +249,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
           labels[i] = label;
         }
       });
-      free(in_visits);
-      free(out_visits);
+      pbbs::free_array(in_visits);
+      pbbs::free_array(out_visits);
       label_offset += 1;
       hd.stop();
       hd.reportTotal("big scc time");
@@ -307,8 +307,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
           labels[i] = label;
         }
       });
-      free(in_visits);
-      free(out_visits);
+      pbbs::free_array(in_visits);
+      pbbs::free_array(out_visits);
       ft.stop();
       ft.reportTotal("first round time");
       continue;

@@ -59,7 +59,7 @@ inline uintE* rankNodes(vertex* V, size_t n) {
                   { r[o[i]] = i; });
   t.stop();
   t.reportTotal("Rank time");
-  free(o);
+  pbbs::free_array(o);
   return r;
 }
 
@@ -162,6 +162,6 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
   DG.del();
   ct.stop();
   ct.reportTotal("count time");
-  free(rank);
+  pbbs::free_array(rank);
   return count;
 }

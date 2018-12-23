@@ -24,11 +24,11 @@
 
 #include <tuple>
 
-#include "sequence_ops.h"
-#include "utilities.h"
+#include "lib/sequence_ops.h"
+#include "lib/utilities.h"
 
-template <class K, class V>
-class sparse_additive_map {
+template <class K, class V, class KeyHash>
+class sparse_table {
  public:
   using T = std::tuple<K, V>;
 
@@ -38,13 +38,15 @@ class sparse_additive_map {
   K empty_key;
   T* table;
   bool alloc;
+  KeyHash& key_hash;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for_bc(i, 0, n, (n > 2048), { A[i] = kv; });
+    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+                    { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K& k) { return hashToRange(pbbs::hash64(k)); }
+  inline size_t firstIndex(K& k) { return hashToRange(key_hash(k)); }
   inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
   void del() {
@@ -54,18 +56,19 @@ class sparse_additive_map {
     }
   }
 
-  sparse_additive_map() : m(0) {
+  sparse_table() : m(0) {
     mask = 0;
     alloc = false;
   }
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_additive_map(size_t _m, T _empty)
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash)
       : m((size_t)1 << pbbs::log2_up((size_t)(1.1 * _m))),
         mask(m - 1),
         empty(_empty),
-        empty_key(std::get<0>(empty)) {
+        empty_key(std::get<0>(empty)),
+        key_hash(_key_hash) {
     size_t line_size = 64;
     size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
     table = (T*)aligned_alloc(line_size, bytes);
@@ -75,50 +78,112 @@ class sparse_additive_map {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_additive_map(size_t _m, T _empty, T* _tab)
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, T* _tab)
       : m(_m),
         mask(m - 1),
         table(_tab),
         empty(_empty),
-        empty_key(std::get<0>(empty)) {
+        empty_key(std::get<0>(empty)),
+        key_hash(_key_hash) {
     clearA(table, m, empty);
     alloc = false;
   }
 
   bool insert(std::tuple<K, V> kv) {
     K k = std::get<0>(kv);
-    V v = std::get<1>(kv);
     size_t h = firstIndex(k);
-    while (1) {
+    while (true) {
       if (std::get<0>(table[h]) == empty_key) {
         if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
-          return 1;
+          return true;
         }
       }
       if (std::get<0>(table[h]) == k) {
-        pbbs::write_add(&std::get<1>(table[h]), v);
         return false;
       }
       h = incrementIndex(h);
     }
-    return 0;
+    return false;
+  }
+
+  template <class F>
+  bool insert_f(std::tuple<K, V> kv, const F& f) {
+    K k = std::get<0>(kv);
+    size_t h = firstIndex(k);
+    while (true) {
+      if (std::get<0>(table[h]) == empty_key) {
+        if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
+          std::get<1>(table[h]) = std::get<1>(kv);
+          return true;
+        }
+      }
+      if (std::get<0>(table[h]) == k) {
+        f(&std::get<1>(table[h]), kv);
+        return false;
+      }
+      h = incrementIndex(h);
+    }
+    return false;
+  }
+
+  bool insert_seq(std::tuple<K, V> kv) {
+    K k = std::get<0>(kv);
+    size_t h = firstIndex(k);
+    while (true) {
+      if (std::get<0>(table[h]) == empty_key) {
+        table[h] = kv;
+        return 1;
+      }
+      if (std::get<0>(table[h]) == k) {
+        return false;
+      }
+      h = incrementIndex(h);
+    }
+    return false;
+  }
+
+  void mark_seq(K k) {
+    size_t h = firstIndex(k);
+    while (true) {
+      if (std::get<0>(table[h]) == empty_key) {
+        return;
+      }
+      if (std::get<0>(table[h]) == k) {
+        std::get<0>(table[h]) = empty_key - 1;
+        return;
+      }
+      h = incrementIndex(h);
+    }
   }
 
   bool contains(K k) {
     size_t h = firstIndex(k);
-    while (1) {
+    while (true) {
       if (std::get<0>(table[h]) == k) {
-        return 1;
+        return true;
       } else if (std::get<0>(table[h]) == empty_key) {
-        return 0;
+        return false;
       }
       h = incrementIndex(h);
     }
-    return 0;
+    return false;
   }
 
-  auto entries() {
+  V find(K k, V default_value) {
+    size_t h = firstIndex(k);
+    while (true) {
+      if (std::get<0>(table[h]) == k) {
+        return std::get<1>(table[h]);
+      } else if (std::get<0>(table[h]) == empty_key) {
+        return default_value;
+      }
+      h = incrementIndex(h);
+    }
+    return default_value;
+  }
+
+  sequence<T> entries() {
     T* out = newA(T, m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     size_t new_m = pbbs::filterf(table, out, m, pred);
@@ -126,7 +191,21 @@ class sparse_additive_map {
   }
 
   void clear() {
-    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
-                    { table[i] = empty; });
+    parallel_for_bc(i, 0, m, (m > 2048), { table[i] = empty; });
   }
 };
+
+template <class K, class V, class KeyHash>
+inline sparse_table<K, V, KeyHash> make_sparse_table(size_t m,
+                                                     std::tuple<K, V> empty,
+                                                     KeyHash key_hash) {
+  return sparse_table<K, V, KeyHash>(m, empty, key_hash);
+}
+
+template <class K, class V, class KeyHash>
+inline sparse_table<K, V, KeyHash> make_sparse_table(std::tuple<K, V>* tab,
+                                                     size_t m,
+                                                     std::tuple<K, V> empty,
+                                                     KeyHash key_hash) {
+  return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab);
+}
