@@ -92,8 +92,8 @@ template <class vertex, class E>
 inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
                                                   size_t m, size_t sizeofe) {
   auto df = [&](vertex* V, E* edges, size_t n, size_t m, size_t sizeofe) {
-    auto NV = newA(vertex, n);
-    auto NE = newA(E, sizeofe);
+    auto NV = pbbs::new_array_no_init<vertex>(n);
+    auto NE = pbbs::new_array_no_init<E>(sizeofe);
     parallel_for_bc(i, 0, sizeofe, (sizeofe > pbbs::kSequentialForThreshold),
                     { NE[i] = edges[i]; });
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
@@ -116,9 +116,9 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
                                                   size_t m_out) {
   auto df = [&](vertex* V, E* in_edges, E* out_edges, size_t n, size_t m,
                 size_t m_in, size_t m_out) {
-    auto NV = newA(vertex, n);
-    auto Nin = newA(E, m_in);
-    auto Nout = newA(E, m_out);
+    auto NV = pbbs::new_array_no_init<vertex>(n);
+    auto Nin = pbbs::new_array_no_init<E>(m_in);
+    auto Nout = pbbs::new_array_no_init<E>(m_out);
     parallel_for_bc(i, 0, m_in, (m_in > pbbs::kSequentialForThreshold),
                     { Nin[i] = in_edges[i]; });
     parallel_for_bc(i, 0, m_in, (m_in > pbbs::kSequentialForThreshold),

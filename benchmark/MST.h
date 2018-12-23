@@ -62,7 +62,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     return (a.weight < b.weight) || (a.weight == b.weight && a.index < b.index);
   };
 
-  uintE* edge_ids = newA(uintE, m);
+  uintE* edge_ids = pbbs::new_array_no_init<uintE>(m);
   parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
                   { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
@@ -70,7 +70,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
   auto is_root = sequence<bool>(n);
 
-  uintE* mst = newA(uintE, n);
+  uintE* mst = pbbs::new_array_no_init<uintE>(n);
   size_t n_in_mst = 0;
   size_t round = 0;
 
@@ -335,13 +335,13 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   auto parents = sequence<uintE>(n, [](size_t i) { return i; });
   auto mst_edges = dyn_arr<edge>(n);
 
-  auto min_edges = newA(ct, n);
+  auto min_edges = pbbs::new_array_no_init<ct>(n);
 
   size_t n_active = n;
-  uintE* vtxs = newA(uintE, n_active);
+  uintE* vtxs = pbbs::new_array_no_init<uintE>(n_active);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { vtxs[i] = i; });
-  uintE* next_vtxs = newA(uintE, n_active);
+  uintE* next_vtxs = pbbs::new_array_no_init<uintE>(n_active);
 
   size_t round = 0;
   while (GA.m > 0) {
@@ -574,7 +574,7 @@ inline void MST(graph<vertex<W>>& GA) {
               << " G.m is now = " << GA.m << "\n";
 
     // 2. initialize reservations, copy edge info, and run UF step.
-    auto R = newA(res, n);
+    auto R = pbbs::new_array_no_init<res>(n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { R[i] = res(); });
     sequence<bool> mstFlags =

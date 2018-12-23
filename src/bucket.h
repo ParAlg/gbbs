@@ -367,7 +367,7 @@ struct buckets {
     id_dyn_arr bkt = bkts[cur_bkt];
     size_t size = bkt.size;
     num_elms -= size;
-    uintE* out = newA(uintE, size);
+    uintE* out = pbbs::new_array_no_init<uintE>(size);
     size_t cur_bkt_num = get_cur_bucket_num();
     auto _d = d;
     auto p = [&](size_t i) { return _d(i) == cur_bkt_num; };

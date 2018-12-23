@@ -46,8 +46,8 @@ struct countF {
 
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
-  uintE* r = newA(uintE, n);
-  uintE* o = newA(uintE, n);
+  uintE* r = pbbs::new_array_no_init<uintE>(n);
+  uintE* o = pbbs::new_array_no_init<uintE>(n);
 
   timer t;
   t.start();

@@ -486,7 +486,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     E stk[100];
     E* block_outputs;
     if (num_blocks > 100) {
-      block_outputs = newA(E, num_blocks);
+      block_outputs = pbbs::new_array_no_init<E>(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -859,7 +859,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     uintEW tmp_stack[100];
     uintEW* U = tmp_stack;
     if (degree > 100) {
-      U = newA(uintEW, degree);
+      U = pbbs::new_array_no_init<uintEW>(degree);
     }
     parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
       uchar* finger =
@@ -887,7 +887,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     size_t new_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE offs_stack[100];
     uintE* offs =
-        ((new_blocks + 1) <= 100) ? offs_stack : newA(uintE, new_blocks + 1);
+        ((new_blocks + 1) <= 100) ? offs_stack : pbbs::new_array_no_init<uintE>(new_blocks + 1);
 
     // 3. Compute #bytes per new block
     parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {

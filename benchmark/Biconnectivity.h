@@ -141,7 +141,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   augs.start();
   // Create directed BFS tree
   using vtx = asymmetricVertex<pbbs::empty>;
-  auto v = newA(vtx, n);
+  auto v = pbbs::new_array_no_init<vtx>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
@@ -397,7 +397,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   timer ccpred;
   ccpred.start();
   // 1. Pack out all critical edges
-  auto active = newA(bool, n);
+  auto active = pbbs::new_array_no_init<bool>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { active[i] = true; });
   auto vs_active = vertexSubset(n, n, active);

@@ -35,7 +35,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     bool* bits;
     bool s_bits[1000];
     if (deg > 1000)
-      bits = newA(bool, deg);
+      bits = pbbs::new_array_no_init<bool>(deg);
     else
       bits = (bool*)s_bits;
 

@@ -184,7 +184,7 @@ class sparse_table {
   }
 
   sequence<T> entries() {
-    T* out = newA(T, m);
+    T* out = pbbs::new_array_no_init<T>(m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     size_t new_m = pbbs::filterf(table, out, m, pred);
     return sequence<T>(out, new_m, true); // allocated

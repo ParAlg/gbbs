@@ -50,7 +50,7 @@ struct get_bucket {
   B& I;
 
   std::tuple<E*, int> heavy_hitters(size_t n, size_t count) {
-    E* sample = newA(E, count);
+    E* sample = pbbs::new_array_no_init<E>(count);
     for (size_t i = 0; i < count; i++) {
       sample[i] = I[hash64(i) % n];
     }
@@ -74,7 +74,7 @@ struct get_bucket {
   std::tuple<E, int>* make_hash_table(E* entries, size_t n, size_t table_size,
                                       size_t table_mask) {
     using ttype = std::tuple<E, int>;
-    auto table = newA(ttype, table_size);
+    auto table = pbbs::new_array_no_init<ttype>(table_size);
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
@@ -137,7 +137,7 @@ struct hist_table {
   KV* table;
   size_t size;
   hist_table(KV _empty, size_t _size) : empty(_empty), size(_size) {
-    table = newA(KV, size);
+    table = pbbs::new_array_no_init<KV>(size);
     parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
   }
   hist_table() {}
@@ -146,7 +146,7 @@ struct hist_table {
     if (req_size > size) {
       size_t rounded_size = (1L << pbbs::log2_up<size_t>(req_size));
       free(table);
-      table = newA(KV, rounded_size);
+      table = pbbs::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
       parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
       std::cout << "resized to: " << size << "\n";
@@ -288,7 +288,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   out_offs[num_buckets] = ct;
   uintT num_distinct = ct;
 
-  O* res = newA(O, ct);
+  O* res = pbbs::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
   parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
@@ -330,7 +330,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
       K k = get_key(i);
       ct += S.insertAdd(k);
     }
-    O* out = newA(O, ct);
+    O* out = pbbs::new_array_no_init<O>(ct);
     size_t k = S.compactInto(apply_f, out);
     return std::make_pair(k, out);
   }
@@ -403,7 +403,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   MO* heavy_cts;
   if (heavy) {
     if (num_heavy > 128) {
-      heavy_cts = newA(MO, num_heavy);
+      heavy_cts = pbbs::new_array_no_init<MO>(num_heavy);
     } else {
       heavy_cts = heavy_cts_stk;
     }
@@ -531,7 +531,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   }
   uintT num_distinct = ct;
 
-  O* res = newA(O, ct);
+  O* res = pbbs::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
   parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
@@ -586,7 +586,7 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
     E a = get_elm(i);
     reduce_f(S, a);
   }
-  O* out = newA(O, n);
+  O* out = pbbs::new_array_no_init<O>(n);
   size_t k = S.compactInto(apply_f, out);
   return std::make_pair(k, out);
 }
@@ -670,7 +670,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   }
 
   ht.resize(ht_offs[num_buckets]);
-  O* out = newA(O, ht_offs[num_buckets]);
+  O* out = pbbs::new_array_no_init<O>(ht_offs[num_buckets]);
 
   // (3) insert elms into per-bucket hash table (par)
   {
@@ -722,7 +722,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   out_offs[num_buckets] = ct;
   uintT num_distinct = ct;
 
-  O* res = newA(O, ct);
+  O* res = pbbs::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
   parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {

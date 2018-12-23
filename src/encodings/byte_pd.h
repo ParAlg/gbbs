@@ -300,7 +300,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     E stk[1000];
     E* block_outputs;
     if (num_blocks > 1000) {
-      block_outputs = newA(E, num_blocks);
+      block_outputs = pbbs::new_array_no_init<E>(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -545,7 +545,7 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
     uintE stk[100];
     uintE* block_bytes;
     if (num_blocks > 100) {
-      block_bytes = newA(uintE, num_blocks);
+      block_bytes = pbbs::new_array_no_init<uintE>(num_blocks);
     } else {
       block_bytes = (uintE*)stk;
     }
@@ -734,7 +734,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE stk[101];
   uintE* block_bytes;
   if (num_blocks > 100) {
-    block_bytes = newA(uintE, num_blocks + 1);
+    block_bytes = pbbs::new_array_no_init<uintE>(num_blocks + 1);
   } else {
     block_bytes = (uintE*)stk;
   }
@@ -911,14 +911,14 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
   uintE** edgePts = newA(uintE*, n);
-  long* charsUsedArr = newA(long, n);
-  long* compressionStarts = newA(long, n + 1);
+  long* charsUsedArr = pbbs::new_array_no_init<long>(n);
+  long* compressionStarts = pbbs::new_array_no_init<long>(n + 1);
   {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { charsUsedArr[i] = ceil((Degrees[i] * 9) / 8) + 4; });
   }
   long toAlloc = ligra_utils::seq::plusScan(charsUsedArr, charsUsedArr, n);
-  uintE* iEdges = newA(uintE, toAlloc);
+  uintE* iEdges = pbbs::new_array_no_init<uintE>(toAlloc);
 
   {
     parallel_for_bc(i, 0, n, true, {
@@ -936,7 +936,7 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   compressionStarts[n] = totalSpace;
   pbbs::free_array(charsUsedArr);
 
-  uchar* finalArr = newA(uchar, totalSpace);
+  uchar* finalArr = pbbs::new_array_no_init<uchar>(totalSpace);
   std::cout << "total space requested is : " << totalSpace << "\n";
   float avgBitsPerEdge = (float)totalSpace * 8 / (float)m;
   std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
@@ -1005,7 +1005,7 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   bytes_used[n] = 0;
   size_t total_bytes =
       ligra_utils::seq::plusScan(bytes_used, bytes_used, n + 1);
-  uchar* edges_c = newA(uchar, total_bytes);
+  uchar* edges_c = pbbs::new_array_no_init<uchar>(total_bytes);
 
   parallel_for_bc(i, 0, n, true, {
     sequentialCompressWeightedEdgeSet(edges_c, bytes_used[i], Degrees[i], i,

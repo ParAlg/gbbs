@@ -118,7 +118,7 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
     exit(-1);
   }
   size_t n = sb.st_size;
-  //  char *bytes = newA(char, n);
+  //  char *bytes = pbbs::new_array_no_init<char>(n);
   //  parallel_for(size_t i=0; i<n; i++) {
   //    bytes[i] = p[i];
   //  }
@@ -141,7 +141,7 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   long end = file.tellg();
   file.seekg(0, std::ios::beg);
   long n = end - file.tellg();
-  char* bytes = newA(char, n + 1);
+  char* bytes = pbbs::new_array_no_init<char>(n + 1);
   file.read(bytes, n);
   file.close();
   return ligra_utils::_seq<char>(bytes, n);
@@ -156,7 +156,7 @@ inline words stringToWords(char* Str, long n) {
   }
 
   // mark start of words
-  bool* FL = newA(bool, n);
+  bool* FL = pbbs::new_array_no_init<bool>(n);
   FL[0] = Str[0];
   {
     parallel_for_bc(i, 1, n, (n > pbbs::kSequentialForThreshold),
@@ -194,7 +194,7 @@ inline graph<vertex<intE>> readWeightedGraph(
   if (bytes == nullptr) {
     if (mmap) {
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      char* bytes = newA(char, S.n);
+      char* bytes = pbbs::new_array_no_init<char>(S.n);
       // Cannot mutate the graph unless we copy.
       parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
                       { bytes[i] = S.A[i]; });
@@ -224,9 +224,9 @@ inline graph<vertex<intE>> readWeightedGraph(
     assert(false);  // invalid format
   }
 
-  uintT* offsets = newA(uintT, n);
+  uintT* offsets = pbbs::new_array_no_init<uintT>(n);
   using VW = std::tuple<uintE, intE>;
-  std::tuple<uintE, intE>* edges = newA(VW, 2 * m);
+  std::tuple<uintE, intE>* edges = pbbs::new_array_no_init<VW>(2 * m);
 
   {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
@@ -240,7 +240,7 @@ inline graph<vertex<intE>> readWeightedGraph(
   }
   // W.del(); // to deal with performance bug in malloc
 
-  wvtx* v = newA(wvtx, n);
+  wvtx* v = pbbs::new_array_no_init<wvtx>(n);
 
   {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
@@ -252,10 +252,10 @@ inline graph<vertex<intE>> readWeightedGraph(
   }
 
   if (!isSymmetric) {
-    uintT* tOffsets = newA(uintT, n);
+    uintT* tOffsets = pbbs::new_array_no_init<uintT>(n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { tOffsets[i] = INT_T_MAX; });
-    intTriple* temp = newA(intTriple, m);
+    intTriple* temp = pbbs::new_array_no_init<intTriple>(m);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
@@ -268,7 +268,7 @@ inline graph<vertex<intE>> readWeightedGraph(
     intSort::iSort(temp, m, n + 1, getFirst<intPair>());
 
     tOffsets[temp[0].first] = 0;
-    VW* inEdges = newA(VW, m);
+    VW* inEdges = pbbs::new_array_no_init<VW>(m);
     inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
     parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
@@ -311,7 +311,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
   if (bytes == nullptr) {
     if (mmap) {
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      char* bytes = newA(char, S.n);
+      char* bytes = pbbs::new_array_no_init<char>(S.n);
       // Cannot mutate the graph unless we copy.
       parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
                       { bytes[i] = S.A[i]; });
@@ -338,8 +338,8 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
   std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
   assert(len == n + m + 2);
 
-  uintT* offsets = newA(uintT, n);
-  uintE* edges = newA(uintE, m);
+  uintT* offsets = pbbs::new_array_no_init<uintT>(n);
+  uintE* edges = pbbs::new_array_no_init<uintE>(m);
 
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { offsets[i] = atol(W.Strings[i + 3]); });
@@ -347,7 +347,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
                   { edges[i] = atol(W.Strings[i + n + 3]); });
   W.del();  // to deal with performance bug in malloc
 
-  wvtx* v = newA(wvtx, n);
+  wvtx* v = pbbs::new_array_no_init<wvtx>(n);
 
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     uintT o = offsets[i];
@@ -357,10 +357,10 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
   });
 
   if (!isSymmetric) {
-    uintT* tOffsets = newA(uintT, n);
+    uintT* tOffsets = pbbs::new_array_no_init<uintT>(n);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { tOffsets[i] = INT_T_MAX; });
-    intPair* temp = newA(intPair, m);
+    intPair* temp = pbbs::new_array_no_init<intPair>(m);
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
@@ -372,7 +372,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
     intSort::iSort(temp, m, n + 1, getFirst<uintE>());
 
     tOffsets[temp[0].first] = 0;
-    uintE* inEdges = newA(uintE, m);
+    uintE* inEdges = pbbs::new_array_no_init<uintE>(m);
     inEdges[0] = temp[0].second;
     parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
       inEdges[i] = temp[i].second;
@@ -435,7 +435,7 @@ inline graph<vertex<W>> readCompressedGraph(
         std::cout << "Copying compressed graph"
                   << "\n";
         // Cannot mutate graph unless we copy.
-        char* bytes = newA(char, S.n);
+        char* bytes = pbbs::new_array_no_init<char>(S.n);
         parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
                         { bytes[i] = S.A[i]; });
         if (munmap(S.A, S.n) == -1) {

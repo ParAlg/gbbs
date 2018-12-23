@@ -120,7 +120,7 @@ struct vertexSubsetData {
   // Convert to dense but keep sparse representation if it exists.
   void toDense() {
     if (d == NULL) {
-      d = newA(D, n);
+      d = pbbs::new_array_no_init<D>(n);
       parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                       { std::get<0>(d[i]) = false; });
       parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
@@ -148,7 +148,7 @@ struct vertexSubsetData<pbbs::empty> {
   // A vertexSubset with a single vertex.
   vertexSubsetData<pbbs::empty>(long _n, uintE v)
       : n(_n), m(1), d(NULL), isDense(0) {
-    s = newA(uintE, 1);
+    s = pbbs::new_array_no_init<uintE>(1);
     s[0] = v;
   }
 
@@ -257,7 +257,7 @@ struct vertexSubsetData<pbbs::empty> {
   // Converts to dense but keeps sparse representation if it exists.
   void toDense() {
     if (d == NULL) {
-      d = newA(bool, n);
+      d = pbbs::new_array_no_init<bool>(n);
       parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                       { d[i] = 0; });
       parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),

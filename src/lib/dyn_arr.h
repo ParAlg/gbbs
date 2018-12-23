@@ -39,7 +39,7 @@ struct dyn_arr {
   bool alloc;
 
   dyn_arr() : A(NULL), size(0), capacity(0), alloc(false) {}
-  dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = newA(E, s); }
+  dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = pbbs::new_array_no_init<E>(s); }
   dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
       : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
 
@@ -55,7 +55,7 @@ struct dyn_arr {
   inline void resize(size_t n) {
     if (n + size > capacity) {
       size_t new_capacity = std::max(2 * (n + size), (size_t)MIN_BKT_SIZE);
-      E* nA = newA(E, new_capacity);
+      E* nA = pbbs::new_array_no_init<E>(new_capacity);
       parallel_for_bc(i, 0, size, 2000, nA[i] = A[i];);
       if (alloc) {
         pbbs::free_array(A);

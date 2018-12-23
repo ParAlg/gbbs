@@ -74,7 +74,7 @@ inline words stringToWords(char* Str, long n) {
   });
 
   // mark start of words
-  bool* FL = newA(bool, n);
+  bool* FL = pbbs::new_array_no_init<bool>(n);
   FL[0] = Str[0];
   parallel_for_bc(i, 1, n, (n > pbbs::kSequentialForThreshold),
                   { FL[i] = Str[i] && !Str[i - 1]; });
@@ -141,11 +141,11 @@ struct notZero {
 
 template <class T>
 inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
-  long* L = newA(long, n);
+  long* L = pbbs::new_array_no_init<long>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                   { L[i] = xToStringLen(A[i]) + 1; });
   long m = ligra_utils::seq::scan(L, L, n, ligra_utils::addF<long>(), (long)0);
-  char* B = newA(char, m);
+  char* B = pbbs::new_array_no_init<char>(m);
   parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold), { B[j] = 0; });
   parallel_for_bc(i, 0, n - 1, (n - 1 > pbbs::kSequentialForThreshold), {
     xToString(B + L[i], A[i]);
@@ -154,7 +154,7 @@ inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
   xToString(B + L[n - 1], A[n - 1]);
   B[m - 1] = '\n';
   pbbs::free_array(L);
-  char* C = newA(char, m + 1);
+  char* C = pbbs::new_array_no_init<char>(m + 1);
   long mm = ligra_utils::seq::filter(B, C, m, notZero());
   C[mm] = 0;
   pbbs::free_array(B);
@@ -214,7 +214,7 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   long end = file.tellg();
   file.seekg(0, std::ios::beg);
   long n = end - file.tellg();
-  char* bytes = newA(char, n + 1);
+  char* bytes = pbbs::new_array_no_init<char>(n + 1);
   file.read(bytes, n);
   file.close();
   return ligra_utils::_seq<char>(bytes, n);
