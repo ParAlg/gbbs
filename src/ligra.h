@@ -294,7 +294,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 
   // 3. Compute the number of threads, binary search for offsets.
   size_t n_threads = nblocks(outEdgeCount, kEMBlockSize);
-  size_t* thread_offs = newA(size_t, n_threads + 1);
+  size_t* thread_offs = pbbs::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
     size_t start_off = i * kEMBlockSize;
@@ -404,7 +404,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   // 3. Compute the number of threads, binary search for offsets.
   size_t n_threads =
       nblocks(outEdgeCount, kEMBlockSize);  // TODO(laxmand): 4*nworkers()?
-  size_t* thread_offs = newA(size_t, n_threads + 1);
+  size_t* thread_offs = pbbs::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   parallel_for_bc(i, 0, n_threads, (n_threads > 1), {
     size_t start_off = i * kEMBlockSize;

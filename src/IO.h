@@ -174,7 +174,7 @@ inline words stringToWords(char* Str, long n) {
   long* offsets = Off.A;
 
   // pointer to each start of word
-  char** SA = newA(char*, m);
+  char** SA = pbbs::new_array_no_init<char*>(m);
   {
     parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold),
                     { SA[j] = Str + offsets[j]; });
@@ -560,7 +560,7 @@ inline graph<vertex<W>> readCompressedGraph(
     inDegrees = Degrees;
   }
 
-  w_vertex* V = newA(w_vertex, n);
+  w_vertex* V = pbbs::new_array_no_init<w_vertex>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     long o = offsets[i];
     uintT d = Degrees[i];
@@ -594,7 +594,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
                                                      uintE* degrees,
                                                      uchar* edges) {
   using w_vertex = vertex<W>;
-  w_vertex* V = newA(w_vertex, n);
+  w_vertex* V = pbbs::new_array_no_init<w_vertex>(n);
   parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
     long o = offsets[i];
     uintT d = degrees[i];

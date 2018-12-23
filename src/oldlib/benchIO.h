@@ -85,7 +85,7 @@ inline words stringToWords(char* Str, long n) {
   long* offsets = Off.A;
 
   // pointer to each start of word
-  char** SA = newA(char*, m);
+  char** SA = pbbs::new_array_no_init<char*>(m);
   parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold),
                   { SA[j] = Str + offsets[j]; });
 

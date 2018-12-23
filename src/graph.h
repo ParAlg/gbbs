@@ -213,7 +213,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     }
   });
 
-  auto AV = newA(asymmetricVertex<W>, n);
+  auto AV = pbbs::new_array_no_init<asymmetricVertex<W>>(n);
   parallel_for_bc(i, 0, n, true, {
     uintT in_offset = in_edge_sizes[i];
     uintT out_offset = out_edge_sizes[i];
@@ -308,7 +308,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     parallel_for_bc(i, 0, n, true, { for_inner(i); });
   }
 
-  auto AV = newA(cav_byte<W>, n);
+  auto AV = pbbs::new_array_no_init<cav_byte<W>>(n);
   parallel_for_bc(i, 0, n, true, {
     size_t o = byte_offsets[i];
     uchar* our_edges = edges.start() + o;

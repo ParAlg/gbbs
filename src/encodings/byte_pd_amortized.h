@@ -975,7 +975,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   size_t block_cts_stack[100];
   size_t* block_cts =
-      (num_blocks > 100) ? newA(size_t, num_blocks + 1) : block_cts_stack;
+      (num_blocks > 100) ? pbbs::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
 
   parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;

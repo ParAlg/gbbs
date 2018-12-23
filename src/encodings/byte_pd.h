@@ -910,7 +910,7 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
                              uintE* Degrees) {
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
-  uintE** edgePts = newA(uintE*, n);
+  uintE** edgePts = pbbs::new_array_no_init<uintE*>(n);
   long* charsUsedArr = pbbs::new_array_no_init<long>(n);
   long* compressionStarts = pbbs::new_array_no_init<long>(n + 1);
   {
@@ -997,7 +997,7 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
                                      uintE* Degrees) {
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
-  auto bytes_used = newA(size_t, n + 1);
+  auto bytes_used = pbbs::new_array_no_init<size_t>(n + 1);
 
   parallel_for_bc(i, 0, n, true, {
     bytes_used[i] = compute_size_in_bytes(edges + offsets[i], i, Degrees[i]);

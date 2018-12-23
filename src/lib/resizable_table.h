@@ -109,7 +109,7 @@ class resizable_table {
 
   void init_counts() {
     size_t workers = nworkers();
-    cts = newA(size_t, CACHE_STRIDE * workers);
+    cts = pbbs::new_array_no_init<size_t>(CACHE_STRIDE * workers);
     for (size_t i = 0; i < workers; i++) {
       cts[i * CACHE_STRIDE] = 0;
     }
