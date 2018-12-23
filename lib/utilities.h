@@ -80,17 +80,29 @@ static inline void par_do3(bool do_parallel, Lf left, Mf mid, Rf right) {
   }
 }
 
+//template <typename F>
+//static inline void par_for(size_t start, size_t end, size_t granularity, F f) {
+//  if ((end - start) <= granularity)
+//    for (size_t i = start; i < end; i++) f(i);
+//  else {
+//    size_t mid = (end + start) / 2;
+//    cilk_spawn par_for(start, mid, granularity, f);
+//    par_for(mid, end, granularity, f);
+//    cilk_sync;
+//  }
+//}
+
 template <typename F>
 static inline void par_for(size_t start, size_t end, size_t granularity, F f) {
   if ((end - start) <= granularity)
     for (size_t i = start; i < end; i++) f(i);
   else {
-    size_t mid = (end + start) / 2;
-    cilk_spawn par_for(start, mid, granularity, f);
-    par_for(mid, end, granularity, f);
-    cilk_sync;
+    parallel_for(size_t i=start; i<end; i++) {
+      f(i);
+    }
   }
 }
+
 #else
 #define cilk_spawn
 #define cilk_sync
@@ -119,6 +131,11 @@ static void par_for(size_t start, size_t end, size_t granularity, F f) {
   for (size_t i = start; i < end; i++) f(i);
 }
 #endif
+
+template <typename F>
+static void par_for(size_t start, size_t end, F f) {
+  par_for(start, end, pbbs::kSequentialForThreshold, f);
+}
 
 #include <malloc.h>
 struct malloc_init {

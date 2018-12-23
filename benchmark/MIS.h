@@ -38,12 +38,12 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
       d[ngh] = 1;
     }
   };
-  parallel_for_bc(i, 0, GA.n, true, {
+  par_for(0, GA.n, [&] (size_t i) {
     if (in_mis[i]) {
       GA.V[i].mapOutNgh(i, map_f);
     }
   });
-  parallel_for_bc(i, 0, GA.n, true, {
+  par_for(0, GA.n, [&] (size_t i) {
     if (in_mis[i]) {
       assert(!d[i]);
     }
@@ -75,7 +75,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
         dense[ngh] = 1;
       }
     };
-    parallel_for_bc(i, 0, vs.size(), true, {
+    par_for(0, vs.size(), [&] (size_t i) {
       uintE v = vs.vtx(i);
       GA.V[v].mapOutNgh(v, map_f);
     });
@@ -85,7 +85,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
         sum_d, std::make_tuple(UINT_E_MAX, pbbs::empty()),
         [&](const uintE& k) { return pbbs::hash64(k); });
     vs.toSparse();
-    parallel_for_bc(i, 0, vs.size(), true, {
+    par_for(0, vs.size(), [&] (size_t i) {
       auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
         if (p(ngh)) {
           ht.insert(std::make_tuple(ngh, pbbs::empty()));
@@ -156,7 +156,7 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
   auto perm = pbbs::random_permutation<uintE>(n);
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -271,7 +271,7 @@ template <template <class W> class vertex, class W, class Seq>
 inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   size_t n = GA.n;
   auto ok = sequence<bool>(n, [&](size_t i) { return 1; });
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
