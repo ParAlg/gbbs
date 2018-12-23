@@ -356,7 +356,7 @@ inline void iSort(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
   long x = iSortSpace<E>(n);
   char *s = (char *)malloc(x);
   iSort(A, bucketOffsets, n, m, bottomUp, s, f);
-  free(s);
+  pbbs::free_array(s);
 }
 
 template <class E, class F, class oint>

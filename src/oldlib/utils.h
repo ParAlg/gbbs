@@ -180,7 +180,7 @@ struct _seq {
     n = 0;
   }
   _seq(T* _A, long _n) : A(_A), n(_n) {}
-  void del() { free(A); }
+  void del() { pbbs::free_array(A); }
 };
 
 namespace seq {
@@ -235,7 +235,7 @@ inline OT reduce(intT s, intT e, F f, G g) {
   OT* Sums = newA(OT, l);
   blocked_for(i, s, e, _SCAN_BSIZE, Sums[i] = reduceSerial<OT>(s, e, f, g););
   OT r = reduce<OT>((intT)0, l, f, getA<OT, intT>(Sums));
-  free(Sums);
+  pbbs::free_array(Sums);
   return r;
 }
 
@@ -305,7 +305,7 @@ inline ET scan(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive,
   ET total = scan(Sums, (intT)0, l, f, getA<ET, intT>(Sums), zero, false, back);
   blocked_for(i, s, e, _SCAN_BSIZE,
               scanSerial(Out, s, e, f, g, Sums[i], inclusive, back););
-  free(Sums);
+  pbbs::free_array(Sums);
   return total;
 }
 
@@ -377,7 +377,7 @@ inline _seq<ET> pack(ET* Out, bool* Fl, intT s, intT e, F f) {
   intT m = plusScan(Sums, Sums, l);
   if (Out == NULL) Out = newA(ET, m);
   blocked_for(i, s, e, _F_BSIZE, packSerial(Out + Sums[i], Fl, s, e, f););
-  free(Sums);
+  pbbs::free_array(Sums);
   return _seq<ET>(Out, m);
 }
 
@@ -408,7 +408,7 @@ template <class ET, class intT, class PRED>
 inline intT filter(ET* In, ET* Out, intT n, PRED p) {
   bool* Fl = newA(bool, n);
   intT m = filter(In, Out, Fl, n, p);
-  free(Fl);
+  pbbs::free_array(Fl);
   return m;
 }
 

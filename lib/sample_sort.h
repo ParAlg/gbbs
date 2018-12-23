@@ -172,7 +172,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     E* C = new_array_no_init<E>(n, 1);
     size_t* bucket_offsets =
         transpose_buckets(B, C, counts, n, block_size, num_blocks, num_buckets);
-    free(counts);
+    pbbs::free_array(counts);
     it.stop();
     it.reportTotal("transpose time");
     // std::cout << "transpose: " << t.get_next() << "\n";
@@ -197,12 +197,12 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     it.reportTotal("sort within buckets time");
     // std::cout << "final part: " << t.get_next() << "\n";
     delete_array(pivots, num_buckets - 1);
-    free(bucket_offsets);
+    pbbs::free_array(bucket_offsets);
     if (inplace) {
-      free(C);
+      pbbs::free_array(C);
       return Bs;
     } else {
-      free(B);
+      pbbs::free_array(B);
       return sequence<E>(C, n, true);
     }
   }

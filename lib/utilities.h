@@ -222,6 +222,10 @@ uint64_t hash64(uint64_t u) {
   return v;
 }
 
+void free_array(void* a) {
+  free(a);
+}
+
 // Does not initialize the array
 template <typename E>
 E* new_array_no_init(size_t n, bool touch_pages = false) {
@@ -259,7 +263,7 @@ void delete_array(E* A, size_t n) {
     parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
                     { A[i].~E(); });
   }
-  free(A);
+  pbbs::free_array(A);
 }
 
 template <typename ET>
@@ -371,11 +375,6 @@ static int log2_up(T i) {
   }
   return a;
 }
-
-void free_array(void* a) {
-  free(a);
-}
-
 };  // namespace pbbs
 
 // legacy memory allocation macro

@@ -41,8 +41,8 @@
 
 #include "oldlib/utils.h"
 
-#include "../lib/binary_search.h"
-#include "../lib/get_time.h"
+#include "lib/binary_search.h"
+#include "lib/get_time.h"
 
 typedef uint32_t flags;
 const flags no_output = 1;

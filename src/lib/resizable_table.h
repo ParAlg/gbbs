@@ -101,8 +101,8 @@ class resizable_table {
 
   void del() {
     if (alloc) {
-      free(table);
-      free(cts);
+      pbbs::free_array(table);
+      pbbs::free_array(cts);
       alloc = false;
     }
   }
@@ -181,7 +181,7 @@ class resizable_table {
       });
       update_nelms();
       if (alloc) {
-        free(old_t);
+        pbbs::free_array(old_t);
       }
       alloc = true;
     }

@@ -49,7 +49,7 @@ class sparse_additive_map {
 
   void del() {
     if (alloc) {
-      free(table);
+      pbbs::free_array(table);
       alloc = false;
     }
   }

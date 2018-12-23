@@ -154,7 +154,7 @@ struct buckets {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].del();
       }
-      free(bkts);
+      pbbs::free_array(bkts);
       allocated = false;
     }
   }
@@ -252,8 +252,8 @@ struct buckets {
       m += num_inc;
     }
 
-    free(hists);
-    free(outs);
+    pbbs::free_array(hists);
+    pbbs::free_array(outs);
     return num_elms - ne_before;
   }
 
@@ -374,7 +374,7 @@ struct buckets {
     size_t m = pbbs::filterf(bkt.A, out, size, p);
     bkts[cur_bkt].size = 0;
     if (m == 0) {
-      free(out);
+      pbbs::free_array(out);
       return next_bucket();
     }
     vertexSubset vs(n, m, out);

@@ -80,7 +80,7 @@ inline sequence<size_t> seq_count_sort(InS In, OutS Out, KeyS Keys,
   T* B = new_array_no_init<T>(n);
   _seq_count_sort<b_size_t, size_t>(In, B, Keys, counts, num_buckets);
   for (size_t i = 0; i < n; i++) Out.update(i, B[i]);
-  free(B);
+  pbbs::free_array(B);
   size_t c = 0;
   for (size_t i = 0; i < num_buckets; i++) {
     size_t x = counts[i];
@@ -133,8 +133,8 @@ inline sequence<size_t> _count_sort(InS In, OutS Out, KeyS Keys,
   OutS C = Out;
   size_t* bucket_offsets = transpose_buckets(
       B, Out.start(), counts, n, block_size, num_blocks, num_buckets);
-  free(counts);
-  free(B);
+  pbbs::free_array(counts);
+  pbbs::free_array(B);
   return sequence<size_t>(bucket_offsets, num_buckets + 1, true);
 }
 

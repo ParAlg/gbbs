@@ -45,7 +45,7 @@ struct dyn_arr {
 
   void del() {
     if (alloc) {
-      free(A);
+      pbbs::free_array(A);
       alloc = false;
     }
   }
@@ -58,7 +58,7 @@ struct dyn_arr {
       E* nA = newA(E, new_capacity);
       parallel_for_bc(i, 0, size, 2000, nA[i] = A[i];);
       if (alloc) {
-        free(A);
+        pbbs::free_array(A);
       }
       A = nA;
       capacity = new_capacity;

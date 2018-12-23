@@ -34,7 +34,7 @@
 #include "MaximalMatching.h"
 #include "ligra.h"
 
-#include "../lib/seq.h"
+#include "lib/seq.h"
 
 #include <fstream>
 #include <iostream>

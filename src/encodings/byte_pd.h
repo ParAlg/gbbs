@@ -326,7 +326,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     auto im = make_sequence(block_outputs, num_blocks);
     E res = pbbs::reduce(im, r);
     if (num_blocks > 1000) {
-      free(block_outputs);
+      pbbs::free_array(block_outputs);
     }
     return res;
   } else {
@@ -561,7 +561,7 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
     if (num_blocks > 100) {
-      free(block_bytes);
+      pbbs::free_array(block_bytes);
     }
     return total_space;
   } else {
@@ -786,7 +786,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
     }
   });
   if (num_blocks > 100) {
-    free(block_bytes);
+    pbbs::free_array(block_bytes);
   }
 }
 
@@ -934,7 +934,7 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   long totalSpace =
       ligra_utils::seq::plusScan(charsUsedArr, compressionStarts, n);
   compressionStarts[n] = totalSpace;
-  free(charsUsedArr);
+  pbbs::free_array(charsUsedArr);
 
   uchar* finalArr = newA(uchar, totalSpace);
   std::cout << "total space requested is : " << totalSpace << "\n";
@@ -949,9 +949,9 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
     });
   }
   offsets[n] = totalSpace;
-  free(iEdges);
-  free(edgePts);
-  free(compressionStarts);
+  pbbs::free_array(iEdges);
+  pbbs::free_array(edgePts);
+  pbbs::free_array(compressionStarts);
   std::cout << "finished compressing, bytes used = " << totalSpace << "\n";
   std::cout << "would have been, " << (m * 4) << "\n";
   return ((uintE*)finalArr);

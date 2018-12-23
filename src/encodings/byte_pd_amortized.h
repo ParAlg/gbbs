@@ -518,7 +518,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     auto im = make_sequence(block_outputs, num_blocks);
     E res = pbbs::reduce(im, r);
     if (num_blocks > 100) {
-      free(block_outputs);
+      pbbs::free_array(block_outputs);
     }
     return res;
   } else {
@@ -953,10 +953,10 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     });
 
     if ((new_blocks + 1) > 100) {
-      free(offs);
+      pbbs::free_array(offs);
     }
     if (degree > 100) {
-      free(U);
+      pbbs::free_array(U);
     }
   }
 }
@@ -1047,7 +1047,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   });
 
   if (num_blocks > 100) {
-    free(block_cts);
+    pbbs::free_array(block_cts);
   }
 
   // Can comment out this call to avoid repacking; this can make algorithms,

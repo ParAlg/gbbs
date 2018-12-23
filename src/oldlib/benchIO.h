@@ -45,8 +45,8 @@ struct words {
   words(char* C, long nn, char** S, long mm)
       : n(nn), Chars(C), m(mm), Strings(S) {}
   void del() {
-    free(Chars);
-    free(Strings);
+    pbbs::free_array(Chars);
+    pbbs::free_array(Strings);
   }
 };
 
@@ -89,8 +89,8 @@ inline words stringToWords(char* Str, long n) {
   parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold),
                   { SA[j] = Str + offsets[j]; });
 
-  free(offsets);
-  free(FL);
+  pbbs::free_array(offsets);
+  pbbs::free_array(FL);
   return words(Str, n, SA, m);
 }
 
@@ -153,11 +153,11 @@ inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
   });
   xToString(B + L[n - 1], A[n - 1]);
   B[m - 1] = '\n';
-  free(L);
+  pbbs::free_array(L);
   char* C = newA(char, m + 1);
   long mm = ligra_utils::seq::filter(B, C, m, notZero());
   C[mm] = 0;
-  free(B);
+  pbbs::free_array(B);
   return ligra_utils::_seq<char>(C, mm);
 }
 

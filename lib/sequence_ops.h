@@ -329,7 +329,7 @@ inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
       O[j] = I[j];
     }
   });
-  free(Sums);
+  pbbs::free_array(Sums);
   return m;
 }
 
@@ -366,7 +366,7 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
       out(si + j, I[j]);
     }
   });
-  free(Sums);
+  pbbs::free_array(Sums);
   return m;
 }
 
@@ -434,7 +434,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
 // 		split_serial(Out + _F_BSIZE*i - sums_true[i],
 // 			    out_true + sums_true[i],
 // 			    Fl, s, e, f););
-//   free(sums_true);
+//   pbbs::free_array(sums_true);
 //   return num_false;
 // }
 
