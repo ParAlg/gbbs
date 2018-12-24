@@ -142,7 +142,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
 
     // color the rootset
     color_t.start();
-    parallel_for_bc(i, 0, roots.size(), (roots.size() > 1), {
+    par_for(0, roots.size(), 1, [&] (size_t i) {
       uintE v = roots.vtx(i);
       colors[v] = coloring::color(GA, v, colors);
     });

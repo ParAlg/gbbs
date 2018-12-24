@@ -196,7 +196,7 @@ inline graph<vertex<intE>> readWeightedGraph(
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
       char* bytes = pbbs::new_array_no_init<char>(S.n);
       // Cannot mutate the graph unless we copy.
-      parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
+      par_for(0, S.n, pbbs::kSequentialForThreshold, [&] (size_t i)
                       { bytes[i] = S.A[i]; });
       if (munmap(S.A, S.n) == -1) {
         perror("munmap");
@@ -313,7 +313,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
       char* bytes = pbbs::new_array_no_init<char>(S.n);
       // Cannot mutate the graph unless we copy.
-      parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
+      par_for(0, S.n, pbbs::kSequentialForThreshold, [&] (size_t i)
                       { bytes[i] = S.A[i]; });
       if (munmap(S.A, S.n) == -1) {
         perror("munmap");
@@ -436,7 +436,7 @@ inline graph<vertex<W>> readCompressedGraph(
                   << "\n";
         // Cannot mutate graph unless we copy.
         char* bytes = pbbs::new_array_no_init<char>(S.n);
-        parallel_for_bc(i, 0, S.n, (S.n > pbbs::kSequentialForThreshold),
+        par_for(0, S.n, pbbs::kSequentialForThreshold, [&] (size_t i)
                         { bytes[i] = S.A[i]; });
         if (munmap(S.A, S.n) == -1) {
           perror("munmap");

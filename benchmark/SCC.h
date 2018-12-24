@@ -107,7 +107,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.get_array(), true);
   frontier.toSparse();
-  parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
+  par_for(0, frontier.size(), 2000, [&] (size_t i) {
     uintE v = frontier.s[i];
     table.insert(std::make_tuple(v, label_start + i));
   });
@@ -132,7 +132,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
     size_t sum = pbbs::reduce_add(im);
     table.maybe_resize(sum);
 
-    parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
+    par_for(0, frontier.size(), 2000, [&] (size_t i) {
       uintE v = frontier.s[i];
       bits[v] = 0;  // reset flag
     });

@@ -495,7 +495,7 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
 
   vs.toSparse();
   vertex* frontier_vertices = pbbs::new_array_no_init<vertex>(m);
-  parallel_for_bc(i, 0, vs.size(), (vs.size() > pbbs::kSequentialForThreshold),
+  par_for(0, vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
                   { frontier_vertices[i] = GA.V[vs.vtx(i)]; });
   auto degree_im = make_sequence<size_t>(vs.size(), [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInDegree()

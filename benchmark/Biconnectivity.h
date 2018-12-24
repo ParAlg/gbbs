@@ -116,7 +116,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   pbbs::sample_sort(edges.start(), edges.size(), sort_tup);
 
   auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
-  parallel_for_bc(i, 0, edges.size(), (n > pbbs::kSequentialForThreshold), {
+  par_for(0, edges.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
       starts[std::get<0>(edges[i])] = i;
     }
@@ -197,7 +197,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   pren.start();
   auto PN = sequence<uintE>(n);
   vs = vertexSubset(n, s_copy.size(), s_copy.get_array());
-  parallel_for_bc(i, 0, Sources.size(), (n > pbbs::kSequentialForThreshold), {
+  par_for(0, Sources.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE v = s_copy[i];
     PN[v] = 0;
   });
@@ -212,7 +212,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     });
     auto tot = pbbs::scan_add(offsets, offsets);
     auto next_vs = sequence<uintE>(tot);
-    parallel_for_bc(i, 0, vs.size(), (n > pbbs::kSequentialForThreshold), {
+    par_for(0, vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
       uintE deg_v = Tree.V[v].getOutDegree();
@@ -330,7 +330,7 @@ inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
   size_t n = GA.n;
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
-  parallel_for_bc(i, 0, frontier.size(), (frontier.size() > 2000), {
+  par_for(0, frontier.size(), 2000, [&] (size_t i) {
     uintE v = frontier.s[i];
     Parents[v] = v;
   });
