@@ -39,7 +39,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     else
       bits = (bool*)s_bits;
 
-    parallel_for_bc(i, 0, deg, (deg > pbbs::kSequentialForThreshold),
+    par_for(0, deg, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { bits[i] = 0; });
     auto map_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE color = colors[ngh];

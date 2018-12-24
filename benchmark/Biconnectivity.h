@@ -102,7 +102,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   using edge = std::tuple<uintE, uintE>;
   auto out_edges = sequence<edge>(
       n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE p_i = Parents[i];
     if (p_i != i) {
       out_edges[i] = std::make_tuple(p_i, i);
@@ -142,7 +142,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   // Create directed BFS tree
   using vtx = asymmetricVertex<pbbs::empty>;
   auto v = pbbs::new_array_no_init<vtx>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
     v[i].setOutDegree(out_deg);
@@ -276,7 +276,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       }
     }
   };
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { GA.V[i].mapOutNgh(i, map_f); });
   map_e.stop();
   map_e.reportTotal("map edges time");
@@ -284,7 +284,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { cts[i] = Tree.V[i].getOutDegree(); });
 
   vs = vertexSubset(n, leafs.size(), leafs.get_array());
@@ -348,7 +348,7 @@ template <class Seq>
 inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE label = labels[i];
     writeMin(&flags[label], (uintE)i);
   });
@@ -367,7 +367,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   auto PN = sequence<uintE>(PN_A, n);
   auto aug_sizes = sequence<uintE>(aug_sizes_A, n);
 
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE pi = Parents[i];
     if (pi != i) {
       labels clab = MM[i];
@@ -398,7 +398,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   ccpred.start();
   // 1. Pack out all critical edges
   auto active = pbbs::new_array_no_init<bool>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { active[i] = true; });
   auto vs_active = vertexSubset(n, n, active);
   auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) {
@@ -435,7 +435,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     }
 
     auto tups = sequence<std::pair<uintE, uintE>>(n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     benchIO::writeArrayToStream(out, tups.start(), n);

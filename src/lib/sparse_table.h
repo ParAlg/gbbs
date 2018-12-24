@@ -41,7 +41,7 @@ class sparse_table {
   KeyHash& key_hash;
 
   static void clearA(T* A, long n, T kv) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { A[i] = kv; });
   }
 
@@ -191,7 +191,7 @@ class sparse_table {
   }
 
   void clear() {
-    parallel_for_bc(i, 0, m, (m > 2048), { table[i] = empty; });
+    par_for(0, m, 2048, [&] (size_t i) { table[i] = empty; });
   }
 };
 

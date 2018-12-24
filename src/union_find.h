@@ -33,7 +33,7 @@ struct UnionFind {
   intT* parents;
   UnionFind(size_t _n) : n(_n) {
     parents = pbbs::new_array_no_init<intT>(n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { parents[i] = -1; });
   }
 

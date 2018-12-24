@@ -313,7 +313,7 @@ inline void iSortX(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
     radixStep(A, B, Tmp, BK, numBK, n, (long)1 << bits, true,
               eBits<E, F>(bits, 0, f));
     if (bucketOffsets != NULL) {
-      parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+      par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
                       { bucketOffsets[i] = BK[0][i]; });
     }
     return;
@@ -323,7 +323,7 @@ inline void iSortX(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
     radixLoopTopDown(A, B, Tmp, BK, numBK, n, bits, f);
   }
   if (bucketOffsets != NULL) {
-    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { bucketOffsets[i] = n; });
     parallel_for_bc(i, 0, n - 1, (n - 1 > pbbs::kSequentialForThreshold), {
       long v = f(A[i]);

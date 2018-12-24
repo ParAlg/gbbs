@@ -69,14 +69,14 @@ struct toLong {
 
 // parallel code for converting a string to words
 inline words stringToWords(char* Str, long n) {
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (isSpace(Str[i])) Str[i] = 0;
   });
 
   // mark start of words
   bool* FL = pbbs::new_array_no_init<bool>(n);
   FL[0] = Str[0];
-  parallel_for_bc(i, 1, n, (n > pbbs::kSequentialForThreshold),
+  par_for(1, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { FL[i] = Str[i] && !Str[i - 1]; });
 
   // offset for each start of word
@@ -86,7 +86,7 @@ inline words stringToWords(char* Str, long n) {
 
   // pointer to each start of word
   char** SA = pbbs::new_array_no_init<char*>(m);
-  parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold),
+  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j)
                   { SA[j] = Str + offsets[j]; });
 
   pbbs::free_array(offsets);
@@ -142,11 +142,11 @@ struct notZero {
 template <class T>
 inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
   long* L = pbbs::new_array_no_init<long>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { L[i] = xToStringLen(A[i]) + 1; });
   long m = ligra_utils::seq::scan(L, L, n, ligra_utils::addF<long>(), (long)0);
   char* B = pbbs::new_array_no_init<char>(m);
-  parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold), { B[j] = 0; });
+  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j) { B[j] = 0; });
   parallel_for_bc(i, 0, n - 1, (n - 1 > pbbs::kSequentialForThreshold), {
     xToString(B + L[i], A[i]);
     B[L[i + 1] - 1] = '\n';

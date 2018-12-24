@@ -37,15 +37,15 @@ inline size_t RelabelIds(Seq& ids) {
   using T = typename Seq::T;
   size_t n = ids.size();
   auto inverse_map = sequence<T>(n + 1);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { inverse_map[i] = 0; });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
   });
   pbbs::scan_add(inverse_map, inverse_map);
 
   size_t new_n = inverse_map[n];
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { ids[i] = inverse_map[ids[i]]; });
   return new_n;
 }
@@ -180,7 +180,7 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
   if (GC.m == 0) return clusters;
 
   auto new_labels = CC_impl(GC, beta, level + 1);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton
@@ -200,7 +200,7 @@ template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }
@@ -256,7 +256,7 @@ inline sequence<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
   if (GC.m == 0) return clusters;
 
   auto new_labels = cc::CC_impl(GC, beta, level + 1);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton

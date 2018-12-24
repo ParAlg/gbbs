@@ -128,7 +128,7 @@ inline sequence<size_t> _count_sort(InS In, OutS Out, KeyS Keys,
   };
 
   // sort each block
-  parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), { f(i); });
+  par_for(0, num_blocks, 1, [&] (size_t i) { f(i); });
 
   OutS C = Out;
   size_t* bucket_offsets = transpose_buckets(

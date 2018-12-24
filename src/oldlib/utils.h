@@ -398,7 +398,7 @@ inline intT packIndex(intT* Out, bool* Fl, intT n) {
 
 template <class ET, class intT, class PRED>
 inline intT filter(ET* In, ET* Out, bool* Fl, intT n, PRED p) {
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { Fl[i] = (bool)p(In[i]); });
   intT m = pack(In, Out, Fl, n);
   return m;
@@ -440,14 +440,14 @@ inline ulong hashInt(ulong a) {
 // UINT_E_MAX.
 template <class G>
 inline void remDuplicates(G& get_key, uintE* flags, long m, long n) {
-  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE key = get_key(i);
     if (key != UINT_E_MAX && flags[key] == UINT_E_MAX) {
       CAS(&flags[key], (uintE)UINT_E_MAX, static_cast<uintE>(i));
     }
   });
   // reset flags
-  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE key = get_key(i);
     if (key != UINT_E_MAX) {
       if (flags[key] == i) {      // win

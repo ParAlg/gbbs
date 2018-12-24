@@ -90,7 +90,7 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
       if (!f.cond(vtx_id)) break;
     }
   } else {
-    parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
+    par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
       auto nw = nghs[j];
       uintE ngh = std::get<0>(nw);
       if (vertexSubset.isIn(ngh)) {
@@ -106,7 +106,7 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
 template <template <typename W> class vertex, class W, class F, class G>
 inline void decodeNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                        uintE d, F& f, G& g) {
-  parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
+  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     if (f.cond(ngh)) {
@@ -123,7 +123,7 @@ template <template <typename W> class vertex, class W, class F, class G,
 inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
                              std::tuple<uintE, W>* nghs, uintE d, uintT o, F& f,
                              G& g, H& h) {
-  parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
+  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     if (f.cond(ngh)) {
@@ -239,7 +239,7 @@ inline void filterNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
       auto in_im = make_sequence(nghs, d);
       auto s = pbbs::filter(in_im, pc, pbbs::no_flag, tmp);
       size_t k = s.size();
-      parallel_for_bc(i, 0, k, (k > pbbs::kSequentialForThreshold),
+      par_for(0, k, pbbs::kSequentialForThreshold, [&] (size_t i)
                       { out(i, tmp[i]); });
     }
   }
@@ -263,7 +263,7 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     return k;
   } else {
     // copy to tmp
-    parallel_for_bc(i, 0, d, (d > pbbs::kSequentialForThreshold),
+    par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { tmp[i] = nghs[i]; });
     auto pc = [&](const std::tuple<uintE, W>& nw) {
       return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
@@ -276,7 +276,7 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
 template <template <typename W> class vertex, class W, class F, class G>
 inline void copyNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                      uintE d, uintT o, F& f, G& g) {
-  parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold), {
+  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     auto val = f(vtx_id, ngh, std::get<1>(nw));

@@ -1040,7 +1040,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   auto scan_cts = make_sequence(block_cts, num_blocks + 1);
   size_t deg_remaining = pbbs::scan_add(scan_cts, scan_cts);
 
-  parallel_for_bc(i, 0, num_blocks, (num_blocks > 1000), {
+  par_for(0, num_blocks, 1000, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
     uintE* block_deg_ptr = (uintE*)finger;
     *block_deg_ptr = scan_cts[i];

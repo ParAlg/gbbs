@@ -181,7 +181,7 @@ struct buckets {
         pbbs::new_array_no_init<uintE>((num_blocks + 1) * total_buckets);
 
     // 1. Compute per-block histograms
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
       size_t s = i * block_size;
       size_t e = std::min(s + block_size, k);
       uintE* hist = &(hists[i * total_buckets]);
@@ -219,7 +219,7 @@ struct buckets {
     }
 
     // 4. Compute the starting offsets for each block.
-    parallel_for_bc(i, 0, total_buckets, (total_buckets > 1), {
+    par_for(0, total_buckets, 1, [&] (size_t i) {
       size_t start = outs[i * num_blocks];
       for (size_t j = 0; j < num_blocks; j++) {
         hists[(i * num_blocks + j) * CACHE_LINE_S] =
@@ -229,7 +229,7 @@ struct buckets {
 
     // 5. Iterate over blocks again. Insert (id, bkt) into bkt[hists[bkt]]
     // and increment hists[bkt].
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
       size_t s = i * block_size;
       size_t e = std::min(s + block_size, k);
       // our buckets are now spread out, across outs
@@ -299,7 +299,7 @@ struct buckets {
     auto _d = d;
     auto tmp = sequence<uintE>(m);
     uintE* A = bkts[open_buckets].A;
-    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { tmp[i] = A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range

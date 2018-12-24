@@ -77,12 +77,12 @@ inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
     intT size = std::min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
+    par_for(0, size, pbbs::kSequentialForThreshold, [&] (size_t i) {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
     });
 
-    parallel_for_bc(i, 0, size, (size > pbbs::kSequentialForThreshold), {
+    par_for(0, size, pbbs::kSequentialForThreshold, [&] (size_t i) {
       if (keep[i]) keep[i] = !step.commit(I[i]);
     });
 
@@ -130,12 +130,12 @@ inline intT speculative_for(S step, intT s, intT e, intT granularity,
     intT size = std::min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    parallel_for_bc(i, 0, size, (size > 2048), {
+    par_for(0, size, 2048, [&] (size_t i) {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
     });
 
-    parallel_for_bc(i, 0, size, (size > 2048), {
+    par_for(0, size, 2048, [&] (size_t i) {
       if (keep[i]) keep[i] = !step.commit(I[i]);
     });
 

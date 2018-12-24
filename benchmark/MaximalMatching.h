@@ -237,7 +237,7 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
                   });
 
   bool valid = true;
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (matched[i] > 1) valid = false;
   });
   assert(valid == true);

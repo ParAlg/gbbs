@@ -549,7 +549,7 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
     } else {
       block_bytes = (uintE*)stk;
     }
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 10), {
+    par_for(0, num_blocks, 10, [&] (size_t i) {
       // calculate size in bytes of this block
       uintE start = i * PARALLEL_DEGREE;
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
@@ -739,7 +739,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
     block_bytes = (uintE*)stk;
   }
 
-  parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+  par_for(0, num_blocks, 1, [&] (size_t i) {
     uintE start = i * PARALLEL_DEGREE;
     uintE end = std::min<uintE>(start + PARALLEL_DEGREE, d);
     block_bytes[i] = compute_block_size(edges, start, end, source);
@@ -762,12 +762,12 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
               << "\n";
   }
 
-  parallel_for_bc(i, 1, num_blocks, (num_blocks > 1), {
+  par_for(1, num_blocks, 1, [&] (size_t i) {
     // store offset to start of this block from edgeArray
     block_offsets[i - 1] = edges_offset + bytes_imap[i];
   });
 
-  parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+  par_for(0, num_blocks, 1, [&] (size_t i) {
     uintE start = i * PARALLEL_DEGREE;
     uintE end = std::min<uintE>(start + PARALLEL_DEGREE, d);
     long write_offset = (i == 0) ? edges_offset : block_offsets[i - 1];
@@ -821,7 +821,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     //    true);
 
     uchar* mf = 0;
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
@@ -883,7 +883,7 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE* block_offsets = (uintE*)edge_start;
 
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
@@ -897,7 +897,7 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
     uintE k = pbbs::filterf(tmp, tmp2, degree, pd);
-    parallel_for_bc(i, 0, k, (k > 2000), { out(i, tmp2[i]); });
+    par_for(0, k, 2000, [&] (size_t i) { out(i, tmp2[i]); });
     return k;
   }
   return 0;
@@ -914,7 +914,7 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   long* charsUsedArr = pbbs::new_array_no_init<long>(n);
   long* compressionStarts = pbbs::new_array_no_init<long>(n + 1);
   {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { charsUsedArr[i] = ceil((Degrees[i] * 9) / 8) + 4; });
   }
   long toAlloc = ligra_utils::seq::plusScan(charsUsedArr, charsUsedArr, n);

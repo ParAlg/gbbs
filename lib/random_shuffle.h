@@ -64,7 +64,7 @@ inline void random_shuffle(Seq A, random r = default_random) {
   sequence<size_t> bucket_offsets = count_sort(A, A, get_pos, num_buckets);
 
   // now sequentially randomly shuffle within each bucket
-  parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
+  par_for(0, num_buckets, 1, [&] (size_t i) {
     size_t start = bucket_offsets[i];
     size_t end = bucket_offsets[i + 1];
     seq_random_shuffle(A.slice(start, end), r.fork(i));
@@ -75,7 +75,7 @@ template <class intT>
 inline sequence<intT> random_permutation(size_t n,
                                            random r = default_random) {
   auto id = sequence<intT>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), { id[i] = i; });
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) { id[i] = i; });
   pbbs::random_shuffle(id, r);
   return id;
 }

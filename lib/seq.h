@@ -71,7 +71,7 @@ struct sequence {
   sequence(const size_t n, T v)
       : s(pbbs::new_array_no_init<E>(n, 1)), allocated(true) {
     e = s + n;
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { new ((void*)(s + i)) T(v); });
   };
 
@@ -79,7 +79,7 @@ struct sequence {
   sequence(const size_t n, Func fun)
       : s(pbbs::new_array_no_init<E>(n)), allocated(true) {
     e = s + n;
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       T x = fun(i);
       new ((void*)(s + i)) T(x);
     });
@@ -96,7 +96,7 @@ struct sequence {
   template <typename X, typename F>
   static sequence<X> tabulate(size_t n, F f) {
     X* r = pbbs::new_array_no_init<X>(n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { new ((void*)(r + i)) X(f(i)); });
     sequence<X> y(r, n);
     y.allocated = true;
@@ -130,7 +130,7 @@ struct sequence {
     if (allocated) {
       size_t n = e - s;
       auto A = pbbs::new_array<E>(n);
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                       { A[i] = s[i]; });
       return sequence(A, n, true);
     } else {

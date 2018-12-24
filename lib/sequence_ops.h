@@ -40,7 +40,7 @@ inline size_t num_blocks(size_t n, size_t block_size) {
 template <class F>
 inline void sliced_for(size_t n, size_t block_size, const F& f) {
   size_t l = num_blocks(n, block_size);
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     size_t s = i * block_size;
     size_t e = std::min(s + block_size, n);
     f(i, s, e);
@@ -253,7 +253,7 @@ inline sequence<typename In_Seq::T> filter(In_Seq In, Pred p,
     return std::move(filter_serial(In, p, fl, _Out));
   }
   auto Flags = sequence<bool>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { Flags[i] = (bool)p(In[i]); });
 
   auto ret = pack(In, Flags, fl, _Out);
@@ -310,7 +310,7 @@ inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
   if (n < b) return filter_seq(In, Out, n, p);
   size_t l = num_blocks(n, b);
   size_t* Sums = new_array_no_init<size_t>(l + 1);
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     size_t s = i * b;
     size_t e = std::min(s + b, n);
     size_t k = s;
@@ -322,7 +322,7 @@ inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
   auto isums = sequence<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     T* I = In + i * b;
     T* O = Out + Sums[i];
     for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
@@ -347,7 +347,7 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   }
   size_t l = num_blocks(n, b);
   size_t* Sums = new_array_no_init<size_t>(l + 1);
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     size_t s = i * b;
     size_t e = std::min(s + b, n);
     size_t k = s;
@@ -359,7 +359,7 @@ inline size_t filterf(T* In, size_t n, PRED p, OUT out, size_t out_off) {
   auto isums = sequence<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     T* I = In + i * b;
     size_t si = out_off + Sums[i];
     for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
@@ -377,7 +377,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
   if (n < b) return filter_seq(In, Out, n, p);
   size_t l = num_blocks(n, b);
   b = num_blocks(n, l);
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     size_t s = i * b;
     size_t e = std::min(s + b, n);
     size_t k = s;
@@ -395,7 +395,7 @@ inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
   auto isums = sequence<size_t>(Sums, l);
   size_t m = scan_add(isums, isums);
   Sums[l] = m;
-  parallel_for_bc(i, 0, l, (l > 1), {
+  par_for(0, l, 1, [&] (size_t i) {
     T* I = In + i * b;
     T* O = Out + Sums[i];
     for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {

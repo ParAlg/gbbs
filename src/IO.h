@@ -150,7 +150,7 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
 // parallel code for converting a string to words
 inline words stringToWords(char* Str, long n) {
   {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       if (isSpace(Str[i])) Str[i] = 0;
     });
   }
@@ -159,7 +159,7 @@ inline words stringToWords(char* Str, long n) {
   bool* FL = pbbs::new_array_no_init<bool>(n);
   FL[0] = Str[0];
   {
-    parallel_for_bc(i, 1, n, (n > pbbs::kSequentialForThreshold),
+    par_for(1, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { FL[i] = Str[i] && !Str[i - 1]; });
   }
 
@@ -176,7 +176,7 @@ inline words stringToWords(char* Str, long n) {
   // pointer to each start of word
   char** SA = pbbs::new_array_no_init<char*>(m);
   {
-    parallel_for_bc(j, 0, m, (m > pbbs::kSequentialForThreshold),
+    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j)
                     { SA[j] = Str + offsets[j]; });
   }
 
@@ -229,11 +229,11 @@ inline graph<vertex<intE>> readWeightedGraph(
   std::tuple<uintE, intE>* edges = pbbs::new_array_no_init<VW>(2 * m);
 
   {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { offsets[i] = atol(W.Strings[i + 3]); });
   }
   {
-    parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
       edges[i] = std::make_tuple(atol(W.Strings[i + n + 3]),
                                  atol(W.Strings[i + n + m + 3]));
     });
@@ -243,7 +243,7 @@ inline graph<vertex<intE>> readWeightedGraph(
   wvtx* v = pbbs::new_array_no_init<wvtx>(n);
 
   {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = offsets[i];
       uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
       v[i].setOutDegree(l);
@@ -253,10 +253,10 @@ inline graph<vertex<intE>> readWeightedGraph(
 
   if (!isSymmetric) {
     uintT* tOffsets = pbbs::new_array_no_init<uintT>(n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { tOffsets[i] = INT_T_MAX; });
     intTriple* temp = pbbs::new_array_no_init<intTriple>(m);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j),
@@ -271,7 +271,7 @@ inline graph<vertex<intE>> readWeightedGraph(
     VW* inEdges = pbbs::new_array_no_init<VW>(m);
     inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
-    parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
+    par_for(1, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
       inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
@@ -285,7 +285,7 @@ inline graph<vertex<intE>> readWeightedGraph(
     ligra_utils::seq::scanIBack(tOffsets, tOffsets, n,
                                 ligra_utils::minF<uintT>(), (uintT)m);
 
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
@@ -341,15 +341,15 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
   uintT* offsets = pbbs::new_array_no_init<uintT>(n);
   uintE* edges = pbbs::new_array_no_init<uintE>(m);
 
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { offsets[i] = atol(W.Strings[i + 3]); });
-  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold),
+  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { edges[i] = atol(W.Strings[i + n + 3]); });
   W.del();  // to deal with performance bug in malloc
 
   wvtx* v = pbbs::new_array_no_init<wvtx>(n);
 
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintT o = offsets[i];
     uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
     v[i].setOutDegree(l);
@@ -358,10 +358,10 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
 
   if (!isSymmetric) {
     uintT* tOffsets = pbbs::new_array_no_init<uintT>(n);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { tOffsets[i] = INT_T_MAX; });
     intPair* temp = pbbs::new_array_no_init<intPair>(m);
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
@@ -374,7 +374,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
     tOffsets[temp[0].first] = 0;
     uintE* inEdges = pbbs::new_array_no_init<uintE>(m);
     inEdges[0] = temp[0].second;
-    parallel_for_bc(i, 1, m, (m > pbbs::kSequentialForThreshold), {
+    par_for(1, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
       inEdges[i] = temp[i].second;
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
@@ -388,7 +388,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
     ligra_utils::seq::scanIBack(tOffsets, tOffsets, n,
                                 ligra_utils::minF<uintT>(), (uintT)m);
 
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
@@ -561,7 +561,7 @@ inline graph<vertex<W>> readCompressedGraph(
   }
 
   w_vertex* V = pbbs::new_array_no_init<w_vertex>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     long o = offsets[i];
     uintT d = Degrees[i];
     V[i].setOutDegree(d);
@@ -569,7 +569,7 @@ inline graph<vertex<W>> readCompressedGraph(
   });
 
   if (!isSymmetric) {
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       long o = inOffsets[i];
       uintT d = inDegrees[i];
       V[i].setInDegree(d);
@@ -595,7 +595,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
                                                      uchar* edges) {
   using w_vertex = vertex<W>;
   w_vertex* V = pbbs::new_array_no_init<w_vertex>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     long o = offsets[i];
     uintT d = degrees[i];
     V[i].setOutDegree(d);

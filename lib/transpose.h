@@ -137,7 +137,7 @@ inline size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
     if (sum != n) abort();
 
     // send each key to correct location within its bucket
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
       size_t s_offset = i * block_size;
       for (size_t j = 0; j < num_buckets; j++) {
         size_t d_offset = dest_offsets[i + num_blocks * j];

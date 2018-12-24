@@ -68,7 +68,7 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                       { SP[i] = -(INT_E_MAX / 2); });
       break;
     }

@@ -50,7 +50,7 @@ template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
     }
@@ -62,7 +62,7 @@ template <template <typename W> class vertex, class W, class Seq>
 inline void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
   size_t n = GA.n;
   auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };
@@ -114,7 +114,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto cluster_ids = sequence<uintE>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { cluster_ids[i] = UINT_E_MAX; });
 
   size_t round = 0, num_visited = 0;

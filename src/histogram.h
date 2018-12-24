@@ -138,7 +138,7 @@ struct hist_table {
   size_t size;
   hist_table(KV _empty, size_t _size) : empty(_empty), size(_size) {
     table = pbbs::new_array_no_init<KV>(size);
-    parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
+    par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
   }
   hist_table() {}
 
@@ -148,7 +148,7 @@ struct hist_table {
       free(table);
       table = pbbs::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
-      parallel_for_bc(i, 0, size, (size > 2048), { table[i] = empty; });
+      par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
       std::cout << "resized to: " << size << "\n";
     }
   }
@@ -275,7 +275,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
       }
       out_offs[i] = k;
     };
-    parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), { inner_for(i); });
+    par_for(0, num_buckets, 1, [&] (size_t i) { inner_for(i); });
   }
 
   // (4) scan
@@ -291,7 +291,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   O* res = pbbs::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
-  parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
+  par_for(0, num_buckets, 1, [&] (size_t i) {
     size_t o = out_offs[i];
     size_t k = out_offs[(i + 1)] - o;
 
@@ -507,7 +507,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
         heavy_cts[bkt_id] = value;
       }
     };
-    parallel_for_bc(i, 0, num_actual_buckets, (num_actual_buckets > 1),
+    par_for(0, num_actual_buckets, 1, [&] (size_t i)
                     { for_inner(i); });
   }
 
@@ -534,7 +534,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   O* res = pbbs::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
-  parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
+  par_for(0, num_buckets, 1, [&] (size_t i) {
     size_t o = out_offs[i];
     size_t k = out_offs[(i + 1)] - o;
 
@@ -709,7 +709,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
       }
       out_offs[i] = k;
     };
-    parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), { for_inner(i); });
+    par_for(0, num_buckets, 1, [&] (size_t i) { for_inner(i); });
   }
 
   // (4) scan
@@ -725,7 +725,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   O* res = pbbs::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
-  parallel_for_bc(i, 0, num_buckets, (num_buckets > 1), {
+  par_for(0, num_buckets, 1, [&] (size_t i) {
     size_t o = out_offs[i];
     size_t k = out_offs[(i + 1)] - o;
 

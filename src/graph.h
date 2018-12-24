@@ -94,9 +94,9 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
   auto df = [&](vertex* V, E* edges, size_t n, size_t m, size_t sizeofe) {
     auto NV = pbbs::new_array_no_init<vertex>(n);
     auto NE = pbbs::new_array_no_init<E>(sizeofe);
-    parallel_for_bc(i, 0, sizeofe, (sizeofe > pbbs::kSequentialForThreshold),
+    par_for(0, sizeofe, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { NE[i] = edges[i]; });
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       NV[i].setOutDegree(V[i].getOutDegree());
       size_t off = (V[i].getOutNeighbors() - edges);
       NV[i].setOutNeighbors(NE + off);
@@ -119,11 +119,11 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
     auto NV = pbbs::new_array_no_init<vertex>(n);
     auto Nin = pbbs::new_array_no_init<E>(m_in);
     auto Nout = pbbs::new_array_no_init<E>(m_out);
-    parallel_for_bc(i, 0, m_in, (m_in > pbbs::kSequentialForThreshold),
+    par_for(0, m_in, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { Nin[i] = in_edges[i]; });
-    parallel_for_bc(i, 0, m_in, (m_in > pbbs::kSequentialForThreshold),
+    par_for(0, m_in, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { Nout[i] = out_edges[i]; });
-    parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
       NV[i].setOutDegree(V[i].getOutDegree());
       NV[i].setInDegree(V[i].getInDegree());
       size_t out_off = (V[i].getOutNeighbors() - out_edges);
@@ -150,7 +150,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   auto out_edge_sizes = sequence<uintT>(n + 1);
   auto in_edge_sizes = sequence<uintT>(n + 1);
 
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     w_vertex u = V[i];
     auto out_im = make_sequence<int>(u.getOutDegree(), [&](uintE j) {
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
@@ -565,7 +565,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
       return graph<V>(nullptr, 0, 0, del);
     } else {
       V* v = pbbs::new_array_no_init<V>(n);
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
         v[i].degree = 0;
         v[i].neighbors = nullptr;
       });
@@ -589,7 +589,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
     }
     return std::get<1>(Am[i]);
   });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintT o = starts[i];
     size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
     v[i].degree = degree;

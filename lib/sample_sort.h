@@ -153,7 +153,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
     it.stop();
     it.reportTotal("initialize m array time");
     it.start();
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 1), {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
       size_t offset = i * block_size;
       size_t size = (i < num_blocks - 1) ? block_size : n - offset;
       if (!inplace)
@@ -179,7 +179,7 @@ inline auto sample_sort_(Seq A, const BinPred& f, bool inplace = false)
 
     it.start();
     // sort within each bucket
-    parallel_for_bc(i, 0, num_buckets, (num_blocks > 1), {
+    par_for(0, num_buckets, 1, [&] (size_t i) {
       size_t start = bucket_offsets[i];
       size_t end = bucket_offsets[i + 1];
 

@@ -75,7 +75,7 @@ struct dyn_arr {
 
   template <class F>
   void map(F f) {
-    parallel_for_bc(i, 0, size, (size > 2000), { f(A[i]); });
+    par_for(0, size, 2000, [&] (size_t i) { f(A[i]); });
   }
 
   template <class F>

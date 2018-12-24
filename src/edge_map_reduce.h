@@ -39,7 +39,7 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   uintT m = V.size();
   V.toSparse();
   auto degrees = sequence<uintT>(m);
-  parallel_for_bc(i, 0, m, (m > pbbs::kSequentialForThreshold), {
+  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
     vertex v = G[V.vtx(i)];
     uintE degree = (out_ngh) ? v.getOutDegree() : v.getInDegree();
     degrees[i] = degree;
@@ -57,13 +57,13 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   };
 
   if (out_ngh) {
-    parallel_for_bc(i, 0, m, (edgeCount > pbbs::kSequentialForThreshold), {
+    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
       G[v].template copyOutNgh(v, o, f, gen);
     });
   } else {
-    parallel_for_bc(i, 0, m, (edgeCount > pbbs::kSequentialForThreshold), {
+    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
       G[v].template copyInNgh(v, o, f, gen);

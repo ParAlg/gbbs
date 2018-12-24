@@ -240,7 +240,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
       size_t label = label_offset;
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -298,7 +298,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
 
       size_t label = cur_label_offset;
 
-      parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -376,7 +376,7 @@ template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     if (labels[i] == 0) {
       std::cout << "unlabeled"
                 << "\n";
