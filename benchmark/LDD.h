@@ -38,8 +38,7 @@ inline sequence<uintE> generate_shifts(size_t n, double beta) {
   // Create (ln n)/beta levels
   uintE last_round = total_rounds(n, beta);
   auto shifts = sequence<uintE>(last_round + 1);
-  parallel_for_bc(i, 0, last_round,
-                  (last_round > pbbs::kSequentialForThreshold),
+  par_for(0, last_round, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
   pbbs::scan_add(shifts, shifts);
@@ -135,8 +134,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbs::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.start(), new_centers.size());
-      parallel_for_bc(i, 0, new_centers.size(),
-                      (new_centers.size() > pbbs::kSequentialForThreshold),
+      par_for(0, new_centers.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
                       { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
     }

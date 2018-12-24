@@ -56,7 +56,7 @@ struct dyn_arr {
     if (n + size > capacity) {
       size_t new_capacity = std::max(2 * (n + size), (size_t)MIN_BKT_SIZE);
       E* nA = pbbs::new_array_no_init<E>(new_capacity);
-      parallel_for_bc(i, 0, size, 2000, nA[i] = A[i];);
+      par_for(0, size, 2000, [&] (size_t i) { nA[i] = A[i]; });
       if (alloc) {
         pbbs::free_array(A);
       }
@@ -81,14 +81,14 @@ struct dyn_arr {
   template <class F>
   inline void copyIn(F f, size_t n) {
     resize(n);
-    parallel_for_bc(i, 0, n, 2000, A[size + i] = f[i];);
+    par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f[i]; });
     size += n;
   }
 
   template <class F>
   inline void copyInF(F f, size_t n) {
     resize(n);
-    parallel_for_bc(i, 0, n, 2000, A[size + i] = f(i););
+    par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f(i); });
     size += n;
   }
 };

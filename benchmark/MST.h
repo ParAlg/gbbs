@@ -243,8 +243,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbs::random r,
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
 
-  parallel_for_bc(
-      i, 0, sample_size, (sample_size > pbbs::kSequentialForThreshold), {
+  par_for(0, sample_size, pbbs::kSequentialForThreshold, [&] (size_t i) {
         size_t sample_edge = r.ith_rand(i) % m;
         uintE vtx = pbbs::binary_search(vertex_offs, sample_edge, lte);
         size_t ith = vertex_offs[vtx] - sample_edge - 1;

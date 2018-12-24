@@ -211,8 +211,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
             << " vertices. Num remaining = " << P.size() << "\n";
 
   // Assign labels from [0...zero.size())
-  parallel_for_bc(i, 0, zero.size(),
-                  (zero.size() > pbbs::kSequentialForThreshold),
+  par_for(0, zero.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
                   { labels[zero[i]] = i | TOP_BIT; });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;

@@ -192,7 +192,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
 
 #define S_STRIDE 64
   size_t* bkt_counts = new_array_no_init<size_t>(num_buckets * S_STRIDE);
-  parallel_for_bc(i, 0, num_buckets, num_buckets > 1, {
+  par_for(0, num_buckets, 1, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_buckets - 1)) {
       size_t ct = 0;
@@ -373,7 +373,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
 
 #define S_STRIDE 64
   size_t* bkt_counts = new_array_no_init<size_t>(num_total_buckets * S_STRIDE);
-  parallel_for_bc(i, 0, num_actual_buckets, num_actual_buckets > 1, {
+  par_for(0, num_actual_buckets, 1, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_total_buckets - 1)) {
       size_t ct = 0;
@@ -636,7 +636,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
 
 #define S_STRIDE 64
   size_t* bkt_counts = new_array_no_init<size_t>(num_buckets * S_STRIDE);
-  parallel_for_bc(i, 0, num_buckets, num_buckets > 1, {
+  par_for(0, num_buckets, 1, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_buckets - 1)) {
       size_t ct = 0;

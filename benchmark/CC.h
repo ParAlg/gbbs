@@ -108,8 +108,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
   // Pack out singleton clusters
   auto flags = sequence<uintE>(num_clusters + 1, [](size_t i) { return 0; });
 
-  parallel_for_bc(i, 0, edges.size(),
-                  (edges.size() > pbbs::kSequentialForThreshold), {
+  par_for(0, edges.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
                     auto e = std::get<0>(edges[i]);
                     uintE u = std::get<0>(e);
                     uintE v = std::get<1>(e);
@@ -120,8 +119,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = sequence<uintE>(num_ns_clusters);
-  parallel_for_bc(i, 0, num_clusters,
-                  (num_clusters > pbbs::kSequentialForThreshold), {
+  par_for(0, num_clusters, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     if (flags[i] != flags[i + 1]) {
                       mapping[flags[i]] = i;
                     }

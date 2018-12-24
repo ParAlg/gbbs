@@ -49,7 +49,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   ligra_utils::_seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold), {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     labels[i] =
         std::make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
   });
@@ -93,7 +93,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
       }
     }
   };
-  parallel_for_bc(i, 0, n, (n > pbbs::kSequentialForThreshold),
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { GA.V[i].mapOutNgh(i, map_bc_label); });
 
   if (component_id == UINT_E_MAX) {

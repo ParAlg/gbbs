@@ -105,8 +105,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
     auto P = pbbs::random_permutation<uintE>(still_active.size(), r);
-    parallel_for_bc(i, 0, still_active.size(),
-                    (still_active.size() > pbbs::kSequentialForThreshold), {
+    par_for(0, still_active.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
                       uintE pv = P[i];
                       perm[v] = pv;

@@ -92,8 +92,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
   perm_t.start();
   auto perm = pbbs::random_permutation<uintT>(E.non_zeros);
   auto out = sequence<edge>(E.non_zeros);
-  parallel_for_bc(i, 0, E.non_zeros,
-                  (E.non_zeros > pbbs::kSequentialForThreshold), {
+  par_for(0, E.non_zeros, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
   E.del();
@@ -137,8 +136,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
   perm_t.start();
   auto perm = pbbs::random_permutation<uintT>(E.non_zeros);
   auto out = sequence<edge>(E.non_zeros);
-  parallel_for_bc(i, 0, E.non_zeros,
-                  (E.non_zeros > pbbs::kSequentialForThreshold), {
+  par_for(0, E.non_zeros, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
   E.del();
@@ -192,8 +190,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     auto e_added =
         pbbs::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
     auto sizes = sequence<size_t>(e_added.size());
-    parallel_for_bc(i, 0, e_added.size(),
-                    (e_added.size() > pbbs::kSequentialForThreshold), {
+    par_for(0, e_added.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
                       const auto& e = e_added[i];
                       uintE u = std::get<0>(e) & mm::VAL_MASK;
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
@@ -229,8 +226,7 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
 
   // Check that this is a valid matching
-  parallel_for_bc(i, 0, matching.size(),
-                  (matching.size() > pbbs::kSequentialForThreshold), {
+  par_for(0, matching.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
                     const auto& edge = matching[i];
                     pbbs::write_add(&matched[std::get<0>(edge)], 1);
                     pbbs::write_add(&matched[std::get<1>(edge)], 1);
