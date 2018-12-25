@@ -42,6 +42,8 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
   auto pack = P.getOption("-pack");
   auto sym = P.getOption("-s");
   assert(sym);
+  timer t;
+  t.start();
   auto components = cc::CC(GA, beta, pack);
   if (P.getOption("-stats")) {
     auto cc_im =
@@ -49,6 +51,7 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
     cc::num_cc(cc_im);
     cc::largest_cc(cc_im);
   }
+  t.stop(); t.reportTotal("CC time");
   components.del();
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can

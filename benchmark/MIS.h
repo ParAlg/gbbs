@@ -156,14 +156,18 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
   auto perm = pbbs::random_permutation<uintE>(n);
-  par_for(0, n, [&] (size_t i) {
+//  par_for(0, n, [&] (size_t i) {
+  parallel_for(size_t i=0; i<n; i++) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
     };
     priorities[i] = GA.V[i].countOutNgh(i, count_f);
-  });
+  }
+  init_t.stop();
+  init_t.reportTotal("init");
+
 
   // compute the initial rootset
   auto zero_map =
@@ -174,8 +178,6 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   auto in_mis = sequence<bool>(n, false);
   size_t finished = 0;
   size_t rounds = 0;
-  init_t.stop();
-  init_t.reportTotal("init");
   while (finished != n) {
     assert(roots.size() > 0);
     std::cout << "round = " << rounds << " size = " << roots.size()

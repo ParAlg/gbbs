@@ -79,7 +79,7 @@ inline void integer_sort(InS In, OutS Out, Get_Key& g, size_t val_bits,
 
   // recurse on each bucket
   if (shift_bits > 0) {
-    parallel_for_bc(i, 0, num_buckets, true, {
+    par_for(0, num_buckets, [&] (size_t i) {
       auto out_slice = Out.slice(bucket_offsets[i], bucket_offsets[i + 1]);
       integer_sort(out_slice, out_slice, g, shift_bits, depth + 1);
     });

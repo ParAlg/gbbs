@@ -195,7 +195,7 @@ inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
     auto nw = nghs[i];
     return f(vtx_id, std::get<0>(nw), std::get<1>(nw));
   });
-  return pbbs::reduce_add(im, pbbs::fl_sequential);
+  return pbbs::reduce_add(im);
 }
 
 template <template <typename W> class vertex, class W, class E, class M,

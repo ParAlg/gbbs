@@ -31,7 +31,7 @@
 #define _F_BSIZE (2 * _SCAN_BSIZE)
 
 namespace pbbs {
-constexpr const size_t kSequentialForThreshold = 2000;
+constexpr const size_t kSequentialForThreshold = 100000;
 }  // namespace pbbs
 
 #define COMMA ,

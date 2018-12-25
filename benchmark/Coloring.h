@@ -100,7 +100,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
               << "\n";
     // LF heuristic
     auto P = pbbs::random_permutation<uintE>(n);
-    parallel_for_bc(i, 0, n, true, {
+    par_for(0, n, [&] (size_t i) {
       uintE our_deg = GA.V[i].getOutDegree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
@@ -114,7 +114,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
               << "\n";
     // LLF heuristic
     auto P = pbbs::random_permutation<uintE>(n);
-    parallel_for_bc(i, 0, n, true, {
+    par_for(0, n, [&] (size_t i) {
       uintE our_deg = pbbs::log2_up(GA.V[i].getOutDegree());
       uintE i_p = P[i];
       // breaks ties using P
@@ -167,7 +167,7 @@ template <template <typename W> class vertex, class W, class Seq>
 inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
   size_t n = G.n;
   auto ok = sequence<bool>(n);
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     uintE src_color = colors[i];
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       uintE ngh_color = colors[ngh];

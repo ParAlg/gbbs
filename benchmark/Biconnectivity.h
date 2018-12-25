@@ -229,12 +229,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
         }
       } else {
         auto A = sequence<uintE>(deg_v);
-        parallel_for_bc(j, 0, deg_v, true, {
+        par_for(0, deg_v, [&] (size_t j) {
           uintE ngh = Tree.V[v].getOutNeighbor(j);
           A[j] = aug_sizes[ngh];
         });
         pbbs::scan_add(A, A);
-        parallel_for_bc(j, 0, deg_v, true, {
+        par_for(0, deg_v, [&] (size_t j) {
           uintE ngh = Tree.V[v].getOutNeighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;

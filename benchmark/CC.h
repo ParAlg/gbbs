@@ -72,7 +72,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
     }
     return false;
   };
-  parallel_for_bc(i, 0, n, true,
+  par_for(0, n, [&] (size_t i)
                   { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
   deg_map[n] = 0;
   pbbs::scan_add(deg_map, deg_map);
@@ -99,7 +99,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
       }
     }
   };
-  parallel_for_bc(i, 0, n, true, { GA.V[i].mapOutNgh(i, map_f); });
+  par_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
   auto edges = edge_table.entries();
   edge_table.del();
   ins_t.stop();

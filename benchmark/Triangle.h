@@ -92,7 +92,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     };
     auto reduce_f = [&](const size_t& l, const size_t& r) { return l + r; };
     size_t id = 0;
-    parallel_for_bc(i, 0, n, true, {
+    par_for(0, n, [&] (size_t i) {
       parallel_work[i] = DG.V[i].reduceOutNgh(i, id, map_f, reduce_f);
     });
   }
@@ -116,7 +116,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     }
   };
 
-  parallel_for_bc(i, 0, n_blocks, true, {
+  par_for(0, n_blocks, [&] (size_t i) {
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
     auto less_fn = std::less<size_t>();

@@ -246,7 +246,7 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  parallel_for_bc(i, 0, n, true, { G.V[i].mapOutNgh(i, map2_f); });
+  par_for(0, n, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
 
   auto ok_im = make_sequence<size_t>(n, [&](size_t i) { return ok[i]; });
   size_t n_ok = pbbs::reduce_add(ok_im);

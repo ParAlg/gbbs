@@ -921,7 +921,7 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   uintE* iEdges = pbbs::new_array_no_init<uintE>(toAlloc);
 
   {
-    parallel_for_bc(i, 0, n, true, {
+    par_for(0, n, [&] (size_t i) {
       edgePts[i] = iEdges + charsUsedArr[i];
       long charsUsed =
           sequentialCompressEdgeSet((uchar*)(iEdges + charsUsedArr[i]), 0,
@@ -942,7 +942,7 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
 
   {
-    parallel_for_bc(i, 0, n, true, {
+    par_for(0, n, [&] (size_t i) {
       long o = compressionStarts[i];
       memcpy(finalArr + o, (uchar*)(edgePts[i]), compressionStarts[i + 1] - o);
       offsets[i] = o;
@@ -999,7 +999,7 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
             << "\n";
   auto bytes_used = pbbs::new_array_no_init<size_t>(n + 1);
 
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     bytes_used[i] = compute_size_in_bytes(edges + offsets[i], i, Degrees[i]);
   });
   bytes_used[n] = 0;
@@ -1007,7 +1007,7 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
       ligra_utils::seq::plusScan(bytes_used, bytes_used, n + 1);
   uchar* edges_c = pbbs::new_array_no_init<uchar>(total_bytes);
 
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     sequentialCompressWeightedEdgeSet(edges_c, bytes_used[i], Degrees[i], i,
                                       edges + offsets[i]);
   });

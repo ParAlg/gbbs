@@ -620,7 +620,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
   };
   auto xors = sequence<uintE>(n, (uintE)0);
 
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     xors[i] = G.V[i].reduceOutNgh(i, (uintE)0, map_f, reduce_f);
   });
   uintE xors_sum = pbbs::reduce_xor(xors);

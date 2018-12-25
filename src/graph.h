@@ -182,7 +182,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   auto out_edges = sequence<edge>(outEdgeCount);
   auto in_edges = sequence<edge>(inEdgeCount);
 
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     w_vertex u = V[i];
     size_t out_offset = out_edge_sizes[i];
     uintE d = u.getOutDegree();
@@ -197,7 +197,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     }
   });
 
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     w_vertex u = V[i];
     size_t in_offset = in_edge_sizes[i];
     uintE d = u.getInDegree();
@@ -214,7 +214,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   });
 
   auto AV = pbbs::new_array_no_init<asymmetricVertex<W>>(n);
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     uintT in_offset = in_edge_sizes[i];
     uintT out_offset = out_edge_sizes[i];
     AV[i] = asymmetricVertex<W>(
@@ -251,7 +251,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   // 1. Calculate total size
   auto degrees = sequence<uintE>(n);
   auto byte_offsets = sequence<uintT>(n + 1);
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     size_t total_bytes = 0;
     uintE last_ngh = 0;
     size_t deg = 0;
@@ -305,11 +305,11 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       }
     };
 
-    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+    par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
 
   auto AV = pbbs::new_array_no_init<cav_byte<W>>(n);
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     size_t o = byte_offsets[i];
     uchar* our_edges = edges.start() + o;
     AV[i].inNeighbors = nullptr;
@@ -385,7 +385,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     auto res = G.V[i].reduceOutNgh(i, id, map_f, red_f);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res),
@@ -440,7 +440,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
         G.V[i].packOutNgh(i, pred_zero, tmp_v);
       }
     };
-    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+    par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
   auto degree_imap =
       make_sequence<size_t>(n, [&](size_t i) { return G.V[i].getOutDegree(); });
@@ -455,7 +455,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
   auto offs = sequence<std::tuple<uintT, uintT>>(n + 1);
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     offs[i] = std::make_tuple(G.V[i].countOutNgh(i, p),
                               G.V[i].calculateOutTemporarySpace());
   });
@@ -487,7 +487,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
         G.V[i].setInDegree(0);
       }
     };
-    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+    par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
@@ -508,7 +508,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return pred(src, ngh, wgh);
   };
   auto red_f = [](size_t l, size_t r) { return l + r; };
-  parallel_for_bc(i, 0, n, true, {
+  par_for(0, n, [&] (size_t i) {
     uintE ct = G.V[i].reduceOutNgh(i, id, map_f, red_f);
     if (ct > 0) {
       vtx_offs[i] = std::make_tuple(ct, G.V[i].calculateOutTemporarySpace());
@@ -544,7 +544,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
         G.V[i].filterOutNgh(i, pred, out_f, tmp_v);
       }
     };
-    parallel_for_bc(i, 0, n, true, { for_inner(i); });
+    par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
   return edge_array<W>(output_arr.get_array(), n, n, output_arr.size());
 }

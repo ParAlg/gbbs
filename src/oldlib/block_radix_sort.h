@@ -202,7 +202,7 @@ inline void radixStep(E *A, E *B, bIndexT *Tmp, bint (*BK)[BUCKETS], long numBK,
   bint *oA = (bint *)(BK + blocks);
   bint *oB = (bint *)(BK + 2 * blocks);
 
-  parallel_for_bc(i, 0, blocks, true, {
+  par_for(0, blocks, [&] (size_t i) {
     bint od = i * nn;
     long nni = std::min(std::max<long>(n - od, 0), nn);
     radixBlock(A + od, B, Tmp + od, cnts + m * i, oB + m * i, od, nni, m,
@@ -266,7 +266,7 @@ inline void radixLoopTopDown(E *A, E *B, bIndexT *Tmp, bint (*BK)[BUCKETS],
     bint *offsets = BK[0];
     long remain = numBK - BUCKETS - 1;
     float y = remain / (float)n;
-    parallel_for_bc(i, 0, BUCKETS, true, {
+    par_for(0, BUCKETS, [&] (size_t i) {
       long segOffset = offsets[i];
       long segNextOffset = (i == BUCKETS - 1) ? n : offsets[i + 1];
       long segLen = segNextOffset - segOffset;
