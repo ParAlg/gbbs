@@ -545,7 +545,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
     space[i] = G[v].calculateOutTemporarySpace();
   });
   long total_space = pbbs::scan_add(space, space);
-  std::cout << "packNghs: total space allocated = " << total_space << "\n";
+  //std::cout << "packNghs: total space allocated = " << total_space << "\n";
   auto tmp = sequence<std::tuple<uintE, W>>(
       total_space);  // careful when total_space == 0
   S* outV;

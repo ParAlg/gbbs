@@ -149,7 +149,9 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
       auto pred = [&](const uintE& src, const uintE& dest, const W& w) {
         return oracle(src, dest, w) && (cluster_ids[src] != cluster_ids[dest]);
       };
+      timer t; t.start();
       edgeMapFilter(GA, frontier, pred, pack_edges | no_output);
+      t.stop(); t.reportTotal("pack time");
     }
     frontier.del();
     frontier = next_frontier;
