@@ -98,7 +98,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
   }
   size_t total_work = pbbs::scan_add(parallel_work, parallel_work);
 
-  size_t n_blocks = nworkers() * 8;
+  size_t n_blocks = nworkers() * 8 + 1;
   size_t work_per_block = total_work / n_blocks;
   std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
             << " work per block = " << work_per_block << "\n";
@@ -116,7 +116,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     }
   };
 
-  par_for(0, n_blocks, [&] (size_t i) {
+  par_for(0, n_blocks, 1, [&] (size_t i) {
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
     auto less_fn = std::less<size_t>();

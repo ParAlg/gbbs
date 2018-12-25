@@ -47,11 +47,11 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
         bits[color] = 1;
       }
     };
-    GA.V[v].mapOutNgh(v, map_f, pbbs::fl_sequential);
+    GA.V[v].mapOutNgh(v, map_f);
     auto im = make_sequence<uintE>(
         deg, [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; });
     auto min_f = [](uintE l, uintE r) { return std::min(l, r); };
-    uintE color = pbbs::reduce(im, min_f, pbbs::fl_sequential);
+    uintE color = pbbs::reduce(im, min_f);
     if (deg > 1000) {
       pbbs::free_array(bits);
     }
@@ -100,7 +100,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
               << "\n";
     // LF heuristic
     auto P = pbbs::random_permutation<uintE>(n);
-    par_for(0, n, [&] (size_t i) {
+    par_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = GA.V[i].getOutDegree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
@@ -114,7 +114,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
               << "\n";
     // LLF heuristic
     auto P = pbbs::random_permutation<uintE>(n);
-    par_for(0, n, [&] (size_t i) {
+    par_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = pbbs::log2_up(GA.V[i].getOutDegree());
       uintE i_p = P[i];
       // breaks ties using P

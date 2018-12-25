@@ -94,7 +94,7 @@ static inline void par_do3(bool do_parallel, Lf left, Mf mid, Rf right) {
 
 template <typename F>
 static inline void par_for(size_t start, size_t end, size_t granularity, F f) {
-  if ((end - start) <= granularity)
+  if ((end - start) < granularity)
     for (size_t i = start; i < end; i++) f(i);
   else {
     parallel_for(size_t i=start; i<end; i++) {

@@ -57,13 +57,13 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   };
 
   if (out_ngh) {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, 1, [&] (size_t i) { // TODO-granularity
       uintT o = degrees[i];
       auto v = V.vtx(i);
       G[v].template copyOutNgh(v, o, f, gen);
     });
   } else {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, 1, [&] (size_t i) { // TODO-granularity
       uintT o = degrees[i];
       auto v = V.vtx(i);
       G[v].template copyInNgh(v, o, f, gen);

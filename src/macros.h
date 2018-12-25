@@ -62,7 +62,7 @@ typedef unsigned int uintE;
 #endif
 
 // edgemap_sparse_blocked granularity macro
-constexpr const size_t kEMBlockSize = 8000;
+constexpr const size_t kEMBlockSize = 2000;
 
 // ======= compression macros and constants =======
 constexpr const size_t PARALLEL_DEGREE = 1000;

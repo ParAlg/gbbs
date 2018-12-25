@@ -148,7 +148,7 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
     auto g = get_emdense_forward_gen<data>(next);
     par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { std::get<0>(next[i]) = 0; });
-    par_for(0, n, [&] (size_t i) {
+    par_for(0, n, 1, [&] (size_t i) {
       if (vertexSubset.isIn(i)) {
         (fl & in_edges) ? G[i].decodeInNgh(i, f, g)
                         : G[i].decodeOutNgh(i, f, g);
@@ -157,7 +157,7 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_forward_nooutput_gen<data>();
-    par_for(0, n, [&] (size_t i) {
+    par_for(0, n, 1, [&] (size_t i) {
       if (vertexSubset.isIn(i)) {
         (fl & in_edges) ? G[i].decodeInNgh(i, f, g)
                         : G[i].decodeOutNgh(i, f, g);
@@ -269,7 +269,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
-  par_for(0, indices.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, indices.size(), [&] (size_t i)
       { vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbs::scan_add(vertex_offs, vertex_offs);
@@ -277,7 +277,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan.
-  par_for(0, indices.size(), [&] (size_t i) {
+  par_for(0, indices.size(), 200, [&] (size_t i) {
     size_t vtx_off = vertex_offs[i];
     size_t num_blocks = vertex_offs[i + 1] - vtx_off;
     size_t degree = degree_imap[i];
