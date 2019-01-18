@@ -361,7 +361,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       }
     }
 
-    parallel_for_bc(i, 1, num_blocks, (num_blocks > 2) && par, {
+    par_for(1, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -378,7 +378,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
           if (!t(source, ngh, wgh, edgeID)) break;
         }
       }
-    });
+    }, par);
   }
 }
 
@@ -413,7 +413,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       }
     }
 
-    parallel_for_bc(i, 1, num_blocks, (num_blocks > 2) && par, {
+    par_for(1, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -432,7 +432,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
           if (!t(source, ngh, wgh, edgeID)) break;
         }
       }
-    });
+    }, par);
   }
 }
 
@@ -491,7 +491,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs = (E*)stk;
     }
 
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
+    par_for(0, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -513,7 +513,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
         }
       }
       block_outputs[i] = cur;
-    });
+    }, par);
 
     auto im = make_sequence(block_outputs, num_blocks);
     E res = pbbs::reduce(im, r);
@@ -861,7 +861,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     if (degree > 100) {
       U = pbbs::new_array_no_init<uintEW>(degree);
     }
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
+    par_for(0, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -881,7 +881,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
           U[edgeID] = std::make_tuple(ngh, wgh);
         }
       }
-    });
+    }, par);
 
     // 2. Repack from edge_start
     size_t new_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
@@ -890,7 +890,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
         ((new_blocks + 1) <= 100) ? offs_stack : pbbs::new_array_no_init<uintE>(new_blocks + 1);
 
     // 3. Compute #bytes per new block
-    parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
+    par_for(0, new_blocks, 2, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = start + std::min<size_t>(PARALLEL_DEGREE, degree - start);
       uintE bytes = 0;
@@ -909,7 +909,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
         bytes += off;
       }
       offs[i] = bytes;
-    });
+    }, par);
 
     // 4. Scan to compute offset for each block
     offs[new_blocks] = 0;
@@ -922,7 +922,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // block_offsets are unchanged
     nghs_start = edge_start + (new_blocks - 1) * sizeof(uintE) +
                  sizeof(uintE);  // update ngh_start
-    parallel_for_bc(i, 0, new_blocks, (new_blocks > 2) && par, {
+    par_for(0, new_blocks, 2, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = start + std::min<size_t>(PARALLEL_DEGREE, degree - start);
       uchar* finger = nghs_start + bytes_imap[i];
@@ -950,7 +950,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
             compressWeight<W>(finger, current_offset, std::get<1>(nw));
         last_ngh = std::get<0>(nw);
       }
-    });
+    }, par);
 
     if ((new_blocks + 1) > 100) {
       pbbs::free_array(offs);
@@ -977,7 +977,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   size_t* block_cts =
       (num_blocks > 100) ? pbbs::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
 
-  parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
+  par_for(0, num_blocks, 2, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
     uintE* block_deg_ptr = (uintE*)finger;
     uintE start_offset = *block_deg_ptr;
@@ -1033,7 +1033,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     }
 
     assert(offset <= final_off);
-  });
+  }, par);
 
   // 2. Scan block_cts to get offsets within blocks
   block_cts[num_blocks] = 0;

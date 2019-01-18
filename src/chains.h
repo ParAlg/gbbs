@@ -93,12 +93,10 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
   auto flags_in = sequence<bool>(n, false);
   auto flags_out = sequence<bool>(n, false);
 
-  parallel_for_bc(i, 0, in_vs.size(),
-                  (in_vs.size() > pbbs::kSequentialForThreshold),
+  par_for(0, in_vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
                   { flags_in[in_vs.vtx(i)] = true; });
 
-  parallel_for_bc(i, 0, out_vs.size(),
-                  (out_vs.size() > pbbs::kSequentialForThreshold),
+  par_for(0, out_vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
                   { flags_out[out_vs.vtx(i)] = true; });
 
   size_t nr = 0;
@@ -108,8 +106,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
               << "\n";
     if (in_vs.size() > 0) {
       in_vs.toSparse();
-      parallel_for_bc(i, 0, in_vs.size(),
-                      (in_vs.size() > pbbs::kSequentialForThreshold), {
+      par_for(0, in_vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
                         uintE v = in_vs.vtx(i);
                         assert(flags_in[v]);
                         if (!chains[v]) {
@@ -122,8 +119,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
     }
     if (out_vs.size() > 0) {
       out_vs.toSparse();
-      parallel_for_bc(i, 0, out_vs.size(),
-                      (out_vs.size() > pbbs::kSequentialForThreshold), {
+      par_for(0, out_vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
                         uintE v = out_vs.vtx(i);
                         assert(flags_out[v]);
                         if (!chains[v]) {

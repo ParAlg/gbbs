@@ -710,8 +710,7 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
 inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
                            uintE num_new_verts) {
   if (vs.isDense) {
-    parallel_for_bc(i, 0, num_new_verts,
-                    (num_new_verts > pbbs::kSequentialForThreshold),
+    par_for(0, num_new_verts, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { vs.d[new_verts[i]] = true; });
     vs.m += num_new_verts;
   } else {

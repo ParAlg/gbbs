@@ -230,7 +230,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (!t(source, ngh, pbbs::empty(), edgeID)) return;
     }
     // do remaining chunks in parallel
-    parallel_for_bc(i, 1, num_blocks, par, {
+    parallel_for_bc(i, 1, num_blocks, 1, {
       size_t o = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
@@ -242,7 +242,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
         ngh += eatEdge(finger);
         if (!t(source, ngh, pbbs::empty(), edgeID)) break;
       }
-    });
+    }, par);
   }
 }
 
@@ -271,7 +271,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (!t(source, ngh, weight, edgeID)) return;
     }
     // do remaining chunks in parallel
-    parallel_for_bc(i, 1, num_blocks, par, {
+    parallel_for_bc(i, 1, num_blocks, 1, {
       size_t o = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
@@ -285,7 +285,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
         W weight = eatWeight<W>(finger);
         if (!t(source, ngh, weight, edgeID)) break;
       }
-    });
+    }, par);
   }
 }
 
@@ -305,7 +305,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs = (E*)stk;
     }
 
-    parallel_for_bc(i, 0, num_blocks, (num_blocks > 2) && par, {
+    par_for(0, num_blocks, 2, [&] (size_t i) {
       size_t start = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(start + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + ((i == 0) ? (num_blocks - 1) * sizeof(uintE)
@@ -321,7 +321,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
         cur = r(cur, m(source, ngh, wgh));
       }
       block_outputs[i] = cur;
-    });
+    }, par);
 
     auto im = make_sequence(block_outputs, num_blocks);
     E res = pbbs::reduce(im, r);
@@ -1025,7 +1025,8 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   //  std::cout << "decoding 692, deg = " << Degrees[692] << "\n";
   //  decode<intE>(t, edges_c + bytes_used[692], 692, Degrees[692], false);
 
-  parallel_for_bc(i, 0, n + 1, (n + 1 > pbbs::kSequentialForThreshold),
+  size_t end = n+1;
+  par_for(0, end, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { offsets[i] = bytes_used[i]; });
   std::cout << "finished compressing, bytes used = " << total_bytes << "\n";
   std::cout << "would have been, " << (m * 8) << "\n";

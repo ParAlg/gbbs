@@ -213,10 +213,10 @@ inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
 template <template <typename W> class vertex, class W, class F>
 inline void mapNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                     uintE d, F& f, bool parallel) {
-  parallel_for_bc(j, 0, d, (d > pbbs::kSequentialForThreshold && parallel), {
+  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
     uintE ngh = v->getOutNeighbor(j);
     f(vtx_id, ngh, v->getOutWeight(j));
-  });
+  }, parallel);
 }
 
 // Expects that out has enough space to hold the output of the filter

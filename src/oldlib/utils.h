@@ -214,7 +214,7 @@ struct getAF {
     intT _ee = _e;                             \
     intT _n = _ee - _ss;                       \
     intT _l = nblocks(_n, _bsize);             \
-    parallel_for_bc(_i, 0, _l, (_l > 1), {     \
+    par_for(0, _l, 1, [&] (size_t _i) {     \
       intT _s = _ss + _i * (_bsize);           \
       intT _e = std::min(_s + (_bsize), _ee);  \
       _body                                    \
