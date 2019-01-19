@@ -108,8 +108,8 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
     }
   } else {
     // reduce flags
-    auto flags_imap =
-        make_sequence<size_t>(n, [&](size_t i) { return (size_t)flags[i]; });
+    auto flags_f = [&](size_t i) { return (size_t)flags[i]; };
+    auto flags_imap = make_sequence<size_t>(n, flags_f);
     std::cout << "Largest component size = " << pbbs::reduce_add(flags_imap)
               << "\n";
   }

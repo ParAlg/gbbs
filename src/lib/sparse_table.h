@@ -25,7 +25,9 @@
 #include <tuple>
 
 #include "lib/sequence_ops.h"
+#include "lib/extra_sequence_ops.h"
 #include "lib/utilities.h"
+#include "lib/macros.h"
 
 template <class K, class V, class KeyHash>
 class sparse_table {
@@ -49,7 +51,7 @@ class sparse_table {
   inline size_t firstIndex(K& k) { return hashToRange(key_hash(k)); }
   inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
-  void clear() {
+  void del() {
     if (alloc) {
       pbbs::free_array(table);
       alloc = false;
@@ -69,9 +71,10 @@ class sparse_table {
         empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-    size_t line_size = 64;
-    size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
-    table = (T*)aligned_alloc(line_size, bytes);
+//    size_t line_size = 64;
+//    size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
+    table = pbbs::new_array_no_init<T>(m);
+//    table = (T*)aligned_alloc(line_size, bytes);
     clearA(table, m, empty);
     alloc = true;
   }
@@ -184,10 +187,12 @@ class sparse_table {
   }
 
   sequence<T> entries() {
-    T* out = pbbs::new_array_no_init<T>(m);
+//    T* out = pbbs::new_array_no_init<T>(m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-    size_t new_m = pbbs::filterf(table, out, m, pred);
-    return sequence<T>(out, new_m, true); // allocated
+    auto table_seq = make_sequence<T>(table, m);
+    return pbbs::filter(table_seq, pred);
+//    size_t new_m = pbbs::filterf(table, out, m, pred);
+//    return sequence<T>(out, new_m, true); // allocated
   }
 
   void clear() {

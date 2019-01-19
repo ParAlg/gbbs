@@ -48,8 +48,9 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
       assert(!d[i]);
     }
   });
+  auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
-      make_sequence<size_t>(GA.n, [&](size_t i) { return (size_t)in_mis[i]; });
+      make_sequence<size_t>(GA.n, mis_f);
   size_t mis_size = pbbs::reduce_add(mis_int);
   if (pbbs::reduce_add(d) != (GA.n - mis_size)) {
     std::cout << "MIS incorrect"
@@ -64,8 +65,9 @@ template <template <class W> class vertex, class W, class VS, class P>
 inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
   vs.toSparse();
   assert(!vs.isDense);
+  auto deg_f =  [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); };
   auto deg_im = make_sequence<size_t>(
-      vs.size(), [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); });
+      vs.size(), deg_f);
   size_t sum_d = pbbs::reduce_add(deg_im);
 
   if (sum_d > GA.m / 100) {  // dense forward case
@@ -81,6 +83,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     });
     return vertexSubset(GA.n, dense.get_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
+    std::cout << "sum_d = " << sum_d << std::endl;
     auto ht = make_sparse_table<uintE, pbbs::empty>(
         sum_d, std::make_tuple(UINT_E_MAX, pbbs::empty()),
         [&](const uintE& k) { return pbbs::hash64(k); });
@@ -95,7 +98,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
       GA.V[v].mapOutNgh(v, map_f);
     });
     auto nghs = ht.entries();
-    ht.clear();
+    ht.del();
     return vertexSubset(GA.n, nghs.size(), (uintE*)nghs.get_array());
   }
 }
@@ -156,22 +159,21 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
   auto perm = pbbs::random_permutation<uintE>(n);
-//  par_for(0, n, [&] (size_t i) {
-  parallel_for(size_t i=0; i<n; i++) {
+  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
     };
     priorities[i] = GA.V[i].countOutNgh(i, count_f);
-  }
+  });
   init_t.stop();
   init_t.reportTotal("init");
 
-
   // compute the initial rootset
+  auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
-      make_sequence<bool>(n, [&](size_t i) { return priorities[i] == 0; });
+      make_sequence<bool>(n, zero_f);
   auto init = pbbs::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, init.size(), init.get_array());
 
@@ -204,8 +206,8 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
     // update finished with roots and removed. update roots.
     finished += roots.size();
     finished += removed.size();
-    removed.clear();
-    roots.clear();
+    removed.del();
+    roots.del();
 
     roots = new_roots;
     rounds++;
@@ -280,7 +282,8 @@ inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
-  auto ok_imap = make_sequence<size_t>(n, [&](size_t i) { return ok[i]; });
+  auto ok_f = [&](size_t i) { return ok[i]; };
+  auto ok_imap = make_sequence<size_t>(n, ok_f);
   size_t n_ok = pbbs::reduce_add(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MIS"

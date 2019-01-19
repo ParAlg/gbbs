@@ -23,10 +23,8 @@
 
 #pragma once
 
-#include "lib/dyn_arr.h"
 #include "lib/random_shuffle.h"
 #include "lib/resizable_table.h"
-#include "lib/sparse_table.h"
 
 // The include below is currently not useful, as the majority of out/in-degree
 // one vertices are removed in a single round of peeling (so multiple rounds are
@@ -117,7 +115,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
   while (!frontier.isEmpty()) {
     frontier.toSparse();
 
-    auto im = make_sequence<size_t>(frontier.size(), [&](size_t i) {
+    auto im_f = [&](size_t i) {
       uintE v = frontier.s[i];
       size_t n_labels = table.num_appearances(v);
       auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
@@ -127,7 +125,8 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
       size_t effective_degree = (fl & in_edges) ? GA.V[v].countInNgh(v, pred)
                                                 : GA.V[v].countOutNgh(v, pred);
       return effective_degree * n_labels;
-    });
+    };
+    auto im = make_sequence<size_t>(frontier.size(), im_f);
 
     size_t sum = pbbs::reduce_add(im);
     table.maybe_resize(sum);
@@ -140,7 +139,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
     table.update_nelms();
-    frontier.clear();
+    frontier.del();
     frontier = output;
     rd++;
   }
@@ -180,7 +179,7 @@ inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
   while (!frontier.isEmpty()) {
     vertexSubset output = edgeMap(
         GA, frontier, wrap_em_f<W>(make_first_search(Flags, labels)), -1, fl);
-    frontier.clear();
+    frontier.del();
     frontier = output;
     rd++;
   }
@@ -197,7 +196,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   auto ba = sequence<bool>(n, false);
   auto bits = ba.get_array();
 
-  auto v_im = make_sequence<uintE>(n, [](size_t i) { return i; });
+  auto v_im_f = [](size_t i) { return i; };
+  auto v_im = make_sequence<uintE>(n, v_im_f);
   auto zero_pred = [&](size_t i) {
     return (GA.V[i].getOutDegree() == 0) || (GA.V[i].getInDegree() == 0);
   };
@@ -218,17 +218,18 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   double step_multiplier = beta;
   size_t label_offset = zero.size() + 1;
 
-  auto done_im = make_sequence<size_t>(
-      n, [&](size_t i) { return (bool)(labels[i] & TOP_BIT); });
+  auto done_im_f = [&](size_t i) { return (bool)(labels[i] & TOP_BIT); };
+  auto done_im = make_sequence<size_t>(n, done_im_f);
   initt.stop();
   initt.reportTotal("init");
 
   {
     timer hd;
     hd.start();
-    auto deg_im = make_sequence<std::tuple<uintE, uintE>>(n, [&](size_t i) {
+    auto deg_im_f = [&](size_t i) {
       return std::make_tuple(i, GA.V[i].getOutDegree());
-    });
+    };
+    auto deg_im = make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
     std::tuple<uintE, uintE> sAndD =
         pbbs::reduce(deg_im, [](const std::tuple<uintE, uintE>& l,
                                 const std::tuple<uintE, uintE>& r) {
@@ -272,8 +273,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = make_sequence<uintE>(
-        vs_size, [&](size_t i) { return Q[round_offset + i]; });
+    auto centers_pre_filter_f = [&](size_t i) { return Q[round_offset + i]; };
+    auto centers_pre_filter = make_sequence<uintE>(vs_size, centers_pre_filter_f);
     auto centers = pbbs::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
 
@@ -313,7 +314,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       continue;
     }
 
-    auto centers_2 = centers.copy();
+    auto centers_2 = centers.copy(centers);
     auto in_f = vertexSubset(n, centers.size(), centers.get_array());
     auto in_table =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
@@ -354,8 +355,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     };
     larger_t.map(sp_map);
 
-    in_table.clear();
-    out_table.clear();
+    in_table.del();
+    out_table.del();
     rt.stop();
     rt.reportTotal("Round time");
   }
@@ -365,9 +366,11 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
 
 template <class Seq>
 inline size_t num_done(Seq& labels) {
-  auto im = make_sequence<size_t>(labels.size(), [&](size_t i) {
+  auto im_f = [&](size_t i) {
     return ((size_t)((labels[i] & TOP_BIT) > 0));
-  });
+  };
+  auto im = make_sequence<size_t>(labels.size(), im_f);
+
   return pbbs::reduce_add(im);
 }
 

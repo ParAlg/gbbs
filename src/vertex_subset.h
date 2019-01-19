@@ -27,6 +27,7 @@
 #include <limits>
 
 #include "lib/sequence_ops.h"
+#include "lib/extra_sequence_ops.h"
 #include "maybe.h"
 
 template <class data>
@@ -48,14 +49,15 @@ struct vertexSubsetData {
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
   vertexSubsetData(long _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1) {
+    auto df = [&](size_t i) { return (size_t)std::get<0>(_d[i]); };
     auto d_map = make_sequence<size_t>(
-        n, [&](size_t i) { return (size_t)std::get<0>(_d[i]); });
+        n, df);
     m = pbbs::reduce_add(d_map);
   }
 
   vertexSubsetData() : n(0), m(0), s(NULL), d(NULL), isDense(0) {}
 
-  void clear() {
+  void del() {
     if (d != NULL) pbbs::free_array(d);
     if (s != NULL) pbbs::free_array(s);
     d = NULL;
@@ -103,9 +105,9 @@ struct vertexSubsetData {
 
   void toSparse() {
     if (s == NULL && m > 0) {
-      auto f = make_sequence<D>(
-          n, [&](size_t i) -> std::tuple<bool, data> { return d[i]; });
-      auto out = pbbs::pack_index_and_data<uintE, data>(f, n);
+      auto f = [&](size_t i) -> std::tuple<bool, data> { return d[i]; };
+      auto f_seq = make_sequence<D>(n, f);
+      auto out = pbbs::pack_index_and_data<uintE, data>(f_seq, n);
       out.allocated = false;
       s = out.s;
       if (out.size() != m) {
@@ -169,7 +171,8 @@ struct vertexSubsetData<pbbs::empty> {
   // number of nonzeros and store in m.
   vertexSubsetData<pbbs::empty>(long _n, bool* _d)
       : n(_n), s(NULL), d(_d), isDense(1) {
-    auto d_map = make_sequence<size_t>(n, [&](size_t i) { return _d[i]; });
+    auto d_f = [&](size_t i) { return _d[i]; };
+    auto d_map = make_sequence<size_t>(n, d_f);
     auto f = [&](size_t i, size_t j) { return i + j; };
     m = pbbs::reduce(d_map, f);
   }
@@ -178,13 +181,13 @@ struct vertexSubsetData<pbbs::empty> {
   // number of nonzeros and store in m.
   vertexSubsetData<pbbs::empty>(long _n, std::tuple<bool, pbbs::empty>* _d)
       : n(_n), s(NULL), d((bool*)_d), isDense(1) {
-    auto d_map =
-        make_sequence<size_t>(n, [&](size_t i) { return std::get<0>(_d[i]); });
+    auto d_f = [&](size_t i) { return std::get<0>(_d[i]); };
+    auto d_map = make_sequence<size_t>(n, d_f);
     auto f = [&](size_t i, size_t j) { return i + j; };
     m = pbbs::reduce(d_map, f);
   }
 
-  void clear() {
+  void del() {
     if (d != NULL) {
       pbbs::free_array(d);
     }

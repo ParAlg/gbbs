@@ -78,12 +78,12 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
         edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.start()));
     std::cout << output.size() << "\n";
-    Frontier.clear();
+    Frontier.del();
     Frontier = output;
     round++;
   }
-  auto dist_im = make_sequence<size_t>(
-      n, [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; });
+  auto dist_im_f = [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; };
+  auto dist_im = make_sequence<size_t>(n, dist_im_f);
   std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;

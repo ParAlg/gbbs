@@ -48,8 +48,8 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
       }
     };
     GA.V[v].mapOutNgh(v, map_f);
-    auto im = make_sequence<uintE>(
-        deg, [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; });
+    auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
+    auto im = make_sequence<uintE>(deg, im_f);
     auto min_f = [](uintE l, uintE r) { return std::min(l, r); };
     uintE color = pbbs::reduce(im, min_f);
     if (deg > 1000) {
@@ -126,8 +126,8 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     });
   }
 
-  auto zero_map =
-      make_sequence<bool>(n, [&](size_t i) { return priorities[i] == 0; });
+  auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
+  auto zero_map = make_sequence<bool>(n, zero_map_f);
   auto init = pbbs::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, init.size(), init.get_array());
   initt.reportTotal("init time");
@@ -153,7 +153,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     auto new_roots = edgeMap(GA, roots, coloring_f<W>(priorities.start()), -1,
                              sparse_blocked);
     em_t.stop();
-    roots.clear();
+    roots.del();
     roots = new_roots;
     rounds++;
   }
@@ -176,7 +176,8 @@ inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
     size_t ct = G.V[i].countOutNgh(i, pred);
     ok[i] = (ct > 0);
   });
-  auto im = make_sequence<size_t>(n, [&](size_t i) { return (size_t)ok[i]; });
+  auto im_f = [&](size_t i) { return (size_t)ok[i]; };
+  auto im = make_sequence<size_t>(n, im_f);
   size_t ct = pbbs::reduce_add(im);
   std::cout << "ct = " << ct << "\n";
   if (ct > 0) {

@@ -43,7 +43,7 @@ struct dyn_arr {
   dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
       : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
 
-  void clear() {
+  void del() {
     if (alloc) {
       pbbs::free_array(A);
       alloc = false;

@@ -110,17 +110,19 @@ struct EdgeMap {
         edgeMapInduced<M, w_vertex, VS>(G, vs, wrapped_map_f, out_ngh);
     oneHop.toSparse();
 
+    auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
     auto get_elm = make_sequence<std::tuple<K, M> >(
-        oneHop.size(), [&](size_t i) { return oneHop.vtxAndData(i); });
+        oneHop.size(), elm_f);
+    auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
     auto get_key = make_sequence<uintE>(
-        oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
+        oneHop.size(), key_f);
 
     auto q = [&](sequentialHT<K, V>& S, std::tuple<K, M> v) -> void {
       S.template insertF<M>(v, reduce_f);
     };
     auto res = pbbs::histogram_reduce<std::tuple<K, M>, std::tuple<K, O> >(
         get_elm, get_key, oneHop.size(), q, apply_f, ht);
-    oneHop.clear();
+    oneHop.del();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 
@@ -142,13 +144,14 @@ struct EdgeMap {
         edgeMapInduced<pbbs::empty, w_vertex, VS>(G, vs, map_f, out_ngh);
     oneHop.toSparse();
 
+    auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
     auto get_key = make_sequence<uintE>(
-        oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
+        oneHop.size(), key_f);
     auto res = pbbs::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                       apply_f, ht);
-    oneHop.clear();
+    oneHop.del();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 
-  ~EdgeMap() { ht.clear(); }
+  ~EdgeMap() { ht.del(); }
 };

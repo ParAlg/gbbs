@@ -128,16 +128,16 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.clear();
-    active.clear();
+    res.del();
+    active.del();
     bkt = b.next_bucket();
     bt.stop();
     rd++;
   }
   bt.reportTotal("bucket time");
   emt.reportTotal("edge map time");
-  auto dist_im = make_sequence<size_t>(
-      n, [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; });
+  auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
+  auto dist_im = make_sequence<size_t>(n, dist_f);
   std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
 

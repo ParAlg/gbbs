@@ -40,7 +40,7 @@ void SetCover_runner(graph<vertex>& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
   std::cout << "here, nb = " << num_buckets << "\n";
   auto cover = SetCover(GA, num_buckets);
-  cover.clear();
+  cover.del();
   t.stop();
   t.reportTotal("SetCover Time");
 

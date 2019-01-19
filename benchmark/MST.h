@@ -184,8 +184,8 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     relab_t.stop();  // relab_t.reportTotal("relabel time");
 
     // 7. filter (or ignore) self-edges.
-    auto self_loop_im = make_sequence<bool>(
-        n, [&](size_t i) { return !(edge_ids[i] & TOP_BIT); });
+    auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
+    auto self_loop_im = make_sequence<bool>(n, self_loop_f);
     auto edge_ids_im = sequence<uintE>(edge_ids, m);
     if (round == 0) {
       auto A = pbbs::pack(edge_ids_im, self_loop_im);
@@ -429,8 +429,9 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     r = r.next();
   }
   std::cout << "#edges in output mst: " << mst_edges.size << "\n";
+  auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
   auto wgh_imap = make_sequence<size_t>(
-      mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
+      mst_edges.size, wgh_imap_f);
   std::cout << "total weight = " << pbbs::reduce_add(wgh_imap) << "\n";
 
   mst_edges.clear();
@@ -522,7 +523,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
   size_t ind = ((double)(k * sampled_e.non_zeros)) / G.m;
   auto splitter = sampled_e.E[ind];
   int32_t split_weight = std::get<2>(splitter);
-  sampled_e.clear();
+  sampled_e.del();
   std::cout << "split wgh is: " << split_weight << "\n";
 
   // 3. Filter edges based on splitter
@@ -584,12 +585,13 @@ inline void MST(graph<vertex<W>>& GA) {
 
     UFStep.clear();
     pbbs::free_array(R);
+    auto edge_imap_f = [&](size_t i) { return edges.E[i]; };
     auto edge_im =
-        make_sequence<edge_t>(n_edges, [&](size_t i) { return edges.E[i]; });
+        make_sequence<edge_t>(n_edges, edge_imap_f);
     auto edges_ret = pbbs::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
-    edges.clear();
+    edges.del();
     mstFlags.clear();
 
     timer pack_t;
@@ -600,11 +602,12 @@ inline void MST(graph<vertex<W>>& GA) {
     iter++;
   }
   std::cout << "n in mst: " << mst_edges.size << "\n";
+  auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
   auto wgh_imap = make_sequence<size_t>(
-      mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
+      mst_edges.size, wgh_imap_f);
   std::cout << "wgh = " << pbbs::reduce_add(wgh_imap) << "\n";
 
-  mst_edges.clear();
+  mst_edges.del();
 }
 
 template <

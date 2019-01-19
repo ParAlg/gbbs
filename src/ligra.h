@@ -264,10 +264,11 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
-  auto degree_imap = make_sequence<uintE>(indices.size(), [&](size_t i) {
+  auto degree_f = [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
                            : frontier_vertices[i].getOutVirtualDegree();
-  });
+  };
+  auto degree_imap = make_sequence<uintE>(indices.size(), degree_f);
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
@@ -388,10 +389,11 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
-  auto degree_imap = make_sequence<uintE>(indices.size(), [&](size_t i) {
+  auto degree_f = [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
                            : frontier_vertices[i].getOutVirtualDegree();
-  });
+  };
+  auto degree_imap = make_sequence<uintE>(indices.size(), degree_f);
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   size_t num_blocks = indices.size();
@@ -498,10 +500,11 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   vertex* frontier_vertices = pbbs::new_array_no_init<vertex>(m);
   par_for(0, vs.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
                   { frontier_vertices[i] = GA.V[vs.vtx(i)]; });
-  auto degree_im = make_sequence<size_t>(vs.size(), [&](size_t i) {
+  auto degree_f = [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInDegree()
                            : frontier_vertices[i].getOutDegree();
-  });
+  };
+  auto degree_im = make_sequence<size_t>(vs.size(), degree_f);
   size_t out_degrees = pbbs::reduce_add(degree_im);
 
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
@@ -678,8 +681,10 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
     uintE v = V.vtx(i);
     bits[i] = filter(v);
   });
-  auto v_imap = make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
-  auto bits_m = make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
+  auto v_imap_f = [&](size_t i) { return V.vtx(i); };
+  auto v_imap = make_sequence<uintE>(m, v_imap_f);
+  auto bits_f = [&](size_t i) { return bits[i]; };
+  auto bits_m = make_sequence<bool>(m, bits_f);
   auto out = pbbs::pack(v_imap, bits_m);
   out.allocated = false;
   pbbs::free_array(bits);
@@ -698,8 +703,10 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
     auto t = V.vtxAndData(i);
     bits[i] = filter(std::get<0>(t), std::get<1>(t));
   });
-  auto v_imap = make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
-  auto bits_m = make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
+  auto v_imap_f = [&](size_t i) { return V.vtx(i); };
+  auto v_imap = make_sequence<uintE>(m, v_imap_f);
+  auto bits_f = [&](size_t i) { return bits[i]; };
+  auto bits_m = make_sequence<bool>(m, bits_f);
   auto out = pbbs::pack(v_imap, bits_m);
   out.allocated = false;
   pbbs::free_array(bits);
@@ -810,7 +817,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
   std::cout << "time per iter: " << time_per_iter << "\n";           \
   auto after_state = get_pcm_state();                                \
   print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
-  G.clear();
+  G.del();
 
 #define generate_main(APP, mutates)                                            \
   int main(int argc, char* argv[]) {                                           \

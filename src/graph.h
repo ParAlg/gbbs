@@ -64,7 +64,7 @@ struct graph {
 
   auto copy() -> graph<vertex> { return copy_fn(); }
 
-  void clear() {
+  void del() {
     if (flags != NULL) pbbs::free_array(flags);
     deletion_fn();
   }
@@ -152,12 +152,14 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
   par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
     w_vertex u = V[i];
-    auto out_im = make_sequence<int>(u.getOutDegree(), [&](uintE j) {
+    auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
-    });
-    auto in_im = make_sequence<int>(u.getInDegree(), [&](uintE j) {
+    };
+    auto out_im = make_sequence<int>(u.getOutDegree(), out_f);
+    auto in_f = [&](uintE j) {
       return static_cast<int>(pred(u.getInNeighbor(j), i, u.getInWeight(j)));
-    });
+    };
+    auto in_im = make_sequence<int>(u.getInDegree(), in_f);
 
     if (out_im.size() > 0)
       out_edge_sizes[i] = pbbs::reduce_add(out_im);
@@ -192,7 +194,8 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
-      auto n_im = make_sequence<edge>(d, [&](size_t i) { return nghs[i]; });
+      auto n_im_f = [&](size_t i) { return nghs[i]; };
+      auto n_im = make_sequence<edge>(d, n_im_f);
       auto res = pbbs::filter(n_im, pred_c, pbbs::no_flag, dir_nghs);
     }
   });
@@ -208,7 +211,8 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       auto pred_c = [&](const edge& e) {
         return pred(std::get<0>(e), i, std::get<1>(e));
       };
-      auto n_im = make_sequence<edge>(d, [&](size_t i) { return nghs[i]; });
+      auto n_im_f = [&](size_t i) { return nghs[i]; };
+      auto n_im = make_sequence<edge>(d, n_im_f);
       auto res = pbbs::filter(n_im, pred_c, pbbs::no_flag, dir_nghs);
     }
   });
@@ -319,7 +323,8 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     AV[i].outDegree = degrees[i];
   });
 
-  auto deg_map = make_sequence<size_t>(n, [&](size_t i) { return degrees[i]; });
+  auto deg_f = [&](size_t i) { return degrees[i]; };
+  auto deg_map = make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbs::reduce_add(deg_map);
   std::cout << "Filtered, total_deg = " << total_deg << "\n";
   return graph<cav_byte<W>>(AV, G.n, total_deg,
@@ -354,7 +359,7 @@ struct edge_array {
   size_t num_cols;
   // non_zeros is the #edges
   size_t non_zeros;
-  void clear() { pbbs::free_array(E); }
+  void del() { pbbs::free_array(E); }
   edge_array(edge* _E, size_t r, size_t c, size_t nz)
       : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {}
   edge_array() {}
@@ -420,6 +425,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
     return pred(src, ngh, wgh) == 0;
   };
 
+  std::cout << "starting pack my man " << "\n";
   // 2. pack and write out
   {
     auto for_inner = [&](size_t i) {
@@ -442,10 +448,14 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
     };
     par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
+  std::cout << "packed up " << "\n";
+  auto deg_f = [&](size_t i) { return G.V[i].getOutDegree(); };
   auto degree_imap =
-      make_sequence<size_t>(n, [&](size_t i) { return G.V[i].getOutDegree(); });
+      make_sequence<size_t>(n, deg_f);
 
   G.m = pbbs::reduce_add(degree_imap);
+  std::cout << "G.m = " << G.m << "\n";
+
   return edge_array<W>(arr.get_array(), n, n, arr.size());
 }
 

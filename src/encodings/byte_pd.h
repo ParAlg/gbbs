@@ -397,10 +397,11 @@ struct seq_info {
 
   uintE binary_search(uintE pivot) {
     uintE* offs = (uintE*)edge_start;
-    auto start_im = make_sequence<uintE>(size(), [&](size_t i) {
+    auto start_f = [&](size_t i) {
       uchar* finger = edge_start + offs[start + i];
       return eatFirstEdge(finger, source_id);
-    });
+    };
+    auto start_im = make_sequence<uintE>(size(), start_f);
     uintE ind =
         pbbs::binary_search(start_im, pivot, std::greater<uintE>());  // check
     // ind is the first block index (from start) <= our pivot.

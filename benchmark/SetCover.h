@@ -99,7 +99,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
       return deg >= threshold;
     };
     auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
-    packed_vtxs.clear();
+    packed_vtxs.del();
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
@@ -138,8 +138,8 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
           return numWon >= low_threshold;
         });
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
-    inCover.clear();
-    activeAndCts.clear();
+    inCover.del();
+    activeAndCts.del();
 
     // 4. sets -> elements (Sets that joined the cover mark their neighboring
     // elements as covered. Sets that didn't reset any acquired elements)
@@ -170,20 +170,20 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     };
     std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());
-    active.clear();
-    still_active.clear();
+    active.del();
+    still_active.del();
     rounds++;
     bktt.stop();
     r = r.next();
   }
-  b.clear();
+  b.del();
 
   bktt.reportTotal("bucket");
   packt.reportTotal("pack");
   permt.reportTotal("perm");
   emt.reportTotal("emap");
-  auto elm_cov = make_sequence<uintE>(
-      G.n, [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); });
+  auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
+  auto elm_cov = make_sequence<uintE>(G.n, elm_cov_f);
   size_t elms_cov = pbbs::reduce_add(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";

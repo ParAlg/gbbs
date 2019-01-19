@@ -22,8 +22,8 @@
 
 #pragma once
 
+#include <iostream>
 #include <stddef.h>
-
 
 // scan/filter macros; used by sequence implementations
 #define _SCAN_LOG_BSIZE 10
@@ -31,5 +31,60 @@
 #define _F_BSIZE (2 * _SCAN_BSIZE)
 
 namespace pbbs {
-constexpr const size_t kSequentialForThreshold = 2000;
+
+  constexpr const size_t kSequentialForThreshold = 2000;
+
+  template <class ET>
+  inline bool CAS(ET* ptr, ET oldv, ET newv) {
+    if (sizeof(ET) == 1) {
+      return __sync_bool_compare_and_swap((bool*)ptr, *((bool*)&oldv),
+                                          *((bool*)&newv));
+    } else if (sizeof(ET) == 4) {
+      return __sync_bool_compare_and_swap((int*)ptr, *((int*)&oldv),
+                                          *((int*)&newv));
+    } else if (sizeof(ET) == 8) {
+      return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
+                                          *((long*)&newv));
+    } else {
+      std::cout << "CAS bad length : " << sizeof(ET) << "\n";
+      abort();
+    }
+  }
+
+  template <class ET>
+  inline bool CAS128(ET* a, ET b, ET c) {
+    return __sync_bool_compare_and_swap_16((__int128*)a, *((__int128*)&b),
+                                           *((__int128*)&c));
+  }
+
+  inline long xaddl(long* variable, long value) {
+    asm volatile("lock; xaddl %%eax, %2;"
+                 : "=a"(value)                 // Output
+                 : "a"(value), "m"(*variable)  // Input
+                 : "memory");
+    return value;
+  }
+
+  inline int xaddi(int* variable, int value) {
+    asm volatile("lock; xadd %%eax, %2;"
+                 : "=a"(value)                 // Output
+                 : "a"(value), "m"(*variable)  // Input
+                 : "memory");
+    return value;
+  }
+
+  // The conditional should be removed by the compiler
+  // this should work with pointer types, or pairs of integers
+  template <class ET>
+  inline ET xadd(ET* variable, ET value) {
+    if (sizeof(ET) == 8) {
+      return xaddl((long*)variable, (long)value);
+    } else if (sizeof(ET) == 4) {
+      return xaddi((int*)variable, (int)value);
+    } else {
+      std::cout << "xadd bad length"
+                << "\n";
+      abort();
+    }
+  }
 }  // namespace pbbs

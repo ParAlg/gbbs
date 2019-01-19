@@ -50,10 +50,10 @@ inline size_t RelabelIds(Seq& ids) {
   return new_n;
 }
 
-template <template <typename W> class vertex, class W, class Seq, class EO>
+template <template <typename W> class vertex, class W, class EO>
 inline std::tuple<graph<symmetricVertex<pbbs::empty>>, sequence<uintE>,
                   sequence<uintE>>
-contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
+contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, EO& oracle) {
   // Remove duplicates by hashing
   using K = std::tuple<uintE, uintE>;
   using V = pbbs::empty;
@@ -101,7 +101,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
   };
   par_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
   auto edges = edge_table.entries();
-  edge_table.clear();
+  edge_table.del();
   ins_t.stop();
   ins_t.reportTotal("ins time");
 
@@ -112,8 +112,8 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
                     auto e = std::get<0>(edges[i]);
                     uintE u = std::get<0>(e);
                     uintE v = std::get<1>(e);
-                    if (!flags(u)) flags[u] = 1;
-                    if (!flags(v)) flags[v] = 1;
+                    if (!flags[u]) flags[u] = 1;
+                    if (!flags[v]) flags[v] = 1;
                   });
   pbbs::scan_add(flags, flags);
 
@@ -187,7 +187,7 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
       clusters[i] = mapping[new_labels[gc_cluster]];
     }
   });
-  GC.clear();
+  GC.del();
   new_labels.clear();
   flags.clear();
   mapping.clear();
@@ -263,7 +263,7 @@ inline sequence<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
       clusters[i] = mapping[new_labels[gc_cluster]];
     }
   });
-  GC.clear();
+  GC.del();
   new_labels.clear();
   flags.clear();
   mapping.clear();

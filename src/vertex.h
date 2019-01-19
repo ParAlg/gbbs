@@ -191,10 +191,11 @@ template <template <typename W> class vertex, class W, class F>
 inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
                         uintE d, F& f, bool parallel = true) {
   if (d == 0) return 0;
-  auto im = make_sequence<size_t>(d, [&](size_t i) {
+  auto im_f = [&](size_t i) -> size_t {
     auto nw = nghs[i];
     return f(vtx_id, std::get<0>(nw), std::get<1>(nw));
-  });
+  };
+  auto im = make_sequence<size_t>(d,im_f);
   return pbbs::reduce_add(im);
 }
 
@@ -203,10 +204,11 @@ template <template <typename W> class vertex, class W, class E, class M,
 inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                     uintE d, E id, M& m, R& r) {
   if (d == 0) return id;
-  auto im = make_sequence<E>(d, [&](size_t i) {
+  auto im_f = [&](size_t i) {
     auto nw = nghs[i];
     return m(vtx_id, std::get<0>(nw), std::get<1>(nw));
-  });
+  };
+  auto im = make_sequence<E>(d, im_f);
   return pbbs::reduce(im, r);
 }
 

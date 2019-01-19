@@ -75,7 +75,8 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbs::random rnd) {
   size_t l = std::min(k1, k2);
   size_t r = std::max(k1, k2);
   size_t key = (l << 32) + r;
-  return rnd.ith_rand(key);
+  return pbbs::hash64_2(key);
+//  return rnd.ith_rand(key);
 }
 
 template <template <class W> class vertex, class W>
@@ -95,7 +96,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
   par_for(0, E.non_zeros, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
-  E.clear();
+  E.del();
   E.E = out.get_array();
   perm_t.stop();
   perm_t.reportTotal("permutation time");
@@ -139,7 +140,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
   par_for(0, E.non_zeros, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
-  E.clear();
+  E.del();
   E.E = out.get_array();
   perm_t.stop();
   perm_t.reportTotal("permutation time");
@@ -176,8 +177,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
                      ? mm::get_edges(G, k, matched.start(), r)
                      : mm::get_all_edges(G, matched.start(), r);
 
-    auto eim = make_sequence<edge>(e_arr.non_zeros,
-                                  [&](size_t i) { return e_arr.E[i]; });
+    auto eim_f = [&](size_t i) { return e_arr.E[i]; };
+    auto eim = make_sequence<edge>(e_arr.non_zeros, eim_f);
     gete.stop();
 
     std::cout << "Got: " << e_arr.non_zeros << " edges "
@@ -248,7 +249,8 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   };
   par_for(0, n, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
 
-  auto ok_im = make_sequence<size_t>(n, [&](size_t i) { return ok[i]; });
+  auto ok_f = [&](size_t i) { return ok[i]; };
+  auto ok_im = make_sequence<size_t>(n, ok_f);
   size_t n_ok = pbbs::reduce_add(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";

@@ -592,12 +592,13 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
   uchar* nghs_start =
       edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
-  auto blocks_imap = make_sequence<size_t>(num_blocks, [&](size_t j) {
+  auto blocks_f = [&](size_t j) {
     uintE end = (j == (num_blocks - 1))
                     ? degree
                     : (*((uintE*)(edge_start + block_offsets[j])));
     return end;
-  });
+  };
+  auto blocks_imap = make_sequence<size_t>(num_blocks, blocks_f);
   // This is essentially searching a plus_scan'd, incl arr.
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
   size_t block = pbbs::binary_search(blocks_imap, i, lte);

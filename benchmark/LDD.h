@@ -125,12 +125,13 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
     size_t num_to_add = end - start;
     if (num_to_add > 0) {
       assert((num_added + num_to_add) <= n);
-      auto candidates = make_sequence<uintE>(num_to_add, [&](size_t i) {
+      auto candidates_f = [&](size_t i) {
         if (permute)
           return vertex_perm[num_added + i];
         else
           return static_cast<uintE>(num_added + i);
-      });
+      };
+      auto candidates = make_sequence<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbs::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.start(), new_centers.size());
@@ -153,7 +154,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
       edgeMapFilter(GA, frontier, pred, pack_edges | no_output);
       t.stop(); t.reportTotal("pack time");
     }
-    frontier.clear();
+    frontier.del();
     frontier = next_frontier;
 
     round++;

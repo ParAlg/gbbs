@@ -93,13 +93,14 @@ struct buckets {
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
-      auto imap = make_sequence<uintE>(n, [&](size_t i) { return d(i); });
+      auto imap_f = [&](size_t i) { return d(i); };
+      auto imap = make_sequence<uintE>(n, imap_f);
       auto min = [](uintE x, uintE y) { return std::min(x, y); };
       size_t min_b = pbbs::reduce(imap, min);
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
-      auto imap = make_sequence<uintE>(
-          n, [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); });
+      auto imap_f = [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); };
+      auto imap = make_sequence<uintE>(n, imap_f);
       auto max = [](uintE x, uintE y) { return std::max(x, y); };
       size_t max_b = pbbs::reduce(imap, max);
       cur_range = (max_b + open_buckets) / open_buckets;
@@ -149,7 +150,7 @@ struct buckets {
     return null_bkt;
   }
 
-  void clear() {
+  void del() {
     if (allocated) {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].clear();
@@ -164,7 +165,7 @@ struct buckets {
   template <class F>
   inline size_t update_buckets(F f, size_t k) {
     size_t num_blocks = k / 4096;
-    int num_threads = nworkers();
+    int num_threads = num_workers();
     if (k < pbbs::kSequentialForThreshold || num_threads == 1) {
       return update_buckets_seq(f, k);
     }

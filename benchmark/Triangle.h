@@ -98,7 +98,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
   }
   size_t total_work = pbbs::scan_add(parallel_work, parallel_work);
 
-  size_t n_blocks = nworkers() * 8 + 1;
+  size_t n_blocks = num_workers() * 8 + 1;
   size_t work_per_block = total_work / n_blocks;
   std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
             << " work per block = " << work_per_block << "\n";
@@ -159,7 +159,7 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
 
   size_t count = CountDirectedBalanced(DG, counts.start(), f);
   std::cout << "Num triangles = " << count << "\n";
-  DG.clear();
+  DG.del();
   ct.stop();
   ct.reportTotal("count time");
   pbbs::free_array(rank);

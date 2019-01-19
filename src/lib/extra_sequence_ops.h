@@ -2,6 +2,7 @@
 
 #include "lib/seq.h"
 #include "lib/sequence_ops.h"
+#include "lib/macros.h"
 
 namespace pbbs {
 
@@ -33,8 +34,9 @@ namespace pbbs {
     auto identity = [&](size_t i) {
       return std::make_tuple((Idx_Type)i, std::get<1>(f(i)));
     };
+    auto flgs_f = [&](size_t i) { return std::get<0>(f(i)); };
     auto flgs_in =
-        make_sequence<bool>(size, [&](size_t i) { return std::get<0>(f(i)); });
+        make_sequence<bool>(size, flgs_f);
     return pack(make_sequence<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
                 fl);
   }

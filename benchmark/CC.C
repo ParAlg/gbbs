@@ -46,8 +46,9 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
   t.start();
   auto components = cc::CC(GA, beta, pack);
   if (P.getOption("-stats")) {
+    auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
-        make_sequence<uintE>(GA.n, [&](size_t i) { return components[i]; });
+        make_sequence<uintE>(GA.n, cc_f);
     cc::num_cc(cc_im);
     cc::largest_cc(cc_im);
   }

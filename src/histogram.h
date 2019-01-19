@@ -153,7 +153,7 @@ struct hist_table {
     }
   }
 
-  void clear() {
+  void del() {
     if (table) {
       pbbs::free_array(table);
     }
@@ -318,9 +318,9 @@ template <class O, class K, class V, class A, class Apply>
 inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
                                        hist_table<K, V>& ht) {
   using KV = std::tuple<K, V>;
-  int num_workers = nworkers();
+  int nworkers = num_workers();
 
-  if (n < _hist_seq_threshold || num_workers == 1) {
+  if (n < _hist_seq_threshold || nworkers == 1) {
     size_t pn = pbbs::log2_up((intT)(n + 1));
     size_t rs = 1L << pn;
     ht.resize(rs);
@@ -604,9 +604,9 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
                                               hist_table<K, V>& ht) {
   typedef std::tuple<K, V> KV;
 
-  int num_workers = nworkers();
+  int nworkers = num_workers();
 
-  if (n < _hist_seq_threshold || num_workers == 1) {
+  if (n < _hist_seq_threshold || nworkers == 1) {
     auto r = seq_histogram_reduce<E, O>(get_elm, n, reduce_f, apply_f, ht);
     return r;
   }

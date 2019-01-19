@@ -74,7 +74,8 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
   auto out_d =
       sequence<intE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
 
-  auto in_v = make_sequence<uintE>(n, [&](size_t i) { return i; });
+  auto in_f = [&](size_t i) { return i; };
+  auto in_v = make_sequence<uintE>(n, in_f);
   auto in_ends = pbbs::filter(in_v, [&](uintE v) { return in_d[v] == 0; });
   auto out_ends = pbbs::filter(in_v, [&](uintE v) { return out_d[v] == 0; });
 
@@ -132,8 +133,9 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
       out_vs = next_out;
     }
   }
+  auto chain_f =  [&](size_t i) { return (size_t)chains[i]; };
   auto chain_im =
-      make_sequence<size_t>(n, [&](size_t i) { return (size_t)chains[i]; });
+      make_sequence<size_t>(n, chain_f);
   std::cout << "total zero = " << pbbs::reduce_add(chain_im) << "\n";
   std::cout << "nr = " << nr << "\n";
   return chains;
