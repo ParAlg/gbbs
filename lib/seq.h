@@ -10,7 +10,7 @@ public:
   sequence() {}
 
   // copy constructor
-  sequence(sequence& a) : s(a.s), e(a.e), allocated(false) {}
+  sequence(const sequence& a) : s(a.s), e(a.e), allocated(false) {}
 
   // move constructor
   sequence(sequence&& b)
@@ -99,6 +99,7 @@ public:
   }
 
   E& operator[] (const size_t i) const {return s[i];}
+  E& operator() (const size_t i) const {return s[i];}
 
   sequence slice(size_t ss, size_t ee) {
     return sequence(s + ss, s + ee);
@@ -137,23 +138,24 @@ public:
 template <typename E, typename F>
 struct func_sequence {
   using T = E;
-  func_sequence(size_t n, F _f) : f(_f), s(0), e(n) {};
-  func_sequence(size_t s, size_t e, F _f) : f(_f), s(s), e(e) {};
-  T operator[] (const size_t i) {return f(i+s);}
+  func_sequence(size_t n, F& _f) : f(&_f), s(0), e(n) {};
+  func_sequence(size_t s, size_t e, F& _f) : f(&_f), s(s), e(e) {};
+  T operator[] (const size_t i) {return (*f)(i+s);}
+  T operator() (const size_t i) {return (*f)(i+s);}
   func_sequence<T,F> slice(size_t ss, size_t ee) {
-    return func_sequence<T,F>(s+ss,s+ee,f); }
+    return func_sequence<T,F>(s+ss,s+ee,*f); }
   size_t size() { return e - s;}
   sequence<T> as_sequence() {
-    return sequence<T>::tabulate(e-s, [&] (size_t i) {return f(i+s);});
+    return sequence<T>::tabulate(e-s, [&] (size_t i) {return (*f)(i+s);});
   }
 private:
-  F f;
+  F *f;
   size_t s, e;
 };
 
 // used so second template argument can be inferred
 template <class E, class F>
-func_sequence<E,F> make_sequence (size_t n, F f) {
+func_sequence<E,F> make_sequence (size_t n, F& f) {
   return func_sequence<E,F>(n,f);
 }
 

@@ -33,7 +33,7 @@ namespace pbbs {
   // a top down recursive radix sort
   // g extracts the integer keys from In
   // val_bits specifies how many bits there are in the integer
-  template <typename KT, typename InS, typename OutS, typename Get_Key>
+  template <typename InS, typename OutS, typename Get_Key>
   void integer_sort(InS In,  OutS Out, Get_Key& g, 
 		    size_t val_bits, size_t depth=0) {
     using T = typename InS::T;
@@ -75,7 +75,7 @@ namespace pbbs {
       //parallel_for(size_t i = 0; i < num_buckets; i++) {
       auto f = [&] (size_t i) {
 	auto out_slice = Out.slice(bucket_offsets[i],bucket_offsets[i+1]);
-	integer_sort<KT>(out_slice, out_slice, g, shift_bits, depth+1);
+	integer_sort(out_slice, out_slice, g, shift_bits, depth+1);
       };
       par_for(0, num_buckets, 1, f);
     }

@@ -154,16 +154,17 @@ namespace pbbs {
   }
 
   template <class In_Seq, class Bool_Seq>
-  auto pack_serial(In_Seq In, Bool_Seq Fl)
-    -> sequence<typename In_Seq::T> {
+  inline auto pack_serial(In_Seq In, Bool_Seq Fl,
+                          typename In_Seq::T* _Out = nullptr)
+      -> sequence<typename In_Seq::T> {
     using T = typename In_Seq::T;
     size_t n = In.size();
     size_t m = sum_flags_serial(Fl);
-    T* Out = new_array_no_init<T>(m);
+    T* Out = (_Out) ? _Out : new_array_no_init<T>(m);
     size_t k = 0;
-    for (size_t i=0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
       if (Fl[i]) assign_uninitialized(Out[k++], In[i]);
-    return sequence<T>(Out,m,true);
+    return std::move(sequence<T>(Out, m, (_Out) ? false : true));
   }
 
   template <class In_Seq, class Bool_Seq>
@@ -174,31 +175,29 @@ namespace pbbs {
   }
 
   template <class In_Seq, class Bool_Seq>
-  auto pack(In_Seq In, Bool_Seq Fl, flags fl = no_flag)
-    -> sequence<typename In_Seq::T>
-  {
+  inline auto pack(In_Seq In, Bool_Seq Fl, flags fl = no_flag,
+                   typename In_Seq::T* _Out = nullptr)
+      -> sequence<typename In_Seq::T> {
     using T = typename In_Seq::T;
     size_t n = In.size();
-    size_t block_size = std::max(_block_size, 4 * (size_t) ceil(sqrt(n)));
-    size_t l = num_blocks(n,block_size);
-    if (l <= 1 || fl & fl_sequential)
-      return pack_serial(In, Fl);
+    size_t l = num_blocks(n, _block_size);
+    if (l <= 1 || fl & fl_sequential) {
+      return std::move(pack_serial(In, Fl.slice(0, In.size()), _Out));
+    }
     sequence<size_t> Sums(l);
-    sliced_for (n, block_size,
-		[&] (size_t i, size_t s, size_t e)
-		{ Sums[i] = sum_flags_serial(Fl.slice(s,e));});
+    sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      Sums[i] = sum_flags_serial(Fl.slice(s, e));
+    });
     size_t m = scan_add(Sums, Sums);
-    T* Out = new_array_no_init<T>(m);
-    sliced_for (n, block_size,
-		[&] (size_t i, size_t s, size_t e)
-		{ pack_serial_at(In.slice(s,e),
-				 Out + Sums[i],
-				 Fl.slice(s,e));});
-    return sequence<T>(Out,m,true);
+    T* Out = (_Out) ? _Out : new_array_no_init<T>(m);
+    sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      pack_serial_at(In.slice(s, e), Out + Sums[i], Fl.slice(s, e));
+    });
+    return std::move(sequence<T>(Out, m, (_Out) ? false : true));
   }
 
   template <class In_Seq, class F>
-  auto filter(In_Seq In, F f, flags fl = no_flag)
+  auto filter(In_Seq In, F f, flags fl = no_flag, typename In_Seq::T* _Out = nullptr)
     -> sequence<typename In_Seq::T>
   {
     using T = typename In_Seq::T;
@@ -213,13 +212,13 @@ namespace pbbs {
 		    r += (Fl[j] = f(In[j]));
 		  Sums[i] = r;});
     size_t m = scan_add(Sums, Sums);
-    T* Out = new_array_no_init<T>(m);
+    T* Out = (_Out != nullptr) ? _Out : new_array_no_init<T>(m);
     sliced_for (n, _block_size,
 		[&] (size_t i, size_t s, size_t e)
 		{ pack_serial_at(In.slice(s,e),
 				 Out + Sums[i],
 				 Fl.slice(s,e));});
-    return sequence<T>(Out,m,true);
+    return sequence<T>(Out,m,(_Out == nullptr));
   }
 
   template <class Idx_Type, class Bool_Seq>
