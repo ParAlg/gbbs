@@ -67,8 +67,8 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     bt.start();
     b.update_buckets(moved.get_fn_repr(), moved.size());
     bt.stop();
-    moved.del();
-    active.del();
+    moved.clear();
+    active.clear();
     rho++;
   }
   std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
@@ -137,8 +137,8 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
     } else {
       b.update_buckets(moved.get_fn_repr(), moved.size());
     }
-    moved.del();
-    active.del();
+    moved.clear();
+    active.clear();
     rho++;
   }
   std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";

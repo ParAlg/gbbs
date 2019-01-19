@@ -49,7 +49,7 @@ class sparse_table {
   inline size_t firstIndex(K& k) { return hashToRange(key_hash(k)); }
   inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
-  void del() {
+  void clear() {
     if (alloc) {
       pbbs::free_array(table);
       alloc = false;

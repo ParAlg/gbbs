@@ -433,7 +433,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
       mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
   std::cout << "total weight = " << pbbs::reduce_add(wgh_imap) << "\n";
 
-  mst_edges.del();
+  mst_edges.clear();
   pbbs::free_array(min_edges);
 }
 
@@ -522,7 +522,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
   size_t ind = ((double)(k * sampled_e.non_zeros)) / G.m;
   auto splitter = sampled_e.E[ind];
   int32_t split_weight = std::get<2>(splitter);
-  sampled_e.del();
+  sampled_e.clear();
   std::cout << "split wgh is: " << split_weight << "\n";
 
   // 3. Filter edges based on splitter
@@ -582,15 +582,15 @@ inline void MST(graph<vertex<W>>& GA) {
     auto UFStep = make_uf_step<uintE>(edges, R, mstFlags, uf);
     speculative_for<uintE>(UFStep, 0, n_edges, 8);
 
-    UFStep.del();
+    UFStep.clear();
     pbbs::free_array(R);
     auto edge_im =
         make_sequence<edge_t>(n_edges, [&](size_t i) { return edges.E[i]; });
     auto edges_ret = pbbs::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
-    edges.del();
-    mstFlags.del();
+    edges.clear();
+    mstFlags.clear();
 
     timer pack_t;
     pack_t.start();
@@ -604,7 +604,7 @@ inline void MST(graph<vertex<W>>& GA) {
       mst_edges.size, [&](size_t i) { return std::get<2>(mst_edges.A[i]); });
   std::cout << "wgh = " << pbbs::reduce_add(wgh_imap) << "\n";
 
-  mst_edges.del();
+  mst_edges.clear();
 }
 
 template <

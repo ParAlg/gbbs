@@ -58,10 +58,10 @@ inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
     reachable += Frontier.size();
     vertexSubset output =
         edgeMap(GA, Frontier, BFS_F<W>(Parents.start()), -1, sparse_blocked);
-    Frontier.del();
+    Frontier.clear();
     Frontier = output;
   }
-  Frontier.del();
+  Frontier.clear();
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }

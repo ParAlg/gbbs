@@ -230,7 +230,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (!t(source, ngh, pbbs::empty(), edgeID)) return;
     }
     // do remaining chunks in parallel
-    parallel_for_bc(i, 1, num_blocks, 1, {
+    par_for(1, num_blocks, 1, [&] (size_t i) {
       size_t o = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];
@@ -271,7 +271,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (!t(source, ngh, weight, edgeID)) return;
     }
     // do remaining chunks in parallel
-    parallel_for_bc(i, 1, num_blocks, 1, {
+    par_for(1, num_blocks, 1, [&] (size_t i) {
       size_t o = i * PARALLEL_DEGREE;
       size_t end = std::min<long>(o + PARALLEL_DEGREE, degree);
       uchar* finger = edge_start + block_offsets[i - 1];

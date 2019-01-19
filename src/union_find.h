@@ -54,7 +54,7 @@ struct UnionFind {
 
   void link(intT u, intT v) { parents[u] = v; }
 
-  void del() { free(parents); }
+  void clear() { pbbs::free_array(parents); }
 };
 
 // edges: <uintE, uintE, W>
@@ -70,7 +70,7 @@ struct UnionFindStep {
 
   size_t n;
 
-  void del() { free(indices); }
+  void clear() { pbbs::free_array(indices); }
 
   UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf)
       : E(_E), R(_R), inST(ist), uf(_uf) {

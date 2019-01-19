@@ -120,7 +120,7 @@ struct EdgeMap {
     };
     auto res = pbbs::histogram_reduce<std::tuple<K, M>, std::tuple<K, O> >(
         get_elm, get_key, oneHop.size(), q, apply_f, ht);
-    oneHop.del();
+    oneHop.clear();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 
@@ -146,9 +146,9 @@ struct EdgeMap {
         oneHop.size(), [&](size_t i) -> uintE { return oneHop.vtx(i); });
     auto res = pbbs::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                       apply_f, ht);
-    oneHop.del();
+    oneHop.clear();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 
-  ~EdgeMap() { ht.del(); }
+  ~EdgeMap() { ht.clear(); }
 };

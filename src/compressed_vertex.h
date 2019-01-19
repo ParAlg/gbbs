@@ -210,7 +210,7 @@ struct compressedSymmetricVertex {
   void setInDegree(uintE _d) { degree = _d; }
   void setOutDegree(uintE _d) { degree = _d; }
   void flipEdges() {}
-  void del() {}
+  void clear() {}
 
   auto getOutIter(uintE id) -> decltype(C::iter(getInNeighbors(), getInDegree(), id)) {
     return C::iter(getOutNeighbors(), getOutDegree(), id);
@@ -432,7 +432,7 @@ struct compressedAsymmetricVertex {
     std::swap(inNeighbors, outNeighbors);
     std::swap(inDegree, outDegree);
   }
-  void del() {}
+  void clear() {}
 
   auto getOutIter(uintE vtx_id) -> typename C::iter_type {
     return C::iter(getOutNeighbors(), getOutDegree(), vtx_id);

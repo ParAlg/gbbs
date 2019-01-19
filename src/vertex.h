@@ -327,7 +327,7 @@ struct symmetricVertex {
   std::tuple<uintE, W>* neighbors;
   uintE degree;
   symmetricVertex(std::tuple<uintE, W>* n, uintE d) : neighbors(n), degree(d) {}
-  void del() { free(neighbors); }
+  void clear() { pbbs::free_array(neighbors); }
 
   std::tuple<uintE, W>* getInNeighbors() { return neighbors; }
   std::tuple<uintE, W>* getOutNeighbors() { return neighbors; }
@@ -538,9 +538,9 @@ struct asymmetricVertex {
   std::tuple<uintE, W>*inNeighbors, *outNeighbors;
   uintE outDegree;
   uintE inDegree;
-  void del() {
-    free(inNeighbors);
-    free(outNeighbors);
+  void clear() {
+    pbbs::free_array(inNeighbors);
+    pbbs::free_array(outNeighbors);
   }
   asymmetricVertex(std::tuple<uintE, W>* iN, std::tuple<uintE, W>* oN, uintE id,
                    uintE od)

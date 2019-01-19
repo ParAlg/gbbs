@@ -33,5 +33,3 @@
 namespace pbbs {
 constexpr const size_t kSequentialForThreshold = 2000;
 }  // namespace pbbs
-
-#define COMMA ,

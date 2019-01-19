@@ -42,7 +42,9 @@
 #include "oldlib/utils.h"
 
 #include "lib/binary_search.h"
+#include "lib/extra_sequence_ops.h"
 #include "lib/get_time.h"
+#include "lib/macros.h"
 
 typedef uint32_t flags;
 const flags no_output = 1;
@@ -192,7 +194,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
       (fl & in_edges) ? vert.decodeInNghSparse(v, o, f, g, h)
                       : vert.decodeOutNghSparse(v, o, f, g, h);
     });
-    offsets.del();
+    offsets.clear();
 
     S* nextIndices = pbbs::new_array_no_init<S>(outEdgeCount);
     if (fl & remove_duplicates) {
@@ -210,7 +212,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
       return std::get<0>(v) != UINT_E_MAX;
     };
     size_t nextM = pbbs::filterf(outEdges, nextIndices, outEdgeCount, p);
-    free(outEdges);
+    pbbs::free_array(outEdges);
     return vertexSubsetData<data>(n, nextM, nextIndices);
   }
 
@@ -349,12 +351,12 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
       }
     }
   });
-  free(outEdges);
-  free(thread_offs);
-  cts.del();
-  vertex_offs.del();
-  blocks.del();
-  degrees.del();
+  pbbs::free_array(outEdges);
+  pbbs::free_array(thread_offs);
+  cts.clear();
+  vertex_offs.clear();
+  blocks.clear();
+  degrees.clear();
 
   if (fl & remove_duplicates) {
     if (GA.flags == NULL) {
@@ -369,7 +371,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
       return std::get<0>(v) != UINT_E_MAX;
     };
     size_t nextM = pbbs::filterf(out, nextIndices, out_size, p);
-    free(out);
+    pbbs::free_array(out);
     return vertexSubsetData<data>(n, nextM, nextIndices);
   }
   return vertexSubsetData<data>(n, out_size, out);
@@ -452,10 +454,10 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
       }
     }
   });
-  free(outEdges);
-  free(thread_offs);
-  cts.del();
-  degrees.del();
+  pbbs::free_array(outEdges);
+  pbbs::free_array(thread_offs);
+  cts.clear();
+  degrees.clear();
 
   if (fl & remove_duplicates) {
     if (GA.flags == NULL) {
@@ -470,7 +472,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
       return std::get<0>(v) != UINT_E_MAX;
     };
     size_t nextM = pbbs::filterf(out, nextIndices, out_size, p);
-    free(out);
+    pbbs::free_array(out);
     return vertexSubsetData<data>(n, nextM, nextIndices);
   }
   return vertexSubsetData<data>(n, out_size, out);
@@ -505,14 +507,14 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > threshold && !(fl & no_dense)) {
     vs.toDense();
-    free(frontier_vertices);
+    pbbs::free_array(frontier_vertices);
     return (fl & dense_forward)
                ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
                : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
   } else {
     auto vs_out = edgeMapBlocked<data, vertex, VS, F>(GA, frontier_vertices, vs,
                                                       vs.numNonzeros(), f, fl);
-    free(frontier_vertices);
+    pbbs::free_array(frontier_vertices);
     return vs_out;
   }
 }
@@ -680,7 +682,7 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
   auto bits_m = make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbs::pack(v_imap, bits_m);
   out.allocated = false;
-  free(bits);
+  pbbs::free_array(bits);
   return vertexSubset(n, out.size(), out.s);
 }
 
@@ -700,7 +702,7 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
   auto bits_m = make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbs::pack(v_imap, bits_m);
   out.allocated = false;
-  free(bits);
+  pbbs::free_array(bits);
   return vertexSubset(n, out.size(), out.s);
 }
 
@@ -729,7 +731,7 @@ inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
     vs.s = all_verts;
     vs.m = new_size;
     if (old_s) {
-      free(old_s);
+      pbbs::free_array(old_s);
     }
   }
 }
@@ -808,7 +810,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
   std::cout << "time per iter: " << time_per_iter << "\n";           \
   auto after_state = get_pcm_state();                                \
   print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
-  G.del();
+  G.clear();
 
 #define generate_main(APP, mutates)                                            \
   int main(int argc, char* argv[]) {                                           \

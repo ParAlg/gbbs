@@ -128,8 +128,8 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.del();
-    active.del();
+    res.clear();
+    active.clear();
     bkt = b.next_bucket();
     bt.stop();
     rd++;

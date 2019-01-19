@@ -52,7 +52,7 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
     cc::largest_cc(cc_im);
   }
   t.stop(); t.reportTotal("CC time");
-  components.del();
+  components.clear();
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can
     // only be run once unless the input graph is copied.

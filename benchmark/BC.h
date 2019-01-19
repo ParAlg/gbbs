@@ -124,7 +124,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  Levels[round].del();
+  Levels[round].clear();
   par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = Levels[round - 1];
@@ -137,14 +137,14 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
     //      no_output | in_edges | dense_forward);
     edgeMap(GA, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
             no_output | in_edges);
-    Frontier.del();
+    Frontier.clear();
     Frontier = Levels[r];
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
   bt.reportTotal("back total time");
 
-  Frontier.del();
+  Frontier.clear();
 
   // Update dependencies scores
   par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {

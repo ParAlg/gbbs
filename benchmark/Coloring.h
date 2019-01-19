@@ -153,7 +153,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     auto new_roots = edgeMap(GA, roots, coloring_f<W>(priorities.start()), -1,
                              sparse_blocked);
     em_t.stop();
-    roots.del();
+    roots.clear();
     roots = new_roots;
     rounds++;
   }

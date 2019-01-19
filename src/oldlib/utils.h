@@ -180,7 +180,7 @@ struct _seq {
     n = 0;
   }
   _seq(T* _A, long _n) : A(_A), n(_n) {}
-  void del() { pbbs::free_array(A); }
+  void clear() { pbbs::free_array(A); }
 };
 
 namespace seq {

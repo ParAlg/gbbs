@@ -111,7 +111,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
 
   auto edges = pbbs::filter(
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
-  out_edges.del();
+  out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
   pbbs::sample_sort(edges.start(), edges.size(), sort_tup);
 
@@ -135,7 +135,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
 
   auto nghs = sequence<uintE>(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
-  edges.del();
+  edges.clear();
 
   timer augs;
   augs.start();
@@ -181,7 +181,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
         Tree, vs, wrap_em_f<pbbs::empty>(AugF(aug_sizes.start(), cts.start())),
         -1, in_edges | sparse_blocked);
     if (rds > 1) {
-      vs.del();  // don't delete leafs.
+      vs.clear();  // don't delete leafs.
     }
     vs = output;
     output.toSparse();
@@ -242,7 +242,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
         });
       }
     });
-    vs.del();
+    vs.clear();
     vs = vertexSubset(n, next_vs.size(), next_vs.get_array());
   }
   pren.stop();
@@ -296,12 +296,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     auto output = edgeMap(
         Tree, vs, wrap_em_f<pbbs::empty>(MinMaxF(MM.start(), cts.start())), -1,
         in_edges | sparse_blocked);
-    vs.del();
+    vs.clear();
     vs = output;
   }
   // Delete tree
   pbbs::free_array(v);
-  nghs.del();
+  nghs.clear();
   leaff.stop();
   leaff.reportTotal("leaffix to update min max time");
 
@@ -338,7 +338,7 @@ inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
     vertexSubset output =
         edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.start())), -1,
                 sparse_blocked);
-    frontier.del();
+    frontier.clear();
     frontier = output;
   }
   return Parents.get_array();
@@ -405,7 +405,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     return not_critical_edge(src, ngh);
   };
   edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
-  vs_active.del();
+  vs_active.clear();
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
@@ -470,7 +470,7 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
   timer sc;
   sc.start();
   auto Sources = cc_sources(Components);
-  Components.del();
+  Components.clear();
 
   auto Sources_copy = Sources.copy();
   auto Centers = vertexSubset(n, Sources.size(), Sources.get_array());

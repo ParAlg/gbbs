@@ -53,7 +53,7 @@ struct transpose {
       auto r = [&]() {
         transR(rStart, rCount, rLength, cStart + l1, l2, cLength);
       };
-      par_do(true, l, r);
+      par_do(l, r);
     } else {
       intT l1 = rCount / 2;
       intT l2 = rCount - rCount / 2;
@@ -63,7 +63,7 @@ struct transpose {
       auto r = [&]() {
         transR(rStart + l1, l2, rLength, cStart, cCount, cLength);
       };
-      par_do(true, l, r);
+      par_do(l, r);
     }
   }
 
@@ -101,7 +101,7 @@ struct blockTrans {
       auto r = [&]() {
         transR(rStart, rCount, rLength, cStart + l1, l2, cLength);
       };
-      par_do(true, l, r);
+      par_do(l, r);
     } else {
       intT l1 = rCount / 2;
       intT l2 = rCount - rCount / 2;
@@ -111,7 +111,7 @@ struct blockTrans {
       auto r = [&]() {
         transR(rStart + l1, l2, rLength, cStart, cCount, cLength);
       };
-      par_do(true, l, r);
+      par_do(l, r);
     }
   }
 
@@ -325,7 +325,7 @@ inline void iSortX(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
   if (bucketOffsets != NULL) {
     par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
                     { bucketOffsets[i] = n; });
-    parallel_for_bc(i, 0, n - 1, (n - 1 > pbbs::kSequentialForThreshold), {
+    par_for(0, n - 1, pbbs::kSequentialForThreshold, [&] (size_t i) {
       long v = f(A[i]);
       long vn = f(A[i + 1]);
       if (v != vn) bucketOffsets[vn] = i + 1;
@@ -354,7 +354,7 @@ template <class E, class F, class oint>
 inline void iSort(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
                   F f) {
   long x = iSortSpace<E>(n);
-  char *s = (char *)malloc(x);
+  char *s = pbbs::new_array_no_init<char>(n);
   iSort(A, bucketOffsets, n, m, bottomUp, s, f);
   pbbs::free_array(s);
 }

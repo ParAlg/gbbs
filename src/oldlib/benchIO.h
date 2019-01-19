@@ -44,7 +44,7 @@ struct words {
   words() {}
   words(char* C, long nn, char** S, long mm)
       : n(nn), Chars(C), m(mm), Strings(S) {}
-  void del() {
+  void clear() {
     pbbs::free_array(Chars);
     pbbs::free_array(Strings);
   }
@@ -147,7 +147,7 @@ inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
   long m = ligra_utils::seq::scan(L, L, n, ligra_utils::addF<long>(), (long)0);
   char* B = pbbs::new_array_no_init<char>(m);
   par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j) { B[j] = 0; });
-  parallel_for_bc(i, 0, n - 1, (n - 1 > pbbs::kSequentialForThreshold), {
+  par_for(0, n - 1, pbbs::kSequentialForThreshold, [&] (size_t i) {
     xToString(B + L[i], A[i]);
     B[L[i + 1] - 1] = '\n';
   });
@@ -171,7 +171,7 @@ inline void writeArrayToStream(std::ofstream& os, T* A, long n) {
     ligra_utils::_seq<char> S =
         arrayToString(A + offset, std::min(BSIZE, n - offset));
     os.write(S.A, S.n);
-    S.del();
+    S.clear();
     offset += BSIZE;
   }
 }
@@ -187,7 +187,7 @@ inline void writeArrayToStream(std::ofstream& os, T* A, size_t n) {
     ligra_utils::_seq<char> S =
         arrayToString(A + offset, std::min(BSIZE, n - offset));
     os.write(S.A, S.n);
-    S.del();
+    S.clear();
     offset += BSIZE;
   }
 }

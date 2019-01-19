@@ -149,10 +149,10 @@ struct buckets {
     return null_bkt;
   }
 
-  void del() {
+  void clear() {
     if (allocated) {
       for (size_t i = 0; i < total_buckets; i++) {
-        bkts[i].del();
+        bkts[i].clear();
       }
       pbbs::free_array(bkts);
       allocated = false;

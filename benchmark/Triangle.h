@@ -159,7 +159,7 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
 
   size_t count = CountDirectedBalanced(DG, counts.start(), f);
   std::cout << "Num triangles = " << count << "\n";
-  DG.del();
+  DG.clear();
   ct.stop();
   ct.reportTotal("count time");
   pbbs::free_array(rank);

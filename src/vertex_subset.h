@@ -55,9 +55,9 @@ struct vertexSubsetData {
 
   vertexSubsetData() : n(0), m(0), s(NULL), d(NULL), isDense(0) {}
 
-  void del() {
-    if (d != NULL) free(d);
-    if (s != NULL) free(s);
+  void clear() {
+    if (d != NULL) pbbs::free_array(d);
+    if (s != NULL) pbbs::free_array(s);
     d = NULL;
     s = NULL;
   }
@@ -184,12 +184,12 @@ struct vertexSubsetData<pbbs::empty> {
     m = pbbs::reduce(d_map, f);
   }
 
-  void del() {
+  void clear() {
     if (d != NULL) {
-      free(d);
+      pbbs::free_array(d);
     }
     if (s != NULL) {
-      free(s);
+      pbbs::free_array(s);
     }
     d = NULL;
     s = NULL;

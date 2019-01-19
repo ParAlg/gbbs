@@ -38,7 +38,7 @@ template <class vertex>
 void BFS_runner(graph<vertex>& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
   auto parents = BFS(GA, src);
-  parents.del();
+  parents.clear();
 }
 
 generate_main(BFS_runner, false);

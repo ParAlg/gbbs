@@ -78,7 +78,7 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
         edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.start()));
     std::cout << output.size() << "\n";
-    Frontier.del();
+    Frontier.clear();
     Frontier = output;
     round++;
   }

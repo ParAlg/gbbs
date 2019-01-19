@@ -153,7 +153,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
       edgeMapFilter(GA, frontier, pred, pack_edges | no_output);
       t.stop(); t.reportTotal("pack time");
     }
-    frontier.del();
+    frontier.clear();
     frontier = next_frontier;
 
     round++;

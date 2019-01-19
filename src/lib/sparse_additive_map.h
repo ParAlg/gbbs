@@ -47,7 +47,7 @@ class sparse_additive_map {
   inline size_t firstIndex(K& k) { return hashToRange(pbbs::hash64(k)); }
   inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
-  void del() {
+  void clear() {
     if (alloc) {
       pbbs::free_array(table);
       alloc = false;

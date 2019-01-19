@@ -95,7 +95,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
       GA.V[v].mapOutNgh(v, map_f);
     });
     auto nghs = ht.entries();
-    ht.del();
+    ht.clear();
     return vertexSubset(GA.n, nghs.size(), (uintE*)nghs.get_array());
   }
 }
@@ -204,8 +204,8 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
     // update finished with roots and removed. update roots.
     finished += roots.size();
     finished += removed.size();
-    removed.del();
-    roots.del();
+    removed.clear();
+    roots.clear();
 
     roots = new_roots;
     rounds++;

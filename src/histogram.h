@@ -101,12 +101,12 @@ struct get_bucket {
     if (k > 0) {
       hash_table = make_hash_table(sample, k, table_size, table_mask);
     }
-    free(sample);
+    pbbs::free_array(sample);
   }
 
   ~get_bucket() {
     if (k > 0) {
-      free(hash_table);
+      pbbs::free_array(hash_table);
     }
   }
 
@@ -145,7 +145,7 @@ struct hist_table {
   void resize(size_t req_size) {
     if (req_size > size) {
       size_t rounded_size = (1L << pbbs::log2_up<size_t>(req_size));
-      free(table);
+      pbbs::free_array(table);
       table = pbbs::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
       par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
@@ -153,9 +153,9 @@ struct hist_table {
     }
   }
 
-  void del() {
+  void clear() {
     if (table) {
-      free(table);
+      pbbs::free_array(table);
     }
   }
 };
@@ -308,9 +308,9 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
     }
   });
 
-  free(elms);
-  free(counts);
-  free(bkt_counts);
+  pbbs::free_array(elms);
+  pbbs::free_array(counts);
+  pbbs::free_array(bkt_counts);
   return std::make_pair(num_distinct, res);
 }
 
@@ -561,11 +561,11 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   }
 
-  free(elms);
-  free(counts);
-  free(bkt_counts);
+  pbbs::free_array(elms);
+  pbbs::free_array(counts);
+  pbbs::free_array(bkt_counts);
   if (heavy && num_heavy > 128) {
-    free(heavy_cts);
+    pbbs::free_array(heavy_cts);
   }
 
   return std::make_pair(num_distinct, res);
@@ -741,10 +741,10 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
     }
   });
 
-  free(elms);
-  free(counts);
-  free(bkt_counts);
-  free(out);
+  pbbs::free_array(elms);
+  pbbs::free_array(counts);
+  pbbs::free_array(bkt_counts);
+  pbbs::free_array(out);
   return std::make_pair(num_distinct, res);
 }
 

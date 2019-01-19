@@ -140,7 +140,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
     table.update_nelms();
-    frontier.del();
+    frontier.clear();
     frontier = output;
     rd++;
   }
@@ -180,7 +180,7 @@ inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
   while (!frontier.isEmpty()) {
     vertexSubset output = edgeMap(
         GA, frontier, wrap_em_f<W>(make_first_search(Flags, labels)), -1, fl);
-    frontier.del();
+    frontier.clear();
     frontier = output;
     rd++;
   }
@@ -354,8 +354,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     };
     larger_t.map(sp_map);
 
-    in_table.del();
-    out_table.del();
+    in_table.clear();
+    out_table.clear();
     rt.stop();
     rt.reportTotal("Round time");
   }

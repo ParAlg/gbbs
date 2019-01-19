@@ -73,9 +73,9 @@ struct words {
   words() {}
   words(char* C, long nn, char** S, long mm)
       : n(nn), Chars(C), m(mm), Strings(S) {}
-  void del() {
-    free(Chars);
-    free(Strings);
+  void clear() {
+    pbbs::free_array(Chars);
+    pbbs::free_array(Strings);
   }
 };
 
@@ -127,7 +127,7 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
   //    exit(-1);
   //  }
   //  std::cout << "mmapped" << "\n";
-  //  free(bytes);
+  //  pbbs::free_array(bytes);
   //  exit(0);
   return ligra_utils::_seq<char>(p, n);
 }
@@ -180,8 +180,8 @@ inline words stringToWords(char* Str, long n) {
                     { SA[j] = Str + offsets[j]; });
   }
 
-  free(offsets);
-  free(FL);
+  pbbs::free_array(offsets);
+  pbbs::free_array(FL);
   return words(Str, n, SA, m);
 }
 
@@ -238,7 +238,7 @@ inline graph<vertex<intE>> readWeightedGraph(
                                  atol(W.Strings[i + n + m + 3]));
     });
   }
-  // W.del(); // to deal with performance bug in malloc
+  // W.clear(); // to deal with performance bug in malloc
 
   wvtx* v = pbbs::new_array_no_init<wvtx>(n);
 
@@ -263,7 +263,7 @@ inline graph<vertex<intE>> readWeightedGraph(
                                      std::make_pair(i, v[i].getOutWeight(j)));
       }
     });
-    free(offsets);
+    pbbs::free_array(offsets);
 
     intSort::iSort(temp, m, n + 1, getFirst<intPair>());
 
@@ -278,7 +278,7 @@ inline graph<vertex<intE>> readWeightedGraph(
       }
     });
 
-    free(temp);
+    pbbs::free_array(temp);
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
@@ -292,11 +292,11 @@ inline graph<vertex<intE>> readWeightedGraph(
       v[i].setInNeighbors(inEdges + o);
     });
 
-    free(tOffsets);
+    pbbs::free_array(tOffsets);
     return graph<wvtx>(v, n, m, get_deletion_fn(v, inEdges, edges),
                        get_copy_fn(v, inEdges, edges, n, m, m, m));
   } else {
-    free(offsets);
+    pbbs::free_array(offsets);
     return graph<wvtx>(v, n, m, get_deletion_fn(v, edges),
                        get_copy_fn(v, edges, n, m, m));
   }
@@ -345,7 +345,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
                   { offsets[i] = atol(W.Strings[i + 3]); });
   par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
                   { edges[i] = atol(W.Strings[i + n + 3]); });
-  W.del();  // to deal with performance bug in malloc
+  W.clear();  // to deal with performance bug in malloc
 
   wvtx* v = pbbs::new_array_no_init<wvtx>(n);
 
@@ -367,7 +367,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
       }
     });
-    free(offsets);
+    pbbs::free_array(offsets);
 
     intSort::iSort(temp, m, n + 1, getFirst<uintE>());
 
@@ -381,7 +381,7 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
       }
     });
 
-    free(temp);
+    pbbs::free_array(temp);
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
@@ -395,13 +395,13 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
       v[i].setInNeighbors((std::tuple<uintE, pbbs::empty>*)(inEdges + o));
     });
 
-    free(tOffsets);
+    pbbs::free_array(tOffsets);
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, inEdges, edges),
         get_copy_fn(v, (std::tuple<uintE, pbbs::empty>*)inEdges,
                     (std::tuple<uintE, pbbs::empty>*)edges, n, m, m, m));
   } else {
-    free(offsets);
+    pbbs::free_array(offsets);
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, edges),
         get_copy_fn(v, (std::tuple<uintE, pbbs::empty>*)edges, n, m, m));

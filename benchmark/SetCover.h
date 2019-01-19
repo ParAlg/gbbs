@@ -99,7 +99,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
       return deg >= threshold;
     };
     auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
-    packed_vtxs.del();
+    packed_vtxs.clear();
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
@@ -110,7 +110,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
                       uintE pv = P[i];
                       perm[v] = pv;
                     });
-    P.del();
+    P.clear();
     permt.stop();
 
     std::cout << "Round = " << rounds << " bkt = " << cur_bkt
@@ -138,8 +138,8 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
           return numWon >= low_threshold;
         });
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
-    inCover.del();
-    activeAndCts.del();
+    inCover.clear();
+    activeAndCts.clear();
 
     // 4. sets -> elements (Sets that joined the cover mark their neighboring
     // elements as covered. Sets that didn't reset any acquired elements)
@@ -170,13 +170,13 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     };
     std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());
-    active.del();
-    still_active.del();
+    active.clear();
+    still_active.clear();
     rounds++;
     bktt.stop();
     r = r.next();
   }
-  b.del();
+  b.clear();
 
   bktt.reportTotal("bucket");
   packt.reportTotal("pack");

@@ -95,7 +95,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
   par_for(0, E.non_zeros, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
-  E.del();
+  E.clear();
   E.E = out.get_array();
   perm_t.stop();
   perm_t.reportTotal("permutation time");
@@ -139,7 +139,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
   par_for(0, E.non_zeros, pbbs::kSequentialForThreshold, [&] (size_t i) {
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
-  E.del();
+  E.clear();
   E.E = out.get_array();
   perm_t.stop();
   perm_t.reportTotal("permutation time");

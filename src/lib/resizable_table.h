@@ -99,7 +99,7 @@ class resizable_table {
 
   inline size_t firstIndex(K& k) { return hashToRange(key_hash(k), mask); }
 
-  void del() {
+  void clear() {
     if (alloc) {
       pbbs::free_array(table);
       pbbs::free_array(cts);

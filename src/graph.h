@@ -64,16 +64,16 @@ struct graph {
 
   auto copy() -> graph<vertex> { return copy_fn(); }
 
-  void del() {
-    if (flags != NULL) free(flags);
+  void clear() {
+    if (flags != NULL) pbbs::free_array(flags);
     deletion_fn();
   }
 };
 
 inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
   auto df = [&](void* V, void* edges) {
-    free(V);
-    free(edges);
+    pbbs::free_array(V);
+    pbbs::free_array(edges);
   };
   return std::bind(df, V, edges);
 }
@@ -81,9 +81,9 @@ inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
 inline auto get_deletion_fn(void* V, void* in_edges, void* out_edges)
     -> std::function<void()> {
   auto df = [&](void* V, void* in_edges, void* out_edges) {
-    free(V);
-    free(in_edges);
-    free(out_edges);
+    pbbs::free_array(V);
+    pbbs::free_array(in_edges);
+    pbbs::free_array(out_edges);
   };
   return std::bind(df, V, in_edges, out_edges);
 }
@@ -354,7 +354,7 @@ struct edge_array {
   size_t num_cols;
   // non_zeros is the #edges
   size_t non_zeros;
-  void del() { free(E); }
+  void clear() { pbbs::free_array(E); }
   edge_array(edge* _E, size_t r, size_t c, size_t nz)
       : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {}
   edge_array() {}

@@ -114,7 +114,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
                         }
                       });
       auto next_in = edgeMap(GA, in_vs, make_decr<W>(in_d, flags_in));
-      in_vs.del();
+      in_vs.clear();
       in_vs = next_in;
     }
     if (out_vs.size() > 0) {
@@ -128,7 +128,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
                       });
       auto next_out =
           edgeMap(GA, out_vs, make_decr<W>(out_d, flags_out), -1, in_edges);
-      out_vs.del();
+      out_vs.clear();
       out_vs = next_out;
     }
   }

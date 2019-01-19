@@ -34,6 +34,7 @@
 #include "lib/binary_search.h"
 #include "lib/seq.h"
 #include "lib/sequence_ops.h"
+#include "lib/extra_sequence_ops.h"
 #include "lib/utilities.h"
 
 #include "oldlib/utils.h"
@@ -1136,7 +1137,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
       uintE first_offset = *((uintE*)first_finger);
       size_t last_offset = 0;
 
-      parallel_for_bc(i, start_block, end_block, (total_blocks > 2), {
+      par_for(start_block, end_block, 2, [&] (size_t i) {
         uchar* finger =
             (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
         uintE start_offset = *((uintE*)finger) - first_offset;

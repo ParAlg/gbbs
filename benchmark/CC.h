@@ -87,7 +87,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
     return pbbs::hash64(std::get<0>(t)) ^ pbbs::hash64(std::get<1>(t));
   };
   auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
-  deg_map.del();
+  deg_map.clear();
 
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
     if (oracle(src, ngh, w)) {
@@ -101,7 +101,7 @@ contract(graph<vertex<W>>& GA, Seq& clusters, size_t num_clusters, EO& oracle) {
   };
   par_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
   auto edges = edge_table.entries();
-  edge_table.del();
+  edge_table.clear();
   ins_t.stop();
   ins_t.reportTotal("ins time");
 
@@ -187,10 +187,10 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
       clusters[i] = mapping[new_labels[gc_cluster]];
     }
   });
-  GC.del();
-  new_labels.del();
-  flags.del();
-  mapping.del();
+  GC.clear();
+  new_labels.clear();
+  flags.clear();
+  mapping.clear();
   return clusters;
 }
 
@@ -263,10 +263,10 @@ inline sequence<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
       clusters[i] = mapping[new_labels[gc_cluster]];
     }
   });
-  GC.del();
-  new_labels.del();
-  flags.del();
-  mapping.del();
+  GC.clear();
+  new_labels.clear();
+  flags.clear();
+  mapping.clear();
   return clusters;
 }
 
