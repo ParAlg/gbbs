@@ -39,6 +39,7 @@
 
 #include <limits>
 #include <tuple>
+#include <cassert>
 
 #include "maybe.h"
 #include "vertex_subset.h"

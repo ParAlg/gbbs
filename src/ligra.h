@@ -708,9 +708,9 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
   auto bits_f = [&](size_t i) { return bits[i]; };
   auto bits_m = make_sequence<bool>(m, bits_f);
   auto out = pbbs::pack(v_imap, bits_m);
-  out.allocated = false;
+  auto s = out.get_array(); // clears allocated
   pbbs::free_array(bits);
-  return vertexSubset(n, out.size(), out.s);
+  return vertexSubset(n, out.size(), s);
 }
 
 // Adds vertices to a vertexSubset vs.

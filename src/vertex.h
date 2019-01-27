@@ -71,7 +71,8 @@ inline size_t intersect_f(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
 namespace vertex_ops {
 
 // allocate temporary space for vertices with degree > alloc_threshold
-const constexpr size_t alloc_threshold = 10000;
+//const constexpr size_t alloc_threshold = 10000;
+const constexpr size_t alloc_threshold = 1000000000;
 
 template <template <typename W> class vertex, class W, class F, class G,
           class VS>

@@ -108,8 +108,7 @@ struct vertexSubsetData {
       auto f = [&](size_t i) -> std::tuple<bool, data> { return d[i]; };
       auto f_seq = make_sequence<D>(n, f);
       auto out = pbbs::pack_index_and_data<uintE, data>(f_seq, n);
-      out.allocated = false;
-      s = out.s;
+      s = out.get_array();
       if (out.size() != m) {
         std::cout << "bad stored value of m"
                   << "\n";
@@ -244,8 +243,7 @@ struct vertexSubsetData<pbbs::empty> {
       auto f = [&](size_t i) { return _d[i]; };
       auto f_in = make_sequence<bool>(n, f);
       auto out = pbbs::pack_index<uintE>(f_in);
-      out.allocated = false;
-      s = out.s;
+      s = out.get_array();
       if (out.size() != m) {
         std::cout << "bad stored value of m"
                   << "\n";

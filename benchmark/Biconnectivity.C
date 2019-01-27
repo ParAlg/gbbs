@@ -137,7 +137,9 @@ void Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
   if (in_f) {
     BiconnectivityStats(GA, in_f, largest_cc_id);
   } else {
+    timer t; t.start();
     Biconnectivity(GA, out_f);
+    t.stop(); t.reportTotal("Biconnectivity time");
   }
   // Note that Biconnectivity mutates the graph, so we only run the algorithm
   // once.

@@ -22,17 +22,38 @@
 
 #pragma once
 
+#include <cmath>
 #include <iostream>
 #include <stddef.h>
+#include "lib/parallel.h"
 
 // scan/filter macros; used by sequence implementations
 #define _SCAN_LOG_BSIZE 10
 #define _SCAN_BSIZE (1 << _SCAN_LOG_BSIZE)
 #define _F_BSIZE (2 * _SCAN_BSIZE)
 
+
+template <typename F>
+static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
+  if (!parallel) {
+    for (size_t i=start; i<end; i++) {
+      f(i);
+    }
+  } else {
+    parallel_for(start, end, f, granularity);
+  }
+}
+
+template <typename F>
+static void par_for(size_t start, size_t end, F f, bool parallel=true) {
+  size_t n = end - start;
+  size_t granularity = (n > 100) ? ceil(sqrt(n)) : 100;
+  par_for<F>(start, end, granularity, f, parallel);
+}
+
 namespace pbbs {
 
-  constexpr const size_t kSequentialForThreshold = 2000;
+  constexpr const size_t kSequentialForThreshold =3000;
 
   template <class ET>
   inline bool CAS(ET* ptr, ET oldv, ET newv) {

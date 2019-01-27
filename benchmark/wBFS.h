@@ -36,29 +36,29 @@ struct Visit_F {
   Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
 
   inline Maybe<uintE> update(const uintE& s, const uintE& d, const intE& w) {
-    uintE oval = dists.s[d];
-    uintE dist = oval | TOP_BIT, n_dist = (dists.s[s] | TOP_BIT) + w;
+    uintE oval = dists[d];
+    uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT)) {  // First visitor
-        dists.s[d] = n_dist;
+        dists[d] = n_dist;
         return Maybe<uintE>(oval);
       }
-      dists.s[d] = n_dist;
+      dists[d] = n_dist;
     }
     return Maybe<uintE>();
   }
 
   inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const intE& w) {
-    uintE oval = dists.s[d];
+    uintE oval = dists[d];
     uintE dist = oval | TOP_BIT;
-    uintE n_dist = (dists.s[s] | TOP_BIT) + w;
+    uintE n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
-          CAS(&(dists.s[d]), oval, n_dist)) {  // First visitor
+          CAS(&(dists[d]), oval, n_dist)) {  // First visitor
         return Maybe<uintE>(oval);
       }
-      writeMin(&(dists.s[d]), n_dist);
+      writeMin(&(dists[d]), n_dist);
     }
     return Maybe<uintE>();
   }

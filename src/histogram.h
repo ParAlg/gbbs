@@ -37,7 +37,7 @@ namespace pbbs {
 
 // Tunable parameters
 constexpr const size_t _hist_max_buckets = 1024;
-constexpr const size_t _hist_seq_threshold = 2048;
+constexpr const size_t _hist_seq_threshold = 4096;
 
 template <typename E, class B>
 struct get_bucket {

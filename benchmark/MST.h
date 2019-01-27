@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <cassert>
 #include "ligra.h"
 #include "union_find.h"
 
@@ -156,7 +157,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     compact_t.start();
     auto vtxs_im = sequence<uintE>(vtxs, n);
     auto V_im = pbbs::pack(vtxs_im, is_root, pbbs::no_flag, next_vtxs);
-    assert(!V_im.allocated);
+    assert(!V_im.is_allocated());
     n = V_im.size();
     std::swap(vtxs, next_vtxs);
     compact_t.stop();  // compact_t.reportTotal("compact time");
@@ -195,7 +196,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
       auto A =
           pbbs::pack(edge_ids_im, self_loop_im, pbbs::no_flag, next_edge_ids);
       m = A.size();
-      assert(!A.allocated);
+      assert(!A.is_allocated());
     }
     std::cout << "filter, m is now " << m << " n is now " << n << "\n";
     std::swap(edge_ids, next_edge_ids);
