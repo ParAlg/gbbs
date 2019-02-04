@@ -73,57 +73,6 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   return vs;
 }
 
-// edgeMapInducedFilter
-// filter: (u, v, w) -> bool
-template <class E, template <typename W> class vertex, class W, class VS, class F, class Filter>
-inline vertexSubsetData<E> edgeMapInducedFilter(graph<vertex<W>>& GA, VS& V, F& f, Filter& filter_f,
-                                                bool out_ngh = true) {
-  using wvertex = vertex<W>;
-  wvertex* G = GA.V;
-  uintT m = V.size();
-  V.toSparse();
-  auto degrees = sequence<uintT>(m);
-  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
-    uintE vtx_id = V.vtx(i);
-    wvertex v = G[vtx_id];
-    uintE degree = (out_ngh) ? v.countOutNgh(vtx_id, filter_f) : v.countInNgh(vtx_id, filter_f);
-    degrees[i] = degree;
-  });
-  long edgeCount = pbbs::scan_add(degrees, degrees);
-  if (edgeCount == 0) {
-    return vertexSubsetData<E>(GA.n);
-  }
-  typedef std::tuple<uintE, E> VE;
-  VE* edges = pbbs::new_array_no_init<VE>(edgeCount);
-
-//  auto gen = [&](const uintE& ngh, const uintE& offset,
-//                 const Maybe<E>& val = Maybe<E>()) {
-//    edges[offset] = std::make_tuple(ngh, val.t);
-//  };
-
-  if (out_ngh) {
-    par_for(0, m, 1, [&] (size_t i) { // TODO-granularity
-      uintT o = degrees[i];
-      auto v = V.vtx(i);
-      auto out_f = [&] (size_t j, const std::tuple<uintE, W>& nw) {
-        Maybe<E> val = f(v, std::get<0>(nw), std::get<1>(nw));
-        edges[o + j] = std::make_tuple(std::get<0>(nw), val.t);
-      };
-      G[v].template filterOutNgh(v, filter_f, out_f, nullptr);
-    });
-  } else {
-    exit(0); // unimplemented
-    par_for(0, m, 1, [&] (size_t i) { // TODO-granularity
-      uintT o = degrees[i];
-      auto v = V.vtx(i);
-//      G[v].template copyInNgh(v, o, f, gen);
-    });
-  }
-  auto vs = vertexSubsetData<E>(GA.n, edgeCount, edges);
-  return vs;
-}
-
-
 template <class V, template <typename W> class vertex, class W>
 struct EdgeMap {
   using K = uintE;  // keys are always uintE's (vertex-identifiers)
@@ -141,13 +90,13 @@ struct EdgeMap {
     ht = pbbs::hist_table<K, V>(_empty, ht_size);
   }
 
+  // sparse [write out neighbors]
+  // id: M
   // map_f: (uintE v, uintE ngh) -> M
-  // reduce_f: (E, tuple(uintE ngh, E ngh_val)) -> E
-  // apply_f: (uintE ngh, E reduced_val) -> O
+  // reduce_f: (M, tuple(uintE ngh, M ngh_val)) -> M
+  // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
   template <class O, class M, class Map, class Reduce, class Apply, class VS>
-  inline vertexSubsetData<O> edgeMapReduce(VS& vs, Map& map_f, Reduce& reduce_f,
-                                           Apply& apply_f,
-                                           bool out_ngh = true) {
+  inline vertexSubsetData<O> edgeMapReduce_sparse(VS& vs, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, bool out_ngh = true) {
     size_t m = vs.size();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
@@ -177,9 +126,68 @@ struct EdgeMap {
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 
+  // dense [read all neighbors]
+  // id: M
+  // map_f: (uintE v, uintE ngh) -> M
+  // reduce_f: (M, tuple(uintE ngh, M ngh_val)) -> M
+  // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
+  template <class O, class M, class Map, class Reduce, class Reduce2, class Apply, class VS>
+  inline vertexSubsetData<O> edgeMapReduce_dense(VS& vs, Map& map_f, Reduce& reduce_f, Reduce2& reduce_2, Apply& apply_f, M id, bool out_ngh = true) {
+    size_t n = G.n;
+    size_t m = vs.size();
+    if (m == 0) {
+      return vertexSubsetData<O>(vs.numNonzeros());
+    }
+    using OT = std::tuple<bool, O>;
+    auto out = pbbs::new_array<OT>(n);
+    auto mf = [&] (uintE u, uintE v, W& wgh) {
+      return map_f(u, v);
+    };
 
+    par_for(0, n, [&] (size_t i) {
+      M reduced_val = (out_ngh) ?
+        G.V[i].reduceOutNgh(i, id, mf, reduce_2) :
+        G.V[i].reduceInNgh(i, id, mf, reduce_2);
+        auto tup = std::make_tuple(i, reduced_val);
+      auto applied_val = apply_f(tup);
+      if (applied_val.exists) {
+        std::get<0>(out[i]) = true;
+        std::get<1>(out[i]) = std::get<1>(applied_val.t);
+      } else {
+        std::get<0>(out[i]) = false;
+      }
+    });
+
+    return vertexSubsetData<O>(n, out);
+  }
+
+  // id: M
+  // map_f: (uintE v, uintE ngh) -> M
+  // reduce_f: (M, tuple(uintE ngh, M ngh_val)) -> M
+  // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
+  template <class O, class M, class Map, class Reduce, class Reduce2, class Apply, class VS>
+  inline vertexSubsetData<O> edgeMapReduce(VS& vs, Map& map_f, Reduce& reduce_f, Reduce2& reduce_2, Apply& apply_f, M id, bool out_ngh = true, intT threshold = -1) {
+    size_t n = G.n;
+    vs.toSparse();
+    auto degree_f = [&](size_t i) {
+      return (!out_ngh) ? G.V[vs.vtx(i)].getInVirtualDegree()
+                       : G.V[vs.vtx(i)].getOutVirtualDegree();
+    };
+    auto degree_imap = make_sequence<uintE>(vs.size(), degree_f);
+    auto out_degrees = pbbs::reduce_add(degree_imap);
+    if (threshold == -1) threshold = G.m / 20;
+    if (vs.size() + out_degrees > threshold) {
+      // dense
+      return edgeMapReduce_dense<O, M>(vs, map_f, reduce_f, reduce_2, apply_f, id, out_ngh);
+    } else {
+      // sparse
+      return edgeMapReduce_sparse<O, M>(vs, map_f, reduce_f, apply_f, id, out_ngh);
+    }
+  }
+
+  // sparse [write out neighbors]
   template <class O, class Apply, class VS>
-  inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f,
+  inline vertexSubsetData<O> edgeMapCount_sparse(VS& vs, Apply& apply_f,
                                           bool out_ngh = true) {
     auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
       return pbbs::empty();
@@ -205,33 +213,64 @@ struct EdgeMap {
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 
-
-  template <class O, class Filter, class Apply, class VS>
-  inline vertexSubsetData<O> edgeMapCountFilter(VS& vs, Filter& filter_f, Apply& apply_f,
-                                          bool out_ngh = true) {
-    auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
-      return pbbs::empty();
-    };
-    auto reduce_f = [&](const uintE& cur,
-                        const std::tuple<uintE, pbbs::empty>& r) {
-      return cur + 1;
-    };
+  // dense [read all neighbors]
+  template <class O, class Apply, class VS>
+  inline vertexSubsetData<O> edgeMapCount_dense(VS& vs, Apply& apply_f,
+                                                bool out_ngh = true) {
+    size_t n = G.n;
     size_t m = vs.size();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
-    auto oneHop =
-        edgeMapInducedFilter<pbbs::empty, vertex, W, VS>(G, vs, map_f, filter_f, out_ngh);
-    oneHop.toSparse();
+    using OT = std::tuple<bool, O>;
+    auto out = pbbs::new_array<OT>(n);
+    vs.toDense();
 
+    cout << "running dense" << endl << endl;
 
-    auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-    auto get_key = make_sequence<uintE>(
-        oneHop.size(), key_f);
-    auto res = pbbs::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
-                                                      apply_f, ht);
-    oneHop.del();
-    return vertexSubsetData<O>(vs.n, res.first, res.second);
+    auto count_f = [&] (uintE u, uintE v, W& wgh) -> size_t {
+      return static_cast<size_t>(vs.isIn(v));
+    };
+
+    par_for(0, n, [&] (size_t i) {
+      size_t count = (out_ngh) ?
+        G.V[i].countOutNgh(i, count_f) :
+        G.V[i].countInNgh(i, count_f);
+      auto tup = std::make_tuple(i, count);
+      if (count > 0) {
+        auto applied_val = apply_f(tup);
+        if (applied_val.exists) {
+          std::get<0>(out[i]) = true;
+          std::get<1>(out[i]) = std::get<1>(applied_val.t);
+        } else {
+          std::get<0>(out[i]) = false;
+        }
+      } else {
+        std::get<0>(out[i]) = false;
+      }
+    });
+
+    return vertexSubsetData<O>(n, out);
+  }
+
+  template <class O, class Apply, class VS>
+  inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f, bool out_ngh = true, long threshold=-1) {
+    size_t n = G.n;
+    vs.toSparse();
+    auto degree_f = [&](size_t i) -> size_t {
+      return (!out_ngh) ? G.V[vs.vtx(i)].getInVirtualDegree()
+                       : G.V[vs.vtx(i)].getOutVirtualDegree();
+    };
+    auto degree_imap = make_sequence<size_t>(vs.size(), degree_f);
+    auto out_degrees = pbbs::reduce_add(degree_imap);
+    if (threshold == -1) threshold = G.m / 40;
+    if (vs.size() + out_degrees > threshold) {
+      // dense
+      return edgeMapCount_dense<O>(vs, apply_f, out_ngh);
+    } else {
+      // sparse
+      return edgeMapCount_sparse<O>(vs, apply_f, out_ngh);
+    }
   }
 
   ~EdgeMap() { ht.del(); }
