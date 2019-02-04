@@ -160,6 +160,7 @@ struct hist_table {
   }
 };
 
+// Parallelizes across buckets, but does not use light/heavy buckets
 template <class O, class K, class V, class A, class Apply>
 inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
                                               Apply& apply_f,
@@ -232,10 +233,6 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
       max_size = size;
     }
   }
-  //    if (n > 100000) {
-  //      std::cout << "n = " << n << " min size = " << min_size << " max size =
-  //      " << max_size << " avg size = " << avg_size << "\n";
-  //    }
 
   ht.resize(ht_offs[num_buckets]);
   KV* table = ht.table;
@@ -314,6 +311,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   return std::make_pair(num_distinct, res);
 }
 
+// Applies light/heavy buckets
 template <class O, class K, class V, class A, class Apply>
 inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
                                        hist_table<K, V>& ht) {
@@ -355,8 +353,6 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   bool heavy = (num_heavy > 0);
   size_t num_total_buckets = (heavy) ? 2 * num_buckets : num_buckets;
   size_t num_actual_buckets = num_buckets + num_heavy;
-  //    std::cout << "gb.k = " << num_heavy << " num bkt = " << num_buckets <<
-  //    "\n";
 
   K* elms;
   size_t* counts;
@@ -395,8 +391,6 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
 
   sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
   sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
-  auto empty = ht.empty;
-  KV* table = ht.table;
 
   using MO = Maybe<O>;
   MO heavy_cts_stk[128];
@@ -441,6 +435,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   //    }
 
   ht.resize(ht_offs[num_buckets]);
+  KV* table = ht.table;
+  auto empty = ht.empty;
 
   // (3) insert elms into per-bucket hash table (par)
   {
