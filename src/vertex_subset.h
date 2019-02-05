@@ -26,6 +26,7 @@
 #include <functional>
 #include <limits>
 
+#include "lib/seq.h"
 #include "lib/sequence_ops.h"
 #include "lib/extra_sequence_ops.h"
 #include "maybe.h"
@@ -41,6 +42,16 @@ struct vertexSubsetData {
   // A vertexSubset from array of vertex indices.
   vertexSubsetData(long _n, long _m, S* indices)
       : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
+
+  // A vertexSubset from a sequence.
+  vertexSubsetData(long _n, sequence<S>& seq, bool transfer=true)
+      : n(_n), m(seq.size()), d(NULL), isDense(0) {
+    if (transfer) {
+      s = seq.get_array();
+    } else {
+      s = seq.start();
+    }
+  }
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData(long _n, long _m, D* _d)
@@ -161,6 +172,16 @@ struct vertexSubsetData<pbbs::empty> {
   vertexSubsetData<pbbs::empty>(long _n, long _m,
                                 std::tuple<uintE, pbbs::empty>* indices)
       : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0) {}
+
+  // A vertexSubset from a sequence.
+  vertexSubsetData(long _n, sequence<S>& seq, bool transfer=true)
+      : n(_n), m(seq.size()), d(NULL), isDense(0) {
+    if (transfer) {
+      s = seq.get_array();
+    } else {
+      s = seq.start();
+    }
+  }
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData<pbbs::empty>(long _n, long _m, bool* _d)
