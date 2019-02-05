@@ -168,7 +168,7 @@ struct buckets {
   // its bucket_dest are given by F(i).
   template <class F>
   inline size_t update_buckets(F f, size_t k) {
-    size_t num_blocks = k / 4096;
+    size_t num_blocks = k / 2000;
     int num_threads = num_workers();
     if (k < pbbs::kSequentialForThreshold || num_threads == 1) {
       return update_buckets_seq(f, k);

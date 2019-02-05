@@ -93,15 +93,15 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
   };
-  auto b = make_buckets(n, get_ring, increasing, num_buckets);
+  auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);
 
   auto apply_f = [&](const uintE v, uintE& oldDist) -> void {
     uintE newDist = dists[v] & wbfs::VAL_MASK;
     dists[v] = newDist;  // Remove the TOP_BIT in the distance.
     // Compute the previous bucket and new bucket for the vertex.
     uintE prev_bkt = get_bkt(oldDist), new_bkt = get_bkt(newDist);
-    bucket_dest dest = b.get_bucket(prev_bkt, new_bkt);
-    oldDist = dest;  // write back
+    uintE dest_bkt = b.get_bucket(prev_bkt, new_bkt);
+    oldDist = dest_bkt;  // write back
   };
 
   init.stop();
@@ -113,7 +113,7 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   if (!largemem) fl |= no_dense;
   if (!no_blocked) fl |= sparse_blocked;
   while (bkt.id != b.null_bkt) {
-    auto active = bkt.identifiers;
+    auto active = vertexSubset(n, bkt.identifiers);
     emt.start();
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round

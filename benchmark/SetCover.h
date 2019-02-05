@@ -62,25 +62,25 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
   auto bucket_f = [&](size_t i) { return get_bucket_clamped(D(i)); };
-  auto b = make_buckets(G.n, bucket_f, decreasing, num_buckets);
+  auto b = make_vertex_buckets(G.n, bucket_f, decreasing, num_buckets);
 
   auto perm = sequence<uintE>(G.n);
   timer bktt, packt, permt, emt;
 
+  timer nbt;
   size_t rounds = 0;
   dyn_arr<uintE> cover = dyn_arr<uintE>();
   auto r = pbbs::default_random;
   while (true) {
-    bktt.start();
+    nbt.start();
     auto bkt = b.next_bucket();
-    auto active = bkt.identifiers;
+    auto active = vertexSubset(G.n, bkt.identifiers);
     size_t cur_bkt = bkt.id;
     if (cur_bkt == b.null_bkt) {
       break;
     }
-    bktt.stop();
+    nbt.stop();
 
-    std::cout << "packing, active.size = " << active.size() << "\n";
     packt.start();
     // 1. sets -> elements (Pack out sets and update their degree)
     auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
@@ -88,8 +88,6 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = ct; };
     auto packed_vtxs = edgeMapFilter(G, active, pack_predicate, pack_edges);
-    std::cout << "packed"
-              << "\n";
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
@@ -113,9 +111,9 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     P.clear();
     permt.stop();
 
-    std::cout << "Round = " << rounds << " bkt = " << cur_bkt
-              << " active = " << active.size()
-              << " stillactive = " << still_active.size() << "\n";
+//    std::cout << "Round = " << rounds << " bkt = " << cur_bkt
+//              << " active = " << active.size()
+//              << " stillactive = " << still_active.size() << "\n";
 
     emt.start();
     // 2. sets -> elements (writeMin to acquire neighboring elements)
@@ -168,7 +166,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
         bkt = b.get_bucket(cur_bkt, get_bucket_clamped(dv));
       return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
-    std::cout << "cover.size = " << cover.size << "\n";
+    //std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());
     active.del();
     still_active.del();
@@ -179,6 +177,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   b.del();
 
   bktt.reportTotal("bucket");
+  nbt.reportTotal("next bucket time");
   packt.reportTotal("pack");
   permt.reportTotal("perm");
   emt.reportTotal("emap");

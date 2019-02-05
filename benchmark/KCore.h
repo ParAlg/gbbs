@@ -36,7 +36,7 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
-  auto b = make_buckets(n, D, increasing, num_buckets);
+  auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
   size_t finished = 0, rho = 0, k_max = 0;
@@ -44,7 +44,7 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
-    auto active = bkt.identifiers;
+    auto active = vertexSubset(n, bkt.identifiers);
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
@@ -113,14 +113,14 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
       sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
   auto ER = sequence<uintE>(n, [&](size_t i) { return 0; });
 
-  auto b = make_buckets(n, D, increasing, num_buckets);
+  auto b = make_vertex_buckets(n, D, increasing, num_buckets);
 
   size_t finished = 0;
   size_t rho = 0;
   size_t k_max = 0;
   while (finished != n) {
     auto bkt = b.next_bucket();
-    auto active = bkt.identifiers;
+    auto active = vertexSubset(n, bkt.identifiers);
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);

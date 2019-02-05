@@ -68,6 +68,14 @@ struct graph {
     if (flags != NULL) pbbs::free_array(flags);
     deletion_fn();
   }
+
+  template <class F>
+  void map_edges(F f) {
+    par_for(0, n, [&] (size_t i) {
+      V[i].mapOutNgh(i, f);
+    });
+  }
+
 };
 
 inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
@@ -138,6 +146,7 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
   };
   return std::bind(df, V, in_edges, out_edges, n, m, m_in, m_out);
 }
+
 
 template <
     template <class W> class vertex, class W, typename P,
