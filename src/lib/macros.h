@@ -53,7 +53,7 @@ static void par_for(size_t start, size_t end, F f, bool parallel=true) {
 
 namespace pbbs {
 
-  constexpr const size_t kSequentialForThreshold =3000;
+  constexpr const size_t kSequentialForThreshold = 4000;
 
   template <class ET>
   inline bool CAS(ET* ptr, ET oldv, ET newv) {

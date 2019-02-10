@@ -193,8 +193,7 @@ struct vertexSubsetData<pbbs::empty> {
       : n(_n), s(NULL), d(_d), isDense(1) {
     auto d_f = [&](size_t i) { return _d[i]; };
     auto d_map = make_sequence<size_t>(n, d_f);
-    auto f = [&](size_t i, size_t j) { return i + j; };
-    m = pbbs::reduce(d_map, f);
+    m = pbbs::reduce_add(d_map);
   }
 
   // A vertexSubset from boolean array giving number of true values. Calculate
@@ -203,8 +202,7 @@ struct vertexSubsetData<pbbs::empty> {
       : n(_n), s(NULL), d((bool*)_d), isDense(1) {
     auto d_f = [&](size_t i) { return std::get<0>(_d[i]); };
     auto d_map = make_sequence<size_t>(n, d_f);
-    auto f = [&](size_t i, size_t j) { return i + j; };
-    m = pbbs::reduce(d_map, f);
+    m = pbbs::reduce_add(d_map);
   }
 
   void del() {

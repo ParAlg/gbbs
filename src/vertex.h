@@ -66,6 +66,83 @@ inline size_t intersect_f(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
   return ans;
 }
 
+constexpr const size_t _bs_merge_base = 128;
+constexpr const size_t _seq_merge_thresh = 8096;
+
+template <class SeqA, class SeqB, class F>
+void seq_merge_full(SeqA& A, SeqB& B, F& f) {
+  using T = typename SeqA::T;
+  size_t nA = A.size(), nB = B.size();
+  size_t i = 0, j = 0;
+  while (i < nA && j < nB) {
+    T& a = A[i];
+    T& b = B[j];
+    if (a == b) {
+      f(a);
+      i++;
+      j++;
+    } else if (a < b) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+}
+
+template <class SeqA, class SeqB, class F>
+void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
+  using T = typename SeqA::T;
+  size_t nA = A.size(), nB = B.size();
+  size_t i = 0, j = 0;
+  for (size_t i=0; i < nA; i++) {
+    T& a = A[i];
+    size_t mB = pbbs::binary_search(B, a, std::less<T>());
+    T& b = B[mB];
+    if (a == b) {
+      f(a);
+    }
+  }
+}
+
+template <class SeqA, class SeqB, class F>
+void merge(const SeqA& A, const SeqB& B, const F& f) {
+  using T = typename SeqA::T;
+  size_t nA = A.size();
+  size_t nB = B.size();
+  size_t nR = nA + nB;
+  if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
+    return seq_merge_full(A, B, f);
+  } else if (nB < nA) {
+    return merge(B, A, f);
+  } else if (nA < _bs_merge_base) {
+    return seq_merge(A, B, f);
+  } else {
+    size_t mA = nA/2;
+    size_t mB = pbbs::binary_search(B, A[mA], std::less<T>());
+    par_do([&] () {merge(A.slice(0, mA), B.slice(0, mB), f);},
+     [&] () {merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+  }
+}
+
+template <template <typename W> class vertex, class W, class F>
+inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
+                          const F& f) {
+  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
+  uintE* nghA = (uintE*)(A->getOutNeighbors());
+  uintE* nghB = (uintE*)(B->getOutNeighbors());
+
+  // Will not work if W is not pbbs::empty, should assert.
+  auto seqA = make_sequence<uintE>(nghA, nA);
+  auto seqB = make_sequence<uintE>(nghB, nB);
+
+  auto merge_f = [&] (uintE ngh) {
+    f(a, b, ngh);
+  };
+  merge(seqA, seqB, merge_f);
+
+  return static_cast<size_t>(0);
+}
+
 };  // namespace intersection
 
 namespace vertex_ops {
@@ -201,16 +278,15 @@ inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
 }
 
 template <template <typename W> class vertex, class W, class E, class M,
-          class R>
-inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
-                    uintE d, E id, M& m, R& r) {
-  if (d == 0) return id;
+          class Monoid>
+inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d, M& m, Monoid& reduce) {
+  if (d == 0) return reduce.identity;
   auto im_f = [&](size_t i) {
     auto nw = nghs[i];
     return m(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
   auto im = make_sequence<E>(d, im_f);
-  return pbbs::reduce(im, r);
+  return pbbs::reduce(im, reduce);
 }
 
 template <template <typename W> class vertex, class W, class F>
@@ -368,7 +444,7 @@ struct symmetricVertex {
   template <class F>
   inline size_t intersect_f(symmetricVertex<W>* other, long our_id,
                             long other_id, const F& f) {
-    return intersection::intersect_f(this, other, our_id, other_id, f);
+    return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
 
   template <class VS, class F, class G>
@@ -473,16 +549,16 @@ struct symmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), f, parallel);
   }
 
-  template <class E, class M, class R>
-  inline E reduceOutNgh(uintE vtx_id, E id, M& m, R& r) {
-    return vertex_ops::reduceNghs<symmetricVertex, W, E, M, R>(
-        this, vtx_id, getOutNeighbors(), getOutDegree(), id, m, r);
+  template <class E, class M, class Monoid>
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce) {
+    return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
+        this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce);
   }
 
-  template <class E, class M, class R>
-  inline E reduceInNgh(uintE vtx_id, E id, M& m, R& r) {
-    return vertex_ops::reduceNghs<symmetricVertex, W, E, M, R>(
-        this, vtx_id, getInNeighbors(), getInDegree(), id, m, r);
+  template <class E, class M, class Monoid>
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce) {
+    return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
+        this, vtx_id, getInNeighbors(), getInDegree(), m, reduce);
   }
 
   template <class F>
@@ -591,7 +667,7 @@ struct asymmetricVertex {
   template <class F>
   inline size_t intersect_f(asymmetricVertex<W>* other, long our_id,
                             long other_id, const F& f) {
-    return intersection::intersect_f(this, other, our_id, other_id, f);
+    return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
 
   template <class VS, class F, class G>
@@ -696,16 +772,16 @@ struct asymmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), f, parallel);
   }
 
-  template <class E, class M, class R>
-  inline E reduceOutNgh(uintE vtx_id, E id, M& m, R& r) {
-    return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, R>(
-        this, vtx_id, getOutNeighbors(), getOutDegree(), id, m, r);
+  template <class E, class M, class Monoid>
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce) {
+    return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
+        this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce);
   }
 
-  template <class E, class M, class R>
-  inline E reduceInNgh(uintE vtx_id, E id, M& m, R& r) {
-    return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, R>(
-        this, vtx_id, getInNeighbors(), getInDegree(), id, m, r);
+  template <class E, class M, class Monoid>
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce) {
+    return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
+        this, vtx_id, getInNeighbors(), getInDegree(), m, reduce);
   }
 
   template <class F>

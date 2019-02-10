@@ -43,6 +43,15 @@ inline const Maybe<std::tuple<uintE, uintE> > wrap(const uintE& l,
   return t;
 }
 
+// integer types L and R
+template <class L, class R>
+inline const Maybe<std::tuple<L, R> > wrap(const L& l, const R& r) {
+  auto t = Maybe<std::tuple<L, R> >(std::make_tuple(l, r));
+  t.exists = (l != std::numeric_limits<L>::max()) && (r != std::numeric_limits<R>::max());
+  return t;
+}
+
+
 template <class L, class R>
 inline const Maybe<std::tuple<L, R> > wrap(const L& l, const Maybe<R>& r) {
   auto t = Maybe<std::tuple<L, R> >(std::make_tuple(l, getT(r)));

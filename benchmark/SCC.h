@@ -230,11 +230,14 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       return std::make_tuple(i, GA.V[i].getOutDegree());
     };
     auto deg_im = make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
-    std::tuple<uintE, uintE> sAndD =
-        pbbs::reduce(deg_im, [](const std::tuple<uintE, uintE>& l,
+    auto red_f = [](const std::tuple<uintE, uintE>& l,
                                 const std::tuple<uintE, uintE>& r) {
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
-        });
+    };
+    auto id = std::make_tuple<uintE, uintE>(0, 0);
+    auto monoid = make_monoid(red_f, id);
+    std::tuple<uintE, uintE> sAndD =
+        pbbs::reduce(deg_im, monoid);
     uintE start = std::get<0>(sAndD);
     if (!(labels[start] & TOP_BIT)) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);

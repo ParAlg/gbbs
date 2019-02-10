@@ -384,6 +384,7 @@ struct edge_array {
 template <template <class W> class vertex, class W, class P>
 inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
   using edge = std::tuple<uintE, uintE, W>;
+  using T = std::tuple<uintT, uintT>;
   size_t n = G.n;
   auto vtx_offs = sequence<std::tuple<size_t, size_t, size_t>>(n + 1);
 
@@ -399,8 +400,9 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
+  auto red_monoid = make_monoid(red_f, id);
   par_for(0, n, [&] (size_t i) {
-    auto res = G.V[i].reduceOutNgh(i, id, map_f, red_f);
+    auto res = G.V[i].template reduceOutNgh<T>(i, map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res),
                                     G.V[i].calculateOutTemporarySpace());
@@ -415,7 +417,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
                            std::get<1>(l) + std::get<1>(r),
                            std::get<2>(l) + std::get<2>(r));
   };
-  pbbs::scan(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0, 0));
+  pbbs::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0, 0));
 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
@@ -485,7 +487,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbs::scan(offs, offs, scan_f, std::make_tuple(0, 0));
+  pbbs::scano(offs, offs, scan_f, std::make_tuple(0, 0));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   std::cout << "tmp space allocated = " << total_space << "\n";
@@ -527,8 +529,9 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return pred(src, ngh, wgh);
   };
   auto red_f = [](size_t l, size_t r) { return l + r; };
+  auto red_monoid = make_monoid(red_f, id);
   par_for(0, n, [&] (size_t i) {
-    uintE ct = G.V[i].reduceOutNgh(i, id, map_f, red_f);
+    uintE ct = G.V[i].template reduceOutNgh<uintE>(i, map_f, red_monoid);
     if (ct > 0) {
       vtx_offs[i] = std::make_tuple(ct, G.V[i].calculateOutTemporarySpace());
     } else {
@@ -541,7 +544,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbs::scan(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0));
+  pbbs::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);

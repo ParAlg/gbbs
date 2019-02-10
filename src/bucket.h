@@ -47,6 +47,7 @@
 #include "lib/dyn_arr.h"
 #include "lib/macros.h"
 #include "lib/utilities.h"
+#include "lib/monoid.h"
 
 #define CACHE_LINE_S 64
 
@@ -82,7 +83,7 @@ struct buckets {
   //
   //   For an identifier i:
   //   d(i) is the bucket currently containing i
-  //   d(i) = UINT_E_MAX if i is not in any bucket
+  //   d(i) = std::numeric_limits<bucket_id>::max() if i is not in any bucket
   buckets(size_t _n, D _d, bucket_order _order, size_t _total_buckets)
       : n(_n),
         d(_d),
@@ -100,14 +101,12 @@ struct buckets {
     if (order == increasing) {
       auto imap_f = [&](size_t i) { return d(i); };
       auto imap = make_sequence<bucket_id>(n, imap_f);
-      auto min = [](bucket_id x, bucket_id y) { return std::min(x, y); };
-      size_t min_b = pbbs::reduce(imap, min);
+      size_t min_b = pbbs::reduce(imap, minm<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
       auto imap_f = [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); };
       auto imap = make_sequence<bucket_id>(n, imap_f);
-      auto max = [](bucket_id x, bucket_id y) { return std::max(x, y); };
-      size_t max_b = pbbs::reduce(imap, max);
+      size_t max_b = pbbs::reduce(imap, maxm<bucket_id>());
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
       std::cout << "Unknown order: " << order
@@ -382,15 +381,13 @@ struct buckets {
       pbbs::free_array(out);
       return next_bucket();
     }
-//    auto seq = ;
-    //vertexSubset vs(n, m, out);
     auto ret = bucket(cur_bkt_num, sequence<ident_t>(out, m, true));
     ret.num_filtered = size;
     return ret;
   }
 };
 
-template <class D, class ident_t, class bucket_t>
+template <class ident_t, class bucket_t, class D>
 inline buckets<D, ident_t, bucket_t> make_buckets(size_t n, D d, bucket_order order,
                                size_t total_buckets = 128) {
   return buckets<D, ident_t, bucket_t>(n, d, order, total_buckets);

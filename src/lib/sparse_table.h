@@ -28,6 +28,7 @@
 #include "lib/extra_sequence_ops.h"
 #include "lib/utilities.h"
 #include "lib/macros.h"
+#include <cassert>
 
 template <class K, class V, class KeyHash>
 class sparse_table {
@@ -41,6 +42,10 @@ class sparse_table {
   T* table;
   bool alloc;
   KeyHash& key_hash;
+
+  size_t size() {
+    return m;
+  }
 
   static void clearA(T* A, long n, T kv) {
     par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
@@ -65,16 +70,15 @@ class sparse_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_table(size_t _m, T _empty, KeyHash _key_hash)
-      : m((size_t)1 << pbbs::log2_up((size_t)(1.1 * _m))),
-        mask(m - 1),
-        empty(_empty),
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long space_mult=-1)
+      : empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-//    size_t line_size = 64;
-//    size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
+    if (space_mult == -1) space_mult = 1.1;
+    m = (size_t)1 << pbbs::log2_up((size_t)(space_mult * _m));
+    mask = m - 1;
     table = pbbs::new_array_no_init<T>(m);
-//    table = (T*)aligned_alloc(line_size, bytes);
+    std::cout << "T size is " << sizeof(T) << std::endl;
     clearA(table, m, empty);
     alloc = true;
   }
@@ -90,6 +94,19 @@ class sparse_table {
         key_hash(_key_hash) {
     clearA(table, m, empty);
     alloc = false;
+  }
+
+  // Pre-condition: k must be present in T.
+  size_t idx(K k) {
+    size_t h = firstIndex(k);
+    while (1) {
+      if (std::get<0>(table[h]) == k) {
+        return h;
+      } else if (std::get<0>(table[h]) == empty_key) {
+        assert(false);
+      }
+      h = incrementIndex(h);
+    }
   }
 
   bool insert(std::tuple<K, V> kv) {
@@ -187,12 +204,9 @@ class sparse_table {
   }
 
   sequence<T> entries() {
-//    T* out = pbbs::new_array_no_init<T>(m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = make_sequence<T>(table, m);
     return pbbs::filter(table_seq, pred);
-//    size_t new_m = pbbs::filterf(table, out, m, pred);
-//    return sequence<T>(out, new_m, true); // allocated
   }
 
   void clear() {
@@ -203,8 +217,9 @@ class sparse_table {
 template <class K, class V, class KeyHash>
 inline sparse_table<K, V, KeyHash> make_sparse_table(size_t m,
                                                      std::tuple<K, V> empty,
-                                                     KeyHash key_hash) {
-  return sparse_table<K, V, KeyHash>(m, empty, key_hash);
+                                                     KeyHash key_hash,
+                                                     long space_mult=-1) {
+  return sparse_table<K, V, KeyHash>(m, empty, key_hash, space_mult);
 }
 
 template <class K, class V, class KeyHash>

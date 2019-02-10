@@ -73,6 +73,26 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
   return vs;
 }
 
+template <class ident_t, class V>
+struct HistogramWrapper {
+  using K = ident_t;
+  using KV = std::tuple<K, V>;
+
+  pbbs::hist_table<K, V> ht;
+
+  HistogramWrapper(size_t ht_size, KV empty) {
+    ht = pbbs::hist_table<K, V>(empty, ht_size);
+  }
+
+  // Wrapper for calling histogram with EM's hash table.
+  // apply takes KV -> V
+  template <class Apply>
+  inline std::pair<size_t, KV*> edgeMapCount(sequence<ident_t>& values_seq, Apply&
+      apply_f) {
+    return pbbs::histogram<std::tuple<ident_t, V>>(values_seq, values_seq.size(), apply_f, ht);
+  }
+};
+
 template <class V, template <typename W> class vertex, class W>
 struct EdgeMap {
   using K = uintE;  // keys are always uintE's (vertex-identifiers)
@@ -185,6 +205,8 @@ struct EdgeMap {
     }
   }
 
+
+
   // sparse [write out neighbors]
   template <class O, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapCount_sparse(VS& vs, Apply& apply_f,
@@ -205,8 +227,7 @@ struct EdgeMap {
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-    auto get_key = make_sequence<uintE>(
-        oneHop.size(), key_f);
+    auto get_key = make_sequence<uintE>(oneHop.size(), key_f);
     auto res = pbbs::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                       apply_f, ht);
     oneHop.del();

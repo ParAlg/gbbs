@@ -50,8 +50,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     GA.V[v].mapOutNgh(v, map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = make_sequence<uintE>(deg, im_f);
-    auto min_f = [](uintE l, uintE r) { return std::min(l, r); };
-    uintE color = pbbs::reduce(im, min_f);
+    uintE color = pbbs::reduce(im, minm<uintE>());
     if (deg > 1000) {
       pbbs::free_array(bits);
     }

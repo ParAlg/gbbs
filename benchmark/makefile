@@ -6,7 +6,7 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-OPT = -O2
+OPT = -O2 -g
 
 INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 #INCLUDE_DIRS = -I../

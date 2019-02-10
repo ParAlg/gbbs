@@ -3,28 +3,26 @@
 #include "lib/seq.h"
 #include "lib/sequence_ops.h"
 #include "lib/macros.h"
+#include "lib/monoid.h"
 
 namespace pbbs {
 
   template <class Seq>
   inline auto reduce_max(Seq I, flags fl = no_flag) -> typename Seq::T {
     using T = typename Seq::T;
-    auto add = [](T x, T y) { return std::max(x, y); };
-    return reduce(I, add, fl);
+    return reduce(I, maxm<T>(), fl);
   }
 
   template <class Seq>
   inline auto reduce_min(Seq I, flags fl = no_flag) -> typename Seq::T {
     using T = typename Seq::T;
-    auto add = [](T x, T y) { return std::min(x, y); };
-    return reduce(I, add, fl);
+    return reduce(I, minm<T>(), fl);
   }
 
   template <class Seq>
   inline auto reduce_xor(Seq I, flags fl = no_flag) -> typename Seq::T {
     using T = typename Seq::T;
-    auto add = [](T x, T y) { return x ^ y; };
-    return reduce(I, add, fl);
+    return reduce(I, xorm<T>(), fl);
   }
 
 

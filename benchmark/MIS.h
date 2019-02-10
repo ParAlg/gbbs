@@ -247,8 +247,10 @@ struct MISstep {
       return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                              std::get<1>(l) + std::get<1>(r));
     };
+    using E = std::tuple<int, int>;
     auto id = std::make_tuple(0, 0);
-    auto res = G.V[i].reduceOutNgh(i, id, map_f, red_f);
+    auto monoid = make_monoid(red_f, id);
+    auto res = G.V[i].template reduceOutNgh<E>(i, map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
     } else if (std::get<1>(res) > 0) {

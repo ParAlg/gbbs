@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include "lib/sample_sort.h"
+#include "lib/monoid.h"
 #include "ligra.h"
 
 template <template <class W> class vertex, class W>
@@ -90,10 +91,9 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
       return DG.V[v].getOutDegree();
     };
-    auto reduce_f = [&](const size_t& l, const size_t& r) { return l + r; };
-    size_t id = 0;
     par_for(0, n, [&] (size_t i) {
-      parallel_work[i] = DG.V[i].reduceOutNgh(i, id, map_f, reduce_f);
+      auto monoid = addm<size_t>();
+      parallel_work[i] = DG.V[i].template reduceOutNgh<size_t>(i, map_f, monoid);
     });
   }
   size_t total_work = pbbs::scan_add(parallel_work, parallel_work);

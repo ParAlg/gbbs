@@ -474,9 +474,10 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
   }
 }
 
-template <class W, class E, class M, class R>
+// r: E -> E -> E
+template <class W, class E, class M, class Monoid>
 inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    E id, M& m, R& r, const bool par = true) {
+                    M& m, Monoid& reduce, const bool par = true) {
   if (degree > 0) {
     uintE virtual_degree = *((uintE*)edge_start);
     size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
@@ -501,7 +502,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
                              : (*((uintE*)(edge_start + block_offsets[i])));
       finger += sizeof(uintE);
 
-      E cur = id;
+      E cur = reduce.identity;
       if (start_offset < end_offset) {
         // Eat first edge, which is compressed specially
         uintE ngh = eatFirstEdge(finger, source);
@@ -510,20 +511,20 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
         for (size_t j = start_offset + 1; j < end_offset; j++) {
           ngh += eatEdge(finger);
           W wgh = eatWeight<W>(finger);
-          cur = r(cur, m(source, ngh, wgh));
+          cur = reduce.f(cur, m(source, ngh, wgh));
         }
       }
       block_outputs[i] = cur;
     }, par);
 
     auto im = make_sequence(block_outputs, num_blocks);
-    E res = pbbs::reduce(im, r);
+    E res = pbbs::reduce(im, reduce);
     if (num_blocks > 100) {
       pbbs::free_array(block_outputs);
     }
     return res;
   } else {
-    return id;
+    return reduce.identity;
   }
 }
 

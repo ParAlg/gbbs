@@ -156,9 +156,9 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
   assert(false);  // Unimplemented
 }
 
-template <class W, class E, class M, class R>
+template <class W, class E, class M, class Monoid>
 inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    E id, M& m, R& r, const bool par = true) {
+                    M& m, Monoid& reduce, const bool par = true) {
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
     W wgh = eatWeight<W>(edge_start);
@@ -166,11 +166,11 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     for (size_t i = 1; i < degree; i++) {
       ngh += eatEdge(edge_start);
       wgh = eatWeight<W>(edge_start);
-      cur = r(cur, m(source, ngh, wgh));
+      cur = reduce.f(cur, m(source, ngh, wgh));
     }
     return cur;
   }
-  return id;
+  return reduce.identity;
 }
 
 /*

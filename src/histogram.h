@@ -325,7 +325,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     sequentialHT<K, V> S(ht.table, n, 1.0f, ht.empty);
     size_t ct = 0;
     for (size_t i = 0; i < n; i++) {
-      K k = get_key(i);
+      K k = get_key[i];
       ct += S.insertAdd(k);
     }
     O* out = pbbs::new_array_no_init<O>(ct);
