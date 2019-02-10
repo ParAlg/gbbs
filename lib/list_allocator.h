@@ -176,17 +176,17 @@ void list_allocator<T>::rand_shuffle() {
 
   // pull all free blocks out
   T** P = new T*[num_free];
-  par_for(0, num_free, [&] (size_t i) {
-    P[i] = alloc();
-  });
+  parallel_for(0, num_free, [&] (size_t i) {
+      P[i] = alloc();
+    });
 
   // randomly shuffle them
   pbbs::random_shuffle(sequence<T*>(P,num_free));
 
   // put them back
-  par_for(0, num_free, [&] (size_t i) {
-    free(P[i]);
-  });
+  parallel_for(0, num_free, [&] (size_t i) {
+      free(P[i]);
+    });
   
   delete[] P; 
 }

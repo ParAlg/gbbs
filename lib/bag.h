@@ -92,7 +92,7 @@ struct bag {
 
   sequence<T> flatten() {
     sequence<T> out(size());
-    flatten_rec(out.as_array());
+    flatten_rec(out.begin());
     return out;
   }
 

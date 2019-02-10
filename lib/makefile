@@ -1,4 +1,4 @@
-CFLAGS = -mcx16 -O2 -ldl -std=c++11 -march=native
+CFLAGS = -mcx16 -O2 -ldl -std=c++11 -march=native -Wall
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus

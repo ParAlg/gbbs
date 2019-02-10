@@ -33,6 +33,7 @@
 #include "utilities.h"
 #include "sequence_ops.h"
 #include "quicksort.h"
+//#include "merge_sort.h"
 #include "transpose.h"
 
 namespace pbbs {
@@ -41,12 +42,6 @@ namespace pbbs {
   constexpr const size_t QUICKSORT_THRESHOLD = 16384;
   constexpr const size_t OVER_SAMPLE = 8;
 
-  // use different parameters for pointer and non-pointer types
-  // and depending on size
-  template<typename E> bool is_pointer(E x) {return 0;}
-  template<typename E> bool is_pointer(E* x) {return 1;}
-  //template<typename E, typename V> bool is_pointer(std::pair<E*,V> x) {return 1;}
-  
   // generates counts in Sc for the number of keys in Sa between consecutive
   // values of Sb
   // Sa and Sb must be sorted
@@ -71,7 +66,7 @@ namespace pbbs {
   }
 
   template<typename s_size_t = size_t, class Seq, typename BinPred>
-  auto sample_sort_ (Seq A, const BinPred& f, bool inplace = false)
+  auto sample_sort_ (Seq A, const BinPred& f, bool inplace = false, bool stable = false)
     -> sequence<typename Seq::T> {
     using E = typename Seq::T;
     size_t n = A.size();
@@ -82,7 +77,7 @@ namespace pbbs {
       auto y = [&] (size_t i) -> E {return A[i];};
       if (inplace) B = A.as_sequence();
       else B = sequence<E>(n, y);
-      quicksort(B.as_array(), n, f);
+      quicksort(B.begin(), n, f);
       return B;
     } else {
       timer t;
@@ -104,77 +99,78 @@ namespace pbbs {
       E* sample_set = new_array<E>(sample_set_size);
 
       // generate "random" samples with oversampling
-      //parallel_for (size_t j=0; j< sample_set_size; ++j) {
       auto hash_f = [&] (size_t j) {
 	sample_set[j] = A[hash64(j)%n];};
-      par_for(0, sample_set_size, 1000, hash_f);
+      parallel_for(0, sample_set_size, hash_f, 1000);
       
       // sort the samples
       quicksort(sample_set, sample_set_size, f);
 
       // subselect samples at even stride
       E* pivots = new_array<E>(num_buckets-1);
-      //parallel_for (size_t k=0; k < num_buckets-1; ++k) {
       auto pivot_f = [&] (size_t k) {
 	pivots[k] = sample_set[OVER_SAMPLE*k];};
-      par_for(0, num_buckets-1, 1000, pivot_f);
+      parallel_for(0, num_buckets-1, pivot_f, 1000);
 
       delete_array(sample_set,sample_set_size);
 
       sequence<E> Bs;
       if (inplace) Bs = A.as_sequence();
       else Bs = sequence<E>(new_array_no_init<E>(n,1), n);
-      E* B = Bs.as_array();
-      //std::cout << "sample and copy: " << t.get_next() << std::endl;
+      E* B = Bs.begin();
+      E *C = new_array_no_init<E>(n,1);
       
       // sort each block and merge with samples to get counts for each bucket
-      s_size_t *counts = new_array_no_init<s_size_t>(m,1);
-      auto block_f = [&] (size_t i) {
-	size_t offset = i * block_size;
-	size_t size =  (i < num_blocks - 1) ? block_size : n - offset;
-	if (!inplace)
-	  for (size_t j = offset;  j < offset+size; j++) 
-	    assign_uninitialized(B[j], A[j]);
+      s_size_t *counts = new_array_no_init<s_size_t>(m+1,1);
+      counts[m] = 0;
+      parallel_for (0, num_blocks,  [&] (size_t i) {
+	  size_t start = i * block_size;
+	  size_t l = (i < num_blocks - 1) ? block_size : n - start;
+	  if (!inplace)
+	    for (size_t j = start;  j < start + l; j++) 
+	      assign_uninitialized(B[j], A[j]);
+	  if (stable) // if stable then use mergesort
+	    {} //merge_sort_(sequence<E>(B+start, l), sequence<E>(C+start,l), f, 1);
+	  else {
 #if defined(OPENMP)
-	quicksort_serial(B+offset, size, f);
+	    quicksort_serial(B+start, l, f);
 #else
-	quicksort(B+offset, size, f);
+	    quicksort(B+start, l, f);
 #endif
-	merge_seq(B + offset, pivots, counts + i*num_buckets,
-		 size, num_buckets-1, f);
-      };
+	  }
+	  merge_seq(B + start, pivots, counts + i*num_buckets,
+		    l, num_buckets-1, f);
+	}, 1);
       
-      par_for (0, num_blocks, 1, block_f);
-      //std::cout << "first part: " << t.get_next() << std::endl;
-
       // move data from blocks to buckets
-      E *C = new_array_no_init<E>(n,1);
       size_t* bucket_offsets = transpose_buckets(B, C, counts, n, block_size,
 						 num_blocks, num_buckets);
       delete_array(counts, m);
-      //std::cout << "transpose: " << t.get_next() << std::endl;
       
       // sort within each bucket
-      //parallel_for (size_t i = 0; i < num_buckets; ++i) {
-      auto bucket_f = [&] (size_t i) {
+      parallel_for (0, num_buckets, [&] (size_t i) {
 	size_t start = bucket_offsets[i];
 	size_t end = bucket_offsets[i+1];
+	size_t l = end-start;
 
 	// middle buckets need not be sorted if two consecutive pivots
 	// are equal
 	if (i == 0 || i == num_buckets - 1 || f(pivots[i-1],pivots[i])) {
+	  if (stable)
+	    {} //merge_sort_(sequence<E>(C+start,l), sequence<E>(B+start,l), f, 1);
+	  else {
 #if defined(OPENMP)
-	  quicksort_serial(C+start, end - start, f);
+	    quicksort_serial(C+start, l, f);
 #else
-	  quicksort(C+start, end - start, f);
+	    quicksort(C+start, l, f);
 #endif
+	  }
 	}
-	if (inplace)
-	  // move back to B (use memcpy to avoid initializers or overloaded =)
-	  memcpy((char*) (B+start), (char*) (C+start), (end-start)*sizeof(E));
-      };
-      par_for (0, num_buckets, 1, bucket_f);
-      //std::cout << "final part: " << t.get_next() << std::endl;
+	if (inplace) // move back to B
+	  parallel_for (start, end, [&] (size_t k) {
+	   move_uninitialized(B[k], C[k]);}, 1000);
+	}, 1);
+      
       delete_array(pivots,num_buckets-1);
       delete_array(bucket_offsets,num_buckets+1 );
       if (inplace) {free_array(C); return Bs;}
@@ -183,16 +179,16 @@ namespace pbbs {
   }
 
   template<class Seq, typename BinPred>
-  auto sample_sort (Seq A, const BinPred& f, bool inplace = false)
+  auto sample_sort (Seq &A, const BinPred& f, bool inplace = false, bool stable = false)
     -> sequence<typename Seq::T> {
     if (A.size() < ((size_t) 1) << 32)
-      return sample_sort_<unsigned int>(A,f, inplace);
-    else return sample_sort_<size_t>(A,f, inplace);
+      return sample_sort_<unsigned int>(A.slice(), f, inplace, stable);
+    else return sample_sort_<size_t>(A.slice(), f, inplace, stable);
   }
     
   template<typename E, typename BinPred, typename s_size_t>
-  void sample_sort (E* A, s_size_t n, const BinPred& f) {
+  void sample_sort (E* A, s_size_t n, const BinPred& f, bool stable = false) {
     sequence<E> B(A,A+n);
-    sample_sort_<s_size_t>(B, f, true);
+    sample_sort_<s_size_t>(B, f, true, stable);
   }
 }

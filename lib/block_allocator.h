@@ -140,7 +140,7 @@ auto block_allocator::get_list() -> block_p {
 void block_allocator::reserve(size_t n) {
   size_t num_lists = thread_count + ceil(n / (double)list_length);
   uchar* start = allocate_blocks(list_length*num_lists);
-  par_for(0, num_lists, [&] (size_t i) {
+  parallel_for(0, num_lists, [&] (size_t i) {
     block_p offset = (block_p) (start + i * list_length * block_size_);
     global_stack.push(initialize_list(offset));
   });

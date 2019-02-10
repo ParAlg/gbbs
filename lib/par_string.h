@@ -63,7 +63,6 @@ namespace pbbs {
     words(std::string filename, Func is_separator, size_t begin=0, size_t end=0);
 
     ~words() { //if (n > 0) { free(Chars); free(Strings);}
-	//cout << "destructing words" << endl;
     }
 
     char* operator[] (const int i) {return Strings[i];}
@@ -104,10 +103,9 @@ namespace pbbs {
     // mark start of words
     sequence<bool> FL(n);
     FL[0] = Str[0];
-    //parallel_for (size_t i=1; i < n; i++)
     auto set_f = [&] (size_t i) {
       FL[i] = Str[i] && !Str[i-1];};
-    par_for(0, n, 10000, set_f);
+    parallel_for(0, n, set_f, 10000);
 
     auto f = [&] (size_t i) {return &Str[i];};
     auto offset = make_sequence<char*>(n, f);
@@ -116,9 +114,8 @@ namespace pbbs {
 
   template <typename Func>
   words::words(sequence<char> Str, Func is_separator) : Str(Str) {
-    //parallel_for (size_t i=0; i < Str.size(); i++)
     auto set_f = [&] (size_t i) { if (is_separator(Str[i])) Str[i] = 0;};
-    par_for (0, Str.size(), 10000, set_f);
+    parallel_for (0, Str.size(), set_f, 10000);
     Strings = string_to_words(Str);
   }
 

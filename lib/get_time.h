@@ -57,9 +57,12 @@ struct timer {
 
   void report(double time, std::string str) {
     std::ios::fmtflags cout_settings = std::cout.flags();
-    std::cout.precision(4);
+    std::cout.precision(3);
     std::cout << std::fixed;
-    std::cout << name << ": " << str << ": " << time << std::endl;
+    std::cout << name << ": ";
+    if (str.length() > 0)
+      std::cout << str << ": ";
+    std::cout << time << std::endl;
     std::cout.flags(cout_settings);
   }
 

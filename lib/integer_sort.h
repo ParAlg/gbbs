@@ -29,55 +29,149 @@
 #include "quicksort.h"
 
 namespace pbbs {
+
+  constexpr size_t radix = 8;
+  constexpr size_t max_buckets = 1 << radix;
+
+  template <class T, class F>
+  void radix_step(T* A, T* B, size_t* counts, size_t n, size_t m, F extract) {
+    for (size_t i = 0; i < m; i++)  counts[i] = 0;
+    for (size_t j = 0; j < n; j++) {
+      size_t k = extract(A[j]);
+      counts[k]++;
+    }
+
+    size_t s = 0;
+    for (size_t i = 0; i < m; i++) {
+      s += counts[i];
+      counts[i] = s;
+    }
+    
+    for (long j = n-1; j >= 0; j--) {
+      long x = --counts[extract(A[j])];
+      B[x] = A[j];
+    }
+  }
+
+  template <class T, class GetKey>
+  void seq_radix_sort(sequence<T> const &In, sequence<T> &Out,
+		      GetKey const &g,
+		      size_t bits, bool inplace=true) {
+    size_t n = In.size();
+    if (n == 0) return;
+    size_t counts[max_buckets+1];
+    T* InA = In.begin();
+    T* OutA = Out.begin();
+    bool swapped = false;
+    int bit_offset = 0;
+    while (bits > 0) {
+      size_t round_bits = std::min(radix, bits);
+      size_t num_buckets = (1 << round_bits);
+      size_t mask = num_buckets-1;
+      auto get_key = [&] (T k) -> size_t {
+	return (g(k) >> bit_offset) & mask;};
+      radix_step(InA, OutA, counts, n, num_buckets, get_key);
+      std::swap(InA,OutA);
+      bits = bits - round_bits;
+      bit_offset = bit_offset + round_bits;
+      swapped = !swapped;
+    }
+    if ((inplace && swapped) || (!inplace && !swapped)) {
+      for (size_t i=0; i < n; i++) 
+	move_uninitialized(OutA[i], InA[i]);
+    }
+  }
   
   // a top down recursive radix sort
   // g extracts the integer keys from In
-  // val_bits specifies how many bits there are in the integer
-  template <typename InS, typename OutS, typename Get_Key>
-  void integer_sort(InS In,  OutS Out, Get_Key& g, 
-		    size_t val_bits, size_t depth=0) {
-    using T = typename InS::T;
+  // key_bits specifies how many bits there are left
+  // if inplace is true, then result will be in In, otherwise in Out
+  // In and Out cannot be the same
+  template <typename T, typename Get_Key>
+  void integer_sort_r(sequence<T> &In,  sequence<T> &Out,
+		      Get_Key const &g, 
+		      size_t key_bits, bool inplace) {
     size_t n = In.size();
+    timer t;
 
-    // for small inputs call a comparison sort
-    if (n < (1 << 12) || depth > 2) {
-      auto cmp = [&] (T a, T b) {return g(a) < g(b);};
-      quicksort(In.start(),n,cmp);
-      //std::sort(In.start(),In.end(),cmp);
-      return;
-    }
-    size_t bits;  // 2^bits = number of buckets for first round
-    if (depth == 0) bits = log2_up(n)/3; // cube root
-    else bits = log2_up(n)/2;            // square root
-    if (sizeof(T) <= 4) bits += 1;
-
-    // for larger elements only one level of counting sort
-    if (sizeof(T) > 8) {bits = bits+2; depth = 3;}
-
-    // never do more bits that in the key
-    bits = std::min(bits, val_bits);
-
-    size_t num_buckets = (1<<bits);
-    size_t mask = num_buckets - 1;
-    size_t shift_bits = val_bits - bits;
-
-    auto high_bits = [&] (size_t i) {
-      return (g(In[i]) >> shift_bits) & mask;};
-
-    auto get_bits = make_sequence<size_t>(n, high_bits);
+    if (key_bits == 0) {
+      if (!inplace)
+	parallel_for(0, In.size(), [&] (size_t i) {Out[i] = In[i];});
+      
+    // for small inputs use sequential radix sort
+	  } else if (n < (1 << 15)) {
+      seq_radix_sort<T>(In, Out, g, key_bits, inplace);
     
-    // sort into buckets using a counting sort
-    sequence<size_t> bucket_offsets 
-      = count_sort(In, Out, get_bits, num_buckets);
+    // few bits, just do a single parallel count sort
+    } else if (key_bits <= radix) {
+      t.start();
+      size_t num_buckets = (1 << key_bits);
+      size_t mask = num_buckets - 1;
+      auto f = [&] (size_t i) {return g(In[i]) & mask;};
+      auto get_bits = make_sequence<size_t>(n, f);
+      if (inplace) count_sort(In, In, get_bits, num_buckets);
+      else count_sort(In, Out, get_bits, num_buckets);
+      
+    // recursive case  
+    } else {
+      size_t bits = 8;
+      size_t shift_bits = key_bits - bits;
+      size_t buckets = (1 << bits);
+      size_t mask = buckets - 1;
+      auto f = [&] (size_t i) {return (g(In[i]) >> shift_bits) & mask;};
+      auto get_bits = make_sequence<size_t>(n, f);
 
-    // recurse on each bucket
-    if (shift_bits > 0) {
-      //parallel_for(size_t i = 0; i < num_buckets; i++) {
-      auto f = [&] (size_t i) {
-	auto out_slice = Out.slice(bucket_offsets[i],bucket_offsets[i+1]);
-	integer_sort(out_slice, out_slice, g, shift_bits, depth+1);
-      };
-      par_for(0, num_buckets, 1, f);
+      // divide into buckets
+      sequence<size_t> offsets = count_sort(In, Out, get_bits, buckets);
+
+      // recursively sort each bucket
+      parallel_for(0, buckets, [&] (size_t i) {
+	size_t start = offsets[i];
+	size_t end = offsets[i+1];
+	auto a = Out.slice(start, end);
+	auto b = In.slice(start, end);
+	integer_sort_r(a, b, g, shift_bits, !inplace);
+	}, 1);
     }
+  }
+
+  // a top down recursive radix sort
+  // g extracts the integer keys from In
+  // result will be placed in out, 
+  //    but if inplace is true, then result will be put back into In
+  // val_bits specifies how many bits there are in the key
+  //    if set to 0, then a max is taken over the keys to determine
+  template <typename T, typename Get_Key>
+  void integer_sort(sequence<T> &In, sequence<T> &Out,
+		    Get_Key const &g, 
+		    size_t key_bits=0, bool inplace=false) {
+    if (In.begin() == Out.begin()) {
+      cout << "in integer_sort : input and output must be different locations" << endl;
+      abort();}
+    if (key_bits == 0) {
+      using P = std::pair<size_t,size_t>;
+      auto get_key = [&] (size_t i) -> P {
+	size_t k =g(In[i]);
+	return P(k,k);};
+      auto keys = make_sequence<P>(In.size(), get_key);
+      size_t min_val, max_val;
+      std::tie(min_val,max_val) = reduce(keys, minmaxm<size_t>());
+      key_bits = log2_up(max_val - min_val + 1);
+      cout << key_bits << endl;
+      if (min_val > max_val / 4) {
+	auto h = [&] (T a) {return g(a) - min_val;};
+	integer_sort_r(In, Out, h, key_bits, inplace);
+	return;
+      }
+    }
+    integer_sort_r(In, Out, g, key_bits, inplace);
+  }
+
+  template <typename T, typename Get_Key>
+  void integer_sort(sequence<T> &In,
+		    Get_Key const &g,
+		    size_t key_bits=0) {
+    sequence<T> Tmp = sequence<T>::alloc_no_init(In.size());
+    integer_sort(In, Tmp, g, key_bits, true);
   }
 }

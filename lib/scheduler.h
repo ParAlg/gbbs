@@ -148,25 +148,22 @@ public:
   int num_threads;
 
   scheduler() {
-    num_threads = num_workers();
-    num_deques = 2*num_workers();
+    init_num_workers();
+    num_deques = 2*num_threads;
     deques = new Deque<Job>[num_deques];
     attempts = new attempt[num_deques];
     finished_flag = 0;
 
     // Spawn num_workers many threads on startup
     spawned_threads = new std::thread[num_threads-1];
-    bool ready = false;
     std::function<bool()> finished = [&] () {  return finished_flag == 1; };
     thread_id = 0; // thread-local write
     for (int i=1; i<num_threads; i++) {
       spawned_threads[i-1] = std::thread([&, i, finished] () {
         thread_id = i; // thread-local write
-        while (!ready) { std::this_thread::yield(); }
         start(finished);
       });
     }
-    ready=true; // start the other p-1 threads
   }
 
   ~scheduler() {
@@ -207,8 +204,16 @@ public:
     return deques[id].pop_bottom();
   }
 
+  void init_num_workers() {
+    if (const char* env_p = std::getenv("NUM_THREADS")) {
+      num_threads = std::stoi(env_p);
+    } else {
+      num_threads = std::thread::hardware_concurrency();
+    }
+  }
+
   int num_workers() {
-    return std::thread::hardware_concurrency();
+    return num_threads;
   }
   int worker_id() {
     return thread_id;

@@ -9,6 +9,61 @@
 //   static T identity() : returns identity for the monoid
 //   static T add(T, T) : adds two elements, must be associative
 
+template <class F, class TT>
+struct monoid {
+  using T = TT;
+  F f;
+  TT identity;
+  monoid(F f, TT id) : f(f), identity(id) {}
+};
+
+template <class F, class T>
+monoid<F,T> make_monoid (F f, T id) {
+  return monoid<F,T>(f, id);
+}
+
+template <class TT>
+struct addm {
+  using T = TT;
+  addm() : identity(0) {}
+  T identity;
+  static T f(T a, T b) {return a + b;}
+};
+
+template <class TT>
+struct maxm {
+  using T = TT;
+  maxm() : identity(std::numeric_limits<TT>::lowest()) {}
+  T identity;
+  static T f(T a, T b) {return std::max(a,b);}
+};
+
+template <class TT>
+struct minm {
+  using T = TT;
+  minm() : identity(std::numeric_limits<TT>::max()) {}
+  T identity;
+  static T f(T a, T b) {return std::min(a,b);}
+};
+
+template <class TT>
+struct xorm {
+  using T = TT;
+  xorm() : identity(std::numeric_limits<TT>::lowest()) {}
+  T identity;
+  static T f(T a, T b) {return a ^ b;}
+};
+
+template <class TT>
+struct minmaxm {
+  using T = std::pair<TT,TT>;
+  minmaxm() : identity(T(std::numeric_limits<TT>::max(),
+			 std::numeric_limits<TT>::lowest())) {}
+  T identity;
+  static T f(T a, T b) {return T(std::min(a.first,b.first),
+				 std::max(a.second,b.second));}
+};
+
 template <class TT>
 struct Add {
   using T = TT;

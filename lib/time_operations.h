@@ -35,6 +35,28 @@ double t_tabulate(size_t n) {
   return t;
 }
 
+// template<typename T>
+// double t_map(size_t n) {
+//   size_t l = 1 << 14;
+//   size_t ll = 1 << 10;
+//   sequence<T> In(l*l, (T) 1);
+//   sequence<T> Out(l*l, (T) 1);
+//   auto f = [&] (size_t i) {
+//     size_t r = ll*(i/16);
+//     size_t c = ll*(i%16);
+//     for (size_t j=r+1; j < r + ll -1; j++) {
+//       for (size_t k=c+1; k < c+ ll -1; k++) {
+// 	Out[j + k*l] = In[j + k*l - 1 - ll] + In[j + k*l - ll] + In[j + k*l + 1 - ll] +
+// 	  In[j + k*l - 1] + In[j + k*l] + In[j + k*l + 1] +
+// 	  In[j + k*l - 1 + ll] + In[j + k*l + ll] + In[j + k*l + 1 + ll];
+//       }
+//     }
+//   };
+//   time(t, parallel_for(0, 256, f););
+//   return t;
+// }
+
+
 template<typename T>
 double t_map(size_t n) {
   sequence<T> In(n, (T) 1);
@@ -46,8 +68,9 @@ double t_map(size_t n) {
 template<typename T>
 double t_reduce_add(size_t n) {
   sequence<T> S(n, (T) 1);
-  //time(t, sum(S.as_array(), S.size()););
-  time(t, pbbs::reduce_add(S););
+  //time(t, sum(S.begin(), S.size()););
+  //time(t, pbbs::reduce_add(S););
+  time(t, pbbs::reduce(S, addm<T>()));
   return t;
 }
 
@@ -66,8 +89,9 @@ double t_map_reduce_128(size_t n) {
 template<typename T>
 double t_scan_add(size_t n) {
   sequence<T> In(n, (T) 1);
-  sequence<T> Out(n, (T) 0);
-  time(t, pbbs::scan_add(In,Out););
+  sequence<T> Out;
+  T sum;
+  time(t, std::tie(Out,sum) = pbbs::scan(In, addm<T>()););
   return t;
 }
 
@@ -119,7 +143,7 @@ double t_histogram_reducer(size_t n) {
   using aa = std::array<size_t,8>;
   sequence<aa> In(n, [&] (size_t i) {aa x; x[0] = r.ith_rand(i) % count; return x;});
   auto f = [&] (size_t i) { red->add_value(In[i][0]);};
-  time(t, par_for(0, n, 0, f););
+  time(t, parallel_for(0, n, f););
   //cout << red.get_value()[0] << endl;
   return t;
 }
@@ -134,8 +158,6 @@ double t_gather(size_t n) {
   pbbs::random r(0);
   sequence<T> in(n, [&] (size_t i) {return i;});
   sequence<T> idx(n, [&] (size_t i) {return r.ith_rand(i)%n;});
-  //sequence<T> out(n);
-  //time(t, parallel_for(size_t i=0; i<n; i++) {out[i] = in[idx[i]];});
   auto f = [&] (size_t i) {
     // prefetching helps significantly
     __builtin_prefetch (&in[idx[i+4]], 0, 1);
@@ -153,8 +175,7 @@ double t_scatter(size_t n) {
   auto f = [&] (size_t i) {
       __builtin_prefetch (&out[idx[i+4]], 1, 1);
       out[idx[i]] = i;};
-  time(t, par_for(0, n-4, 0, f););
-  //time(t, parallel_for(size_t i=0; i < n; i++) {out[idx[i]] = i;});
+  time(t, parallel_for(0, n-4, f););
   return t;
 }
 
@@ -167,9 +188,7 @@ double t_write_add(size_t n) {
     // putting write prefetch in slows it down
     //__builtin_prefetch (&out[idx[i+4]], 0, 1);
     pbbs::write_add(&out[idx[i]],1);};
-  time(t, par_for(0, n-4, 0, f););
-  //time(t, parallel_for(size_t i=0; i<n-3; i++) {
-  //pbbs::write_add(&out[idx[i]],1);});
+  time(t, parallel_for(0, n-4, f););
   return t;
 }
 
@@ -182,9 +201,7 @@ double t_write_min(size_t n) {
     // putting write prefetch in slows it down
     //__builtin_prefetch (&out[idx[i+4]], 1, 1);
     pbbs::write_min(&out[idx[i]], (T) i, std::less<T>());};
-  time(t, par_for(0, n-4, 0, f););
-  //time(t, parallel_for(size_t i=0; i<n-3; i++) {
-  //pbbs::write_min(&out[idx[i]], (T) i, pbbs::less<T>());});
+  time(t, parallel_for(0, n-4, f););
   return t;
 }
 
@@ -236,8 +253,8 @@ template<typename T>
 double t_merge_sort(size_t n) {
   pbbs::random r(0);
   sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%n;});
-  sequence<T> out(n);
-  time(t, pbbs::merge_sort(out, in, std::less<T>()););
+  sequence<T> out;
+  time(t, out = pbbs::merge_sort(std::move(in), std::less<T>()););
   //for (size_t i = 1; i < n; i++)
   //  if (std::less<T>()(in[i],in[i-1])) {cout << i << endl; abort();}
   return t;
@@ -247,8 +264,8 @@ template<typename T>
 double t_quicksort(size_t n) {
   pbbs::random r(0);
   sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%n;});
-  sequence<T> out(n);
-  time(t, pbbs::p_quicksort(in, out, std::less<T>()););
+  sequence<T> out;
+  time(t, out = pbbs::p_quicksort(in, std::less<T>()););
   //for (size_t i = 1; i < n; i++)
   //  if (std::less<T>()(in[i],in[i-1])) {cout << i << endl; abort();}
   return t;
@@ -287,8 +304,7 @@ double t_collect_reduce_pair_dense(size_t n) {
       return par(r.ith_rand(i) % n, 1);});
   auto get_index = [] (par e) {return e.first;};
   auto get_val = [] (par e) {return e.second;};
-  auto add = [&] (T a, T b) {return a + b;};
-  time(t, pbbs::collect_reduce<T>(S, n, get_index, get_val, (T) 0, add););
+  time(t, pbbs::collect_reduce<T>(S, n, get_index, get_val, addm<T>()););
   return t;
 }
 
@@ -298,7 +314,7 @@ double t_collect_reduce_pair_sparse(size_t n) {
   pbbs::random r(0);
   sequence<par> S(n, [&] (size_t i) -> par {
       return par(r.ith_rand(i) % n, 1);});
-  time(t, pbbs::collect_reduce_pair<Add<int>>(S););
+  time(t, pbbs::collect_reduce_pair(S, addm<T>()););
   return t;
 }
 
@@ -309,9 +325,8 @@ double t_collect_reduce_8(size_t n) {
   size_t mask = num_buckets - 1;
   sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i);});
   auto bucket = [&] (size_t i) {return in[i] & mask;};
-  auto add = [&] (T a, T b) {return a + b;};
   auto keys = make_sequence<unsigned char>(n, bucket);
-  time(t, pbbs::collect_reduce<T>(in, keys, num_buckets, 0, add););
+  time(t, pbbs::collect_reduce<T>(in, keys, num_buckets, addm<T>()););
   return t;
 }
 
@@ -333,12 +348,10 @@ double t_collect_reduce_8_tuple(size_t n) {
   sequence<sums> in(n, [&] (size_t i) -> sums {
       return sums(1.0,1.0,1.0,1.0);});
 
+  auto monoid = make_monoid(sum, sums(0.0,0.0,0.0,0.0));
+
   time(t,
-       pbbs::collect_reduce<sums>(in,
-				  keys,
-				  num_buckets,
-				  sums(0.0,0.0,0.0,0.0),
-				  sum););
+       pbbs::collect_reduce<sums>(in, keys, num_buckets, monoid););
   return t;
 }
 
@@ -351,7 +364,7 @@ double t_integer_sort_pair(size_t n) {
   sequence<par> S(n, [&] (size_t i) -> par {
       return par(r.ith_rand(i),i);});
   auto first = [] (par a) {return a.first;};
-  time(t, pbbs::integer_sort<T>(S,S,first,bits););
+  time(t, pbbs::integer_sort(S,first,bits););
   return t;
 }
 
@@ -362,7 +375,7 @@ double t_integer_sort(size_t n) {
   sequence<T> S(n, [&] (size_t i) -> T {
       return r.ith_rand(i);});
   auto identity = [] (T a) {return a;};
-  time(t, pbbs::integer_sort<T>(S,S,identity,bits););
+  time(t, pbbs::integer_sort(S,identity,bits););
   return t;
 }
 
@@ -373,7 +386,7 @@ double t_integer_sort_128(size_t n) {
   sequence<long_int> S(n, [&] (size_t i) -> long_int {
       return r.ith_rand(2*i) + (((long_int) r.ith_rand(2*i+1)) << 64) ;});
   auto identity = [] (long_int a) {return a;};
-  time(t, pbbs::integer_sort<long_int>(S,S,identity,bits););
+  time(t, pbbs::integer_sort(S,identity,bits););
   return t;
 }
 
@@ -381,9 +394,8 @@ template<typename T>
 double t_merge(size_t n) {
   sequence<T> in1(n/2, [&] (size_t i) {return 2*i;});
   sequence<T> in2(n-n/2, [&] (size_t i) {return 2*i+1;});
-  sequence<T> out(n, (T) 0);
-  time(t,
-       pbbs::merge(in1, in2, out, std::less<T>()););
+  sequence<T> out;
+  time(t, out = pbbs::merge(in1, in2, std::less<T>()););
   return t;
 }
 
@@ -396,7 +408,7 @@ double t_remove_duplicates(size_t n) {
 }
 
 template <typename T, typename F>
-static T my_reduce(sequence<T> s, size_t start, size_t end, F f) {
+static T my_reduce(sequence<T> const &s, size_t start, size_t end, F f) {
   if (end - start == 1) return s[start];
   size_t h = (end + start)/2;
   T r, l;

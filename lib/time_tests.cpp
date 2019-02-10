@@ -88,6 +88,7 @@ float ebytes(int reads, int write_backs) {
 
 double pick_test(size_t id, size_t n, size_t rounds,
 		 bool half_length) {
+  my_mem_pool.clear();
   switch (id) {
   case 0:
     return run_multiple(n,rounds,ebytes(16,8),"map long", t_map<long>, half_length);

@@ -1,6 +1,8 @@
 #pragma once
 #include "concurrent_stack.h"
 #include "utilities.h"
+#include <atomic>
+#include "memory_size.h"
 
 struct mem_pool {
   concurrent_stack<void*>* buckets;
@@ -8,6 +10,9 @@ struct mem_pool {
   static constexpr size_t log_base = 20;
   static constexpr size_t num_buckets = 20;
   static constexpr size_t small_size_tag = 100;
+  std::atomic<long> allocated{0};
+  std::atomic<long> used{0};
+  size_t mem_size{getMemorySize()};
   
   mem_pool() {
     buckets = new concurrent_stack<void*>[num_buckets];
@@ -28,18 +33,20 @@ struct mem_pool {
     }
     size_t bucket = log_size - log_base;
     maybe<void*> r = buckets[bucket].pop();
+    size_t n = ((size_t) 1) << log_size;
+    used += n;
     if (r) {
       return add_header(*r);
     }
     else {
-      size_t n = ((size_t) 1) << log_size;
       void* a = (void*) aligned_alloc(header_size, n);
+      allocated += n;
       if (a == NULL) std::cout << "alloc failed" << std::endl;
       // a hack to make sure pages are touched in parallel
       // not the right choice if you want processor local allocations
       size_t stride = (1 << 21); // 2 Mbytes in a huge page
       auto touch_f = [&] (size_t i) {((bool*) a)[i*stride] = 0;};
-      par_for(0, n/stride, 1, touch_f);
+      parallel_for(0, n/stride, touch_f, 1);
       *((size_t*) a) = bucket;
       return add_header(a);
     }
@@ -53,22 +60,29 @@ struct mem_pool {
       std::cout << "corrupted header in free" << std::endl;
       abort();
     } else {
-      buckets[bucket].push(b);
+      size_t n = ((size_t) 1) << (bucket+log_base);
+      used -= n;
+      if (n > mem_size/64) {
+	free(b);
+	allocated -= n;
+      } else {
+	buckets[bucket].push(b);
+      }
     }
   }
 
-  void sizes() {
+  void clear() {
     for (size_t i = 0; i < num_buckets; i++) {
-      std::cout << (((size_t) 1) << (i+log_base)) << " : "
-		<< (buckets[i].size()) << std::endl;
-    };
+      size_t n = ((size_t) 1) << (i+log_base);
+      maybe<void*> r = buckets[i].pop();
+      while (r) {
+	allocated -= n;
+	free(*r);
+	r = buckets[i].pop();
+      }
+    }
   }
-} my_mem_pool;
+};
 
-void* my_alloc(size_t i) {
-  return my_mem_pool.alloc(i);
-}
+static mem_pool my_mem_pool;
 
-void my_free(void* p) {
-  my_mem_pool.afree(p);
-}

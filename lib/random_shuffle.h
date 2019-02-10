@@ -30,8 +30,9 @@
 
 namespace pbbs {
 
+  // inplace sequential version
   template <typename Seq>
-  void seq_random_shuffle(Seq A, random r = default_random) {
+  void seq_random_shuffle_(Seq A, random r = default_random) {
     size_t n = A.size();
     // the Knuth shuffle
     if (n < 2) return;
@@ -39,11 +40,14 @@ namespace pbbs {
       std::swap(A[i],A[r.ith_rand(i)%(i+1)]);
   }
 
-  template <typename Seq>
-  void random_shuffle(Seq A, random r = default_random) {
-    size_t n = A.size();
+  template <typename Seq, typename OSeq>
+  void random_shuffle_(Seq const &In, OSeq &Out, random r = default_random) {
+    size_t n = In.size();
     if (n < SEQ_THRESHOLD) {
-      seq_random_shuffle(A);
+      if (In.begin() != Out.begin()) 
+	parallel_for(0,n,[&] (size_t i) {
+	    assign_uninitialized(Out[i],In[i]);});
+      seq_random_shuffle_(Out, r);
       return;
     }
 
@@ -59,24 +63,36 @@ namespace pbbs {
     auto get_pos = make_sequence<size_t>(n, rand_pos);
 
     // first randomly sorts based on random values [0,num_buckets)
-    sequence<size_t> bucket_offsets = count_sort(A, A, get_pos, num_buckets);
+    sequence<size_t> bucket_offsets = count_sort(In, Out, get_pos, num_buckets);
 
     // now sequentially randomly shuffle within each bucket
-
-    //parallel_for(size_t i = 0; i < num_buckets; i++) {
     auto bucket_f = [&] (size_t i) {
       size_t start = bucket_offsets[i];
       size_t end = bucket_offsets[i+1];
-      seq_random_shuffle(A.slice(start,end), r.fork(i));
+      seq_random_shuffle_(Out.slice(start,end), r.fork(i));
     };
-    par_for(0, num_buckets, 1, bucket_f);
+    parallel_for(0, num_buckets, bucket_f, 1);
+  }
+
+  template <typename Seq>
+  sequence<typename Seq::T> random_shuffle(Seq const &In, random r = default_random) {
+    using T = typename Seq::T;
+    sequence<T> Out = std::move(sequence<T>::alloc_no_init(In.size()));
+    random_shuffle_(In, Out, r);
+    return Out;
+  }
+
+  template <typename T>
+  sequence<T> random_shuffle(sequence<T> &&In, random r = default_random) {
+    sequence<T> Out = std::move(In);
+    random_shuffle_(Out, Out, r);
+    return Out;
   }
 
   template <class intT>
   inline sequence<intT> random_permutation(size_t n,
                                            random r = default_random) {
-    sequence<intT> id = sequence<intT>::tabulate(n, [&] (intT i) { return i; });
-    pbbs::random_shuffle(id, r);
-    return id;
+    sequence<intT> id(n, [&] (size_t i) { return i; });
+    return pbbs::random_shuffle(std::move(id), r);
   }
 }

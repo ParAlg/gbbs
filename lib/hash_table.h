@@ -49,10 +49,9 @@ namespace pbbs {
     using index = long;
 
     static void clear(eType* A, size_t n, eType v) {
-      //parallel_for (size_t i=0; i < n; i++)
       auto f = [&] (size_t i) {
 	assign_uninitialized(A[i], v);};
-      par_for(0, n, granularity(n), f);
+      parallel_for(0, n, f, granularity(n));
     }
 
     struct notEmptyF {
@@ -275,9 +274,9 @@ namespace pbbs {
 
     sequence<index> get_index() {
       auto is_full = [&] (const size_t i) -> int {
-	   if (TA[i] != empty) return 1; else return 0;};
-	  sequence<index> x(m, is_full);
-      scan_add(x, x);
+	if (TA[i] != empty) return 1; else return 0;};
+      sequence<index> x(m, is_full);
+      scan_inplace(x, addm<index>());
       return x;
     }
 
@@ -297,14 +296,12 @@ namespace pbbs {
   };
 
   template <class ET, class H>
-  sequence<ET> remove_duplicates(sequence<ET> S, H hash, size_t m=0) {
+  sequence<ET> remove_duplicates(sequence<ET> const &S, H const &hash, size_t m=0) {
     if (m==0) m = S.size();
     Table<H> T(m, hash, 1.5);
-    //parallel_for(size_t i = 0; i < S.size(); i++)
     auto f = [&] (size_t i) { T.insert(S[i]);};
-    par_for(0, S.size(), granularity(S.size()), f);
-    sequence<ET> r = T.entries();
-    return r;
+    parallel_for(0, S.size(), f);
+    return T.entries();
   }
 
   // T must be some integer type
@@ -323,7 +320,7 @@ namespace pbbs {
 
   // works for non-negative integers (uses -1 to mark cell as empty)
   template <class T>
-  sequence<T> remove_duplicates(sequence<T> A) {
+  sequence<T> remove_duplicates(sequence<T> const &A) {
     return remove_duplicates(A, hashInt<T>());
   }
 

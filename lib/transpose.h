@@ -45,7 +45,6 @@ namespace pbbs {
 	    for (size_t j=cStart; j < cStart + cCount; j++) 
 	      B[j*cLength + i] = A[i*rLength + j];
 	} else if (cCount > rCount) {
-	  //size_t l1 = cCount/2;
 	  size_t l1 = split(cCount);
 	  size_t l2 = cCount - l1;
 	  auto left = [&] () {
@@ -54,7 +53,6 @@ namespace pbbs {
 	    transR(rStart,rCount,rLength,cStart + l1,l2,cLength);};
 	  par_do(left, right);
 	} else {
-	  //size_t l1 = rCount/2;
 	  size_t l1 = split(cCount);
 	  size_t l2 = rCount - l1;
 	  auto left = [&] () {
@@ -77,28 +75,24 @@ namespace pbbs {
   template <class E, class int_t>
     struct blockTrans {
       E *A, *B;
-      int_t *OA, *OB, *L;
+      int_t *OA, *OB;
 
-    blockTrans(E *AA, E *BB, int_t *OOA, int_t *OOB, int_t *LL) 
-    : A(AA), B(BB), OA(OOA), OB(OOB), L(LL) {}
+    blockTrans(E *AA, E *BB, int_t *OOA, int_t *OOB) 
+    : A(AA), B(BB), OA(OOA), OB(OOB) {}
 
       void transR(size_t rStart, size_t rCount, size_t rLength,
 		  size_t cStart, size_t cCount, size_t cLength) {
 	if (cCount*rCount < TRANS_THRESHHOLD/2) {
-	  par_for(rStart, rStart+rCount, [&] (size_t i) {
+	  parallel_for(rStart, rStart+rCount, [&] (size_t i) {
 	    for (size_t j=cStart; j < cStart + cCount; j++) {
 	      E* pa = A+OA[i*rLength + j];
 	      E* pb = B+OB[j*cLength + i];
-	      size_t l = L[i*rLength + j];
+	      size_t l = OA[i*rLength + j + 1] - OA[i*rLength + j];
 	      for (size_t k =0; k < l; k++)
 		move_uninitialized(pb[k], pa[k]);
-	      //const size_t bytes = l * sizeof(E);
-	      //for (size_t k=0; k < bytes; k++)
-	      //((char*) pb)[k] = ((char *) pa)[k];
 	    }
           });
 	} else if (cCount > rCount) {
-	  //size_t l1 = cCount/2;
 	  size_t l1 = split(cCount);
 	  size_t l2 = cCount - l1;
 	  auto left = [&] () {
@@ -107,7 +101,6 @@ namespace pbbs {
 	    transR(rStart,rCount,rLength,cStart + l1,l2,cLength);};
 	  par_do(left, right);
 	} else {
-	  //size_t l1 = rCount/2;
 	  size_t l1 = split(cCount);
 	  size_t l2 = rCount - l1;
 	  auto left = [&] () {
@@ -141,8 +134,8 @@ namespace pbbs {
     timer t;
     t.start();
     size_t m = num_buckets * num_blocks;
-    sequence<s_size_t> dest_offsets(m);
-    //if (n > 100000) std::cout << "blocks: " << num_blocks << " buckets: " << num_buckets << std::endl;
+    sequence<s_size_t> dest_offsets; //(m);
+    auto add = addm<s_size_t>();
 
     // for smaller input do non-cache oblivious version
     if (n < (1 << 22) || num_buckets <= 512 || num_blocks <= 512) {
@@ -157,11 +150,11 @@ namespace pbbs {
       // determine the destination offsets
       auto get = [&] (size_t i) {
 	return counts[(i>>block_bits) + num_buckets*(i&block_mask)];};
-      s_size_t sum = scan_add(make_sequence<s_size_t>(m, get), dest_offsets);
+      size_t sum;
+      std::tie(dest_offsets,sum) = scan(sequence<s_size_t>(m, get), add);
       if (sum != n) abort();
 
       // send each key to correct location within its bucket
-      //parallel_for (size_t i = 0; i < num_blocks; i++) {
       auto f = [&] (size_t i) {
 	size_t s_offset = i * block_size;
 	for (size_t j= 0; j < num_buckets; j++) {
@@ -169,25 +162,24 @@ namespace pbbs {
 	  size_t len = counts[i*num_buckets+j];
 	  for (size_t k =0; k < len; k++)
 	    move_uninitialized(To[d_offset++], From[s_offset++]);
-	  //memcpy((char*) (To+d_offset), (char*) (From+s_offset),len*sizeof(E));
 	}
       };
-      par_for(0, num_blocks, 1, f);
+      parallel_for(0, num_blocks, f, 1);
     } else { // for larger input do cache efficient transpose
-      sequence<s_size_t> source_offsets(m);
-      sequence<s_size_t> seq_counts(counts,m);
-      //std::cout << "blocks: " << num_blocks << " buckets: " << num_buckets << std::endl;
-      //t.next("trans head");
-      
-      scan_add(seq_counts, source_offsets);
-      transpose<s_size_t>(counts, dest_offsets.as_array()).trans(num_blocks,
-								 num_buckets);
-      //t.next("trans");
-      scan_add(dest_offsets, dest_offsets);
-      blockTrans<E,s_size_t>(From, To, source_offsets.as_array(),
-			     dest_offsets.as_array(), counts).trans(num_blocks,
-								    num_buckets);
-      //t.next("block trans");
+      sequence<s_size_t> source_offsets(counts,m);
+      dest_offsets = sequence<s_size_t>(m);
+      size_t total;
+      transpose<s_size_t>(counts, dest_offsets.begin()).trans(num_blocks,
+							      num_buckets);
+      // do both scans inplace
+      std::tie(dest_offsets, total) = scan(std::move(dest_offsets), add);
+      if (total != n) abort();
+      std::tie(source_offsets,total) = scan(std::move(source_offsets), add);
+      if (total != n) abort();
+      source_offsets[m] = n;
+
+      blockTrans<E,s_size_t>(From, To, source_offsets.begin(),
+			     dest_offsets.begin()).trans(num_blocks, num_buckets);
     }
 
     size_t *bucket_offsets = new_array_no_init<size_t>(num_buckets+1);
