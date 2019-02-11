@@ -59,10 +59,40 @@ parameter should be set. If the graph has more than 2^32 vertices, the
 been tested with more than 2^32 vertices, so if any issues arise please contact
 [Laxman Dhulipala](mailto:ldhulipa@cs.cmu.edu).
 
+To compile using the Homemade scheduler the `HOMEMADE` command-line parameter
+should be set. If it is unset, the Cilk Plus scheduler is used by default.
+
+After setting the necessary environment variables:
+```
+$ make -j  #compiles the benchmark with all threads
+```
+
+The following commands cleans the directory:
+```
+$ make clean  #removes all executables
+```
+
 
 Running code
 -------
+The applications take the input graph as input as well as an optional
+flag "-s" to indicate a symmetric graph.  Symmetric graphs should be
+called with the "-s" flag for better performance. For example:
+
+```
+$ ./BFS -s -src 10 ../inputs/rMatGraph_J_5_100
+$ ./BellmanFord -s -src 15 ../inputs/rMatGraph_WJ_5_100
+```
+
+Note that the codes that compute single-source shortest paths (or centrality)
+take an extra `-src` flag. The number of rounds that
 
 
+Ongoing Work
+--------
+We are currently working on:
 
+* writing unit-tests
 
+* porting over utilities for converting large graphs to the bytepda format, and
+  adding random edge weights to the graphs.
