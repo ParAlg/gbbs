@@ -28,7 +28,6 @@
 
 namespace intersection {
 
-// TODO: parallelize
 template <template <typename W> class vertex, class W>
 inline size_t intersect(vertex<W>* A, vertex<W>* B, uintE a, uintE b) {
   uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
@@ -66,8 +65,8 @@ inline size_t intersect_f(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
   return ans;
 }
 
-constexpr const size_t _bs_merge_base = 128;
-constexpr const size_t _seq_merge_thresh = 8096;
+constexpr const size_t _bs_merge_base = 256;
+constexpr const size_t _seq_merge_thresh = 4096;
 
 template <class SeqA, class SeqB, class F>
 void seq_merge_full(SeqA& A, SeqB& B, F& f) {
@@ -95,9 +94,9 @@ void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   size_t nA = A.size(), nB = B.size();
   size_t i = 0, j = 0;
   for (size_t i=0; i < nA; i++) {
-    T& a = A[i];
+    const T& a = A[i];
     size_t mB = pbbs::binary_search(B, a, std::less<T>());
-    T& b = B[mB];
+    const T& b = B[mB];
     if (a == b) {
       f(a);
     }
@@ -107,21 +106,22 @@ void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
 template <class SeqA, class SeqB, class F>
 void merge(const SeqA& A, const SeqB& B, const F& f) {
   using T = typename SeqA::T;
-  size_t nA = A.size();
-  size_t nB = B.size();
-  size_t nR = nA + nB;
-  if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
-    return seq_merge_full(A, B, f);
-  } else if (nB < nA) {
-    return merge(B, A, f);
-  } else if (nA < _bs_merge_base) {
-    return seq_merge(A, B, f);
-  } else {
-    size_t mA = nA/2;
-    size_t mB = pbbs::binary_search(B, A[mA], std::less<T>());
-    par_do([&] () {merge(A.slice(0, mA), B.slice(0, mB), f);},
-     [&] () {merge(A.slice(mA, nA), B.slice(mB, nB), f);});
-  }
+  seq_merge_full(A, B, f);
+  //size_t nA = A.size();
+  //size_t nB = B.size();
+  //size_t nR = nA + nB;
+  //if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
+  //  return seq_merge_full(A, B, f);
+  //} else if (nB < nA) {
+  //  return merge(B, A, f);
+  //} else if (nA < _bs_merge_base) {
+  //  return seq_merge(A, B, f);
+  //} else {
+  //  size_t mA = nA/2;
+  //  size_t mB = pbbs::binary_search(B, A[mA], std::less<T>());
+  //  par_do([&] () {merge(A.slice(0, mA), B.slice(0, mB), f);},
+  //   [&] () {merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+  //}
 }
 
 template <template <typename W> class vertex, class W, class F>
@@ -444,8 +444,15 @@ struct symmetricVertex {
   template <class F>
   inline size_t intersect_f(symmetricVertex<W>* other, long our_id,
                             long other_id, const F& f) {
+    return intersection::intersect_f(this, other, our_id, other_id, f);
+  }
+
+  template <class F>
+  inline size_t intersect_f_par(symmetricVertex<W>* other, long our_id,
+                            long other_id, const F& f) {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
+
 
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
@@ -667,8 +674,15 @@ struct asymmetricVertex {
   template <class F>
   inline size_t intersect_f(asymmetricVertex<W>* other, long our_id,
                             long other_id, const F& f) {
+    return intersection::intersect_f(this, other, our_id, other_id, f);
+  }
+
+  template <class F>
+  inline size_t intersect_f_par(asymmetricVertex<W>* other, long our_id,
+                            long other_id, const F& f) {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
+
 
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,

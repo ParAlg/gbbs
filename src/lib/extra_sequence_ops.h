@@ -117,12 +117,21 @@ namespace pbbs {
   }
 
   template <class T, class PRED>
-  inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty,
-                                  size_t* Sums) {
+  inline size_t filterf_and_clear(T* In, T* Out, size_t n, PRED p, T& empty) {
     size_t b = _F_BSIZE;
-    if (n < b) return filter_seq(In, Out, n, p);
+    if (n < b) {
+      size_t ret = filter_seq(In, Out, n, p);
+      for (size_t i=0; i<n; i++) {
+        if (p(In[i])) {
+          In[i] = empty;
+        }
+      }
+      return ret;
+    }
     size_t l = num_blocks(n, b);
     b = num_blocks(n, l);
+    size_t* Sums = new_array_no_init<size_t>(l + 1);
+
     par_for(0, l, 1, [&] (size_t i) {
       size_t s = i * b;
       size_t e = std::min(s + b, n);
@@ -130,7 +139,7 @@ namespace pbbs {
       for (size_t j = s; j < e; j++) {
         if (p(In[j])) {
           In[k] = In[j];
-          if (j > k) {
+          if (k != j) {
             In[j] = empty;
           }
           k++;
@@ -142,13 +151,16 @@ namespace pbbs {
     size_t m = scan_add(isums, isums);
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
-      T* I = In + i * b;
-      T* O = Out + Sums[i];
-      for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
+      T* I = In + (i * b);
+      size_t i_off = Sums[i];
+      size_t num_i = Sums[i+1] - i_off;
+      T* O = Out + i_off;
+      for (size_t j = 0; j < num_i; j++) {
         O[j] = I[j];
         I[j] = empty;
       }
     });
+    pbbs::free_array(Sums);
     return m;
   }
 

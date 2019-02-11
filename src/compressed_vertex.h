@@ -392,6 +392,15 @@ struct compressedSymmetricVertex {
                           other_id, f);
   }
 
+  template <class F>
+  inline size_t intersect_f_par(compressedSymmetricVertex<W, C>* other, long our_id,
+                            long other_id, const F& f) {
+    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
+                          getOutDegree(), other->getOutDegree(), our_id,
+                          other_id, f);
+  }
+
+
   inline size_t calculateOutTemporarySpace() {
     return cvertex::calculateTemporarySpace(getOutDegree());
   }
@@ -610,6 +619,15 @@ struct compressedAsymmetricVertex {
                           getOutDegree(), other->getOutDegree(), our_id,
                           other_id, f);
   }
+
+  template <class F>
+  inline size_t intersect_f_par(compressedAsymmetricVertex<W, C>* other,
+                            long our_id, long other_id, const F& f) {
+    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
+                          getOutDegree(), other->getOutDegree(), our_id,
+                          other_id, f);
+  }
+
 
   inline size_t calculateOutTemporarySpace() {
     return cvertex::calculateTemporarySpace(getOutDegree());

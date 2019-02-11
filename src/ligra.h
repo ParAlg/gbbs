@@ -532,6 +532,30 @@ inline vertexSubset edgeMap(graph<vertex> GA, VS& vs, F f, intT threshold = -1,
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
 template <template <class W> class wvertex, class W, class P>
+inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
+  using S = std::tuple<uintE, uintE>;
+  using vertex = wvertex<W>;
+  vertex* G = GA.V;
+  size_t n = GA.n;
+  auto space = sequence<uintT>(n);
+  par_for(0, n, [&] (size_t i) {
+    space[i] = G[i].calculateOutTemporarySpace();
+  });
+  long total_space = pbbs::scan_add(space, space);
+  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
+
+  auto for_inner = [&](size_t i) {
+    std::tuple<uintE, W>* tmp_v = tmp.start() + space[i];
+    G[i].packOutNgh(i, p, tmp_v);
+  };
+  par_for(0, n, [&] (size_t i) { for_inner(i); });
+}
+
+
+
+// Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
+// in the new adjacency list if p(ngh) is true.
+template <template <class W> class wvertex, class W, class P>
 inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {

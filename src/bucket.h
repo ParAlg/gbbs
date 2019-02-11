@@ -289,11 +289,11 @@ struct buckets {
     return num_elms - ne_before;
   }
 
-  inline void insert_in_bucket(size_t b, intT val) {
-    bucket_id* dst = bkts[b].A;
-    intT size = bkts[b].size;
-    dst[size] = val;
-    bkts[b].size += 1;
+  inline void insert_in_bucket(bucket_id bkt, ident_t ident) {
+    auto dst = bkts[bkt].A;
+    auto size = bkts[bkt].size;
+    dst[size] = ident;
+    bkts[bkt].size++;
   }
 
   inline bool curBucketNonEmpty() { return bkts[cur_bkt].size > 0; }

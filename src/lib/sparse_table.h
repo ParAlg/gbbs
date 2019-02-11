@@ -97,13 +97,11 @@ class sparse_table {
   }
 
   // Pre-condition: k must be present in T.
-  size_t idx(K k) {
+  inline size_t idx(K k) {
     size_t h = firstIndex(k);
     while (1) {
       if (std::get<0>(table[h]) == k) {
         return h;
-      } else if (std::get<0>(table[h]) == empty_key) {
-        assert(false);
       }
       h = incrementIndex(h);
     }
