@@ -23,11 +23,11 @@
 #include "bucket.h"
 #include "edge_map_reduce.h"
 #include "ligra.h"
+#include "truss_utils.h"
 #include <cassert>
 
 #include "lib/sample_sort.h"
 #include "lib/sparse_table.h"
-#include "TrussUtils.h"
 
 // (1) One approach is to map each edge in a hash-table to its trussness. The
 // keys need to be 8-byte aligned, and the keys are 8-byte values (tuples of
@@ -257,7 +257,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   em_t.reportTotal("EdgeMap time");
   decrement_t.reportTotal("Decrement trussness time");
 
-  // == Important: Note that the actual trussness is the stored trussness value + 1.
+  // == Important: The actual trussness is the stored trussness value + 1.
   uint mx = 0;
 //  for (size_t i=0; i < n_edges; i++) {
 //    mx = std::max(mx, trussness[i] + 1);
