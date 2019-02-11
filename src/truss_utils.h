@@ -20,6 +20,9 @@
 
 #pragma once
 
+#include "lib/sample_sort.h"
+#include "lib/utilities.h"
+
 namespace truss_utils {
 
   struct edge_id {
