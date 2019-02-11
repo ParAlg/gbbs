@@ -85,7 +85,16 @@ $ ./BellmanFord -s -src 15 ../inputs/rMatGraph_WJ_5_100
 ```
 
 Note that the codes that compute single-source shortest paths (or centrality)
-take an extra `-src` flag. The number of rounds that
+take an extra `-src` flag. The benchmark is run four times by default, and can
+be changed by passing the `-rounds` flag followed by an integer indicating the
+number of runs.
+
+On NUMA machines, adding the command "numactl -i all " when running
+the program may improve performance for large graphs. For example:
+
+```
+$ numactl -i all ./BFS -s <input file>
+```
 
 
 Ongoing Work
