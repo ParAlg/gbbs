@@ -33,6 +33,20 @@ applications/benchmarks. We currently include the following extra codes:
 * Densest Subgraph (the (2+\epsilon)-approximation from Bahmani et al.)
 * KTruss
 
+If you use our work, please cite our paper:
+
+```
+@inproceedings{dhulipala2018theoretically,
+  author    = {Laxman Dhulipala and
+               Guy E. Blelloch and
+               Julian Shun},
+  title     = {Theoretically Efficient Parallel Graph Algorithms Can Be Fast and
+               Scalable},
+  booktitle = {ACM Symposium on Parallelism in Algorithms and Architectures (SPAA)},
+  year      = {2018},
+}
+```
+
 Compilation
 --------
 
@@ -95,6 +109,9 @@ the program may improve performance for large graphs. For example:
 ```
 $ numactl -i all ./BFS -s <input file>
 ```
+
+Running code on compressed graphs
+-----------
 
 
 Ongoing Work
