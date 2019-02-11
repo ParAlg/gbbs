@@ -48,4 +48,21 @@ Note: The Homemade scheduler was developed after our paper submission. For
 reproducibility purposes, the codes should be compiled with CILK Plus, although
 in our experience the times are usually faster using Homemade.
 
+The benchmark supports both uncompressed and compressed graphs. The uncompressed
+format is identical to the uncompressed format in Ligra. The compressed format
+is the parallelByte format used in Ligra+, with some additional functionality to
+support efficiently packs, filters, and other operations over neighbor lists.
+
+To compile codes for graphs with more than 2^32 edges, the `LONG` command-line
+parameter should be set. If the graph has more than 2^32 vertices, the
+`EDGELONG` command-line parameter should be set. Note that the codes have not
+been tested with more than 2^32 vertices, so if any issues arise please contact
+[Laxman Dhulipala](mailto:ldhulipa@cs.cmu.edu).
+
+
+Running code
+-------
+
+
+
 

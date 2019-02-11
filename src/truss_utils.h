@@ -53,7 +53,7 @@ namespace truss_utils {
     }
 
     inline size_t hashToRangeValue(size_t h) {return h & mask;}
-    inline size_t firstIndex(V& v) {return hashToRangeValue(pbbs::hash32_3(v));}
+    inline size_t firstIndex(V& v) {return hashToRangeValue(pbbs::hash32(v));}
     inline size_t incrementIndex(uintT h) {return hashToRangeValue(h+1);}
 
     size_t size() {
