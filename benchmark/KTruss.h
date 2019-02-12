@@ -201,7 +201,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     };
 
     decrement_t.start();
-    par_for(0, rem_edges.size(), 10, [&] (size_t i) {
+    par_for(0, rem_edges.size(), 1, [&] (size_t i) {
       edge_t id = rem_edges[i];
       HT_Entry& edge_info = trussness.table[id];
       uintE u = std::get<0>(std::get<0>(edge_info));
