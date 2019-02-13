@@ -182,3 +182,10 @@ We are currently working on:
 * writing unit-tests
 
 * Porting over utilities for adding random edge weights to the graphs.
+
+* Switch to making the lib dependency a git submodule, and add explanation on
+  how to pull/update the submodule.
+
+* Check that Guy's new changes to the sequence library don't cause issues /
+  unnecessary copies in our code. The semantics of sequence are similar to
+  std::vector now.
