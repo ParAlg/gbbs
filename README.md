@@ -156,16 +156,16 @@ is as follows:
 
 ```
 AdjacencyGraph
-&lt;n>
-&lt;m>
-&lt;o0>
-&lt;o1>
+<n>
+<m>
+<o0>
+<o1>
 ...
-&lt;o(n-1)>
-&lt;e0>
-&lt;e1>
+<o(n-1)>
+<e0>
+<e1>
 ...
-&lt;e(m-1)>
+<e(m-1)>
 ```
 
 This file is represented as plain text.
