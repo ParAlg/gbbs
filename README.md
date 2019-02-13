@@ -33,7 +33,7 @@ applications/benchmarks. We currently include the following extra codes:
 * Densest Subgraph (the (2+\epsilon)-approximation from Bahmani et al.)
 * KTruss
 
-If you use our work, please cite our paper:
+If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 
 ```
 @inproceedings{dhulipala2018theoretically,
@@ -53,19 +53,20 @@ Compilation
 * g++ &gt;= 5.3.0 with support for Cilk Plus
 * g++ &gt;= 5.3.0 with pthread support (Homemade Scheduler)
 
-The default compilation uses CILK Plus. We also support a lightweight scheduler
-developed at CMU (Homemade), which results in comparable performance to CILK.
+The default compilation uses Cilk Plus. We also support a lightweight scheduler
+developed at CMU (Homemade), which results in comparable performance to Cilk.
 The half-lengths for certain functions such as histogramming are lower using
 Homemade, which results in better performance for codes like KCore.
 
 Note: The Homemade scheduler was developed after our paper submission. For
-reproducibility purposes, the codes should be compiled with CILK Plus, although
+reproducibility purposes, the codes should be compiled with Cilk Plus, although
 in our experience the times are usually faster using Homemade.
 
 The benchmark supports both uncompressed and compressed graphs. The uncompressed
-format is identical to the uncompressed format in Ligra. The compressed format
-is the parallelByte format used in Ligra+, with some additional functionality to
-support efficiently packs, filters, and other operations over neighbor lists.
+format is identical to the uncompressed format in Ligra. The compressed format,
+called bytepd_amortized (bytepda) is similar to the parallelByte format used in
+Ligra+, with some additional functionality to support efficiently packs,
+filters, and other operations over neighbor lists.
 
 To compile codes for graphs with more than 2^32 edges, the `LONG` command-line
 parameter should be set. If the graph has more than 2^32 vertices, the
@@ -86,7 +87,6 @@ The following commands cleans the directory:
 $ make clean  #removes all executables
 ```
 
-
 Running code
 -------
 The applications take the input graph as input as well as an optional
@@ -95,7 +95,7 @@ called with the "-s" flag for better performance. For example:
 
 ```
 $ ./BFS -s -src 10 ../inputs/rMatGraph_J_5_100
-$ ./BellmanFord -s -src 15 ../inputs/rMatGraph_WJ_5_100
+$ ./wBFS -s -w -src 15 ../inputs/rMatGraph_WJ_5_100
 ```
 
 Note that the codes that compute single-source shortest paths (or centrality)
@@ -113,6 +113,36 @@ $ numactl -i all ./BFS -s <input file>
 Running code on compressed graphs
 -----------
 
+We make use of the bytePDA format in our benchmark, which is similar to the
+parallelByte format of Ligra+, extended with additional functionality. We have
+provided a converter utility which takes as input an uncompressed graph and
+outputs a bytePDA graph. The converter can be used as follows:
+
+```
+./compressor -s -o ../inputs/rMatGraph_J_5_100.bytepda ../inputs/rMatGraph_J_5_100
+./compressor -s -w -o ../inputs/rMatGraph_WJ_5_100.bytepda ../inputs/rMatGraph_WJ_5_100
+```
+
+After an uncompressed graph has been converted to the bytepda format,
+applications can be run on it by passing in the usual command-line flags, with
+an additional `-c` flag.
+
+```
+$ ./BFS -s -c -src 10 ../inputs/rMatGraph_J_5_100.bytepda
+$ ./wBFS -s -w -c -src 15 ../inputs/rMatGraph_WJ_5_100.bytepda
+```
+
+When processing large compressed graphs, using the `-m` command-line flag can
+help if the file is already in the page cache, since the compressed graph data
+can be mmap'd. Application performance will be affected if the file is not
+already in the page-cache. We have found that using `-m` when the compressed
+graph is backed by SSD results in a slow first-run, followed by fast subsequent
+runs.
+
+
+Input Formats
+-----------
+
 
 Ongoing Work
 --------
@@ -120,5 +150,4 @@ We are currently working on:
 
 * writing unit-tests
 
-* porting over utilities for converting large graphs to the bytepda format, and
-  adding random edge weights to the graphs.
+* Porting over utilities for adding random edge weights to the graphs.

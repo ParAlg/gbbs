@@ -448,7 +448,7 @@ struct compressedAsymmetricVertex {
     return C::iter(getOutNeighbors(), getOutDegree(), vtx_id);
   }
   auto getInIter(uintE vtx_id) -> typename C::iter_type {
-    return C::template iter<W>(getInNeighbors(), getInDegree(), vtx_id);
+    return C::iter(getInNeighbors(), getInDegree(), vtx_id);
   }
 
   template <class VS, class F, class G>

@@ -66,7 +66,7 @@ inline size_t intersect_f(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
 }
 
 constexpr const size_t _bs_merge_base = 256;
-constexpr const size_t _seq_merge_thresh = 4096;
+constexpr const size_t _seq_merge_thresh = 8192;
 
 template <class SeqA, class SeqB, class F>
 void seq_merge_full(SeqA& A, SeqB& B, F& f) {

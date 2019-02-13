@@ -56,7 +56,7 @@ namespace truss_utils {
     }
 
     inline size_t hashToRangeValue(size_t h) {return h & mask;}
-    inline size_t firstIndex(V& v) {return hashToRangeValue(pbbs::hash32(v));}
+    inline size_t firstIndex(V& v) {return hashToRangeValue(pbbs::hash32_3(v));}
     inline size_t incrementIndex(uintT h) {return hashToRangeValue(h+1);}
 
     size_t size() {
@@ -93,11 +93,13 @@ namespace truss_utils {
 
     bool insert(V v) {
       size_t h = firstIndex(v);
+      size_t iters = 0;
       while (1) {
         if(table[h] == empty && pbbs::CAS(&table[h],empty,v)) {
           return 1;
         }
         h = incrementIndex(h);
+        iters++;
       }
       return 0; // should never get here
     }
@@ -113,6 +115,183 @@ namespace truss_utils {
     }
 
   };
+
+
+  template <class K, class V, class GS>
+  class multi_table {
+   public:
+    using T = std::tuple<K, V>;
+
+    size_t n; // number of internal tables
+    bool alloc;
+
+    T* big_table; // start of big table
+    size_t big_size; // size of the big table
+    V empty_val; // value used for empty cells
+
+    sequence<size_t> offsets;
+
+    class inner_table {
+      public:
+        size_t mask; // pow2 - 1
+        T* table;
+        K empty_key;
+
+        inline size_t hashToRange(size_t h) { return h & mask; }
+        inline size_t firstIndex(K& k) { return hashToRange(pbbs::hash32(k)); } // hacks for now
+        inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
+
+        // Precondition: k is not present in the table
+        inline void insert(std::tuple<K, V>& kv) {
+          K& k = std::get<0>(kv);
+          size_t h = firstIndex(k);
+          while (true) {
+            if (std::get<0>(table[h]) == empty_key) {
+              if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
+                std::get<1>(table[h]) = std::get<1>(kv); // insert value
+                return;
+              }
+            }
+            h = incrementIndex(h);
+          }
+        }
+
+        // Precondition: k is present in the table
+        inline void increment(K k) {
+          size_t h = firstIndex(k);
+          while (true) {
+            if (std::get<0>(table[h]) == k) {
+              pbbs::write_add(&std::get<1>(table[h]), static_cast<V>(1));
+              return;
+            }
+            h = incrementIndex(h);
+          }
+        }
+
+        // Precondition: k must be present in the table
+        inline size_t idx(K k) {
+          size_t h = firstIndex(k);
+          while (true) {
+            if (std::get<0>(table[h]) == k) {
+              return h;
+            }
+            h = incrementIndex(h);
+          }
+        }
+    };
+
+    inner_table* tables; // one object per n (16 bytes) (note we can probably red to 8 bytes each)
+
+    multi_table() : n(0) {
+      alloc = false;
+    }
+
+    // Size is the maximum number of values the hash table will hold.
+    // Overfilling the table could put it into an infinite loop.
+    multi_table(size_t n, V empty_val, GS size_func) : n(n), empty_val(empty_val) {
+      // compute offsets
+      offsets = sequence<size_t>(n+1);
+      par_for(0, n, [&] (size_t i) {
+        size_t table_elms = size_func(i);
+        offsets[i] = (1 << pbbs::log2_up((size_t)(table_elms*1.2))) + 2; // 2 cell padding (l, r)
+      });
+      offsets[n] = 0;
+      size_t total_space = pbbs::scan_add(offsets, offsets);
+      std::cout << "total space = " << total_space << std::endl;
+      std::cout << "empty val is " << empty_val << std::endl;
+
+      big_table = pbbs::new_array_no_init<T>(total_space);
+      big_size = total_space;
+
+      tables = pbbs::new_array_no_init<inner_table>(n);
+      par_for(0, n, [&] (size_t i) {
+        size_t off = offsets[i];
+        size_t sz = offsets[i+1] - off;
+        sz -= 2; // 2 cell's padding
+        auto table_loc = big_table + offsets[i];
+
+        tables[i].table = table_loc + 1; // 1 cell padding (l
+        tables[i].mask = sz-1;
+        tables[i].empty_key = i;
+
+        // clear i's table
+        V val = empty_val;
+        auto empty_i = std::make_tuple((K)i, val);
+        par_for(0, sz+2, [&] (size_t j) { // sz + 2 cell padding
+          table_loc[j] = empty_i;
+        });
+      });
+
+  //    par_for(0, big_size, [&] (size_t i) {
+  //      assert(std::get<1>(big_table[i]) == empty_val);
+  //    });
+
+    }
+
+    inline void check_consistency() {
+
+      par_for(0, n, [&] (size_t i) {
+        size_t off = offsets[i];
+        size_t sz = offsets[i+1] - off;
+        sz -= 2; // 2 cell's padding
+        auto table_loc = big_table + offsets[i];
+        auto table_start = table_loc + 1;
+        auto table_end = table_loc + sz + 1;
+      });
+
+      par_for(0, big_size, [&] (size_t i) {
+        if (std::get<1>(big_table[i]) != empty_val) {
+          size_t idx = u_for_id(i);
+        }
+      });
+    }
+
+    inline size_t size() {
+      return big_size;
+    }
+
+    inline void insert(K a, std::tuple<K, V> kv) {
+      tables[a].insert(kv);
+    }
+
+    inline size_t idx(K a, K b) {
+      K u = std::min(a,b);
+      return offsets[u] + 1 + tables[u].idx(std::max(a, b));
+    }
+
+    inline void increment(K a, K b) {
+  //    assert(a != b);
+      tables[std::min(a,b)].increment(std::max(a, b));
+      if (std::min(a, b) == 14073 && std::max(a, b) == 744491) {
+        cout << "incrementing our guy!" << endl;
+      }
+    }
+
+    inline K u_for_id (size_t id) {
+      // walk right until we hit an empty cell with val == empty_val
+      // assumption is that id is not empty
+      size_t idx = id + 1;
+  //    assert(std::get<1>(big_table[id]) != empty_val);
+      while (true) {
+        if (std::get<1>(big_table[idx]) == empty_val) {
+          return std::get<0>(big_table[idx]); // return key
+        }
+        idx++;
+  //      if (idx > big_size) {
+  //        assert(false);
+  //      }
+      }
+    }
+
+  };
+
+  template <class K, class V, class GS>
+  inline multi_table<K, V, GS> make_multi_table(size_t n, V empty_val, GS gs) {
+    return multi_table<K, V, GS>(n, empty_val, gs);
+  }
+
+
+
 
   template <class F, template <class W> class vertex, class W>
   struct countF {
@@ -161,12 +340,13 @@ namespace truss_utils {
     return r;
   }
 
-  template <class TT>
-  void increment_trussness(TT& ht, const uintE& u, const uintE& v) {
-    size_t loc_uv = ht.idx(std::make_tuple(std::min(u, v), std::max(u, v)));
-    auto val_loc = &std::get<1>(ht.table[loc_uv]);
-    pbbs::write_add(val_loc, (uintE)1);
-  }
+//  template <class TT>
+//  void increment_trussness(TT& ht, const uintE& u, const uintE& v) {
+//    size_t loc_uv = ht.idx(std::make_tuple(std::min(u, v), std::max(u, v)));
+//    auto val_loc = &std::get<1>(ht.table[loc_uv]);
+//    pbbs::write_add(val_loc, (uintE)1);
+//  }
+
 
 //  template <class trussness_t, class edge_t>
 //  inline bool should_remove(uintE k, trussness_t trussness_uv, trussness_t trussness_uw, trussness_t trussness_vw,
@@ -214,6 +394,7 @@ namespace truss_utils {
 
     trussness_t trussness_uv = k; edge_t uv_id = id;
 
+    size_t ctr = 0;
     auto f = [&] (uintE __u, uintE __v, uintE w) { // w in both N(u), N(v)
       trussness_t trussness_uw, trussness_vw;
       edge_t uw_id, vw_id;
@@ -221,8 +402,16 @@ namespace truss_utils {
       std::tie(trussness_vw, vw_id) = get_trussness_and_id(v, w);
 
       if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id, vw_id)) {
+//        if (u == 14073 && v == 744491) {
+//          cout << "trussness = " << trussness_uv << " " << trussness_uw << " " << trussness_vw << endl;
+//          cout << "ids: " << uv_id << " " << uw_id << " " << vw_id << endl;
+//        }
+        ctr++;
         decrement_tab.insert(uw_id);
         decrement_tab.insert(vw_id);
+//        if (uw_id == 2099851) {
+//          std::cout << "decrementing our guy from " << uv_id << " " << uw_id << " " << vw_id << std::endl;
+//        }
       }
     };
     G.V[u].intersect_f_par(&(G.V[v]), u, v, f);

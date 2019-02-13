@@ -7,15 +7,15 @@ INTE = -DEDGELONG
 endif
 
 ifdef HOMEMADE
-SCHEDFLAGS = -DHOMEGROWN -pthread 
+SCHEDFLAGS = -DHOMEGROWN -pthread
 else
 SCHEDFLAGS = -fcilkplus -lcilkrts -DCILK
 endif
 
-OPT = -O3
+OPT = -O2
 
-#INCLUDE_DIRS = -I/usr0/home/ldhulipa/
-INCLUDE_DIRS = -I../
+INCLUDE_DIRS = -I/usr0/home/ldhulipa/
+#INCLUDE_DIRS = -I../
 
 PCC = g++
 PCFLAGS = -std=c++14 $(SCHEDFLAGS) -I../src $(INCLUDE_DIRS) -mcx16 -march=native $(OPT) -DAMORTIZEDPD $(INTT) $(INTE)

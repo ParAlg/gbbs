@@ -85,21 +85,23 @@ class sparse_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_table(size_t _m, T _empty, KeyHash _key_hash, T* _tab)
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
       : m(_m),
         mask(m - 1),
         table(_tab),
         empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-    clearA(table, m, empty);
+    if (clear) {
+      clearA(table, m, empty);
+    }
     alloc = false;
   }
 
   // Pre-condition: k must be present in T.
   inline size_t idx(K k) {
     size_t h = firstIndex(k);
-    while (1) {
+    while (true) {
       if (std::get<0>(table[h]) == k) {
         return h;
       }

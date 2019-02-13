@@ -46,17 +46,29 @@
 // For a large graph, like ClueWeb, with 74B edges, the edge-table will require
 // ~600G of space.
 
-template <class HT_Val, template <typename W> class vertex, class W, class Trussness>
-void initialize_trussness_values(graph<vertex<W>>& GA, Trussness& trussness) {
+
+template <template <typename W> class vertex, class W, class MT>
+void initialize_trussness_values(graph<vertex<W>>& GA, MT& multi_table) {
+
+  std::tuple<uintE, uintE> empty_tup = std::make_tuple<uintE, uintE>(UINT_E_MAX, 0);
+
   cout << "inserting edges" << endl;
   timer it; it.start();
   GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
-      trussness.insert(std::make_tuple(std::make_tuple(u, v), static_cast<HT_Val>(0)));
+      multi_table.insert(u, std::make_tuple(v,0));
     }
   });
   it.stop(); it.reportTotal("insertion time");
   cout << "inserted all" << endl;
+
+//  cout << "inserting edges" << endl;
+//  GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
+//    size_t idx = multi_table.idx(u, v);
+//    assert(std::get<0>(multi_table.big_table[idx]) == std::max(u, v));
+//    assert(std::get<1>(multi_table.big_table[idx]) == 0);
+//  });
+//  cout << "inserted all" << endl;
 
   // 2. Triangle count, update trussness scores for each edge
   // 2.(a) Rank vertices based on degree
@@ -70,9 +82,9 @@ void initialize_trussness_values(graph<vertex<W>>& GA, Trussness& trussness) {
   // Each triangle only found once---inc all three edges
   // Question: how to send a value to a neighbor w/o significant contention?
   auto inc_truss_f = [&] (const uintE& u, const uintE& v, const uintE& w) {
-    truss_utils::increment_trussness(trussness, u, v);
-    truss_utils::increment_trussness(trussness, u, w);
-    truss_utils::increment_trussness(trussness, v, w);
+    multi_table.increment(u, v);
+    multi_table.increment(u, w);
+    multi_table.increment(v, w);
   };
   timer tct; tct.start();
   truss_utils::TCDirected(DG, inc_truss_f);
@@ -105,40 +117,35 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 
   using edge_t = uintE;
   using bucket_t = uintE;
-  using trussness_t = size_t; // trussness TODO replace with uintE and fix using alignas
+  using trussness_t = uintE;
 
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
   auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
 
-  using HT_Key = std::tuple<uintE, uintE>; // edge endpoints
-  using HT_Val = trussness_t;
-  using HT_Entry = std::tuple<HT_Key, HT_Val>;
-
-  // Initialize the trussness table.
-  auto HT_hash = [&] (const HT_Key& k) {
-    size_t k0 = std::get<0>(k);
-    size_t k1 = std::get<1>(k);
-//    uint32_t dw = (k0 + 0x9e3779b9) * (k1 + 0x85ebca6b);
-    size_t dw = (k1 << 32) + k0;
-    return pbbs::hash64_2(dw);
-//    return pbbs::hash32(dw);
-  };
-  auto empty = std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), static_cast<HT_Val>(0));
-  auto trussness = make_sparse_table<HT_Key, HT_Val>(n_edges, empty, HT_hash, 1.1);
 
   // Store the initial trussness of each edge in the trussness table.
-  initialize_trussness_values<HT_Val>(GA, trussness);
+  auto multi_hash = [&] (uintE k) { return pbbs::hash32(k); };
+  auto get_size = [&] (size_t i) {
+    uintE vtx = i;
+    auto count_f = [&] (uintE u, uintE v, W& wgh) {
+      return vtx < v;
+    };
+    return GA.V[i].countOutNgh(i, count_f);
+  };
+  auto trussness_multi = make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
+
+  initialize_trussness_values(GA, trussness_multi);
 
   // Initialize the bucket structure. #ids = trussness table size
   auto get_bkt = [&] (size_t i) {
-    auto table_key = std::get<0>(std::get<0>(trussness.table[i]));
-    if (table_key == UINT_E_MAX) {
-      return UINT_E_MAX;
-    }
-    auto table_value = std::get<1>(trussness.table[i]); // the trussness.
-    return (uintE)table_value; // TODO fix
+//    auto table_val = std::get<1>(trussness_multi.big_table[i]);
+//    if (table_val == UINT_E_MAX) {
+//      return UINT_E_MAX;
+//    }
+    auto table_value = std::get<1>(trussness_multi.big_table[i]); // the trussness.
+    return (uintE)table_value;
   };
-  auto b = make_buckets<edge_t, bucket_t>(trussness.size(), get_bkt, increasing, num_buckets);
+  auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt, increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
   auto vt = truss_utils::valueHT<edge_t>(1 << 20, std::numeric_limits<edge_t>::max());
@@ -155,6 +162,14 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 //  cout << "maxtt = " << max_t << endl;
 //  exit(0);
 
+  auto get_trussness_and_id = [&trussness_multi] (uintE u, uintE v) {
+    // Precondition: uv is an edge in G.
+    edge_t id = trussness_multi.idx(u, v);
+    trussness_t truss = std::get<1>(trussness_multi.big_table[id]);
+    return std::make_tuple(truss, id);
+  };
+
+
   timer em_t, decrement_t, bt, peeling_t; peeling_t.start();
   size_t finished = 0, rho = 0, k_max = 0;
   size_t iter = 0;
@@ -168,14 +183,14 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     uintE k = bkt.id;
     finished += rem_edges.size();
     k_max = std::max(k_max, bkt.id);
-    // cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << endl;
+//    cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << endl;
 
     if (k == 0 || finished == n_edges) {
       // No triangles incident to these edges. We set their trussness to MAX,
       // which is safe since there are no readers until we output.
       par_for(0, rem_edges.size(), [&] (size_t i) {
         edge_t id = rem_edges[i];
-        std::get<1>(trussness.table[id]) -= 1;
+        std::get<1>(trussness_multi.big_table[id]) = std::numeric_limits<int>::max(); // UINT_E_MAX is reserved
       });
       continue;
     }
@@ -192,32 +207,29 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     }
     truss_utils::valueHT<edge_t> decrement_tab(e_space_required, std::numeric_limits<edge_t>::max(), vt.table);
 
-    auto get_trussness_and_id = [&trussness] (uintE u, uintE v) {
-      // Precondition: uv is an edge in G.
-      HT_Key k = std::make_tuple(std::min(u, v), std::max(u, v));
-      edge_t id = trussness.idx(k);
-      trussness_t truss = std::get<1>(trussness.table[id]);
-      return std::make_tuple(truss, id);
-    };
+//    for (size_t i=0; i<e_space_required; i++) {
+//      assert(vt.table[i] == std::numeric_limits<edge_t>::max());
+//    }
 
+//    cout << "starting decrements" << endl;
     decrement_t.start();
     par_for(0, rem_edges.size(), 1, [&] (size_t i) {
       edge_t id = rem_edges[i];
-      HT_Entry& edge_info = trussness.table[id];
-      uintE u = std::get<0>(std::get<0>(edge_info));
-      uintE v = std::get<1>(std::get<0>(edge_info));
+      uintE u = trussness_multi.u_for_id(id);
+      uintE v = std::get<0>(trussness_multi.big_table[id]);
       truss_utils::decrement_trussness<edge_t, trussness_t>(GA, id, u, v, decrement_tab, get_trussness_and_id, k);
     });
     decrement_t.stop();
+//    cout << "finished decrements" << endl;
 
     auto apply_f = [&](const std::tuple<edge_t, uintE>& p)
         -> const Maybe<std::tuple<edge_t, bucket_t> > {
       edge_t id = std::get<0>(p);
       uintE triangles_removed = std::get<1>(p);
-      uintE current_deg = std::get<1>(trussness.table[id]);
+      uintE current_deg = std::get<1>(trussness_multi.big_table[id]);
       if (current_deg > k) {
         uintE new_deg = std::max(current_deg - triangles_removed, k);
-        std::get<1>(trussness.table[id]) = new_deg;
+        std::get<1>(trussness_multi.big_table[id]) = new_deg;
         bucket_t bkt = b.get_bucket(current_deg, new_deg);
         return wrap(id, bkt);
       }
@@ -244,7 +256,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     // Unmark edges removed in this round, and decrement their trussness.
     par_for(0, rem_edges.size(), [&] (size_t i) {
       edge_t id = rem_edges[i];
-      std::get<1>(trussness.table[id]) -= 1;
+      std::get<1>(trussness_multi.big_table[id]) -= 1;
     });
 
     // Clear the table storing the edge decrements.
