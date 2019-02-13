@@ -107,6 +107,23 @@ namespace pbbs {
     return a;
   }
 
+  uint32_t hash32_2(uint32_t a) {
+    uint32_t z = (a + 0x6D2B79F5UL);
+    z = (z ^ (z >> 15)) * (z | 1UL);
+    z ^= z + (z ^ (z >> 7)) * (z | 61UL);
+    return z ^ (z >> 14);
+  }
+
+  inline uint32_t hash32_3(uint32_t a) {
+      uint32_t z = a + 0x9e3779b9;
+      z ^= z >> 15; // 16 for murmur3
+      z *= 0x85ebca6b;
+      z ^= z >> 13;
+      z *= 0xc2b2ae3d; // 0xc2b2ae35 for murmur3
+      return z ^= z >> 16;
+  }
+
+
   // from numerical recipes
   static uint64_t hash64(uint64_t u )
   {
