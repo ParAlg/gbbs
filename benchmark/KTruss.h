@@ -131,7 +131,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     };
     return GA.V[i].countOutNgh(i, count_f);
   };
-  auto trussness_multi = make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
+  auto trussness_multi = truss_utils::make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
 
   initialize_trussness_values(GA, trussness_multi);
 

@@ -260,11 +260,7 @@ namespace truss_utils {
     }
 
     inline void increment(K a, K b) {
-  //    assert(a != b);
       tables[std::min(a,b)].increment(std::max(a, b));
-      if (std::min(a, b) == 14073 && std::max(a, b) == 744491) {
-        cout << "incrementing our guy!" << endl;
-      }
     }
 
     inline K u_for_id (size_t id) {
