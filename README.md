@@ -143,7 +143,7 @@ runs.
 Input Formats
 -----------
 We support the adjacency graph format used by the [Problem Based Benchmark
-suite]((http://www.cs.cmu.edu/~pbbs/benchmarks/graphIO.html)
+suite](http://www.cs.cmu.edu/~pbbs/benchmarks/graphIO.html)
 and [Ligra](https://github.com/jshun/ligra).
 
 The adjacency graph format starts with a sequence of offsets one for each
