@@ -122,7 +122,6 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
   auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
 
-
   // Store the initial trussness of each edge in the trussness table.
   auto multi_hash = [&] (uintE k) { return pbbs::hash32(k); };
   auto get_size = [&] (size_t i) {
@@ -138,10 +137,6 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 
   // Initialize the bucket structure. #ids = trussness table size
   auto get_bkt = [&] (size_t i) {
-//    auto table_val = std::get<1>(trussness_multi.big_table[i]);
-//    if (table_val == UINT_E_MAX) {
-//      return UINT_E_MAX;
-//    }
     auto table_value = std::get<1>(trussness_multi.big_table[i]); // the trussness.
     return (uintE)table_value;
   };
@@ -270,6 +265,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   decrement_t.reportTotal("Decrement trussness time");
 
   // == Important: The actual trussness is the stored trussness value + 1.
+  // Edges with trussness 0 had their values stored as std::numeric_limits<int>::max()
   uint mx = 0;
 //  for (size_t i=0; i < n_edges; i++) {
 //    mx = std::max(mx, trussness[i] + 1);
