@@ -1,0 +1,36 @@
+n = 100000000
+rounds = 10
+num threads = 1
+half length off
+map long: r=10, med=0.311 (0.309,0.635), hlen=1e+08, bw = 6.99
+tabulate long: r=10, med=0.294 (0.287,0.306), hlen=1e+08, bw = 4.74
+reduce add long: r=10, med=0.101 (0.101,0.111), hlen=1e+08, bw = 7.92
+scan add long: r=10, med=0.307 (0.305,0.309), hlen=1e+08, bw = 9.69
+pack long: r=10, med=0.191 (0.189,0.385), hlen=1e+08, bw = 8.88
+gather long: r=10, med=1.94 (1.94,2.25), hlen=1e+08, bw = 4.41
+scatter long: r=10, med=1.72 (1.72,1.72), hlen=1e+08, bw = 6.8
+write add long: r=10, med=2.98 (2.98,2.98), hlen=1e+08, bw = 3.92
+write min long: r=10, med=3.16 (3.16,3.16), hlen=1e+08, bw = 3.7
+count sort 8bit long: r=10, med=2.27 (2.27,2.27), hlen=1e+08, Gelts/sec = 0.0441
+random shuffle long: r=10, med=4.61 (4.61,4.69), hlen=1e+08, Gelts/sec = 0.0217
+histogram int: r=10, med=2.29 (2.29,2.44), hlen=1e+08, Gelts/sec = 0.0437
+histogram same int: r=10, med=0.981 (0.98,0.99), hlen=1e+08, Gelts/sec = 0.102
+histogram few int: r=10, med=0.0688 (0.0684,0.071), hlen=1e+08, Gelts/sec = 1.46
+integer sort<int,int>: r=10, med=6.1 (6.1,6.11), hlen=1e+08, Gelts/sec = 0.0164
+integer sort int: r=10, med=4.55 (4.54,4.55), hlen=1e+08, Gelts/sec = 0.022
+integer sort 128 bits: r=10, med=10.3 (10.3,10.9), hlen=1e+08, Gelts/sec = 0.00975
+sort long: r=10, med=10.8 (10.8,10.8), hlen=1e+08, Gelts/sec = 0.00926
+sort int: r=10, med=10.6 (10.6,10.8), hlen=1e+08, Gelts/sec = 0.00945
+sort 128 bits: r=10, med=14.2 (14.2,14.9), hlen=1e+08, Gelts/sec = 0.00706
+merge long: r=10, med=0.205 (0.204,0.206), hlen=1e+08, bw = 10.6
+mat vect mult: r=10, med=9.94 (9.94,9.94), hlen=1e+08, bw = 4.24
+scatter int: r=10, med=1.47 (1.47,1.47), hlen=1e+08, bw = 7.68
+merge sort long: r=10, med=11.2 (11.2,11.3), hlen=1e+08, Gelts/sec = 0.0089
+count sort 2bit long: r=10, med=0.62 (0.619,0.621), hlen=1e+08, Gelts/sec = 0.162
+split3 long: r=10, med=0.998 (0.998,0.999), hlen=1e+08, bw = 2.97
+quicksort long: r=3, med=8.8 (8.8,8.81), hlen=1e+08, Gelts/sec = 0.0114
+collect reduce 8bit long: r=10, med=0.401 (0.399,0.406), hlen=1e+08, Gelts/sec = 0.251
+strided read, 128 bytes: r=10, med=1.15 (1.15,1.15), hlen=1e+08, bw = 5.57
+collect reduce pair of uint: r=10, med=5.6 (5.59,5.65), hlen=1e+08, Gelts/sec = 0.0179
+remove duplicates: r=10, med=7.26 (7.26,7.29), hlen=1e+08, Gelts/sec = 0.0138
+add to bag long: r=10, med=12.2 (11.5,12.4), hlen=1e+08, Gelts/sec = 0.00867

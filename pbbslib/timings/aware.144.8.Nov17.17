@@ -1,0 +1,31 @@
+n = 1000000000
+rounds = 10
+num threads = 144
+half length on
+map long: r=10, med=0.0154 (0.0152,0.0172), hlen=3.78e+05, bw = 142
+tabulate long: r=10, med=0.01 (0.00973,0.0106), hlen=3.78e+05, bw = 140
+reduce add long: r=10, med=0.00667 (0.00654,0.00687), hlen=9.22e+05, bw = 122
+scan add long: r=10, med=0.0223 (0.0219,0.0271), hlen=3.02e+05, bw = 135
+pack long: r=10, med=0.0128 (0.0124,0.0133), hlen=5.9e+05, bw = 136
+gather long: r=10, med=0.0594 (0.0591,0.0608), hlen=7.92e+04, bw = 145
+scatter long: r=10, med=0.0708 (0.0705,0.0717), hlen=5.07e+04, bw = 166
+write add long: r=10, med=0.0809 (0.0808,0.0819), hlen=5.07e+04, bw = 145
+write min long: r=10, med=0.0833 (0.0829,0.0845), hlen=6.34e+04, bw = 141
+count sort 8bit long: r=10, med=0.0419 (0.0416,0.0537), hlen=9.22e+05, Gelts/sec = 2.4
+random shuffle long: r=10, med=0.0734 (0.0728,0.0747), hlen=9.22e+05, Gelts/sec = 1.37
+histogram int: r=10, med=0.0433 (0.043,0.0437), hlen=9.22e+05, Gelts/sec = 2.32
+histogram same int: r=10, med=0.0292 (0.0286,0.0301), hlen=9.22e+05, Gelts/sec = 3.5
+histogram few int: r=10, med=0.00453 (0.00428,0.00497), hlen=2.81e+06, Gelts/sec = 23.4
+integer sort<int,int>: r=10, med=0.109 (0.107,0.124), hlen=2.42e+05, Gelts/sec = 0.936
+integer sort int: r=10, med=0.0634 (0.0632,0.064), hlen=4.72e+05, Gelts/sec = 1.58
+integer sort 128 bits: r=10, med=0.16 (0.159,0.17), hlen=2.42e+05, Gelts/sec = 0.629
+sort long: r=10, med=0.134 (0.134,0.145), hlen=2.42e+05, Gelts/sec = 0.747
+sort int: r=10, med=0.125 (0.124,0.125), hlen=2.42e+05, Gelts/sec = 0.805
+sort 128 bits: r=10, med=0.187 (0.186,0.189), hlen=1.93e+05, Gelts/sec = 0.537
+merge long: r=10, med=0.0154 (0.0152,0.0157), hlen=1.93e+05, bw = 142
+mat vect mult: r=10, med=0.284 (0.284,0.286), hlen=1.06e+04, bw = 148
+scatter int: r=10, med=0.0613 (0.0611,0.076), hlen=1.24e+05, bw = 185
+merge sort long: r=10, med=0.22 (0.218,0.238), hlen=9.9e+04, Gelts/sec = 0.458
+count sort 2bit long: r=10, med=0.0341 (0.0333,0.0348), hlen=3.52e+06, Gelts/sec = 3
+split3 long: r=10, med=0.0232 (0.0226,0.0241), hlen=4.4e+06, bw = 131
+quicksort long: r=10, med=0.199 (0.197,0.212), hlen=4.4e+06, Gelts/sec = 0.509

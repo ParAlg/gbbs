@@ -1,0 +1,20 @@
+n = 100000000
+rounds = 11
+num threads = 64
+map long: r=11, med=0.0457 (0.0428,0.053), hlen=2.42e+05, bw = 37.4
+tabulate long: r=11, med=0.0256 (0.024,0.0279), hlen=3.78e+05, bw = 33.3
+reduce add long: r=11, med=0.0235 (0.0232,0.0255), hlen=4.72e+05, bw = 34.5
+scan add long: r=11, med=0.0708 (0.0666,0.0722), hlen=3.02e+05, bw = 36
+pack long: r=11, med=0.0403 (0.0376,0.0601), hlen=3.02e+05, bw = 37.3
+gather long: r=11, med=0.196 (0.194,0.198), hlen=2.08e+04, bw = 37.2
+scatter long: r=11, med=0.184 (0.182,0.19), hlen=2.6e+04, bw = 39.5
+write add long: r=11, med=0.212 (0.211,0.231), hlen=3.25e+04, bw = 34.1
+write min long: r=11, med=0.191 (0.19,0.214), hlen=3.25e+04, bw = 38
+random shuffle long: r=11, med=0.175 (0.171,0.202), hlen=5.9e+05, Gelts/sec = 0.584
+histogram int: r=11, med=0.125 (0.123,0.14), hlen=3.02e+05, Gelts/sec = 0.813
+sort long: r=11, med=0.448 (0.447,0.471), hlen=9.9e+04, Gelts/sec = 0.224
+sort int: r=11, med=0.409 (0.407,0.437), hlen=9.9e+04, Gelts/sec = 0.246
+count sort 8bit long: r=11, med=0.104 (0.103,0.129), hlen=1.44e+06, Gelts/sec = 0.975
+merge long: r=11, med=0.0449 (0.0435,0.0468), hlen=1.93e+05, bw = 36.8
+histogram same int: r=11, med=0.0848 (0.0825,0.109), hlen=1.15e+06, Gelts/sec = 1.21
+histogram few int: r=11, med=0.0133 (0.0113,0.0145), hlen=2.25e+06, Gelts/sec = 8.87
