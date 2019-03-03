@@ -36,7 +36,7 @@
 #include <iostream>
 
 #include "graph.h"
-#include "lib/utilities.h"
+#include "pbbslib/utilities.h"
 #include "oldlib/block_radix_sort.h"
 #include "oldlib/utils.h"
 

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "histogram.h"
-#include "lib/macros.h"
+#include "pbbslib/macros.h"
 #include "ligra.h"
 
 #include <type_traits>

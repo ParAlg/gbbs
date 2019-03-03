@@ -21,11 +21,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "lib/dyn_arr.h"
-#include "lib/random.h"
-#include "lib/random_shuffle.h"
-#include "lib/sample_sort.h"
-#include "lib/speculative_for.h"
+#include "pbbslib/dyn_arr.h"
+#include "pbbslib/random.h"
+#include "pbbslib/random_shuffle.h"
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/speculative_for.h"
 #include "ligra.h"
 
 namespace mm {

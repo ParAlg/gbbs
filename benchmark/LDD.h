@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "lib/random_shuffle.h"
+#include "pbbslib/random_shuffle.h"
 #include "ligra.h"
 
 #include <cmath>

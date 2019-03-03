@@ -27,11 +27,11 @@
 #include "ligra.h"
 #include "union_find.h"
 
-#include "lib/binary_search.h"
-#include "lib/dyn_arr.h"
-#include "lib/random.h"
-#include "lib/sample_sort.h"
-#include "lib/speculative_for.h"
+#include "pbbslib/binary_search.h"
+#include "pbbslib/dyn_arr.h"
+#include "pbbslib/random.h"
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/speculative_for.h"
 
 namespace MST_boruvka {
 

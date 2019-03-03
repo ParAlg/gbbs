@@ -27,7 +27,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "lib/utilities.h"
+#include "pbbslib/utilities.h"
 #include "macros.h"
 
 template <class ET>

@@ -6,26 +6,42 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-ifdef HOMEMADE
-SCHEDFLAGS = -DHOMEGROWN -pthread
-else
-SCHEDFLAGS = -fcilkplus -lcilkrts -DCILK
-endif
-
-OPT = -O2 -g
-
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../
 
-PCC = g++
-PCFLAGS = -std=c++14 $(SCHEDFLAGS) -I../src $(INCLUDE_DIRS) -mcx16 -march=native $(OPT) -DAMORTIZEDPD $(INTT) $(INTE)
+CONCEPTS = -fconcepts -DCONCEPTS
+CFLAGS = $(INCLUDE_DIRS) $(INTT) $(INTE) -DAMORTIZEDPD -I../src -mcx16 -O3 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
+
+OMPFLAGS = -DOPENMP -fopenmp
+CILKFLAGS = -DCILK -fcilkplus
+HGFLAGS = -DHOMEGROWN -pthread
+
+ifdef CLANG
+CC = clang++
+PFLAGS = $(CILKFLAGS)
+else ifdef CILK
+CC = g++
+PFLAGS = $(CILKFLAGS)
+else ifdef OPENMP
+CC = g++
+PFLAGS = $(OMPFLAGS)
+else ifdef HOMEGROWN
+CC = g++
+PFLAGS = $(HGFLAGS)
+else ifdef SERIAL
+CC = g++
+PFLAGS =
+else # default is homegrown
+CC = g++
+PFLAGS = $(HGFLAGS)
+endif
 
 ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore KTruss LDD MaximalMatching MIS MST SCC SetCover Triangle wBFS
 
 all: $(ALL)
 
 % : %.C
-	$(PCC) $(PCFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 .PHONY : clean
 

@@ -29,8 +29,8 @@
 #include <cstdint>
 #include <tuple>
 
-#include "lib/counting_sort_no_transpose.h"
-#include "lib/macros.h"
+#include "pbbslib/counting_sort_no_transpose.h"
+#include "pbbslib/macros.h"
 #include "sequential_ht.h"
 
 namespace pbbs {

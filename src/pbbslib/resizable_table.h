@@ -23,10 +23,10 @@
 #pragma once
 
 #include <tuple>
-#include "lib/sequence_ops.h"
-#include "lib/extra_sequence_ops.h"
-#include "lib/utilities.h"
-#include "lib/macros.h"
+#include "pbbslib/sequence_ops.h"
+#include "pbbslib/extra_sequence_ops.h"
+#include "pbbslib/utilities.h"
+#include "pbbslib/macros.h"
 
 // TODO: see if striding by an entire page reduces times more.
 #define CACHE_STRIDE 128

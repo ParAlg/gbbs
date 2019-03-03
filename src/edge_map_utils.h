@@ -31,8 +31,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include "lib/binary_search.h"
-#include "lib/utilities.h"
+#include "pbbslib/binary_search.h"
+#include "pbbslib/utilities.h"
 #include "maybe.h"
 
 // Standard version of edgeMapDense.

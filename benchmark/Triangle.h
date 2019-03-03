@@ -22,8 +22,8 @@
 // SOFTWARE.
 
 #include <algorithm>
-#include "lib/sample_sort.h"
-#include "lib/monoid.h"
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/monoid.h"
 #include "ligra.h"
 
 template <template <class W> class vertex, class W>

@@ -24,7 +24,7 @@
 #pragma once
 
 #include <vector>
-#include "lib/seq.h"
+#include "pbbslib/seq.h"
 #include "ligra.h"
 
 namespace bc {

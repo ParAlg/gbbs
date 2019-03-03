@@ -26,7 +26,7 @@
 #include <iostream>
 #include "utils.h"
 
-#include "lib/utilities.h"
+#include "pbbslib/utilities.h"
 
 namespace oldtranspose {
 

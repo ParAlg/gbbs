@@ -20,8 +20,8 @@
 
 #pragma once
 
-#include "lib/sample_sort.h"
-#include "lib/utilities.h"
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/utilities.h"
 
 namespace truss_utils {
 

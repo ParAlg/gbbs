@@ -31,11 +31,11 @@
 #include <iostream>
 #include <tuple>
 
-#include "lib/binary_search.h"
-#include "lib/seq.h"
-#include "lib/sequence_ops.h"
-#include "lib/extra_sequence_ops.h"
-#include "lib/utilities.h"
+#include "pbbslib/binary_search.h"
+#include "pbbslib/seq.h"
+#include "pbbslib/sequence_ops.h"
+#include "pbbslib/extra_sequence_ops.h"
+#include "pbbslib/utilities.h"
 
 #include "oldlib/utils.h"
 

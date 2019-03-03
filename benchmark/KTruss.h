@@ -26,8 +26,8 @@
 #include "truss_utils.h"
 #include <cassert>
 
-#include "lib/sample_sort.h"
-#include "lib/sparse_table.h"
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/sparse_table.h"
 
 // (1) One approach is to map each edge in a hash-table to its trussness. The
 // keys need to be 8-byte aligned, and the keys are 8-byte values (tuples of

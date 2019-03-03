@@ -24,13 +24,13 @@
 #pragma once
 
 #include "CC.h"
-#include "lib/dyn_arr.h"
-#include "lib/random.h"
-#include "lib/sample_sort.h"
-#include "lib/sparse_table.h"
-#include "lib/speculative_for.h"
+#include "pbbslib/dyn_arr.h"
+#include "pbbslib/random.h"
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/sparse_table.h"
+#include "pbbslib/speculative_for.h"
 #include "ligra.h"
-#include "oldlib/benchIO.h"
+#include "oldpbbslib/benchIO.h"
 
 namespace bc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;

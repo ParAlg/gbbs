@@ -25,7 +25,7 @@
 
 #include "ligra.h"
 
-#include "lib/random_shuffle.h"
+#include "pbbslib/random_shuffle.h"
 
 namespace coloring {
 template <template <typename W> class vertex, class W, class Seq>

@@ -31,8 +31,8 @@
 #include "compressed_vertex.h"
 #include "vertex.h"
 
-#include "lib/get_time.h"
-#include "lib/integer_sort.h"
+#include "pbbslib/get_time.h"
+#include "pbbslib/integer_sort.h"
 
 // **************************************************************
 //    ADJACENCY ARRAY REPRESENTATION

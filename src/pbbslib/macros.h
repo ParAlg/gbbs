@@ -25,7 +25,7 @@
 #include <cmath>
 #include <iostream>
 #include <stddef.h>
-#include "lib/parallel.h"
+#include "pbbslib/parallel.h"
 
 // scan/filter macros; used by sequence implementations
 #define _SCAN_LOG_BSIZE 10

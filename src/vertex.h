@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "lib/sequence_ops.h"
+#include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
 namespace intersection {

@@ -25,7 +25,7 @@
 #pragma once
 
 #include <math.h>
-#include "lib/utilities.h"
+#include "pbbslib/utilities.h"
 #include "utils.h"
 
 #include <algorithm>

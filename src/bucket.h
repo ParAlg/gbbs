@@ -44,10 +44,10 @@
 #include "maybe.h"
 #include "vertex_subset.h"
 
-#include "lib/dyn_arr.h"
-#include "lib/macros.h"
-#include "lib/utilities.h"
-#include "lib/monoid.h"
+#include "pbbslib/dyn_arr.h"
+#include "pbbslib/macros.h"
+#include "pbbslib/utilities.h"
+#include "pbbslib/monoid.h"
 
 #define CACHE_LINE_S 64
 

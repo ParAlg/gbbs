@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "lib/random_shuffle.h"
-#include "lib/sparse_table.h"
-#include "lib/speculative_for.h"
+#include "pbbslib/random_shuffle.h"
+#include "pbbslib/sparse_table.h"
+#include "pbbslib/speculative_for.h"
 #include "ligra.h"
 
 namespace MIS_rootset {

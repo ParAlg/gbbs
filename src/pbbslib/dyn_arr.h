@@ -27,7 +27,7 @@
 // constructor call to properly initialize memory. see pbbs::new_array(..)
 #pragma once
 
-#include "lib/utilities.h"
+#include "pbbslib/utilities.h"
 
 #define MIN_BKT_SIZE 2048
 

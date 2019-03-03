@@ -40,7 +40,7 @@
 #include "encodings/decoders.h"
 #include "macros.h"
 
-#include "lib/monoid.h"
+#include "pbbslib/monoid.h"
 
 namespace cvertex {
 

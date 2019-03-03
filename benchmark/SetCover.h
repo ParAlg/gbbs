@@ -27,8 +27,8 @@
 #include "edge_map_reduce.h"
 #include "ligra.h"
 
-#include "lib/random.h"
-#include "lib/random_shuffle.h"
+#include "pbbslib/random.h"
+#include "pbbslib/random_shuffle.h"
 
 namespace sc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;

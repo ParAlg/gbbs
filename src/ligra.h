@@ -41,10 +41,10 @@
 
 #include "oldlib/utils.h"
 
-#include "lib/binary_search.h"
-#include "lib/extra_sequence_ops.h"
-#include "lib/get_time.h"
-#include "lib/macros.h"
+#include "pbbslib/binary_search.h"
+#include "pbbslib/extra_sequence_ops.h"
+#include "pbbslib/get_time.h"
+#include "pbbslib/macros.h"
 
 typedef uint32_t flags;
 const flags no_output = 1;

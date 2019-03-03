@@ -24,7 +24,7 @@
 #pragma once
 
 #include "LDD.h"
-#include "lib/sparse_table.h"
+#include "pbbslib/sparse_table.h"
 #include "ligra.h"
 
 namespace cc {

@@ -24,10 +24,10 @@
 
 #include <assert.h>
 #include <limits>
-#include "lib/sequence_ops.h"
-#include "lib/extra_sequence_ops.h"
-#include "lib/utilities.h"
-#include "lib/macros.h"
+#include "pbbslib/sequence_ops.h"
+#include "pbbslib/extra_sequence_ops.h"
+#include "pbbslib/utilities.h"
+#include "pbbslib/macros.h"
 
 template <class intT>
 struct reservation {

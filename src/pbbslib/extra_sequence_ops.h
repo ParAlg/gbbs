@@ -1,9 +1,9 @@
 #pragma once
 
-#include "lib/seq.h"
-#include "lib/sequence_ops.h"
-#include "lib/macros.h"
-#include "lib/monoid.h"
+#include "pbbslib/seq.h"
+#include "pbbslib/sequence_ops.h"
+#include "pbbslib/macros.h"
+#include "pbbslib/monoid.h"
 
 namespace pbbs {
 
