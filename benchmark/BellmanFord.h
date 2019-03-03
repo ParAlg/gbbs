@@ -68,7 +68,7 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { SP[i] = -(INT_E_MAX / 2); });
       break;
     }
@@ -84,7 +84,7 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   }
   auto dist_im_f = [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; };
   auto dist_im = make_sequence<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
+  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;
 }

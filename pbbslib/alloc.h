@@ -25,7 +25,7 @@ struct mem_pool {
     return (void*) ((char*) a - header_size);}
 
   void* alloc(size_t s) {
-    size_t log_size = pbbs::log2_up((size_t) s + header_size);
+    size_t log_size = pbbslib::log2_up((size_t) s + header_size);
     if (log_size < 20) {
       void* a = (void*) aligned_alloc(header_size, s + header_size);
       *((size_t*) a) = small_size_tag;

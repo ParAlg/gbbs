@@ -48,7 +48,7 @@ class sparse_table {
   }
 
   static void clearA(T* A, long n, T kv) {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { A[i] = kv; });
   }
 
@@ -58,7 +58,7 @@ class sparse_table {
 
   void del() {
     if (alloc) {
-      pbbs::free_array(table);
+      pbbslib::free_array(table);
       alloc = false;
     }
   }
@@ -75,9 +75,9 @@ class sparse_table {
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
     if (space_mult == -1) space_mult = 1.1;
-    m = (size_t)1 << pbbs::log2_up((size_t)(space_mult * _m));
+    m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m));
     mask = m - 1;
-    table = pbbs::new_array_no_init<T>(m);
+    table = pbbslib::new_array_no_init<T>(m);
     std::cout << "T size is " << sizeof(T) << std::endl;
     clearA(table, m, empty);
     alloc = true;
@@ -114,7 +114,7 @@ class sparse_table {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
+        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return true;
         }
@@ -133,7 +133,7 @@ class sparse_table {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
+        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return true;
         }
@@ -206,7 +206,7 @@ class sparse_table {
   sequence<T> entries() {
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = make_sequence<T>(table, m);
-    return pbbs::filter(table_seq, pred);
+    return pbbslib::filter(table_seq, pred);
   }
 
   void clear() {

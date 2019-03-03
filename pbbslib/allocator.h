@@ -52,7 +52,7 @@ struct allocator {
   void* alloc(size_t n) {
     size_t np = n + header_size;  // add header
     
-    size_t log_size = pbbs::log2_up((size_t) np);
+    size_t log_size = pbbslib::log2_up((size_t) np);
     if (log_size > log_max_size) abort();
     int bucket = log_size - log_min_size;
     uchar* ptr = allocators[bucket].alloc();

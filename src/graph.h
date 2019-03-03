@@ -65,7 +65,7 @@ struct graph {
   auto copy() -> graph<vertex> { return copy_fn(); }
 
   void del() {
-    if (flags != NULL) pbbs::free_array(flags);
+    if (flags != NULL) pbbslib::free_array(flags);
     deletion_fn();
   }
 
@@ -80,8 +80,8 @@ struct graph {
 
 inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
   auto df = [&](void* V, void* edges) {
-    pbbs::free_array(V);
-    pbbs::free_array(edges);
+    pbbslib::free_array(V);
+    pbbslib::free_array(edges);
   };
   return std::bind(df, V, edges);
 }
@@ -89,9 +89,9 @@ inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
 inline auto get_deletion_fn(void* V, void* in_edges, void* out_edges)
     -> std::function<void()> {
   auto df = [&](void* V, void* in_edges, void* out_edges) {
-    pbbs::free_array(V);
-    pbbs::free_array(in_edges);
-    pbbs::free_array(out_edges);
+    pbbslib::free_array(V);
+    pbbslib::free_array(in_edges);
+    pbbslib::free_array(out_edges);
   };
   return std::bind(df, V, in_edges, out_edges);
 }
@@ -100,11 +100,11 @@ template <class vertex, class E>
 inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
                                                   size_t m, size_t sizeofe) {
   auto df = [&](vertex* V, E* edges, size_t n, size_t m, size_t sizeofe) {
-    auto NV = pbbs::new_array_no_init<vertex>(n);
-    auto NE = pbbs::new_array_no_init<E>(sizeofe);
-    par_for(0, sizeofe, pbbs::kSequentialForThreshold, [&] (size_t i)
+    auto NV = pbbslib::new_array_no_init<vertex>(n);
+    auto NE = pbbslib::new_array_no_init<E>(sizeofe);
+    par_for(0, sizeofe, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { NE[i] = edges[i]; });
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       NV[i].setOutDegree(V[i].getOutDegree());
       size_t off = (V[i].getOutNeighbors() - edges);
       NV[i].setOutNeighbors(NE + off);
@@ -124,14 +124,14 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
                                                   size_t m_out) {
   auto df = [&](vertex* V, E* in_edges, E* out_edges, size_t n, size_t m,
                 size_t m_in, size_t m_out) {
-    auto NV = pbbs::new_array_no_init<vertex>(n);
-    auto Nin = pbbs::new_array_no_init<E>(m_in);
-    auto Nout = pbbs::new_array_no_init<E>(m_out);
-    par_for(0, m_in, pbbs::kSequentialForThreshold, [&] (size_t i)
+    auto NV = pbbslib::new_array_no_init<vertex>(n);
+    auto Nin = pbbslib::new_array_no_init<E>(m_in);
+    auto Nout = pbbslib::new_array_no_init<E>(m_out);
+    par_for(0, m_in, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { Nin[i] = in_edges[i]; });
-    par_for(0, m_in, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m_in, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { Nout[i] = out_edges[i]; });
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       NV[i].setOutDegree(V[i].getOutDegree());
       NV[i].setInDegree(V[i].getInDegree());
       size_t out_off = (V[i].getOutNeighbors() - out_edges);
@@ -159,7 +159,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   auto out_edge_sizes = sequence<uintT>(n + 1);
   auto in_edge_sizes = sequence<uintT>(n + 1);
 
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     w_vertex u = V[i];
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
@@ -171,19 +171,19 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     auto in_im = make_sequence<int>(u.getInDegree(), in_f);
 
     if (out_im.size() > 0)
-      out_edge_sizes[i] = pbbs::reduce_add(out_im);
+      out_edge_sizes[i] = pbbslib::reduce_add(out_im);
     else
       out_edge_sizes[i] = 0;
     if (in_im.size() > 0)
-      in_edge_sizes[i] = pbbs::reduce_add(in_im);
+      in_edge_sizes[i] = pbbslib::reduce_add(in_im);
     else
       in_edge_sizes[i] = 0;
   });
 
   out_edge_sizes[n] = 0;
   in_edge_sizes[n] = 0;
-  long outEdgeCount = pbbs::scan_add(out_edge_sizes, out_edge_sizes);
-  long inEdgeCount = pbbs::scan_add(in_edge_sizes, in_edge_sizes);
+  long outEdgeCount = pbbslib::scan_add(out_edge_sizes, out_edge_sizes);
+  long inEdgeCount = pbbslib::scan_add(in_edge_sizes, in_edge_sizes);
 
   assert(G.m / 2 == outEdgeCount);
   assert(G.m / 2 == inEdgeCount);
@@ -205,7 +205,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       };
       auto n_im_f = [&](size_t i) { return nghs[i]; };
       auto n_im = make_sequence<edge>(d, n_im_f);
-      auto res = pbbs::filter(n_im, pred_c, pbbs::no_flag, dir_nghs);
+      auto res = pbbslib::filter(n_im, pred_c, pbbslib::no_flag, dir_nghs);
     }
   });
 
@@ -222,11 +222,11 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       };
       auto n_im_f = [&](size_t i) { return nghs[i]; };
       auto n_im = make_sequence<edge>(d, n_im_f);
-      auto res = pbbs::filter(n_im, pred_c, pbbs::no_flag, dir_nghs);
+      auto res = pbbslib::filter(n_im, pred_c, pbbslib::no_flag, dir_nghs);
     }
   });
 
-  auto AV = pbbs::new_array_no_init<asymmetricVertex<W>>(n);
+  auto AV = pbbslib::new_array_no_init<asymmetricVertex<W>>(n);
   par_for(0, n, [&] (size_t i) {
     uintT in_offset = in_edge_sizes[i];
     uintT out_offset = out_edge_sizes[i];
@@ -291,7 +291,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     byte_offsets[i] = total_bytes;
   });
   byte_offsets[n] = 0;
-  size_t last_offset = pbbs::scan_add(byte_offsets, byte_offsets);
+  size_t last_offset = pbbslib::scan_add(byte_offsets, byte_offsets);
   std::cout << " size is: " << last_offset << "\n";
 
   auto edges = sequence<uchar>(last_offset);
@@ -321,7 +321,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
 
-  auto AV = pbbs::new_array_no_init<cav_byte<W>>(n);
+  auto AV = pbbslib::new_array_no_init<cav_byte<W>>(n);
   par_for(0, n, [&] (size_t i) {
     size_t o = byte_offsets[i];
     uchar* our_edges = edges.start() + o;
@@ -334,7 +334,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
   auto deg_map = make_sequence<size_t>(n, deg_f);
-  uintT total_deg = pbbs::reduce_add(deg_map);
+  uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "Filtered, total_deg = " << total_deg << "\n";
   return graph<cav_byte<W>>(AV, G.n, total_deg,
                             get_deletion_fn(AV, edges.get_array()));
@@ -368,7 +368,7 @@ struct edge_array {
   size_t num_cols;
   // non_zeros is the #edges
   size_t non_zeros;
-  void del() { pbbs::free_array(E); }
+  void del() { pbbslib::free_array(E); }
   edge_array(edge* _E, size_t r, size_t c, size_t nz)
       : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {}
   edge_array() {}
@@ -417,7 +417,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
                            std::get<1>(l) + std::get<1>(r),
                            std::get<2>(l) + std::get<2>(r));
   };
-  pbbs::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0, 0));
+  pbbslib::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0, 0));
 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
@@ -464,7 +464,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
   auto degree_imap =
       make_sequence<size_t>(n, deg_f);
 
-  G.m = pbbs::reduce_add(degree_imap);
+  G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "G.m = " << G.m << "\n";
 
   return edge_array<W>(arr.get_array(), n, n, arr.size());
@@ -487,7 +487,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbs::scano(offs, offs, scan_f, std::make_tuple(0, 0));
+  pbbslib::scano(offs, offs, scan_f, std::make_tuple(0, 0));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   std::cout << "tmp space allocated = " << total_space << "\n";
@@ -544,7 +544,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbs::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0));
+  pbbslib::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);
@@ -586,8 +586,8 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
     if (n == 0) {
       return graph<V>(nullptr, 0, 0, del);
     } else {
-      V* v = pbbs::new_array_no_init<V>(n);
-      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+      V* v = pbbslib::new_array_no_init<V>(n);
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
         v[i].degree = 0;
         v[i].neighbors = nullptr;
       });
@@ -598,12 +598,12 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
   auto Am = make_sequence<edge>(A.E, m);
   if (!is_sorted) {
     auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
-    size_t bits = pbbs::log2_up(n);
-    pbbs::integer_sort(Am, Am, first, bits);
+    size_t bits = pbbslib::log2_up(n);
+    pbbslib::integer_sort(Am, Am, first, bits);
   }
 
   auto starts = sequence<uintT>(n);
-  V* v = pbbs::new_array_no_init<V>(n);
+  V* v = pbbslib::new_array_no_init<V>(n);
   auto edges = sequence<uintE>(m, [&](size_t i) {
     // Fuse loops over edges (check if this helps)
     if (i == 0 || (std::get<0>(Am[i]) != std::get<0>(Am[i - 1]))) {
@@ -611,7 +611,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
     }
     return std::get<1>(Am[i]);
   });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintT o = starts[i];
     size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
     v[i].degree = degree;

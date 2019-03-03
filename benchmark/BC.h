@@ -121,11 +121,11 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
   Levels[round].del();
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = Levels[round - 1];
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -147,7 +147,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   Frontier.del();
 
   // Update dependencies scores
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;

@@ -45,12 +45,12 @@ class sparse_additive_map {
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K& k) { return hashToRange(pbbs::hash64(k)); }
+  inline size_t firstIndex(K& k) { return hashToRange(pbbslib::hash64(k)); }
   inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
   void del() {
     if (alloc) {
-      pbbs::free_array(table);
+      pbbslib::free_array(table);
       alloc = false;
     }
   }
@@ -63,7 +63,7 @@ class sparse_additive_map {
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
   sparse_additive_map(size_t _m, T _empty)
-      : m((size_t)1 << pbbs::log2_up((size_t)(1.1 * _m))),
+      : m((size_t)1 << pbbslib::log2_up((size_t)(1.1 * _m))),
         mask(m - 1),
         empty(_empty),
         empty_key(std::get<0>(empty)) {
@@ -92,13 +92,13 @@ class sparse_additive_map {
     size_t h = firstIndex(k);
     while (1) {
       if (std::get<0>(table[h]) == empty_key) {
-        if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
+        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
           std::get<1>(table[h]) = std::get<1>(kv);
           return 1;
         }
       }
       if (std::get<0>(table[h]) == k) {
-        pbbs::write_add(&std::get<1>(table[h]), v);
+        pbbslib::write_add(&std::get<1>(table[h]), v);
         return false;
       }
       h = incrementIndex(h);
@@ -120,14 +120,14 @@ class sparse_additive_map {
   }
 
   auto entries() {
-    T* out = pbbs::new_array_no_init<T>(m);
+    T* out = pbbslib::new_array_no_init<T>(m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-    size_t new_m = pbbs::filterf(table, out, m, pred);
+    size_t new_m = pbbslib::filterf(table, out, m, pred);
     return sequence<T>(out, new_m, true); // allocated
   }
 
   void clear() {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { table[i] = empty; });
   }
 };

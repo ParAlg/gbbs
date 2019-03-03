@@ -17,7 +17,7 @@ namespace pbbs {
 		   bool inplace=false) {
     size_t n = In.size();
     if (base_case(In.begin(), n/2)) {
-      pbbs::insertion_sort(In.begin(), n, f);
+      pbbslib::insertion_sort(In.begin(), n, f);
       if (!inplace)
 	for (size_t i=0; i < n; i++) Out[i] = In[i];
       return;
@@ -28,9 +28,9 @@ namespace pbbs {
 	   [&] () {merge_sort_(In.slice(m,n), Out.slice(m,n), f, !inplace);},
 	   true);
     if (inplace)
-      pbbs::merge_(Out.slice(0,m), Out.slice(m,n), In, f, true);
+      pbbslib::merge_(Out.slice(0,m), Out.slice(m,n), In, f, true);
     else
-      pbbs::merge_(In.slice(0,m), In.slice(m,n), Out, f, true);
+      pbbslib::merge_(In.slice(0,m), In.slice(m,n), Out, f, true);
   }
 
   template <class SeqA, class F> 

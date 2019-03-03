@@ -313,7 +313,7 @@ inline void iSortX(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
     radixStep(A, B, Tmp, BK, numBK, n, (long)1 << bits, true,
               eBits<E, F>(bits, 0, f));
     if (bucketOffsets != NULL) {
-      par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { bucketOffsets[i] = BK[0][i]; });
     }
     return;
@@ -323,9 +323,9 @@ inline void iSortX(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
     radixLoopTopDown(A, B, Tmp, BK, numBK, n, bits, f);
   }
   if (bucketOffsets != NULL) {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { bucketOffsets[i] = n; });
-    par_for(0, n - 1, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n - 1, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       long v = f(A[i]);
       long vn = f(A[i + 1]);
       if (v != vn) bucketOffsets[vn] = i + 1;
@@ -354,9 +354,9 @@ template <class E, class F, class oint>
 inline void iSort(E *A, oint *bucketOffsets, long n, long m, bool bottomUp,
                   F f) {
   long x = iSortSpace<E>(n);
-  char *s = pbbs::new_array_no_init<char>(n);
+  char *s = pbbslib::new_array_no_init<char>(n);
   iSort(A, bucketOffsets, n, m, bottomUp, s, f);
-  pbbs::free_array(s);
+  pbbslib::free_array(s);
 }
 
 template <class E, class F, class oint>

@@ -113,7 +113,7 @@ namespace pbbs {
     }
 
     sequence(const size_t n)
-      : s(pbbs::new_array<T>(n)), n(n) {
+      : s(pbbslib::new_array<T>(n)), n(n) {
       //if (n > 1000000000) cout << "make empty: " << s << endl;
     };
 
@@ -123,14 +123,14 @@ namespace pbbs {
 
     static sequence<T> no_init(const size_t n) {
       sequence<T> r;
-      r.s = pbbs::new_array_no_init<T>(n);
+      r.s = pbbslib::new_array_no_init<T>(n);
       //if (n > 1000000000) cout << "make no init: " << r.s << endl;
       r.n = n;
       return r;
     };
 
     sequence(const size_t n, value_type v)
-      : s(pbbs::new_array_no_init<T>(n, true)), n(n) {
+      : s(pbbslib::new_array_no_init<T>(n, true)), n(n) {
       //if (n > 1000000000) cout << "make const: " << s << endl;
       auto f = [=] (size_t i) {new ((void*) (s+i)) value_type(v);};
       parallel_for(0, n, f);
@@ -138,7 +138,7 @@ namespace pbbs {
 
     template <typename Func>
     sequence(const size_t n, Func f)
-      : s(pbbs::new_array_no_init<T>(n)), n(n) {
+      : s(pbbslib::new_array_no_init<T>(n)), n(n) {
       //if (n > 1000000000) cout << "make func: " << s << endl;
       parallel_for(0, n, [&] (size_t i) {
 	  new ((void*) (s+i)) value_type(f(i));}, 1000);
@@ -190,7 +190,7 @@ namespace pbbs {
     void clear() {
       if (s != NULL) {
 	//if (n > 1000000000) cout << "delete: " << s << endl;
-        pbbs::delete_array<T>(s, n);
+        pbbslib::delete_array<T>(s, n);
         s = NULL; n = 0;
       }
     }
@@ -199,10 +199,10 @@ namespace pbbs {
     template <class Seq>
     void copy_here(Seq const &a, size_t an) {
       n = an;
-      s = pbbs::new_array_no_init<T>(n, true);
+      s = pbbslib::new_array_no_init<T>(n, true);
       //if (n > 0) { cout << "Yikes, copy: " << s << endl;}
       parallel_for(0, n, [&] (size_t i) {
-	      pbbs::assign_uninitialized(s[i], a[i]);});
+	      pbbslib::assign_uninitialized(s[i], a[i]);});
     }
   
     T *s; 

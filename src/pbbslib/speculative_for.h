@@ -34,7 +34,7 @@ struct reservation {
   intT r;
   reservation() : r(std::numeric_limits<intT>::max()) {}
   void reserve(intT i) {
-    pbbs::write_min(&r, i, [](intT l, intT r) { return l < r; });
+    pbbslib::write_min(&r, i, [](intT l, intT r) { return l < r; });
   }
   bool reserved() { return (r < std::numeric_limits<intT>::max()); }
   void reset() { r = std::numeric_limits<intT>::max(); }
@@ -50,7 +50,7 @@ struct reservation {
 
 template <class intT>
 inline void reserveLoc(intT& x, intT i) {
-  pbbs::write_min(&x, i, [](intT l, intT r) { return l < r; });
+  pbbslib::write_min(&x, i, [](intT l, intT r) { return l < r; });
 }
 
 // granularity is some constant.
@@ -79,17 +79,17 @@ inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
     intT size = std::min(currentRoundSize, (intT)(e - numberDone));
     totalProcessed += size;
 
-    par_for(0, size, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (i >= numberKeep) I[i] = numberDone + i;
       keep[i] = step.reserve(I[i]);
     });
 
-    par_for(0, size, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (keep[i]) keep[i] = !step.commit(I[i]);
     });
 
     // keep iterations that failed for next round. Written into Inext
-    auto seq = pbbs::pack(I.slice(0, size), keep, pbbs::no_flag, Inext.start());
+    auto seq = pbbslib::pack(I.slice(0, size), keep, pbbslib::no_flag, Inext.start());
     seq.set_allocated(false);
     numberKeep = seq.size();
     numberDone += size - numberKeep;
@@ -142,7 +142,7 @@ inline intT speculative_for(S step, intT s, intT e, intT granularity,
     });
 
     // keep iterations that failed for next round. Written into Inext
-    auto seq = pbbs::pack(I.slice(0, size), keep, pbbs::no_flag, Inext.start());
+    auto seq = pbbslib::pack(I.slice(0, size), keep, pbbslib::no_flag, Inext.start());
     seq.set_allocated(false);
     numberKeep = seq.size();
     numberDone += size - numberKeep;

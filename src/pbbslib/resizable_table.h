@@ -95,7 +95,7 @@ class resizable_table {
   size_t ne;
 
   static void clearA(T* A, long n, T kv) {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { A[i] = kv; });
   }
 
@@ -103,15 +103,15 @@ class resizable_table {
 
   void del() {
     if (alloc) {
-      pbbs::free_array(table);
-      pbbs::free_array(cts);
+      pbbslib::free_array(table);
+      pbbslib::free_array(cts);
       alloc = false;
     }
   }
 
   void init_counts() {
     size_t workers = num_workers();
-    cts = pbbs::new_array_no_init<size_t>(CACHE_STRIDE * workers);
+    cts = pbbslib::new_array_no_init<size_t>(CACHE_STRIDE * workers);
     for (size_t i = 0; i < workers; i++) {
       cts[i * CACHE_STRIDE] = 0;
     }
@@ -146,7 +146,7 @@ class resizable_table {
   }
 
   resizable_table(size_t _m, T _empty, KeyHash _key_hash)
-      : m((size_t)1 << pbbs::log2_up((size_t)(1.1 * _m))),
+      : m((size_t)1 << pbbslib::log2_up((size_t)(1.1 * _m))),
         mask(m - 1),
         ne(0),
         empty(_empty),
@@ -165,7 +165,7 @@ class resizable_table {
     if (nt > (0.9 * m)) {
       size_t old_m = m;
       auto old_t = table;
-      m = ((size_t)1 << pbbs::log2_up((size_t)(2 * nt)));
+      m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
       if (m == old_m) {
         // should investigate
         return;
@@ -176,14 +176,14 @@ class resizable_table {
       size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
       table = (T*)aligned_alloc(line_size, bytes);
       clearA(table, m, empty);
-      par_for(0, old_m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, old_m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
         if (std::get<0>(old_t[i]) != empty_key) {
           insert(old_t[i]);
         }
       });
       update_nelms();
       if (alloc) {
-        pbbs::free_array(old_t);
+        pbbslib::free_array(old_t);
       }
       alloc = true;
     }
@@ -200,7 +200,7 @@ class resizable_table {
     size_t h = firstIndex(k);
     while (1) {
       if (std::get<0>(table[h]) == empty_key &&
-          pbbs::CAS(&table[h], empty, kv)) {
+          pbbslib::CAS(&table[h], empty, kv)) {
         size_t wn = worker_id();
         cts[wn * CACHE_STRIDE]++;
         return 1;
@@ -284,7 +284,7 @@ class resizable_table {
 
   template <class F>
   void map(F& f) {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (std::get<0>(table[i]) != empty_key) {
         f(table[i]);
       }
@@ -292,14 +292,14 @@ class resizable_table {
   }
 
   sequence<T> entries() {
-    T* out = pbbs::new_array_no_init<T>(m);
+    T* out = pbbslib::new_array_no_init<T>(m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-    size_t new_m = pbbs::filterf(table, out, m, pred);
+    size_t new_m = pbbslib::filterf(table, out, m, pred);
     return make_sequence<T>(out, new_m);
   }
 
   void clear() {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { table[i] = empty; });
   }
 };

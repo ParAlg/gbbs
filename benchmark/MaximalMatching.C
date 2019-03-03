@@ -50,7 +50,7 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
     size_t ms = atol(W.Strings[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
-    par_for(0, ms, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       matching[i] =
           std::make_tuple(atol(W.Strings[1 + 2 * i]), atol(W.Strings[2 * (i + 1)]));
     });

@@ -56,7 +56,7 @@ namespace truss_utils {
     }
 
     inline size_t hashToRangeValue(size_t h) {return h & mask;}
-    inline size_t firstIndex(V& v) {return hashToRangeValue(pbbs::hash32_3(v));}
+    inline size_t firstIndex(V& v) {return hashToRangeValue(pbbslib::hash32_3(v));}
     inline size_t incrementIndex(uintT h) {return hashToRangeValue(h+1);}
 
     size_t size() {
@@ -64,17 +64,17 @@ namespace truss_utils {
     }
 
     static void clearA(V* A, long n, V kv) {
-      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { A[i] = kv; });
     }
 
     // Size is the maximum number of values the hash table will hold.
     // Overfilling the table could put it into an infinite loop.
     valueHT(size_t _m, V _empty) :
-      m((size_t) 1 << pbbs::log2_up((size_t)(_m))),
+      m((size_t) 1 << pbbslib::log2_up((size_t)(_m))),
       mask(m-1),
       empty(_empty) {
-        table = pbbs::new_array_no_init<V>(m);
+        table = pbbslib::new_array_no_init<V>(m);
         clearA(table, m, empty);
         alloc=true;
     }
@@ -86,7 +86,7 @@ namespace truss_utils {
 
     void del() {
       if (alloc) {
-        pbbs::free_array(table);
+        pbbslib::free_array(table);
       }
       alloc=false;
     }
@@ -95,7 +95,7 @@ namespace truss_utils {
       size_t h = firstIndex(v);
       size_t iters = 0;
       while (1) {
-        if(table[h] == empty && pbbs::CAS(&table[h],empty,v)) {
+        if(table[h] == empty && pbbslib::CAS(&table[h],empty,v)) {
           return 1;
         }
         h = incrementIndex(h);
@@ -107,7 +107,7 @@ namespace truss_utils {
     sequence<V> entries() {
       auto pred = [&](V t) { return t != empty; };
       auto table_seq = make_sequence<V>(table, m);
-      return pbbs::filter(table_seq, pred);
+      return pbbslib::filter(table_seq, pred);
     }
 
     void clear() {
@@ -138,7 +138,7 @@ namespace truss_utils {
         K empty_key;
 
         inline size_t hashToRange(size_t h) { return h & mask; }
-        inline size_t firstIndex(K& k) { return hashToRange(pbbs::hash32(k)); } // hacks for now
+        inline size_t firstIndex(K& k) { return hashToRange(pbbslib::hash32(k)); } // hacks for now
         inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
 
         // Precondition: k is not present in the table
@@ -147,7 +147,7 @@ namespace truss_utils {
           size_t h = firstIndex(k);
           while (true) {
             if (std::get<0>(table[h]) == empty_key) {
-              if (pbbs::CAS(&std::get<0>(table[h]), empty_key, k)) {
+              if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
                 std::get<1>(table[h]) = std::get<1>(kv); // insert value
                 return;
               }
@@ -161,7 +161,7 @@ namespace truss_utils {
           size_t h = firstIndex(k);
           while (true) {
             if (std::get<0>(table[h]) == k) {
-              pbbs::write_add(&std::get<1>(table[h]), static_cast<V>(1));
+              pbbslib::write_add(&std::get<1>(table[h]), static_cast<V>(1));
               return;
             }
             h = incrementIndex(h);
@@ -193,17 +193,17 @@ namespace truss_utils {
       offsets = sequence<size_t>(n+1);
       par_for(0, n, [&] (size_t i) {
         size_t table_elms = size_func(i);
-        offsets[i] = (1 << pbbs::log2_up((size_t)(table_elms*1.2))) + 2; // 2 cell padding (l, r)
+        offsets[i] = (1 << pbbslib::log2_up((size_t)(table_elms*1.2))) + 2; // 2 cell padding (l, r)
       });
       offsets[n] = 0;
-      size_t total_space = pbbs::scan_add(offsets, offsets);
+      size_t total_space = pbbslib::scan_add(offsets, offsets);
       std::cout << "total space = " << total_space << std::endl;
       std::cout << "empty val is " << empty_val << std::endl;
 
-      big_table = pbbs::new_array_no_init<T>(total_space);
+      big_table = pbbslib::new_array_no_init<T>(total_space);
       big_size = total_space;
 
-      tables = pbbs::new_array_no_init<inner_table>(n);
+      tables = pbbslib::new_array_no_init<inner_table>(n);
       par_for(0, n, [&] (size_t i) {
         size_t off = offsets[i];
         size_t sz = offsets[i+1] - off;
@@ -311,7 +311,7 @@ namespace truss_utils {
 
   template <class vertex, class VS, class F>
   vertexSubset emdf(graph<vertex> GA, VS& vs, F f, const flags& fl = 0) {
-    return edgeMapDenseForward<pbbs::empty>(GA, vs, f, fl);
+    return edgeMapDenseForward<pbbslib::empty>(GA, vs, f, fl);
   }
 
   template <class F, template <class W> class vertex, class W>
@@ -329,7 +329,7 @@ namespace truss_utils {
     auto o = sequence<uintE>(n);
 
     par_for(0, n, [&] (size_t i) { o[i] = i; });
-    pbbs::sample_sort(o.start(), n, [&](const uintE u, const uintE v) {
+    pbbslib::sample_sort(o.start(), n, [&](const uintE u, const uintE v) {
       return V[u].getOutDegree() < V[v].getOutDegree();
     });
     par_for(0, n, [&] (size_t i) { r[o[i]] = i; });
@@ -340,7 +340,7 @@ namespace truss_utils {
 //  void increment_trussness(TT& ht, const uintE& u, const uintE& v) {
 //    size_t loc_uv = ht.idx(std::make_tuple(std::min(u, v), std::max(u, v)));
 //    auto val_loc = &std::get<1>(ht.table[loc_uv]);
-//    pbbs::write_add(val_loc, (uintE)1);
+//    pbbslib::write_add(val_loc, (uintE)1);
 //  }
 
 

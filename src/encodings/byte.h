@@ -42,10 +42,10 @@ namespace byte {
 inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
 
 // Read an empty weight (noop)
-template <class W, typename std::enable_if<std::is_same<W, pbbs::empty>::value,
+template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
                                            int>::type = 0>
-inline pbbs::empty eatWeight(uchar*& start) {
-  return pbbs::empty();
+inline pbbslib::empty eatWeight(uchar*& start) {
+  return pbbslib::empty();
 }
 
 // Read an integer weight. Weights can be negative, so read using signed VarInt8
@@ -210,7 +210,7 @@ inline long compressFirstEdge(uchar* start, long offset, long source,
   return offset;
 }
 
-template <class W, typename std::enable_if<std::is_same<W, pbbs::empty>::value,
+template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
                                            int>::type = 0>
 inline long compressWeight(uchar* start, long offset, W weight) {
   return offset;

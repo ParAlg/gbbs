@@ -45,8 +45,8 @@ struct words {
   words(char* C, long nn, char** S, long mm)
       : n(nn), Chars(C), m(mm), Strings(S) {}
   void clear() {
-    pbbs::free_array(Chars);
-    pbbs::free_array(Strings);
+    pbbslib::free_array(Chars);
+    pbbslib::free_array(Strings);
   }
 };
 
@@ -69,14 +69,14 @@ struct toLong {
 
 // parallel code for converting a string to words
 inline words stringToWords(char* Str, long n) {
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (isSpace(Str[i])) Str[i] = 0;
   });
 
   // mark start of words
-  bool* FL = pbbs::new_array_no_init<bool>(n);
+  bool* FL = pbbslib::new_array_no_init<bool>(n);
   FL[0] = Str[0];
-  par_for(1, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(1, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { FL[i] = Str[i] && !Str[i - 1]; });
 
   // offset for each start of word
@@ -85,12 +85,12 @@ inline words stringToWords(char* Str, long n) {
   long* offsets = Off.A;
 
   // pointer to each start of word
-  char** SA = pbbs::new_array_no_init<char*>(m);
-  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j)
+  char** SA = pbbslib::new_array_no_init<char*>(m);
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t j)
                   { SA[j] = Str + offsets[j]; });
 
-  pbbs::free_array(offsets);
-  pbbs::free_array(FL);
+  pbbslib::free_array(offsets);
+  pbbslib::free_array(FL);
   return words(Str, n, SA, m);
 }
 
@@ -141,23 +141,23 @@ struct notZero {
 
 template <class T>
 inline ligra_utils::_seq<char> arrayToString(T* A, long n) {
-  long* L = pbbs::new_array_no_init<long>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  long* L = pbbslib::new_array_no_init<long>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { L[i] = xToStringLen(A[i]) + 1; });
   long m = ligra_utils::seq::scan(L, L, n, ligra_utils::addF<long>(), (long)0);
-  char* B = pbbs::new_array_no_init<char>(m);
-  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j) { B[j] = 0; });
-  par_for(0, n - 1, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  char* B = pbbslib::new_array_no_init<char>(m);
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t j) { B[j] = 0; });
+  par_for(0, n - 1, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     xToString(B + L[i], A[i]);
     B[L[i + 1] - 1] = '\n';
   });
   xToString(B + L[n - 1], A[n - 1]);
   B[m - 1] = '\n';
-  pbbs::free_array(L);
-  char* C = pbbs::new_array_no_init<char>(m + 1);
+  pbbslib::free_array(L);
+  char* C = pbbslib::new_array_no_init<char>(m + 1);
   long mm = ligra_utils::seq::filter(B, C, m, notZero());
   C[mm] = 0;
-  pbbs::free_array(B);
+  pbbslib::free_array(B);
   return ligra_utils::_seq<char>(C, mm);
 }
 
@@ -214,7 +214,7 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   long end = file.tellg();
   file.seekg(0, std::ios::beg);
   long n = end - file.tellg();
-  char* bytes = pbbs::new_array_no_init<char>(n + 1);
+  char* bytes = pbbslib::new_array_no_init<char>(n + 1);
   file.read(bytes, n);
   file.close();
   return ligra_utils::_seq<char>(bytes, n);

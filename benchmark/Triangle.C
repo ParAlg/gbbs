@@ -46,7 +46,7 @@ void Triangle_runner(graph<vertex>& GA, commandLine P) {
       return (deg * deg - 1) / 2;
     };
     auto wedge_im = make_sequence<size_t>(GA.n, wedge_im_f);
-    size_t n_wedges = pbbs::reduce_add(wedge_im);
+    size_t n_wedges = pbbslib::reduce_add(wedge_im);
     std::cout << "n_wedges = " << n_wedges << "\n";
     std::cout << "triangle density = " << ((3.0 * count) / n_wedges) << "\n";
   }

@@ -1,9 +1,33 @@
+// This file is a bridge connecting the "lib interface" gbbs exports and the
+// interfact that the current pbbslib exports. We would like to support both
+// C++11 users, and the current (C++17) implementation of the lib. Using this
+// bridge will hopefully simplify having two separate implementations of the lib
+// interface.
+
 #pragma once
 
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
 #include "pbbslib/macros.h"
 #include "pbbslib/monoid.h"
+
+// C++17 bridge
+namespace pbbs {
+
+  // used so second template argument can be inferred
+  template <class T, class F>
+  inline delayed_sequence<T,F> make_sequence (size_t n, F f) {
+    return delayed_sequence<T,F>(n,f);
+  } 
+
+  // Scans the input sequence using the addm monoid.
+  template <class In_Seq>
+  inline auto scan_add_inplace(In_Seq const& In) -> typename In_Seq::value_type {
+    using T = typename In_Seq::value_type;
+    return pbbslib::scan_inplace(s, pbbslib::addm<T>());
+  }
+
+}
 
 namespace pbbs {
 
@@ -65,7 +89,7 @@ namespace pbbs {
       Sums[i] = k - s;
     });
     auto isums = sequence<size_t>(Sums, l);
-    size_t m = scan_add(isums, isums);
+    size_t m = scan_add_inplace(isums);
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
       T* I = In + i * b;
@@ -74,7 +98,7 @@ namespace pbbs {
         O[j] = I[j];
       }
     });
-    pbbs::free_array(Sums);
+    pbbslib::free_array(Sums);
     return m;
   }
 
@@ -112,7 +136,7 @@ namespace pbbs {
         out(si + j, I[j]);
       }
     });
-    pbbs::free_array(Sums);
+    pbbslib::free_array(Sums);
     return m;
   }
 
@@ -160,7 +184,7 @@ namespace pbbs {
         I[j] = empty;
       }
     });
-    pbbs::free_array(Sums);
+    pbbslib::free_array(Sums);
     return m;
   }
 

@@ -70,7 +70,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   timer nbt;
   size_t rounds = 0;
   dyn_arr<uintE> cover = dyn_arr<uintE>();
-  auto r = pbbs::default_random;
+  auto r = pbbslib::default_random;
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
@@ -102,8 +102,8 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
     permt.start();
     // Update the permutation for the sets that are active in this round.
     still_active.toSparse();
-    auto P = pbbs::random_permutation<uintE>(still_active.size(), r);
-    par_for(0, still_active.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
+    auto P = pbbslib::random_permutation<uintE>(still_active.size(), r);
+    par_for(0, still_active.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
                       uintE pv = P[i];
                       perm[v] = pv;
@@ -183,7 +183,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   emt.reportTotal("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
   auto elm_cov = make_sequence<uintE>(G.n, elm_cov_f);
-  size_t elms_cov = pbbs::reduce_add(elm_cov);
+  size_t elms_cov = pbbslib::reduce_add(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";
   std::cout << "Rounds: " << rounds << "\n";

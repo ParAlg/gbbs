@@ -95,18 +95,18 @@ struct buckets {
         num_elms(0),
         allocated(true) {
     // Initialize array consisting of the materialized buckets.
-    bkts = pbbs::new_array<id_dyn_arr>(total_buckets);
+    bkts = pbbslib::new_array<id_dyn_arr>(total_buckets);
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
       auto imap_f = [&](size_t i) { return d(i); };
       auto imap = make_sequence<bucket_id>(n, imap_f);
-      size_t min_b = pbbs::reduce(imap, minm<bucket_id>());
+      size_t min_b = pbbslib::reduce(imap, minm<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
       auto imap_f = [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); };
       auto imap = make_sequence<bucket_id>(n, imap_f);
-      size_t max_b = pbbs::reduce(imap, maxm<bucket_id>());
+      size_t max_b = pbbslib::reduce(imap, maxm<bucket_id>());
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
       std::cout << "Unknown order: " << order
@@ -158,7 +158,7 @@ struct buckets {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].clear();
       }
-      pbbs::free_array(bkts);
+      pbbslib::free_array(bkts);
       allocated = false;
     }
   }
@@ -169,20 +169,20 @@ struct buckets {
   inline size_t update_buckets(F f, size_t k) {
     size_t num_blocks = k / 2000;
     int num_threads = num_workers();
-    if (k < pbbs::kSequentialForThreshold || num_threads == 1) {
+    if (k < pbbslib::kSequentialForThreshold || num_threads == 1) {
       return update_buckets_seq(f, k);
     }
 
     size_t ne_before = num_elms;
 
-    size_t block_bits = pbbs::log2_up(num_blocks);
+    size_t block_bits = pbbslib::log2_up(num_blocks);
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
-    bucket_id* hists = pbbs::new_array_no_init<bucket_id>((num_blocks + 1) *
+    bucket_id* hists = pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) *
                                                   total_buckets * CACHE_LINE_S);
     bucket_id* outs =
-        pbbs::new_array_no_init<bucket_id>((num_blocks + 1) * total_buckets);
+        pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) * total_buckets);
 
     // 1. Compute per-block histograms
     par_for(0, num_blocks, 1, [&] (size_t i) {
@@ -212,7 +212,7 @@ struct buckets {
     auto in_map = make_sequence<bucket_id>(num_blocks * total_buckets, get);
     auto out_map = sequence<bucket_id>(outs, num_blocks * total_buckets);
 
-    size_t sum = pbbs::scan_add(in_map, out_map);
+    size_t sum = pbbslib::scan_add(in_map, out_map);
     outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
@@ -256,8 +256,8 @@ struct buckets {
       m += num_inc;
     }
 
-    pbbs::free_array(hists);
-    pbbs::free_array(outs);
+    pbbslib::free_array(hists);
+    pbbslib::free_array(outs);
     return num_elms - ne_before;
   }
 
@@ -303,7 +303,7 @@ struct buckets {
     auto _d = d;
     auto tmp = sequence<ident_t>(m);
     ident_t* A = bkts[open_buckets].A;
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { tmp[i] = A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range
@@ -371,14 +371,14 @@ struct buckets {
     id_dyn_arr bkt = bkts[cur_bkt];
     size_t size = bkt.size;
     num_elms -= size;
-    ident_t* out = pbbs::new_array_no_init<ident_t>(size);
+    ident_t* out = pbbslib::new_array_no_init<ident_t>(size);
     size_t cur_bkt_num = get_cur_bucket_num();
     auto _d = d;
     auto p = [&](size_t i) { return _d(i) == cur_bkt_num; };
-    size_t m = pbbs::filterf(bkt.A, out, size, p);
+    size_t m = pbbslib::filterf(bkt.A, out, size, p);
     bkts[cur_bkt].size = 0;
     if (m == 0) {
-      pbbs::free_array(out);
+      pbbslib::free_array(out);
       return next_bucket();
     }
     auto ret = bucket(cur_bkt_num, sequence<ident_t>(out, m, true));

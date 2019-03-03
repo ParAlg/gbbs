@@ -79,7 +79,7 @@ inline bool writeMax(ET* a, ET b) {
 
 // template <class ET>
 // inline ET writeAdd(ET *a, ET b) {
-//  return b + pbbs::xadd<ET>(a, b);
+//  return b + pbbslib::xadd<ET>(a, b);
 //}
 
 template <class ET>
@@ -180,7 +180,7 @@ struct _seq {
     n = 0;
   }
   _seq(T* _A, long _n) : A(_A), n(_n) {}
-  void clear() { pbbs::free_array(A); }
+  void clear() { pbbslib::free_array(A); }
 };
 
 namespace seq {
@@ -232,10 +232,10 @@ template <class OT, class intT, class F, class G>
 inline OT reduce(intT s, intT e, F f, G g) {
   intT l = nblocks(e - s, _SCAN_BSIZE);
   if (l <= 1) return reduceSerial<OT>(s, e, f, g);
-  OT* Sums = pbbs::new_array_no_init<OT>(l);
+  OT* Sums = pbbslib::new_array_no_init<OT>(l);
   blocked_for(i, s, e, _SCAN_BSIZE, Sums[i] = reduceSerial<OT>(s, e, f, g););
   OT r = reduce<OT>((intT)0, l, f, getA<OT, intT>(Sums));
-  pbbs::free_array(Sums);
+  pbbslib::free_array(Sums);
   return r;
 }
 
@@ -300,12 +300,12 @@ inline ET scan(ET* Out, intT s, intT e, F f, G g, ET zero, bool inclusive,
   intT n = e - s;
   intT l = nblocks(n, _SCAN_BSIZE);
   if (l <= 2) return scanSerial(Out, s, e, f, g, zero, inclusive, back);
-  ET* Sums = pbbs::new_array_no_init<ET>(nblocks(n, _SCAN_BSIZE));
+  ET* Sums = pbbslib::new_array_no_init<ET>(nblocks(n, _SCAN_BSIZE));
   blocked_for(i, s, e, _SCAN_BSIZE, Sums[i] = reduceSerial<ET>(s, e, f, g););
   ET total = scan(Sums, (intT)0, l, f, getA<ET, intT>(Sums), zero, false, back);
   blocked_for(i, s, e, _SCAN_BSIZE,
               scanSerial(Out, s, e, f, g, Sums[i], inclusive, back););
-  pbbs::free_array(Sums);
+  pbbslib::free_array(Sums);
   return total;
 }
 
@@ -360,7 +360,7 @@ template <class ET, class intT, class F>
 inline _seq<ET> packSerial(ET* Out, bool* Fl, intT s, intT e, F f) {
   if (Out == NULL) {
     intT m = sumFlagsSerial(Fl + s, e - s);
-    Out = pbbs::new_array_no_init<ET>(m);
+    Out = pbbslib::new_array_no_init<ET>(m);
   }
   intT k = 0;
   for (intT i = s; i < e; i++)
@@ -372,12 +372,12 @@ template <class ET, class intT, class F>
 inline _seq<ET> pack(ET* Out, bool* Fl, intT s, intT e, F f) {
   intT l = nblocks(e - s, _F_BSIZE);
   if (l <= 1) return packSerial(Out, Fl, s, e, f);
-  intT* Sums = pbbs::new_array_no_init<intT>(l);
+  intT* Sums = pbbslib::new_array_no_init<intT>(l);
   blocked_for(i, s, e, _F_BSIZE, Sums[i] = sumFlagsSerial(Fl + s, e - s););
   intT m = plusScan(Sums, Sums, l);
-  if (Out == NULL) Out = pbbs::new_array_no_init<ET>(m);
+  if (Out == NULL) Out = pbbslib::new_array_no_init<ET>(m);
   blocked_for(i, s, e, _F_BSIZE, packSerial(Out + Sums[i], Fl, s, e, f););
-  pbbs::free_array(Sums);
+  pbbslib::free_array(Sums);
   return _seq<ET>(Out, m);
 }
 
@@ -398,7 +398,7 @@ inline intT packIndex(intT* Out, bool* Fl, intT n) {
 
 template <class ET, class intT, class PRED>
 inline intT filter(ET* In, ET* Out, bool* Fl, intT n, PRED p) {
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Fl[i] = (bool)p(In[i]); });
   intT m = pack(In, Out, Fl, n);
   return m;
@@ -406,9 +406,9 @@ inline intT filter(ET* In, ET* Out, bool* Fl, intT n, PRED p) {
 
 template <class ET, class intT, class PRED>
 inline intT filter(ET* In, ET* Out, intT n, PRED p) {
-  bool* Fl = pbbs::new_array_no_init<bool>(n);
+  bool* Fl = pbbslib::new_array_no_init<bool>(n);
   intT m = filter(In, Out, Fl, n, p);
-  pbbs::free_array(Fl);
+  pbbslib::free_array(Fl);
   return m;
 }
 
@@ -440,14 +440,14 @@ inline ulong hashInt(ulong a) {
 // UINT_E_MAX.
 template <class G>
 inline void remDuplicates(G& get_key, uintE* flags, long m, long n) {
-  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE key = get_key(i);
     if (key != UINT_E_MAX && flags[key] == UINT_E_MAX) {
       CAS(&flags[key], (uintE)UINT_E_MAX, static_cast<uintE>(i));
     }
   });
   // reset flags
-  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE key = get_key(i);
     if (key != UINT_E_MAX) {
       if (flags[key] == i) {      // win

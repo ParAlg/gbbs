@@ -62,7 +62,7 @@ namespace bytepd_amortized {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
+      size_t total_space = pbbslib::scan_add(byte_offsets, byte_offsets);
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -81,7 +81,7 @@ namespace bytepd_amortized {
       });
       std::cout << "Compressed" << std::endl;
 
-      long* sizes = pbbs::new_array_no_init<long>(3);
+      long* sizes = pbbslib::new_array_no_init<long>(3);
       sizes[0] = GA.n;
       sizes[1] = GA.m;
       sizes[2] = total_space;
@@ -131,7 +131,7 @@ namespace bytepd_amortized {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
+      size_t total_space = pbbslib::scan_add(byte_offsets, byte_offsets);
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -175,22 +175,22 @@ namespace bytepd_amortized {
 //      GA.V[i].mapOutNgh(i, map_f, false);
 //      xors[i] = xr;
 //    }
-//    std::cout << "input graph: output red = " << pbbs::reduce_xor(xors) << std::endl;
+//    std::cout << "input graph: output red = " << pbbslib::reduce_xor(xors) << std::endl;
 //
 //  auto hash_or_lt = [&] (const uintE& src, const uintE& ngh) {
-//    uint32_t src_h = pbbs::hash32(src);
-//    uint32_t ngh_h = pbbs::hash32(ngh);
+//    uint32_t src_h = pbbslib::hash32(src);
+//    uint32_t ngh_h = pbbslib::hash32(ngh);
 //    return (src_h < ngh_h) || ((src_h == ngh_h) && src < ngh);
 //  };
 
 
 //    auto self_arr = sequence<size_t>(n);
 //    parallel_for(size_t i=0; i<n; i++) {
-//      uintE our_deg = pbbs::log2_up(GA.V[i].getOutDegree());
+//      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
 //      bool selfl = false;
 //      size_t pri = 0;
 //      auto map_f = wrap_f<W>([&] (uintE src, uintE ngh) {
-//        uintE ngh_deg = pbbs::log2_up(GA.V[ngh].getOutDegree());
+//        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
 //        if (src == ngh) {
 //          selfl = true;
 //        }
@@ -202,11 +202,11 @@ namespace bytepd_amortized {
 //      self_arr[i] = selfl;
 //      xors[i] = pri;
 //    }
-//    std::cout << "input graph: priorities = " << pbbs::reduce_add(xors) << std::endl;
-//    std::cout << "input graph: self-loops = " << pbbs::reduce_add(self_arr) << std::endl;
+//    std::cout << "input graph: priorities = " << pbbslib::reduce_add(xors) << std::endl;
+//    std::cout << "input graph: self-loops = " << pbbslib::reduce_add(self_arr) << std::endl;
 
 //    parallel_for(size_t i=0; i<n; i++) {
-//      uintE our_deg = pbbs::log2_up(GA.V[i].getOutDegree());
+//      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
 //      bool selfl = false;
 //      size_t pri = 0;
 //      auto it = GA.V[i].getOutIter(i);
@@ -216,13 +216,13 @@ namespace bytepd_amortized {
 //      if (degree > 0) {
 //        uintE ngh = get<0>(it.cur());
 //        if (src == ngh) { selfl = true; }
-//        uintE ngh_deg = pbbs::log2_up(GA.V[ngh].getOutDegree());
+//        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
 //        if ((ngh_deg > our_deg) || ((ngh_deg == our_deg) && hash_or_lt(src, ngh))) {
 //          pri++;
 //        }
 //        for (size_t i=1; i<degree; i++) {
 //          ngh = get<0>(it.next());
-//          ngh_deg = pbbs::log2_up(GA.V[ngh].getOutDegree());
+//          ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
 //          if (src == ngh) { selfl = true; }
 //          if ((ngh_deg > our_deg) || ((ngh_deg == our_deg) && hash_or_lt(src, ngh))) {
 //            pri++;
@@ -232,8 +232,8 @@ namespace bytepd_amortized {
 //      self_arr[i] = selfl;
 //      xors[i] = pri;
 //    }
-//    std::cout << "input graph: priorities = " << pbbs::reduce_add(xors) << std::endl;
-//    std::cout << "input graph: self-loops = " << pbbs::reduce_add(self_arr) << std::endl;
+//    std::cout << "input graph: priorities = " << pbbslib::reduce_add(xors) << std::endl;
+//    std::cout << "input graph: self-loops = " << pbbslib::reduce_add(self_arr) << std::endl;
 
 
     // 1. Calculate total size
@@ -276,11 +276,11 @@ namespace bytepd_amortized {
       byte_offsets[i] = total_bytes;
     });
     byte_offsets[n] = 0;
-    size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
+    size_t total_space = pbbslib::scan_add(byte_offsets, byte_offsets);
     std::cout << "total space = " << total_space << std::endl;
     auto deg_f = [&] (size_t i) { return degrees[i]; };
     auto deg_im = make_sequence<size_t>(n, deg_f);
-    std::cout << "sum degs = " << pbbs::reduce_add(deg_im) << std::endl;
+    std::cout << "sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     // 2. Create compressed format in-memory
     auto edges = sequence<uchar>(total_space);
@@ -357,15 +357,15 @@ namespace bytepd_amortized {
 //      }
 //      xors[i] = xr;
 //    }
-//    std::cout << "output graph: output red = " << pbbs::reduce_xor(xors) << std::endl;
+//    std::cout << "output graph: output red = " << pbbslib::reduce_xor(xors) << std::endl;
 
 //    parallel_for(size_t i=0; i<n; i++) {
 //      assert(degrees[i] == GA.V[i].getOutDegree());
-//      uintE our_deg = pbbs::log2_up(degrees[i]);
+//      uintE our_deg = pbbslib::log2_up(degrees[i]);
 //      bool selfl = false;
 //      size_t pri = 0;
 //      auto map_f = [&] (uintE src, uintE ngh, const W& wgh, size_t off) {
-//        uintE ngh_deg = pbbs::log2_up(degrees[ngh]);
+//        uintE ngh_deg = pbbslib::log2_up(degrees[ngh]);
 //        if (src == ngh) {
 //          selfl = true;
 //        }
@@ -382,13 +382,13 @@ namespace bytepd_amortized {
 //      self_arr[i] = selfl;
 //      xors[i] = pri;
 //    }
-//    std::cout << "output graph: priorities = " << pbbs::reduce_add(xors) << std::endl;
-//    std::cout << "output graph: self-loops = " << pbbs::reduce_add(self_arr) << std::endl;
+//    std::cout << "output graph: priorities = " << pbbslib::reduce_add(xors) << std::endl;
+//    std::cout << "output graph: self-loops = " << pbbslib::reduce_add(self_arr) << std::endl;
 
 
 //    exit(0);
 
-    long* sizes = pbbs::new_array_no_init<long>(3);
+    long* sizes = pbbslib::new_array_no_init<long>(3);
     sizes[0] = GA.n;
     sizes[1] = GA.m;
     sizes[2] = total_space;

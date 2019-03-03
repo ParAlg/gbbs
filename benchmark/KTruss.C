@@ -37,7 +37,7 @@
 template <class vertex>
 void KTruss_runner(graph<vertex>& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
-  if (num_buckets != (1 << pbbs::log2_up(num_buckets))) {
+  if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Number of buckets must be a power of two."
               << "\n";
     exit(-1);

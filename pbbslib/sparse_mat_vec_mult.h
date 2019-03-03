@@ -21,5 +21,5 @@ void mat_vec_mult(IntSeq const &starts,
       out[i] = sum;
     } else out[i] = 0;
   };
-  parallel_for(0, n, row_f, pbbs::granularity(n));
+  parallel_for(0, n, row_f, pbbslib::granularity(n));
 }

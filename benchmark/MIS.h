@@ -51,8 +51,8 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
       make_sequence<size_t>(GA.n, mis_f);
-  size_t mis_size = pbbs::reduce_add(mis_int);
-  if (pbbs::reduce_add(d) != (GA.n - mis_size)) {
+  size_t mis_size = pbbslib::reduce_add(mis_int);
+  if (pbbslib::reduce_add(d) != (GA.n - mis_size)) {
     std::cout << "MIS incorrect"
               << "\n";
     assert(false);
@@ -68,7 +68,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
   auto deg_f =  [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); };
   auto deg_im = make_sequence<size_t>(
       vs.size(), deg_f);
-  size_t sum_d = pbbs::reduce_add(deg_im);
+  size_t sum_d = pbbslib::reduce_add(deg_im);
 
   if (sum_d > GA.m / 100) {  // dense forward case
     auto dense = sequence<bool>(GA.n, false);
@@ -84,14 +84,14 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     return vertexSubset(GA.n, dense.get_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
     std::cout << "sum_d = " << sum_d << std::endl;
-    auto ht = make_sparse_table<uintE, pbbs::empty>(
-        sum_d, std::make_tuple(UINT_E_MAX, pbbs::empty()),
-        [&](const uintE& k) { return pbbs::hash64(k); });
+    auto ht = make_sparse_table<uintE, pbbslib::empty>(
+        sum_d, std::make_tuple(UINT_E_MAX, pbbslib::empty()),
+        [&](const uintE& k) { return pbbslib::hash64(k); });
     vs.toSparse();
     par_for(0, vs.size(), [&] (size_t i) {
       auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
         if (p(ngh)) {
-          ht.insert(std::make_tuple(ngh, pbbs::empty()));
+          ht.insert(std::make_tuple(ngh, pbbslib::empty()));
         }
       };
       uintE v = vs.vtx(i);
@@ -104,8 +104,8 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
-  uint32_t src_h = pbbs::hash32(src);
-  uint32_t ngh_h = pbbs::hash32(ngh);
+  uint32_t src_h = pbbslib::hash32(src);
+  uint32_t ngh_h = pbbslib::hash32(ngh);
   return (src_h < ngh_h) || ((src_h == ngh_h) && src < ngh);
 };
 
@@ -123,7 +123,7 @@ struct mis_f {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (perm[s] < perm[d]) {
-      return (pbbs::xadd(&p[d], -1) == 1);
+      return (pbbslib::xadd(&p[d], -1) == 1);
     }
     return false;
   }
@@ -158,8 +158,8 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
 
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
-  auto perm = pbbs::random_permutation<uintE>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  auto perm = pbbslib::random_permutation<uintE>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -174,7 +174,7 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
       make_sequence<bool>(n, zero_f);
-  auto init = pbbs::pack_index<uintE>(zero_map);
+  auto init = pbbslib::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, init.size(), init.get_array());
 
   auto in_mis = sequence<bool>(n, false);
@@ -286,7 +286,7 @@ inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
   });
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_imap = make_sequence<size_t>(n, ok_f);
-  size_t n_ok = pbbs::reduce_add(ok_imap);
+  size_t n_ok = pbbslib::reduce_add(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MIS"
               << "\n";

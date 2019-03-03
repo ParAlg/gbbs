@@ -35,11 +35,11 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     bool* bits;
     bool s_bits[1000];
     if (deg > 1000)
-      bits = pbbs::new_array_no_init<bool>(deg);
+      bits = pbbslib::new_array_no_init<bool>(deg);
     else
       bits = (bool*)s_bits;
 
-    par_for(0, deg, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, deg, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { bits[i] = 0; });
     auto map_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE color = colors[ngh];
@@ -50,9 +50,9 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     GA.V[v].mapOutNgh(v, map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = make_sequence<uintE>(deg, im_f);
-    uintE color = pbbs::reduce(im, minm<uintE>());
+    uintE color = pbbslib::reduce(im, minm<uintE>());
     if (deg > 1000) {
-      pbbs::free_array(bits);
+      pbbslib::free_array(bits);
     }
     return (color == UINT_E_MAX) ? (deg + 1) : color;
   }
@@ -79,7 +79,7 @@ struct coloring_f {
                 << "\n";
       exit(-1);
     }
-    return (pbbs::xadd(&p[d], -1) == 1);
+    return (pbbslib::xadd(&p[d], -1) == 1);
   }
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
@@ -98,7 +98,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     std::cout << "Running LF"
               << "\n";
     // LF heuristic
-    auto P = pbbs::random_permutation<uintE>(n);
+    auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
       uintE our_deg = GA.V[i].getOutDegree();
       uintE i_p = P[i];
@@ -112,13 +112,13 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     std::cout << "Running LLF"
               << "\n";
     // LLF heuristic
-    auto P = pbbs::random_permutation<uintE>(n);
+    auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = pbbs::log2_up(GA.V[i].getOutDegree());
+      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
       uintE i_p = P[i];
       // breaks ties using P
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = pbbs::log2_up(GA.V[ngh].getOutDegree());
+        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
       priorities[i] = GA.V[i].countOutNgh(i, count_f);
@@ -127,7 +127,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
 
   auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map = make_sequence<bool>(n, zero_map_f);
-  auto init = pbbs::pack_index<uintE>(zero_map);
+  auto init = pbbslib::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, init.size(), init.get_array());
   initt.reportTotal("init time");
 
@@ -177,7 +177,7 @@ inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
   });
   auto im_f = [&](size_t i) { return (size_t)ok[i]; };
   auto im = make_sequence<size_t>(n, im_f);
-  size_t ct = pbbs::reduce_add(im);
+  size_t ct = pbbslib::reduce_add(im);
   std::cout << "ct = " << ct << "\n";
   if (ct > 0) {
     std::cout << "Invalid coloring"

@@ -38,10 +38,10 @@ inline sequence<uintE> generate_shifts(size_t n, double beta) {
   // Create (ln n)/beta levels
   uintE last_round = total_rounds(n, beta);
   auto shifts = sequence<uintE>(last_round + 1);
-  par_for(0, last_round, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, last_round, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbs::scan_add(shifts, shifts);
+  pbbslib::scan_add(shifts, shifts);
   return shifts;
 }
 
@@ -49,26 +49,26 @@ template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
     }
   });
-  std::cout << "num. clusters = " << pbbs::reduce_add(flags) << "\n";
+  std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
 }
 
 template <template <typename W> class vertex, class W, class Seq>
 inline void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
   size_t n = GA.n;
   auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ic_edges[i] = ct;
   });
-  std::cout << "num. intercluster edges = " << pbbs::reduce_add(ic_edges)
+  std::cout << "num. intercluster edges = " << pbbslib::reduce_add(ic_edges)
             << "\n";
 }
 }  // namespace ldd_utils
@@ -109,11 +109,11 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbs::random_permutation<uintE>(n);
+    vertex_perm = pbbslib::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto cluster_ids = sequence<uintE>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { cluster_ids[i] = UINT_E_MAX; });
 
   size_t round = 0, num_visited = 0;
@@ -133,9 +133,9 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
       };
       auto candidates = make_sequence<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
-      auto new_centers = pbbs::filter(candidates, pred);
+      auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.start(), new_centers.size());
-      par_for(0, new_centers.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
     }

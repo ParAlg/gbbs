@@ -47,27 +47,27 @@ struct countF {
 
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
-  uintE* r = pbbs::new_array_no_init<uintE>(n);
-  uintE* o = pbbs::new_array_no_init<uintE>(n);
+  uintE* r = pbbslib::new_array_no_init<uintE>(n);
+  uintE* o = pbbslib::new_array_no_init<uintE>(n);
 
   timer t;
   t.start();
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
-  pbbs::sample_sort(o, n, [&](const uintE u, const uintE v) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
+  pbbslib::sample_sort(o, n, [&](const uintE u, const uintE v) {
     return V[u].getOutDegree() < V[v].getOutDegree();
   });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
   t.stop();
   t.reportTotal("Rank time");
-  pbbs::free_array(o);
+  pbbslib::free_array(o);
   return r;
 }
 
 // Directly call edgemap dense-forward.
 template <class vertex, class VS, class F>
 inline vertexSubset emdf(graph<vertex> GA, VS& vs, F f, const flags& fl = 0) {
-  return edgeMapDenseForward<pbbs::empty>(GA, vs, f, fl);
+  return edgeMapDenseForward<pbbslib::empty>(GA, vs, f, fl);
 }
 
 template <template <class W> class vertex, class W>
@@ -75,7 +75,7 @@ inline size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
                             vertexSubset& Frontier) {
   emdf(DG, Frontier, wrap_em_f<W>(countF<vertex, W>(DG.V, counts)), no_output);
   auto count_seq = sequence<size_t>(counts, DG.n);
-  size_t count = pbbs::reduce_add(count_seq);
+  size_t count = pbbslib::reduce_add(count_seq);
   return count;
 }
 
@@ -96,7 +96,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
       parallel_work[i] = DG.V[i].template reduceOutNgh<size_t>(i, map_f, monoid);
     });
   }
-  size_t total_work = pbbs::scan_add(parallel_work, parallel_work);
+  size_t total_work = pbbslib::scan_add(parallel_work, parallel_work);
 
   size_t n_blocks = num_workers() * 8 + 1;
   size_t work_per_block = total_work / n_blocks;
@@ -120,13 +120,13 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
     auto less_fn = std::less<size_t>();
-    size_t start_ind = pbbs::binary_search(parallel_work, start, less_fn);
-    size_t end_ind = pbbs::binary_search(parallel_work, end, less_fn);
+    size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
+    size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
     run_intersection(start_ind, end_ind);
   });
 
   auto count_seq = sequence<size_t>(counts, DG.n);
-  size_t count = pbbs::reduce_add(count_seq);
+  size_t count = pbbslib::reduce_add(count_seq);
 
   return count;
 }
@@ -137,7 +137,7 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
   gt.start();
   uintT n = GA.n;
   auto counts = sequence<size_t>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { counts[i] = 0; });
 
   // 1. Rank vertices based on degree
@@ -162,6 +162,6 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
   DG.del();
   ct.stop();
   ct.reportTotal("count time");
-  pbbs::free_array(rank);
+  pbbslib::free_array(rank);
   return count;
 }

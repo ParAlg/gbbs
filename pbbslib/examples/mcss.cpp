@@ -31,7 +31,7 @@ typename Seq::T mcss(Seq const &A) {
 int main() {
   using T = double;
   size_t n = 100000000;
-  pbbs::random r(0);
+  pbbslib::random r(0);
   sequence<T> A(n, [&] (size_t i) {return (T) (r[i]%n - n/2);});
   T result;
   for (int i=0; i < 5; i++) {

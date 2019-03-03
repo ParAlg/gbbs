@@ -42,7 +42,7 @@ using T = std::tuple<K, V>;
 using label_type = size_t;
 
 struct hash_kv {
-  uint64_t operator()(const K& k) { return pbbs::hash64(k); }
+  uint64_t operator()(const K& k) { return pbbslib::hash64(k); }
 };
 
 template <class W, class Seq, class Tab>
@@ -100,7 +100,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
                                                    const flags fl = 0) {
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
-  size_t backing_size = 1 << pbbs::log2_up(frontier.size() * 2);
+  size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
   auto table_backing = sequence<T>(backing_size);
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.get_array(), true);
@@ -128,7 +128,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
     };
     auto im = make_sequence<size_t>(frontier.size(), im_f);
 
-    size_t sum = pbbs::reduce_add(im);
+    size_t sum = pbbslib::reduce_add(im);
     table.maybe_resize(sum);
 
     par_for(0, frontier.size(), 2000, [&] (size_t i) {
@@ -204,14 +204,14 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   auto not_zero_pred = [&](size_t i) {
     return (GA.V[i].getOutDegree() > 0) && (GA.V[i].getInDegree() > 0);
   };
-  auto zero = pbbs::filter(v_im, zero_pred);
-  auto P = pbbs::filter(v_im, not_zero_pred);
-  pbbs::random_shuffle(P);
+  auto zero = pbbslib::filter(v_im, zero_pred);
+  auto P = pbbslib::filter(v_im, not_zero_pred);
+  pbbslib::random_shuffle(P);
   std::cout << "Filtered: " << zero.size()
             << " vertices. Num remaining = " << P.size() << "\n";
 
   // Assign labels from [0...zero.size())
-  par_for(0, zero.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, zero.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { labels[zero[i]] = i | TOP_BIT; });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
@@ -237,13 +237,13 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     auto id = std::make_tuple<uintE, uintE>(0, 0);
     auto monoid = make_monoid(red_f, id);
     std::tuple<uintE, uintE> sAndD =
-        pbbs::reduce(deg_im, monoid);
+        pbbslib::reduce(deg_im, monoid);
     uintE start = std::get<0>(sAndD);
     if (!(labels[start] & TOP_BIT)) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
       size_t label = label_offset;
-      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -252,15 +252,15 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
           labels[i] = label;
         }
       });
-      pbbs::free_array(in_visits);
-      pbbs::free_array(out_visits);
+      pbbslib::free_array(in_visits);
+      pbbslib::free_array(out_visits);
       label_offset += 1;
       hd.stop();
       hd.reportTotal("big scc time");
     }
   }
 
-  auto Q = pbbs::filter(P, [&](uintE v) { return !(labels[v] & TOP_BIT); });
+  auto Q = pbbslib::filter(P, [&](uintE v) { return !(labels[v] & TOP_BIT); });
   std::cout << "After first round, Q = " << Q.size()
             << " vertices remain. Total done = " << (n - Q.size()) << "\n";
 
@@ -278,7 +278,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
 
     auto centers_pre_filter_f = [&](size_t i) { return Q[round_offset + i]; };
     auto centers_pre_filter = make_sequence<uintE>(vs_size, centers_pre_filter_f);
-    auto centers = pbbs::filter(
+    auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
 
     std::cout << "round = " << cur_round << " n_centers = " << centers.size()
@@ -301,7 +301,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
 
       size_t label = cur_label_offset;
 
-      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -310,8 +310,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
           labels[i] = label;
         }
       });
-      pbbs::free_array(in_visits);
-      pbbs::free_array(out_visits);
+      pbbslib::free_array(in_visits);
+      pbbslib::free_array(out_visits);
       ft.stop();
       ft.reportTotal("first round time");
       continue;
@@ -374,14 +374,14 @@ inline size_t num_done(Seq& labels) {
   };
   auto im = make_sequence<size_t>(labels.size(), im_f);
 
-  return pbbs::reduce_add(im);
+  return pbbslib::reduce_add(im);
 }
 
 template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (labels[i] == 0) {
       std::cout << "unlabeled"
                 << "\n";
@@ -392,7 +392,7 @@ inline size_t num_scc(Seq& labels) {
       flags[label] = 1;
     }
   });
-  pbbs::scan_add(flags, flags);
+  pbbslib::scan_add(flags, flags);
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;
@@ -406,7 +406,7 @@ inline void scc_stats(Seq& labels) {
     size_t label = labels[i] & VAL_MASK;
     flags[label]++;
   }
-  size_t maxv = pbbs::reduce_max(flags);
+  size_t maxv = pbbslib::reduce_max(flags);
   std::cout << "Largest SCC has " << maxv << " vertices"
             << "\n";
   for (size_t i = 0; i < n; i++) {

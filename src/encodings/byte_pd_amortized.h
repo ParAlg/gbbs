@@ -49,11 +49,11 @@ inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
   return 0;
 }
 
-// Read default weight (expects pbbs::empty)
+// Read default weight (expects pbbslib::empty)
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
 inline W eatWeight(uchar*& start) {
-  return (W)pbbs::empty();
+  return (W)pbbslib::empty();
 }
 
 template <class W,
@@ -334,7 +334,7 @@ struct simple_iter {
 // Decode unweighted edges
 template <
     class W, class T,
-    typename std::enable_if<std::is_same<W, pbbs::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
   if (degree > 0) {
@@ -352,7 +352,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
                            : (*((uintE*)(edge_start + block_offsets[0])));
     finger += sizeof(uintE);
 
-    auto wgh = pbbs::empty();
+    auto wgh = pbbslib::empty();
     if (start_offset < end_offset) {  // at least one edge in this block
       uintE ngh = eatFirstEdge(finger, source);
       if (!t(source, ngh, wgh, start_offset)) return;
@@ -385,7 +385,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
 // Decode weighted edges
 template <class W, class T,
-          typename std::enable_if<!std::is_same<W, pbbs::empty>::value,
+          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
                                   int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
@@ -488,7 +488,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     E stk[100];
     E* block_outputs;
     if (num_blocks > 100) {
-      block_outputs = pbbs::new_array_no_init<E>(num_blocks);
+      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -518,9 +518,9 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     }, par);
 
     auto im = make_sequence(block_outputs, num_blocks);
-    E res = pbbs::reduce(im, reduce);
+    E res = pbbslib::reduce(im, reduce);
     if (num_blocks > 100) {
-      pbbs::free_array(block_outputs);
+      pbbslib::free_array(block_outputs);
     }
     return res;
   } else {
@@ -602,7 +602,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   auto blocks_imap = make_sequence<size_t>(num_blocks, blocks_f);
   // This is essentially searching a plus_scan'd, incl arr.
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-  size_t block = pbbs::binary_search(blocks_imap, i, lte);
+  size_t block = pbbslib::binary_search(blocks_imap, i, lte);
   assert(block >= 0);
   assert(block < num_blocks);
 
@@ -662,7 +662,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 //        uchar* finger = edge_start + offs[start + i];
 //        return eatFirstEdge(finger, source_id);
 //      });
-//      uintE ind = pbbs::binary_search(start_im, pivot, std::greater<uintE>());
+//      uintE ind = pbbslib::binary_search(start_im, pivot, std::greater<uintE>());
 //      // check
 //      // ind is the first block index (from start) <= our pivot.
 //      uintE db[1000];
@@ -689,8 +689,8 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 //  inline uintE seq_intersect(seq_info u, seq_info v) { uintE ngh_u[1000];
 //    uchar* finger = u.get_start_of_block(u.start);
 //    return 0;
-//  //  decode_block<pbbs::empty>(finger, (std::tuple<uintE,
-//  pbbs::empty>*)ngh_u, 0,
+//  //  decode_block<pbbslib::empty>(finger, (std::tuple<uintE,
+//  pbbslib::empty>*)ngh_u, 0,
 //  }
 //
 //  inline uintE intersect(seq_info u, seq_info v) {
@@ -781,7 +781,7 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
 
   // 2. Scan to compute block offsets
   auto bytes_imap = make_sequence(offs, new_blocks + 1);
-  pbbs::scan_add(bytes_imap, bytes_imap);
+  pbbslib::scan_add(bytes_imap, bytes_imap);
 
   // 3. Compress each block
   nghs_start = edge_start + (new_blocks - 1) * sizeof(uintE) + sizeof(uintE);
@@ -862,7 +862,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     uintEW tmp_stack[100];
     uintEW* U = tmp_stack;
     if (degree > 100) {
-      U = pbbs::new_array_no_init<uintEW>(degree);
+      U = pbbslib::new_array_no_init<uintEW>(degree);
     }
     par_for(0, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
@@ -890,7 +890,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     size_t new_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE offs_stack[100];
     uintE* offs =
-        ((new_blocks + 1) <= 100) ? offs_stack : pbbs::new_array_no_init<uintE>(new_blocks + 1);
+        ((new_blocks + 1) <= 100) ? offs_stack : pbbslib::new_array_no_init<uintE>(new_blocks + 1);
 
     // 3. Compute #bytes per new block
     par_for(0, new_blocks, 2, [&] (size_t i) {
@@ -917,7 +917,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // 4. Scan to compute offset for each block
     offs[new_blocks] = 0;
     auto bytes_imap = make_sequence(offs, new_blocks + 1);
-    pbbs::scan_add(bytes_imap, bytes_imap);
+    pbbslib::scan_add(bytes_imap, bytes_imap);
 
     // 5. Repack each block
     uintE* virtual_degree_ptr = (uintE*)edge_start;
@@ -956,10 +956,10 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     }, par);
 
     if ((new_blocks + 1) > 100) {
-      pbbs::free_array(offs);
+      pbbslib::free_array(offs);
     }
     if (degree > 100) {
-      pbbs::free_array(U);
+      pbbslib::free_array(U);
     }
   }
 }
@@ -978,7 +978,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   size_t block_cts_stack[100];
   size_t* block_cts =
-      (num_blocks > 100) ? pbbs::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
+      (num_blocks > 100) ? pbbslib::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
 
   par_for(0, num_blocks, 2, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1041,7 +1041,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   // 2. Scan block_cts to get offsets within blocks
   block_cts[num_blocks] = 0;
   auto scan_cts = make_sequence(block_cts, num_blocks + 1);
-  size_t deg_remaining = pbbs::scan_add(scan_cts, scan_cts);
+  size_t deg_remaining = pbbslib::scan_add(scan_cts, scan_cts);
 
   par_for(0, num_blocks, 1000, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1050,7 +1050,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   });
 
   if (num_blocks > 100) {
-    pbbs::free_array(block_cts);
+    pbbslib::free_array(block_cts);
   }
 
   // Can comment out this call to avoid repacking; this can make algorithms,
@@ -1159,7 +1159,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
       auto pd = [&](const std::tuple<uintE, W>& nw) {
         return pred(source, std::get<0>(nw), std::get<1>(nw));
       };
-      uintE k = pbbs::filterf(tmp, last_offset, pd, out, out_off);
+      uintE k = pbbslib::filterf(tmp, last_offset, pd, out, out_off);
       out_off += k;
 
       blocks_finished += total_blocks;

@@ -37,26 +37,26 @@ inline size_t RelabelIds(Seq& ids) {
   using T = typename Seq::T;
   size_t n = ids.size();
   auto inverse_map = sequence<T>(n + 1);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { inverse_map[i] = 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
   });
-  pbbs::scan_add(inverse_map, inverse_map);
+  pbbslib::scan_add(inverse_map, inverse_map);
 
   size_t new_n = inverse_map[n];
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { ids[i] = inverse_map[ids[i]]; });
   return new_n;
 }
 
 template <template <typename W> class vertex, class W, class EO>
-inline std::tuple<graph<symmetricVertex<pbbs::empty>>, sequence<uintE>,
+inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>,
                   sequence<uintE>>
 contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, EO& oracle) {
   // Remove duplicates by hashing
   using K = std::tuple<uintE, uintE>;
-  using V = pbbs::empty;
+  using V = pbbslib::empty;
   using KV = std::tuple<K, V>;
 
   size_t n = GA.n;
@@ -75,16 +75,16 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   par_for(0, n, [&] (size_t i)
                   { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
   deg_map[n] = 0;
-  pbbs::scan_add(deg_map, deg_map);
+  pbbslib::scan_add(deg_map, deg_map);
   count_t.stop();
   count_t.reportTotal("count time");
 
   timer ins_t;
   ins_t.start();
   KV empty =
-      std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbs::empty());
+      std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());
   auto hash_pair = [](const std::tuple<uintE, uintE>& t) {
-    return pbbs::hash64(std::get<0>(t)) ^ pbbs::hash64(std::get<1>(t));
+    return pbbslib::hash64(std::get<0>(t)) ^ pbbslib::hash64(std::get<1>(t));
   };
   auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
   deg_map.clear();
@@ -95,7 +95,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
       uintE c_ngh = clusters[ngh];
       if (c_src < c_ngh) {
         edge_table.insert(
-            std::make_tuple(std::make_tuple(c_src, c_ngh), pbbs::empty()));
+            std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()));
       }
     }
   };
@@ -108,18 +108,18 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   // Pack out singleton clusters
   auto flags = sequence<uintE>(num_clusters + 1, [](size_t i) { return 0; });
 
-  par_for(0, edges.size(), pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, edges.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
                     auto e = std::get<0>(edges[i]);
                     uintE u = std::get<0>(e);
                     uintE v = std::get<1>(e);
                     if (!flags[u]) flags[u] = 1;
                     if (!flags[v]) flags[v] = 1;
                   });
-  pbbs::scan_add(flags, flags);
+  pbbslib::scan_add(flags, flags);
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = sequence<uintE>(num_ns_clusters);
-  par_for(0, num_clusters, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, num_clusters, pbbslib::kSequentialForThreshold, [&] (size_t i) {
                     if (flags[i] != flags[i + 1]) {
                       mapping[flags[i]] = i;
                     }
@@ -136,11 +136,11 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
     }
   });
 
-  auto EA = edge_array<pbbs::empty>(
-      (std::tuple<uintE, uintE, pbbs::empty>*)sym_edges.start(),
+  auto EA = edge_array<pbbslib::empty>(
+      (std::tuple<uintE, uintE, pbbslib::empty>*)sym_edges.start(),
       num_ns_clusters, num_ns_clusters, sym_edges.size());
 
-  auto GC = sym_graph_from_edges<pbbs::empty>(EA);
+  auto GC = sym_graph_from_edges<pbbslib::empty>(EA);
   return std::make_tuple(GC, std::move(flags), std::move(mapping));
 }
 
@@ -178,7 +178,7 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
   if (GC.m == 0) return clusters;
 
   auto new_labels = CC_impl(GC, beta, level + 1);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton
@@ -198,12 +198,12 @@ template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }
   });
-  pbbs::scan_add(flags, flags);
+  pbbslib::scan_add(flags, flags);
   std::cout << "n_cc = " << flags[n] << "\n";
 }
 
@@ -215,7 +215,7 @@ inline size_t largest_cc(Seq& labels) {
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
-  std::cout << "largest_cc has size: " << pbbs::reduce_max(flags) << "\n";
+  std::cout << "largest_cc has size: " << pbbslib::reduce_max(flags) << "\n";
 }
 
 template <class vertex>
@@ -254,7 +254,7 @@ inline sequence<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
   if (GC.m == 0) return clusters;
 
   auto new_labels = cc::CC_impl(GC, beta, level + 1);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton

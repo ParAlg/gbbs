@@ -49,7 +49,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   ligra_utils::_seq<char> S = readStringFromFile(s);
   auto Wo = stringToWords(S.A, S.n);
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     labels[i] =
         std::make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
   });
@@ -84,7 +84,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
       bits[label] = 1;
     }
     size_t key = (static_cast<size_t>(src) << 32) + static_cast<size_t>(ngh);
-    if ((pbbs::hash64(key) & mask) == 0) {
+    if ((pbbslib::hash64(key) & mask) == 0) {
       ST.insert(std::make_tuple(label, 1));
     }
     if (component_id != UINT_E_MAX) {
@@ -93,7 +93,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
       }
     }
   };
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { GA.V[i].mapOutNgh(i, map_bc_label); });
 
   if (component_id == UINT_E_MAX) {
@@ -102,7 +102,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
                        const std::tuple<uintE, uintE>& r) {
       return std::get<1>(l) > std::get<1>(r);
     };
-    pbbs::sample_sort(ET.start(), ET.size(), cmp_snd);
+    pbbslib::sample_sort(ET.start(), ET.size(), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }
@@ -110,7 +110,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
     // reduce flags
     auto flags_f = [&](size_t i) { return (size_t)flags[i]; };
     auto flags_imap = make_sequence<size_t>(n, flags_f);
-    std::cout << "Largest component size = " << pbbs::reduce_add(flags_imap)
+    std::cout << "Largest component size = " << pbbslib::reduce_add(flags_imap)
               << "\n";
   }
 
@@ -123,7 +123,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   // Note that this is the number of biconnected components excluding isolated
   // vertices (the definition maps edges -> components, so isolated vertices
   // don't contribute to any meaningful components).
-  uintE total_biccs = pbbs::scan_add(bits, bits);
+  uintE total_biccs = pbbslib::scan_add_inplace(bits);
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 

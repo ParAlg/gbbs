@@ -123,7 +123,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
 
   // Store the initial trussness of each edge in the trussness table.
-  auto multi_hash = [&] (uintE k) { return pbbs::hash32(k); };
+  auto multi_hash = [&] (uintE k) { return pbbslib::hash32(k); };
   auto get_size = [&] (size_t i) {
     uintE vtx = i;
     auto count_f = [&] (uintE u, uintE v, W& wgh) {
@@ -191,7 +191,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     }
 
     size_t e_size = 2*k*rem_edges.size();
-    size_t e_space_required  = (size_t)1 << pbbs::log2_up((size_t)(e_size*1.2));
+    size_t e_space_required  = (size_t)1 << pbbslib::log2_up((size_t)(e_size*1.2));
 
     // Resize the table that stores edge updates if necessary.
     if (e_space_required > vt.size()) {

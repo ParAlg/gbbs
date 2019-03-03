@@ -32,8 +32,8 @@ struct UnionFind {
   size_t n;
   intT* parents;
   UnionFind(size_t _n) : n(_n) {
-    parents = pbbs::new_array_no_init<intT>(n);
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    parents = pbbslib::new_array_no_init<intT>(n);
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { parents[i] = -1; });
   }
 
@@ -54,7 +54,7 @@ struct UnionFind {
 
   void link(intT u, intT v) { parents[u] = v; }
 
-  void clear() { pbbs::free_array(parents); }
+  void clear() { pbbslib::free_array(parents); }
 };
 
 // edges: <uintE, uintE, W>
@@ -70,12 +70,12 @@ struct UnionFindStep {
 
   size_t n;
 
-  void clear() { pbbs::free_array(indices); }
+  void clear() { pbbslib::free_array(indices); }
 
   UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf)
       : E(_E), R(_R), inST(ist), uf(_uf) {
     n = uf.n;
-    indices = pbbs::new_array_no_init<storage>(E.non_zeros);
+    indices = pbbslib::new_array_no_init<storage>(E.non_zeros);
   }
 
   bool reserve(intT i) {

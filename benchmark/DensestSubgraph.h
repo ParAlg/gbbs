@@ -66,7 +66,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
       return bits[i] ? static_cast<size_t>(D[i]) : static_cast<size_t>(0);
     };
     auto degree_seq = make_sequence<size_t>(n, degree_f);
-    long edges_remaining = pbbs::reduce_add(degree_seq);
+    long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // update density
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining);
@@ -87,7 +87,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
       };
       return false;
     };
-    auto peeled = pbbs::filter(in_seq, filter_low_deg);
+    auto peeled = pbbslib::filter(in_seq, filter_low_deg);
     size_t vertices_removed = peeled.size();
     auto vs = vertexSubset(n, peeled.size(), peeled.get_array());
     std::cout << "removing " << vertices_removed << " vertices" << std::endl;

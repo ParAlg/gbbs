@@ -74,8 +74,8 @@ struct words {
   words(char* C, long nn, char** S, long mm)
       : n(nn), Chars(C), m(mm), Strings(S) {}
   void clear() {
-    pbbs::free_array(Chars);
-    pbbs::free_array(Strings);
+    pbbslib::free_array(Chars);
+    pbbslib::free_array(Strings);
   }
 };
 
@@ -118,7 +118,7 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
     exit(-1);
   }
   size_t n = sb.st_size;
-  //  char *bytes = pbbs::new_array_no_init<char>(n);
+  //  char *bytes = pbbslib::new_array_no_init<char>(n);
   //  parallel_for(size_t i=0; i<n; i++) {
   //    bytes[i] = p[i];
   //  }
@@ -127,7 +127,7 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
   //    exit(-1);
   //  }
   //  std::cout << "mmapped" << "\n";
-  //  pbbs::free_array(bytes);
+  //  pbbslib::free_array(bytes);
   //  exit(0);
   return ligra_utils::_seq<char>(p, n);
 }
@@ -141,7 +141,7 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   long end = file.tellg();
   file.seekg(0, std::ios::beg);
   long n = end - file.tellg();
-  char* bytes = pbbs::new_array_no_init<char>(n + 1);
+  char* bytes = pbbslib::new_array_no_init<char>(n + 1);
   file.read(bytes, n);
   file.close();
   return ligra_utils::_seq<char>(bytes, n);
@@ -150,22 +150,22 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
 // parallel code for converting a string to words
 inline words stringToWords(char* Str, long n) {
   {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (isSpace(Str[i])) Str[i] = 0;
     });
   }
 
   // mark start of words
-  bool* FL = pbbs::new_array_no_init<bool>(n);
+  bool* FL = pbbslib::new_array_no_init<bool>(n);
   FL[0] = Str[0];
   {
-    par_for(1, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(1, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { FL[i] = Str[i] && !Str[i - 1]; });
   }
 
   //  std::cout << "n (strlen) = " << n << "\n";
   //  auto im = make_in_imap<size_t>(n, [&] (size_t i) { return FL[i]; });
-  //  std::cout << " sum is : " << pbbs::reduce_add(im) << "\n";
+  //  std::cout << " sum is : " << pbbslib::reduce_add(im) << "\n";
 
   // offset for each start of word
   ligra_utils::_seq<long> Off = ligra_utils::seq::packIndex<long>(FL, n);
@@ -174,14 +174,14 @@ inline words stringToWords(char* Str, long n) {
   long* offsets = Off.A;
 
   // pointer to each start of word
-  char** SA = pbbs::new_array_no_init<char*>(m);
+  char** SA = pbbslib::new_array_no_init<char*>(m);
   {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t j)
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t j)
                     { SA[j] = Str + offsets[j]; });
   }
 
-  pbbs::free_array(offsets);
-  pbbs::free_array(FL);
+  pbbslib::free_array(offsets);
+  pbbslib::free_array(FL);
   return words(Str, n, SA, m);
 }
 
@@ -194,9 +194,9 @@ inline graph<vertex<intE>> readWeightedGraph(
   if (bytes == nullptr) {
     if (mmap) {
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      char* bytes = pbbs::new_array_no_init<char>(S.n);
+      char* bytes = pbbslib::new_array_no_init<char>(S.n);
       // Cannot mutate the graph unless we copy.
-      par_for(0, S.n, pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, S.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { bytes[i] = S.A[i]; });
       if (munmap(S.A, S.n) == -1) {
         perror("munmap");
@@ -224,26 +224,26 @@ inline graph<vertex<intE>> readWeightedGraph(
     assert(false);  // invalid format
   }
 
-  uintT* offsets = pbbs::new_array_no_init<uintT>(n);
+  uintT* offsets = pbbslib::new_array_no_init<uintT>(n);
   using VW = std::tuple<uintE, intE>;
-  std::tuple<uintE, intE>* edges = pbbs::new_array_no_init<VW>(2 * m);
+  std::tuple<uintE, intE>* edges = pbbslib::new_array_no_init<VW>(2 * m);
 
   {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { offsets[i] = atol(W.Strings[i + 3]); });
   }
   {
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       edges[i] = std::make_tuple(atol(W.Strings[i + n + 3]),
                                  atol(W.Strings[i + n + m + 3]));
     });
   }
   // W.clear(); // to deal with performance bug in malloc
 
-  wvtx* v = pbbs::new_array_no_init<wvtx>(n);
+  wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
 
   {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = offsets[i];
       uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
       v[i].setOutDegree(l);
@@ -252,68 +252,68 @@ inline graph<vertex<intE>> readWeightedGraph(
   }
 
   if (!isSymmetric) {
-    uintT* tOffsets = pbbs::new_array_no_init<uintT>(n);
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { tOffsets[i] = INT_T_MAX; });
-    intTriple* temp = pbbs::new_array_no_init<intTriple>(m);
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    intTriple* temp = pbbslib::new_array_no_init<intTriple>(m);
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j),
                                      std::make_pair(i, v[i].getOutWeight(j)));
       }
     });
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
 
     intSort::iSort(temp, m, n + 1, getFirst<intPair>());
 
     tOffsets[temp[0].first] = 0;
-    VW* inEdges = pbbs::new_array_no_init<VW>(m);
+    VW* inEdges = pbbslib::new_array_no_init<VW>(m);
     inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
-    par_for(1, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
       }
     });
 
-    pbbs::free_array(temp);
+    pbbslib::free_array(temp);
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
     ligra_utils::seq::scanIBack(tOffsets, tOffsets, n,
                                 ligra_utils::minF<uintT>(), (uintT)m);
 
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
       v[i].setInNeighbors(inEdges + o);
     });
 
-    pbbs::free_array(tOffsets);
+    pbbslib::free_array(tOffsets);
     return graph<wvtx>(v, n, m, get_deletion_fn(v, inEdges, edges),
                        get_copy_fn(v, inEdges, edges, n, m, m, m));
   } else {
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
     return graph<wvtx>(v, n, m, get_deletion_fn(v, edges),
                        get_copy_fn(v, edges, n, m, m));
   }
 }
 
 template <template <typename W> class vertex>
-inline graph<vertex<pbbs::empty>> readUnweightedGraph(
+inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
-  using wvtx = vertex<pbbs::empty>;
+  using wvtx = vertex<pbbslib::empty>;
   words W;
   if (bytes == nullptr) {
     if (mmap) {
       ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      char* bytes = pbbs::new_array_no_init<char>(S.n);
+      char* bytes = pbbslib::new_array_no_init<char>(S.n);
       // Cannot mutate the graph unless we copy.
-      par_for(0, S.n, pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, S.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { bytes[i] = S.A[i]; });
       if (munmap(S.A, S.n) == -1) {
         perror("munmap");
@@ -338,73 +338,73 @@ inline graph<vertex<pbbs::empty>> readUnweightedGraph(
   std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
   assert(len == n + m + 2);
 
-  uintT* offsets = pbbs::new_array_no_init<uintT>(n);
-  uintE* edges = pbbs::new_array_no_init<uintE>(m);
+  uintT* offsets = pbbslib::new_array_no_init<uintT>(n);
+  uintE* edges = pbbslib::new_array_no_init<uintE>(m);
 
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { offsets[i] = atol(W.Strings[i + 3]); });
-  par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { edges[i] = atol(W.Strings[i + n + 3]); });
   W.clear();  // to deal with performance bug in malloc
 
-  wvtx* v = pbbs::new_array_no_init<wvtx>(n);
+  wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
 
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintT o = offsets[i];
     uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
     v[i].setOutDegree(l);
-    v[i].setOutNeighbors(((std::tuple<uintE, pbbs::empty>*)(edges + o)));
+    v[i].setOutNeighbors(((std::tuple<uintE, pbbslib::empty>*)(edges + o)));
   });
 
   if (!isSymmetric) {
-    uintT* tOffsets = pbbs::new_array_no_init<uintT>(n);
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+    uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { tOffsets[i] = INT_T_MAX; });
-    intPair* temp = pbbs::new_array_no_init<intPair>(m);
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    intPair* temp = pbbslib::new_array_no_init<intPair>(m);
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
       }
     });
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
 
     intSort::iSort(temp, m, n + 1, getFirst<uintE>());
 
     tOffsets[temp[0].first] = 0;
-    uintE* inEdges = pbbs::new_array_no_init<uintE>(m);
+    uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
     inEdges[0] = temp[0].second;
-    par_for(1, m, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       inEdges[i] = temp[i].second;
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
       }
     });
 
-    pbbs::free_array(temp);
+    pbbslib::free_array(temp);
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
     ligra_utils::seq::scanIBack(tOffsets, tOffsets, n,
                                 ligra_utils::minF<uintT>(), (uintT)m);
 
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
-      v[i].setInNeighbors((std::tuple<uintE, pbbs::empty>*)(inEdges + o));
+      v[i].setInNeighbors((std::tuple<uintE, pbbslib::empty>*)(inEdges + o));
     });
 
-    pbbs::free_array(tOffsets);
+    pbbslib::free_array(tOffsets);
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, inEdges, edges),
-        get_copy_fn(v, (std::tuple<uintE, pbbs::empty>*)inEdges,
-                    (std::tuple<uintE, pbbs::empty>*)edges, n, m, m, m));
+        get_copy_fn(v, (std::tuple<uintE, pbbslib::empty>*)inEdges,
+                    (std::tuple<uintE, pbbslib::empty>*)edges, n, m, m, m));
   } else {
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, edges),
-        get_copy_fn(v, (std::tuple<uintE, pbbs::empty>*)edges, n, m, m));
+        get_copy_fn(v, (std::tuple<uintE, pbbslib::empty>*)edges, n, m, m));
   }
 }
 
@@ -435,8 +435,8 @@ inline graph<vertex<W>> readCompressedGraph(
         std::cout << "Copying compressed graph"
                   << "\n";
         // Cannot mutate graph unless we copy.
-        char* bytes = pbbs::new_array_no_init<char>(S.n);
-        par_for(0, S.n, pbbs::kSequentialForThreshold, [&] (size_t i)
+        char* bytes = pbbslib::new_array_no_init<char>(S.n);
+        par_for(0, S.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                         { bytes[i] = S.A[i]; });
         if (munmap(S.A, S.n) == -1) {
           perror("munmap");
@@ -560,8 +560,8 @@ inline graph<vertex<W>> readCompressedGraph(
     inDegrees = Degrees;
   }
 
-  w_vertex* V = pbbs::new_array_no_init<w_vertex>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  w_vertex* V = pbbslib::new_array_no_init<w_vertex>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     long o = offsets[i];
     uintT d = Degrees[i];
     V[i].setOutDegree(d);
@@ -569,7 +569,7 @@ inline graph<vertex<W>> readCompressedGraph(
   });
 
   if (!isSymmetric) {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       long o = inOffsets[i];
       uintT d = inDegrees[i];
       V[i].setInDegree(d);
@@ -594,8 +594,8 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
                                                      uintE* degrees,
                                                      uchar* edges) {
   using w_vertex = vertex<W>;
-  w_vertex* V = pbbs::new_array_no_init<w_vertex>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  w_vertex* V = pbbslib::new_array_no_init<w_vertex>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     long o = offsets[i];
     uintT d = degrees[i];
     V[i].setOutDegree(d);
@@ -623,7 +623,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
   par_for(0, n, [&] (size_t i) {
     xors[i] = G.V[i].reduceOutNgh(i, (uintE)0, map_f, reduce_f);
   });
-  uintE xors_sum = pbbs::reduce_xor(xors);
+  uintE xors_sum = pbbslib::reduce_xor(xors);
   assert(xors_sum == 0) << "Input graph is not undirected---exiting.";
 
   return G;
