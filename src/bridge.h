@@ -7,11 +7,12 @@
 #pragma once
 
 #include "pbbslib/binary_search.h"
+#include "pbbslib/monoid.h"
 #include "pbbslib/parallel.h"
+#include "pbbslib/random_shuffle.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
-#include "pbbslib/monoid.h"
 #include "pbbslib/utilities.h"
 
 // ================== parallel primitives ===================

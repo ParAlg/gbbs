@@ -24,7 +24,7 @@
 #pragma once
 
 #include <limits.h>
-#include "pbbslib/macros.h"
+#include "bridge.h"
 
 #define LONG 1
 

@@ -31,12 +31,7 @@
 #include <iostream>
 #include <tuple>
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/extra_sequence_ops.h"
-#include "pbbslib/utilities.h"
-
+#include "bridge.h"
 #include "oldlib/utils.h"
 
 namespace encodings {

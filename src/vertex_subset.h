@@ -26,9 +26,7 @@
 #include <functional>
 #include <limits>
 
-#include "pbbslib/seq.h"
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/extra_sequence_ops.h"
+#include "bridge.h"
 #include "maybe.h"
 
 template <class data>

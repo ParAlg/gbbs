@@ -181,7 +181,7 @@ void list_allocator<T>::rand_shuffle() {
     });
 
   // randomly shuffle them
-  pbbslib::random_shuffle(pbbslib::sequence<T*>(P,num_free));
+  pbbs::random_shuffle(pbbs::sequence<T*>(P,num_free));
 
   // put them back
   parallel_for(0, num_free, [&] (size_t i) {

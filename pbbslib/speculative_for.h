@@ -29,7 +29,7 @@ constexpr intT max_int = std::numeric_limits<intT>::max();
 struct reservation {
   intT r;
   reservation() : r(max_int) {}
-  void reserve(intT i) { pbbslib::write_min(&r, i, std::less<intT>());}
+  void reserve(intT i) { pbbs::write_min(&r, i, std::less<intT>());}
   bool reserved() { return (r < max_int);}
   void reset() {r = max_int;}
   bool check(intT i) { return (r == i);}
@@ -40,7 +40,7 @@ struct reservation {
 };
 
 inline void reserveLoc(intT& x, intT i) {
-  pbbslib::write_min(&x,i, std::less<intT>());}
+  pbbs::write_min(&x,i, std::less<intT>());}
 
 template <class S>
 long speculative_for(S step, long s, long e, long granularity, 
@@ -48,12 +48,12 @@ long speculative_for(S step, long s, long e, long granularity,
   if (maxTries < 0) maxTries = 100 + 200*granularity;
   long maxRoundSize = (e-s)/granularity+1;
   long currentRoundSize = maxRoundSize;
-  pbbslib::sequence<intT> I(maxRoundSize);
-  pbbslib::sequence<bool> keep(maxRoundSize);
-  pbbslib::sequence<intT> Ihold;
-  pbbslib::sequence<S> state;
+  pbbs::sequence<intT> I(maxRoundSize);
+  pbbs::sequence<bool> keep(maxRoundSize);
+  pbbs::sequence<intT> Ihold;
+  pbbs::sequence<S> state;
   if (hasState) 
-    state = pbbslib::sequence<S>(maxRoundSize, [&] (size_t i) {return step;});
+    state = pbbs::sequence<S>(maxRoundSize, [&] (size_t i) {return step;});
 
   long round = 0; 
   long numberDone = s; // number of iterations done
@@ -93,7 +93,7 @@ long speculative_for(S step, long s, long e, long granularity,
     }
 
     // keep iterations that failed for next round
-    Ihold = pbbslib::pack(I.slice(0,size), keep.slice(0,size));
+    Ihold = pbbs::pack(I.slice(0,size), keep.slice(0,size));
     numberKeep = Ihold.size();
     numberDone += size - numberKeep;
 

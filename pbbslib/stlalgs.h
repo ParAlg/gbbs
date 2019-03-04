@@ -6,9 +6,9 @@ namespace pbbs {
 
 template<class IntegerPred>
 size_t count_if_index(size_t n, IntegerPred p) {
-  auto BS = pbbslib::delayed_seq<size_t>(n, [&] (size_t i) -> size_t {
+  auto BS = pbbs::delayed_seq<size_t>(n, [&] (size_t i) -> size_t {
       return p(i);});
-  size_t r = pbbslib::reduce(BS, pbbslib::addm<size_t>());
+  size_t r = pbbs::reduce(BS, pbbs::addm<size_t>());
   return r;
 }
 
@@ -23,7 +23,7 @@ size_t find_if_index(size_t n, IntegerPred p, size_t granularity=1000) {
     size_t end = std::min(n,start+granularity);
     auto f = [&] (size_t i) -> size_t {
       return p(i+start) ? n : i+start;};
-    i = pbbslib::reduce(delayed_seq<size_t>(end-start, f),
+    i = pbbs::reduce(delayed_seq<size_t>(end-start, f),
 		     minm<size_t>());
     if (i < n) return i;
     start += granularity;
@@ -138,7 +138,7 @@ size_t min_element(Seq const &S, Compare comp) {
       return i;});
   auto f = [&] (size_t l, size_t r) {
     return (!comp(S[r], S[l]) ? l : r);};
-  return pbbslib::reduce(S, make_monoid(f, (size_t) S.size()));
+  return pbbs::reduce(S, make_monoid(f, (size_t) S.size()));
 }
 
 template <class Seq, class Compare>
@@ -157,7 +157,7 @@ minmax_element(Seq const &S) {
   auto f = [&] (P l, P r) {
     return (P(!comp(S[r.first], S[l.first]) ? l.first : r.first,
 	      !comp(S[l.second], S[r.second]) ? l.second : r.second));};
-  return pbbslib::reduce(SS, make_monoid(f, P(n,n)));
+  return pbbs::reduce(SS, make_monoid(f, P(n,n)));
 }
 
 template <class Seq>

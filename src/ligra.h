@@ -31,6 +31,7 @@
 #include <iostream>
 #include <string>
 
+#include "bridge.h"
 #include "IO.h"
 #include "compressed_vertex.h"
 #include "edge_map_utils.h"
@@ -41,10 +42,6 @@
 
 #include "oldlib/utils.h"
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/extra_sequence_ops.h"
-#include "pbbslib/get_time.h"
-#include "pbbslib/macros.h"
 
 typedef uint32_t flags;
 const flags no_output = 1;

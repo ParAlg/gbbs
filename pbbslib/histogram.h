@@ -150,7 +150,7 @@ namespace pbbs {
 	if (h.first == I[i] && h.second != -1)
 	  return h.second + num_buckets;
       }
-      return pbbslib::hash64_2(I[i] & low_mask) & bucket_mask;
+      return pbbs::hash64_2(I[i] & low_mask) & bucket_mask;
     }
 
   };
