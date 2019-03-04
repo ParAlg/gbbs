@@ -28,7 +28,11 @@
 #include <iostream>
 
 #include "pbbslib/utilities.h"
-#include "macros.h"
+
+// scan/filter macros; used by sequence implementations
+#define _SCAN_LOG_BSIZE 10
+#define _SCAN_BSIZE (1 << _SCAN_LOG_BSIZE)
+#define _F_BSIZE (2 * _SCAN_BSIZE)
 
 template <class ET>
 inline bool CAS(ET* ptr, ET oldv, ET newv) {

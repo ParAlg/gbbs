@@ -25,10 +25,9 @@
 #include <stdio.h>
 #include <tuple>
 
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/utilities.h"
+#include "bridge.h"
 
-namespace pbbs {
+namespace pbbslib {
 
 // the following parameters can be tuned
 constexpr const size_t _cs_seq_threshold = 2048;
@@ -109,4 +108,4 @@ inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
   return std::make_tuple(B, counts, num_blocks);
 }
 
-}  // namespace pbbs
+}  // namespace pbbslib

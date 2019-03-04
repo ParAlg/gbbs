@@ -6,14 +6,166 @@
 
 #pragma once
 
+#include "pbbslib/parallel.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
-#include "pbbslib/macros.h"
 #include "pbbslib/monoid.h"
 
-// C++17 bridge
-namespace pbbs {
+// ==================== parallel prims =====================
+template <typename F>
+static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
+  if (!parallel) {
+    for (size_t i=start; i<end; i++) {
+      f(i);
+    }
+  } else {
+    parallel_for(start, end, f, granularity);
+  }
+}
 
+template <typename F>
+static void par_for(size_t start, size_t end, F f, bool parallel=true) {
+  size_t n = end - start;
+  size_t granularity = (n > 100) ? ceil(sqrt(n)) : 100;
+  par_for<F>(start, end, granularity, f, parallel);
+}
+
+// Bridge to pbbslib (c++17)
+namespace pbbslib {
+
+  // Open pbbs namespace internally.
+  using namespace pbbs;
+
+  constexpr const size_t kSequentialForThreshold = 4000;
+
+  // ====================== utilities =======================
+  using empty = pbbs::empty;
+  using flags = pbbs::flags;
+  const flags no_flag = pbbs::no_flag;
+  const flags fl_sequential = pbbs::fl_sequential;
+  const flags fl_debug = pbbs::fl_debug;
+  const flags fl_time = pbbs::fl_time;
+  const flags fl_conservative = pbbs::fl_conservative;
+  const flags fl_inplace = pbbs::fl_inplace;
+
+  inline void free_array(void* a) {
+    return pbbs::free_array(a);
+  }
+
+  // Destructs in parallel
+  template<typename E>
+  void delete_array(E* A, size_t n) {
+    return pbbs::delete_array(A, n);
+  }
+
+  // Does not initialize the array
+  template<typename E>
+  E* new_array_no_init(size_t n, bool touch_pages=false) {
+    return pbbs::new_array_no_init(n, touch_pages);
+  }
+
+  // Initializes in parallel
+  template<typename E>
+  E* new_array(size_t n) {
+    return pbbs::new_array(n);
+  }
+
+  // a 32-bit hash function
+  inline uint32_t hash32(uint32_t a) {
+    return pbbs::hash32(a);
+  }
+
+  // cheaper, likely more sketchy versions
+  inline uint32_t hash32_2(uint32_t a) {
+    return pbbs::hash32_2(a);
+  }
+
+  // cheaper, likely more sketchy versions
+  inline uint32_t hash32_3(uint32_t a) {
+    return pbbs::hash32_3(a);
+  }
+
+  // from numerical recipes
+  inline uint64_t hash64(uint64_t u )
+  {
+    return pbbs::hash64(u);
+  }
+
+  // a slightly cheaper, but possibly not as good version
+  // based on splitmix64
+  inline uint64_t hash64_2(uint64_t x) {
+    return pbbs::hash64_2(x);
+  }
+
+  template <typename ET>
+  inline bool CAS_GCC(ET* ptr, const ET oldv, const ET newv) {
+    return pbbs::CAS_GCC(ptr, oldv, newv);
+  }
+
+  // Currently unused; including commented out.
+  // template <class ET>
+  // inline bool CAS128(ET* a, ET b, ET c) {
+  //   return __sync_bool_compare_and_swap_16((__int128*)a, *((__int128*)&b),
+  //                                          *((__int128*)&c));
+  // }
+
+  template <typename ET>
+  inline bool atomic_compare_and_swap(ET* ptr, ET oldv, ET newv) {
+    return pbbs::atomic_compare_and_swap(ptr, oldv, newv);
+  }
+
+  inline bool atomic_compare_and_swap(double* a, const double &oldval, const double &newval) {
+    return pbbs::atomic_compare_and_swap(a, oldval, newval);
+  };
+
+  inline bool atomic_compare_and_swap(float* a, float &oldval, float &newval) {
+    return pbbs::atomic_compare_and_swap(a, oldval, newval);
+  };
+
+  template <typename E, typename EV>
+  inline E fetch_and_add(E *a, EV b) {
+    return pbbs::fetch_and_add<E, EV>(a, b);
+  }
+
+  template <typename E, typename EV>
+  inline void write_add(E *a, EV b) {
+    pbbs::write_add<E, EV>(a, b);
+  }
+
+  template <typename E, typename EV>
+  inline void write_add(std::atomic<E> *a, EV b) {
+    pbbs::write_add<E, EV>(a, b);
+  }
+
+  template <typename ET, typename F>
+  inline bool write_min(ET *a, ET b, F less) {
+    return pbbs::write_min<EV, F>(a, b, less);
+  }
+
+  template <typename ET, typename F>
+  inline bool write_min(std::atomic<ET> *a, ET b, F less) {
+    return pbbs::write_min<EV, F>(a, b, less);
+  }
+
+  // returns the log base 2 rounded up (works on ints or longs or unsigned versions)
+  template <class T>
+  inline size_t log2_up(T i) {
+    size_t a=0;
+    T b=i-1;
+    while (b > 0) {b = b >> 1; a++;}
+    return a;
+  }
+
+  inline size_t granularity(size_t n) {
+    return (n > 100) ? ceil(pow(n,0.5)) : 100;
+  }
+
+  inline void assert_str(int cond, std::string s) {
+    return pbbs::assert_str(cond, s);
+  }
+
+
+  // ====================== sequence ops =======================
   // used so second template argument can be inferred
   template <class T, class F>
   inline delayed_sequence<T,F> make_sequence (size_t n, F f) {
@@ -27,28 +179,28 @@ namespace pbbs {
     return pbbslib::scan_inplace(s, pbbslib::addm<T>());
   }
 
-}
-
-namespace pbbs {
-
   template <class Seq>
-  inline auto reduce_max(Seq I, flags fl = no_flag) -> typename Seq::T {
+  inline auto reduce_max(Seq const& I, flags fl = no_flag) -> typename Seq::T {
     using T = typename Seq::T;
     return reduce(I, maxm<T>(), fl);
   }
 
   template <class Seq>
-  inline auto reduce_min(Seq I, flags fl = no_flag) -> typename Seq::T {
+  inline auto reduce_min(Seq const& I, flags fl = no_flag) -> typename Seq::T {
     using T = typename Seq::T;
     return reduce(I, minm<T>(), fl);
   }
 
   template <class Seq>
-  inline auto reduce_xor(Seq I, flags fl = no_flag) -> typename Seq::T {
+  inline auto reduce_xor(Seq const& I, flags fl = no_flag) -> typename Seq::T {
     using T = typename Seq::T;
     return reduce(I, xorm<T>(), fl);
   }
 
+}
+
+// Other extensions to pbbs used by the graph benchmarks.
+namespace pbbslib {
 
   template <class Idx_Type, class D, class F>
   inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(

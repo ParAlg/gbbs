@@ -23,11 +23,9 @@
 #pragma once
 
 #include <assert.h>
-#include <limits>
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/extra_sequence_ops.h"
-#include "pbbslib/utilities.h"
-#include "pbbslib/macros.h"
+#include <limits.h>
+
+#include "bridge.h"
 
 template <class intT>
 struct reservation {

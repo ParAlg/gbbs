@@ -23,12 +23,9 @@
 #pragma once
 
 #include <tuple>
-
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/extra_sequence_ops.h"
-#include "pbbslib/utilities.h"
-#include "pbbslib/macros.h"
 #include <cassert>
+
+#include "bridge.h"
 
 template <class K, class V, class KeyHash>
 class sparse_table {

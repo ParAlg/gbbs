@@ -27,68 +27,71 @@
 // constructor call to properly initialize memory. see pbbslib::new_array(..)
 #pragma once
 
-#include "pbbslib/utilities.h"
+#include "bridge.h"
 
-#define MIN_BKT_SIZE 2048
+namespace pbbslib {
 
-template <class E>
-struct dyn_arr {
-  E* A;
-  size_t size;
-  size_t capacity;
-  bool alloc;
+  constexpr size_t kDynArrMinBktSize = 2000;
 
-  dyn_arr() : A(NULL), size(0), capacity(0), alloc(false) {}
-  dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = pbbslib::new_array_no_init<E>(s); }
-  dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
-      : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
+  template <class E>
+  struct dyn_arr {
+    E* A;
+    size_t size;
+    size_t capacity;
+    bool alloc;
 
-  void del() {
-    if (alloc) {
-      pbbslib::free_array(A);
-      alloc = false;
-    }
-  }
+    dyn_arr() : A(NULL), size(0), capacity(0), alloc(false) {}
+    dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = pbbslib::new_array_no_init<E>(s); }
+    dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
+        : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
 
-  void clear() { size = 0; }
-
-  inline void resize(size_t n) {
-    if (n + size > capacity) {
-      size_t new_capacity = std::max(2 * (n + size), (size_t)MIN_BKT_SIZE);
-      E* nA = pbbslib::new_array_no_init<E>(new_capacity);
-      par_for(0, size, 2000, [&] (size_t i) { nA[i] = A[i]; });
+    void del() {
       if (alloc) {
         pbbslib::free_array(A);
+        alloc = false;
       }
-      A = nA;
-      capacity = new_capacity;
-      alloc = true;
     }
-  }
 
-  inline void insert(E val, size_t pos) { A[size + pos] = val; }
+    void clear() { size = 0; }
 
-  inline void push_back(E val) {
-    A[size] = val;
-    size++;
-  }
+    inline void resize(size_t n) {
+      if (n + size > capacity) {
+        size_t new_capacity = std::max(2 * (n + size), (size_t)kDynArrMinBktSize);
+        E* nA = pbbslib::new_array_no_init<E>(new_capacity);
+        par_for(0, size, 2000, [&] (size_t i) { nA[i] = A[i]; });
+        if (alloc) {
+          pbbslib::free_array(A);
+        }
+        A = nA;
+        capacity = new_capacity;
+        alloc = true;
+      }
+    }
 
-  template <class F>
-  void map(F f) {
-    par_for(0, size, 2000, [&] (size_t i) { f(A[i]); });
-  }
+    inline void insert(E val, size_t pos) { A[size + pos] = val; }
 
-  template <class F>
-  inline void copyIn(F f, size_t n) {
-    resize(n);
-    par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f[i]; });
-    size += n;
-  }
+    inline void push_back(E val) {
+      A[size] = val;
+      size++;
+    }
 
-  template <class F>
-  inline void copyInF(F f, size_t n) {
-    resize(n);
-    par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f(i); });
-    size += n;
-  }
-};
+    template <class F>
+    void map(F f) {
+      par_for(0, size, 2000, [&] (size_t i) { f(A[i]); });
+    }
+
+    template <class F>
+    inline void copyIn(F f, size_t n) {
+      resize(n);
+      par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f[i]; });
+      size += n;
+    }
+
+    template <class F>
+    inline void copyInF(F f, size_t n) {
+      resize(n);
+      par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f(i); });
+      size += n;
+    }
+  };
+}; // namespace pbbslib
