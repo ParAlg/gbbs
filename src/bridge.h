@@ -6,12 +6,15 @@
 
 #pragma once
 
+#include "pbbslib/binary_search.h"
 #include "pbbslib/parallel.h"
+#include "pbbslib/sample_sort.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
 #include "pbbslib/monoid.h"
+#include "pbbslib/utilities.h"
 
-// ==================== parallel prims =====================
+// ================== parallel primitives ===================
 template <typename F>
 static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
   if (!parallel) {
@@ -170,7 +173,7 @@ namespace pbbslib {
   template <class T, class F>
   inline delayed_sequence<T,F> make_sequence (size_t n, F f) {
     return delayed_sequence<T,F>(n,f);
-  } 
+  }
 
   // Scans the input sequence using the addm monoid.
   template <class In_Seq>
@@ -197,7 +200,48 @@ namespace pbbslib {
     return reduce(I, xorm<T>(), fl);
   }
 
+
+  // ====================== binary search =======================
+  // return index to first key greater or equal to v
+  template <typename Seq, typename F>
+  inline size_t binary_search(Seq const &I, typename Seq::value_type v,
+		       const F& less) {
+    return pbbs::binary_search<Seq, F>(I, v, less);
+  }
+
+  // return index to first key where less is false
+  template <typename Seq, typename F>
+  inline size_t binary_search(Seq const &I, const F& less) {
+    return pbbs::binary_search<Seq, F>(I, less);
+  }
+
+
+  // ====================== sample sort =======================
+  template<class Seq, typename BinPred>
+  auto sample_sort (Seq const &A, const BinPred& f, bool stable = false)
+    -> sequence<typename Seq::value_type> {
+      return pbbs::sample_sort(A, f, stable);
+  }
+
+  template<class Iter, typename BinPred>
+  void sample_sort_inplace (range<Iter> A, const BinPred& f, bool stable = false) {
+    return pbbs::sample_sort_inplace(A, f, stable);
+  }
+
+  template<typename E, typename BinPred, typename s_size_t>
+  void sample_sort (E* A, s_size_t n, const BinPred& f, bool stable) {
+    return pbbs::sample_sort(A, n, f, stable);
+  }
+
+  // ====================== random shuffle =======================
+  template <class intT>
+  sequence<intT> random_permutation(size_t n, random r = default_random) {
+    return pbbs::random_permutation<intT>(n, r);
+  }
 }
+
+
+
 
 // Other extensions to pbbs used by the graph benchmarks.
 namespace pbbslib {
