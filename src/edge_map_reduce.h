@@ -44,7 +44,7 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f,
     uintE degree = (out_ngh) ? v.getOutDegree() : v.getInDegree();
     degrees[i] = degree;
   });
-  long edgeCount = pbbslib::scan_add(degrees, degrees);
+  long edgeCount = pbbslib::scan_add_inplace(degrees);
   if (edgeCount == 0) {
     return vertexSubsetData<E>(GA.n);
   }
@@ -131,10 +131,10 @@ struct EdgeMap {
     oneHop.toSparse();
 
     auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
-    auto get_elm = make_sequence<std::tuple<K, M> >(
+    auto get_elm = pbbslib::make_sequence<std::tuple<K, M> >(
         oneHop.size(), elm_f);
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-    auto get_key = make_sequence<uintE>(
+    auto get_key = pbbslib::make_sequence<uintE>(
         oneHop.size(), key_f);
 
     auto q = [&](sequentialHT<K, V>& S, std::tuple<K, M> v) -> void {
@@ -193,7 +193,7 @@ struct EdgeMap {
       return (!out_ngh) ? G.V[vs.vtx(i)].getInVirtualDegree()
                        : G.V[vs.vtx(i)].getOutVirtualDegree();
     };
-    auto degree_imap = make_sequence<uintE>(vs.size(), degree_f);
+    auto degree_imap = pbbslib::make_sequence<uintE>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
     if (threshold == -1) threshold = G.m / 20;
     if (vs.size() + out_degrees > threshold) {
@@ -227,7 +227,7 @@ struct EdgeMap {
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
-    auto get_key = make_sequence<uintE>(oneHop.size(), key_f);
+    auto get_key = pbbslib::make_sequence<uintE>(oneHop.size(), key_f);
     auto res = pbbslib::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                       apply_f, ht);
     oneHop.del();
@@ -282,7 +282,7 @@ struct EdgeMap {
       return (!out_ngh) ? G.V[vs.vtx(i)].getInVirtualDegree()
                        : G.V[vs.vtx(i)].getOutVirtualDegree();
     };
-    auto degree_imap = make_sequence<size_t>(vs.size(), degree_f);
+    auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
     if (threshold == -1) threshold = G.m / 40;
     if (vs.size() + out_degrees > threshold) {

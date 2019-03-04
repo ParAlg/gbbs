@@ -42,7 +42,7 @@ inline size_t RelabelIds(Seq& ids) {
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
   });
-  pbbslib::scan_add(inverse_map, inverse_map);
+  pbbslib::scan_add_inplace(inverse_map);
 
   size_t new_n = inverse_map[n];
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -75,7 +75,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   par_for(0, n, [&] (size_t i)
                   { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
   deg_map[n] = 0;
-  pbbslib::scan_add(deg_map, deg_map);
+  pbbslib::scan_add_inplace(deg_map);
   count_t.stop();
   count_t.reportTotal("count time");
 
@@ -115,7 +115,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
                     if (!flags[u]) flags[u] = 1;
                     if (!flags[v]) flags[v] = 1;
                   });
-  pbbslib::scan_add(flags, flags);
+  pbbslib::scan_add_inplace(flags);
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = sequence<uintE>(num_ns_clusters);
@@ -137,7 +137,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   });
 
   auto EA = edge_array<pbbslib::empty>(
-      (std::tuple<uintE, uintE, pbbslib::empty>*)sym_edges.start(),
+      (std::tuple<uintE, uintE, pbbslib::empty>*)sym_edges.begin(),
       num_ns_clusters, num_ns_clusters, sym_edges.size());
 
   auto GC = sym_graph_from_edges<pbbslib::empty>(EA);
@@ -203,7 +203,7 @@ inline size_t num_cc(Seq& labels) {
       flags[labels[i]] = 1;
     }
   });
-  pbbslib::scan_add(flags, flags);
+  pbbslib::scan_add_inplace(flags);
   std::cout << "n_cc = " << flags[n] << "\n";
 }
 

@@ -323,7 +323,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs[i] = cur;
     }, par);
 
-    auto im = make_sequence(block_outputs, num_blocks);
+    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, r);
     if (num_blocks > 1000) {
       pbbslib::free_array(block_outputs);
@@ -401,7 +401,7 @@ struct seq_info {
       uchar* finger = edge_start + offs[start + i];
       return eatFirstEdge(finger, source_id);
     };
-    auto start_im = make_sequence<uintE>(size(), start_f);
+    auto start_im = pbbslib::make_sequence<uintE>(size(), start_f);
     uintE ind =
         pbbslib::binary_search(start_im, pivot, std::greater<uintE>());  // check
     // ind is the first block index (from start) <= our pivot.
@@ -556,8 +556,8 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
-    auto bytes_imap = make_sequence(block_bytes, num_blocks);
-    size_t total_space = pbbslib::scan_add(bytes_imap, bytes_imap);
+    auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks);
+    size_t total_space = pbbslib::scan_add_inplace(bytes_imap);
 
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
@@ -750,8 +750,8 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
   uintE* block_offsets = (uintE*)edgeArray;
 
-  auto bytes_imap = make_sequence(block_bytes, num_blocks + 1);
-  uintE total_space = pbbslib::scan_add(bytes_imap, bytes_imap);
+  auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks + 1);
+  uintE total_space = pbbslib::scan_add_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
     std::cout << "Space error!"

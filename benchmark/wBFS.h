@@ -137,7 +137,7 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   bt.reportTotal("bucket time");
   emt.reportTotal("edge map time");
   auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = make_sequence<size_t>(n, dist_f);
+  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
 

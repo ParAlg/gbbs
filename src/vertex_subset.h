@@ -45,9 +45,9 @@ struct vertexSubsetData {
   vertexSubsetData(long _n, sequence<S>& seq, bool transfer=true)
       : n(_n), m(seq.size()), d(NULL), isDense(0) {
     if (transfer) {
-      s = seq.get_array();
+      s = seq.to_array();
     } else {
-      s = seq.start();
+      s = seq.begin();
     }
   }
 
@@ -59,7 +59,7 @@ struct vertexSubsetData {
   // number of nonzeros and store in m.
   vertexSubsetData(long _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1) {
     auto df = [&](size_t i) { return (size_t)std::get<0>(_d[i]); };
-    auto d_map = make_sequence<size_t>(
+    auto d_map = pbbslib::make_sequence<size_t>(
         n, df);
     m = pbbslib::reduce_add(d_map);
   }
@@ -115,9 +115,9 @@ struct vertexSubsetData {
   void toSparse() {
     if (s == NULL && m > 0) {
       auto f = [&](size_t i) -> std::tuple<bool, data> { return d[i]; };
-      auto f_seq = make_sequence<D>(n, f);
+      auto f_seq = pbbslib::make_sequence<D>(n, f);
       auto out = pbbslib::pack_index_and_data<uintE, data>(f_seq, n);
-      s = out.get_array();
+      s = out.to_array();
       if (out.size() != m) {
         std::cout << "bad stored value of m"
                   << "\n";
@@ -175,9 +175,9 @@ struct vertexSubsetData<pbbslib::empty> {
   vertexSubsetData(long _n, sequence<S>& seq, bool transfer=true)
       : n(_n), m(seq.size()), d(NULL), isDense(0) {
     if (transfer) {
-      s = seq.get_array();
+      s = seq.to_array();
     } else {
-      s = seq.start();
+      s = seq.begin();
     }
   }
 
@@ -190,7 +190,7 @@ struct vertexSubsetData<pbbslib::empty> {
   vertexSubsetData<pbbslib::empty>(long _n, bool* _d)
       : n(_n), s(NULL), d(_d), isDense(1) {
     auto d_f = [&](size_t i) { return _d[i]; };
-    auto d_map = make_sequence<size_t>(n, d_f);
+    auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
     m = pbbslib::reduce_add(d_map);
   }
 
@@ -199,7 +199,7 @@ struct vertexSubsetData<pbbslib::empty> {
   vertexSubsetData<pbbslib::empty>(long _n, std::tuple<bool, pbbslib::empty>* _d)
       : n(_n), s(NULL), d((bool*)_d), isDense(1) {
     auto d_f = [&](size_t i) { return std::get<0>(_d[i]); };
-    auto d_map = make_sequence<size_t>(n, d_f);
+    auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
     m = pbbslib::reduce_add(d_map);
   }
 
@@ -258,9 +258,9 @@ struct vertexSubsetData<pbbslib::empty> {
     if (s == NULL && m > 0) {
       auto _d = d;
       auto f = [&](size_t i) { return _d[i]; };
-      auto f_in = make_sequence<bool>(n, f);
+      auto f_in = pbbslib::make_sequence<bool>(n, f);
       auto out = pbbslib::pack_index<uintE>(f_in);
-      s = out.get_array();
+      s = out.to_array();
       if (out.size() != m) {
         std::cout << "bad stored value of m"
                   << "\n";

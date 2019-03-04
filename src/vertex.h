@@ -131,8 +131,8 @@ inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
   uintE* nghB = (uintE*)(B->getOutNeighbors());
 
   // Will not work if W is not pbbslib::empty, should assert.
-  auto seqA = make_sequence<uintE>(nghA, nA);
-  auto seqB = make_sequence<uintE>(nghB, nB);
+  auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
+  auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
 
   auto merge_f = [&] (uintE ngh) {
     f(a, b, ngh);
@@ -272,7 +272,7 @@ inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
     auto nw = nghs[i];
     return f(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
-  auto im = make_sequence<size_t>(d,im_f);
+  auto im = pbbslib::make_sequence<size_t>(d,im_f);
   return pbbslib::reduce_add(im);
 }
 
@@ -284,7 +284,7 @@ inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uint
     auto nw = nghs[i];
     return m(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
-  auto im = make_sequence<E>(d, im_f);
+  auto im = pbbslib::make_sequence<E>(d, im_f);
   return pbbslib::reduce(im, reduce);
 }
 
@@ -314,7 +314,7 @@ inline void filterNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
       auto pc = [&](const std::tuple<uintE, W>& nw) {
         return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
       };
-      auto in_im = make_sequence(nghs, d);
+      auto in_im = pbbslib::make_sequence(nghs, d);
       auto s = pbbslib::filter(in_im, pc, pbbslib::no_flag, tmp);
       size_t k = s.size();
       par_for(0, k, pbbslib::kSequentialForThreshold, [&] (size_t i)

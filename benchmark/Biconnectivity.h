@@ -113,7 +113,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
-  pbbslib::sample_sort(edges.start(), edges.size(), sort_tup);
+  pbbslib::sample_sort(edges.begin(), edges.size(), sort_tup);
 
   auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
   par_for(0, edges.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -147,7 +147,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     uintE out_deg = starts[i + 1] - out_off;
     v[i].setOutDegree(out_deg);
     v[i].setOutNeighbors(
-        (std::tuple<uintE, pbbslib::empty>*)(nghs.start() + out_off));
+        (std::tuple<uintE, pbbslib::empty>*)(nghs.begin() + out_off));
     uintE parent = Parents[i];
     if (parent != i) {
       v[i].setInDegree(1);
@@ -169,17 +169,17 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     size_t deg = s_n - s_i;
     return (Parents[i] != i) && deg == 0;
   };
-  auto leaf_im = make_sequence<bool>(n, leaf_f);
+  auto leaf_im = pbbslib::make_sequence<bool>(n, leaf_f);
   auto leafs = pbbslib::pack_index<uintE>(leaf_im);
 
-  auto vs = vertexSubset(n, leafs.size(), leafs.start());
+  auto vs = vertexSubset(n, leafs.size(), leafs.begin());
   size_t rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     auto output = edgeMap(
-        Tree, vs, wrap_em_f<pbbslib::empty>(AugF(aug_sizes.start(), cts.start())),
+        Tree, vs, wrap_em_f<pbbslib::empty>(AugF(aug_sizes.begin(), cts.begin())),
         -1, in_edges | sparse_blocked);
     if (rds > 1) {
       vs.del();  // don't delete leafs.
@@ -197,7 +197,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   timer pren;
   pren.start();
   auto PN = sequence<uintE>(n);
-  vs = vertexSubset(n, s_copy.size(), s_copy.get_array());
+  vs = vertexSubset(n, s_copy.size(), s_copy.to_array());
   par_for(0, Sources.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE v = s_copy[i];
     PN[v] = 0;
@@ -244,7 +244,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       }
     });
     vs.del();
-    vs = vertexSubset(n, next_vs.size(), next_vs.get_array());
+    vs = vertexSubset(n, next_vs.size(), next_vs.to_array());
   }
   pren.stop();
   pren.reportTotal("preorder number from sizes time");
@@ -288,14 +288,14 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { cts[i] = Tree.V[i].getOutDegree(); });
 
-  vs = vertexSubset(n, leafs.size(), leafs.get_array());
+  vs = vertexSubset(n, leafs.size(), leafs.to_array());
   rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     auto output = edgeMap(
-        Tree, vs, wrap_em_f<pbbslib::empty>(MinMaxF(MM.start(), cts.start())), -1,
+        Tree, vs, wrap_em_f<pbbslib::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
         in_edges | sparse_blocked);
     vs.del();
     vs = output;
@@ -308,7 +308,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
-  return std::make_tuple(MM.get_array(), PN.get_array(), aug_sizes.get_array());
+  return std::make_tuple(MM.to_array(), PN.to_array(), aug_sizes.to_array());
 }
 
 // Deterministic version
@@ -337,12 +337,12 @@ inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
   });
   while (!frontier.isEmpty()) {
     vertexSubset output =
-        edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.start())), -1,
+        edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())), -1,
                 sparse_blocked);
     frontier.del();
     frontier = output;
   }
-  return Parents.get_array();
+  return Parents.to_array();
 }
 
 template <class Seq>
@@ -439,7 +439,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
-    benchIO::writeArrayToStream(out, tups.start(), n);
+    benchIO::writeArrayToStream(out, tups.begin(), n);
     //    for (size_t i = 0; i < n; i++) {
     //      out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
     //    }
@@ -452,7 +452,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   pbbslib::free_array(aug_sizes_A);
   ccc.stop();
   ccc.reportTotal("critical conn time");
-  return std::make_tuple(Parents, cc.get_array());
+  return std::make_tuple(Parents, cc.to_array());
 }
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
@@ -474,7 +474,7 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
   Components.clear();
 
   auto Sources_copy = Sources.copy(Sources); //Sources.copy();
-  auto Centers = vertexSubset(n, Sources.size(), Sources.get_array());
+  auto Centers = vertexSubset(n, Sources.size(), Sources.to_array());
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();
   sc.reportTotal("sc, multibfs time");

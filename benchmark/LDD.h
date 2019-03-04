@@ -41,7 +41,7 @@ inline sequence<uintE> generate_shifts(size_t n, double beta) {
   par_for(0, last_round, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbslib::scan_add(shifts, shifts);
+  pbbslib::scan_add_inplace(shifts);
   return shifts;
 }
 
@@ -131,10 +131,10 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = make_sequence<uintE>(num_to_add, candidates_f);
+      auto candidates = pbbslib::make_sequence<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
-      add_to_vsubset(frontier, new_centers.start(), new_centers.size());
+      add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
       par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
@@ -143,7 +143,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
     num_visited += frontier.size();
     if (num_visited >= n) break;
 
-    auto ldd_f = LDD_F<W, EO>(cluster_ids.start(), oracle);
+    auto ldd_f = LDD_F<W, EO>(cluster_ids.begin(), oracle);
     vertexSubset next_frontier =
         edgeMap(GA, frontier, ldd_f, -1, sparse_blocked);
     if (pack) {

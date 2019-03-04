@@ -75,19 +75,19 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
       sequence<intE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
 
   auto in_f = [&](size_t i) { return i; };
-  auto in_v = make_sequence<uintE>(n, in_f);
+  auto in_v = pbbslib::make_sequence<uintE>(n, in_f);
   auto in_ends = pbbslib::filter(in_v, [&](uintE v) { return in_d[v] == 0; });
   auto out_ends = pbbslib::filter(in_v, [&](uintE v) { return out_d[v] == 0; });
 
   auto in_vs =
       (in_ends.size() > 0)
           ? vertexSubset(n, in_ends.size(),
-                         ((tuple<uintE, pbbslib::empty>*)in_ends.get_array()))
+                         ((tuple<uintE, pbbslib::empty>*)in_ends.to_array()))
           : vertexSubset(n);
   auto out_vs =
       (out_ends.size() > 0)
           ? vertexSubset(n, out_ends.size(),
-                         ((tuple<uintE, pbbslib::empty>*)out_ends.get_array()))
+                         ((tuple<uintE, pbbslib::empty>*)out_ends.to_array()))
           : vertexSubset(n);
 
   auto chains = sequence<bool>(n, false);
@@ -135,7 +135,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
   }
   auto chain_f =  [&](size_t i) { return (size_t)chains[i]; };
   auto chain_im =
-      make_sequence<size_t>(n, chain_f);
+      pbbslib::make_sequence<size_t>(n, chain_f);
   std::cout << "total zero = " << pbbslib::reduce_add(chain_im) << "\n";
   std::cout << "nr = " << nr << "\n";
   return chains;

@@ -103,7 +103,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
   size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
   auto table_backing = sequence<T>(backing_size);
   auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
-                                              table_backing.get_array(), true);
+                                              table_backing.to_array(), true);
   frontier.toSparse();
   par_for(0, frontier.size(), 2000, [&] (size_t i) {
     uintE v = frontier.s[i];
@@ -126,7 +126,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
                                                 : GA.V[v].countOutNgh(v, pred);
       return effective_degree * n_labels;
     };
-    auto im = make_sequence<size_t>(frontier.size(), im_f);
+    auto im = pbbslib::make_sequence<size_t>(frontier.size(), im_f);
 
     size_t sum = pbbslib::reduce_add(im);
     table.maybe_resize(sum);
@@ -183,7 +183,7 @@ inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
     frontier = output;
     rd++;
   }
-  return Flags.get_array();
+  return Flags.to_array();
 }
 
 template <class vertex>
@@ -194,10 +194,10 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   // Everyone's initial label is 0 (all in the same subproblem)
   auto labels = sequence<label_type>(n, [](size_t) { return 0; });
   auto ba = sequence<bool>(n, false);
-  auto bits = ba.get_array();
+  auto bits = ba.to_array();
 
   auto v_im_f = [](size_t i) { return i; };
-  auto v_im = make_sequence<uintE>(n, v_im_f);
+  auto v_im = pbbslib::make_sequence<uintE>(n, v_im_f);
   auto zero_pred = [&](size_t i) {
     return (GA.V[i].getOutDegree() == 0) || (GA.V[i].getInDegree() == 0);
   };
@@ -219,7 +219,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   size_t label_offset = zero.size() + 1;
 
   auto done_im_f = [&](size_t i) { return (bool)(labels[i] & TOP_BIT); };
-  auto done_im = make_sequence<size_t>(n, done_im_f);
+  auto done_im = pbbslib::make_sequence<size_t>(n, done_im_f);
   initt.stop();
   initt.reportTotal("init");
 
@@ -229,7 +229,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     auto deg_im_f = [&](size_t i) {
       return std::make_tuple(i, GA.V[i].getOutDegree());
     };
-    auto deg_im = make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
+    auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,
                                 const std::tuple<uintE, uintE>& r) {
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
@@ -277,7 +277,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     cur_offset += vs_size;
 
     auto centers_pre_filter_f = [&](size_t i) { return Q[round_offset + i]; };
-    auto centers_pre_filter = make_sequence<uintE>(vs_size, centers_pre_filter_f);
+    auto centers_pre_filter = pbbslib::make_sequence<uintE>(vs_size, centers_pre_filter_f);
     auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
 
@@ -318,13 +318,13 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     }
 
     auto centers_2 = centers.copy(centers);
-    auto in_f = vertexSubset(n, centers.size(), centers.get_array());
+    auto in_f = vertexSubset(n, centers.size(), centers.to_array());
     auto in_table =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
     std::cout << "Finished in search"
               << "\n";
 
-    auto out_f = vertexSubset(n, centers_2.size(), centers_2.get_array());
+    auto out_f = vertexSubset(n, centers_2.size(), centers_2.to_array());
     auto out_table = multi_search(GA, labels, bits, out_f, cur_label_offset);
     std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
               << "\n";
@@ -372,7 +372,7 @@ inline size_t num_done(Seq& labels) {
   auto im_f = [&](size_t i) {
     return ((size_t)((labels[i] & TOP_BIT) > 0));
   };
-  auto im = make_sequence<size_t>(labels.size(), im_f);
+  auto im = pbbslib::make_sequence<size_t>(labels.size(), im_f);
 
   return pbbslib::reduce_add(im);
 }
@@ -392,7 +392,7 @@ inline size_t num_scc(Seq& labels) {
       flags[label] = 1;
     }
   });
-  pbbslib::scan_add(flags, flags);
+  pbbslib::scan_add_inplace(flags);
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;

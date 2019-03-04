@@ -62,7 +62,7 @@ namespace bytepd_amortized {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_add(byte_offsets, byte_offsets);
+      size_t total_space = pbbslib::scan_add_inplace(byte_offsets);
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -71,7 +71,7 @@ namespace bytepd_amortized {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.V[i].getOutIter(i);
-          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.start() + byte_offsets[i], 0, deg, (uintE)i, it);
+          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -86,9 +86,9 @@ namespace bytepd_amortized {
       sizes[1] = GA.m;
       sizes[2] = total_space;
       out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
-      out.write((char*)byte_offsets.start(),sizeof(uintT)*(n+1)); //write offsets
-      out.write((char*)degrees.start(),sizeof(uintE)*n);
-      out.write((char*)edges.start(),total_space); //write edges
+      out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+      out.write((char*)degrees.begin(),sizeof(uintE)*n);
+      out.write((char*)edges.begin(),total_space); //write edges
     }
 
     {
@@ -131,7 +131,7 @@ namespace bytepd_amortized {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_add(byte_offsets, byte_offsets);
+      size_t total_space = pbbslib::scan_add_inplace(byte_offsets);
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -140,7 +140,7 @@ namespace bytepd_amortized {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.V[i].getInIter(i);
-          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.start() + byte_offsets[i], 0, deg, (uintE)i, it);
+          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -152,9 +152,9 @@ namespace bytepd_amortized {
       long inTotalSpace[1];
       inTotalSpace[0] = total_space;
       out.write((char*)inTotalSpace, sizeof(long)); // in-edges total space
-      out.write((char*)byte_offsets.start(),sizeof(uintT)*(n+1)); //write offsets
-      out.write((char*)degrees.start(),sizeof(uintE)*n);
-      out.write((char*)edges.start(),total_space); //write edges
+      out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+      out.write((char*)degrees.begin(),sizeof(uintE)*n);
+      out.write((char*)edges.begin(),total_space); //write edges
     }
   }
 
@@ -276,10 +276,10 @@ namespace bytepd_amortized {
       byte_offsets[i] = total_bytes;
     });
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_add(byte_offsets, byte_offsets);
+    size_t total_space = pbbslib::scan_add_inplace(byte_offsets);
     std::cout << "total space = " << total_space << std::endl;
     auto deg_f = [&] (size_t i) { return degrees[i]; };
-    auto deg_im = make_sequence<size_t>(n, deg_f);
+    auto deg_im = pbbslib::make_sequence<size_t>(n, deg_f);
     std::cout << "sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     // 2. Create compressed format in-memory
@@ -288,9 +288,9 @@ namespace bytepd_amortized {
       uintE deg = degrees[i];
       if (deg > 0) {
         auto it = GA.V[i].getOutIter(i);
-        long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.start() + byte_offsets[i], 0, deg, (uintE)i, it);
+        long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
 
-//        uchar* edgeArray = edges.start() + byte_offsets[i];
+//        uchar* edgeArray = edges.begin() + byte_offsets[i];
 //        size_t degree = deg;
 //
 //        size_t current_offset = 0;
@@ -350,7 +350,7 @@ namespace bytepd_amortized {
 //        xr ^= (src ^ ngh);
 //        return true;
 //      };
-//      auto edge_start= edges.start() + byte_offsets[i];
+//      auto edge_start= edges.begin() + byte_offsets[i];
 //      size_t deg = degrees[i];
 //      if (deg > 0) {
 //        bytepd_amortized::decode<W>(map_f, edge_start, i, deg, false);
@@ -374,7 +374,7 @@ namespace bytepd_amortized {
 //        }
 //        return true;
 //      };
-//      auto edge_start= edges.start() + byte_offsets[i];
+//      auto edge_start= edges.begin() + byte_offsets[i];
 //      size_t deg = degrees[i];
 //      if (deg > 0) {
 //        bytepd_amortized::decode<W>(map_f, edge_start, i, deg, false);
@@ -393,9 +393,9 @@ namespace bytepd_amortized {
     sizes[1] = GA.m;
     sizes[2] = total_space;
     out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
-    out.write((char*)byte_offsets.start(),sizeof(uintT)*(n+1)); //write offsets
-    out.write((char*)degrees.start(),sizeof(uintE)*n);
-    out.write((char*)edges.start(),total_space); //write edges
+    out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+    out.write((char*)degrees.begin(),sizeof(uintE)*n);
+    out.write((char*)edges.begin(),total_space); //write edges
     out.close();
   }
 }; // namespace bytepd_amortized

@@ -242,7 +242,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       ret.exists = true;
       return ret;
     };
-    auto edges_moved_map = make_sequence<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
+    auto edges_moved_map = pbbslib::make_sequence<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
 
     bt.start();
     b.update_buckets(edges_moved_map, edges_moved_map.size());

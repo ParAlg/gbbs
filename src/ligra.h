@@ -180,7 +180,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
       return (fl & in_edges) ? frontier_vertices[i].getInDegree()
                              : frontier_vertices[i].getOutDegree();
     });
-    size_t outEdgeCount = pbbslib::scan_add(offsets, offsets);
+    size_t outEdgeCount = pbbslib::scan_add_inplace(offsets);
     outEdges = pbbslib::new_array_no_init<S>(outEdgeCount);
     auto g = get_emsparse_gen_full<data>(outEdges);
     auto h = get_emsparse_gen_empty<data>(outEdges);
@@ -265,14 +265,14 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
                            : frontier_vertices[i].getOutVirtualDegree();
   };
-  auto degree_imap = make_sequence<uintE>(indices.size(), degree_f);
+  auto degree_imap = pbbslib::make_sequence<uintE>(indices.size(), degree_f);
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
   par_for(0, indices.size(), [&] (size_t i)
       { vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_add(vertex_offs, vertex_offs);
+  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs);
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
 
@@ -288,7 +288,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
       degrees[vtx_off + j] = block_deg;
     });
   });
-  pbbslib::scan_add(degrees, degrees, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_add_inplace(degrees, pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
@@ -333,7 +333,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     }
   });
   cts[n_threads] = 0;
-  long out_size = pbbslib::scan_add(cts, cts);
+  long out_size = pbbslib::scan_add_inplace(cts);
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
@@ -390,7 +390,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
                            : frontier_vertices[i].getOutVirtualDegree();
   };
-  auto degree_imap = make_sequence<uintE>(indices.size(), degree_f);
+  auto degree_imap = pbbslib::make_sequence<uintE>(indices.size(), degree_f);
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   size_t num_blocks = indices.size();
@@ -398,7 +398,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 
   // 2. Write each block to blocks and scan.
   par_for(0, indices.size(), [&] (size_t i) { degrees[i] = degree_imap[i]; });
-  pbbslib::scan_add(degrees, degrees, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_add_inplace(degrees, pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
@@ -437,7 +437,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     }
   });
   cts[n_threads] = 0;
-  long out_size = pbbslib::scan_add(cts, cts);
+  long out_size = pbbslib::scan_add_inplace(cts);
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
@@ -501,7 +501,7 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
     return (fl & in_edges) ? frontier_vertices[i].getInDegree()
                            : frontier_vertices[i].getOutDegree();
   };
-  auto degree_im = make_sequence<size_t>(vs.size(), degree_f);
+  auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
   size_t out_degrees = pbbslib::reduce_add(degree_im);
 
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
@@ -538,11 +538,11 @@ inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
   par_for(0, n, [&] (size_t i) {
     space[i] = G[i].calculateOutTemporarySpace();
   });
-  long total_space = pbbslib::scan_add(space, space);
+  long total_space = pbbslib::scan_add_inplace(space);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
 
   auto for_inner = [&](size_t i) {
-    std::tuple<uintE, W>* tmp_v = tmp.start() + space[i];
+    std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
     G[i].packOutNgh(i, p, tmp_v);
   };
   par_for(0, n, [&] (size_t i) { for_inner(i); });
@@ -570,7 +570,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
     uintE v = vs.vtx(i);
     space[i] = G[v].calculateOutTemporarySpace();
   });
-  long total_space = pbbslib::scan_add(space, space);
+  long total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
   auto tmp = sequence<std::tuple<uintE, W>>(
       total_space);  // careful when total_space == 0
@@ -580,7 +580,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        std::tuple<uintE, W>* tmp_v = tmp.start() + space[i];
+        std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
         size_t ct = G[v].packOutNgh(v, p, tmp_v);
         outV[i] = std::make_tuple(v, ct);
       };
@@ -591,7 +591,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        std::tuple<uintE, W>* tmp_v = tmp.start() + space[i];
+        std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
         G[v].packOutNgh(v, p, tmp_v);
       };
       par_for(0, m, [&] (size_t i) { for_inner(i); });
@@ -703,9 +703,9 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
     bits[i] = filter(v);
   });
   auto v_imap_f = [&](size_t i) { return V.vtx(i); };
-  auto v_imap = make_sequence<uintE>(m, v_imap_f);
+  auto v_imap = pbbslib::make_sequence<uintE>(m, v_imap_f);
   auto bits_f = [&](size_t i) { return bits[i]; };
-  auto bits_m = make_sequence<bool>(m, bits_f);
+  auto bits_m = pbbslib::make_sequence<bool>(m, bits_f);
   auto out = pbbslib::pack(v_imap, bits_m);
   out.allocated = false;
   pbbslib::free_array(bits);
@@ -725,11 +725,11 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
     bits[i] = filter(std::get<0>(t), std::get<1>(t));
   });
   auto v_imap_f = [&](size_t i) { return V.vtx(i); };
-  auto v_imap = make_sequence<uintE>(m, v_imap_f);
+  auto v_imap = pbbslib::make_sequence<uintE>(m, v_imap_f);
   auto bits_f = [&](size_t i) { return bits[i]; };
-  auto bits_m = make_sequence<bool>(m, bits_f);
+  auto bits_m = pbbslib::make_sequence<bool>(m, bits_f);
   auto out = pbbslib::pack(v_imap, bits_m);
-  auto s = out.get_array(); // clears allocated
+  auto s = out.to_array(); // clears allocated
   pbbslib::free_array(bits);
   return vertexSubset(n, out.size(), s);
 }

@@ -164,11 +164,11 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
     };
-    auto out_im = make_sequence<int>(u.getOutDegree(), out_f);
+    auto out_im = pbbslib::make_sequence<int>(u.getOutDegree(), out_f);
     auto in_f = [&](uintE j) {
       return static_cast<int>(pred(u.getInNeighbor(j), i, u.getInWeight(j)));
     };
-    auto in_im = make_sequence<int>(u.getInDegree(), in_f);
+    auto in_im = pbbslib::make_sequence<int>(u.getInDegree(), in_f);
 
     if (out_im.size() > 0)
       out_edge_sizes[i] = pbbslib::reduce_add(out_im);
@@ -182,8 +182,8 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
   out_edge_sizes[n] = 0;
   in_edge_sizes[n] = 0;
-  long outEdgeCount = pbbslib::scan_add(out_edge_sizes, out_edge_sizes);
-  long inEdgeCount = pbbslib::scan_add(in_edge_sizes, in_edge_sizes);
+  long outEdgeCount = pbbslib::scan_add_inplace(out_edge_sizes);
+  long inEdgeCount = pbbslib::scan_add_inplace(in_edge_sizes);
 
   assert(G.m / 2 == outEdgeCount);
   assert(G.m / 2 == inEdgeCount);
@@ -199,12 +199,12 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     uintE d = u.getOutDegree();
     if (d > 0) {
       edge* nghs = u.getOutNeighbors();
-      edge* dir_nghs = out_edges.start() + out_offset;
+      edge* dir_nghs = out_edges.begin() + out_offset;
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im_f = [&](size_t i) { return nghs[i]; };
-      auto n_im = make_sequence<edge>(d, n_im_f);
+      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
       auto res = pbbslib::filter(n_im, pred_c, pbbslib::no_flag, dir_nghs);
     }
   });
@@ -215,13 +215,13 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     uintE d = u.getInDegree();
     if (d > 0) {
       edge* nghs = u.getInNeighbors();
-      edge* dir_nghs = in_edges.start() + in_offset;
+      edge* dir_nghs = in_edges.begin() + in_offset;
 
       auto pred_c = [&](const edge& e) {
         return pred(std::get<0>(e), i, std::get<1>(e));
       };
       auto n_im_f = [&](size_t i) { return nghs[i]; };
-      auto n_im = make_sequence<edge>(d, n_im_f);
+      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
       auto res = pbbslib::filter(n_im, pred_c, pbbslib::no_flag, dir_nghs);
     }
   });
@@ -231,13 +231,13 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     uintT in_offset = in_edge_sizes[i];
     uintT out_offset = out_edge_sizes[i];
     AV[i] = asymmetricVertex<W>(
-        in_edges.start() + in_offset, out_edges.start() + out_offset,
+        in_edges.begin() + in_offset, out_edges.begin() + out_offset,
         in_edge_sizes[i + 1] - in_offset, out_edge_sizes[i + 1] - out_offset);
   });
 
   return graph<asymmetricVertex<W>>(
       AV, G.n, outEdgeCount,
-      get_deletion_fn(AV, out_edges.get_array(), in_edges.get_array()));
+      get_deletion_fn(AV, out_edges.to_array(), in_edges.to_array()));
 }
 
 struct print_t {
@@ -291,7 +291,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     byte_offsets[i] = total_bytes;
   });
   byte_offsets[n] = 0;
-  size_t last_offset = pbbslib::scan_add(byte_offsets, byte_offsets);
+  size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
   std::cout << " size is: " << last_offset << "\n";
 
   auto edges = sequence<uchar>(last_offset);
@@ -308,7 +308,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
         auto f_it =
             ligra_utils::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
         long nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
-            edges.start() + byte_offsets[i], 0, new_deg, i, f_it);
+            edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
         if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
           std::cout << "degree is: " << new_deg << " nbytes should be: "
                     << (byte_offsets[i + 1] - byte_offsets[i])
@@ -324,7 +324,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   auto AV = pbbslib::new_array_no_init<cav_byte<W>>(n);
   par_for(0, n, [&] (size_t i) {
     size_t o = byte_offsets[i];
-    uchar* our_edges = edges.start() + o;
+    uchar* our_edges = edges.begin() + o;
     AV[i].inNeighbors = nullptr;
     AV[i].inDegree = 0;
 
@@ -333,11 +333,11 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   });
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
-  auto deg_map = make_sequence<size_t>(n, deg_f);
+  auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "Filtered, total_deg = " << total_deg << "\n";
   return graph<cav_byte<W>>(AV, G.n, total_deg,
-                            get_deletion_fn(AV, edges.get_array()));
+                            get_deletion_fn(AV, edges.to_array()));
 }
 
 template <
@@ -445,7 +445,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
       size_t n_two = std::get<1>(vtx_offs[i + 1]) - off;
       size_t n_to_pack = n_one + n_two;
       if (n_to_pack > 0) {
-        std::tuple<uintE, W>* tmp_v = tmp.start() + std::get<2>(vtx_offs[i]);
+        std::tuple<uintE, W>* tmp_v = tmp.begin() + std::get<2>(vtx_offs[i]);
         auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
           arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
         };
@@ -462,12 +462,12 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
   std::cout << "packed up " << "\n";
   auto deg_f = [&](size_t i) { return G.V[i].getOutDegree(); };
   auto degree_imap =
-      make_sequence<size_t>(n, deg_f);
+      pbbslib::make_sequence<size_t>(n, deg_f);
 
   G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "G.m = " << G.m << "\n";
 
-  return edge_array<W>(arr.get_array(), n, n, arr.size());
+  return edge_array<W>(arr.to_array(), n, n, arr.size());
 }
 
 // Used by MaximalMatching.
@@ -499,7 +499,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     auto for_inner = [&](size_t i) {
       size_t off = std::get<0>(offs[i]);
       if (G.V[i].getOutDegree() > 0) {
-        std::tuple<uintE, W>* tmp_v = tmp.start() + std::get<1>(offs[i]);
+        std::tuple<uintE, W>* tmp_v = tmp.begin() + std::get<1>(offs[i]);
         auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
           arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
         };
@@ -512,7 +512,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
   }
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
-  return edge_array<W>(arr.get_array(), n, n, arr.size());
+  return edge_array<W>(arr.to_array(), n, n, arr.size());
 }
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
@@ -558,7 +558,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
       size_t off = std::get<0>(vtx_offs[i]);
       size_t n_to_pack = std::get<0>(vtx_offs[i + 1]) - off;
       if (n_to_pack > 0) {
-        std::tuple<uintE, W>* tmp_v = tmp.start() + std::get<1>(vtx_offs[i]);
+        std::tuple<uintE, W>* tmp_v = tmp.begin() + std::get<1>(vtx_offs[i]);
         auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
           output_arr[off + j] =
               std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
@@ -568,7 +568,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     };
     par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
-  return edge_array<W>(output_arr.get_array(), n, n, output_arr.size());
+  return edge_array<W>(output_arr.to_array(), n, n, output_arr.size());
 }
 
 // Mutates (sorts) the underlying array
@@ -595,7 +595,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
     }
   }
 
-  auto Am = make_sequence<edge>(A.E, m);
+  auto Am = pbbslib::make_sequence<edge>(A.E, m);
   if (!is_sorted) {
     auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbslib::log2_up(n);
@@ -615,7 +615,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
     uintT o = starts[i];
     size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
     v[i].degree = degree;
-    v[i].neighbors = ((std::tuple<uintE, W>*)(edges.start() + o));
+    v[i].neighbors = ((std::tuple<uintE, W>*)(edges.begin() + o));
   });
-  return graph<V>(v, n, m, get_deletion_fn(v, edges.get_array()));
+  return graph<V>(v, n, m, get_deletion_fn(v, edges.to_array()));
 }

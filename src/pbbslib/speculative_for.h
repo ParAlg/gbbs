@@ -87,7 +87,7 @@ inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
     });
 
     // keep iterations that failed for next round. Written into Inext
-    auto seq = pbbslib::pack(I.slice(0, size), keep, pbbslib::no_flag, Inext.start());
+    auto seq = pbbslib::pack(I.slice(0, size), keep, pbbslib::no_flag, Inext.begin());
     seq.set_allocated(false);
     numberKeep = seq.size();
     numberDone += size - numberKeep;
@@ -140,7 +140,7 @@ inline intT speculative_for(S step, intT s, intT e, intT granularity,
     });
 
     // keep iterations that failed for next round. Written into Inext
-    auto seq = pbbslib::pack(I.slice(0, size), keep, pbbslib::no_flag, Inext.start());
+    auto seq = pbbslib::pack(I.slice(0, size), keep, pbbslib::no_flag, Inext.begin());
     seq.set_allocated(false);
     numberKeep = seq.size();
     numberDone += size - numberKeep;

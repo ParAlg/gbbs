@@ -294,7 +294,7 @@ namespace pbbslib {
       T* out = pbbslib::new_array_no_init<T>(m);
       auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
       size_t new_m = pbbslib::filterf(table, out, m, pred);
-      return make_sequence<T>(out, new_m);
+      return pbbslib::make_sequence<T>(out, new_m);
     }
 
     void clear() {

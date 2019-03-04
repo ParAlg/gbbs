@@ -106,7 +106,7 @@ namespace truss_utils {
 
     sequence<V> entries() {
       auto pred = [&](V t) { return t != empty; };
-      auto table_seq = make_sequence<V>(table, m);
+      auto table_seq = pbbslib::make_sequence<V>(table, m);
       return pbbslib::filter(table_seq, pred);
     }
 
@@ -196,7 +196,7 @@ namespace truss_utils {
         offsets[i] = (1 << pbbslib::log2_up((size_t)(table_elms*1.2))) + 2; // 2 cell padding (l, r)
       });
       offsets[n] = 0;
-      size_t total_space = pbbslib::scan_add(offsets, offsets);
+      size_t total_space = pbbslib::scan_add_inplace(offsets);
       std::cout << "total space = " << total_space << std::endl;
       std::cout << "empty val is " << empty_val << std::endl;
 
@@ -319,7 +319,7 @@ namespace truss_utils {
     size_t n = DG.n;
     auto frontier = sequence<bool>(n);
     par_for(0, n, [&] (size_t i) { frontier[i] = 1; });
-    vertexSubset Frontier(n, n, frontier.start());
+    vertexSubset Frontier(n, n, frontier.begin());
     emdf(DG, Frontier, wrap_em_f<W>(countF<F, vertex, W>(DG.V, f)), no_output);
   }
 
@@ -329,7 +329,7 @@ namespace truss_utils {
     auto o = sequence<uintE>(n);
 
     par_for(0, n, [&] (size_t i) { o[i] = i; });
-    pbbslib::sample_sort(o.start(), n, [&](const uintE u, const uintE v) {
+    pbbslib::sample_sort(o.begin(), n, [&](const uintE u, const uintE v) {
       return V[u].getOutDegree() < V[v].getOutDegree();
     });
     par_for(0, n, [&] (size_t i) { r[o[i]] = i; });

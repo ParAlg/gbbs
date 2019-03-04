@@ -97,7 +97,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
   E.del();
-  E.E = out.get_array();
+  E.E = out.to_array();
   perm_t.stop();
   perm_t.reportTotal("permutation time");
   return E;
@@ -141,7 +141,7 @@ inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
                     out[i] = e_arr[perm[i]];  // gather or scatter?
                   });
   E.del();
-  E.E = out.get_array();
+  E.E = out.to_array();
   perm_t.stop();
   perm_t.reportTotal("permutation time");
   return E;
@@ -174,16 +174,16 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   while (G.m > 0) {
     gete.start();
     auto e_arr = (round < mm::n_filter_steps)
-                     ? mm::get_edges(G, k, matched.start(), r)
-                     : mm::get_all_edges(G, matched.start(), r);
+                     ? mm::get_edges(G, k, matched.begin(), r)
+                     : mm::get_all_edges(G, matched.begin(), r);
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
-    auto eim = make_sequence<edge>(e_arr.non_zeros, eim_f);
+    auto eim = pbbslib::make_sequence<edge>(e_arr.non_zeros, eim_f);
     gete.stop();
 
     std::cout << "Got: " << e_arr.non_zeros << " edges "
               << " G.m is now: " << G.m << "\n";
-    mm::matchStep<W> mStep(e_arr.E, R.start(), matched.start());
+    mm::matchStep<W> mStep(e_arr.E, R.begin(), matched.begin());
     eff.start();
     eff_for<uintE>(mStep, 0, e_arr.non_zeros, 50, 0, G.n);
     eff.stop();
@@ -250,7 +250,7 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
   par_for(0, n, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_im = make_sequence<size_t>(n, ok_f);
+  auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);
   size_t n_ok = pbbslib::reduce_add(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";

@@ -135,7 +135,7 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
     };
 
     auto moved = edgeMapData<uintE>(
-        GA, active, kcore_fetch_add<W>(ER.start(), D.start(), k));
+        GA, active, kcore_fetch_add<W>(ER.begin(), D.begin(), k));
     vertexMap(moved, apply_f);
 
     if (moved.dense()) {

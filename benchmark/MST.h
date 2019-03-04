@@ -133,7 +133,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 3. filter out the new MST edges.
     timer filter_t;
     filter_t.start();
-    n_in_mst += pbbslib::filterf(new_mst_edges.start(), mst + n_in_mst, n,
+    n_in_mst += pbbslib::filterf(new_mst_edges.begin(), mst + n_in_mst, n,
                               [](uintE v) { return v != UINT_E_MAX; });
     std::cout << "      " << n_in_mst << " edges added to mst."
               << "\n";
@@ -186,12 +186,12 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
 
     // 7. filter (or ignore) self-edges.
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
-    auto self_loop_im = make_sequence<bool>(n, self_loop_f);
+    auto self_loop_im = pbbslib::make_sequence<bool>(n, self_loop_f);
     auto edge_ids_im = sequence<uintE>(edge_ids, m);
     if (round == 0) {
       auto A = pbbslib::pack(edge_ids_im, self_loop_im);
       m = A.size();
-      next_edge_ids = A.get_array();
+      next_edge_ids = A.to_array();
     } else {
       auto A =
           pbbslib::pack(edge_ids_im, self_loop_im, pbbslib::no_flag, next_edge_ids);
@@ -239,7 +239,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
   auto vertex_offs = sequence<long>(G.n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { vertex_offs[i] = G.V[i].getOutDegree(); });
-  pbbslib::scan_add(vertex_offs, vertex_offs, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
@@ -257,7 +257,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
   auto cmp_by_wgh = [](const edge& l, const edge& r) {
     return std::get<2>(l) < std::get<2>(r);
   };
-  pbbslib::sample_sort(sample_edges.start(), sample_edges.size(), cmp_by_wgh);
+  pbbslib::sample_sort(sample_edges.begin(), sample_edges.size(), cmp_by_wgh);
 
   // 2. find approximate splitter.
   size_t ind = ((double)(k * sample_edges.size())) / G.m;
@@ -392,7 +392,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     auto vtx_im = sequence<uintE>(vtxs, n);
     timer pack_t;
     pack_t.start();
-    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.start(),
+    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.begin(),
                                             (uintE)n);
     pack_t.stop();  // pack_t.reportTotal("reactivation pack");
 
@@ -431,7 +431,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   }
   std::cout << "#edges in output mst: " << mst_edges.size << "\n";
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = make_sequence<size_t>(
+  auto wgh_imap = pbbslib::make_sequence<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 
@@ -588,7 +588,7 @@ inline void MST(graph<vertex<W>>& GA) {
     pbbslib::free_array(R);
     auto edge_imap_f = [&](size_t i) { return edges.E[i]; };
     auto edge_im =
-        make_sequence<edge_t>(n_edges, edge_imap_f);
+        pbbslib::make_sequence<edge_t>(n_edges, edge_imap_f);
     auto edges_ret = pbbslib::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
@@ -604,7 +604,7 @@ inline void MST(graph<vertex<W>>& GA) {
   }
   std::cout << "n in mst: " << mst_edges.size << "\n";
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = make_sequence<size_t>(
+  auto wgh_imap = pbbslib::make_sequence<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "wgh = " << pbbslib::reduce_add(wgh_imap) << "\n";
 

@@ -102,14 +102,14 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
                        const std::tuple<uintE, uintE>& r) {
       return std::get<1>(l) > std::get<1>(r);
     };
-    pbbslib::sample_sort(ET.start(), ET.size(), cmp_snd);
+    pbbslib::sample_sort(ET.begin(), ET.size(), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }
   } else {
     // reduce flags
     auto flags_f = [&](size_t i) { return (size_t)flags[i]; };
-    auto flags_imap = make_sequence<size_t>(n, flags_f);
+    auto flags_imap = pbbslib::make_sequence<size_t>(n, flags_f);
     std::cout << "Largest component size = " << pbbslib::reduce_add(flags_imap)
               << "\n";
   }

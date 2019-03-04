@@ -59,19 +59,19 @@ namespace pbbslib {
   // Destructs in parallel
   template<typename E>
   void delete_array(E* A, size_t n) {
-    return pbbs::delete_array(A, n);
+    return pbbs::delete_array<E>(A, n);
   }
 
   // Does not initialize the array
   template<typename E>
   E* new_array_no_init(size_t n, bool touch_pages=false) {
-    return pbbs::new_array_no_init(n, touch_pages);
+    return pbbs::new_array_no_init<E>(n, touch_pages);
   }
 
   // Initializes in parallel
   template<typename E>
   E* new_array(size_t n) {
-    return pbbs::new_array(n);
+    return pbbs::new_array<E>(n);
   }
 
   // a 32-bit hash function
@@ -143,12 +143,12 @@ namespace pbbslib {
 
   template <typename ET, typename F>
   inline bool write_min(ET *a, ET b, F less) {
-    return pbbs::write_min<EV, F>(a, b, less);
+    return pbbs::write_min<ET, F>(a, b, less);
   }
 
   template <typename ET, typename F>
   inline bool write_min(std::atomic<ET> *a, ET b, F less) {
-    return pbbs::write_min<EV, F>(a, b, less);
+    return pbbs::write_min<ET, F>(a, b, less);
   }
 
   // returns the log base 2 rounded up (works on ints or longs or unsigned versions)
@@ -176,11 +176,42 @@ namespace pbbslib {
     return delayed_sequence<T,F>(n,f);
   }
 
+  template <class T>
+  inline range<T*> make_sequence (T* A, size_t n) {
+    return range<T*>(A, A+n);
+  }
+
+  template <RANGE Range, class Monoid>
+  inline auto scan_inplace(Range In, Monoid m, flags fl = no_flag)
+    -> typename Range::value_type {
+    return pbbs::scan_inplace<Range, Monoid>(In, m, fl);
+  }
+
+  template <SEQ In_Seq, class Monoid>
+  inline auto scan(In_Seq const &In, Monoid m, flags fl = no_flag)
+    ->  std::pair<sequence<typename In_Seq::value_type>, typename In_Seq::value_type>
+  {
+    return pbbs::scan<In_Seq, Monoid>(In, m, fl);
+  }
+
+  // do in place if rvalue reference to a sequence<T>
+  template <class T, class Monoid>
+  auto scan(sequence<T> &&In, Monoid m, flags fl = no_flag)
+    ->  std::pair<sequence<T>, T> {
+    return pbbs::scan(std::move(In), m, fl);
+  }
+
   // Scans the input sequence using the addm monoid.
   template <class In_Seq>
-  inline auto scan_add_inplace(In_Seq const& In) -> typename In_Seq::value_type {
-    using T = typename In_Seq::value_type;
-    return pbbslib::scan_inplace(s, pbbslib::addm<T>());
+  inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag) -> typename In_Seq::value_type {
+    using T = typename In_Seq::T;
+    return scan_inplace(In, pbbslib::addm<T>(), fl);
+  }
+
+  template <class Seq>
+  inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::T {
+    using T = typename Seq::T;
+    return reduce(I, addm<T>(), fl);
   }
 
   template <class Seq>
@@ -236,7 +267,7 @@ namespace pbbslib {
 
   // ====================== random shuffle =======================
   template <class intT>
-  sequence<intT> random_permutation(size_t n, random r = default_random) {
+  sequence<intT> random_permutation(size_t n, pbbs::random r = default_random) {
     return pbbs::random_permutation<intT>(n, r);
   }
 }
@@ -247,6 +278,8 @@ namespace pbbslib {
 // Other extensions to pbbs used by the graph benchmarks.
 namespace pbbslib {
 
+  constexpr size_t _F_BSIZE = 2000;
+
   template <class Idx_Type, class D, class F>
   inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {
@@ -255,8 +288,8 @@ namespace pbbslib {
     };
     auto flgs_f = [&](size_t i) { return std::get<0>(f(i)); };
     auto flgs_in =
-        make_sequence<bool>(size, flgs_f);
-    return pack(make_sequence<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
+        pbbslib::make_sequence<bool>(size, flgs_f);
+    return pack(pbbslib::make_sequence<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
                 fl);
   }
 
@@ -324,7 +357,7 @@ namespace pbbslib {
       Sums[i] = k - s;
     });
     auto isums = sequence<size_t>(Sums, l);
-    size_t m = scan_add(isums, isums);
+    size_t m = scan_add_inplace(isums);
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
       T* I = In + i * b;
@@ -369,7 +402,7 @@ namespace pbbslib {
       Sums[i] = k - s;
     });
     auto isums = sequence<size_t>(Sums, l);
-    size_t m = scan_add(isums, isums);
+    size_t m = scan_add_inplace(isums);
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
       T* I = In + (i * b);

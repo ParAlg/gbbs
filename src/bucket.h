@@ -100,12 +100,12 @@ struct buckets {
     // Set the current range being processed based on the order.
     if (order == increasing) {
       auto imap_f = [&](size_t i) { return d(i); };
-      auto imap = make_sequence<bucket_id>(n, imap_f);
+      auto imap = pbbslib::make_sequence<bucket_id>(n, imap_f);
       size_t min_b = pbbslib::reduce(imap, minm<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
       auto imap_f = [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); };
-      auto imap = make_sequence<bucket_id>(n, imap_f);
+      auto imap = pbbslib::make_sequence<bucket_id>(n, imap_f);
       size_t max_b = pbbslib::reduce(imap, maxm<bucket_id>());
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
@@ -209,10 +209,10 @@ struct buckets {
       return hists[col * total_buckets + row];
     };
 
-    auto in_map = make_sequence<bucket_id>(num_blocks * total_buckets, get);
+    auto in_map = pbbslib::make_sequence<bucket_id>(num_blocks * total_buckets, get);
     auto out_map = sequence<bucket_id>(outs, num_blocks * total_buckets);
 
-    size_t sum = pbbslib::scan_add(in_map, out_map);
+    size_t sum = pbbslib::scan_add_inplace(in_map);
     outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
