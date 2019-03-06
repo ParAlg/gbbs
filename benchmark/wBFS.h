@@ -58,7 +58,7 @@ struct Visit_F {
           CAS(&(dists[d]), oval, n_dist)) {  // First visitor
         return Maybe<uintE>(oval);
       }
-      writeMin(&(dists[d]), n_dist);
+      pbbslib::writeMin(&(dists[d]), n_dist);
     }
     return Maybe<uintE>();
   }

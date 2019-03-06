@@ -484,7 +484,8 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
                                           intT threshold = -1,
                                           const flags& fl = 0) {
   size_t numVertices = GA.n, numEdges = GA.m, m = vs.numNonzeros();
-  if (threshold == -1) threshold = numEdges / 20;
+  size_t dense_threshold = threshold;
+  if (threshold == -1) dense_threshold = numEdges / 20;
   if (vs.size() == 0) return vertexSubsetData<data>(numVertices);
 
   if (vs.isDense && vs.size() > numVertices / 10) {
@@ -505,7 +506,7 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   size_t out_degrees = pbbslib::reduce_add(degree_im);
 
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
-  if (m + out_degrees > threshold && !(fl & no_dense)) {
+  if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
     pbbslib::free_array(frontier_vertices);
     return (fl & dense_forward)

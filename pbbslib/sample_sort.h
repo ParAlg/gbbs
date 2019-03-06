@@ -67,16 +67,16 @@ namespace pbbs {
     *sC = eA-sA;
   }
 
-  template<class SeqA, class SeqB, typename BinPred>
-  void sort_small_(SeqA A, SeqB B, const BinPred& f,
+  template<class Iter, class SeqB, typename BinPred>
+  void sort_small_(range<Iter> A, SeqB B, const BinPred& f,
 		   bool inplace = false, bool stable = false) {
-    using T = typename SeqA::value_type;
+    using T = typename SeqB::value_type;
     size_t n = A.size();
     if (stable) {
       if (inplace) {
 	sequence<T> C(n);
 	merge_sort_(A.slice(), C.slice(), f, true);
-      } else merge_sort_(A.slice(), B.slice(), f, false);
+      } else ; merge_sort_(A.slice(), B.slice(), f, false);
     } else {
       if (!inplace) 
 	parallel_for(0, n, [&] (size_t i) { B[i] = A[i];});
@@ -84,9 +84,23 @@ namespace pbbs {
     }
   }
 
+  template<class SeqA, class SeqB, typename BinPred>
+  void sort_small_(SeqA A, SeqB B, const BinPred& f,
+		   bool inplace = false, bool stable = false) {
+    if (inplace) std::cout << "bad inplace arg in sort" << std::endl;
+    using T = typename SeqA::value_type;
+    size_t n = A.size();
+    if (stable) {
+      sequence<T> C(A);
+      merge_sort_(C.slice(), B.slice(), f, false);
+    } else {
+      parallel_for(0, n, [&] (size_t i) { B[i] = A[i];});
+      quicksort(B.begin(), n, f);
+    }
+  }
+
   template<typename E, typename BinPred, typename s_size_t>
   void sample_sort (E* A, s_size_t n, const BinPred& f, bool stable = false);
-
 
   template<typename E, typename BinPred>
   void seq_sort_inplace(range<E*> A, BinPred f, bool stable) {
@@ -147,29 +161,22 @@ namespace pbbs {
 	  size_t start = std::min(n, i * block_size);
 	  size_t end = std::min(n, start + block_size);
 	  size_t l = end-start;
-	  //if (stable)
-	  //  merge_sort_(A.slice(start,end), C.slice(start,end), f);
-	  //else {
-	    if (inplace)
-	      for (size_t j = start;  j < start + l; j++) 
-		move_uninitialized(C[j], A[j]);
-	    else
-	      for (size_t j = start;  j < start + l; j++) 
-		assign_uninitialized(C[j], A[j]);
-	    seq_sort_inplace(C.slice(start,end), f, stable);
-	    //}
+	  if (inplace)
+	    for (size_t j = start;  j < start + l; j++) 
+	      move_uninitialized(C[j], A[j]);
+	  else
+	    for (size_t j = start;  j < start + l; j++) 
+	      assign_uninitialized(C[j], A[j]);
+	  seq_sort_inplace(C.slice(start,end), f, stable);
 	  merge_seq(C.begin() + start, pivots.begin(), counts + i*num_buckets,
 		    l, num_buckets-1, f);
 	}, 1);
       t.next("first sort");
 
-      //cout << "ss 2" << endl;
       // move data from blocks to buckets
       size_t* bucket_offsets = transpose_buckets(C.begin(), B.begin(),
 						 counts, n, block_size,
 						 num_blocks, num_buckets);
-      //delete_array(counts, m);
-      //cout << "ss 2.5" << endl;
       t.next("transpose");
       
       // sort within each bucket
@@ -177,21 +184,12 @@ namespace pbbs {
 	  size_t start = bucket_offsets[i];
 	  size_t end = bucket_offsets[i+1];
 
-	  // buckets need not be sorted if two consecutive pivots
-	  // are equal
+	  // buckets need not be sorted if two consecutive pivots are equal
 	  if (i == 0 || i == num_buckets - 1 || f(pivots[i-1],pivots[i])) {
-	    // todo: using stable here breaks the permuted test??
-	    //if (stable) {
-	      // final argument means to do it inplace, using C as temp
-	    //  merge_sort_(B.slice(start,end), C.slice(start,end), f, true);
-	    //}
-	    //else {
 	    seq_sort_inplace(B.slice(start,end), f, stable);
-	      //}
 	  }
 	},1);
       t.next("second sort");
-      //cout << "ss 3" << endl;
       delete_array(bucket_offsets,num_buckets+1 );
     }
   }

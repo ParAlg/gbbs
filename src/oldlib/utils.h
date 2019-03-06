@@ -34,67 +34,72 @@
 #define _SCAN_BSIZE (1 << _SCAN_LOG_BSIZE)
 #define _F_BSIZE (2 * _SCAN_BSIZE)
 
-template <class ET>
-inline bool CAS(ET* ptr, ET oldv, ET newv) {
-  if (sizeof(ET) == 1) {
-    return __sync_bool_compare_and_swap((bool*)ptr, *((bool*)&oldv),
-                                        *((bool*)&newv));
-  } else if (sizeof(ET) == 4) {
-    return __sync_bool_compare_and_swap((int*)ptr, *((int*)&oldv),
-                                        *((int*)&newv));
-  } else if (sizeof(ET) == 8) {
-    return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
-                                        *((long*)&newv));
-  } else {
-    std::cout << "CAS bad length : " << sizeof(ET) << "\n";
-    abort();
-  }
+//template <class ET>
+//inline bool CAS(ET* ptr, ET oldv, ET newv) {
+//  if (sizeof(ET) == 1) {
+//    return __sync_bool_compare_and_swap((bool*)ptr, *((bool*)&oldv),
+//                                        *((bool*)&newv));
+//  } else if (sizeof(ET) == 4) {
+//    return __sync_bool_compare_and_swap((int*)ptr, *((int*)&oldv),
+//                                        *((int*)&newv));
+//  } else if (sizeof(ET) == 8) {
+//    return __sync_bool_compare_and_swap((long*)ptr, *((long*)&oldv),
+//                                        *((long*)&newv));
+//  } else {
+//    std::cout << "CAS bad length : " << sizeof(ET) << "\n";
+//    abort();
+//  }
+//}
+
+template <typename ET>
+inline bool CAS(ET* ptr, const ET oldv, const ET newv) {
+  return __sync_bool_compare_and_swap(ptr, oldv, newv);
 }
 
-template <class ET>
-inline bool writeMin(ET* a, ET b) {
-  ET c;
-  bool r = 0;
-  do
-    c = *a;
-  while (c > b && !(r = CAS(a, c, b)));
-  return r;
-}
+//template <class ET>
+//inline bool writeMin(ET* a, ET b) {
+//  ET c;
+//  bool r = 0;
+//  do
+//    c = *a;
+//  while (c > b && !(r = CAS(a, c, b)));
+//  return r;
+//}
 
-template <class ET, class F>
-inline bool writeMin(ET* a, ET b, F less) {
-  ET c;
-  bool r = 0;
-  do
-    c = *a;
-  while (less(b, c) && !(r = CAS(a, c, b)));
-  return r;
-}
-
-template <class ET>
-inline bool writeMax(ET* a, ET b) {
-  ET c;
-  bool r = 0;
-  do
-    c = *a;
-  while (c < b && !(r = CAS(a, c, b)));
-  return r;
-}
+//template <class ET, class F>
+//inline bool writeMin(ET* a, ET b, F less) {
+//  ET c;
+//  bool r = 0;
+//  do
+//    c = *a;
+//  while (less(b, c) && !(r = CAS(a, c, b)));
+//  return r;
+//}
+//
+//template <class ET>
+//inline bool writeMax(ET* a, ET b) {
+//  ET c;
+//  bool r = 0;
+//  do
+//    c = *a;
+//  while (c < b && !(r = CAS(a, c, b)));
+//  return r;
+//}
 
 // template <class ET>
 // inline ET writeAdd(ET *a, ET b) {
 //  return b + pbbslib::xadd<ET>(a, b);
 //}
 
-template <class ET>
-inline ET writeAdd(ET* a, ET b) {
-  volatile ET newV, oldV;
-  do {
-    oldV = *a;
-    newV = oldV + b;
-  } while (!CAS(a, oldV, newV));
-  return newV;
-}
+//template <class ET>
+//inline ET writeAdd(ET* a, ET b) {
+//  volatile ET newV, oldV;
+//  do {
+//    oldV = *a;
+//    newV = oldV + b;
+//  } while (!pbbslib::atomic_compare_and_swap(a, oldV, newV));
+//  return newV;
+//}
 
 namespace ligra_utils {
 template <class E>

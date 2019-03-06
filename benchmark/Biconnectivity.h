@@ -82,12 +82,12 @@ struct MinMaxF {
     labels lab_s = MM[s];
     uintE low = std::get<0>(lab_s), high = std::get<1>(lab_s);
     if (low < std::get<0>(MM[d])) {
-      writeMin(&std::get<0>(MM[d]), low);
+      pbbslib::writeMin(&std::get<0>(MM[d]), low);
     }
     if (high > std::get<1>(MM[d])) {
-      writeMax(&std::get<1>(MM[d]), high);
+      pbbslib::writeMax(&std::get<1>(MM[d]), high);
     }
-    intE res = writeAdd(&cts[d], -1);
+    intE res = pbbslib::writeAdd(&cts[d], -1);
     return (res == 0);
   }
   bool cond(const uintE& d) { return true; }
@@ -266,14 +266,14 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       uintE p_u = PN[u];
       uintE p_v = PN[v];
       if (p_u < std::get<0>(MM[v])) {
-        writeMin(&std::get<0>(MM[v]), p_u);
+        pbbslib::writeMin(&std::get<0>(MM[v]), p_u);
       } else if (p_u > std::get<1>(MM[v])) {
-        writeMax(&std::get<1>(MM[v]), p_u);
+        pbbslib::writeMax(&std::get<1>(MM[v]), p_u);
       }
       if (p_v < std::get<0>(MM[u])) {
-        writeMin(&std::get<0>(MM[u]), p_v);
+        pbbslib::writeMin(&std::get<0>(MM[u]), p_v);
       } else if (p_v > std::get<1>(MM[u])) {
-        writeMax(&std::get<1>(MM[u]), p_v);
+        pbbslib::writeMax(&std::get<1>(MM[u]), p_v);
       }
     }
   };
@@ -351,7 +351,7 @@ inline sequence<uintE> cc_sources(Seq& labels) {
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE label = labels[i];
-    writeMin(&flags[label], (uintE)i);
+    pbbslib::writeMin(&flags[label], (uintE)i);
   });
   // Get min from each component
   return pbbslib::filter(flags, [](uintE v) { return v != UINT_E_MAX; });

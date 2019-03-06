@@ -74,7 +74,7 @@ inline BC_Vertex_F<V> make_bc_vertex_f(V& visited) {
 template <class V, class D>
 struct BC_Back_Vertex_F {
   V& Visited;
-  D &Dependencies, NumPaths;
+  D& Dependencies, &NumPaths;
   BC_Back_Vertex_F(V& _Visited, D& _Dependencies, D& _NumPaths)
       : Visited(_Visited), Dependencies(_Dependencies), NumPaths(_NumPaths) {}
   inline bool operator()(uintE i) {
@@ -92,7 +92,6 @@ inline BC_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
 
 template <template <class W> class vertex, class W>
 inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
-  using w_vertex = vertex<W>;
   size_t n = GA.n;
 
   auto NumPaths = sequence<fType>(n, [](size_t i) { return 0.0; });

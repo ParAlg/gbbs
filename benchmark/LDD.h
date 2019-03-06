@@ -103,9 +103,7 @@ template <template <typename W> class vertex, class W, class EO>
 inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
                                   double beta, bool permute = true,
                                   bool pack = false) {
-  using w_vertex = vertex<W>;
   size_t n = GA.n;
-  auto V = GA.V;
 
   sequence<uintE> vertex_perm;
   if (permute) {

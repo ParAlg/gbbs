@@ -211,12 +211,11 @@ inline void radixStep(E *A, E *B, bIndexT *Tmp, bint (*BK)[BUCKETS], long numBK,
 
   oldtranspose::transpose<bint, bint>(cnts, oA).trans(blocks, m);
 
-  long ss;
   if (top)
-    ss = ligra_utils::seq::scan(oA, oA, blocks * m, ligra_utils::addF<bint>(),
+    ligra_utils::seq::scan(oA, oA, blocks * m, ligra_utils::addF<bint>(),
                                 (bint)0);
   else
-    ss = ligra_utils::seq::scanSerial(oA, oA, blocks * m,
+    ligra_utils::seq::scanSerial(oA, oA, blocks * m,
                                       ligra_utils::addF<bint>(), (bint)0);
   // utils::myAssert(ss == n, "radixStep: sizes don't match");
 

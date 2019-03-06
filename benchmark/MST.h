@@ -94,8 +94,8 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
       uintE e_id = edge_ids[i];
       const edge& e = edges[e_id];
       ct cas_e(e_id, std::get<2>(e));
-      writeMin(min_edges + std::get<0>(e), cas_e, less);
-      writeMin(min_edges + std::get<1>(e), cas_e, less);
+      pbbslib::writeMin(min_edges + std::get<0>(e), cas_e, less);
+      pbbslib::writeMin(min_edges + std::get<1>(e), cas_e, less);
     });
     min_t.stop();  // min_t.reportTotal("write min time");
 

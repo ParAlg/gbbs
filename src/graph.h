@@ -56,8 +56,8 @@ struct graph {
       : V(_V),
         n(_n),
         m(_m),
-        flags(_flags),
         transposed(0),
+        flags(_flags),
         deletion_fn(_d),
         copy_fn(_c) {}
 

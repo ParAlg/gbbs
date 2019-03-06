@@ -237,7 +237,7 @@ namespace pbbs {
 		[&] (size_t i, size_t s, size_t e)
 		{ pack_serial_at(In.slice(s,e),
 				 Fl.slice(s,e),
-				 make_range(Out.begin(), Out.begin() + Sums[i]));});
+				 Out.slice(Sums[i], (i == l-1) ? m : Sums[i+1]));});
     return Out;
   }
 
@@ -258,7 +258,7 @@ namespace pbbs {
     pbbs::sliced_for (n, _block_size,
 		[&] (size_t i, size_t s, size_t e)
 		{ pack_serial_at(In.slice(s,e), Fl.slice(s,e),
-                    make_range(Out.begin(), Out.begin() + Sums[i]));});
+                  Out.slice(Sums[i], (i == l-1) ? m : Sums[i+1]));});
     return m;
   }
 
