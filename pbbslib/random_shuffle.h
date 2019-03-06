@@ -32,7 +32,7 @@ namespace pbbs {
 
   // inplace sequential version
   template <typename Seq>
-  void seq_random_shuffle_(Seq A, random r = default_random) {
+  void seq_random_shuffle_(Seq A, random r = random()) {
     size_t n = A.size();
     // the Knuth shuffle
     if (n < 2) return;
@@ -43,7 +43,7 @@ namespace pbbs {
   template <typename Seq>
   void random_shuffle_(Seq const &In,
 		       range<typename Seq::value_type*> Out,
-		       random r = default_random) {
+		       random r = random()) {
     size_t n = In.size();
     if (n < SEQ_THRESHOLD) {
       if (In.begin() != Out.begin()) 
@@ -78,7 +78,7 @@ namespace pbbs {
 
   template <typename Seq>
   sequence<typename Seq::value_type>
-  random_shuffle(Seq const &In, random r = default_random) {
+  random_shuffle(Seq const &In, random r = random()) {
     using T = typename Seq::value_type;
     sequence<T> Out = sequence<T>::no_init(In.size());
     random_shuffle_(In, Out.slice(), r);
@@ -87,7 +87,7 @@ namespace pbbs {
 
   template <class intT>
   sequence<intT>
-  random_permutation(size_t n, random r = default_random) {
+  random_permutation(size_t n, random r = random()) {
     sequence<intT> id(n, [&] (size_t i) { return i; });
     return pbbs::random_shuffle(id, r);
   }

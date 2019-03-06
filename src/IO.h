@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -66,12 +67,12 @@ struct pairBothCmp {
 // A structure that keeps a seq of strings all allocated from
 // the same block of memory
 struct words {
-  long n;          // total number of characters
+  uint64_t n;          // total number of characters
   char* Chars;     // array storing all strings
-  long m;          // number of substrings
+  uint64_t m;          // number of substrings
   char** Strings;  // pointers to strings (all should be null terminated)
   words() {}
-  words(char* C, long nn, char** S, long mm)
+  words(char* C, uint64_t nn, char** S, uint64_t mm)
       : n(nn), Chars(C), m(mm), Strings(S) {}
   void clear() {
     pbbslib::free_array(Chars);
@@ -138,9 +139,9 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
     std::cout << "Unable to open file: " << fileName << "\n";
     abort();
   }
-  long end = file.tellg();
+  uint64_t end = file.tellg();
   file.seekg(0, std::ios::beg);
-  long n = end - file.tellg();
+  uint64_t n = end - file.tellg();
   char* bytes = pbbslib::new_array_no_init<char>(n + 1);
   file.read(bytes, n);
   file.close();
@@ -148,7 +149,7 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
 }
 
 // parallel code for converting a string to words
-inline words stringToWords(char* Str, long n) {
+inline words stringToWords(char* Str, uint64_t n) {
   {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (isSpace(Str[i])) Str[i] = 0;
@@ -168,10 +169,10 @@ inline words stringToWords(char* Str, long n) {
   //  std::cout << " sum is : " << pbbslib::reduce_add(im) << "\n";
 
   // offset for each start of word
-  ligra_utils::_seq<long> Off = ligra_utils::seq::packIndex<long>(FL, n);
+  ligra_utils::_seq<uint64_t> Off = ligra_utils::seq::packIndex<uint64_t>(FL, n);
   //  std::cout << "pack returned " << Off.n << "\n";
-  long m = Off.n;
-  long* offsets = Off.A;
+  uint64_t m = Off.n;
+  uint64_t* offsets = Off.A;
 
   // pointer to each start of word
   char** SA = pbbslib::new_array_no_init<char*>(m);
@@ -213,9 +214,9 @@ inline graph<vertex<intE>> readWeightedGraph(
   }
   assert(W.Strings[0] == (std::string) "WeightedAdjacencyGraph");
 
-  long len = W.m - 1;
-  long n = atol(W.Strings[1]);
-  long m = atol(W.Strings[2]);
+  uint64_t len = W.m - 1;
+  uint64_t n = atol(W.Strings[1]);
+  uint64_t m = atol(W.Strings[2]);
   if (len != (n + 2 * m + 2)) {
     std::cout << W.Strings[0] << "\n";
     std::cout << "len = " << len << "\n";
@@ -331,9 +332,9 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
   assert(W.Strings[0] == (std::string) "AdjacencyGraph");
   // TODO(laxmand): ensure that S is properly freed here
 
-  long len = W.m - 1;
-  long n = atol(W.Strings[1]);
-  long m = atol(W.Strings[2]);
+  uint64_t len = W.m - 1;
+  uint64_t n = atol(W.Strings[1]);
+  uint64_t m = atol(W.Strings[2]);
 
   std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
   assert(len == n + m + 2);
@@ -512,7 +513,7 @@ inline graph<vertex<W>> readCompressedGraph(
 
       //    std::ifstream in(fname,std::ifstream::in |std::ios::binary);
       //    in.seekg(0,std::ios::end);
-      //    long size = in.tellg();
+      //    uint64_t size = in.tellg();
       //    in.seekg(0);
       //    std::cout << "size = " << size << "\n";
       //    s = (char*) malloc(size);
@@ -525,7 +526,7 @@ inline graph<vertex<W>> readCompressedGraph(
   }
 
   long* sizes = (long*)s;
-  long n = sizes[0], m = sizes[1], totalSpace = sizes[2];
+  uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
   std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
             << "\n";
@@ -533,7 +534,7 @@ inline graph<vertex<W>> readCompressedGraph(
             << "\n";
 
   uintT* offsets = (uintT*)(s + 3 * sizeof(long));
-  long skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+  uint64_t skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
   uintE* Degrees = (uintE*)(s + skip);
   skip += n * sizeof(intE);
   uchar* edges = (uchar*)(s + skip);
@@ -541,7 +542,7 @@ inline graph<vertex<W>> readCompressedGraph(
   uintT* inOffsets;
   uchar* inEdges;
   uintE* inDegrees;
-  long inTotalSpace = 0;
+  uint64_t inTotalSpace = 0;
   if (!isSymmetric) {
     skip += totalSpace;
     uchar* inData = (uchar*)(s + skip);
@@ -562,7 +563,7 @@ inline graph<vertex<W>> readCompressedGraph(
 
   w_vertex* V = pbbslib::new_array_no_init<w_vertex>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    long o = offsets[i];
+    uint64_t o = offsets[i];
     uintT d = Degrees[i];
     V[i].setOutDegree(d);
     V[i].setOutNeighbors(edges + o);
@@ -570,7 +571,7 @@ inline graph<vertex<W>> readCompressedGraph(
 
   if (!isSymmetric) {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      long o = inOffsets[i];
+      uint64_t o = inOffsets[i];
       uintT d = inDegrees[i];
       V[i].setInDegree(d);
       V[i].setInNeighbors(inEdges + o);
@@ -596,7 +597,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
   using w_vertex = vertex<W>;
   w_vertex* V = pbbslib::new_array_no_init<w_vertex>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    long o = offsets[i];
+    uint64_t o = offsets[i];
     uintT d = degrees[i];
     V[i].setOutDegree(d);
     V[i].setOutNeighbors(edges + o);

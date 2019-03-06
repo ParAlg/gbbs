@@ -329,7 +329,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
 
   size_t n = GA.n;
   std::cout << "n = " << n << "\n";
-  auto r = pbbslib::default_random;
+  auto r = pbbslib::random();
 
   auto exhausted = sequence<bool>(n, [](size_t i) { return false; });
   auto parents = sequence<uintE>(n, [](size_t i) { return i; });
@@ -550,7 +550,7 @@ inline void MST(graph<vertex<W>>& GA) {
   using edge_t = std::tuple<uintE, uintE, W>;
 
   size_t n = GA.n;
-  auto r = pbbslib::default_random;
+  auto r = pbbslib::random();
   auto uf = UnionFind(n);
 
   auto mst_edges = dyn_arr<edge_t>(n);

@@ -164,16 +164,16 @@ namespace pbbs {
     return Out;
   }
 
-  template <class Slice, class Slice2>
-  void pack_serial_at(Slice In, Slice2 Fl, typename Slice::value_type* Out) {
+  template <class Slice, class Slice2, RANGE Out_Seq>
+  size_t pack_serial_at(Slice In, Slice2 Fl, Out_Seq Out) {
     size_t k = 0;
     for (size_t i=0; i < In.size(); i++)
       if (Fl[i]) assign_uninitialized(Out[k++], In[i]);
+    return k;
   }
 
   template <SEQ In_Seq, SEQ Bool_Seq>
   auto pack(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
-  //typename In_Seq::value_type* _Out = nullptr)
       -> sequence<typename In_Seq::value_type> {
     using T = typename In_Seq::value_type;
     size_t n = In.size();
@@ -189,14 +189,35 @@ namespace pbbs {
     sequence<T> Out = sequence<T>::no_init(m);
     sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
 	pack_serial_at(In.slice(s, e),  Fl.slice(s, e),
-		       Out.begin() + Sums[i]);
+		       Out.slice(Sums[i], (i == l-1) ? m : Sums[i+1]));
     });
     return Out;
   }
 
+  // Pack the output to the output range.
+  template <SEQ In_Seq, SEQ Bool_Seq, RANGE Out_Seq>
+  size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq Out,
+                flags fl = no_flag)
+  {
+    size_t n = In.size();
+    size_t l = num_blocks(n, _block_size);
+    if (l <= 1 || fl & fl_sequential) {
+      return pack_serial_at(In, Fl.slice(0, In.size()), Out);
+    }
+    sequence<size_t> Sums(l);
+    sliced_for(n, _block_size, [&] (size_t i, size_t s, size_t e) {
+      Sums[i] = sum_bools_serial(Fl.slice(s, e));
+    });
+    size_t m = scan_inplace(Sums.slice(), addm<size_t>());
+    sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      pack_serial_at(In.slice(s, e),  Fl.slice(s, e),
+                     Out.slice(Sums[i], (i == l-1) ? m : Sums[i+1]));
+    });
+    return m;
+  }
+
   template <SEQ In_Seq, class F>
   auto filter(In_Seq const &In, F f, flags fl = no_flag)
-  //typename In_Seq::value_type* _Out = nullptr)
     -> sequence<typename In_Seq::value_type>
   {
     using T = typename In_Seq::value_type;
@@ -216,8 +237,29 @@ namespace pbbs {
 		[&] (size_t i, size_t s, size_t e)
 		{ pack_serial_at(In.slice(s,e),
 				 Fl.slice(s,e),
-				 Out.begin() + Sums[i]);});
+				 make_range(Out.begin(), Out.begin() + Sums[i]));});
     return Out;
+  }
+
+  // Filter and write the output to the output range.
+  template <SEQ In_Seq, RANGE Out_Seq, class F>
+  size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
+    size_t n = In.size();
+    size_t l = pbbs::num_blocks(n,_block_size);
+    pbbs::sequence<size_t> Sums(l);
+    pbbs::sequence<bool> Fl(n);
+    pbbs::sliced_for (n, pbbs::_block_size,
+		[&] (size_t i, size_t s, size_t e)
+		{ size_t r = 0;
+		  for (size_t j=s; j < e; j++)
+		    r += (Fl[j] = f(In[j]));
+		  Sums[i] = r;});
+    size_t m = scan_inplace(Sums.slice(), addm<size_t>());
+    pbbs::sliced_for (n, _block_size,
+		[&] (size_t i, size_t s, size_t e)
+		{ pack_serial_at(In.slice(s,e), Fl.slice(s,e),
+                    make_range(Out.begin(), Out.begin() + Sums[i]));});
+    return m;
   }
 
   template <class Idx_Type, SEQ Bool_Seq>

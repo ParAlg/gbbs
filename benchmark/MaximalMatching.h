@@ -160,7 +160,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   timer mt;
   mt.start();
   size_t n = G.n;
-  auto r = pbbslib::default_random;
+  auto r = pbbslib::random();
 
   auto R = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
   auto matched = sequence<bool>(n, [&](size_t i) { return false; });

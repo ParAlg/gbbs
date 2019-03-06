@@ -50,6 +50,4 @@ namespace pbbs {
     uint64_t state = 0;
   };
 
-  random default_random;
-  
 };

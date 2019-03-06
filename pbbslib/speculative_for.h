@@ -24,33 +24,32 @@
 #include "sequence.h"
 #include <limits>
 
-constexpr intT max_int = std::numeric_limits<intT>::max();
-  
+// idxT should be able to represent the range of iterations
+// unsigned int OK for up to 2^32 iterations, beyond size_t should be used
+template <class idxT>
 struct reservation {
-  intT r;
-  reservation() : r(max_int) {}
-  void reserve(intT i) { pbbs::write_min(&r, i, std::less<intT>());}
-  bool reserved() { return (r < max_int);}
-  void reset() {r = max_int;}
-  bool check(intT i) { return (r == i);}
-  bool checkReset(intT i) {
-    if (r==i) { r = max_int; return 1;}
+  idxT r;
+  static constexpr idxT max_idx = std::numeric_limits<idxT>::max();
+  reservation() : r(max_idx) {}
+  void reserve(idxT i) { pbbs::write_min(&r, i, std::less<idxT>());}
+  bool reserved() { return (r < max_idx);}
+  void reset() {r = max_idx;}
+  bool check(idxT i) { return (r == i);}
+  bool checkReset(idxT i) {
+    if (r==i) { r = max_idx; return 1;}
     else return 0;
   }
 };
 
-inline void reserveLoc(intT& x, intT i) {
-  pbbs::write_min(&x,i, std::less<intT>());}
-
-template <class S>
-long speculative_for(S step, long s, long e, long granularity, 
+template <class idxT, class S>
+long speculative_for(S step, idxT s, idxT e, long granularity, 
 		     bool hasState=1, long maxTries=-1) {
   if (maxTries < 0) maxTries = 100 + 200*granularity;
   long maxRoundSize = (e-s)/granularity+1;
   long currentRoundSize = maxRoundSize;
-  pbbs::sequence<intT> I(maxRoundSize);
+  pbbs::sequence<idxT> I(maxRoundSize);
   pbbs::sequence<bool> keep(maxRoundSize);
-  pbbs::sequence<intT> Ihold;
+  pbbs::sequence<idxT> Ihold;
   pbbs::sequence<S> state;
   if (hasState) 
     state = pbbs::sequence<S>(maxRoundSize, [&] (size_t i) {return step;});
@@ -97,7 +96,7 @@ long speculative_for(S step, long s, long e, long granularity,
     numberKeep = Ihold.size();
     numberDone += size - numberKeep;
 
-    // cout << size << " : " << numberKeep << " : " << numberDone << " : " << currentRoundSize << endl;
+    cout << size << " : " << numberKeep << " : " << numberDone << " : " << currentRoundSize << endl;
 
     // adjust round size based on number of failed attempts
     if (float(numberKeep)/float(size) > .2) 

@@ -104,7 +104,7 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
   std::cout << "dense"
             << "\n";
   using D = std::tuple<bool, data>;
-  long n = GA.n;
+  size_t n = GA.n;
   vertex* G = GA.V;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
@@ -140,7 +140,7 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
   std::cout << "Dense Forward"
             << "\n";
   using D = std::tuple<bool, data>;
-  long n = GA.n;
+  size_t n = GA.n;
   vertex* G = GA.V;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
@@ -172,7 +172,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
                                             VS& indices, uintT m, F& f,
                                             const flags fl) {
   using S = std::tuple<uintE, data>;
-  long n = indices.n;
+  size_t n = indices.n;
   S* outEdges;
 
   if (should_output(fl)) {
@@ -333,7 +333,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     }
   });
   cts[n_threads] = 0;
-  long out_size = pbbslib::scan_add_inplace(cts);
+  size_t out_size = pbbslib::scan_add_inplace(cts);
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
@@ -437,7 +437,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
     }
   });
   cts[n_threads] = 0;
-  long out_size = pbbslib::scan_add_inplace(cts);
+  size_t out_size = pbbslib::scan_add_inplace(cts);
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
@@ -483,7 +483,7 @@ template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
                                           intT threshold = -1,
                                           const flags& fl = 0) {
-  long numVertices = GA.n, numEdges = GA.m, m = vs.numNonzeros();
+  size_t numVertices = GA.n, numEdges = GA.m, m = vs.numNonzeros();
   if (threshold == -1) threshold = numEdges / 20;
   if (vs.size() == 0) return vertexSubsetData<data>(numVertices);
 
@@ -530,7 +530,6 @@ inline vertexSubset edgeMap(graph<vertex> GA, VS& vs, F f, intT threshold = -1,
 // in the new adjacency list if p(ngh) is true.
 template <template <class W> class wvertex, class W, class P>
 inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
-  using S = std::tuple<uintE, uintE>;
   using vertex = wvertex<W>;
   vertex* G = GA.V;
   size_t n = GA.n;
@@ -538,7 +537,7 @@ inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
   par_for(0, n, [&] (size_t i) {
     space[i] = G[i].calculateOutTemporarySpace();
   });
-  long total_space = pbbslib::scan_add_inplace(space);
+  size_t total_space = pbbslib::scan_add_inplace(space);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
 
   auto for_inner = [&](size_t i) {
@@ -570,7 +569,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
     uintE v = vs.vtx(i);
     space[i] = G[v].calculateOutTemporarySpace();
   });
-  long total_space = pbbslib::scan_add_inplace(space);
+  size_t total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
   auto tmp = sequence<std::tuple<uintE, W>>(
       total_space);  // careful when total_space == 0
@@ -610,8 +609,8 @@ inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA,
     return packEdges<wvertex, W, P>(GA, vs, p, fl);
   }
   vertex* G = GA.V;
-  long m = vs.numNonzeros();
-  long n = vs.numRows();
+  size_t m = vs.numNonzeros();
+  size_t n = vs.numRows();
   using S = std::tuple<uintE, uintE>;
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
@@ -679,7 +678,7 @@ inline void vertexMap(VS& V, F f) {
 // input vertexSubset is returned
 template <class F>
 inline vertexSubset vertexFilter(vertexSubset V, F filter) {
-  long n = V.numRows();
+  size_t n = V.numRows();
   V.toDense();
   bool* d_out = pbbslib::new_array_no_init<bool>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -692,7 +691,7 @@ inline vertexSubset vertexFilter(vertexSubset V, F filter) {
 
 template <class F>
 inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
-  long n = V.numRows(), m = V.numNonzeros();
+  size_t n = V.numRows(), m = V.numNonzeros();
   if (m == 0) {
     return vertexSubset(n);
   }
@@ -714,7 +713,7 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
 
 template <class data, class F>
 inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
-  long n = V.numRows(), m = V.numNonzeros();
+  size_t n = V.numRows(), m = V.numNonzeros();
   if (m == 0) {
     return vertexSubset(n);
   }
@@ -744,8 +743,8 @@ inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
                     { vs.d[new_verts[i]] = true; });
     vs.m += num_new_verts;
   } else {
-    const long vs_size = vs.numNonzeros();
-    const long new_size = num_new_verts + vs_size;
+    const size_t vs_size = vs.numNonzeros();
+    const size_t new_size = num_new_verts + vs_size;
     uintE* all_verts = pbbslib::new_array_no_init<uintE>(new_size);
     par_for(0, new_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     {
@@ -829,7 +828,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
   auto before_state = get_pcm_state();                               \
   timer st;                                                          \
   st.start();                                                        \
-  for (int r = 0; r < rounds; r++) {                                 \
+  for (size_t r = 0; r < rounds; r++) {                                 \
     timer at; at.start();                                            \
     APP(G, P);                                                       \
     at.stop(); at.reportTotal("Running time");                       \
@@ -846,12 +845,11 @@ inline size_t get_pcm_state() { return (size_t)1; }
     char* iFile = P.getArgument(0);                                            \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
-    bool binary = P.getOptionValue("-b");                                      \
     bool weighted = P.getOptionValue("-w");                                    \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
-    long rounds = P.getOptionLongValue("-rounds", 3);                          \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                          \
     pcm_init();                                                                \
     if (compressed) {                                                          \
       if (symmetric) {                                                         \

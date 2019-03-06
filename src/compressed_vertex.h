@@ -149,7 +149,7 @@ inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
 template <class W, class C, class F>
 inline size_t countNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                         bool parallel = true) {
-  auto monoid = addm<size_t>();
+  auto monoid = pbbs::addm<size_t>();
   return C::template map_reduce<size_t>(nghArr, vtx_id, d, f, monoid, parallel);
 }
 

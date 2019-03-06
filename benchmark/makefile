@@ -41,7 +41,7 @@ ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore KTruss 
 all: $(ALL)
 
 % : %.C
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean
 

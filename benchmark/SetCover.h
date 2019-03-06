@@ -70,7 +70,7 @@ inline dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   timer nbt;
   size_t rounds = 0;
   dyn_arr<uintE> cover = dyn_arr<uintE>();
-  auto r = pbbslib::default_random;
+  auto r = pbbslib::random();
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "sequence_ops.h"
 #include "sample_sort.h"
 #include "kth_smallest.h"

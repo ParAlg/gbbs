@@ -7,8 +7,10 @@
 #pragma once
 
 #include "pbbslib/binary_search.h"
+#include "pbbslib/integer_sort.h"
 #include "pbbslib/monoid.h"
 #include "pbbslib/parallel.h"
+#include "pbbslib/random.h"
 #include "pbbslib/random_shuffle.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/seq.h"
@@ -34,11 +36,18 @@ static void par_for(size_t start, size_t end, F f, bool parallel=true) {
   par_for<F>(start, end, granularity, f, parallel);
 }
 
+// Alias template so that sequence is exposed w/o namespacing
+template<typename T>
+using sequence = pbbs::sequence<T>;
+
+// Alias template so that range is exposed w/o namespacing
+template<typename T>
+using range = pbbs::range<T>;
+
+
 // Bridge to pbbslib (c++17)
 namespace pbbslib {
 
-  // Open pbbs namespace internally.
-  using namespace pbbs;
 
   constexpr const size_t kSequentialForThreshold = 4000;
 
@@ -51,6 +60,7 @@ namespace pbbslib {
   const flags fl_time = pbbs::fl_time;
   const flags fl_conservative = pbbs::fl_conservative;
   const flags fl_inplace = pbbs::fl_inplace;
+  const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
 
   inline void free_array(void* a) {
     return pbbs::free_array(a);
@@ -169,16 +179,22 @@ namespace pbbslib {
   }
 
 
+  // ========================= monoid ==========================
+  template <class F, class T>
+  pbbs::monoid<F,T> make_monoid (F f, T id) {
+    return pbbs::monoid<F,T>(f, id);
+  }
+
   // ====================== sequence ops =======================
   // used so second template argument can be inferred
   template <class T, class F>
-  inline delayed_sequence<T,F> make_sequence (size_t n, F f) {
-    return delayed_sequence<T,F>(n,f);
+  inline pbbs::delayed_sequence<T,F> make_sequence (size_t n, F f) {
+    return pbbs::delayed_sequence<T,F>(n,f);
   }
 
   template <class T>
-  inline range<T*> make_sequence (T* A, size_t n) {
-    return range<T*>(A, A+n);
+  inline pbbs::range<T*> make_sequence (T* A, size_t n) {
+    return pbbs::range<T*>(A, A+n);
   }
 
   template <RANGE Range, class Monoid>
@@ -189,47 +205,89 @@ namespace pbbslib {
 
   template <SEQ In_Seq, class Monoid>
   inline auto scan(In_Seq const &In, Monoid m, flags fl = no_flag)
-    ->  std::pair<sequence<typename In_Seq::value_type>, typename In_Seq::value_type>
+    ->  std::pair<pbbs::sequence<typename In_Seq::value_type>, typename In_Seq::value_type>
   {
     return pbbs::scan<In_Seq, Monoid>(In, m, fl);
   }
 
   // do in place if rvalue reference to a sequence<T>
   template <class T, class Monoid>
-  auto scan(sequence<T> &&In, Monoid m, flags fl = no_flag)
-    ->  std::pair<sequence<T>, T> {
+  auto scan(pbbs::sequence<T> &&In, Monoid m, flags fl = no_flag)
+    ->  std::pair<pbbs::sequence<T>, T> {
     return pbbs::scan(std::move(In), m, fl);
   }
 
   // Scans the input sequence using the addm monoid.
-  template <class In_Seq>
+  template <RANGE In_Seq>
   inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag) -> typename In_Seq::value_type {
-    using T = typename In_Seq::T;
-    return scan_inplace(In, pbbslib::addm<T>(), fl);
+    using T = typename In_Seq::value_type;
+    return pbbs::scan_inplace(In, pbbs::addm<T>(), fl);
+  }
+
+  // Scans the input sequence using the addm monoid.
+  template <class T>
+  inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag) -> T {
+    return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl);
+  }
+
+
+  template <SEQ Seq, class Monoid>
+  auto reduce(Seq const &A, Monoid m, flags fl = no_flag)
+    -> typename Seq::value_type {
+      return pbbs::reduce(A, m, fl);
   }
 
   template <class Seq>
-  inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::T {
-    using T = typename Seq::T;
-    return reduce(I, addm<T>(), fl);
+  inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+    using T = typename Seq::value_type;
+    return pbbs::reduce(I, pbbs::addm<T>(), fl);
   }
 
   template <class Seq>
-  inline auto reduce_max(Seq const& I, flags fl = no_flag) -> typename Seq::T {
-    using T = typename Seq::T;
-    return reduce(I, maxm<T>(), fl);
+  inline auto reduce_max(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+    using T = typename Seq::value_type;
+    return pbbs::reduce(I, pbbs::maxm<T>(), fl);
   }
 
   template <class Seq>
-  inline auto reduce_min(Seq const& I, flags fl = no_flag) -> typename Seq::T {
-    using T = typename Seq::T;
-    return reduce(I, minm<T>(), fl);
+  inline auto reduce_min(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+    using T = typename Seq::value_type;
+    return pbbs::reduce(I, pbbs::minm<T>(), fl);
   }
 
   template <class Seq>
-  inline auto reduce_xor(Seq const& I, flags fl = no_flag) -> typename Seq::T {
-    using T = typename Seq::T;
-    return reduce(I, xorm<T>(), fl);
+  inline auto reduce_xor(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+    using T = typename Seq::value_type;
+    return pbbs::reduce(I, pbbs::xorm<T>(), fl);
+  }
+
+  template <SEQ In_Seq, SEQ Bool_Seq>
+  auto pack(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
+      -> pbbs::sequence<typename In_Seq::value_type> {
+    return pbbs::pack(In, Fl, fl);
+  }
+
+  // Pack the output to the output range.
+  template <SEQ In_Seq, SEQ Bool_Seq, RANGE Out_Seq>
+  size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq Out,
+                flags fl = no_flag) {
+    return pbbs::pack_out(In, Fl, Out, fl);
+  }
+
+  template <SEQ In_Seq, class F>
+  auto filter(In_Seq const &In, F f, flags fl = no_flag)
+    -> pbbs::sequence<typename In_Seq::value_type> {
+      return pbbs::filter(In, f, fl);
+  }
+
+  template <SEQ In_Seq, RANGE Out_Seq, class F>
+  size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
+    return pbbs::filter_out(In, Out, f, fl);
+  }
+
+  template <class Idx_Type, SEQ Bool_Seq>
+  pbbs::sequence<Idx_Type> pack_index(Bool_Seq const &Fl, flags fl = no_flag) {
+    return pbbs::pack_index<Idx_Type>(Fl, fl);
   }
 
 
@@ -251,12 +309,12 @@ namespace pbbslib {
   // ====================== sample sort =======================
   template<class Seq, typename BinPred>
   auto sample_sort (Seq const &A, const BinPred& f, bool stable = false)
-    -> sequence<typename Seq::value_type> {
+    -> pbbs::sequence<typename Seq::value_type> {
       return pbbs::sample_sort(A, f, stable);
   }
 
   template<class Iter, typename BinPred>
-  void sample_sort_inplace (range<Iter> A, const BinPred& f, bool stable = false) {
+  void sample_sort_inplace (pbbs::range<Iter> A, const BinPred& f, bool stable = false) {
     return pbbs::sample_sort_inplace(A, f, stable);
   }
 
@@ -265,13 +323,29 @@ namespace pbbslib {
     return pbbs::sample_sort(A, n, f, stable);
   }
 
+
+  // ====================== integer sort =======================
+  template <typename T, typename Get_Key>
+  void integer_sort_inplace(pbbs::range<T*> In,
+			    Get_Key const &g,
+			    size_t key_bits=0) {
+    return pbbs::integer_sort_inplace(In, g, key_bits);
+  }
+
+  template <typename Seq, typename Get_Key>
+  pbbs::sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key
+      const &g, size_t key_bits=0) {
+    return pbbs::integer_sort(In, g, key_bits);
+  }
+
   // ====================== random shuffle =======================
+  using random = pbbs::random;
+
   template <class intT>
-  sequence<intT> random_permutation(size_t n, pbbs::random r = default_random) {
+  pbbs::sequence<intT> random_permutation(size_t n, pbbs::random r = pbbs::random()) {
     return pbbs::random_permutation<intT>(n, r);
   }
 }
-
 
 
 
@@ -281,7 +355,7 @@ namespace pbbslib {
   constexpr size_t _F_BSIZE = 2000;
 
   template <class Idx_Type, class D, class F>
-  inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
+  inline pbbs::sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {
     auto identity = [&](size_t i) {
       return std::make_tuple((Idx_Type)i, std::get<1>(f(i)));
@@ -307,7 +381,7 @@ namespace pbbslib {
   inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
     size_t b = _F_BSIZE;
     if (n < b) return filter_seq(In, Out, n, p);
-    size_t l = num_blocks(n, b);
+    size_t l = pbbs::num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
     par_for(0, l, 1, [&] (size_t i) {
       size_t s = i * b;
@@ -318,8 +392,8 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     });
-    auto isums = sequence<size_t>(Sums, l);
-    size_t m = scan_add_inplace(isums);
+    auto isums = pbbs::sequence<size_t>(Sums, l);
+    size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
       T* I = In + i * b;
@@ -345,7 +419,7 @@ namespace pbbslib {
       }
       return k - out_off;
     }
-    size_t l = num_blocks(n, b);
+    size_t l = pbbs::num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
     par_for(0, l, 1, [&] (size_t i) {
       size_t s = i * b;
@@ -356,8 +430,8 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     });
-    auto isums = sequence<size_t>(Sums, l);
-    size_t m = scan_add_inplace(isums);
+    auto isums = pbbs::sequence<size_t>(Sums, l);
+    size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
       T* I = In + i * b;
@@ -382,8 +456,8 @@ namespace pbbslib {
       }
       return ret;
     }
-    size_t l = num_blocks(n, b);
-    b = num_blocks(n, l);
+    size_t l = pbbs::num_blocks(n, b);
+    b = pbbs::num_blocks(n, l);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
 
     par_for(0, l, 1, [&] (size_t i) {
@@ -401,8 +475,8 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     });
-    auto isums = sequence<size_t>(Sums, l);
-    size_t m = scan_add_inplace(isums);
+    auto isums = pbbs::sequence<size_t>(Sums, l);
+    size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
       T* I = In + (i * b);

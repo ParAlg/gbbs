@@ -31,8 +31,7 @@
 #include "compressed_vertex.h"
 #include "vertex.h"
 
-#include "pbbslib/get_time.h"
-#include "pbbslib/integer_sort.h"
+#include "bridge.h"
 
 // **************************************************************
 //    ADJACENCY ARRAY REPRESENTATION
@@ -417,7 +416,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
                            std::get<1>(l) + std::get<1>(r),
                            std::get<2>(l) + std::get<2>(r));
   };
-  pbbslib::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0, 0));
+  pbbslib::scan_inplace(vtx_offs, pbbslib::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
@@ -487,7 +486,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scano(offs, offs, scan_f, std::make_tuple(0, 0));
+  pbbslib::scan_inplace(offs, pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   std::cout << "tmp space allocated = " << total_space << "\n";
@@ -544,7 +543,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scano(vtx_offs, vtx_offs, scan_f, std::make_tuple(0, 0));
+  pbbslib::scan_inplace(vtx_offs, pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);
@@ -599,7 +598,7 @@ inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
   if (!is_sorted) {
     auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort(Am, Am, first, bits);
+    pbbslib::integer_sort_inplace(Am, first, bits);
   }
 
   auto starts = sequence<uintT>(n);
