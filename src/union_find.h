@@ -25,7 +25,7 @@
 
 #include <tuple>
 
-#include "pbbslib/speculative_for.h"
+#include "speculative_for.h"
 #include "macros.h"
 
 struct UnionFind {

@@ -256,7 +256,7 @@ namespace pbbs {
   inline bool write_min(ET *a, ET b, F less) {
     ET c; bool r=0;
     do c = *a;
-    while (less(b,c) && !(r=CAS_GCC(a,c,b)));
+    while (less(b,c) && !(r=atomic_compare_and_swap(a,c,b)));
     return r;
   }
 

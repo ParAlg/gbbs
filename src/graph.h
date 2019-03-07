@@ -528,7 +528,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return pred(src, ngh, wgh);
   };
   auto red_f = [](size_t l, size_t r) { return l + r; };
-  auto red_monoid = make_monoid(red_f, id);
+  auto red_monoid = pbbslib::make_monoid(red_f, id);
   par_for(0, n, [&] (size_t i) {
     uintE ct = G.V[i].template reduceOutNgh<uintE>(i, map_f, red_monoid);
     if (ct > 0) {
@@ -543,7 +543,7 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(vtx_offs, pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
+  pbbslib::scan_inplace(vtx_offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);

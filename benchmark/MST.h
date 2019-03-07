@@ -25,13 +25,13 @@
 
 #include <cassert>
 #include "ligra.h"
+#include "speculative_for.h"
 #include "union_find.h"
 
 #include "pbbslib/binary_search.h"
 #include "pbbslib/dyn_arr.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
-#include "pbbslib/speculative_for.h"
 
 namespace MST_boruvka {
 
@@ -87,15 +87,15 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     });
     init_t.stop();  // init_t.reportTotal("init time");
 
-    // 1. writeMin to select the minimum edge out of each component.
+    // 1. write_min to select the minimum edge out of each component.
     timer min_t;
     min_t.start();
     par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintE e_id = edge_ids[i];
       const edge& e = edges[e_id];
       ct cas_e(e_id, std::get<2>(e));
-      pbbslib::writeMin(min_edges + std::get<0>(e), cas_e, less);
-      pbbslib::writeMin(min_edges + std::get<1>(e), cas_e, less);
+      pbbslib::write_min(min_edges + std::get<0>(e), cas_e, less);
+      pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
     });
     min_t.stop();  // min_t.reportTotal("write min time");
 
@@ -156,9 +156,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     timer compact_t;
     compact_t.start();
     auto vtxs_im = sequence<uintE>(vtxs, n);
-    auto V_im = pbbslib::pack(vtxs_im, is_root, pbbslib::no_flag, next_vtxs);
-    assert(!V_im.is_allocated());
-    n = V_im.size();
+    size_t n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();  // compact_t.reportTotal("compact time");
     std::cout << "      " << n << " vertices remain."
@@ -193,10 +191,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
       m = A.size();
       next_edge_ids = A.to_array();
     } else {
-      auto A =
-          pbbslib::pack(edge_ids_im, self_loop_im, pbbslib::no_flag, next_edge_ids);
-      m = A.size();
-      assert(!A.is_allocated());
+      m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m), pbbslib::no_flag);
     }
     std::cout << "filter, m is now " << m << " n is now " << n << "\n";
     std::swap(edge_ids, next_edge_ids);
@@ -205,7 +200,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
 
   std::cout << "Boruvka finished: total edges added to MST = " << n_in_mst
             << "\n";
-  auto mst_im = sequence<uintE>(mst, n_in_mst, true); // allocated
+  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
   return mst_im;
 }
 
@@ -257,7 +252,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
   auto cmp_by_wgh = [](const edge& l, const edge& r) {
     return std::get<2>(l) < std::get<2>(r);
   };
-  pbbslib::sample_sort(sample_edges.begin(), sample_edges.size(), cmp_by_wgh);
+  pbbslib::sample_sort_inplace(sample_edges.slice(), cmp_by_wgh);
 
   // 2. find approximate splitter.
   size_t ind = ((double)(k * sample_edges.size())) / G.m;
@@ -323,7 +318,6 @@ template <template <class W> class vertex, class W,
           typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
                                   int>::type = 0>
 inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
-  using w_vertex = vertex<W>;
   using edge = std::tuple<uintE, uintE, W>;
   using ct = cas_type;
 
@@ -333,7 +327,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
 
   auto exhausted = sequence<bool>(n, [](size_t i) { return false; });
   auto parents = sequence<uintE>(n, [](size_t i) { return i; });
-  auto mst_edges = dyn_arr<edge>(n);
+  auto mst_edges = pbbslib::dyn_arr<edge>(n);
 
   auto min_edges = pbbslib::new_array_no_init<ct>(n);
 
@@ -518,7 +512,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
                        const std::tuple<uintE, uintE, intE>& r) {
     return std::get<2>(l) < std::get<2>(r);
   };
-  pbbslib::sample_sort(sampled_e.E, sampled_e.non_zeros, cmp_by_wgh);
+  pbbslib::sample_sort(pbbslib::make_sequence(sampled_e.E, sampled_e.non_zeros), cmp_by_wgh);
 
   // 2. Get approximate splitter.
   size_t ind = ((double)(k * sampled_e.non_zeros)) / G.m;
@@ -553,7 +547,7 @@ inline void MST(graph<vertex<W>>& GA) {
   auto r = pbbslib::random();
   auto uf = UnionFind(n);
 
-  auto mst_edges = dyn_arr<edge_t>(n);
+  auto mst_edges = pbbslib::dyn_arr<edge_t>(n);
 
   size_t iter = 0;
   while (GA.m > 0) {
@@ -570,7 +564,7 @@ inline void MST(graph<vertex<W>>& GA) {
                          const std::tuple<uintE, uintE, W>& r) {
       return std::get<2>(l) < std::get<2>(r);
     };
-    pbbslib::sample_sort(edges.E, n_edges, cmp_by_wgh);
+    pbbslib::sample_sort(pbbslib::make_sequence(edges.E, n_edges), cmp_by_wgh);
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
 
