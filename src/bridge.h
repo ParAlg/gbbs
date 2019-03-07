@@ -7,6 +7,7 @@
 #pragma once
 
 #include "pbbslib/binary_search.h"
+#include "pbbslib/counting_sort.h"
 #include "pbbslib/integer_sort.h"
 #include "pbbslib/monoid.h"
 #include "pbbslib/parallel.h"
@@ -70,6 +71,16 @@ namespace pbbslib {
   template<typename E>
   void delete_array(E* A, size_t n) {
     return pbbs::delete_array<E>(A, n);
+  }
+
+  template<typename T>
+  inline void assign_uninitialized(T& a, const T& b) {
+    new (static_cast<void*>(std::addressof(a))) T(b);
+  }
+
+  template<typename T>
+  inline void move_uninitialized(T& a, const T& b) {
+    new (static_cast<void*>(std::addressof(a))) T(std::move(b));
   }
 
   // Does not initialize the array
@@ -202,6 +213,13 @@ namespace pbbslib {
 
   template <class T>
   using minm = pbbs::minm<T>;
+
+  template <class T>
+  using maxm = pbbs::maxm<T>;
+
+  template <class T>
+  using addm = pbbs::addm<T>;
+
 
   // ====================== sequence ops =======================
   // used so second template argument can be inferred
@@ -354,6 +372,17 @@ namespace pbbslib {
   pbbs::sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key
       const &g, size_t key_bits=0) {
     return pbbs::integer_sort(In, g, key_bits);
+  }
+
+  // Parallel version
+  template <typename InS, typename KeyS>
+  sequence<size_t> count_sort(InS const &In,
+			      range<typename InS::value_type*> Out,
+			      KeyS const &Keys,
+			      size_t num_buckets,
+			      float parallelism = 1.0,
+			      bool skip_if_in_one=false) {
+    return pbbs::count_sort(In, Out, Keys, num_buckets, parallelism, skip_if_in_one);
   }
 
   // ====================== random shuffle =======================

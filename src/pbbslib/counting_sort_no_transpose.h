@@ -60,7 +60,7 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
     s_size_t k = --offsets[tmp[j]];
     // needed for types with self defined assignment or initialization
     // otherwise equivalent to: Out[k+start] = In[j+start];
-    move_uninitialized(Out[k + start], In[j + start]);
+    pbbslib::move_uninitialized(Out[k + start], In[j + start]);
   }
   pbbslib::free_array(offsets);
   pbbslib::free_array(tmp);

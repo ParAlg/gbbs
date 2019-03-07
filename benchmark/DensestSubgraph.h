@@ -81,7 +81,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
     auto in_seq = pbbslib::make_sequence<uintE>(n, in_f);
     auto filter_low_deg = [&] (uintE i) {
       bool active = bits[i];
-      if (active && D(i) <= target_density) {
+      if (active && D[i] <= target_density) {
         bits[i] = false;
         return true;
       };

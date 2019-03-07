@@ -97,7 +97,7 @@ struct kcore_fetch_add {
   }
   inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& wgh) {
-    if (writeAdd(&er[d], (uintE)1) == 1) {
+    if (pbbslib::fetch_and_add(&er[d], (uintE)1) == 1) {
       return Maybe<uintE>((uintE)0);
     }
     return Maybe<uintE>();

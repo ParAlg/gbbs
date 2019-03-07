@@ -29,11 +29,11 @@
 #include <cstdint>
 #include <tuple>
 
+#include "bridge.h"
 #include "pbbslib/counting_sort_no_transpose.h"
-#include "pbbslib/macros.h"
 #include "sequential_ht.h"
 
-namespace pbbs {
+namespace pbbslib {
 
 // Tunable parameters
 constexpr const size_t _hist_max_buckets = 1024;
@@ -184,10 +184,10 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t num_blocks;
   if (num_buckets <= 256) {
     std::tie(elms, counts, num_blocks) =
-        _count_sort<uint8_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
+        pbbslib::_count_sort<uint8_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   } else {
     std::tie(elms, counts, num_blocks) =
-        _count_sort<uint16_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
+        pbbslib::_count_sort<uint16_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   }
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
@@ -358,10 +358,10 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t* counts;
   size_t num_blocks;
   if (num_total_buckets <= 256) {
-    std::tie(elms, counts, num_blocks) = _count_sort<uint8_t, size_t, K>(
+    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint8_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   } else {
-    std::tie(elms, counts, num_blocks) = _count_sort<uint16_t, size_t, K>(
+    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint16_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   }
 
@@ -622,7 +622,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
     return pbbslib::hash64(get_key[i] & low_mask) & bucket_mask;
   };
 
-  auto p = _count_sort<int16_t, size_t, E>(get_elm, gb, n, (uintE)num_buckets);
+  auto p = pbbslib::_count_sort<int16_t, size_t, E>(get_elm, gb, n, (uintE)num_buckets);
 
   auto elms = std::get<0>(p);  // count-sort'd
   // laid out as num_buckets (row), blocks (col)
@@ -752,4 +752,4 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
 //    ht, t);
 //  }
 
-}  // namespace pbbs
+}  // namespace pbbslib

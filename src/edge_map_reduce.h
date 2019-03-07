@@ -23,8 +23,8 @@
 
 #pragma once
 
+#include "bridge.h"
 #include "histogram.h"
-#include "pbbslib/macros.h"
 #include "ligra.h"
 
 #include <type_traits>
