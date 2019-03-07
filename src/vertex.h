@@ -315,8 +315,7 @@ inline void filterNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
         return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
       };
       auto in_im = pbbslib::make_sequence(nghs, d);
-      auto s = pbbslib::filter(in_im, pc, pbbslib::no_flag, tmp);
-      size_t k = s.size();
+      size_t k = pbbslib::filter_out(in_im, pbbslib::make_sequence(tmp, d), pc);
       par_for(0, k, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { out(i, tmp[i]); });
     }

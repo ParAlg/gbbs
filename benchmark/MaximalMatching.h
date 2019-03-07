@@ -21,131 +21,131 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "pbbslib/dyn_arr.h"
-#include "pbbslib/random.h"
-#include "pbbslib/random_shuffle.h"
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/speculative_for.h"
+#include "bridge.h"
 #include "ligra.h"
+#include "speculative_for.h"
+
+#include "pbbslib/dyn_arr.h"
 
 namespace mm {
-constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
-constexpr uintE VAL_MASK = INT_E_MAX;
-constexpr size_t n_filter_steps = 5;
 
-template <class W>
-struct matchStep {
-  using edge = std::tuple<uintE, uintE, W>;
-  edge* E;
-  uintE* R;
-  bool* matched;
-  matchStep(edge* _E, uintE* _R, bool* m) : E(_E), R(_R), matched(m) {}
+  constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
+  constexpr uintE VAL_MASK = INT_E_MAX;
+  constexpr size_t n_filter_steps = 5;
 
-  bool reserve(uintE i) {
-    uintE u = std::get<0>(E[i]);
-    uintE v = std::get<1>(E[i]);
-    if (matched[u] || matched[v] || (u == v)) return 0;
-    reserveLoc<uintE>(R[u], i);
-    reserveLoc<uintE>(R[v], i);
-    return 1;
-  }
+  template <class W>
+  struct matchStep {
+    using edge = std::tuple<uintE, uintE, W>;
+    edge* E;
+    uintE* R;
+    bool* matched;
+    matchStep(edge* _E, uintE* _R, bool* m) : E(_E), R(_R), matched(m) {}
 
-  bool commit(uintE i) {
-    uintE u = std::get<0>(E[i]);
-    uintE v = std::get<1>(E[i]);
-    if (R[v] == i) {
-      R[v] = UINT_E_MAX;
-      if (R[u] == i) {
-        matched[u] = matched[v] = 1;
-        R[u] = UINT_E_MAX;
-        // mark edge
-        E[i] = std::make_tuple(std::get<0>(E[i]) |= TOP_BIT, std::get<1>(E[i]),
-                               std::get<2>(E[i]));
-        return 1;
-      }
-    } else if (R[u] == i)
-      R[u] = UINT_E_MAX;
-    return 0;
-  }
-};
-
-inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
-
-inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
-  size_t l = std::min(k1, k2);
-  size_t r = std::max(k1, k2);
-  size_t key = (l << 32) + r;
-  return pbbslib::hash64_2(key);
-//  return rnd.ith_rand(key);
-}
-
-template <template <class W> class vertex, class W>
-inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
-                                   pbbslib::random rnd) {
-  using edge = std::tuple<uintE, uintE, W>;
-  auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    return !(matched[src] || matched[ngh]) && (src < ngh);
-  };
-  auto E = filter_all_edges(G, pred);
-
-  auto e_arr = E.E;
-  timer perm_t;
-  perm_t.start();
-  auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-  auto out = sequence<edge>(E.non_zeros);
-  par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-                    out[i] = e_arr[perm[i]];  // gather or scatter?
-                  });
-  E.del();
-  E.E = out.to_array();
-  perm_t.stop();
-  perm_t.reportTotal("permutation time");
-  return E;
-}
-
-template <template <class W> class vertex, class W>
-inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
-                               pbbslib::random r) {
-  using edge = std::tuple<uintE, uintE, W>;
-  size_t m = G.m / 2;  // assume sym
-  bool finish = (m <= k);
-
-  std::cout << "Threshold, using m = " << m << "\n";
-  size_t range = pbbslib::log2_up(G.m);
-  range = 1L << range;
-  range -= 1;
-
-  size_t threshold = k;
-  auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    size_t hash_val = hash_to_range(key_for_pair(src, ngh, r), range);
-    if ((src > ngh) || matched[src] || matched[ngh]) {
-      return 1;  // pack out, not in edgearr
-    } else if (hash_val < threshold || finish) {
-      return 2;  // pack out, returned in edgearr
+    bool reserve(uintE i) {
+      uintE u = std::get<0>(E[i]);
+      uintE v = std::get<1>(E[i]);
+      if (matched[u] || matched[v] || (u == v)) return 0;
+      reserveLoc<uintE>(&R[u], i);
+      reserveLoc<uintE>(&R[v], i);
+      return 1;
     }
-    return 0;  // keep in graph, not in edgearr
-  };
-  timer fet;
-  fet.start();
-  auto E = filter_edges(G, pred);
-  fet.stop();
-  fet.reportTotal("Filter edges time");
 
-  // permute the retrieved edges
-  auto e_arr = E.E;
-  timer perm_t;
-  perm_t.start();
-  auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-  auto out = sequence<edge>(E.non_zeros);
-  par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-                    out[i] = e_arr[perm[i]];  // gather or scatter?
-                  });
-  E.del();
-  E.E = out.to_array();
-  perm_t.stop();
-  perm_t.reportTotal("permutation time");
-  return E;
-}
+    bool commit(uintE i) {
+      uintE u = std::get<0>(E[i]);
+      uintE v = std::get<1>(E[i]);
+      if (R[v] == i) {
+        R[v] = UINT_E_MAX;
+        if (R[u] == i) {
+          matched[u] = matched[v] = 1;
+          R[u] = UINT_E_MAX;
+          // mark edge
+          E[i] = std::make_tuple(std::get<0>(E[i]) |= TOP_BIT, std::get<1>(E[i]),
+                                 std::get<2>(E[i]));
+          return 1;
+        }
+      } else if (R[u] == i)
+        R[u] = UINT_E_MAX;
+      return 0;
+    }
+  };
+
+  inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
+
+  inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
+    size_t l = std::min(k1, k2);
+    size_t r = std::max(k1, k2);
+    size_t key = (l << 32) + r;
+    return pbbslib::hash64_2(key);
+  //  return rnd.ith_rand(key);
+  }
+
+  template <template <class W> class vertex, class W>
+  inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
+                                     pbbslib::random rnd) {
+    using edge = std::tuple<uintE, uintE, W>;
+    auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+      return !(matched[src] || matched[ngh]) && (src < ngh);
+    };
+    auto E = filter_all_edges(G, pred);
+
+    auto e_arr = E.E;
+    timer perm_t;
+    perm_t.start();
+    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
+    auto out = sequence<edge>(E.non_zeros);
+    par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+                      out[i] = e_arr[perm[i]];  // gather or scatter?
+                    });
+    E.del();
+    E.E = out.to_array();
+    perm_t.stop();
+    perm_t.reportTotal("permutation time");
+    return E;
+  }
+
+  template <template <class W> class vertex, class W>
+  inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
+                                 pbbslib::random r) {
+    using edge = std::tuple<uintE, uintE, W>;
+    size_t m = G.m / 2;  // assume sym
+    bool finish = (m <= k);
+
+    std::cout << "Threshold, using m = " << m << "\n";
+    size_t range = pbbslib::log2_up(G.m);
+    range = 1L << range;
+    range -= 1;
+
+    size_t threshold = k;
+    auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+      size_t hash_val = hash_to_range(key_for_pair(src, ngh, r), range);
+      if ((src > ngh) || matched[src] || matched[ngh]) {
+        return 1;  // pack out, not in edgearr
+      } else if (hash_val < threshold || finish) {
+        return 2;  // pack out, returned in edgearr
+      }
+      return 0;  // keep in graph, not in edgearr
+    };
+    timer fet;
+    fet.start();
+    auto E = filter_edges(G, pred);
+    fet.stop();
+    fet.reportTotal("Filter edges time");
+
+    // permute the retrieved edges
+    auto e_arr = E.E;
+    timer perm_t;
+    perm_t.start();
+    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
+    auto out = sequence<edge>(E.non_zeros);
+    par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+                      out[i] = e_arr[perm[i]];  // gather or scatter?
+                    });
+    E.del();
+    E.E = out.to_array();
+    perm_t.stop();
+    perm_t.reportTotal("permutation time");
+    return E;
+  }
 
 };  // namespace mm
 
@@ -166,7 +166,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   auto matched = sequence<bool>(n, [&](size_t i) { return false; });
 
   size_t k = ((3 * G.n) / 2);
-  auto matching = dyn_arr<edge>(n);
+  auto matching = pbbslib::dyn_arr<edge>(n);
 
   size_t round = 0;
   timer gete;
@@ -212,7 +212,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
     r = r.next();
   }
   std::cout << "matching size = " << matching.size << "\n";
-  auto ret = sequence<edge>(matching.A, matching.size, true); // allocated
+  auto ret = sequence<edge>(matching.A, matching.size); // allocated
   mt.stop();
   mt.reportTotal("Matching time");
   eff.reportTotal("eff for time");

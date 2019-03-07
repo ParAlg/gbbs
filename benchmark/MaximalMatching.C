@@ -32,9 +32,10 @@
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
 #include "MaximalMatching.h"
+
+#include "bridge.h"
 #include "ligra.h"
 
-#include "lib/seq.h"
 
 #include <fstream>
 #include <iostream>
