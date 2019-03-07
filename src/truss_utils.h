@@ -329,7 +329,7 @@ namespace truss_utils {
     auto o = sequence<uintE>(n);
 
     par_for(0, n, [&] (size_t i) { o[i] = i; });
-    pbbslib::sample_sort(o.begin(), n, [&](const uintE u, const uintE v) {
+    pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
       return V[u].getOutDegree() < V[v].getOutDegree();
     });
     par_for(0, n, [&] (size_t i) { r[o[i]] = i; });

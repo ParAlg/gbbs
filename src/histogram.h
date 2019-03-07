@@ -573,7 +573,6 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
                                                   Reduce& reduce_f,
                                                   Apply& apply_f,
                                                   hist_table<K, V>& ht) {
-  typedef std::tuple<K, V> KV;
   size_t pn = pbbslib::log2_up((intT)(n + 1));
   size_t rs = 1L << pn;
   ht.resize(rs);

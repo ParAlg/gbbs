@@ -242,9 +242,10 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       return ret;
     };
     auto edges_moved_map = pbbslib::make_sequence<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
+    auto edges_moved_f = [&] (size_t i) { return edges_moved_map[i]; };
 
     bt.start();
-    b.update_buckets(edges_moved_map, edges_moved_map.size());
+    b.update_buckets(edges_moved_f, edges_moved_map.size());
     bt.stop();
 
     // Unmark edges removed in this round, and decrement their trussness.

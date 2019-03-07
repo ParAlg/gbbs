@@ -70,7 +70,7 @@ constexpr const size_t _seq_merge_thresh = 8192;
 
 template <class SeqA, class SeqB, class F>
 void seq_merge_full(SeqA& A, SeqB& B, F& f) {
-  using T = typename SeqA::T;
+  using T = typename SeqA::value_type;
   size_t nA = A.size(), nB = B.size();
   size_t i = 0, j = 0;
   while (i < nA && j < nB) {
@@ -90,7 +90,7 @@ void seq_merge_full(SeqA& A, SeqB& B, F& f) {
 
 template <class SeqA, class SeqB, class F>
 void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
-  using T = typename SeqA::T;
+  using T = typename SeqA::value_type;
   size_t nA = A.size(), nB = B.size();
   size_t i = 0, j = 0;
   for (size_t i=0; i < nA; i++) {
@@ -105,21 +105,21 @@ void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
 
 template <class SeqA, class SeqB, class F>
 void merge(const SeqA& A, const SeqB& B, const F& f) {
-  using T = typename SeqA::T;
+  using T = typename SeqA::value_type;
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;
   if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
-    return seq_merge_full(A, B, f);
+    return intersection::seq_merge_full(A, B, f);
   } else if (nB < nA) {
-    return merge(B, A, f);
+    return intersection::merge(B, A, f);
   } else if (nA < _bs_merge_base) {
-    return seq_merge(A, B, f);
+    return intersection::seq_merge(A, B, f);
   } else {
     size_t mA = nA/2;
     size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
-    par_do([&] () {merge(A.slice(0, mA), B.slice(0, mB), f);},
-     [&] () {merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+    par_do([&] () {intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
+     [&] () {intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);});
   }
 }
 
@@ -137,7 +137,7 @@ inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
   auto merge_f = [&] (uintE ngh) {
     f(a, b, ngh);
   };
-  merge(seqA, seqB, merge_f);
+  intersection::merge(seqA, seqB, merge_f);
 
   return static_cast<size_t>(0);
 }

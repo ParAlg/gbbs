@@ -44,7 +44,8 @@ struct BC_F {
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     fType to_add = Scores[s];
     fType n_val = pbbslib::fetch_and_add(&Scores[d], to_add);
-    return (n_val - to_add == 0);
+    return n_val == 0;
+//    return (n_val - to_add == 0);
   }
   inline bool cond(uintE d) { return Visited[d] == 0; }
 };
@@ -106,6 +107,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
 
   long round = 0;
   while (!Frontier.isEmpty()) {
+    cout << "round = " << round << " fsize = " << Frontier.size() << endl;
     round++;
     //      vertexSubset output = edgeMap(GA, Frontier,
     //      make_bc_f<W>(NumPaths,Visited), -1, sparse_blocked | dense_forward);
