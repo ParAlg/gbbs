@@ -232,7 +232,7 @@ namespace pbbs {
   inline E fetch_and_add(E *a, EV b) {
     volatile E newV, oldV;
     do {oldV = *a; newV = oldV + b;}
-    while (!CAS_GCC(a, oldV, newV));
+    while (!atomic_compare_and_swap(a, oldV, newV));
     return oldV;
   }
 

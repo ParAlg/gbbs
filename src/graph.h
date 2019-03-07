@@ -204,7 +204,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       };
       auto n_im_f = [&](size_t i) { return nghs[i]; };
       auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      auto res = pbbslib::filter(n_im, pred_c, pbbslib::no_flag, dir_nghs);
+      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
     }
   });
 
@@ -221,7 +221,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       };
       auto n_im_f = [&](size_t i) { return nghs[i]; };
       auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      auto res = pbbslib::filter(n_im, pred_c, pbbslib::no_flag, dir_nghs);
+      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
     }
   });
 

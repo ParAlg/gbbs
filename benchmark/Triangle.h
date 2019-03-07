@@ -34,12 +34,12 @@ struct countF {
   countF(w_vertex* _V, size_t* _counts) : V(_V), counts(_counts) {}
 
   inline bool update(uintE s, uintE d) {
-    writeAdd(&counts[s], V[s].intersect(&V[d], s, d));
+    pbbslib::write_add(&counts[s], V[s].intersect(&V[d], s, d));
     return 1;
   }
 
   inline bool updateAtomic(uintE s, uintE d) {
-    writeAdd(&counts[s], V[s].intersect(&V[d], s, d));
+    pbbslib::write_add(&counts[s], V[s].intersect(&V[d], s, d));
     return 1;
   }
   inline bool cond(uintE d) { return cond_true(d); }
@@ -48,19 +48,19 @@ struct countF {
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
-  uintE* o = pbbslib::new_array_no_init<uintE>(n);
+//  uintE* o = pbbslib::new_array_no_init<uintE>(n);
+  sequence<uintE> o(n);
 
   timer t;
   t.start();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
-  pbbslib::sample_sort(o, n, [&](const uintE u, const uintE v) {
+  pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
     return V[u].getOutDegree() < V[v].getOutDegree();
   });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
   t.stop();
   t.reportTotal("Rank time");
-  pbbslib::free_array(o);
   return r;
 }
 
@@ -92,11 +92,11 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
       return DG.V[v].getOutDegree();
     };
     par_for(0, n, [&] (size_t i) {
-      auto monoid = addm<size_t>();
+      auto monoid = pbbslib::addm<size_t>();
       parallel_work[i] = DG.V[i].template reduceOutNgh<size_t>(i, map_f, monoid);
     });
   }
-  size_t total_work = pbbslib::scan_add_inplace(parallel_work);
+  size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
 
   size_t n_blocks = num_workers() * 8 + 1;
   size_t work_per_block = total_work / n_blocks;

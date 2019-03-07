@@ -41,7 +41,7 @@ struct BF_F {
   inline bool updateAtomic(const uintE& s, const uintE& d,
                            const intE& edgeLen) {
     intE newDist = SP[s] + edgeLen;
-    return (pbbslib::writeMin(&SP[d], newDist) && pbbslib::CAS(&Visited[d], 0, 1));
+    return (pbbslib::write_min(&SP[d], newDist) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
