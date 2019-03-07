@@ -43,7 +43,7 @@ struct BC_F {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     fType to_add = Scores[s];
-    fType n_val = pbbslib::fetch_and_add(&Scores[d], to_add);
+    fType n_val = writeAdd(&Scores[d], to_add);
     return (n_val - to_add == 0);
   }
   inline bool cond(uintE d) { return Visited[d] == 0; }

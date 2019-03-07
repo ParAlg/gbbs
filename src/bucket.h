@@ -115,14 +115,14 @@ struct buckets {
 
     // Update buckets with all (id, bucket) pairs. Identifiers with bkt =
     // null_bkt are ignored by update_buckets.
-    auto get_id_and_bkt = pbbslib::make_sequence<Maybe<std::tuple<ident_t, bucket_id>>>(n, [&](ident_t i) {
+    auto get_id_and_bkt = [&](ident_t i) -> Maybe<std::tuple<ident_t, bucket_id> > {
       bucket_id bkt = _d[i];
       if (bkt != null_bkt) {
         bkt = to_range(bkt);
       }
       return Maybe<std::tuple<ident_t, bucket_id> >(std::make_tuple(i, bkt));
-    });
-    update_buckets(get_id_and_bkt);
+    };
+    update_buckets(get_id_and_bkt, n);
   }
 
   // Returns the next non-empty bucket from the bucket structure. The return
@@ -162,14 +162,13 @@ struct buckets {
   }
 
   // Updates k identifiers in the bucket structure. The i'th identifier and
-  // its bucket_dest are given by F[i].
-  template <class In_Seq>
-  inline size_t update_buckets(In_Seq f) {
-    size_t k = f.size();
+  // its bucket_dest are given by F(i).
+  template <class F>
+  inline size_t update_buckets(F f, size_t k) {
     size_t num_blocks = k / 2000;
     int num_threads = num_workers();
     if (k < pbbslib::kSequentialForThreshold || num_threads == 1) {
-      return update_buckets_seq(f);
+      return update_buckets_seq(f, k);
     }
 
     size_t ne_before = num_elms;
@@ -193,7 +192,7 @@ struct buckets {
         hist[j] = 0;
       }
       for (size_t j = s; j < e; j++) {
-        auto m = f[j];
+        auto m = f(j);
         bucket_id b = std::get<1>(m.t);
         if (m.exists && b != null_bkt) {
           hist[b]++;
@@ -241,7 +240,7 @@ struct buckets {
       size_t e = std::min(s + block_size, k);
       // our buckets are now spread out, across outs
       for (size_t j = s; j < e; j++) {
-        auto m = f[j];
+        auto m = f(j);
         ident_t v = std::get<0>(m.t);
         bucket_id b = std::get<1>(m.t);
         if (m.exists && b != null_bkt) {
@@ -278,11 +277,10 @@ struct buckets {
   bool allocated;
 
   template <class F>
-  inline size_t update_buckets_seq(F& f) {
-    size_t n = f.size();
+  inline size_t update_buckets_seq(F& f, size_t n) {
     size_t ne_before = num_elms;
     for (size_t i = 0; i < n; i++) {
-      auto m = f[i];
+      auto m = f(i);
       bucket_id bkt = std::get<1>(m.t);
       if (m.exists && bkt != null_bkt) {
         bkts[bkt].resize(1);
@@ -315,11 +313,11 @@ struct buckets {
     }
     bkts[open_buckets].size = 0;  // reset size
 
-    auto g = pbbslib::make_sequence<Maybe<std::tuple<ident_t, bucket_id>>>(m, [&](ident_t i) {
+    auto g = [&](ident_t i) -> Maybe<std::tuple<ident_t, bucket_id> > {
       ident_t v = tmp[i];
       bucket_id bkt = to_range(d[v]);
       return Maybe<std::tuple<ident_t, bucket_id> >(std::make_tuple(v, bkt));
-    });
+    };
 
     if (m != num_elms) {
       std::cout << "m = " << m << " num_elms = " << num_elms << "\n";
@@ -329,7 +327,7 @@ struct buckets {
                 << "\n";
       assert(m == num_elms);  // corrruption in bucket structure.
     }
-    update_buckets(g);
+    update_buckets(g, m);
     num_elms -= m;
   }
 

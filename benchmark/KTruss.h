@@ -20,13 +20,14 @@
 
 #pragma once
 
-
-#include "bridge.h"
 #include "bucket.h"
 #include "edge_map_reduce.h"
 #include "ligra.h"
 #include "truss_utils.h"
 #include <cassert>
+
+#include "pbbslib/sample_sort.h"
+#include "pbbslib/sparse_table.h"
 
 // (1) One approach is to map each edge in a hash-table to its trussness. The
 // keys need to be 8-byte aligned, and the keys are 8-byte values (tuples of
@@ -135,10 +136,10 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   initialize_trussness_values(GA, trussness_multi);
 
   // Initialize the bucket structure. #ids = trussness table size
-  auto get_bkt = pbbslib::make_sequence<uintE>(trussness_multi.size(), [&] (size_t i) {
+  auto get_bkt = [&] (size_t i) {
     auto table_value = std::get<1>(trussness_multi.big_table[i]); // the trussness.
     return (uintE)table_value;
-  });
+  };
   auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt, increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)

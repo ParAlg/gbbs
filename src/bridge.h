@@ -442,12 +442,14 @@ namespace pbbslib {
   template <class Idx_Type, class D, class F>
   inline pbbs::sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {
-    auto id_seq = pbbslib::make_sequence<std::tuple<Idx_Type, D> >(size,  [&](size_t i) {
-      return std::make_tuple((Idx_Type)i, std::get<1>(f[i]));
-    });
-    auto flgs_seq = pbbslib::make_sequence<bool>(size, [&](size_t i) { return std::get<0>(f[i]); });
-
-    return pbbs::pack(id_seq, flgs_seq, fl);
+    auto identity = [&](size_t i) {
+      return std::make_tuple((Idx_Type)i, std::get<1>(f(i)));
+    };
+    auto flgs_f = [&](size_t i) { return std::get<0>(f(i)); };
+    auto flgs_in =
+        pbbslib::make_sequence<bool>(size, flgs_f);
+    return pack(pbbslib::make_sequence<std::tuple<Idx_Type, D> >(size, identity), flgs_in,
+                fl);
   }
 
   template <class T, class Pred>

@@ -55,10 +55,10 @@ struct Visit_F {
     uintE n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
-          pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
+          CAS(&(dists[d]), oval, n_dist)) {  // First visitor
         return Maybe<uintE>(oval);
       }
-      pbbslib::write_min(&(dists[d]), n_dist);
+      pbbslib::writeMin(&(dists[d]), n_dist);
     }
     return Maybe<uintE>();
   }
@@ -89,10 +89,10 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   auto get_bkt = [&](const uintE& dist) -> const uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : dist;
   };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> const uintE {
+  auto get_ring = [&](const size_t& v) -> const uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
-  });
+  };
   auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);
 
   auto apply_f = [&](const uintE v, uintE& oldDist) -> void {
