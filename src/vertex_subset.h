@@ -84,20 +84,23 @@ struct vertexSubsetData {
   inline bool isIn(const uintE& v) const { return std::get<0>(d[v]); }
   inline data& ithData(const uintE& v) const { return std::get<1>(d[v]); }
 
-  // Returns (uintE) -> delayed_sequence<Maybe<std::tuple<vertex, vertex-data>>>.
-  auto as_maybe_sequence() const // TODO: no return type
-  {
-    return pbbslib::make_sequence<Maybe<std::tuple<uintE, data>>>(
-        (isDense) ? n : m, [&](const uintE& v) {
-      if (isDense) {
+  // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
+  auto get_fn_repr() const
+      -> std::function<Maybe<std::tuple<uintE, data>>(uintE)> {
+    std::function<Maybe<std::tuple<uintE, data>>(const uintE&)> fn;
+    if (isDense) {
+      fn = [&](const uintE& v) -> Maybe<std::tuple<uintE, data>> {
         auto ret = Maybe<std::tuple<uintE, data>>(
             std::make_tuple(v, std::get<1>(d[v])));
         ret.exists = std::get<0>(d[v]);
         return ret;
-      } else {
-        return Maybe<std::tuple<uintE, data>>(s[v]);
-      }
-      });
+      };
+    } else {
+      fn = [&](const uintE& i) -> Maybe<std::tuple<uintE, data>> {
+        return Maybe<std::tuple<uintE, data>>(s[i]);
+      };
+    }
+    return fn;
   }
 
   size_t size() { return m; }
@@ -228,21 +231,24 @@ struct vertexSubsetData<pbbslib::empty> {
   inline bool isIn(const uintE& v) const { return d[v]; }
   inline pbbslib::empty ithData(const uintE& v) const { return pbbslib::empty(); }
 
-  // Returns (uintE) -> delayed_sequence<Maybe<std::tuple<vertex, vertex-data>>>.
-  auto as_maybe_sequence() const // TODO no return type
-  {
-      return pbbslib::make_sequence<Maybe<std::tuple<uintE, pbbslib::empty>>>(
-        (isDense) ? n : m, [&](const uintE& v) {
-      if (isDense) {
+  // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
+  auto get_fn_repr() const
+      -> std::function<Maybe<std::tuple<uintE, pbbslib::empty>>(uintE)> {
+    std::function<Maybe<std::tuple<uintE, pbbslib::empty>>(const uintE&)> fn;
+    if (isDense) {
+      fn = [&](const uintE& v) -> Maybe<std::tuple<uintE, pbbslib::empty>> {
         auto ret = Maybe<std::tuple<uintE, pbbslib::empty>>(
             std::make_tuple(v, pbbslib::empty()));
         ret.exists = d[v];
         return ret;
-      } else {
+      };
+    } else {
+      fn = [&](const uintE& i) -> Maybe<std::tuple<uintE, pbbslib::empty>> {
         return Maybe<std::tuple<uintE, pbbslib::empty>>(
-            std::make_tuple(s[v], pbbslib::empty()));
-      }
-    });
+            std::make_tuple(s[i], pbbslib::empty()));
+      };
+    }
+    return fn;
   }
 
   size_t size() { return m; }
