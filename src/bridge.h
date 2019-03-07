@@ -157,6 +157,37 @@ namespace pbbslib {
     return pbbs::fetch_and_add<E, EV>(a, b);
   }
 
+  inline long xaddl(long* variable, long value) {
+    asm volatile("lock; xaddl %%eax, %2;"
+                 : "=a"(value)                 // Output
+                 : "a"(value), "m"(*variable)  // Input
+                 : "memory");
+    return value;
+  }
+
+  inline int xaddi(int* variable, int value) {
+    asm volatile("lock; xadd %%eax, %2;"
+                 : "=a"(value)                 // Output
+                 : "a"(value), "m"(*variable)  // Input
+                 : "memory");
+    return value;
+  }
+
+  // The conditional should be removed by the compiler
+  // this should work with pointer types, or pairs of integers
+  template <class ET>
+  inline ET xadd(ET* variable, ET value) {
+    if (sizeof(ET) == 8) {
+      return xaddl((long*)variable, (long)value);
+    } else if (sizeof(ET) == 4) {
+      return xaddi((int*)variable, (int)value);
+    } else {
+      std::cout << "xadd bad length"
+                << "\n";
+      abort();
+    }
+  }
+
   template <typename E, typename EV>
   inline void write_add(E *a, EV b) {
     pbbs::write_add<E, EV>(a, b);

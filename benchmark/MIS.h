@@ -25,7 +25,8 @@
 
 #include "pbbslib/random_shuffle.h"
 #include "pbbslib/sparse_table.h"
-#include "pbbslib/speculative_for.h"
+
+#include "speculative_for.h"
 #include "ligra.h"
 
 namespace MIS_rootset {
@@ -99,7 +100,8 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     });
     auto nghs = ht.entries();
     ht.del();
-    return vertexSubset(GA.n, nghs.size(), (uintE*)nghs.to_array());
+    size_t nghs_size = nghs.size();
+    return vertexSubset(GA.n, nghs_size, (uintE*)nghs.to_array());
   }
 }
 
@@ -123,7 +125,7 @@ struct mis_f {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (perm[s] < perm[d]) {
-      return (pbbslib::xadd(&p[d], -1) == 1);
+      return (pbbslib::fetch_and_add(&p[d], -1) == 1);
     }
     return false;
   }
@@ -143,7 +145,7 @@ struct mis_f_2 {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (hash_lt(s, d)) {
-      return (writeAdd(&p[d], -1) == 0);
+      return (pbbslib::fetch_and_add(&p[d], -1) == 0);
     }
     return false;
   }
@@ -175,7 +177,8 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   auto zero_map =
       pbbslib::make_sequence<bool>(n, zero_f);
   auto init = pbbslib::pack_index<uintE>(zero_map);
-  auto roots = vertexSubset(n, init.size(), init.to_array());
+  size_t init_size = init.size();
+  auto roots = vertexSubset(n, init_size, init.to_array());
 
   auto in_mis = sequence<bool>(n, false);
   size_t finished = 0;
@@ -249,7 +252,7 @@ struct MISstep {
     };
     using E = std::tuple<int, int>;
     auto id = std::make_tuple(0, 0);
-    auto monoid = make_monoid(red_f, id);
+    auto monoid = pbbslib::make_monoid(red_f, id);
     auto res = G.V[i].template reduceOutNgh<E>(i, map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
