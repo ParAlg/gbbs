@@ -75,7 +75,6 @@ class sparse_table {
     m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m));
     mask = m - 1;
     table = pbbslib::new_array_no_init<T>(m);
-    std::cout << "T size is " << sizeof(T) << std::endl;
     clearA(table, m, empty);
     alloc = true;
   }

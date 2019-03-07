@@ -50,7 +50,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
     GA.V[v].mapOutNgh(v, map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = pbbslib::make_sequence<uintE>(deg, im_f);
-    uintE color = pbbslib::reduce(im, minm<uintE>());
+    uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
     if (deg > 1000) {
       pbbslib::free_array(bits);
     }
@@ -79,7 +79,7 @@ struct coloring_f {
                 << "\n";
       exit(-1);
     }
-    return (pbbslib::xadd(&p[d], -1) == 1);
+    return (pbbslib::fetch_and_add(&p[d], -1) == 1);
   }
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
@@ -127,8 +127,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
 
   auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map = pbbslib::make_sequence<bool>(n, zero_map_f);
-  auto init = pbbslib::pack_index<uintE>(zero_map);
-  auto roots = vertexSubset(n, init.size(), init.to_array());
+  auto roots = vertexSubset(n, pbbslib::pack_index<uintE>(zero_map));
   initt.reportTotal("init time");
 
   size_t finished = 0, rounds = 0;

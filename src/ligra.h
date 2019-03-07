@@ -101,8 +101,6 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
-  std::cout << "dense"
-            << "\n";
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
@@ -137,8 +135,6 @@ template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
                                                   VS& vertexSubset, F& f,
                                                   const flags fl) {
-  std::cout << "Dense Forward"
-            << "\n";
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;

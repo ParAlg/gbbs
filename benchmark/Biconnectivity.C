@@ -39,7 +39,7 @@
 // -s -m com-orkut.ungraph.txt_SJ
 
 #include "Biconnectivity.h"
-#include "lib/sparse_additive_map.h"
+#include "pbbslib/sparse_additive_map.h"
 #include "ligra.h"
 
 template <template <typename W> class vertex, class W>
@@ -102,7 +102,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
                        const std::tuple<uintE, uintE>& r) {
       return std::get<1>(l) > std::get<1>(r);
     };
-    pbbslib::sample_sort(ET.begin(), ET.size(), cmp_snd);
+    pbbslib::sample_sort_inplace(ET.slice(), cmp_snd, true);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }

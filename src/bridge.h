@@ -136,6 +136,11 @@ namespace pbbslib {
     return pbbs::atomic_compare_and_swap(a, oldval, newval);
   };
 
+  template <typename ET>
+  inline bool CAS(ET* ptr, const ET oldv, const ET newv) {
+    return atomic_compare_and_swap(ptr, oldv, newv);
+  }
+
   template <typename E, typename EV>
   inline E fetch_and_add(E *a, EV b) {
     return pbbs::fetch_and_add<E, EV>(a, b);
@@ -151,14 +156,24 @@ namespace pbbslib {
     pbbs::write_add<E, EV>(a, b);
   }
 
+  template <typename ET>
+  inline bool write_min(ET *a, ET b) {
+    return pbbs::write_min<ET>(a, b, std::less<ET>());
+  }
+
   template <typename ET, typename F>
   inline bool write_min(ET *a, ET b, F less) {
     return pbbs::write_min<ET, F>(a, b, less);
   }
 
+  template <typename ET>
+  inline bool write_max(ET *a, ET b) {
+    return pbbs::write_max<ET>(a, b, std::less<ET>());
+  }
+
   template <typename ET, typename F>
-  inline bool write_min(std::atomic<ET> *a, ET b, F less) {
-    return pbbs::write_min<ET, F>(a, b, less);
+  inline bool write_max(ET *a, ET b, F less) {
+    return pbbs::write_max<ET, F>(a, b, less);
   }
 
   // returns the log base 2 rounded up (works on ints or longs or unsigned versions)
@@ -184,6 +199,9 @@ namespace pbbslib {
   pbbs::monoid<F,T> make_monoid (F f, T id) {
     return pbbs::monoid<F,T>(f, id);
   }
+
+  template <class T>
+  using minm = pbbs::minm<T>;
 
   // ====================== sequence ops =======================
   // used so second template argument can be inferred
@@ -295,7 +313,7 @@ namespace pbbslib {
   // return index to first key greater or equal to v
   template <typename Seq, typename F>
   inline size_t binary_search(Seq const &I, typename Seq::value_type v,
-		       const F& less) {
+           const F& less) {
     return pbbs::binary_search<Seq, F>(I, v, less);
   }
 
@@ -327,8 +345,8 @@ namespace pbbslib {
   // ====================== integer sort =======================
   template <typename T, typename Get_Key>
   void integer_sort_inplace(pbbs::range<T*> In,
-			    Get_Key const &g,
-			    size_t key_bits=0) {
+          Get_Key const &g,
+          size_t key_bits=0) {
     return pbbs::integer_sort_inplace(In, g, key_bits);
   }
 
@@ -392,7 +410,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     });
-    auto isums = pbbs::sequence<size_t>(Sums, l);
+    auto isums = make_sequence(Sums, l);
     size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
@@ -430,7 +448,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     });
-    auto isums = pbbs::sequence<size_t>(Sums, l);
+    auto isums = make_sequence(Sums, l);
     size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {
@@ -475,7 +493,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     });
-    auto isums = pbbs::sequence<size_t>(Sums, l);
+    auto isums = make_sequence(Sums, l);
     size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
     par_for(0, l, 1, [&] (size_t i) {

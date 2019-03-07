@@ -30,7 +30,7 @@
 #include "pbbslib/sparse_table.h"
 #include "pbbslib/speculative_for.h"
 #include "ligra.h"
-#include "oldpbbslib/benchIO.h"
+#include "oldlib/benchIO.h"
 
 namespace bc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -53,8 +53,8 @@ struct AugF {
     return false;
   }
   bool updateAtomic(const uintE& s, const uintE& d) {
-    writeAdd(&sizes[d], sizes[s]);
-    intE res = writeAdd(&cts[d], -1);
+    pbbslib::write_add(&sizes[d], sizes[s]);
+    intE res = pbbslib::fetch_and_add(&cts[d], -1);
     return (res == 0);
   }
   bool cond(const uintE& d) { return true; }
@@ -82,12 +82,12 @@ struct MinMaxF {
     labels lab_s = MM[s];
     uintE low = std::get<0>(lab_s), high = std::get<1>(lab_s);
     if (low < std::get<0>(MM[d])) {
-      pbbslib::writeMin(&std::get<0>(MM[d]), low);
+      pbbslib::write_min(&std::get<0>(MM[d]), low);
     }
     if (high > std::get<1>(MM[d])) {
-      pbbslib::writeMax(&std::get<1>(MM[d]), high);
+      pbbslib::write_max(&std::get<1>(MM[d]), high);
     }
-    intE res = pbbslib::writeAdd(&cts[d], -1);
+    intE res = pbbslib::fetch_and_add(&cts[d], -1);
     return (res == 0);
   }
   bool cond(const uintE& d) { return true; }
@@ -97,7 +97,6 @@ template <template <typename W> class vertex, class W, class Seq>
 inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
                                                            uintE* Parents,
                                                            Seq& Sources) {
-  using w_vertex = vertex<W>;
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
   auto out_edges = sequence<edge>(
@@ -113,7 +112,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
-  pbbslib::sample_sort(edges.begin(), edges.size(), sort_tup);
+  pbbslib::sample_sort_inplace(edges.slice(), sort_tup, true);
 
   auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
   par_for(0, edges.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -192,14 +191,17 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
 
   // Optional: Prefix sum over sources with aug-size (if we want distinct
   // preorder #s)
-  auto s_copy = Sources.copy(Sources); //Sources.copy();
+
+  // Use copy constructor
+  sequence<uintE> s_copy(Sources);
 
   timer pren;
   pren.start();
   auto PN = sequence<uintE>(n);
-  vs = vertexSubset(n, s_copy.size(), s_copy.to_array());
+  auto s_copy_arr = s_copy.to_array();
+  vs = vertexSubset(n, s_copy.size(), s_copy_arr);
   par_for(0, Sources.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uintE v = s_copy[i];
+    uintE v = s_copy_arr[i];
     PN[v] = 0;
   });
   rds = 0;
@@ -266,14 +268,14 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       uintE p_u = PN[u];
       uintE p_v = PN[v];
       if (p_u < std::get<0>(MM[v])) {
-        pbbslib::writeMin(&std::get<0>(MM[v]), p_u);
+        pbbslib::write_min(&std::get<0>(MM[v]), p_u);
       } else if (p_u > std::get<1>(MM[v])) {
-        pbbslib::writeMax(&std::get<1>(MM[v]), p_u);
+        pbbslib::write_max(&std::get<1>(MM[v]), p_u);
       }
       if (p_v < std::get<0>(MM[u])) {
-        pbbslib::writeMin(&std::get<0>(MM[u]), p_v);
+        pbbslib::write_min(&std::get<0>(MM[u]), p_v);
       } else if (p_v > std::get<1>(MM[u])) {
-        pbbslib::writeMax(&std::get<1>(MM[u]), p_v);
+        pbbslib::write_max(&std::get<1>(MM[u]), p_v);
       }
     }
   };
@@ -351,7 +353,7 @@ inline sequence<uintE> cc_sources(Seq& labels) {
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE label = labels[i];
-    pbbslib::writeMin(&flags[label], (uintE)i);
+    pbbslib::write_min(&flags[label], (uintE)i);
   });
   // Get min from each component
   return pbbslib::filter(flags, [](uintE v) { return v != UINT_E_MAX; });
@@ -473,8 +475,9 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
   auto Sources = cc_sources(Components);
   Components.clear();
 
-  auto Sources_copy = Sources.copy(Sources); //Sources.copy();
-  auto Centers = vertexSubset(n, Sources.size(), Sources.to_array());
+//  auto Sources_copy = Sources.copy(Sources);
+  auto Sources_copy = Sources; // Use copy constructor
+  auto Centers = vertexSubset(n, Sources_copy.size(), Sources.to_array());
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();
   sc.reportTotal("sc, multibfs time");

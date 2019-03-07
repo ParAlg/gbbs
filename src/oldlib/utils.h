@@ -353,9 +353,9 @@ inline intT sumFlagsSerial(bool* Fl, intT n) {
   intT r = 0;
   if (n >= 128 && (n & 511) == 0 && ((long)Fl & 3) == 0) {
     int* IFl = (int*)Fl;
-    for (size_t k = 0; k < (n >> 9); k++) {
+    for (intT k = 0; k < (n >> 9); k++) {
       size_t rr = 0;
-      for (size_t j = 0; j < 128; j++) rr += IFl[j];
+      for (intT j = 0; j < 128; j++) rr += IFl[j];
       r += (rr & 255) + ((rr >> 8) & 255) + ((rr >> 16) & 255) +
            ((rr >> 24) & 255);
       IFl += 128;

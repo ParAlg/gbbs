@@ -9,8 +9,11 @@ endif
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../
 
+OPT = -O3
+#OPT = -O0 -g
+
 CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = $(INCLUDE_DIRS) $(INTT) $(INTE) -DAMORTIZEDPD -I../src -mcx16 -O3 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
+CFLAGS = $(INCLUDE_DIRS) $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus

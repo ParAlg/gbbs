@@ -28,7 +28,7 @@ concept bool Range =
 #endif
 
 namespace pbbs {
-  
+
   template <typename Iterator>
   struct range {
   public:
@@ -44,8 +44,8 @@ namespace pbbs {
     iterator begin() const {return s;}
     iterator end() const {return e;}
   private:
-    iterator s; 
-    iterator e; 
+    iterator s;
+    iterator e;
   };
 
   template <class Iter>
@@ -77,13 +77,13 @@ namespace pbbs {
   }
 
   constexpr bool check_copy = true;
-  
+
   template <typename T>
   struct sequence {
   public:
     using value_type = T;
     //using iterator = T*;
-  
+
     sequence() : s(NULL), n(0) {}
 
     // copy constructor
@@ -153,7 +153,7 @@ namespace pbbs {
     sequence(delayed_sequence<T,F> a) {
       copy_here(a, a.size());
     }
-  
+
     ~sequence() { clear();}
 
     value_type& operator[] (const size_t i) const {return s[i];}
@@ -200,12 +200,13 @@ namespace pbbs {
     void copy_here(Seq const &a, size_t an) {
       n = an;
       s = pbbs::new_array_no_init<T>(n, true);
+      cout << "s = " << s << " n = " << n << endl;
       //if (n > 0) { cout << "Yikes, copy: " << s << endl;}
       parallel_for(0, n, [&] (size_t i) {
 	      pbbs::assign_uninitialized(s[i], a[i]);});
     }
-  
-    T *s; 
+
+    T *s;
     size_t n;
   };
 

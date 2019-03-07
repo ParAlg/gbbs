@@ -118,10 +118,12 @@ class sparse_additive_map {
   }
 
   auto entries() {
-    T* out = pbbslib::new_array_no_init<T>(m);
+    // T* out = pbbslib::new_array_no_init<T>(m);
     auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-    size_t new_m = pbbslib::filterf(table, out, m, pred);
-    return sequence<T>(out, new_m, true); // allocated
+    auto table_seq = pbbslib::make_sequence<T>(table, m);
+    return pbbslib::filter(table_seq, pred);
+//    size_t new_m = pbbslib::filterf(table, out, m, pred);
+//    return pbbslib::sequence<T>(out, new_m, true); // allocated
   }
 
   void clear() {

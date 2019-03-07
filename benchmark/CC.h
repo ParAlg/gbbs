@@ -34,7 +34,7 @@ namespace cc {
 // Returns u
 template <class Seq>
 inline size_t RelabelIds(Seq& ids) {
-  using T = typename Seq::T;
+  using T = typename Seq::value_type;
   size_t n = ids.size();
   auto inverse_map = sequence<T>(n + 1);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -205,6 +205,7 @@ inline size_t num_cc(Seq& labels) {
   });
   pbbslib::scan_add_inplace(flags);
   std::cout << "n_cc = " << flags[n] << "\n";
+  return flags[n];
 }
 
 template <class Seq>
@@ -215,7 +216,9 @@ inline size_t largest_cc(Seq& labels) {
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
-  std::cout << "largest_cc has size: " << pbbslib::reduce_max(flags) << "\n";
+  size_t sz = pbbslib::reduce_max(flags);
+  std::cout << "largest_cc has size: " << sz << "\n";
+  return sz;
 }
 
 template <class vertex>

@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <math.h>
 #include <atomic>
+#include <cstring>
 #include "parallel.h"
 
 using std::cout;
@@ -200,26 +201,32 @@ namespace pbbs {
   }
 
   template <typename ET>
-  inline bool atomic_compare_and_swap(ET* ptr, ET oldv, ET newv) {
-    return __sync_bool_compare_and_swap(ptr, oldv, newv);
+  inline bool atomic_compare_and_swap(ET* a, ET oldval, ET newval) {
+    if (sizeof(ET) == 1) {
+      uint8_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<uint8_t*>(a), r_oval, r_nval);
+    } else if (sizeof(ET) == 4) {
+      uint32_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<uint32_t*>(a), r_oval, r_nval);
+    } else if (sizeof(ET) == 8) {
+      uint64_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<uint64_t*>(a), r_oval, r_nval);
+    } else {
+      std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
+      exit(0);
+    }
   }
-  
+
   template <typename ET>
   inline bool CAS_GCC(ET* ptr, const ET oldv, const ET newv) {
     return __sync_bool_compare_and_swap(ptr, oldv, newv);
   }
-
-  inline bool atomic_compare_and_swap(double* a, const double &oldval, const double &newval) {
-    return __sync_bool_compare_and_swap(reinterpret_cast<uint64_t*>(a),
-					*reinterpret_cast<const uint64_t*>(&oldval),
-					*reinterpret_cast<const uint64_t*>(&newval));
-  };
-
-  inline bool atomic_compare_and_swap(float* a, float &oldval, float &newval) {
-    return __sync_bool_compare_and_swap(reinterpret_cast<uint32_t*>(a),
-					*reinterpret_cast<const uint32_t*>(&oldval),
-					*reinterpret_cast<const uint32_t*>(&newval));
-  };
 
   template <typename E, typename EV>
   inline E fetch_and_add(E *a, EV b) {
@@ -258,6 +265,22 @@ namespace pbbs {
     ET c; bool r=0;
     do c = a->load();
     while (less(b,c) && !(r=std::atomic_compare_exchange_strong(a, &c, b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_max(ET *a, ET b, F less) {
+    ET c; bool r=0;
+    do c = *a;
+    while (less(c,b) && !(r=CAS_GCC(a,c,b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_max(std::atomic<ET> *a, ET b, F less) {
+    ET c; bool r=0;
+    do c = a->load();
+    while (less(c,b) && !(r=std::atomic_compare_exchange_strong(a, &c, b)));
     return r;
   }
 

@@ -173,13 +173,18 @@ struct vertexSubsetData<pbbslib::empty> {
       : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0) {}
 
   // A vertexSubset from a sequence.
-  vertexSubsetData(size_t _n, sequence<S>& seq, bool transfer=true)
+  vertexSubsetData<pbbslib::empty>(size_t _n, sequence<S>& seq, bool transfer=true)
       : n(_n), m(seq.size()), d(NULL), isDense(0) {
     if (transfer) {
       s = seq.to_array();
     } else {
       s = seq.begin();
     }
+  }
+
+  vertexSubsetData<pbbslib::empty>(size_t n, sequence<S>&& seq) : n(n), d(NULL), isDense(0) {
+    m = seq.size();
+    s = seq.to_array();
   }
 
   // A vertexSubset from boolean array giving number of true values.
