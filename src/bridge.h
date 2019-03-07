@@ -423,6 +423,13 @@ namespace pbbslib {
   pbbs::sequence<intT> random_permutation(size_t n, pbbs::random r = pbbs::random()) {
     return pbbs::random_permutation<intT>(n, r);
   }
+
+  template <typename Seq>
+  sequence<typename Seq::value_type>
+  random_shuffle(Seq const &In, random r = random()) {
+    return pbbs::random_shuffle<Seq>(In, r);
+  }
+
 }
 
 

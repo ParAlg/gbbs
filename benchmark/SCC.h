@@ -75,7 +75,7 @@ struct Search_F {
       if (labels_changed) {
         // d should be included in next frontier;
         // CAS to make sure only one ngh from this frontier adds it.
-        return CAS(&bits[d], false, true);
+        return pbbslib::atomic_compare_and_swap(&bits[d], false, true);
       }
     }
     return false;
@@ -93,7 +93,7 @@ inline Search_F<W, Seq, Tab> make_search_f(Tab& tab, Seq& labels, bool* bits) {
 }
 
 template <template <class W> class vertex, class W, class Seq, class VS>
-inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
+inline pbbslib::resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
                                                    Seq& labels, bool* bits,
                                                    VS& frontier,
                                                    size_t label_start,
@@ -102,7 +102,7 @@ inline resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
   auto table_backing = sequence<T>(backing_size);
-  auto table = resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
+  auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.to_array(), true);
   frontier.toSparse();
   par_for(0, frontier.size(), 2000, [&] (size_t i) {
@@ -156,7 +156,7 @@ struct First_Search {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {
-    return CAS(&visited[d], false, true);
+    return pbbslib::atomic_compare_and_swap(&visited[d], false, true);
   }
   inline bool cond(uintE d) { return !(labels[d] & TOP_BIT) && !visited[d]; }
 };
@@ -235,7 +235,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
     };
     auto id = std::make_tuple<uintE, uintE>(0, 0);
-    auto monoid = make_monoid(red_f, id);
+    auto monoid = pbbslib::make_monoid(red_f, id);
     std::tuple<uintE, uintE> sAndD =
         pbbslib::reduce(deg_im, monoid);
     uintE start = std::get<0>(sAndD);
@@ -317,7 +317,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       continue;
     }
 
-    auto centers_2 = centers.copy(centers);
+    auto centers_2 = centers;
     auto in_f = vertexSubset(n, centers.size(), centers.to_array());
     auto in_table =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
@@ -341,9 +341,9 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       if (larger_t.contains(v, label)) {
         // in 'label' scc
         // Max visitor from this SCC acquires it.
-        writeMax(&labels[v], label | TOP_BIT);
+        pbbslib::write_max(&labels[v], label | TOP_BIT);
       } else {
-        writeMax(&labels[v], label);
+        pbbslib::write_max(&labels[v], label);
       }
     };
     smaller_t.map(map_f);
@@ -352,9 +352,9 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     auto sp_map = [&](const std::tuple<K, V>& kev) {
       uintE v = std::get<0>(kev);
       size_t label = std::get<1>(kev);
-      // note that if v is already in an SCC (from (1)), the writeMax will
+      // note that if v is already in an SCC (from (1)), the pbbslib::write_max will
       // read, compare and fail, as the top bit is already set.
-      writeMax(&labels[v], label);
+      pbbslib::write_max(&labels[v], label);
     };
     larger_t.map(sp_map);
 

@@ -116,7 +116,7 @@ namespace pbbslib {
       }
     }
 
-    size_t update_nelms() {
+    void update_nelms() {
       size_t workers = num_workers();
       for (size_t i = 0; i < workers; i++) {
         ne += cts[i * kResizableTableCacheLineSz];
