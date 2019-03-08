@@ -214,10 +214,10 @@ struct EdgeMap {
     auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
       return pbbslib::empty();
     };
-    auto reduce_f = [&](const uintE& cur,
-                        const std::tuple<uintE, pbbslib::empty>& r) {
-      return cur + 1;
-    };
+//    auto reduce_f = [&](const uintE& cur,
+//                        const std::tuple<uintE, pbbslib::empty>& r) {
+//      return cur + 1;
+//    };
     size_t m = vs.size();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
@@ -276,7 +276,6 @@ struct EdgeMap {
 
   template <class O, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f, bool out_ngh = true, long threshold=-1) {
-    size_t n = G.n;
     vs.toSparse();
     auto degree_f = [&](size_t i) -> size_t {
       return (!out_ngh) ? G.V[vs.vtx(i)].getInVirtualDegree()
@@ -284,8 +283,9 @@ struct EdgeMap {
     };
     auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
-    if (threshold == -1) threshold = G.m / 40;
-    if (vs.size() + out_degrees > threshold) {
+    size_t degree_threshold = threshold;
+    if (threshold == -1) degree_threshold = G.m / 40;
+    if (vs.size() + out_degrees > degree_threshold) {
       // dense
       return edgeMapCount_dense<O>(vs, apply_f, out_ngh);
     } else {

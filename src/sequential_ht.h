@@ -49,16 +49,17 @@ class sequentialHT {
                std::tuple<K, V> _empty)
       : m((size_t)1 << pbbslib::log2_up((size_t)(loadFactor * size))),
         mask(m - 1),
-        table(_table),
-        empty(_empty) {
-    max_key = std::get<0>(empty);
-  }
+        empty(_empty),
+        max_key(std::get<0>(_empty)),
+        table(_table) { }
 
   // m must be a power of two
   sequentialHT(T* _table, size_t _m, std::tuple<K, V> _empty)
-      : m((size_t)_m), mask(m - 1), table(_table), empty(_empty) {
-    max_key = std::get<0>(empty);
-  }
+      : m((size_t)_m),
+        mask(m - 1),
+        empty(_empty),
+        max_key(std::get<0>(_empty)),
+        table(_table) { }
 
   template <class M, class F>
   inline void insertF(std::tuple<K, M>& v, F& f) {

@@ -214,7 +214,7 @@ struct buckets {
     });
     outs[last_ind] = 0;
 
-    size_t sum = pbbslib::scan_inplace(outs.slice(), pbbslib::addm<bucket_id>());
+    pbbslib::scan_inplace(outs.slice(), pbbslib::addm<bucket_id>());
 //    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
@@ -264,17 +264,18 @@ struct buckets {
   }
 
  private:
-  const bucket_order order;
-  id_dyn_arr* bkts;
-  size_t cur_bkt;
-  size_t max_bkt;
-  size_t cur_range;
-  D& d;
   size_t n;  // total number of identifiers in the system
-  size_t num_elms;
+  D& d;
+  const bucket_order order;
   size_t open_buckets;
   size_t total_buckets;
+  size_t cur_bkt;
+  size_t max_bkt;
+  size_t num_elms;
   bool allocated;
+
+  size_t cur_range;
+  id_dyn_arr* bkts;
 
   template <class F>
   inline size_t update_buckets_seq(F& f, size_t n) {

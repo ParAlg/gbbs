@@ -36,6 +36,7 @@
 #include "compressed_vertex.h"
 #include "edge_map_utils.h"
 #include "graph.h"
+#include "flags.h"
 #include "parse_command_line.h"
 #include "vertex.h"
 #include "vertex_subset.h"
@@ -43,17 +44,6 @@
 #include "oldlib/utils.h"
 
 
-typedef uint32_t flags;
-const flags no_output = 1;
-const flags pack_edges = 2;
-const flags sparse_blocked = 4;
-const flags dense_forward = 8;
-const flags dense_parallel = 16;
-const flags remove_duplicates = 32;
-const flags no_dense = 64;
-const flags in_edges = 128;  // map over in edges instead of out edges
-const flags fine_parallel = 1 << 8; // split to a node-size of 1
-inline bool should_output(const flags& fl) { return !(fl & no_output); }
 
 template <class W, class F>
 struct Wrap_F {
