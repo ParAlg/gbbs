@@ -112,7 +112,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
     //      vertexSubset output = edgeMap(GA, Frontier,
     //      make_bc_f<W>(NumPaths,Visited), -1, sparse_blocked | dense_forward);
     vertexSubset output = edgeMap(GA, Frontier, make_bc_f<W>(NumPaths, Visited),
-                                  -1, sparse_blocked);
+                                  -1, sparse_blocked | fine_parallel);
     vertexMap(output, make_bc_vertex_f(Visited));  // mark visited
     Levels.push_back(Frontier);                    // save frontier
     Frontier = output;
@@ -137,7 +137,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
     //      edgeMap(GA, Frontier, make_bc_f<W>(Dependencies,Visited), -1,
     //      no_output | in_edges | dense_forward);
     edgeMap(GA, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
-            no_output | in_edges);
+            no_output | in_edges | fine_parallel);
     Frontier.del();
     Frontier = Levels[r];
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));

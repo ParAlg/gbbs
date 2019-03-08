@@ -52,6 +52,7 @@ const flags dense_parallel = 16;
 const flags remove_duplicates = 32;
 const flags no_dense = 64;
 const flags in_edges = 128;  // map over in edges instead of out edges
+const flags fine_parallel = 1 << 8; // split to a node-size of 1
 inline bool should_output(const flags& fl) { return !(fl & no_output); }
 
 template <class W, class F>
@@ -101,6 +102,7 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
+  std::cout << "dense" << std::endl;
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
@@ -115,7 +117,8 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                         : G[v].decodeInNghBreakEarly(v, vertexSubset, f, g,
                                                      fl & dense_parallel);
       }
-    });
+    }, true /* parallel */,
+       (fl & fine_parallel) ? 1 : std::numeric_limits<size_t>::max() /* granularity */);
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_nooutput_gen<data>();
@@ -126,7 +129,8 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                         : G[v].decodeInNghBreakEarly(v, vertexSubset, f, g,
                                                      fl & dense_parallel);
       }
-    });
+    }, true /* parallel */,
+       (fl & fine_parallel) ? 1 : std::numeric_limits<size_t>::max() /* granularity */);
     return vertexSubsetData<data>(n);
   }
 }
@@ -135,6 +139,7 @@ template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
                                                   VS& vertexSubset, F& f,
                                                   const flags fl) {
+  std::cout << "dense forward" << std::endl;
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;

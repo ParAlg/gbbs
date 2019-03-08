@@ -31,11 +31,26 @@ static void par_for(size_t start, size_t end, size_t granularity, F f, bool para
 }
 
 template <typename F>
-static void par_for(size_t start, size_t end, F f, bool parallel=true) {
-  size_t n = end - start;
-  size_t granularity = (n > 100) ? ceil(sqrt(n)) : 100;
-  par_for<F>(start, end, granularity, f, parallel);
+static void par_for(size_t start, size_t end, F f, bool parallel=true, size_t granularity=std::numeric_limits<size_t>::max()) {
+  if (!parallel) {
+    for (size_t i=start; i<end; i++) {
+      f(i);
+    }
+  } else {
+    if (granularity == std::numeric_limits<size_t>::max()) {
+      parallel_for(start, end, f);
+    } else {
+      parallel_for(start, end, f, granularity);
+    }
+  }
 }
+
+//template <typename F>
+//static void par_for(size_t start, size_t end, F f, bool parallel=true) {
+//  size_t n = end - start;
+//  size_t granularity = (n > 100) ? ceil(sqrt(n)) : 100;
+//  par_for<F>(start, end, granularity, f, parallel);
+//}
 
 // Alias template so that sequence is exposed w/o namespacing
 template<typename T>
