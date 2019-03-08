@@ -161,7 +161,7 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
   auto perm = pbbslib::random_permutation<uintE>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, 1, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -171,6 +171,7 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   });
   init_t.stop();
   init_t.reportTotal("init");
+
 
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };

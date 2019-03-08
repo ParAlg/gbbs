@@ -79,7 +79,7 @@ struct coloring_f {
                 << "\n";
       exit(-1);
     }
-    return (pbbslib::fetch_and_add(&p[d], -1) == 1);
+    return (pbbslib::xadd(&p[d], -1) == 1);
   }
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
