@@ -400,7 +400,8 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
                            std::get<1>(l) + std::get<1>(r));
   };
   auto red_monoid = pbbslib::make_monoid(red_f, id);
-  par_for(0, n, [&] (size_t i) {
+  timer reduce_t; reduce_t.start();
+  par_for(0, n, 1, [&] (size_t i) {
     auto res = G.V[i].template reduceOutNgh<T>(i, map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res),
@@ -409,6 +410,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res), 0);
     }
   });
+  reduce_t.stop(); reduce_t.reportTotal("reduce time");
   vtx_offs[n] = std::make_tuple(0, 0, 0);
   auto scan_f = [](const std::tuple<uintT, uintT, uintT>& l,
                    const std::tuple<uintT, uintT, uintT>& r) {
@@ -435,7 +437,6 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
     return pred(src, ngh, wgh) == 0;
   };
 
-  std::cout << "starting pack my man " << "\n";
   // 2. pack and write out
   {
     auto for_inner = [&](size_t i) {
@@ -456,15 +457,14 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
         G.V[i].packOutNgh(i, pred_zero, tmp_v);
       }
     };
-    par_for(0, n, [&] (size_t i) { for_inner(i); });
+    par_for(0, n, 1, [&] (size_t i) { for_inner(i); });
   }
-  std::cout << "packed up " << "\n";
   auto deg_f = [&](size_t i) { return G.V[i].getOutDegree(); };
   auto degree_imap =
       pbbslib::make_sequence<size_t>(n, deg_f);
 
   G.m = pbbslib::reduce_add(degree_imap);
-  std::cout << "G.m = " << G.m << "\n";
+  std::cout << "G.m is now = " << G.m << "\n";
 
   return edge_array<W>(arr.to_array(), n, n, arr.size());
 }

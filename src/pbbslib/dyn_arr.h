@@ -81,7 +81,7 @@ namespace pbbslib {
     }
 
     template <class F>
-    inline void copyIn(F f, size_t n) {
+    inline void copyIn(F& f, size_t n) {
       resize(n);
       par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f[i]; });
       size += n;

@@ -53,6 +53,16 @@ struct Visit_Elms {
 };
 }  // namespace sc
 
+
+// Try implementing version with priority array.
+// Question is how much does log(..) cost, each time when we unpack?
+
+// build default bucket approach
+// update_bucket should not take new bucket values. computes new bucket value
+// internally.
+// reductions are handled by atomic reduction operators; external to bucketing
+// interface.
+
 template <template <class W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });

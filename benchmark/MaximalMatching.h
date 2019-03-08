@@ -75,8 +75,8 @@ namespace mm {
     size_t l = std::min(k1, k2);
     size_t r = std::max(k1, k2);
     size_t key = (l << 32) + r;
-    return pbbslib::hash64_2(key);
-  //  return rnd.ith_rand(key);
+  //  return pbbslib::hash64_2(key);
+    return rnd.ith_rand(key);
   }
 
   template <template <class W> class vertex, class W>
