@@ -64,13 +64,13 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
   };
 
   uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { edge_ids[i] = i; });
+  par_for(0, m, [&] (size_t i) { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
   auto is_root = sequence<bool>(n);
 
+  // Stores edge indices that join the MST.
   uintE* mst = pbbslib::new_array_no_init<uintE>(n);
   size_t n_in_mst = 0;
   size_t round = 0;
@@ -83,14 +83,14 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     init_t.start();
     par_for(0, n, 2000, [&] (size_t i) {
       uintE v = vtxs[i];
-      min_edges[v] = ct();
+      min_edges[v] = ct(); // cas_type
     });
     init_t.stop();  // init_t.reportTotal("init time");
 
     // 1. write_min to select the minimum edge out of each component.
     timer min_t;
     min_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, [&] (size_t i) {
       uintE e_id = edge_ids[i];
       const edge& e = edges[e_id];
       ct cas_e(e_id, std::get<2>(e));
@@ -102,7 +102,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
     mark_t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, [&] (size_t i) {
       uintE v = vtxs[i];
       const auto& e = min_edges[v];
       if (e.index == UINT_E_MAX) {
@@ -142,7 +142,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 4. pointer jump to find component centers.
     timer jump_t;
     jump_t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, [&] (size_t i) {
       uintE v = vtxs[i];
       size_t ctr = 0;
       while (parents[v] != parents[parents[v]]) {
@@ -155,8 +155,8 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 5. compact the vertices (pack out the roots)
     timer compact_t;
     compact_t.start();
-    auto vtxs_im = sequence<uintE>(vtxs, n);
-    size_t n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
+    auto vtxs_im = pbbslib::make_sequence<uintE>(vtxs, n);
+    n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();  // compact_t.reportTotal("compact time");
     std::cout << "      " << n << " vertices remain."
@@ -165,7 +165,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 6. relabel the edges with the new roots.
     timer relab_t;
     relab_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, [&] (size_t i) {
       size_t e_id = edge_ids[i];
       edge& e = edges[e_id];
       uintE u = std::get<0>(e);
@@ -185,21 +185,24 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 7. filter (or ignore) self-edges.
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
     auto self_loop_im = pbbslib::make_sequence<bool>(n, self_loop_f);
-    auto edge_ids_im = sequence<uintE>(edge_ids, m);
+    auto edge_ids_im = pbbslib::make_sequence<uintE>(edge_ids, m);
     if (round == 0) {
       auto A = pbbslib::pack(edge_ids_im, self_loop_im);
       m = A.size();
       next_edge_ids = A.to_array();
     } else {
-      m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m), pbbslib::no_flag);
+      m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m));
     }
     std::cout << "filter, m is now " << m << " n is now " << n << "\n";
     std::swap(edge_ids, next_edge_ids);
     round++;
   }
 
+  // TODO check about freeing next_edge_ids and edge_ids
   std::cout << "Boruvka finished: total edges added to MST = " << n_in_mst
             << "\n";
+  pbbslib::free_array(edge_ids);
+  pbbslib::free_array(next_edge_ids);
   auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
   return mst_im;
 }
