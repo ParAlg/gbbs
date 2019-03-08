@@ -50,6 +50,83 @@ inline size_t RelabelIds(Seq& ids) {
   return new_n;
 }
 
+// Contract when the numbers of clusters is < 2048
+template <template <typename W> class vertex, class W, class EO>
+inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>,
+                  sequence<uintE>>
+contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, EO& oracle) {
+  using K = uint32_t; // combine both endpoints into a single key
+  using V = pbbslib::empty;
+  using KV = std::tuple<K, V>;
+
+  size_t n = GA.n;
+
+  // Worst case is if the cluster-graph is a clique
+  size_t m_upper_bound = 2048*2048;
+
+  auto hash_key = [](const uintE& t) {
+    return pbbslib::hash32_2(t);
+  };
+  std::tuple<uintE, pbbs::empty> empty = std::make_tuple(UINT_E_MAX, pbbs::empty());
+  auto edge_table = make_sparse_table<K, V>(m_upper_bound, empty, hash_key);
+
+  timer ins_t; ins_t.start();
+  auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
+    if (oracle(src, ngh, w)) {
+      uintE c_src = clusters[src];
+      uintE c_ngh = clusters[ngh];
+      if (c_src < c_ngh) {
+        uintE edge_key = (c_ngh << 10) + c_src;
+        edge_table.insert(std::make_tuple(edge_key, pbbslib::empty()));
+      }
+    }
+  };
+  par_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+  auto edges = edge_table.entries();
+  ins_t.stop(); ins_t.reportTotal("insertion time");
+
+  uintE mask = (1 << 10) - 1;
+  // Pack out singleton clusters
+  auto flags = sequence<uintE>(num_clusters + 1, [](size_t i) { return 0; });
+
+  par_for(0, edges.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+                    uintE e = std::get<0>(edges[i]);
+                    uintE u = e & mask;
+                    uintE v = e >> 10;
+                    if (!flags[u]) flags[u] = 1;
+                    if (!flags[v]) flags[v] = 1;
+                  });
+  pbbslib::scan_add_inplace(flags);
+
+  size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
+  auto mapping = sequence<uintE>(num_ns_clusters);
+  par_for(0, num_clusters, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+                    if (flags[i] != flags[i + 1]) {
+                      mapping[flags[i]] = i;
+                    }
+                  });
+
+  auto sym_edges = sequence<std::tuple<uintE, uintE>>(2 * edges.size(), [&](size_t i) {
+    size_t src_edge = i / 2;
+    uintE e = std::get<0>(edges[src_edge]);
+    uintE u = e & mask;
+    uintE v = e >> 10;
+    if (i % 2) {
+      return std::make_tuple(flags[u], flags[v]);
+    } else {
+      return std::make_tuple(flags[v], flags[u]);
+    }
+  });
+
+  auto EA = edge_array<pbbslib::empty>(
+      (std::tuple<uintE, uintE, pbbslib::empty>*)sym_edges.begin(),
+      num_ns_clusters, num_ns_clusters, sym_edges.size());
+
+  auto GC = sym_graph_from_edges<pbbslib::empty>(EA);
+  return std::make_tuple(GC, std::move(flags), std::move(mapping));
+}
+
+
 template <template <typename W> class vertex, class W, class EO>
 inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>,
                   sequence<uintE>>
@@ -61,6 +138,11 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
 
   size_t n = GA.n;
 
+  if (num_clusters < 1024) {
+    return contract_small(GA, clusters, num_clusters, oracle);
+  }
+
+  cout << "num_clusters = " << num_clusters << endl;
   timer count_t;
   count_t.start();
   auto deg_map = sequence<uintE>(n + 1);
@@ -84,7 +166,11 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   KV empty =
       std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());
   auto hash_pair = [](const std::tuple<uintE, uintE>& t) {
-    return pbbslib::hash64(std::get<0>(t)) ^ pbbslib::hash64(std::get<1>(t));
+    size_t l = std::min(std::get<0>(t), std::get<1>(t));
+    size_t r = std::max(std::get<0>(t), std::get<1>(t));
+    size_t key = (l << 32) + r;
+    return pbbslib::hash64_2(key);
+//    return pbbslib::hash64(std::get<0>(t)) ^ pbbslib::hash64(std::get<1>(t));
   };
   auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
   deg_map.clear();
@@ -172,8 +258,8 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
   contract_t.reportTotal("contract time");
   // flags maps from clusters -> no-singleton-clusters
   auto GC = std::get<0>(c_out);
-  auto flags = std::get<1>(c_out);
-  auto mapping = std::get<2>(c_out);
+  auto& flags = std::get<1>(c_out);
+  auto& mapping = std::get<2>(c_out);
 
   if (GC.m == 0) return clusters;
 
