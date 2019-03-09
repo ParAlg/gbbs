@@ -237,6 +237,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
     return get_all_edges(G);
   }
   using edge = std::tuple<uintE, uintE, W>;
+  timer st; st.start();
 
   size_t n = G.n;
   size_t m = G.m;
@@ -289,6 +290,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
   std::cout << "split wgh is: " << split_weight << "\n";
   std::cout << "fraction of sample composed by split_wgh = "
             << split_wgh_fraction << "\n";
+  st.stop(); st.reportTotal("startup time");
 
   // 3. filter edges based on splitter
   if (split_wgh_fraction < 0.2) {

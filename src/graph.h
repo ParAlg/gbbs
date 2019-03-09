@@ -441,6 +441,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
   // 2. pack and write out
   {
     auto for_inner = [&](size_t i) {
+      size_t deg = G.V[i].getOutDegree();
       size_t off = std::get<1>(vtx_offs[i]);
       size_t n_one = std::get<0>(vtx_offs[i + 1]) - std::get<0>(vtx_offs[i]);
       size_t n_two = std::get<1>(vtx_offs[i + 1]) - off;
@@ -454,15 +455,18 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
         if (n_two > 0 && !(fl & no_output)) {
           G.V[i].filterOutNgh(i, pred_two, out_f, tmp_v);
         }
-        // Pack out any non-zero edges
-        G.V[i].packOutNgh(i, pred_zero, tmp_v);
+        // Pack out non-zero edges. This method updates the degree in G.
+        if (n_to_pack < deg) {
+          G.V[i].packOutNgh(i, pred_zero, tmp_v);
+        } else {
+          G.V[i].setOutDegree(0);
+        }
       }
     };
     par_for(0, n, 1, [&] (size_t i) { for_inner(i); });
   }
-  auto deg_f = [&](size_t i) { return G.V[i].getOutDegree(); };
-  auto degree_imap =
-      pbbslib::make_sequence<size_t>(n, deg_f);
+  auto degree_imap = pbbslib::make_sequence<size_t>(n,
+      [&](size_t i) { return G.V[i].getOutDegree(); });
 
   G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "G.m is now = " << G.m << "\n";
