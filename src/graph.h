@@ -28,10 +28,11 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include "compressed_vertex.h"
-#include "vertex.h"
 
 #include "bridge.h"
+#include "compressed_vertex.h"
+#include "flags.h"
+#include "vertex.h"
 
 // **************************************************************
 //    ADJACENCY ARRAY REPRESENTATION
@@ -40,8 +41,8 @@
 template <class vertex>
 struct graph {
   vertex* V;
-  long n;
-  long m;
+  size_t n;
+  size_t m;
   bool transposed;
   uintE* flags;
   std::function<void()> deletion_fn;
@@ -381,7 +382,7 @@ struct edge_array {
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
 template <template <class W> class vertex, class W, class P>
-inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
+inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl = 0) {
   using edge = std::tuple<uintE, uintE, W>;
   using T = std::tuple<uintT, uintT>;
   size_t n = G.n;
@@ -450,7 +451,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred) {
           arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
         };
         // Filter out edges where pred == 2.
-        if (n_two > 0) {
+        if (n_two > 0 && !(fl & no_output)) {
           G.V[i].filterOutNgh(i, pred_two, out_f, tmp_v);
         }
         // Pack out any non-zero edges

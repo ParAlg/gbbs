@@ -41,15 +41,18 @@ constexpr uintE VAL_MASK = INT_E_MAX;
 // the number of filtering steps to run
 constexpr size_t n_filter_steps = 5;
 
-struct cas_type {
-  uintE index;
-  int32_t weight;
-  cas_type() {
-    index = UINT_E_MAX;
-    weight = std::numeric_limits<int32_t>::max();
-  }
-  cas_type(uintE _index, int32_t _w) : index(_index), weight(_w) {}
-};
+//struct alignas(8) cas_type {
+//  uintE index;
+//  int32_t weight;
+//  cas_type() {
+//    index = UINT_E_MAX;
+//    weight = std::numeric_limits<int32_t>::max();
+//  }
+//  cas_type(uintE _index, int32_t _w) : index(_index), weight(_w) {}
+//};
+
+
+using cas_type = std::pair<uintE, int32_t>;
 
 template <class W, class M, class P, class D>
 inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
@@ -60,11 +63,12 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
   size_t m = E.non_zeros;
   auto edges = E.E;
   auto less = [](const ct& a, const ct& b) {
-    return (a.weight < b.weight) || (a.weight == b.weight && a.index < b.index);
+    // returns true if (weight is <) or (weight = and index is <)
+    return (a.second < b.second) || (a.second == b.second && a.first < b.first);
   };
 
   uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
-  par_for(0, m, [&] (size_t i) { edge_ids[i] = i; });
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
@@ -81,16 +85,17 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
 
     timer init_t;
     init_t.start();
-    par_for(0, n, 2000, [&] (size_t i) {
+    par_for(0, n, [&] (size_t i) {
       uintE v = vtxs[i];
-      min_edges[v] = ct(); // cas_type
+      // stores an (index, weight) pair
+      min_edges[v] = std::make_pair(UINT_E_MAX, std::numeric_limits<int32_t>::max());
     });
     init_t.stop();  // init_t.reportTotal("init time");
 
     // 1. write_min to select the minimum edge out of each component.
     timer min_t;
     min_t.start();
-    par_for(0, m, [&] (size_t i) {
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintE e_id = edge_ids[i];
       const edge& e = edges[e_id];
       ct cas_e(e_id, std::get<2>(e));
@@ -102,21 +107,22 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
     mark_t.start();
-    par_for(0, n, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintE v = vtxs[i];
       const auto& e = min_edges[v];
-      if (e.index == UINT_E_MAX) {
+      if (e.first == UINT_E_MAX) {
         // no more edges incident to v in this batch.
         exhausted[v] = true;
         is_root[i] = false;
         new_mst_edges[i] = UINT_E_MAX;
-        assert(parents[v] == v);
+        uintE pv = parents[v];
+        assert(pv == v);
       } else {
-        uintE ind = e.index;
+        uintE ind = e.first;
         const auto& edge = edges[ind];
         uintE u = std::get<0>(edge) ^ std::get<1>(edge) ^ v;
         // pick the higher endpoint as the root.
-        if (u < v && ind == min_edges[u].index) {
+        if (u < v && ind == min_edges[u].first) {
           parents[v] = v;
           is_root[i] = true;
           new_mst_edges[i] = UINT_E_MAX;
@@ -156,6 +162,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     timer compact_t;
     compact_t.start();
     auto vtxs_im = pbbslib::make_sequence<uintE>(vtxs, n);
+
     n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();  // compact_t.reportTotal("compact time");
@@ -165,7 +172,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 6. relabel the edges with the new roots.
     timer relab_t;
     relab_t.start();
-    par_for(0, m, [&] (size_t i) {
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       size_t e_id = edge_ids[i];
       edge& e = edges[e_id];
       uintE u = std::get<0>(e);
@@ -226,7 +233,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G) {
 template <template <class W> class vertex, class W>
 inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
                                bool first_round = false) {
-  if (k == G.m) {
+  if (k == static_cast<size_t>(G.m)) {
     return get_all_edges(G);
   }
   using edge = std::tuple<uintE, uintE, W>;
@@ -285,7 +292,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
 
   // 3. filter edges based on splitter
   if (split_wgh_fraction < 0.2) {
-    auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+    auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
       if (src > ngh) return 1;  // filter out
       if (wgh <= split_weight) {
         return 2;  // return in array
@@ -303,7 +310,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
     // account for filtering directed edges
     threshold *= (first_round ? 2.0 : 1.0);
     auto filter_split_wgh_pred = [&](const uintE& src, const uintE& ngh,
-                                     const W& wgh) {
+                                     const W& wgh) -> int {
       if (src > ngh) return 1;
       if (wgh < split_weight) {
         return 2;  // return in array
@@ -367,13 +374,15 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
 
     // relabel edges
     auto edges = E.E;
-    par_for(0, n_edges, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      edge& e = edges[i];
-      uintE u = std::get<0>(e);
-      uintE v = std::get<1>(e);
-      std::get<0>(e) = parents[u];
-      std::get<1>(e) = parents[v];
-    });
+    if (round > 0) {
+      par_for(0, n_edges, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        edge& e = edges[i];
+        uintE u = std::get<0>(e);
+        uintE v = std::get<1>(e);
+        std::get<0>(e) = parents[u];
+        std::get<1>(e) = parents[v];
+      });
+    }
 
     // run Boruvka on the prefix and add new edges to mst_edges
     timer bt;
@@ -386,9 +395,9 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
                       edge_ids.size());
 
     // reactivate vertices and reset exhausted
-    auto vtx_im = sequence<uintE>(vtxs, n);
     timer pack_t;
     pack_t.start();
+    // TODO: remove dependency on ligra_utils
     n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.begin(),
                                             (uintE)n);
     pack_t.stop();  // pack_t.reportTotal("reactivation pack");
@@ -396,6 +405,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (exhausted[i]) exhausted[i] = false;
     });
+
 
     // pointer jump: vertices that were made inactive could have had their
     // parents change.
@@ -408,7 +418,7 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     });
 
     // pack out all edges in the graph that are shortcut by the added edges
-    auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+    auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
       auto c_src = parents[src];
       auto c_ngh = parents[ngh];
       return c_src == c_ngh;
@@ -472,7 +482,7 @@ inline edge_array<W> get_remaining(graph<vertex<W>>& G, size_t k, UF& uf,
 template <template <class W> class vertex, class W, class UF>
 inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
   auto filter_pred = [&](const uint32_t& src, const uintE& ngh,
-                         const W& wgh) -> bool {
+                         const W& wgh) -> int {
     if (src > ngh) {
       return true;
     }
@@ -481,14 +491,14 @@ inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
     return c_src == c_ngh;
   };
   std::cout << "Calling filter, G.m = " << G.m << "\n";
-  filter_edges(G, filter_pred);
+  filter_edges(G, filter_pred, no_output);
   std::cout << "G.m is now " << G.m << "\n";
 }
 
 template <template <class W> class vertex, class W, class UF>
 inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
                                pbbslib::random r, bool first_round = false) {
-  if (k == G.m) {
+  if (k == static_cast<size_t>(G.m)) {
     return get_remaining(G, k, uf, r);
   }
 
@@ -542,7 +552,6 @@ template <template <class W> class vertex, class W,
           typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
                                   int>::type = 0>
 inline void MST(graph<vertex<W>>& GA) {
-  using w_vertex = vertex<W>;
   using res = reservation<uintE>;
   using edge_t = std::tuple<uintE, uintE, W>;
 
