@@ -344,7 +344,8 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     auto pc = [&](const std::tuple<uintE, W>& nw) {
       return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
     };
-    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
+    size_t k = pbbslib::filter_out(pbbslib::make_sequence(tmp, d), pbbslib::make_sequence(nghs, d), pc);
+//    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
     return k;
   }
 }

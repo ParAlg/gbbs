@@ -529,7 +529,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
         size_t ct = G[v].packOutNgh(v, p, tmp_v);
         outV[i] = std::make_tuple(v, ct);
       };
-      par_for(0, m, [&] (size_t i) { for_inner(i); });
+      par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
     }
     return vertexSubsetData<uintE>(n, m, outV);
   } else {
@@ -539,7 +539,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
         std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
         G[v].packOutNgh(v, p, tmp_v);
       };
-      par_for(0, m, [&] (size_t i) { for_inner(i); });
+      par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
     }
     return vertexSubsetData<uintE>(n);
   }
@@ -566,13 +566,13 @@ inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA,
     outV = pbbslib::new_array_no_init<S>(vs.size());
   }
   if (should_output(fl)) {
-    par_for(0, m, [&] (size_t i) {
+    par_for(0, m, 1, [&] (size_t i) {
       uintE v = vs.vtx(i);
       size_t ct = G[v].countOutNgh(v, p);
       outV[i] = std::make_tuple(v, ct);
     });
   } else {
-    par_for(0, m, [&] (size_t i) {
+    par_for(0, m, 1, [&] (size_t i) {
       uintE v = vs.vtx(i);
       G[v].countOutNgh(v, p);
     });
