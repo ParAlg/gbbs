@@ -98,7 +98,9 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
 
-  size_t n_blocks = num_workers() * 8 + 1;
+  size_t block_size = 50000;
+  size_t n_blocks = total_work/block_size + 1;
+//  size_t n_blocks = num_workers() * 8 + 1;
   size_t work_per_block = total_work / n_blocks;
   std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
             << " work per block = " << work_per_block << "\n";
@@ -109,7 +111,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
       auto vtx = V[i];
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
-        total_ct += vtx.intersect_f(&V[v], u, v, f);
+        total_ct += vtx.intersect_f_par(&V[v], u, v, f);
       };
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
       counts[i] = total_ct;
@@ -125,7 +127,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
     run_intersection(start_ind, end_ind);
   });
 
-  auto count_seq = sequence<size_t>(counts, DG.n);
+  auto count_seq = pbbslib::make_sequence<size_t>(counts, DG.n);
   size_t count = pbbslib::reduce_add(count_seq);
 
   return count;

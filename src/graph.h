@@ -70,9 +70,9 @@ struct graph {
   }
 
   template <class F>
-  void map_edges(F f) {
-    par_for(0, n, [&] (size_t i) {
-      V[i].mapOutNgh(i, f);
+  void map_edges(F f, bool parallel_inner_map=true) {
+    par_for(0, n, 1, [&] (size_t i) {
+      V[i].mapOutNgh(i, f, parallel_inner_map);
     });
   }
 
@@ -264,7 +264,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   // 1. Calculate total size
   auto degrees = sequence<uintE>(n);
   auto byte_offsets = sequence<uintT>(n + 1);
-  par_for(0, n, [&] (size_t i) {
+  par_for(0, n, 1, [&] (size_t i) {
     size_t total_bytes = 0;
     uintE last_ngh = 0;
     size_t deg = 0;
@@ -296,30 +296,26 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
   auto edges = sequence<uchar>(last_offset);
 
-  {
-    auto for_inner = [&](size_t i) {
-      uintE new_deg = degrees[i];
-      if (new_deg > 0) {
-        auto app_pred = [&](std::tuple<uintE, W> val) {
-          return pred(i, std::get<0>(val), std::get<1>(val));
-        };
+  par_for(0, n, 1, [&] (size_t i) {
+    uintE new_deg = degrees[i];
+    if (new_deg > 0) {
+      auto app_pred = [&](std::tuple<uintE, W> val) {
+        return pred(i, std::get<0>(val), std::get<1>(val));
+      };
 
-        auto iter = V[i].getOutIter(i);
-        auto f_it =
-            ligra_utils::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
-        size_t nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
-            edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
-        if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
-          std::cout << "degree is: " << new_deg << " nbytes should be: "
-                    << (byte_offsets[i + 1] - byte_offsets[i])
-                    << " but is: " << nbytes << "\n";
-          assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
-        }
+      auto iter = V[i].getOutIter(i);
+      auto f_it =
+          ligra_utils::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
+      size_t nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
+          edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
+      if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
+        std::cout << "degree is: " << new_deg << " nbytes should be: "
+                  << (byte_offsets[i + 1] - byte_offsets[i])
+                  << " but is: " << nbytes << "\n";
+        assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
       }
-    };
-
-    par_for(0, n, [&] (size_t i) { for_inner(i); });
-  }
+    }
+  });
 
   auto AV = pbbslib::new_array_no_init<cav_byte<W>>(n);
   par_for(0, n, [&] (size_t i) {
@@ -345,6 +341,7 @@ template <
     typename std::enable_if<std::is_same<vertex<W>, asymmetricVertex<W>>::value,
                             int>::type = 0>
 inline auto filter_graph(graph<vertex<W>>& G, P& pred) -> decltype(G) {
+  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
   return G;
 }
@@ -354,6 +351,7 @@ template <
     typename std::enable_if<
         std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
 inline auto filter_graph(graph<vertex<W>>& G, P& pred) -> decltype(G) {
+  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
   return G;
 }
