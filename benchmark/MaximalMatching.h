@@ -82,22 +82,25 @@ namespace mm {
   template <template <class W> class vertex, class W>
   inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
                                      pbbslib::random rnd) {
-    using edge = std::tuple<uintE, uintE, W>;
+//    using edge = std::tuple<uintE, uintE, W>;
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
     auto E = filter_all_edges(G, pred);
 
-    auto e_arr = E.E;
+//    auto e_arr = E.E;
     timer perm_t;
     perm_t.start();
-    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-    auto out = sequence<edge>(E.non_zeros);
-    par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-                      out[i] = e_arr[perm[i]];  // gather or scatter?
-                    });
-    E.del();
-    E.E = out.to_array();
+    auto E_range = pbbslib::make_sequence(E.E, E.non_zeros);
+    pbbslib::random_shuffle(E_range, rnd);
+
+//    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
+//    auto out = sequence<edge>(E.non_zeros);
+//    par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+//                      out[i] = e_arr[perm[i]];  // gather or scatter?
+//                    });
+//    E.del();
+//    E.E = out.to_array();
     perm_t.stop();
     perm_t.reportTotal("permutation time");
     return E;

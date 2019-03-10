@@ -13,7 +13,7 @@ OPT = -O3
 #OPT = -O0 -g
 
 CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = -DUSEMALLOC $(INCLUDE_DIRS) $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
+CFLAGS = $(INCLUDE_DIRS) $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
