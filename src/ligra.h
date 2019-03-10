@@ -647,14 +647,12 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
     uintE v = V.vtx(i);
     bits[i] = filter(v);
   });
-  auto v_imap_f = [&](size_t i) { return V.vtx(i); };
-  auto v_imap = pbbslib::make_sequence<uintE>(m, v_imap_f);
-  auto bits_f = [&](size_t i) { return bits[i]; };
-  auto bits_m = pbbslib::make_sequence<bool>(m, bits_f);
+  auto v_imap = pbbslib::make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
+  auto bits_m = pbbslib::make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbslib::pack(v_imap, bits_m);
-  out.allocated = false;
   pbbslib::free_array(bits);
-  return vertexSubset(n, out.size(), out.s);
+  size_t out_size = out.size();
+  return vertexSubset(n, out_size, out.to_array());
 }
 
 template <class data, class F>
@@ -669,14 +667,12 @@ inline vertexSubset vertexFilter2(vertexSubsetData<data> V, F filter) {
     auto t = V.vtxAndData(i);
     bits[i] = filter(std::get<0>(t), std::get<1>(t));
   });
-  auto v_imap_f = [&](size_t i) { return V.vtx(i); };
-  auto v_imap = pbbslib::make_sequence<uintE>(m, v_imap_f);
-  auto bits_f = [&](size_t i) { return bits[i]; };
-  auto bits_m = pbbslib::make_sequence<bool>(m, bits_f);
+  auto v_imap = pbbslib::make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
+  auto bits_m = pbbslib::make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbslib::pack(v_imap, bits_m);
-  auto s = out.to_array(); // clears allocated
+  size_t out_size = out.size();
   pbbslib::free_array(bits);
-  return vertexSubset(n, out.size(), s);
+  return vertexSubset(n, out_size, out.to_array());
 }
 
 // Adds vertices to a vertexSubset vs.

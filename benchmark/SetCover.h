@@ -65,6 +65,7 @@ struct Visit_Elms {
 
 template <template <class W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
+  timer it; it.start();
   auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
   auto D =
       sequence<uintE>(G.n, [&](size_t i) { return G.V[i].getOutDegree(); });
@@ -82,6 +83,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
   size_t rounds = 0;
   pbbslib::dyn_arr<uintE> cover = pbbslib::dyn_arr<uintE>();
   auto r = pbbslib::random();
+  it.stop(); it.reportTotal("initialization time");
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
@@ -91,6 +93,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
       break;
     }
     nbt.stop();
+//    cout << "bkt id = " << bkt.id << " active = " << active.size() << endl;
 
     packt.start();
     // 1. sets -> elements (Pack out sets and update their degree)
@@ -109,6 +112,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     };
     auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
     packed_vtxs.del();
+//    cout << "still_active = " << still_active.size() << " threshold = " << threshold << endl;
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
