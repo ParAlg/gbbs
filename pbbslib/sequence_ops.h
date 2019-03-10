@@ -47,6 +47,10 @@ namespace pbbs {
     parallel_for(0, l, body, 1, 0 != (fl & fl_conservative));
   }
 
+  template <class OT, SEQ Seq, class UnaryFunc>
+  auto map(Seq const &A, UnaryFunc f, flags fl = no_flag) -> sequence<OT> {
+    return sequence<OT>(A.size(), [&] (size_t i) {return f(A[i]);});}
+
   template <SEQ Seq, class Monoid>
   auto reduce_serial(Seq const &A, Monoid m) -> typename Seq::value_type {
     using T = typename Seq::value_type;

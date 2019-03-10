@@ -32,18 +32,14 @@
 #include <string>
 
 #include "bridge.h"
-#include "IO.h"
 #include "compressed_vertex.h"
 #include "edge_map_utils.h"
-#include "graph.h"
 #include "flags.h"
+#include "graph.h"
+#include "IO.h"
 #include "parse_command_line.h"
 #include "vertex.h"
 #include "vertex_subset.h"
-
-#include "oldlib/utils.h"
-
-
 
 template <class W, class F>
 struct Wrap_F {
@@ -96,9 +92,11 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
+  size_t granularity = (fl & fine_parallel) ? 1 : std::numeric_limits<size_t>::max();
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_gen<data>(next);
+    timer t; t.start();
     par_for(0, n, [&] (size_t v) {
       std::get<0>(next[v]) = 0;
       if (f.cond(v)) {
@@ -107,8 +105,8 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                         : G[v].decodeInNghBreakEarly(v, vertexSubset, f, g,
                                                      fl & dense_parallel);
       }
-    }, true /* parallel */,
-       (fl & fine_parallel) ? 1 : std::numeric_limits<size_t>::max() /* granularity */);
+    }, true /* parallel */, granularity /* granularity */);
+    t.stop(); t.reportTotal("dense loop");
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_nooutput_gen<data>();
@@ -119,8 +117,7 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                         : G[v].decodeInNghBreakEarly(v, vertexSubset, f, g,
                                                      fl & dense_parallel);
       }
-    }, true /* parallel */,
-       (fl & fine_parallel) ? 1 : std::numeric_limits<size_t>::max() /* granularity */);
+    }, true /* parallel */, granularity /* granularity */);
     return vertexSubsetData<data>(n);
   }
 }
@@ -185,17 +182,6 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
     offsets.clear();
 
     S* nextIndices = pbbslib::new_array_no_init<S>(outEdgeCount);
-    if (fl & remove_duplicates) {
-      if (GA.flags == NULL) {
-        GA.flags = pbbslib::new_array_no_init<uintE>(n);
-        par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                        { GA.flags[i] = UINT_E_MAX; });
-      }
-      auto get_key = [&](size_t i) -> uintE& {
-        return std::get<0>(outEdges[i]);
-      };
-      ligra_utils::remDuplicates(get_key, GA.flags, outEdgeCount, n);
-    }
     auto p = [](std::tuple<uintE, data>& v) {
       return std::get<0>(v) != UINT_E_MAX;
     };
@@ -347,22 +333,6 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   blocks.clear();
   degrees.clear();
 
-  if (fl & remove_duplicates) {
-    if (GA.flags == NULL) {
-      GA.flags = pbbslib::new_array_no_init<uintE>(n);
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { GA.flags[i] = UINT_E_MAX; });
-    }
-    auto get_key = [&](size_t i) -> uintE& { return std::get<0>(out[i]); };
-    ligra_utils::remDuplicates(get_key, GA.flags, out_size, n);
-    S* nextIndices = pbbslib::new_array_no_init<S>(out_size);
-    auto p = [](std::tuple<uintE, data>& v) {
-      return std::get<0>(v) != UINT_E_MAX;
-    };
-    size_t nextM = pbbslib::filterf(out, nextIndices, out_size, p);
-    pbbslib::free_array(out);
-    return vertexSubsetData<data>(n, nextM, nextIndices);
-  }
   return vertexSubsetData<data>(n, out_size, out);
 }
 #else
@@ -449,22 +419,6 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   cts.clear();
   degrees.clear();
 
-  if (fl & remove_duplicates) {
-    if (GA.flags == NULL) {
-      GA.flags = pbbslib::new_array_no_init<uintE>(n);
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { GA.flags[i] = UINT_E_MAX; });
-    }
-    auto get_key = [&](size_t i) -> uintE& { return std::get<0>(out[i]); };
-    ligra_utils::remDuplicates(get_key, GA.flags, out_size, n);
-    S* nextIndices = pbbslib::new_array_no_init<S>(out_size);
-    auto p = [](std::tuple<uintE, data>& v) {
-      return std::get<0>(v) != UINT_E_MAX;
-    };
-    size_t nextM = pbbslib::filterf(out, nextIndices, out_size, p);
-    pbbslib::free_array(out);
-    return vertexSubsetData<data>(n, nextM, nextIndices);
-  }
   return vertexSubsetData<data>(n, out_size, out);
 }
 #endif

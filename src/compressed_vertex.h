@@ -300,13 +300,13 @@ struct compressedSymmetricVertex {
   }
 
   template <class F>
-  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 0) {  // TODO
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
     cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), f,
                               parallel);
   }
 
   template <class F>
-  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 0) {  // TODO
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
     cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
   }
@@ -539,14 +539,14 @@ struct compressedAsymmetricVertex {
   }
 
   template <class F>
-  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 0) {
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 1) {
     cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), f,
                               parallel);
   }
 
   template <class F>
   // TODO: parallel false?
-  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 0) {
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {
     cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
   }
@@ -656,11 +656,11 @@ struct cav_bytepd_amortized
   using inner::inner;
 };
 
-template <class W>
-struct csv_byte : compressedSymmetricVertex<W, byte_decode<W>> {
-  using inner = compressedSymmetricVertex<W, byte_decode<W>>;
-  using inner::inner;
-};
+//template <class W>
+//struct csv_byte : compressedSymmetricVertex<W, byte_decode<W>> {
+//  using inner = compressedSymmetricVertex<W, byte_decode<W>>;
+//  using inner::inner;
+//};
 
 template <class W>
 struct cav_byte : compressedAsymmetricVertex<W, byte_decode<W>> {

@@ -1,4 +1,4 @@
-#include <jemalloc/jemalloc.h>
+//#include <jemalloc/jemalloc.h>
 #include "utilities.h"
 #include "alloc.h"
 #include "get_time.h"
@@ -164,6 +164,8 @@ double pick_test(size_t id, size_t n, size_t rounds,
     return run_multiple(n,rounds,1,"histogram reducer", t_histogram_reducer, half_length, "Gelts/sec");
   case 51:
     return run_multiple(n,rounds,ebytes(24,8),"scan add long seq", t_scan_add_seq<long>, half_length);
+  case 52:
+    return run_multiple(n,rounds,1, "range_min long", t_range_min<long>, half_length, "Gelts/sec");
   default:
     assert(false);
     return 0.0 ;

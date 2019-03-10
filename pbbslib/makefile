@@ -1,6 +1,6 @@
 
 CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = -mcx16 -O3 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
+CFLAGS = -mcx16 -O3 -ldl -std=c++17 -march=native -Wall 
 JEMALLOC = -I`jemalloc-config --includedir` -L`jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
 
 OMPFLAGS = -DOPENMP -fopenmp

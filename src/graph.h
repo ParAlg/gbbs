@@ -251,8 +251,8 @@ struct print_t {
 // byte version
 template <template <class W> class vertex, class W, typename P,
           typename std::enable_if<
-              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value ||
-                  std::is_same<vertex<W>, csv_byte<W>>::value,
+              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value, // ||
+//                  std::is_same<vertex<W>, csv_byte<W>>::value,
               int>::type = 0>
 inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   using w_vertex = vertex<W>;

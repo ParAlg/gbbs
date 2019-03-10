@@ -132,9 +132,9 @@ struct vertexSubsetData {
   void toDense() {
     if (d == NULL) {
       d = pbbslib::new_array_no_init<D>(n);
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, [&] (size_t i)
                       { std::get<0>(d[i]) = false; });
-      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, m, [&] (size_t i) {
         d[std::get<0>(s[i])] = std::make_tuple(true, std::get<1>(s[i]));
       });
     }
@@ -282,9 +282,9 @@ struct vertexSubsetData<pbbslib::empty> {
   void toDense() {
     if (d == NULL) {
       d = pbbslib::new_array_no_init<bool>(n);
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, [&] (size_t i)
                       { d[i] = 0; });
-      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, m, [&] (size_t i)
                       { d[s[i]] = 1; });
     }
     isDense = true;

@@ -69,15 +69,17 @@ struct maybe {
 #if defined(__APPLE__)
 void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
 #else
-// #include <malloc.h>
-// struct __mallopt {
-//   __mallopt() {
-//     mallopt(M_MMAP_MAX,0);
-//     mallopt(M_TRIM_THRESHOLD,-1);
-//   }
-// };
+#ifdef USEMALLOC
+#include <malloc.h>
+struct __mallopt {
+  __mallopt() {
+    mallopt(M_MMAP_MAX,0);
+    mallopt(M_TRIM_THRESHOLD,-1);
+  }
+};
 
-// //__mallopt __mallopt_var;
+__mallopt __mallopt_var;
+#endif
 #endif
 
 namespace pbbs {
@@ -232,7 +234,7 @@ namespace pbbs {
   inline E fetch_and_add(E *a, EV b) {
     volatile E newV, oldV;
     do {oldV = *a; newV = oldV + b;}
-    while (!atomic_compare_and_swap(a, oldV, newV));
+    while (!CAS_GCC(a, oldV, newV));
     return oldV;
   }
 
@@ -256,7 +258,7 @@ namespace pbbs {
   inline bool write_min(ET *a, ET b, F less) {
     ET c; bool r=0;
     do c = *a;
-    while (less(b,c) && !(r=atomic_compare_and_swap(a,c,b)));
+    while (less(b,c) && !(r=CAS_GCC(a,c,b)));
     return r;
   }
 

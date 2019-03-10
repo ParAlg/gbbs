@@ -274,6 +274,7 @@ namespace pbbslib {
     return pbbs::delayed_sequence<T,F>(n,f);
   }
 
+  // TODO: call this make_range. make_sequence is bogus.
   template <class T>
   inline pbbs::range<T*> make_sequence (T* A, size_t n) {
     return pbbs::range<T*>(A, A+n);

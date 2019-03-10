@@ -200,7 +200,7 @@ namespace pbbs {
     void copy_here(Seq const &a, size_t an) {
       n = an;
       s = pbbs::new_array_no_init<T>(n, true);
-      cout << "s = " << s << " n = " << n << endl;
+      //cout << "s = " << s << " n = " << n << endl;
       //if (n > 0) { cout << "Yikes, copy: " << s << endl;}
       parallel_for(0, n, [&] (size_t i) {
 	      pbbs::assign_uninitialized(s[i], a[i]);});

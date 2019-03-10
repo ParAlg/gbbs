@@ -51,13 +51,13 @@ inline size_t RelabelIds(Seq& ids) {
 }
 
 // Contract when the numbers of clusters is < 2048
-template <template <typename W> class vertex, class W, class EO>
+template <template <typename W> class vertex, class W>
 inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>,
                   sequence<uintE>>
-contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, EO& oracle) {
+contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
+  cout << "Running contract small" << endl;
   using K = uint32_t; // combine both endpoints into a single key
   using V = pbbslib::empty;
-  using KV = std::tuple<K, V>;
 
   size_t n = GA.n;
 
@@ -72,16 +72,14 @@ contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clust
 
   timer ins_t; ins_t.start();
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
-    if (oracle(src, ngh, w)) {
       uintE c_src = clusters[src];
       uintE c_ngh = clusters[ngh];
       if (c_src < c_ngh) {
         uintE edge_key = (c_ngh << 10) + c_src;
         edge_table.insert(std::make_tuple(edge_key, pbbslib::empty()));
       }
-    }
   };
-  par_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+  par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
   auto edges = edge_table.entries();
   ins_t.stop(); ins_t.reportTotal("insertion time");
 
@@ -126,11 +124,10 @@ contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clust
   return std::make_tuple(GC, std::move(flags), std::move(mapping));
 }
 
-
-template <template <typename W> class vertex, class W, class EO>
+template <template <typename W> class vertex, class W>
 inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>,
                   sequence<uintE>>
-contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, EO& oracle) {
+contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
   // Remove duplicates by hashing
   using K = std::tuple<uintE, uintE>;
   using V = pbbslib::empty;
@@ -139,7 +136,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   size_t n = GA.n;
 
   if (num_clusters < 1024) {
-    return contract_small(GA, clusters, num_clusters, oracle);
+    return contract_small(GA, clusters, num_clusters);
   }
 
   cout << "num_clusters = " << num_clusters << endl;
@@ -147,14 +144,11 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
   count_t.start();
   auto deg_map = sequence<uintE>(n + 1);
   auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
-    if (oracle(src, ngh, w)) {
-      uintE c_src = clusters[src];
-      uintE c_ngh = clusters[ngh];
-      return c_src < c_ngh;
-    }
-    return false;
+    uintE c_src = clusters[src];
+    uintE c_ngh = clusters[ngh];
+    return c_src < c_ngh;
   };
-  par_for(0, n, [&] (size_t i)
+  par_for(0, n, 1, [&] (size_t i)
                   { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
   deg_map[n] = 0;
   pbbslib::scan_add_inplace(deg_map);
@@ -173,19 +167,18 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E
 //    return pbbslib::hash64(std::get<0>(t)) ^ pbbslib::hash64(std::get<1>(t));
   };
   auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+  cout << "sizeof table = " << edge_table.m << endl;
   deg_map.clear();
 
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
-    if (oracle(src, ngh, w)) {
-      uintE c_src = clusters[src];
-      uintE c_ngh = clusters[ngh];
-      if (c_src < c_ngh) {
-        edge_table.insert(
-            std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()));
-      }
+    uintE c_src = clusters[src];
+    uintE c_ngh = clusters[ngh];
+    if (c_src < c_ngh) {
+      edge_table.insert(
+          std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()));
     }
   };
-  par_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+  par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
   auto edges = edge_table.entries();
   edge_table.del();
   ins_t.stop();
@@ -250,10 +243,8 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
 
   timer contract_t;
   contract_t.start();
-  auto oracle = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return true;  // noop oracle
-  };
-  auto c_out = contract(GA, clusters, num_clusters, oracle);
+
+  auto c_out = contract(GA, clusters, num_clusters);
   contract_t.stop();
   contract_t.reportTotal("contract time");
   // flags maps from clusters -> no-singleton-clusters
@@ -311,59 +302,6 @@ template <class vertex>
 inline sequence<uintE> CC(graph<vertex>& GA, double beta = 0.2,
                             bool pack = false) {
   return CC_impl(GA, beta, 0, pack, true);
-}
-
-template <class vertex, class EO>
-inline sequence<uintE> CC_oracle_impl(graph<vertex>& GA, EO& oracle,
-                                        double beta, size_t level,
-                                        bool pack = false,
-                                        bool permute = false) {
-  size_t n = GA.n;
-  if (level > 0) {
-    permute = true;
-  }
-  auto clusters = LDD_impl(GA, oracle, beta, permute, pack);
-
-  timer relabel_t;
-  relabel_t.start();
-  size_t num_clusters = RelabelIds(clusters);
-  relabel_t.stop();
-  relabel_t.reportTotal("relabel time");
-
-  timer contract_t;
-  contract_t.start();
-  auto c_out = contract(GA, clusters, num_clusters, oracle);
-  contract_t.stop();
-  contract_t.reportTotal("contract time");
-  // flags maps from clusters -> no-singleton-clusters
-  auto GC = std::get<0>(c_out);
-  auto flags = std::get<1>(c_out);
-  auto mapping = std::get<2>(c_out);
-
-  if (GC.m == 0) return clusters;
-
-  auto new_labels = cc::CC_impl(GC, beta, level + 1);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uintE cluster = clusters[i];
-    uintE gc_cluster = flags[cluster];
-    if (gc_cluster != flags[cluster + 1]) {  // was not a singleton
-      // new_labels[gc_cluster] is the gc vertex that captured the whole
-      // component. mapping maps this back to the original label range.
-      clusters[i] = mapping[new_labels[gc_cluster]];
-    }
-  });
-  GC.del();
-  new_labels.clear();
-  flags.clear();
-  mapping.clear();
-  return clusters;
-}
-
-// Connectivity with an edge oracle
-template <class vertex, class EO>
-inline sequence<uintE> CC_oracle(graph<vertex>& GA, EO& oracle,
-                                   double beta = 0.2, bool pack = false) {
-  return CC_oracle_impl(GA, oracle, beta, 0, pack, true);
 }
 
 }  // namespace cc
