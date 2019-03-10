@@ -619,8 +619,8 @@ struct symmetricVertex {
 template <class W>
 struct asymmetricVertex {
   std::tuple<uintE, W>*inNeighbors, *outNeighbors;
-  uintE outDegree;
   uintE inDegree;
+  uintE outDegree;
   void clear() {
     pbbslib::free_array(inNeighbors);
     pbbslib::free_array(outNeighbors);

@@ -159,7 +159,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   auto out_edge_sizes = sequence<uintT>(n + 1);
   auto in_edge_sizes = sequence<uintT>(n + 1);
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, 1, [&] (size_t i) {
     w_vertex u = V[i];
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
@@ -182,8 +182,8 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
   out_edge_sizes[n] = 0;
   in_edge_sizes[n] = 0;
-  long outEdgeCount = pbbslib::scan_add_inplace(out_edge_sizes);
-  long inEdgeCount = pbbslib::scan_add_inplace(in_edge_sizes);
+  uintT outEdgeCount = pbbslib::scan_add_inplace(out_edge_sizes);
+  uintT inEdgeCount = pbbslib::scan_add_inplace(in_edge_sizes);
 
   assert(G.m / 2 == outEdgeCount);
   assert(G.m / 2 == inEdgeCount);
@@ -193,7 +193,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   auto out_edges = sequence<edge>(outEdgeCount);
   auto in_edges = sequence<edge>(inEdgeCount);
 
-  par_for(0, n, [&] (size_t i) {
+  par_for(0, n, 1, [&] (size_t i) {
     w_vertex u = V[i];
     size_t out_offset = out_edge_sizes[i];
     uintE d = u.getOutDegree();
@@ -209,7 +209,7 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     }
   });
 
-  par_for(0, n, [&] (size_t i) {
+  par_for(0, n, 1, [&] (size_t i) {
     w_vertex u = V[i];
     size_t in_offset = in_edge_sizes[i];
     uintE d = u.getInDegree();
@@ -271,7 +271,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     uchar tmp[16];
     auto f = [&](uintE u, uintE v, W w) {
       if (pred(u, v, w)) {
-        long bytes = 0;
+        size_t bytes = 0;
         if (deg == 0) {
           bytes = encodings::byte::compressFirstEdge(tmp, bytes, u, v);
           bytes = encodings::byte::compressWeight<W>(tmp, bytes, w);
@@ -307,7 +307,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
         auto iter = V[i].getOutIter(i);
         auto f_it =
             ligra_utils::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
-        long nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
+        size_t nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
             edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
         if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
           std::cout << "degree is: " << new_deg << " nbytes should be: "

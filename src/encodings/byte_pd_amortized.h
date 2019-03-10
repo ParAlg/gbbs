@@ -208,8 +208,8 @@ struct iter {
 
   iter(uchar* _base, uintT _degree, uintE _src)
       : base(_base),
-        degree(_degree),
         src(_src),
+        degree(_degree),
         cur_chunk(0),
         cur_chunk_degree(0) {
     if (degree == 0) return;
@@ -294,7 +294,7 @@ struct simple_iter {
   uintE proc;
 
   simple_iter(uchar* _base, uintT _degree, uintE _src)
-      : base(_base), degree(_degree), src(_src), cur_chunk(0) {
+      : base(_base), src(_src), degree(_degree), cur_chunk(0) {
     if (degree == 0) return;
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     finger = base + (num_blocks - 1) * sizeof(uintE) + 2 * sizeof(uintE);

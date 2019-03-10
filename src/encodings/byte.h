@@ -338,7 +338,7 @@ struct iter {
   uintE proc;
 
   iter(uchar* _finger, uintT _degree, uintE _src)
-      : finger(_finger), degree(_degree), src(_src), proc(0) {
+      : finger(_finger), src(_src), degree(_degree), proc(0) {
     if (degree > 0) {
       std::get<0>(last_edge) = eatFirstEdge(finger, src);
       std::get<1>(last_edge) = eatWeight<W>(finger);
