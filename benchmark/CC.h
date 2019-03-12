@@ -55,7 +55,7 @@ template <template <typename W> class vertex, class W>
 inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>,
                   sequence<uintE>>
 contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
-  cout << "Running contract small" << endl;
+  debug(cout << "Running contract small" << endl;);
   using K = uint32_t; // combine both endpoints into a single key
   using V = pbbslib::empty;
 
@@ -81,7 +81,7 @@ contract_small(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clust
   };
   par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
   auto edges = edge_table.entries();
-  ins_t.stop(); ins_t.reportTotal("insertion time");
+  ins_t.stop(); debug(ins_t.reportTotal("insertion time"););
 
   uintE mask = (1 << 10) - 1;
   // Pack out singleton clusters
@@ -153,7 +153,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
   deg_map[n] = 0;
   pbbslib::scan_add_inplace(deg_map);
   count_t.stop();
-  count_t.reportTotal("count time");
+  debug(count_t.reportTotal("count time"););
 
   timer ins_t;
   ins_t.start();
@@ -182,7 +182,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
   auto edges = edge_table.entries();
   edge_table.del();
   ins_t.stop();
-  ins_t.reportTotal("ins time");
+  debug(ins_t.reportTotal("ins time"););
 
   // Pack out singleton clusters
   auto flags = sequence<uintE>(num_clusters + 1, [](size_t i) { return 0; });
@@ -233,20 +233,20 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
   ldd_t.start();
   auto clusters = LDD(GA, beta, permute, pack);
   ldd_t.stop();
-  ldd_t.reportTotal("ldd time");
+  debug(ldd_t.reportTotal("ldd time"););
 
   timer relabel_t;
   relabel_t.start();
   size_t num_clusters = RelabelIds(clusters);
   relabel_t.stop();
-  relabel_t.reportTotal("relabel time");
+  debug(relabel_t.reportTotal("relabel time"););
 
   timer contract_t;
   contract_t.start();
 
   auto c_out = contract(GA, clusters, num_clusters);
   contract_t.stop();
-  contract_t.reportTotal("contract time");
+  debug(contract_t.reportTotal("contract time"););
   // flags maps from clusters -> no-singleton-clusters
   auto GC = std::get<0>(c_out);
   auto& flags = std::get<1>(c_out);
