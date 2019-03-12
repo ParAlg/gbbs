@@ -234,7 +234,7 @@ namespace pbbs {
   inline E fetch_and_add(E *a, EV b) {
     volatile E newV, oldV;
     do {oldV = *a; newV = oldV + b;}
-    while (!CAS_GCC(a, oldV, newV));
+    while (!atomic_compare_and_swap(a, oldV, newV));
     return oldV;
   }
 
@@ -258,7 +258,7 @@ namespace pbbs {
   inline bool write_min(ET *a, ET b, F less) {
     ET c; bool r=0;
     do c = *a;
-    while (less(b,c) && !(r=CAS_GCC(a,c,b)));
+    while (less(b,c) && !(r=atomic_compare_and_swap(a,c,b)));
     return r;
   }
 
@@ -274,7 +274,7 @@ namespace pbbs {
   inline bool write_max(ET *a, ET b, F less) {
     ET c; bool r=0;
     do c = *a;
-    while (less(c,b) && !(r=CAS_GCC(a,c,b)));
+    while (less(c,b) && !(r=atomic_compare_and_swap(a,c,b)));
     return r;
   }
 
