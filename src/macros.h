@@ -28,6 +28,13 @@
 
 #define LONG 1
 
+#ifdef DEBUGMSGS
+#define debug(_body) \
+  _body;
+#else
+#define debug(_body)
+#endif
+
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
