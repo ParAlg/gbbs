@@ -88,7 +88,7 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
-  std::cout << "dense" << std::endl;
+  debug(std::cout << "dense" << std::endl;);
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
@@ -106,7 +106,7 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                                      fl & dense_parallel);
       }
     }, true /* parallel */, granularity /* granularity */);
-    t.stop(); t.reportTotal("dense loop");
+    t.stop(); debug(t.reportTotal("dense loop"););
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_nooutput_gen<data>();
@@ -126,7 +126,7 @@ template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
                                                   VS& vertexSubset, F& f,
                                                   const flags fl) {
-  std::cout << "dense forward" << std::endl;
+  debug(std::cout << "dense forward" << std::endl;);
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
@@ -458,6 +458,8 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
                ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
                : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
   } else {
+//    auto vs_out = edgeMapSparse<data, vertex, VS, F>(GA, frontier_vertices, vs,
+//                                                      vs.numNonzeros(), f, fl);
     auto vs_out = edgeMapBlocked<data, vertex, VS, F>(GA, frontier_vertices, vs,
                                                       vs.numNonzeros(), f, fl);
     pbbslib::free_array(frontier_vertices);
