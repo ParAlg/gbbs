@@ -1,3 +1,10 @@
+ifeq (, $(shell which jemalloc-config))
+JEMALLOC =
+else
+JEMALLOCLD = $(shell jemalloc-config --libdir)
+JEMALLOC = -L$(JEMALLOCLD) -ljemalloc
+endif
+
 ifdef LONG
 INTT = -DLONG
 endif
@@ -10,10 +17,9 @@ endif
 INCLUDE_DIRS = -I../
 
 OPT = -O3
-#OPT = -O0 -g
 
 CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = -DUSEMALLOC $(INCLUDE_DIRS) $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(CONCEPTS)
+CFLAGS = $(INCLUDE_DIRS) $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(CONCEPTS) $(JEMALLOC)
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
