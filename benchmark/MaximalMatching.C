@@ -43,7 +43,6 @@
 template <class vertex>
 void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
   assert(P.getOption("-s"));  // input graph must be symmetric
-
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
     ligra_utils::_seq<char> S = readStringFromFile(in_f);

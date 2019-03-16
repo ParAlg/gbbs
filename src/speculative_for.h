@@ -79,12 +79,12 @@
       intT size = std::min(currentRoundSize, (intT)(e - numberDone));
       totalProcessed += size;
 
-      par_for(0, size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, size, [&] (size_t i) {
         if (i >= numberKeep) I[i] = numberDone + i;
         keep[i] = step.reserve(I[i]);
       });
 
-      par_for(0, size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, size, [&] (size_t i) {
         if (keep[i]) keep[i] = !step.commit(I[i]);
       });
 
@@ -132,12 +132,12 @@
       intT size = std::min(currentRoundSize, (intT)(e - numberDone));
       totalProcessed += size;
 
-      par_for(0, size, 2048, [&] (size_t i) {
+      par_for(0, size, [&] (size_t i) {
         if (i >= numberKeep) I[i] = numberDone + i;
         keep[i] = step.reserve(I[i]);
       });
 
-      par_for(0, size, 2048, [&] (size_t i) {
+      par_for(0, size, [&] (size_t i) {
         if (keep[i]) keep[i] = !step.commit(I[i]);
       });
 
