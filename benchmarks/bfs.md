@@ -1,20 +1,20 @@
 ---
 title: "Breadth-First Search"
 layout: benchmark
-permalink: /benchmark/bfs
+permalink: /benchmarks/bfs
 comments: false
 mathjax: true
 sidebar:
-  nav: "benchmark"
+  nav: "benchmarks"
 benchname: "Breadth-First Search"
 ---
 
 ### Input
 $$G=(V, E)$$, an unweighted graph in the [adjacency graph
-format](/benchmark/formats/), and a source, $$src \in V$$.
+format](/benchmarks/formats/), and a source, $$src \in V$$.
 
 ### Output
-$$D$$, a [mapping](/benchmark/definitions/) where $$D[v]$$ is the
+$$D$$, a [mapping](/benchmarks/definitions/) where $$D[v]$$ is the
 shortest path distance from $$src$$ to $$v \in V$$ and $$\infty$$ if
 $$v$$ is unreachable, and $$reach$$, the number of reachable vertices.
 

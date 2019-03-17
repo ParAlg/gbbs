@@ -1,20 +1,20 @@
 ---
 title: "Integral-Weight SSSP"
 layout: benchmark
-permalink: /benchmark/integral-sssp
+permalink: /benchmarks/integral-sssp
 comments: false
 mathjax: true
 sidebar:
-  nav: "benchmark"
+  nav: "benchmarks"
 ---
 
 ## Input
 $$G=(V, E, w)$$, a weighted graph in the [adjacency graph
-format](/benchmark/formats/), with integral edge weights, $$src \in
+format](/benchmarks/formats/), with integral edge weights, $$src \in
 V$$.
 
 ## Output
-$$D$$, a [mapping](/benchmark/definitions/) where $$D[v]$$ is the
+$$D$$, a [mapping](/benchmarks/definitions/) where $$D[v]$$ is the
 shortest path distance from $$src$$ to $$v$$ in $$G$$ and $$\infty$$ if
 $$v$$ is unreachable.
 

@@ -8,60 +8,60 @@ main:
     url: /scoreboard/
 
 # benchmark specs
-benchmark:
+benchmarks:
   - title: "Overview"
     url: /benchmark/
     children:
       - title: "Requirements"
-        url: /benchmark/requirements/
+        url: /benchmarks/requirements/
       - title: "Input Formats"
-        url: /benchmark/formats/
+        url: /benchmarks/formats/
       - title: "Graph Inputs"
-        url: /benchmark/inputs/
+        url: /benchmarks/inputs/
       - title: "Definitions"
-        url: /benchmark/definitions/
+        url: /benchmarks/definitions/
 
   - title: "Distance Problems"
     children:
       - title: "Breadth-First Search"
-        url: /benchmark/bfs/
+        url: /benchmarks/bfs/
       - title: "Integral-Weight SSSP"
-        url: /benchmark/integral-sssp/
+        url: /benchmarks/integral-sssp/
       - title: "General-Weight SSSP"
-        url: /benchmark/general-sssp/
+        url: /benchmarks/general-sssp/
       - title: "Single-Source <br>Betweenness Centrality"
-        url: /benchmark/bc/
+        url: /benchmarks/bc/
 
   - title: "Connectivity Problems"
     children:
       - title: "Low-Diameter Decomposition"
-        url: /benchmark/ldd/
+        url: /benchmarks/ldd/
       - title: "Connectivity"
-        url: /benchmark/connectivity/
+        url: /benchmarks/connectivity/
       - title: "Biconnectivity"
-        url: /benchmark/biconnectivity/
+        url: /benchmarks/biconnectivity/
       - title: "Strongly Connected Components"
-        url: /benchmark/strong-connectivity/
+        url: /benchmarks/strong-connectivity/
       - title: "Minimum Spanning Forest"
-        url: /benchmark/msf/
+        url: /benchmarks/msf/
 
   - title: "Symmetry-Breaking Problems"
     children:
       - title: "Maximal Independent Set"
-        url: /benchmark/mis/
+        url: /benchmarks/mis/
       - title: "Maximal Matching"
-        url: /benchmark/maximalmatching/
+        url: /benchmarks/maximalmatching/
       - title: "Graph Coloring"
-        url: /benchmark/coloring/
+        url: /benchmarks/coloring/
 
   - title: "Other Problems"
     children:
       - title: "k-Core (Coreness)"
-        url: /benchmark/kcore/
+        url: /benchmarks/kcore/
       - title: "Approximate Set Cover"
-        url: /benchmark/appxsetcover/
+        url: /benchmarks/appxsetcover/
       - title: "Triangle Counting"
-        url: /benchmark/trianglecounting/
+        url: /benchmarks/trianglecounting/
 
 
   #  - title: "Distance Problems"

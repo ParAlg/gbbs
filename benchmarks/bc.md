@@ -1,19 +1,19 @@
 ---
 title: "Single-Source Betweenness Centrality"
 layout: benchmark
-permalink: /benchmark/bc
+permalink: /benchmarks/bc
 comments: false
 mathjax: true
 sidebar:
-  nav: "benchmark"
+  nav: "benchmarks"
 ---
 
 ## Input
 $$G=(V, E)$$, an unweighted graph in the [adjacency graph
-format](/benchmark/formats/), and a source, $$src \in V$$.
+format](/benchmarks/formats/), and a source, $$src \in V$$.
 
 ## Output
-$$S$$, a [mapping](/benchmark/definitions/) from each vertex $$v$$ to the
+$$S$$, a [mapping](/benchmarks/definitions/) from each vertex $$v$$ to the
 centrality contribution from all $$(src, t)$$ shortest paths that pass through
 $$v$$.
 
