@@ -7,16 +7,17 @@ sidebar:
   nav: "benchmarks"
 ---
 
-This page gives detailed benchmark specifications for the problems considered in
-our paper.
+This page gives benchmark specifications for the problems considered
+in our paper.
 
 We include all relevant problem-specific details needed to reproduce
-our results, e.g., the source used for single-source problems, as well as the
-expected output for the problems on each of our input graphs. Note that problems
-such as MIS/Maximal Matching have many valid outputs.
+our results, e.g., the source used for single-source problems, as well
+as the expected output for the problems on each of our input graphs.
+Note that problems such as MIS/Maximal Matching have many valid
+outputs.
 
-The specifications can be accessed either using the navbar on the left, or by
-clicking one of the links below:
+The specifications can be accessed either using the navbar on the
+left, or by clicking one of the links below:
 
 * [Breadth-First Search](/benchmarks/bfs)
 * [Integral-Weight SSSP](/benchmarks/integral-sssp/)

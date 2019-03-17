@@ -1,5 +1,5 @@
 ---
-title: "The Graph Based Benchmark Suite (GBBS)"
+title: ""
 layout: home
 #header:
 #  overlay_color: "#ccc"
@@ -14,46 +14,47 @@ This website supplements our paper,
 Scalable"](https://arxiv.org/abs/1805.05208), published in SPAA'18, with
 benchmark specifications.
 
-To encourage further research on efficient algorithms for very large graphs, we
-have gathered performance numbers for graph processing systems capable of
-solving these problems and present these times on our [Scoreboard](/scoreboard).
-Please contact <ldhulipa@cs.cmu.edu> to add your experimental results to the
-scoreboard.
+To understand the performance and resource-requirements of graph
+processing systems capable of processing very large graphs we maintain
+a list of our times as well as times achieved by state-of-the-art
+systems on a [Scoreboard](/scoreboard).  Please contact
+<ldhulipa@cs.cmu.edu> to add your new experimental results to the
+scoreboard. Our benchmark includes:
 
-Our benchmark consists of the following problems:
-
+### Distance Problems
 * Breadth-First Search
 * Integral-Weight SSSP
 * General-Weight SSSP
 * Single-Source Betweenness Centrality
+
+### Connectivity Problems
+* Low-Diameter Decomposition
 * Connectivity
 * Biconnectivity
 * Strongly Connected Components
 * Minimum Spanning Forest
+
+### Symmetry-Breaking Problems
 * Maximal Matching
 * Maximal Independent Set
 * Graph Coloring
+
+### Other Problems
 * KCore
-* Low-Diameter Decomposition
 * Approximate Set Cover
 * Triangle Counting
 
-We also include specifications of the following extra graph problems:
-
-* Approximate Densest Subgraph
-* KTruss
-
-If you find our work useful, please consider citing our
-[paper](https://arxiv.org/abs/1805.05208):
+If you find our work useful, please consider citing us:
 
 ```
 @inproceedings{dhulipala2018theoretically,
   author    = {Laxman Dhulipala and
                Guy E. Blelloch and
                Julian Shun},
-  title     = {Theoretically Efficient Parallel Graph Algorithms Can Be Fast and
-               Scalable},
-  booktitle = {ACM Symposium on Parallelism in Algorithms and Architectures (SPAA)},
+  title     = {Theoretically Efficient Parallel Graph
+               Algorithms Can Be Fast and Scalable},
+  booktitle = {ACM Symposium on Parallelism in Algorithms
+               and Architectures (SPAA)},
   year      = {2018},
 }
 ```

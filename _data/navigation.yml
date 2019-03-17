@@ -8,51 +8,60 @@ main:
     url: /scoreboard/
 
 # benchmark specs
-benchmarks:
+benchmark:
   - title: "Overview"
     url: /benchmark/
+    children:
+      - title: "Requirements"
+        url: /benchmark/requirements/
+      - title: "Input Formats"
+        url: /benchmark/formats/
+      - title: "Graph Inputs"
+        url: /benchmark/inputs/
+      - title: "Definitions"
+        url: /benchmark/definitions/
 
-  - title: "Distances"
+  - title: "Distance Problems"
     children:
       - title: "Breadth-First Search"
-        url: /benchmarks/bfs/
+        url: /benchmark/bfs/
       - title: "Integral-Weight SSSP"
-        url: /benchmarks/integral-sssp/
+        url: /benchmark/integral-sssp/
       - title: "General-Weight SSSP"
-        url: /benchmarks/general-sssp/
+        url: /benchmark/general-sssp/
       - title: "Single-Source <br>Betweenness Centrality"
-        url: /benchmarks/bc/
+        url: /benchmark/bc/
 
-  - title: "Connectivity"
+  - title: "Connectivity Problems"
     children:
+      - title: "Low-Diameter Decomposition"
+        url: /benchmark/ldd/
       - title: "Connectivity"
-        url: /benchmarks/connectivity/
+        url: /benchmark/connectivity/
       - title: "Biconnectivity"
-        url: /benchmarks/biconnectivity/
+        url: /benchmark/biconnectivity/
       - title: "Strongly Connected Components"
-        url: /benchmarks/strong-connectivity/
+        url: /benchmark/strong-connectivity/
       - title: "Minimum Spanning Forest"
-        url: /benchmarks/msf/
+        url: /benchmark/msf/
 
-  - title: "Symmetry-Breaking"
+  - title: "Symmetry-Breaking Problems"
     children:
       - title: "Maximal Independent Set"
-        url: /benchmarks/mis/
+        url: /benchmark/mis/
       - title: "Maximal Matching"
-        url: /benchmarks/maximalmatching/
+        url: /benchmark/maximalmatching/
       - title: "Graph Coloring"
-        url: /benchmarks/coloring/
+        url: /benchmark/coloring/
 
   - title: "Other Problems"
     children:
       - title: "k-Core (Coreness)"
-        url: /benchmarks/kcore/
-      - title: "Low-Diameter Decomposition"
-        url: /benchmarks/ldd/
+        url: /benchmark/kcore/
       - title: "Approximate Set Cover"
-        url: /benchmarks/appxsetcover/
+        url: /benchmark/appxsetcover/
       - title: "Triangle Counting"
-        url: /benchmarks/trianglecounting/
+        url: /benchmark/trianglecounting/
 
 
   #  - title: "Distance Problems"
