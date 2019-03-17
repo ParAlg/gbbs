@@ -1,14 +1,65 @@
 # main links
 main:
-  - title: "Overview"
-    url: /overview/
-  - title: "Scores"
-    url: /scores/
-  # - title: "About"
-  #   url: https://mmistakes.github.io/minimal-mistakes/about/
-  # - title: "Sample Posts"
-  #   url: /year-archive/
-  # - title: "Sample Collections"
-  #   url: /collection-archive/
-  # - title: "Sitemap"
-  #   url: /sitemap/
+  - title: "Benchmark"
+    url: /benchmark/
+  - title: "Our Results"
+    url: /results/
+  - title: "Scoreboard"
+    url: /scoreboard/
+
+# benchmark specs
+benchmarks:
+  - title: "Benchmark Overview"
+    url: /benchmark/
+
+  - title: "Distance Problems"
+    children:
+      - title: "Breadth-First Search"
+        url: /benchmarks/bfs/
+      - title: "Integral-Weight SSSP"
+        url: /benchmarks/integral-sssp/
+      - title: "General-Weight SSSP"
+        url: /benchmarks/general-sssp/
+      - title: "Single-Source Betweenness Centrality"
+        url: /benchmarks/bc/
+
+  - title: "Connectivity Problems"
+    children:
+      - title: "Connectivity"
+        url: /benchmarks/connectivity/
+      - title: "Biconnectivity"
+        url: /benchmarks/biconnectivity/
+      - title: "Strongly Connected Components"
+        url: /benchmarks/strong-connectivity/
+      - title: "Minimum Spanning Forest"
+        url: /benchmarks/msf/
+
+  - title: "Symmetry-Breaking Problems"
+    children:
+      - title: "Maximal Independent Set"
+        url: /benchmarks/mis/
+      - title: "Maximal Matching"
+        url: /benchmarks/maximalmatching/
+      - title: "Graph Coloring"
+        url: /benchmarks/coloring/
+
+  - title: "Other Problems"
+    children:
+      - title: "k-Core (Coreness)"
+        url: /benchmarks/kcore/
+      - title: "Approximate Set Cover"
+        url: /benchmarks/appxsetcover/
+      - title: "Triangle Counting"
+        url: /benchmarks/trianglecounting/
+
+
+  #  - title: "Distance Problems"
+  #  children:
+  #    - title: "Breadth-First Search"
+  #      url: /test/
+  #    - title: "Integral-Weight SSSP"
+  #      url: /test/
+  #    - title: "General-Weight SSSP"
+  #      url: /test/
+  #    - title: "Single-Source Betweenness Centrality"
+  #      url: /test/
