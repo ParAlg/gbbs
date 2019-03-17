@@ -22,21 +22,21 @@ scoreboard.
 
 Our benchmark consists of the following problems:
 
-* Single-Source Betweenness Centrality
-* Bellman-Ford
 * Breadth-First Search
-* Biconnectivity
+* Integral-Weight SSSP
+* General-Weight SSSP
+* Single-Source Betweenness Centrality
 * Connectivity
-* Coloring
-* KCore
-* Low-Diameter Decomposition
+* Biconnectivity
+* Strongly Connected Components
+* Minimum Spanning Forest
 * Maximal Matching
 * Maximal Independent Set
-* Mininmum Spanning Tree
-* Strongly Connected Components
+* Graph Coloring
+* KCore
+* Low-Diameter Decomposition
 * Approximate Set Cover
 * Triangle Counting
-* Weighted Breadth-First Search
 
 We also include specifications of the following extra graph problems:
 

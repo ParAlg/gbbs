@@ -9,10 +9,10 @@ main:
 
 # benchmark specs
 benchmarks:
-  - title: "Benchmark Overview"
+  - title: "Overview"
     url: /benchmark/
 
-  - title: "Distance Problems"
+  - title: "Distances"
     children:
       - title: "Breadth-First Search"
         url: /benchmarks/bfs/
@@ -20,10 +20,10 @@ benchmarks:
         url: /benchmarks/integral-sssp/
       - title: "General-Weight SSSP"
         url: /benchmarks/general-sssp/
-      - title: "Single-Source Betweenness Centrality"
+      - title: "Single-Source <br>Betweenness Centrality"
         url: /benchmarks/bc/
 
-  - title: "Connectivity Problems"
+  - title: "Connectivity"
     children:
       - title: "Connectivity"
         url: /benchmarks/connectivity/
@@ -34,7 +34,7 @@ benchmarks:
       - title: "Minimum Spanning Forest"
         url: /benchmarks/msf/
 
-  - title: "Symmetry-Breaking Problems"
+  - title: "Symmetry-Breaking"
     children:
       - title: "Maximal Independent Set"
         url: /benchmarks/mis/
@@ -47,6 +47,8 @@ benchmarks:
     children:
       - title: "k-Core (Coreness)"
         url: /benchmarks/kcore/
+      - title: "Low-Diameter Decomposition"
+        url: /benchmarks/ldd/
       - title: "Approximate Set Cover"
         url: /benchmarks/appxsetcover/
       - title: "Triangle Counting"
