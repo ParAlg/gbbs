@@ -170,7 +170,17 @@ $(document).ready(function() {
     "paging": false,
     "info": false,
     "searching": false,
-    "ordering": false,
+    "columnDefs": [
+        {targets: -1, orderable: false},
+        {targets: 0, width: "30%"  },
+        {targets: 0, className: "dt-right"  },
+        {targets: 1, className: "dt-right"  },
+        {targets: 2, className: "dt-right"  },
+        {targets: 3, className: "dt-right"  },
+        {targets: 4, className: "dt-right"  },
+        {targets: -1, className: "dt-right"  },
+        {targets: -2, className: "dt-center"  },
+      ],
   });
 
   $('table.hover').DataTable({
