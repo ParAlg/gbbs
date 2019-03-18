@@ -1,7 +1,7 @@
 ---
 title: "General-Weight SSSP"
 layout: benchmark
-permalink: /benchmarks/general-sssp
+permalink: /benchmarks/general-sssp/
 comments: false
 mathjax: true
 sidebar:

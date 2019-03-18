@@ -1,7 +1,7 @@
 ---
 title: "Integral-Weight SSSP"
 layout: benchmark
-permalink: /benchmarks/integral-sssp
+permalink: /benchmarks/integral-sssp/
 comments: false
 mathjax: true
 sidebar:

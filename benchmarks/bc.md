@@ -1,7 +1,7 @@
 ---
 title: "Single-Source Betweenness Centrality"
 layout: benchmark
-permalink: /benchmarks/bc
+permalink: /benchmarks/bc/
 comments: false
 mathjax: true
 sidebar:
