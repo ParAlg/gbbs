@@ -1,7 +1,7 @@
 ---
 title: "Breadth-First Search"
 layout: benchmark
-permalink: /benchmarks/bfs
+permalink: /benchmarks/bfs/
 comments: false
 mathjax: true
 sidebar:
