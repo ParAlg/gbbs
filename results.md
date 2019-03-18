@@ -23,24 +23,24 @@ size of Hyperlink2012.
 {% include hyperlink2012_ourresults.html %}
 
 <small>
-<b>T1</b> is the 1-thread running time. <b>T72 (h)</b> is the 72-thread
-running time with 2-way hyperthreading enabled.
+<b>T1</b> is the 1-thread running time in seconds. <b>T72 (h)</b> is the 72-thread
+running time in seconds with 2-way hyperthreading enabled.
 </small>
 
 # Hyperlink2014
 {% include hyperlink2014_ourresults.html %}
 
 <small>
-<b>T1</b> is the 1-thread running time. <b>T72 (h)</b> is the 72-thread
-running time with 2-way hyperthreading enabled.
+<b>T1</b> is the 1-thread running time in seconds. <b>T72 (h)</b> is the 72-thread
+running time in seconds with 2-way hyperthreading enabled.
 </small>
 
 # Clueweb
 {% include clueweb_ourresults.html %}
 
 <small>
-<b>T1</b> is the 1-thread running time. <b>T72 (h)</b> is the 72-thread
-running time with 2-way hyperthreading enabled.
+<b>T1</b> is the 1-thread running time in seconds. <b>T72 (h)</b> is the 72-thread
+running time in seconds with 2-way hyperthreading enabled.
 </small>
 
 # Experimental Setup
