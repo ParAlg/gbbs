@@ -12,14 +12,13 @@ layout: home
 This website supplements our paper,
 ["Theoretically Efficient Parallel Graph Algorithms Can Be Fast and
 Scalable"](https://arxiv.org/abs/1805.05208), published in SPAA'18, with
-benchmark specifications.
+benchmark specifications and examples of how to run our codes and reproduce our
+results.
 
-To understand the performance and resource-requirements of graph
-processing systems capable of processing very large graphs we maintain
-a list of our times as well as times achieved by state-of-the-art
-systems on a [Scoreboard](/scoreboard).  Please contact
-<ldhulipa@cs.cmu.edu> to add your new experimental results to the
-scoreboard. Our benchmark includes:
+We also maintain a [Scoreboard](/scoreboard/) which gathers running-times of
+state-of-the-art graph processing systems capable of processing three of the
+largest publicly available graphs. If you would like your experimental results
+to be included please [contact us](mailto:ldhulipa@cs.cmu.edu,guyb@cs.cmu.edu,jshun@mit.edu).
 
 ### Distance Problems
 * Breadth-First Search
@@ -44,7 +43,7 @@ scoreboard. Our benchmark includes:
 * Approximate Set Cover
 * Triangle Counting
 
-If you find our work useful, please consider citing us:
+If you find our work useful, please consider citing our paper:
 
 ```
 @inproceedings{dhulipala2018theoretically,

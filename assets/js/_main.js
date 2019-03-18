@@ -170,7 +170,22 @@ $(document).ready(function() {
     "paging": false,
     "info": false,
     "searching": false,
-    "autowidth": false
+    "ordering": false,
   });
-  //  } );
+
+  $('table.hover').DataTable({
+    "paging": false,
+    "info": false,
+    "searching": false,
+    "ordering": false,
+    "row-border": false,
+    "columnDefs": [
+      {targets: 0, className: "dt-body-left" },
+      {targets: 1, className: "dt-body-center" },
+      {targets: 1, className: "dt-body-center" },
+      {targets: 2, className: "dt-body-center" }
+    ]
+  });
+
+
 });

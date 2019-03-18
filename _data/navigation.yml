@@ -65,6 +65,19 @@ benchmarks:
       - title: "Triangle Counting"
         url: /benchmarks/trianglecounting/
 
+# benchmark specs
+results:
+  - title: "Results"
+    url: /results/
+    children:
+      - title: "Hyperlink2012"
+        url: /result/hyperlink2012/
+      - title: "Hyperlink2014"
+        url: /result/hyperlink2014/
+      - title: "Clueweb"
+        url: /result/clueweb/
+
+
 
   #  - title: "Distance Problems"
   #  children:
