@@ -12,9 +12,11 @@ benchmarks:
   - title: "Overview"
     url: /benchmark/
     children:
+      - title: "Download"
+        url: /benchmarks/download/
       - title: "Requirements"
         url: /benchmarks/requirements/
-      - title: "Input Formats"
+      - title: "Graph Formats"
         url: /benchmarks/formats/
       - title: "Graph Inputs"
         url: /benchmarks/inputs/

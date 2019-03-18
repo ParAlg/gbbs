@@ -163,4 +163,14 @@ $(document).ready(function() {
     closeOnContentClick: true,
     midClick: true // allow opening popup on middle mouse click. Always set it to true if you don't provide alternative source.
   });
+
+  console.log("hello mon");
+
+  $('table.display').DataTable({
+    "paging": false,
+    "info": false,
+    "searching": false,
+    "autowidth": false
+  });
+  //  } );
 });
