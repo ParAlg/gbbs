@@ -6,6 +6,7 @@ comments: false
 mathjax: true
 sidebar:
   nav: "benchmarks"
+benchname: "Single-Source Betweenness Centrality"
 ---
 
 ## Input
