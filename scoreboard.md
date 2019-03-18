@@ -23,10 +23,10 @@ papers.
 
 {:.display}
 | Time (s) | Hyper-threads | Memory (Gb) | Flash (Gb) | HDD (Gb) | Type | System |
-| ------------- | ----- | ------ | ----- | --- | ---- | ------ |
-| 16.7 | 144 | 350* | --   | -- | SM | GBBS |
-| 208  | 64  | 22*  | 1500 | -- | EM | FlashGraph |
-| 2500 | 32  | 64   | 2500 | -- | EM | BigSparse |
+| -------- | -----         | ------      | -----      | --- | ---- | ------ |
+| 16.7     | 144           | 350*        | --         | -- | SM | GBBS |
+| 208      | 64            | 22*         | 1500       | -- | EM | FlashGraph |
+| 2500     | 32            | 64          | 2500       | -- | EM | BigSparse |
 
 
 <small>
