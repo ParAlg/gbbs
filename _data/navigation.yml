@@ -14,8 +14,8 @@ benchmarks:
     children:
       - title: "Download"
         url: /benchmarks/download/
-      - title: "Requirements"
-        url: /benchmarks/requirements/
+      - title: "Building GBBS"
+        url: /benchmarks/building/
       - title: "Graph Formats"
         url: /benchmarks/formats/
       - title: "Graph Inputs"
