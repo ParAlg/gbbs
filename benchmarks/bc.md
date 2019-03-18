@@ -9,13 +9,13 @@ sidebar:
 ---
 
 ## Input
-$$G=(V, E)$$, an unweighted graph in the [adjacency graph
-format](/benchmarks/formats/), and a source, $$src \in V$$.
+\\(G=(V, E)\\), an unweighted graph in the [adjacency graph
+format](/benchmarks/formats/), and a source, \\(src \in V\\).
 
 ## Output
-$$S$$, a [mapping](/benchmarks/definitions/) from each vertex $$v$$ to the
-centrality contribution from all $$(src, t)$$ shortest paths that pass through
-$$v$$.
+\\(S\\), a [mapping](/benchmarks/definitions/) from each vertex \\(v\\) to the
+centrality contribution from all \\((src, t)\\) shortest paths that pass through
+\\(v\\).
 
 ## Compilation
 ```

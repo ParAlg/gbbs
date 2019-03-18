@@ -9,14 +9,14 @@ sidebar:
 ---
 
 ## Input
-$$G=(V, E, w)$$, a weighted graph in the [adjacency graph
-format](/benchmarks/formats/), with integral edge weights, $$src \in
-V$$.
+\\(G=(V, E, w)\\), a weighted graph in the [adjacency graph
+format](/benchmarks/formats/), with integral edge weights, \\(src \in
+V\\).
 
 ## Output
-$$D$$, a [mapping](/benchmarks/definitions/) where $$D[v]$$ is the
-shortest path distance from $$src$$ to $$v$$ in $$G$$ and $$\infty$$ if
-$$v$$ is unreachable.
+\\(D\\), a [mapping](/benchmarks/definitions/) where \\(D[v]\\) is the
+shortest path distance from \\(src\\) to \\(v\\) in \\(G\\) and \\(\infty\\) if
+\\(v\\) is unreachable.
 
 ## Compilation
 ```

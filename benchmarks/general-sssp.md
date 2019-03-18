@@ -9,15 +9,15 @@ sidebar:
 ---
 
 ## Input
-$$G=(V, E, w)$$, a weighted graph in the [adjacency graph
-format](/benchmarks/formats/), with general edge weights, $$src \in
-V$$.
+\\(G=(V, E, w)\\), a weighted graph in the [adjacency graph
+format](/benchmarks/formats/), with general edge weights, \\(src \in
+V\\).
 
 ## Output
-$$D$$, a [mapping](/benchmarks/definitions/) where $$D[v]$$ is the
-shortest path distance from $$src$$ to $$v$$ in $$G$$ and $$\infty$$ if
-$$v$$ is unreachable. All distances must be $$−\infty$$ if $$G$$
-contains a negative-weight cycle reachable from $$src$$.
+\\(D\\), a [mapping](/benchmarks/definitions/) where \\(D[v]\\) is the
+shortest path distance from \\(src\\) to \\(v\\) in \\(G\\) and \\(\infty\\) if
+\\(v\\) is unreachable. All distances must be \\(−\infty\\) if \\(G\\)
+contains a negative-weight cycle reachable from \\(src\\).
 
 ## Compilation
 ```

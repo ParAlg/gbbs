@@ -10,13 +10,13 @@ benchname: "Breadth-First Search"
 ---
 
 ### Input
-$$G=(V, E)$$, an unweighted graph in the [adjacency graph
-format](/benchmarks/formats/), and a source, $$src \in V$$.
+\\(G=(V, E)\\), an unweighted graph in the [adjacency graph
+format](/benchmarks/formats/), and a source, \\(src \in V\\).
 
 ### Output
-$$D$$, a [mapping](/benchmarks/definitions/) where $$D[v]$$ is the
-shortest path distance from $$src$$ to $$v \in V$$ and $$\infty$$ if
-$$v$$ is unreachable, and $$reach$$, the number of reachable vertices.
+\\(D\\), a [mapping](/benchmarks/definitions/) where \\(D[v]\\) is the
+shortest path distance from \\(src\\) to \\(v \in V\\) and \\(\infty\\) if
+\\(v\\) is unreachable, and \\(reach\\), the number of reachable vertices.
 
 
 #### Todo:
