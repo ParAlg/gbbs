@@ -180,11 +180,12 @@ $(document).ready(function() {
     "ordering": false,
     "row-border": false,
     "columnDefs": [
-      {targets: 0, className: "dt-body-left" },
-      {targets: 1, className: "dt-body-center" },
-      {targets: 1, className: "dt-body-center" },
-      {targets: 2, className: "dt-body-center" }
-    ]
+      {targets: 0, width: "60%"  },
+      {targets: 0, className: "dt-left"  },
+      {targets: 1, className: "dt-right" },
+      {targets: 2, className: "dt-right" },
+      {targets: 3, className: "dt-right" }
+    ],
   });
 
 
