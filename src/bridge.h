@@ -65,7 +65,7 @@ using range = pbbs::range<T>;
 namespace pbbslib {
 
 
-  constexpr const size_t kSequentialForThreshold = 4000;
+  constexpr const size_t kSequentialForThreshold = 2048;
 
   // ====================== utilities =======================
   using empty = pbbs::empty;

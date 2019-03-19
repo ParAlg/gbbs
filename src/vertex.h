@@ -148,7 +148,6 @@ namespace vertex_ops {
 
 // allocate temporary space for vertices with degree > alloc_threshold
 const constexpr size_t alloc_threshold = 10000;
-//const constexpr size_t alloc_threshold = 1000000000;
 
 template <template <typename W> class vertex, class W, class F, class G,
           class VS>
@@ -340,12 +339,12 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     return k;
   } else {
     // copy to tmp
-    par_for(0, d, [&] (size_t i) { tmp[i] = nghs[i]; });
+    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] = nghs[i]; });
     auto pc = [&](const std::tuple<uintE, W>& nw) {
       return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
     };
-    size_t k = pbbslib::filter_out(pbbslib::make_sequence(tmp, d), pbbslib::make_sequence(nghs, d), pc);
-//    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
+//    size_t k = pbbslib::filter_out(pbbslib::make_sequence(tmp, d), pbbslib::make_sequence(nghs, d), pc);
+    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
     return k;
   }
 }

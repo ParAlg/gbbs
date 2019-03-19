@@ -56,7 +56,7 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       if (deg > k) {
         uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
-        uintE bkt = b.get_bucket(deg, new_deg);
+        uintE bkt = b.get_bucket(new_deg);
         return wrap(v, bkt);
       }
       return Maybe<std::tuple<uintE, uintE> >();

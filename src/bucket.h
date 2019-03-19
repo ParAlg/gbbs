@@ -151,6 +151,26 @@ struct buckets {
     return null_bkt;
   }
 
+  // Computes a bucket_dest for an identifier moving to bucket_id next.
+  inline bucket_id get_bucket(const bucket_id& next) const {
+    uintE nb = to_range(next);
+    // Note that the interface currently only implements strictly_decreasing
+    // priority, which is why the code below does not check pri_order.
+    if (order == increasing) {
+      // case for strictly_decreasing priorities, assuming elements start out
+      // in the structure.
+      if (nb != null_bkt && nb != open_buckets) {
+        return nb;
+      } // case for strictly_increasing elided
+    } else { // bkt_order == decreasing
+      if (nb != null_bkt) {
+      // strictly_decreasing priorities, assuming elements start out in the structure.
+        return nb;
+      }
+    }
+    return null_bkt;
+  }
+
   void del() {
     if (allocated) {
       for (size_t i = 0; i < total_buckets; i++) {
@@ -165,9 +185,9 @@ struct buckets {
   // its bucket_dest are given by F(i).
   template <class F>
   inline size_t update_buckets(F f, size_t k) {
-    size_t num_blocks = k / 2000;
+    size_t num_blocks = k / 4096;
     int num_threads = num_workers();
-    if (k < pbbslib::kSequentialForThreshold || num_threads == 1) {
+    if (k < 4096 || num_threads == 1) {
       return update_buckets_seq(f, k);
     }
 

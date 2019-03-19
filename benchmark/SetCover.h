@@ -67,14 +67,12 @@ template <template <class W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
   timer it; it.start();
   auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
-  auto D =
-      sequence<uintE>(G.n, [&](size_t i) { return G.V[i].getOutDegree(); });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
-  auto bucket_f = [&](size_t i) { return get_bucket_clamped(D[i]); };
-  auto bucket_seq = pbbslib::make_sequence<uintE>(G.n, bucket_f);
-  auto b = make_vertex_buckets(G.n, bucket_seq, decreasing, num_buckets);
+  auto D = sequence<uintE>(G.n, [&](size_t i) { return get_bucket_clamped(G.V[i].getOutDegree()); });
+  auto d_slice = D.slice();
+  auto b = make_vertex_buckets(G.n, d_slice, decreasing, num_buckets);
 
   auto perm = sequence<uintE>(G.n);
   timer bktt, packt, permt, emt;
@@ -100,7 +98,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
       return Elms[ngh] != sc::COVERED;
     };
-    auto pack_apply = [&](uintE v, size_t ct) { D[v] = ct; };
+    auto pack_apply = [&](uintE v, size_t ct) { D[v] = get_bucket_clamped(ct); };
     auto packed_vtxs = edgeMapFilter(G, active, pack_predicate, pack_edges);
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
@@ -142,7 +140,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
       return Elms[v] == perm[u];
     };
     auto threshold_f = [&](const uintE& v, const uintE& numWon) {
-      if (numWon >= low_threshold) D[v] |= sc::TOP_BIT;
+      if (numWon >= low_threshold) D[v] = UINT_E_MAX;
     };
     auto activeAndCts = edgeMapFilter(G, still_active, won_ngh_f);
     vertexMap(activeAndCts, threshold_f);
@@ -158,7 +156,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     // elements as covered. Sets that didn't reset any acquired elements)
     auto reset_f = [&](const uintE& u, const uintE& v, const W& w) -> bool {
       if (Elms[v] == perm[u]) {
-        if (D[u] & sc::TOP_BIT)
+        if (D[u] == UINT_E_MAX)
           Elms[v] = sc::COVERED;
         else
           Elms[v] = UINT_E_MAX;
@@ -175,10 +173,10 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     active.toSparse();
     auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
-      const uintE dv = D[v];
+      const uintE v_bkt = D[v];
       uintE bkt = UINT_E_MAX;
-      if (!(dv & sc::TOP_BIT))
-        bkt = b.get_bucket(cur_bkt, get_bucket_clamped(dv));
+      if (!(v_bkt == UINT_E_MAX))
+        bkt = b.get_bucket(v_bkt);
       return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
     //std::cout << "cover.size = " << cover.size << "\n";

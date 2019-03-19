@@ -45,7 +45,6 @@ struct BC_F {
     fType to_add = Scores[s];
     fType n_val = pbbslib::fetch_and_add(&Scores[d], to_add);
     return n_val == 0;
-//    return (n_val - to_add == 0);
   }
   inline bool cond(uintE d) { return Visited[d] == 0; }
 };
@@ -140,7 +139,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
             no_output | in_edges | fine_parallel);
     Frontier.del();
     Frontier = Levels[r];
-    vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
+     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
   bt.reportTotal("back total time");
