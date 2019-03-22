@@ -9,10 +9,9 @@ namespace pbbs {
   template <class T, class Uint>
   sequence<Uint> LCP(sequence<T> const &s, sequence<Uint> const &SA) {
     timer t("LCP", false);
-    timer t2("LCP total", true);
+    timer t2("LCP total", false);
     size_t len = 111;
     size_t n = SA.size();
-    //cout << "n: " << n << endl;
 
     // compare first len characters of adjacent strings from SA.
     sequence<Uint> L(n-1, [&] (size_t i) {
@@ -28,7 +27,6 @@ namespace pbbs {
     t.next("pack");
 
     if (remain.size() == 0) { t2.next("total"); return  L;}
-    //cout << "len: " << len << " remain: " << remain.size() << endl;
 
     // an inverse permutation for SA
     sequence<Uint> ISA(n);
@@ -57,7 +55,6 @@ namespace pbbs {
 	});
       t.next("filter");
       len *= 2;
-      //cout << "len: " << len << " remain: " << remain.size() << endl;
     } while (remain.size() > 0);
 
     t2.next("total");

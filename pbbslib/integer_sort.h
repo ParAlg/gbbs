@@ -202,29 +202,29 @@ namespace pbbs {
   // will be the same as the next (i.e. offset[i+1]-offset[i] specifies
   // how many i there are.
   // The last element contains the size of the input.
-  template <typename Seq, typename Get_Key>
-  sequence<size_t>
+  template <typename Tint=size_t, typename Seq, typename Get_Key>
+  sequence<Tint>
   get_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
     size_t n = In.size();
-    sequence<size_t> starts(n, (size_t) 0);
-    sequence<size_t> ends(n, (size_t) 0);
+    sequence<Tint> starts(num_buckets, (Tint) 0);
+    sequence<Tint> ends(num_buckets, (Tint) 0);
     parallel_for (0, n-1, [&] (size_t i) {
 	if (g(In[i]) != g(In[i+1])) {
 	  starts[g(In[i+1])] = i+1;
 	  ends[g(In[i])] = i+1;
 	};});
     ends[g(In[n-1])] = n;
-    return sequence<size_t>(n, [&] (size_t i) {
+    return sequence<Tint>(num_buckets, [&] (size_t i) {
 	return ends[i] - starts[i];});
   }
 
-  template <typename Seq, typename Get_Key>
-  std::pair<sequence<typename Seq::value_type>,sequence<size_t>>
+  template <typename Tint=size_t, typename Seq, typename Get_Key>
+  std::pair<sequence<typename Seq::value_type>,sequence<Tint>>
   integer_sort_with_counts(Seq const &In, Get_Key const &g,
-			    size_t num_buckets=0) {
+			    size_t num_buckets) {
     size_t key_bits = log2_up(num_buckets);
     auto R = integer_sort(In, g, key_bits);
-    return std::make_pair(std::move(R), get_counts(R, g, num_buckets));
+    return std::make_pair(std::move(R), get_counts<Tint>(R, g, num_buckets));
   }
 
 }

@@ -95,7 +95,7 @@ namespace pbbs {
   void small_sort_(Seq const &In, range<Iter> Out, const Compare& less,
 		   bool inplace = false, bool stable = false) {
     if (inplace) std::cout << "bad inplace arg in sort" << std::endl;
-    else seq_sort_(In, Out, false, stable);
+    else seq_sort_(In, Out, less, false, stable);
   }
 
   template<class Iter1, class Iter2, typename Compare>

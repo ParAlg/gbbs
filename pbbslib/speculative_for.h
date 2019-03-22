@@ -27,15 +27,17 @@
 namespace pbbs {
 
   // idxT should be able to represent the range of iterations
-  // unsigned int OK for up to 2^32 iterations, beyond size_t should be used
+  // int OK for up to 2^31 iterations
+  // unsigned OK if freeze not used
   template <class idxT>
   struct reservation {
     idxT r;
     static constexpr idxT max_idx = std::numeric_limits<idxT>::max();
     reservation() : r(max_idx) {}
-    void reserve(idxT i) { pbbs::write_min(&r, i, std::less<idxT>());}
+    bool reserve(idxT i) { return pbbs::write_min(&r, i, std::less<idxT>());}
     bool reserved() { return (r < max_idx);}
     void reset() {r = max_idx;}
+    void freeze() {r = -1;}
     bool check(idxT i) { return (r == i);}
     bool checkReset(idxT i) {
       if (r==i) { r = max_idx; return 1;}
@@ -48,7 +50,7 @@ namespace pbbs {
   		     bool hasState=1, long maxTries=-1) {
     if (maxTries < 0) maxTries = 100 + 200*granularity;
     long maxRoundSize = (e-s)/granularity+1;
-    long currentRoundSize = maxRoundSize;
+    long currentRoundSize = maxRoundSize/4;
     pbbs::sequence<idxT> I(maxRoundSize);
     pbbs::sequence<bool> keep(maxRoundSize);
     pbbs::sequence<idxT> Ihold;
@@ -66,8 +68,6 @@ namespace pbbs {
         cout << "speculative_for: too many iterations, increase maxTries"<< endl;
         abort();
       }
-      //long size = std::max(std::min(currentRoundSize, e - numberDone + numberKeep),
-      //   numberKeep);
       long size = std::min(currentRoundSize, e - numberDone);
 
       totalProcessed += size;

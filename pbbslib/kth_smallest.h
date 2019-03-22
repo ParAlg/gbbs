@@ -22,15 +22,14 @@ namespace pbbs {
   }
 
   template <class Seq, class Compare>
-  typename Seq::value_type approximate_kth_smallest(Seq const &S, size_t k, Compare less) {
+  typename Seq::value_type approximate_kth_smallest(Seq const &S, size_t k, Compare less, random r = random()) {
     // raise exception if empty sequence?
     using T = typename Seq::value_type;
-    pbbs::random r;
     size_t n = S.size();
     size_t num_samples = n/sqrt(n);
     pbbs::sequence<T> samples(num_samples, [&] (size_t i) -> T {
 	return S[r[i]%n];});
     return sample_sort(samples, less)[k * num_samples / n];
       //kth_smallest(samples, k * num_samples / n, less);
-  }  
+  }
 }

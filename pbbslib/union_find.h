@@ -37,23 +37,20 @@ struct unionFind {
   // initialize n elements all as roots
   unionFind(size_t n) {
     parents = pbbs::sequence<vertexId>(n, -1);}
-  
+
   vertexId find(vertexId i) {
     if (is_root(i)) return i;
-    vertexId j = parents[i];     
-    if (is_root(j)) return j;
+    vertexId p = parents[i];     
+    if (is_root(p)) return p;
 
-    // find root
-    do j = parents[j];  
-    while (!is_root(j));
-
-    // shortcut
-    vertexId tmp;
-    while ((tmp = parents[i]) != j) { 
-      parents[i] = j;
-      i = tmp;  }
-
-    return j;
+    // find root, shortcutting along the way
+    do {
+      vertexId gp = parents[p];
+      parents[i] = gp;
+      i = p;
+      p = gp;
+    } while (!is_root(p));
+    return p;
   }
 
   // If using "union" then "parents" are used both as
@@ -76,4 +73,9 @@ struct unionFind {
   void link(vertexId u, vertexId v) { 
     parents[u] = v;}
 
+  // returns true if successful
+  bool tryLink(vertexId u, vertexId v) {
+    return (parents[u] == -1 &&
+	    pbbs::atomic_compare_and_swap(&parents[u], -1, v));
+  }
 };

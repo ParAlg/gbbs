@@ -140,7 +140,7 @@ size_t min_element(Seq const &S, Compare comp) {
       return i;});
   auto f = [&] (size_t l, size_t r) {
     return (!comp(S[r], S[l]) ? l : r);};
-  return pbbs::reduce(S, make_monoid(f, (size_t) S.size()));
+  return pbbs::reduce(SS, make_monoid(f, (size_t) S.size()));
 }
 
 template <class Seq, class Compare>
@@ -149,14 +149,13 @@ size_t max_element(Seq const &S, Compare comp) {
   return min_element(S, [&] (T a, T b) {return comp(b, a);});
 }
 
-template <class Seq>
+template <class Seq, class Compare>
 std::pair<size_t, size_t>
-minmax_element(Seq const &S) {
+minmax_element(Seq const &S, Compare comp) {
   size_t n = S.size();
   using P = std::pair<size_t, size_t>;
-  auto SS = delayed_seq<P>(S.size(), [&] (size_t i) {
-      std::make_pair(i,i);});
-  auto f = [&] (P l, P r) {
+  auto SS = delayed_seq<P>(S.size(), [&] (size_t i) {return P(i,i);});
+  auto f = [&] (P l, P r) -> P {
     return (P(!comp(S[r.first], S[l.first]) ? l.first : r.first,
 	      !comp(S[l.second], S[r.second]) ? l.second : r.second));};
   return pbbs::reduce(SS, make_monoid(f, P(n,n)));

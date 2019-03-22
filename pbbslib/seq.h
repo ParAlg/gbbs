@@ -43,6 +43,15 @@ namespace pbbs {
     size_t size() const { return e - s;}
     iterator begin() const {return s;}
     iterator end() const {return e;}
+
+    range<std::reverse_iterator<value_type*>>
+    rslice(size_t ss, size_t ee) const {
+      auto i = std::make_reverse_iterator(e);
+      return range<decltype(i)>(i + ss, i + ee);
+    }
+    range<std::reverse_iterator<value_type*>>
+    rslice() const {return rslice(0, std::distance(s,e));};
+
   private:
     iterator s;
     iterator e;
