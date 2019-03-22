@@ -305,7 +305,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
       auto iter = V[i].getOutIter(i);
       auto f_it =
-          ligra_utils::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
+          pbbslib::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
       size_t nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
           edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {

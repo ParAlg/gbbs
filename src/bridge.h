@@ -591,4 +591,37 @@ namespace pbbslib {
     return m;
   }
 
+  template <class E, class I, class P>
+  struct filter_iter {
+    I& iter;
+    P& pred;
+    E cur_val;
+
+    filter_iter(I& _it, P& _pr) : iter(_it), pred(_pr) {
+      cur_val = iter.cur();
+      while (!pred(cur_val) && iter.has_next()) {
+        cur_val = iter.next();
+      }
+    }
+
+    E cur() { return cur_val; }
+
+    E next() {
+      while (iter.has_next()) {
+        cur_val = iter.next();
+        if (pred(cur_val)) {
+          break;
+        }
+      }
+      return cur_val;
+    }
+
+    // has_next
+  };
+
+  template <class E, class I, class P>
+  inline filter_iter<E, I, P> make_filter_iter(I& _it, P& _pr) {
+    return filter_iter<E, I, P>(_it, _pr);
+  }
+
 }

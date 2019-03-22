@@ -21,7 +21,6 @@
 // LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#include <string>
 #pragma once
 
 #include <fcntl.h>
@@ -35,11 +34,12 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <string>
 
+#include "bridge.h"
+#include "pbbs_strings.h"
 #include "graph.h"
-#include "pbbslib/utilities.h"
-#include "oldlib/block_radix_sort.h"
-#include "oldlib/utils.h"
+
 
 typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
@@ -56,44 +56,8 @@ struct getFirst {
   uintE operator()(std::pair<uintE, E> a) { return a.first; }
 };
 
-template <class IntType>
-struct pairBothCmp {
-  bool operator()(std::pair<uintE, IntType> a, std::pair<uintE, IntType> b) {
-    if (a.first != b.first) return a.first < b.first;
-    return a.second < b.second;
-  }
-};
-
-// A structure that keeps a seq of strings all allocated from
-// the same block of memory
-struct words {
-  uint64_t n;          // total number of characters
-  char* Chars;     // array storing all strings
-  uint64_t m;          // number of substrings
-  char** Strings;  // pointers to strings (all should be null terminated)
-  words() {}
-  words(char* C, uint64_t nn, char** S, uint64_t mm)
-      : n(nn), Chars(C), m(mm), Strings(S) {}
-  void clear() {
-    pbbslib::free_array(Chars);
-    pbbslib::free_array(Strings);
-  }
-};
-
-inline bool isSpace(char c) {
-  switch (c) {
-    case '\r':
-    case '\t':
-    case '\n':
-    case 0:
-    case ' ':
-      return true;
-    default:
-      return false;
-  }
-}
-
-inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
+// returns a pointer and a length
+inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   struct stat sb;
   int fd = open(filename, O_RDONLY);
   if (fd == -1) {
@@ -130,10 +94,10 @@ inline ligra_utils::_seq<char> mmapStringFromFile(const char* filename) {
   //  std::cout << "mmapped" << "\n";
   //  pbbslib::free_array(bytes);
   //  exit(0);
-  return ligra_utils::_seq<char>(p, n);
+  return std::make_pair(p, n);
 }
 
-inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
+inline sequence<char> readStringFromFile(char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
     std::cout << "Unable to open file: " << fileName << "\n";
@@ -142,48 +106,10 @@ inline ligra_utils::_seq<char> readStringFromFile(char* fileName) {
   uint64_t end = file.tellg();
   file.seekg(0, std::ios::beg);
   uint64_t n = end - file.tellg();
-  char* bytes = pbbslib::new_array_no_init<char>(n + 1);
-  file.read(bytes, n);
+  auto bytes = sequence<char>(n); // n+1?
+  file.read(bytes.begin(), n);
   file.close();
-  return ligra_utils::_seq<char>(bytes, n);
-}
-
-// parallel code for converting a string to words
-inline words stringToWords(char* Str, uint64_t n) {
-  {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      if (isSpace(Str[i])) Str[i] = 0;
-    });
-  }
-
-  // mark start of words
-  bool* FL = pbbslib::new_array_no_init<bool>(n);
-  FL[0] = Str[0];
-  {
-    par_for(1, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { FL[i] = Str[i] && !Str[i - 1]; });
-  }
-
-  //  std::cout << "n (strlen) = " << n << "\n";
-  //  auto im = make_in_imap<size_t>(n, [&] (size_t i) { return FL[i]; });
-  //  std::cout << " sum is : " << pbbslib::reduce_add(im) << "\n";
-
-  // offset for each start of word
-  ligra_utils::_seq<uint64_t> Off = ligra_utils::seq::packIndex<uint64_t>(FL, n);
-  //  std::cout << "pack returned " << Off.n << "\n";
-  uint64_t m = Off.n;
-  uint64_t* offsets = Off.A;
-
-  // pointer to each start of word
-  char** SA = pbbslib::new_array_no_init<char*>(m);
-  {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t j)
-                    { SA[j] = Str + offsets[j]; });
-  }
-
-  pbbslib::free_array(offsets);
-  pbbslib::free_array(FL);
-  return words(Str, n, SA, m);
+  return bytes;
 }
 
 template <template <typename W> class vertex>
@@ -191,34 +117,36 @@ inline graph<vertex<intE>> readWeightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using wvtx = vertex<intE>;
-  words W;
+  sequence<char*> tokens;
+  sequence<char> S;
   if (bytes == nullptr) {
     if (mmap) {
-      ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      char* bytes = pbbslib::new_array_no_init<char>(S.n);
+      std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+      S = sequence<char>(MM.second);
       // Cannot mutate the graph unless we copy.
-      par_for(0, S.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { bytes[i] = S.A[i]; });
-      if (munmap(S.A, S.n) == -1) {
+      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+                      { S[i] = MM.first[i]; });
+      if (munmap(MM.first, MM.second) == -1) {
         perror("munmap");
         exit(-1);
       }
-      S.A = bytes;
-      W = stringToWords(S.A, S.n);
     } else {
-      ligra_utils::_seq<char> S = readStringFromFile(fname);
-      W = stringToWords(S.A, S.n);
+      sequence<char> S = readStringFromFile(fname);
     }
-  } else {
-    W = stringToWords(bytes, bytes_size);
   }
-  assert(W.Strings[0] == (std::string) "WeightedAdjacencyGraph");
+// for binary inputs
+//   else {
+//     W = stringToWords(bytes, bytes_size);
+//   }
+  tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
+  exit(0);
 
-  uint64_t len = W.m - 1;
-  uint64_t n = atol(W.Strings[1]);
-  uint64_t m = atol(W.Strings[2]);
+  uint64_t len = tokens.size() - 1;
+  uint64_t n = atol(tokens[1]);
+  uint64_t m = atol(tokens[2]);
   if (len != (n + 2 * m + 2)) {
-    std::cout << W.Strings[0] << "\n";
+    std::cout << tokens[0] << "\n";
     std::cout << "len = " << len << "\n";
     std::cout << "n = " << n << " m = " << m << "\n";
     std::cout << "should be : " << (n + 2 * m + 2) << "\n";
@@ -231,14 +159,16 @@ inline graph<vertex<intE>> readWeightedGraph(
 
   {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { offsets[i] = atol(W.Strings[i + 3]); });
+                    { offsets[i] = atol(tokens[i + 3]); });
   }
   {
     par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      edges[i] = std::make_tuple(atol(W.Strings[i + n + 3]),
-                                 atol(W.Strings[i + n + m + 3]));
+      edges[i] = std::make_tuple(atol(tokens[i + n + 3]),
+                                 atol(tokens[i + n + m + 3]));
     });
   }
+  S.clear();
+  tokens.clear();
   // W.clear(); // to deal with performance bug in malloc
 
   wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
@@ -266,7 +196,8 @@ inline graph<vertex<intE>> readWeightedGraph(
     });
     pbbslib::free_array(offsets);
 
-    intSort::iSort(temp, m, n + 1, getFirst<intPair>());
+    auto temp_seq = pbbslib::make_sequence(temp, m);
+    pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intTriple& p) { return p.first; }, pbbs::log2_up(n));
 
     tOffsets[temp[0].first] = 0;
     VW* inEdges = pbbslib::new_array_no_init<VW>(m);
@@ -283,8 +214,12 @@ inline graph<vertex<intE>> readWeightedGraph(
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
-    ligra_utils::seq::scanIBack(tOffsets, tOffsets, n,
-                                ligra_utils::minF<uintT>(), (uintT)m);
+
+    cout << "scan I back " << endl;
+    auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
+    auto M = pbbslib::minm<uintT>();
+    M.identity = m;
+    pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = tOffsets[i];
@@ -308,33 +243,35 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using wvtx = vertex<pbbslib::empty>;
-  words W;
+  sequence<char*> tokens;
+  sequence<char> S;
+
   if (bytes == nullptr) {
     if (mmap) {
-      ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      char* bytes = pbbslib::new_array_no_init<char>(S.n);
+      std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+      S = sequence<char>(MM.second);
       // Cannot mutate the graph unless we copy.
-      par_for(0, S.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { bytes[i] = S.A[i]; });
-      if (munmap(S.A, S.n) == -1) {
+      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+                      { S[i] = MM.first[i]; });
+      if (munmap(MM.first, MM.second) == -1) {
         perror("munmap");
         exit(-1);
       }
-      S.A = bytes;
-      W = stringToWords(S.A, S.n);
     } else {
-      ligra_utils::_seq<char> S = readStringFromFile(fname);
-      W = stringToWords(S.A, S.n);
+      S = readStringFromFile(fname);
     }
-  } else {
-    W = stringToWords(bytes, bytes_size);
   }
-  assert(W.Strings[0] == (std::string) "AdjacencyGraph");
+  tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  // for binary inputs
+  // else {
+  //   W = stringToWords(bytes, bytes_size);
+  // }
+  assert(tokens[0] == (std::string) "AdjacencyGraph");
   // TODO(laxmand): ensure that S is properly freed here
 
-  uint64_t len = W.m - 1;
-  uint64_t n = atol(W.Strings[1]);
-  uint64_t m = atol(W.Strings[2]);
+  uint64_t len = tokens.size() - 1;
+  uint64_t n = atol(tokens[1]);
+  uint64_t m = atol(tokens[2]);
 
   std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
   assert(len == n + m + 2);
@@ -343,10 +280,12 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
   uintE* edges = pbbslib::new_array_no_init<uintE>(m);
 
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { offsets[i] = atol(W.Strings[i + 3]); });
+                  { offsets[i] = atol(tokens[i + 3]); });
   par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { edges[i] = atol(W.Strings[i + n + 3]); });
-  W.clear();  // to deal with performance bug in malloc
+                  { edges[i] = atol(tokens[i + n + 3]); });
+  S.clear();
+  tokens.clear();
+  // W.clear();  // to deal with performance bug in malloc
 
   wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
 
@@ -370,7 +309,10 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
     });
     pbbslib::free_array(offsets);
 
-    intSort::iSort(temp, m, n + 1, getFirst<uintE>());
+    cout << "about to integer sort my man" << endl;
+    auto temp_seq = pbbslib::make_sequence(temp, m);
+    pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbs::log2_up(n));
+    cout << "integer sorted" << endl;
 
     tOffsets[temp[0].first] = 0;
     uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
@@ -386,8 +328,11 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
-    ligra_utils::seq::scanIBack(tOffsets, tOffsets, n,
-                                ligra_utils::minF<uintT>(), (uintT)m);
+    cout << "scan I back " << endl;
+    auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
+    auto M = pbbslib::minm<uintT>();
+    M.identity = m;
+    pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintT o = tOffsets[i];
@@ -397,6 +342,8 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
     });
 
     pbbslib::free_array(tOffsets);
+
+    cout << "returning the graph " << endl;
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, inEdges, edges),
         get_copy_fn(v, (std::tuple<uintE, pbbslib::empty>*)inEdges,
@@ -430,16 +377,16 @@ inline graph<vertex<W>> readCompressedGraph(
   using w_vertex = vertex<W>;
   if (bytes == nullptr) {
     if (mmap) {
-      ligra_utils::_seq<char> S = mmapStringFromFile(fname);
-      s = S.A;
+      std::pair<char*, size_t> S = mmapStringFromFile(fname);
+      s = S.first;
       if (mmapcopy) {
         std::cout << "Copying compressed graph"
                   << "\n";
         // Cannot mutate graph unless we copy.
-        char* bytes = pbbslib::new_array_no_init<char>(S.n);
-        par_for(0, S.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                        { bytes[i] = S.A[i]; });
-        if (munmap(S.A, S.n) == -1) {
+        char* bytes = pbbslib::new_array_no_init<char>(S.second);
+        par_for(0, S.second, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                        { bytes[i] = S.first[i]; });
+        if (munmap(S.first, S.second) == -1) {
           perror("munmap");
           exit(-1);
         }
