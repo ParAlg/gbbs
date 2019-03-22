@@ -37,7 +37,6 @@
 #include "pbbslib/utilities.h"
 
 #include "macros.h"
-#include "oldlib/utils.h"
 
 namespace encodings {
 namespace bytepd {
@@ -912,29 +911,30 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
   uintE** edgePts = pbbslib::new_array_no_init<uintE*>(n);
-  long* charsUsedArr = pbbslib::new_array_no_init<long>(n);
-  long* compressionStarts = pbbslib::new_array_no_init<long>(n + 1);
+  long* charsUsedArr = pbbslib::new_array_no_init<long>(n+1);
+  auto charsUsed = pbbslib::make_sequence(charsUsedArr, n+1);
+//  long* compressionStarts = pbbslib::new_array_no_init<long>(n + 1);
   {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { charsUsedArr[i] = ceil((Degrees[i] * 9) / 8) + 4; });
+                    { charsUsed[i] = ceil((Degrees[i] * 9) / 8) + 4; });
   }
-  long toAlloc = ligra_utils::seq::plusScan(charsUsedArr, charsUsedArr, n);
+  charsUsed[n] = 0;
+  long toAlloc = pbbslib::scan_inplace(charsUsed, pbbslib::addm<long>());
   uintE* iEdges = pbbslib::new_array_no_init<uintE>(toAlloc);
 
   {
     par_for(0, n, [&] (size_t i) {
-      edgePts[i] = iEdges + charsUsedArr[i];
+      edgePts[i] = iEdges + charsUsed[i];
       long charsUsed =
-          sequentialCompressEdgeSet((uchar*)(iEdges + charsUsedArr[i]), 0,
+          sequentialCompressEdgeSet((uchar*)(iEdges + charsUsed[i]), 0,
                                     Degrees[i], i, edges + offsets[i]);
-      charsUsedArr[i] = charsUsed;
+      charsUsed[i] = charsUsed;
     });
   }
 
   // produce the total space needed for all compressed lists in chars.
-  long totalSpace =
-      ligra_utils::seq::plusScan(charsUsedArr, compressionStarts, n);
-  compressionStarts[n] = totalSpace;
+  auto compressionStarts = pbbslib::scan(charsUsedArr, pbbslib::addm<long>());
+  size_t totalSpace = compressionStarts[n];
   pbbslib::free_array(charsUsedArr);
 
   uchar* finalArr = pbbslib::new_array_no_init<uchar>(totalSpace);
@@ -952,7 +952,6 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
   offsets[n] = totalSpace;
   pbbslib::free_array(iEdges);
   pbbslib::free_array(edgePts);
-  pbbslib::free_array(compressionStarts);
   std::cout << "finished compressing, bytes used = " << totalSpace << "\n";
   std::cout << "would have been, " << (m * 4) << "\n";
   return ((uintE*)finalArr);
@@ -999,13 +998,14 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
   auto bytes_used = pbbslib::new_array_no_init<size_t>(n + 1);
+  auto bytes_seq = pbbslib::make_sequence<size_t>(bytes_used, n+1);
 
   par_for(0, n, [&] (size_t i) {
     bytes_used[i] = compute_size_in_bytes(edges + offsets[i], i, Degrees[i]);
   });
   bytes_used[n] = 0;
-  size_t total_bytes =
-      ligra_utils::seq::plusScan(bytes_used, bytes_used, n + 1);
+  size_t total_bytes = pbbslib::scan_inplace(bytes_used, pbbslib::addm<size_t>());
+
   uchar* edges_c = pbbslib::new_array_no_init<uchar>(total_bytes);
 
   par_for(0, n, [&] (size_t i) {
@@ -1015,16 +1015,6 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
 
   float avgBitsPerEdge = (float)total_bytes * 8 / (float)m;
   std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
-
-  //  auto t = [] (const uintE& s, const uintE& n, const intE& wgh, const
-  //  size_t& num ) {
-  ////    std::cout << "s " << s << " n " << n << " w " << wgh << " num = " <<
-  /// num <<
-  /// "\n";
-  //    return true;
-  //  };
-  //  std::cout << "decoding 692, deg = " << Degrees[692] << "\n";
-  //  decode<intE>(t, edges_c + bytes_used[692], 692, Degrees[692], false);
 
   size_t end = n+1;
   par_for(0, end, pbbslib::kSequentialForThreshold, [&] (size_t i)

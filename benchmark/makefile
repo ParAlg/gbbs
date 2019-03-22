@@ -19,7 +19,7 @@ INCLUDE_DIRS = -I../
 OPT = -O3
 
 CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = $(INCLUDE_DIRS) $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(CONCEPTS) $(JEMALLOC)
+CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC # $(JEMALLOC)
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -50,7 +50,7 @@ ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore KTruss 
 all: $(ALL)
 
 % : %.C
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< #$(JEMALLOC)
 
 .PHONY : clean
 

@@ -94,8 +94,14 @@ struct byte_decode {
 
   template <class T>
   static inline void decode(T t, uchar* edge_start, const uintE& source,
-                            const uintT& degree, const bool par = true) {
-    return encodings::byte::decode<W, T>(t, edge_start, source, degree, par);
+                            const uintT& degree) {
+    return encodings::byte::decode<W, T>(t, edge_start, source, degree);
+  }
+
+  template <class T>
+  static inline void decode_parallel(T t, uchar* edge_start, const uintE& source,
+                            const uintT& degree) {
+    return encodings::byte::decode<W, T>(t, edge_start, source, degree);
   }
 
   static inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start,
@@ -217,9 +223,14 @@ struct bytepd_amortized_decode {
 
   template <class T>
   static inline void decode(T t, uchar* edge_start, const uintE& source,
-                            const uintT& degree, const bool par = true) {
-    return encodings::bytepd_amortized::decode<W, T>(t, edge_start, source,
-                                                     degree, par);
+                            const uintT& degree) {
+    return encodings::bytepd_amortized::decode<W, T>(t, edge_start, source, degree);
+  }
+
+  template <class T>
+  static inline void decode_parallel(T t, uchar* edge_start, const uintE& source,
+                            const uintT& degree) {
+    return encodings::bytepd_amortized::decode_parallel<W, T>(t, edge_start, source, degree);
   }
 
   static inline size_t get_virtual_degree(uintE d, uchar* nghArr) {

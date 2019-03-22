@@ -46,7 +46,7 @@ namespace cvertex {
 
 template <class W, class C, class F, class G, class VS>
 inline void decodeNghsBreakEarly(uintE vtx_id, uintE d, uchar* nghArr, VS& vs,
-                                 F& f, G& g, bool parallel = false) {
+                                 F& f, G& g) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     if (vs.isIn(target)) {
@@ -55,7 +55,7 @@ inline void decodeNghsBreakEarly(uintE vtx_id, uintE d, uchar* nghArr, VS& vs,
     }
     return f.cond(src);
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  C::decode(T, nghArr, vtx_id, d);
 }
 
 template <class W, class C, class F, class G>
@@ -69,7 +69,11 @@ inline void decodeNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f, G& g,
     }
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  if (parallel) {
+    C::decode_parallel(T, nghArr, vtx_id, d);
+  } else {
+    C::decode(T, nghArr, vtx_id, d);
+  }
 }
 
 template <class W, class C, class F, class G, class H>
@@ -85,7 +89,11 @@ inline void decodeNghsSparse(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  if (parallel) {
+    C::decode_parallel(T, nghArr, vtx_id, d);
+  } else {
+    C::decode(T, nghArr, vtx_id, d);
+  }
 }
 
 template <class W, class C, class F, class G>
@@ -102,7 +110,7 @@ inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, false);
+  C::decode(T, nghArr, vtx_id, d);
   return k;
 }
 
@@ -131,19 +139,27 @@ inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
     f(src, target, weight);
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  if (parallel) {
+    C::decode_parallel(T, nghArr, vtx_id, d);
+  } else {
+    C::decode(T, nghArr, vtx_id, d);
+  }
 }
 
 template <class W, class C, class F, class G>
 inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
-                     G& g) {
+                     G& g, bool parallel=true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     auto val = f(src, target, weight);
     g(target, o + edgeNumber, val);
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d);
+  if (parallel) {
+    C::decode_parallel(T, nghArr, vtx_id, d);
+  } else {
+    C::decode(T, nghArr, vtx_id, d);
+  }
 }
 
 template <class W, class C, class F>
@@ -221,18 +237,15 @@ struct compressedSymmetricVertex {
   }
 
   template <class VS, class F, class G>
-  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
-                                    bool parallel = 0) {
+  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
-        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g, parallel);
+        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g);
   }
 
   template <class VS, class F, class G>
-  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
-                                     bool parallel = 0) {
-    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(vtx_id, getOutDegree(),
-                                                  getOutNeighbors(),
-                                                  vertexSubset, f, g, parallel);
+  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g) {
+    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
+        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, f, g);
   }
 
   template <class F, class G>
@@ -452,18 +465,15 @@ struct compressedAsymmetricVertex {
   }
 
   template <class VS, class F, class G>
-  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
-                                    bool parallel = 0) {
+  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
-        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g, parallel);
+        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g);
   }
 
   template <class VS, class F, class G>
-  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
-                                     bool parallel = 0) {
-    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(vtx_id, getOutDegree(),
-                                                  getOutNeighbors(),
-                                                  vertexSubset, f, g, parallel);
+  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g) {
+    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
+        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, f, g);
   }
 
   template <class F, class G>

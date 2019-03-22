@@ -92,32 +92,38 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
-  size_t granularity = (fl & fine_parallel) ? 1 : std::numeric_limits<size_t>::max();
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_gen<data>(next);
     timer t; t.start();
-    par_for(0, n, [&] (size_t v) {
+//    pbbs::sliced_for(n, (fl & fine_parallel) ? 1 : 2048, [&] (size_t block, size_t s, size_t e) {
+//      for (size_t v=s; v<e; v++) {
+//        std::get<0>(next[v]) = 0;
+//        if (f.cond(v)) {
+//          (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g) :
+//                            G[v].decodeInNghBreakEarly(v, vertexSubset, f, g);
+//        }
+//      }
+//    });
+    par_for(0, n, (fl & fine_parallel) ? 1 : 2048, [&] (size_t v) {
       std::get<0>(next[v]) = 0;
       if (f.cond(v)) {
-        (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g,
-                                                      fl & dense_parallel)
-                        : G[v].decodeInNghBreakEarly(v, vertexSubset, f, g,
-                                                     fl & dense_parallel);
+        (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g) :
+                          G[v].decodeInNghBreakEarly(v, vertexSubset, f, g);
       }
-    }, true /* parallel */, granularity /* granularity */);
+    });
     t.stop(); debug(t.reportTotal("dense loop"););
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_nooutput_gen<data>();
-    par_for(0, n, [&] (size_t v) {
+    timer t; t.start();
+    par_for(0, n, (fl & fine_parallel) ? 1 : 2048, [&] (size_t v) {
       if (f.cond(v)) {
-        (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g,
-                                                      fl & dense_parallel)
-                        : G[v].decodeInNghBreakEarly(v, vertexSubset, f, g,
-                                                     fl & dense_parallel);
+        (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g) :
+                          G[v].decodeInNghBreakEarly(v, vertexSubset, f, g);
       }
-    }, true /* parallel */, granularity /* granularity */);
+    });
+    t.stop(); t.reportTotal("back dense time");
     return vertexSubsetData<data>(n);
   }
 }
@@ -172,7 +178,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
     outEdges = pbbslib::new_array_no_init<S>(outEdgeCount);
     auto g = get_emsparse_gen_full<data>(outEdges);
     auto h = get_emsparse_gen_empty<data>(outEdges);
-    par_for(0, m, [&] (size_t i) {
+    par_for(0, m, 1, [&] (size_t i) {
       uintT v = indices.vtx(i);
       uintT o = offsets[i];
       vertex vert = frontier_vertices[i];
@@ -192,7 +198,7 @@ inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
 
   auto g = get_emsparse_nooutput_gen<data>();
   auto h = get_emsparse_nooutput_gen_empty<data>();
-  par_for(0, m, [&] (size_t i) {
+  par_for(0, m, 1, [&] (size_t i) {
     uintT v = indices.vtx(i);
     vertex vert = frontier_vertices[i];
     (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h)
@@ -246,7 +252,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 
   // 1. Compute the number of blocks each vertex gets subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
-  par_for(0, indices.size(), [&] (size_t i)
+  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
       { vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs);
@@ -254,11 +260,11 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan.
-  par_for(0, indices.size(), 200, [&] (size_t i) {
+  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
     size_t vtx_off = vertex_offs[i];
     size_t num_blocks = vertex_offs[i + 1] - vtx_off;
     size_t degree = degree_imap[i];
-    par_for(0, num_blocks, 1000, [&] (size_t j) {
+    par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&] (size_t j) {
       size_t block_deg =
           std::min((j + 1) * kEMBlockSize, degree) - j * kEMBlockSize;
       blocks[vtx_off + j] = block(i, j);
@@ -269,7 +275,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  size_t n_threads = nblocks(outEdgeCount, kEMBlockSize);
+  size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
   size_t* thread_offs = pbbslib::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   par_for(0, n_threads, 1, [&] (size_t i) {
@@ -358,7 +364,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan.
-  par_for(0, indices.size(), [&] (size_t i) { degrees[i] = degree_imap[i]; });
+  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) { degrees[i] = degree_imap[i]; });
   pbbslib::scan_add_inplace(degrees, pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
 
@@ -482,7 +488,7 @@ inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
   vertex* G = GA.V;
   size_t n = GA.n;
   auto space = sequence<uintT>(n);
-  par_for(0, n, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     space[i] = G[i].calculateOutTemporarySpace();
   });
   size_t total_space = pbbslib::scan_add_inplace(space);
@@ -492,7 +498,7 @@ inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
     std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
     G[i].packOutNgh(i, p, tmp_v);
   };
-  par_for(0, n, [&] (size_t i) { for_inner(i); });
+  par_for(0, n, 1, [&] (size_t i) { for_inner(i); });
 }
 
 
@@ -793,50 +799,63 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
-    size_t rounds = P.getOptionLongValue("-rounds", 3);                          \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
-        if (weighted) {                                                        \
-          auto G = readCompressedGraph<csv_bytepd_amortized, intE>(            \
-              iFile, symmetric, mmap, mmapcopy);                               \
-          run_app(G, APP, rounds)                                              \
-        } else {                                                               \
-          auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(     \
-              iFile, symmetric, mmap, mmapcopy);                               \
-          run_app(G, APP, rounds)                                              \
-        }                                                                      \
+        auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(    \
+            iFile, symmetric, mmap, mmapcopy);                                 \
+        run_app(G, APP, rounds)                                                \
       } else {                                                                 \
-        if (weighted) {                                                        \
-          auto G = readCompressedGraph<cav_bytepd_amortized, intE>(            \
-              iFile, symmetric, mmap, mmapcopy);                               \
-          run_app(G, APP, rounds)                                              \
-        } else {                                                               \
-          auto G = readCompressedGraph<cav_bytepd_amortized, pbbslib::empty>(     \
-              iFile, symmetric, mmap, mmapcopy);                               \
-          run_app(G, APP, rounds)                                              \
-        }                                                                      \
+        auto G = readCompressedGraph<cav_bytepd_amortized, pbbslib::empty>(    \
+            iFile, symmetric, mmap, mmapcopy);                                 \
+        run_app(G, APP, rounds)                                                \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
-        if (weighted) {                                                        \
-          auto G = readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
-          run_app(G, APP, rounds)                                              \
-        } else {                                                               \
-          auto G =                                                             \
-              readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);    \
-          run_app(G, APP, rounds)                                              \
-        }                                                                      \
+        auto G =                                                               \
+            readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);      \
+        run_app(G, APP, rounds)                                                \
       } else {                                                                 \
-        if (weighted) {                                                        \
-          auto G =                                                             \
-              readWeightedGraph<asymmetricVertex>(iFile, symmetric, mmap);     \
-          run_app(G, APP, rounds)                                              \
-        } else {                                                               \
-          auto G =                                                             \
-              readUnweightedGraph<asymmetricVertex>(iFile, symmetric, mmap);   \
-          run_app(G, APP, rounds)                                              \
-        }                                                                      \
+        auto G =                                                               \
+            readUnweightedGraph<asymmetricVertex>(iFile, symmetric, mmap);     \
+        run_app(G, APP, rounds)                                                \
+      }                                                                        \
+    }                                                                          \
+  }
+
+#define generate_weighted_main(APP, mutates)                                   \
+  int main(int argc, char* argv[]) {                                           \
+    commandLine P(argc, argv, " [-s] <inFile>");                               \
+    char* iFile = P.getArgument(0);                                            \
+    bool symmetric = P.getOptionValue("-s");                                   \
+    bool compressed = P.getOptionValue("-c");                                  \
+    bool weighted = P.getOptionValue("-w");                                    \
+    assert(weighted == true);                                                  \
+    bool mmap = P.getOptionValue("-m");                                        \
+    bool mmapcopy = mutates;                                                   \
+    std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
+    pcm_init();                                                                \
+    if (compressed) {                                                          \
+      if (symmetric) {                                                         \
+        auto G = readCompressedGraph<csv_bytepd_amortized, intE>(              \
+            iFile, symmetric, mmap, mmapcopy);                                 \
+        run_app(G, APP, rounds)                                                \
+      } else {                                                                 \
+        auto G = readCompressedGraph<cav_bytepd_amortized, intE>(              \
+            iFile, symmetric, mmap, mmapcopy);                                 \
+        run_app(G, APP, rounds)                                                \
+      }                                                                        \
+    } else {                                                                   \
+      if (symmetric) {                                                         \
+        auto G =                                                               \
+            readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap);        \
+        run_app(G, APP, rounds)                                                \
+      } else {                                                                 \
+        auto G =                                                               \
+            readweightedGraph<asymmetricVertex>(iFile, symmetric, mmap);       \
+        run_app(G, APP, rounds)                                                \
       }                                                                        \
     }                                                                          \
   }

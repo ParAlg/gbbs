@@ -34,7 +34,6 @@
 #include <type_traits>
 
 #include "macros.h"
-#include "oldlib/utils.h"
 
 namespace encodings {
 namespace byte {
@@ -117,7 +116,7 @@ inline uintE eatEdge(uchar*& start) {
 
 template <class W, class T>
 inline void decode(T t, uchar* edgeStart, const uintE& source,
-                   const uintT& degree, const bool par = true) {
+                   const uintT& degree) {
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edgeStart, source);
     W wgh = eatWeight<W>(edgeStart);

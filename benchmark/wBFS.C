@@ -51,4 +51,4 @@ void wBFS_runner(graph<vertex>& GA, commandLine P) {
   wBFS(GA, src, num_buckets, largemem, no_blocked);
 }
 
-generate_main(wBFS_runner, false);
+generate_weighted_main(wBFS_runner, false);

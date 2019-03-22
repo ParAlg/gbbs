@@ -30,7 +30,6 @@
 #include "pbbslib/sparse_table.h"
 #include "pbbslib/speculative_for.h"
 #include "ligra.h"
-#include "oldlib/benchIO.h"
 
 namespace bc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
