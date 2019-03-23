@@ -318,13 +318,15 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     }
 
     auto centers_2 = centers;
-    auto in_f = vertexSubset(n, centers.size(), centers.to_array());
+    size_t centers_size = centers.size();
+    auto in_f = vertexSubset(n, centers_size, centers.to_array());
     auto in_table =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
     std::cout << "Finished in search"
               << "\n";
 
-    auto out_f = vertexSubset(n, centers_2.size(), centers_2.to_array());
+    size_t centers_2_size = centers_2.size();
+    auto out_f = vertexSubset(n, centers_2_size, centers_2.to_array());
     auto out_table = multi_search(GA, labels, bits, out_f, cur_label_offset);
     std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
               << "\n";
