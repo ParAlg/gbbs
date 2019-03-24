@@ -309,10 +309,8 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
     });
     pbbslib::free_array(offsets);
 
-    cout << "about to integer sort my man" << endl;
     auto temp_seq = pbbslib::make_sequence(temp, m);
     pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbs::log2_up(n));
-    cout << "integer sorted" << endl;
 
     tOffsets[temp[0].first] = 0;
     uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
@@ -328,7 +326,6 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
 
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
-    cout << "scan I back " << endl;
     auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
     auto M = pbbslib::minm<uintT>();
     M.identity = m;
@@ -343,7 +340,6 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
 
     pbbslib::free_array(tOffsets);
 
-    cout << "returning the graph " << endl;
     return graph<wvtx>(
         v, n, m, get_deletion_fn(v, inEdges, edges),
         get_copy_fn(v, (std::tuple<uintE, pbbslib::empty>*)inEdges,

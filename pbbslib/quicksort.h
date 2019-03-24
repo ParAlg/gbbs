@@ -125,6 +125,10 @@ namespace pbbs {
     }
   }
 
+  template <class Range, class BinPred>
+  void quicksort(Range A, const BinPred& f) {
+    quicksort(A.begin(), A.size(), f);}
+
   //// Fully Parallel version below here
  
   template <class SeqA, class BinPred>

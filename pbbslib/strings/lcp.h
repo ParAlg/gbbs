@@ -7,7 +7,7 @@ namespace pbbs {
 
   //  The suffix array SA are indices into the string s
   template <class T, class Uint>
-  sequence<Uint> LCP(sequence<T> const &s, sequence<Uint> const &SA) {
+  sequence<Uint> lcp(sequence<T> const &s, sequence<Uint> const &SA) {
     timer t("LCP", false);
     timer t2("LCP total", false);
     size_t len = 111;

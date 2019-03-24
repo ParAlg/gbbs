@@ -188,7 +188,7 @@ namespace pbbs {
     //t.next("send to buckets");
     
     // note that this is cache line alligned
-    sequence<s_size_t> counts(m, 0);
+    sequence<s_size_t> counts(m, (s_size_t) 0);
     
     // now sequentially process each bucket
     auto bucket_f = [&] (size_t i) {
