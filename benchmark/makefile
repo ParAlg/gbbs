@@ -16,10 +16,9 @@ endif
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../
 
-OPT = -O3
+OPT = -O3 -g
 
-CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC # $(JEMALLOC)
+CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -50,7 +49,7 @@ ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore KTruss 
 all: $(ALL)
 
 % : %.C
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< #$(JEMALLOC)
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean
 

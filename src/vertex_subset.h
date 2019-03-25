@@ -81,7 +81,7 @@ struct vertexSubsetData {
   }
 
   // Dense
-  inline bool isIn(const uintE& v) const { return std::get<0>(d[v]); }
+ __attribute__((always_inline)) inline bool isIn(const uintE& v) const { return std::get<0>(d[v]); }
   inline data& ithData(const uintE& v) const { return std::get<1>(d[v]); }
 
   // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
@@ -228,7 +228,7 @@ struct vertexSubsetData<pbbslib::empty> {
   }
 
   // Dense
-  inline bool isIn(const uintE& v) const { return d[v]; }
+ __attribute__((always_inline)) inline bool isIn(const uintE& v) const { return d[v]; }
   inline pbbslib::empty ithData(const uintE& v) const { return pbbslib::empty(); }
 
   // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.

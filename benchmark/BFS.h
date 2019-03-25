@@ -55,7 +55,7 @@ inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
-        edgeMap(GA, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked);
+        edgeMap(GA, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
   }

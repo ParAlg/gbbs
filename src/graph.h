@@ -273,11 +273,11 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       if (pred(u, v, w)) {
         size_t bytes = 0;
         if (deg == 0) {
-          bytes = encodings::byte::compressFirstEdge(tmp, bytes, u, v);
-          bytes = encodings::byte::compressWeight<W>(tmp, bytes, w);
+          bytes = byte::compressFirstEdge(tmp, bytes, u, v);
+          bytes = byte::compressWeight<W>(tmp, bytes, w);
         } else {
-          bytes = encodings::byte::compressEdge(tmp, bytes, v - last_ngh);
-          bytes = encodings::byte::compressWeight<W>(tmp, bytes, w);
+          bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
+          bytes = byte::compressWeight<W>(tmp, bytes, w);
         }
         last_ngh = v;
         total_bytes += bytes;
@@ -306,7 +306,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
       auto iter = V[i].getOutIter(i);
       auto f_it =
           pbbslib::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
-      size_t nbytes = encodings::byte::sequentialCompressEdgeSet<W>(
+      size_t nbytes = byte::sequentialCompressEdgeSet<W>(
           edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
         std::cout << "degree is: " << new_deg << " nbytes should be: "

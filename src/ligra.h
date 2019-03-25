@@ -88,42 +88,30 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
-  debug(std::cout << "dense" << std::endl;);
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_gen<data>(next);
-    timer t; t.start();
-//    pbbs::sliced_for(n, (fl & fine_parallel) ? 1 : 2048, [&] (size_t block, size_t s, size_t e) {
-//      for (size_t v=s; v<e; v++) {
-//        std::get<0>(next[v]) = 0;
-//        if (f.cond(v)) {
-//          (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g) :
-//                            G[v].decodeInNghBreakEarly(v, vertexSubset, f, g);
-//        }
-//      }
-//    });
-    par_for(0, n, (fl & fine_parallel) ? 1 : 2048, [&] (size_t v) {
+    parallel_for(0, n, [&] (size_t v) {
       std::get<0>(next[v]) = 0;
-      if (f.cond(v)) {
-        (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g) :
-                          G[v].decodeInNghBreakEarly(v, vertexSubset, f, g);
+       if (f.cond(v)) {
+       (fl & in_edges) ?
+          G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel) :
+          G[v].decodeInNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel);
       }
-    });
-    t.stop(); debug(t.reportTotal("dense loop"););
+    }, (fl & fine_parallel) ? 1 : 2048);
     return vertexSubsetData<data>(n, next);
   } else {
     auto g = get_emdense_nooutput_gen<data>();
-    timer t; t.start();
-    par_for(0, n, (fl & fine_parallel) ? 1 : 2048, [&] (size_t v) {
-      if (f.cond(v)) {
-        (fl & in_edges) ? G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g) :
-                          G[v].decodeInNghBreakEarly(v, vertexSubset, f, g);
+    parallel_for(0, n, [&] (size_t v) {
+       if (f.cond(v)) {
+       (fl & in_edges) ?
+         G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel) :
+         G[v].decodeInNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel);
       }
-    });
-    t.stop(); t.reportTotal("back dense time");
+    }, (fl & fine_parallel) ? 1 : 2048);
     return vertexSubsetData<data>(n);
   }
 }

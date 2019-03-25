@@ -166,12 +166,21 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
       if (!f.cond(vtx_id)) break;
     }
   } else {
-    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
-      auto nw = nghs[j];
-      uintE ngh = std::get<0>(nw);
-      if (vertexSubset.isIn(ngh)) {
-        auto m = f.updateAtomic(ngh, vtx_id, std::get<1>(nw));
-        g(vtx_id, m);
+    size_t b_size = 2048;
+    size_t n_blocks = d/b_size + 1;
+    par_for(0, n_blocks, 1, [&] (size_t b) {
+      if (f.cond(vtx_id)) {
+       size_t start = b*b_size;
+       size_t end = std::min((b+1)*b_size, static_cast<size_t>(d));
+       for (size_t j=start; j<end; j++) {
+         if (!f.cond(vtx_id)) break;
+         auto nw = nghs[j];
+         uintE ngh = std::get<0>(nw);
+         if (vertexSubset.isIn(ngh)) {
+           auto m = f.updateAtomic(ngh, vtx_id, std::get<1>(nw));
+           g(vtx_id, m);
+         }
+       }
       }
     });
   }

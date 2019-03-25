@@ -38,7 +38,6 @@
 
 #include "macros.h"
 
-namespace encodings {
 namespace bytepd {
 
 template <class W>
@@ -1025,4 +1024,3 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
 }
 
 };  // namespace bytepd
-}  // namespace encodings

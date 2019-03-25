@@ -568,7 +568,7 @@ inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
     xors[i] = G.V[i].reduceOutNgh(i, (uintE)0, map_f, reduce_f);
   });
   uintE xors_sum = pbbslib::reduce_xor(xors);
-  assert(xors_sum == 0) << "Input graph is not undirected---exiting.";
+  // assert(xors_sum == 0) << "Input graph is not undirected---exiting.";
 
   return G;
 }

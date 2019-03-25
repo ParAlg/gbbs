@@ -35,7 +35,6 @@
 
 #include "macros.h"
 
-namespace encodings {
 namespace byte {
 
 inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
@@ -401,4 +400,3 @@ size_t intersect_f(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
 }
 
 };  // namespace byte
-}  // namespace encodings
