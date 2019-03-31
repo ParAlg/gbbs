@@ -6,8 +6,9 @@
 namespace pbbs {
 
   //  The suffix array SA are indices into the string s
-  template <class T, class Uint>
-  sequence<Uint> lcp(sequence<T> const &s, sequence<Uint> const &SA) {
+  template <class Seq1, class Seq2>
+  auto lcp(Seq1 const &s, Seq2 const &SA) -> sequence<typename Seq2::value_type> {
+    using Uint = typename Seq2::value_type;
     timer t("LCP", false);
     timer t2("LCP total", false);
     size_t len = 111;

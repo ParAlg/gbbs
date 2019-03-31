@@ -65,8 +65,11 @@ namespace pbbs {
     auto get_pos = delayed_seq<size_t>(n, rand_pos);
 
     // first randomly sorts based on random values [0,num_buckets)
-    sequence<size_t> bucket_offsets = count_sort(In, Out, get_pos, num_buckets);
-    
+    sequence<size_t> bucket_offsets;
+    bool single;
+    std::tie(bucket_offsets, single)
+      = count_sort(In, Out, get_pos, num_buckets);
+
     // now sequentially randomly shuffle within each bucket
     auto bucket_f = [&] (size_t i) {
       size_t start = bucket_offsets[i];

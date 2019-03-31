@@ -12,6 +12,7 @@
 #include "bag.h"
 #include "hash_table.h"
 #include "sparse_mat_vec_mult.h"
+#include "stlalgs.h"
 #include "sequence_ops.h"
 #include "monoid.h"
 #include "range_min.h"
@@ -30,36 +31,14 @@ using uchar = unsigned char;
   double _var = bt.stop();
 
 template<typename T>
-double t_tabulate(size_t n) {
+double t_tabulate(size_t n, bool check) {
   auto f = [] (size_t i) {return i;};
   time(t, pbbs::sequence<T>(n, f););
   return t;
 }
 
-// template<typename T>
-// double t_map(size_t n) {
-//   size_t l = 1 << 14;
-//   size_t ll = 1 << 10;
-//   sequence<T> In(l*l, (T) 1);
-//   sequence<T> Out(l*l, (T) 1);
-//   auto f = [&] (size_t i) {
-//     size_t r = ll*(i/16);
-//     size_t c = ll*(i%16);
-//     for (size_t j=r+1; j < r + ll -1; j++) {
-//       for (size_t k=c+1; k < c+ ll -1; k++) {
-// 	Out[j + k*l] = In[j + k*l - 1 - ll] + In[j + k*l - ll] + In[j + k*l + 1 - ll] +
-// 	  In[j + k*l - 1] + In[j + k*l] + In[j + k*l + 1] +
-// 	  In[j + k*l - 1 + ll] + In[j + k*l + ll] + In[j + k*l + 1 + ll];
-//       }
-//     }
-//   };
-//   time(t, parallel_for(0, 256, f););
-//   return t;
-// }
-
-
 template<typename T>
-double t_map(size_t n) {
+double t_map(size_t n, bool check) {
   pbbs::sequence<T> In(n, (T) 1);
   auto f = [&] (size_t i) {return In[i];};
   time(t, pbbs::sequence<T>(n, f));
@@ -67,7 +46,7 @@ double t_map(size_t n) {
 }
 
 template<typename T>
-double t_reduce_add(size_t n) {
+double t_reduce_add(size_t n, bool check) {
   pbbs::sequence<T> S(n, (T) 1);
   //time(t, sum(S.begin(), S.size()););
   //time(t, pbbs::reduce_add(S););
@@ -75,7 +54,7 @@ double t_reduce_add(size_t n) {
   return t;
 }
 
-double t_map_reduce_128(size_t n) {
+double t_map_reduce_128(size_t n, bool check) {
   int stride = 16;
   pbbs::sequence<size_t> S(n*stride, (size_t) 1);
   auto get = [&] (size_t i) {
@@ -88,7 +67,7 @@ double t_map_reduce_128(size_t n) {
 }
 
 template<typename T>
-double t_scan_add(size_t n) {
+double t_scan_add(size_t n, bool check) {
   pbbs::sequence<T> In(n, (T) 1);
   pbbs::sequence<T> Out;
   T sum;
@@ -97,7 +76,7 @@ double t_scan_add(size_t n) {
 }
 
 template<typename T>
-double t_scan_add_seq(size_t n) {
+double t_scan_add_seq(size_t n, bool check) {
   pbbs::sequence<T> In(n, (T) 1);
   pbbs::sequence<T> Out(n, (T) 0);
   time(t,
@@ -110,7 +89,7 @@ double t_scan_add_seq(size_t n) {
 }
 
 template<typename T>
-double t_pack(size_t n) {
+double t_pack(size_t n, bool check) {
   pbbs::sequence<bool> flags(n, [] (size_t i) -> bool {return i%2;});
   pbbs::sequence<T> In(n, [] (size_t i) -> T {return i;});
   time(t, pbbs::pack(In, flags););
@@ -118,7 +97,7 @@ double t_pack(size_t n) {
 }
 
 template<typename T>
-double t_split3_old(size_t n) {
+double t_split3_old(size_t n, bool check) {
   pbbs::sequence<uchar> flags(n, [] (size_t i) -> uchar {return i%3;});
   pbbs::sequence<T> In(n, [] (size_t i) -> T {return i;});
   pbbs::sequence<T> Out(n, (T) 0);
@@ -127,7 +106,7 @@ double t_split3_old(size_t n) {
 }
 
 template<typename T>
-double t_split3(size_t n) {
+double t_split3(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> In(n, [&] (size_t i) {return r.ith_rand(i);});
   pbbs::sequence<T> Out(n, (T) 0);
@@ -136,7 +115,7 @@ double t_split3(size_t n) {
 }
 
 template<typename T>
-double t_partition(size_t n) {
+double t_partition(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> In(n, [&] (size_t i) -> size_t {return r.ith_rand(i)%n;});
   pbbs::sequence<T> Out;
@@ -148,7 +127,7 @@ double t_partition(size_t n) {
 
 #if defined(CILK)
 #include "reducer.h"
-double t_histogram_reducer(size_t n) {
+double t_histogram_reducer(size_t n, bool check) {
   pbbs::random r(0);
   constexpr int count = 1024;
   histogram_reducer<int,count> red;
@@ -160,13 +139,13 @@ double t_histogram_reducer(size_t n) {
   return t;
 }
 #else
-double t_histogram_reducer(size_t n) {
+double t_histogram_reducer(size_t n, bool check) {
   return 1.0;
 }
 #endif
 
 template<typename T>
-double t_gather(size_t n) {
+double t_gather(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> in(n, [&] (size_t i) {return i;});
   pbbs::sequence<T> idx(n, [&] (size_t i) {return r.ith_rand(i)%n;});
@@ -180,7 +159,7 @@ double t_gather(size_t n) {
 }
 
 template<typename T>
-double t_scatter(size_t n) {
+double t_scatter(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> out(n, (T) 0);
   pbbs::sequence<T> idx(n, [&] (size_t i) {return r.ith_rand(i)%n;});
@@ -193,7 +172,7 @@ double t_scatter(size_t n) {
 }
 
 template<typename T>
-double t_write_add(size_t n) {
+double t_write_add(size_t n, bool check) {
   pbbs::random r(0);
   //pbbs::sequence<T> out(n, (T) 0);
   pbbs::sequence<std::atomic<T>> out(n);
@@ -209,7 +188,7 @@ double t_write_add(size_t n) {
 }
 
 template<typename T>
-double t_write_min(size_t n) {
+double t_write_min(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<std::atomic<T>> out(n);
   parallel_for(0,n,[&] (size_t i) {std::atomic_init(&out[i], (T) n);});
@@ -224,66 +203,99 @@ double t_write_min(size_t n) {
 }
 
 template<typename T>
-double t_shuffle(size_t n) {
+double t_shuffle(size_t n, bool check) {
   pbbs::sequence<T> in(n, [&] (size_t i) {return i;});
-  time(t, pbbs::random_shuffle(in,n););
+  time(t, pbbs::random_shuffle(in, n););
   return t;
 }
 
 template<typename T>
-double t_histogram(size_t n) {
+bool check_histogram(pbbs::sequence<T> const &in, pbbs::sequence<T> const &out) {
+  size_t m = out.size();
+  auto a = sort(in, std::less<T>());
+  auto b = get_counts(a, [&] (T a) {return a;}, m);
+  size_t err_loc = pbbs::find_if_index(m, [&] (size_t i) {return out[i] != b[i];});
+  if (err_loc != m) {
+    cout << "ERROR in histogram at location "
+	 << err_loc << ", got " << out[err_loc] << ", expected " << b[err_loc] << endl;
+    return false;
+  }
+  return true;
+}  
+
+template<typename T>
+double t_histogram(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%n;});
   pbbs::sequence<T> out;
-  time(t, out = pbbs::histogram<T>(in,n););
+  time(t, out = pbbs::histogram<T>(in, n););
+  if (check) check_histogram(in, out);
   return t;
 }
 
 template<typename T>
-double t_histogram_few(size_t n) {
+double t_histogram_few(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%256;});
   pbbs::sequence<T> out;
-  time(t, out = pbbs::histogram<T>(in,256););
+  time(t, out = pbbs::histogram<T>(in, 256););
+  if (check) check_histogram(in, out);
   return t;
 }
 
 template<typename T>
-double t_histogram_same(size_t n) {
+double t_histogram_same(size_t n, bool check) {
   pbbs::sequence<T> in(n, (T) 10311);
   pbbs::sequence<T> out;
-  time(t, out = pbbs::histogram<T>(in,n););
+  time(t, out = pbbs::histogram<T>(in, n););
+  if (check) check_histogram(in, out);
   return t;
 }
 
+// this checks against a given sort
+template<typename T, typename Cmp>
+bool check_sort(pbbs::sequence<T> const &in, pbbs::sequence<T> const &out,
+		Cmp less, std::string sort_name) {
+  size_t n = in.size();
+  auto a = pbbs::merge_sort(in, std::less<T>());
+  size_t err_loc = pbbs::find_if_index(n, [&] (size_t i) {
+      return less(a[i],out[i]) || less(out[i],a[i]);});
+  if (err_loc != n) {
+    cout << "ERROR in " << sort_name << " at location " << err_loc << endl;
+    return false;
+  }
+  return true;
+}  
+
 template<typename T>
-double t_sort(size_t n) {
+double t_sort(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%n;});
   pbbs::sequence<T> out;
   time(t, out = pbbs::sample_sort(in, std::less<T>()););
-  //for (size_t i = 1; i < n; i++)
-  //  if (std::less<T>()(in[i],in[i-1])) {cout << i << endl; abort();}
+  if (check) check_sort(in, out, std::less<T>(), "sample sort");
   return t;
 }
 
+// no check since it is used for the sort for checking, and hence
+// checked against the other sorts
 template<typename T>
-double t_merge_sort(size_t n) {
+double t_merge_sort(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%n;});
+  pbbs::sequence<T> out;
   time(t, pbbs::merge_sort_inplace(in.slice(), std::less<T>()););
-  //for (size_t i = 1; i < n; i++)
-  //  if (std::less<T>()(in[i],in[i-1])) {cout << i << endl; abort();}
   return t;
 }
 
 template<typename T>
-double t_quicksort(size_t n) {
+double t_quicksort(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i)%n;});
+  pbbs::sequence<T> copy;
+  if (check) copy = in;
   time(t, pbbs::p_quicksort_inplace(in.slice(), std::less<T>()););
-  //for (size_t i = 1; i < n; i++)
-  //  if (std::less<T>()(in[i],in[i-1])) {cout << i << endl; abort();}
+  if (check) check_sort(copy, in, std::less<T>(), "quicksort");
   return t;
 }
 
@@ -299,7 +311,7 @@ double t_count_sort_bits(size_t n, size_t bits) {
   time(t, pbbs::count_sort(in, out.slice(), keys, num_buckets););
   for (size_t i=1; i < n; i++) {
     if ((out[i-1] & mask) > (out[i] & mask)) {
-      cout << "error in count sort at: " << i << endl;
+      cout << "ERROR in count sort at: " << i << endl;
       abort();
     }
   }
@@ -307,73 +319,78 @@ double t_count_sort_bits(size_t n, size_t bits) {
 }
 
 template<typename T>
-double t_count_sort_8(size_t n) {return t_count_sort_bits<T>(n, 8);}
+double t_count_sort_8(size_t n, bool check) {return t_count_sort_bits<T>(n, 8);}
 
 template<typename T>
-double t_count_sort_2(size_t n) {return t_count_sort_bits<T>(n, 2);}
+double t_count_sort_2(size_t n, bool check) {return t_count_sort_bits<T>(n, 2);}
 
 template<typename T>
-double t_collect_reduce_pair_dense(size_t n) {
+double t_collect_reduce_pair_dense(size_t n, bool check) {
   using par = std::pair<T,T>;
   pbbs::random r(0);
   pbbs::sequence<par> S(n, [&] (size_t i) -> par {
       return par(r.ith_rand(i) % n, 1);});
-  auto get_index = [] (par e) {return e.first;};
-  auto get_val = [] (par e) {return e.second;};
-  time(t, pbbs::collect_reduce<T>(S, n, get_index, get_val, pbbs::addm<T>()););
+  pbbs::sequence<T> out;
+  time(t, out = pbbs::collect_reduce(S, pbbs::addm<T>(), n););
+  if (check)
+    check_histogram(pbbs::sequence<T>(n, [&] (size_t i) {return S[i].first;}),
+		    out);
   return t;
 }
 
 template<typename T>
-double t_collect_reduce_pair_sparse(size_t n) {
+double t_collect_reduce_pair_sparse(size_t n, bool check) {
   using par = std::pair<T,T>;
   pbbs::random r(0);
-  pbbs::sequence<par> S(n, [&] (size_t i) -> par {
-      return par(r.ith_rand(i) % n, 1);});
-  time(t, pbbs::collect_reduce_pair(S, pbbs::addm<T>()););
-  return t;
-}
-
-template<typename T>
-double t_collect_reduce_8(size_t n) {
-  pbbs::random r(0);
-  size_t num_buckets = (1<<8);
-  size_t mask = num_buckets - 1;
-  pbbs::sequence<T> in(n, [&] (size_t i) {return r.ith_rand(i);});
-  auto bucket = [&] (size_t i) {return in[i] & mask;};
-  auto keys = pbbs::delayed_seq<unsigned char>(n, bucket);
-  time(t, pbbs::collect_reduce<T>(in, keys, num_buckets, pbbs::addm<T>()););
-  return t;
-}
-
-template<typename T>
-double t_collect_reduce_8_tuple(size_t n) {
-  pbbs::random r(0);
-  size_t num_buckets = (1<<8);
-  size_t mask = num_buckets - 1;
-  using sums = std::tuple<float,float,float,float>;
-
-  auto bucket = [&] (size_t i) -> uchar { return r.ith_rand(i) & mask; };
-  auto keys = pbbs::delayed_seq<unsigned char>(n, bucket);
-
-  auto sum = [] (sums a, sums b) -> sums {
-    return sums(std::get<0>(a)+std::get<0>(b), std::get<1>(a)+std::get<1>(b),
-		std::get<2>(a)+std::get<2>(b), std::get<3>(a)+std::get<3>(b));
+  struct hasheq {
+    static inline size_t hash(par a) {return pbbs::hash64_2(a.first);}
+    static inline bool eql(par a, par b) {return a.first == b.first;}
   };
-
-  pbbs::sequence<sums> in(n, [&] (size_t i) -> sums {
-      return sums(1.0,1.0,1.0,1.0);});
-
-  auto monoid = make_monoid(sum, sums(0.0,0.0,0.0,0.0));
-
-  time(t,
-       pbbs::collect_reduce<sums>(in, keys, num_buckets, monoid););
+  pbbs::sequence<par> S(n, [&] (size_t i) -> par {
+      return par(r.ith_rand(i) % n, 1);});
+  time(t, pbbs::collect_reduce_sparse(S, hasheq(), pbbs::addm<T>()););
   return t;
 }
 
+template<typename T>
+double t_collect_reduce_8(size_t n, bool check) {
+  using par = std::pair<T,T>;
+  pbbs::random r(0);
+  size_t num_buckets = (1<<8);
+  pbbs::sequence<par> S(n, [&] (size_t i) {
+      return par(r.ith_rand(i) % num_buckets, 1);});
+  time(t, pbbs::collect_reduce(S, pbbs::addm<T>(), num_buckets););
+  return t;
+}
+
+// template<typename T>
+// double t_collect_reduce_8_tuple(size_t n, bool check) {
+//   pbbs::random r(0);
+//   size_t num_buckets = (1<<8);
+//   size_t mask = num_buckets - 1;
+//   using sums = std::tuple<float,float,float,float>;
+
+//   auto bucket = [&] (size_t i) -> uchar { return r.ith_rand(i) & mask; };
+//   auto keys = pbbs::delayed_seq<unsigned char>(n, bucket);
+
+//   auto sum = [] (sums a, sums b) -> sums {
+//     return sums(std::get<0>(a)+std::get<0>(b), std::get<1>(a)+std::get<1>(b),
+// 		std::get<2>(a)+std::get<2>(b), std::get<3>(a)+std::get<3>(b));
+//   };
+
+//   pbbs::sequence<sums> in(n, [&] (size_t i) -> sums {
+//       return sums(1.0,1.0,1.0,1.0);});
+
+//   auto monoid = make_monoid(sum, sums(0.0,0.0,0.0,0.0));
+
+//   time(t,
+//        pbbs::collect_reduce<sums>(in, keys, num_buckets, monoid););
+//   return t;
+// }
+
 
 template<typename T>
-double t_integer_sort_pair(size_t n) {
+double t_integer_sort_pair(size_t n, bool check) {
   using par = std::pair<T,T>;
   pbbs::random r(0);
   size_t bits = sizeof(T)*8;
@@ -382,22 +399,28 @@ double t_integer_sort_pair(size_t n) {
   pbbs::sequence<par> R;
   auto first = [] (par a) {return a.first;};
   time(t, R = pbbs::integer_sort(S.slice(),first,bits););
+
+  auto less = [] (par a, par b) {return a.first < b.first;};
+  if (check) check_sort(S, R, less, "integer sort pair");
   return t;
 }
 
 template<typename T>
-double t_integer_sort(size_t n) {
+double t_integer_sort(size_t n, bool check) {
   pbbs::random r(0);
   size_t bits = sizeof(T)*8;
   pbbs::sequence<T> S(n, [&] (size_t i) -> T {
       return r.ith_rand(i);});
   auto identity = [] (T a) {return a;};
-  time(t, pbbs::integer_sort_inplace(S.slice(),identity,bits););
+  pbbs::sequence<T> R;
+  //time(t, pbbs::integer_sort_inplace(S.slice(),identity,bits););
+  time(t, R = pbbs::integer_sort(S, identity, bits););
+  if (check) check_sort(S, R, std::less<T>(), "integer sort");
   return t;
 }
 
 typedef unsigned __int128 long_int;
-double t_integer_sort_128(size_t n) {
+double t_integer_sort_128(size_t n, bool check) {
   pbbs::random r(0);
   size_t bits = 128;
   pbbs::sequence<long_int> S(n, [&] (size_t i) -> long_int {
@@ -408,7 +431,7 @@ double t_integer_sort_128(size_t n) {
 }
 
 template<typename T>
-double t_merge(size_t n) {
+double t_merge(size_t n, bool check) {
   pbbs::sequence<T> in1(n/2, [&] (size_t i) {return 2*i;});
   pbbs::sequence<T> in2(n-n/2, [&] (size_t i) {return 2*i+1;});
   pbbs::sequence<T> out;
@@ -417,7 +440,7 @@ double t_merge(size_t n) {
 }
 
 template<typename T>
-double t_remove_duplicates(size_t n) {
+double t_remove_duplicates(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<T> In(n, [&] (size_t i) -> T {return r.ith_rand(i) % n;});
   time(t, pbbs::remove_duplicates(In););
@@ -436,7 +459,7 @@ static T my_reduce(pbbs::sequence<T> const &s, size_t start, size_t end, F f) {
 }
 
 template<typename T>
-double t_bag(size_t n) {
+double t_bag(size_t n, bool check) {
   using TB = pbbs::bag<T>;
   TB::init();
   pbbs::sequence<TB> In(n, [&] (size_t i) -> TB {return TB((T) i);});
@@ -445,7 +468,7 @@ double t_bag(size_t n) {
 }
 
 template<typename s_size_t, typename T>
-double t_mat_vec_mult(size_t n) {
+double t_mat_vec_mult(size_t n, bool check) {
   pbbs::random r(0);
   size_t degree = 5;
   size_t m = degree*n;
@@ -464,7 +487,7 @@ double t_mat_vec_mult(size_t n) {
 }
 
 template<typename T>
-double t_range_min(size_t n) {
+double t_range_min(size_t n, bool check) {
   pbbs::sequence<T> In(n, [&] (size_t i) {return 5;});
   In[n/2] = 0;
   time(t,

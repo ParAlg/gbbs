@@ -20,7 +20,6 @@ size_t find_if_index(size_t n, IntegerPred p, size_t granularity=1000) {
   for (i = 0; i < std::min(granularity, n); i++)
     if (p(i)) return i;
   if (i == n) return n;
-  cout << "here" << endl;
   size_t start = granularity;
   while (start < n) {
     size_t end = std::min(n,start+granularity);

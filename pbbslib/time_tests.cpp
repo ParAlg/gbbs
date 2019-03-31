@@ -26,9 +26,10 @@ void report_time(double t, std::string name) {
 }
 
 template<typename F>
-std::vector<double> repeat(size_t n, size_t rounds, F test) {
+std::vector<double> repeat(size_t n, size_t rounds, bool check, F test) {
+  if (check) test(n, true);
   std::vector<double> R;
-  for (size_t i=0; i < rounds; i++) R.push_back(test(n));
+  for (size_t i=0; i < rounds; i++) R.push_back(test(n, false));
   return R;
 }
 
@@ -51,10 +52,12 @@ double sumf(double a, double b) {return a+ b;};
 double minf(double a, double b) {return (a < b) ? a : b;};
 double maxf(double a, double b) {return (a > b) ? a : b;};
 
+bool global_check = false;
+
 template<typename F>
 bool run_multiple(size_t n, size_t rounds, float bytes_per_elt,
 		  std::string name, F test, bool half_length=1, std::string x="bw") {
-  std::vector<double> t = repeat(n, rounds, test);
+  std::vector<double> t = repeat(n, rounds, global_check, test);
 
   double mint = reduce(t, minf);
   double maxt = reduce(t, maxf);
@@ -65,7 +68,7 @@ bool run_multiple(size_t n, size_t rounds, float bytes_per_elt,
   if (half_length)
     do {
       l = round(l * .8);
-      tt = reduce(repeat(l, rounds, test),minf);
+      tt = reduce(repeat(l, rounds, global_check, test),minf);
     } while (tt != 0.0 && l/tt > rate/2 && l > 1);
 
   double bandwidth = rate * bytes_per_elt / 1e9;
@@ -115,21 +118,21 @@ double pick_test(size_t id, size_t n, size_t rounds,
   case 10:
     return run_multiple(n,rounds,1,"random shuffle long", t_shuffle<long>, half_length, "Gelts/sec");
   case 11:
-    return run_multiple(n,rounds,1,"histogram int", t_histogram<int>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"histogram uint", t_histogram<uint>, half_length, "Gelts/sec");
   case 12:
-    return run_multiple(n,rounds,1,"histogram same int", t_histogram_same<int>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"histogram same uint", t_histogram_same<uint>, half_length, "Gelts/sec");
   case 13:
-    return run_multiple(n,rounds,1,"histogram few int", t_histogram_few<int>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"histogram few uint", t_histogram_few<uint>, half_length, "Gelts/sec");
   case 14:
-    return run_multiple(n,rounds,1,"integer sort<int,int>", t_integer_sort_pair<uint>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"integer sort<uint,uint>", t_integer_sort_pair<uint>, half_length, "Gelts/sec");
   case 15:
-    return run_multiple(n,rounds,1,"integer sort int", t_integer_sort<uint>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"integer sort uint", t_integer_sort<uint>, half_length, "Gelts/sec");
   case 16:
     return run_multiple(n,rounds,1,"integer sort 128 bits", t_integer_sort_128, half_length, "Gelts/sec");
   case 17:
     return run_multiple(n,rounds,1,"sort long", t_sort<long>, half_length, "Gelts/sec");
   case 18:
-    return run_multiple(n,rounds,1,"sort int", t_sort<int>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"sort uint", t_sort<uint>, half_length, "Gelts/sec");
   case 19:
     return run_multiple(n,rounds,1,"sort 128 bits", t_sort<__int128>, half_length, "Gelts/sec");
   case 20:
@@ -147,17 +150,17 @@ double pick_test(size_t id, size_t n, size_t rounds,
   case 26:
     return run_multiple(n,rounds,1,"quicksort long", t_quicksort<long>, half_length, "Gelts/sec");
   case 27:
-    return run_multiple(n,rounds,1,"collect reduce 8bit long", t_collect_reduce_8<long>, half_length,"Gelts/sec");
+    return run_multiple(n,rounds,1,"collect reduce 256 buckets uint", t_collect_reduce_8<uint>, half_length,"Gelts/sec");
   case 28:
     return run_multiple(n,rounds,ebytes(64,0),"strided read, 128 bytes", t_map_reduce_128, half_length);
   case 29:
-    return run_multiple(n,rounds,1,"collect reduce sparse uints", t_collect_reduce_pair_sparse<uint>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"collect reduce sparse uint", t_collect_reduce_pair_sparse<uint>, half_length, "Gelts/sec");
   case 30:
     return run_multiple(n,rounds,1,"remove duplicates", t_remove_duplicates<long>, half_length, "Gelts/sec");
   case 31:
     return run_multiple(n,rounds,1,"add to bag long", t_bag<long>, half_length, "Gelts/sec");
   case 32:
-    return run_multiple(n,rounds,1,"collect reduce dense uints", t_collect_reduce_pair_dense<uint>, half_length, "Gelts/sec");
+    return run_multiple(n,rounds,1,"collect reduce dense uint", t_collect_reduce_pair_dense<uint>, half_length, "Gelts/sec");
 
     // these are not part of standard suite
   case 50:
@@ -179,6 +182,7 @@ int main (int argc, char *argv[]) {
   int rounds = P.getOptionIntValue("-r", 5);
   int test_num = P.getOptionIntValue("-t", -1);
   bool half_length = P.getOption("-halflen");
+  global_check = P.getOption("-check");
   int num_tests = 33;
 
   cout << "n = " << n << endl;

@@ -42,7 +42,6 @@ namespace pbbs {
     using eType = typename HASH::eType;
     using kType = typename HASH::kType;
     size_t m;
-    //size_t mask;
     eType empty;
     HASH hashStruct;
     eType* TA;
@@ -58,7 +57,6 @@ namespace pbbs {
       eType e; notEmptyF(eType _e) : e(_e) {}
       int operator() (eType a) {return e != a;}};
 
-    //index hashToRange(index h) {return h & mask;}
     index hashToRange(index h) {return (int) h % (uint) m;}
     index firstIndex(kType v) {return hashToRange(hashStruct.hash(v));}
     index incrementIndex(index h) {return (h + 1 == (long) m) ? 0 : h+1;}
@@ -66,33 +64,15 @@ namespace pbbs {
     bool lessIndex(index a, index b) {return (a < b) ? (2*(b-a) < m) : (2*(a-b) > m);}
     bool lessEqIndex(index a, index b) {return a==b || lessIndex(a,b);}
 
-    // index hashToRange(index h) {return h & mask;}
-    // index firstIndex(kType v) {return hashToRange(hashStruct.hash(v));}
-    // index incrementIndex(index h) {return hashToRange(h+1);}
-    // index decrementIndex(index h) {return hashToRange(h-1);}
-    // bool lessIndex(index a, index b) {return 2 * hashToRange(a - b) > m;}
-    // bool lessEqIndex(index a, index b) {return a==b || 2 * hashToRange(a - b) > m;}
-
-
   public:
     // Size is the maximum number of values the hash table will hold.
     // Overfilling the table could put it into an infinite loop.
     Table(size_t size, HASH hashF, float load = 1.5) :
-      //m(((size_t) 1) << log2_up(100+(size_t)(_load*(float)size))),
       m(((size_t) 100.0 + load * size)),
-      //mask(m-1),
       empty(hashF.empty()),
       hashStruct(hashF),
       TA(new_array_no_init<eType>(m)) {
       clear(TA, m, empty); }
-
-    // Table(size_t size, HASH hashF) :
-    //   m(1 << log2_up(100+2*size)),
-    //   mask(m-1),
-    //   empty(hashF.empty()),
-    //   hashStruct(hashF),
-    //   TA(new_array_no_init<eType>(m))
-    // { clear(TA, m, empty); }
 
     ~Table() { delete_array(TA, m);};
 
@@ -277,11 +257,6 @@ namespace pbbs {
       return x;
     }
 
-    // needs to be in separate routine due to Cilk bugs
-    //void clear() {
-    //  parallel_for (size_t i=0; i < m; i++) TA[i] = empty;
-    //}
-
     // prints the current entries along with the index they are stored at
     void print() {
       cout << "vals = ";
@@ -294,25 +269,30 @@ namespace pbbs {
 
   template <class ET, class H>
   sequence<ET> remove_duplicates(sequence<ET> const &S, H const &hash, size_t m=0) {
+    timer t("remove duplicates", false);
     if (m==0) m = S.size();
-    Table<H> T(m, hash, 1.5);
-    auto f = [&] (size_t i) { T.insert(S[i]);};
-    parallel_for(0, S.size(), f);
-    return T.entries();
+    Table<H> T(m, hash, 1.3);
+    t.next("build table");
+    parallel_for(0, S.size(), [&] (size_t i) { T.insert(S[i]);});
+    t.next("insert");
+    sequence<ET> result = T.entries();
+    t.next("entries");
+    return result;
   }
 
   // T must be some integer type
   template <class T>
   struct hashInt {
-    typedef T eType;
-    typedef T kType;
+    using eType = T;
+    using kType = T;
     eType empty() {return -1;}
     kType getKey(eType v) {return v;}
-    T hash(kType v) {return hash64_2(v);}
+    T hash(kType v) {return v * 999029;} //hash64_2(v);}
     int cmp(kType v, kType b) {return (v > b) ? 1 : ((v == b) ? 0 : -1);}
     bool replaceQ(eType v, eType b) {return 0;}
     eType update(eType v, eType b) {return v;}
-    bool cas(eType* p, eType o, eType n) {return CAS_GCC(p, o, n);}
+    bool cas(eType* p, eType o, eType n) {return
+	atomic_compare_and_swap(p, o, n);}
   };
 
   // works for non-negative integers (uses -1 to mark cell as empty)
