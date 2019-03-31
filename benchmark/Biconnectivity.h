@@ -321,7 +321,7 @@ struct BC_BFS_F {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {  // Atomic version of Update
-    return CAS(&Parents[d], UINT_E_MAX, s);
+    return pbbslib::CAS(&Parents[d], UINT_E_MAX, s);
   }
   // Cond function checks if vertex has been visited yet
   inline bool cond(uintE d) { return (Parents[d] == UINT_E_MAX); }
@@ -501,21 +501,23 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
   if (out_f) {
     std::cout << "Writing labels to file: " << out_f << "\n";
-    std::ofstream out(out_f, std::ofstream::out);
-    if (!out.is_open()) {
-      std::cout << "Unable to open file " << out_f << "\n";
-      exit(0);
-    }
+//    std::ofstream out(out_f, std::ofstream::out);
+//    if (!out.is_open()) {
+//      std::cout << "Unable to open file " << out_f << "\n";
+//      exit(0);
+//    }
 
     auto tups = sequence<std::pair<uintE, uintE>>(n);
     par_for(0, n, [&] (size_t i) {
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
-    benchIO::writeArrayToStream(out, tups.begin(), n);
-    //    for (size_t i = 0; i < n; i++) {
-    //      out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
-    //    }
-    out.close();
+    auto C = pbbslib::sequence_to_string(tups);
+    pbbslib::char_seq_to_file(C, out_f);
+    // benchIO::writeArrayToStream(out, tups.begin(), n);
+    // for (size_t i = 0; i < n; i++) {
+    //   out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
+    // }
+    // out.close();
   }
   std::cout << "Bicc done"
             << "\n";

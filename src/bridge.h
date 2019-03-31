@@ -624,4 +624,55 @@ namespace pbbslib {
     return filter_iter<E, I, P>(_it, _pr);
   }
 
+  inline int t_to_stringlen(long a) { return 21; }
+  inline void type_to_string(char* s, long a) { sprintf(s, "%ld", a); }
+
+  inline int t_to_stringlen(unsigned long a) { return 21; }
+  inline void type_to_string(char* s, unsigned long a) { sprintf(s, "%lu", a); }
+
+  inline uint t_to_stringlen(uint a) { return 12; }
+  inline void type_to_string(char* s, uint a) { sprintf(s, "%u", a); }
+
+  inline int t_to_stringlen(int a) { return 12; }
+  inline void type_to_string(char* s, int a) { sprintf(s, "%d", a); }
+
+  inline int t_to_stringlen(double a) { return 18; }
+
+  inline int t_to_stringlen(char* a) { return strlen(a) + 1; }
+  inline void type_to_string(char* s, char* a) { sprintf(s, "%s", a); }
+
+  template <class A, class B>
+  inline int t_to_stringlen(std::pair<A, B> a) {
+    return t_to_stringlen(a.first) + t_to_stringlen(a.second) + 1;
+  }
+
+  inline void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
+
+  template <class A, class B>
+  inline void type_to_string(char* s, std::pair<A, B> a) {
+    int l = t_to_stringlen(a.first);
+    type_to_string(s, a.first);
+    s[l] = ' ';
+    type_to_string(s + l + 1, a.second);
+  }
+
+  template <class TSeq>
+  sequence<char> sequence_to_string(TSeq const &T) {
+    size_t n = T.size();
+    auto S = sequence<size_t>(n, [&] (size_t i) {
+      return t_to_stringlen(T[i])+1; // +1 for \n
+    });
+    size_t m = pbbslib::scan_inplace(S.slice(), addm<size_t>());
+
+    auto C = sequence<char>(m, [&] (size_t i) { return (char)0; });
+    parallel_for(0, n-1, [&] (size_t i) {
+      type_to_string(C.begin() + S[i], T[i]);
+      C[S[i + 1] - 1] = '\n';
+    });
+    type_to_string(C.begin() + S[n - 1], T[n - 1]);
+    C[m - 1] = '\n';
+
+    return pbbslib::filter(C, [&] (char A) { return A > 0; });
+  }
+
 }

@@ -46,12 +46,12 @@ template <template <typename W> class vertex, class W>
 void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
-  ligra_utils::_seq<char> S = readStringFromFile(s);
-  auto Wo = stringToWords(S.A, S.n);
+  auto S = pbbslib::char_seq_from_file(s);
+  auto tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     labels[i] =
-        std::make_tuple(atol(Wo.Strings[2 * i]), atol(Wo.Strings[2 * i + 1]));
+        std::make_tuple(atol(tokens[2 * i]), atol(tokens[2 * i + 1]));
   });
 
   auto bits = sequence<uintE>(n, (uintE)0);
