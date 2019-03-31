@@ -18,7 +18,7 @@ INCLUDE_DIRS = -I../
 
 OPT = -O3 -g
 
-CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(INTT) $(INTE) $(OPT) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus

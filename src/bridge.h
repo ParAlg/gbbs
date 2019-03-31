@@ -139,7 +139,7 @@ namespace pbbslib {
 
   template <typename ET>
   inline bool CAS_GCC(ET* ptr, const ET oldv, const ET newv) {
-    return pbbs::CAS_GCC(ptr, oldv, newv);
+    return pbbs::atomic_compare_and_swap(ptr, oldv, newv);
   }
 
   // Currently unused; including commented out.
