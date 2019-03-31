@@ -45,14 +45,14 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
-    ligra_utils::_seq<char> S = readStringFromFile(in_f);
-    auto W = stringToWords(S.A, S.n);
-    size_t ms = atol(W.Strings[0]);
+    auto S = readStringFromFile(in_f);
+    auto W = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    size_t ms = atol(W[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
     par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       matching[i] =
-          std::make_tuple(atol(W.Strings[1 + 2 * i]), atol(W.Strings[2 * (i + 1)]));
+          std::make_tuple(atol(W[1 + 2 * i]), atol(W[2 * (i + 1)]));
     });
     verify_matching(GA, matching);
     exit(0);

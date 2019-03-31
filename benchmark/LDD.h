@@ -91,7 +91,7 @@ struct LDD_F {
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (oracle(s, d, wgh)) {
-      return CAS(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
+      return pbbslib::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
     }
     return false;
   }

@@ -215,9 +215,9 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   std::cout << "matching size = " << matching.size << "\n";
   auto ret = sequence<edge>(matching.A, matching.size); // allocated
   mt.stop();
-  mt.reportTotal("Matching time");
   eff.reportTotal("eff for time");
   gete.reportTotal("get edges time");
+  mt.reportTotal("Matching time");
   return std::move(ret);
 }
 

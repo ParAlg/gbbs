@@ -481,7 +481,8 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs = (E*)stk;
     }
 
-    par_for(0, num_blocks, 2, [&] (size_t i) {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
+//    for (size_t i=0; i<num_blocks; i++) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -503,7 +504,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
         }
       }
       block_outputs[i] = cur;
-    }, par);
+    }, par && (num_blocks > 2));
 
     auto im = pbbslib::make_sequence(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, reduce);

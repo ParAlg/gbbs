@@ -784,6 +784,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
     bool weighted = P.getOptionValue("-w");                                    \
+    assert(weighted == false); \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
@@ -842,7 +843,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
         auto G =                                                               \
-            readweightedGraph<asymmetricVertex>(iFile, symmetric, mmap);       \
+            readWeightedGraph<asymmetricVertex>(iFile, symmetric, mmap);       \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     }                                                                          \
