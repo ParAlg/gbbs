@@ -102,7 +102,7 @@ inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::template decode<W>(T, nghArr, vtx_id, d);
+  C::template decode<W>(T, nghArr, vtx_id, d, /* parallel = */ false);
   return k;
 }
 
@@ -131,7 +131,7 @@ inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
     f(src, target, weight);
     return true;
   };
-  C::template decode<W>(T, nghArr, vtx_id, d);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
@@ -143,7 +143,7 @@ inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
     g(target, o + edgeNumber, val);
     return true;
   };
-  C::template decode<W>(T, nghArr, vtx_id, d);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F>
@@ -377,25 +377,24 @@ struct compressedSymmetricVertex {
 
   inline size_t intersect(compressedSymmetricVertex<W, C>* other, long our_id,
                           long other_id) {
-    return C::intersect(getOutNeighbors(), other->getOutNeighbors(),
-                        getOutDegree(), other->getOutDegree(), our_id,
-                        other_id);
+    return C::template intersect<W>(getOutNeighbors(), other->getOutNeighbors(),
+        getOutDegree(), other->getOutDegree(), our_id, other_id);
   }
 
   template <class F>
   inline size_t intersect_f(compressedSymmetricVertex<W, C>* other, long our_id,
                             long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
   template <class F>
   inline size_t intersect_f_par(compressedSymmetricVertex<W, C>* other, long our_id,
                             long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
 
@@ -603,25 +602,24 @@ struct compressedAsymmetricVertex {
 
   inline size_t intersect(compressedAsymmetricVertex<W, C>* other, long our_id,
                           long other_id) {
-    return C::intersect(getOutNeighbors(), other->getOutNeighbors(),
-                        getOutDegree(), other->getOutDegree(), our_id,
-                        other_id);
+    return C::template intersect<W>(getOutNeighbors(), other->getOutNeighbors(),
+        getOutDegree(), other->getOutDegree(), our_id, other_id);
   }
 
   template <class F>
   inline size_t intersect_f(compressedAsymmetricVertex<W, C>* other,
                             long our_id, long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
   template <class F>
   inline size_t intersect_f_par(compressedAsymmetricVertex<W, C>* other,
                             long our_id, long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
 

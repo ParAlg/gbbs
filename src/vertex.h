@@ -91,8 +91,7 @@ void seq_merge_full(SeqA& A, SeqB& B, F& f) {
 template <class SeqA, class SeqB, class F>
 void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   using T = typename SeqA::value_type;
-  size_t nA = A.size(), nB = B.size();
-  size_t i = 0, j = 0;
+  size_t nA = A.size();
   for (size_t i=0; i < nA; i++) {
     const T& a = A[i];
     size_t mB = pbbslib::binary_search(B, a, std::less<T>());
@@ -126,7 +125,7 @@ void merge(const SeqA& A, const SeqB& B, const F& f) {
 template <template <typename W> class vertex, class W, class F>
 inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
                           const F& f) {
-  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
+  uintT nA = A->getOutDegree(), nB = B->getOutDegree();
   uintE* nghA = (uintE*)(A->getOutNeighbors());
   uintE* nghB = (uintE*)(B->getOutNeighbors());
 
