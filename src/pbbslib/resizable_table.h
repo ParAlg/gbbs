@@ -85,13 +85,13 @@ namespace pbbslib {
 
     size_t m;
     size_t mask;
+    size_t ne;
     T empty;
     K empty_key;
     T* table;
-    bool alloc;
     KeyHash& key_hash;
+    bool alloc;
     size_t* cts;
-    size_t ne;
 
     static void clearA(T* A, long n, T kv) {
       par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)

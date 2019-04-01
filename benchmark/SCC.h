@@ -75,7 +75,7 @@ struct Search_F {
       if (labels_changed) {
         // d should be included in next frontier;
         // CAS to make sure only one ngh from this frontier adds it.
-        return pbbslib::atomic_compare_and_swap(&bits[d], false, true);
+        return pbbslib::CAS(&bits[d], false, true);
       }
     }
     return false;
@@ -105,10 +105,10 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA
   auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
                                               table_backing.to_array(), true);
   frontier.toSparse();
-  par_for(0, frontier.size(), 2000, [&] (size_t i) {
+  par_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
     table.insert(std::make_tuple(v, label_start + i));
-  });
+  }, (frontier.size() > 1000));
   table.update_nelms();
 
   size_t rd = 0;
@@ -131,10 +131,10 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA
     size_t sum = pbbslib::reduce_add(im);
     table.maybe_resize(sum);
 
-    par_for(0, frontier.size(), 2000, [&] (size_t i) {
+    par_for(0, frontier.size(), [&] (size_t i) {
       uintE v = frontier.s[i];
       bits[v] = 0;  // reset flag
-    });
+    }, (frontier.size() > 2000));
 
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
@@ -156,7 +156,7 @@ struct First_Search {
     return true;
   }
   inline bool updateAtomic(uintE s, uintE d) {
-    return pbbslib::atomic_compare_and_swap(&visited[d], false, true);
+    return pbbslib::CAS(&visited[d], false, true);
   }
   inline bool cond(uintE d) { return !(labels[d] & TOP_BIT) && !visited[d]; }
 };
@@ -205,8 +205,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     return (GA.V[i].getOutDegree() > 0) && (GA.V[i].getInDegree() > 0);
   };
   auto zero = pbbslib::filter(v_im, zero_pred);
-  auto P = pbbslib::filter(v_im, not_zero_pred);
-  pbbslib::random_shuffle(P);
+  auto NZ = pbbslib::filter(v_im, not_zero_pred);
+  auto P = pbbslib::random_shuffle(NZ);
   std::cout << "Filtered: " << zero.size()
             << " vertices. Num remaining = " << P.size() << "\n";
 
@@ -243,7 +243,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
       size_t label = label_offset;
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, n, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -276,8 +276,8 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter_f = [&](size_t i) { return Q[round_offset + i]; };
-    auto centers_pre_filter = pbbslib::make_sequence<uintE>(vs_size, centers_pre_filter_f);
+    auto centers_pre_filter = pbbslib::make_sequence<uintE>(
+        vs_size, [&](size_t i) { return Q[round_offset + i]; });
     auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
 
@@ -301,7 +301,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
 
       size_t label = cur_label_offset;
 
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, n, [&] (size_t i) {
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
@@ -317,6 +317,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
       continue;
     }
 
+    timer ins; ins.start();
     auto centers_2 = centers;
     size_t centers_size = centers.size();
     auto in_f = vertexSubset(n, centers_size, centers.to_array());
@@ -324,7 +325,9 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
     std::cout << "Finished in search"
               << "\n";
+    ins.stop(); ins.reportTotal("insearch time");
 
+    timer outs; outs.start();
     size_t centers_2_size = centers_2.size();
     auto out_f = vertexSubset(n, centers_2_size, centers_2.to_array());
     auto out_table = multi_search(GA, labels, bits, out_f, cur_label_offset);
@@ -332,6 +335,7 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
               << "\n";
     std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
               << "\n";
+    outs.stop(); outs.reportTotal("outsearch time");
 
     auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
     auto& larger_t = (in_table.m > out_table.m) ? in_table : out_table;
