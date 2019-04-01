@@ -704,6 +704,27 @@ inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
 // cond function that always returns true
 inline bool cond_true(intT d) { return 1; }
 
+// Sugar to pass in a single f and get a struct suitable for edgeMap.
+template <class W, class F>
+struct EdgeMap_F {
+  F f;
+  EdgeMap_F(F _f) : f(_f) {}
+  inline bool update(const uintE& s, const uintE& d, const W& wgh) {
+    return f(s, d, wgh);
+  }
+
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
+    return f(s, d, wgh);
+  }
+
+  inline bool cond(const uintE& d) const { return true; }
+};
+
+template <class W, class F>
+inline EdgeMap_F<W, F> make_em_f(F f) {
+  return EdgeMap_F<W, F>(f);
+}
+
 #ifdef USE_PCM_LIB
 inline void print_pcm_stats(SystemCounterState& before_sstate,
                             SystemCounterState& after_sstate, size_t rounds,
