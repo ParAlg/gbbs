@@ -394,7 +394,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
     return std::make_tuple<uintT, uintT>(pr == 1, pr == 2);
   };
   auto red_f = [](const std::tuple<uintT, uintT>& l,
-                  const std::tuple<uintT, uintT>& r) {
+                  const std::tuple<uintT, uintT>& r) __attribute__((always_inline)) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
@@ -438,7 +438,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
 
   // 2. pack and write out
   {
-    auto for_inner = [&](size_t i) {
+    par_for(0, n, 1, [&] (size_t i) {
       size_t deg = G.V[i].getOutDegree();
       size_t off = std::get<1>(vtx_offs[i]);
       size_t n_one = std::get<0>(vtx_offs[i + 1]) - std::get<0>(vtx_offs[i]);
@@ -460,8 +460,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
           G.V[i].setOutDegree(0);
         }
       }
-    };
-    par_for(0, n, 1, [&] (size_t i) { for_inner(i); });
+    });
   }
   auto degree_imap = pbbslib::make_sequence<size_t>(n,
       [&](size_t i) { return G.V[i].getOutDegree(); });

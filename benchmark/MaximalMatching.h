@@ -118,7 +118,7 @@ namespace mm {
     size_t threshold = k;
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       size_t hash_val = hash_to_range(key_for_pair(src, ngh, r), range);
-      if ((src > ngh) || matched[src] || matched[ngh]) {
+      if ((src > ngh) || matched[ngh]) {
         return 1;  // pack out, not in edgearr
       } else if (hash_val < threshold || finish) {
         return 2;  // pack out, returned in edgearr

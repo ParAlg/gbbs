@@ -482,7 +482,6 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     }
 
     par_for(0, num_blocks, 1, [&] (size_t i) {
-//    for (size_t i=0; i<num_blocks; i++) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -1128,7 +1127,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
       uintE first_offset = *((uintE*)first_finger);
       size_t last_offset = 0;
 
-      par_for(start_block, end_block, 2, [&] (size_t i) {
+      par_for(start_block, end_block, 1, [&] (size_t i) {
         uchar* finger =
             (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
         uintE start_offset = *((uintE*)finger) - first_offset;
@@ -1142,7 +1141,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
         }
         finger += sizeof(uintE);
         decode_block(finger, tmp, start_offset, end_offset, source);
-      });
+      }, total_blocks > 1);
 
       // filter edges into tmp2
       auto pd = [&](const std::tuple<uintE, W>& nw) {
