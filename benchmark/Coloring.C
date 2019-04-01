@@ -47,7 +47,7 @@ void Coloring_runner(graph<vertex>& GA, commandLine P) {
   bool runLF = P.getOption("-lf");
   auto colors = Coloring(GA, runLF);
   if (P.getOption("-stats")) {
-    std::cout << "num_colors = " << pbbs::reduce_max(colors) << "\n";
+    std::cout << "num_colors = " << pbbslib::reduce_max(colors) << "\n";
   }
   if (P.getOption("-verify)")) {
     verify_coloring(GA, colors);

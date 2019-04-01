@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "lib/sequence_ops.h"
+#include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
 namespace intersection {
@@ -70,7 +70,7 @@ constexpr const size_t _seq_merge_thresh = 8192;
 
 template <class SeqA, class SeqB, class F>
 void seq_merge_full(SeqA& A, SeqB& B, F& f) {
-  using T = typename SeqA::T;
+  using T = typename SeqA::value_type;
   size_t nA = A.size(), nB = B.size();
   size_t i = 0, j = 0;
   while (i < nA && j < nB) {
@@ -90,12 +90,11 @@ void seq_merge_full(SeqA& A, SeqB& B, F& f) {
 
 template <class SeqA, class SeqB, class F>
 void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
-  using T = typename SeqA::T;
-  size_t nA = A.size(), nB = B.size();
-  size_t i = 0, j = 0;
+  using T = typename SeqA::value_type;
+  size_t nA = A.size();
   for (size_t i=0; i < nA; i++) {
     const T& a = A[i];
-    size_t mB = pbbs::binary_search(B, a, std::less<T>());
+    size_t mB = pbbslib::binary_search(B, a, std::less<T>());
     const T& b = B[mB];
     if (a == b) {
       f(a);
@@ -105,39 +104,39 @@ void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
 
 template <class SeqA, class SeqB, class F>
 void merge(const SeqA& A, const SeqB& B, const F& f) {
-  using T = typename SeqA::T;
+  using T = typename SeqA::value_type;
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;
   if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
-    return seq_merge_full(A, B, f);
+    return intersection::seq_merge_full(A, B, f);
   } else if (nB < nA) {
-    return merge(B, A, f);
+    return intersection::merge(B, A, f);
   } else if (nA < _bs_merge_base) {
-    return seq_merge(A, B, f);
+    return intersection::seq_merge(A, B, f);
   } else {
     size_t mA = nA/2;
-    size_t mB = pbbs::binary_search(B, A[mA], std::less<T>());
-    par_do([&] () {merge(A.slice(0, mA), B.slice(0, mB), f);},
-     [&] () {merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+    size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
+    par_do([&] () {intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
+     [&] () {intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);});
   }
 }
 
 template <template <typename W> class vertex, class W, class F>
 inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
                           const F& f) {
-  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
+  uintT nA = A->getOutDegree(), nB = B->getOutDegree();
   uintE* nghA = (uintE*)(A->getOutNeighbors());
   uintE* nghB = (uintE*)(B->getOutNeighbors());
 
-  // Will not work if W is not pbbs::empty, should assert.
-  auto seqA = make_sequence<uintE>(nghA, nA);
-  auto seqB = make_sequence<uintE>(nghB, nB);
+  // Will not work if W is not pbbslib::empty, should assert.
+  auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
+  auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
 
   auto merge_f = [&] (uintE ngh) {
     f(a, b, ngh);
   };
-  merge(seqA, seqB, merge_f);
+  intersection::merge(seqA, seqB, merge_f);
 
   return static_cast<size_t>(0);
 }
@@ -147,8 +146,7 @@ inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
 namespace vertex_ops {
 
 // allocate temporary space for vertices with degree > alloc_threshold
-const constexpr size_t alloc_threshold = 4000;
-//const constexpr size_t alloc_threshold = 1000000000;
+const constexpr size_t alloc_threshold = 10000;
 
 template <template <typename W> class vertex, class W, class F, class G,
           class VS>
@@ -167,12 +165,21 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
       if (!f.cond(vtx_id)) break;
     }
   } else {
-    par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
-      auto nw = nghs[j];
-      uintE ngh = std::get<0>(nw);
-      if (vertexSubset.isIn(ngh)) {
-        auto m = f.updateAtomic(ngh, vtx_id, std::get<1>(nw));
-        g(vtx_id, m);
+    size_t b_size = 2048;
+    size_t n_blocks = d/b_size + 1;
+    par_for(0, n_blocks, 1, [&] (size_t b) {
+      if (f.cond(vtx_id)) {
+       size_t start = b*b_size;
+       size_t end = std::min((b+1)*b_size, static_cast<size_t>(d));
+       for (size_t j=start; j<end; j++) {
+         if (!f.cond(vtx_id)) break;
+         auto nw = nghs[j];
+         uintE ngh = std::get<0>(nw);
+         if (vertexSubset.isIn(ngh)) {
+           auto m = f.updateAtomic(ngh, vtx_id, std::get<1>(nw));
+           g(vtx_id, m);
+         }
+       }
       }
     });
   }
@@ -183,7 +190,7 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
 template <template <typename W> class vertex, class W, class F, class G>
 inline void decodeNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                        uintE d, F& f, G& g) {
-  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
+  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     if (f.cond(ngh)) {
@@ -200,7 +207,7 @@ template <template <typename W> class vertex, class W, class F, class G,
 inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
                              std::tuple<uintE, W>* nghs, uintE d, uintT o, F& f,
                              G& g, H& h) {
-  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
+  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     if (f.cond(ngh)) {
@@ -272,8 +279,8 @@ inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
     auto nw = nghs[i];
     return f(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
-  auto im = make_sequence<size_t>(d,im_f);
-  return pbbs::reduce_add(im);
+  auto im = pbbslib::make_sequence<size_t>(d,im_f);
+  return pbbslib::reduce_add(im);
 }
 
 template <template <typename W> class vertex, class W, class E, class M,
@@ -284,14 +291,14 @@ inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uint
     auto nw = nghs[i];
     return m(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
-  auto im = make_sequence<E>(d, im_f);
-  return pbbs::reduce(im, reduce);
+  auto im = pbbslib::make_sequence<E>(d, im_f);
+  return pbbslib::reduce(im, reduce);
 }
 
 template <template <typename W> class vertex, class W, class F>
 inline void mapNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                     uintE d, F& f, bool parallel) {
-  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
+  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     uintE ngh = v->getOutNeighbor(j);
     f(vtx_id, ngh, v->getOutWeight(j));
   }, parallel);
@@ -314,10 +321,9 @@ inline void filterNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
       auto pc = [&](const std::tuple<uintE, W>& nw) {
         return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
       };
-      auto in_im = make_sequence(nghs, d);
-      auto s = pbbs::filter(in_im, pc, pbbs::no_flag, tmp);
-      size_t k = s.size();
-      par_for(0, k, pbbs::kSequentialForThreshold, [&] (size_t i)
+      auto in_im = pbbslib::make_sequence(nghs, d);
+      size_t k = pbbslib::filter_out(in_im, pbbslib::make_sequence(tmp, d), pc);
+      par_for(0, k, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { out(i, tmp[i]); });
     }
   }
@@ -341,12 +347,12 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     return k;
   } else {
     // copy to tmp
-    par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t i)
-                    { tmp[i] = nghs[i]; });
+    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] = nghs[i]; });
     auto pc = [&](const std::tuple<uintE, W>& nw) {
       return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
     };
-    size_t k = pbbs::filterf(tmp, nghs, d, pc);
+//    size_t k = pbbslib::filter_out(pbbslib::make_sequence(tmp, d), pbbslib::make_sequence(nghs, d), pc);
+    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
     return k;
   }
 }
@@ -354,7 +360,7 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
 template <template <typename W> class vertex, class W, class F, class G>
 inline void copyNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                      uintE d, uintT o, F& f, G& g) {
-  par_for(0, d, pbbs::kSequentialForThreshold, [&] (size_t j) {
+  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     auto val = f(vtx_id, ngh, std::get<1>(nw));
@@ -405,7 +411,7 @@ struct symmetricVertex {
   std::tuple<uintE, W>* neighbors;
   uintE degree;
   symmetricVertex(std::tuple<uintE, W>* n, uintE d) : neighbors(n), degree(d) {}
-  void clear() { pbbs::free_array(neighbors); }
+  void clear() { pbbslib::free_array(neighbors); }
 
   std::tuple<uintE, W>* getInNeighbors() { return neighbors; }
   std::tuple<uintE, W>* getOutNeighbors() { return neighbors; }
@@ -621,11 +627,11 @@ struct symmetricVertex {
 template <class W>
 struct asymmetricVertex {
   std::tuple<uintE, W>*inNeighbors, *outNeighbors;
-  uintE outDegree;
   uintE inDegree;
+  uintE outDegree;
   void clear() {
-    pbbs::free_array(inNeighbors);
-    pbbs::free_array(outNeighbors);
+    pbbslib::free_array(inNeighbors);
+    pbbslib::free_array(outNeighbors);
   }
   asymmetricVertex(std::tuple<uintE, W>* iN, std::tuple<uintE, W>* oN, uintE id,
                    uintE od)

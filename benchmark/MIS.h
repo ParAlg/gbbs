@@ -23,9 +23,10 @@
 
 #pragma once
 
-#include "lib/random_shuffle.h"
-#include "lib/sparse_table.h"
-#include "lib/speculative_for.h"
+#include "pbbslib/random_shuffle.h"
+#include "pbbslib/sparse_table.h"
+
+#include "speculative_for.h"
 #include "ligra.h"
 
 namespace MIS_rootset {
@@ -50,9 +51,9 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
   });
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
-      make_sequence<size_t>(GA.n, mis_f);
-  size_t mis_size = pbbs::reduce_add(mis_int);
-  if (pbbs::reduce_add(d) != (GA.n - mis_size)) {
+      pbbslib::make_sequence<size_t>(GA.n, mis_f);
+  size_t mis_size = pbbslib::reduce_add(mis_int);
+  if (pbbslib::reduce_add(d) != (GA.n - mis_size)) {
     std::cout << "MIS incorrect"
               << "\n";
     assert(false);
@@ -66,9 +67,9 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
   vs.toSparse();
   assert(!vs.isDense);
   auto deg_f =  [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); };
-  auto deg_im = make_sequence<size_t>(
+  auto deg_im = pbbslib::make_sequence<size_t>(
       vs.size(), deg_f);
-  size_t sum_d = pbbs::reduce_add(deg_im);
+  size_t sum_d = pbbslib::reduce_add(deg_im);
 
   if (sum_d > GA.m / 100) {  // dense forward case
     auto dense = sequence<bool>(GA.n, false);
@@ -81,17 +82,17 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
       uintE v = vs.vtx(i);
       GA.V[v].mapOutNgh(v, map_f);
     });
-    return vertexSubset(GA.n, dense.get_array());
+    return vertexSubset(GA.n, dense.to_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
     std::cout << "sum_d = " << sum_d << std::endl;
-    auto ht = make_sparse_table<uintE, pbbs::empty>(
-        sum_d, std::make_tuple(UINT_E_MAX, pbbs::empty()),
-        [&](const uintE& k) { return pbbs::hash64(k); });
+    auto ht = make_sparse_table<uintE, pbbslib::empty>(
+        sum_d, std::make_tuple(UINT_E_MAX, pbbslib::empty()),
+        [&](const uintE& k) { return pbbslib::hash64(k); });
     vs.toSparse();
     par_for(0, vs.size(), [&] (size_t i) {
       auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
         if (p(ngh)) {
-          ht.insert(std::make_tuple(ngh, pbbs::empty()));
+          ht.insert(std::make_tuple(ngh, pbbslib::empty()));
         }
       };
       uintE v = vs.vtx(i);
@@ -99,13 +100,14 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     });
     auto nghs = ht.entries();
     ht.del();
-    return vertexSubset(GA.n, nghs.size(), (uintE*)nghs.get_array());
+    size_t nghs_size = nghs.size();
+    return vertexSubset(GA.n, nghs_size, (uintE*)nghs.to_array());
   }
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
-  uint32_t src_h = pbbs::hash32(src);
-  uint32_t ngh_h = pbbs::hash32(ngh);
+  uint32_t src_h = pbbslib::hash32(src);
+  uint32_t ngh_h = pbbslib::hash32(ngh);
   return (src_h < ngh_h) || ((src_h == ngh_h) && src < ngh);
 };
 
@@ -123,7 +125,7 @@ struct mis_f {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (perm[s] < perm[d]) {
-      return (pbbs::xadd(&p[d], -1) == 1);
+      return (pbbslib::fetch_and_add(&p[d], -1) == 1);
     }
     return false;
   }
@@ -143,7 +145,7 @@ struct mis_f_2 {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (hash_lt(s, d)) {
-      return (writeAdd(&p[d], -1) == 0);
+      return (pbbslib::fetch_and_add(&p[d], -1) == 0);
     }
     return false;
   }
@@ -158,8 +160,8 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
 
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
-  auto perm = pbbs::random_permutation<uintE>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  auto perm = pbbslib::random_permutation<uintE>(n);
+  par_for(0, n, 1, [&] (size_t i) {
     uintE our_pri = perm[i];
     auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE ngh_pri = perm[ngh];
@@ -170,12 +172,14 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   init_t.stop();
   init_t.reportTotal("init");
 
+
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
-      make_sequence<bool>(n, zero_f);
-  auto init = pbbs::pack_index<uintE>(zero_map);
-  auto roots = vertexSubset(n, init.size(), init.get_array());
+      pbbslib::make_sequence<bool>(n, zero_f);
+  auto init = pbbslib::pack_index<uintE>(zero_map);
+  size_t init_size = init.size();
+  auto roots = vertexSubset(n, init_size, init.to_array());
 
   auto in_mis = sequence<bool>(n, false);
   size_t finished = 0;
@@ -195,11 +199,11 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
 
     // compute the new roots: neighbors of removed that have their priorities
     // set to 0 after eliminating all nodes in removed
-    intE* pri = priorities.start();
+    intE* pri = priorities.begin();
     timer nr;
     nr.start();
     auto new_roots =
-        edgeMap(GA, removed, mis_f<W>(pri, perm.start()), -1, sparse_blocked);
+        edgeMap(GA, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
     nr.stop();
     nr.reportTotal("new roots time");
 
@@ -249,7 +253,7 @@ struct MISstep {
     };
     using E = std::tuple<int, int>;
     auto id = std::make_tuple(0, 0);
-    auto monoid = make_monoid(red_f, id);
+    auto monoid = pbbslib::make_monoid(red_f, id);
     auto res = G.V[i].template reduceOutNgh<E>(i, map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
@@ -267,7 +271,7 @@ inline sequence<char> MIS(graph<vertex<W>>& GA) {
   size_t n = GA.n;
   auto Flags = sequence<char>(n, [&](size_t i) { return 0; });
   auto FlagsNext = sequence<char>(n);
-  auto mis = MISstep<vertex, W>(FlagsNext.start(), Flags.start(), GA);
+  auto mis = MISstep<vertex, W>(FlagsNext.begin(), Flags.begin(), GA);
   eff_for<uintE>(mis, 0, n, 50);
   return Flags;
 }
@@ -285,8 +289,8 @@ inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_imap = make_sequence<size_t>(n, ok_f);
-  size_t n_ok = pbbs::reduce_add(ok_imap);
+  auto ok_imap = pbbslib::make_sequence<size_t>(n, ok_f);
+  size_t n_ok = pbbslib::reduce_add(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MIS"
               << "\n";

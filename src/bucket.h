@@ -43,11 +43,9 @@
 
 #include "maybe.h"
 #include "vertex_subset.h"
+#include "bridge.h"
 
-#include "lib/dyn_arr.h"
-#include "lib/macros.h"
-#include "lib/utilities.h"
-#include "lib/monoid.h"
+#include "pbbslib/dyn_arr.h"
 
 #define CACHE_LINE_S 64
 
@@ -71,7 +69,7 @@ struct buckets {
     }
   };
 
-  using id_dyn_arr = dyn_arr<ident_t>;
+  using id_dyn_arr = pbbslib::dyn_arr<ident_t>;
 
   const bucket_id null_bkt = std::numeric_limits<bucket_id>::max();
 
@@ -82,9 +80,9 @@ struct buckets {
   //   total_buckets: the total buckets to materialize
   //
   //   For an identifier i:
-  //   d(i) is the bucket currently containing i
-  //   d(i) = std::numeric_limits<bucket_id>::max() if i is not in any bucket
-  buckets(size_t _n, D _d, bucket_order _order, size_t _total_buckets)
+  //   d[i] is the bucket currently containing i
+  //   d[i] = std::numeric_limits<bucket_id>::max() if i is not in any bucket
+  buckets(size_t _n, D& _d, bucket_order _order, size_t _total_buckets)
       : n(_n),
         d(_d),
         order(_order),
@@ -95,18 +93,18 @@ struct buckets {
         num_elms(0),
         allocated(true) {
     // Initialize array consisting of the materialized buckets.
-    bkts = pbbs::new_array<id_dyn_arr>(total_buckets);
+    bkts = pbbslib::new_array<id_dyn_arr>(total_buckets);
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
-      auto imap_f = [&](size_t i) { return d(i); };
-      auto imap = make_sequence<bucket_id>(n, imap_f);
-      size_t min_b = pbbs::reduce(imap, minm<bucket_id>());
+      auto imap_f = [&](size_t i) { return d[i]; };
+      auto imap = pbbslib::make_sequence<bucket_id>(n, imap_f);
+      size_t min_b = pbbslib::reduce(imap, pbbslib::minm<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
-      auto imap_f = [&](size_t i) { return (d(i) == null_bkt) ? 0 : d(i); };
-      auto imap = make_sequence<bucket_id>(n, imap_f);
-      size_t max_b = pbbs::reduce(imap, maxm<bucket_id>());
+      auto imap_f = [&](size_t i) { return (d[i] == null_bkt) ? 0 : d[i]; };
+      auto imap = pbbslib::make_sequence<bucket_id>(n, imap_f);
+      size_t max_b = pbbslib::reduce(imap, pbbslib::maxm<bucket_id>());
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
       std::cout << "Unknown order: " << order
@@ -118,7 +116,7 @@ struct buckets {
     // Update buckets with all (id, bucket) pairs. Identifiers with bkt =
     // null_bkt are ignored by update_buckets.
     auto get_id_and_bkt = [&](ident_t i) -> Maybe<std::tuple<ident_t, bucket_id> > {
-      bucket_id bkt = _d(i);
+      bucket_id bkt = _d[i];
       if (bkt != null_bkt) {
         bkt = to_range(bkt);
       }
@@ -153,12 +151,32 @@ struct buckets {
     return null_bkt;
   }
 
+  // Computes a bucket_dest for an identifier moving to bucket_id next.
+  inline bucket_id get_bucket(const bucket_id& next) const {
+    uintE nb = to_range(next);
+    // Note that the interface currently only implements strictly_decreasing
+    // priority, which is why the code below does not check pri_order.
+    if (order == increasing) {
+      // case for strictly_decreasing priorities, assuming elements start out
+      // in the structure.
+      if (nb != null_bkt && nb != open_buckets) {
+        return nb;
+      } // case for strictly_increasing elided
+    } else { // bkt_order == decreasing
+      if (nb != null_bkt) {
+      // strictly_decreasing priorities, assuming elements start out in the structure.
+        return nb;
+      }
+    }
+    return null_bkt;
+  }
+
   void del() {
     if (allocated) {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].clear();
       }
-      pbbs::free_array(bkts);
+      pbbslib::free_array(bkts);
       allocated = false;
     }
   }
@@ -167,22 +185,22 @@ struct buckets {
   // its bucket_dest are given by F(i).
   template <class F>
   inline size_t update_buckets(F f, size_t k) {
-    size_t num_blocks = k / 2000;
+    size_t num_blocks = k / 4096;
     int num_threads = num_workers();
-    if (k < pbbs::kSequentialForThreshold || num_threads == 1) {
+    if (k < 4096 || num_threads == 1) {
       return update_buckets_seq(f, k);
     }
 
     size_t ne_before = num_elms;
 
-    size_t block_bits = pbbs::log2_up(num_blocks);
+    size_t block_bits = pbbslib::log2_up(num_blocks);
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
-    bucket_id* hists = pbbs::new_array_no_init<bucket_id>((num_blocks + 1) *
+    bucket_id* hists = pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) *
                                                   total_buckets * CACHE_LINE_S);
-    bucket_id* outs =
-        pbbs::new_array_no_init<bucket_id>((num_blocks + 1) * total_buckets);
+//    bucket_id* outs =
+//        pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) * total_buckets);
 
     // 1. Compute per-block histograms
     par_for(0, num_blocks, 1, [&] (size_t i) {
@@ -209,11 +227,15 @@ struct buckets {
       return hists[col * total_buckets + row];
     };
 
-    auto in_map = make_sequence<bucket_id>(num_blocks * total_buckets, get);
-    auto out_map = sequence<bucket_id>(outs, num_blocks * total_buckets);
+    size_t last_ind = (num_blocks * total_buckets);
+    auto outs = sequence<bucket_id>(last_ind + 1);
+    parallel_for(0, last_ind, [&] (size_t i) {
+      outs[i] = get(i);
+    });
+    outs[last_ind] = 0;
 
-    size_t sum = pbbs::scan_add(in_map, out_map);
-    outs[num_blocks * total_buckets] = sum;
+    pbbslib::scan_inplace(outs.slice(), pbbslib::addm<bucket_id>());
+//    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
     for (size_t i = 0; i < total_buckets; i++) {
@@ -256,23 +278,24 @@ struct buckets {
       m += num_inc;
     }
 
-    pbbs::free_array(hists);
-    pbbs::free_array(outs);
+    pbbslib::free_array(hists);
+    // pbbslib::free_array(outs);
     return num_elms - ne_before;
   }
 
  private:
-  const bucket_order order;
-  id_dyn_arr* bkts;
-  size_t cur_bkt;
-  size_t max_bkt;
-  size_t cur_range;
-  D d;
   size_t n;  // total number of identifiers in the system
-  size_t num_elms;
+  D& d;
+  const bucket_order order;
   size_t open_buckets;
   size_t total_buckets;
+  size_t cur_bkt;
+  size_t max_bkt;
+  size_t num_elms;
   bool allocated;
+
+  size_t cur_range;
+  id_dyn_arr* bkts;
 
   template <class F>
   inline size_t update_buckets_seq(F& f, size_t n) {
@@ -300,10 +323,9 @@ struct buckets {
 
   inline void unpack() {
     size_t m = bkts[open_buckets].size;
-    auto _d = d;
     auto tmp = sequence<ident_t>(m);
     ident_t* A = bkts[open_buckets].A;
-    par_for(0, m, pbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { tmp[i] = A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range
@@ -314,7 +336,7 @@ struct buckets {
 
     auto g = [&](ident_t i) -> Maybe<std::tuple<ident_t, bucket_id> > {
       ident_t v = tmp[i];
-      bucket_id bkt = to_range(_d(v));
+      bucket_id bkt = to_range(d[v]);
       return Maybe<std::tuple<ident_t, bucket_id> >(std::make_tuple(v, bkt));
     };
 
@@ -371,19 +393,18 @@ struct buckets {
     id_dyn_arr bkt = bkts[cur_bkt];
     size_t size = bkt.size;
     num_elms -= size;
-    ident_t* out = pbbs::new_array_no_init<ident_t>(size);
+    ident_t* out = pbbslib::new_array_no_init<ident_t>(size);
     size_t cur_bkt_num = get_cur_bucket_num();
-    auto _d = d;
-    auto p = [&](size_t i) { return _d(i) == cur_bkt_num; };
-    size_t m = pbbs::filterf(bkt.A, out, size, p);
+    auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
+    size_t m = pbbslib::filterf(bkt.A, out, size, p);
     bkts[cur_bkt].size = 0;
     if (m == 0) {
-      pbbs::free_array(out);
+      pbbslib::free_array(out);
       return next_bucket();
     }
-    auto ret = bucket(cur_bkt_num, sequence<ident_t>(out, m, true));
+    auto ret = bucket(cur_bkt_num, sequence<ident_t>(out, m));
     ret.num_filtered = size;
-    return ret;
+    return std::move(ret);
   }
 };
 
@@ -395,7 +416,7 @@ inline buckets<D, ident_t, bucket_t> make_buckets(size_t n, D d, bucket_order or
 
 // ident_t := uintE, bucket_t := uintE
 template <class D>
-inline buckets<D, uintE, uintE> make_vertex_buckets(size_t n, D d, bucket_order
+inline buckets<D, uintE, uintE> make_vertex_buckets(size_t n, D& d, bucket_order
       order, size_t total_buckets = 128) {
   return buckets<D, uintE, uintE>(n, d, order, total_buckets);
 }

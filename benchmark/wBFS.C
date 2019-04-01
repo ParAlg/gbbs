@@ -43,7 +43,7 @@ void wBFS_runner(graph<vertex>& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 32);
   bool no_blocked = P.getOptionValue("-noblocked");
   bool largemem = P.getOptionValue("-largemem");
-  if (num_buckets != (1 << pbbs::log2_up(num_buckets))) {
+  if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"
               << "\n";
     exit(-1);
@@ -51,4 +51,4 @@ void wBFS_runner(graph<vertex>& GA, commandLine P) {
   wBFS(GA, src, num_buckets, largemem, no_blocked);
 }
 
-generate_main(wBFS_runner, false);
+generate_weighted_main(wBFS_runner, false);

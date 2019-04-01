@@ -41,4 +41,4 @@ void BellmanFord_runner(graph<vertex>& GA, commandLine P) {
   auto distances = BellmanFord(GA, src);
 }
 
-generate_main(BellmanFord_runner, false);
+generate_weighted_main(BellmanFord_runner, false);

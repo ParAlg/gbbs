@@ -24,7 +24,7 @@
 #pragma once
 
 #include <vector>
-#include "lib/seq.h"
+#include "bridge.h"
 #include "ligra.h"
 
 namespace bc {
@@ -43,8 +43,8 @@ struct BC_F {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     fType to_add = Scores[s];
-    fType n_val = writeAdd(&Scores[d], to_add);
-    return (n_val - to_add == 0);
+    fType n_val = pbbslib::fetch_and_add(&Scores[d], to_add);
+    return n_val == 0;
   }
   inline bool cond(uintE d) { return Visited[d] == 0; }
 };
@@ -74,7 +74,7 @@ inline BC_Vertex_F<V> make_bc_vertex_f(V& visited) {
 template <class V, class D>
 struct BC_Back_Vertex_F {
   V& Visited;
-  D &Dependencies, NumPaths;
+  D& Dependencies, &NumPaths;
   BC_Back_Vertex_F(V& _Visited, D& _Dependencies, D& _NumPaths)
       : Visited(_Visited), Dependencies(_Dependencies), NumPaths(_NumPaths) {}
   inline bool operator()(uintE i) {
@@ -92,7 +92,6 @@ inline BC_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
 
 template <template <class W> class vertex, class W>
 inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
-  using w_vertex = vertex<W>;
   size_t n = GA.n;
 
   auto NumPaths = sequence<fType>(n, [](size_t i) { return 0.0; });
@@ -107,11 +106,12 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
 
   long round = 0;
   while (!Frontier.isEmpty()) {
+    cout << "round = " << round << " fsize = " << Frontier.size() << endl;
     round++;
     //      vertexSubset output = edgeMap(GA, Frontier,
     //      make_bc_f<W>(NumPaths,Visited), -1, sparse_blocked | dense_forward);
     vertexSubset output = edgeMap(GA, Frontier, make_bc_f<W>(NumPaths, Visited),
-                                  -1, sparse_blocked);
+                                  -1, sparse_blocked | fine_parallel);
     vertexMap(output, make_bc_vertex_f(Visited));  // mark visited
     Levels.push_back(Frontier);                    // save frontier
     Frontier = output;
@@ -121,11 +121,11 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
   Levels[round].del();
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = Levels[round - 1];
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -136,10 +136,10 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
     //      edgeMap(GA, Frontier, make_bc_f<W>(Dependencies,Visited), -1,
     //      no_output | in_edges | dense_forward);
     edgeMap(GA, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
-            no_output | in_edges);
+            no_output | in_edges | fine_parallel);
     Frontier.del();
     Frontier = Levels[r];
-    vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
+     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
   bt.reportTotal("back total time");
@@ -147,7 +147,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   Frontier.del();
 
   // Update dependencies scores
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;

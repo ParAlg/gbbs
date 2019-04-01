@@ -55,10 +55,10 @@ struct Visit_F {
     uintE n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
-          CAS(&(dists[d]), oval, n_dist)) {  // First visitor
+          pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
         return Maybe<uintE>(oval);
       }
-      writeMin(&(dists[d]), n_dist);
+      pbbslib::write_min(&(dists[d]), n_dist);
     }
     return Maybe<uintE>();
   }
@@ -89,10 +89,10 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   auto get_bkt = [&](const uintE& dist) -> const uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : dist;
   };
-  auto get_ring = [&](const size_t& v) -> const uintE {
+  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> const uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
-  };
+  });
   auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);
 
   auto apply_f = [&](const uintE v, uintE& oldDist) -> void {
@@ -137,8 +137,8 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   bt.reportTotal("bucket time");
   emt.reportTotal("edge map time");
   auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = make_sequence<size_t>(n, dist_f);
-  std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
+  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_f);
+  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
 
   double time_per_iter = t.stop();

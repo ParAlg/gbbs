@@ -38,15 +38,13 @@ struct BFS_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (CAS(&Parents[d], UINT_E_MAX, s));
+    return (pbbslib::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, s));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };
 
 template <template <class W> class vertex, class W>
 inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
-  using w_vertex = vertex<W>;
-
   // Creates Parents array, initialized to all -1, except for src.
   auto Parents = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
@@ -57,7 +55,7 @@ inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
-        edgeMap(GA, Frontier, BFS_F<W>(Parents.start()), -1, sparse_blocked);
+        edgeMap(GA, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
   }

@@ -29,11 +29,11 @@
 #include <cstdint>
 #include <tuple>
 
-#include "lib/counting_sort_no_transpose.h"
-#include "lib/macros.h"
+#include "bridge.h"
+#include "pbbslib/counting_sort_no_transpose.h"
 #include "sequential_ht.h"
 
-namespace pbbs {
+namespace pbbslib {
 
 // Tunable parameters
 constexpr const size_t _hist_max_buckets = 1024;
@@ -50,7 +50,7 @@ struct get_bucket {
   B& I;
 
   std::tuple<E*, int> heavy_hitters(size_t n, size_t count) {
-    E* sample = pbbs::new_array_no_init<E>(count);
+    E* sample = pbbslib::new_array_no_init<E>(count);
     for (size_t i = 0; i < count; i++) {
       sample[i] = I[hash64(i) % n];
     }
@@ -74,7 +74,7 @@ struct get_bucket {
   std::tuple<E, int>* make_hash_table(E* entries, size_t n, size_t table_size,
                                       size_t table_mask) {
     using ttype = std::tuple<E, int>;
-    auto table = pbbs::new_array_no_init<ttype>(table_size);
+    auto table = pbbslib::new_array_no_init<ttype>(table_size);
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
@@ -101,18 +101,18 @@ struct get_bucket {
     if (k > 0) {
       hash_table = make_hash_table(sample, k, table_size, table_mask);
     }
-    pbbs::free_array(sample);
+    pbbslib::free_array(sample);
   }
 
   ~get_bucket() {
     if (k > 0) {
-      pbbs::free_array(hash_table);
+      pbbslib::free_array(hash_table);
     }
   }
 
   size_t operator()(size_t i) {
     if (k > 0) {
-      size_t h = pbbs::hash64(I[i]) & table_mask;
+      size_t h = pbbslib::hash64(I[i]) & table_mask;
       while (true) {
         E elm;
         int ct;
@@ -126,7 +126,7 @@ struct get_bucket {
         h = (h + 1) & table_mask;
       }
     }
-    return pbbs::hash64(I[i] & low_mask) & bucket_mask;
+    return pbbslib::hash64(I[i] & low_mask) & bucket_mask;
   }
 };
 
@@ -137,16 +137,16 @@ struct hist_table {
   KV* table;
   size_t size;
   hist_table(KV _empty, size_t _size) : empty(_empty), size(_size) {
-    table = pbbs::new_array_no_init<KV>(size);
+    table = pbbslib::new_array_no_init<KV>(size);
     par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
   }
   hist_table() {}
 
   void resize(size_t req_size) {
     if (req_size > size) {
-      size_t rounded_size = (1L << pbbs::log2_up<size_t>(req_size));
-      pbbs::free_array(table);
-      table = pbbs::new_array_no_init<KV>(rounded_size);
+      size_t rounded_size = (1L << pbbslib::log2_up<size_t>(req_size));
+      pbbslib::free_array(table);
+      table = pbbslib::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
       par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
       std::cout << "resized to: " << size << "\n";
@@ -155,7 +155,7 @@ struct hist_table {
 
   void del() {
     if (table) {
-      pbbs::free_array(table);
+      pbbslib::free_array(table);
     }
   }
 };
@@ -176,7 +176,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t low_mask = ~((size_t)15);
   size_t bucket_mask = num_buckets - 1;
   auto gb = [&](uintE i) {
-    return pbbs::hash64(get_key[i] & low_mask) & bucket_mask;
+    return pbbslib::hash64(get_key[i] & low_mask) & bucket_mask;
   };
 
   K* elms;
@@ -184,10 +184,10 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t num_blocks;
   if (num_buckets <= 256) {
     std::tie(elms, counts, num_blocks) =
-        _count_sort<uint8_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
+        pbbslib::_count_sort<uint8_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   } else {
     std::tie(elms, counts, num_blocks) =
-        _count_sort<uint16_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
+        pbbslib::_count_sort<uint16_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   }
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
@@ -223,7 +223,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
     if (size > 0) {
-      ht_size = 1 << pbbs::log2_up((intT)(size + 1));
+      ht_size = 1 << pbbslib::log2_up((intT)(size + 1));
     }
     ht_offs[i + 1] = ht_offs[i] + ht_size;
     if (size < min_size) {
@@ -285,7 +285,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   out_offs[num_buckets] = ct;
   uintT num_distinct = ct;
 
-  O* res = pbbs::new_array_no_init<O>(ct);
+  O* res = pbbslib::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -305,9 +305,9 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
     }
   });
 
-  pbbs::free_array(elms);
-  pbbs::free_array(counts);
-  pbbs::free_array(bkt_counts);
+  pbbslib::free_array(elms);
+  pbbslib::free_array(counts);
+  pbbslib::free_array(bkt_counts);
   return std::make_pair(num_distinct, res);
 }
 
@@ -319,7 +319,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   int nworkers = num_workers();
 
   if (n < _hist_seq_threshold || nworkers == 1) {
-    size_t pn = pbbs::log2_up((intT)(n + 1));
+    size_t pn = pbbslib::log2_up((intT)(n + 1));
     size_t rs = 1L << pn;
     ht.resize(rs);
     sequentialHT<K, V> S(ht.table, n, 1.0f, ht.empty);
@@ -328,7 +328,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
       K k = get_key[i];
       ct += S.insertAdd(k);
     }
-    O* out = pbbs::new_array_no_init<O>(ct);
+    O* out = pbbslib::new_array_no_init<O>(ct);
     size_t k = S.compactInto(apply_f, out);
     return std::make_pair(k, out);
   }
@@ -358,10 +358,10 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t* counts;
   size_t num_blocks;
   if (num_total_buckets <= 256) {
-    std::tie(elms, counts, num_blocks) = _count_sort<uint8_t, size_t, K>(
+    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint8_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   } else {
-    std::tie(elms, counts, num_blocks) = _count_sort<uint16_t, size_t, K>(
+    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint16_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   }
 
@@ -397,7 +397,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   MO* heavy_cts;
   if (heavy) {
     if (num_heavy > 128) {
-      heavy_cts = pbbs::new_array_no_init<MO>(num_heavy);
+      heavy_cts = pbbslib::new_array_no_init<MO>(num_heavy);
     } else {
       heavy_cts = heavy_cts_stk;
     }
@@ -416,7 +416,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
     if (size > 0) {
-      ht_size = 1 << pbbs::log2_up((intT)(size + 1));
+      ht_size = 1 << pbbslib::log2_up((intT)(size + 1));
     }
     ht_offs[i + 1] = ht_offs[i] + ht_size;
     if (size < min_size) {
@@ -527,7 +527,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   }
   uintT num_distinct = ct;
 
-  O* res = pbbs::new_array_no_init<O>(ct);
+  O* res = pbbslib::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -557,11 +557,11 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   }
 
-  pbbs::free_array(elms);
-  pbbs::free_array(counts);
-  pbbs::free_array(bkt_counts);
+  pbbslib::free_array(elms);
+  pbbslib::free_array(counts);
+  pbbslib::free_array(bkt_counts);
   if (heavy && num_heavy > 128) {
-    pbbs::free_array(heavy_cts);
+    pbbslib::free_array(heavy_cts);
   }
 
   return std::make_pair(num_distinct, res);
@@ -573,8 +573,7 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
                                                   Reduce& reduce_f,
                                                   Apply& apply_f,
                                                   hist_table<K, V>& ht) {
-  typedef std::tuple<K, V> KV;
-  size_t pn = pbbs::log2_up((intT)(n + 1));
+  size_t pn = pbbslib::log2_up((intT)(n + 1));
   size_t rs = 1L << pn;
   ht.resize(rs);
   sequentialHT<K, V> S(ht.table, n, 1.0f, ht.empty);
@@ -582,7 +581,7 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
     E a = get_elm(i);
     reduce_f(S, a);
   }
-  O* out = pbbs::new_array_no_init<O>(n);
+  O* out = pbbslib::new_array_no_init<O>(n);
   size_t k = S.compactInto(apply_f, out);
   return std::make_pair(k, out);
 }
@@ -619,10 +618,10 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   size_t low_mask = ~((size_t)15);
   size_t bucket_mask = num_buckets - 1;
   auto gb = [&](uintE i) {
-    return pbbs::hash64(get_key[i] & low_mask) & bucket_mask;
+    return pbbslib::hash64(get_key[i] & low_mask) & bucket_mask;
   };
 
-  auto p = _count_sort<int16_t, size_t, E>(get_elm, gb, n, (uintE)num_buckets);
+  auto p = pbbslib::_count_sort<int16_t, size_t, E>(get_elm, gb, n, (uintE)num_buckets);
 
   auto elms = std::get<0>(p);  // count-sort'd
   // laid out as num_buckets (row), blocks (col)
@@ -660,13 +659,13 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
     size_t size = bkt_counts[i * S_STRIDE];
     size_t ht_size = 0;
     if (size > 0) {
-      ht_size = 1 << pbbs::log2_up((intT)(size + 1));
+      ht_size = 1 << pbbslib::log2_up((intT)(size + 1));
     }
     ht_offs[i + 1] = ht_offs[i] + ht_size;
   }
 
   ht.resize(ht_offs[num_buckets]);
-  O* out = pbbs::new_array_no_init<O>(ht_offs[num_buckets]);
+  O* out = pbbslib::new_array_no_init<O>(ht_offs[num_buckets]);
 
   // (3) insert elms into per-bucket hash table (par)
   {
@@ -718,7 +717,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   out_offs[num_buckets] = ct;
   uintT num_distinct = ct;
 
-  O* res = pbbs::new_array_no_init<O>(ct);
+  O* res = pbbslib::new_array_no_init<O>(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -737,10 +736,10 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
     }
   });
 
-  pbbs::free_array(elms);
-  pbbs::free_array(counts);
-  pbbs::free_array(bkt_counts);
-  pbbs::free_array(out);
+  pbbslib::free_array(elms);
+  pbbslib::free_array(counts);
+  pbbslib::free_array(bkt_counts);
+  pbbslib::free_array(out);
   return std::make_pair(num_distinct, res);
 }
 
@@ -752,4 +751,4 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
 //    ht, t);
 //  }
 
-}  // namespace pbbs
+}  // namespace pbbslib

@@ -23,7 +23,7 @@
 // SOFTWARE.
 #pragma once
 
-#include "lib/utilities.h"
+#include "pbbslib/utilities.h"
 #include "maybe.h"
 
 template <class K, class V>
@@ -42,23 +42,24 @@ class sequentialHT {
   T* table;
 
   inline size_t toRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K v) { return toRange(pbbs::hash64(v)); }
+  inline size_t firstIndex(K v) { return toRange(pbbslib::hash64(v)); }
   inline size_t incrementIndex(size_t h) { return toRange(h + 1); }
 
   sequentialHT(T* _table, size_t size, float loadFactor,
                std::tuple<K, V> _empty)
-      : m((size_t)1 << pbbs::log2_up((size_t)(loadFactor * size))),
+      : m((size_t)1 << pbbslib::log2_up((size_t)(loadFactor * size))),
         mask(m - 1),
-        table(_table),
-        empty(_empty) {
-    max_key = std::get<0>(empty);
-  }
+        empty(_empty),
+        max_key(std::get<0>(_empty)),
+        table(_table) { }
 
   // m must be a power of two
   sequentialHT(T* _table, size_t _m, std::tuple<K, V> _empty)
-      : m((size_t)_m), mask(m - 1), table(_table), empty(_empty) {
-    max_key = std::get<0>(empty);
-  }
+      : m((size_t)_m),
+        mask(m - 1),
+        empty(_empty),
+        max_key(std::get<0>(_empty)),
+        table(_table) { }
 
   template <class M, class F>
   inline void insertF(std::tuple<K, M>& v, F& f) {

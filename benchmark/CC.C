@@ -45,14 +45,14 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
   timer t;
   t.start();
   auto components = cc::CC(GA, beta, pack);
+  t.stop(); t.reportTotal("CC time");
   if (P.getOption("-stats")) {
     auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
-        make_sequence<uintE>(GA.n, cc_f);
+        pbbslib::make_sequence<uintE>(GA.n, cc_f);
     cc::num_cc(cc_im);
     cc::largest_cc(cc_im);
   }
-  t.stop(); t.reportTotal("CC time");
   components.clear();
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can

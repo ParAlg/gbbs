@@ -56,7 +56,7 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       if (deg > k) {
         uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
-        uintE bkt = b.get_bucket(deg, new_deg);
+        uintE bkt = b.get_bucket(new_deg);
         return wrap(v, bkt);
       }
       return Maybe<std::tuple<uintE, uintE> >();
@@ -97,7 +97,7 @@ struct kcore_fetch_add {
   }
   inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& wgh) {
-    if (writeAdd(&er[d], (uintE)1) == 1) {
+    if (pbbslib::fetch_and_add(&er[d], (uintE)1) == 1) {
       return Maybe<uintE>((uintE)0);
     }
     return Maybe<uintE>();
@@ -135,7 +135,7 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
     };
 
     auto moved = edgeMapData<uintE>(
-        GA, active, kcore_fetch_add<W>(ER.start(), D.start(), k));
+        GA, active, kcore_fetch_add<W>(ER.begin(), D.begin(), k));
     vertexMap(moved, apply_f);
 
     if (moved.dense()) {

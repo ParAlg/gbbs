@@ -26,7 +26,7 @@
 // case of directed/asymmetric graphs).
 //
 // The classes have two templates, W and C:
-// W : the weight type of the underlying graph (pbbs::empty if unweighted)
+// W : the weight type of the underlying graph (pbbslib::empty if unweighted)
 // C : the compression format used. See encodings/decoders.h.
 //
 // To avoid duplication, a lot of the implementation is factored out into
@@ -40,22 +40,22 @@
 #include "encodings/decoders.h"
 #include "macros.h"
 
-#include "lib/monoid.h"
+#include "pbbslib/monoid.h"
 
 namespace cvertex {
 
 template <class W, class C, class F, class G, class VS>
-inline void decodeNghsBreakEarly(uintE vtx_id, uintE d, uchar* nghArr, VS& vs,
-                                 F& f, G& g, bool parallel = false) {
+__attribute__((always_inline)) inline void decodeNghsBreakEarly(const uintE vtx_id, const uintE d, uchar* nghArr, const VS& vs,
+                                 F& f, const G& g, bool parallel=false) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
-               const uintT& edgeNumber) {
+               const uintT& edgeNumber) __attribute__((always_inline)) {
     if (vs.isIn(target)) {
       auto m = f.update(target, src, weight);
       g(src, m);
     }
     return f.cond(src);
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
@@ -69,7 +69,7 @@ inline void decodeNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f, G& g,
     }
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G, class H>
@@ -85,7 +85,7 @@ inline void decodeNghsSparse(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
@@ -102,7 +102,7 @@ inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, false);
+  C::template decode<W>(T, nghArr, vtx_id, d, /* parallel = */ false);
   return k;
 }
 
@@ -119,7 +119,7 @@ inline size_t decodeNghsSparseBlock(uintE vtx_id, uintE d, uchar* nghArr,
       }
     }
   };
-  C::decode_block_seq(T, nghArr, vtx_id, d, block_size, block_num);
+  C::template decode_block_seq<W>(T, nghArr, vtx_id, d, block_size, block_num);
   return k;
 }
 
@@ -131,43 +131,43 @@ inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
     f(src, target, weight);
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
 inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
-                     G& g) {
+                     G& g, bool parallel=true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     auto val = f(src, target, weight);
     g(target, o + edgeNumber, val);
     return true;
   };
-  C::decode(T, nghArr, vtx_id, d);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F>
 inline size_t countNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                         bool parallel = true) {
-  auto monoid = addm<size_t>();
-  return C::template map_reduce<size_t>(nghArr, vtx_id, d, f, monoid, parallel);
+  auto monoid = pbbs::addm<size_t>();
+  return C::template map_reduce<W, size_t>(nghArr, vtx_id, d, f, monoid, parallel);
 }
 
 template <class W, class C, class E, class M, class Monoid>
 inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r) {
-  return C::template map_reduce<E>(nghArr, vtx_id, d, m, r);
+  return C::template map_reduce<W, E>(nghArr, vtx_id, d, m, r);
 }
 
 template <class W, class C, class P, class O>
 inline void filterNghs(uintE vtx_id, uintE d, uchar* nghArr, P& pred,
                        std::tuple<uintE, W>* tmp, O& out) {
-  C::template filter<P, O>(pred, nghArr, vtx_id, d, tmp, out);
+  C::template filter<W, P, O>(pred, nghArr, vtx_id, d, tmp, out);
 }
 
 template <class W, class C, class P>
 inline size_t packNghs(uintE vtx_id, uintE d, uchar* nghArr, P& pred,
                        std::tuple<uintE, W>* tmp) {
-  return C::pack(pred, nghArr, vtx_id, d, tmp);
+  return C::template pack<W>(pred, nghArr, vtx_id, d, tmp);
 }
 
 inline size_t calculateTemporarySpace(uintE deg) {
@@ -213,26 +213,24 @@ struct compressedSymmetricVertex {
   void flipEdges() {}
   void clear() {}
 
-  auto getOutIter(uintE id) -> decltype(C::iter(getInNeighbors(), getInDegree(), id)) {
-    return C::iter(getOutNeighbors(), getOutDegree(), id);
+  auto getOutIter(uintE id)  {
+    return C::template iter<W>(getOutNeighbors(), getOutDegree(), id);
   }
-  auto getInIter(uintE id) -> decltype(C::iter(getInNeighbors(), getInDegree(), id)) {
-    return C::iter(getInNeighbors(), getInDegree(), id);
+  auto getInIter(uintE id) {
+    return C::template iter<W>(getInNeighbors(), getInDegree(), id);
   }
 
   template <class VS, class F, class G>
-  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
+ __attribute__((always_inline)) inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
         vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class VS, class F, class G>
-  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
-                                     bool parallel = 0) {
-    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(vtx_id, getOutDegree(),
-                                                  getOutNeighbors(),
-                                                  vertexSubset, f, g, parallel);
+ __attribute__((always_inline)) inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g, bool parallel = 0) {
+    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
+        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class F, class G>
@@ -300,23 +298,23 @@ struct compressedSymmetricVertex {
   }
 
   template <class F>
-  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 0) {  // TODO
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
     cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), f,
                               parallel);
   }
 
   template <class F>
-  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 0) {  // TODO
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
     cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getOutNeighbors(), vtx_id, getOutDegree(), i);
+    return C::template get_ith_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), i);
   }
 
   inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getInNeighbors(), vtx_id, getInDegree(), i);
+    return C::template get_ith_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), i);
   }
 
   template <class F>
@@ -379,25 +377,24 @@ struct compressedSymmetricVertex {
 
   inline size_t intersect(compressedSymmetricVertex<W, C>* other, long our_id,
                           long other_id) {
-    return C::intersect(getOutNeighbors(), other->getOutNeighbors(),
-                        getOutDegree(), other->getOutDegree(), our_id,
-                        other_id);
+    return C::template intersect<W>(getOutNeighbors(), other->getOutNeighbors(),
+        getOutDegree(), other->getOutDegree(), our_id, other_id);
   }
 
   template <class F>
   inline size_t intersect_f(compressedSymmetricVertex<W, C>* other, long our_id,
                             long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
   template <class F>
   inline size_t intersect_f_par(compressedSymmetricVertex<W, C>* other, long our_id,
                             long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
 
@@ -444,26 +441,24 @@ struct compressedAsymmetricVertex {
   }
   void clear() {}
 
-  auto getOutIter(uintE vtx_id) -> typename C::iter_type {
-    return C::iter(getOutNeighbors(), getOutDegree(), vtx_id);
+  auto getOutIter(uintE vtx_id)  {
+    return C::template iter<W>(getOutNeighbors(), getOutDegree(), vtx_id);
   }
-  auto getInIter(uintE vtx_id) -> typename C::iter_type {
-    return C::iter(getInNeighbors(), getInDegree(), vtx_id);
+  auto getInIter(uintE vtx_id)  {
+    return C::template iter<W>(getInNeighbors(), getInDegree(), vtx_id);
   }
 
   template <class VS, class F, class G>
-  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
+ __attribute__((always_inline)) inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
         vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class VS, class F, class G>
-  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
-                                     bool parallel = 0) {
-    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(vtx_id, getOutDegree(),
-                                                  getOutNeighbors(),
-                                                  vertexSubset, f, g, parallel);
+ __attribute__((always_inline)) inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g, bool parallel = 0) {
+    cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
+        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class F, class G>
@@ -519,11 +514,11 @@ struct compressedAsymmetricVertex {
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getOutNeighbors(), vtx_id, getOutDegree(), i);
+    return C::template get_ith_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), i);
   }
 
   inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getInNeighbors(), vtx_id, getInDegree(), i);
+    return C::template get_ith_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), i);
   }
 
   template <class F, class G>
@@ -539,14 +534,14 @@ struct compressedAsymmetricVertex {
   }
 
   template <class F>
-  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 0) {
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 1) {
     cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), f,
                               parallel);
   }
 
   template <class F>
   // TODO: parallel false?
-  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 0) {
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {
     cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
   }
@@ -607,25 +602,24 @@ struct compressedAsymmetricVertex {
 
   inline size_t intersect(compressedAsymmetricVertex<W, C>* other, long our_id,
                           long other_id) {
-    return C::intersect(getOutNeighbors(), other->getOutNeighbors(),
-                        getOutDegree(), other->getOutDegree(), our_id,
-                        other_id);
+    return C::template intersect<W>(getOutNeighbors(), other->getOutNeighbors(),
+        getOutDegree(), other->getOutDegree(), our_id, other_id);
   }
 
   template <class F>
   inline size_t intersect_f(compressedAsymmetricVertex<W, C>* other,
                             long our_id, long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
   template <class F>
   inline size_t intersect_f_par(compressedAsymmetricVertex<W, C>* other,
                             long our_id, long other_id, const F& f) {
-    return C::intersect_f(getOutNeighbors(), other->getOutNeighbors(),
-                          getOutDegree(), other->getOutDegree(), our_id,
-                          other_id, f);
+    return C::template intersect_f<W>(getOutNeighbors(),
+        other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
+        other_id, f);
   }
 
 
@@ -644,26 +638,21 @@ struct compressedAsymmetricVertex {
 // cav for "compressed_asymmetric_vertex"
 template <class W>
 struct csv_bytepd_amortized
-    : compressedSymmetricVertex<W, bytepd_amortized_decode<W>> {
-  using inner = compressedSymmetricVertex<W, bytepd_amortized_decode<W>>;
+    : compressedSymmetricVertex<W, bytepd_amortized_decode> {
+  using inner = compressedSymmetricVertex<W, bytepd_amortized_decode>;
   using inner::inner;
 };
 
 template <class W>
 struct cav_bytepd_amortized
-    : compressedAsymmetricVertex<W, bytepd_amortized_decode<W>> {
-  using inner = compressedAsymmetricVertex<W, bytepd_amortized_decode<W>>;
+    : compressedAsymmetricVertex<W, bytepd_amortized_decode> {
+  using inner = compressedAsymmetricVertex<W, bytepd_amortized_decode>;
   using inner::inner;
 };
 
 template <class W>
-struct csv_byte : compressedSymmetricVertex<W, byte_decode<W>> {
-  using inner = compressedSymmetricVertex<W, byte_decode<W>>;
-  using inner::inner;
-};
-
-template <class W>
-struct cav_byte : compressedAsymmetricVertex<W, byte_decode<W>> {
-  using inner = compressedAsymmetricVertex<W, byte_decode<W>>;
+struct cav_byte
+    : compressedAsymmetricVertex<W, byte_decode> {
+  using inner = compressedAsymmetricVertex<W, byte_decode>;
   using inner::inner;
 };

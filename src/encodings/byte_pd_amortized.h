@@ -30,16 +30,10 @@
 #include <fstream>
 #include <iostream>
 #include <tuple>
+#include <type_traits>
 
-#include "lib/binary_search.h"
-#include "lib/seq.h"
-#include "lib/sequence_ops.h"
-#include "lib/extra_sequence_ops.h"
-#include "lib/utilities.h"
+#include "bridge.h"
 
-#include "oldlib/utils.h"
-
-namespace encodings {
 namespace bytepd_amortized {
 
 inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
@@ -49,16 +43,16 @@ inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
   return 0;
 }
 
-// Read default weight (expects pbbs::empty)
+// Read default weight (expects pbbslib::empty)
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-inline W eatWeight(uchar*& start) {
-  return (W)pbbs::empty();
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
+  return (W)pbbslib::empty();
 }
 
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-inline void print_weight(W& wgh) {
+__attribute__((always_inline)) inline void print_weight(W& wgh) {
   std::cout << wgh << "\n";
 }
 
@@ -69,7 +63,7 @@ inline void print_weight(W& wgh) {}
 // Read integer weight
 template <class W,
           typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-inline W eatWeight(uchar*& start) {
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
   uchar fb = *start++;
   intE edgeRead = (fb & 0x3f);
   if (LAST_BIT_SET(fb)) {
@@ -87,7 +81,7 @@ inline W eatWeight(uchar*& start) {
   return (fb & 0x40) ? -edgeRead : edgeRead;
 }
 
-inline uintE eatFirstEdge(uchar*& start, uintE source) {
+__attribute__((always_inline)) inline uintE eatFirstEdge(uchar*& start, const uintE source) {
   uchar fb = *start++;
   uintE edgeRead = (fb & 0x3f);
   if (LAST_BIT_SET(fb)) {
@@ -108,7 +102,7 @@ inline uintE eatFirstEdge(uchar*& start, uintE source) {
 /*
   Reads any edge of an out-edge list after the first edge.
 */
-inline uintE eatEdge(uchar*& start) {
+__attribute__((always_inline)) inline uintE eatEdge(uchar*& start) {
   uintE edgeRead = 0;
   int shiftAmount = 0;
 
@@ -213,8 +207,8 @@ struct iter {
 
   iter(uchar* _base, uintT _degree, uintE _src)
       : base(_base),
-        degree(_degree),
         src(_src),
+        degree(_degree),
         cur_chunk(0),
         cur_chunk_degree(0) {
     if (degree == 0) return;
@@ -254,9 +248,9 @@ struct iter {
     read_in_block = 1;
   }
 
-  inline std::tuple<uintE, W> cur() { return last_edge; }
+  __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
 
-  inline std::tuple<uintE, W> next() {
+  __attribute__((always_inline)) inline std::tuple<uintE, W> next() {
     if (read_in_block == cur_chunk_degree) {
       cur_chunk_degree = 0;
       uintE* block_offsets = (uintE*)(base + sizeof(uintE));
@@ -283,7 +277,7 @@ struct iter {
     return last_edge;
   }
 
-  inline bool has_next() { return read_total < degree; }
+  __attribute__((always_inline)) inline bool has_next() { return read_total < degree; }
 };
 
 template <class W>
@@ -299,7 +293,7 @@ struct simple_iter {
   uintE proc;
 
   simple_iter(uchar* _base, uintT _degree, uintE _src)
-      : base(_base), degree(_degree), src(_src), cur_chunk(0) {
+      : base(_base), src(_src), degree(_degree), cur_chunk(0) {
     if (degree == 0) return;
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     finger = base + (num_blocks - 1) * sizeof(uintE) + 2 * sizeof(uintE);
@@ -309,9 +303,9 @@ struct simple_iter {
     proc = 1;
   }
 
-  inline std::tuple<uintE, W> cur() { return last_edge; }
+  __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
 
-  inline std::tuple<uintE, W> next() {
+  __attribute__((always_inline)) inline std::tuple<uintE, W> next() {
     if (proc == PARALLEL_DEGREE) {
       finger += sizeof(uintE);  // skip block start
       std::get<0>(last_edge) = eatFirstEdge(finger, src);
@@ -326,69 +320,80 @@ struct simple_iter {
     return last_edge;
   }
 
-  inline bool has_next() {
+  __attribute__((always_inline)) inline bool has_next() {
     return (cur_chunk * PARALLEL_DEGREE + proc) < degree;
   }
 };
 
-// Decode unweighted edges
-template <
-    class W, class T,
-    typename std::enable_if<std::is_same<W, pbbs::empty>::value, int>::type = 0>
-inline void decode(T t, uchar* edge_start, const uintE& source,
-                   const uintT& degree, const bool par = true) {
-  if (degree > 0) {
-    uintE virtual_degree = *((uintE*)edge_start);
-    size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-    uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
-    uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
-                        sizeof(uintE);  // block offs + virtual_degree
+  // Decode unweighted edges
+  template <class W, class T, typename std::enable_if<
+      std::is_same<W, pbbs::empty>::value, int>::type=0>
+  void decode(T& t, uchar* edge_start, const uintE &source,
+                     const uintT &degree, const bool parallel=true) {
+    if (degree > 0) {
+      uintE virtual_degree = *((uintE*)edge_start);
+      size_t num_blocks = 1+(virtual_degree-1)/PARALLEL_DEGREE;
+      uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+      uchar* nghs_start = edge_start + (num_blocks-1)*sizeof(uintE) + sizeof(uintE); // block offs + virtual_degree
 
-    // do first chunk
-    uchar* finger = nghs_start;
-    uintE start_offset = *((uintE*)finger);
-    uintE end_offset = (0 == (num_blocks - 1))
-                           ? degree
-                           : (*((uintE*)(edge_start + block_offsets[0])));
-    finger += sizeof(uintE);
-
-    auto wgh = pbbs::empty();
-    if (start_offset < end_offset) {  // at least one edge in this block
-      uintE ngh = eatFirstEdge(finger, source);
-      if (!t(source, ngh, wgh, start_offset)) return;
-      for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
-        ngh += eatEdge(finger);
-        if (!t(source, ngh, wgh, edgeID)) return;
-      }
-    }
-
-    par_for(1, num_blocks, 2, [&] (size_t i) {
-      uchar* finger =
-          (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
+      // do first chunk
+      uchar* finger = nghs_start;
       uintE start_offset = *((uintE*)finger);
-      uintE end_offset = (i == (num_blocks - 1))
-                             ? degree
-                             : (*((uintE*)(edge_start + block_offsets[i])));
+      uintE end_offset = (0 == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[0])));
       finger += sizeof(uintE);
 
-      if (start_offset < end_offset) {  // at least one edge in this block
+      auto wgh = pbbs::empty();
+      if (start_offset < end_offset) { // at least one edge in this block
         uintE ngh = eatFirstEdge(finger, source);
-        if (!t(source, ngh, wgh, start_offset)) end_offset = 0;
-        for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
+        if (!t(source, ngh, wgh, start_offset)) return;
+        for (size_t edgeID = start_offset+1; edgeID < end_offset; edgeID++) {
           ngh += eatEdge(finger);
-          if (!t(source, ngh, wgh, edgeID)) break;
+          if(!t(source, ngh, wgh, edgeID)) return;
         }
       }
-    }, par);
+      if ((num_blocks > 2) && parallel) {
+//        cilk_for(size_t i=1; i<num_blocks; i++) {
+        parallel_for(1, num_blocks, [&] (size_t i) {
+          uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
+          uintE start_offset = *((uintE*)finger);
+          uintE end_offset = (i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])));
+          finger += sizeof(uintE);
+
+          if (start_offset < end_offset) { // at least one edge in this block
+            uintE ngh = eatFirstEdge(finger, source);
+            if (!t(source, ngh, wgh, start_offset)) end_offset = 0;
+            for (size_t edgeID = start_offset+1; edgeID < end_offset; edgeID++) {
+              ngh += eatEdge(finger);
+              if(!t(source, ngh, wgh, edgeID)) break;
+            }
+          }
+        }, 1);
+      } else {
+        for(size_t i=1; i<num_blocks; i++) {
+          uchar* finger = (i > 0) ? (edge_start + block_offsets[i-1]) : nghs_start;
+          uintE start_offset = *((uintE*)finger);
+          uintE end_offset = (i == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[i])));
+          finger += sizeof(uintE);
+
+          if (start_offset < end_offset) { // at least one edge in this block
+            uintE ngh = eatFirstEdge(finger, source);
+            if (!t(source, ngh, wgh, start_offset)) end_offset = 0;
+            for (size_t edgeID = start_offset+1; edgeID < end_offset; edgeID++) {
+              ngh += eatEdge(finger);
+              if(!t(source, ngh, wgh, edgeID)) break;
+            }
+          }
+        }
+      }
+    }
   }
-}
+
 
 // Decode weighted edges
-template <class W, class T,
-          typename std::enable_if<!std::is_same<W, pbbs::empty>::value,
-                                  int>::type = 0>
-inline void decode(T t, uchar* edge_start, const uintE& source,
-                   const uintT& degree, const bool par = true) {
+template <class W, class T, typename std::enable_if<
+    !std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+inline void decode(T& t, uchar* edge_start, const uintE& source,
+    const uintT& degree, const bool par=true) {
   if (degree > 0) {
     uintE virtual_degree = *((uintE*)edge_start);
     size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
@@ -396,25 +401,8 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
     uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
                         sizeof(uintE);  // block offs + virtual_degree
 
-    // do first chunk
-    uchar* finger = nghs_start;
-    uintE start_offset = *((uintE*)finger);
-    uintE end_offset = (0 == (num_blocks - 1))
-                           ? degree
-                           : (*((uintE*)(edge_start + block_offsets[0])));
-    finger += sizeof(uintE);
-    if (start_offset < end_offset) {  // at least one edge in this block
-      uintE ngh = eatFirstEdge(finger, source);
-      W wgh = eatWeight<W>(finger);
-      if (!t(source, ngh, wgh, start_offset)) return;
-      for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
-        ngh += eatEdge(finger);
-        wgh = eatWeight<W>(finger);
-        if (!t(source, ngh, wgh, edgeID)) return;
-      }
-    }
-
-    par_for(1, num_blocks, 2, [&] (size_t i) {
+    // TODO: put back par
+    for(size_t i=0; i<num_blocks; i++ ) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -426,14 +414,14 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       if (start_offset < end_offset) {  // at least one edge in this block
         uintE ngh = eatFirstEdge(finger, source);
         W wgh = eatWeight<W>(finger);
-        if (!t(source, ngh, wgh, start_offset)) end_offset = 0;
+        if (!t(source, ngh, wgh, start_offset)) return;
         for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
           ngh += eatEdge(finger);
           wgh = eatWeight<W>(finger);
-          if (!t(source, ngh, wgh, edgeID)) break;
+          if (!t(source, ngh, wgh, edgeID)) return;
         }
       }
-    }, par);
+    }
   }
 }
 
@@ -485,15 +473,17 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
                         sizeof(uintE);  // block offs + virtual_degree
 
-    E stk[100];
-    E* block_outputs;
-    if (num_blocks > 100) {
-      block_outputs = pbbs::new_array_no_init<E>(num_blocks);
-    } else {
-      block_outputs = (E*)stk;
-    }
+//    E stk[100];
+//    E* block_outputs;
+//    if (num_blocks > 100) {
+//      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+//    } else {
+//      block_outputs = (E*)stk;
+//    }
 
-    par_for(0, num_blocks, 2, [&] (size_t i) {
+//    par_for(0, num_blocks, 1, [&] (size_t i) {
+    auto cur = reduce.identity;
+    for (size_t i=0; i<num_blocks; i++) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -502,7 +492,6 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
                              : (*((uintE*)(edge_start + block_offsets[i])));
       finger += sizeof(uintE);
 
-      E cur = reduce.identity;
       if (start_offset < end_offset) {
         // Eat first edge, which is compressed specially
         uintE ngh = eatFirstEdge(finger, source);
@@ -514,15 +503,15 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
           cur = reduce.f(cur, m(source, ngh, wgh));
         }
       }
-      block_outputs[i] = cur;
-    }, par);
+//      block_outputs[i] = cur;
+    } // , par && (num_blocks > 2));
 
-    auto im = make_sequence(block_outputs, num_blocks);
-    E res = pbbs::reduce(im, reduce);
-    if (num_blocks > 100) {
-      pbbs::free_array(block_outputs);
-    }
-    return res;
+//    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+//    E res = pbbslib::reduce(im, reduce);
+//    if (num_blocks > 100) {
+//      pbbslib::free_array(block_outputs);
+//    }
+    return cur;
   } else {
     return reduce.identity;
   }
@@ -599,10 +588,10 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
                     : (*((uintE*)(edge_start + block_offsets[j])));
     return end;
   };
-  auto blocks_imap = make_sequence<size_t>(num_blocks, blocks_f);
+  auto blocks_imap = pbbslib::make_sequence<size_t>(num_blocks, blocks_f);
   // This is essentially searching a plus_scan'd, incl arr.
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-  size_t block = pbbs::binary_search(blocks_imap, i, lte);
+  size_t block = pbbslib::binary_search(blocks_imap, i, lte);
   assert(block >= 0);
   assert(block < num_blocks);
 
@@ -658,11 +647,11 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 //
 //    uintE binary_search(uintE pivot) {
 //      uintE* offs = (uintE*)edge_start;
-//      auto start_im = make_sequence<uintE>(size(), [&] (size_t i) {
+//      auto start_im = pbbslib::make_sequence<uintE>(size(), [&] (size_t i) {
 //        uchar* finger = edge_start + offs[start + i];
 //        return eatFirstEdge(finger, source_id);
 //      });
-//      uintE ind = pbbs::binary_search(start_im, pivot, std::greater<uintE>());
+//      uintE ind = pbbslib::binary_search(start_im, pivot, std::greater<uintE>());
 //      // check
 //      // ind is the first block index (from start) <= our pivot.
 //      uintE db[1000];
@@ -689,8 +678,8 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 //  inline uintE seq_intersect(seq_info u, seq_info v) { uintE ngh_u[1000];
 //    uchar* finger = u.get_start_of_block(u.start);
 //    return 0;
-//  //  decode_block<pbbs::empty>(finger, (std::tuple<uintE,
-//  pbbs::empty>*)ngh_u, 0,
+//  //  decode_block<pbbslib::empty>(finger, (std::tuple<uintE,
+//  pbbslib::empty>*)ngh_u, 0,
 //  }
 //
 //  inline uintE intersect(seq_info u, seq_info v) {
@@ -780,8 +769,8 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
   }
 
   // 2. Scan to compute block offsets
-  auto bytes_imap = make_sequence(offs, new_blocks + 1);
-  pbbs::scan_add(bytes_imap, bytes_imap);
+  auto bytes_imap = pbbslib::make_sequence(offs, new_blocks + 1);
+  pbbslib::scan_add_inplace(bytes_imap);
 
   // 3. Compress each block
   nghs_start = edge_start + (new_blocks - 1) * sizeof(uintE) + sizeof(uintE);
@@ -862,7 +851,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     uintEW tmp_stack[100];
     uintEW* U = tmp_stack;
     if (degree > 100) {
-      U = pbbs::new_array_no_init<uintEW>(degree);
+      U = pbbslib::new_array_no_init<uintEW>(degree);
     }
     par_for(0, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
@@ -890,7 +879,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     size_t new_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE offs_stack[100];
     uintE* offs =
-        ((new_blocks + 1) <= 100) ? offs_stack : pbbs::new_array_no_init<uintE>(new_blocks + 1);
+        ((new_blocks + 1) <= 100) ? offs_stack : pbbslib::new_array_no_init<uintE>(new_blocks + 1);
 
     // 3. Compute #bytes per new block
     par_for(0, new_blocks, 2, [&] (size_t i) {
@@ -916,8 +905,8 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
 
     // 4. Scan to compute offset for each block
     offs[new_blocks] = 0;
-    auto bytes_imap = make_sequence(offs, new_blocks + 1);
-    pbbs::scan_add(bytes_imap, bytes_imap);
+    auto bytes_imap = pbbslib::make_sequence(offs, new_blocks + 1);
+    pbbslib::scan_add_inplace(bytes_imap);
 
     // 5. Repack each block
     uintE* virtual_degree_ptr = (uintE*)edge_start;
@@ -956,10 +945,10 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     }, par);
 
     if ((new_blocks + 1) > 100) {
-      pbbs::free_array(offs);
+      pbbslib::free_array(offs);
     }
     if (degree > 100) {
-      pbbs::free_array(U);
+      pbbslib::free_array(U);
     }
   }
 }
@@ -978,7 +967,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   size_t block_cts_stack[100];
   size_t* block_cts =
-      (num_blocks > 100) ? pbbs::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
+      (num_blocks > 100) ? pbbslib::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
 
   par_for(0, num_blocks, 2, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1040,8 +1029,8 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   // 2. Scan block_cts to get offsets within blocks
   block_cts[num_blocks] = 0;
-  auto scan_cts = make_sequence(block_cts, num_blocks + 1);
-  size_t deg_remaining = pbbs::scan_add(scan_cts, scan_cts);
+  auto scan_cts = pbbslib::make_sequence(block_cts, num_blocks + 1);
+  size_t deg_remaining = pbbslib::scan_add_inplace(scan_cts);
 
   par_for(0, num_blocks, 1000, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1050,7 +1039,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   });
 
   if (num_blocks > 100) {
-    pbbs::free_array(block_cts);
+    pbbslib::free_array(block_cts);
   }
 
   // Can comment out this call to avoid repacking; this can make algorithms,
@@ -1139,7 +1128,7 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
       uintE first_offset = *((uintE*)first_finger);
       size_t last_offset = 0;
 
-      par_for(start_block, end_block, 2, [&] (size_t i) {
+      par_for(start_block, end_block, 1, [&] (size_t i) {
         uchar* finger =
             (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
         uintE start_offset = *((uintE*)finger) - first_offset;
@@ -1153,13 +1142,13 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
         }
         finger += sizeof(uintE);
         decode_block(finger, tmp, start_offset, end_offset, source);
-      });
+      }, total_blocks > 1);
 
       // filter edges into tmp2
       auto pd = [&](const std::tuple<uintE, W>& nw) {
         return pred(source, std::get<0>(nw), std::get<1>(nw));
       };
-      uintE k = pbbs::filterf(tmp, last_offset, pd, out, out_off);
+      uintE k = pbbslib::filterf(tmp, last_offset, pd, out, out_off);
       out_off += k;
 
       blocks_finished += total_blocks;
@@ -1226,4 +1215,3 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
   return current_offset;
 }
 };  // namespace bytepd_amortized
-}  // namespace encodings

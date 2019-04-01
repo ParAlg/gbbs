@@ -31,26 +31,24 @@
 #include <iostream>
 #include <tuple>
 
-#include "lib/binary_search.h"
-#include "lib/seq.h"
-#include "lib/sequence_ops.h"
-#include "lib/utilities.h"
+#include "pbbslib/binary_search.h"
+#include "pbbslib/seq.h"
+#include "pbbslib/sequence_ops.h"
+#include "pbbslib/utilities.h"
 
 #include "macros.h"
-#include "oldlib/utils.h"
 
-namespace encodings {
 namespace bytepd {
 
 template <class W>
 inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
                                              uintE degree, size_t i) {}
 
-// Read default weight (expects pbbs::empty)
+// Read default weight (expects pbbslib::empty)
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
 inline W eatWeight(uchar*& start) {
-  return (W)pbbs::empty();
+  return (W)pbbslib::empty();
 }
 
 // Read integer weight
@@ -210,7 +208,7 @@ struct simple_iter {
 // Decode unweighted edges
 template <
     class W, class T,
-    typename std::enable_if<std::is_same<W, pbbs::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
   if (degree > 0) {
@@ -223,11 +221,11 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
     // Eat first edge, which is compressed specially
     uintE ngh = eatFirstEdge(finger, source);
-    if (!t(source, ngh, pbbs::empty(), 0)) return;
+    if (!t(source, ngh, pbbslib::empty(), 0)) return;
     for (uintE edgeID = 1; edgeID < end; edgeID++) {
       // Eat the next 'edge', which is a difference, and reconstruct edge.
       ngh += eatEdge(finger);
-      if (!t(source, ngh, pbbs::empty(), edgeID)) return;
+      if (!t(source, ngh, pbbslib::empty(), edgeID)) return;
     }
     // do remaining chunks in parallel
     par_for(1, num_blocks, 1, [&] (size_t i) {
@@ -236,11 +234,11 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       uchar* finger = edge_start + block_offsets[i - 1];
       // Eat first edge, which is compressed specially
       uintE ngh = eatFirstEdge(finger, source);
-      if (!t(source, ngh, pbbs::empty(), o)) end = 0;
+      if (!t(source, ngh, pbbslib::empty(), o)) end = 0;
       for (size_t edgeID = o + 1; edgeID < end; edgeID++) {
         // Eat the next 'edge', which is a difference, and reconstruct edge.
         ngh += eatEdge(finger);
-        if (!t(source, ngh, pbbs::empty(), edgeID)) break;
+        if (!t(source, ngh, pbbslib::empty(), edgeID)) break;
       }
     }, par);
   }
@@ -248,7 +246,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
 // Decode weighted edges
 template <class W, class T,
-          typename std::enable_if<!std::is_same<W, pbbs::empty>::value,
+          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
                                   int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
@@ -300,7 +298,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     E stk[1000];
     E* block_outputs;
     if (num_blocks > 1000) {
-      block_outputs = pbbs::new_array_no_init<E>(num_blocks);
+      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -323,10 +321,10 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       block_outputs[i] = cur;
     }, par);
 
-    auto im = make_sequence(block_outputs, num_blocks);
-    E res = pbbs::reduce(im, r);
+    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    E res = pbbslib::reduce(im, r);
     if (num_blocks > 1000) {
-      pbbs::free_array(block_outputs);
+      pbbslib::free_array(block_outputs);
     }
     return res;
   } else {
@@ -401,9 +399,9 @@ struct seq_info {
       uchar* finger = edge_start + offs[start + i];
       return eatFirstEdge(finger, source_id);
     };
-    auto start_im = make_sequence<uintE>(size(), start_f);
+    auto start_im = pbbslib::make_sequence<uintE>(size(), start_f);
     uintE ind =
-        pbbs::binary_search(start_im, pivot, std::greater<uintE>());  // check
+        pbbslib::binary_search(start_im, pivot, std::greater<uintE>());  // check
     // ind is the first block index (from start) <= our pivot.
     //    decode_block<
 
@@ -425,7 +423,7 @@ inline uintE seq_intersect_full(seq_info u, seq_info v) {
 inline uintE seq_intersect(seq_info u, seq_info v) {
   assert(false);  // not implemented
   return 0;
-  //  decode_block<pbbs::empty>(finger, (std::tuple<uintE, pbbs::empty>*)ngh_u,
+  //  decode_block<pbbslib::empty>(finger, (std::tuple<uintE, pbbslib::empty>*)ngh_u,
   //  0,
 }
 
@@ -546,7 +544,7 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
     uintE stk[100];
     uintE* block_bytes;
     if (num_blocks > 100) {
-      block_bytes = pbbs::new_array_no_init<uintE>(num_blocks);
+      block_bytes = pbbslib::new_array_no_init<uintE>(num_blocks);
     } else {
       block_bytes = (uintE*)stk;
     }
@@ -556,13 +554,13 @@ size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& source,
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
-    auto bytes_imap = make_sequence(block_bytes, num_blocks);
-    size_t total_space = pbbs::scan_add(bytes_imap, bytes_imap);
+    auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks);
+    size_t total_space = pbbslib::scan_add_inplace(bytes_imap);
 
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
     if (num_blocks > 100) {
-      pbbs::free_array(block_bytes);
+      pbbslib::free_array(block_bytes);
     }
     return total_space;
   } else {
@@ -735,7 +733,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE stk[101];
   uintE* block_bytes;
   if (num_blocks > 100) {
-    block_bytes = pbbs::new_array_no_init<uintE>(num_blocks + 1);
+    block_bytes = pbbslib::new_array_no_init<uintE>(num_blocks + 1);
   } else {
     block_bytes = (uintE*)stk;
   }
@@ -750,8 +748,8 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
   uintE* block_offsets = (uintE*)edgeArray;
 
-  auto bytes_imap = make_sequence(block_bytes, num_blocks + 1);
-  uintE total_space = pbbs::scan_add(bytes_imap, bytes_imap);
+  auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks + 1);
+  uintE total_space = pbbslib::scan_add_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
     std::cout << "Space error!"
@@ -787,7 +785,7 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
     }
   });
   if (num_blocks > 100) {
-    pbbs::free_array(block_bytes);
+    pbbslib::free_array(block_bytes);
   }
 }
 
@@ -838,7 +836,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     auto pd = [&](const std::tuple<uintE, W>& nw) {
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
-    uintE k = pbbs::filterf(our_tmp, tmp2, degree, pd);
+    uintE k = pbbslib::filterf(our_tmp, tmp2, degree, pd);
     if (k == degree || k == 0) {
       return k;
     }
@@ -897,7 +895,7 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
     auto pd = [&](const std::tuple<uintE, W>& nw) {
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
-    uintE k = pbbs::filterf(tmp, tmp2, degree, pd);
+    uintE k = pbbslib::filterf(tmp, tmp2, degree, pd);
     par_for(0, k, 2000, [&] (size_t i) { out(i, tmp2[i]); });
     return k;
   }
@@ -911,33 +909,34 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
                              uintE* Degrees) {
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
-  uintE** edgePts = pbbs::new_array_no_init<uintE*>(n);
-  long* charsUsedArr = pbbs::new_array_no_init<long>(n);
-  long* compressionStarts = pbbs::new_array_no_init<long>(n + 1);
+  uintE** edgePts = pbbslib::new_array_no_init<uintE*>(n);
+  long* charsUsedArr = pbbslib::new_array_no_init<long>(n+1);
+  auto charsUsed = pbbslib::make_sequence(charsUsedArr, n+1);
+//  long* compressionStarts = pbbslib::new_array_no_init<long>(n + 1);
   {
-    par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
-                    { charsUsedArr[i] = ceil((Degrees[i] * 9) / 8) + 4; });
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                    { charsUsed[i] = ceil((Degrees[i] * 9) / 8) + 4; });
   }
-  long toAlloc = ligra_utils::seq::plusScan(charsUsedArr, charsUsedArr, n);
-  uintE* iEdges = pbbs::new_array_no_init<uintE>(toAlloc);
+  charsUsed[n] = 0;
+  long toAlloc = pbbslib::scan_inplace(charsUsed, pbbslib::addm<long>());
+  uintE* iEdges = pbbslib::new_array_no_init<uintE>(toAlloc);
 
   {
     par_for(0, n, [&] (size_t i) {
-      edgePts[i] = iEdges + charsUsedArr[i];
+      edgePts[i] = iEdges + charsUsed[i];
       long charsUsed =
-          sequentialCompressEdgeSet((uchar*)(iEdges + charsUsedArr[i]), 0,
+          sequentialCompressEdgeSet((uchar*)(iEdges + charsUsed[i]), 0,
                                     Degrees[i], i, edges + offsets[i]);
-      charsUsedArr[i] = charsUsed;
+      charsUsed[i] = charsUsed;
     });
   }
 
   // produce the total space needed for all compressed lists in chars.
-  long totalSpace =
-      ligra_utils::seq::plusScan(charsUsedArr, compressionStarts, n);
-  compressionStarts[n] = totalSpace;
-  pbbs::free_array(charsUsedArr);
+  auto compressionStarts = pbbslib::scan(charsUsedArr, pbbslib::addm<long>());
+  size_t totalSpace = compressionStarts[n];
+  pbbslib::free_array(charsUsedArr);
 
-  uchar* finalArr = pbbs::new_array_no_init<uchar>(totalSpace);
+  uchar* finalArr = pbbslib::new_array_no_init<uchar>(totalSpace);
   std::cout << "total space requested is : " << totalSpace << "\n";
   float avgBitsPerEdge = (float)totalSpace * 8 / (float)m;
   std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
@@ -950,9 +949,8 @@ uintE* parallelCompressEdges(uintE* edges, uintT* offsets, long n, long m,
     });
   }
   offsets[n] = totalSpace;
-  pbbs::free_array(iEdges);
-  pbbs::free_array(edgePts);
-  pbbs::free_array(compressionStarts);
+  pbbslib::free_array(iEdges);
+  pbbslib::free_array(edgePts);
   std::cout << "finished compressing, bytes used = " << totalSpace << "\n";
   std::cout << "would have been, " << (m * 4) << "\n";
   return ((uintE*)finalArr);
@@ -998,15 +996,16 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
                                      uintE* Degrees) {
   std::cout << "parallel compressing, (n,m) = (" << n << "," << m << ")"
             << "\n";
-  auto bytes_used = pbbs::new_array_no_init<size_t>(n + 1);
+  auto bytes_used = pbbslib::new_array_no_init<size_t>(n + 1);
+  auto bytes_seq = pbbslib::make_sequence<size_t>(bytes_used, n+1);
 
   par_for(0, n, [&] (size_t i) {
     bytes_used[i] = compute_size_in_bytes(edges + offsets[i], i, Degrees[i]);
   });
   bytes_used[n] = 0;
-  size_t total_bytes =
-      ligra_utils::seq::plusScan(bytes_used, bytes_used, n + 1);
-  uchar* edges_c = pbbs::new_array_no_init<uchar>(total_bytes);
+  size_t total_bytes = pbbslib::scan_inplace(bytes_used, pbbslib::addm<size_t>());
+
+  uchar* edges_c = pbbslib::new_array_no_init<uchar>(total_bytes);
 
   par_for(0, n, [&] (size_t i) {
     sequentialCompressWeightedEdgeSet(edges_c, bytes_used[i], Degrees[i], i,
@@ -1016,18 +1015,8 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   float avgBitsPerEdge = (float)total_bytes * 8 / (float)m;
   std::cout << "Average bits per edge: " << avgBitsPerEdge << "\n";
 
-  //  auto t = [] (const uintE& s, const uintE& n, const intE& wgh, const
-  //  size_t& num ) {
-  ////    std::cout << "s " << s << " n " << n << " w " << wgh << " num = " <<
-  /// num <<
-  /// "\n";
-  //    return true;
-  //  };
-  //  std::cout << "decoding 692, deg = " << Degrees[692] << "\n";
-  //  decode<intE>(t, edges_c + bytes_used[692], 692, Degrees[692], false);
-
   size_t end = n+1;
-  par_for(0, end, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, end, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { offsets[i] = bytes_used[i]; });
   std::cout << "finished compressing, bytes used = " << total_bytes << "\n";
   std::cout << "would have been, " << (m * 8) << "\n";
@@ -1035,4 +1024,3 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
 }
 
 };  // namespace bytepd
-}  // namespace encodings

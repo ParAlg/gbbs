@@ -65,8 +65,8 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
     auto degree_f = [&] (size_t i) {
       return bits[i] ? static_cast<size_t>(D[i]) : static_cast<size_t>(0);
     };
-    auto degree_seq = make_sequence<size_t>(n, degree_f);
-    long edges_remaining = pbbs::reduce_add(degree_seq);
+    auto degree_seq = pbbslib::make_sequence<size_t>(n, degree_f);
+    long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // update density
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining);
@@ -78,24 +78,24 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
     auto in_f = [&] (size_t i) {
       return i;
     };
-    auto in_seq = make_sequence<uintE>(n, in_f);
+    auto in_seq = pbbslib::make_sequence<uintE>(n, in_f);
     auto filter_low_deg = [&] (uintE i) {
       bool active = bits[i];
-      if (active && D(i) <= target_density) {
+      if (active && D[i] <= target_density) {
         bits[i] = false;
         return true;
       };
       return false;
     };
-    auto peeled = pbbs::filter(in_seq, filter_low_deg);
+    auto peeled = pbbslib::filter(in_seq, filter_low_deg);
     size_t vertices_removed = peeled.size();
-    auto vs = vertexSubset(n, peeled.size(), peeled.get_array());
+    auto vs = vertexSubset(n, peeled.size(), peeled.to_array());
     std::cout << "removing " << vertices_removed << " vertices" << std::endl;
 
 //    auto edge_f = [&] (size_t i) {
 //      return D[vs.vtx(i)];
 //    };
-//    auto edge_seq = make_sequence<size_t>(vertices_removed, edge_f);
+//    auto edge_seq = pbbslib::make_sequence<size_t>(vertices_removed, edge_f);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const Maybe<std::tuple<uintE, uintE> > {

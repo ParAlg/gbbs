@@ -41,7 +41,7 @@ struct BF_F {
   inline bool updateAtomic(const uintE& s, const uintE& d,
                            const intE& edgeLen) {
     intE newDist = SP[s] + edgeLen;
-    return (writeMin(&SP[d], newDist) && CAS(&Visited[d], 0, 1));
+    return (pbbslib::write_min(&SP[d], newDist) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
@@ -68,23 +68,23 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { SP[i] = -(INT_E_MAX / 2); });
       break;
     }
     auto em_f =
-        wrap_with_default<W, intE>(BF_F(SP.start(), Visited.start()), (intE)1);
+        wrap_with_default<W, intE>(BF_F(SP.begin(), Visited.begin()), (intE)1);
     auto output =
         edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
-    vertexMap(output, BF_Vertex_F(Visited.start()));
+    vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
     Frontier.del();
     Frontier = output;
     round++;
   }
   auto dist_im_f = [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; };
-  auto dist_im = make_sequence<size_t>(n, dist_im_f);
-  std::cout << "max dist = " << pbbs::reduce_max(dist_im) << "\n";
+  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
+  std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;
 }

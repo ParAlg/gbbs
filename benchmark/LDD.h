@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "lib/random_shuffle.h"
+#include "pbbslib/random_shuffle.h"
 #include "ligra.h"
 
 #include <cmath>
@@ -38,10 +38,10 @@ inline sequence<uintE> generate_shifts(size_t n, double beta) {
   // Create (ln n)/beta levels
   uintE last_round = total_rounds(n, beta);
   auto shifts = sequence<uintE>(last_round + 1);
-  par_for(0, last_round, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, last_round, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbs::scan_add(shifts, shifts);
+  pbbslib::scan_add_inplace(shifts);
   return shifts;
 }
 
@@ -49,26 +49,26 @@ template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
     }
   });
-  std::cout << "num. clusters = " << pbbs::reduce_add(flags) << "\n";
+  std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
 }
 
 template <template <typename W> class vertex, class W, class Seq>
 inline void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
   size_t n = GA.n;
   auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };
     size_t ct = GA.V[i].countOutNgh(i, pred);
     ic_edges[i] = ct;
   });
-  std::cout << "num. intercluster edges = " << pbbs::reduce_add(ic_edges)
+  std::cout << "num. intercluster edges = " << pbbslib::reduce_add(ic_edges)
             << "\n";
 }
 }  // namespace ldd_utils
@@ -91,7 +91,7 @@ struct LDD_F {
 
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
     if (oracle(s, d, wgh)) {
-      return CAS(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
+      return pbbslib::atomic_compare_and_swap(&cluster_ids[d], UINT_E_MAX, cluster_ids[s]);
     }
     return false;
   }
@@ -103,17 +103,15 @@ template <template <typename W> class vertex, class W, class EO>
 inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
                                   double beta, bool permute = true,
                                   bool pack = false) {
-  using w_vertex = vertex<W>;
   size_t n = GA.n;
-  auto V = GA.V;
 
   sequence<uintE> vertex_perm;
   if (permute) {
-    vertex_perm = pbbs::random_permutation<uintE>(n);
+    vertex_perm = pbbslib::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
   auto cluster_ids = sequence<uintE>(n);
-  par_for(0, n, pbbs::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { cluster_ids[i] = UINT_E_MAX; });
 
   size_t round = 0, num_visited = 0;
@@ -131,11 +129,11 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = make_sequence<uintE>(num_to_add, candidates_f);
+      auto candidates = pbbslib::make_sequence<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
-      auto new_centers = pbbs::filter(candidates, pred);
-      add_to_vsubset(frontier, new_centers.start(), new_centers.size());
-      par_for(0, new_centers.size(), pbbs::kSequentialForThreshold, [&] (size_t i)
+      auto new_centers = pbbslib::filter(candidates, pred);
+      add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
+      par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
     }
@@ -143,16 +141,16 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
     num_visited += frontier.size();
     if (num_visited >= n) break;
 
-    auto ldd_f = LDD_F<W, EO>(cluster_ids.start(), oracle);
+    auto ldd_f = LDD_F<W, EO>(cluster_ids.begin(), oracle);
     vertexSubset next_frontier =
         edgeMap(GA, frontier, ldd_f, -1, sparse_blocked);
     if (pack) {
       auto pred = [&](const uintE& src, const uintE& dest, const W& w) {
         return oracle(src, dest, w) && (cluster_ids[src] != cluster_ids[dest]);
       };
-      timer t; t.start();
+     timer t; t.start();
       edgeMapFilter(GA, frontier, pred, pack_edges | no_output);
-      t.stop(); t.reportTotal("pack time");
+      t.stop(); debug(t.reportTotal("pack time"););
     }
     frontier.del();
     frontier = next_frontier;

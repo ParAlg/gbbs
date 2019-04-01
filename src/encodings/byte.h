@@ -34,18 +34,16 @@
 #include <type_traits>
 
 #include "macros.h"
-#include "oldlib/utils.h"
 
-namespace encodings {
 namespace byte {
 
 inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
 
 // Read an empty weight (noop)
-template <class W, typename std::enable_if<std::is_same<W, pbbs::empty>::value,
+template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
                                            int>::type = 0>
-inline pbbs::empty eatWeight(uchar*& start) {
-  return pbbs::empty();
+inline pbbslib::empty eatWeight(uchar*& start) {
+  return pbbslib::empty();
 }
 
 // Read an integer weight. Weights can be negative, so read using signed VarInt8
@@ -117,7 +115,7 @@ inline uintE eatEdge(uchar*& start) {
 
 template <class W, class T>
 inline void decode(T t, uchar* edgeStart, const uintE& source,
-                   const uintT& degree, const bool par = true) {
+                   const uintT& degree) {
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edgeStart, source);
     W wgh = eatWeight<W>(edgeStart);
@@ -210,7 +208,7 @@ inline long compressFirstEdge(uchar* start, long offset, long source,
   return offset;
 }
 
-template <class W, typename std::enable_if<std::is_same<W, pbbs::empty>::value,
+template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
                                            int>::type = 0>
 inline long compressWeight(uchar* start, long offset, W weight) {
   return offset;
@@ -338,7 +336,7 @@ struct iter {
   uintE proc;
 
   iter(uchar* _finger, uintT _degree, uintE _src)
-      : finger(_finger), degree(_degree), src(_src), proc(0) {
+      : finger(_finger), src(_src), degree(_degree), proc(0) {
     if (degree > 0) {
       std::get<0>(last_edge) = eatFirstEdge(finger, src);
       std::get<1>(last_edge) = eatWeight<W>(finger);
@@ -402,4 +400,3 @@ size_t intersect_f(uchar* l1, uchar* l2, uintE l1_size, uintE l2_size,
 }
 
 };  // namespace byte
-}  // namespace encodings
