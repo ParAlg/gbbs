@@ -44,7 +44,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= BC BellmanFord Bench BFS Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST SCC SetCover Triangle wBFS
+ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST SCC SetCover Triangle wBFS
 
 all: $(ALL)
 
