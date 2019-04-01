@@ -310,11 +310,11 @@ struct compressedSymmetricVertex {
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getOutNeighbors(), vtx_id, getOutDegree(), i);
+    return C::template get_ith_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), i);
   }
 
   inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getInNeighbors(), vtx_id, getInDegree(), i);
+    return C::template get_ith_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), i);
   }
 
   template <class F>
@@ -514,11 +514,11 @@ struct compressedAsymmetricVertex {
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getOutNeighbors(), vtx_id, getOutDegree(), i);
+    return C::template get_ith_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), i);
   }
 
   inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return C::get_ith_neighbor(getInNeighbors(), vtx_id, getInDegree(), i);
+    return C::template get_ith_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), i);
   }
 
   template <class F, class G>

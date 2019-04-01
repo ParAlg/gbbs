@@ -357,6 +357,15 @@ namespace pbbslib {
     return pbbs::pack_out(In, Fl, Out, fl);
   }
 
+  // Pack the output to the output range.
+  template <SEQ Bool_Seq, RANGE Out_Seq>
+  size_t pack_index_out(Bool_Seq const &Fl, Out_Seq Out,
+                flags fl = no_flag) {
+    using Idx_Type = typename Out_Seq::value_type;
+    auto identity = [] (size_t i) {return (Idx_Type) i;};
+    return pbbs::pack_out(pbbs::delayed_seq<Idx_Type>(Fl.size(),identity), Fl, Out, fl);
+  }
+
   template <SEQ In_Seq, class F>
   auto filter(In_Seq const &In, F f, flags fl = no_flag)
     -> pbbs::sequence<typename In_Seq::value_type> {

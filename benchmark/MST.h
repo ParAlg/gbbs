@@ -400,8 +400,12 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
     timer pack_t;
     pack_t.start();
     // TODO: remove dependency on ligra_utils
-    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.begin(),
-                                            (uintE)n);
+
+
+    auto vtx_range = pbbs::make_range(vtxs+n_active, vtxs+n);
+    n_active += pbbslib::pack_index_out(exhausted.slice(), vtx_range);
+//    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.begin(),
+//                                            (uintE)n);
     pack_t.stop();  // pack_t.reportTotal("reactivation pack");
 
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {

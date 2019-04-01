@@ -140,7 +140,6 @@ inline graph<vertex<intE>> readWeightedGraph(
 //   }
   tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
   assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
-  exit(0);
 
   uint64_t len = tokens.size() - 1;
   uint64_t n = atol(tokens[1]);

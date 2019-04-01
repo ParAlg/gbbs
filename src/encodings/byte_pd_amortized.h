@@ -473,15 +473,17 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
                         sizeof(uintE);  // block offs + virtual_degree
 
-    E stk[100];
-    E* block_outputs;
-    if (num_blocks > 100) {
-      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
-    } else {
-      block_outputs = (E*)stk;
-    }
+//    E stk[100];
+//    E* block_outputs;
+//    if (num_blocks > 100) {
+//      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+//    } else {
+//      block_outputs = (E*)stk;
+//    }
 
-    par_for(0, num_blocks, 1, [&] (size_t i) {
+//    par_for(0, num_blocks, 1, [&] (size_t i) {
+    auto cur = reduce.identity;
+    for (size_t i=0; i<num_blocks; i++) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -490,7 +492,6 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
                              : (*((uintE*)(edge_start + block_offsets[i])));
       finger += sizeof(uintE);
 
-      E cur = reduce.identity;
       if (start_offset < end_offset) {
         // Eat first edge, which is compressed specially
         uintE ngh = eatFirstEdge(finger, source);
@@ -502,15 +503,15 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
           cur = reduce.f(cur, m(source, ngh, wgh));
         }
       }
-      block_outputs[i] = cur;
-    }, par && (num_blocks > 2));
+//      block_outputs[i] = cur;
+    } // , par && (num_blocks > 2));
 
-    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
-    E res = pbbslib::reduce(im, reduce);
-    if (num_blocks > 100) {
-      pbbslib::free_array(block_outputs);
-    }
-    return res;
+//    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+//    E res = pbbslib::reduce(im, reduce);
+//    if (num_blocks > 100) {
+//      pbbslib::free_array(block_outputs);
+//    }
+    return cur;
   } else {
     return reduce.identity;
   }

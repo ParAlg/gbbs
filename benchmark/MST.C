@@ -57,4 +57,4 @@ void MST_runner(graph<vertex>& GA, commandLine P) {
   exit(0);
 }
 
-generate_main(MST_runner, true);
+generate_weighted_main(MST_runner, true);
