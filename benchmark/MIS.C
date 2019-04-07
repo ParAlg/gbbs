@@ -37,12 +37,25 @@
 #include "ligra.h"
 
 template <class vertex>
-void MIS_runner(graph<vertex>& GA, commandLine P) {
+double MIS_runner(graph<vertex>& GA, commandLine P) {
   bool spec_for = P.getOption("-specfor");
+  std::cout << "### Application: MIS" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << std::endl;
+
   assert(P.getOption("-s"));
+  double tt = 0.0;
+
+  // Code below looks duplicated; this is because the return types of specfor
+  // and rootset are different
   if (spec_for) {
+    timer t; t.start();
     auto MIS = MIS_spec_for::MIS(GA);
     // in spec_for, MIS[i] == 1 indicates that i was chosen
+    tt = t.stop();
     auto size_f = [&](size_t i) { return (MIS[i] == 1); };
     auto size_imap =
         pbbslib::make_sequence<size_t>(GA.n, size_f);
@@ -53,7 +66,9 @@ void MIS_runner(graph<vertex>& GA, commandLine P) {
       verify_MIS(GA, size_imap);
     }
   } else {
+    timer t; t.start();
     auto MIS = MIS_rootset::MIS(GA);
+    tt = t.stop();
     auto size_f = [&](size_t i) { return MIS[i]; };
     auto size_imap =
         pbbslib::make_sequence<size_t>(GA.n, size_f);
@@ -64,6 +79,9 @@ void MIS_runner(graph<vertex>& GA, commandLine P) {
       verify_MIS(GA, size_imap);
     }
   }
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_main(MIS_runner, false);

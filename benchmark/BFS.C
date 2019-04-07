@@ -35,10 +35,21 @@
 #include "BFS.h"
 
 template <class vertex>
-void BFS_runner(graph<vertex>& GA, commandLine P) {
+double BFS_runner(graph<vertex>& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
+  std::cout << "### Application: BC" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -src = " << src << std::endl;
+
+  timer t; t.start();
   auto parents = BFS(GA, src);
-  parents.clear();
+  double tt = t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_main(BFS_runner, false);

@@ -128,18 +128,24 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
 }
 
 template <class vertex>
-void Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
+double Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
+  std::cout << "### Application: Biconnectivity" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: n/a" << std::endl;
+
   auto in_f = P.getOptionValue("-if");
   auto out_f = P.getOptionValue("-of");
-  uintE largest_cc_id =
-      static_cast<uintE>(P.getOptionLongValue("-largestid", UINT_E_MAX));
   assert(P.getOptionValue("-s"));
   if (in_f) {
-    BiconnectivityStats(GA, in_f, largest_cc_id);
+    BiconnectivityStats(GA, in_f);
   } else {
     timer t; t.start();
     Biconnectivity(GA, out_f);
-    t.stop(); t.reportTotal("Biconnectivity time");
+    double tt = t.stop();
+    std::cout << "### Running Time: " << tt << std::endl;
   }
   // Note that Biconnectivity mutates the graph, so we only run the algorithm
   // once.

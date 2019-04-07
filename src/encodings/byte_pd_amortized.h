@@ -984,8 +984,8 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     // A) Uncompress and filter edges into tmp
     uintEW tmp[PARALLEL_DEGREE];
     size_t ct = 0;
-    size_t final_off =
-        finger - ((i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start);
+    debug(size_t final_off =
+        finger - ((i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start););
     if (block_deg > 0) {
       uintE ngh = eatFirstEdge(finger, source);
       W wgh = eatWeight<W>(finger);
@@ -999,8 +999,8 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
           tmp[ct++] = std::make_tuple(ngh, wgh);
         }
       }
-      final_off =
-          finger - ((i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start);
+      debug(final_off =
+          finger - ((i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start););
     }
     // B) write the number of live edges in this block to block_cts
     block_cts[i] = ct;

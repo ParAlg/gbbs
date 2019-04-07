@@ -36,9 +36,21 @@
 #include "BellmanFord.h"
 
 template <class vertex>
-void BellmanFord_runner(graph<vertex>& GA, commandLine P) {
+double BellmanFord_runner(graph<vertex>& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
+  std::cout << "### Application: BellmanFord" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -src = " << src << std::endl;
+
+  timer t; t.start();
   auto distances = BellmanFord(GA, src);
+  double tt = t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_weighted_main(BellmanFord_runner, false);

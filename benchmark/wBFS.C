@@ -38,17 +38,30 @@
 #include "wBFS.h"
 
 template <class vertex>
-void wBFS_runner(graph<vertex>& GA, commandLine P) {
+double wBFS_runner(graph<vertex>& GA, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
   size_t num_buckets = P.getOptionLongValue("-nb", 32);
   bool no_blocked = P.getOptionValue("-noblocked");
   bool largemem = P.getOptionValue("-largemem");
+
+  std::cout << "### Application: wBFS (Weighted Breadth-First Search)" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
+
   if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"
               << "\n";
     exit(-1);
   }
+  timer t; t.start();
   wBFS(GA, src, num_buckets, largemem, no_blocked);
+  double tt = t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_weighted_main(wBFS_runner, false);

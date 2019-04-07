@@ -41,7 +41,14 @@
 #include <iostream>
 
 template <class vertex>
-void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
+double MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
+  std::cout << "### Application: CC (Connectivity)" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: (n/a)" << std::endl;
+
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
@@ -57,7 +64,11 @@ void MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
     verify_matching(GA, matching);
     exit(0);
   }
+  timer t; t.start();
   auto matching = MaximalMatching(GA);
+  double tt = t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
 
   // Note that as we mutate the graph by packing out edges, we can't verify that
   // the returned set of edges is a valid maximal matching on the graph

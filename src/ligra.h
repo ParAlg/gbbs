@@ -786,13 +786,11 @@ inline size_t get_pcm_state() { return (size_t)1; }
 #define run_app(G, APP, rounds)                                      \
   auto before_state = get_pcm_state();                               \
   timer st;                                                          \
-  st.start();                                                        \
-  for (size_t r = 0; r < rounds; r++) {                                 \
-    timer at; at.start();                                            \
-    APP(G, P);                                                       \
-    at.stop(); at.reportTotal("Running time");                       \
+  double total_time = 0.0;                                           \
+  for (size_t r = 0; r < rounds; r++) {                              \
+    total_time += APP(G, P);                                         \
   }                                                                  \
-  auto time_per_iter = st.stop() / rounds;                           \
+  auto time_per_iter = total_time / rounds;                          \
   std::cout << "time per iter: " << time_per_iter << "\n";           \
   auto after_state = get_pcm_state();                                \
   print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
@@ -804,8 +802,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     char* iFile = P.getArgument(0);                                            \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
-    bool weighted = P.getOptionValue("-w");                                    \
-    assert(weighted == false); \
+    assert(P.getOptionValue("-w") == false); \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
@@ -840,8 +837,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     char* iFile = P.getArgument(0);                                            \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
-    bool weighted = P.getOptionValue("-w");                                    \
-    assert(weighted == true);                                                  \
+    assert(P.getOptionValue("-w") == true);                                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \

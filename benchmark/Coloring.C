@@ -43,15 +43,27 @@
 #include <iostream>
 
 template <class vertex>
-void Coloring_runner(graph<vertex>& GA, commandLine P) {
+double Coloring_runner(graph<vertex>& GA, commandLine P) {
   bool runLF = P.getOption("-lf");
+  std::cout << "### Application: Coloring" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -lf = " << runLF << std::endl;
+
+  timer t; t.start();
   auto colors = Coloring(GA, runLF);
+  double tt = t.stop();
   if (P.getOption("-stats")) {
     std::cout << "num_colors = " << pbbslib::reduce_max(colors) << "\n";
   }
   if (P.getOption("-verify)")) {
     verify_coloring(GA, colors);
   }
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_main(Coloring_runner, false);

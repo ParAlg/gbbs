@@ -22,14 +22,13 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./CC -rounds 1 -pack -s -m twitter_SJ
+// numactl -i all ./CC -rounds 3 -s -m twitter_SJ
 // flags:
 //   required:
 //     -s : indicates that the graph is symmetric
 //   optional:
 //     -m : indicate that the graph should be mmap'd
 //     -c : indicate that the graph is compressed
-//     -pack : delete edges from G
 //     -rounds : the number of times to run the algorithm
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
@@ -37,15 +36,24 @@
 #include "ligra.h"
 
 template <class vertex>
-void CC_runner(graph<vertex>& GA, commandLine P) {
+double CC_runner(graph<vertex>& GA, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
+  std::cout << "### Application: CC (Connectivity)" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -beta = " << beta << std::endl;
+
   auto pack = P.getOption("-pack");
-  auto sym = P.getOption("-s");
-  assert(sym);
+  assert(P.getOption("-s"));
+  assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
   auto components = cc::CC(GA, beta, pack);
-  t.stop(); t.reportTotal("CC time");
+  double tt = t.stop();
+  std::cout << "### Running Time: " << tt << std::endl;
+
   if (P.getOption("-stats")) {
     auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
@@ -53,12 +61,12 @@ void CC_runner(graph<vertex>& GA, commandLine P) {
     cc::num_cc(cc_im);
     cc::largest_cc(cc_im);
   }
-  components.clear();
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can
     // only be run once unless the input graph is copied.
     exit(0);
   }
+  return tt;
 }
 
-generate_main(CC_runner, true);
+generate_main(CC_runner, false);

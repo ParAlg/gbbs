@@ -28,7 +28,7 @@
 
 #define LONG 1
 
-#ifdef DEBUGMSGS
+#ifndef NDEBUG
 #define debug(_body) \
   _body;
 #else

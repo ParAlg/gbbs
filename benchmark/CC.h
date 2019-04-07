@@ -139,7 +139,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
     return contract_small(GA, clusters, num_clusters);
   }
 
-  cout << "num_clusters = " << num_clusters << endl;
+  debug(cout << "num_clusters = " << num_clusters << endl;);
   timer count_t;
   count_t.start();
   auto deg_map = sequence<uintE>(n + 1);
@@ -167,7 +167,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
 //    return pbbslib::hash64(std::get<0>(t)) ^ pbbslib::hash64(std::get<1>(t));
   };
   auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
-  cout << "sizeof table = " << edge_table.m << endl;
+  debug(cout << "sizeof table = " << edge_table.m << endl;);
   deg_map.clear();
 
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {

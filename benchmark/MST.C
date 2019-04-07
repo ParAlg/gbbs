@@ -40,9 +40,17 @@
 #include "ligra.h"
 
 template <class vertex>
-void MST_runner(graph<vertex>& GA, commandLine P) {
+double MST_runner(graph<vertex>& GA, commandLine P) {
   bool spec_for = P.getOption("-specfor");
   bool largemem = P.getOption("-largemem");
+
+  std::cout << "### Application: MST (Minimum Spanning Forest)" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << " -largemem (use settings for huge graphs) = " << largemem << std::endl;
+
   timer mst_t;
   mst_t.start();
   if (spec_for) {
@@ -50,11 +58,14 @@ void MST_runner(graph<vertex>& GA, commandLine P) {
   } else {
     MST_boruvka::MST(GA, largemem);
   }
-  mst_t.stop();
-  mst_t.reportTotal("MST time");
+  double tt = mst_t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
+
   // MST mutates the underlying graph (unless it is copied, which we don't do to
   // prevent memory issues), so we make sure the algorithm is run exactly once.
   exit(0);
+  return tt;
 }
 
 generate_weighted_main(MST_runner, true);

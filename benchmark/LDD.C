@@ -37,15 +37,26 @@
 #include "ligra.h"
 
 template <class vertex>
-void LDD_runner(graph<vertex>& GA, commandLine P) {
+double LDD_runner(graph<vertex>& GA, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
   bool permute = P.getOption("-permute");
+  std::cout << "### Application: LDD (Low-Diameter Decomposition)" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -beta = " << beta << " -permute = " << permute << std::endl;
   assert(P.getOption("-s"));
+  timer t; t.start();
   auto ldd = LDD(GA, beta, permute, false);
+  double tt = t.stop();
   if (P.getOption("-stats")) {
     ldd_utils::num_clusters(ldd);
     ldd_utils::num_intercluster_edges(GA, ldd);
   }
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_main(LDD_runner, false);

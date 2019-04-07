@@ -34,8 +34,14 @@
 #include "ligra.h"
 
 template <class vertex>
-void DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
+double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
+  std::cout << "### Application: DensestSubgraph" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: n/a = " << std::endl;
   if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Number of buckets must be a power of two."
               << "\n";
@@ -43,9 +49,12 @@ void DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
   }
   assert(P.getOption("-s"));
 
-  // runs the fetch-and-add based implementation if set.
-  bool fa = P.getOption("-fa"); // (fa) ? DensestSubgraph_FA(GA, num_buckets) :
+  timer t; t.start();
   WorkInefficientDensestSubgraph(GA, num_buckets);
+  double tt = t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_main(DensestSubgraph_runner, false);

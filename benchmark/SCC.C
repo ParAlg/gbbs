@@ -36,17 +36,27 @@
 #include "ligra.h"
 
 template <class vertex>
-void SCC_runner(graph<vertex>& GA, commandLine P) {
+double SCC_runner(graph<vertex>& GA, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
+  std::cout << "### Application: SCC (Strongly Connected Components)" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -beta = " << beta << std::endl;
+
+  assert(!P.getOption("-s"));
   timer scc_t;
   scc_t.start();
   auto labels = SCC(GA, beta);
-  scc_t.stop();
-  scc_t.reportTotal("SCC time");
+  double tt = scc_t.stop();
   if (P.getOption("-stats")) {
     num_scc(labels);
     scc_stats(labels);
   }
+
+  std::cout << "### Running Time: " << tt << std::endl;
+  return tt;
 }
 
 generate_main(SCC_runner, false);

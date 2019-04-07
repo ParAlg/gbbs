@@ -34,19 +34,28 @@
 #include "ligra.h"
 
 template <class vertex>
-void SetCover_runner(graph<vertex>& GA, commandLine P) {
-  timer t;
-  t.start();
+double SetCover_runner(graph<vertex>& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
+
+  std::cout << "### Application: Approximate Set Cover" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -nb (num_buckets) = " << num_buckets << std::endl;
+
+  timer t; t.start();
   auto cover = SetCover(GA, num_buckets);
   cover.del();
-  t.stop();
-  t.reportTotal("SetCover Time");
+  double tt = t.stop();
+
+  std::cout << "### Running Time: " << tt << std::endl;
 
   // Set-cover mutates the underlying graph (unless it is copied, which
   // we don't do to prevent memory issues), so we make sure the algorithm is run
   // exactly once.
   exit(0);
+  return tt;
 }
 
 generate_main(SetCover_runner, true)
