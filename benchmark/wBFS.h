@@ -80,7 +80,6 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
 
   timer init;
   init.start();
-  auto V = G.V;
   size_t n = G.n;
 
   auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });

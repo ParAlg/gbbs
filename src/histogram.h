@@ -475,7 +475,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
       } else {
         // heavy bucket
         size_t bkt_id = i - num_buckets;
-        K key;
+        K key = 0; // initializing to get rid of -Wmaybe-uninitialized
         bool is_set = false;
         size_t total_ct = 0;
         for (size_t j = 0; j < num_blocks; j++) {

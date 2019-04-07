@@ -115,8 +115,8 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
         exhausted[v] = true;
         is_root[i] = false;
         new_mst_edges[i] = UINT_E_MAX;
-        uintE pv = parents[v];
-        assert(pv == v);
+        debug(uintE pv = parents[v];
+        assert(pv == v););
       } else {
         uintE ind = e.first;
         const auto& edge = edges[ind];

@@ -47,9 +47,9 @@ struct hash_kv {
 
 template <class W, class Seq, class Tab>
 struct Search_F {
+  Tab& tab;
   Seq& labels;
   bool* bits;
-  Tab& tab;
   Search_F(Tab& _tab, Seq& _labels, bool* _bits)
       : tab(_tab), labels(_labels), bits(_bits) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
@@ -218,8 +218,6 @@ inline sequence<label_type> SCC(graph<vertex>& GA, double beta = 1.1) {
   double step_multiplier = beta;
   size_t label_offset = zero.size() + 1;
 
-  auto done_im_f = [&](size_t i) { return (bool)(labels[i] & TOP_BIT); };
-  auto done_im = pbbslib::make_sequence<size_t>(n, done_im_f);
   initt.stop();
   initt.reportTotal("init");
 

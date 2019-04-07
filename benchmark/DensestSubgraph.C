@@ -42,7 +42,7 @@ double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: n/a = " << std::endl;
-  if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
+  if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
     std::cout << "Number of buckets must be a power of two."
               << "\n";
     exit(-1);
