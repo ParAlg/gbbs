@@ -100,7 +100,7 @@ inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
 inline sequence<char> readStringFromFile(char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fileName << "\n";
+    debug(std::cout << "Unable to open file: " << fileName << "\n";);
     abort();
   }
   uint64_t end = file.tellg();
@@ -214,7 +214,7 @@ inline graph<vertex<intE>> readWeightedGraph(
     // fill in offsets of degree 0 vertices by taking closest non-zero
     // offset to the right
 
-    cout << "scan I back " << endl;
+    debug(cout << "scan I back " << endl;);
     auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
     auto M = pbbslib::minm<uintT>();
     M.identity = m;
@@ -272,7 +272,7 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
 
-  std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";
+  debug(std::cout << "n = " << n << " m = " << m << " len = " << len << "\n";);
   assert(len == n + m + 2);
 
   uintT* offsets = pbbslib::new_array_no_init<uintT>(n);
@@ -375,8 +375,8 @@ inline graph<vertex<W>> readCompressedGraph(
       std::pair<char*, size_t> S = mmapStringFromFile(fname);
       s = S.first;
       if (mmapcopy) {
-        std::cout << "Copying compressed graph"
-                  << "\n";
+        debug(std::cout << "Copying compressed graph"
+                  << "\n";);
         // Cannot mutate graph unless we copy.
         char* bytes = pbbslib::new_array_no_init<char>(S.second);
         par_for(0, S.second, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -390,8 +390,8 @@ inline graph<vertex<W>> readCompressedGraph(
     } else {
       int fd;
       if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
-        std::cout << "input opened!"
-                  << "\n";
+        debug(std::cout << "input opened!"
+                  << "\n";);
       } else {
         std::cout << "can't open input file!";
       }
@@ -401,42 +401,42 @@ inline graph<vertex<W>> readCompressedGraph(
       lseek(fd, 0, 0);
       s = (char*)memalign(4096 * 2, fsize + 4096);
 
-      std::cout << "fsize = " << fsize << "\n";
+      debug(std::cout << "fsize = " << fsize << "\n";);
 
       size_t sz = 0;
 
       size_t pgsize = getpagesize();
-      std::cout << "pgsize = " << pgsize << "\n";
+      debug(std::cout << "pgsize = " << pgsize << "\n";);
 
       size_t read_size = 1024 * 1024 * 1024;
       if (sz + read_size > fsize) {
         size_t k = std::ceil((fsize - sz) / pgsize);
         read_size = std::max(k * pgsize, pgsize);
-        std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+        debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
                   << " bytes left"
-                  << "\n";
+                  << "\n";);
       }
 
       while (sz + read_size < fsize) {
         void* buf = s + sz;
-        std::cout << "reading: " << read_size << "\n";
+        debug(std::cout << "reading: " << read_size << "\n";);
         sz += read(fd, buf, read_size);
-        std::cout << "read: " << sz << " bytes"
-                  << "\n";
+        debug(std::cout << "read: " << sz << " bytes"
+                  << "\n";);
         if (sz + read_size > fsize) {
           size_t k = std::ceil((fsize - sz) / pgsize);
           read_size = std::max(k * pgsize, pgsize);
-          std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+          debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
                     << " bytes left"
-                    << "\n";
+                    << "\n";);
         }
       }
       if (sz < fsize) {
-        std::cout << "last read: rem = " << (fsize - sz) << "\n";
+        debug(std::cout << "last read: rem = " << (fsize - sz) << "\n";);
         void* buf = s + sz;
         sz += read(fd, buf, pgsize);
-        std::cout << "read " << sz << " bytes "
-                  << "\n";
+        debug(std::cout << "read " << sz << " bytes "
+                  << "\n";);
       }
 
       //    while (sz < fsize) {
@@ -470,10 +470,10 @@ inline graph<vertex<W>> readCompressedGraph(
   long* sizes = (long*)s;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
+  debug(std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
             << "\n";
   std::cout << "reading file..."
-            << "\n";
+            << "\n";);
 
   uintT* offsets = (uintT*)(s + 3 * sizeof(long));
   uint64_t skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
@@ -490,7 +490,7 @@ inline graph<vertex<W>> readCompressedGraph(
     uchar* inData = (uchar*)(s + skip);
     sizes = (long*)inData;
     inTotalSpace = sizes[0];
-    std::cout << "inTotalSpace = " << inTotalSpace << "\n";
+    debug(std::cout << "inTotalSpace = " << inTotalSpace << "\n";);
     skip += sizeof(long);
     inOffsets = (uintT*)(s + skip);
     skip += (n + 1) * sizeof(uintT);

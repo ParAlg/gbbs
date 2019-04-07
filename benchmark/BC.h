@@ -106,7 +106,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
 
   long round = 0;
   while (!Frontier.isEmpty()) {
-    cout << "round = " << round << " fsize = " << Frontier.size() << endl;
+    debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
     round++;
     //      vertexSubset output = edgeMap(GA, Frontier,
     //      make_bc_f<W>(NumPaths,Visited), -1, sparse_blocked | dense_forward);
@@ -142,7 +142,7 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
      vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
-  bt.reportTotal("back total time");
+  debug(bt.reportTotal("back total time"););
 
   Frontier.del();
 

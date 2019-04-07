@@ -808,7 +808,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     assert(weighted == false); \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
+    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
@@ -844,7 +844,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     assert(weighted == true);                                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    std::cout << "mmapcopy = " << mmapcopy << "\n";                            \
+    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \

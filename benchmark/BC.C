@@ -37,8 +37,17 @@
 
 template <class vertex>
 void BC_runner(graph<vertex>& GA, commandLine P) {
+  timer t; t.start();
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
   auto scores = bc::BC(GA, src);
+
+  std::cout << "### Application: BC" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << GA.n << std::endl;
+  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### Params: -src = " << src << std::endl;
+  std::cout << "### Running Time: " << t.stop() << std::endl;
 }
 
 generate_main(BC_runner, false);

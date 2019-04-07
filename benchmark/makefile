@@ -5,9 +5,9 @@ JEMALLOCLD = $(shell jemalloc-config --libdir)
 JEMALLOC = -L$(JEMALLOCLD) -ljemalloc
 endif
 
-ifdef LONG
+# Always compile with LONG (note that timings on small graphs may be a bit
+# faster w/o this flag).
 INTT = -DLONG
-endif
 
 ifdef EDGELONG
 INTE = -DEDGELONG
