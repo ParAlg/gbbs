@@ -91,7 +91,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
       break;
     }
     nbt.stop();
-//    cout << "bkt id = " << bkt.id << " active = " << active.size() << endl;
 
     packt.start();
     // 1. sets -> elements (Pack out sets and update their degree)
@@ -110,7 +109,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     };
     auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
     packed_vtxs.del();
-//    cout << "still_active = " << still_active.size() << " threshold = " << threshold << endl;
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
@@ -124,9 +122,9 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     P.clear();
     permt.stop();
 
-//    std::cout << "Round = " << rounds << " bkt = " << cur_bkt
-//              << " active = " << active.size()
-//              << " stillactive = " << still_active.size() << "\n";
+    debug(std::cout << "Round = " << rounds << " bkt = " << cur_bkt
+              << " active = " << active.size()
+              << " stillactive = " << still_active.size() << "\n";);
 
     emt.start();
     // 2. sets -> elements (write_min to acquire neighboring elements)

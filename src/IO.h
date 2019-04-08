@@ -270,13 +270,12 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
   // }
   assert(tokens[0] == (std::string) "AdjacencyGraph");
   // TODO(laxmand): ensure that S is properly freed here
-
-  // uint64_t len = tokens.size() - 1;
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
 
-  debug(std::cout << "n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";);
-  assert(len == n + m + 2);
+  debug(std::cout << "n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
+  uint64_t len = tokens.size() - 1;
+  assert(len == n + m + 2););
 
   uintT* offsets = pbbslib::new_array_no_init<uintT>(n);
   uintE* edges = pbbslib::new_array_no_init<uintE>(m);

@@ -2,7 +2,7 @@
 
 # Undirected algs
 declare -a undir_alg=("CC" "Coloring" "DensestSubgraph" "KCore" "LDD" "MIS" "Triangle")
-declare -a undir_mutable_alg=("Biconnectivity" "MaximalMatching" "SetCover")
+declare -a undir_mutable_alg=("SetCover")
 declare -a unwgh_sssp=("BC" "BFS")
 declare -a wgh_sssp=("BellmanFord" "wBFS")
 declare -a undir_wgh_mutable_alg=("MST")
@@ -29,25 +29,25 @@ mkdir -p ${graphdir}
 # make the bench if necessary
 pushd ${bench_path}; make -j; popd;
 
-# Run undirected algorithms
-for alg in "${undir_alg[@]}"; do
-  declare extraflags="-c " # graph is compressed
-  if [ "$mmap" == "true" ]
-  then
-    extraflags+="-m "
-  fi
-  if [ "$alg" == "LDD" ]
-  then
-    extraflags+="-permute " # uses a random permutation in LDD
-  fi
-  if [ "$alg" == "KCore" ]
-  then
-    extraflags+="-nb 16 " # sets #buckets
-  fi
-  echo "Running ${alg}."
-  echo "cmd = \"numactl -i all $bench_path${alg} -s -rounds ${rounds} ${extraflags} ${undir_graph} > ${graphdir}${alg}.dat\""
-  numactl -i all $bench_path${alg} -s -rounds ${rounds} ${extraflags} ${undir_graph} > ${graphdir}${alg}.dat
-done
+## Run undirected algorithms
+#for alg in "${undir_alg[@]}"; do
+#  declare extraflags="-c " # graph is compressed
+#  if [ "$mmap" == "true" ]
+#  then
+#    extraflags+="-m "
+#  fi
+#  if [ "$alg" == "LDD" ]
+#  then
+#    extraflags+="-permute " # uses a random permutation in LDD
+#  fi
+#  if [ "$alg" == "KCore" ]
+#  then
+#    extraflags+="-nb 16 " # sets #buckets
+#  fi
+#  echo "Running ${alg}."
+#  echo "cmd = \"numactl -i all $bench_path${alg} -s -rounds ${rounds} ${extraflags} ${undir_graph} > ${graphdir}${alg}.dat\""
+#  numactl -i all $bench_path${alg} -s -rounds ${rounds} ${extraflags} ${undir_graph} > ${graphdir}${alg}.dat
+#done
 
 # Run undirected mutable algorithms
 for alg in "${undir_mutable_alg[@]}"; do
