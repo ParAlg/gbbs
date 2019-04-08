@@ -51,7 +51,7 @@
 template <template <typename W> class vertex, class W>
 void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
   const size_t n = GA.n;
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 20);
+  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
   double density_multiplier = (2*(1+epsilon));
 
@@ -60,6 +60,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
 
   long vertices_remaining = n;
   size_t round = 1;
+  double max_density = 0.0;
   while (vertices_remaining > 0) {
 
     auto degree_f = [&] (size_t i) {
@@ -69,10 +70,13 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
     long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // update density
-    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining);
     double density = ((double)edges_remaining) / ((double)vertices_remaining);
-    std::cout << "target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining << std::endl;
-    std::cout << "density on round " << round << " is " << density << std::endl;
+    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining);
+    debug(std::cout << "target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining << std::endl;
+    std::cout << "density on round " << round << " is " << density << std::endl;);
+    if (density > max_density) {
+      max_density = density;
+    }
 
     // filter out peeled vertices
     auto in_f = [&] (size_t i) {
@@ -91,7 +95,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
 
     size_t vertices_removed = peeled.size();
     auto vs = vertexSubset(n, vertices_removed, peeled.to_array());
-    std::cout << "removing " << vertices_removed << " vertices" << std::endl;
+    debug(std::cout << "removing " << vertices_removed << " vertices" << std::endl;);
     vertices_remaining -= vertices_removed;
 
     if (vertices_remaining > 0) {
@@ -109,12 +113,13 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
     vs.del();
     round++;
   }
+  cout << "Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 }
 
 template <template <typename W> class vertex, class W>
 void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
   const size_t n = GA.n;
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 20);
+  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
   double density_multiplier = (2*(1+epsilon));
 
@@ -127,14 +132,19 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   size_t remaining_offset = 0;
   size_t num_vertices_remaining = n;
 
+  double max_density = 0.0;
+
   // First round
   {
     size_t edges_remaining = GA.m;
     // Update density
-    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
     double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
-    std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
-    std::cout << "Current density on round " << round << " is " << current_density << std::endl;
+    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
+    debug(std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
+    std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
+    if (current_density > max_density) {
+      max_density = current_density;
+    }
 
     auto keep_seq = pbbs::delayed_seq<bool>(n, [&] (size_t i) {
       return !(D[i] <= target_density);
@@ -144,7 +154,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     uintE* this_arr = split_vtxs_m.first.to_array();
     size_t num_removed = split_vtxs_m.second;
     auto vs = vertexSubset(n, num_removed, this_arr);
-    std::cout << "removing " << num_removed << " vertices" << std::endl;
+    debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const Maybe<std::tuple<uintE, uintE> > {
@@ -178,10 +188,13 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // Update density
-    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vtxs_remaining.size());
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());
-    std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vtxs_remaining.size() << std::endl;
-    std::cout << "Current density on round " << round << " is " << current_density << std::endl;
+    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vtxs_remaining.size());
+    debug(std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vtxs_remaining.size() << std::endl;
+    std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
+    if (current_density > max_density) {
+      max_density = current_density;
+    }
 
     auto keep_seq = pbbs::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
       return !(D[vtxs_remaining[i]] <= target_density);
@@ -191,7 +204,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     uintE* this_arr = split_vtxs_m.first.to_array();
     size_t num_removed = split_vtxs_m.second;
     auto vs = vertexSubset(n, num_removed, this_arr);
-    std::cout << "removing " << num_removed << " vertices" << std::endl;
+    debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
@@ -218,66 +231,5 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   if (last_arr) {
     pbbs::free_array(last_arr);
   }
-
-//    // Reduce over the remaining vertices. Note that we can skip this
-//    // computation on the first round.
-//    auto degree_f = [&] (size_t i) {
-//      uintE v = vertices_remaining[i];
-//      return static_cast<size_t>(D[v]);
-//    };
-//    auto degree_seq = pbbslib::make_sequence<size_t>(vertices_remaining.size(), degree_f);
-//    long edges_remaining = pbbslib::reduce_add(degree_seq);
-//
-//    // Update density
-//    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
-//    double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
-//    std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
-//    std::cout << "Current density on round " << round << " is " << current_density << std::endl;
-//
-//    // Filter out peeled vertices
-//    auto remove_seq = [&] (uintE v) {
-//      return D[v] <= target_density;
-//    };
-//    auto keep_seq = [&] (uintE v) {
-//      return D[v] > target_density;
-//    };
-//
-//    auto split_vtxs_m = pbbs::split_two(vertices_remaining, remove_seq);
-//    uintE* this_arr = split_vtxs_m.first.to_array();
-//    size_t num_removed = split_vtxs_m.second;
-//    size_t num_remaining = vertices_remaining.size() - num_removed;
-//    auto vs = vertexSubset(n, num_removed, this_arr);
-//    uintE* rem_start = this_arr + num_removed;
-//
-//    std::function<uintE(size_t)> ff = [rem_start] (size_t i) {
-//      return rem_start[i];
-//    };
-//    vertices_remaining = pbbs::delayed_seq<uintE, std::function<uintE(size_t)>>(num_remaining, ff);
-//    if (last_arr) {
-//      pbbs::free_array(last_arr);
-//    }
-//    last_arr = this_arr;
-//
-////    auto peeled = pbbs::filter(vertices_remaining, remove_seq);
-////    auto vtx2 = pbbs::filter(vertices_remaining, keep_seq);
-////    vertices_remaining = std::move(vtx2);
-//
-//    std::cout << "removing " << num_removed << " vertices" << std::endl;
-//
-//    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-//        -> const Maybe<std::tuple<uintE, uintE> > {
-//      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-//      D[v] -= edgesRemoved;
-//      return Maybe<std::tuple<uintE,uintE>>();
-//    };
-//
-//    auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
-//    moved.del();
-//
-////    vs.del();
-//    round++;
-//  }
-//  if (last_arr) {
-//    pbbslib::free_array(last_arr);
-//  }
+  cout << "Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 }

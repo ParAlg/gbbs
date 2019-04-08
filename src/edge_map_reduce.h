@@ -247,7 +247,7 @@ struct EdgeMap {
     auto out = pbbslib::new_array<OT>(n);
     vs.toDense();
 
-    cout << "running dense" << endl << endl;
+    debug(cout << "running dense" << endl << endl;);
 
     auto count_f = [&] (uintE u, uintE v, W& wgh) -> size_t {
       return static_cast<size_t>(vs.isIn(v));
@@ -284,7 +284,7 @@ struct EdgeMap {
     auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
     size_t degree_threshold = threshold;
-    if (threshold == -1) degree_threshold = G.m / 15;
+    if (threshold == -1) degree_threshold = G.m / 20;
     if (vs.size() + out_degrees > degree_threshold) {
       // dense
       return edgeMapCount_dense<O>(vs, apply_f, out_ngh);
