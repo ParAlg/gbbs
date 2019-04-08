@@ -51,6 +51,7 @@ double Coloring_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -lf = " << runLF << std::endl;
+  std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
   auto colors = Coloring(GA, runLF);

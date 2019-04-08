@@ -48,6 +48,7 @@ double MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: (n/a)" << std::endl;
+  std::cout << "### ------------------------------------" << endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");

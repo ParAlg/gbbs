@@ -44,6 +44,7 @@ double CC_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -beta = " << beta << std::endl;
+  std::cout << "### ------------------------------------" << endl;
 
   auto pack = P.getOption("-pack");
   assert(P.getOption("-s"));

@@ -50,6 +50,7 @@ double wBFS_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
+  std::cout << "### ------------------------------------" << endl;
 
   if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"

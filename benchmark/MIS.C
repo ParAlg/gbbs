@@ -45,6 +45,7 @@ double MIS_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << std::endl;
+  std::cout << "### ------------------------------------" << endl;
 
   assert(P.getOption("-s"));
   double tt = 0.0;

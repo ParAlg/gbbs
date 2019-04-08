@@ -46,6 +46,7 @@ double LDD_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -beta = " << beta << " -permute = " << permute << std::endl;
+  std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
   timer t; t.start();
   auto ldd = LDD(GA, beta, permute, false);

@@ -46,6 +46,7 @@ double KCore_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -nb (num_buckets) = " << num_buckets << " -fa (use fetch_and_add) = " << fa << std::endl;
+  std::cout << "### ------------------------------------" << endl;
   if (num_buckets != static_cast<size_t>((1 << pbbslib::log2_up(num_buckets)))) {
     std::cout << "Number of buckets must be a power of two."
               << "\n";

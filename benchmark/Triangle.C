@@ -41,13 +41,13 @@ double Triangle_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: n/a" << std::endl;
+  std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
   size_t count = 0;
   auto f = [&] (uintE u, uintE v, uintE w) { };
   timer t; t.start();
   count = Triangle(GA, f);
   double tt = t.stop();
-  std::cout << "triangle count = " << count << "\n";
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {
       size_t deg = GA.V[i].getOutDegree();
@@ -55,8 +55,8 @@ double Triangle_runner(graph<vertex>& GA, commandLine P) {
     };
     auto wedge_im = pbbslib::make_sequence<size_t>(GA.n, wedge_im_f);
     size_t n_wedges = pbbslib::reduce_add(wedge_im);
-    std::cout << "n_wedges = " << n_wedges << "\n";
-    std::cout << "triangle density = " << ((3.0 * count) / n_wedges) << "\n";
+    std::cout << "### n_wedges = " << n_wedges << "\n";
+    std::cout << "### triangle density = " << ((3.0 * count) / n_wedges) << "\n";
   }
 
   std::cout << "### Running Time: " << tt << std::endl;

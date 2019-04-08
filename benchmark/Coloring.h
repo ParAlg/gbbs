@@ -95,7 +95,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   auto colors = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
 
   if (lf) {
-    std::cout << "Running LF"
+    std::cout << "### Running LF"
               << "\n";
     // LF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
@@ -109,7 +109,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
       priorities[i] = GA.V[i].countOutNgh(i, count_f);
     });
   } else {
-    std::cout << "Running LLF"
+    std::cout << "### Running LLF"
               << "\n";
     // LLF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
@@ -128,7 +128,7 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   auto zero_map_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map = pbbslib::make_sequence<bool>(n, zero_map_f);
   auto roots = vertexSubset(n, pbbslib::pack_index<uintE>(zero_map));
-  initt.reportTotal("init time");
+  debug(initt.reportTotal("init time"););
 
   size_t finished = 0, rounds = 0;
   timer color_t;
@@ -155,9 +155,9 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     roots = new_roots;
     rounds++;
   }
-  std::cout << "Total rounds = " << rounds << "\n";
-  color_t.reportTotal("coloring time");
-  em_t.reportTotal("edge map time");
+  std::cout << "### Total rounds = " << rounds << "\n";
+  debug(color_t.reportTotal("coloring time");
+  em_t.reportTotal("edge map time"););
   return colors;
 }
 

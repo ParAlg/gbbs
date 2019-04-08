@@ -44,6 +44,7 @@ double BellmanFord_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
+  std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
   auto distances = BellmanFord(GA, src);

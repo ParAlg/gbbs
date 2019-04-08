@@ -65,7 +65,6 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     vertexSubsetData<uintE> moved =
         em.template edgeMapCount_sparse<uintE>(active, apply_f);
     bt.start();
-//    b.update_buckets(moved.get_fn_repr(), moved.size());
     if (moved.dense()) {
       b.update_buckets(moved.get_fn_repr(), n);
     } else {
@@ -77,8 +76,8 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     active.del();
     rho++;
   }
-  std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
-  bt.reportTotal("bucket time");
+  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  debug(bt.reportTotal("bucket time"););
   return D;
 }
 
@@ -147,6 +146,6 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
     active.del();
     rho++;
   }
-  std::cout << "rho = " << rho << " k_{max} = " << k_max << "\n";
+  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   return D;
 }

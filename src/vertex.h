@@ -69,10 +69,11 @@ constexpr const size_t _bs_merge_base = 128;
 constexpr const size_t _seq_merge_thresh = 8192;
 
 template <class SeqA, class SeqB, class F>
-void seq_merge_full(SeqA& A, SeqB& B, F& f) {
+size_t seq_merge_full(SeqA& A, SeqB& B, F& f) {
   using T = typename SeqA::value_type;
   size_t nA = A.size(), nB = B.size();
   size_t i = 0, j = 0;
+  size_t ct = 0;
   while (i < nA && j < nB) {
     T& a = A[i];
     T& b = B[j];
@@ -80,30 +81,35 @@ void seq_merge_full(SeqA& A, SeqB& B, F& f) {
       f(a);
       i++;
       j++;
+      ct++;
     } else if (a < b) {
       i++;
     } else {
       j++;
     }
   }
+  return ct;
 }
 
 template <class SeqA, class SeqB, class F>
-void seq_merge(const SeqA& A, const SeqB& B, const F& f) {
+size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   using T = typename SeqA::value_type;
   size_t nA = A.size();
+  size_t ct = 0;
   for (size_t i=0; i < nA; i++) {
     const T& a = A[i];
     size_t mB = pbbslib::binary_search(B, a, std::less<T>());
     const T& b = B[mB];
     if (a == b) {
       f(a);
+      ct++;
     }
   }
+  return ct;
 }
 
 template <class SeqA, class SeqB, class F>
-void merge(const SeqA& A, const SeqB& B, const F& f) {
+size_t merge(const SeqA& A, const SeqB& B, const F& f) {
   using T = typename SeqA::value_type;
   size_t nA = A.size();
   size_t nB = B.size();
@@ -117,8 +123,11 @@ void merge(const SeqA& A, const SeqB& B, const F& f) {
   } else {
     size_t mA = nA/2;
     size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
-    par_do([&] () {intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
-     [&] () {intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+    size_t m_left = 0;
+    size_t m_right = 0;
+    par_do([&] () { m_left = intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
+     [&] () { m_right = intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+    return m_left + m_right;
   }
 }
 
@@ -136,9 +145,7 @@ inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
   auto merge_f = [&] (uintE ngh) {
     f(a, b, ngh);
   };
-  intersection::merge(seqA, seqB, merge_f);
-
-  return static_cast<size_t>(0);
+  return intersection::merge(seqA, seqB, merge_f);
 }
 
 };  // namespace intersection

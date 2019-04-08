@@ -149,7 +149,7 @@ struct hist_table {
       table = pbbslib::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
       par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
-      std::cout << "resized to: " << size << "\n";
+      debug(std::cout << "resized to: " << size << "\n";);
     }
   }
 
