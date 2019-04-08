@@ -496,7 +496,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
         // Eat first edge, which is compressed specially
         uintE ngh = eatFirstEdge(finger, source);
         W wgh = eatWeight<W>(finger);
-        cur = m(source, ngh, wgh);
+        cur = reduce.f(cur, m(source, ngh, wgh));
         for (size_t j = start_offset + 1; j < end_offset; j++) {
           ngh += eatEdge(finger);
           W wgh = eatWeight<W>(finger);
