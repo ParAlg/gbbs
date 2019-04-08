@@ -49,7 +49,7 @@
 //   3. If density(G_cur) > density(DS), update DS to G_cur.
 // return DS
 template <template <typename W> class vertex, class W>
-void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 16, double epsilon = 0.001) {
+void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
   const size_t n = GA.n;
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 20);
 
@@ -88,21 +88,15 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
       return false;
     };
     auto peeled = pbbslib::filter(in_seq, filter_low_deg);
-    size_t vertices_removed = peeled.size();
-    auto vs = vertexSubset(n, peeled.size(), peeled.to_array());
-    std::cout << "removing " << vertices_removed << " vertices" << std::endl;
 
-//    auto edge_f = [&] (size_t i) {
-//      return D[vs.vtx(i)];
-//    };
-//    auto edge_seq = pbbslib::make_sequence<size_t>(vertices_removed, edge_f);
+    size_t vertices_removed = peeled.size();
+    auto vs = vertexSubset(n, vertices_removed, peeled.to_array());
+    std::cout << "removing " << vertices_removed << " vertices" << std::endl;
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const Maybe<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-      if (bits[v]) {
         D[v] -= edgesRemoved;
-      }
       return Maybe<std::tuple<uintE,uintE>>();
     };
 
@@ -110,6 +104,65 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, size_t num_buckets = 
     moved.del();
 
     vertices_remaining -= vertices_removed;
+    vs.del();
+    round++;
+  }
+}
+
+template <template <typename W> class vertex, class W>
+void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
+  const size_t n = GA.n;
+  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 20);
+
+  double density_multiplier = (2*(1+epsilon));
+
+  auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
+
+  size_t round = 1;
+  while (vertices_remaining.size() > 0) {
+
+    // Reduce over the remaining vertices. Note that we can skip this
+    // computation on the first round.
+    auto degree_f = [&] (size_t i) {
+      uintE v = vertices_remaining[i];
+      return static_cast<size_t>(D[v]);
+    };
+    auto degree_seq = pbbslib::make_sequence<size_t>(vertices_remaining.size(), degree_f);
+    long edges_remaining = pbbslib::reduce_add(degree_seq);
+
+    // Update density
+    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
+    double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
+    std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
+    std::cout << "Current density on round " << round << " is " << current_density << std::endl;
+
+    // Filter out peeled vertices
+    auto remove_seq = [&] (uintE v) {
+      return D[v] <= target_density;
+    };
+    auto keep_seq = [&] (uintE v) {
+      return D[v] > target_density;
+    };
+    // Can use split2; figure out later.
+    auto peeled = pbbs::filter(vertices_remaining, remove_seq);
+    auto vtx2 = pbbs::filter(vertices_remaining, keep_seq);
+    vertices_remaining = std::move(vtx2);
+
+    size_t peeled_size = peeled.size();
+    auto vs = vertexSubset(n, peeled_size, peeled.to_array());
+    std::cout << "removing " << peeled_size << " vertices" << std::endl;
+
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const Maybe<std::tuple<uintE, uintE> > {
+      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+      D[v] -= edgesRemoved;
+      return Maybe<std::tuple<uintE,uintE>>();
+    };
+
+    auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+    moved.del();
+
     vs.del();
     round++;
   }

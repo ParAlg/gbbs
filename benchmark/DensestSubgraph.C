@@ -35,22 +35,21 @@
 
 template <class vertex>
 double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
-  size_t num_buckets = P.getOptionLongValue("-nb", 16);
+  double eps = P.getOptionDoubleValue("-eps", 0.001);
   std::cout << "### Application: DensestSubgraph" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: n/a = " << std::endl;
-  if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
-    std::cout << "Number of buckets must be a power of two."
-              << "\n";
-    exit(-1);
-  }
+  std::cout << "### Params: -eps = " << eps << std::endl;
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  WorkInefficientDensestSubgraph(GA, num_buckets);
+  if (P.getOption("-ineff")) {
+    WorkInefficientDensestSubgraph(GA, eps);
+  } else {
+    WorkEfficientDensestSubgraph(GA, eps);
+  }
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
