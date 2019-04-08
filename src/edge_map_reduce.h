@@ -253,7 +253,7 @@ struct EdgeMap {
       return static_cast<size_t>(vs.isIn(v));
     };
 
-    par_for(0, n, [&] (size_t i) {
+    par_for(0, n, 1, [&] (size_t i) {
       size_t count = (out_ngh) ?
         G.V[i].countOutNgh(i, count_f) :
         G.V[i].countInNgh(i, count_f);
@@ -284,7 +284,7 @@ struct EdgeMap {
     auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
     size_t degree_threshold = threshold;
-    if (threshold == -1) degree_threshold = G.m / 40;
+    if (threshold == -1) degree_threshold = G.m / 15;
     if (vs.size() + out_degrees > degree_threshold) {
       // dense
       return edgeMapCount_dense<O>(vs, apply_f, out_ngh);

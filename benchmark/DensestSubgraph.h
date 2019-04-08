@@ -92,18 +92,20 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
     size_t vertices_removed = peeled.size();
     auto vs = vertexSubset(n, vertices_removed, peeled.to_array());
     std::cout << "removing " << vertices_removed << " vertices" << std::endl;
-
-    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
-      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-        D[v] -= edgesRemoved;
-      return Maybe<std::tuple<uintE,uintE>>();
-    };
-
-    auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
-    moved.del();
-
     vertices_remaining -= vertices_removed;
+
+    if (vertices_remaining > 0) {
+      auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+          -> const Maybe<std::tuple<uintE, uintE> > {
+        uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+          D[v] -= edgesRemoved;
+        return Maybe<std::tuple<uintE,uintE>>();
+      };
+
+      auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+      moved.del();
+    }
+
     vs.del();
     round++;
   }
@@ -117,41 +119,32 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   double density_multiplier = (2*(1+epsilon));
 
   auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
-  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
+//  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
+  auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
   size_t round = 1;
-  while (vertices_remaining.size() > 0) {
+  uintE* last_arr = nullptr;
+  size_t remaining_offset = 0;
+  size_t num_vertices_remaining = n;
 
-    // Reduce over the remaining vertices. Note that we can skip this
-    // computation on the first round.
-    auto degree_f = [&] (size_t i) {
-      uintE v = vertices_remaining[i];
-      return static_cast<size_t>(D[v]);
-    };
-    auto degree_seq = pbbslib::make_sequence<size_t>(vertices_remaining.size(), degree_f);
-    long edges_remaining = pbbslib::reduce_add(degree_seq);
-
+  // First round
+  {
+    size_t edges_remaining = GA.m;
     // Update density
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
     double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
     std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
     std::cout << "Current density on round " << round << " is " << current_density << std::endl;
 
-    // Filter out peeled vertices
-    auto remove_seq = [&] (uintE v) {
-      return D[v] <= target_density;
-    };
-    auto keep_seq = [&] (uintE v) {
-      return D[v] > target_density;
-    };
-    // Can use split2; figure out later.
-    auto peeled = pbbs::filter(vertices_remaining, remove_seq);
-    auto vtx2 = pbbs::filter(vertices_remaining, keep_seq);
-    vertices_remaining = std::move(vtx2);
+    auto keep_seq = pbbs::delayed_seq<bool>(n, [&] (size_t i) {
+      return !(D[i] <= target_density);
+    });
 
-    size_t peeled_size = peeled.size();
-    auto vs = vertexSubset(n, peeled_size, peeled.to_array());
-    std::cout << "removing " << peeled_size << " vertices" << std::endl;
+    auto split_vtxs_m = pbbs::split_two(vertices_remaining, keep_seq);
+    uintE* this_arr = split_vtxs_m.first.to_array();
+    size_t num_removed = split_vtxs_m.second;
+    auto vs = vertexSubset(n, num_removed, this_arr);
+    std::cout << "removing " << num_removed << " vertices" << std::endl;
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const Maybe<std::tuple<uintE, uintE> > {
@@ -163,7 +156,128 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
     moved.del();
 
-    vs.del();
     round++;
+    last_arr = this_arr;
+    remaining_offset = num_removed;
+    num_vertices_remaining -= num_removed;
+    if (vs.dense()) {
+      pbbs::free_array(vs.d);
+    }
   }
+
+  while (num_vertices_remaining > 0) {
+    uintE* start = last_arr + remaining_offset;
+    uintE* end = start + num_vertices_remaining;
+    auto vtxs_remaining = pbbs::make_range(start, end);
+
+    auto degree_f = [&] (size_t i) {
+      uintE v = vtxs_remaining[i];
+      return static_cast<size_t>(D[v]);
+    };
+    auto degree_seq = pbbslib::make_sequence<size_t>(vtxs_remaining.size(), degree_f);
+    long edges_remaining = pbbslib::reduce_add(degree_seq);
+
+    // Update density
+    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vtxs_remaining.size());
+    double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());
+    std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vtxs_remaining.size() << std::endl;
+    std::cout << "Current density on round " << round << " is " << current_density << std::endl;
+
+    auto keep_seq = pbbs::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
+      return !(D[vtxs_remaining[i]] <= target_density);
+    });
+
+    auto split_vtxs_m = pbbs::split_two(vtxs_remaining, keep_seq);
+    uintE* this_arr = split_vtxs_m.first.to_array();
+    size_t num_removed = split_vtxs_m.second;
+    auto vs = vertexSubset(n, num_removed, this_arr);
+    std::cout << "removing " << num_removed << " vertices" << std::endl;
+
+    num_vertices_remaining -= num_removed;
+    if (num_vertices_remaining > 0) {
+      auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+          -> const Maybe<std::tuple<uintE, uintE> > {
+        uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+        D[v] -= edgesRemoved;
+        return Maybe<std::tuple<uintE,uintE>>();
+      };
+
+      auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+      moved.del();
+    }
+
+    round++;
+    pbbs::free_array(last_arr);
+    last_arr = this_arr;
+    remaining_offset = num_removed;
+    if (vs.dense()) {
+      pbbs::free_array(vs.d);
+    }
+  }
+
+  if (last_arr) {
+    pbbs::free_array(last_arr);
+  }
+
+//    // Reduce over the remaining vertices. Note that we can skip this
+//    // computation on the first round.
+//    auto degree_f = [&] (size_t i) {
+//      uintE v = vertices_remaining[i];
+//      return static_cast<size_t>(D[v]);
+//    };
+//    auto degree_seq = pbbslib::make_sequence<size_t>(vertices_remaining.size(), degree_f);
+//    long edges_remaining = pbbslib::reduce_add(degree_seq);
+//
+//    // Update density
+//    double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
+//    double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
+//    std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
+//    std::cout << "Current density on round " << round << " is " << current_density << std::endl;
+//
+//    // Filter out peeled vertices
+//    auto remove_seq = [&] (uintE v) {
+//      return D[v] <= target_density;
+//    };
+//    auto keep_seq = [&] (uintE v) {
+//      return D[v] > target_density;
+//    };
+//
+//    auto split_vtxs_m = pbbs::split_two(vertices_remaining, remove_seq);
+//    uintE* this_arr = split_vtxs_m.first.to_array();
+//    size_t num_removed = split_vtxs_m.second;
+//    size_t num_remaining = vertices_remaining.size() - num_removed;
+//    auto vs = vertexSubset(n, num_removed, this_arr);
+//    uintE* rem_start = this_arr + num_removed;
+//
+//    std::function<uintE(size_t)> ff = [rem_start] (size_t i) {
+//      return rem_start[i];
+//    };
+//    vertices_remaining = pbbs::delayed_seq<uintE, std::function<uintE(size_t)>>(num_remaining, ff);
+//    if (last_arr) {
+//      pbbs::free_array(last_arr);
+//    }
+//    last_arr = this_arr;
+//
+////    auto peeled = pbbs::filter(vertices_remaining, remove_seq);
+////    auto vtx2 = pbbs::filter(vertices_remaining, keep_seq);
+////    vertices_remaining = std::move(vtx2);
+//
+//    std::cout << "removing " << num_removed << " vertices" << std::endl;
+//
+//    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+//        -> const Maybe<std::tuple<uintE, uintE> > {
+//      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+//      D[v] -= edgesRemoved;
+//      return Maybe<std::tuple<uintE,uintE>>();
+//    };
+//
+//    auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+//    moved.del();
+//
+////    vs.del();
+//    round++;
+//  }
+//  if (last_arr) {
+//    pbbslib::free_array(last_arr);
+//  }
 }
