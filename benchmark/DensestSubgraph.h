@@ -113,7 +113,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
     vs.del();
     round++;
   }
-  cout << "Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 }
 
 template <template <typename W> class vertex, class W>
@@ -231,5 +231,5 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   if (last_arr) {
     pbbs::free_array(last_arr);
   }
-  cout << "Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 }

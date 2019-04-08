@@ -84,7 +84,7 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     });
     return vertexSubset(GA.n, dense.to_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
-    std::cout << "sum_d = " << sum_d << std::endl;
+    debug(std::cout << "sum_d = " << sum_d << std::endl;);
     auto ht = make_sparse_table<uintE, pbbslib::empty>(
         sum_d, std::make_tuple(UINT_E_MAX, pbbslib::empty()),
         [&](const uintE& k) { return pbbslib::hash64(k); });
@@ -170,7 +170,7 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
     priorities[i] = GA.V[i].countOutNgh(i, count_f);
   });
   init_t.stop();
-  init_t.reportTotal("init");
+  debug(init_t.reportTotal("init"););
 
 
   // compute the initial rootset
@@ -186,8 +186,8 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
   size_t rounds = 0;
   while (finished != n) {
     assert(roots.size() > 0);
-    std::cout << "round = " << rounds << " size = " << roots.size()
-              << " remaining = " << (n - finished) << "\n";
+    debug(std::cout << "round = " << rounds << " size = " << roots.size()
+              << " remaining = " << (n - finished) << "\n";);
 
     // set the roots in the MIS
     vertexMap(roots, [&](uintE v) { in_mis[v] = true; });

@@ -44,6 +44,9 @@
 typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
 
+char* compressed_mmap_bytes = nullptr;
+size_t compressed_mmap_bytes_size = 0L;
+
 template <class E>
 struct pairFirstCmp {
   bool operator()(std::pair<uintE, E> a, std::pair<uintE, E> b) {
@@ -363,6 +366,15 @@ inline std::string print_wgh(W wgh) {
   return std::to_string(wgh);
 }
 
+void unmmap_if_needed() {
+  if (compressed_mmap_bytes) {
+    if (munmap(compressed_mmap_bytes, compressed_mmap_bytes_size) == -1) {
+      perror("munmap");
+      exit(-1);
+    }
+  }
+}
+
 template <template <typename W> class vertex, class W>
 inline graph<vertex<W>> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
@@ -386,6 +398,9 @@ inline graph<vertex<W>> readCompressedGraph(
           exit(-1);
         }
         s = bytes;
+      } else {
+        compressed_mmap_bytes = S.first;
+        compressed_mmap_bytes_size = S.second;
       }
     } else {
       int fd;
@@ -510,7 +525,13 @@ inline graph<vertex<W>> readCompressedGraph(
     V[i].setOutDegree(d);
     V[i].setOutNeighbors(edges + o);
   });
-
+  auto deletion_fn = get_deletion_fn(V, s);
+  if (mmap && !mmapcopy) {
+    deletion_fn = [V] () {
+      pbbslib::free_array(V);
+      unmmap_if_needed();
+    };
+  }
   if (!isSymmetric) {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uint64_t o = inOffsets[i];
@@ -519,11 +540,11 @@ inline graph<vertex<W>> readCompressedGraph(
       V[i].setInNeighbors(inEdges + o);
     });
     graph<w_vertex> G(
-        V, n, m, get_deletion_fn(V, s),
+        V, n, m, deletion_fn,
         get_copy_fn(V, inEdges, edges, n, m, totalSpace, inTotalSpace));
     return G;
   } else {
-    graph<w_vertex> G(V, n, m, get_deletion_fn(V, s),
+    graph<w_vertex> G(V, n, m, deletion_fn,
                       get_copy_fn(V, edges, n, m, totalSpace));
     return G;
   }
