@@ -63,7 +63,7 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     };
 
     vertexSubsetData<uintE> moved =
-        em.template edgeMapCount<uintE>(active, apply_f);
+        em.template edgeMapCount_sparse<uintE>(active, apply_f);
     bt.start();
 //    b.update_buckets(moved.get_fn_repr(), moved.size());
     if (moved.dense()) {
