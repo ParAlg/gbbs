@@ -194,7 +194,7 @@ contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
                     if (!flags[u]) flags[u] = 1;
                     if (!flags[v]) flags[v] = 1;
                   });
-  pbbslib::scan_add_inplace(flags);
+  pbbslib::scan_add_inplace(flags.slice());
 
   size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
   auto mapping = sequence<uintE>(num_ns_clusters);
