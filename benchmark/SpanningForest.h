@@ -133,22 +133,31 @@ namespace spanning_forest {
 
     size_t n = GA.n;
 
-    debug(cout << "num_clusters = " << num_clusters << endl;);
-    timer count_t;
-    count_t.start();
-    auto deg_map = sequence<uintE>(n + 1);
-    auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
-      uintE c_src = clusters[src];
-      uintE c_ngh = clusters[ngh];
-      return c_src < c_ngh;
-    };
-    par_for(0, n, 1, [&] (size_t i)
-                    { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
-    deg_map[n] = 0;
-    pbbslib::scan_add_inplace(deg_map);
-    count_t.stop();
-    debug(count_t.reportTotal("count time"););
+    size_t et_size = 0;
+    constexpr size_t small_nclusters = 2048;
 
+    if (num_clusters < small_nclusters) {
+      et_size = small_nclusters^2;
+    } else {
+      debug(cout << "num_clusters = " << num_clusters << endl;);
+      timer count_t;
+      count_t.start();
+      auto deg_map = sequence<uintE>(n + 1);
+      auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
+        uintE c_src = clusters[src];
+        uintE c_ngh = clusters[ngh];
+        return c_src < c_ngh;
+      };
+      par_for(0, n, 1, [&] (size_t i)
+                      { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
+      deg_map[n] = 0;
+      et_size = pbbslib::reduce_add(deg_map.slice());
+      count_t.stop();
+      debug(count_t.reportTotal("count time"););
+    }
+
+    // TODO: use the bound from the Spanners&Hopsets paper to avoid the count
+    // step above: can use O(n) space.
     timer ins_t;
     ins_t.start();
     KV empty =
@@ -159,9 +168,8 @@ namespace spanning_forest {
       size_t key = (l << 32) + r;
       return pbbslib::hash64_2(key);
     };
-    auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+    auto edge_table = make_sparse_table<K, V>(et_size, empty, hash_pair);
     debug(cout << "sizeof table = " << edge_table.m << endl;);
-    deg_map.clear();
 
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
       uintE c_src = clusters[src];
@@ -172,7 +180,7 @@ namespace spanning_forest {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+    par_for(0, n, 512, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
     auto edges = edge_table.entries();
     ins_t.stop();
     debug(ins_t.reportTotal("ins time"););
@@ -191,6 +199,7 @@ namespace spanning_forest {
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     debug(cout << "num ns_clusters = " << num_ns_clusters << " num orig clusters = " << num_clusters << endl;);
+    debug(cout << "#edges in GC = " << edges.size() << endl;);
 
     auto sym_edges = sequence<std::tuple<uintE, uintE>>(2 * edges.size(), [&](size_t i) {
       size_t src_edge = i / 2;
