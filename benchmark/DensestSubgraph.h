@@ -20,26 +20,9 @@
 
 #pragma once
 
-#include "bucket.h"
 #include "edge_map_reduce.h"
 #include "ligra.h"
-
-// Our goal: O(m + n) work and polylog depth densest subgraph.
-// Q: is there a linear-work sequential algorithm?
-//
-// Charikar's sequential greedy 2-apx works as follows:
-// DS = \nullset
-// While some vertices remain:
-//   1. peel the lowest degree vertex
-//   2. update density
-//   3. If density(G_cur) > density(DS), update DS to G_cur.
-//
-// Can implement this algorithm in linear time using Charikar's ideas:
-// - store bucket data structure (n buckets)
-// - min-bkt can drop by one in each iteration
-// - cost of traversing empty buckets is charged to the edge that reduced the
-//   min-bkt, or is at most O(n)
-// therefore overall alg runs in O(m+n) time
+#include "KCore.h"
 
 // (2+2\epsilon)-appx DS for undirected graph (Bahmani et al.)
 // DS = \nullset
@@ -48,6 +31,9 @@
 //   2. update density
 //   3. If density(G_cur) > density(DS), update DS to G_cur.
 // return DS
+
+// Implements a work-inefficient version of the Bahmani et al. appx algorithm.
+// The algorithm scans all vertices each round. The total work is O(m+n\log n).
 template <template <typename W> class vertex, class W>
 void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
   const size_t n = GA.n;
@@ -233,3 +219,55 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   }
   cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 }
+
+// Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
+// expected work and O(\rho\log n) depth w.h.p.
+template <template <typename W> class vertex, class W>
+void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
+  // deg_ord = degeneracy_order(GA)
+  // ## Now, density check for graph after removing each vertex, in the peeling-order.
+  // Let S = stores 2*#edges to vertices > in degeneracy order. Note that 2* is
+  //         needed since higher-ordered vertices don't have the edge to us.
+  //
+  // S = scan_add(S, fl_inplace | fl_reverse) ## reverse scan
+  // density w/o vertex_i = S[i] / (n - i)
+  // Compute the max over all v.
+
+  size_t n = GA.n;
+  auto degeneracy_order = DegeneracyOrder(GA);
+  auto vtx_to_position = sequence<uintE>(n);
+
+  parallel_for(0, n, [&] (size_t i) {
+    uintE v = degeneracy_order.A[i];
+    vtx_to_position[v] = i;
+  });
+
+  auto density_above = sequence<size_t>(n);
+
+  par_for(0, n, 1, [&] (size_t i) {
+    uintE pos_u = vtx_to_position[i];
+    auto vtx_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      uintE pos_v = vtx_to_position[v];
+      return pos_u < pos_v;
+    };
+    density_above[pos_u] = 2*GA.V[i].countOutNgh(i, vtx_f);
+  });
+
+  size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),
+      pbbslib::fl_inplace);
+  if (total_edges != GA.m) {
+    cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
+      total_edges << endl;
+    exit(0);
+  }
+
+  auto density_seq = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    size_t dens = density_above[i];
+    size_t rem = n - i;
+    return static_cast<double>(dens) / static_cast<double>(rem);
+  });
+  double max_density = pbbslib::reduce_max(density_seq);
+  cout << "### Density of 2-Densest Subgraph is: " << max_density << endl;
+}
+
+

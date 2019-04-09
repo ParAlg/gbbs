@@ -46,10 +46,14 @@ double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  if (P.getOption("-ineff")) {
-    WorkInefficientDensestSubgraph(GA, eps);
+  if (P.getOption("-charikar")) {
+    CharikarAppxDensestSubgraph(GA);
   } else {
-    WorkEfficientDensestSubgraph(GA, eps);
+    if (P.getOption("-ineff")) {
+      WorkInefficientDensestSubgraph(GA, eps);
+    } else {
+      WorkEfficientDensestSubgraph(GA, eps);
+    }
   }
   double tt = t.stop();
 

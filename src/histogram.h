@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cstdint>
 #include <tuple>
+#include <assert.h>
 
 #include "bridge.h"
 #include "pbbslib/counting_sort_no_transpose.h"

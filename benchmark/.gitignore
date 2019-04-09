@@ -5,6 +5,7 @@ BFS
 Biconnectivity
 CC
 Coloring
+DensestSubgraph
 KCore
 LDD
 MaximalMatching

@@ -26,6 +26,7 @@
 #include "bucket.h"
 #include "edge_map_reduce.h"
 #include "ligra.h"
+#include "pbbslib/dyn_arr.h"
 
 
 template <template <typename W> class vertex, class W>
@@ -78,6 +79,7 @@ inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.reportTotal("bucket time"););
+  b.del();
   return D;
 }
 
@@ -146,6 +148,66 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
     active.del();
     rho++;
   }
+  b.del();
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   return D;
+}
+
+template <template <typename W> class vertex, class W>
+inline pbbslib::dyn_arr<uintE> DegeneracyOrder(graph<vertex<W> >& GA, size_t num_buckets = 16) {
+  const size_t n = GA.n;
+  auto D =
+      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+
+  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
+                                      (size_t)GA.m / 50);
+  auto b = make_vertex_buckets(n, D, increasing, num_buckets);
+  timer bt;
+
+  auto degeneracy_order = pbbslib::dyn_arr<uintE>(n);
+
+  size_t finished = 0, rho = 0, k_max = 0;
+  while (finished != n) {
+    bt.start();
+    auto bkt = b.next_bucket();
+    bt.stop();
+    auto active = vertexSubset(n, bkt.identifiers);
+    uintE k = bkt.id;
+    finished += active.size();
+    k_max = std::max(k_max, bkt.id);
+
+    auto active_seq = pbbs::delayed_seq<uintE>(active.size(), [&] (size_t i) { return active.s[i]; });
+    degeneracy_order.copyIn(active_seq, active.size());
+
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const Maybe<std::tuple<uintE, uintE> > {
+      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+      uintE deg = D[v];
+      if (deg > k) {
+        uintE new_deg = std::max(deg - edgesRemoved, k);
+        D[v] = new_deg;
+        uintE bkt = b.get_bucket(new_deg);
+        return wrap(v, bkt);
+      }
+      return Maybe<std::tuple<uintE, uintE> >();
+    };
+
+    vertexSubsetData<uintE> moved =
+        em.template edgeMapCount_sparse<uintE>(active, apply_f);
+    bt.start();
+    if (moved.dense()) {
+      b.update_buckets(moved.get_fn_repr(), n);
+    } else {
+      b.update_buckets(moved.get_fn_repr(), moved.size());
+    }
+
+    bt.stop();
+    moved.del();
+    active.del();
+    rho++;
+  }
+  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  debug(bt.reportTotal("bucket time"););
+  b.del();
+  return degeneracy_order;
 }
