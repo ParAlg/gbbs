@@ -53,7 +53,7 @@ struct get_bucket {
   std::tuple<E*, int> heavy_hitters(size_t n, size_t count) {
     E* sample = pbbslib::new_array_no_init<E>(count);
     for (size_t i = 0; i < count; i++) {
-      sample[i] = I[hash64(i) % n];
+      sample[i] = I[hash32(i) % n];
     }
     std::sort(sample, sample + count);
 
@@ -79,7 +79,7 @@ struct get_bucket {
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
-      size_t h = hash64(entries[i]) & table_mask;
+      size_t h = hash32(entries[i]) & table_mask;
       while (std::get<1>(table[h]) != -1) {
         h = (h + 1) & table_mask;
       }
@@ -113,7 +113,7 @@ struct get_bucket {
 
   size_t operator()(size_t i) {
     if (k > 0) {
-      size_t h = pbbslib::hash64(I[i]) & table_mask;
+      size_t h = pbbslib::hash32(I[i]) & table_mask;
       while (true) {
         E elm;
         int ct;
@@ -127,7 +127,7 @@ struct get_bucket {
         h = (h + 1) & table_mask;
       }
     }
-    return pbbslib::hash64(I[i] & low_mask) & bucket_mask;
+    return pbbslib::hash32(I[i] & low_mask) & bucket_mask;
   }
 };
 
@@ -177,7 +177,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t low_mask = ~((size_t)15);
   size_t bucket_mask = num_buckets - 1;
   auto gb = [&](uintE i) {
-    return pbbslib::hash64(get_key[i] & low_mask) & bucket_mask;
+    return pbbslib::hash32(get_key[i] & low_mask) & bucket_mask;
   };
 
   K* elms;
@@ -579,7 +579,7 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
   ht.resize(rs);
   sequentialHT<K, V> S(ht.table, n, 1.0f, ht.empty);
   for (size_t i = 0; i < n; i++) {
-    E a = get_elm(i);
+    E a = get_elm[i];
     reduce_f(S, a);
   }
   O* out = pbbslib::new_array_no_init<O>(n);
@@ -613,13 +613,11 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   num_buckets = std::max(1 << log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
 
-  //    auto gb = get_bucket<K, B>(get_key, n, bits);
   // (1) count-sort based on bucket
-  // TODO: add back contention detection
   size_t low_mask = ~((size_t)15);
   size_t bucket_mask = num_buckets - 1;
   auto gb = [&](uintE i) {
-    return pbbslib::hash64(get_key[i] & low_mask) & bucket_mask;
+    return pbbslib::hash32(get_key[i] & low_mask) & bucket_mask;
   };
 
   auto p = pbbslib::_count_sort<int16_t, size_t, E>(get_elm, gb, n, (uintE)num_buckets);
@@ -743,13 +741,5 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   pbbslib::free_array(out);
   return std::make_pair(num_distinct, res);
 }
-
-//  template <class E, class A, class F, class Timer>
-//  inline std::pair<size_t, std::tuple<E, E>*> histogram(A& get_elm, size_t n,
-//  F& f, hist_table<E, E>& ht, Timer& t) {
-//    auto q = [] (sequentialHT<E, E>& S, E v) -> void { S.insertAdd(v); };
-//    return histogram_reduce<E, std::tuple<E, E>>(get_elm, get_elm, n, q, f,
-//    ht, t);
-//  }
 
 }  // namespace pbbslib
