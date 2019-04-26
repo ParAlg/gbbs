@@ -51,7 +51,7 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
   timer contract_t;
   contract_t.start();
 
-  auto c_out = (level > 0) ? contract::contract_te (GA, clusters, num_clusters) : contract::contract(GA, clusters, num_clusters);
+  auto c_out = contract::contract(GA, clusters, num_clusters);
   contract_t.stop();
   debug(contract_t.reportTotal("contract time"););
   // flags maps from clusters -> no-singleton-clusters
