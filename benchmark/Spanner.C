@@ -48,7 +48,7 @@ double Spanner_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " => \beta = \log n/2k = " << beta << std::endl;
+  std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   assert(P.getOption("-s"));
