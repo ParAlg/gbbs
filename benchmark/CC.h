@@ -106,9 +106,8 @@ inline size_t largest_cc(Seq& labels) {
 }
 
 template <class vertex>
-inline sequence<uintE> CC(graph<vertex>& GA, double beta = 0.2,
-                            bool pack = false) {
-  return CC_impl(GA, beta, 0, pack, false);
+inline sequence<uintE> CC(graph<vertex>& GA, double beta = 0.2, bool pack = false, bool permute = false) {
+  return CC_impl(GA, beta, 0, pack, permute);
 }
 
 }  // namespace cc

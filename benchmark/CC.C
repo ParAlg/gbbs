@@ -43,7 +43,7 @@ double CC_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -beta = " << beta << std::endl;
+  std::cout << "### Params: -beta = " << beta << " -permute = " << P.getOption("-permute") << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   auto pack = P.getOption("-pack");
@@ -51,7 +51,7 @@ double CC_runner(graph<vertex>& GA, commandLine P) {
   assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
-  auto components = cc::CC(GA, beta, pack);
+  auto components = cc::CC(GA, beta, pack, P.getOption("-permute"));
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
