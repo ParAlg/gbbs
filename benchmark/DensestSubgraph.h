@@ -39,7 +39,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
   const size_t n = GA.n;
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
-  double density_multiplier = (2*(1+epsilon));
+  double density_multiplier = (1+epsilon);
 
   auto bits = sequence<bool>(n, true);
   auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
@@ -107,7 +107,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   const size_t n = GA.n;
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
-  double density_multiplier = (2*(1+epsilon));
+  double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
   auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
@@ -201,7 +201,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
         return Maybe<std::tuple<uintE,uintE>>();
       };
 
-      auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+      auto moved = em.template edgeMapCount<uintE>(vs, apply_f, no_output);
       moved.del();
     }
 

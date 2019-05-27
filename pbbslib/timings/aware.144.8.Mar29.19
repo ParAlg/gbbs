@@ -1,0 +1,37 @@
+n = 100000000
+rounds = 10
+num threads = 144
+half length on
+map long: r=10, med=0.0161 (0.0157,0.0346), hlen=6.34e+04, bw = 138
+tabulate long: r=10, med=0.0102 (0.00974,0.011), hlen=7.92e+04, bw = 140
+reduce add long: r=10, med=0.00725 (0.00652,0.00751), hlen=5.9e+05, bw = 123
+scan add long: r=10, med=0.0219 (0.0215,0.0238), hlen=1.24e+05, bw = 138
+pack long: r=10, med=0.0125 (0.0124,0.0129), hlen=3.78e+05, bw = 136
+gather long: r=10, med=0.0596 (0.0589,0.0707), hlen=1.33e+04, bw = 145
+scatter long: r=10, med=0.0707 (0.0707,0.0718), hlen=1.66e+04, bw = 165
+write add long: r=10, med=0.0781 (0.078,0.079), hlen=2.6e+04, bw = 150
+write min long: r=10, med=0.084 (0.0825,0.0854), hlen=2.6e+04, bw = 142
+count sort 8bit long: r=10, med=0.0291 (0.0288,0.0293), hlen=1.15e+06, Gelts/sec = 3.47
+random shuffle long: r=10, med=0.056 (0.0555,0.0568), hlen=3.02e+05, Gelts/sec = 1.8
+histogram uint: r=10, med=0.0345 (0.0342,0.0361), hlen=9.22e+05, Gelts/sec = 2.92
+histogram same uint: r=10, med=0.0183 (0.0182,0.0189), hlen=4.72e+05, Gelts/sec = 5.51
+histogram few uint: r=10, med=0.00463 (0.00423,0.00589), hlen=1.44e+06, Gelts/sec = 23.6
+integer sort<uint,uint>: r=10, med=0.0782 (0.0776,0.122), hlen=2.42e+05, Gelts/sec = 1.29
+integer sort uint: r=10, med=0.0431 (0.0417,0.0471), hlen=7.38e+05, Gelts/sec = 2.4
+integer sort 128 bits: r=10, med=0.207 (0.206,0.23), hlen=3.28e+07, Gelts/sec = 0.486
+sort long: r=10, med=0.113 (0.111,0.443), hlen=2.42e+05, Gelts/sec = 0.904
+sort uint: r=10, med=0.101 (0.1,0.11), hlen=2.42e+05, Gelts/sec = 1
+sort 128 bits: r=10, med=0.182 (0.181,0.229), hlen=9.9e+04, Gelts/sec = 0.552
+merge long: r=10, med=0.0153 (0.015,0.0167), hlen=1.55e+05, bw = 144
+mat vect mult: r=10, med=0.285 (0.284,0.287), hlen=2.79e+03, bw = 148
+scatter int: r=10, med=0.062 (0.0611,0.0635), hlen=1.24e+05, bw = 185
+merge sort long: r=10, med=0.228 (0.226,0.23), hlen=5.9e+05, Gelts/sec = 0.443
+count sort 2bit long: r=10, med=0.0235 (0.0228,0.0249), hlen=4.72e+05, Gelts/sec = 4.38
+split3 long: r=10, med=0.0227 (0.0221,0.0239), hlen=1.24e+05, bw = 134
+quicksort long: r=10, med=0.19 (0.187,0.192), hlen=1.15e+06, Gelts/sec = 0.534
+collect reduce 256 buckets uint: r=10, med=0.00765 (0.00728,0.00791), hlen=3.52e+06, Gelts/sec = 13.7
+strided read, 128 bytes: r=10, med=0.0859 (0.0838,0.0881), hlen=3.25e+04, bw = 76.4
+collect reduce sparse uint: r=10, med=0.0823 (0.0816,0.0848), hlen=2.62e+07, Gelts/sec = 1.23
+remove duplicates: r=10, med=0.13 (0.129,0.131), hlen=1.24e+05, Gelts/sec = 0.775
+add to bag long: r=10, med=0.126 (0.124,0.423), hlen=2.62e+07, Gelts/sec = 0.805
+collect reduce dense uint: r=10, med=0.051 (0.0507,0.0534), hlen=9.22e+05, Gelts/sec = 1.97

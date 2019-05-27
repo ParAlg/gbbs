@@ -88,6 +88,7 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
+  cout << "Dense" << endl;
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
   vertex* G = GA.V;
@@ -427,12 +428,13 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   if (threshold == -1) dense_threshold = numEdges / 20;
   if (vs.size() == 0) return vertexSubsetData<data>(numVertices);
 
-  if (vs.isDense && vs.size() > numVertices / 10) {
-    return (fl & dense_forward)
-               ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
-  }
+//  if (vs.isDense && vs.size() > numVertices / 10) {
+//    return (fl & dense_forward)
+//               ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
+//               : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
+//  }
 
+//  timer rt; rt.start();
   vs.toSparse();
   vertex* frontier_vertices = pbbslib::new_array_no_init<vertex>(m);
   par_for(0, vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -443,7 +445,9 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   };
   auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
   size_t out_degrees = pbbslib::reduce_add(degree_im);
+//  rt.stop(); rt.reportTotal("reduce time");
 
+  cout << "out_degrees = " << (m + out_degrees) << " threshold = " << dense_threshold << endl;
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
@@ -837,7 +841,6 @@ inline size_t get_pcm_state() { return (size_t)1; }
     char* iFile = P.getArgument(0);                                            \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
-    assert(P.getOptionValue("-w") == true);                                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \

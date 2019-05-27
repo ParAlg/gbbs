@@ -26,6 +26,7 @@
 #include <vector>
 #include "bridge.h"
 #include "ligra.h"
+#include "edge_map_reduce.h"
 
 namespace bc {
 
@@ -152,4 +153,144 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   });
   return Dependencies;
 }
+
+template <template <class W> class vertex, class W, class E>
+vertexSubset sparse_fa_dense_em(graph<vertex<W>>& GA, E& EM, vertexSubset& Frontier, pbbs::sequence<fType>& NumPaths, pbbs::sequence<fType>& Storage, pbbs::sequence<bool>& Visited,  const flags fl) {
+  size_t out_degrees = 0;
+  if (Frontier.dense()) {
+    auto degree_f = [&](size_t i) -> size_t {
+      if (Frontier.d[i]) {
+        return (fl & in_edges) ? GA.V[i].getInVirtualDegree() : GA.V[i].getOutVirtualDegree();
+      }
+      return static_cast<size_t>(0);
+    };
+    auto degree_imap = pbbslib::make_sequence<size_t>(Frontier.size(), degree_f);
+    out_degrees = pbbslib::reduce_add(degree_imap);
+  } else {
+    auto degree_f = [&](size_t i) -> size_t {
+      return (fl & in_edges) ? GA.V[Frontier.vtx(i)].getInVirtualDegree() : GA.V[Frontier.vtx(i)].getOutVirtualDegree();
+    };
+    auto degree_imap = pbbslib::make_sequence<size_t>(Frontier.size(), degree_f);
+    out_degrees = pbbslib::reduce_add(degree_imap);
+  }
+
+  if (out_degrees > GA.m/20) {
+    debug(cout << "dense, out_degrees = " << out_degrees << endl;);
+
+    auto cond_f = [&] (size_t i) {
+      return (Visited[i] == false);
+    };
+    auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) -> double {
+      return NumPaths[d];
+    };
+    auto reduce_f = [&] (double l, double r) { return l + r; };
+    auto apply_f = [&] (std::tuple<uintE, double> k) {
+      const uintE& u = std::get<0>(k);
+      const double& contribution = std::get<1>(k);
+      if (contribution > 0) {
+        Storage[u] = contribution;
+        return Maybe<std::tuple<uintE, pbbs::empty>>(std::make_tuple(u, pbbs::empty()));
+      }
+      return Maybe<std::tuple<uintE, pbbs::empty>>();
+    };
+    double id = 0.0;
+
+    flags dense_fl = fl;
+    dense_fl ^= in_edges; // should be set if out_edges, unset if in_edges
+    timer dt; dt.start();
+    vertexSubset output = EM.template edgeMapReduce_dense<pbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl);
+
+    parallel_for(0, GA.n, [&] (size_t i) {
+      if (Storage[i] != 0) {
+        NumPaths[i] = Storage[i];
+        Storage[i] = 0;
+      }
+    });
+
+    dt.stop(); dt.reportTotal("dense time");
+    return output;
+  } else {
+    vertexSubset output = edgeMap(GA, Frontier, make_bc_f<W>(NumPaths, Visited),
+                                  -1, fl | sparse_blocked | fine_parallel);
+    return output;
+  }
+}
+
+template <template <class W> class vertex, class W>
+inline sequence<fType> BC_EM(graph<vertex<W>>& GA, const uintE& start) {
+  size_t n = GA.n;
+  auto EM = EdgeMap<fType, vertex, W>(GA, std::make_tuple(UINT_E_MAX, (fType)0.0), (size_t)GA.m/1000);
+
+  auto NumPaths = sequence<fType>(n, static_cast<fType>(0));
+  auto Storage = sequence<fType>(n, static_cast<fType>(0));
+  NumPaths[start] = 1.0;
+
+  auto Visited = sequence<bool>(n, [](size_t i) { return 0; });
+  Visited[start] = 1;
+
+  vertexSubset Frontier(n, start);
+
+  std::vector<vertexSubset> Levels;
+
+  timer fwd; fwd.start();
+  long round = 0;
+  while (!Frontier.isEmpty()) {
+    debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
+    round++;
+
+    vertexSubset output = sparse_fa_dense_em(GA, EM, Frontier, NumPaths, Storage, Visited, 0);
+
+    vertexMap(output, make_bc_vertex_f(Visited));  // mark visited
+    Levels.push_back(Frontier);                    // save frontier
+    Frontier = output;
+  }
+  Levels.push_back(Frontier);
+  fwd.stop(); debug(fwd.reportTotal("forward time"));
+
+  for (size_t i=0; i<100; i++) {
+    cout << NumPaths[i] << endl;
+  }
+  cout << "printed numpaths" << endl;
+
+  auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
+
+  // Invert numpaths
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                  { NumPaths[i] = 1 / NumPaths[i]; });
+
+  Levels[round].del();
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                  { Visited[i] = 0; });
+  Frontier = Levels[round - 1];
+  vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
+
+  timer bt;
+  bt.start();
+  for (long r = round - 2; r >= 0; r--) {
+    //      edgeMap(GA, Frontier, make_bc_f<W>(Dependencies,Visited), -1,
+    //      no_output | in_edges | dense_forward);
+    // edgeMap(GA, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
+    //         no_output | in_edges | fine_parallel);
+
+    vertexSubset output = sparse_fa_dense_em(GA, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
+
+    Frontier.del();
+    Frontier = Levels[r];
+    vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
+  }
+  bt.stop();
+  debug(bt.reportTotal("back total time"););
+
+  Frontier.del();
+
+  // Update dependencies scores
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
+  });
+  return Dependencies;
+
+
+
+}
+
 }  // namespace bc

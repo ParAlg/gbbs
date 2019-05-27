@@ -207,6 +207,7 @@ struct vertexSubsetData<pbbslib::empty> {
     auto d_f = [&](size_t i) { return std::get<0>(_d[i]); };
     auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
     m = pbbslib::reduce_add(d_map);
+    cout << "m = " << m << endl;
   }
 
   void del() {

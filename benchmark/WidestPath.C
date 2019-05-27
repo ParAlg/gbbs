@@ -22,43 +22,51 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./Spanner -rounds 3 -s -m twitter_SJ
+// numactl -i all ./WidestPath -src 10012 -s -m -rounds 3 twitter_wgh_SJ
 // flags:
 //   required:
-//     -s : indicates that the graph is symmetric
+//     -src: the source to compute shortest path distances from
+//     -w: indicate that the graph is weighted
 //   optional:
-//     -m : indicate that the graph should be mmap'd
-//     -c : indicate that the graph is compressed
 //     -rounds : the number of times to run the algorithm
-//     -stats : print the #ccs, and the #vertices in the largest cc
+//     -c : indicate that the graph is compressed
+//     -m : indicate that the graph should be mmap'd
+//     -s : indicate that the graph is symmetric
 
-#include <math.h>
+#define WEIGHTED 1
 
-#include "Spanner.h"
-#include "ligra.h"
+#include "WidestPath.h"
 
-// Beta should be set to log n/2k. See Corollary 3.1 and Lemma 3.2 in MPVX'15.
 template <class vertex>
-double Spanner_runner(graph<vertex>& GA, commandLine P) {
-  size_t n = GA.n;
-  size_t k = P.getOptionLongValue("-k", 4);
-  double beta = log(n)/(2*k);
-  std::cout << "### Application: Spanner (O(k)-spanner from MPXV)" << std::endl;
+double WidestPath_runner(graph<vertex>& GA, commandLine P) {
+  uintE src = P.getOptionLongValue("-src", 0);
+  size_t num_buckets = P.getOptionLongValue("-nb", 32);
+  bool no_blocked = P.getOptionValue("-noblocked");
+  bool largemem = P.getOptionValue("-largemem");
+
+  std::cout << "### Application: WidestPath (Single Source Widest-Path)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
+  std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
-  assert(P.getOption("-s"));
-  timer t;
-  t.start();
-  auto spanner = spanner::Spanner(GA, beta);
+  if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
+    std::cout << "Please specify a number of buckets that is a power of two"
+              << "\n";
+    exit(-1);
+  }
+  timer t; t.start();
+  if (P.getOptionValue("-bf")) {
+    auto widths = WidestPathBF(GA, src);
+  } else {
+    auto widths = WidestPath(GA, src, num_buckets, largemem, no_blocked);
+  }
   double tt = t.stop();
+
   std::cout << "### Running Time: " << tt << std::endl;
-  std::cout << "### ------------------------------------" << endl;
   return tt;
 }
 
-generate_main(Spanner_runner, false);
+generate_weighted_main(WidestPath_runner, false);

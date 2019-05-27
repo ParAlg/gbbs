@@ -163,6 +163,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
 template <template <typename W> class vertex, class W>
 sequence<uintE> LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
                       bool pack = false) {
+  debug(cout << "permute = " << permute << endl;);
   auto oracle = [&](const uintE& u, const uintE& v, const W& wgh) {
     return true;
   };
@@ -174,3 +175,4 @@ sequence<uintE> LDD_oracle(graph<vertex<W> >& GA, EO& oracle, double beta,
                              bool permute = true, bool pack = false) {
   return LDD_impl(GA, oracle, beta, permute, pack);
 }
+

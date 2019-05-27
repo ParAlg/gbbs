@@ -462,6 +462,56 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
   }
 }
 
+
+//// r: E -> E -> E
+//template <class W, class E, class M, class Monoid>
+//inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
+//                    M& m, Monoid& reduce, const bool par = true) {
+//  if (degree > 0) {
+//    uintE virtual_degree = *((uintE*)edge_start);
+//    size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
+//    uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+//    uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
+//                        sizeof(uintE);  // block offs + virtual_degree
+//
+////    E stk[100];
+////    E* block_outputs;
+////    if (num_blocks > 100) {
+////      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+////    } else {
+////      block_outputs = (E*)stk;
+////    }
+//
+////    par_for(0, num_blocks, 1, [&] (size_t i) {
+//    auto cur = reduce.identity;
+//    for (size_t i=0; i<num_blocks; i++) {
+//      uchar* finger =
+//          (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
+//      uintE start_offset = *((uintE*)finger);
+//      uintE end_offset = (i == (num_blocks - 1))
+//                             ? degree
+//                             : (*((uintE*)(edge_start + block_offsets[i])));
+//      finger += sizeof(uintE);
+//
+//      if (start_offset < end_offset) {
+//        // Eat first edge, which is compressed specially
+//        uintE ngh = eatFirstEdge(finger, source);
+//        W wgh = eatWeight<W>(finger);
+//        cur = reduce.f(cur, m(source, ngh, wgh));
+//        for (size_t j = start_offset + 1; j < end_offset; j++) {
+//          ngh += eatEdge(finger);
+//          W wgh = eatWeight<W>(finger);
+//          cur = reduce.f(cur, m(source, ngh, wgh));
+//        }
+//      }
+//    }
+//
+//    return cur;
+//  } else {
+//    return reduce.identity;
+//  }
+//}
+
 // r: E -> E -> E
 template <class W, class E, class M, class Monoid>
 inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
@@ -473,17 +523,17 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
     uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
                         sizeof(uintE);  // block offs + virtual_degree
 
-//    E stk[100];
-//    E* block_outputs;
-//    if (num_blocks > 100) {
-//      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
-//    } else {
-//      block_outputs = (E*)stk;
-//    }
+    E stk[100];
+    E* block_outputs;
+    if (num_blocks > 100) {
+      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+    } else {
+      block_outputs = (E*)stk;
+    }
 
-//    par_for(0, num_blocks, 1, [&] (size_t i) {
+    par_for(0, num_blocks, 1, [&] (size_t i) {
     auto cur = reduce.identity;
-    for (size_t i=0; i<num_blocks; i++) {
+//    for (size_t i=0; i<num_blocks; i++) {
       uchar* finger =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
       uintE start_offset = *((uintE*)finger);
@@ -503,15 +553,16 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
           cur = reduce.f(cur, m(source, ngh, wgh));
         }
       }
-//      block_outputs[i] = cur;
-    } // , par && (num_blocks > 2));
+      block_outputs[i] = cur;
+    }, par && (num_blocks > 2));
 
-//    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
-//    E res = pbbslib::reduce(im, reduce);
-//    if (num_blocks > 100) {
-//      pbbslib::free_array(block_outputs);
-//    }
-    return cur;
+    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    E res = pbbslib::reduce(im, reduce);
+    if (num_blocks > 100) {
+      pbbslib::free_array(block_outputs);
+    }
+    return res;
+//    return cur;
   } else {
     return reduce.identity;
   }

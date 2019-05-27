@@ -1,30 +1,57 @@
-ifdef LONG
-INTT = -DLONG
+ifeq (, $(shell which jemalloc-config))
+JEMALLOC =
+else
+JEMALLOCLD = $(shell jemalloc-config --libdir)
+JEMALLOC = -L$(JEMALLOCLD) -ljemalloc
 endif
+
+# Always compile with LONG (note that timings on small graphs may be a bit
+# faster w/o this flag).
+INTT = -DLONG
 
 ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-PD = -DAMORTIZEDPD
+#INCLUDE_DIRS = -I/usr0/home/ldhulipa/
+INCLUDE_DIRS = -I../
 
-PCC = g++
-PCFLAGS = -std=c++14 -mcx16 -fcilkplus -lcilkrts -I../ -I../src -O2 -DCILK $(INTT) $(INTE) $(CODE) $(PD) $(MEM)
-PLFLAGS = -fcilkplus -lcilkrts
+OPT = -O3 -g
 
-ALL= add_weights converter
+CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
+
+OMPFLAGS = -DOPENMP -fopenmp
+CILKFLAGS = -DCILK -fcilkplus
+HGFLAGS = -DHOMEGROWN -pthread
+
+ifdef CLANG
+CC = clang++
+PFLAGS = $(CILKFLAGS)
+else ifdef CILK
+CC = g++
+PFLAGS = $(CILKFLAGS)
+else ifdef OPENMP
+CC = g++
+PFLAGS = $(OMPFLAGS)
+else ifdef HOMEGROWN
+CC = g++
+PFLAGS = $(HGFLAGS)
+else ifdef SERIAL
+CC = g++
+PFLAGS =
+else # default is homegrown
+CC = g++
+PFLAGS = $(HGFLAGS)
+endif
+
+ALL= add_weights converter gen_torus
 
 all: $(ALL)
 
 % : %.C
-	$(PCC) $(PCFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean
 
 clean :
 	rm -f *.o $(ALL)
-
-cleansrc :
-	rm -f *.o $(ALL)
-	rm $(COMMON)
-	rm -rf lib/*.h

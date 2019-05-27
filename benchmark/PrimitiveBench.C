@@ -22,43 +22,36 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./Spanner -rounds 3 -s -m twitter_SJ
+// numactl -i all ./PrimitiveBench -src 10012 -s -m -rounds 3 twitter_SJ
 // flags:
 //   required:
-//     -s : indicates that the graph is symmetric
+//     -src: the source to compute the PrimitiveBench from
 //   optional:
-//     -m : indicate that the graph should be mmap'd
-//     -c : indicate that the graph is compressed
 //     -rounds : the number of times to run the algorithm
-//     -stats : print the #ccs, and the #vertices in the largest cc
+//     -c : indicate that the graph is compressed
+//     -m : indicate that the graph should be mmap'd
+//     -s : indicate that the graph is symmetric
 
-#include <math.h>
-
-#include "Spanner.h"
 #include "ligra.h"
 
-// Beta should be set to log n/2k. See Corollary 3.1 and Lemma 3.2 in MPVX'15.
-template <class vertex>
-double Spanner_runner(graph<vertex>& GA, commandLine P) {
-  size_t n = GA.n;
-  size_t k = P.getOptionLongValue("-k", 4);
-  double beta = log(n)/(2*k);
-  std::cout << "### Application: Spanner (O(k)-spanner from MPXV)" << std::endl;
-  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
-  std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+template <template <class W> class vertex, class W>
+double PrimitiveBench_runner(graph<vertex<W>>& GA, commandLine P) {
+  timer t; t.start();
 
-  assert(P.getOption("-s"));
-  timer t;
-  t.start();
-  auto spanner = spanner::Spanner(GA, beta);
+  auto ins = pbbs::sequence<uintE>(GA.n, (uintE)1);
+  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    return ins[v];
+  };
+  auto outs = pbbs::sequence<uintE>(GA.n);
+  auto red_mon = pbbs::addm<size_t>();
+  parallel_for(0, GA.n, [&] (size_t i) {
+    outs[i] = GA.V[i].template reduceOutNgh<size_t>(i, map_f, red_mon);
+  });
+
   double tt = t.stop();
+
   std::cout << "### Running Time: " << tt << std::endl;
-  std::cout << "### ------------------------------------" << endl;
   return tt;
 }
 
-generate_main(Spanner_runner, false);
+generate_main(PrimitiveBench_runner, false);

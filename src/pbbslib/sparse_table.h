@@ -159,6 +159,31 @@ class sparse_table {
     return false;
   }
 
+  bool insert_check(std::tuple<K, V> kv, bool* abort) {
+    if (*abort) { return false; }
+    K k = std::get<0>(kv);
+    size_t h = firstIndex(k);
+    size_t n_probes = 0;
+    while (true) {
+      if (std::get<0>(table[h]) == empty_key) {
+        if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
+          std::get<1>(table[h]) = std::get<1>(kv);
+          return true;
+        }
+      }
+      if (std::get<0>(table[h]) == k) {
+        return false;
+      }
+      h = incrementIndex(h);
+      n_probes++;
+      if (n_probes > 10000) {
+        *abort = true;
+        break;
+      }
+    }
+    return false;
+  }
+
   void mark_seq(K k) {
     size_t h = firstIndex(k);
     while (true) {

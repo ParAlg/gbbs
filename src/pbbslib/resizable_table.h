@@ -212,21 +212,6 @@ namespace pbbslib {
       return 0;
     }
 
-    // TODO: finish this implementation.
-    size_t get_label_set(K k, V* arr) {
-      size_t h = firstIndex(k);
-      size_t ct = 0;
-      while (1) {
-        if (std::get<0>(table[h]) == k) {
-          arr[ct++] = std::get<1>(table[h]);
-        } else if (std::get<0>(table[h]) == empty_key) {
-          return ct;
-        }
-        h = incrementIndex(h, mask);
-      }
-      return 0;
-    }
-
     bool insert_seq(std::tuple<K, V> kv) {
       K& k = std::get<0>(kv);
       V& v = std::get<1>(kv);

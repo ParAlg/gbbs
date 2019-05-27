@@ -41,6 +41,7 @@ using T = std::tuple<K, V>;
 
 using label_type = size_t;
 
+// hash32 is sufficient
 struct hash_kv {
   uint64_t operator()(const K& k) { return pbbslib::hash64(k); }
 };
@@ -107,6 +108,7 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA
   frontier.toSparse();
   par_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
+    // each center initially just stores itself.
     table.insert(std::make_tuple(v, label_start + i));
   }, (frontier.size() > 1000));
   table.update_nelms();

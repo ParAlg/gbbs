@@ -47,7 +47,7 @@ double BC_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
-  auto scores = bc::BC(GA, src);
+  auto scores = P.getOptionValue("-fa") ? bc::BC(GA, src) : bc::BC_EM(GA, src);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 

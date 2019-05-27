@@ -51,7 +51,7 @@ double SpanningForest_runner(graph<vertex>& GA, commandLine P) {
   assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
-  auto edges = spanning_forest::SpanningForest(GA, beta, pack);
+  auto edges = spanning_forest::SpanningForest(GA, beta, pack, P.getOptionValue("-permute"));
   cout << "n = " << GA.n << " #edges = " << edges.size << endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;

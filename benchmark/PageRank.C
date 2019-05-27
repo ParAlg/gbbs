@@ -22,43 +22,42 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./Spanner -rounds 3 -s -m twitter_SJ
+// numactl -i all ./PageRank -s -m -rounds 3 twitter_SJ
 // flags:
-//   required:
-//     -s : indicates that the graph is symmetric
 //   optional:
-//     -m : indicate that the graph should be mmap'd
-//     -c : indicate that the graph is compressed
+//     -eps : the epsilon to use for convergence (1e-6 by default)
 //     -rounds : the number of times to run the algorithm
-//     -stats : print the #ccs, and the #vertices in the largest cc
+//     -c : indicate that the graph is compressed
+//     -m : indicate that the graph should be mmap'd
+//     -s : indicate that the graph is symmetric
 
-#include <math.h>
+#include "PageRank.h"
 
-#include "Spanner.h"
-#include "ligra.h"
-
-// Beta should be set to log n/2k. See Corollary 3.1 and Lemma 3.2 in MPVX'15.
 template <class vertex>
-double Spanner_runner(graph<vertex>& GA, commandLine P) {
-  size_t n = GA.n;
-  size_t k = P.getOptionLongValue("-k", 4);
-  double beta = log(n)/(2*k);
-  std::cout << "### Application: Spanner (O(k)-spanner from MPXV)" << std::endl;
+double PageRank_runner(graph<vertex>& GA, commandLine P) {
+  std::cout << "### Application: PageRank" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
+  std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001) << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
-  assert(P.getOption("-s"));
-  timer t;
-  t.start();
-  auto spanner = spanner::Spanner(GA, beta);
+  timer t; t.start();
+  double eps = P.getOptionDoubleValue("-eps", 0.000001);
+  double local_eps = P.getOptionDoubleValue("-leps", 0.01);
+  size_t iters = P.getOptionLongValue("-iters", 100);
+  if (P.getOptionValue("-em")) {
+    PageRank_edgeMap(GA, eps, iters);
+  } else if (P.getOptionValue("-delta")) {
+    delta::PageRankDelta(GA, eps, local_eps, iters);
+  } else {
+    PageRank(GA, eps, iters);
+  }
   double tt = t.stop();
+
   std::cout << "### Running Time: " << tt << std::endl;
-  std::cout << "### ------------------------------------" << endl;
   return tt;
 }
 
-generate_main(Spanner_runner, false);
+generate_main(PageRank_runner, false);
