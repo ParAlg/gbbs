@@ -30,12 +30,10 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "KTruss.h"
-//#include "KTruss_array.h"
-//#include "KTruss_pack.h"
 #include "ligra.h"
 
 template <class vertex>
-void KTruss_runner(graph<vertex>& GA, commandLine P) {
+double KTruss_runner(graph<vertex>& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
   if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Number of buckets must be a power of two."
@@ -44,7 +42,10 @@ void KTruss_runner(graph<vertex>& GA, commandLine P) {
   }
   assert(P.getOption("-s"));
 
+  timer t; t.start();
   KTruss_ht(GA, num_buckets);
+  auto d = t.stop(); t.reportTotal("ktruss time");
+  return d;
 }
 
 generate_main(KTruss_runner, false);

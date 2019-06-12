@@ -51,7 +51,6 @@ void initialize_trussness_values(graph<vertex<W>>& GA, MT& multi_table) {
 
   std::tuple<uintE, uintE> empty_tup = std::make_tuple<uintE, uintE>(UINT_E_MAX, 0);
 
-  cout << "inserting edges" << endl;
   timer it; it.start();
   GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
@@ -59,15 +58,6 @@ void initialize_trussness_values(graph<vertex<W>>& GA, MT& multi_table) {
     }
   });
   it.stop(); it.reportTotal("insertion time");
-  cout << "inserted all" << endl;
-
-//  cout << "inserting edges" << endl;
-//  GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
-//    size_t idx = multi_table.idx(u, v);
-//    assert(std::get<0>(multi_table.big_table[idx]) == std::max(u, v));
-//    assert(std::get<1>(multi_table.big_table[idx]) == 0);
-//  });
-//  cout << "inserted all" << endl;
 
   // 2. Triangle count, update trussness scores for each edge
   // 2.(a) Rank vertices based on degree
@@ -123,15 +113,26 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 
   // Store the initial trussness of each edge in the trussness table.
   auto multi_hash = [&] (uintE k) { return pbbslib::hash32(k); };
-  auto get_size = [&] (size_t i) {
-    uintE vtx = i;
+  auto get_size = [&] (size_t vtx) {
     auto count_f = [&] (uintE u, uintE v, W& wgh) {
       return vtx < v;
     };
-    return GA.V[i].countOutNgh(i, count_f);
+    return GA.V[vtx].countOutNgh(vtx, count_f);
   };
   auto trussness_multi = truss_utils::make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
 
+  // Note that this multi-table business is a performance optimization. The
+  // previous version is somewhere in git history; we should measure how much
+  // using a multi-table helps.
+  //
+  // Laxman (6/12): experiment with making the multi_table oriented by degree.
+  // This requires an extra random access when handling an edge to place it in
+  // the proper orientation. The simple ordering is to use ids, but using
+  // low-deg --> high-deg has the advantage of reducing the max hash-table size,
+  // which could improve locality.
+  // * for small enough vertices, use an array instead of a hash table.
+
+  // Initially stores #triangles incident/edge.
   initialize_trussness_values(GA, trussness_multi);
 
   // Initialize the bucket structure. #ids = trussness table size
@@ -194,7 +195,7 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 
     // Resize the table that stores edge updates if necessary.
     if (e_space_required > vt.size()) {
-      cout << "Resizing table, was: " << vt.size();
+      cout << "Resizing value table, was: " << vt.size();
       vt.del();
       vt = truss_utils::valueHT<edge_t>(e_space_required, std::numeric_limits<edge_t>::max());
       cout << " is now: " << vt.size() << endl;
