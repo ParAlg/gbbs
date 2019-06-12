@@ -23,6 +23,7 @@
 
 #include "bridge.h"
 #include "bucket.h"
+#include "pbbslib/dyn_arr.h"
 #include "edge_map_reduce.h"
 #include "ligra.h"
 #include "truss_utils.h"
@@ -108,6 +109,11 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   using bucket_t = uintE;
   using trussness_t = uintE;
 
+  auto deg_lt = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return GA.V[i].getOutDegree() < (1 << 15); });
+  cout << "count = " << pbbslib::reduce_add(deg_lt) << endl;
+  auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.V[i].getOutDegree() < (1 << 15)) { return GA.V[i].getOutDegree(); } return (uintE)0;  });
+  cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << endl;
+
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
   auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
 
@@ -144,6 +150,11 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
   auto vt = truss_utils::valueHT<edge_t>(1 << 20, std::numeric_limits<edge_t>::max());
+
+  auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
+  auto actual_degree = pbbs::sequence<uintE>(GA.n, [&] (size_t i) {
+    return GA.V[i].getOutDegree();
+  });
 
 //  size_t max_t = 0;
 //  for (size_t i=0; i<trussness.size(); i++) {
@@ -258,6 +269,60 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     // Clear the table storing the edge decrements.
     decrement_tab.clear();
     iter++;
+
+
+    del_edges.copyIn(rem_edges, rem_edges.size());
+
+    if (del_edges.size > 2*GA.n) {
+      // compact
+      cout << "compacting, " << del_edges.size << endl;
+      // map over both endpoints, update counts using histogram
+      // this is really a uintE seq, but edge_t >= uintE, and this way we can
+      // re-use the same histogram structure.
+      auto decr_seq = pbbs::sequence<edge_t>(2*del_edges.size);
+      parallel_for(0, del_edges.size, [&] (size_t i) {
+        size_t fst = 2*i; size_t snd = fst+1;
+        edge_t id = del_edges.A[i];
+        uintE u = trussness_multi.u_for_id(id);
+        uintE v = std::get<0>(trussness_multi.big_table[id]);
+        decr_seq[fst] = u;
+        decr_seq[snd] = v;
+      });
+
+      // returns only those vertices that have enough degree lost to warrant
+      // packing them out. Again note that edge_t >= uintE
+      auto apply_vtx_f = [&](const std::tuple<edge_t, uintE>& p)
+        -> const Maybe<std::tuple<edge_t, uintE> > {
+        uintE id = std::get<0>(p);
+        uintE degree_lost = std::get<1>(p);
+        uintE prev_degree = actual_degree[id];
+        actual_degree[id] -= degree_lost;
+        uintE new_degree = prev_degree - degree_lost;
+        // compare with GA.V[id]. this is the current space used for this vtx.
+        return Maybe<std::tuple<edge_t, uintE>>();
+      };
+
+      em_t.start();
+      em.template edgeMapCount(decr_seq, apply_vtx_f);
+      em_t.stop();
+
+      auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
+      auto to_pack_seq = pbbs::filter(all_vertices, [&] (uintE u) {
+        return 4*actual_degree[u] >= GA.V[u].getOutDegree();
+      });
+      auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
+
+      auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
+        // return true iff edge is still alive
+        trussness_t t_u_ngh;
+        edge_t edgeid;
+        std::tie(t_u_ngh, edgeid) = get_trussness_and_id(u, ngh);
+        return t_u_ngh >= k;
+      };
+      edgeMapFilter(GA, to_pack, pack_predicate, pack_edges | no_output);
+
+      del_edges.size = 0; // reset dyn_arr
+    }
   }
 
   peeling_t.stop(); peeling_t.reportTotal("peeling time");
@@ -268,9 +333,6 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   // == Important: The actual trussness is the stored trussness value + 1.
   // Edges with trussness 0 had their values stored as std::numeric_limits<int>::max()
   uint mx = 0;
-//  for (size_t i=0; i < n_edges; i++) {
-//    mx = std::max(mx, trussness[i] + 1);
-//  }
   cout << "mx = " << mx << endl;
   cout << "iters = " << iter << endl;
 }

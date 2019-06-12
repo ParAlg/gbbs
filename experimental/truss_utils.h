@@ -389,16 +389,9 @@ namespace truss_utils {
       std::tie(trussness_vw, vw_id) = get_trussness_and_id(v, w);
 
       if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id, vw_id)) {
-//        if (u == 14073 && v == 744491) {
-//          cout << "trussness = " << trussness_uv << " " << trussness_uw << " " << trussness_vw << endl;
-//          cout << "ids: " << uv_id << " " << uw_id << " " << vw_id << endl;
-//        }
         ctr++;
         decrement_tab.insert(uw_id);
         decrement_tab.insert(vw_id);
-//        if (uw_id == 2099851) {
-//          std::cout << "decrementing our guy from " << uv_id << " " << uw_id << " " << vw_id << std::endl;
-//        }
       }
     };
     G.V[u].intersect_f_par(&(G.V[v]), u, v, f);
