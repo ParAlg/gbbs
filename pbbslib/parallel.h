@@ -11,6 +11,7 @@ static int num_workers();
 
 // id of running thread, should be numbered from [0...num-workers)
 static int worker_id();
+static int numanode();
 
 // the granularity of a simple loop (e.g. adding one to each element
 // of an array) to reasonably hide cost of scheduler
@@ -126,11 +127,11 @@ inline void parallel_run(Job job, int num_threads=0) {
 #elif defined(HOMEGROWN)
 #include "scheduler.h"
 
-#ifdef NOTMAIN
-extern fork_join_scheduler fj;
-#else
+//#ifdef NOTMAIN
+//extern fork_join_scheduler fj;
+//#else
 fork_join_scheduler fj;
-#endif
+//#endif
 
 // Calls fj.destroy() before the program exits
 inline void destroy_fj() {
@@ -149,6 +150,10 @@ inline int num_workers() {
 inline int worker_id() {
   return fj.worker_id();
 }
+inline int numanode() {
+  return fj.numanode();
+}
+
 
 inline void set_num_workers(int n) {
   fj.set_num_workers(n);

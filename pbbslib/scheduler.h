@@ -6,6 +6,10 @@
 #include <iostream>
 #include <functional>
 
+#include <pthread.h>
+#include <utmpx.h>
+#include <numa.h>
+
 // EXAMPLE USE 1:
 //
 // fork_join_scheduler fj;
@@ -148,6 +152,7 @@ public:
   int num_threads;
 
   static thread_local int thread_id;
+  static thread_local int numa_node;
 
   scheduler() {
     init_num_workers();
@@ -160,11 +165,23 @@ public:
     spawned_threads = new std::thread[num_threads-1];
     std::function<bool()> finished = [&] () {  return finished_flag == 1; };
     thread_id = 0; // thread-local write
+    numa_node = numa_node_of_cpu(0);
     for (int i=1; i<num_threads; i++) {
       spawned_threads[i-1] = std::thread([&, i, finished] () {
         thread_id = i; // thread-local write
+	numa_node = numa_node_of_cpu(i);
         start(finished);
       });
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(i, &cpuset);
+      pthread_setaffinity_np(spawned_threads[i-1].native_handle(), sizeof(cpu_set_t), &cpuset);
+    }
+    {
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(0, &cpuset);
+      pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
     }
   }
 
@@ -219,6 +236,9 @@ public:
   }
   int worker_id() {
     return thread_id;
+  }
+  int numanode() {
+    return numa_node;
   }
   void set_num_workers(int n) {
     std::cout << "Unsupported" << std::endl; exit(-1);
@@ -282,6 +302,10 @@ private:
 template<typename T>
 thread_local int scheduler<T>::thread_id = 0;
 
+template<typename T>
+thread_local int scheduler<T>::numa_node = 0;
+
+
 struct fork_join_scheduler {
 
 public:
@@ -312,6 +336,7 @@ public:
 
   int num_workers() { return sched->num_workers(); }
   int worker_id() { return sched->worker_id(); }
+  int numanode() { return sched->numanode(); }
   void set_num_workers(int n) { sched->set_num_workers(n); }
 
   // Fork two thunks and wait until they both finish.
