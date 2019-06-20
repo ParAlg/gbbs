@@ -60,6 +60,24 @@ class sparse_table {
     }
   }
 
+  // Does not copy elements in the current table; just resize the underlying
+  // table.
+  // Incoming must be a power of two
+  void resize_no_copy(size_t incoming) {
+    if (incoming > m) {
+      if (alloc) {
+        pbbslib::free_array(table);
+      }
+      cout << "Resizing decrement table, was: " << m;
+      m = incoming;
+      mask = m - 1;
+      table = pbbslib::new_array_no_init<T>(m);
+      clearA(table, m, empty);
+      alloc = true;
+      cout << " is now: " << m << endl;
+    }
+  }
+
   sparse_table() : m(0) {
     mask = 0;
     alloc = false;
@@ -130,7 +148,8 @@ class sparse_table {
     while (true) {
       if (std::get<0>(table[h]) == empty_key) {
         if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
-          std::get<1>(table[h]) = std::get<1>(kv);
+//          std::get<1>(table[h]) = std::get<1>(kv);
+          f(&std::get<1>(table[h]), kv);
           return true;
         }
       }
@@ -247,6 +266,6 @@ template <class K, class V, class KeyHash>
 inline sparse_table<K, V, KeyHash> make_sparse_table(std::tuple<K, V>* tab,
                                                      size_t m,
                                                      std::tuple<K, V> empty,
-                                                     KeyHash key_hash) {
-  return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab);
+                                                     KeyHash key_hash, bool clear=true) {
+  return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab, clear);
 }

@@ -24,6 +24,7 @@
 #include "bridge.h"
 #include "bucket.h"
 #include "pbbslib/dyn_arr.h"
+#include "pbbslib/sparse_table.h"
 #include "edge_map_reduce.h"
 #include "ligra.h"
 #include "truss_utils.h"
@@ -149,7 +150,8 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt, increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
-  auto vt = truss_utils::valueHT<edge_t>(1 << 20, std::numeric_limits<edge_t>::max());
+  auto hash_edge_id = [&] (const edge_t& e) { return pbbs::hash32(e); };
+  auto decr_source_table = make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
   auto actual_degree = pbbs::sequence<uintE>(GA.n, [&] (size_t i) {
@@ -174,7 +176,6 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     trussness_t truss = std::get<1>(trussness_multi.big_table[id]);
     return std::make_tuple(truss, id);
   };
-
 
   timer em_t, decrement_t, bt, peeling_t; peeling_t.start();
   size_t finished = 0, rho = 0, k_max = 0;
@@ -205,17 +206,8 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     size_t e_space_required  = (size_t)1 << pbbslib::log2_up((size_t)(e_size*1.2));
 
     // Resize the table that stores edge updates if necessary.
-    if (e_space_required > vt.size()) {
-      cout << "Resizing value table, was: " << vt.size();
-      vt.del();
-      vt = truss_utils::valueHT<edge_t>(e_space_required, std::numeric_limits<edge_t>::max());
-      cout << " is now: " << vt.size() << endl;
-    }
-    truss_utils::valueHT<edge_t> decrement_tab(e_space_required, std::numeric_limits<edge_t>::max(), vt.table);
-
-//    for (size_t i=0; i<e_space_required; i++) {
-//      assert(vt.table[i] == std::numeric_limits<edge_t>::max());
-//    }
+    decr_source_table.resize_no_copy(e_space_required);
+    auto decr_tab = make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
 
 //    cout << "starting decrements" << endl;
     decrement_t.start();
@@ -223,42 +215,64 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
       edge_t id = rem_edges[i];
       uintE u = trussness_multi.u_for_id(id);
       uintE v = std::get<0>(trussness_multi.big_table[id]);
-      truss_utils::decrement_trussness<edge_t, trussness_t>(GA, id, u, v, decrement_tab, get_trussness_and_id, k);
+      truss_utils::decrement_trussness<edge_t, trussness_t>(GA, id, u, v, decr_tab, get_trussness_and_id, k);
     });
     decrement_t.stop();
 //    cout << "finished decrements" << endl;
 
-    auto apply_f = [&](const std::tuple<edge_t, uintE>& p)
-        -> const Maybe<std::tuple<edge_t, bucket_t> > {
-      edge_t id = std::get<0>(p);
-      uintE triangles_removed = std::get<1>(p);
+    auto decr_edges = decr_tab.entries();
+    parallel_for(0, decr_edges.size(), [&] (size_t i) {
+      auto id_and_ct = decr_edges[i];
+      edge_t id = std::get<0>(id_and_ct);
+      uintE triangles_removed = std::get<1>(id_and_ct);
       uintE current_deg = std::get<1>(trussness_multi.big_table[id]);
-      if (current_deg > k) {
-        uintE new_deg = std::max(current_deg - triangles_removed, k);
-        std::get<1>(trussness_multi.big_table[id]) = new_deg;
-        bucket_t bkt = b.get_bucket(current_deg, new_deg);
-        return wrap(id, bkt);
-      }
-      return Maybe<std::tuple<edge_t, bucket_t>>();
-    };
+      assert(current_deg > k);
+      uintE new_deg = std::max(current_deg - triangles_removed, k);
+      std::get<1>(trussness_multi.big_table[id]) = new_deg; // update
+      bucket_t bkt = b.get_bucket(current_deg, new_deg);
+      std::get<1>(decr_edges[i]) = bkt;
+    });
 
-    em_t.start();
-    sequence<edge_t> edge_seq = decrement_tab.entries();
-    auto res = em.template edgeMapCount(edge_seq, apply_f);
-    em_t.stop();
-
-    auto rebucket_f = [&] (size_t i) -> Maybe<std::tuple<edge_t, bucket_t>> {
-      auto ret = Maybe<std::tuple<edge_t, bucket_t>>();
-      ret.t = res.second[i];
-      ret.exists = true;
-      return ret;
-    };
-    auto edges_moved_map = pbbslib::make_sequence<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
-    auto edges_moved_f = [&] (size_t i) { return edges_moved_map[i]; };
+    auto rebucket_edges = pbbs::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
+      return std::get<1>(eb) != UINT_E_MAX;
+    });
+    auto edges_moved_f = [&] (size_t i) {
+      return Maybe<std::tuple<edge_t, bucket_t>>(rebucket_edges[i]); };
 
     bt.start();
-    b.update_buckets(edges_moved_f, edges_moved_map.size());
+    b.update_buckets(edges_moved_f, rebucket_edges.size());
     bt.stop();
+
+//    auto apply_f = [&](const std::tuple<edge_t, uintE>& p)
+//        -> const Maybe<std::tuple<edge_t, bucket_t> > {
+//      edge_t id = std::get<0>(p);
+//      uintE triangles_removed = std::get<1>(p);
+//      uintE current_deg = std::get<1>(trussness_multi.big_table[id]);
+//      if (current_deg > k) {
+//        uintE new_deg = std::max(current_deg - triangles_removed, k);
+//        std::get<1>(trussness_multi.big_table[id]) = new_deg;
+//        bucket_t bkt = b.get_bucket(current_deg, new_deg);
+//        return wrap(id, bkt);
+//      }
+//      return Maybe<std::tuple<edge_t, bucket_t>>();
+//    };
+//
+//    em_t.start();
+//    sequence<edge_t> edge_seq = decrement_tab.entries();
+//    auto res = em.template edgeMapCount(edge_seq, apply_f);
+//    em_t.stop();
+//
+//    auto rebucket_f = [&] (size_t i) -> Maybe<std::tuple<edge_t, bucket_t>> {
+//      auto ret = Maybe<std::tuple<edge_t, bucket_t>>();
+//      ret.t = res.second[i];
+//      ret.exists = true;
+//      return ret;
+//    };
+//    auto edges_moved_map = pbbslib::make_sequence<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
+//    auto edges_moved_f = [&] (size_t i) { return edges_moved_map[i]; };
+//    bt.start();
+//    b.update_buckets(edges_moved_f, edges_moved_map.size());
+//    bt.stop();
 
     // Unmark edges removed in this round, and decrement their trussness.
     par_for(0, rem_edges.size(), [&] (size_t i) {
@@ -267,9 +281,8 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
     });
 
     // Clear the table storing the edge decrements.
-    decrement_tab.clear();
+    decr_tab.clear();
     iter++;
-
 
     del_edges.copyIn(rem_edges, rem_edges.size());
 

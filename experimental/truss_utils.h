@@ -376,10 +376,14 @@ namespace truss_utils {
   // get_trussness_and_id: (uintE, uintE) -> (trussness, id)
   // Intersect u and v's neighbors. Check if we should remove an edge, and if
   // so, insert it into decrement_tab (concurrent write)
-  template <class edge_t, class trussness_t, class Trussness, class Graph>
-  void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v, valueHT<edge_t>& decrement_tab, Trussness& get_trussness_and_id, uintE k) {
+  template <class edge_t, class trussness_t, class HT, class Trussness, class Graph>
+  void decrement_trussness(Graph& G, edge_t id, uintE u, uintE v, HT&  decrement_tab, Trussness& get_trussness_and_id, uintE k) {
 
     trussness_t trussness_uv = k; edge_t uv_id = id;
+
+    auto add_f = [&] (uintE* ct, const std::tuple<uintE, uintE>& tup) {
+      pbbs::fetch_and_add(ct, (uintE)1);
+    };
 
     size_t ctr = 0;
     auto f = [&] (uintE __u, uintE __v, uintE w) { // w in both N(u), N(v)
@@ -390,8 +394,14 @@ namespace truss_utils {
 
       if (should_remove(k, trussness_uv, trussness_uw, trussness_vw, uv_id, uw_id, vw_id)) {
         ctr++;
-        decrement_tab.insert(uw_id);
-        decrement_tab.insert(vw_id);
+        if (trussness_uw > k) {
+          decrement_tab.insert_f(std::make_tuple(uw_id, (uintE)1), add_f);
+//          decrement_tab.insert(uw_id);
+        }
+        if (trussness_vw > k) {
+          decrement_tab.insert_f(std::make_tuple(vw_id, (uintE)1), add_f);
+//          decrement_tab.insert(vw_id);
+        }
       }
     };
     G.V[u].intersect_f_par(&(G.V[v]), u, v, f);
