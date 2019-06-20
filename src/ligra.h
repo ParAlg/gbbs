@@ -88,10 +88,8 @@ inline auto wrap_with_default(F f, D def) -> decltype(f) {
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
                                            F& f, const flags fl) {
-  cout << "Dense" << endl;
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
-  vertex* G = GA.V;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_gen<data>(next);
@@ -99,8 +97,8 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
       std::get<0>(next[v]) = 0;
        if (f.cond(v)) {
        (fl & in_edges) ?
-          G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel) :
-          G[v].decodeInNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel);
+          GA.get_vertex(v).decodeOutNghBreakEarly(v, vertexSubset, f, g, false) :
+          GA.get_vertex(v).decodeInNghBreakEarly(v, vertexSubset, f, g, false);
       }
     }, (fl & fine_parallel) ? 1 : 2048);
     return vertexSubsetData<data>(n, next);
@@ -109,8 +107,8 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
     parallel_for(0, n, [&] (size_t v) {
        if (f.cond(v)) {
        (fl & in_edges) ?
-         G[v].decodeOutNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel) :
-         G[v].decodeInNghBreakEarly(v, vertexSubset, f, g, fl & dense_parallel);
+         GA.get_vertex(v).decodeOutNghBreakEarly(v, vertexSubset, f, g, false) :
+         GA.get_vertex(v).decodeInNghBreakEarly(v, vertexSubset, f, g, false);
       }
     }, (fl & fine_parallel) ? 1 : 2048);
     return vertexSubsetData<data>(n);
@@ -124,7 +122,7 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
   debug(std::cout << "dense forward" << std::endl;);
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
-  vertex* G = GA.V;
+//  vertex* G = GA.V;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_forward_gen<data>(next);
@@ -132,8 +130,8 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
                     { std::get<0>(next[i]) = 0; });
     par_for(0, n, 1, [&] (size_t i) {
       if (vertexSubset.isIn(i)) {
-        (fl & in_edges) ? G[i].decodeInNgh(i, f, g)
-                        : G[i].decodeOutNgh(i, f, g);
+        (fl & in_edges) ? GA.get_vertex(i).decodeInNgh(i, f, g)
+                        : GA.get_vertex(i).decodeOutNgh(i, f, g);
       }
     });
     return vertexSubsetData<data>(n, next);
@@ -141,8 +139,8 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
     auto g = get_emdense_forward_nooutput_gen<data>();
     par_for(0, n, 1, [&] (size_t i) {
       if (vertexSubset.isIn(i)) {
-        (fl & in_edges) ? G[i].decodeInNgh(i, f, g)
-                        : G[i].decodeOutNgh(i, f, g);
+        (fl & in_edges) ? GA.get_vertex(i).decodeInNgh(i, f, g)
+                        : GA.get_vertex(i).decodeOutNgh(i, f, g);
       }
     });
     return vertexSubsetData<data>(n);
@@ -292,10 +290,11 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
         uintE b_size =
             (j == 0) ? block_degree : (block_degree - degrees[j - 1]);
         uintE block_num = block.block_num;
+				auto our_vtx = GA.get_vertex(v);
         size_t num_in = (fl & in_edges)
-                            ? frontier_vertices[id].decodeInNghSparseBlock(
+                            ? our_vtx.decodeInNghSparseBlock(
                                   v, k, b_size, block_num, f, g)
-                            : frontier_vertices[id].decodeOutNghSparseBlock(
+                            : our_vtx.decodeOutNghSparseBlock(
                                   v, k, b_size, block_num, f, g);
         k += num_in;
       }
@@ -428,26 +427,23 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   if (threshold == -1) dense_threshold = numEdges / 20;
   if (vs.size() == 0) return vertexSubsetData<data>(numVertices);
 
-//  if (vs.isDense && vs.size() > numVertices / 10) {
-//    return (fl & dense_forward)
-//               ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
-//               : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
-//  }
+  if (vs.isDense && vs.size() > numVertices / 10) {
+    return (fl & dense_forward)
+               ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
+               : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
+  }
 
-//  timer rt; rt.start();
   vs.toSparse();
   vertex* frontier_vertices = pbbslib::new_array_no_init<vertex>(m);
   par_for(0, vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { frontier_vertices[i] = GA.V[vs.vtx(i)]; });
+                  { frontier_vertices[i] = GA.get_vertex(vs.vtx(i)); });
   auto degree_f = [&](size_t i) {
     return (fl & in_edges) ? frontier_vertices[i].getInDegree()
                            : frontier_vertices[i].getOutDegree();
   };
   auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
   size_t out_degrees = pbbslib::reduce_add(degree_im);
-//  rt.stop(); rt.reportTotal("reduce time");
 
-  cout << "out_degrees = " << (m + out_degrees) << " threshold = " << dense_threshold << endl;
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
@@ -477,18 +473,18 @@ inline vertexSubset edgeMap(graph<vertex> GA, VS& vs, F f, intT threshold = -1,
 template <template <class W> class wvertex, class W, class P>
 inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
   using vertex = wvertex<W>;
-  vertex* G = GA.V;
+//  vertex* G = GA.V;
   size_t n = GA.n;
   auto space = sequence<uintT>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    space[i] = G[i].calculateOutTemporarySpace();
+    space[i] = GA.get_vertex(i).calculateOutTemporarySpace();
   });
   size_t total_space = pbbslib::scan_add_inplace(space);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
 
   auto for_inner = [&](size_t i) {
     std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-    G[i].packOutNgh(i, p, tmp_v);
+    GA.get_vertex(i).packOutNgh(i, p, tmp_v);
   };
   par_for(0, n, 1, [&] (size_t i) { for_inner(i); });
 }
@@ -504,7 +500,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
   using S = std::tuple<uintE, uintE>;
   using vertex = wvertex<W>;
   vs.toSparse();
-  vertex* G = GA.V;
+//  vertex* G = GA.V;
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   if (vs.size() == 0) {
@@ -513,7 +509,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
   auto space = sequence<uintT>(m);
   par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE v = vs.vtx(i);
-    space[i] = G[v].calculateOutTemporarySpace();
+    space[i] = GA.get_vertex(v).calculateOutTemporarySpace();
   });
   size_t total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
@@ -526,7 +522,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
         std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        size_t ct = G[v].packOutNgh(v, p, tmp_v);
+        size_t ct = GA.get_vertex(v).packOutNgh(v, p, tmp_v);
         outV[i] = std::make_tuple(v, ct);
       };
       par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
@@ -537,7 +533,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
         std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        G[v].packOutNgh(v, p, tmp_v);
+        GA.get_vertex(v).packOutNgh(v, p, tmp_v);
       };
       par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
     }
@@ -554,7 +550,7 @@ inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA,
   if (fl & pack_edges) {
     return packEdges<wvertex, W, P>(GA, vs, p, fl);
   }
-  vertex* G = GA.V;
+//  vertex* G = GA.V;
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   using S = std::tuple<uintE, uintE>;
@@ -568,13 +564,13 @@ inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA,
   if (should_output(fl)) {
     par_for(0, m, 1, [&] (size_t i) {
       uintE v = vs.vtx(i);
-      size_t ct = G[v].countOutNgh(v, p);
+      size_t ct = GA.get_vertex(v).countOutNgh(v, p);
       outV[i] = std::make_tuple(v, ct);
     });
   } else {
     par_for(0, m, 1, [&] (size_t i) {
       uintE v = vs.vtx(i);
-      G[v].countOutNgh(v, p);
+      GA.get_vertex(v).countOutNgh(v, p);
     });
   }
   if (should_output(fl)) {
@@ -808,7 +804,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool compressed = P.getOptionValue("-c");                                  \
     assert(P.getOptionValue("-w") == false); \
     bool mmap = P.getOptionValue("-m");                                        \
-    bool mmapcopy = mutates;                                                   \
+    bool mmapcopy = mutates || P.getOptionValue("-mc");                                                   \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
@@ -841,6 +837,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     char* iFile = P.getArgument(0);                                            \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
+    assert(P.getOptionValue("-w") == true);                                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \

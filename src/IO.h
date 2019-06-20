@@ -40,6 +40,9 @@
 #include "pbbs_strings.h"
 #include "graph.h"
 
+#ifdef SEMIASYM
+#include <libpmem.h>
+#endif
 
 typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
@@ -98,6 +101,39 @@ inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   //  pbbslib::free_array(bytes);
   //  exit(0);
   return std::make_pair(p, n);
+}
+
+inline std::pair<char*, size_t> pmem_from_file(const char* filename) {
+  struct stat sb;
+  int fd = open(filename, O_RDONLY);
+  if (fd == -1) {
+    perror("open");
+    exit(-1);
+  }
+  if (fstat(fd, &sb) == -1) {
+    perror("fstat");
+    exit(-1);
+  }
+  if (!S_ISREG(sb.st_mode)) {
+    perror("not a file\n");
+    exit(-1);
+  }
+	void* ret_arr;
+	size_t mapped_len;
+	int is_pmem;
+  /* create a pmem file and memory map it */
+  if ((ret_arr = pmem_map_file(filename, sb.st_size, PMEM_FILE_CREATE, 0666, &mapped_len, &is_pmem)) == NULL) {
+		std::cout << "Error on pmem_map_file:\n";
+		perror("pmem_map_file");
+		exit(1);
+  }
+
+	cout << "is_pmem = " << is_pmem << endl;
+	cout << "mapped_len = " << mapped_len << endl;
+
+	char* p = static_cast<char*>(ret_arr);
+
+  return std::make_pair(p, mapped_len);
 }
 
 inline sequence<char> readStringFromFile(char* fileName) {
@@ -270,12 +306,13 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
   // }
   assert(tokens[0] == (std::string) "AdjacencyGraph");
   // TODO(laxmand): ensure that S is properly freed here
+
+  // uint64_t len = tokens.size() - 1;
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
 
-  debug(std::cout << "n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
-  uint64_t len = tokens.size() - 1;
-  assert(len == n + m + 2););
+  debug(std::cout << "n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";);
+  assert(len == n + m + 2);
 
   uintT* offsets = pbbslib::new_array_no_init<uintT>(n);
   uintE* edges = pbbslib::new_array_no_init<uintE>(m);
@@ -379,109 +416,118 @@ inline graph<vertex<W>> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
-  char* s;
   using w_vertex = vertex<W>;
-  if (bytes == nullptr) {
-    if (mmap) {
-      std::pair<char*, size_t> S = mmapStringFromFile(fname);
-      s = S.first;
-      if (mmapcopy) {
-        debug(std::cout << "Copying compressed graph"
-                  << "\n";);
-        // Cannot mutate graph unless we copy.
-        char* bytes = pbbslib::new_array_no_init<char>(S.second);
-        par_for(0, S.second, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                        { bytes[i] = S.first[i]; });
-        if (munmap(S.first, S.second) == -1) {
-          perror("munmap");
-          exit(-1);
-        }
-        s = bytes;
-      } else {
-        compressed_mmap_bytes = S.first;
-        compressed_mmap_bytes_size = S.second;
-      }
-    } else {
-      int fd;
-      if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
-        debug(std::cout << "input opened!"
-                  << "\n";);
-      } else {
-        std::cout << "can't open input file!";
-      }
-      //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
 
-      size_t fsize = lseek(fd, 0, SEEK_END);
-      lseek(fd, 0, 0);
-      s = (char*)memalign(4096 * 2, fsize + 4096);
+//  if (bytes == nullptr) {
+//    if (mmap) {
+////      std::pair<char*, size_t> S = mmapStringFromFile(fname);
+//      std::pair<char*, size_t> S = pmem_from_file(fname);
+//      s = S.first;
+//      if (mmapcopy) {
+//        debug(std::cout << "Copying compressed graph"
+//                  << "\n";);
+//        // Cannot mutate graph unless we copy.
+//        char* bytes = pbbslib::new_array_no_init<char>(S.second);
+//        par_for(0, S.second, pbbslib::kSequentialForThreshold, [&] (size_t i)
+//                        { bytes[i] = S.first[i]; });
+//        if (munmap(S.first, S.second) == -1) {
+//          perror("munmap");
+//          exit(-1);
+//        }
+//        s = bytes;
+//      } else {
+//        compressed_mmap_bytes = S.first;
+//        compressed_mmap_bytes_size = S.second;
+//      }
+//    } else {
+//      int fd;
+//      if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
+//        debug(std::cout << "input opened!"
+//                  << "\n";);
+//      } else {
+//        std::cout << "can't open input file!";
+//      }
+//      //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+//
+//      size_t fsize = lseek(fd, 0, SEEK_END);
+//      lseek(fd, 0, 0);
+//      s = (char*)memalign(4096 * 2, fsize + 4096);
+//
+//      debug(std::cout << "fsize = " << fsize << "\n";);
+//
+//      size_t sz = 0;
+//
+//      size_t pgsize = getpagesize();
+//      debug(std::cout << "pgsize = " << pgsize << "\n";);
+//
+//      size_t read_size = 1024 * 1024 * 1024;
+//      if (sz + read_size > fsize) {
+//        size_t k = std::ceil((fsize - sz) / pgsize);
+//        read_size = std::max(k * pgsize, pgsize);
+//        debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+//                  << " bytes left"
+//                  << "\n";);
+//      }
+//
+//      while (sz + read_size < fsize) {
+//        void* buf = s + sz;
+//        debug(std::cout << "reading: " << read_size << "\n";);
+//        sz += read(fd, buf, read_size);
+//        debug(std::cout << "read: " << sz << " bytes"
+//                  << "\n";);
+//        if (sz + read_size > fsize) {
+//          size_t k = std::ceil((fsize - sz) / pgsize);
+//          read_size = std::max(k * pgsize, pgsize);
+//          debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+//                    << " bytes left"
+//                    << "\n";);
+//        }
+//      }
+//      if (sz < fsize) {
+//        debug(std::cout << "last read: rem = " << (fsize - sz) << "\n";);
+//        void* buf = s + sz;
+//        sz += read(fd, buf, pgsize);
+//        debug(std::cout << "read " << sz << " bytes "
+//                  << "\n";);
+//      }
+//
+//      //    while (sz < fsize) {
+//      //      size_t rem = fsize - sz;
+//      //      size_t read_size = pgsize;
+//      ////      size_t read_size = std::min(pgsize, rem);
+//      //      void* buf = s + sz;
+//      //      std::cout << "reading: " << read_size << "\n";
+//      //      sz += read(fd, buf, read_size);
+//      //      std::cout << "read: " << sz << " bytes" << "\n";
+//      //    }
+//      //    std::cout << "Finished: read " << sz << " out of fsize = " << fsize
+//      //    <<
+//      //    "\n";
+//      close(fd);
+//
+//      //    std::ifstream in(fname,std::ifstream::in |std::ios::binary);
+//      //    in.seekg(0,std::ios::end);
+//      //    uint64_t size = in.tellg();
+//      //    in.seekg(0);
+//      //    std::cout << "size = " << size << "\n";
+//      //    s = (char*) malloc(size);
+//      //    in.read(s,size);
+//      //    std::cout << "Finished read" << "\n";
+//      //    in.close();
+//    }
+//  } else {
+//    s = bytes;
+//  }
 
-      debug(std::cout << "fsize = " << fsize << "\n";);
+  std::pair<char*, size_t> S0 = pmem_from_file("/mnt/pmem12/hyperlink2012_sym.bytepda");
+//  std::pair<char*, size_t> S0 = pmem_from_file("/mnt/pmem12/clueweb_sym.bytepda");
+  char* s0 = S0.first;
 
-      size_t sz = 0;
+  std::pair<char*, size_t> S1 = pmem_from_file("/mnt/pmem13/hyperlink2012_sym.bytepda");
+//  std::pair<char*, size_t> S1 = pmem_from_file("/mnt/pmem13/clueweb_sym.bytepda");
+  char* s1 = S1.first;
 
-      size_t pgsize = getpagesize();
-      debug(std::cout << "pgsize = " << pgsize << "\n";);
-
-      size_t read_size = 1024 * 1024 * 1024;
-      if (sz + read_size > fsize) {
-        size_t k = std::ceil((fsize - sz) / pgsize);
-        read_size = std::max(k * pgsize, pgsize);
-        debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
-                  << " bytes left"
-                  << "\n";);
-      }
-
-      while (sz + read_size < fsize) {
-        void* buf = s + sz;
-        debug(std::cout << "reading: " << read_size << "\n";);
-        sz += read(fd, buf, read_size);
-        debug(std::cout << "read: " << sz << " bytes"
-                  << "\n";);
-        if (sz + read_size > fsize) {
-          size_t k = std::ceil((fsize - sz) / pgsize);
-          read_size = std::max(k * pgsize, pgsize);
-          debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
-                    << " bytes left"
-                    << "\n";);
-        }
-      }
-      if (sz < fsize) {
-        debug(std::cout << "last read: rem = " << (fsize - sz) << "\n";);
-        void* buf = s + sz;
-        sz += read(fd, buf, pgsize);
-        debug(std::cout << "read " << sz << " bytes "
-                  << "\n";);
-      }
-
-      //    while (sz < fsize) {
-      //      size_t rem = fsize - sz;
-      //      size_t read_size = pgsize;
-      ////      size_t read_size = std::min(pgsize, rem);
-      //      void* buf = s + sz;
-      //      std::cout << "reading: " << read_size << "\n";
-      //      sz += read(fd, buf, read_size);
-      //      std::cout << "read: " << sz << " bytes" << "\n";
-      //    }
-      //    std::cout << "Finished: read " << sz << " out of fsize = " << fsize
-      //    <<
-      //    "\n";
-      close(fd);
-
-      //    std::ifstream in(fname,std::ifstream::in |std::ios::binary);
-      //    in.seekg(0,std::ios::end);
-      //    uint64_t size = in.tellg();
-      //    in.seekg(0);
-      //    std::cout << "size = " << size << "\n";
-      //    s = (char*) malloc(size);
-      //    in.read(s,size);
-      //    std::cout << "Finished read" << "\n";
-      //    in.close();
-    }
-  } else {
-    s = bytes;
-  }
-
-  long* sizes = (long*)s;
+  long* sizes = (long*)s0;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
   debug(std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
@@ -489,64 +535,43 @@ inline graph<vertex<W>> readCompressedGraph(
   std::cout << "reading file..."
             << "\n";);
 
-  uintT* offsets = (uintT*)(s + 3 * sizeof(long));
-  uint64_t skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
-  uintE* Degrees = (uintE*)(s + skip);
-  skip += n * sizeof(intE);
-  uchar* edges = (uchar*)(s + skip);
+  uintT* offsets0 = (uintT*)(s0 + 3 * sizeof(long));
+  uint64_t skip0 = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+  uintE* Degrees0 = (uintE*)(s0 + skip0);
+  skip0 += n * sizeof(intE);
+  uchar* edges0 = (uchar*)(s0 + skip0);
 
-  uintT* inOffsets;
-  uchar* inEdges;
-  uintE* inDegrees;
-  uint64_t inTotalSpace = 0;
-  if (!isSymmetric) {
-    skip += totalSpace;
-    uchar* inData = (uchar*)(s + skip);
-    sizes = (long*)inData;
-    inTotalSpace = sizes[0];
-    debug(std::cout << "inTotalSpace = " << inTotalSpace << "\n";);
-    skip += sizeof(long);
-    inOffsets = (uintT*)(s + skip);
-    skip += (n + 1) * sizeof(uintT);
-    inDegrees = (uintE*)(s + skip);
-    skip += n * sizeof(uintE);
-    inEdges = (uchar*)(s + skip);
-  } else {
-    inOffsets = offsets;
-    inEdges = edges;
-    inDegrees = Degrees;
-  }
+  uintT* offsets1 = (uintT*)(s1 + 3 * sizeof(long));
+  uint64_t skip1 = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+  uintE* Degrees1 = (uintE*)(s1 + skip1);
+  skip1 += n * sizeof(intE);
+  uchar* edges1 = (uchar*)(s1 + skip1);
 
-  w_vertex* V = pbbslib::new_array_no_init<w_vertex>(n);
+  w_vertex* V0 = pbbslib::new_array_no_init<w_vertex>(n);
+  w_vertex* V1 = pbbslib::new_array_no_init<w_vertex>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uint64_t o = offsets[i];
-    uintT d = Degrees[i];
-    V[i].setOutDegree(d);
-    V[i].setOutNeighbors(edges + o);
+    uint64_t o = offsets0[i];
+    uintT d = Degrees0[i];
+    V0[i].setOutDegree(d);
+    V0[i].setOutNeighbors(edges0 + o);
+
+    V1[i].setOutDegree(d);
+    V1[i].setOutNeighbors(edges1 + o);
   });
-  auto deletion_fn = get_deletion_fn(V, s);
+  auto deletion_fn = get_deletion_fn(V0, s0);
   if (mmap && !mmapcopy) {
-    deletion_fn = [V] () {
-      pbbslib::free_array(V);
+    deletion_fn = [V0, V1] () {
+      pbbslib::free_array(V0);
+      pbbslib::free_array(V1);
       unmmap_if_needed();
     };
   }
-  if (!isSymmetric) {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      uint64_t o = inOffsets[i];
-      uintT d = inDegrees[i];
-      V[i].setInDegree(d);
-      V[i].setInNeighbors(inEdges + o);
-    });
-    graph<w_vertex> G(
-        V, n, m, deletion_fn,
-        get_copy_fn(V, inEdges, edges, n, m, totalSpace, inTotalSpace));
-    return G;
-  } else {
-    graph<w_vertex> G(V, n, m, deletion_fn,
-                      get_copy_fn(V, edges, n, m, totalSpace));
-    return G;
-  }
+
+  graph<w_vertex> G(V0, n, m, deletion_fn,
+                    get_copy_fn(V0, edges0, n, m, totalSpace));
+  G.V0 = V0;
+  G.V1 = V1;
+  return G;
 }
 
 // Caller is responsible for deleting offsets, degrees. 'edges' is owned by the
