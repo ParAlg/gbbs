@@ -17,7 +17,7 @@ implementations of the following parallel graph algorithms:
 * Low-Diameter Decomposition
 * Maximal Matching
 * Maximal Independent Set
-* Mininmum Spanning Tree
+* Minimum Spanning Tree
 * Strongly Connected Components
 * Approximate Set Cover
 * Triangle Counting
