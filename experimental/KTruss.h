@@ -115,6 +115,19 @@ void KTruss_ht(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.V[i].getOutDegree() < (1 << 15)) { return GA.V[i].getOutDegree(); } return (uintE)0;  });
   cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << endl;
 
+  auto counts = pbbs::sequence<size_t>(GA.n, (size_t)0);
+  parallel_for(0, GA.n, [&] (size_t i) {
+    auto d_i = GA.V[i].getOutDegree();
+    bool d_i_lt = d_i <= (1 << 15);
+    auto count_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      if (u < v) {
+        return d_i_lt;
+      }
+    };
+    counts[i] = GA.V[i].countOutNgh(i, count_f);
+  });
+  cout << "total lt ct = " << pbbslib::reduce_add(counts) << endl;
+
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
   auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
 

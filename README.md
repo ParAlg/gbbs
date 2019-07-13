@@ -17,21 +17,26 @@ implementations of the following parallel graph algorithms:
 * Low-Diameter Decomposition
 * Maximal Matching
 * Maximal Independent Set
-* Mininmum Spanning Tree
+* Minimum Spanning Tree
 * Strongly Connected Components
 * Approximate Set Cover
 * Triangle Counting
 * Weighted Breadth-First Search
+* Approximate Densest Subgraph
+* Spanning Forest
+* PageRank
+* Single-Source Widest Path
+* k-Spanner 
 
 The code for these applications is located in the `benchmark` directory. The
 implementations are based on the Ligra/Ligra+/Julienne graph processing
 frameworks. The framework code is located in the `src` directory.
 
 The codes used here are still in development, and we plan to add more
-applications/benchmarks. We currently include the following extra codes:
+applications/benchmarks. We currently include the following extra codes,
+which are part of ongoing work.
 
-* Densest Subgraph (the (2+\epsilon)-approximation from Bahmani et al.)
-* KTruss
+* experimental/KTruss
 
 If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 
@@ -173,19 +178,3 @@ This file is represented as plain text.
 Weighted graphsare represented in the weighted adjacnecy graph format. The file
 should start with the string "WeightedAdjacencyGraph". The m edges weights
 should be stored after all of the edge targets in the .adj file.
-
-
-Ongoing Work
---------
-We are currently working on:
-
-* writing unit-tests
-
-* Porting over utilities for adding random edge weights to the graphs.
-
-* Switch to making the lib dependency a git submodule, and add explanation on
-  how to pull/update the submodule.
-
-* Check that Guy's new changes to the sequence library don't cause issues /
-  unnecessary copies in our code. The semantics of sequence are similar to
-  std::vector now.
