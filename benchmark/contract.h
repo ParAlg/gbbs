@@ -37,6 +37,11 @@ namespace contract {
     using K = std::tuple<uintE, uintE>;
     using V = pbbslib::empty;
     using KV = std::tuple<K, V>;
+#ifdef NVM
+    bool inner_parallel = false;
+#else
+    bool inner_parallel = true;
+#endif
 
     assert(num_clusters <= small_cluster_size);
     size_t n = GA.n;
@@ -60,7 +65,9 @@ namespace contract {
             std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()));
       }
     };
-    par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); });
+    par_for(0, n, 1, [&] (size_t i) {
+      GA.get_vertex(i).mapOutNgh(i, map_f, inner_parallel);
+    });
     auto edges = edge_table.entries();
     edge_table.del();
     ins_t.stop(); debug(ins_t.reportTotal("insertion time"););
@@ -77,6 +84,11 @@ namespace contract {
     using K = std::tuple<uintE, uintE>;
     using V = pbbslib::empty;
     using KV = std::tuple<K, V>;
+#ifdef NVM
+    bool inner_parallel = false;
+#else
+    bool inner_parallel = true;
+#endif
 
     size_t n = GA.n;
 
@@ -90,11 +102,7 @@ namespace contract {
       return c_src < c_ngh;
     };
     par_for(0, n, 1, [&] (size_t i) {
-#ifdef NVM
-      deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred, false);
-#else
-      deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred);
-#endif
+      deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred, inner_parallel);
     });
     deg_map[n] = 0;
     pbbslib::scan_add_inplace(deg_map);
@@ -124,11 +132,7 @@ namespace contract {
       }
     };
     par_for(0, n, 1, [&] (size_t i) {
-#ifdef NVM
-        GA.get_vertex(i).mapOutNgh(i, map_f, false);
-#else
-        GA.get_vertex(i).mapOutNgh(i, map_f);
-#endif
+        GA.get_vertex(i).mapOutNgh(i, map_f, inner_parallel);
     });
     auto edges = edge_table.entries();
     edge_table.del();
@@ -148,6 +152,11 @@ namespace contract {
     size_t n = GA.n;
     debug(cout << "num_clusters = " << num_clusters << endl;);
     size_t estimated_edges = num_clusters*5;
+#ifdef NVM
+    bool inner_parallel = false;
+#else
+    bool inner_parallel = true;
+#endif
 
     timer ins_t;
     ins_t.start();
@@ -172,11 +181,7 @@ namespace contract {
       }
     };
     parallel_for(0, n, [&] (size_t i) {
-#ifdef NVM
-      GA.get_vertex(i).mapOutNgh(i, map_f, false);
-#else
-      GA.get_vertex(i).mapOutNgh(i, map_f);
-#endif
+      GA.get_vertex(i).mapOutNgh(i, map_f, inner_parallel);
     }, 1);
     if (abort) {
       debug(cout << "calling fetch_intercluster_te" << endl;);

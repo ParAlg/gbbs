@@ -86,9 +86,8 @@ struct byte_decode {
   template <class W, class E, class M, class Monoid>
   static inline E map_reduce(uchar* edge_start, const uintE& source,
                              const uintT& degree, M& m, Monoid& reduce,
-                             const bool par = true) {
-    return byte::map_reduce<W, E, M, Monoid>(edge_start, source, degree, m, reduce,
-                                          par);
+                             const bool par) {
+    return byte::map_reduce<W, E, M, Monoid>(edge_start, source, degree, m, reduce, par);
   }
 
   template <class W, class T>
@@ -156,9 +155,8 @@ struct bytepd_amortized_decode {
   template <class W, class E, class M, class Monoid>
   static inline E map_reduce(uchar* edge_start, const uintE& source,
                              const uintT& degree, M& m, Monoid& reduce,
-                             const bool par = true) {
-    return bytepd_amortized::map_reduce<W, E>(edge_start, source,
-                                                         degree, m, reduce, par);
+                             const bool par) {
+    return bytepd_amortized::map_reduce<W, E>(edge_start, source, degree, m, reduce, par);
   }
 
   template <class W, class T>

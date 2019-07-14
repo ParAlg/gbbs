@@ -162,6 +162,11 @@ struct EdgeMap {
   inline vertexSubsetData<O> edgeMapReduce_dense(VS& vs, Cond& cond_f, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, const flags fl) {
     size_t n = G.n;
     size_t m = vs.size();
+#ifdef NVM
+    bool inner_parallel = false;
+#else
+    bool inner_parallel = true;
+#endif
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
@@ -172,8 +177,8 @@ struct EdgeMap {
       parallel_for(0, n, [&] (size_t i) {
         if (cond_f(i)) {
           M reduced_val = (fl & in_edges) ?
-                           G.V[i].template reduceInNgh<M>(i, map_f, red_monoid) :
-                           G.V[i].template reduceOutNgh<M>(i, map_f, red_monoid);
+                           G.get_vertex(i).template reduceInNgh<M>(i, map_f, red_monoid, inner_parallel) :
+                           G.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid, inner_parallel);
           auto tup = std::make_tuple(i, reduced_val);
           apply_f(tup);
         }
@@ -185,8 +190,8 @@ struct EdgeMap {
         std::get<0>(out[i]) = false;
         if (cond_f(i)) {
           M reduced_val = (fl & in_edges) ?
-                           G.V[i].template reduceInNgh<M>(i, map_f, red_monoid) :
-                           G.V[i].template reduceOutNgh<M>(i, map_f, red_monoid);
+                           G.get_vertex(i).template reduceInNgh<M>(i, map_f, red_monoid, inner_parallel) :
+                           G.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid, inner_parallel);
           auto tup = std::make_tuple(i, reduced_val);
           auto applied_val = apply_f(tup);
           if (applied_val.exists) {

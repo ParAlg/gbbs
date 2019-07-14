@@ -154,8 +154,8 @@ inline size_t countNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
 }
 
 template <class W, class C, class E, class M, class Monoid>
-inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r) {
-  return C::template map_reduce<W, E>(nghArr, vtx_id, d, m, r);
+inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r, bool parallel) {
+  return C::template map_reduce<W, E>(nghArr, vtx_id, d, m, r, parallel);
 }
 
 template <class W, class C, class P, class O>
@@ -330,15 +330,15 @@ struct compressedSymmetricVertex {
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r, bool parallel=true) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getInDegree(),
-                                              getInNeighbors(), m, r);
+                                              getInNeighbors(), m, r, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r, bool parallel=true) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getOutDegree(),
-                                              getOutNeighbors(), m, r);
+                                              getOutNeighbors(), m, r, parallel);
   }
 
   template <class P>
@@ -559,15 +559,15 @@ struct compressedAsymmetricVertex {
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r, bool parallel=true) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getInDegree(),
-                                              getInNeighbors(), m, r);
+                                              getInNeighbors(), m, r, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r, bool parallel=true) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getOutDegree(),
-                                              getOutNeighbors(), m, r);
+                                              getOutNeighbors(), m, r, parallel);
   }
 
   template <class P, class O>

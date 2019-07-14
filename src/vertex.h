@@ -292,14 +292,18 @@ inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
 
 template <template <typename W> class vertex, class W, class E, class M,
           class Monoid>
-inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d, M& m, Monoid& reduce) {
+inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d, M& m, Monoid& reduce, bool parallel) {
   if (d == 0) return reduce.identity;
   auto im_f = [&](size_t i) {
     auto nw = nghs[i];
     return m(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
   auto im = pbbslib::make_sequence<E>(d, im_f);
-  return pbbslib::reduce(im, reduce);
+  if (parallel) {
+    return pbbslib::reduce(im, reduce);
+  } else {
+    return pbbs::reduce_serial(im, reduce);
+  }
 }
 
 template <template <typename W> class vertex, class W, class F>
@@ -569,15 +573,15 @@ struct symmetricVertex {
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
     return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
-        this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce);
+        this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
     return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
-        this, vtx_id, getInNeighbors(), getInDegree(), m, reduce);
+        this, vtx_id, getInNeighbors(), getInDegree(), m, reduce, parallel);
   }
 
   template <class F>
@@ -799,15 +803,15 @@ struct asymmetricVertex {
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
     return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
-        this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce);
+        this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
     return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
-        this, vtx_id, getInNeighbors(), getInDegree(), m, reduce);
+        this, vtx_id, getInNeighbors(), getInDegree(), m, reduce, parallel);
   }
 
   template <class F>
