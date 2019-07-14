@@ -160,7 +160,7 @@ vertexSubset sparse_fa_dense_em(graph<vertex<W>>& GA, E& EM, vertexSubset& Front
   if (Frontier.dense()) {
     auto degree_f = [&](size_t i) -> size_t {
       if (Frontier.d[i]) {
-        return (fl & in_edges) ? GA.V[i].getInVirtualDegree() : GA.V[i].getOutVirtualDegree();
+        return (fl & in_edges) ? GA.get_vertex(i).getInVirtualDegree() : GA.get_vertex(i).getOutVirtualDegree();
       }
       return static_cast<size_t>(0);
     };
@@ -168,7 +168,7 @@ vertexSubset sparse_fa_dense_em(graph<vertex<W>>& GA, E& EM, vertexSubset& Front
     out_degrees = pbbslib::reduce_add(degree_imap);
   } else {
     auto degree_f = [&](size_t i) -> size_t {
-      return (fl & in_edges) ? GA.V[Frontier.vtx(i)].getInVirtualDegree() : GA.V[Frontier.vtx(i)].getOutVirtualDegree();
+      return (fl & in_edges) ? GA.get_vertex(Frontier.vtx(i)).getInVirtualDegree() : GA.get_vertex(Frontier.vtx(i)).getOutVirtualDegree();
     };
     auto degree_imap = pbbslib::make_sequence<size_t>(Frontier.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_imap);

@@ -33,7 +33,7 @@ template <template <typename W> class vertex, class W>
 inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   const size_t n = GA.n;
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
@@ -111,7 +111,7 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
                                   size_t num_buckets = 16) {
   const size_t n = GA.n;
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
   auto ER = sequence<uintE>(n, [&](size_t i) { return 0; });
 
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
@@ -157,7 +157,7 @@ template <template <typename W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> DegeneracyOrder(graph<vertex<W> >& GA, size_t num_buckets = 16) {
   const size_t n = GA.n;
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);

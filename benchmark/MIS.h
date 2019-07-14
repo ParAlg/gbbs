@@ -41,7 +41,11 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
   };
   par_for(0, GA.n, [&] (size_t i) {
     if (in_mis[i]) {
-      GA.V[i].mapOutNgh(i, map_f);
+#ifdef NVM
+      GA.get_vertex(i).mapOutNgh(i, map_f, false);
+#else
+      GA.get_vertex(i).mapOutNgh(i, map_f);
+#endif
     }
   });
   par_for(0, GA.n, [&] (size_t i) {
@@ -66,7 +70,7 @@ template <template <class W> class vertex, class W, class VS, class P>
 inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
   vs.toSparse();
   assert(!vs.isDense);
-  auto deg_f =  [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); };
+  auto deg_f =  [&](size_t i) { return GA.get_vertex(vs.vtx(i)).getOutDegree(); };
   auto deg_im = pbbslib::make_sequence<size_t>(
       vs.size(), deg_f);
   size_t sum_d = pbbslib::reduce_add(deg_im);
@@ -80,7 +84,11 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     };
     par_for(0, vs.size(), [&] (size_t i) {
       uintE v = vs.vtx(i);
-      GA.V[v].mapOutNgh(v, map_f);
+#ifdef NVM
+      GA.get_vertex(v).mapOutNgh(v, map_f, false);
+#else
+      GA.get_vertex(v).mapOutNgh(v, map_f);
+#endif
     });
     return vertexSubset(GA.n, dense.to_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
@@ -96,7 +104,11 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
         }
       };
       uintE v = vs.vtx(i);
-      GA.V[v].mapOutNgh(v, map_f);
+#ifdef NVM
+      GA.get_vertex(v).mapOutNgh(v, map_f, false);
+#else
+      GA.get_vertex(v).mapOutNgh(v, map_f);
+#endif
     });
     auto nghs = ht.entries();
     ht.del();
@@ -167,7 +179,11 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
     };
-    priorities[i] = GA.V[i].countOutNgh(i, count_f);
+#ifdef NVM
+    priorities[i] = GA.get_vertex(i).countOutNgh(i, count_f, false);
+#else
+    priorities[i] = GA.get_vertex(i).countOutNgh(i, count_f);
+#endif
   });
   init_t.stop();
   debug(init_t.reportTotal("init"););
@@ -193,8 +209,10 @@ inline sequence<bool> MIS(graph<vertex<W>>& GA) {
     vertexMap(roots, [&](uintE v) { in_mis[v] = true; });
 
     // compute neighbors of roots that are still live
+    std::cout << "getting nghs" << std::endl;
     auto removed = get_nghs(
         GA, roots, [&](const uintE& ngh) { return priorities[ngh] > 0; });
+    std::cout << "got nghs" << std::endl;
     vertexMap(removed, [&](uintE v) { priorities[v] = 0; });
 
     // compute the new roots: neighbors of removed that have their priorities
@@ -285,7 +303,11 @@ inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
-    size_t ct = GA.V[i].countOutNgh(i, pred);
+#ifdef NVM
+    size_t ct = GA.get_vertex(i).countOutNgh(i, pred, false);
+#else
+    size_t ct = GA.get_vertex(i).countOutNgh(i, pred);
+#endif
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
   auto ok_f = [&](size_t i) { return ok[i]; };

@@ -802,9 +802,10 @@ inline size_t get_pcm_state() { return (size_t)1; }
     char* iFile = P.getArgument(0);                                            \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
-    assert(P.getOptionValue("-w") == false); \
+    bool weighted = P.getOptionValue("-w");                                    \
+    assert(weighted == false);                                                 \
     bool mmap = P.getOptionValue("-m");                                        \
-    bool mmapcopy = mutates || P.getOptionValue("-mc");                                                   \
+    bool mmapcopy = mutates || P.getOptionValue("-mc");                        \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \

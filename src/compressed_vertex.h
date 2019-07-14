@@ -136,7 +136,7 @@ inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
 
 template <class W, class C, class F, class G>
 inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
-                     G& g, bool parallel=true) {
+                     G& g, bool parallel) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     auto val = f(src, target, weight);
@@ -286,15 +286,15 @@ struct compressedSymmetricVertex {
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     cvertex::copyNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), o, f,
-                                  g);
+                                  g, parallel);
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     cvertex::copyNghs<W, C, F, G>(vtx_id, getOutDegree(), getOutNeighbors(), o,
-                                  f, g);
+                                  f, g, parallel);
   }
 
   template <class F>
@@ -522,15 +522,15 @@ struct compressedAsymmetricVertex {
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     cvertex::copyNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), o, f,
-                                  g);
+                                  g, parallel);
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     cvertex::copyNghs<W, C, F, G>(vtx_id, getOutDegree(), getOutNeighbors(), o,
-                                  f, g);
+                                  f, g, parallel);
   }
 
   template <class F>

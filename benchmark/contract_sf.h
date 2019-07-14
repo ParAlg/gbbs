@@ -66,7 +66,13 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) {
+#ifdef NVM
+      GA.get_vertex(i).mapOutNgh(i, map_f, false);
+#else
+      GA.get_vertex(i).mapOutNgh(i, map_f);
+#endif
+    }, 1);
 
     return edge_table;
   }
@@ -89,8 +95,13 @@ namespace contract_sf {
       uintE c_ngh = clusters[ngh];
       return c_src < c_ngh;
     };
-    par_for(0, n, 1, [&] (size_t i)
-                    { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
+    par_for(0, n, 1, [&] (size_t i) {
+#ifdef NVM
+      deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred, false);
+#else
+      deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred);
+#endif
+    });
     deg_map[n] = 0;
     pbbslib::scan_add_inplace(deg_map);
     count_t.stop();
@@ -115,7 +126,13 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) {
+#ifdef NVM
+      GA.get_vertex(i).mapOutNgh(i, map_f, false);
+#else
+      GA.get_vertex(i).mapOutNgh(i, map_f);
+#endif
+    }, 1);
     return edge_table;
   }
 
@@ -146,7 +163,13 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge), &abort);
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) {
+#ifdef NVM
+      GA.get_vertex(i).mapOutNgh(i, map_f, false);
+#else
+      GA.get_vertex(i).mapOutNgh(i, map_f);
+#endif
+    }, 1);
     if (abort) {
       debug(cout << "calling fetch_intercluster_te" << endl;);
       return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);

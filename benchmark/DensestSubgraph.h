@@ -42,7 +42,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
   double density_multiplier = (1+epsilon);
 
   auto bits = sequence<bool>(n, true);
-  auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+  auto D = sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
   long vertices_remaining = n;
   size_t round = 1;
@@ -109,7 +109,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
-  auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+  auto D = sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
   auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
@@ -250,7 +250,11 @@ void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
       uintE pos_v = vtx_to_position[v];
       return pos_u < pos_v;
     };
-    density_above[pos_u] = 2*GA.V[i].countOutNgh(i, vtx_f);
+#ifdef NVM
+    density_above[pos_u] = 2*GA.get_vertex(i).countOutNgh(i, vtx_f, false);
+#else
+    density_above[pos_u] = 2*GA.get_vertex(i).countOutNgh(i, vtx_f);
+#endif
   });
 
   size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),

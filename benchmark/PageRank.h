@@ -81,7 +81,7 @@ void PageRank_edgeMap(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_it
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return GA.V[i].getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
 
@@ -125,12 +125,12 @@ void PageRank(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_iters = 10
   auto p_next = pbbs::sequence<double>(n, static_cast<double>(0));
   auto frontier = pbbs::sequence<bool>(n, true);
   auto p_div = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return one_over_n / static_cast<double>(GA.V[i].getOutDegree());
+    return one_over_n / static_cast<double>(GA.get_vertex(i).getOutDegree());
   });
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return GA.V[i].getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
   auto EM = EdgeMap<double, vertex, W>(GA, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)GA.m/1000);
@@ -313,7 +313,7 @@ void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0
   auto nghSum = pbbs::sequence<double>(n);
   auto frontier = pbbs::sequence<bool>(n);
   parallel_for(0, n, [&] (size_t i) {
-    uintE degree = GA.V[i].getOutDegree();
+    uintE degree = GA.get_vertex(i).getOutDegree();
     p[i] = 0.0;//one_over_n;
     Delta[i].delta = one_over_n; //initial delta propagation from each vertex
     Delta[i].delta_over_degree = one_over_n/degree;
@@ -321,7 +321,7 @@ void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0
     frontier[i] = 1;
   });
 
-  auto get_degree = [&] (size_t i) { return GA.V[i].getOutDegree(); };
+  auto get_degree = [&] (size_t i) { return GA.get_vertex(i).getOutDegree(); };
   auto EM = EdgeMap<double, vertex, W>(GA, std::make_tuple(UINT_E_MAX, (double)0.0), (size_t)GA.m/1000);
   vertexSubset Frontier(n,n,frontier.to_array());
   auto all = pbbs::sequence<bool>(n, true);

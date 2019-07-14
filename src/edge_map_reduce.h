@@ -35,12 +35,11 @@
 // as a sparse array, without filtering.
 template <class E, class vertex, class VS, class F>
 inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f, const flags fl) {
-  vertex* G = GA.V;
   uintT m = V.size();
   V.toSparse();
   auto degrees = sequence<uintT>(m);
   par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    vertex v = G[V.vtx(i)];
+    vertex v = GA.get_vertex(V.vtx(i));
     uintE degree = (fl & in_edges) ? v.getInDegree() : v.getOutDegree();
     degrees[i] = degree;
   });
@@ -60,13 +59,21 @@ inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f, const 
     par_for(0, m, 1, [&] (size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
-      G[v].template copyInNgh(v, o, f, gen);
+#ifdef NVM
+      GA.get_vertex(v).template copyInNgh(v, o, f, gen, false);
+#else
+      GA.get_vertex(v).template copyInNgh(v, o, f, gen);
+#endif
     });
   } else {
     par_for(0, m, 1, [&] (size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
-      G[v].template copyOutNgh(v, o, f, gen);
+#ifdef NVM
+      GA.get_vertex(v).template copyOutNgh(v, o, f, gen, false);
+#else
+      GA.get_vertex(v).template copyOutNgh(v, o, f, gen);
+#endif
     });
   }
   auto vs = vertexSubsetData<E>(GA.n, edgeCount, edges);

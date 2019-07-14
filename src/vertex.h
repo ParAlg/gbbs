@@ -366,13 +366,13 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
 
 template <template <typename W> class vertex, class W, class F, class G>
 inline void copyNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
-                     uintE d, uintT o, F& f, G& g) {
+                     uintE d, uintT o, F& f, G& g, bool parallel) {
   par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     auto val = f(vtx_id, ngh, std::get<1>(nw));
     g(ngh, o + j, val);
-  });
+  }, parallel);
 }
 
 inline size_t calculateTemporarySpace(uintE deg) {
@@ -535,15 +535,15 @@ struct symmetricVertex {
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     vertex_ops::copyNghs<symmetricVertex, W>(this, vtx_id, getOutNeighbors(),
-                                             getOutDegree(), o, f, g);
+                                             getOutDegree(), o, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     vertex_ops::copyNghs<symmetricVertex, W>(this, vtx_id, getInNeighbors(),
-                                             getInDegree(), o, f, g);
+                                             getInDegree(), o, f, g, parallel);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
@@ -765,15 +765,15 @@ struct asymmetricVertex {
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     vertex_ops::copyNghs<asymmetricVertex, W>(this, vtx_id, getOutNeighbors(),
-                                              getOutDegree(), o, f, g);
+                                              getOutDegree(), o, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
     vertex_ops::copyNghs<asymmetricVertex, W>(this, vtx_id, getInNeighbors(),
-                                              getInDegree(), o, f, g);
+                                              getInDegree(), o, f, g, parallel);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
