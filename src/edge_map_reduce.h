@@ -276,11 +276,17 @@ struct EdgeMap {
       return static_cast<size_t>(vs.isIn(v));
     };
 
+#ifdef NVM
+    bool inner_parallel = false;
+#else
+    bool inner_parallel = true;
+#endif
+
     if (fl & no_output) {
       parallel_for(0, n, [&] (size_t i) {
         size_t count = (fl & in_edges) ?
-          G.V[i].countInNgh(i, count_f) :
-          G.V[i].countOutNgh(i, count_f);
+          G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
+          G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
         auto tup = std::make_tuple(i, count);
         if (count > 0) {
           auto applied_val = apply_f(tup);
@@ -291,8 +297,8 @@ struct EdgeMap {
       auto out = pbbslib::new_array<OT>(n);
       parallel_for(0, n, [&] (size_t i) {
         size_t count = (fl & in_edges) ?
-          G.V[i].countInNgh(i, count_f) :
-          G.V[i].countOutNgh(i, count_f);
+          G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
+          G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
         auto tup = std::make_tuple(i, count);
         if (count > 0) {
           auto applied_val = apply_f(tup);
@@ -314,8 +320,8 @@ struct EdgeMap {
   inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f, const flags fl = 0, long threshold=-1) {
     vs.toSparse();
     auto degree_f = [&](size_t i) -> size_t {
-      return (fl & in_edges) ? G.V[vs.vtx(i)].getInVirtualDegree()
-                             : G.V[vs.vtx(i)].getOutVirtualDegree();
+      return (fl & in_edges) ? G.get_vertex(vs.vtx(i)).getInVirtualDegree()
+                             : G.get_vertex(vs.vtx(i)).getOutVirtualDegree();
     };
     auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
