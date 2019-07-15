@@ -45,8 +45,8 @@ struct countF {
   inline bool cond(uintE d) { return cond_true(d); }
 };
 
-template <class vertex>
-inline uintE* rankNodes(vertex* V, size_t n) {
+template <class G>
+inline uintE* rankNodes(G& GA, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
 //  uintE* o = pbbslib::new_array_no_init<uintE>(n);
   sequence<uintE> o(n);
@@ -55,7 +55,7 @@ inline uintE* rankNodes(vertex* V, size_t n) {
   t.start();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-    return V[u].getOutDegree() < V[v].getOutDegree();
+    return GA.get_vertex(u).getOutDegree() < GA.get_vertex(v).getOutDegree();
   });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
@@ -143,7 +143,7 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
                   { counts[i] = 0; });
 
   // 1. Rank vertices based on degree
-  uintE* rank = rankNodes(GA.V, GA.n);
+  uintE* rank = rankNodes(GA, GA.n);
 
   // 2. Direct edges to point from lower to higher rank vertices.
   // Note that we currently only store out-neighbors for this graph to save

@@ -92,7 +92,8 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
         return Maybe<std::tuple<uintE,uintE>>();
       };
 
-      auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+      auto pred_f =  [&] (const uintE& u ) { return true; };
+      auto moved = em.template edgeMapCount<uintE>(vs, apply_f, pred_f);
       moved.del();
     }
 
@@ -105,11 +106,12 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
 template <template <typename W> class vertex, class W>
 void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
   const size_t n = GA.n;
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
+  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 50);
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
   auto D = sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
+  auto alive = sequence<bool>(n, [&](size_t i) { return true; });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
   auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
@@ -149,7 +151,16 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
       return Maybe<std::tuple<uintE,uintE>>();
     };
 
-    auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
+    parallel_for(0, num_removed, [&] (size_t i) {
+      auto v = this_arr[i];
+      alive[v] = false;
+    });
+
+    auto pred_f = [&] (const uintE& u) {
+      return alive[u];
+    };
+
+    auto moved = em.template edgeMapCount<uintE>(vs, apply_f, pred_f, 0, GA.m/50);
     moved.del();
 
     round++;
@@ -192,6 +203,11 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     auto vs = vertexSubset(n, num_removed, this_arr);
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
+    parallel_for(0, num_removed, [&] (size_t i) {
+      auto v = this_arr[i];
+      alive[v] = false;
+    });
+
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
       auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -201,7 +217,11 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
         return Maybe<std::tuple<uintE,uintE>>();
       };
 
-      auto moved = em.template edgeMapCount<uintE>(vs, apply_f, no_output);
+      auto pred_f = [&] (const uintE& u) {
+        return alive[u];
+      };
+
+      auto moved = em.template edgeMapCount<uintE>(vs, apply_f, pred_f, no_output, GA.m/50);
       moved.del();
     }
 

@@ -260,8 +260,8 @@ struct EdgeMap {
   }
 
   // dense [read all neighbors]
-  template <class O, class Apply, class VS>
-  inline vertexSubsetData<O> edgeMapCount_dense(VS& vs, Apply& apply_f, const flags fl = 0) {
+  template <class O, class Apply, class Pred, class VS>
+  inline vertexSubsetData<O> edgeMapCount_dense(VS& vs, Apply& apply_f, Pred& pred_f, const flags fl = 0) {
     size_t n = G.n;
     size_t m = vs.size();
     if (m == 0) {
@@ -284,40 +284,44 @@ struct EdgeMap {
 
     if (fl & no_output) {
       parallel_for(0, n, [&] (size_t i) {
-        size_t count = (fl & in_edges) ?
-          G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
-          G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
-        auto tup = std::make_tuple(i, count);
-        if (count > 0) {
-          auto applied_val = apply_f(tup);
+        if (pred_f(i)) {
+          size_t count = (fl & in_edges) ?
+            G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
+            G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
+          auto tup = std::make_tuple(i, count);
+          if (count > 0) {
+            auto applied_val = apply_f(tup);
+          }
         }
       }, 1);
       return vertexSubsetData<O>(n);
     } else {
       auto out = pbbslib::new_array<OT>(n);
       parallel_for(0, n, [&] (size_t i) {
-        size_t count = (fl & in_edges) ?
-          G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
-          G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
-        auto tup = std::make_tuple(i, count);
-        if (count > 0) {
-          auto applied_val = apply_f(tup);
-          if (applied_val.exists) {
-            std::get<0>(out[i]) = true;
-            std::get<1>(out[i]) = std::get<1>(applied_val.t);
+        if (pred_f(i)) {
+          size_t count = (fl & in_edges) ?
+            G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
+            G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
+          auto tup = std::make_tuple(i, count);
+          if (count > 0) {
+            auto applied_val = apply_f(tup);
+            if (applied_val.exists) {
+              std::get<0>(out[i]) = true;
+              std::get<1>(out[i]) = std::get<1>(applied_val.t);
+            } else {
+              std::get<0>(out[i]) = false;
+            }
           } else {
             std::get<0>(out[i]) = false;
           }
-        } else {
-          std::get<0>(out[i]) = false;
         }
       }, 1);
       return vertexSubsetData<O>(n, out);
     }
   }
 
-  template <class O, class Apply, class VS>
-  inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f, const flags fl = 0, long threshold=-1) {
+  template <class O, class Apply, class Pred, class VS>
+  inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f, Pred& pred_f, const flags fl = 0, long threshold=-1) {
     vs.toSparse();
     auto degree_f = [&](size_t i) -> size_t {
       return (fl & in_edges) ? G.get_vertex(vs.vtx(i)).getInVirtualDegree()
@@ -329,7 +333,7 @@ struct EdgeMap {
     if (threshold == -1) degree_threshold = G.m / 20;
     if (vs.size() + out_degrees > degree_threshold) {
       // dense
-      return edgeMapCount_dense<O>(vs, apply_f, fl);
+      return edgeMapCount_dense<O>(vs, apply_f, pred_f, fl);
     } else {
       // sparse
       return edgeMapCount_sparse<O>(vs, apply_f, fl);

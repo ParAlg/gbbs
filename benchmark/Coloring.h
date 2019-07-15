@@ -30,7 +30,7 @@
 namespace coloring {
 template <template <typename W> class vertex, class W, class Seq>
 inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
-  uintE deg = GA.V[v].getOutDegree();
+  uintE deg = GA.get_vertex(v).getOutDegree();
   if (deg > 0) {
     bool* bits;
     bool s_bits[1000];
@@ -47,7 +47,11 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
         bits[color] = 1;
       }
     };
-    GA.V[v].mapOutNgh(v, map_f);
+#ifdef NVM
+    GA.get_vertex(v).mapOutNgh(v, map_f, false);
+#else
+    GA.get_vertex(v).mapOutNgh(v, map_f, false);
+#endif
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = pbbslib::make_sequence<uintE>(deg, im_f);
     uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
@@ -100,13 +104,17 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     // LF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = GA.V[i].getOutDegree();
+      uintE our_deg = GA.get_vertex(i).getOutDegree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = GA.V[ngh].getOutDegree();
+        uintE ngh_deg = GA.get_vertex(ngh).getOutDegree();
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
-      priorities[i] = GA.V[i].countOutNgh(i, count_f);
+#ifdef NVM
+      priorities[i] = GA.get_vertex(i).countOutNgh(i, count_f, false);
+#else
+      priorities[i] = GA.get_vertex(i).countOutNgh(i, count_f);
+#endif
     });
   } else {
     std::cout << "### Running LLF"
@@ -114,14 +122,18 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     // LLF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
+      uintE our_deg = pbbslib::log2_up(GA.get_vertex(i).getOutDegree());
       uintE i_p = P[i];
       // breaks ties using P
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
+        uintE ngh_deg = pbbslib::log2_up(GA.get_vertex(ngh).getOutDegree());
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
-      priorities[i] = GA.V[i].countOutNgh(i, count_f);
+#ifdef NVM
+      priorities[i] = GA.get_vertex(i).countOutNgh(i, count_f, false);
+#else
+      priorities[i] = GA.get_vertex(i).countOutNgh(i, count_f);
+#endif
     });
   }
 
