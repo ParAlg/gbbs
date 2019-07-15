@@ -6,9 +6,13 @@
 #include <iostream>
 #include <functional>
 
+#ifdef NVM
+
 #include <pthread.h>
 #include <utmpx.h>
 #include <numa.h>
+
+#endif
 
 // EXAMPLE USE 1:
 //
@@ -152,8 +156,10 @@ public:
   int num_threads;
 
   static thread_local int thread_id;
+// If running on nvm need to pin threads to cores in order to take advantage of
+// locality optimizations.
+#ifdef NVM
   static thread_local int numa_node;
-
   scheduler() {
     init_num_workers();
     num_deques = 2*num_threads;
@@ -184,6 +190,26 @@ public:
       pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
     }
   }
+#else
+  scheduler() {
+    init_num_workers();
+    num_deques = 2*num_threads;
+    deques = new Deque<Job>[num_deques];
+    attempts = new attempt[num_deques];
+    finished_flag = 0;
+
+    // Spawn num_workers many threads on startup
+    spawned_threads = new std::thread[num_threads-1];
+    std::function<bool()> finished = [&] () {  return finished_flag == 1; };
+    thread_id = 0; // thread-local write
+    for (int i=1; i<num_threads; i++) {
+      spawned_threads[i-1] = std::thread([&, i, finished] () {
+        thread_id = i; // thread-local write
+        start(finished);
+      });
+    }
+  }
+#endif
 
   ~scheduler() {
     finished_flag = 1;
@@ -237,12 +263,15 @@ public:
   int worker_id() {
     return thread_id;
   }
-  int numanode() {
-    return numa_node;
-  }
   void set_num_workers(int n) {
     std::cout << "Unsupported" << std::endl; exit(-1);
   }
+#ifdef NVM
+  int numanode() {
+    return numa_node;
+  }
+#endif
+
 
 private:
 
@@ -302,8 +331,10 @@ private:
 template<typename T>
 thread_local int scheduler<T>::thread_id = 0;
 
+#ifdef NVM
 template<typename T>
 thread_local int scheduler<T>::numa_node = 0;
+#endif
 
 
 struct fork_join_scheduler {
@@ -336,8 +367,10 @@ public:
 
   int num_workers() { return sched->num_workers(); }
   int worker_id() { return sched->worker_id(); }
-  int numanode() { return sched->numanode(); }
   void set_num_workers(int n) { sched->set_num_workers(n); }
+#ifdef NVM
+  int numanode() { return sched->numanode(); }
+#endif
 
   // Fork two thunks and wait until they both finish.
   template <typename L, typename R>

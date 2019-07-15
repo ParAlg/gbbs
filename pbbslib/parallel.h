@@ -11,7 +11,9 @@ static int num_workers();
 
 // id of running thread, should be numbered from [0...num-workers)
 static int worker_id();
+#ifdef NVM
 static int numanode();
+#endif
 
 // the granularity of a simple loop (e.g. adding one to each element
 // of an array) to reasonably hide cost of scheduler
@@ -150,9 +152,11 @@ inline int num_workers() {
 inline int worker_id() {
   return fj.worker_id();
 }
+#ifdef NVM
 inline int numanode() {
   return fj.numanode();
 }
+#endif
 
 
 inline void set_num_workers(int n) {
