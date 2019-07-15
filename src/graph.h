@@ -21,9 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <string>
 #pragma once
 
+#include <string>
 #include <stdlib.h>
 #include <fstream>
 #include <functional>
@@ -35,8 +35,10 @@
 #include "vertex.h"
 #include "pbbslib/parallel.h"
 
+#ifdef NVM
 #include <utmpx.h>
 #include <numa.h>
+#endif
 
 // **************************************************************
 //    ADJACENCY ARRAY REPRESENTATION
@@ -46,8 +48,11 @@ template <class vertex>
 struct graph {
   vertex* V;
 
-	vertex* V0;
-	vertex* V1;
+#ifdef NVM
+  vertex* V0;
+  vertex* V1;
+#endif
+
   size_t n;
   size_t m;
   bool transposed;
@@ -55,11 +60,12 @@ struct graph {
   std::function<void()> deletion_fn;
   std::function<graph<vertex>()> copy_fn;
 
-//  vertex get_vertex(size_t i) {
-//		return V[i];	  	
-//  }
-
-	vertex get_vertex(size_t i) {
+#ifndef NVM
+  vertex get_vertex(size_t i) {
+      	return V[i];
+  }
+#else
+  vertex get_vertex(size_t i) {
 //		int cpu = sched_getcpu();
 //		int node = numa_node_of_cpu(cpu);
     if (numanode() == 0) {
@@ -67,23 +73,24 @@ struct graph {
     } else {
       return V1[i];
     }
-	}
+  }
+#endif
 
   graph(vertex* _V, long _n, long _m, std::function<void()> _d,
         uintE* _flags = NULL)
+#ifdef NVM
       : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), V0(_V), V1(_V) {}
+#else
+      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d) {}
+#endif
 
   graph(vertex* _V, long _n, long _m, std::function<void()> _d,
         std::function<graph<vertex>()> _c, uintE* _flags = NULL)
-      : V(_V),
-        n(_n),
-        m(_m),
-        transposed(0),
-        flags(_flags),
-        deletion_fn(_d),
-        copy_fn(_c),
-        V0(_V),
-        V1(_V)	{}
+#ifdef NVM
+      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), copy_fn(_c), V0(_V), V1(_V) {}
+#else
+      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), copy_fn(_c) {}
+#endif
 
   auto copy() -> graph<vertex> { return copy_fn(); }
 

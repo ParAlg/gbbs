@@ -62,7 +62,21 @@ struct getFirst {
   uintE operator()(std::pair<uintE, E> a) { return a.first; }
 };
 
+template <class W,
+          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
+inline std::string print_wgh(W wgh) {
+  return "";
+}
+
+template <class W,
+          typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
+inline std::string print_wgh(W wgh) {
+  return std::to_string(wgh);
+}
+
+
 // returns a pointer and a length
+// Note that the caller is responsible for unmmap'ing the file
 inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   struct stat sb;
   int fd = open(filename, O_RDONLY);
@@ -89,20 +103,11 @@ inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
     exit(-1);
   }
   size_t n = sb.st_size;
-  //  char *bytes = pbbslib::new_array_no_init<char>(n);
-  //  parallel_for(size_t i=0; i<n; i++) {
-  //    bytes[i] = p[i];
-  //  }
-  //  if (munmap(p, sb.st_size) == -1) {
-  //    perror("munmap");
-  //    exit(-1);
-  //  }
-  //  std::cout << "mmapped" << "\n";
-  //  pbbslib::free_array(bytes);
-  //  exit(0);
   return std::make_pair(p, n);
 }
 
+#ifdef NVM
+// used by the nvm graph algorithms (see pmdk).
 inline std::pair<char*, size_t> pmem_from_file(const char* filename) {
   struct stat sb;
   int fd = open(filename, O_RDONLY);
@@ -134,6 +139,16 @@ inline std::pair<char*, size_t> pmem_from_file(const char* filename) {
 	char* p = static_cast<char*>(ret_arr);
 
   return std::make_pair(p, mapped_len);
+}
+#endif
+
+void unmmap_if_needed() {
+  if (compressed_mmap_bytes) {
+    if (munmap(compressed_mmap_bytes, compressed_mmap_bytes_size) == -1) {
+      perror("munmap");
+      exit(-1);
+    }
+  }
 }
 
 inline sequence<char> readStringFromFile(char* fileName) {
@@ -173,10 +188,6 @@ inline graph<vertex<intE>> readWeightedGraph(
       sequence<char> S = readStringFromFile(fname);
     }
   }
-// for binary inputs
-//   else {
-//     W = stringToWords(bytes, bytes_size);
-//   }
   tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
   assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
 
@@ -300,10 +311,7 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
     }
   }
   tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-  // for binary inputs
-  // else {
-  //   W = stringToWords(bytes, bytes_size);
-  // }
+
   assert(tokens[0] == (std::string) "AdjacencyGraph");
   // TODO(laxmand): ensure that S is properly freed here
 
@@ -390,35 +398,16 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
   }
 }
 
-template <class W,
-          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-inline std::string print_wgh(W wgh) {
-  return "";
-}
 
-template <class W,
-          typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-inline std::string print_wgh(W wgh) {
-  return std::to_string(wgh);
-}
-
-void unmmap_if_needed() {
-  if (compressed_mmap_bytes) {
-    if (munmap(compressed_mmap_bytes, compressed_mmap_bytes_size) == -1) {
-      perror("munmap");
-      exit(-1);
-    }
-  }
-}
-
+// Handles both unweighted and weighted graphs.
 template <template <typename W> class vertex, class W>
 inline graph<vertex<W>> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
-    char* bytes = nullptr,
-    size_t bytes_size = std::numeric_limits<size_t>::max()) {
+    char* bytes = nullptr, size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using w_vertex = vertex<W>;
 
 #ifndef NVM
+  char* s;
   if (bytes == nullptr) {
     if (mmap) {
       std::pair<char*, size_t> S = mmapStringFromFile(fname);
@@ -439,7 +428,7 @@ inline graph<vertex<W>> readCompressedGraph(
         compressed_mmap_bytes = S.first;
         compressed_mmap_bytes_size = S.second;
       }
-    } else {
+    } else { // read file using O_DIRECT
       int fd;
       if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
         debug(std::cout << "input opened!"
@@ -490,42 +479,18 @@ inline graph<vertex<W>> readCompressedGraph(
         debug(std::cout << "read " << sz << " bytes "
                   << "\n";);
       }
-
-      //    while (sz < fsize) {
-      //      size_t rem = fsize - sz;
-      //      size_t read_size = pgsize;
-      ////      size_t read_size = std::min(pgsize, rem);
-      //      void* buf = s + sz;
-      //      std::cout << "reading: " << read_size << "\n";
-      //      sz += read(fd, buf, read_size);
-      //      std::cout << "read: " << sz << " bytes" << "\n";
-      //    }
-      //    std::cout << "Finished: read " << sz << " out of fsize = " << fsize
-      //    <<
-      //    "\n";
       close(fd);
-
-      //    std::ifstream in(fname,std::ifstream::in |std::ios::binary);
-      //    in.seekg(0,std::ios::end);
-      //    uint64_t size = in.tellg();
-      //    in.seekg(0);
-      //    std::cout << "size = " << size << "\n";
-      //    s = (char*) malloc(size);
-      //    in.read(s,size);
-      //    std::cout << "Finished read" << "\n";
-      //    in.close();
     }
   } else {
     s = bytes;
   }
   char* s0 = s;
 #else
+  // TODO(laxmand): there has to be a cleaner way to do this.
   std::pair<char*, size_t> S0 = pmem_from_file("/mnt/pmem12/hyperlink2012_sym.bytepda");
-//  std::pair<char*, size_t> S0 = pmem_from_file("/mnt/pmem12/clueweb_sym.bytepda");
   char* s0 = S0.first;
 
   std::pair<char*, size_t> S1 = pmem_from_file("/mnt/pmem13/hyperlink2012_sym.bytepda");
-//  std::pair<char*, size_t> S1 = pmem_from_file("/mnt/pmem13/clueweb_sym.bytepda");
   char* s1 = S1.first;
 #endif
 
@@ -582,53 +547,9 @@ inline graph<vertex<W>> readCompressedGraph(
 
   graph<w_vertex> G(V0, n, m, deletion_fn,
                     get_copy_fn(V0, edges0, n, m, totalSpace));
-  G.V0 = V0;
-  G.V1 = V0;
 #ifdef NVM
+  G.V0 = V0;
   G.V1 = V1;
 #endif
-  return G;
-}
-
-// Caller is responsible for deleting offsets, degrees. 'edges' is owned by the
-// returned graph and will be deleted when it is destroyed.
-template <template <typename W> class vertex, class W>
-inline graph<vertex<W>> readCompressedSymmetricGraph(size_t n, size_t m,
-                                                     uintT* offsets,
-                                                     uintE* degrees,
-                                                     uchar* edges) {
-  using w_vertex = vertex<W>;
-  w_vertex* V = pbbslib::new_array_no_init<w_vertex>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uint64_t o = offsets[i];
-    uintT d = degrees[i];
-    V[i].setOutDegree(d);
-    V[i].setOutNeighbors(edges + o);
-  });
-
-  size_t total_space = offsets[n];
-
-  std::function<void()> deletion_fn = get_deletion_fn(V, edges);
-  std::function<graph<w_vertex>()> copy_fn =
-      get_copy_fn(V, edges, n, m, total_space);
-  graph<w_vertex> G(V, n, m, deletion_fn, copy_fn);
-
-  auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-//    CHECK_LT(u, n) << "u = " << u << " is larger than n = " << n << "\n";
-//    CHECK_LT(v, n) << "v = " << v << " is larger than n = " << n << " u = " << u
-//                   << "\n";
-    return u ^ v;
-  };
-  auto reduce_f = [&](const uintE& l, const uintE& r) -> uintE {
-    return l ^ r;
-  };
-  auto xors = sequence<uintE>(n, (uintE)0);
-
-  par_for(0, n, [&] (size_t i) {
-    xors[i] = G.V[i].reduceOutNgh(i, (uintE)0, map_f, reduce_f);
-  });
-  uintE xors_sum = pbbslib::reduce_xor(xors);
-  // assert(xors_sum == 0) << "Input graph is not undirected---exiting.";
-
   return G;
 }

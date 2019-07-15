@@ -472,8 +472,6 @@ inline vertexSubset edgeMap(graph<vertex> GA, VS& vs, F f, intT threshold = -1,
 // in the new adjacency list if p(ngh) is true.
 template <template <class W> class wvertex, class W, class P>
 inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
-  using vertex = wvertex<W>;
-//  vertex* G = GA.V;
   size_t n = GA.n;
   auto space = sequence<uintT>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -498,7 +496,6 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
-  using vertex = wvertex<W>;
   vs.toSparse();
 //  vertex* G = GA.V;
   size_t m = vs.numNonzeros();
@@ -545,7 +542,6 @@ template <template <class W> class wvertex, class W, class P>
 inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA,
                                              vertexSubset& vs, P& p,
                                              const flags& fl = 0) {
-  using vertex = wvertex<W>;
   vs.toSparse();
   if (fl & pack_edges) {
     return packEdges<wvertex, W, P>(GA, vs, p, fl);
