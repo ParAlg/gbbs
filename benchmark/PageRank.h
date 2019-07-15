@@ -43,10 +43,10 @@ struct PR_F {
 
 //vertex map function to update its p value according to PageRank equation
 struct PR_Vertex_F {
-  double damping;
-  double addedConstant;
   double* p_curr;
   double* p_next;
+  double damping;
+  double addedConstant;
   PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intE n) :
     p_curr(_p_curr), p_next(_p_next),
     damping(_damping), addedConstant((1-_damping)*(1/(double)n)){}
@@ -72,7 +72,6 @@ template <template <class W> class vertex, class W>
 void PageRank_edgeMap(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_iters = 100) {
   const uintE n = GA.n;
   const double damping = 0.85;
-  const double addedConstant = (1 -damping)*(1/static_cast<double>(n));
 
   double one_over_n = 1/(double)n;
   auto p_curr = pbbs::sequence<double>(n, one_over_n);
@@ -252,10 +251,13 @@ struct PR_Vertex_F_FirstRound {
   double* nghSum;
   G& get_degree;
   PR_Vertex_F_FirstRound(double* _p, delta_and_degree* _Delta, double* _nghSum, double _damping, double _one_over_n,double _epsilon2, G& get_degree) :
-    p(_p),
-    damping(_damping), Delta(_Delta), nghSum(_nghSum), one_over_n(_one_over_n),
+    damping(_damping),
     addedConstant((1-_damping)*_one_over_n),
+    one_over_n(_one_over_n),
     epsilon2(_epsilon2),
+    p(_p),
+    Delta(_Delta),
+    nghSum(_nghSum),
     get_degree(get_degree) {}
   inline bool operator () (uintE i) {
     double pre_init = damping*nghSum[i]+addedConstant;
@@ -275,15 +277,15 @@ auto make_PR_Vertex_F_FirstRound(double* p, delta_and_degree* delta, double* ngh
 
 template <class G>
 struct PR_Vertex_F {
-  double damping, epsilon2;
   double* p;
   delta_and_degree* Delta;
   double* nghSum;
+  double damping, epsilon2;
   G& get_degree;
   PR_Vertex_F(double* _p, delta_and_degree* _Delta, double* _nghSum, double _damping, double _epsilon2, G& get_degree) :
     p(_p),
-    damping(_damping), Delta(_Delta), nghSum(_nghSum),
-    epsilon2(_epsilon2), get_degree(get_degree) {}
+    Delta(_Delta), nghSum(_nghSum),
+    damping(_damping), epsilon2(_epsilon2), get_degree(get_degree) {}
   inline bool operator () (uintE i) {
     double new_delta = nghSum[i]*damping;
     Delta[i].delta = new_delta;
@@ -327,7 +329,7 @@ void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0
   auto all = pbbs::sequence<bool>(n, true);
   vertexSubset All(n,n,all.to_array()); //all vertices
 
-  long round = 0;
+  size_t round = 0;
   while(round++ < max_iters) {
     timer t; t.start();
     sparse_or_dense(GA, EM, Frontier, Delta.begin(), nghSum.begin(), no_output);

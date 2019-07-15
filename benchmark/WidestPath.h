@@ -79,11 +79,11 @@ inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
   t.start();
 
   timer mw; mw.start();
-  uintE max_weight = 0;
+  W max_weight = 0;
   parallel_for(0, G.n, [&] (size_t i) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (wgh > max_weight) {
-        pbbslib::write_max(&max_weight, static_cast<uintE>(wgh));
+        pbbslib::write_max(&max_weight, wgh);
       }
     };
     G.V[i].mapOutNgh(i, map_f);
@@ -152,9 +152,7 @@ inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
   emt.reportTotal("edge map time");
   std::cout << "n rounds = " << rd << "\n";
 
-  double time_per_iter = t.stop();
-
-  auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?
+  auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (static_cast<intE>(width[i]) == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?
   auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
   for (size_t i=0; i<100; i++) {

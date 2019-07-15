@@ -290,7 +290,7 @@ struct EdgeMap {
             G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
           auto tup = std::make_tuple(i, count);
           if (count > 0) {
-            auto applied_val = apply_f(tup);
+            apply_f(tup);
           }
         }
       }, 1);

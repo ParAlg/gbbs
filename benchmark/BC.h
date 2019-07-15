@@ -272,7 +272,7 @@ inline sequence<fType> BC_EM(graph<vertex<W>>& GA, const uintE& start) {
     // edgeMap(GA, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
     //         no_output | in_edges | fine_parallel);
 
-    vertexSubset output = sparse_fa_dense_em(GA, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
+    sparse_fa_dense_em(GA, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
 
     Frontier.del();
     Frontier = Levels[r];
