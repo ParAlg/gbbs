@@ -213,7 +213,7 @@ template <template <typename W> class vertex, class W, class F, class G,
           class H>
 inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
                              std::tuple<uintE, W>* nghs, uintE d, uintT o, F& f,
-                             G& g, H& h) {
+                             G& g, H& h, bool parallel) {
   par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
@@ -223,7 +223,7 @@ inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
     } else {
       h(ngh, o + j);
     }
-  });
+  }, parallel);
 }
 
 // Used by edgeMapSparse_no_filter. Sequentially decode the out-neighbors,
@@ -499,15 +499,15 @@ struct symmetricVertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     vertex_ops::decodeNghsSparse<symmetricVertex, W, F>(
-        this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h);
+        this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     vertex_ops::decodeNghsSparse<symmetricVertex, W, F>(
-        this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h);
+        this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h, parallel);
   }
 
   template <class F, class G>
@@ -729,15 +729,15 @@ struct asymmetricVertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel) {
     vertex_ops::decodeNghsSparse<asymmetricVertex, W, F>(
-        this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h);
+        this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel) {
     vertex_ops::decodeNghsSparse<asymmetricVertex, W, F>(
-        this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h);
+        this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h, parallel);
   }
 
   template <class F, class G>

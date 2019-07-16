@@ -246,15 +246,15 @@ struct compressedSymmetricVertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getInDegree(),
-                                             getInNeighbors(), o, f, g, h);
+                                             getInNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getOutDegree(),
-                                             getOutNeighbors(), o, f, g, h);
+                                             getOutNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G>
@@ -474,15 +474,15 @@ struct compressedAsymmetricVertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getInDegree(),
-                                             getInNeighbors(), o, f, g, h);
+                                             getInNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getOutDegree(),
-                                             getOutNeighbors(), o, f, g, h);
+                                             getOutNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G>

@@ -41,52 +41,11 @@
 #include "vertex.h"
 #include "vertex_subset.h"
 
-template <class W, class F>
-struct Wrap_F {
-  F f;
-  Wrap_F(F _f) : f(_f) {}
-  inline bool update(const uintE& s, const uintE& d, const W& e) {
-    return f.update(s, d);
-  }
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& e) {
-    return f.updateAtomic(s, d);
-  }
-  inline bool cond(const uintE& d) { return f.cond(d); }
-};
-
-template <class W, class D, class F>
-struct Wrap_Default_F {
-  F f;
-  D def;
-  Wrap_Default_F(F _f, D _def) : f(_f), def(_def) {}
-  inline bool update(const uintE& s, const uintE& d, const W& e) {
-    return f.update(s, d, def);
-  }
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& e) {
-    return f.updateAtomic(s, d, def);
-  }
-  inline bool cond(const uintE& d) { return f.cond(d); }
-};
-
-template <class W, class F>
-inline auto wrap_em_f(F f) -> Wrap_F<W, F> {
-  return Wrap_F<W, F>(f);
-}
-
-template <class W, class D, class F,
-          typename std::enable_if<!std::is_same<W, D>::value, int>::type = 0>
-inline auto wrap_with_default(F f, D def) -> Wrap_Default_F<W, D, F> {
-  return Wrap_Default_F<W, D, F>(f, def);
-}
-
-template <class W, class D, class F,
-          typename std::enable_if<std::is_same<W, D>::value, int>::type = 0>
-inline auto wrap_with_default(F f, D def) -> decltype(f) {
-  return f;
-}
-
-template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
+template <class data /* data associated with vertices in the output vertex_subset */,
+         class G /* graph type */,
+         class VS /* vertex_subset type */,
+         class F /* edgeMap struct */>
+inline vertexSubsetData<data> edgeMapDense(G& GA, VS& vertexSubset,
                                            F& f, const flags fl) {
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
@@ -115,14 +74,16 @@ inline vertexSubsetData<data> edgeMapDense(graph<vertex> GA, VS& vertexSubset,
   }
 }
 
-template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
+template <class data /* data associated with vertices in the output vertex_subset */,
+         class G /* graph type */,
+         class VS /* vertex_subset type */,
+         class F /* edgeMap struct */>
+inline vertexSubsetData<data> edgeMapDenseForward(G& GA,
                                                   VS& vertexSubset, F& f,
                                                   const flags fl) {
   debug(std::cout << "dense forward" << std::endl;);
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
-//  vertex* G = GA.V;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_forward_gen<data>(next);
@@ -148,65 +109,24 @@ inline vertexSubsetData<data> edgeMapDenseForward(graph<vertex> GA,
 }
 
 template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapSparse(graph<vertex>& GA,
-                                            vertex* frontier_vertices,
-                                            VS& indices, uintT m, F& f,
-                                            const flags fl) {
-  using S = std::tuple<uintE, data>;
-  size_t n = indices.n;
-  S* outEdges;
-
-  if (should_output(fl)) {
-    auto offsets = sequence<uintT>(indices.size(), [&](size_t i) {
-      return (fl & in_edges) ? frontier_vertices[i].getInDegree()
-                             : frontier_vertices[i].getOutDegree();
-    });
-    size_t outEdgeCount = pbbslib::scan_add_inplace(offsets);
-    outEdges = pbbslib::new_array_no_init<S>(outEdgeCount);
-    auto g = get_emsparse_gen_full<data>(outEdges);
-    auto h = get_emsparse_gen_empty<data>(outEdges);
-    par_for(0, m, 1, [&] (size_t i) {
-      uintT v = indices.vtx(i);
-      uintT o = offsets[i];
-      vertex vert = frontier_vertices[i];
-      (fl & in_edges) ? vert.decodeInNghSparse(v, o, f, g, h)
-                      : vert.decodeOutNghSparse(v, o, f, g, h);
-    });
-    offsets.clear();
-
-    S* nextIndices = pbbslib::new_array_no_init<S>(outEdgeCount);
-    auto p = [](std::tuple<uintE, data>& v) {
-      return std::get<0>(v) != UINT_E_MAX;
-    };
-    size_t nextM = pbbslib::filterf(outEdges, nextIndices, outEdgeCount, p);
-    pbbslib::free_array(outEdges);
-    return vertexSubsetData<data>(n, nextM, nextIndices);
-  }
-
-  auto g = get_emsparse_nooutput_gen<data>();
-  auto h = get_emsparse_nooutput_gen_empty<data>();
-  par_for(0, m, 1, [&] (size_t i) {
-    uintT v = indices.vtx(i);
-    vertex vert = frontier_vertices[i];
-    (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h)
-                    : vert.decodeOutNghSparse(v, 0, f, g, h);
-  });
-  return vertexSubsetData<data>(n);
-}
-
-template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapSparseNoOutput(graph<vertex>& GA,
-                                                    vertex* frontier_vertices,
-                                                    VS& indices, uintT m, F& f,
+                                                    VS& indices,
+                                                    F& f,
                                                     const flags fl) {
+  size_t m = indices.numNonzeros();
+#ifdef NVM
+  bool inner_parallel = false;
+#else
+  bool inner_parallel = true;
+#endif
   auto n = GA.n;
   auto g = get_emsparse_nooutput_gen<data>();
   auto h = get_emsparse_nooutput_gen_empty<data>();
   par_for(0, m, 1, [&] (size_t i) {
     uintT v = indices.vtx(i);
-    vertex vert = frontier_vertices[i];
-    (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h)
-                    : vert.decodeOutNghSparse(v, 0, f, g, h);
+    vertex vert = GA.get_vertex(v);
+    (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h, inner_parallel)
+                    : vert.decodeOutNghSparse(v, 0, f, g, h, inner_parallel);
   });
   return vertexSubsetData<data>(n);
 }
@@ -222,18 +142,16 @@ struct block {
 #ifdef AMORTIZEDPD
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
-                                             vertex* frontier_vertices,
-                                             VS& indices, uintT m, F& f,
+                                             VS& indices, F& f,
                                              const flags fl) {
   if (fl & no_output) {
-    return edgeMapSparseNoOutput<data, vertex, VS, F>(GA, frontier_vertices,
-                                                      indices, m, f, fl);
+    return edgeMapSparseNoOutput<data, vertex, VS, F>(GA, indices, f, fl);
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
-  auto degree_f = [&](size_t i) {
-    return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
-                           : frontier_vertices[i].getOutVirtualDegree();
+  auto degree_f = [&](size_t i) -> size_t {
+    return (fl & in_edges) ? GA.get_vertex(indices.vtx(i)).getInVirtualDegree()
+                           : GA.get_vertex(indices.vtx(i)).getOutVirtualDegree();
   };
   auto degree_imap = pbbslib::make_sequence<uintE>(indices.size(), degree_f);
 
@@ -290,7 +208,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
         uintE b_size =
             (j == 0) ? block_degree : (block_degree - degrees[j - 1]);
         uintE block_num = block.block_num;
-				auto our_vtx = GA.get_vertex(v);
+        auto our_vtx = GA.get_vertex(v);
         size_t num_in = (fl & in_edges)
                             ? our_vtx.decodeInNghSparseBlock(
                                   v, k, b_size, block_num, f, g)
@@ -332,18 +250,18 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 #else
 template <class data, class vertex, class VS, class F>
 inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
-                                             vertex* frontier_vertices,
-                                             VS& indices, uintT m, F& f,
+                                             VS& indices,
+                                             F& f,
                                              const flags fl) {
+  size_t m = indices.numNonzeros();
   if (fl & no_output) {
-    return edgeMapSparseNoOutput<data, vertex, VS, F>(GA, frontier_vertices,
-                                                      indices, m, f, fl);
+    return edgeMapSparseNoOutput<data, vertex, VS, F>(GA, indices, m, f, fl);
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
   auto degree_f = [&](size_t i) {
-    return (fl & in_edges) ? frontier_vertices[i].getInVirtualDegree()
-                           : frontier_vertices[i].getOutVirtualDegree();
+    return (fl & in_edges) ? GA.get_vertex(indices.vtx(i)).getInVirtualDegree()
+                           : GA.get_vertex(indices.vtx(i)).getOutVirtualDegree();
   };
   auto degree_imap = pbbslib::make_sequence<uintE>(indices.size(), degree_f);
 
@@ -380,10 +298,11 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
       size_t k = start_offset;
       for (size_t j = start; j < end; j++) {
         uintE v = indices.vtx(j);
+        auto our_vtx = GA.get_vertex(v);
         size_t num_in =
             (fl & in_edges)
-                ? frontier_vertices[j].decodeInNghSparseSeq(v, k, f, g)
-                : frontier_vertices[j].decodeOutNghSparseSeq(v, k, f, g);
+                ? our_vtx.decodeInNghSparseSeq(v, k, f, g)
+                : our_vtx.decodeOutNghSparseSeq(v, k, f, g);
         k += num_in;
       }
       cts[i] = k - start_offset;
@@ -429,17 +348,14 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
 
   if (vs.isDense && vs.size() > numVertices / 10) {
     return (fl & dense_forward)
-               ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
+               ? edgeMapDenseForward<data, graph<vertex>, VS, F>(GA, vs, f, fl)
+               : edgeMapDense<data, graph<vertex>, VS, F>(GA, vs, f, fl);
   }
 
   vs.toSparse();
-  vertex* frontier_vertices = pbbslib::new_array_no_init<vertex>(m);
-  par_for(0, vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { frontier_vertices[i] = GA.get_vertex(vs.vtx(i)); });
   auto degree_f = [&](size_t i) {
-    return (fl & in_edges) ? frontier_vertices[i].getInDegree()
-                           : frontier_vertices[i].getOutDegree();
+    return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInDegree()
+                           : GA.get_vertex(vs.vtx(i)).getOutDegree();
   };
   auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
   size_t out_degrees = pbbslib::reduce_add(degree_im);
@@ -447,16 +363,13 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
-    pbbslib::free_array(frontier_vertices);
     return (fl & dense_forward)
-               ? edgeMapDenseForward<data, vertex, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<data, vertex, VS, F>(GA, vs, f, fl);
+               ? edgeMapDenseForward<data, graph<vertex>, VS, F>(GA, vs, f, fl)
+               : edgeMapDense<data, graph<vertex>, VS, F>(GA, vs, f, fl);
   } else {
 //    auto vs_out = edgeMapSparse<data, vertex, VS, F>(GA, frontier_vertices, vs,
 //                                                      vs.numNonzeros(), f, fl);
-    auto vs_out = edgeMapBlocked<data, vertex, VS, F>(GA, frontier_vertices, vs,
-                                                      vs.numNonzeros(), f, fl);
-    pbbslib::free_array(frontier_vertices);
+    auto vs_out = edgeMapBlocked<data, vertex, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }
