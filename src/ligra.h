@@ -42,9 +42,9 @@
 #include "vertex_subset.h"
 
 template <class data /* data associated with vertices in the output vertex_subset */,
-         class G /* graph type */,
-         class VS /* vertex_subset type */,
-         class F /* edgeMap struct */>
+         class G     /* graph type */,
+         class VS    /* vertex_subset type */,
+         class F     /* edgeMap struct */>
 inline vertexSubsetData<data> edgeMapDense(G& GA, VS& vertexSubset,
                                            F& f, const flags fl) {
   using D = std::tuple<bool, data>;
@@ -75,9 +75,9 @@ inline vertexSubsetData<data> edgeMapDense(G& GA, VS& vertexSubset,
 }
 
 template <class data /* data associated with vertices in the output vertex_subset */,
-         class G /* graph type */,
-         class VS /* vertex_subset type */,
-         class F /* edgeMap struct */>
+         class G     /* graph type */,
+         class VS    /* vertex_subset type */,
+         class F     /* edgeMap struct */>
 inline vertexSubsetData<data> edgeMapDenseForward(G& GA,
                                                   VS& vertexSubset, F& f,
                                                   const flags fl) {
@@ -108,8 +108,11 @@ inline vertexSubsetData<data> edgeMapDenseForward(G& GA,
   }
 }
 
-template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapSparseNoOutput(graph<vertex>& GA,
+template <class data /* data associated with vertices in the output vertex_subset */,
+          class G    /* graph type */,
+          class VS   /* vertex_subset type */,
+          class F    /* edgeMap struct */>
+inline vertexSubsetData<data> edgeMapSparseNoOutput(G& GA,
                                                     VS& indices,
                                                     F& f,
                                                     const flags fl) {
@@ -124,7 +127,7 @@ inline vertexSubsetData<data> edgeMapSparseNoOutput(graph<vertex>& GA,
   auto h = get_emsparse_nooutput_gen_empty<data>();
   par_for(0, m, 1, [&] (size_t i) {
     uintT v = indices.vtx(i);
-    vertex vert = GA.get_vertex(v);
+    auto vert = GA.get_vertex(v);
     (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h, inner_parallel)
                     : vert.decodeOutNghSparse(v, 0, f, g, h, inner_parallel);
   });
@@ -140,12 +143,15 @@ struct block {
 };
 
 #ifdef AMORTIZEDPD
-template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
+template <class data /* data associated with vertices in the output vertex_subset */,
+          class G    /* graph type */,
+          class VS   /* vertex_subset type */,
+          class F    /* edgeMap struct */>
+inline vertexSubsetData<data> edgeMapBlocked(G& GA,
                                              VS& indices, F& f,
                                              const flags fl) {
   if (fl & no_output) {
-    return edgeMapSparseNoOutput<data, vertex, VS, F>(GA, indices, f, fl);
+    return edgeMapSparseNoOutput<data, G, VS, F>(GA, indices, f, fl);
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
@@ -248,14 +254,17 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
   return vertexSubsetData<data>(n, out_size, out);
 }
 #else
-template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
+template <class data /* data associated with vertices in the output vertex_subset */,
+          class G    /* graph type */,
+          class VS   /* vertex_subset type */,
+          class F    /* edgeMap struct */>
+inline vertexSubsetData<data> edgeMapBlocked(G& GA,
                                              VS& indices,
                                              F& f,
                                              const flags fl) {
   size_t m = indices.numNonzeros();
   if (fl & no_output) {
-    return edgeMapSparseNoOutput<data, vertex, VS, F>(GA, indices, m, f, fl);
+    return edgeMapSparseNoOutput<data, G, VS, F>(GA, indices, m, f, fl);
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
@@ -337,8 +346,11 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 #endif
 
 // Decides on sparse or dense base on number of nonzeros in the active vertices.
-template <class data, class vertex, class VS, class F>
-inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
+template <class data /* data associated with vertices in the output vertex_subset */,
+          class G    /* graph type */,
+          class VS   /* vertex_subset type */,
+          class F    /* edgeMap struct */>
+inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
                                           intT threshold = -1,
                                           const flags& fl = 0) {
   size_t numVertices = GA.n, numEdges = GA.m, m = vs.numNonzeros();
@@ -348,8 +360,8 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
 
   if (vs.isDense && vs.size() > numVertices / 10) {
     return (fl & dense_forward)
-               ? edgeMapDenseForward<data, graph<vertex>, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<data, graph<vertex>, VS, F>(GA, vs, f, fl);
+               ? edgeMapDenseForward<data, G, VS, F>(GA, vs, f, fl)
+               : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   }
 
   vs.toSparse();
@@ -364,27 +376,30 @@ inline vertexSubsetData<data> edgeMapData(graph<vertex>& GA, VS& vs, F f,
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
     return (fl & dense_forward)
-               ? edgeMapDenseForward<data, graph<vertex>, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<data, graph<vertex>, VS, F>(GA, vs, f, fl);
+               ? edgeMapDenseForward<data, G, VS, F>(GA, vs, f, fl)
+               : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   } else {
-//    auto vs_out = edgeMapSparse<data, vertex, VS, F>(GA, frontier_vertices, vs,
-//                                                      vs.numNonzeros(), f, fl);
-    auto vs_out = edgeMapBlocked<data, vertex, VS, F>(GA, vs, f, fl);
+    auto vs_out = edgeMapBlocked<data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }
 
 // Regular edgeMap, where no extra data is stored per vertex.
-template <class vertex, class VS, class F>
-inline vertexSubset edgeMap(graph<vertex> GA, VS& vs, F f, intT threshold = -1,
+template <class G    /* graph type */,
+          class VS   /* vertex_subset type */,
+          class F    /* edgeMap struct */>
+inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
                             const flags& fl = 0) {
   return edgeMapData<pbbslib::empty>(GA, vs, f, threshold, fl);
 }
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
-template <template <class W> class wvertex, class W, class P>
-inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
+template <template <class V> class G  /* graph type */,
+          template <class W> class  V /* vertex type */,
+          class W                     /* weight type */,
+          class P                     /* predicate function */>
+inline void packAllEdges(G<V<W>>& GA, P& p, const flags& fl = 0) {
   size_t n = GA.n;
   auto space = sequence<uintT>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -401,16 +416,17 @@ inline void packAllEdges(graph<wvertex<W>>& GA, P& p, const flags& fl = 0) {
 }
 
 
-
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
-template <template <class W> class wvertex, class W, class P>
-inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
+template <template <class V> class G  /* graph type */,
+          template <class W> class  V /* vertex type */,
+          class W                     /* weight type */,
+          class P                     /* predicate function */>
+inline vertexSubsetData<uintE> packEdges(G<V<W>>& GA,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
   vs.toSparse();
-//  vertex* G = GA.V;
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   if (vs.size() == 0) {
@@ -423,8 +439,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
   });
   size_t total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  auto tmp = sequence<std::tuple<uintE, W>>(
-      total_space);  // careful when total_space == 0
+  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
@@ -451,15 +466,17 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& GA,
   }
 }
 
-template <template <class W> class wvertex, class W, class P>
-inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& GA,
+template <template <class V> class G  /* graph type */,
+          template <class W> class  V /* vertex type */,
+          class W                     /* weight type */,
+          class P                     /* predicate function */>
+inline vertexSubsetData<uintE> edgeMapFilter(G<V<W>>& GA,
                                              vertexSubset& vs, P& p,
                                              const flags& fl = 0) {
   vs.toSparse();
   if (fl & pack_edges) {
-    return packEdges<wvertex, W, P>(GA, vs, p, fl);
+    return packEdges<G, V, W, P>(GA, vs, p, fl);
   }
-//  vertex* G = GA.V;
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   using S = std::tuple<uintE, uintE>;
@@ -610,29 +627,6 @@ inline void add_to_vsubset(vertexSubset& vs, uintE* new_verts,
   }
 }
 
-// cond function that always returns true
-inline bool cond_true(intT d) { return 1; }
-
-// Sugar to pass in a single f and get a struct suitable for edgeMap.
-template <class W, class F>
-struct EdgeMap_F {
-  F f;
-  EdgeMap_F(F _f) : f(_f) {}
-  inline bool update(const uintE& s, const uintE& d, const W& wgh) {
-    return f(s, d, wgh);
-  }
-
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    return f(s, d, wgh);
-  }
-
-  inline bool cond(const uintE& d) const { return true; }
-};
-
-template <class W, class F>
-inline EdgeMap_F<W, F> make_em_f(F f) {
-  return EdgeMap_F<W, F>(f);
-}
 
 #ifdef USE_PCM_LIB
 inline void print_pcm_stats(SystemCounterState& before_sstate,

@@ -414,6 +414,11 @@ template <class W>
 inline iter<W> get_iter(std::tuple<uintE, W>* edges, uintE degree) {
   return iter<W>(edges, degree);
 }
+
+struct uncompressed_block_decode {
+
+};
+
 }  // namespace vertex_ops
 
 template <class W>
