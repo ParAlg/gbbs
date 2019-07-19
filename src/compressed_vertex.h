@@ -107,9 +107,8 @@ inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
 }
 
 template <class W, class C, class F, class G>
-inline size_t decodeNghsSparseBlock(uintE vtx_id, uintE d, uchar* nghArr,
-                                    uintT o, uintE block_size, uintE block_num,
-                                    F& f, G& g) {
+inline size_t decode_block(uintE vtx_id, uintE d, uchar* nghArr,
+                           uintT o, uintE block_num, F& f, G& g) {
   size_t k = 0;
   auto T = [&](const uintE& src, const uintE& target, const W& weight) {
     if (f.cond(target)) {
@@ -119,7 +118,7 @@ inline size_t decodeNghsSparseBlock(uintE vtx_id, uintE d, uchar* nghArr,
       }
     }
   };
-  C::template decode_block_seq<W>(T, nghArr, vtx_id, d, block_size, block_num);
+  C::template decode_block<W>(T, nghArr, vtx_id, d, block_num);
   return k;
 }
 
@@ -190,14 +189,14 @@ struct compressedSymmetricVertex {
   uintE degree;
   uchar* getInNeighbors() { return neighbors; }
   uchar* getOutNeighbors() { return neighbors; }
-  uintE getInNeighbor(intT j) {
+  uintE getInNeighbor(intT j) { // should not be called
     assert(false);
     return -1;
-  }  // should not be called
-  uintE getOutNeighbor(intT j) {
+  }
+  uintE getOutNeighbor(intT j) { // should not be called
     assert(false);
     return -1;
-  }  // should not be called
+  }
   uintE getInDegree() { return degree; }
   uintE getOutDegree() { return degree; }
   uintE getInVirtualDegree() {
@@ -206,6 +205,17 @@ struct compressedSymmetricVertex {
   uintE getOutVirtualDegree() {
     return cvertex::getVirtualDegree<C>(degree, getOutNeighbors());
   }
+  uintE getNumInBlocks() {
+    return C::get_num_blocks(neighbors, degree);
+  }
+  uintE getNumOutBlocks() { return getNumInBlocks(); }
+  inline uintE in_block_degree(uintE block_num) {
+    return C::get_block_degree(neighbors, degree, block_num);
+  }
+  inline uintE out_block_degree(uintE block_num) {
+    return in_block_degree(block_num);
+  }
+
   void setInNeighbors(uchar* _i) { neighbors = _i; }
   void setOutNeighbors(uchar* _i) { neighbors = _i; }
   void setInDegree(uintE _d) { degree = _d; }
@@ -270,19 +280,17 @@ struct compressedSymmetricVertex {
   }
 
   template <class F, class G>
-  inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o,
                                         uintE block_num, F& f, G& g) {
-    return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getOutDegree(), getOutNeighbors(), o, block_size, block_num, f,
-        g);
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
+  inline size_t decodeInBlock(uintE vtx_id, uintT o,
                                        uintE block_num, F& f, G& g) {
-    return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getInDegree(), getInNeighbors(), o, block_size, block_num, f,
-        g);
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getInDegree(), getInNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>
@@ -309,12 +317,12 @@ struct compressedSymmetricVertex {
                               parallel);
   }
 
-  inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return C::template get_ith_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), i);
+  inline std::tuple<uintE, W> get_random_out_neighbor(uintE vtx_id, pbbs::random& r) {
+    return C::template get_random_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), r);
   }
 
-  inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return C::template get_ith_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), i);
+  inline std::tuple<uintE, W> get_random_in_neighbor(uintE vtx_id, pbbs::random& r) {
+    return C::template get_random_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), r);
   }
 
   template <class F>
@@ -431,6 +439,18 @@ struct compressedAsymmetricVertex {
   uintE getOutVirtualDegree() {
     return cvertex::getVirtualDegree<C>(outDegree, getOutNeighbors());
   }
+  uintE getNumInBlocks() {
+    return C::get_num_blocks(inNeighbors, inDegree);
+  }
+  uintE getNumOutBlocks() {
+    return C::get_num_blocks(outNeighbors, outDegree);
+  }
+  inline uintE in_block_degree(uintE block_num) {
+    return C::get_block_degree(inNeighbors, inDegree, block_num);
+  }
+  inline uintE out_block_degree(uintE block_num) {
+    return C::get_block_degree(outNeighbors, outDegree, block_num);
+  }
   void setInNeighbors(uchar* _i) { inNeighbors = _i; }
   void setOutNeighbors(uchar* _i) { outNeighbors = _i; }
   void setInDegree(uintE _d) { inDegree = _d; }
@@ -498,27 +518,25 @@ struct compressedAsymmetricVertex {
   }
 
   template <class F, class G>
-  inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o,
                                         uintE block_num, F& f, G& g) {
-    return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getOutDegree(), getOutNeighbors(), o, block_size, block_num, f,
-        g);
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
+  inline size_t decodeInBlock(uintE vtx_id, uintT o,
                                        uintE block_num, F& f, G& g) {
-    return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getInDegree(), getInNeighbors(), o, block_size, block_num, f,
-        g);
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getInDegree(), getInNeighbors(), o, block_num, f, g);
   }
 
-  inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return C::template get_ith_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), i);
+  inline std::tuple<uintE, W> get_random_out_neighbor(uintE vtx_id, pbbs::random& r) {
+    return C::template get_random_neighbor<W>(getOutNeighbors(), vtx_id, getOutDegree(), r);
   }
 
-  inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return C::template get_ith_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), i);
+  inline std::tuple<uintE, W> get_random_in_neighbor(uintE vtx_id, pbbs::random& r) {
+    return C::template get_random_neighbor<W>(getInNeighbors(), vtx_id, getInDegree(), r);
   }
 
   template <class F, class G>

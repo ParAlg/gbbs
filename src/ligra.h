@@ -155,30 +155,34 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA,
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
-  auto degree_f = [&](size_t i) -> size_t {
-    return (fl & in_edges) ? GA.get_vertex(indices.vtx(i)).getInVirtualDegree()
-                           : GA.get_vertex(indices.vtx(i)).getOutVirtualDegree();
-  };
-  auto degree_imap = pbbslib::make_sequence<uintE>(indices.size(), degree_f);
 
-  // 1. Compute the number of blocks each vertex gets subdivided into.
+  auto block_f = [&](size_t i) -> size_t {
+    return (fl & in_edges) ? GA.get_vertex(indices.vtx(i)).getNumInBlocks()
+                           : GA.get_vertex(indices.vtx(i)).getNumOutBlocks();
+  };
+  auto block_imap = pbbslib::make_sequence<uintE>(indices.size(), block_f);
+
+  // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
-  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-      { vertex_offs[i] = (degree_imap[i] + kEMBlockSize - 1) / kEMBlockSize; });
+  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, 
+      [&] (size_t i) { vertex_offs[i] = block_imap[i]; }
+  );
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs);
+
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
 
-  // 2. Write each block to blocks and scan.
+  // 2. Write each block to blocks and scan degree array.
   par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
     size_t vtx_off = vertex_offs[i];
     size_t num_blocks = vertex_offs[i + 1] - vtx_off;
-    size_t degree = degree_imap[i];
+    uintE vtx_id = indices.vtx(i);
     par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&] (size_t j) {
-      size_t block_deg =
-          std::min((j + 1) * kEMBlockSize, degree) - j * kEMBlockSize;
-      blocks[vtx_off + j] = block(i, j);
+      size_t block_deg = (fl & in_edges) ?
+        GA.get_vertex(vtx_id).in_block_degree(j) :
+        GA.get_vertex(vtx_id).out_block_degree(j);
+      blocks[vtx_off + j] = block(i, j); // j-th block of the i-th vertex.
       degrees[vtx_off + j] = block_deg;
     });
   });
@@ -189,7 +193,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA,
   size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
   size_t* thread_offs = pbbslib::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
-  par_for(0, n_threads, 1, [&] (size_t i) {
+  par_for(0, n_threads, 1, [&] (size_t i) { // TODO: granularity of 1?
     size_t start_off = i * kEMBlockSize;
     thread_offs[i] = pbbslib::binary_search(degrees, start_off, lt);
   });
@@ -208,18 +212,15 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA,
       size_t k = start_offset;
       for (size_t j = start; j < end; j++) {
         auto& block = blocks[j];
-        uintT block_degree = degrees[j];
-        uintE id = block.id;
-        uintE v = indices.vtx(id);
-        uintE b_size =
-            (j == 0) ? block_degree : (block_degree - degrees[j - 1]);
+        uintE id = block.id; // id in vset
         uintE block_num = block.block_num;
-        auto our_vtx = GA.get_vertex(v);
+
+        uintE vtx_id = indices.vtx(id); // actual vtx_id corresponding to id
+
+        auto our_vtx = GA.get_vertex(vtx_id);
         size_t num_in = (fl & in_edges)
-                            ? our_vtx.decodeInNghSparseBlock(
-                                  v, k, b_size, block_num, f, g)
-                            : our_vtx.decodeOutNghSparseBlock(
-                                  v, k, b_size, block_num, f, g);
+                            ? our_vtx.decodeInBlock(vtx_id, k, block_num, f, g)
+                            : our_vtx.decodeOutBlock(vtx_id, k, block_num, f, g);
         k += num_in;
       }
       cts[i] = k - start_offset;
@@ -748,25 +749,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
-    if (compressed) {                                                          \
-      if (symmetric) {                                                         \
-        auto G = readCompressedGraph<csv_bytepd_amortized, intE>(              \
-            iFile, symmetric, mmap, mmapcopy);                                 \
-        run_app(G, APP, rounds)                                                \
-      } else {                                                                 \
-        auto G = readCompressedGraph<cav_bytepd_amortized, intE>(              \
-            iFile, symmetric, mmap, mmapcopy);                                 \
-        run_app(G, APP, rounds)                                                \
-      }                                                                        \
-    } else {                                                                   \
-      if (symmetric) {                                                         \
         auto G =                                                               \
             readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap);        \
         run_app(G, APP, rounds)                                                \
-      } else {                                                                 \
-        auto G =                                                               \
-            readWeightedGraph<asymmetricVertex>(iFile, symmetric, mmap);       \
-        run_app(G, APP, rounds)                                                \
-      }                                                                        \
-    }                                                                          \
   }
