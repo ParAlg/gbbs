@@ -110,9 +110,9 @@ template <class W, class C, class F, class G>
 inline size_t decode_block(uintE vtx_id, uintE d, uchar* nghArr,
                            uintT o, uintE block_num, F& f, G& g) {
   size_t k = 0;
-  auto T = [&](const uintE& src, const uintE& target, const W& weight) {
+  auto T = [&](const uintE& target, const W& weight, const size_t& edge_id) {
     if (f.cond(target)) {
-      auto m = f.updateAtomic(src, target, weight);
+      auto m = f.updateAtomic(vtx_id, target, weight);
       if (g(target, o + k, m)) {
         k++;
       }
@@ -185,6 +185,7 @@ inline size_t getVirtualDegree(uintE d, uchar* nghArr) {
 
 template <class W, class C>
 struct compressedSymmetricVertex {
+  using E = uchar;
   uchar* neighbors;
   uintE degree;
   uchar* getInNeighbors() { return neighbors; }

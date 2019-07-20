@@ -88,27 +88,12 @@ struct noop_packed_graph {
   size_t m; /* number of edges; updated by decremental updates  */
   graph<vertex<W>>& GA;
 
-//  using sym_block_manager = symmetric_noop_manager<vertex, W>;
-//  using sym_vertex = block_symmetric_vertex<W, sym_block_manager>;
+  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) { }
 
-//  sym_vertex* V;
-
-  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {
-//    V = pbbs::new_array_no_init<sym_vertex>(n);
-//    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-//      auto sym_blocks = sym_block_manager(GA.V[i], i, uncompressed_block_size);
-//      V[i].block_manager = sym_blocks;
-////      NV[i].setOutDegree(V[i].getOutDegree());
-////      size_t off = (V[i].getOutNeighbors() - edges);
-////      NV[i].setOutNeighbors(NE + off);
-//    });
-  }
-
-  template <typename
-    std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value, int>::type = 0>
+  template <bool bool_enable=true, typename
+    std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-//    return V[v];
-    using block_manager = symmetric_noop_manager<vertex, W>;
+    using block_manager = sym_noop_manager<vertex, W>;
 #ifndef NVM
     auto sym_blocks = block_manager(GA.V[v], v, uncompressed_block_size);
 #else
@@ -116,6 +101,19 @@ struct noop_packed_graph {
 #endif
     return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
+
+  template <bool bool_enable=true, typename
+    std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
+  __attribute__((always_inline)) inline auto get_vertex(uintE v) {
+    using block_manager = compressed_sym_noop_manager<vertex, W>;
+#ifndef NVM
+    auto sym_blocks = block_manager(GA.V[v], v);
+#else
+    auto sym_blocks = block_manager(GA.V0[v], GA.V1[v], v);
+#endif
+    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
+  }
+
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map=true) {

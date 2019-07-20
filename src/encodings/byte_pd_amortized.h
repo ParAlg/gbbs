@@ -444,14 +444,86 @@ inline void decode_block(T t, uchar* edge_start, const uintE& source,
   if (start_offset < end_offset) {  // at least one edge in this block
     uintE ngh = eatFirstEdge(finger, source);
     W wgh = eatWeight<W>(finger);
-    t(source, ngh, wgh);
+    t(ngh, wgh, start_offset);
     for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
       ngh += eatEdge(finger);
       wgh = eatWeight<W>(finger);
-      t(source, ngh, wgh);
+      t(ngh, wgh, edgeID);
     }
   }
 }
+
+template <class W, class T>
+inline void decode_block_cond(T t, uchar* edge_start, const uintE& source,
+                              const uintT& degree, uintE block_num) {
+  uintE virtual_degree = *((uintE*)edge_start);
+  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
+  uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+  uchar* nghs_start =
+      edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
+
+  uchar* finger =
+      (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
+  uintE start_offset = *((uintE*)finger);
+  uintE end_offset = (block_num == (num_blocks - 1)) ? degree
+                       : (*((uintE*)(edge_start + block_offsets[block_num])));
+  finger += sizeof(uintE);
+
+  if (start_offset < end_offset) {  // at least one edge in this block
+    uintE ngh = eatFirstEdge(finger, source);
+    W wgh = eatWeight<W>(finger);
+    bool ret = t(ngh, wgh, start_offset);
+    if (!ret) return;
+    for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
+      ngh += eatEdge(finger);
+      wgh = eatWeight<W>(finger);
+      bool ret = t(ngh, wgh, edgeID);
+      if (!ret) break;
+    }
+  }
+}
+
+//template <class W, class F>
+//inline void decode_block(F f, uchar* finger, const uintE& source, size_t block_size) {
+//  uintE start_offset = *((uintE*)finger);
+//  finger += sizeof(uintE);
+//
+//  size_t k = 0;
+//  if (k < block_size) {
+//    uintE ngh = eatFirstEdge(finger, source);
+//    W wgh = eatWeight<W>(finger);
+//    f(source, ngh, wgh);
+//    k++;
+//    while (k < block_size) {
+//      ngh += eatEdge(finger);
+//      wgh = eatWeight<W>(finger);
+//      f(source, ngh, wgh);
+//      k++;
+//    }
+//  }
+//}
+//
+//template <class W, class F>
+//inline void decode_block_cond(F f, uchar* finger, const uintE& source, size_t block_size) {
+//  uintE start_offset = *((uintE*)finger);
+//  finger += sizeof(uintE);
+//
+//  size_t k = 0;
+//  if (k < block_size) {
+//    uintE ngh = eatFirstEdge(finger, source);
+//    W wgh = eatWeight<W>(finger);
+//    bool ret = f(source, ngh, wgh);
+//    k++;
+//    if (!ret) return;
+//    while (k < block_size) {
+//      ngh += eatEdge(finger);
+//      wgh = eatWeight<W>(finger);
+//      bool ret = f(source, ngh, wgh);
+//      if (!ret) break;
+//      k++;
+//    }
+//  }
+//}
 
 // r: E -> E -> E
 template <class W, class E, class M, class Monoid>

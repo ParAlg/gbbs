@@ -25,98 +25,7 @@
 
 #include "pbbslib/sequence_ops.h"
 #include "macros.h"
-
-
-template <template <class W> class vertex, class W>
-struct symmetric_noop_manager {
-  using WV = vertex<W>;
-  using E = typename WV::E;
-
-  uintE vtx_id;
-  size_t degree;
-  size_t block_size;
-
-  struct uncompressed_block {
-    E* e;
-    uintE vtx_id;
-    size_t block_start;
-    size_t block_size;
-    uncompressed_block(E* e, uintE vtx_id, size_t block_start, size_t block_size)
-      : e(e), vtx_id(vtx_id), block_start(block_start), block_size(block_size) { }
-
-    template <class F>
-    __attribute__((always_inline)) inline void decode(F f) {
-      for (size_t i=0; i<block_size; i++) {
-        f(std::get<0>(e[i]), std::get<1>(e[i]), block_start + i);
-      }
-    }
-
-    template <class F>
-    __attribute__((always_inline)) inline void decode_cond(F f) {
-      for (size_t i=0; i<block_size; i++) {
-        const auto& ee = e[i];
-        bool ret = f(std::get<0>(ee), std::get<1>(ee), block_start + i);
-        if (!ret) break;
-      }
-    }
-  };
-
-#ifndef NVM
-  E* e0;
-  symmetric_noop_manager(vertex<W>& V, const uintE vtx_id, const uintE block_size) :
-    vtx_id(vtx_id),
-    degree(V.getOutDegree()),
-    block_size(block_size),
-    e0(V.getOutNeighbors()) {}
-#else
-  E* e0;
-  E* e1;
-  symmetric_noop_manager(vertex<W>& V0, vertex<W>& V1, const uintE vtx_id, const uintE block_size) :
-    vtx_id(vtx_id),
-    degree(V0.getOutDegree()),
-    block_size(block_size),
-    e0(V0.getOutNeighbors),
-    e1(V1.getOutNeighbors) {}
-#endif
-
-  __attribute__((always_inline)) inline uintE get_degree() {
-    return degree;
-  }
-
-  __attribute__((always_inline)) inline size_t num_blocks() {
-    return pbbs::num_blocks(degree, block_size);
-  }
-
-  __attribute__((always_inline)) inline uintE block_degree(uintE block_num) {
-    uintE block_start = block_num * block_size;
-    uintE block_end = std::min(block_start + block_size, degree);
-    return block_end - block_start;
-  }
-
-  __attribute__((always_inline)) inline uncompressed_block get_block(uintE block_num) {
-    uintE block_start = block_num*block_size;
-    uintE block_end = std::min(block_start + block_size, degree);
-    E* edges = e0;
-#ifdef NVM
-    if (numa_node() == 0) edges = e0;
-    else edges = e1;
-#endif
-    return uncompressed_block(edges + block_start, // pointer
-                              vtx_id, // id
-                              block_start, // edge_start
-                              block_end - block_start); // edge_end
-  }
-
-  std::tuple<uintE, W> ith_neighbor(size_t i) {
-    E* edges = e0;
-#ifdef NVM
-    if (numa_node() == 0) edges = e0;
-    else edges = e1;
-#endif
-    return edges[i];
-  }
-};
-
+#include "block_managers.h"
 
 namespace block_vertex_ops {
 
@@ -126,7 +35,7 @@ template <class BM /* block_manager */,
           class F  /* user-specified mapping function */>
 inline void map_nghs(uintE vtx_id, BM& block_manager, F& f, bool parallel) {
   par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-    block_manager.get_block(block_num).decode(
+    block_manager.decode_block(block_num,
       [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
         f(vtx_id, ngh, wgh);
       }
@@ -158,7 +67,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m,
 
     par_for(0, num_blocks, 1, [&] (size_t block_num) {
       T cur = reduce.identity;
-      block_manager.get_block(block_num).decode(
+      block_manager.decode_block(block_num,
         [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
           cur = reduce.f(cur, m(vtx_id, ngh, wgh));
         }
@@ -185,7 +94,7 @@ template <class BM     /* block_manager */,
 inline void copyNghs(uintE vtx_id, BM& block_manager,
                      uintT o, F& f, G& g, bool parallel) {
   par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-    block_manager.get_block(block_num).decode(
+    block_manager.decode_block(block_num,
       [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
         auto val = f(vtx_id, ngh, wgh);
         g(ngh, o + edge_num, val);
@@ -203,7 +112,7 @@ template <class BM     /* block_manager */,
 inline void decodeNghsSparse(uintE vtx_id, BM& block_manager, uintT o, F& f,
                              G& g, H& h, bool parallel) {
   par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-    block_manager.get_block(block_num).decode(
+    block_manager.decode_block(block_num,
       [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
         if (f.cond(ngh)) {
           auto m = f.updateAtomic(vtx_id, ngh, wgh);
@@ -223,7 +132,7 @@ template <class BM     /* block_manager */,
           class G      /* output function */>
 inline void decodeNghs(uintE vtx_id, BM& block_manager, F& f, G& g, bool parallel) {
   par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-    block_manager.get_block(block_num).decode(
+    block_manager.decode_block(block_num,
       [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
         auto m = f.updateAtomic(vtx_id, ngh, wgh);
         g(ngh, m);
@@ -241,34 +150,35 @@ template <class BM     /* block_manager */,
 inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
                                  VS& vertexSubset, F& f, G& g,
                                  bool parallel) {
-  if (!parallel) {
-    for (size_t i=0; i<block_manager.num_blocks(); i++) {
-      auto block_i = block_manager.get_block(i);
-      block_i.decode_cond(
-        [&] (const uintE& ngh, const W& wgh, const size_t& edge_num) {
-          if (vertexSubset.isIn(ngh)) {
-            auto m = f.update(ngh, vtx_id, wgh);
-            g(vtx_id, m);
-            return f.cond(vtx_id);
+  if (block_manager.get_degree() > 0) {
+    if (!parallel) {
+      for (size_t i=0; i<block_manager.num_blocks(); i++) {
+        block_manager.decode_block_cond(i,
+          [&] (const uintE& ngh, const W& wgh, const size_t& edge_num) {
+            if (vertexSubset.isIn(ngh)) {
+              auto m = f.update(ngh, vtx_id, wgh);
+              g(vtx_id, m);
+              return f.cond(vtx_id);
+            }
+            return true;
           }
-          return true;
-        }
-      );
+        );
+      }
+    } else {
+      size_t num_blocks = block_manager.num_blocks();
+      par_for(0, num_blocks, 1, [&] (size_t block_num) {
+        block_manager.decode_block_cond(block_num,
+          [&] (const uintE& ngh, const W& wgh, const size_t& edge_num) {
+            if (vertexSubset.isIn(ngh)) {
+              auto m = f.updateAtomic(ngh, vtx_id, wgh);
+              g(vtx_id, m);
+              return f.cond(vtx_id);
+            }
+            return true;
+          }
+        );
+      });
     }
-  } else {
-    par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-      auto block_i = block_manager.get_block(block_num);
-      block_i.decode_cond(
-        [&] (const uintE& ngh, const W& wgh, const size_t& edge_num) {
-          if (vertexSubset.isIn(ngh)) {
-            auto m = f.updateAtomic(ngh, vtx_id, wgh);
-            g(vtx_id, m);
-            return f.cond(vtx_id);
-          }
-          return true;
-        }
-      );
-    });
   }
 }
 
@@ -279,7 +189,7 @@ template <class BM /* block manager */,
 inline size_t decode_block(uintE vtx_id, BM& block_manager,
                            uintT o, uintE block_num, F& f, G& g) {
   size_t k = 0;
-  block_manager.get_block(block_num).decode(
+  block_manager.decode_block(block_num,
     [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
       if (f.cond(ngh)) {
         auto m = f.updateAtomic(vtx_id, ngh, wgh);
@@ -299,10 +209,7 @@ inline size_t decode_block(uintE vtx_id, BM& block_manager,
 /*
  * block_manager supplies:
  *  - num_blocks
- *  - get_block(i) -> block type
- *
- * block-type supports:
- *  - decode
+ *  - decode_block, decode_block_cond
  */
 template <class W, /* weight type */
           class BM /* block manager type */>
