@@ -77,7 +77,7 @@
   // block manager knows about (1) block size and (2) num blocks.
 
 
-static constexpr size_t uncompressed_block_size = 1024;
+static constexpr size_t uncompressed_block_size = 1000;
 
 // An allocation-free wrapper around an ordinary (immutable) graph.
 // * The bit-packing structure is a no-op (returns all blocks in the
@@ -88,18 +88,33 @@ struct noop_packed_graph {
   size_t m; /* number of edges; updated by decremental updates  */
   graph<vertex<W>>& GA;
 
-  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) { }
+//  using sym_block_manager = symmetric_noop_manager<vertex, W>;
+//  using sym_vertex = block_symmetric_vertex<W, sym_block_manager>;
+
+//  sym_vertex* V;
+
+  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {
+//    V = pbbs::new_array_no_init<sym_vertex>(n);
+//    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+//      auto sym_blocks = sym_block_manager(GA.V[i], i, uncompressed_block_size);
+//      V[i].block_manager = sym_blocks;
+////      NV[i].setOutDegree(V[i].getOutDegree());
+////      size_t off = (V[i].getOutNeighbors() - edges);
+////      NV[i].setOutNeighbors(NE + off);
+//    });
+  }
 
   template <typename
     std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value, int>::type = 0>
-  auto get_vertex(uintE v) {
+  __attribute__((always_inline)) inline auto get_vertex(uintE v) {
+//    return V[v];
     using block_manager = symmetric_noop_manager<vertex, W>;
 #ifndef NVM
     auto sym_blocks = block_manager(GA.V[v], v, uncompressed_block_size);
 #else
     auto sym_blocks = block_manager(GA.V0[v], GA.V1[v], v, uncompressed_block_size);
 #endif
-    return block_symmetric_vertex<W, block_manager>(sym_blocks);
+    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
   template <class F>

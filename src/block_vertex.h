@@ -32,29 +32,30 @@ struct symmetric_noop_manager {
   using WV = vertex<W>;
   using E = typename WV::E;
 
-  const uintE vtx_id;
-  const uintE degree;
-  const uintE block_size;
+  uintE vtx_id;
+  size_t degree;
+  size_t block_size;
 
   struct uncompressed_block {
     E* e;
     uintE vtx_id;
-    uintE block_start;
-    uintE block_size;
-    uncompressed_block(E* e, uintE vtx_id, uintE block_start, uintE block_size)
+    size_t block_start;
+    size_t block_size;
+    uncompressed_block(E* e, uintE vtx_id, size_t block_start, size_t block_size)
       : e(e), vtx_id(vtx_id), block_start(block_start), block_size(block_size) { }
 
     template <class F>
-    inline void decode(F f) {
-      for (uintE i=0; i<block_size; i++) {
+    __attribute__((always_inline)) inline void decode(F f) {
+      for (size_t i=0; i<block_size; i++) {
         f(std::get<0>(e[i]), std::get<1>(e[i]), block_start + i);
       }
     }
 
     template <class F>
-    inline void decode_cond(F f) {
-      for (uintE i=0; i<block_size; i++) {
-        bool ret = f(std::get<0>(e[i]), std::get<1>(e[i]), block_start + i);
+    __attribute__((always_inline)) inline void decode_cond(F f) {
+      for (size_t i=0; i<block_size; i++) {
+        const auto& ee = e[i];
+        bool ret = f(std::get<0>(ee), std::get<1>(ee), block_start + i);
         if (!ret) break;
       }
     }
@@ -78,21 +79,21 @@ struct symmetric_noop_manager {
     e1(V1.getOutNeighbors) {}
 #endif
 
-  inline uintE get_degree() {
+  __attribute__((always_inline)) inline uintE get_degree() {
     return degree;
   }
 
-  inline size_t num_blocks() {
+  __attribute__((always_inline)) inline size_t num_blocks() {
     return pbbs::num_blocks(degree, block_size);
   }
 
-  inline uintE block_degree(uintE block_num) {
+  __attribute__((always_inline)) inline uintE block_degree(uintE block_num) {
     uintE block_start = block_num * block_size;
     uintE block_end = std::min(block_start + block_size, degree);
     return block_end - block_start;
   }
 
-  uncompressed_block get_block(uintE block_num) {
+  __attribute__((always_inline)) inline uncompressed_block get_block(uintE block_num) {
     uintE block_start = block_num*block_size;
     uintE block_end = std::min(block_start + block_size, degree);
     E* edges = e0;
@@ -242,8 +243,9 @@ inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
                                  bool parallel) {
   if (!parallel) {
     for (size_t i=0; i<block_manager.num_blocks(); i++) {
-      block_manager.get_block(i).decode_cond(
-        [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
+      auto block_i = block_manager.get_block(i);
+      block_i.decode_cond(
+        [&] (const uintE& ngh, const W& wgh, const size_t& edge_num) {
           if (vertexSubset.isIn(ngh)) {
             auto m = f.update(ngh, vtx_id, wgh);
             g(vtx_id, m);
@@ -255,8 +257,9 @@ inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
     }
   } else {
     par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
-      block_manager.get_block(block_num).decode_cond(
-        [&] (const uintE& ngh, const W& wgh, uintE edge_num) {
+      auto block_i = block_manager.get_block(block_num);
+      block_i.decode_cond(
+        [&] (const uintE& ngh, const W& wgh, const size_t& edge_num) {
           if (vertexSubset.isIn(ngh)) {
             auto m = f.updateAtomic(ngh, vtx_id, wgh);
             g(vtx_id, m);
@@ -265,7 +268,7 @@ inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
           return true;
         }
       );
-    }, parallel);
+    });
   }
 }
 
@@ -307,8 +310,8 @@ struct block_symmetric_vertex {
 
   BM block_manager; // copy; not a reference.
 
-  block_symmetric_vertex(BM& block_manager) :
-    block_manager(block_manager) {}
+  block_symmetric_vertex(BM&& block_manager) :
+    block_manager(std::move(block_manager)) {}
 
   uintE getOutDegree() {
     return block_manager.get_degree();

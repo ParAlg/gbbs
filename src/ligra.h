@@ -49,15 +49,17 @@ inline vertexSubsetData<data> edgeMapDense(G& GA, VS& vertexSubset,
                                            F& f, const flags fl) {
   using D = std::tuple<bool, data>;
   size_t n = GA.n;
+  auto dense_par = fl & dense_parallel;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_gen<data>(next);
     parallel_for(0, n, [&] (size_t v) {
       std::get<0>(next[v]) = 0;
        if (f.cond(v)) {
-       (fl & in_edges) ?
-          GA.get_vertex(v).decodeOutNghBreakEarly(v, vertexSubset, f, g, false) :
-          GA.get_vertex(v).decodeInNghBreakEarly(v, vertexSubset, f, g, false);
+       auto vert = GA.get_vertex(v);
+         (fl & in_edges) ?
+            vert.decodeOutNghBreakEarly(v, vertexSubset, f, g, dense_par) :
+            vert.decodeInNghBreakEarly(v, vertexSubset, f, g, dense_par);
       }
     }, (fl & fine_parallel) ? 1 : 2048);
     return vertexSubsetData<data>(n, next);
@@ -66,8 +68,8 @@ inline vertexSubsetData<data> edgeMapDense(G& GA, VS& vertexSubset,
     parallel_for(0, n, [&] (size_t v) {
        if (f.cond(v)) {
        (fl & in_edges) ?
-         GA.get_vertex(v).decodeOutNghBreakEarly(v, vertexSubset, f, g, false) :
-         GA.get_vertex(v).decodeInNghBreakEarly(v, vertexSubset, f, g, false);
+         GA.get_vertex(v).decodeOutNghBreakEarly(v, vertexSubset, f, g, dense_par) :
+         GA.get_vertex(v).decodeInNghBreakEarly(v, vertexSubset, f, g, dense_par);
       }
     }, (fl & fine_parallel) ? 1 : 2048);
     return vertexSubsetData<data>(n);
@@ -188,6 +190,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA,
   });
   pbbslib::scan_add_inplace(degrees, pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
+  cout << "outEdgeCount = " << outEdgeCount << endl;
 
   // 3. Compute the number of threads, binary search for offsets.
   size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
@@ -712,29 +715,11 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmapcopy = mutates || P.getOptionValue("-mc");                        \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
-    pcm_init();                                                                \
-    if (compressed) {                                                          \
-      if (symmetric) {                                                         \
-        auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(    \
-            iFile, symmetric, mmap, mmapcopy);                                 \
-        run_app(G, APP, rounds)                                                \
-      } else {                                                                 \
-        auto G = readCompressedGraph<cav_bytepd_amortized, pbbslib::empty>(    \
-            iFile, symmetric, mmap, mmapcopy);                                 \
-        run_app(G, APP, rounds)                                                \
-      }                                                                        \
-    } else {                                                                   \
-      if (symmetric) {                                                         \
         auto G =                                                               \
             readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);      \
         run_app(G, APP, rounds)                                                \
-      } else {                                                                 \
-        auto G =                                                               \
-            readUnweightedGraph<asymmetricVertex>(iFile, symmetric, mmap);     \
-        run_app(G, APP, rounds)                                                \
-      }                                                                        \
-    }                                                                          \
   }
+
 
 #define generate_weighted_main(APP, mutates)                                   \
   int main(int argc, char* argv[]) {                                           \

@@ -32,7 +32,7 @@ namespace pbbs {
   constexpr const size_t _log_block_size = 10;
   constexpr const size_t _block_size = (1 << _log_block_size);
 
-  inline size_t num_blocks(size_t n, size_t block_size) {
+  __attribute__((always_inline)) inline size_t num_blocks(size_t n, size_t block_size) {
     if (n == 0) return 0;
     else return (1 + ((n)-1)/(block_size));}
 

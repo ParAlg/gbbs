@@ -248,9 +248,6 @@ inline size_t decodeNghsSparseSeq(vertex<W>* v, uintE vtx_id,
   return k;
 }
 
-// Used by edgeMapBlocked. Sequentially decode nghs between
-// [block_num*KBlockSize, block_num*vertex_ops::kBlockSize + block_size)
-// and compactly write all neighbors satisfying g().
 template <class W, class F, class G>
 inline size_t decode_block(uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d,
                            uintT o, uintE block_num, F& f, G& g) {
