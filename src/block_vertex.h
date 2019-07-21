@@ -221,19 +221,19 @@ struct block_symmetric_vertex {
   block_symmetric_vertex(BM&& block_manager) :
     block_manager(std::move(block_manager)) {}
 
-  uintE getOutDegree() {
+  __attribute__((always_inline)) inline uintE getOutDegree() {
     return block_manager.get_degree();
   }
-  uintE getInDegree() {
+  __attribute__((always_inline)) inline uintE getInDegree() {
     return getOutDegree();
   }
 
-  uintE getNumInBlocks() { return block_manager.num_blocks(); }
-  uintE getNumOutBlocks() { return getNumInBlocks(); }
-  inline uintE in_block_degree(uintE block_num) {
+  __attribute__((always_inline)) inline uintE getNumInBlocks() { return block_manager.num_blocks(); }
+  __attribute__((always_inline)) inline uintE getNumOutBlocks() { return getNumInBlocks(); }
+  __attribute__((always_inline)) inline uintE in_block_degree(uintE block_num) {
     return block_manager.block_degree(block_num);
   }
-  inline uintE out_block_degree(uintE block_num) {
+  __attribute__((always_inline)) inline uintE out_block_degree(uintE block_num) {
     return in_block_degree(block_num);
   }
 

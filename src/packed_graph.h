@@ -91,6 +91,9 @@ struct noop_packed_graph {
   size_t m; /* number of edges  */
   graph<vertex<W>>& GA;
 
+  using E = typename vertex<W>::E;
+  using WW = W;
+
   noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) { }
 
   template <bool bool_enable=true, typename
@@ -124,6 +127,9 @@ struct noop_packed_graph {
       vert_v.mapOutNgh(v, f, parallel_inner_map);
     });
   }
+
+  void del() {
+  }
 };
 
 template <template <class W> class vertex, class W>
@@ -132,6 +138,7 @@ struct packed_graph {
   size_t m; /* number of edges; updated by decremental updates  */
   graph<vertex<W>>& GA;
   using E = typename vertex<W>::E;
+  using WW = W;
 
   // block degree computable by differencing two starts.
   struct vtx_info {
@@ -178,9 +185,6 @@ struct packed_graph {
       size_t num_blocks = block_offs[v+1] - offset;
       // set vertex_info for v
       VI[v] = vtx_info(degree, num_blocks, offset, edges);
-      if (v == 10012) {
-        cout << "degree = " << degree << " num_blocks = " << num_blocks << " offset = " << offset << " edges = " << edges << endl;
-      }
 
       // initialize blocks corresponding to v's neighbors
       uint8_t* our_block_start = blocks + (offset*bs_in_bytes);
@@ -220,6 +224,9 @@ struct packed_graph {
       auto vert_v = get_vertex(v);
       vert_v.mapOutNgh(v, f, parallel_inner_map);
     });
+  }
+
+  void del() {
   }
 };
 

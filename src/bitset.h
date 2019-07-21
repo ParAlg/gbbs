@@ -43,10 +43,6 @@ namespace bitsets {
         start[j] = std::numeric_limits<uint8_t>::max(); //full byte
       }
     }, 512);
-    for (size_t block_num=0; block_num<num_blocks; block_num++) {
-      assert(block_metadata[block_num].block_num == block_num);
-      assert(block_metadata[block_num].offset == block_num*bs);
-    }
   }
 
   static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks, uintE degree) {
@@ -56,7 +52,7 @@ namespace bitsets {
     return next_offset - offset;
   }
 
-  static bool is_bit_set(uint8_t* finger, uintE k) {
+  __attribute__((always_inline)) static inline bool is_bit_set(uint8_t* finger, uintE k) {
     // 8 entries/byte, so block corresponding to k is k/8 = k >> 3;
     uintE byte_id = k >> 3;
 

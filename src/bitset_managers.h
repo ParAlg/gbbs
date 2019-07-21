@@ -19,7 +19,7 @@ struct sym_bitset_manager {
   uint8_t* blocks_start;
   uint8_t* block_data_start;
 
-  static constexpr uintE edges_per_block = 128;
+  static constexpr uintE edges_per_block = 2048;
   static constexpr uintE bytes_per_block = edges_per_block/8 + sizeof(uintE);
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(uintE);
@@ -76,18 +76,28 @@ struct sym_bitset_manager {
   }
 
   template <class F>
-  __attribute__((always_inline)) inline void decode_block_cond(uintE block_num, F f) {
+  __attribute__((always_inline)) inline void decode_block_cond(uintE block_id, F f) {
+    metadata* block_metadata = (metadata*)blocks_start;
+    uintE offset = block_metadata[block_id].offset;
+    uintE orig_block_num = block_metadata[block_id].block_num;
 
+    uint8_t* block_bits = block_data_start + bitset_bytes_per_block*block_id;
 
-//    uintE block_start = block_num*block_size;
-//    uintE block_end = std::min(block_start + block_size, degree);
-//    E* e = e0;
-//
-//    for (size_t i=block_start; i<block_end; i++) {
-//      auto& ee = e[i];
-//      bool ret = f(std::get<0>(ee), std::get<1>(ee), i);
-//      if (!ret) break;
-//    }
+    uintE block_start = orig_block_num*edges_per_block;
+    uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
+
+    E* e = get_edges();
+
+    // This is one way of decoding (check bit at a time). The other way is to
+    // use a fetch_next_bit function.
+    // Probably also faster to have a look-up table on the byte
+    for (size_t k=0; k<(block_end - block_start); k++) {
+      if (bitsets::is_bit_set(block_bits, k)) { // check if the k-th bit is set
+        auto& ee = e[block_start + k]; // if so, fetch the k-th edge
+        bool ret = f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f with the correct offset
+        if (!ret) break;
+      }
+    }
   }
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
