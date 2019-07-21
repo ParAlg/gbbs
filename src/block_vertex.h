@@ -25,7 +25,8 @@
 
 #include "pbbslib/sequence_ops.h"
 #include "macros.h"
-#include "block_managers.h"
+#include "noop_managers.h"
+#include "bitset_managers.h"
 
 namespace block_vertex_ops {
 
@@ -336,6 +337,5 @@ struct block_symmetric_vertex {
                                     bool parallel = false) {
     decodeOutNghBreakEarly(vtx_id, vertexSubset, f, g, parallel);
   }
-
 };
 

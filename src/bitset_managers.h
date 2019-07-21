@@ -1,0 +1,76 @@
+#pragma once
+
+#include "macros.h"
+#include "bitset.h"
+#include "encodings/byte_pd_amortized.h"
+
+// TODO (whole-file): make suitable for NVM.
+
+// 16 words/block (48Gb for HL2012)
+static constexpr size_t kUncompressedBitsetBlockSize = 128;
+
+template <template <class W> class vertex, class W>
+struct sym_bitset_manager {
+  using WV = vertex<W>;
+  using E = typename WV::E;
+
+  uintE vtx_id;
+  size_t degree;
+  uintE num_blocks;
+  uint8_t* blocks_start;
+
+  E* e0;
+  sym_bitset_manager(const uintE vtx_id, const uintE degree, const uintE num_blocks, uint8_t* blocks_start, E* e0) :
+    vtx_id(vtx_id),
+    degree(degree),
+    num_blocks(num_blocks),
+    blocks_start(blocks_start),
+    e0(e0) {}
+
+  __attribute__((always_inline)) inline uintE get_degree() {
+    return degree;
+  }
+
+  __attribute__((always_inline)) inline size_t num_blocks() {
+    return num_blocks;
+  }
+
+  __attribute__((always_inline)) inline uintE block_degree(uintE block_num) {
+    // TODO layout
+  }
+
+  template <class F>
+  __attribute__((always_inline)) inline void decode_block(uintE block_num, F f) {
+
+    uintE block_start = block_num*block_size;
+    uintE block_end = std::min(block_start + block_size, degree);
+    E* e = e0;
+
+    for (size_t i=block_start; i<block_end; i++) {
+      auto& ee = e[i];
+      f(std::get<0>(ee), std::get<1>(ee), i);
+    }
+  }
+
+  template <class F>
+  __attribute__((always_inline)) inline void decode_block_cond(uintE block_num, F f) {
+    uintE block_start = block_num*block_size;
+    uintE block_end = std::min(block_start + block_size, degree);
+    E* e = e0;
+
+    for (size_t i=block_start; i<block_end; i++) {
+      auto& ee = e[i];
+      bool ret = f(std::get<0>(ee), std::get<1>(ee), i);
+      if (!ret) break;
+    }
+  }
+
+  std::tuple<uintE, W> ith_neighbor(size_t i) {
+    E* edges = e0;
+#ifdef NVM
+    if (numa_node() == 0) edges = e0;
+    else edges = e1;
+#endif
+    return edges[i];
+  }
+};
