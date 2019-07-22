@@ -35,8 +35,8 @@
 #include "SpanningForest.h"
 #include "ligra.h"
 
-template <class vertex>
-double SpanningForest_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double SpanningForest_runner(G& GA, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
   std::cout << "### Application: SpanningForest" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

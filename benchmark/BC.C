@@ -35,8 +35,8 @@
 #include "BC.h"
 #include "ligra.h"
 
-template <class vertex>
-double BC_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double BC_runner(G& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
   std::cout << "### Application: BC" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

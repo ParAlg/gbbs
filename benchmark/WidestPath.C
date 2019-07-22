@@ -37,8 +37,8 @@
 
 #include "WidestPath.h"
 
-template <class vertex>
-double WidestPath_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double WidestPath_runner(G& GA, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
   size_t num_buckets = P.getOptionLongValue("-nb", 32);
   bool no_blocked = P.getOptionValue("-noblocked");

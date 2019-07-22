@@ -42,8 +42,8 @@
 #include <fstream>
 #include <iostream>
 
-template <class vertex>
-double Coloring_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double Coloring_runner(G& GA, commandLine P) {
   bool runLF = P.getOption("-lf");
   std::cout << "### Application: Coloring" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

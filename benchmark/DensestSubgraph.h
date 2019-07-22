@@ -34,8 +34,9 @@
 
 // Implements a work-inefficient version of the Bahmani et al. appx algorithm.
 // The algorithm scans all vertices each round. The total work is O(m+n\log n).
-template <template <typename W> class vertex, class W>
-void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
+template <class G>
+void WorkInefficientDensestSubgraph(G& GA, double epsilon = 0.001) {
+  using W = typename G::weight_type;
   const size_t n = GA.n;
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
@@ -103,8 +104,9 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
   cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 }
 
-template <template <typename W> class vertex, class W>
-void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
+template <class G>
+void WorkEfficientDensestSubgraph(G& GA, double epsilon = 0.001) {
+  using W = typename G::weight_type;
   const size_t n = GA.n;
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 50);
 
@@ -242,8 +244,8 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
 
 // Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
 // expected work and O(\rho\log n) depth w.h.p.
-template <template <typename W> class vertex, class W>
-void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
+template <class G>
+void CharikarAppxDensestSubgraph(G& GA) {
   // deg_ord = degeneracy_order(GA)
   // ## Now, density check for graph after removing each vertex, in the peeling-order.
   // Let S = stores 2*#edges to vertices > in degeneracy order. Note that 2* is
@@ -253,6 +255,7 @@ void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
   // density w/o vertex_i = S[i] / (n - i)
   // Compute the max over all v.
 
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto degeneracy_order = DegeneracyOrder(GA);
   auto vtx_to_position = sequence<uintE>(n);

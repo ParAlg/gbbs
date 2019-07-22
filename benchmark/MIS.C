@@ -36,8 +36,8 @@
 #include "MIS.h"
 #include "ligra.h"
 
-template <class vertex>
-double MIS_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double MIS_runner(G& GA, commandLine P) {
   bool spec_for = P.getOption("-specfor");
   std::cout << "### Application: MIS" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

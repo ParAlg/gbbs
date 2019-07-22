@@ -33,8 +33,8 @@
 #include "SetCover.h"
 #include "ligra.h"
 
-template <class vertex>
-double SetCover_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double SetCover_runner(G& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
 
   std::cout << "### Application: Approximate Set Cover" << std::endl;

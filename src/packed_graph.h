@@ -197,8 +197,7 @@ struct packed_symmetric_vertex {
   /* packing primitives */
   template <class P, class E>
   inline size_t packOutNgh(uintE vtx_id, P& p, E* tmp, bool parallel = true) {
-//    block_manager.pack_blocks(
-//    block_vertex_ops::packNghs(vtx_id, block_manager, p, tmp, parallel);
+    block_manager.pack_blocks(vtx_id, p, tmp, parallel);
   }
 
   /* packing primitives */
@@ -214,22 +213,11 @@ template <template <class W> class vertex, class W>
 struct packed_graph {
   size_t n; /* number of vertices */
   size_t m; /* number of edges; updated by decremental updates  */
-  graph<vertex<W>>& GA;
+  graph<vertex, W>& GA;
   using E = typename vertex<W>::E;
-  using WW = W;
+  using weight_type = W;
 
-  // block degree computable by differencing two starts.
-  struct vtx_info {
-    uintE degree; // vertex's (packed) degree.
-    uintE num_blocks; // number of blocks associated with v
-    size_t block_offset; // pointer into the block structure
-    E* edges; // pointer to the original edges (prevents one random read)
-    vtx_info(uintE degree, uintE num_blocks, size_t block_offset, E* edges) :
-      degree(degree), num_blocks(num_blocks),
-      block_offset(block_offset), edges(edges) {}
-  };
-
-  vtx_info* VI;
+  vtx_info<E>* VI;
   uint8_t* blocks;
 
   size_t bs;
@@ -253,7 +241,7 @@ struct packed_graph {
     // allocate blocks
     blocks = pbbs::new_array_no_init<uint8_t>(block_mem_to_alloc);
 
-    VI = pbbs::new_array_no_init<vtx_info>(n);
+    VI = pbbs::new_array_no_init<vtx_info<E>>(n);
 
     // initialize blocks and vtx_info
     parallel_for(0, n, [&] (size_t v) {
@@ -264,11 +252,11 @@ struct packed_graph {
 
       size_t num_blocks = pbbs::num_blocks(degree, bs);
       // set vertex_info for v
-      VI[v] = vtx_info(degree, num_blocks, block_byte_offset, edges);
+      VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, edges);
 
       // initialize blocks corresponding to v's neighbors
       uint8_t* our_block_start = blocks + block_byte_offset;
-      bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, bs_in_bytes, vtx_bytes);
+      bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, vtx_bytes);
     }, 1);
   }
 
@@ -292,7 +280,7 @@ struct packed_graph {
     metadata_size = sizeof(metadata);
   }
 
-  packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {
+  packed_graph(graph<vertex, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
     init_block_size_and_metadata(); // conditioned on vertex type
     init_block_memory();
   }
@@ -301,10 +289,8 @@ struct packed_graph {
   template <bool bool_enable=true, typename
     std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-    auto& v_info = VI[v];
     using block_manager = sym_bitset_manager<vertex, W>;
-    uint8_t* v_blocks_start = blocks + v_info.block_offset;
-    auto sym_blocks = block_manager(v, v_info.degree, v_info.num_blocks, v_blocks_start, v_info.edges);
+    auto sym_blocks = block_manager(v, blocks, VI);
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
@@ -312,10 +298,8 @@ struct packed_graph {
   template <bool bool_enable=true, typename
     std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-    auto& v_info = VI[v];
     using block_manager = compressed_sym_bitset_manager<vertex, W>;
-    uint8_t* v_blocks_start = blocks + v_info.block_offset;
-    auto sym_blocks = block_manager(v, v_info.degree, v_info.num_blocks, v_blocks_start, v_info.edges);
+    auto sym_blocks = block_manager(v, blocks, VI);
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 

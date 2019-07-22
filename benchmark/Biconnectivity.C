@@ -42,9 +42,10 @@
 #include "pbbslib/sparse_additive_map.h"
 #include "ligra.h"
 
-template <template <typename W> class vertex, class W>
-void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
+template <class G>
+void BiconnectivityStats(G& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto S = pbbslib::char_seq_from_file(s);
   auto tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
@@ -127,8 +128,8 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 
-template <class vertex>
-double Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double Biconnectivity_runner(G& GA, commandLine P) {
   std::cout << "### Application: Biconnectivity" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;

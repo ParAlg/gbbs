@@ -39,8 +39,8 @@
 #include "MST.h"
 #include "ligra.h"
 
-template <class vertex>
-double MST_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double MST_runner(G& GA, commandLine P) {
   bool spec_for = P.getOption("-specfor");
   bool largemem = P.getOption("-largemem");
 

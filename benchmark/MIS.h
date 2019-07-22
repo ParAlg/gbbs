@@ -31,8 +31,9 @@
 
 namespace MIS_rootset {
 
-template <template <class W> class vertex, class W, class Fl>
-inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
+template <class G, class Fl>
+inline void verify_mis(G& GA, Fl& in_mis) {
+  using W = typename G::weight_type;
   auto d = sequence<uintE>(GA.n, (uintE)0);
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     if (!d[ngh]) {
@@ -66,8 +67,9 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
             << "\n";
 }
 
-template <template <class W> class vertex, class W, class VS, class P>
-inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
+template <class G, class VS, class P>
+inline vertexSubset get_nghs(G& GA, VS& vs, P p) {
+  using W = typename G::weight_type;
   vs.toSparse();
   assert(!vs.isDense);
   auto deg_f =  [&](size_t i) { return GA.get_vertex(vs.vtx(i)).getOutDegree(); };
@@ -164,8 +166,9 @@ struct mis_f_2 {
   inline bool cond(uintE d) { return (p[d] > 0); }  // still live
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<bool> MIS(graph<vertex<W>>& GA) {
+template <class G>
+inline sequence<bool> MIS(G& GA) {
+  using W = typename G::weight_type;
   timer init_t;
   init_t.start();
   size_t n = GA.n;
@@ -243,14 +246,15 @@ namespace MIS_spec_for {
 //   Flags = 0 indicates undecided
 //   Flags = 1 indicates chosen
 //   Flags = 2 indicates a neighbor is chosen
-template <template <class W> class vertex, class W>
+template <class G>
 struct MISstep {
+  using W = typename G::weight_type;
   char* FlagsNext;
   char* Flags;
-  graph<vertex<W>>& G;
+  G& GA;
 
-  MISstep(char* _PF, char* _F, graph<vertex<W>>& _G)
-      : FlagsNext(_PF), Flags(_F), G(_G) {}
+  MISstep(char* _PF, char* _F, G& GA)
+      : FlagsNext(_PF), Flags(_F), GA(GA) {}
 
   bool reserve(intT i) {
     // decode neighbor
@@ -272,7 +276,7 @@ struct MISstep {
     using E = std::tuple<int, int>;
     auto id = std::make_tuple(0, 0);
     auto monoid = pbbslib::make_monoid(red_f, id);
-    auto res = G.V[i].template reduceOutNgh<E>(i, map_f, monoid);
+    auto res = GA.V[i].template reduceOutNgh<E>(i, map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
     } else if (std::get<1>(res) > 0) {
@@ -284,19 +288,21 @@ struct MISstep {
   bool commit(intT i) { return (Flags[i] = FlagsNext[i]) > 0; }
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<char> MIS(graph<vertex<W>>& GA) {
+template <class G>
+inline sequence<char> MIS(G& GA) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto Flags = sequence<char>(n, [&](size_t i) { return 0; });
   auto FlagsNext = sequence<char>(n);
-  auto mis = MISstep<vertex, W>(FlagsNext.begin(), Flags.begin(), GA);
+  auto mis = MISstep<G>(FlagsNext.begin(), Flags.begin(), GA);
   eff_for<uintE>(mis, 0, n, 50);
   return Flags;
 }
 };  // namespace MIS_spec_for
 
-template <template <class W> class vertex, class W, class Seq>
-inline void verify_MIS(graph<vertex<W>>& GA, Seq& mis) {
+template <class G, class Seq>
+inline void verify_MIS(G& GA, Seq& mis) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto ok = sequence<bool>(n, [&](size_t i) { return 1; });
   par_for(0, n, [&] (size_t i) {

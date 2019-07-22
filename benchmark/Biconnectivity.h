@@ -92,10 +92,11 @@ struct MinMaxF {
   bool cond(const uintE& d) { return true; }
 };
 
-template <template <typename W> class vertex, class W, class Seq>
-inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
+template <class G, class Seq>
+inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
                                                            uintE* Parents,
                                                            Seq& Sources) {
+  using W = typename GA::weight_type;
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
   auto out_edges = sequence<edge>(
@@ -327,8 +328,9 @@ struct BC_BFS_F {
   inline bool cond(uintE d) { return (Parents[d] == UINT_E_MAX); }
 };
 
-template <template <typename W> class vertex, class W, class VS>
-inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
+template <class G, class VS>
+inline uintE* multi_bfs(G& GA, VS& frontier) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
@@ -389,8 +391,9 @@ struct DET_BFS_F_2 {
   inline bool cond(uintE d) { return !visited[d]; }
 };
 
-template <template <typename W> class vertex, class W, class VS>
-uintE* deterministic_multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
+template <class G, class VS>
+uintE* deterministic_multi_bfs(G& GA, VS& frontier) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto visited = sequence<bool>(n, [] (size_t i) { return false; });
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
@@ -426,10 +429,11 @@ inline sequence<uintE> cc_sources(Seq& labels) {
   return pbbslib::filter(flags, [](uintE v) { return v != UINT_E_MAX; });
 }
 
-template <template <class W> class vertex, class W>
+template <class G>
 inline std::tuple<uintE*, uintE*> critical_connectivity(
-    graph<vertex<W>>& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
+    G& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
     uintE* aug_sizes_A, char* out_f) {
+  using W = typename GA::weight_type;
   timer ccc;
   ccc.start();
   size_t n = GA.n;
@@ -531,8 +535,8 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
-template <class vertex>
-inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
+template <class G>
+inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA,
                                                  char* out_f = 0) {
   size_t n = GA.n;
 

@@ -36,8 +36,8 @@
 #include "LDD.h"
 #include "ligra.h"
 
-template <class vertex>
-double LDD_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double LDD_runner(G& GA, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
   bool permute = P.getOption("-permute");
   std::cout << "### Application: LDD (Low-Diameter Decomposition)" << std::endl;

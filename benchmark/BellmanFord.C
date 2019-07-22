@@ -35,8 +35,8 @@
 
 #include "BellmanFord.h"
 
-template <class vertex>
-double BellmanFord_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double BellmanFord_runner(G& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
   std::cout << "### Application: BellmanFord" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

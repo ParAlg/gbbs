@@ -28,8 +28,9 @@
 #include "pbbslib/random_shuffle.h"
 
 namespace coloring {
-template <template <typename W> class vertex, class W, class Seq>
-inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
+template <class G, class Seq>
+inline uintE color(G& GA, uintE v, Seq& colors) {
+  using W = typename G::weight_type;
   uintE deg = GA.get_vertex(v).getOutDegree();
   if (deg > 0) {
     bool* bits;
@@ -88,8 +89,9 @@ struct coloring_f {
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
+template <class G>
+inline sequence<uintE> Coloring(G& GA, bool lf = false) {
+  using W = typename G::weight_type;
   timer initt;
   initt.start();
   const size_t n = GA.n;
@@ -173,8 +175,9 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   return colors;
 }
 
-template <template <typename W> class vertex, class W, class Seq>
-inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
+template <class G, class Seq>
+inline void verify_coloring(G& G, Seq& colors) {
+  using W = typename G::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>(n);
   par_for(0, n, [&] (size_t i) {

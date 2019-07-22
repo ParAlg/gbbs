@@ -33,8 +33,8 @@
 #include "DensestSubgraph.h"
 #include "ligra.h"
 
-template <class vertex>
-double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double DensestSubgraph_runner(G& GA, commandLine P) {
   double eps = P.getOptionDoubleValue("-eps", 0.001);
   std::cout << "### Application: DensestSubgraph" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

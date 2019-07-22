@@ -30,10 +30,11 @@
 
 namespace cc {
 
-template <template <class W> class vertex, class W>
-inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
-                                 size_t level, bool pack = false,
-                                 bool permute = false) {
+template <class G>
+inline sequence<uintE> CC_impl(G& GA, double beta,
+                               size_t level, bool pack = false,
+                               bool permute = false) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   permute |= (level > 0);
   timer ldd_t;
@@ -105,8 +106,8 @@ inline size_t largest_cc(Seq& labels) {
   return sz;
 }
 
-template <class vertex>
-inline sequence<uintE> CC(graph<vertex>& GA, double beta = 0.2, bool pack = false, bool permute = false) {
+template <class G>
+inline sequence<uintE> CC(G& GA, double beta = 0.2, bool pack = false, bool permute = false) {
   return CC_impl(GA, beta, 0, pack, permute);
 }
 

@@ -35,8 +35,8 @@
 #include "SCC.h"
 #include "ligra.h"
 
-template <class vertex>
-double SCC_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double SCC_runner(G& GA, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
   std::cout << "### Application: SCC (Strongly Connected Components)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

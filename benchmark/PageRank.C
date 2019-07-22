@@ -33,8 +33,8 @@
 
 #include "PageRank.h"
 
-template <class vertex>
-double PageRank_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double PageRank_runner(G& GA, commandLine P) {
   std::cout << "### Application: PageRank" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;

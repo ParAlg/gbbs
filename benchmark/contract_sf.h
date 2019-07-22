@@ -41,9 +41,10 @@ namespace contract_sf {
   }
 
   // Fetch edges when the numbers of clusters is < small_cluster_size
-  template <template <typename W> class vertex, class W, class C, class E>
-  auto fetch_intercluster_small(graph<vertex<W>>& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class G, class C, class E>
+  auto fetch_intercluster_small(G& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
     debug(cout << "Running fetch edges small" << endl;);
+    using W = typename G::weight_type;
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
@@ -77,9 +78,10 @@ namespace contract_sf {
     return edge_table;
   }
 
-  template <template <typename W> class vertex, class W, class C, class E>
-  auto fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class G, class C, class E>
+  auto fetch_intercluster_te(G& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
     debug(cout << "Running fetch edges te" << endl;);
+    using W = typename G::weight_type;
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
@@ -136,8 +138,9 @@ namespace contract_sf {
     return edge_table;
   }
 
-  template <template <typename W> class vertex, class W, class C, class E>
-  auto fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class G, class C, class E>
+  auto fetch_intercluster(G& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+    using W = typename G::weight_type;
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
@@ -177,9 +180,10 @@ namespace contract_sf {
     return edge_table;
   }
 
-  template <template <typename W> class vertex, class W, class E>
-  inline auto contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class G, class E>
+  inline auto contract(G& GA, sequence<uintE>& clusters, size_t num_clusters, E& edge_mapping) {
     // Remove duplicates by hashing
+    using W = typename G::weight_type;
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
 

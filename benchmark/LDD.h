@@ -57,8 +57,9 @@ inline void num_clusters(Seq& s) {
   std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
 }
 
-template <template <typename W> class vertex, class W, class Seq>
-inline void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
+template <class G, class Seq>
+inline void num_intercluster_edges(G& GA, Seq& s) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -103,10 +104,11 @@ struct LDD_F {
   inline bool cond(uintE d) { return cluster_ids[d] == UINT_E_MAX; }
 };
 
-template <template <typename W> class vertex, class W, class EO>
-inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
-                                  double beta, bool permute = true,
-                                  bool pack = false) {
+template <class G, class EO>
+inline sequence<uintE> LDD_impl(G& GA, const EO& oracle,
+                                double beta, bool permute = true,
+                                bool pack = false) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
 
   sequence<uintE> vertex_perm;
@@ -164,9 +166,10 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
   return cluster_ids;
 }
 
-template <template <typename W> class vertex, class W>
-sequence<uintE> LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
+template <class G>
+sequence<uintE> LDD(G& GA, double beta, bool permute = true,
                       bool pack = false) {
+  using W = typename G::weight_type;
   debug(cout << "permute = " << permute << endl;);
   auto oracle = [&](const uintE& u, const uintE& v, const W& wgh) {
     return true;
@@ -174,8 +177,8 @@ sequence<uintE> LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
   return LDD_impl(GA, oracle, beta, permute, pack);
 }
 
-template <template <typename W> class vertex, class W, class EO>
-sequence<uintE> LDD_oracle(graph<vertex<W> >& GA, EO& oracle, double beta,
+template <class G, class EO>
+sequence<uintE> LDD_oracle(G& GA, EO& oracle, double beta,
                              bool permute = true, bool pack = false) {
   return LDD_impl(GA, oracle, beta, permute, pack);
 }

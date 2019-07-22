@@ -222,17 +222,19 @@ inline size_t key_for_pair(uint32_t k1, uintE k2, pbbslib::random rnd) {
   return rnd.ith_rand(key);
 }
 
-template <template <class W> class vertex, class W>
-inline edge_array<W> get_all_edges(graph<vertex<W>>& G) {
+template <class G>
+inline edge_array<W> get_all_edges(G& G) {
+  using W = typename G::weight_type;
   auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return true;
   };
   return filter_all_edges(G, pred);
 }
 
-template <template <class W> class vertex, class W>
-inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
+template <class G>
+inline edge_array<W> get_top_k(G& G, size_t k, pbbslib::random r,
                                bool first_round = false) {
+  using W = typename G::weight_type;
   if (k == static_cast<size_t>(G.m)) {
     return get_all_edges(G);
   }
@@ -326,10 +328,11 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
   }
 }
 
-template <template <class W> class vertex, class W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+template <class G,
+          typename std::enable_if<!std::is_same<typename G::weight_type, pbbslib::empty>::value,
                                   int>::type = 0>
-inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
+inline void MST(G& GA, bool largemem = false) {
+  using W = typename G::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   using ct = cas_type;
 
@@ -452,10 +455,9 @@ inline void MST(graph<vertex<W>>& GA, bool largemem = false) {
   pbbslib::free_array(min_edges);
 }
 
-template <
-    template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
-inline uint32_t* MST(graph<vertex<W>>& GA, bool largeem = false) {
+template <class G,
+    typename std::enable_if<std::is_same<typename G::weight_type, pbbslib::empty>::value, int>::type = 0>
+inline uint32_t* MST(G& GA, bool largeem = false) {
   std::cout << "Unimplemented for unweighted graphs"
             << "\n";
   exit(0);
@@ -471,9 +473,10 @@ inline size_t key_for_pair(uint32_t k1, uintE k2, pbbslib::random rnd) {
   return rnd.ith_rand(key);
 }
 
-template <template <class W> class vertex, class W, class UF>
-inline edge_array<W> get_remaining(graph<vertex<W>>& G, size_t k, UF& uf,
+template <class G, class UF>
+inline edge_array<W> get_remaining(G& G, size_t k, UF& uf,
                                    pbbslib::random r) {
+  using W = typename G::weight_type;
   auto filter_pred = [&](const uint32_t& src, const uintE& ngh, const W& wgh) {
     if (src < ngh) {
       return 2;  // return in array
@@ -486,7 +489,8 @@ inline edge_array<W> get_remaining(graph<vertex<W>>& G, size_t k, UF& uf,
 }
 
 template <template <class W> class vertex, class W, class UF>
-inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
+inline void pack_shortcut_edges(G& G, UF& uf) {
+  using W = typename G::weight_type;
   auto filter_pred = [&](const uint32_t& src, const uintE& ngh,
                          const W& wgh) -> int {
     if (src > ngh) {
@@ -501,9 +505,10 @@ inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
   std::cout << "G.m is now " << G.m << "\n";
 }
 
-template <template <class W> class vertex, class W, class UF>
-inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
+template <class G, class UF>
+inline edge_array<W> get_top_k(G& G, size_t k, UF& uf,
                                pbbslib::random r, bool first_round = false) {
+  using W = typename G::weight_type;
   if (k == static_cast<size_t>(G.m)) {
     return get_remaining(G, k, uf, r);
   }
@@ -554,10 +559,11 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
   return filter_edges(G, filter_pred);
 }
 
-template <template <class W> class vertex, class W,
+template <class G
           typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
                                   int>::type = 0>
-inline void MST(graph<vertex<W>>& GA) {
+inline void MST(G& GA) {
+  using W = typename G::weight_type;
   using res = reservation<uintE>;
   using edge_t = std::tuple<uintE, uintE, W>;
 
@@ -623,10 +629,9 @@ inline void MST(graph<vertex<W>>& GA) {
   mst_edges.del();
 }
 
-template <
-    template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
-inline uint32_t* MST(graph<vertex<W>>& GA) {
+template <class G
+    typename std::enable_if<std::is_same<typename G::weight_type, pbbslib::empty>::value, int>::type = 0>
+inline uint32_t* MST(G& GA) {
   exit(0);
 }
 }  // namespace MST_spec_for

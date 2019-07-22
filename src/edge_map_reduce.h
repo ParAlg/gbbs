@@ -33,13 +33,13 @@
 // edgeMapInduced
 // Version of edgeMapSparse that maps over the one-hop frontier and returns it
 // as a sparse array, without filtering.
-template <class E, class vertex, class VS, class F>
-inline vertexSubsetData<E> edgeMapInduced(graph<vertex>& GA, VS& V, F& f, const flags fl) {
+template <class E, class G, class VS, class F>
+inline vertexSubsetData<E> edgeMapInduced(G& GA, VS& V, F& f, const flags fl) {
   uintT m = V.size();
   V.toSparse();
   auto degrees = sequence<uintT>(m);
   par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    vertex v = GA.get_vertex(V.vtx(i));
+    auto v = GA.get_vertex(V.vtx(i));
     uintE degree = (fl & in_edges) ? v.getInDegree() : v.getOutDegree();
     degrees[i] = degree;
   });
@@ -100,19 +100,19 @@ struct HistogramWrapper {
   }
 };
 
-template <class V, template <typename W> class vertex, class W>
+template <class V, class G>
 struct EdgeMap {
+  using W = typename G::weight_type;
   using K = uintE;  // keys are always uintE's (vertex-identifiers)
   using KV = std::tuple<K, V>;
-  using w_vertex = vertex<W>;
-  graph<w_vertex>& G;
+  G& GA;
   pbbslib::hist_table<K, V> ht;
 
-  EdgeMap(graph<w_vertex>& _G, KV _empty,
+  EdgeMap(G& GA, KV _empty,
           size_t ht_size = std::numeric_limits<size_t>::max())
-      : G(_G) {
+      : GA(GA) {
     if (ht_size == std::numeric_limits<size_t>::max()) {
-      ht_size = G.m / 20;
+      ht_size = GA.m / 20;
     }
     ht = pbbslib::hist_table<K, V>(_empty, ht_size);
   }
@@ -125,13 +125,13 @@ struct EdgeMap {
   template <class O, class M, class Map, class Reduce, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapReduce_sparse(VS& vs, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, const flags fl) {
     size_t m = vs.size();
-    size_t n = G.n;
+    size_t n = GA.n;
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
 
     auto oneHop =
-        edgeMapInduced<M, w_vertex, VS>(G, vs, map_f, fl);
+        edgeMapInduced<M, G, VS>(GA, vs, map_f, fl);
     oneHop.toSparse();
 
     auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
@@ -160,7 +160,7 @@ struct EdgeMap {
   // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
   template <class O, class M, class Cond, class Map, class Reduce, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapReduce_dense(VS& vs, Cond& cond_f, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, const flags fl) {
-    size_t n = G.n;
+    size_t n = GA.n;
     size_t m = vs.size();
 #ifdef NVM
     bool inner_parallel = false;
@@ -177,8 +177,8 @@ struct EdgeMap {
       parallel_for(0, n, [&] (size_t i) {
         if (cond_f(i)) {
           M reduced_val = (fl & in_edges) ?
-                           G.get_vertex(i).template reduceInNgh<M>(i, map_f, red_monoid, inner_parallel) :
-                           G.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid, inner_parallel);
+                           GA.get_vertex(i).template reduceInNgh<M>(i, map_f, red_monoid, inner_parallel) :
+                           GA.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid, inner_parallel);
           auto tup = std::make_tuple(i, reduced_val);
           apply_f(tup);
         }
@@ -190,8 +190,8 @@ struct EdgeMap {
         std::get<0>(out[i]) = false;
         if (cond_f(i)) {
           M reduced_val = (fl & in_edges) ?
-                           G.get_vertex(i).template reduceInNgh<M>(i, map_f, red_monoid, inner_parallel) :
-                           G.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid, inner_parallel);
+                           GA.get_vertex(i).template reduceInNgh<M>(i, map_f, red_monoid, inner_parallel) :
+                           GA.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid, inner_parallel);
           auto tup = std::make_tuple(i, reduced_val);
           auto applied_val = apply_f(tup);
           if (applied_val.exists) {
@@ -215,14 +215,14 @@ struct EdgeMap {
     // Currently unimplemented: only using edgeMapReduce_dense. TODO: finish
     // implementation of this method (if needed).
     exit(0);
-    size_t n = G.n;
+    size_t n = GA.n;
     vs.toSparse();
     auto degree_f = [&](size_t i) {
-      return (fl & in_edges) ? G.V[vs.vtx(i)].getInVirtualDegree() : G.V[vs.vtx(i)].getOutVirtualDegree();
+      return (fl & in_edges) ? GA.V[vs.vtx(i)].getInVirtualDegree() : GA.V[vs.vtx(i)].getOutVirtualDegree();
     };
     auto degree_imap = pbbslib::make_sequence<uintE>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
-    if (threshold == -1) threshold = G.m / 20;
+    if (threshold == -1) threshold = GA.m / 20;
     if (vs.size() + out_degrees > threshold) {
       // dense
       return edgeMapReduce_dense<O, M>(vs, cond_f, map_f, reduce_f, apply_f, id, fl);
@@ -248,7 +248,7 @@ struct EdgeMap {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
     auto oneHop =
-        edgeMapInduced<pbbslib::empty, w_vertex, VS>(G, vs, map_f, fl);
+        edgeMapInduced<pbbslib::empty, G, VS>(GA, vs, map_f, fl);
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
@@ -262,7 +262,7 @@ struct EdgeMap {
   // dense [read all neighbors]
   template <class O, class Apply, class Pred, class VS>
   inline vertexSubsetData<O> edgeMapCount_dense(VS& vs, Apply& apply_f, Pred& pred_f, const flags fl = 0) {
-    size_t n = G.n;
+    size_t n = GA.n;
     size_t m = vs.size();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
@@ -286,8 +286,8 @@ struct EdgeMap {
       parallel_for(0, n, [&] (size_t i) {
         if (pred_f(i)) {
           size_t count = (fl & in_edges) ?
-            G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
-            G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
+            GA.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
+            GA.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
           auto tup = std::make_tuple(i, count);
           if (count > 0) {
             apply_f(tup);
@@ -300,8 +300,8 @@ struct EdgeMap {
       parallel_for(0, n, [&] (size_t i) {
         if (pred_f(i)) {
           size_t count = (fl & in_edges) ?
-            G.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
-            G.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
+            GA.get_vertex(i).countInNgh(i, count_f, inner_parallel) :
+            GA.get_vertex(i).countOutNgh(i, count_f, inner_parallel);
           auto tup = std::make_tuple(i, count);
           if (count > 0) {
             auto applied_val = apply_f(tup);
@@ -324,13 +324,13 @@ struct EdgeMap {
   inline vertexSubsetData<O> edgeMapCount(VS& vs, Apply& apply_f, Pred& pred_f, const flags fl = 0, long threshold=-1) {
     vs.toSparse();
     auto degree_f = [&](size_t i) -> size_t {
-      return (fl & in_edges) ? G.get_vertex(vs.vtx(i)).getInVirtualDegree()
-                             : G.get_vertex(vs.vtx(i)).getOutVirtualDegree();
+      return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInVirtualDegree()
+                             : GA.get_vertex(vs.vtx(i)).getOutVirtualDegree();
     };
     auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
     size_t degree_threshold = threshold;
-    if (threshold == -1) degree_threshold = G.m / 20;
+    if (threshold == -1) degree_threshold = GA.m / 20;
     if (vs.size() + out_degrees > degree_threshold) {
       // dense
       return edgeMapCount_dense<O>(vs, apply_f, pred_f, fl);

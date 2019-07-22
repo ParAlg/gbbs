@@ -31,9 +31,10 @@ namespace contract {
   }
 
   // Fetch edges when the numbers of clusters is < small_cluster_size
-  template <template <typename W> class vertex, class W, class C>
-  std::pair<edge*, size_t> fetch_intercluster_small(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+  template <class G, class C>
+  std::pair<edge*, size_t> fetch_intercluster_small(G& GA, C& clusters, size_t num_clusters) {
     debug(cout << "Running fetch edges small" << endl;);
+    using W = typename G::weight_type;
     using K = std::tuple<uintE, uintE>;
     using V = pbbslib::empty;
     using KV = std::tuple<K, V>;
@@ -78,9 +79,10 @@ namespace contract {
     return std::make_pair(edge_ret, edge_size);
   }
 
-  template <template <typename W> class vertex, class W, class C>
-  std::pair<edge*, size_t> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+  template <class G, class C>
+  std::pair<edge*, size_t> fetch_intercluster_te(G& GA, C& clusters, size_t num_clusters) {
     debug(cout << "Running fetch edges te" << endl;);
+    using W = typename G::weight_type;
     using K = std::tuple<uintE, uintE>;
     using V = pbbslib::empty;
     using KV = std::tuple<K, V>;
@@ -144,8 +146,9 @@ namespace contract {
     return std::make_pair(edge_ret, edge_size);
   }
 
-  template <template <typename W> class vertex, class W, class C>
-  std::pair<edge*, size_t> fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+  template <class G, class C>
+  std::pair<edge*, size_t> fetch_intercluster(G& GA, C& clusters, size_t num_clusters) {
+    using W = typename G::weight_type;
     using K = std::tuple<uintE, uintE>;
     using V = pbbslib::empty;
     using KV = std::tuple<K, V>;
@@ -197,10 +200,11 @@ namespace contract {
     return std::make_pair(edge_ret, edge_size);
   }
 
-  template <template <typename W> class vertex, class W>
+  template <class G>
   inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>, sequence<uintE>>
-  contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters) {
+  contract(G& GA, sequence<uintE>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
+    using W = typename G::weight_type;
     using K = std::tuple<uintE, uintE>;
 
     edge* edges;

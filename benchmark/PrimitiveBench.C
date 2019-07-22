@@ -34,8 +34,9 @@
 
 #include "ligra.h"
 
-template <template <class W> class vertex, class W>
-double PrimitiveBench_runner(graph<vertex<W>>& GA, commandLine P) {
+template <class G>
+double PrimitiveBench_runner(G& GA, commandLine P) {
+  using W = typename G::weight_type;
   timer t; t.start();
 
   auto ins = pbbs::sequence<uintE>(GA.n, (uintE)1);

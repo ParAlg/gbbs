@@ -40,8 +40,8 @@
 #include <fstream>
 #include <iostream>
 
-template <class vertex>
-double MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double MaximalMatching_runner(G& GA, commandLine P) {
   std::cout << "### Application: CC (Connectivity)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;

@@ -44,13 +44,15 @@
 //    ADJACENCY ARRAY REPRESENTATION
 // **************************************************************
 
-template <class vertex>
+template <template <class W> class vertex, class W>
 struct graph {
-  vertex* V;
+  using w_vertex = vertex<W>;
+  using weight_type = W;
+  w_vertex* V;
 
 #ifdef NVM
-  vertex* V0;
-  vertex* V1;
+  w_vertex* V0;
+  w_vertex* V1;
 #endif
 
   size_t n;
@@ -58,14 +60,13 @@ struct graph {
   bool transposed;
   uintE* flags;
   std::function<void()> deletion_fn;
-  std::function<graph<vertex>()> copy_fn;
 
 #ifndef NVM
-  vertex get_vertex(size_t i) {
+  w_vertex get_vertex(size_t i) {
       	return V[i];
   }
 #else
-  vertex get_vertex(size_t i) {
+  w_vertex get_vertex(size_t i) {
 //		int cpu = sched_getcpu();
 //		int node = numa_node_of_cpu(cpu);
     if (numanode() == 0) {
@@ -76,23 +77,13 @@ struct graph {
   }
 #endif
 
-  graph(vertex* _V, long _n, long _m, std::function<void()> _d,
+  graph(w_vertex* _V, long _n, long _m, std::function<void()> _d,
         uintE* _flags = NULL)
 #ifdef NVM
       : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), V0(_V), V1(_V) {}
 #else
       : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d) {}
 #endif
-
-  graph(vertex* _V, long _n, long _m, std::function<void()> _d,
-        std::function<graph<vertex>()> _c, uintE* _flags = NULL)
-#ifdef NVM
-      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), copy_fn(_c), V0(_V), V1(_V) {}
-#else
-      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), copy_fn(_c) {}
-#endif
-
-  auto copy() -> graph<vertex> { return copy_fn(); }
 
   void del() {
     if (flags != NULL) pbbslib::free_array(flags);
@@ -123,55 +114,4 @@ inline auto get_deletion_fn(void* V, void* in_edges, void* out_edges)
     pbbslib::free_array(out_edges);
   };
   return std::bind(df, V, in_edges, out_edges);
-}
-
-template <class vertex, class E>
-inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* edges, size_t n,
-                                                  size_t m, size_t sizeofe) {
-  auto df = [&](vertex* V, E* edges, size_t n, size_t m, size_t sizeofe) {
-    auto NV = pbbslib::new_array_no_init<vertex>(n);
-    auto NE = pbbslib::new_array_no_init<E>(sizeofe);
-    par_for(0, sizeofe, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { NE[i] = edges[i]; });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      NV[i].setOutDegree(V[i].getOutDegree());
-      size_t off = (V[i].getOutNeighbors() - edges);
-      NV[i].setOutNeighbors(NE + off);
-    });
-    graph<vertex> G = graph<vertex>(NV, n, m, get_deletion_fn(NV, NE));
-    G.copy_fn = get_copy_fn(NV, NE, n, m, sizeofe);
-    //    std::cout << "Returning copied graph" << "\n";
-    return G;
-  };
-  return std::bind(df, V, edges, n, m, sizeofe);
-}
-
-template <class vertex, class E>
-inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
-                                                  E* out_edges, size_t n,
-                                                  size_t m, size_t m_in,
-                                                  size_t m_out) {
-  auto df = [&](vertex* V, E* in_edges, E* out_edges, size_t n, size_t m,
-                size_t m_in, size_t m_out) {
-    auto NV = pbbslib::new_array_no_init<vertex>(n);
-    auto Nin = pbbslib::new_array_no_init<E>(m_in);
-    auto Nout = pbbslib::new_array_no_init<E>(m_out);
-    par_for(0, m_in, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { Nin[i] = in_edges[i]; });
-    par_for(0, m_in, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { Nout[i] = out_edges[i]; });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      NV[i].setOutDegree(V[i].getOutDegree());
-      NV[i].setInDegree(V[i].getInDegree());
-      size_t out_off = (V[i].getOutNeighbors() - out_edges);
-      NV[i].setOutNeighbors(Nout + out_off);
-      size_t in_off = (V[i].getInNeighbors() - in_edges);
-      NV[i].setOutNeighbors(Nin + in_off);
-    });
-    graph<vertex> G = graph<vertex>(
-        V, n, m, get_deletion_fn((void*)NV, (void*)Nin, (void*)Nout));
-    G.copy_fn = get_copy_fn(NV, Nin, Nout, n, m, m_in, m_out);
-    return G;
-  };
-  return std::bind(df, V, in_edges, out_edges, n, m, m_in, m_out);
 }

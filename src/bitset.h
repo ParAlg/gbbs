@@ -50,10 +50,8 @@ namespace bitsets {
       uintE degree,
       size_t num_blocks,
       size_t bs,
-      size_t bs_in_bytes,
       size_t vtx_bytes) {
     metadata* block_metadata = (metadata*)finger;
-    size_t bitset_bytes = bs_in_bytes - sizeof(metadata); // bs_in_bytes - metadata bytes
     parallel_for(0, num_blocks, [&] (size_t block_num) {
       block_metadata[block_num] = metadata(block_num, block_num*bs);
       assert(block_metadata[block_num].block_num == block_num);
@@ -86,5 +84,7 @@ namespace bitsets {
     uint8_t byte_to_test = finger[byte_id];
     return byte_to_test & (static_cast<uint8_t>(1) << offset_within_byte);
   }
+
+
 
 } // namespace bitsets

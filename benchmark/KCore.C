@@ -36,8 +36,8 @@
 #include "KCore.h"
 #include "ligra.h"
 
-template <class vertex>
-double KCore_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double KCore_runner(G& GA, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
   bool fa = P.getOption("-fa");
   std::cout << "### Application: KCore" << std::endl;
@@ -56,7 +56,7 @@ double KCore_runner(graph<vertex>& GA, commandLine P) {
 
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = (fa) ? KCore_FA(GA, num_buckets) : KCore(GA, num_buckets);
+  auto cores = (fa) ? KCore_FA<G>(GA, num_buckets) : KCore<G>(GA, num_buckets);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

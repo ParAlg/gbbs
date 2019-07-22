@@ -38,8 +38,8 @@
 #include "ligra.h"
 
 // Beta should be set to log n/2k. See Corollary 3.1 and Lemma 3.2 in MPVX'15.
-template <class vertex>
-double Spanner_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double Spanner_runner(G& GA, commandLine P) {
   size_t n = GA.n;
   size_t k = P.getOptionLongValue("-k", 4);
   double beta = log(n)/(2*k);

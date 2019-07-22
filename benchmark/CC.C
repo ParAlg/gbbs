@@ -35,8 +35,8 @@
 #include "CC.h"
 #include "ligra.h"
 
-template <class vertex>
-double CC_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double CC_runner(G& GA, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
   std::cout << "### Application: CC (Connectivity)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

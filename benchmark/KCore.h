@@ -29,14 +29,15 @@
 #include "pbbslib/dyn_arr.h"
 
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
+template <class G>
+inline sequence<uintE> KCore(G& GA, size_t num_buckets = 16) {
+  using W = typename G::weight_type;
   const size_t n = GA.n;
   auto D =
       sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)GA.m / 50);
+  auto em = EdgeMap<uintE, G>(GA, std::make_tuple(UINT_E_MAX, 0),
+                              (size_t)GA.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
@@ -106,9 +107,10 @@ struct kcore_fetch_add {
   inline bool cond(uintE d) { return D[d] > k; }
 };
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
+template <class G>
+inline sequence<uintE> KCore_FA(G& GA,
                                   size_t num_buckets = 16) {
+  using W = typename G::weight_type;
   const size_t n = GA.n;
   auto D =
       sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
@@ -153,14 +155,15 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
   return D;
 }
 
-template <template <typename W> class vertex, class W>
-inline pbbslib::dyn_arr<uintE> DegeneracyOrder(graph<vertex<W> >& GA, size_t num_buckets = 16) {
+template <class G>
+inline pbbslib::dyn_arr<uintE> DegeneracyOrder(G& GA, size_t num_buckets = 16) {
+  using W = typename G::weight_type;
   const size_t n = GA.n;
   auto D =
       sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
 
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)GA.m / 50);
+  auto em = EdgeMap<uintE, G>(GA, std::make_tuple(UINT_E_MAX, 0),
+                              (size_t)GA.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 

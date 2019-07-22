@@ -78,9 +78,10 @@ namespace mm {
     return rnd.ith_rand(key);
   }
 
-  template <template <class W> class vertex, class W>
-  inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
+  template <class G>
+  inline edge_array<W> get_all_edges(G& G, bool* matched,
                                      pbbslib::random rnd) {
+    using W = typename G::weight_type;
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
@@ -103,9 +104,10 @@ namespace mm {
     return E;
   }
 
-  template <template <class W> class vertex, class W>
-  inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
+  template <class G>
+  inline edge_array<W> get_edges(G& G, size_t k, bool* matched,
                                  pbbslib::random r) {
+    using W = typename G::weight_type;
     using edge = std::tuple<uintE, uintE, W>;
     size_t m = G.m / 2;  // assume sym
     bool finish = (m <= k);
@@ -153,9 +155,9 @@ namespace mm {
 // Runs a constant number of filters on the whole graph, and runs the
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
-template <template <class W> class vertex, class W>
-inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
-    graph<vertex<W>>& G) {
+template <class G>
+inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(G& G) {
+  using W = typename G::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
 
   timer mt;
@@ -221,8 +223,9 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
   return std::move(ret);
 }
 
-template <template <class W> class vertex, class W, class Seq>
-inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
+template <class G, class Seq>
+inline void verify_matching(G& G, Seq& matching) {
+  using W = typename G::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>(n, [](size_t i) { return 1; });
   auto matched = sequence<uintE>(n, [](size_t i) { return 0; });

@@ -34,8 +34,8 @@
 
 #include "BFS.h"
 
-template <class vertex>
-double BFS_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double BFS_runner(G& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
   std::cout << "### Application: BFS" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;

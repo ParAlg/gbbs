@@ -91,8 +91,9 @@ inline BC_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
   return BC_Back_Vertex_F<V, D>(visited, dependencies, num_paths);
 }
 
-template <template <class W> class vertex, class W>
-inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
+template <class G>
+inline sequence<fType> BC(G& GA, const uintE& start) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
 
   auto NumPaths = sequence<fType>(n, [](size_t i) { return 0.0; });
@@ -154,8 +155,9 @@ inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
   return Dependencies;
 }
 
-template <template <class W> class vertex, class W, class E>
-vertexSubset sparse_fa_dense_em(graph<vertex<W>>& GA, E& EM, vertexSubset& Frontier, pbbs::sequence<fType>& NumPaths, pbbs::sequence<fType>& Storage, pbbs::sequence<bool>& Visited,  const flags fl) {
+template <class G, class E>
+vertexSubset sparse_fa_dense_em(G& GA, E& EM, vertexSubset& Frontier, pbbs::sequence<fType>& NumPaths, pbbs::sequence<fType>& Storage, pbbs::sequence<bool>& Visited,  const flags fl) {
+  using W = typename G::weight_type;
   size_t out_degrees = 0;
   if (Frontier.dense()) {
     auto degree_f = [&](size_t i) -> size_t {
@@ -216,10 +218,10 @@ vertexSubset sparse_fa_dense_em(graph<vertex<W>>& GA, E& EM, vertexSubset& Front
   }
 }
 
-template <template <class W> class vertex, class W>
-inline sequence<fType> BC_EM(graph<vertex<W>>& GA, const uintE& start) {
+template <class G>
+inline sequence<fType> BC_EM(G& GA, const uintE& start) {
   size_t n = GA.n;
-  auto EM = EdgeMap<fType, vertex, W>(GA, std::make_tuple(UINT_E_MAX, (fType)0.0), (size_t)GA.m/1000);
+  auto EM = EdgeMap<fType, G>(GA, std::make_tuple(UINT_E_MAX, (fType)0.0), (size_t)GA.m/1000);
 
   auto NumPaths = sequence<fType>(n, static_cast<fType>(0));
   auto Storage = sequence<fType>(n, static_cast<fType>(0));

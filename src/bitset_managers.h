@@ -5,7 +5,19 @@
 #include "encodings/byte_pd_amortized.h"
 
 
+// block degree computable by differencing two starts.
+template <class E>
+struct vtx_info {
+  uintE vtx_degree; // vertex's (packed) degree.
+  uintE vtx_num_blocks; // number of blocks associated with v
+  size_t vtx_block_offset; // pointer into the block structure
 
+  E* vtx_edges; // pointer to the original edges (prevents one random read)
+
+  vtx_info(uintE degree, uintE num_blocks, size_t block_offset, E* edges) :
+    vtx_degree(degree), vtx_num_blocks(num_blocks),
+    vtx_block_offset(block_offset), vtx_edges(edges) {}
+};
 
 template <template <class W> class vertex, class W>
 struct sym_bitset_manager {
@@ -19,19 +31,22 @@ struct sym_bitset_manager {
   uint8_t* blocks_start;
   uint8_t* block_data_start;
 
+  vtx_info<E>* v_infos;
+
   static constexpr uintE edges_per_block = 2048;
   static constexpr uintE bytes_per_block = edges_per_block/8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(metadata);
 
   E* e0;
-  sym_bitset_manager(const uintE vtx_id, const uintE vtx_degree,
-      const uintE vtx_num_blocks, uint8_t* blocks_start, E* e0) :
-        vtx_id(vtx_id),
-        vtx_degree(vtx_degree),
-        vtx_num_blocks(vtx_num_blocks),
-        blocks_start(blocks_start),
-        e0(e0) {
+  sym_bitset_manager(const uintE vtx_id, uint8_t* blocks, vtx_info<E>* v_infos) :
+        vtx_id(vtx_id), v_infos(v_infos) {
+    auto& v_info = v_infos[vtx_id];
+    vtx_degree = v_info.vtx_degree;
+    vtx_num_blocks = v_info.vtx_num_blocks;
+    e0 = v_info.vtx_edges;
+
+    blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks*sizeof(metadata));
   }
 
@@ -110,6 +125,39 @@ struct sym_bitset_manager {
     }
   }
 
+  template <class P, class E>
+  inline void pack_blocks(uintE vtx_id, P& p, E* tmp, bool parallel) {
+
+//    metadata* block_metadata = (metadata*)blocks_start;
+//
+//    // 1. pack each block. atomically increment counter to mark newly emptied
+//    // blocks.
+//    uintE num_empty_blocks = 0;
+//    par_for(0, vtx_num_blocks, [&] (size_t block_id) {
+//      uintE offset = block_metadata[block_id].offset;
+//      uintE orig_block_num = block_metadata[block_id].block_num;
+//      uint8_t* block_bits = block_data_start + bitset_bytes_per_block*block_id;
+//
+//      uintE block_start = orig_block_num*edges_per_block;
+//      uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
+//
+//      E* e = get_edges();
+//
+//      for (size_t k=0; k<(block_end - block_start); k++) {
+//        if (bitsets::is_bit_set(block_bits, k)) { // check if the k-th bit is set
+//          auto& ee = e[block_start + k]; // if so, fetch the k-th edge
+//          bool ret = f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f with the correct offset
+//          if (!ret) break;
+//        }
+//      }
+//
+//    }, parallel);
+//
+//    // 2. if any blocks became empty, compact the bitset structure. Update
+//    // vtx_info for this vertex.
+
+  }
+
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     E* edges = e0;
 #ifdef NVM
@@ -132,19 +180,22 @@ struct compressed_sym_bitset_manager {
   uint8_t* blocks_start;
   uint8_t* block_data_start;
 
+  vtx_info<E>* v_infos;
+
   static constexpr uintE edges_per_block = PARALLEL_DEGREE;
   static constexpr uintE bytes_per_block = edges_per_block/8 + sizeof(uintE);
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(uintE);
 
   E* e0;
-  compressed_sym_bitset_manager(const uintE vtx_id, const uintE vtx_degree,
-      const uintE vtx_num_blocks, uint8_t* blocks_start, E* e0) :
-        vtx_id(vtx_id),
-        vtx_degree(vtx_degree),
-        vtx_num_blocks(vtx_num_blocks),
-        blocks_start(blocks_start),
-        e0(e0) {
+  compressed_sym_bitset_manager(const uintE vtx_id, uint8_t* blocks, vtx_info<E>* v_infos) :
+        vtx_id(vtx_id), v_infos(v_infos) {
+    auto& v_info = v_infos[vtx_id];
+    vtx_degree = v_info.vtx_degree;
+    vtx_num_blocks = v_info.vtx_num_blocks;
+    e0 = v_info.vtx_edges;
+
+    blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks*sizeof(metadata));
   }
 

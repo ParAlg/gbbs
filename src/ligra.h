@@ -686,16 +686,17 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmapcopy = mutates || P.getOptionValue("-mc");                        \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
-      auto G =                                                                  \
-            readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);       \
-        run_app(G, APP, rounds)                                                \
+      auto G =                                                                 \
+            readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);      \
+      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
+      run_app(G, APP, rounds)                                                 \
     }
 
-
-//      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                  \
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \
 //          iFile, symmetric, mmap, mmapcopy);                                    \
-//        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \
+//      auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \
+
+
 
 
 #define generate_weighted_main(APP, mutates)                                   \

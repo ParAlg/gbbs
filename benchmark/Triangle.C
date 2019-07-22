@@ -33,8 +33,8 @@
 
 #include "Triangle.h"
 
-template <class vertex>
-double Triangle_runner(graph<vertex>& GA, commandLine P) {
+template <class G>
+double Triangle_runner(G& GA, commandLine P) {
   std::cout << "### Application: Triangle Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;

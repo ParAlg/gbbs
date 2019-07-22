@@ -167,10 +167,11 @@ inline sequence<char> readStringFromFile(char* fileName) {
 }
 
 template <template <typename W> class vertex>
-inline graph<vertex<intE>> readWeightedGraph(
+inline graph<vertex, intE> readWeightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
-  using wvtx = vertex<intE>;
+  using W = intE;
+  using wvtx = vertex<W>;
   sequence<char*> tokens;
   sequence<char> S;
   if (bytes == nullptr) {
@@ -278,20 +279,19 @@ inline graph<vertex<intE>> readWeightedGraph(
     });
 
     pbbslib::free_array(tOffsets);
-    return graph<wvtx>(v, n, m, get_deletion_fn(v, inEdges, edges),
-                       get_copy_fn(v, inEdges, edges, n, m, m, m));
+    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
   } else {
     pbbslib::free_array(offsets);
-    return graph<wvtx>(v, n, m, get_deletion_fn(v, edges),
-                       get_copy_fn(v, edges, n, m, m));
+    return graph<vertex, W>(v, n, m, get_deletion_fn(v, edges));
   }
 }
 
 template <template <typename W> class vertex>
-inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
+inline graph<vertex, pbbslib::empty> readUnweightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
-  using wvtx = vertex<pbbslib::empty>;
+  using W = pbbslib::empty;
+  using wvtx = vertex<W>;
   sequence<char*> tokens;
   sequence<char> S;
 
@@ -386,22 +386,19 @@ inline graph<vertex<pbbslib::empty>> readUnweightedGraph(
 
     pbbslib::free_array(tOffsets);
 
-    return graph<wvtx>(
-        v, n, m, get_deletion_fn(v, inEdges, edges),
-        get_copy_fn(v, (std::tuple<uintE, pbbslib::empty>*)inEdges,
-                    (std::tuple<uintE, pbbslib::empty>*)edges, n, m, m, m));
+    return graph<vertex, W>(
+        v, n, m, get_deletion_fn(v, inEdges, edges));
   } else {
     pbbslib::free_array(offsets);
-    return graph<wvtx>(
-        v, n, m, get_deletion_fn(v, edges),
-        get_copy_fn(v, (std::tuple<uintE, pbbslib::empty>*)edges, n, m, m));
+    return graph<vertex, W>(
+        v, n, m, get_deletion_fn(v, edges));
   }
 }
 
 
 // Handles both unweighted and weighted graphs.
 template <template <typename W> class vertex, class W>
-inline graph<vertex<W>> readCompressedGraph(
+inline graph<vertex, W> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
     char* bytes = nullptr, size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using w_vertex = vertex<W>;
@@ -545,8 +542,7 @@ inline graph<vertex<W>> readCompressedGraph(
 #endif
   }
 
-  graph<w_vertex> G(V0, n, m, deletion_fn,
-                    get_copy_fn(V0, edges0, n, m, totalSpace));
+  graph<vertex, W> G(V0, n, m, deletion_fn);
 #ifdef NVM
   G.V0 = V0;
   G.V1 = V1;
