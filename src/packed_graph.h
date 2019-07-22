@@ -192,7 +192,7 @@ struct packed_graph {
     }, 1);
   }
 
-  // Only thing that differs between uncompressed/compressed is the block-size.
+  // Symmetric: Only thing that differs between uncompressed/compressed is the block-size.
   template <bool bool_enable=true, typename
   std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
   packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {
@@ -205,6 +205,21 @@ struct packed_graph {
     init_block_memory(nb);
   }
 
+  // Compressed Symmetric:
+  template <bool bool_enable=true, typename
+  std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
+  packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {
+    using block_manager = compressed_sym_bitset_manager<vertex, W>;
+    bs = block_manager::edges_per_block;
+    cout << "compressed: block_size = " << bs << endl;
+    auto nb = [&] (size_t v) {
+      size_t degree = GA.get_vertex(v).getOutDegree();
+      return pbbs::num_blocks(degree, bs);
+    };
+    init_block_memory(nb);
+  }
+
+  // Symmetric: get_vertex
   template <bool bool_enable=true, typename
     std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
@@ -212,9 +227,17 @@ struct packed_graph {
     using block_manager = sym_bitset_manager<vertex, W>;
     uint8_t* v_blocks_start = blocks + (v_info.block_offset*bs_in_bytes);
     auto sym_blocks = block_manager(v, v_info.degree, v_info.num_blocks, v_blocks_start, v_info.edges);
-//    if (v == 10012) {
-//      cout << "degree = " << v_info.degree << " num_blocks = " << v_info.num_blocks << " offset = " << v_info.block_offset << " edges = " << v_info.edges << endl;
-//    }
+    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
+  }
+
+  // Compressed Symmetric: get_vertex
+  template <bool bool_enable=true, typename
+    std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
+  __attribute__((always_inline)) inline auto get_vertex(uintE v) {
+    auto& v_info = VI[v];
+    using block_manager = compressed_sym_bitset_manager<vertex, W>;
+    uint8_t* v_blocks_start = blocks + (v_info.block_offset*bs_in_bytes);
+    auto sym_blocks = block_manager(v, v_info.degree, v_info.num_blocks, v_blocks_start, v_info.edges);
     return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
