@@ -22,26 +22,49 @@ namespace bitsets {
 
   // returns the number of bytes for a given block_size
   // note that the block_size must be a multiple of 8
-  static size_t bitset_bs_bytes(size_t block_size) {
+  static uintE bitset_bs_bytes(uintE block_size) {
     assert(block_size % 8 == 0);
     return (block_size/8) + sizeof(metadata);
   }
 
-  static void bitset_init_all_blocks(uint8_t* finger,
-      size_t num_blocks, size_t bs, size_t bs_in_bytes) {
-    // uintE/block used at the front
+  // Returns the number of bytes needed for the bitset structure for a given
+  // degree and block size.
+  static uintE bytes_for_degree_and_bs(uintE degree, uintE bs, uintE bs_in_bytes) {
+    if (degree == 0) {
+      return 0;
+    }
+    uintE num_blocks = pbbs::num_blocks(degree, bs);
+    uintE full_blocks = num_blocks - 1;
+    uintE rem = degree % bs;
+    uintE last_block_bytes = sizeof(metadata) + (rem+8-1)/8; //ceil(rem/8);
+    uintE full_block_bytes = full_blocks*bs_in_bytes;
+    // make sure it is 8-byte aligned
+    uintE total_bytes = full_block_bytes + last_block_bytes;
+
+    uintE tot_rem = total_bytes & 0x7; // remainder mod 8
+    return (tot_rem == 0) ? total_bytes : (total_bytes + (8 - tot_rem));
+  }
+
+  static void bitset_init_blocks(
+      uint8_t* finger,
+      uintE degree,
+      size_t num_blocks,
+      size_t bs,
+      size_t bs_in_bytes,
+      size_t vtx_bytes) {
     metadata* block_metadata = (metadata*)finger;
     size_t bitset_bytes = bs_in_bytes - sizeof(metadata); // bs_in_bytes - metadata bytes
-    uint8_t* bitset_data_start = finger + (num_blocks*sizeof(metadata));
     parallel_for(0, num_blocks, [&] (size_t block_num) {
       block_metadata[block_num] = metadata(block_num, block_num*bs);
       assert(block_metadata[block_num].block_num == block_num);
       assert(block_metadata[block_num].offset == block_num*bs);
-      uint8_t* start = bitset_data_start + bitset_bytes*block_num;
+    }, 512);
 
-      for (size_t j=0; j<bitset_bytes; j++) {
-        start[j] = std::numeric_limits<uint8_t>::max(); //full byte
-      }
+    // Remaining bytes are data-bytes, all initially set to one.
+    size_t data_bytes = vtx_bytes - (num_blocks*sizeof(metadata));
+    uint8_t* bitset_data_start = finger + (num_blocks*sizeof(metadata));
+    parallel_for(0, data_bytes, [&] (size_t i) {
+      bitset_data_start[i] = std::numeric_limits<uint8_t>::max();
     }, 512);
   }
 
