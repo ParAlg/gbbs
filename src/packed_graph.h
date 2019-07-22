@@ -38,6 +38,30 @@
 #include "block_vertex.h"
 #include "bitset_managers.h"
 
+// TODO: define concept for packable graph?
+//#ifdef CONCEPTS
+//template<typename W>
+//concept bool PackableGraph =
+//  requires(T t, size_t u) {
+//  typename T::value_type;
+//  { t.size() } -> size_t;
+//  { t.slice() };
+//  { t[u] };
+//};
+//
+//template<typename T>
+//concept bool Range =
+//  Seq<T> && requires(T t, size_t u) {
+//  { t[u] } -> typename T::value_type&;
+//  typename T::iterator;
+//};
+//#define SEQ Seq
+//#define RANGE Range
+//#else
+//#define SEQ typename
+//#define RANGE typename
+//#endif
+
 /*
  * block_manager supplies:
  *  - num_blocks
@@ -68,6 +92,7 @@ struct packed_symmetric_vertex {
     return in_block_degree(block_num);
   }
 
+  /* mapping/reducing/counting primitives */
   template <class F>
   inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = true) {
     block_vertex_ops::map_nghs<BM, W, F>(vtx_id, block_manager, f, parallel);
@@ -167,6 +192,19 @@ struct packed_symmetric_vertex {
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = false) {
     decodeOutNghBreakEarly(vtx_id, vertexSubset, f, g, parallel);
+  }
+
+  /* packing primitives */
+  template <class P, class E>
+  inline size_t packOutNgh(uintE vtx_id, P& p, E* tmp, bool parallel = true) {
+//    block_manager.pack_blocks(
+//    block_vertex_ops::packNghs(vtx_id, block_manager, p, tmp, parallel);
+  }
+
+  /* packing primitives */
+  template <class P, class E>
+  inline size_t packInNghs(uintE vtx_id, P& p, E* tmp, bool parallel = true) {
+    return packOutNgh(vtx_id, p, tmp, parallel);
   }
 };
 

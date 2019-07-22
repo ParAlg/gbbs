@@ -400,36 +400,12 @@ inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
-template <template <class V> class G  /* graph type */,
-          template <class W> class  V /* vertex type */,
-          class W                     /* weight type */,
-          class P                     /* predicate function */>
-inline void packAllEdges(G<V<W>>& GA, P& p, const flags& fl = 0) {
-  size_t n = GA.n;
-  auto space = sequence<uintT>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    space[i] = GA.get_vertex(i).calculateOutTemporarySpace();
-  });
-  size_t total_space = pbbslib::scan_add_inplace(space);
-  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
-
-  auto for_inner = [&](size_t i) {
-    std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-    GA.get_vertex(i).packOutNgh(i, p, tmp_v);
-  };
-  par_for(0, n, 1, [&] (size_t i) { for_inner(i); });
-}
-
-
-// Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
-// in the new adjacency list if p(ngh) is true.
-template <template <class V> class G  /* graph type */,
-          template <class W> class  V /* vertex type */,
-          class W                     /* weight type */,
-          class P                     /* predicate function */>
-inline vertexSubsetData<uintE> packEdges(G<V<W>>& GA,
-                                         vertexSubset& vs, P& p,
-                                         const flags& fl = 0) {
+template <class G  /* packable graph type */,
+          class W  /* weight type */,
+          class P  /* predicate function */>
+inline vertexSubsetData<uintE> edgeMapPack(G& GA,
+                                           vertexSubset& vs, P& p,
+                                           const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
   vs.toSparse();
   size_t m = vs.numNonzeros();
@@ -471,17 +447,13 @@ inline vertexSubsetData<uintE> packEdges(G<V<W>>& GA,
   }
 }
 
-template <template <class V> class G  /* graph type */,
-          template <class W> class  V /* vertex type */,
-          class W                     /* weight type */,
-          class P                     /* predicate function */>
-inline vertexSubsetData<uintE> edgeMapFilter(G<V<W>>& GA,
+template <class G  /* graph type */,
+          class W  /* weight type */,
+          class P  /* predicate function */>
+inline vertexSubsetData<uintE> edgeMapFilter(G& GA,
                                              vertexSubset& vs, P& p,
                                              const flags& fl = 0) {
   vs.toSparse();
-  if (fl & pack_edges) {
-    return packEdges<G, V, W, P>(GA, vs, p, fl);
-  }
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   using S = std::tuple<uintE, uintE>;
@@ -491,18 +463,16 @@ inline vertexSubsetData<uintE> edgeMapFilter(G<V<W>>& GA,
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
-  }
-  if (should_output(fl)) {
-    par_for(0, m, 1, [&] (size_t i) {
+    parallel_for(0, m, [&] (size_t i) {
       uintE v = vs.vtx(i);
       size_t ct = GA.get_vertex(v).countOutNgh(v, p);
       outV[i] = std::make_tuple(v, ct);
-    });
+    }, 1);
   } else {
-    par_for(0, m, 1, [&] (size_t i) {
+    parallel_for(0, m, [&] (size_t i) {
       uintE v = vs.vtx(i);
       GA.get_vertex(v).countOutNgh(v, p);
-    });
+    }, 1);
   }
   if (should_output(fl)) {
     return vertexSubsetData<uintE>(n, m, outV);
@@ -718,11 +688,11 @@ inline size_t get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
       auto G =                                                                  \
             readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);       \
-      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                  \
-        run_app(GA, APP, rounds)                                                \
+        run_app(G, APP, rounds)                                                \
     }
 
 
+//      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                  \
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \
 //          iFile, symmetric, mmap, mmapcopy);                                    \
 //        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \

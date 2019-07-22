@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ligra.h"
+#include "bitvector.h"
 
 template <class W>
 struct BFS_F {
@@ -65,3 +66,44 @@ inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }
+
+
+// Useful for testing bitvector implementation. Running time is similar to
+// ordinary BFS.
+//template <class W>
+//struct Reach_F {
+//  bitvector& b;
+//  Reach_F(bitvector& b) : b(b) {}
+//  inline bool update(const uintE& s, const uintE& d, const W& w) {
+//    return updateAtomic(s, d, w);
+//  }
+//  inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
+//    return b.atomic_set_bit(d);
+//  }
+//  inline bool cond(const uintE& d) { return !b.is_set(d); }
+//};
+//
+//template <template <class W> class vertex, class W>
+//inline size_t Reachable(graph<vertex<W> >& GA, uintE src) {
+//  bitvector b(GA.n);
+//  cout << "running reachable" << endl;
+//
+//  vertexSubset Frontier(GA.n, src);
+//  b.set_bit(src);
+//
+//  size_t reachable = 0;
+//  while (!Frontier.isEmpty()) {
+//    std::cout << Frontier.size() << "\n";
+//    reachable += Frontier.size();
+//    timer tt; tt.start();
+//    vertexSubset output =
+//        edgeMap(GA, Frontier, Reach_F<W>(b), -1, sparse_blocked | dense_parallel);
+//    tt.stop(); tt.reportTotal("edge map time");
+//    Frontier.del();
+//    Frontier = output;
+//  }
+//  Frontier.del();
+//  std::cout << "Reachable: " << reachable << "\n";
+//  b.del();
+//  return reachable;
+//}

@@ -98,7 +98,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
       return Elms[ngh] != sc::COVERED;
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = get_bucket_clamped(ct); };
-    auto packed_vtxs = edgeMapFilter(G, active, pack_predicate, pack_edges);
+    auto packed_vtxs = edgeMapPack(G, active, pack_predicate);
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 

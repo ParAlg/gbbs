@@ -204,7 +204,42 @@ inline size_t decode_block(uintE vtx_id, BM& block_manager,
   return k;
 }
 
-// functions to pack
+//// functions to pack
+//// Caller is responsible for setting the degree on v.
+//template <class BM, class W, class P, class E>
+//inline size_t packNghs(uintE vtx_id, BM& block_manager, P& p,
+//                       E* tmp) {
+//  // 1. Pack out all live blocks
+//  par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
+//    block_manager.pack_block(block_num, p);
+//  }, parallel);
+//
+//  block_manager.pack_blocks(p);
+//
+//  if (d < vertex_ops::kAllocThreshold) {
+//    uintE k = 0;
+//    for (size_t i = 0; i < d; i++) {
+//      auto nw = nghs[i];
+//      uintE ngh = std::get<0>(nw);
+//      W wgh = std::get<1>(nw);
+//      if (p(vtx_id, ngh, wgh)) {
+//        nghs[k++] = std::make_tuple(ngh, wgh);
+//      }
+//    }
+//    return k;
+//  } else {
+//    // copy to tmp
+//    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] = nghs[i]; });
+//    auto pc = [&](const std::tuple<uintE, W>& nw) {
+//      return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
+//    };
+//    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
+//    return k;
+//  }
+//}
+
+
+
 
 
 }  // namespace block_vertex_ops
