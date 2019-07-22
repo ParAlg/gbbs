@@ -36,102 +36,142 @@
 
 #include "graph.h"
 #include "block_vertex.h"
+#include "bitset_managers.h"
 
-//// A wrapper around an ordinary (immutable) graph.
-//// * Extends vertices with a bit-packing structure that admits fast decremental
-////   updates.
-//// * constructor takes an ordinary graph, and generates a packed_graph.
-//template <class vertex, class W>
-//struct packed_graph {
-//  size_t n; /* number of vertices */
-//  size_t m; /* number of edges; updated by decremental updates  */
-//
-//  using D = typename vertex::block_decode;
-//
-//  vertex* V;
-//  block_vertex<W, D>* BV;
-//
-//  // block_vertex holds:
-//  // * bitset (blocks)
-//  // * degree
-//
-//  packed_graph(graph<vertex>& GA) {
-//
-//  }
-//
-//  // Would be good if we can write the NVM code here s.t. we can have internal
-//  // parallelism over out-edges. (i.e. we fetch the correct inner-vertex's block
-//  // based on numa-node, so a get_block function defined on the vertex)
-//  auto get_vertex(uintE v) {
-//    return BV[v];
-//  }
-//
-//  template <class F>
-//  void map_edges(F f, bool parallel_inner_map=true) {
-//    par_for(0, n, 1, [&] (size_t v) {
-//      BV[v].mapOutNgh(v, f, parallel_inner_map);
-//    });
-//  }
-//}
+/*
+ * block_manager supplies:
+ *  - num_blocks
+ *  - decode_block, decode_block_cond
+ */
+template <class W, /* weight type */
+          class BM /* block manager type */>
+struct packed_symmetric_vertex {
 
-  // block manager knows about (1) block size and (2) num blocks.
+  BM block_manager; // copy; not a reference.
 
+  packed_symmetric_vertex(BM&& block_manager) :
+    block_manager(std::move(block_manager)) {}
 
-static constexpr size_t kUncompressedBlockSize = 1024;
-
-// An allocation-free wrapper around an ordinary (immutable) graph.
-// * The bit-packing structure is a no-op (returns all blocks in the
-//   original graph for a vertex, and does not support packing).
-// This is mainly for measuring the overhead due to the new interfaces (which
-// seems to be pretty minimal---around 10% compared to using the immutable
-// interfaces)
-template <template <class W> class vertex, class W>
-struct noop_packed_graph {
-  size_t n; /* number of vertices */
-  size_t m; /* number of edges  */
-  graph<vertex<W>>& GA;
-
-  using E = typename vertex<W>::E;
-  using WW = W;
-
-  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) { }
-
-  template <bool bool_enable=true, typename
-    std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
-  __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-    using block_manager = sym_noop_manager<vertex, W>;
-#ifndef NVM
-    auto sym_blocks = block_manager(GA.V[v], v, kUncompressedBlockSize);
-#else
-    auto sym_blocks = block_manager(GA.V0[v], GA.V1[v], v, kUncompressedBlockSize);
-#endif
-    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
+  __attribute__((always_inline)) inline uintE getOutDegree() {
+    return block_manager.get_degree();
+  }
+  __attribute__((always_inline)) inline uintE getInDegree() {
+    return getOutDegree();
   }
 
-  template <bool bool_enable=true, typename
-    std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
-  __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-    using block_manager = compressed_sym_noop_manager<vertex, W>;
-#ifndef NVM
-    auto sym_blocks = block_manager(GA.V[v], v);
-#else
-    auto sym_blocks = block_manager(GA.V0[v], GA.V1[v], v);
-#endif
-    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
+  __attribute__((always_inline)) inline uintE getNumInBlocks() { return block_manager.num_blocks(); }
+  __attribute__((always_inline)) inline uintE getNumOutBlocks() { return getNumInBlocks(); }
+  __attribute__((always_inline)) inline uintE in_block_degree(uintE block_num) {
+    return block_manager.block_degree(block_num);
+  }
+  __attribute__((always_inline)) inline uintE out_block_degree(uintE block_num) {
+    return in_block_degree(block_num);
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map=true) {
-    par_for(0, n, 1, [&] (size_t v) {
-      auto vert_v = get_vertex(v);
-      vert_v.mapOutNgh(v, f, parallel_inner_map);
-    });
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = true) {
+    block_vertex_ops::map_nghs<BM, W, F>(vtx_id, block_manager, f, parallel);
   }
 
-  void del() {
+  template <class F>
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = true) {
+    return mapOutNgh(vtx_id, f, parallel);
+  }
+
+  template <class M, class Monoid>
+  inline auto reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce,
+                           bool parallel=true) -> typename Monoid::T {
+    return block_vertex_ops::map_reduce<BM, W, M, Monoid>(
+        vtx_id, block_manager, m, reduce, parallel);
+  }
+
+  template <class M, class Monoid>
+  inline auto reduceInNgh(uintE vtx_id, M& m, Monoid& reduce,
+                          bool parallel=true) -> typename Monoid::T {
+    return reduceOutNgh(vtx_id, m, reduce, parallel);
+  }
+
+  template <class F>
+  inline size_t countOutNgh(uintE vtx_id, F& f, bool parallel = true) {
+    auto reduce = pbbs::addm<size_t>();
+    return reduceOutNgh(vtx_id, f, reduce, parallel);
+  }
+
+  template <class F>
+  inline size_t countInNgh(uintE vtx_id, F& f, bool parallel = true) {
+    return countOutNgh(vtx_id, f, parallel);
+  }
+
+  inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
+    return block_manager.ith_neighbor(i);
+  }
+
+  inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
+    return block_manager.ith_neighbor(i);
+  }
+
+  /* copying primitives */
+  template <class F, class G>
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+    block_vertex_ops::copyNghs<BM, W>(vtx_id, block_manager, o, f, g, parallel);
+  }
+
+  template <class F, class G>
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+    copyOutNgh(vtx_id, o, f, g, parallel);
+  }
+
+  /* edgemap primitives */
+  template <class F, class G, class H>
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
+    block_vertex_ops::decodeNghsSparse<BM, W, F>(vtx_id, block_manager, o, f, g, h, parallel);
+  }
+
+  template <class F, class G, class H>
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
+    decodeOutNghSparse(vtx_id, o, f, g, h, parallel);
+  }
+
+  template <class F, class G>
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num,
+                               F& f, G& g) {
+    return block_vertex_ops::decode_block<BM, W, F, G>(vtx_id,
+        block_manager, o, block_num, f, g);
+  }
+
+  template <class F, class G>
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num,
+                              F& f, G& g) {
+    return decodeOutBlock(vtx_id, o, block_num, f, g);
+  }
+
+  template <class F, class G>
+  inline void decodeOutNgh(uintE vtx_id, F& f, G& g, bool parallel=true) {
+    block_vertex_ops::decodeNghs<BM, W, F, G>(vtx_id,
+        block_manager, f, g, parallel);
+  }
+
+  template <class F, class G>
+  inline void decodeInNgh(uintE vtx_id, F& f, G& g, bool parallel=true) {
+    decodeOutNgh(vtx_id, f, g, parallel);
+  }
+
+  template <class VS, class F, class G>
+  inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
+                                     bool parallel = false) {
+    block_vertex_ops::decodeNghsBreakEarly<BM, W, F, G, VS>(
+        vtx_id, block_manager, vertexSubset, f, g, parallel);
+  }
+
+  template <class VS, class F, class G>
+  inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
+                                    bool parallel = false) {
+    decodeOutNghBreakEarly(vtx_id, vertexSubset, f, g, parallel);
   }
 };
 
+// Augments an ordinary (immutable) graph with the ability to filter/pack out
+// edges.
 template <template <class W> class vertex, class W>
 struct packed_graph {
   size_t n; /* number of vertices */
@@ -215,8 +255,7 @@ struct packed_graph {
   }
 
   packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {
-    init_block_size_and_metadata();
-
+    init_block_size_and_metadata(); // conditioned on vertex type
     init_block_memory();
   }
 
@@ -226,10 +265,9 @@ struct packed_graph {
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     auto& v_info = VI[v];
     using block_manager = sym_bitset_manager<vertex, W>;
-//    uint8_t* v_blocks_start = blocks + (v_info.block_offset*bs_in_bytes);
     uint8_t* v_blocks_start = blocks + v_info.block_offset;
     auto sym_blocks = block_manager(v, v_info.degree, v_info.num_blocks, v_blocks_start, v_info.edges);
-    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
+    return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
   // Compressed Symmetric: get_vertex
@@ -238,10 +276,9 @@ struct packed_graph {
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     auto& v_info = VI[v];
     using block_manager = compressed_sym_bitset_manager<vertex, W>;
-//    uint8_t* v_blocks_start = blocks + (v_info.block_offset*bs_in_bytes);
     uint8_t* v_blocks_start = blocks + v_info.block_offset;
     auto sym_blocks = block_manager(v, v_info.degree, v_info.num_blocks, v_blocks_start, v_info.edges);
-    return block_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
+    return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
   template <class F>
@@ -255,61 +292,3 @@ struct packed_graph {
   void del() {
   }
 };
-
-
-// Need two separate bit-packing implementations based on the underlying vertex
-// type (one for uncompressed vertices, and one for compressed vertices).
-
-// Implement filter_graph, etc internally on the packed_graph data structure.
-// The hope is that this will be strictly faster than the previous
-// implementations we used.
-
-// Constructor method for a packed_graph takes an ordinary graph and converts it
-// to a packed_graph. Note that graphs in the system are now immutable. The only
-// way to modify a graph is by generating a packed_graph
-
-// templatize on the vertex type <Vertex>. Supply this to the bit-packing
-// structure, which uses type_traits to generate one of two implementations. We
-// then hold a packed_structure_name<V> as a class member.
-
-// Question now is how to implement the vertex interfaces using the packed
-// structure.
-
-// One option is to design a packed_vertex and packed_compressed_vertex
-// structure.
-//
-// This requires a large amount of code rewriting/duplication, though.
-//
-//
-//
-//
-// Another way is to change vertex and compressed_vertex to operate on a given
-// block size. For vertex, we can configure the block size, and for
-// compressed_vertex it is just the block_size of the underlying compression
-// format.
-//
-// Now, the decoding methods are structured to be specified
-// (1) which blocks to decode using the block-structure supplied by the graph class
-// (2) the specification of what to do for each block which is of the form of
-// checking the i'th bit of the block to see whether the i'th neighbor needs
-// decoding.
-//
-// For ordinary (non-packed) graphs, the decoding structure simply generates all
-// of the blocks for the vertex, and returns true for all i-th bit queries.
-//
-// After implementing we can measure the overhead this extra code/inlining adds
-// to the regular (unpacked) structure. Hopefully it is minimal.
-
-// Issue is for intersection. Need to write a (parallel) block intersection.
-// Note that the same algorithm could be used for both compressed and
-// uncompressed since both work on blocks now.
-
-// Is there a higher-level way of synthesizing a vertex implementation for the
-// blocked_format now? i.e. a blocked_vertex.h class
-
-// A blocked_vertex takes an implementation to decode blocks (trivial for
-// uncompressed, the decompression method for the compressed case).
-
-
-
-
