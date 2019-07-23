@@ -134,7 +134,7 @@ inline graph<vertex<intE>> readWeightedGraph(
         exit(-1);
       }
     } else {
-      sequence<char> S = readStringFromFile(fname);
+      S = readStringFromFile(fname);
     }
   }
 // for binary inputs
