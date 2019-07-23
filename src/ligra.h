@@ -689,7 +689,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
       auto G =                                                                 \
             readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);      \
       auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
-      run_app(G, APP, rounds)                                                 \
+      run_app(GA, APP, rounds)                                                 \
     }
 
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \

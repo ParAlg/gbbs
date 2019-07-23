@@ -231,6 +231,9 @@ struct packed_graph {
     parallel_for(0, n, [&] (size_t i) {
       uintE degree = GA.get_vertex(i).getOutDegree();
       block_bytes_offs[i] = bitsets::bytes_for_degree_and_bs(degree, bs, bs_in_bytes);
+      if (degree == 2048) {
+        cout << "for vtx i = " << i << " bytes = " << block_bytes_offs[i] << endl;
+      }
     });
     block_bytes_offs[n] = 0;
 
@@ -254,6 +257,9 @@ struct packed_graph {
       // set vertex_info for v
       VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, edges);
 
+      if (degree == 2048) {
+        cout << "v = " << v << " vtx_degree = " << degree << " vtx_bytes = " << vtx_bytes << endl;
+      }
       // initialize blocks corresponding to v's neighbors
       uint8_t* our_block_start = blocks + block_byte_offset;
       bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, vtx_bytes);

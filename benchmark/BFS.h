@@ -46,7 +46,7 @@ struct BFS_F {
 
 template <class G>
 inline sequence<uintE> BFS(G& GA, uintE src) {
-  using W = typename GA::weight_type;
+  using W = typename G::weight_type;
   // Creates Parents array, initialized to all -1, except for src.
   auto Parents = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;

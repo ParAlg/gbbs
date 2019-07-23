@@ -76,11 +76,12 @@ struct sym_bitset_manager {
 
     uintE block_start = orig_block_num*edges_per_block;
     uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
+    assert(block_start < block_end);
 
     // the following matches the perf of noop
-    // uintE block_start = block_id*edges_per_block;
-    // uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
-    // uintE offset = block_start;
+//     uintE block_start = block_id*edges_per_block;
+//     uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
+//     uintE offset = block_start;
 
     E* e = get_edges();
 
@@ -88,6 +89,8 @@ struct sym_bitset_manager {
     // use a fetch_next_bit function.
     // Probably also faster to have a look-up table on the byte
     for (size_t k=0; k<(block_end - block_start); k++) {
+//      bool isset = bitsets::is_bit_set(block_bits, k);
+//      assert(isset);
       if (bitsets::is_bit_set(block_bits, k)) { // check if the k-th bit is set
         auto& ee = e[block_start + k]; // if so, fetch the k-th edge
         f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f with the correct offset
@@ -106,10 +109,10 @@ struct sym_bitset_manager {
     uintE block_start = orig_block_num*edges_per_block;
     uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
 
-    // the following matches the perf of noop
-    // uintE block_start = block_id*edges_per_block;
-    // uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
-    // uintE offset = block_start;
+//     the following matches the perf of noop
+//     uintE block_start = block_id*edges_per_block;
+//     uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
+//     uintE offset = block_start;
 
     E* e = get_edges();
 
@@ -117,6 +120,8 @@ struct sym_bitset_manager {
     // use a fetch_next_bit function.
     // Probably also faster to have a look-up table on the byte
     for (size_t k=0; k<(block_end - block_start); k++) {
+//      bool isset = bitsets::is_bit_set(block_bits, k);
+//      assert(isset);
       if (bitsets::is_bit_set(block_bits, k)) { // check if the k-th bit is set
         auto& ee = e[block_start + k]; // if so, fetch the k-th edge
         bool ret = f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f with the correct offset

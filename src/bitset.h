@@ -36,6 +36,10 @@ namespace bitsets {
     uintE num_blocks = pbbs::num_blocks(degree, bs);
     uintE full_blocks = num_blocks - 1;
     uintE rem = degree % bs;
+    if (rem == 0) {
+      full_blocks += 1;
+      return full_blocks*bs_in_bytes;
+    }
     uintE last_block_bytes = sizeof(metadata) + (rem+8-1)/8; //ceil(rem/8);
     uintE full_block_bytes = full_blocks*bs_in_bytes;
     // make sure it is 8-byte aligned
@@ -64,6 +68,9 @@ namespace bitsets {
     parallel_for(0, data_bytes, [&] (size_t i) {
       bitset_data_start[i] = std::numeric_limits<uint8_t>::max();
     }, 512);
+    if (degree == 2048) {
+      cout << "data_bytes = " << data_bytes << " vtx_bytes = " << vtx_bytes << endl;
+    }
   }
 
   static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks, uintE degree) {
