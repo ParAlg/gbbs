@@ -350,13 +350,6 @@ struct compressedSymmetricVertex {
                                               getOutNeighbors(), m, r, parallel);
   }
 
-  template <class P>
-  inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
-    size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
-                                            getInNeighbors(), pred, tmp);
-    setInDegree(deg);
-    return deg;
-  }
 
   template <class P, class O>
   inline void filterOutNgh(uintE vtx_id, P& p, O& out,
@@ -372,17 +365,26 @@ struct compressedSymmetricVertex {
                                     tmp, out);
   }
 
-  template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
-    uintE orig_degree = getOutDegree();
-    if (orig_degree > 0) {
-      size_t deg = cvertex::packNghs<W, C, P>(vtx_id, orig_degree,
-                                              getOutNeighbors(), pred, tmp);
-      setOutDegree(deg);
-      return deg;
-    }
-    return orig_degree;
-  }
+// Deprecated
+//  template <class P>
+//  inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
+//    uintE orig_degree = getOutDegree();
+//    if (orig_degree > 0) {
+//      size_t deg = cvertex::packNghs<W, C, P>(vtx_id, orig_degree,
+//                                              getOutNeighbors(), pred, tmp);
+//      setOutDegree(deg);
+//      return deg;
+//    }
+//    return orig_degree;
+//  }
+//
+//  template <class P>
+//  inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
+//    size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
+//                                            getInNeighbors(), pred, tmp);
+//    setInDegree(deg);
+//    return deg;
+//  }
 
   inline size_t intersect(compressedSymmetricVertex<W, C>* other, long our_id,
                           long other_id) {
@@ -603,21 +605,22 @@ struct compressedAsymmetricVertex {
                                     tmp, out);
   }
 
-  template <class P>
-  inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
-    size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
-                                            getInNeighbors(), pred, tmp);
-    setInDegree(deg);
-    return deg;
-  }
-
-  template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
-    size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getOutDegree(),
-                                            getOutNeighbors(), pred, tmp);
-    setOutDegree(deg);
-    return deg;
-  }
+// Deprecated
+//  template <class P>
+//  inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
+//    size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
+//                                            getInNeighbors(), pred, tmp);
+//    setInDegree(deg);
+//    return deg;
+//  }
+//
+//  template <class P>
+//  inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
+//    size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getOutDegree(),
+//                                            getOutNeighbors(), pred, tmp);
+//    setOutDegree(deg);
+//    return deg;
+//  }
 
   inline size_t intersect(compressedAsymmetricVertex<W, C>* other, long our_id,
                           long other_id) {

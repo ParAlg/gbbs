@@ -401,7 +401,6 @@ inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
 template <class G  /* packable graph type */,
-          class W  /* weight type */,
           class P  /* predicate function */>
 inline vertexSubsetData<uintE> edgeMapPack(G& GA,
                                            vertexSubset& vs, P& p,
@@ -413,22 +412,22 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  auto space = sequence<uintT>(m);
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uintE v = vs.vtx(i);
-    space[i] = GA.get_vertex(v).calculateOutTemporarySpace();
-  });
-  size_t total_space = pbbslib::scan_add_inplace(space);
+  // auto space = sequence<uintT>(m);
+  // par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  //   uintE v = vs.vtx(i);
+  //   space[i] = GA.get_vertex(v).calculateOutTemporarySpace();
+  // });
+  // size_t total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
+  // auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        size_t ct = GA.get_vertex(v).packOutNgh(v, p, tmp_v);
+        // std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
+        size_t ct = GA.get_vertex(v).packOutNgh(v, p);
         outV[i] = std::make_tuple(v, ct);
       };
       par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
@@ -438,8 +437,8 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA,
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        GA.get_vertex(v).packOutNgh(v, p, tmp_v);
+        // std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
+        GA.get_vertex(v).packOutNgh(v, p);
       };
       par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
     }
@@ -448,7 +447,6 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA,
 }
 
 template <class G  /* graph type */,
-          class W  /* weight type */,
           class P  /* predicate function */>
 inline vertexSubsetData<uintE> edgeMapFilter(G& GA,
                                              vertexSubset& vs, P& p,
@@ -688,10 +686,9 @@ inline size_t get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
       auto G =                                                                 \
             readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap);      \
-      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
-      run_app(GA, APP, rounds)                                                 \
+      run_app(G, APP, rounds)                                                 \
     }
-
+//      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \
 //          iFile, symmetric, mmap, mmapcopy);                                    \
 //      auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \

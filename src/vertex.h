@@ -616,21 +616,22 @@ struct symmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), p, out, tmp);
   }
 
-  template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
-        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
-    setOutDegree(k);
-    return k;
-  }
-
-  template <class P>
-  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
-        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
-    setInDegree(k);
-    return k;
-  }
+// Deprecated
+//  template <class P>
+//  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+//    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
+//        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
+//    setOutDegree(k);
+//    return k;
+//  }
+//
+//  template <class P>
+//  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+//    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
+//        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
+//    setInDegree(k);
+//    return k;
+//  }
 
   inline size_t calculateOutTemporarySpace() {
     return vertex_ops::calculateTemporarySpace(getOutDegree());
@@ -856,21 +857,22 @@ struct asymmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), p, out, tmp);
   }
 
-  template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
-        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
-    setOutDegree(k);
-    return k;
-  }
-
-  template <class P>
-  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
-        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
-    setInDegree(k);
-    return k;
-  }
+// Deprecated
+//  template <class P>
+//  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+//    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
+//        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
+//    setOutDegree(k);
+//    return k;
+//  }
+//
+//  template <class P>
+//  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+//    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
+//        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
+//    setInDegree(k);
+//    return k;
+//  }
 
   inline size_t calculateOutTemporarySpace() {
     return vertex_ops::calculateTemporarySpace(getOutDegree());

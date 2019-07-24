@@ -195,15 +195,15 @@ struct packed_symmetric_vertex {
   }
 
   /* packing primitives */
-  template <class P, class E>
-  inline size_t packOutNgh(uintE vtx_id, P& p, E* tmp, bool parallel = true) {
-    block_manager.pack_blocks(vtx_id, p, tmp, parallel);
+  template <class P>
+  inline size_t packOutNgh(uintE vtx_id, P& p, bool parallel = true) {
+    return block_manager.pack_blocks(vtx_id, p, parallel);
   }
 
   /* packing primitives */
-  template <class P, class E>
-  inline size_t packInNghs(uintE vtx_id, P& p, E* tmp, bool parallel = true) {
-    return packOutNgh(vtx_id, p, tmp, parallel);
+  template <class P>
+  inline size_t packInNghs(uintE vtx_id, P& p, bool parallel = true) {
+    return packOutNgh(vtx_id, p, parallel);
   }
 };
 
@@ -296,7 +296,8 @@ struct packed_graph {
     std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = sym_bitset_manager<vertex, W>;
-    auto sym_blocks = block_manager(v, blocks, VI);
+    uintE original_degree = GA.get_vertex(v).getOutDegree();
+    auto sym_blocks = block_manager(v, blocks, original_degree, VI);
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
@@ -305,7 +306,8 @@ struct packed_graph {
     std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = compressed_sym_bitset_manager<vertex, W>;
-    auto sym_blocks = block_manager(v, blocks, VI);
+    uintE original_degree = GA.get_vertex(v).getOutDegree();
+    auto sym_blocks = block_manager(v, blocks, original_degree, VI);
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 

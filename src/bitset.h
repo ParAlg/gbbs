@@ -92,6 +92,18 @@ namespace bitsets {
     return byte_to_test & (static_cast<uint8_t>(1) << offset_within_byte);
   }
 
+  __attribute__((always_inline)) static inline bool flip_bit(uint8_t* finger, uintE k) {
+    // 8 entries/byte, so block corresponding to k is k/8 = k >> 3;
+    uintE byte_id = k >> 3;
+
+    // idx within the byte is (k & byte-mask) = (k & 0x7) (value between 0--7)
+    constexpr uintE byte_mask = 0x7;
+    uint8_t offset_within_byte = k & byte_mask;
+
+    uint8_t byte_to_test = finger[byte_id];
+    return byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
+  }
+
 
 
 } // namespace bitsets

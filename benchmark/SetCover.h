@@ -64,17 +64,18 @@ struct Visit_Elms {
 // interface.
 
 template <template <class W> class vertex, class W>
-inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
+inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets = 512) {
+  auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);
   timer it; it.start();
-  auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Elms = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return get_bucket_clamped(G.V[i].getOutDegree()); });
+  auto D = sequence<uintE>(GA.n, [&](size_t i) { return get_bucket_clamped(GA.get_vertex(i).getOutDegree()); });
   auto d_slice = D.slice();
-  auto b = make_vertex_buckets(G.n, d_slice, decreasing, num_buckets);
+  auto b = make_vertex_buckets(GA.n, d_slice, decreasing, num_buckets);
 
-  auto perm = sequence<uintE>(G.n);
+  auto perm = sequence<uintE>(GA.n);
   timer bktt, packt, permt, emt;
 
   timer nbt;
@@ -85,7 +86,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
-    auto active = vertexSubset(G.n, bkt.identifiers);
+    auto active = vertexSubset(GA.n, bkt.identifiers);
     size_t cur_bkt = bkt.id;
     if (cur_bkt == b.null_bkt) {
       break;
@@ -98,7 +99,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
       return Elms[ngh] != sc::COVERED;
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = get_bucket_clamped(ct); };
-    auto packed_vtxs = edgeMapPack(G, active, pack_predicate);
+    auto packed_vtxs = edgeMapPack(GA, active, pack_predicate);
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
@@ -128,7 +129,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
 
     emt.start();
     // 2. sets -> elements (write_min to acquire neighboring elements)
-    edgeMap(G, still_active, sc::Visit_Elms<W>(Elms.begin(), perm.begin()), -1,
+    edgeMap(GA, still_active, sc::Visit_Elms<W>(Elms.begin(), perm.begin()), -1,
             no_output | dense_forward);
 
     // 3. sets -> elements (count and add to cover if enough elms were won)
@@ -140,7 +141,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
     auto threshold_f = [&](const uintE& v, const uintE& numWon) {
       if (numWon >= low_threshold) D[v] = UINT_E_MAX;
     };
-    auto activeAndCts = edgeMapFilter(G, still_active, won_ngh_f);
+    auto activeAndCts = edgeMapFilter(GA, still_active, won_ngh_f);
     vertexMap(activeAndCts, threshold_f);
     auto inCover =
         vertexFilter2(activeAndCts, [&](const uintE& v, const uintE& numWon) {
@@ -161,7 +162,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
       }
       return false;
     };
-    edgeMap(G, still_active,
+    edgeMap(GA, still_active,
             EdgeMap_F<W, decltype(reset_f)>(reset_f), -1,
             no_output | dense_forward);
     emt.stop();
@@ -193,11 +194,11 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets 
   permt.reportTotal("perm");
   emt.reportTotal("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
-  auto elm_cov = pbbslib::make_sequence<uintE>(G.n, elm_cov_f);
+  auto elm_cov = pbbslib::make_sequence<uintE>(GA.n, elm_cov_f);
   size_t elms_cov = pbbslib::reduce_add(elm_cov);
-  std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
+  std::cout << "|V| = " << GA.n << " |E| (initially) = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";
   std::cout << "Rounds: " << rounds << "\n";
-  std::cout << "Num_uncovered = " << (G.n - elms_cov) << "\n";
+  std::cout << "Num_uncovered = " << (GA.n - elms_cov) << "\n";
   return cover;
 }
