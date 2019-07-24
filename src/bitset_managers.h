@@ -40,8 +40,8 @@ struct sym_bitset_manager {
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(metadata);
-  static constexpr uintE kFullBlockPackThreshold = 8;
-  static constexpr uintE kBlockAllocThreshold = 100;
+  static constexpr uintE kFullBlockPackThreshold = 2;
+  static constexpr uintE kBlockAllocThreshold = 20;
 
   E* e0;
   sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
@@ -178,9 +178,8 @@ struct sym_bitset_manager {
 
   /* Only called when the discrepency between full and total blocks is large.
    * Specifically, when #full_blocks*kFullBlockPackThreshold >= vtx_num_blocks
-   *
-   * Output: the new degree of the vertex */
-  inline size_t repack_blocks_par(bool parallel) {
+   * Note: Defers to pack(..) to finish updating the degree/scan info */
+  inline void repack_blocks_par(bool parallel) {
     uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
     uintE int_stk[kBlockAllocThreshold];
     uint8_t* tmp_space = (uint8_t*)stk;
@@ -239,7 +238,12 @@ struct sym_bitset_manager {
       }
     });
 
-    if (vtx_num_blocks > kBlockAllocThreshold) {
+    // 5. Update num_blocks info both locally and in v_infos
+    uintE old_vtx_num_blocks = vtx_num_blocks;
+    vtx_num_blocks = new_num_blocks;
+    v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
+
+    if (old_vtx_num_blocks > kBlockAllocThreshold) {
       pbbs::free_array(tmp_space);
       pbbs::free_array(tmp_ints);
     }
@@ -252,7 +256,7 @@ struct sym_bitset_manager {
     metadata* block_metadata = (metadata*)blocks_start;
 
     // 1. pack each block
-    par_for(0, vtx_num_blocks, 4,
+    par_for(0, vtx_num_blocks, 1,
             [&](size_t block_id) {
               uintE offset = block_metadata[block_id].offset;
               uintE orig_block_num = block_metadata[block_id].block_num;
@@ -296,15 +300,13 @@ struct sym_bitset_manager {
            << " vtx_blocks = " << vtx_num_blocks << endl;
     }
 
-    if (full_blocks * kFullBlockPackThreshold >= vtx_num_blocks) {
-      return repack_blocks_par(parallel);
+    if (full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) {
+      repack_blocks_par(parallel);
     }
-    // Otherwise, not enough empty blocks to warrant a full re-pack. Just update
-    // offset values.
 
+    // Update offset values.
     auto ptr_seq = pbbs::indirect_value_seq<uintE>(
         vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-
     uintE sum = pbbslib::scan_add_inplace(ptr_seq);
     vtx_degree = sum;
 

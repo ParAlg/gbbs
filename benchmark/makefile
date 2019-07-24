@@ -16,7 +16,7 @@ endif
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../
 
-OPT = -O0 -g
+OPT = -O3 -g
 
 ifdef NVM
 NVMFLAGS = -lpmem -lnuma -DNVM
