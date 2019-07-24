@@ -344,9 +344,9 @@ struct compressed_sym_bitset_manager {
   vtx_info<E>* v_infos;
 
   static constexpr uintE edges_per_block = PARALLEL_DEGREE;
-  static constexpr uintE bytes_per_block = edges_per_block / 8 + sizeof(uintE);
+  static constexpr uintE bytes_per_block = edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
-      bytes_per_block - sizeof(uintE);
+      bytes_per_block - sizeof(metadata);
 
   E* e0;
   compressed_sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
@@ -562,20 +562,20 @@ struct compressed_sym_bitset_manager {
             parallel);
 
     // 2. Reduce to get the #empty_blocks
-    //auto full_block_seq =
-    //    pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
-    //      return static_cast<size_t>(block_metadata[i].offset > 0);
-    //    });
-    //size_t full_blocks = pbbslib::reduce_add(full_block_seq);
+      auto full_block_seq =
+          pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
+            return static_cast<size_t>(block_metadata[i].offset > 0);
+          });
+      size_t full_blocks = pbbslib::reduce_add(full_block_seq);
 
 //    if (vtx_num_blocks > 500) {
 //      cout << "full_blocks = " << full_blocks
 //           << " vtx_blocks = " << vtx_num_blocks << endl;
 //    }
 
-//    if (full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) {
-//      repack_blocks_par(parallel);
-//    }
+    if (full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) {
+      repack_blocks_par(parallel);
+    }
 
     // Update offset values.
     auto ptr_seq = pbbs::indirect_value_seq<uintE>(
