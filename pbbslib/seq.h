@@ -63,6 +63,29 @@ namespace pbbs {
   }
 
   template <typename T, typename F>
+  struct delayed_pointer_sequence {
+    using value_type = T;
+    delayed_pointer_sequence(size_t n, F _f) : f(_f), s(0), e(n) {};
+    delayed_pointer_sequence(size_t n, value_type v) : f([&] (size_t i) {return v;}), s(0), e(n) {};
+    delayed_pointer_sequence(size_t s, size_t e, F _f) : f(_f), s(s), e(e) {};
+    value_type& operator[] (size_t i) const {return *((f)(i+s));}
+    delayed_pointer_sequence<T,F> slice(size_t ss, size_t ee) const {
+      return delayed_pointer_sequence<T,F>(s+ss,s+ee,f); }
+    delayed_pointer_sequence<T,F> slice() const {
+      return delayed_pointer_sequence<T,F>(s,e,f); }
+    size_t size() const { return e - s;}
+  private:
+    const F f;
+    const size_t s, e;
+  };
+
+  // used so second template argument can be inferred
+  template <class T, class F>
+  delayed_pointer_sequence<T,F> delayed_pointer_seq (size_t n, F f) {
+    return delayed_pointer_sequence<T,F>(n,f);
+  }
+
+  template <typename T, typename F>
   struct delayed_sequence {
     using value_type = T;
     delayed_sequence(size_t n, F _f) : f(_f), s(0), e(n) {};
