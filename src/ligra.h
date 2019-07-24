@@ -192,7 +192,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
   });
   pbbslib::scan_add_inplace(degrees, pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
-  cout << "outEdgeCount = " << outEdgeCount << endl;
+  cout << "outEdgeCount = " << (indices.numNonzeros() + outEdgeCount) << endl;
 
   // 3. Compute the number of threads, binary search for offsets.
   size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
@@ -689,9 +689,14 @@ inline size_t get_pcm_state() { return (size_t)1; }
     auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
     run_app(G, APP, rounds)                                                \
   }
+
+
+//      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
+//          iFile, symmetric, mmap, mmapcopy);                               \ 
+
+
   //      auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \
-//          iFile, symmetric, mmap, mmapcopy);                                    \
 //      auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \
 
 

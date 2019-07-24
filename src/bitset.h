@@ -29,6 +29,14 @@ static uintE bitset_bs_bytes(uintE block_size) {
 
 // Returns the number of bytes needed for the bitset structure for a given
 // degree and block size.
+static uintE num_blocks(uintE degree, uintE bs,
+                                     uintE bs_in_bytes) {
+  return pbbs::num_blocks(degree, bs);
+}
+
+
+// Returns the number of bytes needed for the bitset structure for a given
+// degree and block size.
 static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
                                      uintE bs_in_bytes) {
   if (degree == 0) {
@@ -41,13 +49,16 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
     full_blocks += 1;
     return full_blocks * bs_in_bytes;
   }
-  uintE last_block_bytes = sizeof(metadata) + (rem + 8 - 1) / 8;  // ceil(rem/8);
-  uintE full_block_bytes = full_blocks * bs_in_bytes;
-  // make sure it is 8-byte aligned
-  uintE total_bytes = full_block_bytes + last_block_bytes;
 
-  uintE tot_rem = total_bytes & 0x7;  // remainder mod 8
-  return (tot_rem == 0) ? total_bytes : (total_bytes + (8 - tot_rem));
+  uintE rem_bytes = (rem + 8 - 1)/8; // ceil(rem/8)
+
+  // rounds rem to nearest multiple of 4 bytes
+  uintE last_block_bytes = sizeof(metadata) + ((rem_bytes + 4 - 1) & -4);
+
+  uintE full_block_bytes = full_blocks * bs_in_bytes;
+
+  uintE total_bytes = full_block_bytes + last_block_bytes;
+  return total_bytes;
 }
 
 static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
@@ -70,10 +81,6 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
                  bitset_data_start[i] = std::numeric_limits<uint8_t>::max();
                },
                512);
-  if (degree == 2048) {
-    cout << "data_bytes = " << data_bytes << " vtx_bytes = " << vtx_bytes
-         << endl;
-  }
 }
 
 static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,

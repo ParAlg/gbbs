@@ -59,4 +59,4 @@ double SetCover_runner(graph<vertex, W>& GA, commandLine P) {
   return tt;
 }
 
-generate_main(SetCover_runner, true)
+generate_main(SetCover_runner, false)

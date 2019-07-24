@@ -65,7 +65,7 @@ struct Visit_Elms {
 
 template <template <class W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets = 512) {
-  auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);
+  auto GA = packed_graph<vertex, W>(G);
   timer it; it.start();
   auto Elms = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
@@ -76,7 +76,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets 
   auto b = make_vertex_buckets(GA.n, d_slice, decreasing, num_buckets);
 
   auto perm = sequence<uintE>(GA.n);
-  timer bktt, packt, permt, emt;
+  timer bktt, filtert, packt, permt, emt;
 
   timer nbt;
   size_t rounds = 0;
@@ -103,6 +103,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets 
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
+    filtert.start();
     // Find sets which still have sufficient degree (degree >= threshold)
     size_t threshold = ceil(pow(1.0 + sc::epsilon, cur_bkt));
     auto above_threshold = [&](const uintE& v, const uintE& deg) {
@@ -110,6 +111,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets 
     };
     auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
     packed_vtxs.del();
+    filtert.stop();
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
@@ -191,6 +193,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets 
   bktt.reportTotal("bucket");
   nbt.reportTotal("next bucket time");
   packt.reportTotal("pack");
+  filtert.reportTotal("vtx filter");
   permt.reportTotal("perm");
   emt.reportTotal("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
