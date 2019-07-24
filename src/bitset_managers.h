@@ -272,7 +272,7 @@ struct sym_bitset_manager {
     // Otherwise, not enough empty blocks to warrant a full re-pack. Just update
     // offset values.
 
-    auto ptr_seq = pbbs::delayed_pointer_seq<uintE>(vtx_num_blocks, [&] (size_t i) {
+    auto ptr_seq = pbbs::indirect_value_seq<uintE>(vtx_num_blocks, [&] (size_t i) {
       return &(block_metadata[i].offset);
     });
 
