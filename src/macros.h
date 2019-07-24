@@ -29,8 +29,7 @@
 #define LONG 1
 
 #ifndef NDEBUG
-#define debug(_body) \
-  _body;
+#define debug(_body) _body;
 #else
 #define debug(_body)
 #endif

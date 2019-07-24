@@ -94,11 +94,11 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
   auto flags_in = sequence<bool>(n, false);
   auto flags_out = sequence<bool>(n, false);
 
-  par_for(0, in_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { flags_in[in_vs.vtx(i)] = true; });
+  par_for(0, in_vs.size(), pbbslib::kSequentialForThreshold,
+          [&](size_t i) { flags_in[in_vs.vtx(i)] = true; });
 
-  par_for(0, out_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { flags_out[out_vs.vtx(i)] = true; });
+  par_for(0, out_vs.size(), pbbslib::kSequentialForThreshold,
+          [&](size_t i) { flags_out[out_vs.vtx(i)] = true; });
 
   size_t nr = 0;
   while (in_vs.size() > 0 || out_vs.size() > 0) {
@@ -107,35 +107,35 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
               << "\n";
     if (in_vs.size() > 0) {
       in_vs.toSparse();
-      par_for(0, in_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
-                        uintE v = in_vs.vtx(i);
-                        assert(flags_in[v]);
-                        if (!chains[v]) {
-                          chains[v] = true;
-                        }
-                      });
+      par_for(0, in_vs.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
+        uintE v = in_vs.vtx(i);
+        assert(flags_in[v]);
+        if (!chains[v]) {
+          chains[v] = true;
+        }
+      });
       auto next_in = edgeMap(GA, in_vs, make_decr<W>(in_d, flags_in));
       in_vs.clear();
       in_vs = next_in;
     }
     if (out_vs.size() > 0) {
       out_vs.toSparse();
-      par_for(0, out_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
-                        uintE v = out_vs.vtx(i);
-                        assert(flags_out[v]);
-                        if (!chains[v]) {
-                          chains[v] = true;
-                        }
-                      });
+      par_for(0, out_vs.size(), pbbslib::kSequentialForThreshold,
+              [&](size_t i) {
+                uintE v = out_vs.vtx(i);
+                assert(flags_out[v]);
+                if (!chains[v]) {
+                  chains[v] = true;
+                }
+              });
       auto next_out =
           edgeMap(GA, out_vs, make_decr<W>(out_d, flags_out), -1, in_edges);
       out_vs.clear();
       out_vs = next_out;
     }
   }
-  auto chain_f =  [&](size_t i) { return (size_t)chains[i]; };
-  auto chain_im =
-      pbbslib::make_sequence<size_t>(n, chain_f);
+  auto chain_f = [&](size_t i) { return (size_t)chains[i]; };
+  auto chain_im = pbbslib::make_sequence<size_t>(n, chain_f);
   std::cout << "total zero = " << pbbslib::reduce_add(chain_im) << "\n";
   std::cout << "nr = " << nr << "\n";
   return chains;

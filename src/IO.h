@@ -24,9 +24,9 @@
 #pragma once
 
 #include <fcntl.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -37,8 +37,8 @@
 #include <string>
 
 #include "bridge.h"
-#include "pbbs_strings.h"
 #include "graph.h"
+#include "pbbs_strings.h"
 
 #ifdef NVM
 #include <libpmem.h>
@@ -73,7 +73,6 @@ template <class W,
 inline std::string print_wgh(W wgh) {
   return std::to_string(wgh);
 }
-
 
 // returns a pointer and a length
 // Note that the caller is responsible for unmmap'ing the file
@@ -123,20 +122,21 @@ inline std::pair<char*, size_t> pmem_from_file(const char* filename) {
     perror("not a file\n");
     exit(-1);
   }
-	void* ret_arr;
-	size_t mapped_len;
-	int is_pmem;
+  void* ret_arr;
+  size_t mapped_len;
+  int is_pmem;
   /* create a pmem file and memory map it */
-  if ((ret_arr = pmem_map_file(filename, sb.st_size, PMEM_FILE_CREATE, 0666, &mapped_len, &is_pmem)) == NULL) {
-		std::cout << "Error on pmem_map_file:\n";
-		perror("pmem_map_file");
-		exit(1);
+  if ((ret_arr = pmem_map_file(filename, sb.st_size, PMEM_FILE_CREATE, 0666,
+                               &mapped_len, &is_pmem)) == NULL) {
+    std::cout << "Error on pmem_map_file:\n";
+    perror("pmem_map_file");
+    exit(1);
   }
 
-	cout << "is_pmem = " << is_pmem << endl;
-	cout << "mapped_len = " << mapped_len << endl;
+  cout << "is_pmem = " << is_pmem << endl;
+  cout << "mapped_len = " << mapped_len << endl;
 
-	char* p = static_cast<char*>(ret_arr);
+  char* p = static_cast<char*>(ret_arr);
 
   return std::make_pair(p, mapped_len);
 }
@@ -160,7 +160,7 @@ inline sequence<char> readStringFromFile(char* fileName) {
   uint64_t end = file.tellg();
   file.seekg(0, std::ios::beg);
   uint64_t n = end - file.tellg();
-  auto bytes = sequence<char>(n); // n+1?
+  auto bytes = sequence<char>(n);  // n+1?
   file.read(bytes.begin(), n);
   file.close();
   return bytes;
@@ -179,8 +179,8 @@ inline graph<vertex, intE> readWeightedGraph(
       std::pair<char*, size_t> MM = mmapStringFromFile(fname);
       S = sequence<char>(MM.second);
       // Cannot mutate the graph unless we copy.
-      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { S[i] = MM.first[i]; });
+      par_for(0, S.size(), pbbslib::kSequentialForThreshold,
+              [&](size_t i) { S[i] = MM.first[i]; });
       if (munmap(MM.first, MM.second) == -1) {
         perror("munmap");
         exit(-1);
@@ -189,7 +189,7 @@ inline graph<vertex, intE> readWeightedGraph(
       sequence<char> S = readStringFromFile(fname);
     }
   }
-  tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  tokens = pbbslib::tokenize(S, [](const char c) { return pbbs::is_space(c); });
   assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
 
   uint64_t len = tokens.size() - 1;
@@ -208,13 +208,13 @@ inline graph<vertex, intE> readWeightedGraph(
   std::tuple<uintE, intE>* edges = pbbslib::new_array_no_init<VW>(2 * m);
 
   {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { offsets[i] = atol(tokens[i + 3]); });
+    par_for(0, n, pbbslib::kSequentialForThreshold,
+            [&](size_t i) { offsets[i] = atol(tokens[i + 3]); });
   }
   {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      edges[i] = std::make_tuple(atol(tokens[i + n + 3]),
-                                 atol(tokens[i + n + m + 3]));
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
+      edges[i] =
+          std::make_tuple(atol(tokens[i + n + 3]), atol(tokens[i + n + m + 3]));
     });
   }
   S.clear();
@@ -224,7 +224,7 @@ inline graph<vertex, intE> readWeightedGraph(
   wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
 
   {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
       uintT o = offsets[i];
       uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
       v[i].setOutDegree(l);
@@ -234,10 +234,10 @@ inline graph<vertex, intE> readWeightedGraph(
 
   if (!isSymmetric) {
     uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { tOffsets[i] = INT_T_MAX; });
+    par_for(0, n, pbbslib::kSequentialForThreshold,
+            [&](size_t i) { tOffsets[i] = INT_T_MAX; });
     intTriple* temp = pbbslib::new_array_no_init<intTriple>(m);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j),
@@ -247,13 +247,15 @@ inline graph<vertex, intE> readWeightedGraph(
     pbbslib::free_array(offsets);
 
     auto temp_seq = pbbslib::make_sequence(temp, m);
-    pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intTriple& p) { return p.first; }, pbbs::log2_up(n));
+    pbbslib::integer_sort_inplace(temp_seq.slice(),
+                                  [&](const intTriple& p) { return p.first; },
+                                  pbbs::log2_up(n));
 
     tOffsets[temp[0].first] = 0;
     VW* inEdges = pbbslib::new_array_no_init<VW>(m);
     inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
-    par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(1, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
       inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
@@ -271,7 +273,7 @@ inline graph<vertex, intE> readWeightedGraph(
     M.identity = m;
     pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
@@ -300,8 +302,8 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
       std::pair<char*, size_t> MM = mmapStringFromFile(fname);
       S = sequence<char>(MM.second);
       // Cannot mutate the graph unless we copy.
-      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { S[i] = MM.first[i]; });
+      par_for(0, S.size(), pbbslib::kSequentialForThreshold,
+              [&](size_t i) { S[i] = MM.first[i]; });
       if (munmap(MM.first, MM.second) == -1) {
         perror("munmap");
         exit(-1);
@@ -310,7 +312,7 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
       S = readStringFromFile(fname);
     }
   }
-  tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  tokens = pbbslib::tokenize(S, [](const char c) { return pbbs::is_space(c); });
 
   assert(tokens[0] == (std::string) "AdjacencyGraph");
   // TODO(laxmand): ensure that S is properly freed here
@@ -319,23 +321,24 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
 
-  debug(std::cout << "n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";);
+  debug(std::cout << "n = " << n << " m = " << m
+                  << " len = " << (tokens.size() - 1) << "\n";);
   // assert(len == n + m + 2);
 
   uintT* offsets = pbbslib::new_array_no_init<uintT>(n);
   uintE* edges = pbbslib::new_array_no_init<uintE>(m);
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { offsets[i] = atol(tokens[i + 3]); });
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { edges[i] = atol(tokens[i + n + 3]); });
+  par_for(0, n, pbbslib::kSequentialForThreshold,
+          [&](size_t i) { offsets[i] = atol(tokens[i + 3]); });
+  par_for(0, m, pbbslib::kSequentialForThreshold,
+          [&](size_t i) { edges[i] = atol(tokens[i + n + 3]); });
   S.clear();
   tokens.clear();
   // W.clear();  // to deal with performance bug in malloc
 
   wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
     uintT o = offsets[i];
     uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
     v[i].setOutDegree(l);
@@ -344,10 +347,10 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
 
   if (!isSymmetric) {
     uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { tOffsets[i] = INT_T_MAX; });
+    par_for(0, n, pbbslib::kSequentialForThreshold,
+            [&](size_t i) { tOffsets[i] = INT_T_MAX; });
     intPair* temp = pbbslib::new_array_no_init<intPair>(m);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
       uintT o = offsets[i];
       for (uintT j = 0; j < v[i].getOutDegree(); j++) {
         temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
@@ -356,12 +359,14 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
     pbbslib::free_array(offsets);
 
     auto temp_seq = pbbslib::make_sequence(temp, m);
-    pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbs::log2_up(n));
+    pbbslib::integer_sort_inplace(temp_seq.slice(),
+                                  [&](const intPair& p) { return p.first; },
+                                  pbbs::log2_up(n));
 
     tOffsets[temp[0].first] = 0;
     uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
     inEdges[0] = temp[0].second;
-    par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(1, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
       inEdges[i] = temp[i].second;
       if (temp[i].first != temp[i - 1].first) {
         tOffsets[temp[i].first] = i;
@@ -377,7 +382,7 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
     M.identity = m;
     pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
       uintT o = tOffsets[i];
       uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
       v[i].setInDegree(l);
@@ -386,21 +391,19 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
 
     pbbslib::free_array(tOffsets);
 
-    return graph<vertex, W>(
-        v, n, m, get_deletion_fn(v, inEdges, edges));
+    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
   } else {
     pbbslib::free_array(offsets);
-    return graph<vertex, W>(
-        v, n, m, get_deletion_fn(v, edges));
+    return graph<vertex, W>(v, n, m, get_deletion_fn(v, edges));
   }
 }
-
 
 // Handles both unweighted and weighted graphs.
 template <template <typename W> class vertex, class W>
 inline graph<vertex, W> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
-    char* bytes = nullptr, size_t bytes_size = std::numeric_limits<size_t>::max()) {
+    char* bytes = nullptr,
+    size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using w_vertex = vertex<W>;
 
 #ifndef NVM
@@ -411,11 +414,11 @@ inline graph<vertex, W> readCompressedGraph(
       s = S.first;
       if (mmapcopy) {
         debug(std::cout << "Copying compressed graph"
-                  << "\n";);
+                        << "\n";);
         // Cannot mutate graph unless we copy.
         char* bytes = pbbslib::new_array_no_init<char>(S.second);
-        par_for(0, S.second, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                        { bytes[i] = S.first[i]; });
+        par_for(0, S.second, pbbslib::kSequentialForThreshold,
+                [&](size_t i) { bytes[i] = S.first[i]; });
         if (munmap(S.first, S.second) == -1) {
           perror("munmap");
           exit(-1);
@@ -425,11 +428,11 @@ inline graph<vertex, W> readCompressedGraph(
         compressed_mmap_bytes = S.first;
         compressed_mmap_bytes_size = S.second;
       }
-    } else { // read file using O_DIRECT
+    } else {  // read file using O_DIRECT
       int fd;
       if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
         debug(std::cout << "input opened!"
-                  << "\n";);
+                        << "\n";);
       } else {
         std::cout << "can't open input file!";
       }
@@ -450,9 +453,9 @@ inline graph<vertex, W> readCompressedGraph(
       if (sz + read_size > fsize) {
         size_t k = std::ceil((fsize - sz) / pgsize);
         read_size = std::max(k * pgsize, pgsize);
-        debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
-                  << " bytes left"
-                  << "\n";);
+        debug(std::cout << "set read size to: " << read_size << " "
+                        << (fsize - sz) << " bytes left"
+                        << "\n";);
       }
 
       while (sz + read_size < fsize) {
@@ -460,13 +463,13 @@ inline graph<vertex, W> readCompressedGraph(
         debug(std::cout << "reading: " << read_size << "\n";);
         sz += read(fd, buf, read_size);
         debug(std::cout << "read: " << sz << " bytes"
-                  << "\n";);
+                        << "\n";);
         if (sz + read_size > fsize) {
           size_t k = std::ceil((fsize - sz) / pgsize);
           read_size = std::max(k * pgsize, pgsize);
-          debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
-                    << " bytes left"
-                    << "\n";);
+          debug(std::cout << "set read size to: " << read_size << " "
+                          << (fsize - sz) << " bytes left"
+                          << "\n";);
         }
       }
       if (sz < fsize) {
@@ -474,7 +477,7 @@ inline graph<vertex, W> readCompressedGraph(
         void* buf = s + sz;
         sz += read(fd, buf, pgsize);
         debug(std::cout << "read " << sz << " bytes "
-                  << "\n";);
+                        << "\n";);
       }
       close(fd);
     }
@@ -484,20 +487,22 @@ inline graph<vertex, W> readCompressedGraph(
   char* s0 = s;
 #else
   // TODO(laxmand): there has to be a cleaner way to do this.
-  std::pair<char*, size_t> S0 = pmem_from_file("/mnt/pmem12/hyperlink2012_sym.bytepda");
+  std::pair<char*, size_t> S0 =
+      pmem_from_file("/mnt/pmem12/hyperlink2012_sym.bytepda");
   char* s0 = S0.first;
 
-  std::pair<char*, size_t> S1 = pmem_from_file("/mnt/pmem13/hyperlink2012_sym.bytepda");
+  std::pair<char*, size_t> S1 =
+      pmem_from_file("/mnt/pmem13/hyperlink2012_sym.bytepda");
   char* s1 = S1.first;
 #endif
 
   long* sizes = (long*)s0;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  debug(std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
-            << "\n";
-  std::cout << "reading file..."
-            << "\n";);
+  debug(std::cout << "n = " << n << " m = " << m
+                  << " totalSpace = " << totalSpace << "\n";
+        std::cout << "reading file..."
+                  << "\n";);
 
   uintT* offsets0 = (uintT*)(s0 + 3 * sizeof(long));
   uint64_t skip0 = 3 * sizeof(long) + (n + 1) * sizeof(intT);
@@ -515,7 +520,7 @@ inline graph<vertex, W> readCompressedGraph(
   w_vertex* V1 = pbbslib::new_array_no_init<w_vertex>(n);
 #endif
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
     uint64_t o = offsets0[i];
     uintT d = Degrees0[i];
     V0[i].setOutDegree(d);
@@ -529,12 +534,12 @@ inline graph<vertex, W> readCompressedGraph(
   auto deletion_fn = get_deletion_fn(V0, s0);
   if (mmap && !mmapcopy) {
 #ifndef NVM
-    deletion_fn = [V0] () {
+    deletion_fn = [V0]() {
       pbbslib::free_array(V0);
       unmmap_if_needed();
     };
 #else
-    deletion_fn = [V0, V1] () {
+    deletion_fn = [V0, V1]() {
       pbbslib::free_array(V0);
       pbbslib::free_array(V1);
       unmmap_if_needed();

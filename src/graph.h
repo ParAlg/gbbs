@@ -23,21 +23,21 @@
 
 #pragma once
 
-#include <string>
 #include <stdlib.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <string>
 
 #include "bridge.h"
 #include "compressed_vertex.h"
 #include "flags.h"
-#include "vertex.h"
 #include "pbbslib/parallel.h"
+#include "vertex.h"
 
 #ifdef NVM
-#include <utmpx.h>
 #include <numa.h>
+#include <utmpx.h>
 #endif
 
 // **************************************************************
@@ -62,13 +62,11 @@ struct graph {
   std::function<void()> deletion_fn;
 
 #ifndef NVM
-  w_vertex get_vertex(size_t i) {
-      	return V[i];
-  }
+  w_vertex get_vertex(size_t i) { return V[i]; }
 #else
   w_vertex get_vertex(size_t i) {
-//		int cpu = sched_getcpu();
-//		int node = numa_node_of_cpu(cpu);
+    //		int cpu = sched_getcpu();
+    //		int node = numa_node_of_cpu(cpu);
     if (numanode() == 0) {
       return V0[i];
     } else {
@@ -80,9 +78,18 @@ struct graph {
   graph(w_vertex* _V, long _n, long _m, std::function<void()> _d,
         uintE* _flags = NULL)
 #ifdef NVM
-      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d), V0(_V), V1(_V) {}
+      : V(_V),
+        n(_n),
+        m(_m),
+        transposed(0),
+        flags(_flags),
+        deletion_fn(_d),
+        V0(_V),
+        V1(_V) {
+  }
 #else
-      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d) {}
+      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d) {
+  }
 #endif
 
   void del() {
@@ -91,10 +98,9 @@ struct graph {
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map=true) {
-    par_for(0, n, 1, [&] (size_t i) {
-      V[i].mapOutNgh(i, f, parallel_inner_map);
-    });
+  void map_edges(F f, bool parallel_inner_map = true) {
+    par_for(0, n, 1,
+            [&](size_t i) { V[i].mapOutNgh(i, f, parallel_inner_map); });
   }
 };
 

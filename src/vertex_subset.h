@@ -35,14 +35,14 @@ struct vertexSubsetData {
   using D = std::tuple<bool, data>;
 
   // An empty vertex set.
-  vertexSubsetData(size_t _n) : n(_n), m(0),  s(NULL), d(NULL), isDense(0) {}
+  vertexSubsetData(size_t _n) : n(_n), m(0), s(NULL), d(NULL), isDense(0) {}
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData(size_t _n, size_t _m, S* indices)
       : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
 
   // A vertexSubset from a sequence.
-  vertexSubsetData(size_t _n, sequence<S>& seq, bool transfer=true)
+  vertexSubsetData(size_t _n, sequence<S>& seq, bool transfer = true)
       : n(_n), m(seq.size()), d(NULL), isDense(0) {
     if (transfer) {
       s = seq.to_array();
@@ -59,8 +59,7 @@ struct vertexSubsetData {
   // number of nonzeros and store in m.
   vertexSubsetData(size_t _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1) {
     auto df = [&](size_t i) { return (size_t)std::get<0>(_d[i]); };
-    auto d_map = pbbslib::make_sequence<size_t>(
-        n, df);
+    auto d_map = pbbslib::make_sequence<size_t>(n, df);
     m = pbbslib::reduce_add(d_map);
   }
 
@@ -81,7 +80,9 @@ struct vertexSubsetData {
   }
 
   // Dense
- __attribute__((always_inline)) inline bool isIn(const uintE& v) const { return std::get<0>(d[v]); }
+  __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
+    return std::get<0>(d[v]);
+  }
   inline data& ithData(const uintE& v) const { return std::get<1>(d[v]); }
 
   // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
@@ -132,9 +133,8 @@ struct vertexSubsetData {
   void toDense() {
     if (d == NULL) {
       d = pbbslib::new_array_no_init<D>(n);
-      par_for(0, n, [&] (size_t i)
-                      { std::get<0>(d[i]) = false; });
-      par_for(0, m, [&] (size_t i) {
+      par_for(0, n, [&](size_t i) { std::get<0>(d[i]) = false; });
+      par_for(0, m, [&](size_t i) {
         d[std::get<0>(s[i])] = std::make_tuple(true, std::get<1>(s[i]));
       });
     }
@@ -169,11 +169,12 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m,
-                                std::tuple<uintE, pbbslib::empty>* indices)
+                                   std::tuple<uintE, pbbslib::empty>* indices)
       : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0) {}
 
   // A vertexSubset from a sequence.
-  vertexSubsetData<pbbslib::empty>(size_t _n, sequence<S>& seq, bool transfer=true)
+  vertexSubsetData<pbbslib::empty>(size_t _n, sequence<S>& seq,
+                                   bool transfer = true)
       : n(_n), m(seq.size()), d(NULL), isDense(0) {
     if (transfer) {
       s = seq.to_array();
@@ -182,7 +183,8 @@ struct vertexSubsetData<pbbslib::empty> {
     }
   }
 
-  vertexSubsetData<pbbslib::empty>(size_t n, sequence<S>&& seq) : n(n), d(NULL), isDense(0) {
+  vertexSubsetData<pbbslib::empty>(size_t n, sequence<S>&& seq)
+      : n(n), d(NULL), isDense(0) {
     m = seq.size();
     s = seq.to_array();
   }
@@ -202,7 +204,8 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData<pbbslib::empty>(size_t _n, std::tuple<bool, pbbslib::empty>* _d)
+  vertexSubsetData<pbbslib::empty>(size_t _n,
+                                   std::tuple<bool, pbbslib::empty>* _d)
       : n(_n), s(NULL), d((bool*)_d), isDense(1) {
     auto d_f = [&](size_t i) { return std::get<0>(_d[i]); };
     auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
@@ -223,14 +226,20 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // Sparse
   inline uintE& vtx(const uintE& i) const { return s[i]; }
-  inline pbbslib::empty vtxData(const uintE& i) const { return pbbslib::empty(); }
+  inline pbbslib::empty vtxData(const uintE& i) const {
+    return pbbslib::empty();
+  }
   inline std::tuple<uintE, pbbslib::empty> vtxAndData(const uintE& i) const {
     return std::make_tuple(s[i], pbbslib::empty());
   }
 
   // Dense
- __attribute__((always_inline)) inline bool isIn(const uintE& v) const { return d[v]; }
-  inline pbbslib::empty ithData(const uintE& v) const { return pbbslib::empty(); }
+  __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
+    return d[v];
+  }
+  inline pbbslib::empty ithData(const uintE& v) const {
+    return pbbslib::empty();
+  }
 
   // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
   auto get_fn_repr() const
@@ -264,7 +273,8 @@ struct vertexSubsetData<pbbslib::empty> {
   void toSparse() {
     if (s == NULL && m > 0) {
       auto _d = d;
-      auto f_in = pbbslib::make_sequence<bool>(n, [&](size_t i) { return _d[i]; });
+      auto f_in =
+          pbbslib::make_sequence<bool>(n, [&](size_t i) { return _d[i]; });
       auto out = pbbslib::pack_index<uintE>(f_in);
       if (out.size() != m) {
         std::cout << "m is " << m << " but out.size says" << out.size() << endl;
@@ -283,10 +293,8 @@ struct vertexSubsetData<pbbslib::empty> {
   void toDense() {
     if (d == NULL) {
       d = pbbslib::new_array_no_init<bool>(n);
-      par_for(0, n, [&] (size_t i)
-                      { d[i] = 0; });
-      par_for(0, m, [&] (size_t i)
-                      { d[s[i]] = 1; });
+      par_for(0, n, [&](size_t i) { d[i] = 0; });
+      par_for(0, m, [&](size_t i) { d[s[i]] = 1; });
     }
     isDense = true;
   }

@@ -6,8 +6,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include "graph.h"
 #include "block_vertex.h"
+#include "graph.h"
 #include "noop_managers.h"
 
 static constexpr size_t kUncompressedBlockSize = 1024;
@@ -20,11 +20,10 @@ static constexpr size_t kUncompressedBlockSize = 1024;
 template <class W, /* weight type */
           class BM /* block manager type */>
 struct noop_symmetric_vertex {
+  BM block_manager;  // copy; not a reference.
 
-  BM block_manager; // copy; not a reference.
-
-  noop_symmetric_vertex(BM&& block_manager) :
-    block_manager(std::move(block_manager)) {}
+  noop_symmetric_vertex(BM&& block_manager)
+      : block_manager(std::move(block_manager)) {}
 
   __attribute__((always_inline)) inline uintE getOutDegree() {
     return block_manager.get_degree();
@@ -33,12 +32,17 @@ struct noop_symmetric_vertex {
     return getOutDegree();
   }
 
-  __attribute__((always_inline)) inline uintE getNumInBlocks() { return block_manager.num_blocks(); }
-  __attribute__((always_inline)) inline uintE getNumOutBlocks() { return getNumInBlocks(); }
+  __attribute__((always_inline)) inline uintE getNumInBlocks() {
+    return block_manager.num_blocks();
+  }
+  __attribute__((always_inline)) inline uintE getNumOutBlocks() {
+    return getNumInBlocks();
+  }
   __attribute__((always_inline)) inline uintE in_block_degree(uintE block_num) {
     return block_manager.block_degree(block_num);
   }
-  __attribute__((always_inline)) inline uintE out_block_degree(uintE block_num) {
+  __attribute__((always_inline)) inline uintE out_block_degree(
+      uintE block_num) {
     return in_block_degree(block_num);
   }
 
@@ -54,14 +58,14 @@ struct noop_symmetric_vertex {
 
   template <class M, class Monoid>
   inline auto reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce,
-                           bool parallel=true) -> typename Monoid::T {
-    return block_vertex_ops::map_reduce<BM, W, M, Monoid>(
-        vtx_id, block_manager, m, reduce, parallel);
+                           bool parallel = true) -> typename Monoid::T {
+    return block_vertex_ops::map_reduce<BM, W, M, Monoid>(vtx_id, block_manager,
+                                                          m, reduce, parallel);
   }
 
   template <class M, class Monoid>
   inline auto reduceInNgh(uintE vtx_id, M& m, Monoid& reduce,
-                          bool parallel=true) -> typename Monoid::T {
+                          bool parallel = true) -> typename Monoid::T {
     return reduceOutNgh(vtx_id, m, reduce, parallel);
   }
 
@@ -86,47 +90,52 @@ struct noop_symmetric_vertex {
 
   /* copying primitives */
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g,
+                         bool parallel = true) {
     block_vertex_ops::copyNghs<BM, W>(vtx_id, block_manager, o, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g,
+                        bool parallel = true) {
     copyOutNgh(vtx_id, o, f, g, parallel);
   }
 
   /* edgemap primitives */
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
-    block_vertex_ops::decodeNghsSparse<BM, W, F>(vtx_id, block_manager, o, f, g, h, parallel);
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                 bool parallel = true) {
+    block_vertex_ops::decodeNghsSparse<BM, W, F>(vtx_id, block_manager, o, f, g,
+                                                 h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                bool parallel = true) {
     decodeOutNghSparse(vtx_id, o, f, g, h, parallel);
   }
 
   template <class F, class G>
-  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num,
-                               F& f, G& g) {
-    return block_vertex_ops::decode_block<BM, W, F, G>(vtx_id,
-        block_manager, o, block_num, f, g);
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
+    return block_vertex_ops::decode_block<BM, W, F, G>(vtx_id, block_manager, o,
+                                                       block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num,
-                              F& f, G& g) {
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
     return decodeOutBlock(vtx_id, o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline void decodeOutNgh(uintE vtx_id, F& f, G& g, bool parallel=true) {
-    block_vertex_ops::decodeNghs<BM, W, F, G>(vtx_id,
-        block_manager, f, g, parallel);
+  inline void decodeOutNgh(uintE vtx_id, F& f, G& g, bool parallel = true) {
+    block_vertex_ops::decodeNghs<BM, W, F, G>(vtx_id, block_manager, f, g,
+                                              parallel);
   }
 
   template <class F, class G>
-  inline void decodeInNgh(uintE vtx_id, F& f, G& g, bool parallel=true) {
+  inline void decodeInNgh(uintE vtx_id, F& f, G& g, bool parallel = true) {
     decodeOutNgh(vtx_id, f, g, parallel);
   }
 
@@ -144,7 +153,6 @@ struct noop_symmetric_vertex {
   }
 };
 
-
 // An allocation-free wrapper around an ordinary (immutable) graph.
 // * The bit-packing structure is a no-op (returns all blocks in the
 //   original graph for a vertex, and does not support packing).
@@ -160,22 +168,29 @@ struct noop_packed_graph {
   using E = typename vertex<W>::E;
   using WW = W;
 
-  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) { }
+  noop_packed_graph(graph<vertex<W>>& GA) : n(GA.n), m(GA.m), GA(GA) {}
 
-  template <bool bool_enable=true, typename
-    std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
+  template <
+      bool bool_enable = true,
+      typename std::enable_if<
+          std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable,
+          int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = sym_noop_manager<vertex, W>;
 #ifndef NVM
     auto sym_blocks = block_manager(GA.V[v], v, kUncompressedBlockSize);
 #else
-    auto sym_blocks = block_manager(GA.V0[v], GA.V1[v], v, kUncompressedBlockSize);
+    auto sym_blocks =
+        block_manager(GA.V0[v], GA.V1[v], v, kUncompressedBlockSize);
 #endif
     return noop_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
-  template <bool bool_enable=true, typename
-    std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
+  template <bool bool_enable = true,
+            typename std::enable_if<
+                std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value &&
+                    bool_enable,
+                int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = compressed_sym_noop_manager<vertex, W>;
 #ifndef NVM
@@ -187,13 +202,12 @@ struct noop_packed_graph {
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map=true) {
-    par_for(0, n, 1, [&] (size_t v) {
+  void map_edges(F f, bool parallel_inner_map = true) {
+    par_for(0, n, 1, [&](size_t v) {
       auto vert_v = get_vertex(v);
       vert_v.mapOutNgh(v, f, parallel_inner_map);
     });
   }
 
-  void del() {
-  }
+  void del() {}
 };

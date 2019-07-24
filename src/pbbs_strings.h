@@ -26,42 +26,43 @@
 
 namespace pbbslib {
 
-  // Reads a character sequence from a file
-  //    if end is zero or larger than file, then returns full file
-  //    if start past end of file then returns an empty string
-  inline sequence<char> char_seq_from_file(std::string filename, size_t start=0, size_t end=0) {
-    return pbbs::char_seq_from_file(filename, start, end);
-  }
-
-  // Writes a character sequence to a file, returns 0 if successful
-  template <class CharSeq>
-  int char_seq_to_file(CharSeq S, char const *fileName) {
-    return pbbs::char_seq_to_file(S, fileName);
-  }
-
-  // Returns a sequence of character ranges, one per token
-  // The tokens are the longest contiguous subsequences of non space characters.
-  // The ranges are over the original sequence, so it should not be deleted
-  template <class Seq, class UnaryPred>
-  sequence<range<char*>> tokens(Seq const &S, UnaryPred const &is_space) {
-    return pbbs::tokens(S, is_space);
-  }
-
-  // Zeros out all spaces, and returns a pointer to the start of each token
-  // Can be used with c style char* functions on each token since they will be null
-  // terminated.
-  template <class Seq, class UnaryPred>
-  sequence<char*> tokenize(Seq &S, UnaryPred const &is_space) {
-    return pbbs::tokenize(S, is_space);
-  }
-
-  // Returns a sequence of character ranges, one per partition
-  // The StartFlags sequence specifies the start of each partition
-  // The two arguments must be of the same length
-  // Location 0 is always a start
-  template <class Seq, class BoolSeq>
-  sequence<range<char*>> partition_at(Seq const &S, BoolSeq const &StartFlags) {
-    return pbbs::partition_at(S, StartFlags);
-  }
-
+// Reads a character sequence from a file
+//    if end is zero or larger than file, then returns full file
+//    if start past end of file then returns an empty string
+inline sequence<char> char_seq_from_file(std::string filename, size_t start = 0,
+                                         size_t end = 0) {
+  return pbbs::char_seq_from_file(filename, start, end);
 }
+
+// Writes a character sequence to a file, returns 0 if successful
+template <class CharSeq>
+int char_seq_to_file(CharSeq S, char const *fileName) {
+  return pbbs::char_seq_to_file(S, fileName);
+}
+
+// Returns a sequence of character ranges, one per token
+// The tokens are the longest contiguous subsequences of non space characters.
+// The ranges are over the original sequence, so it should not be deleted
+template <class Seq, class UnaryPred>
+sequence<range<char *>> tokens(Seq const &S, UnaryPred const &is_space) {
+  return pbbs::tokens(S, is_space);
+}
+
+// Zeros out all spaces, and returns a pointer to the start of each token
+// Can be used with c style char* functions on each token since they will be
+// null terminated.
+template <class Seq, class UnaryPred>
+sequence<char *> tokenize(Seq &S, UnaryPred const &is_space) {
+  return pbbs::tokenize(S, is_space);
+}
+
+// Returns a sequence of character ranges, one per partition
+// The StartFlags sequence specifies the start of each partition
+// The two arguments must be of the same length
+// Location 0 is always a start
+template <class Seq, class BoolSeq>
+sequence<range<char *>> partition_at(Seq const &S, BoolSeq const &StartFlags) {
+  return pbbs::partition_at(S, StartFlags);
+}
+
+}  // namespace pbbslib

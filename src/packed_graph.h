@@ -21,7 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-
 /*
  * This file contains an implementation of a bit-packed graph, which is a
  * decremental graph structure that supports edge-deletions using a bit-packed
@@ -34,14 +33,14 @@
 #include <tuple>
 #include <type_traits>
 
-#include "graph.h"
-#include "block_vertex.h"
 #include "bitset_managers.h"
+#include "block_vertex.h"
+#include "graph.h"
 
 // TODO: define concept for packable graph?
 //#ifdef CONCEPTS
-//template<typename W>
-//concept bool PackableGraph =
+// template<typename W>
+// concept bool PackableGraph =
 //  requires(T t, size_t u) {
 //  typename T::value_type;
 //  { t.size() } -> size_t;
@@ -49,8 +48,8 @@
 //  { t[u] };
 //};
 //
-//template<typename T>
-//concept bool Range =
+// template<typename T>
+// concept bool Range =
 //  Seq<T> && requires(T t, size_t u) {
 //  { t[u] } -> typename T::value_type&;
 //  typename T::iterator;
@@ -70,11 +69,10 @@
 template <class W, /* weight type */
           class BM /* block manager type */>
 struct packed_symmetric_vertex {
+  BM block_manager;  // copy; not a reference.
 
-  BM block_manager; // copy; not a reference.
-
-  packed_symmetric_vertex(BM&& block_manager) :
-    block_manager(std::move(block_manager)) {}
+  packed_symmetric_vertex(BM&& block_manager)
+      : block_manager(std::move(block_manager)) {}
 
   __attribute__((always_inline)) inline uintE getOutDegree() {
     return block_manager.get_degree();
@@ -83,12 +81,17 @@ struct packed_symmetric_vertex {
     return getOutDegree();
   }
 
-  __attribute__((always_inline)) inline uintE getNumInBlocks() { return block_manager.num_blocks(); }
-  __attribute__((always_inline)) inline uintE getNumOutBlocks() { return getNumInBlocks(); }
+  __attribute__((always_inline)) inline uintE getNumInBlocks() {
+    return block_manager.num_blocks();
+  }
+  __attribute__((always_inline)) inline uintE getNumOutBlocks() {
+    return getNumInBlocks();
+  }
   __attribute__((always_inline)) inline uintE in_block_degree(uintE block_num) {
     return block_manager.block_degree(block_num);
   }
-  __attribute__((always_inline)) inline uintE out_block_degree(uintE block_num) {
+  __attribute__((always_inline)) inline uintE out_block_degree(
+      uintE block_num) {
     return in_block_degree(block_num);
   }
 
@@ -105,14 +108,14 @@ struct packed_symmetric_vertex {
 
   template <class M, class Monoid>
   inline auto reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce,
-                           bool parallel=true) -> typename Monoid::T {
-    return block_vertex_ops::map_reduce<BM, W, M, Monoid>(
-        vtx_id, block_manager, m, reduce, parallel);
+                           bool parallel = true) -> typename Monoid::T {
+    return block_vertex_ops::map_reduce<BM, W, M, Monoid>(vtx_id, block_manager,
+                                                          m, reduce, parallel);
   }
 
   template <class M, class Monoid>
   inline auto reduceInNgh(uintE vtx_id, M& m, Monoid& reduce,
-                          bool parallel=true) -> typename Monoid::T {
+                          bool parallel = true) -> typename Monoid::T {
     return reduceOutNgh(vtx_id, m, reduce, parallel);
   }
 
@@ -137,47 +140,52 @@ struct packed_symmetric_vertex {
 
   /* copying primitives */
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g,
+                         bool parallel = true) {
     block_vertex_ops::copyNghs<BM, W>(vtx_id, block_manager, o, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g,
+                        bool parallel = true) {
     copyOutNgh(vtx_id, o, f, g, parallel);
   }
 
   /* edgemap primitives */
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
-    block_vertex_ops::decodeNghsSparse<BM, W, F>(vtx_id, block_manager, o, f, g, h, parallel);
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                 bool parallel = true) {
+    block_vertex_ops::decodeNghsSparse<BM, W, F>(vtx_id, block_manager, o, f, g,
+                                                 h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                bool parallel = true) {
     decodeOutNghSparse(vtx_id, o, f, g, h, parallel);
   }
 
   template <class F, class G>
-  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num,
-                               F& f, G& g) {
-    return block_vertex_ops::decode_block<BM, W, F, G>(vtx_id,
-        block_manager, o, block_num, f, g);
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
+    return block_vertex_ops::decode_block<BM, W, F, G>(vtx_id, block_manager, o,
+                                                       block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num,
-                              F& f, G& g) {
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
     return decodeOutBlock(vtx_id, o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline void decodeOutNgh(uintE vtx_id, F& f, G& g, bool parallel=true) {
-    block_vertex_ops::decodeNghs<BM, W, F, G>(vtx_id,
-        block_manager, f, g, parallel);
+  inline void decodeOutNgh(uintE vtx_id, F& f, G& g, bool parallel = true) {
+    block_vertex_ops::decodeNghs<BM, W, F, G>(vtx_id, block_manager, f, g,
+                                              parallel);
   }
 
   template <class F, class G>
-  inline void decodeInNgh(uintE vtx_id, F& f, G& g, bool parallel=true) {
+  inline void decodeInNgh(uintE vtx_id, F& f, G& g, bool parallel = true) {
     decodeOutNgh(vtx_id, f, g, parallel);
   }
 
@@ -227,17 +235,20 @@ struct packed_graph {
   // Initializes the block memory for each vertex.
   void init_block_memory() {
     // 1. Calculate the #bytes corresponding to each vertex
-    auto block_bytes_offs = pbbs::sequence<size_t>(n+1);
-    parallel_for(0, n, [&] (size_t i) {
+    auto block_bytes_offs = pbbs::sequence<size_t>(n + 1);
+    parallel_for(0, n, [&](size_t i) {
       uintE degree = GA.get_vertex(i).getOutDegree();
-      block_bytes_offs[i] = bitsets::bytes_for_degree_and_bs(degree, bs, bs_in_bytes);
+      block_bytes_offs[i] =
+          bitsets::bytes_for_degree_and_bs(degree, bs, bs_in_bytes);
       if (degree == 2048) {
-        cout << "for vtx i = " << i << " bytes = " << block_bytes_offs[i] << endl;
+        cout << "for vtx i = " << i << " bytes = " << block_bytes_offs[i]
+             << endl;
       }
     });
     block_bytes_offs[n] = 0;
 
-    size_t block_mem_to_alloc = pbbslib::scan_add_inplace(block_bytes_offs.slice());
+    size_t block_mem_to_alloc =
+        pbbslib::scan_add_inplace(block_bytes_offs.slice());
 
     cout << "total memory for packed_graph = " << block_mem_to_alloc << endl;
 
@@ -247,27 +258,35 @@ struct packed_graph {
     VI = pbbs::new_array_no_init<vtx_info<E>>(n);
 
     // initialize blocks and vtx_info
-    parallel_for(0, n, [&] (size_t v) {
-      uintE degree = GA.get_vertex(v).getOutDegree();
-      E* edges = GA.get_vertex(v).getOutNeighbors();
-      size_t block_byte_offset = block_bytes_offs[v];
-      size_t vtx_bytes = block_bytes_offs[v+1] - block_byte_offset;
+    parallel_for(
+        0, n,
+        [&](size_t v) {
+          uintE degree = GA.get_vertex(v).getOutDegree();
+          E* edges = GA.get_vertex(v).getOutNeighbors();
+          size_t block_byte_offset = block_bytes_offs[v];
+          size_t vtx_bytes = block_bytes_offs[v + 1] - block_byte_offset;
 
-      size_t num_blocks = pbbs::num_blocks(degree, bs);
-      // set vertex_info for v
-      VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, edges);
+          size_t num_blocks = pbbs::num_blocks(degree, bs);
+          // set vertex_info for v
+          VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, edges);
 
-      if (degree == 2048) {
-        cout << "v = " << v << " vtx_degree = " << degree << " vtx_bytes = " << vtx_bytes << endl;
-      }
-      // initialize blocks corresponding to v's neighbors
-      uint8_t* our_block_start = blocks + block_byte_offset;
-      bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, vtx_bytes);
-    }, 1);
+          if (degree == 2048) {
+            cout << "v = " << v << " vtx_degree = " << degree
+                 << " vtx_bytes = " << vtx_bytes << endl;
+          }
+          // initialize blocks corresponding to v's neighbors
+          uint8_t* our_block_start = blocks + block_byte_offset;
+          bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs,
+                                      vtx_bytes);
+        },
+        1);
   }
 
-  template <bool bool_enable=true, typename
-  std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
+  template <
+      bool bool_enable = true,
+      typename std::enable_if<
+          std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable,
+          int>::type = 0>
   void init_block_size_and_metadata() {
     using block_manager = sym_bitset_manager<vertex, W>;
     using metadata = typename block_manager::metadata;
@@ -276,8 +295,11 @@ struct packed_graph {
     metadata_size = sizeof(metadata);
   }
 
-  template <bool bool_enable=true, typename
-  std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
+  template <bool bool_enable = true,
+            typename std::enable_if<
+                std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value &&
+                    bool_enable,
+                int>::type = 0>
   void init_block_size_and_metadata() {
     using block_manager = compressed_sym_bitset_manager<vertex, W>;
     using metadata = typename block_manager::metadata;
@@ -287,13 +309,16 @@ struct packed_graph {
   }
 
   packed_graph(graph<vertex, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
-    init_block_size_and_metadata(); // conditioned on vertex type
+    init_block_size_and_metadata();  // conditioned on vertex type
     init_block_memory();
   }
 
   // Symmetric: get_vertex
-  template <bool bool_enable=true, typename
-    std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable, int>::type = 0>
+  template <
+      bool bool_enable = true,
+      typename std::enable_if<
+          std::is_same<vertex<W>, symmetricVertex<W>>::value && bool_enable,
+          int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = sym_bitset_manager<vertex, W>;
     uintE original_degree = GA.get_vertex(v).getOutDegree();
@@ -302,8 +327,11 @@ struct packed_graph {
   }
 
   // Compressed Symmetric: get_vertex
-  template <bool bool_enable=true, typename
-    std::enable_if<std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value && bool_enable, int>::type = 0>
+  template <bool bool_enable = true,
+            typename std::enable_if<
+                std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value &&
+                    bool_enable,
+                int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = compressed_sym_bitset_manager<vertex, W>;
     uintE original_degree = GA.get_vertex(v).getOutDegree();
@@ -312,13 +340,12 @@ struct packed_graph {
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map=true) {
-    par_for(0, n, 1, [&] (size_t v) {
+  void map_edges(F f, bool parallel_inner_map = true) {
+    par_for(0, n, 1, [&](size_t v) {
       auto vert_v = get_vertex(v);
       vert_v.mapOutNgh(v, f, parallel_inner_map);
     });
   }
 
-  void del() {
-  }
+  void del() {}
 };

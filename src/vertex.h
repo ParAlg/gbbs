@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "pbbslib/sequence_ops.h"
 #include "macros.h"
+#include "pbbslib/sequence_ops.h"
 
 namespace intersection {
 
@@ -96,7 +96,7 @@ size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   using T = typename SeqA::value_type;
   size_t nA = A.size();
   size_t ct = 0;
-  for (size_t i=0; i < nA; i++) {
+  for (size_t i = 0; i < nA; i++) {
     const T& a = A[i];
     size_t mB = pbbslib::binary_search(B, a, std::less<T>());
     const T& b = B[mB];
@@ -114,26 +114,31 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;
-  if (nR < _seq_merge_thresh) { // handles (small, small) using linear-merge
+  if (nR < _seq_merge_thresh) {  // handles (small, small) using linear-merge
     return intersection::seq_merge_full(A, B, f);
   } else if (nB < nA) {
     return intersection::merge(B, A, f);
   } else if (nA < _bs_merge_base) {
     return intersection::seq_merge(A, B, f);
   } else {
-    size_t mA = nA/2;
+    size_t mA = nA / 2;
     size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
     size_t m_left = 0;
     size_t m_right = 0;
-    par_do([&] () { m_left = intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
-     [&] () { m_right = intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+    par_do(
+        [&]() {
+          m_left = intersection::merge(A.slice(0, mA), B.slice(0, mB), f);
+        },
+        [&]() {
+          m_right = intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);
+        });
     return m_left + m_right;
   }
 }
 
 template <template <typename W> class vertex, class W, class F>
 inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
-                          const F& f) {
+                              const F& f) {
   uintT nA = A->getOutDegree(), nB = B->getOutDegree();
   uintE* nghA = (uintE*)(A->getOutNeighbors());
   uintE* nghB = (uintE*)(B->getOutNeighbors());
@@ -142,9 +147,7 @@ inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
   auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
   auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
 
-  auto merge_f = [&] (uintE ngh) {
-    f(a, b, ngh);
-  };
+  auto merge_f = [&](uintE ngh) { f(a, b, ngh); };
   return intersection::merge(seqA, seqB, merge_f);
 }
 
@@ -174,20 +177,20 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
     }
   } else {
     size_t b_size = 2048;
-    size_t n_blocks = d/b_size + 1;
-    par_for(0, n_blocks, 1, [&] (size_t b) {
+    size_t n_blocks = d / b_size + 1;
+    par_for(0, n_blocks, 1, [&](size_t b) {
       if (f.cond(vtx_id)) {
-       size_t start = b*b_size;
-       size_t end = std::min((b+1)*b_size, static_cast<size_t>(d));
-       for (size_t j=start; j<end; j++) {
-         if (!f.cond(vtx_id)) break;
-         auto nw = nghs[j];
-         uintE ngh = std::get<0>(nw);
-         if (vertexSubset.isIn(ngh)) {
-           auto m = f.updateAtomic(ngh, vtx_id, std::get<1>(nw));
-           g(vtx_id, m);
-         }
-       }
+        size_t start = b * b_size;
+        size_t end = std::min((b + 1) * b_size, static_cast<size_t>(d));
+        for (size_t j = start; j < end; j++) {
+          if (!f.cond(vtx_id)) break;
+          auto nw = nghs[j];
+          uintE ngh = std::get<0>(nw);
+          if (vertexSubset.isIn(ngh)) {
+            auto m = f.updateAtomic(ngh, vtx_id, std::get<1>(nw));
+            g(vtx_id, m);
+          }
+        }
       }
     });
   }
@@ -198,7 +201,7 @@ inline void decodeNghsBreakEarly(vertex<W>* v, uintE vtx_id,
 template <template <typename W> class vertex, class W, class F, class G>
 inline void decodeNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                        uintE d, F& f, G& g) {
-  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
+  par_for(0, d, pbbslib::kSequentialForThreshold, [&](size_t j) {
     auto nw = nghs[j];
     uintE ngh = std::get<0>(nw);
     if (f.cond(ngh)) {
@@ -215,16 +218,18 @@ template <template <typename W> class vertex, class W, class F, class G,
 inline void decodeNghsSparse(vertex<W>* v, uintE vtx_id,
                              std::tuple<uintE, W>* nghs, uintE d, uintT o, F& f,
                              G& g, H& h, bool parallel) {
-  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
-    auto nw = nghs[j];
-    uintE ngh = std::get<0>(nw);
-    if (f.cond(ngh)) {
-      auto m = f.updateAtomic(vtx_id, ngh, std::get<1>(nw));
-      g(ngh, o + j, m);
-    } else {
-      h(ngh, o + j);
-    }
-  }, parallel);
+  par_for(0, d, pbbslib::kSequentialForThreshold,
+          [&](size_t j) {
+            auto nw = nghs[j];
+            uintE ngh = std::get<0>(nw);
+            if (f.cond(ngh)) {
+              auto m = f.updateAtomic(vtx_id, ngh, std::get<1>(nw));
+              g(ngh, o + j, m);
+            } else {
+              h(ngh, o + j);
+            }
+          },
+          parallel);
 }
 
 // Used by edgeMapSparse_no_filter. Sequentially decode the out-neighbors,
@@ -282,13 +287,14 @@ inline size_t countNghs(vertex<W>* v, long vtx_id, std::tuple<uintE, W>* nghs,
     auto nw = nghs[i];
     return f(vtx_id, std::get<0>(nw), std::get<1>(nw));
   };
-  auto im = pbbslib::make_sequence<size_t>(d,im_f);
+  auto im = pbbslib::make_sequence<size_t>(d, im_f);
   return pbbslib::reduce_add(im);
 }
 
 template <template <typename W> class vertex, class W, class E, class M,
           class Monoid>
-inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d, M& m, Monoid& reduce, bool parallel) {
+inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
+                    uintE d, M& m, Monoid& reduce, bool parallel) {
   if (d == 0) return reduce.identity;
   auto im_f = [&](size_t i) {
     auto nw = nghs[i];
@@ -305,10 +311,12 @@ inline E reduceNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs, uint
 template <template <typename W> class vertex, class W, class F>
 inline void mapNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                     uintE d, F& f, bool parallel) {
-  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
-    uintE ngh = v->getOutNeighbor(j);
-    f(vtx_id, ngh, v->getOutWeight(j));
-  }, parallel);
+  par_for(0, d, pbbslib::kSequentialForThreshold,
+          [&](size_t j) {
+            uintE ngh = v->getOutNeighbor(j);
+            f(vtx_id, ngh, v->getOutWeight(j));
+          },
+          parallel);
 }
 
 // Expects that out has enough space to hold the output of the filter
@@ -330,8 +338,8 @@ inline void filterNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
       };
       auto in_im = pbbslib::make_sequence(nghs, d);
       size_t k = pbbslib::filter_out(in_im, pbbslib::make_sequence(tmp, d), pc);
-      par_for(0, k, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { out(i, tmp[i]); });
+      par_for(0, k, pbbslib::kSequentialForThreshold,
+              [&](size_t i) { out(i, tmp[i]); });
     }
   }
 }
@@ -354,11 +362,13 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     return k;
   } else {
     // copy to tmp
-    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] = nghs[i]; });
+    par_for(0, d, pbbslib::kSequentialForThreshold,
+            [&](size_t i) { tmp[i] = nghs[i]; });
     auto pc = [&](const std::tuple<uintE, W>& nw) {
       return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
     };
-//    size_t k = pbbslib::filter_out(pbbslib::make_sequence(tmp, d), pbbslib::make_sequence(nghs, d), pc);
+    //    size_t k = pbbslib::filter_out(pbbslib::make_sequence(tmp, d),
+    //    pbbslib::make_sequence(nghs, d), pc);
     size_t k = pbbslib::filterf(tmp, nghs, d, pc);
     return k;
   }
@@ -367,12 +377,14 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
 template <template <typename W> class vertex, class W, class F, class G>
 inline void copyNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                      uintE d, uintT o, F& f, G& g, bool parallel) {
-  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
-    auto nw = nghs[j];
-    uintE ngh = std::get<0>(nw);
-    auto val = f(vtx_id, ngh, std::get<1>(nw));
-    g(ngh, o + j, val);
-  }, parallel);
+  par_for(0, d, pbbslib::kSequentialForThreshold,
+          [&](size_t j) {
+            auto nw = nghs[j];
+            uintE ngh = std::get<0>(nw);
+            auto val = f(vtx_id, ngh, std::get<1>(nw));
+            g(ngh, o + j, val);
+          },
+          parallel);
 }
 
 inline size_t calculateTemporarySpace(uintE deg) {
@@ -439,12 +451,14 @@ struct symmetricVertex {
   uintE getOutDegree() { return degree; }
   uintE getInVirtualDegree() { return degree; }
   uintE getOutVirtualDegree() { return degree; }
-  uintE getNumInBlocks() { return pbbs::num_blocks(degree, vertex_ops::kBlockSize); }
+  uintE getNumInBlocks() {
+    return pbbs::num_blocks(degree, vertex_ops::kBlockSize);
+  }
   uintE getNumOutBlocks() { return getNumInBlocks(); }
   inline uintE in_block_degree(uintE block_num) {
     uintE block_start = block_num * vertex_ops::kBlockSize;
     uintE block_end = std::min(block_start + vertex_ops::kBlockSize, degree);
-    return block_end - block_start; // TODO: check
+    return block_end - block_start;  // TODO: check
   }
   inline uintE out_block_degree(uintE block_num) {
     return in_block_degree(block_num);
@@ -474,10 +488,9 @@ struct symmetricVertex {
 
   template <class F>
   inline size_t intersect_f_par(symmetricVertex<W>* other, long our_id,
-                            long other_id, const F& f) {
+                                long other_id, const F& f) {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
-
 
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
@@ -508,13 +521,15 @@ struct symmetricVertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                 bool parallel = true) {
     vertex_ops::decodeNghsSparse<symmetricVertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                bool parallel = true) {
     vertex_ops::decodeNghsSparse<symmetricVertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h, parallel);
   }
@@ -532,26 +547,28 @@ struct symmetricVertex {
   }
 
   template <class F, class G>
-  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num,
-                               F& f, G& g) {
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
     return vertex_ops::decode_block<W, F>(vtx_id, getOutNeighbors(),
-        getOutDegree(), o, block_num, f, g);
+                                          getOutDegree(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num,
-                              F& f, G& g) {
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
     return decodeOutBlock(vtx_id, o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g,
+                         bool parallel = true) {
     vertex_ops::copyNghs<symmetricVertex, W>(this, vtx_id, getOutNeighbors(),
                                              getOutDegree(), o, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g,
+                        bool parallel = true) {
     vertex_ops::copyNghs<symmetricVertex, W>(this, vtx_id, getInNeighbors(),
                                              getInDegree(), o, f, g, parallel);
   }
@@ -579,13 +596,15 @@ struct symmetricVertex {
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce,
+                        bool parallel = true) {
     return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce,
+                       bool parallel = true) {
     return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
         this, vtx_id, getInNeighbors(), getInDegree(), m, reduce, parallel);
   }
@@ -616,22 +635,22 @@ struct symmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), p, out, tmp);
   }
 
-// Deprecated
-//  template <class P>
-//  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-//    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
-//        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
-//    setOutDegree(k);
-//    return k;
-//  }
-//
-//  template <class P>
-//  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-//    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
-//        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
-//    setInDegree(k);
-//    return k;
-//  }
+  // Deprecated
+  //  template <class P>
+  //  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+  //    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
+  //        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
+  //    setOutDegree(k);
+  //    return k;
+  //  }
+  //
+  //  template <class P>
+  //  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+  //    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
+  //        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
+  //    setInDegree(k);
+  //    return k;
+  //  }
 
   inline size_t calculateOutTemporarySpace() {
     return vertex_ops::calculateTemporarySpace(getOutDegree());
@@ -674,8 +693,12 @@ struct asymmetricVertex {
   uintE getOutDegree() { return outDegree; }
   uintE getInVirtualDegree() { return inDegree; }
   uintE getOutVirtualDegree() { return outDegree; }
-  uintE getNumInBlocks() { return pbbs::num_blocks(inDegree, vertex_ops::kBlockSize); }
-  uintE getNumOutBlocks() { return pbbs::num_blocks(outDegree, vertex_ops::kBlockSize); }
+  uintE getNumInBlocks() {
+    return pbbs::num_blocks(inDegree, vertex_ops::kBlockSize);
+  }
+  uintE getNumOutBlocks() {
+    return pbbs::num_blocks(outDegree, vertex_ops::kBlockSize);
+  }
   inline uintE in_block_degree(uintE block_num) {
     uintE block_start = block_num * vertex_ops::kBlockSize;
     uintE block_end = std::min(block_start + vertex_ops::kBlockSize, inDegree);
@@ -714,10 +737,9 @@ struct asymmetricVertex {
 
   template <class F>
   inline size_t intersect_f_par(asymmetricVertex<W>* other, long our_id,
-                            long other_id, const F& f) {
+                                long other_id, const F& f) {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
-
 
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
@@ -748,13 +770,15 @@ struct asymmetricVertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                 bool parallel) {
     vertex_ops::decodeNghsSparse<asymmetricVertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h,
+                                bool parallel) {
     vertex_ops::decodeNghsSparse<asymmetricVertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h, parallel);
   }
@@ -772,27 +796,29 @@ struct asymmetricVertex {
   }
 
   template <class F, class G>
-  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num,
-                               F& f, G& g) {
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
     return vertex_ops::decode_block<W, F>(vtx_id, getOutNeighbors(),
-        getOutDegree(), o, block_num, f, g);
+                                          getOutDegree(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num,
-                              F& f, G& g) {
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
     return vertex_ops::decode_block<W, F>(vtx_id, getInNeighbors(),
-        getInDegree(), o, block_num, f, g);
+                                          getInDegree(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
-    vertex_ops::copyNghs<asymmetricVertex, W>(this, vtx_id, getOutNeighbors(),
-                                              getOutDegree(), o, f, g, parallel);
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g,
+                         bool parallel = true) {
+    vertex_ops::copyNghs<asymmetricVertex, W>(
+        this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g, bool parallel=true) {
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g,
+                        bool parallel = true) {
     vertex_ops::copyNghs<asymmetricVertex, W>(this, vtx_id, getInNeighbors(),
                                               getInDegree(), o, f, g, parallel);
   }
@@ -820,13 +846,15 @@ struct asymmetricVertex {
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce,
+                        bool parallel = true) {
     return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce, bool parallel=true) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce,
+                       bool parallel = true) {
     return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
         this, vtx_id, getInNeighbors(), getInDegree(), m, reduce, parallel);
   }
@@ -857,22 +885,22 @@ struct asymmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), p, out, tmp);
   }
 
-// Deprecated
-//  template <class P>
-//  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-//    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
-//        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
-//    setOutDegree(k);
-//    return k;
-//  }
-//
-//  template <class P>
-//  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-//    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
-//        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
-//    setInDegree(k);
-//    return k;
-//  }
+  // Deprecated
+  //  template <class P>
+  //  inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+  //    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
+  //        this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
+  //    setOutDegree(k);
+  //    return k;
+  //  }
+  //
+  //  template <class P>
+  //  inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
+  //    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
+  //        this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
+  //    setInDegree(k);
+  //    return k;
+  //  }
 
   inline size_t calculateOutTemporarySpace() {
     return vertex_ops::calculateTemporarySpace(getOutDegree());

@@ -25,16 +25,16 @@
 
 #include <tuple>
 
-#include "speculative_for.h"
 #include "macros.h"
+#include "speculative_for.h"
 
 struct UnionFind {
   size_t n;
   intT* parents;
   UnionFind(size_t _n) : n(_n) {
     parents = pbbslib::new_array_no_init<intT>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { parents[i] = -1; });
+    par_for(0, n, pbbslib::kSequentialForThreshold,
+            [&](size_t i) { parents[i] = -1; });
   }
 
   intT find(int32_t i) {

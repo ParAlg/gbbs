@@ -23,8 +23,8 @@
 // SOFTWARE.
 #pragma once
 
-#include "pbbslib/utilities.h"
 #include "maybe.h"
+#include "pbbslib/utilities.h"
 
 template <class K, class V>
 class sequentialHT {
@@ -51,7 +51,7 @@ class sequentialHT {
         mask(m - 1),
         empty(_empty),
         max_key(std::get<0>(_empty)),
-        table(_table) { }
+        table(_table) {}
 
   // m must be a power of two
   sequentialHT(T* _table, size_t _m, std::tuple<K, V> _empty)
@@ -59,7 +59,7 @@ class sequentialHT {
         mask(m - 1),
         empty(_empty),
         max_key(std::get<0>(_empty)),
-        table(_table) { }
+        table(_table) {}
 
   template <class M, class F>
   inline void insertF(std::tuple<K, M>& v, F& f) {

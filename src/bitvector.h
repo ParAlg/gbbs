@@ -4,12 +4,10 @@ struct bitvector {
   size_t n;
   uint8_t* data;
   bitvector(size_t n) : n(n) {
-    size_t n_bytes = (n + 8 - 1)/8; // ceil(n/8);a
+    size_t n_bytes = (n + 8 - 1) / 8;  // ceil(n/8);a
     data = pbbs::new_array_no_init<uint8_t>(n_bytes);
     uint8_t zero = 0;
-    parallel_for(0, n_bytes, [&] (size_t i) {
-      data[i] = zero;
-    });
+    parallel_for(0, n_bytes, [&](size_t i) { data[i] = zero; });
   }
 
   inline bool ith_bit(uint8_t byte, uint8_t offset) {
