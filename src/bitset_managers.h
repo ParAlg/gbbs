@@ -338,7 +338,7 @@ struct compressed_sym_bitset_manager {
   uintE vtx_num_blocks;
   uint8_t* blocks_start;
   uint8_t* block_data_start;
-  static constexpr uintE kFullBlockPackThreshold = 2;
+  static constexpr uintE kFullBlockPackThreshold = 4;
   static constexpr uintE kBlockAllocThreshold = 20;
 
   vtx_info<E>* v_infos;
@@ -561,7 +561,7 @@ struct compressed_sym_bitset_manager {
             },
             parallel);
 
-    // 2. Reduce to get the #empty_blocks
+      // 2. Reduce to get the #empty_blocks
       auto full_block_seq =
           pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
             return static_cast<size_t>(block_metadata[i].offset > 0);
