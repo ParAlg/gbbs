@@ -30,6 +30,40 @@
 
 namespace block_vertex_ops {
 
+template <class It>
+size_t intersect(It& a, It& b) {
+  size_t i=0; size_t j=0;
+  size_t nA = a.degree(); size_t nB = b.degree();
+//  cout << "nA = " << nA << " nB = " << nB << endl;
+//  cout << "acur = " << std::get<0>(a.cur()) << " bcur = " << std::get<0>(b.cur()) << endl;
+  size_t ans = 0;
+  bool advance_a = false;
+  bool advance_b = false;
+  while (i < nA && j < nB) {
+//    cout << "i = " << i << " j = " << j << " (a) = " << std::get<0>(a.cur()) << " (b) = " << std::get<0>(b.cur()) << endl;
+    if (advance_a) {
+      advance_a = false;
+      a.next();
+    }
+    if (advance_b) {
+      advance_b = false;
+      b.next();
+    }
+    if (std::get<0>(a.cur()) == std::get<0>(b.cur())) {
+      advance_a = true;
+      advance_b = true;
+      i++; j++; ans++;
+    } else if (std::get<0>(a.cur()) < std::get<0>(b.cur())) {
+      advance_a = true;
+      i++;
+    } else {
+      advance_b = true;
+      j++;
+    }
+  }
+  return ans;
+}
+
 /* Used to map over the edges incident to v */
 template <class BM /* block_manager */, class W /* weight */,
           class F /* user-specified mapping function */>

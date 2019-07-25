@@ -35,7 +35,7 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 256;
+  static constexpr uintE edges_per_block = 64;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
@@ -357,17 +357,22 @@ struct sym_bitset_manager {
         vtx_original_degree(vtx_original_degree),
         vtx_num_blocks(vtx_num_blocks),
         blocks_start(blocks_start),
-        block_data_start(block_data_start) {
-      cur_block = 0;
+        block_data_start(block_data_start),
+        proc(0) {
       proc = 0;
       if (vtx_degree > 0) {
-        find_next_nonempty_block();
+        find_next_nonempty_block(/* on_initialization = */ true);
         next(); // sets last_edge
       }
     }
 
     // precondition: there is a subsequent non-empty block
-    inline void find_next_nonempty_block() {
+    inline void find_next_nonempty_block(bool on_initialization=false) {
+      if (on_initialization) {
+        cur_block = 0;
+      } else {
+        cur_block++;
+      }
       metadata* block_metadata = (metadata*)blocks_start;
 
       // set cur_block_degree
@@ -378,40 +383,43 @@ struct sym_bitset_manager {
       cur_block_degree = next_block_offset - offset;
 
       if (cur_block_degree == 0) {
-        cur_block++;
         find_next_nonempty_block();
       } else { // >= 1 live edges this block. reset block ctrs
         proc_cur_block = 0;
 
-        // set cur_block_size
+        // set cur_block_start and cur_block_size
         uintE orig_block_num = block_metadata[cur_block].block_num;
-        uintE block_start = orig_block_num * edges_per_block;
-        uintE block_end =
-          std::min(block_start + edges_per_block, vtx_original_degree);
-        cur_block_size = block_end - block_start;
+        cur_block_start = orig_block_num * edges_per_block;
+        uintE cur_block_end =
+          std::min(cur_block_start + edges_per_block, vtx_original_degree);
+        cur_block_size = cur_block_end - cur_block_start;
 
         // set cur_block_bits
         cur_block_bits = block_data_start + bitset_bytes_per_block * cur_block;
       }
     }
 
-    inline std::tuple<uintE, W> cur() { return last_edge; }
-    inline std::tuple<uintE, W> next() {
-      if (proc_cur_block == cur_block_size) {
-        find_next_nonempty_block(); // zeros proc_cur_block
-      }
+    __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
+    __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
+    __attribute__((always_inline)) inline std::tuple<uintE, W> next() {
       while (true) {
-        if (bitsets::is_bit_set(block_data_start, proc_cur_block)) {
-          last_edge = edges[cur_block_start + proc_cur_block];
-          proc++;
+        while (proc_cur_block < cur_block_size) {
+          // cout << "proc_cur_block = " << proc_cur_block << endl;
+          if (bitsets::is_bit_set(cur_block_bits, proc_cur_block)) {
+            // cout << "bit set for proc_cur_block = " << proc_cur_block << endl;
+            last_edge = edges[cur_block_start + proc_cur_block];
+            proc++;
+            proc_cur_block++;
+            return last_edge;
+          }
           proc_cur_block++;
-          return last_edge;
         }
-        proc_cur_block++;
+        // otherwise: finished this block, find next non_empty and call next()
+        find_next_nonempty_block();
       }
     }
 
-    inline bool has_next() {
+    __attribute__((always_inline)) inline bool has_next() {
       return proc < vtx_degree;
     }
   };

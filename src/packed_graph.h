@@ -215,13 +215,20 @@ struct packed_symmetric_vertex {
     return packOutNgh(vtx_id, p, parallel);
   }
 
-  auto getOutIter(uintE id) -> iter_type {
+  auto getOutIter() -> iter_type {
     return block_manager.get_iter();
   }
 
-  auto getInIter(uintE id) -> iter_type {
-    return getOutIter(id);
+  auto getInIter() -> iter_type {
+    return getOutIter();
   }
+
+  size_t intersect(packed_symmetric_vertex<W, BM>& other) {
+    auto it = getOutIter();
+    auto other_it = other.getOutIter();
+    return block_vertex_ops::intersect(it, other_it);
+  }
+
 };
 
 // Augments an ordinary (immutable) graph with the ability to filter/pack out
@@ -361,3 +368,10 @@ struct packed_graph {
 
   void del() {}
 };
+
+// Used to infer template arguments
+template <template <class W> class vertex, class W>
+auto build_packed_graph(graph<vertex, W>& GA) {
+  return packed_graph<vertex, W>(GA);
+}
+

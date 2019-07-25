@@ -97,6 +97,8 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
       auto vtx = DG.get_vertex(i);
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
+        auto ngh_vtx = DG.get_vertex(v);
+        total_ct += vtx.intersect(ngh_vtx);
 //        total_ct += vtx.intersect_f_par(&V[v], u, v, f);
       };
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
@@ -141,15 +143,36 @@ inline size_t Triangle(graph<vertex, W>& GA, const F& f) {
   gt.stop();
   debug(gt.reportTotal("build graph time"););
 
+//  auto it = DG.get_vertex(10012).getOutIter();
+//  cout << std::get<0>(it.cur()) << endl;
+//  size_t kk = 1;
+//  while (it.has_next()) {
+//    cout << std::get<0>(it.next()) << endl;
+//    kk++;
+//  }
+//  cout << "kk == " << kk << " vtx degree = " << it.degree() << endl;
+//
+//  cout << "DG.degree = " << DG.get_vertex(10012).getOutDegree() << endl;
+//  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//    cout << "v = " << v << endl;
+//  };
+//  DG.get_vertex(10012).mapOutNgh(10012, map_f, false);
+//  exit(0);
+
+//  auto v_10012 = DG.get_vertex(10012);
+//  auto v_10013 = DG.get_vertex(10013);
+//  cout << "intersect = " << v_10012.intersect(v_10013) << endl;
+//  exit(0);
+
   // 3. Count triangles on the digraph
   timer ct;
   ct.start();
 
-//  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
-//  std::cout << "### Num triangles = " << count << "\n";
-//  DG.del();
-//  ct.stop();
-//  debug(ct.reportTotal("count time"););
-//  pbbslib::free_array(rank);
-//  return count;
+  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
+  std::cout << "### Num triangles = " << count << "\n";
+  DG.del();
+  ct.stop();
+  debug(ct.reportTotal("count time"););
+  pbbslib::free_array(rank);
+  return count;
 }

@@ -116,7 +116,7 @@ __attribute__((always_inline)) static inline bool flip_bit(uint8_t* finger,
   uint8_t offset_within_byte = k & byte_mask;
 
   uint8_t byte_to_test = finger[byte_id];
-  return byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
+  finger[byte_id] = byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
 }
 
 }  // namespace bitsets

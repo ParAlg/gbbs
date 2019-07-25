@@ -51,6 +51,17 @@ inline sequence<uintE> BFS(G& GA, uintE src) {
   auto Parents = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
+//  auto PG = build_packed_graph(GA);
+//  auto it = PG.get_vertex(src).getOutIter(src);
+//  cout << std::get<0>(it.cur()) << endl;
+//  size_t kk = 1;
+//  while (it.has_next()) {
+//    cout << std::get<0>(it.next()) << endl;
+//    kk++;
+//  }
+//  cout << "kk == " << kk << " vtx degree = " << it.degree() << endl;
+//  exit(0);
+
   vertexSubset Frontier(GA.n, src);
   size_t reachable = 0;
   while (!Frontier.isEmpty()) {
