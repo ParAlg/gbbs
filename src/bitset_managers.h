@@ -324,6 +324,108 @@ struct sym_bitset_manager {
 #endif
     return edges[i];
   }
+
+  struct iter {
+    E* edges;
+    uintE vtx_id;
+    uintE vtx_degree;
+    uintE vtx_original_degree;
+    uintE vtx_num_blocks;
+    uint8_t* blocks_start;
+    uint8_t* block_data_start;
+
+    uintE cur_block; // block id
+    uintE cur_block_degree; // #live edges
+    uintE cur_block_start; // start offset (in edges)
+    uintE cur_block_size; // block size (in edges)
+    uint8_t* cur_block_bits;
+
+    std::tuple<uintE, W> last_edge;
+    uintE proc;
+    uintE proc_cur_block;
+
+    iter(E* edges,
+        uintE vtx_id,
+        uintE vtx_degree,
+        uintE vtx_original_degree,
+        uintE vtx_num_blocks,
+        uint8_t* blocks_start,
+        uint8_t* block_data_start) :
+        edges(edges),
+        vtx_id(vtx_id),
+        vtx_degree(vtx_degree),
+        vtx_original_degree(vtx_original_degree),
+        vtx_num_blocks(vtx_num_blocks),
+        blocks_start(blocks_start),
+        block_data_start(block_data_start) {
+      cur_block = 0;
+      proc = 0;
+      if (vtx_degree > 0) {
+        find_next_nonempty_block();
+        next(); // sets last_edge
+      }
+    }
+
+    // precondition: there is a subsequent non-empty block
+    inline void find_next_nonempty_block() {
+      metadata* block_metadata = (metadata*)blocks_start;
+
+      // set cur_block_degree
+      uintE offset = block_metadata[cur_block].offset;
+      uintE next_block_offset = (cur_block == vtx_num_blocks - 1)
+                                    ? vtx_degree
+                                    : block_metadata[cur_block + 1].offset;
+      cur_block_degree = next_block_offset - offset;
+
+      if (cur_block_degree == 0) {
+        cur_block++;
+        find_next_nonempty_block();
+      } else { // >= 1 live edges this block. reset block ctrs
+        proc_cur_block = 0;
+
+        // set cur_block_size
+        uintE orig_block_num = block_metadata[cur_block].block_num;
+        uintE block_start = orig_block_num * edges_per_block;
+        uintE block_end =
+          std::min(block_start + edges_per_block, vtx_original_degree);
+        cur_block_size = block_end - block_start;
+
+        // set cur_block_bits
+        cur_block_bits = block_data_start + bitset_bytes_per_block * cur_block;
+      }
+    }
+
+    inline std::tuple<uintE, W> cur() { return last_edge; }
+    inline std::tuple<uintE, W> next() {
+      if (proc_cur_block == cur_block_size) {
+        find_next_nonempty_block(); // zeros proc_cur_block
+      }
+      while (true) {
+        if (bitsets::is_bit_set(block_data_start, proc_cur_block)) {
+          last_edge = edges[cur_block_start + proc_cur_block];
+          proc++;
+          proc_cur_block++;
+          return last_edge;
+        }
+        proc_cur_block++;
+      }
+    }
+
+    inline bool has_next() {
+      return proc < vtx_degree;
+    }
+  };
+
+  auto get_iter() {
+    return iter(get_edges(),
+        vtx_id,
+        vtx_degree,
+        vtx_original_degree,
+        vtx_num_blocks,
+        blocks_start,
+        block_data_start);
+  }
+
 };
 
 template <template <class W> class vertex, class W>

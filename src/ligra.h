@@ -442,6 +442,25 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA, vertexSubset& vs, P& p,
     }
     return vertexSubsetData<uintE>(n);
   }
+  // TODO: update degrees
+}
+
+template <template <class W> class vertex, class W, class P>
+packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f) {
+  auto GA = packed_graph<vertex, W>(G);
+  {
+    auto for_inner = [&] (size_t v) {
+      GA.get_vertex(v).packOutNgh(v, pred_f);
+    };
+    par_for(0, G.n, 1, [&](size_t i) { for_inner(i); });
+  }
+  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
+    return GA.get_vertex(i).getOutDegree();
+  });
+  auto new_m = pbbslib::reduce_add(degree_seq);
+  GA.m = new_m;
+  cout << "new m = " << new_m << endl;
+  return GA;
 }
 
 template <class G /* graph type */, class P /* predicate function */>
@@ -686,12 +705,12 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmapcopy = mutates || P.getOptionValue("-mc");                    \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
-      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
-          iFile, symmetric, mmap, mmapcopy);                               \ 
+    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
     run_app(G, APP, rounds)                                                \
   }
 
-//    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+//      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
+//          iFile, symmetric, mmap, mmapcopy);                               \ 
 
 
 

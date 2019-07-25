@@ -64,24 +64,11 @@ inline uintE* rankNodes(G& GA, size_t n) {
   return r;
 }
 
-// Directly call edgemap dense-forward.
-template <class vertex, class VS, class F>
-inline vertexSubset emdf(graph<vertex> GA, VS& vs, F f, const flags& fl = 0) {
-  return edgeMapDenseForward<pbbslib::empty>(GA, vs, f, fl);
-}
 
-template <template <class W> class vertex, class W>
-inline size_t CountDirected(graph<vertex<W>>& DG, size_t* counts,
-                            vertexSubset& Frontier) {
-  emdf(DG, Frontier, wrap_em_f<W>(countF<vertex, W>(DG.V, counts)), no_output);
-  auto count_seq = sequence<size_t>(counts, DG.n);
-  size_t count = pbbslib::reduce_add(count_seq);
-  return count;
-}
-
-template <template <class W> class vertex, class W, class F>
-inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
+template <class PG, class F>
+inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
                                     const F& f) {
+  using W = typename PG::weight_type;
   debug(std::cout << "Starting counting"
             << "\n";);
   size_t n = DG.n;
@@ -89,11 +76,11 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
   auto parallel_work = sequence<size_t>(n);
   {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
-      return DG.V[v].getOutDegree();
+      return DG.get_vertex(v).getOutDegree();
     };
     par_for(0, n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = DG.V[i].template reduceOutNgh<size_t>(i, map_f, monoid);
+      parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
     });
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
@@ -105,13 +92,12 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
   debug(std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
             << " work per block = " << work_per_block << "\n";);
 
-  auto V = DG.V;
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
-      auto vtx = V[i];
+      auto vtx = DG.get_vertex(i);
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
-        total_ct += vtx.intersect_f_par(&V[v], u, v, f);
+//        total_ct += vtx.intersect_f_par(&V[v], u, v, f);
       };
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
       counts[i] = total_ct;
@@ -134,7 +120,7 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
 }
 
 template <template <class W> class vertex, class W, class F>
-inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
+inline size_t Triangle(graph<vertex, W>& GA, const F& f) {
   timer gt;
   gt.start();
   uintT n = GA.n;
@@ -159,11 +145,11 @@ inline size_t Triangle(graph<vertex<W>>& GA, const F& f) {
   timer ct;
   ct.start();
 
-  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
-  std::cout << "### Num triangles = " << count << "\n";
-  DG.del();
-  ct.stop();
-  debug(ct.reportTotal("count time"););
-  pbbslib::free_array(rank);
-  return count;
+//  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
+//  std::cout << "### Num triangles = " << count << "\n";
+//  DG.del();
+//  ct.stop();
+//  debug(ct.reportTotal("count time"););
+//  pbbslib::free_array(rank);
+//  return count;
 }

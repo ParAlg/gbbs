@@ -154,9 +154,10 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
   assert(false);  // Unimplemented
 }
 
-template <class W, class E, class M, class Monoid>
-inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    M& m, Monoid& reduce, const bool par = true) {
+template <class W, class M, class Monoid>
+inline auto map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
+                    M& m, Monoid& reduce, const bool par = true) -> typename Monoid::T {
+  using E = typename Monoid::T;
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
     W wgh = eatWeight<W>(edge_start);
@@ -170,6 +171,7 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
   }
   return reduce.identity;
 }
+
 
 /*
   Compresses the first edge, writing target-source and a sign bit.

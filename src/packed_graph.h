@@ -69,6 +69,7 @@
 template <class W, /* weight type */
           class BM /* block manager type */>
 struct packed_symmetric_vertex {
+  using iter_type = typename BM::iter;
   BM block_manager;  // copy; not a reference.
 
   packed_symmetric_vertex(BM&& block_manager)
@@ -212,6 +213,14 @@ struct packed_symmetric_vertex {
   template <class P>
   inline size_t packInNghs(uintE vtx_id, P& p, bool parallel = true) {
     return packOutNgh(vtx_id, p, parallel);
+  }
+
+  auto getOutIter(uintE id) -> iter_type {
+    return block_manager.get_iter();
+  }
+
+  auto getInIter(uintE id) -> iter_type {
+    return getOutIter(id);
   }
 };
 
