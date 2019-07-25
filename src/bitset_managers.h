@@ -401,16 +401,32 @@ struct sym_bitset_manager {
 
     __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
     __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
-    __attribute__((always_inline)) inline std::tuple<uintE, W> next() {
+    __attribute__((always_inline)) inline void next() {
       while (true) {
         while (proc_cur_block < cur_block_size) {
+          if ((proc_cur_block & ((1 << 16) - 1)) == 0) { // % 8
+            uintE idx = proc_cur_block >> 3; // byte
+            if (cur_block_bits[idx] == 0) {
+              if (cur_block_bits[idx+1] == 0) {
+                proc_cur_block += 16;
+                continue;
+              }
+              proc_cur_block += 8;
+              continue;
+            }
+          } else if ((proc_cur_block & 0x7) == 0) { // % 8
+            if (cur_block_bits[proc_cur_block >> 3] == 0) {
+              proc_cur_block += 8;
+              continue;
+            }
+          }
           // cout << "proc_cur_block = " << proc_cur_block << endl;
           if (bitsets::is_bit_set(cur_block_bits, proc_cur_block)) {
             // cout << "bit set for proc_cur_block = " << proc_cur_block << endl;
             last_edge = edges[cur_block_start + proc_cur_block];
             proc++;
             proc_cur_block++;
-            return last_edge;
+            return;
           }
           proc_cur_block++;
         }

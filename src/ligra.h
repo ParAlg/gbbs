@@ -705,12 +705,12 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmapcopy = mutates || P.getOptionValue("-mc");                    \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
-    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
+          iFile, symmetric, mmap, mmapcopy);                               \ 
     run_app(G, APP, rounds)                                                \
   }
 
-//      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
-//          iFile, symmetric, mmap, mmapcopy);                               \ 
+//    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 
 
 

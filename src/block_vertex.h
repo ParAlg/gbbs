@@ -64,6 +64,30 @@ size_t intersect(It& a, It& b) {
   return ans;
 }
 
+template <class S, class It>
+size_t intersect_seq(S& a, It& b) {
+  size_t i=0; size_t j=0;
+  size_t nA = a.size(); size_t nB = b.degree();
+  size_t ans = 0;
+  bool advance_b = false;
+  while (i < nA && j < nB) {
+    if (advance_b) {
+      advance_b = false;
+      b.next();
+    }
+    if (a[i] == std::get<0>(b.cur())) {
+      advance_b = true;
+      i++; j++; ans++;
+    } else if (a[i] < std::get<0>(b.cur())) {
+      i++;
+    } else {
+      advance_b = true;
+      j++;
+    }
+  }
+  return ans;
+}
+
 /* Used to map over the edges incident to v */
 template <class BM /* block_manager */, class W /* weight */,
           class F /* user-specified mapping function */>

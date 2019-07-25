@@ -85,6 +85,9 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
 
+  // TODO Can get even better load balance by using the actual blocks
+  // corresponding to a vertex. (similar to edgeMapBlocked)
+
   size_t block_size = 50000;
   size_t n_blocks = total_work/block_size + 1;
 //  size_t n_blocks = num_workers() * 8 + 1;
@@ -96,13 +99,34 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
       auto vtx = DG.get_vertex(i);
       size_t total_ct = 0;
+
+      uintE stk[512];
+      uintE* nghs = (uintE*)stk;
+      uintE deg = vtx.getOutDegree();
+      if (deg > 512) {
+        nghs = pbbs::new_array_no_init<uintE>(deg);
+      }
+      size_t k = 0;
+      auto map_seq_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
+        nghs[k++] = w;
+      };
+      vtx.mapOutNgh(i, map_seq_f, false);
+
+      auto nghs_seq = pbbslib::make_sequence(nghs, deg);
+
       auto map_f = [&](uintE u, uintE v, W wgh) {
+        // Copy live neighbors of u into separate array?
         auto ngh_vtx = DG.get_vertex(v);
-        total_ct += vtx.intersect(ngh_vtx);
+//        total_ct += vtx.intersect(ngh_vtx);
+        total_ct += vtx.intersect(nghs_seq, ngh_vtx);
 //        total_ct += vtx.intersect_f_par(&V[v], u, v, f);
       };
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
       counts[i] = total_ct;
+
+      if (deg > 512) {
+        pbbs::free_array(nghs);
+      }
     }
   };
 
