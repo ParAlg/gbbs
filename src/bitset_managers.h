@@ -249,8 +249,6 @@ struct sym_bitset_manager {
 
         size_t this_block_size = block_end - block_start;
         size_t bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
-//        size_t bytes_to_copy =
-//            (this_block_size + 8 - 1) / 8;  // ceil(this_block_size/8);
 
         // (b) copy bitset data
         for (size_t i = 0; i < bytes_to_copy; i++) {
@@ -454,6 +452,7 @@ struct sym_bitset_manager {
 
     __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
     __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
+
     __attribute__((always_inline)) inline void next() {
       while (true) {
         while (proc_cur_block < cur_block_size) {
