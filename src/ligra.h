@@ -410,35 +410,46 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA, vertexSubset& vs, P& p,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  // auto space = sequence<uintT>(m);
-  // par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-  //   uintE v = vs.vtx(i);
-  //   space[i] = GA.get_vertex(v).calculateOutTemporarySpace();
-  // });
-  // size_t total_space = pbbslib::scan_add_inplace(space);
+  auto space = sequence<uintT>(m);
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    uintE v = vs.vtx(i);
+    space[i] = GA.get_vertex(v).calculateOutTemporarySpaceBytes();
+  });
+
+  size_t total_space = pbbslib::scan_add_inplace(space.slice());
   // std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  // auto tmp = sequence<std::tuple<uintE, W>>(total_space);
+  // sequence<uint8_t> tmp(total_space);
+  uint8_t* tmp = nullptr;
+  if (total_space > 0) {
+    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
+  }
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        // std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        size_t ct = GA.get_vertex(v).packOutNgh(v, p);
+        uint8_t* tmp_v = tmp + space[i];
+        size_t ct = GA.get_vertex(v).packOutNgh(v, p, tmp_v);
         outV[i] = std::make_tuple(v, ct);
       };
       par_for(0, m, 1, [&](size_t i) { for_inner(i); });
+    }
+    if (total_space > 0) {
+      pbbs::free_array(tmp);
     }
     return vertexSubsetData<uintE>(n, m, outV);
   } else {
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        // std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        GA.get_vertex(v).packOutNgh(v, p);
+        uint8_t* tmp_v = tmp + space[i];
+        GA.get_vertex(v).packOutNgh(v, p, tmp_v);
       };
       par_for(0, m, 1, [&](size_t i) { for_inner(i); });
+    }
+    if (total_space > 0) {
+      pbbs::free_array(tmp);
     }
     return vertexSubsetData<uintE>(n);
   }

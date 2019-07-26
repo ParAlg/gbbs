@@ -199,21 +199,51 @@ struct sym_bitset_manager {
   /* Only called when the discrepency between full and total blocks is large.
    * Specifically, when #full_blocks*kFullBlockPackThreshold >= vtx_num_blocks
    * Note: Defers to pack(..) to finish updating the degree/scan info */
-  inline void repack_blocks_par(bool parallel) {
-    uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
-    uintE int_stk[kBlockAllocThreshold];
-    uint8_t* tmp_space = (uint8_t*)stk;
-    uintE* tmp_ints = (uintE*)int_stk;
-    size_t total_bytes = vtx_num_blocks * bytes_per_block;
-    if (vtx_num_blocks > kBlockAllocThreshold) {
-      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+  inline void repack_blocks_par(uint8_t* tmp, bool parallel) {
+//    uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
+//    uintE int_stk[kBlockAllocThreshold];
+//    uint8_t* tmp_space = (uint8_t*)stk;
+//    uintE* tmp_ints = (uintE*)int_stk;
+//    size_t total_bytes = vtx_num_blocks * bytes_per_block;
+//    if (vtx_num_blocks > kBlockAllocThreshold) {
+//      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
+//      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+//    }
+
+    // caller supplies:
+    // vtx_num_blocks*sizeof(uintE) +
+    // vtx_num_blocks*bytes_per_block
+
+    uint8_t* tmp_space = tmp;
+
+    metadata* block_metadata = (metadata*)blocks_start;
+
+    size_t n_full_blocks = vtx_num_blocks - 1; // full blocks
+    size_t bytes_to_copy = n_full_blocks*bytes_per_block;
+    {
+      // fetch original block
+      size_t last_block_num = vtx_num_blocks-1;
+      size_t orig_block_num = block_metadata[last_block_num].block_num;
+
+      // get block size
+      size_t block_start = orig_block_num * edges_per_block;
+      size_t block_end =
+          std::min(block_start + edges_per_block, static_cast<size_t>(vtx_original_degree));
+
+      // #bytes for this block
+      size_t last_block_size = block_end - block_start;
+      size_t last_block_bytes = sizeof(metadata) + bitsets::get_bitset_block_size_in_bytes(last_block_size);
+
+      bytes_to_copy += last_block_bytes;
     }
 
-    // 1. Copy all data to tmp space
-    parallel_for(0, total_bytes,
-                 [&](size_t i) { tmp_space[i] = blocks_start[i]; },
-                 512);  // tune threshold
+    // Is a blocked memcpy faster here?
+    parallel_for(0, bytes_to_copy, [&] (size_t i) {
+      tmp_space[i] = blocks_start[i];
+    }, 512);
+
+    // Tmp space for integers starts consecutively after tmp block space
+    uintE* tmp_ints = (uintE*)(tmp + bytes_to_copy);
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
     auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
@@ -262,16 +292,16 @@ struct sym_bitset_manager {
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
-    if (old_vtx_num_blocks > kBlockAllocThreshold) {
-      pbbs::free_array(tmp_space);
-      pbbs::free_array(tmp_ints);
-    }
+//    if (old_vtx_num_blocks > kBlockAllocThreshold) {
+//      pbbs::free_array(tmp_space);
+//      pbbs::free_array(tmp_ints);
+//    }
   }
 
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(uintE vtx_id, P& p, bool parallel) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel) {
     metadata* block_metadata = (metadata*)blocks_start;
 
     // 1. pack each block
@@ -341,19 +371,14 @@ struct sym_bitset_manager {
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
 
-    if (vtx_num_blocks > 500) {
-      cout << "full_blocks = " << full_blocks
-           << " vtx_blocks = " << vtx_num_blocks << endl;
-    }
-
     if (full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) {
-      repack_blocks_par(parallel);
+      repack_blocks_par(tmp, parallel);
     }
 
     // Update offset values.
     auto ptr_seq = pbbs::indirect_value_seq<uintE>(
         vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_add_inplace(ptr_seq);
+    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbs::no_flag, (uintE*)tmp);
     vtx_degree = sum;
 
     // Update the degree in vtx_info.

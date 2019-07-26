@@ -292,17 +292,18 @@ auto scan(pbbs::sequence<T>&& In, Monoid m, flags fl = no_flag)
 
 // Scans the input sequence using the addm monoid.
 template <RANGE In_Seq>
-inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag) ->
+inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag, typename In_Seq::value_type* tmp=nullptr) ->
     typename In_Seq::value_type {
   using T = typename In_Seq::value_type;
-  return pbbs::scan_inplace(In, pbbs::addm<T>(), fl);
+  return pbbs::scan_inplace(In, pbbs::addm<T>(), fl, tmp);
 }
 
-// Scans the input sequence using the addm monoid.
-template <class T>
-inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag) -> T {
-  return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl);
-}
+// redundant?
+//// Scans the input sequence using the addm monoid.
+//template <class T>
+//inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag) -> T {
+//  return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl);
+//}
 
 template <SEQ Seq, class Monoid>
 auto reduce(Seq const& A, Monoid m, flags fl = no_flag) ->
