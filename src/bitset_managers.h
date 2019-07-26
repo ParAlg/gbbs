@@ -35,13 +35,13 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 256; 
+  static constexpr uintE edges_per_block = 256;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(metadata);
   static constexpr uintE kFullBlockPackThreshold = 2;
-  static constexpr uintE kBlockAllocThreshold = 20;
+  static constexpr uintE kBlockAllocThreshold = 50;
 
   E* e0;
   sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
@@ -289,19 +289,48 @@ struct sym_bitset_manager {
 
               E* e = get_edges();
 
+              size_t block_size = block_end - block_start;
+              size_t block_size_num_longs = (block_size+64-1)/64;
+
+              // "select" on a block
+              uint64_t* long_block_bits = (uint64_t*)block_bits;
+              size_t cur_offset = block_start;
               size_t live_edges = 0;
-              for (size_t k = 0; k < (block_end - block_start); k++) {
-                if (bitsets::is_bit_set(block_bits, k)) {     // k-th edge is present in G
-                  auto& ee = e[block_start + k];  // fetch the k-th edge
-                  if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
-                    // unset the k-th bit
-                    bitsets::flip_bit(block_bits, k);
-                  } else {
-                    // otherwise increment the count of live edges
-                    live_edges++;
+              for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+                uint64_t cur_long = long_block_bits[idx];
+                size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
+                if (cnt > 0) {
+                  uint64_t long_to_write = cur_long;
+                  for (size_t i=0; i<cnt; i++) {
+                    unsigned select_idx = _tzcnt_u64(cur_long);
+                    auto& ee = e[cur_offset + select_idx];
+                    if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
+                      long_to_write ^= (1UL << select_idx);
+                    } else {
+                      live_edges++;
+                    }
+                    assert((cur_long & (1UL << select_idx)) > 0);
+                    cur_long = _blsr_u64(cur_long);
                   }
+                  long_block_bits[idx] = long_to_write;
                 }
+                cur_offset += 64; // next long
               }
+
+//              size_t live_edges = 0;
+//              for (size_t k = 0; k < (block_end - block_start); k++) {
+//                if (bitsets::is_bit_set(block_bits, k)) {     // k-th edge is present in G
+//                  auto& ee = e[block_start + k];  // fetch the k-th edge
+//                  if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
+//                    // unset the k-th bit
+//                    bitsets::flip_bit(block_bits, k);
+//                  } else {
+//                    // otherwise increment the count of live edges
+//                    live_edges++;
+//                  }
+//                }
+//              }
+
               // Temporarily store #live_edges in offset positions.
               block_metadata[block_id].offset = live_edges;
             },
