@@ -35,7 +35,7 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 2048;
+  static constexpr uintE edges_per_block = 256; 
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
@@ -248,8 +248,9 @@ struct sym_bitset_manager {
             std::min(block_start + edges_per_block, vtx_original_degree);
 
         size_t this_block_size = block_end - block_start;
-        size_t bytes_to_copy =
-            (this_block_size + 8 - 1) / 8;  // ceil(this_block_size/8);
+        size_t bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
+//        size_t bytes_to_copy =
+//            (this_block_size + 8 - 1) / 8;  // ceil(this_block_size/8);
 
         // (b) copy bitset data
         for (size_t i = 0; i < bytes_to_copy; i++) {

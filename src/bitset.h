@@ -81,6 +81,13 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
   return total_bytes;
 }
 
+// #bitset bytes for a given block size. rounds up to the nearest multiple of 8
+// bytes.
+static inline size_t get_bitset_block_size_in_bytes(size_t block_size) {
+  size_t block_bytes = (block_size+8-1)/8; // ceil(_/8)
+  return ((block_bytes + 8 - 1) & -8); // round up to mult 8
+}
+
 
 __attribute__((always_inline)) static inline bool is_bit_set(uint8_t* finger,
                                                              uintE k) {
@@ -134,8 +141,7 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
   size_t last_block_start = last_block_num * bs;
   size_t last_block_size = degree - last_block_start; // #set bits
 
-  size_t last_block_bytes = (last_block_size+8-1)/8; // ceil(_/8)
-  last_block_bytes = ((last_block_bytes + 8 - 1) & -8); // round up to mult 8
+  size_t last_block_bytes = get_bitset_block_size_in_bytes(last_block_size);
 
   size_t bs_data_bytes = bs_in_bytes - sizeof(metadata);
 //  size_t last_block_bytes = data_bytes - (num_blocks-1)*bs_data_bytes;
