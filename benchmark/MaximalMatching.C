@@ -51,20 +51,20 @@ double MaximalMatching_runner(G& GA, commandLine P) {
   std::cout << "### ------------------------------------" << endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
-  auto in_f = P.getOptionValue("-if");
-  if (in_f) {
-    auto S = readStringFromFile(in_f);
-    auto W = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-    size_t ms = atol(W[0]);
-    using edge = std::tuple<uintE, uintE>;
-    auto matching = sequence<edge>(ms);
-    par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      matching[i] =
-          std::make_tuple(atol(W[1 + 2 * i]), atol(W[2 * (i + 1)]));
-    });
-    verify_matching(GA, matching);
-    exit(0);
-  }
+//  auto in_f = P.getOptionValue("-if");
+//  if (in_f) {
+//    auto S = readStringFromFile(in_f);
+//    auto W = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+//    size_t ms = atol(W[0]);
+//    using edge = std::tuple<uintE, uintE>;
+//    auto matching = sequence<edge>(ms);
+//    par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+//      matching[i] =
+//          std::make_tuple(atol(W[1 + 2 * i]), atol(W[2 * (i + 1)]));
+//    });
+//    verify_matching(GA, matching);
+//    exit(0);
+//  }
   timer t; t.start();
   auto matching = MaximalMatching(GA);
   double tt = t.stop();

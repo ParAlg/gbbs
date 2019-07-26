@@ -223,44 +223,44 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(G& G) {
   return std::move(ret);
 }
 
-template <class G, class Seq>
-inline void verify_matching(G& G, Seq& matching) {
-  using W = typename G::weight_type;
-  size_t n = G.n;
-  auto ok = sequence<bool>(n, [](size_t i) { return 1; });
-  auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
-
-  // Check that this is a valid matching
-  par_for(0, matching.size(), [&] (size_t i) {
-                    const auto& edge = matching[i];
-                    pbbslib::write_add(&matched[std::get<0>(edge)], 1);
-                    pbbslib::write_add(&matched[std::get<1>(edge)], 1);
-                  });
-
-  bool valid = true;
-  par_for(0, n, [&] (size_t i) {
-    if (matched[i] > 1) valid = false;
-  });
-  assert(valid == true);
-
-  // Check maximality of the matching
-  auto map2_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    if (!matched[src] && !matched[ngh]) {
-      // could have added this edge, increasing the size of the matching
-      ok[src] = 0;
-      ok[ngh] = 0;
-    }
-  };
-  par_for(0, n, 1, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
-
-  auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);
-  size_t n_ok = pbbslib::reduce_add(ok_im);
-  if (n == n_ok) {
-    std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
-  } else {
-    std::cout << "Matching invalid---" << (n - n_ok)
-              << " vertices saw bad neighborhoods."
-              << "\n";
-  }
-}
+//template <class G, class Seq>
+//inline void verify_matching(G& G, Seq& matching) {
+//  using W = typename G::weight_type;
+//  size_t n = G.n;
+//  auto ok = sequence<bool>(n, [](size_t i) { return 1; });
+//  auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
+//
+//  // Check that this is a valid matching
+//  par_for(0, matching.size(), [&] (size_t i) {
+//                    const auto& edge = matching[i];
+//                    pbbslib::write_add(&matched[std::get<0>(edge)], 1);
+//                    pbbslib::write_add(&matched[std::get<1>(edge)], 1);
+//                  });
+//
+//  bool valid = true;
+//  par_for(0, n, [&] (size_t i) {
+//    if (matched[i] > 1) valid = false;
+//  });
+//  assert(valid == true);
+//
+//  // Check maximality of the matching
+//  auto map2_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+//    if (!matched[src] && !matched[ngh]) {
+//      // could have added this edge, increasing the size of the matching
+//      ok[src] = 0;
+//      ok[ngh] = 0;
+//    }
+//  };
+//  par_for(0, n, 1, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
+//
+//  auto ok_f = [&](size_t i) { return ok[i]; };
+//  auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);
+//  size_t n_ok = pbbslib::reduce_add(ok_im);
+//  if (n == n_ok) {
+//    std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
+//  } else {
+//    std::cout << "Matching invalid---" << (n - n_ok)
+//              << " vertices saw bad neighborhoods."
+//              << "\n";
+//  }
+//}

@@ -35,7 +35,7 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 64;
+  static constexpr uintE edges_per_block = 256;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
@@ -83,9 +83,7 @@ struct sym_bitset_manager {
                                   ? vtx_degree
                                   : block_metadata[block_id + 1].offset;
     uintE block_degree = next_block_offset - offset;
-    if (block_degree == 0) {
-      return;
-    }
+    if (block_degree == 0) return;
 
     uintE orig_block_num = block_metadata[block_id].block_num;
 
@@ -103,34 +101,37 @@ struct sym_bitset_manager {
 
     E* e = get_edges();
 
-    // This is one way of decoding (check bit at a time). The other way is to
-    // use a fetch_next_bit function.
-    // Probably also faster to have a look-up table on the byte
+    size_t block_size = block_end - block_start;
+    size_t block_size_num_longs = (block_size+64-1)/64;
 
-    //    uintE n_bytes = (block_end-block_start) >> 3; // div-by-8
-    //    for (uintE b=0; b<n_bytes; b++) {
-    //      if (block_bits[b] > 0) {
-    //        uint8_t* byte_loc = &(block_bits[b]);
-    //        uintE idx_loc = b << 3; // * 8
-    //        for (uintE k=0; k<8; k++) {
-    //          if (bitsets::is_bit_set(byte_loc, k)) {
-    //            auto& ee = e[block_start + idx_loc + k];
-    //            f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f
-    //            with the correct offset
-    //          }
-    //        }
-    //      }
-    //    }
+    // "select" on a block
+    uint64_t* long_block_bits = (uint64_t*)block_bits;
+    size_t cur_offset = block_start;
+    for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+      uint64_t cur_long = long_block_bits[idx];
+      size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
+      if (cnt > 0) {
+        for (size_t i=0; i<cnt; i++) {
+          unsigned select_idx = _tzcnt_u64(cur_long); // select64_tz(cur_long, 1);
+          auto& ee = e[cur_offset + select_idx];
+          f(std::get<0>(ee), std::get<1>(ee), offset++);
+          assert((cur_long & (1UL << select_idx)) > 0);
+          cur_long = _blsr_u64(cur_long);
 
-    for (size_t k = 0; k < (block_end - block_start); k++) {
-      //      bool isset = bitsets::is_bit_set(block_bits, k);
-      //      assert(isset);
-      if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
-        auto& ee = e[block_start + k];           // if so, fetch the k-th edge
-        f(std::get<0>(ee), std::get<1>(ee),
-          offset++);  // and apply f with the correct offset
+//          auto cur_long_save = cur_long;
+//          cur_long ^= (1 << select_idx);
+//          assert((cur_long & (1 << select_idx)) == 0);
+        }
       }
+      cur_offset += 64; // next long
     }
+
+//    for (size_t k=0; k<(block_end - block_start); k++) {
+//      if (bitsets::is_bit_set(block_bits, k)) { // check if the k-th bit is set
+//        auto& ee = e[block_start + k]; // if so, fetch the k-th edge
+//        f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f with the correct offset
+//      }
+//    }
   }
 
   template <class F>
@@ -161,19 +162,42 @@ struct sym_bitset_manager {
 
     E* e = get_edges();
 
-    // This is one way of decoding (check bit at a time). The other way is to
-    // use a fetch_next_bit function.
-    // Probably also faster to have a look-up table on the byte
-    for (size_t k = 0; k < (block_end - block_start); k++) {
-      //      bool isset = bitsets::is_bit_set(block_bits, k);
-      //      assert(isset);
-      if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
-        auto& ee = e[block_start + k];           // if so, fetch the k-th edge
-        bool ret = f(std::get<0>(ee), std::get<1>(ee),
-                     offset++);  // and apply f with the correct offset
-        if (!ret) break;
+    size_t block_size = block_end - block_start;
+    size_t block_size_num_longs = (block_size+64-1)/64;
+
+    // "select" on a block
+    uint64_t* long_block_bits = (uint64_t*)block_bits;
+    size_t cur_offset = block_start;
+    for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+      uint64_t cur_long = long_block_bits[idx];
+      size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
+      if (cnt > 0) {
+        for (size_t rank=1; rank<(cnt+1); rank++) {
+          unsigned select_idx = _tzcnt_u64(cur_long); // select64_tz(cur_long, 1);
+          auto& ee = e[cur_offset + select_idx];
+          if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
+            return;
+          }
+          assert((cur_long & (1UL << select_idx)) > 0);
+          cur_long = _blsr_u64(cur_long);
+        }
       }
+      cur_offset += 64; // next long
     }
+
+//    // This is one way of decoding (check bit at a time). The other way is to
+//    // use a fetch_next_bit function.
+//    // Probably also faster to have a look-up table on the byte
+//    for (size_t k = 0; k < (block_end - block_start); k++) {
+//      //      bool isset = bitsets::is_bit_set(block_bits, k);
+//      //      assert(isset);
+//      if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
+//        auto& ee = e[block_start + k];           // if so, fetch the k-th edge
+//        bool ret = f(std::get<0>(ee), std::get<1>(ee),
+//                     offset++);  // and apply f with the correct offset
+//        if (!ret) break;
+//      }
+//    }
   }
 
   /* Only called when the discrepency between full and total blocks is large.
@@ -270,8 +294,7 @@ struct sym_bitset_manager {
 
               size_t live_edges = 0;
               for (size_t k = 0; k < (block_end - block_start); k++) {
-                if (bitsets::is_bit_set(block_bits,
-                                        k)) {     // k-th edge is present in G
+                if (bitsets::is_bit_set(block_bits, k)) {     // k-th edge is present in G
                   auto& ee = e[block_start + k];  // fetch the k-th edge
                   if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
                     // unset the k-th bit
@@ -365,6 +388,10 @@ struct sym_bitset_manager {
         next(); // sets last_edge
       }
     }
+
+// unsigned short __builtin_ia32_lzcnt_u16(unsigned short);
+// unsigned int __builtin_ia32_lzcnt_u32(unsigned int);
+// unsigned long long __builtin_ia32_lzcnt_u64 (unsigned long long);
 
     // precondition: there is a subsequent non-empty block
     inline void find_next_nonempty_block(bool on_initialization=false) {

@@ -1,5 +1,25 @@
 #pragma once
 
+#include <x86intrin.h>
+// see bitmagic
+// precondition: rank > 0
+unsigned select64_tz(uint64_t w, unsigned rank)
+{
+//    BM_ASSERT(w);
+//    BM_ASSERT(rank);
+//    BM_ASSERT(rank <= _mm_popcnt_u64(w));
+
+    do {
+        if ((--rank) == 0)
+            break;
+        w = _blsr_u64(w); // w &= w - 1;
+    } while (1);
+    auto t = _blsi_u64(w); //w & -w;
+    unsigned count = unsigned(_tzcnt_u64(t));
+    return count;
+}
+
+
 namespace bitsets {
 // block layout:
 // 4 bytes for block_num
@@ -61,8 +81,35 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
   return total_bytes;
 }
 
+
+__attribute__((always_inline)) static inline bool is_bit_set(uint8_t* finger,
+                                                             uintE k) {
+  // 8 entries/byte, so block corresponding to k is k/8 = k >> 3;
+  uintE byte_id = k >> 3;
+
+  // idx within the byte is (k & byte-mask) = (k & 0x7) (value between 0--7)
+  constexpr uintE byte_mask = 0x7;
+  uint8_t offset_within_byte = k & byte_mask;
+
+  uint8_t byte_to_test = finger[byte_id];
+  return byte_to_test & (static_cast<uint8_t>(1) << offset_within_byte);
+}
+
+__attribute__((always_inline)) static inline void flip_bit(uint8_t* finger,
+                                                           uintE k) {
+  // 8 entries/byte, so block corresponding to k is k/8 = k >> 3;
+  uintE byte_id = k >> 3;
+
+  // idx within the byte is (k & byte-mask) = (k & 0x7) (value between 0--7)
+  constexpr uintE byte_mask = 0x7;
+  uint8_t offset_within_byte = k & byte_mask;
+
+  uint8_t byte_to_test = finger[byte_id];
+  finger[byte_id] = byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
+}
+
 static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
-                               size_t bs, size_t vtx_bytes) {
+                               size_t bs, size_t bs_in_bytes, size_t vtx_bytes) {
   metadata* block_metadata = (metadata*)finger;
   parallel_for(0, num_blocks,
                [&](size_t block_num) {
@@ -81,6 +128,19 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
                  bitset_data_start[i] = std::numeric_limits<uint8_t>::max();
                },
                512);
+
+  // fix bits for last block
+  size_t last_block_num = num_blocks-1;
+  size_t last_block_start = last_block_num * bs;
+  size_t last_block_size = degree - last_block_start; // #set bits
+  size_t bs_data_bytes = bs_in_bytes - sizeof(metadata);
+  size_t last_block_bytes = data_bytes - (num_blocks-1)*bs_data_bytes;
+  size_t last_block_physical_size = last_block_bytes*8;
+  uint8_t* last_block_bits = bitset_data_start + bs_data_bytes*last_block_num;
+  for (uintE k=last_block_size; k<last_block_physical_size; k++) {
+    assert(is_bit_set(last_block_bits, k));
+    flip_bit(last_block_bits, k);
+  }
 }
 
 static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,
@@ -92,31 +152,4 @@ static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,
                           : block_metadata[block_num + 1].offset;
   return next_offset - offset;
 }
-
-__attribute__((always_inline)) static inline bool is_bit_set(uint8_t* finger,
-                                                             uintE k) {
-  // 8 entries/byte, so block corresponding to k is k/8 = k >> 3;
-  uintE byte_id = k >> 3;
-
-  // idx within the byte is (k & byte-mask) = (k & 0x7) (value between 0--7)
-  constexpr uintE byte_mask = 0x7;
-  uint8_t offset_within_byte = k & byte_mask;
-
-  uint8_t byte_to_test = finger[byte_id];
-  return byte_to_test & (static_cast<uint8_t>(1) << offset_within_byte);
-}
-
-__attribute__((always_inline)) static inline bool flip_bit(uint8_t* finger,
-                                                           uintE k) {
-  // 8 entries/byte, so block corresponding to k is k/8 = k >> 3;
-  uintE byte_id = k >> 3;
-
-  // idx within the byte is (k & byte-mask) = (k & 0x7) (value between 0--7)
-  constexpr uintE byte_mask = 0x7;
-  uint8_t offset_within_byte = k & byte_mask;
-
-  uint8_t byte_to_test = finger[byte_id];
-  finger[byte_id] = byte_to_test ^ (static_cast<uint8_t>(1) << offset_within_byte);
-}
-
 }  // namespace bitsets

@@ -69,7 +69,7 @@
 template <class W, /* weight type */
           class BM /* block manager type */>
 struct packed_symmetric_vertex {
-//  using iter_type = typename BM::iter;
+  using iter_type = typename BM::iter;
   BM block_manager;  // copy; not a reference.
 
   packed_symmetric_vertex(BM&& block_manager)
@@ -215,26 +215,25 @@ struct packed_symmetric_vertex {
     return packOutNgh(vtx_id, p, parallel);
   }
 
-//  auto getOutIter() -> iter_type {
-//    return block_manager.get_iter();
-//  }
-//
-//  auto getInIter() -> iter_type {
-//    return getOutIter();
-//  }
-//
-//  size_t intersect(packed_symmetric_vertex<W, BM>& other) {
-//    auto it = getOutIter();
-//    auto other_it = other.getOutIter();
-//    return block_vertex_ops::intersect(it, other_it);
-//  }
-//
-//  template <class S>
-//  size_t intersect(S& seq, packed_symmetric_vertex<W, BM>& other) {
-//    auto other_it = other.getOutIter();
-//    return block_vertex_ops::intersect_seq(seq, other_it);
-//  }
+  auto getOutIter() -> iter_type {
+    return block_manager.get_iter();
+  }
 
+  auto getInIter() -> iter_type {
+    return getOutIter();
+  }
+
+  size_t intersect(packed_symmetric_vertex<W, BM>& other) {
+    auto it = getOutIter();
+    auto other_it = other.getOutIter();
+    return block_vertex_ops::intersect(it, other_it);
+  }
+
+  template <class S>
+  size_t intersect(S& seq, packed_symmetric_vertex<W, BM>& other) {
+    auto other_it = other.getOutIter();
+    return block_vertex_ops::intersect_seq(seq, other_it);
+  }
 };
 
 // Augments an ordinary (immutable) graph with the ability to filter/pack out
@@ -301,7 +300,7 @@ struct packed_graph {
 
           // initialize blocks corresponding to v's neighbors
           uint8_t* our_block_start = blocks + block_byte_offset;
-          bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs,
+          bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, bs_in_bytes,
                                       vtx_bytes);
         },
         1);

@@ -16,7 +16,9 @@ endif
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../
 
-OPT = -O3 -g
+# abm flag on intel indicates lzcnt
+# see https://en.wikipedia.org/wiki/Bit_Manipulation_Instruction_Sets
+OPT = -O3 -g -mlzcnt -DNDEBUG
 
 ifdef NVM
 NVMFLAGS = -lpmem -lnuma -DNVM
