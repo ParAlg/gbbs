@@ -35,7 +35,7 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 256;
+  static constexpr uintE edges_per_block = 2048;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
@@ -117,10 +117,6 @@ struct sym_bitset_manager {
           f(std::get<0>(ee), std::get<1>(ee), offset++);
           assert((cur_long & (1UL << select_idx)) > 0);
           cur_long = _blsr_u64(cur_long);
-
-//          auto cur_long_save = cur_long;
-//          cur_long ^= (1 << select_idx);
-//          assert((cur_long & (1 << select_idx)) == 0);
         }
       }
       cur_offset += 64; // next long
@@ -172,14 +168,14 @@ struct sym_bitset_manager {
       uint64_t cur_long = long_block_bits[idx];
       size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
       if (cnt > 0) {
-        for (size_t rank=1; rank<(cnt+1); rank++) {
-          unsigned select_idx = _tzcnt_u64(cur_long); // select64_tz(cur_long, 1);
+        for (size_t i=0; i<cnt; i++) {
+          unsigned select_idx = _tzcnt_u64(cur_long); // index of first nz bit
           auto& ee = e[cur_offset + select_idx];
           if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
             return;
           }
           assert((cur_long & (1UL << select_idx)) > 0);
-          cur_long = _blsr_u64(cur_long);
+          cur_long = _blsr_u64(cur_long); // reset lowest bit
         }
       }
       cur_offset += 64; // next long

@@ -706,10 +706,10 @@ inline size_t get_pcm_state() { return (size_t)1; }
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
     auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
-    run_app(G, APP, rounds)                                                \
+        auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
+    run_app(GA, APP, rounds)                                                \
   }
 
-//        auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
 //          iFile, symmetric, mmap, mmapcopy);                               \ 
 

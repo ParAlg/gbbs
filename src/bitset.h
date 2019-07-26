@@ -72,8 +72,8 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
 
   uintE rem_bytes = (rem + 8 - 1)/8; // ceil(rem/8)
 
-  // rounds rem to nearest multiple of 4 bytes
-  uintE last_block_bytes = sizeof(metadata) + ((rem_bytes + 4 - 1) & -4);
+  // rounds rem to nearest multiple of 8 bytes
+  uintE last_block_bytes = sizeof(metadata) + ((rem_bytes + 8 - 1) & -8);
 
   uintE full_block_bytes = full_blocks * bs_in_bytes;
 
@@ -133,8 +133,12 @@ static void bitset_init_blocks(uint8_t* finger, uintE degree, size_t num_blocks,
   size_t last_block_num = num_blocks-1;
   size_t last_block_start = last_block_num * bs;
   size_t last_block_size = degree - last_block_start; // #set bits
+
+  size_t last_block_bytes = (last_block_size+8-1)/8; // ceil(_/8)
+  last_block_bytes = ((last_block_bytes + 8 - 1) & -8); // round up to mult 8
+
   size_t bs_data_bytes = bs_in_bytes - sizeof(metadata);
-  size_t last_block_bytes = data_bytes - (num_blocks-1)*bs_data_bytes;
+//  size_t last_block_bytes = data_bytes - (num_blocks-1)*bs_data_bytes;
   size_t last_block_physical_size = last_block_bytes*8;
   uint8_t* last_block_bits = bitset_data_start + bs_data_bytes*last_block_num;
   for (uintE k=last_block_size; k<last_block_physical_size; k++) {
