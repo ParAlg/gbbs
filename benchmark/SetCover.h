@@ -65,7 +65,7 @@ struct Visit_Elms {
 
 template <template <class W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets = 512) {
-  auto GA = packed_graph<vertex, W>(G);
+  auto GA = build_packed_graph(G);
   timer it; it.start();
   auto Elms = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
@@ -203,5 +203,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets 
   std::cout << "|cover|: " << cover.size << "\n";
   std::cout << "Rounds: " << rounds << "\n";
   std::cout << "Num_uncovered = " << (GA.n - elms_cov) << "\n";
+  GA.del();
   return cover;
 }

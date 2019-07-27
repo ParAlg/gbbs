@@ -51,11 +51,6 @@ double SetCover_runner(graph<vertex, W>& GA, commandLine P) {
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
-
-  // Set-cover mutates the underlying graph (unless it is copied, which
-  // we don't do to prevent memory issues), so we make sure the algorithm is run
-  // exactly once.
-  exit(0);
   return tt;
 }
 
