@@ -36,7 +36,7 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 256;
+  static constexpr uintE edges_per_block = 64;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
@@ -416,8 +416,11 @@ struct sym_bitset_manager {
     uintE cur_block; // block id
     uintE cur_block_degree; // #live edges
     uintE cur_block_start; // start offset (in edges)
-    uintE cur_block_size; // block size (in edges)
-    uint8_t* cur_block_bits;
+    uintE cur_block_num_longs; // block size (in terms of #longs)
+
+    uint64_t* cur_block_longs;
+    uint64_t cur_long_value;
+    uintE cur_long_idx;
 
     std::tuple<uintE, W> last_edge;
     uintE proc;
@@ -474,52 +477,72 @@ struct sym_bitset_manager {
       cur_block_start = orig_block_num * edges_per_block;
       uintE cur_block_end =
         std::min(cur_block_start + edges_per_block, vtx_original_degree);
-      cur_block_size = cur_block_end - cur_block_start;
+      uintE cur_block_size = cur_block_end - cur_block_start;
+      cur_block_num_longs = (cur_block_size+64-1)/64;
 
-      // set cur_block_bits
-      cur_block_bits = block_data_start + bitset_bytes_per_block * cur_block;
+      // set cur_block_longs
+      cur_block_longs = (uint64_t*)(block_data_start + bitset_bytes_per_block * cur_block);
+
+      // initialize value to read, and the idx.
+      cur_long_value = cur_block_longs[0];
+      cur_long_idx = 0;
     }
 
     __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
     __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
 
-//    __attribute__((always_inline)) inline void next() {
-//
-//    }
-
+    // updates last_edge
     __attribute__((always_inline)) inline void next() {
-      while (true) {
-        while (proc_cur_block < cur_block_size) {
-          if ((proc_cur_block & ((1 << 16) - 1)) == 0) { // % 8
-            uintE idx = proc_cur_block >> 3; // byte
-            if (cur_block_bits[idx] == 0) {
-              if (cur_block_bits[idx+1] == 0) {
-                proc_cur_block += 16;
-                continue;
-              }
-              proc_cur_block += 8;
-              continue;
-            }
-          } else if ((proc_cur_block & 0x7) == 0) { // % 8
-            if (cur_block_bits[proc_cur_block >> 3] == 0) {
-              proc_cur_block += 8;
-              continue;
-            }
-          }
-          // cout << "proc_cur_block = " << proc_cur_block << endl;
-          if (bitsets::is_bit_set(cur_block_bits, proc_cur_block)) {
-            // cout << "bit set for proc_cur_block = " << proc_cur_block << endl;
-            last_edge = edges[cur_block_start + proc_cur_block];
-            proc++;
-            proc_cur_block++;
-            return;
-          }
-          proc_cur_block++;
+      while(cur_long_value == 0) {
+        // done with block?
+        cur_long_idx++;
+        proc_cur_block += 64;
+        if (cur_long_idx == cur_block_num_longs) {
+          find_next_nonempty_block();
+        } else {
+          cur_long_value = cur_block_longs[cur_long_idx];
         }
-        // otherwise: finished this block, find next non_empty and call next()
-        find_next_nonempty_block();
       }
+      // cur_long_value > 0
+
+      unsigned select_idx = _tzcnt_u64(cur_long_value); // #trailing zeros in cur_long
+      cur_long_value = _blsr_u64(cur_long_value); // clears lowest set bit
+      last_edge = edges[cur_block_start + proc_cur_block + select_idx];
     }
+
+//    __attribute__((always_inline)) inline void next() {
+//      while (true) {
+//        while (proc_cur_block < cur_block_size) {
+//          if ((proc_cur_block & ((1 << 16) - 1)) == 0) { // % 8
+//            uintE idx = proc_cur_block >> 3; // byte
+//            if (cur_block_bits[idx] == 0) {
+//              if (cur_block_bits[idx+1] == 0) {
+//                proc_cur_block += 16;
+//                continue;
+//              }
+//              proc_cur_block += 8;
+//              continue;
+//            }
+//          } else if ((proc_cur_block & 0x7) == 0) { // % 8
+//            if (cur_block_bits[proc_cur_block >> 3] == 0) {
+//              proc_cur_block += 8;
+//              continue;
+//            }
+//          }
+//          // cout << "proc_cur_block = " << proc_cur_block << endl;
+//          if (bitsets::is_bit_set(cur_block_bits, proc_cur_block)) {
+//            // cout << "bit set for proc_cur_block = " << proc_cur_block << endl;
+//            last_edge = edges[cur_block_start + proc_cur_block];
+//            proc++;
+//            proc_cur_block++;
+//            return;
+//          }
+//          proc_cur_block++;
+//        }
+//        // otherwise: finished this block, find next non_empty and call next()
+//        find_next_nonempty_block();
+//      }
+//    }
 
     __attribute__((always_inline)) inline bool has_next() {
       return proc < vtx_degree;
