@@ -69,24 +69,80 @@ size_t intersect_seq(S& a, It& b) {
   size_t i=0; size_t j=0;
   size_t nA = a.size(); size_t nB = b.degree();
   size_t ans = 0;
-  bool advance_b = false;
+  uintE b_cur;
+  if (j < nB) b_cur = std::get<0>(b.cur());
   while (i < nA && j < nB) {
-    if (advance_b) {
-      advance_b = false;
-      b.next();
-    }
-    if (a[i] == std::get<0>(b.cur())) {
-      advance_b = true;
+    if (a[i] == b_cur) {
       i++; j++; ans++;
+      if (b.has_next()) b.next();
+      b_cur = std::get<0>(b.cur());
     } else if (a[i] < std::get<0>(b.cur())) {
       i++;
     } else {
-      advance_b = true;
       j++;
+      if (b.has_next()) b.next();
+      b_cur = std::get<0>(b.cur());
     }
   }
   return ans;
 }
+
+template <class SeqA, class SeqB>
+size_t seq_merge(SeqA& A, SeqB& B) {
+  using T = typename SeqA::value_type;
+  size_t nA = A.size(), nB = B.size();
+  size_t i = 0, j = 0;
+  size_t ct = 0;
+  while (i < nA && j < nB) {
+    T& a = A[i];
+    T& b = B[j];
+    if (a == b) {
+      i++;
+      j++;
+      ct++;
+    } else if (a < b) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  return ct;
+}
+
+
+//template <class S, class It>
+//size_t intersect_batch_seq(S& a, It& b) {
+//  size_t b_size = 128;
+//  uintE block[b_size];
+//  size_t n_blocks = pbbs::num_blocks(b.degree(), b_size);
+//  size_t ans = 0;
+//  size_t i=0;
+//  size_t block_id=0;
+//
+//  while (i < nA && block_id < n_blocks) {
+//    size_t block_start =
+//
+//  }
+//
+//  size_t j=0;
+//  size_t nA = a.size(); size_t nB = b.degree();
+//
+//  while (i < nA && j < nB) {
+//    if (a[i] == b_cur) {
+//      i++; j++; ans++;
+//      if (b.has_next()) b.next();
+//      b_cur = std::get<0>(b.cur());
+//    } else if (a[i] < std::get<0>(b.cur())) {
+//      i++;
+//    } else {
+//      j++;
+//      if (b.has_next()) b.next();
+//      b_cur = std::get<0>(b.cur());
+//    }
+//  }
+//  return ans;
+//}
+
 
 /* Used to map over the edges incident to v */
 template <class BM /* block_manager */, class W /* weight */,

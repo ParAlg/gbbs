@@ -36,7 +36,7 @@ struct sym_bitset_manager {
 
   vtx_info<E>* v_infos;
 
-  static constexpr uintE edges_per_block = 64;
+  static constexpr uintE edges_per_block = 256;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =
@@ -406,7 +406,6 @@ struct sym_bitset_manager {
 
   struct iter {
     E* edges;
-    uintE vtx_id;
     uintE vtx_degree;
     uintE vtx_original_degree;
     uintE vtx_num_blocks;
@@ -427,14 +426,12 @@ struct sym_bitset_manager {
     uintE proc_cur_block;
 
     iter(E* edges,
-        uintE vtx_id,
         uintE vtx_degree,
         uintE vtx_original_degree,
         uintE vtx_num_blocks,
         uint8_t* blocks_start,
         uint8_t* block_data_start) :
         edges(edges),
-        vtx_id(vtx_id),
         vtx_degree(vtx_degree),
         vtx_original_degree(vtx_original_degree),
         vtx_num_blocks(vtx_num_blocks),
@@ -453,7 +450,7 @@ struct sym_bitset_manager {
 // unsigned long long __builtin_ia32_lzcnt_u64 (unsigned long long);
 
     // precondition: there is a subsequent non-empty block
-    inline void find_next_nonempty_block(bool on_initialization=false) {
+    __attribute__((always_inline)) inline void find_next_nonempty_block(bool on_initialization=false) {
       if (on_initialization) {
         cur_block = 0;
       } else {
@@ -499,15 +496,15 @@ struct sym_bitset_manager {
         proc_cur_block += 64;
         if (cur_long_idx == cur_block_num_longs) {
           find_next_nonempty_block();
-        } else {
-          cur_long_value = cur_block_longs[cur_long_idx];
         }
+        cur_long_value = cur_block_longs[cur_long_idx];
       }
       // cur_long_value > 0
 
       unsigned select_idx = _tzcnt_u64(cur_long_value); // #trailing zeros in cur_long
       cur_long_value = _blsr_u64(cur_long_value); // clears lowest set bit
       last_edge = edges[cur_block_start + proc_cur_block + select_idx];
+      proc++;
     }
 
 //    __attribute__((always_inline)) inline void next() {
@@ -551,7 +548,6 @@ struct sym_bitset_manager {
 
   auto get_iter() {
     return iter(get_edges(),
-        vtx_id,
         vtx_degree,
         vtx_original_degree,
         vtx_num_blocks,

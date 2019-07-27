@@ -64,6 +64,99 @@ inline uintE* rankNodes(G& GA, size_t n) {
   return r;
 }
 
+template <class PG, class F>
+inline size_t CountDirectedBlocked(PG& DG, size_t* counts, const F& f) {
+  using W = typename PG::weight_type;
+  debug(std::cout << "Starting counting" << endl;);
+  size_t n = DG.n;
+
+  // 1. compute work/block
+  auto block_f = [&](size_t i) -> size_t {
+    return DG.get_vertex(i).getNumOutBlocks();
+  };
+  auto block_imap = pbbslib::make_sequence<uintE>(n, block_f);
+
+  auto vertex_offs = sequence<uintE>(n + 1);
+  par_for(0, n, pbbslib::kSequentialForThreshold,
+          [&](size_t i) { vertex_offs[i] = block_imap[i]; });
+  vertex_offs[n] = 0;
+  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs);
+
+  // reduce over blocks, compute work/block and write it as its cost
+
+
+  return 1;
+//
+//  auto parallel_work = sequence<size_t>(n);
+//  {
+//    auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
+//      return DG.get_vertex(v).getOutDegree();
+//    };
+//    par_for(0, n, [&] (size_t i) {
+//      auto monoid = pbbslib::addm<size_t>();
+//      parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
+//    });
+//  }
+//  size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
+//
+//  // TODO Can get even better load balance by using the actual blocks
+//  // corresponding to a vertex. (similar to edgeMapBlocked)
+//
+//  size_t block_size = 50000;
+//  size_t n_blocks = total_work/block_size + 1;
+////  size_t n_blocks = num_workers() * 8 + 1;
+//  size_t work_per_block = total_work / n_blocks;
+//  debug(std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
+//            << " work per block = " << work_per_block << "\n";);
+//
+//  auto run_intersection = [&](size_t start_ind, size_t end_ind) {
+//    uintE stk[2048];
+//    for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
+//      auto vtx = DG.get_vertex(i);
+//      size_t total_ct = 0;
+//
+//      uintE* nghs = (uintE*)stk;
+//      uintE deg = vtx.getOutDegree();
+//      if (deg > 2048) {
+//        nghs = pbbs::new_array_no_init<uintE>(deg);
+//      }
+//      size_t k = 0;
+//      auto map_seq_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
+//        nghs[k++] = w;
+//      };
+//      vtx.mapOutNgh(i, map_seq_f, false);
+//
+//      auto nghs_seq = pbbslib::make_sequence(nghs, deg);
+//
+//      auto map_f = [&](uintE u, uintE v, W wgh) {
+//        // Copy live neighbors of u into separate array?
+//        auto ngh_vtx = DG.get_vertex(v);
+//        total_ct += vtx.intersect(nghs_seq, ngh_vtx);
+//      };
+//      vtx.mapOutNgh(i, map_f, false);  // run map sequentially
+//      counts[i] = total_ct;
+//
+//      if (deg > 2048) {
+//        pbbs::free_array(nghs);
+//      }
+//    }
+//  };
+//
+//  par_for(0, n_blocks, 1, [&] (size_t i) {
+//    size_t start = i * work_per_block;
+//    size_t end = (i + 1) * work_per_block;
+//    auto less_fn = std::less<size_t>();
+//    size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
+//    size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
+//    run_intersection(start_ind, end_ind);
+//  });
+//
+//  auto count_seq = pbbslib::make_sequence<size_t>(counts, DG.n);
+//  size_t count = pbbslib::reduce_add(count_seq);
+//
+//  return count;
+}
+
 
 template <class PG, class F>
 inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
@@ -96,14 +189,14 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
             << " work per block = " << work_per_block << "\n";);
 
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
+    uintE stk[2048];
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
       auto vtx = DG.get_vertex(i);
       size_t total_ct = 0;
 
-      uintE stk[512];
       uintE* nghs = (uintE*)stk;
       uintE deg = vtx.getOutDegree();
-      if (deg > 512) {
+      if (deg > 2048) {
         nghs = pbbs::new_array_no_init<uintE>(deg);
       }
       size_t k = 0;
@@ -112,19 +205,29 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
       };
       vtx.mapOutNgh(i, map_seq_f, false);
 
-      auto nghs_seq = pbbslib::make_sequence(nghs, deg);
+      auto our_seq = pbbslib::make_sequence(nghs, deg);
 
       auto map_f = [&](uintE u, uintE v, W wgh) {
         // Copy live neighbors of u into separate array?
         auto ngh_vtx = DG.get_vertex(v);
-//        total_ct += vtx.intersect(ngh_vtx);
-        total_ct += vtx.intersect(nghs_seq, ngh_vtx);
-//        total_ct += vtx.intersect_f_par(&V[v], u, v, f);
+        uintE ngh_stk[4192];
+        uintE ngh_deg = ngh_vtx.getOutDegree();
+        size_t idx = 0;
+        auto map_ngh_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
+          ngh_stk[idx++] = w;
+        };
+        ngh_vtx.mapOutNgh(v, map_ngh_f, false);
+        assert(ngh_deg == idx);
+
+        uintE* ngh_arr = (uintE*)ngh_stk;
+        auto ngh_seq = pbbslib::make_sequence(ngh_arr, ngh_deg);
+
+        total_ct += block_vertex_ops::seq_merge(our_seq, ngh_seq);
       };
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
       counts[i] = total_ct;
 
-      if (deg > 512) {
+      if (deg > 2048) {
         pbbs::free_array(nghs);
       }
     }
@@ -144,6 +247,8 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
 
   return count;
 }
+
+
 
 template <template <class W> class vertex, class W, class F>
 inline size_t Triangle(graph<vertex, W>& GA, const F& f) {
@@ -165,32 +270,15 @@ inline size_t Triangle(graph<vertex, W>& GA, const F& f) {
   };
   auto DG = filter_graph<vertex, W>(GA, pack_predicate, compact_blocks);
   gt.stop();
-  debug(gt.reportTotal("build graph time"););
-
-//  auto it = DG.get_vertex(10012).getOutIter();
-//  cout << std::get<0>(it.cur()) << endl;
-//  size_t kk = 1;
-//  while (it.has_next()) {
-//    cout << std::get<0>(it.next()) << endl;
-//    kk++;
-//  }
-//  cout << "kk == " << kk << " vtx degree = " << it.degree() << endl;
-//
-//  cout << "DG.degree = " << DG.get_vertex(10012).getOutDegree() << endl;
-//  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-//    cout << "v = " << v << endl;
-//  };
-//  DG.get_vertex(10012).mapOutNgh(10012, map_f, false);
-//  exit(0);
-
-//  auto v_10012 = DG.get_vertex(10012);
-//  auto v_10013 = DG.get_vertex(10013);
-//  cout << "intersect = " << v_10012.intersect(v_10013) << endl;
-//  exit(0);
+  gt.reportTotal("build graph time");
 
   // 3. Count triangles on the digraph
   timer ct;
   ct.start();
+
+  auto get_degree = [&] (size_t i) { return DG.get_vertex(i).getOutDegree(); };
+  auto degrees = pbbslib::make_sequence<size_t>(n, get_degree);
+  cout << "max_degree = " << pbbslib::reduce_max(degrees) << endl;
 
   size_t count = CountDirectedBalanced(DG, counts.begin(), f);
   std::cout << "### Num triangles = " << count << "\n";
