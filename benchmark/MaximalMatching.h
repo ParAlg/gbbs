@@ -160,6 +160,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(G& G) {
   using W = typename G::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
 
+  auto PG = build_packed_graph(G);
+
   timer mt;
   mt.start();
   size_t n = G.n;

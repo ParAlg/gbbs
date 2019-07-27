@@ -124,7 +124,7 @@ void BiconnectivityStats(G& GA, char* s,
   // Note that this is the number of biconnected components excluding isolated
   // vertices (the definition maps edges -> components, so isolated vertices
   // don't contribute to any meaningful components).
-  uintE total_biccs = pbbslib::scan_add_inplace(bits);
+  uintE total_biccs = pbbslib::scan_add_inplace(bits.slice());
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 

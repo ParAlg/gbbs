@@ -43,7 +43,7 @@ inline vertexSubsetData<E> edgeMapInduced(G& GA, VS& V, F& f, const flags fl) {
     uintE degree = (fl & in_edges) ? v.getInDegree() : v.getOutDegree();
     degrees[i] = degree;
   });
-  long edgeCount = pbbslib::scan_add_inplace(degrees);
+  long edgeCount = pbbslib::scan_add_inplace(degrees.slice());
   if (edgeCount == 0) {
     return vertexSubsetData<E>(GA.n);
   }
@@ -186,9 +186,9 @@ struct EdgeMap {
                      if (cond_f(i)) {
                        M reduced_val =
                            (fl & in_edges)
-                               ? GA.get_vertex(i).template reduceInNgh<M>(
+                               ? GA.get_vertex(i).reduceInNgh(
                                      i, map_f, red_monoid, inner_parallel)
-                               : GA.get_vertex(i).template reduceOutNgh<M>(
+                               : GA.get_vertex(i).reduceOutNgh(
                                      i, map_f, red_monoid, inner_parallel);
                        auto tup = std::make_tuple(i, reduced_val);
                        apply_f(tup);
@@ -204,9 +204,9 @@ struct EdgeMap {
                      if (cond_f(i)) {
                        M reduced_val =
                            (fl & in_edges)
-                               ? GA.get_vertex(i).template reduceInNgh<M>(
+                               ? GA.get_vertex(i).reduceInNgh(
                                      i, map_f, red_monoid, inner_parallel)
-                               : GA.get_vertex(i).template reduceOutNgh<M>(
+                               : GA.get_vertex(i).reduceOutNgh(
                                      i, map_f, red_monoid, inner_parallel);
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);
@@ -239,8 +239,8 @@ struct EdgeMap {
     size_t n = GA.n;
     vs.toSparse();
     auto degree_f = [&](size_t i) {
-      return (fl & in_edges) ? GA.V[vs.vtx(i)].getInVirtualDegree()
-                             : GA.V[vs.vtx(i)].getOutVirtualDegree();
+      return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInVirtualDegree()
+                             : GA.get_vertex(vs.vtx(i)).getOutVirtualDegree();
     };
     auto degree_imap = pbbslib::make_sequence<uintE>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);

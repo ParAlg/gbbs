@@ -22,7 +22,7 @@ namespace contract {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
-    pbbslib::scan_add_inplace(inverse_map);
+    pbbslib::scan_add_inplace(inverse_map.slice());
 
     size_t new_n = inverse_map[n];
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -107,7 +107,7 @@ namespace contract {
       deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred, inner_parallel);
     });
     deg_map[n] = 0;
-    pbbslib::scan_add_inplace(deg_map);
+    pbbslib::scan_add_inplace(deg_map.slice());
     count_t.stop();
     debug(count_t.reportTotal("count time"););
 
@@ -201,7 +201,7 @@ namespace contract {
   }
 
   template <class G>
-  inline std::tuple<graph<symmetricVertex<pbbslib::empty>>, sequence<uintE>, sequence<uintE>>
+  inline std::tuple<graph<symmetricVertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
   contract(G& GA, sequence<uintE>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
     using W = typename G::weight_type;

@@ -398,7 +398,7 @@ inline size_t num_scc(Seq& labels) {
       flags[label] = 1;
     }
   });
-  pbbslib::scan_add_inplace(flags);
+  pbbslib::scan_add_inplace(flags.slice());
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;

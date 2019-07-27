@@ -172,7 +172,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
   par_for(0, indices.size(), pbbslib::kSequentialForThreshold,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs);
+  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
 
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
@@ -190,7 +190,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
       degrees[vtx_off + j] = block_deg;
     });
   });
-  pbbslib::scan_add_inplace(degrees, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_add_inplace(degrees.slice(), pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
   cout << "outEdgeCount = " << (indices.numNonzeros() + outEdgeCount) << endl;
 
@@ -235,7 +235,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
     }
   });
   cts[n_threads] = 0;
-  size_t out_size = pbbslib::scan_add_inplace(cts);
+  size_t out_size = pbbslib::scan_add_inplace(cts.slice());
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
@@ -399,23 +399,6 @@ inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
 }
 
 
-template <template <class W> class vertex, class W, class P>
-packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f, const flags fl) {
-  auto GA = packed_graph<vertex, W>(G);
-  {
-    auto for_inner = [&] (size_t v) {
-      GA.get_vertex(v).packOutNgh(v, pred_f, /* tmp = */ nullptr, fl);
-    };
-    par_for(0, G.n, 1, [&](size_t i) { for_inner(i); });
-  }
-  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
-    return GA.get_vertex(i).getOutDegree();
-  });
-  auto new_m = pbbslib::reduce_add(degree_seq);
-  GA.m = new_m;
-  cout << "new m = " << new_m << endl;
-  return GA;
-}
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.

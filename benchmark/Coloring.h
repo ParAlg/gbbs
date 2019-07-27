@@ -176,9 +176,9 @@ inline sequence<uintE> Coloring(G& GA, bool lf = false) {
 }
 
 template <class G, class Seq>
-inline void verify_coloring(G& G, Seq& colors) {
+inline void verify_coloring(G& GA, Seq& colors) {
   using W = typename G::weight_type;
-  size_t n = G.n;
+  size_t n = GA.n;
   auto ok = sequence<bool>(n);
   par_for(0, n, [&] (size_t i) {
     uintE src_color = colors[i];
@@ -186,7 +186,7 @@ inline void verify_coloring(G& G, Seq& colors) {
       uintE ngh_color = colors[ngh];
       return src_color == ngh_color;
     };
-    size_t ct = G.V[i].countOutNgh(i, pred);
+    size_t ct = GA.get_vertex(i).countOutNgh(i, pred);
     ok[i] = (ct > 0);
   });
   auto im_f = [&](size_t i) { return (size_t)ok[i]; };

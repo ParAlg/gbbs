@@ -247,7 +247,7 @@ inline edge_array<W> get_top_k(G& G, size_t k, pbbslib::random r,
   auto vertex_offs = sequence<long>(G.n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { vertex_offs[i] = G.V[i].getOutDegree(); });
-  pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_add_inplace(vertex_offs.slice(), pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };

@@ -38,7 +38,7 @@ template <class G>
 void WorkInefficientDensestSubgraph(G& GA, double epsilon = 0.001) {
   using W = typename G::weight_type;
   const size_t n = GA.n;
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
+  auto em = EdgeMap<uintE, G>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
   double density_multiplier = (1+epsilon);
 
@@ -108,7 +108,7 @@ template <class G>
 void WorkEfficientDensestSubgraph(G& GA, double epsilon = 0.001) {
   using W = typename G::weight_type;
   const size_t n = GA.n;
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 50);
+  auto em = EdgeMap<uintE, G>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 50);
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 

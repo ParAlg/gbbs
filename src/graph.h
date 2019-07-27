@@ -121,3 +121,69 @@ inline auto get_deletion_fn(void* V, void* in_edges, void* out_edges)
   };
   return std::bind(df, V, in_edges, out_edges);
 }
+
+// Edge Array Representation
+template <class W>
+struct edge_array {
+  using edge = std::tuple<uintE, uintE, W>;
+  edge* E;
+  // for sq matrices, num_rows == num_cols
+  size_t num_rows; // n
+  size_t num_cols;
+  // non_zeros is the #edges
+  size_t non_zeros; // m
+  void del() { pbbslib::free_array(E); }
+  edge_array(edge* _E, size_t r, size_t c, size_t nz)
+      : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {}
+  edge_array() {}
+  size_t size() { return non_zeros; }
+};
+
+// Mutates (sorts) the underlying array
+// Returns an unweighted, symmetric graph
+template <class W>
+inline graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A,
+                                                      bool is_sorted = false) {
+  using wvertex = symmetricVertex<W>;
+  using edge = std::tuple<uintE, uintE, W>;
+  size_t m = A.non_zeros;
+  size_t n = std::max<size_t>(A.num_cols, A.num_rows);
+
+  if (m == 0) {
+    std::function<void()> del = []() {};
+    if (n == 0) {
+      return graph<symmetricVertex, W>(nullptr, 0, 0, del);
+    } else {
+      wvertex* v = pbbslib::new_array_no_init<wvertex>(n);
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        v[i].degree = 0;
+        v[i].neighbors = nullptr;
+      });
+      return graph<symmetricVertex, W>(v, n, 0, del);
+    }
+  }
+
+  auto Am = pbbslib::make_sequence<edge>(A.E, m);
+  if (!is_sorted) {
+    auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
+    size_t bits = pbbslib::log2_up(n);
+    pbbslib::integer_sort_inplace(Am, first, bits);
+  }
+
+  auto starts = sequence<uintT>(n);
+  wvertex* v = pbbslib::new_array_no_init<wvertex>(n);
+  auto edges = sequence<uintE>(m, [&](size_t i) {
+    // Fuse loops over edges (check if this helps)
+    if (i == 0 || (std::get<0>(Am[i]) != std::get<0>(Am[i - 1]))) {
+      starts[std::get<0>(Am[i])] = i;
+    }
+    return std::get<1>(Am[i]);
+  });
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    uintT o = starts[i];
+    size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
+    v[i].degree = degree;
+    v[i].neighbors = ((std::tuple<uintE, W>*)(edges.begin() + o));
+  });
+  return graph<symmetricVertex, W>(v, n, m, get_deletion_fn(v, edges.to_array()));
+}

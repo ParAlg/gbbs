@@ -212,7 +212,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       uintE v = vs.s[i];
       return Tree.V[v].getOutDegree();
     });
-    auto tot = pbbslib::scan_add_inplace(offsets);
+    auto tot = pbbslib::scan_add_inplace(offsets.slice());
     auto next_vs = sequence<uintE>(tot);
     par_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
@@ -235,7 +235,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
           uintE ngh = Tree.V[v].getOutNeighbor(j);
           A[j] = aug_sizes[ngh];
         });
-        pbbslib::scan_add_inplace(A);
+        pbbslib::scan_add_inplace(A.slice());
         par_for(0, deg_v, [&] (size_t j) {
           uintE ngh = Tree.V[v].getOutNeighbor(j);
           uintE pn = preorder_number + A[j];

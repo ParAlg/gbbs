@@ -32,7 +32,7 @@ namespace contract_sf {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
-    pbbslib::scan_add_inplace(inverse_map);
+    pbbslib::scan_add_inplace(inverse_map.slice());
 
     size_t new_n = inverse_map[n];
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -105,7 +105,7 @@ namespace contract_sf {
 #endif
     });
     deg_map[n] = 0;
-    pbbslib::scan_add_inplace(deg_map);
+    pbbslib::scan_add_inplace(deg_map.slice());
     count_t.stop();
     debug(count_t.reportTotal("count time"););
 

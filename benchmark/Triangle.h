@@ -80,7 +80,7 @@ inline size_t CountDirectedBlocked(PG& DG, size_t* counts, const F& f) {
   par_for(0, n, pbbslib::kSequentialForThreshold,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[n] = 0;
-  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs);
+  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
 
   // reduce over blocks, compute work/block and write it as its cost
 

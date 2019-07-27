@@ -66,7 +66,7 @@ pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, si
 #endif
   });
   deg_map[n] = 0;
-  pbbslib::scan_add_inplace(deg_map);
+  pbbslib::scan_add_inplace(deg_map.slice());
   count_t.stop();
   debug(count_t.reportTotal("count time"););
 
