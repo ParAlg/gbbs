@@ -398,6 +398,25 @@ inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
   return edgeMapData<pbbslib::empty>(GA, vs, f, threshold, fl);
 }
 
+
+template <template <class W> class vertex, class W, class P>
+packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f, const flags fl) {
+  auto GA = packed_graph<vertex, W>(G);
+  {
+    auto for_inner = [&] (size_t v) {
+      GA.get_vertex(v).packOutNgh(v, pred_f, /* tmp = */ nullptr, fl);
+    };
+    par_for(0, G.n, 1, [&](size_t i) { for_inner(i); });
+  }
+  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
+    return GA.get_vertex(i).getOutDegree();
+  });
+  auto new_m = pbbslib::reduce_add(degree_seq);
+  GA.m = new_m;
+  cout << "new m = " << new_m << endl;
+  return GA;
+}
+
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
 template <class G /* packable graph type */, class P /* predicate function */>
@@ -456,23 +475,6 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA, vertexSubset& vs, P& p,
   // TODO: update degrees
 }
 
-template <template <class W> class vertex, class W, class P>
-packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f) {
-  auto GA = packed_graph<vertex, W>(G);
-  {
-    auto for_inner = [&] (size_t v) {
-      GA.get_vertex(v).packOutNgh(v, pred_f);
-    };
-    par_for(0, G.n, 1, [&](size_t i) { for_inner(i); });
-  }
-  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
-    return GA.get_vertex(i).getOutDegree();
-  });
-  auto new_m = pbbslib::reduce_add(degree_seq);
-  GA.m = new_m;
-  cout << "new m = " << new_m << endl;
-  return GA;
-}
 
 template <class G /* graph type */, class P /* predicate function */>
 inline vertexSubsetData<uintE> edgeMapFilter(G& GA, vertexSubset& vs, P& p,

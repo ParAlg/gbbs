@@ -205,8 +205,8 @@ struct packed_symmetric_vertex {
 
   /* packing primitives */
   template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P& p, uint8_t* tmp, bool parallel = true) {
-    return block_manager.pack_blocks(vtx_id, p, tmp, parallel);
+  inline size_t packOutNgh(uintE vtx_id, P& p, uint8_t* tmp, bool parallel = true, const flags fl=0) {
+    return block_manager.pack_blocks(vtx_id, p, tmp, parallel, fl);
   }
 
   inline size_t calculateOutTemporarySpaceBytes() {
@@ -216,8 +216,8 @@ struct packed_symmetric_vertex {
 
   /* packing primitives */
   template <class P>
-  inline size_t packInNghs(uintE vtx_id, P& p, uint8_t* tmp, bool parallel = true) {
-    return packOutNgh(vtx_id, p, tmp, parallel);
+  inline size_t packInNghs(uintE vtx_id, P& p, uint8_t* tmp, bool parallel = true, const flags fl=0) {
+    return packOutNgh(vtx_id, p, tmp, parallel, fl);
   }
 
   auto getOutIter() -> iter_type {

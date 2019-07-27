@@ -3,6 +3,7 @@
 #include "bitset.h"
 #include "encodings/byte_pd_amortized.h"
 #include "macros.h"
+#include "flags.h"
 
 // block degree computable by differencing two starts.
 template <class E>
@@ -110,14 +111,12 @@ struct sym_bitset_manager {
     for (size_t idx = 0; idx < block_size_num_longs; idx++) {
       uint64_t cur_long = long_block_bits[idx];
       size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
-      if (cnt > 0) {
-        for (size_t i=0; i<cnt; i++) {
-          unsigned select_idx = _tzcnt_u64(cur_long); // select64_tz(cur_long, 1);
-          auto& ee = e[cur_offset + select_idx];
-          f(std::get<0>(ee), std::get<1>(ee), offset++);
-          assert((cur_long & (1UL << select_idx)) > 0);
-          cur_long = _blsr_u64(cur_long);
-        }
+      for (size_t i=0; i<cnt; i++) {
+        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+        auto& ee = e[cur_offset + select_idx];
+        f(std::get<0>(ee), std::get<1>(ee), offset++);
+        assert((cur_long & (1UL << select_idx)) > 0);
+        cur_long = _blsr_u64(cur_long); // clears lowest set bit
       }
       cur_offset += 64; // next long
     }
@@ -200,21 +199,23 @@ struct sym_bitset_manager {
    * Specifically, when #full_blocks*kFullBlockPackThreshold >= vtx_num_blocks
    * Note: Defers to pack(..) to finish updating the degree/scan info */
   inline void repack_blocks_par(uint8_t* tmp, bool parallel) {
-//    uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
-//    uintE int_stk[kBlockAllocThreshold];
-//    uint8_t* tmp_space = (uint8_t*)stk;
-//    uintE* tmp_ints = (uintE*)int_stk;
-//    size_t total_bytes = vtx_num_blocks * bytes_per_block;
-//    if (vtx_num_blocks > kBlockAllocThreshold) {
-//      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
-//      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
-//    }
+    uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
+    uintE int_stk[kBlockAllocThreshold];
+    uint8_t* tmp_space = (uint8_t*)stk;
+    uintE* tmp_ints = (uintE*)int_stk;
+    size_t total_bytes = vtx_num_blocks * bytes_per_block;
+    if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
+      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
+      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+    }
 
     // caller supplies:
     // vtx_num_blocks*sizeof(uintE) +
     // vtx_num_blocks*bytes_per_block
 
-    uint8_t* tmp_space = tmp;
+    if (tmp) {
+      tmp_space = tmp;
+    }
 
     metadata* block_metadata = (metadata*)blocks_start;
 
@@ -243,7 +244,9 @@ struct sym_bitset_manager {
     }, 512);
 
     // Tmp space for integers starts consecutively after tmp block space
-    uintE* tmp_ints = (uintE*)(tmp + bytes_to_copy);
+    if (tmp) {
+      tmp_ints = (uintE*)(tmp + bytes_to_copy);
+    }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
     auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
@@ -292,16 +295,19 @@ struct sym_bitset_manager {
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
-//    if (old_vtx_num_blocks > kBlockAllocThreshold) {
-//      pbbs::free_array(tmp_space);
-//      pbbs::free_array(tmp_ints);
-//    }
+    if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
+      pbbs::free_array(tmp_space);
+      pbbs::free_array(tmp_ints);
+    }
   }
 
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel, const flags fl) {
+    if (vtx_degree == 0) {
+      return 0;
+    }
     metadata* block_metadata = (metadata*)blocks_start;
 
     // 1. pack each block
@@ -371,7 +377,8 @@ struct sym_bitset_manager {
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
 
-    if (full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) {
+    if ((full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) ||
+        ((full_blocks < vtx_num_blocks) && (fl & compact_blocks))) {
       repack_blocks_par(tmp, parallel);
     }
 
@@ -457,26 +464,28 @@ struct sym_bitset_manager {
                                     ? vtx_degree
                                     : block_metadata[cur_block + 1].offset;
       cur_block_degree = next_block_offset - offset;
+      assert(cur_block_degree > 0);
 
-      if (cur_block_degree == 0) {
-        find_next_nonempty_block();
-      } else { // >= 1 live edges this block. reset block ctrs
-        proc_cur_block = 0;
+      // reset proc_cur_block
+      proc_cur_block = 0;
 
-        // set cur_block_start and cur_block_size
-        uintE orig_block_num = block_metadata[cur_block].block_num;
-        cur_block_start = orig_block_num * edges_per_block;
-        uintE cur_block_end =
-          std::min(cur_block_start + edges_per_block, vtx_original_degree);
-        cur_block_size = cur_block_end - cur_block_start;
+      // set cur_block_start and cur_block_size
+      uintE orig_block_num = block_metadata[cur_block].block_num;
+      cur_block_start = orig_block_num * edges_per_block;
+      uintE cur_block_end =
+        std::min(cur_block_start + edges_per_block, vtx_original_degree);
+      cur_block_size = cur_block_end - cur_block_start;
 
-        // set cur_block_bits
-        cur_block_bits = block_data_start + bitset_bytes_per_block * cur_block;
-      }
+      // set cur_block_bits
+      cur_block_bits = block_data_start + bitset_bytes_per_block * cur_block;
     }
 
     __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
     __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
+
+//    __attribute__((always_inline)) inline void next() {
+//
+//    }
 
     __attribute__((always_inline)) inline void next() {
       while (true) {
