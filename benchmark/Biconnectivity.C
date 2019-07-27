@@ -149,9 +149,6 @@ double Biconnectivity_runner(G& GA, commandLine P) {
     double tt = t.stop();
     std::cout << "### Running Time: " << tt << std::endl;
   }
-  // Note that Biconnectivity mutates the graph, so we only run the algorithm
-  // once.
-  exit(0);
 }
 
-generate_main(Biconnectivity_runner, true);
+generate_main(Biconnectivity_runner, false);

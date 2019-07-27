@@ -3,24 +3,6 @@
 #include "graph.h"
 #include "packed_graph.h"
 
-template <template <class W> class vertex, class W, class P>
-packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f, const flags fl) {
-  auto GA = packed_graph<vertex, W>(G);
-  {
-    auto for_inner = [&] (size_t v) {
-      GA.get_vertex(v).packOutNgh(v, pred_f, /* tmp = */ nullptr, fl);
-    };
-    par_for(0, G.n, 1, [&](size_t i) { for_inner(i); });
-  }
-  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
-    return GA.get_vertex(i).getOutDegree();
-  });
-  auto new_m = pbbslib::reduce_add(degree_seq);
-  GA.m = new_m;
-  cout << "new m = " << new_m << endl;
-  return GA;
-}
-
 
 // Used by MST and MaximalMatching
 // Predicate returns three values:

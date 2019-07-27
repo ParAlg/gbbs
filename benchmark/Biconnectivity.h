@@ -96,7 +96,7 @@ template <class G, class Seq>
 inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
                                                            uintE* Parents,
                                                            Seq& Sources) {
-  using W = typename GA::weight_type;
+  using W = typename G::weight_type;
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
   auto out_edges = sequence<edge>(
@@ -156,12 +156,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       v[i].setInNeighbors(nullptr);
     }
   });
-  auto Tree = graph<vtx>(v, n, nghs.size(), []() {});
+  auto Tree = graph<asymmetricVertex, pbbslib::empty>(v, n, nghs.size(), []() {});
 
   // 1. Leaffix for Augmented Sizes
   auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
   auto cts =
-      sequence<intE>(n, [&](size_t i) { return Tree.V[i].getOutDegree(); });
+      sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).getOutDegree(); });
   auto leaf_im = pbbslib::make_sequence<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
@@ -210,21 +210,21 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
     tv += vs.size();
     auto offsets = sequence<uintE>(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
-      return Tree.V[v].getOutDegree();
+      return Tree.get_vertex(v).getOutDegree();
     });
     auto tot = pbbslib::scan_add_inplace(offsets.slice());
     auto next_vs = sequence<uintE>(tot);
     par_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
-      uintE deg_v = Tree.V[v].getOutDegree();
+      uintE deg_v = Tree.get_vertex(v).getOutDegree();
       uintE preorder_number = PN[v] + 1;
 
       // should be tuned
       if (deg_v < 4000) {
         // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
         for (size_t j = 0; j < deg_v; j++) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           PN[ngh] = preorder_number;
           preorder_number += aug_sizes[ngh];
           next_vs[off + j] = ngh;
@@ -232,12 +232,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       } else {
         auto A = sequence<uintE>(deg_v);
         par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           A[j] = aug_sizes[ngh];
         });
         pbbslib::scan_add_inplace(A.slice());
         par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
           next_vs[off + j] = ngh;
@@ -279,7 +279,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       }
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); });
   map_e.stop();
   debug(map_e.reportTotal("map edges time"););
 
@@ -287,7 +287,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
   leaff.start();
   // 1. Leaffix to update min/max
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { cts[i] = Tree.V[i].getOutDegree(); });
+                  { cts[i] = Tree.get_vertex(i).getOutDegree(); });
 
   size_t leafs_size = leafs.size();
   vs = vertexSubset(n, leafs_size, leafs.to_array());
@@ -433,7 +433,7 @@ template <class G>
 inline std::tuple<uintE*, uintE*> critical_connectivity(
     G& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
     uintE* aug_sizes_A, char* out_f) {
-  using W = typename GA::weight_type;
+  using W = typename G::weight_type;
   timer ccc;
   ccc.start();
   size_t n = GA.n;
@@ -454,7 +454,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     }
   });
 
-  auto not_critical_edge = [&](const uintE& u, const uintE& v) {
+  auto not_critical_edge = [&](const uintE& u, const uintE& v, const W& wgh) -> bool {
     uintE e = Parents[u];
     uintE p_u = (e & bc::VAL_MASK);
     if (v == p_u) {
@@ -468,29 +468,30 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     return true;
   };
 
+  auto degs = pbbs::new_array_no_init<size_t>(n);
+  auto degs_seq = pbbslib::make_sequence(degs, n);
+  parallel_for(0, n, [&] (size_t v) {
+
+    auto reduce_m = pbbs::addm<size_t>();
+    degs[v] = GA.get_vertex(v).reduceOutNgh(v, not_critical_edge, reduce_m);
+  }, 1);
+  cout << " total non_critical = " << pbbslib::reduce_add(degs_seq) << endl;
+
   timer ccpred;
   ccpred.start();
   // 1. Pack out all critical edges
-  auto active = pbbslib::new_array_no_init<bool>(n);
-  par_for(0, n, [&] (size_t i) { active[i] = true; });
-//  auto vs_active = vertexSubset(n, n, active);
-  auto pack_predicate = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
-    return !not_critical_edge(src, ngh);
-  };
   timer ft; ft.start();
-  filter_edges(GA, pack_predicate);
-//  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
+  auto PG = filter_graph(GA, not_critical_edge);
   ft.stop(); debug(ft.reportTotal("filter edges time"););
-//  vs_active.del();
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
-  auto cc = cc::CC(GA, 0.2, true);
+  auto cc = cc::CC(PG, 0.2);
   ccpred.stop();
   debug(ccpred.reportTotal("cc pred time"););
 
-//  //Note that counting components here will count initially isolated vertices
-//  //as distinct components.
+  //Note that counting components here will count initially isolated vertices
+  //as distinct components.
 //   auto flags = sequence<uintE>(n+1, [&] (size_t i) { return 0; });
 //   par_for(0, n, [&] (size_t i) {
 //     if (!flags[cc[i]]) {
@@ -505,24 +506,14 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
   if (out_f) {
     std::cout << "Writing labels to file: " << out_f << "\n";
-//    std::ofstream out(out_f, std::ofstream::out);
-//    if (!out.is_open()) {
-//      std::cout << "Unable to open file " << out_f << "\n";
-//      exit(0);
-//    }
-
     auto tups = sequence<std::pair<uintE, uintE>>(n);
     par_for(0, n, [&] (size_t i) {
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     auto C = pbbslib::sequence_to_string(tups);
     pbbslib::char_seq_to_file(C, out_f);
-    // benchIO::writeArrayToStream(out, tups.begin(), n);
-    // for (size_t i = 0; i < n; i++) {
-    //   out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
-    // }
-    // out.close();
   }
+
   debug(std::cout << "Bicc done"
             << "\n";);
   pbbslib::free_array(MM_A);
@@ -530,14 +521,23 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   pbbslib::free_array(aug_sizes_A);
   ccc.stop();
   debug(ccc.reportTotal("critical conn time"););
+  PG.del();
   return std::make_tuple(Parents, cc.to_array());
+}
+
+
+size_t compute_xor(uintE* vals, size_t n) {
+  size_t xorr = 0;
+  for (size_t i=0; i<n; i++) {
+    xorr ^= vals[i];
+  }
+  return xorr;
 }
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
 template <class G>
-inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA,
-                                                 char* out_f = 0) {
+inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA, char* out_f = 0) {
   size_t n = GA.n;
 
   timer fcc;
@@ -554,10 +554,11 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA,
 //  auto Sources_copy = Sources.copy(Sources);
   auto Sources_copy = Sources; // Use copy constructor
   auto Centers = vertexSubset(n, Sources_copy.size(), Sources.to_array());
-//  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
-  auto Parents = multi_bfs(GA, Centers);
+  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
+//  auto Parents = multi_bfs(GA, Centers);
   sc.stop();
   debug(sc.reportTotal("sc, multibfs time"););
+
 
   // Returns ((min, max), preorder#, and augmented sizes) of each subtree.
   timer pn;
@@ -570,6 +571,16 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA,
       preorder_number(GA, Parents, Sources_copy);
   pn.stop();
   debug(pn.reportTotal("preorder time"););
+
+  cout << "preorder xor = " << compute_xor(preorder_num, n) << endl;
+  cout << "aug_size xor = " << compute_xor(aug_sizes, n) << endl;
+  size_t xorr0 = 0;
+  size_t xorr1 = 0;
+  for (size_t i=0; i<n; i++) {
+    xorr0 ^= std::get<0>(min_max[i]);
+    xorr1 ^= std::get<1>(min_max[i]);
+  }
+  cout << "labels xor = " << xorr0 << " " << xorr1 << endl;
 
   return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
                                out_f);
