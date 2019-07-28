@@ -71,6 +71,18 @@ struct sym_bitset_manager {
     return vtx_num_blocks;
   }
 
+//  uintE vtx_num_blocks;     // number of blocks associated with v
+//  size_t vtx_block_offset;  // pointer into the block structure
+//
+//  E* vtx_edges;  // pointer to the original edges (prevents one random read)
+
+  inline size_t clear_vertex() {
+    vtx_degree = 0;
+    vtx_num_blocks = 0;
+    v_infos[vtx_id].vtx_num_blocks = 0;
+    v_infos[vtx_id].vtx_degree = 0;
+  }
+
   __attribute__((always_inline)) inline uintE block_degree(uintE block_id) {
     return bitsets::block_degree(blocks_start, block_id, vtx_num_blocks,
                                  vtx_degree);
@@ -394,14 +406,26 @@ struct sym_bitset_manager {
   }
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
-    E* edges = e0;
-#ifdef NVM
-    if (numa_node() == 0)
-      edges = e0;
-    else
-      edges = e1;
-#endif
-    return edges[i];
+    metadata* block_metadata = (metadata*)blocks_start;
+    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t i) {
+      return block_metadata[i].offset;
+    });
+
+    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
+    size_t block = pbbslib::binary_search(offsets_imap, i, lte);
+    assert(block > 0);
+    block = block-1;
+
+    std::tuple<uintE, W> out;
+    auto decode_f = [&] (const uintE& v, const W& wgh, const uintE& offset) {
+      if (offset == i) {
+        out = std::make_tuple(v, wgh);
+        return false;
+      }
+      return true;
+    };
+    decode_block_cond(block, decode_f);
+    return out;
   }
 
   struct iter {

@@ -79,6 +79,28 @@ void bench_packedgraph(G& GA) {
 }
 
 template <class G>
+void bench_testfetchith(G& GA) {
+  using W = typename G::weight_type;
+
+  auto PG = build_packed_graph(GA);
+
+  size_t fetch_size = GA.n;
+  auto ins = pbbs::sequence<uintE>(GA.n);
+  timer t; t.start();
+  parallel_for(0, GA.n, [&] (size_t i) {
+    auto vtx = PG.get_vertex(i);
+    uintE deg = vtx.getOutDegree();
+    if (deg > 0) {
+      auto ngh = vtx.get_ith_out_neighbor(i, deg/2);
+      ins[i] = std::get<0>(ngh);
+    }
+  });
+  t.stop(); t.reportTotal("bench fetch ith time");
+
+  PG.del();
+}
+
+template <class G>
 double PrimitiveBench_runner(G& GA, commandLine P) {
   size_t test = P.getOptionLongValue("-t", 0);
   switch(test) {
@@ -90,6 +112,9 @@ double PrimitiveBench_runner(G& GA, commandLine P) {
       break;
     case 2:
       bench_packedgraph(GA);
+      break;
+    case 3:
+      bench_testfetchith(GA);
       break;
     default:
       cout << "-t : test_num" << endl;

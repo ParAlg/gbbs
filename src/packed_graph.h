@@ -210,8 +210,15 @@ struct packed_symmetric_vertex {
   }
 
   inline size_t calculateOutTemporarySpaceBytes() {
-    size_t nblocks =  block_manager.vtx_num_blocks;
-    return (sizeof(uintE) * nblocks) + (block_manager.bytes_per_block * nblocks);
+    if (block_manager.vtx_degree > 0) {
+      size_t nblocks =  block_manager.vtx_num_blocks;
+      return (sizeof(uintE) * nblocks) + (block_manager.bytes_per_block * nblocks);
+    }
+    return 0;
+  }
+
+  inline void clear_vertex() {
+    block_manager.clear_vertex();
   }
 
   /* packing primitives */
@@ -391,6 +398,7 @@ auto build_packed_graph(graph<vertex, W>& GA) {
 
 template <template <class W> class vertex, class W, class P>
 packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f) {
+  // TODO: do allocations, but in a (medium) constant number of allocations.
   auto GA = packed_graph<vertex, W>(G);
   {
     parallel_for(0, G.n, [&] (size_t v) {
@@ -402,8 +410,23 @@ packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f) {
   });
   auto new_m = pbbslib::reduce_add(degree_seq);
   GA.m = new_m;
-  cout << "new m = " << new_m << endl;
+  cout << "Returning new packed graph, new m = " << new_m << endl;
   return GA;
 }
 
+template <template <class W> class vertex, class W, class P>
+void filter_graph(packed_graph<vertex, W>& GA, P& pred_f) {
+  // TODO: do allocations, but in a (medium) constant number of allocations.
+  {
+    parallel_for(0, GA.n, [&] (size_t v) {
+      GA.get_vertex(v).packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+    }, 1);
+  }
+  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
+    return GA.get_vertex(i).getOutDegree();
+  });
+  auto new_m = pbbslib::reduce_add(degree_seq);
+  GA.m = new_m;
+  cout << "Packing packed graph: new m = " << new_m << endl;
+}
 

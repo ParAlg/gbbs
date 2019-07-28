@@ -33,9 +33,8 @@ namespace mm {
   constexpr uintE VAL_MASK = INT_E_MAX;
   constexpr size_t n_filter_steps = 5;
 
-  template <class W>
   struct matchStep {
-    using edge = std::tuple<uintE, uintE, W>;
+    using edge = std::tuple<uintE, uintE, pbbs::empty>;
     edge* E;
     uintE* R;
     bool* matched;
@@ -79,75 +78,83 @@ namespace mm {
   }
 
   template <class G>
-  inline edge_array<W> get_all_edges(G& G, bool* matched,
-                                     pbbslib::random rnd) {
+  inline edge_array<pbbs::empty> get_all_edges(G& GA, bool* matched,
+                                 pbbslib::random r) {
+    cout << "fetching all edges!" << endl;
     using W = typename G::weight_type;
-    auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-      return !(matched[src] || matched[ngh]) && (src < ngh);
-    };
-    auto E = filter_all_edges(G, pred);
+    using edge = std::tuple<uintE, uintE, pbbs::empty>;
+    size_t n = GA.n;
 
-    timer perm_t;
-    perm_t.start();
+    auto allvtxs = pbbslib::make_sequence<uintE>(n, [&] (size_t i) { return i; });
+    auto is_live = [&] (uintE v) { return !matched[v]; };
+    auto live_vtxs = pbbs::filter(allvtxs, is_live);
 
-    auto e_arr = E.E;
-    using edge = std::tuple<uintE, uintE, W>;
-    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-    auto out = sequence<edge>(E.non_zeros);
-    par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-                      out[i] = e_arr[perm[i]];  // gather or scatter?
-                    });
-    E.del();
-    E.E = out.to_array();
-    perm_t.stop();
-    perm_t.reportTotal("permutation time");
-    return E;
+    assert(live_vtxs.size() > 0);
+
+    auto vtx_degs = sequence<size_t>(live_vtxs.size());
+    parallel_for(0, live_vtxs.size(), [&] (size_t i) {
+      vtx_degs[i] = GA.get_vertex(live_vtxs[i]).getOutDegree();
+    }, 1024);
+
+    size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
+
+    auto eout = sequence<edge>(m);
+    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
+    parallel_for(0, live_vtxs.size(), [&] (size_t i) {
+      uintE vtx_id = live_vtxs[i];
+      auto vtx = GA.get_vertex(vtx_id);
+      size_t off = vtx_degs[i];
+      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        return true;
+      };
+      auto write_f = [&] (const uintE& ngh, const size_t& offset, const bool& val) {
+        eout[offset] = std::make_tuple(vtx_id, ngh, pbbs::empty());
+      };
+      vtx.copyOutNgh(vtx_id, off, map_f, write_f);
+    }, 1);
+
+    edge_array<pbbs::empty> e_arr;
+    e_arr.num_rows = GA.n;
+    e_arr.num_cols = GA.n;
+    e_arr.non_zeros = eout.size();
+    e_arr.E = eout.to_array();
+    return e_arr;
   }
 
   template <class G>
-  inline edge_array<W> get_edges(G& G, size_t k, bool* matched,
+  inline edge_array<pbbs::empty> get_edges(G& GA, size_t k, bool* matched,
                                  pbbslib::random r) {
     using W = typename G::weight_type;
-    using edge = std::tuple<uintE, uintE, W>;
-    size_t m = G.m / 2;  // assume sym
-    bool finish = (m <= k);
+    using edge = std::tuple<uintE, uintE, pbbs::empty>;
+    size_t n = GA.n;
 
-    std::cout << "Threshold, using m = " << m << "\n";
-    size_t range = pbbslib::log2_up(G.m);
-    range = 1L << range;
-    range -= 1;
+    auto vtx_degs = sequence<size_t>(n);
+    parallel_for(0, n, [&] (size_t i) {
+      vtx_degs[i] = GA.get_vertex(i).getOutDegree();
+    }, 1024);
 
-    size_t threshold = k;
-    auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-      size_t hash_val = hash_to_range(key_for_pair(src, ngh, r), range);
-      if ((src > ngh) || matched[ngh]) {
-        return 1;  // pack out, not in edgearr
-      } else if (hash_val < threshold || finish) {
-        return 2;  // pack out, returned in edgearr
-      }
-      return 0;  // keep in graph, not in edgearr
-    };
-    timer fet;
-    fet.start();
-    auto E = filter_edges(G, pred);
-    fet.stop();
-    fet.reportTotal("Filter edges time");
+    size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
 
-    // permute the retrieved edges
+    auto eout = sequence<edge>(k);
+    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
+    parallel_for(0, k, [&] (size_t i) {
+      size_t edge_id = r.ith_rand(i) % m;
+      size_t vtx_id = pbbs::binary_search(vtx_degs, edge_id, lte) - 1;
+      auto vtx = GA.get_vertex(vtx_id);
+      size_t vtx_pos = vtx_degs[vtx_id];
+      assert(edge_id >= vtx_pos); // >?
+      auto eg = vtx.get_ith_out_neighbor(vtx_id, edge_id-vtx_pos);
+      assert(!matched[vtx_id]);
+      assert(!matched[std::get<0>(eg)]);
+      eout[i] = std::make_tuple(vtx_id, std::get<0>(eg), pbbs::empty());
+    }, 512);
 
-    auto e_arr = E.E;
-    timer perm_t;
-    perm_t.start();
-    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-    auto out = sequence<edge>(E.non_zeros);
-    par_for(0, E.non_zeros, [&] (size_t i) {
-                      out[i] = e_arr[perm[i]];  // gather or scatter?
-                    });
-    E.del();
-    E.E = out.to_array();
-    perm_t.stop();
-    perm_t.reportTotal("permutation time");
-    return E;
+    edge_array<pbbs::empty> e_arr;
+    e_arr.num_rows = GA.n;
+    e_arr.num_cols = GA.n;
+    e_arr.non_zeros = eout.size();
+    e_arr.E = eout.to_array();
+    return e_arr;
   }
 
 };  // namespace mm
@@ -156,63 +163,81 @@ namespace mm {
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <class G>
-inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(G& G) {
+inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
   using W = typename G::weight_type;
-  using edge = std::tuple<uintE, uintE, W>;
+  using edge = std::tuple<uintE, uintE, pbbs::empty>;
 
-  auto PG = build_packed_graph(G);
+  timer ft; ft.start();
+  auto filter_pred = [&] (const uintE& s, const uintE& d, const W& wgh) {
+    return s < d;
+  };
+  auto PG = filter_graph(GA, filter_pred);
+  ft.stop(); ft.reportTotal("filter time");
 
   timer mt;
   mt.start();
-  size_t n = G.n;
+  size_t n = GA.n;
   auto r = pbbslib::random();
 
   auto R = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
-  auto matched = sequence<bool>(n, [&](size_t i) { return false; });
+  auto matched = sequence<bool>(n, [&](size_t i) { return false; }); // bitvector
 
-  size_t k = ((3 * G.n) / 2);
+  size_t k = GA.n; // ((3 * GA.n) / 2);
   auto matching = pbbslib::dyn_arr<edge>(n);
 
   size_t round = 0;
   timer gete;
   timer eff;
-  while (G.m > 0) {
+  while (PG.m > 0) {
     gete.start();
-    auto e_arr = (round < mm::n_filter_steps)
-                     ? mm::get_edges(G, k, matched.begin(), r)
-                     : mm::get_all_edges(G, matched.begin(), r);
+    timer get_t; get_t.start();
+    auto e_arr = (PG.m <= k) ? mm::get_all_edges(PG, matched.begin(), r) : mm::get_edges(PG, k, matched.begin(), r);
+    get_t.stop(); get_t.reportTotal("get time");
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
     auto eim = pbbslib::make_sequence<edge>(e_arr.non_zeros, eim_f);
     gete.stop();
 
     std::cout << "Got: " << e_arr.non_zeros << " edges "
-              << " G.m is now: " << G.m << "\n";
-    mm::matchStep<W> mStep(e_arr.E, R.begin(), matched.begin());
+              << " PG.m is now: " << PG.m << "\n";
+    mm::matchStep mStep(e_arr.E, R.begin(), matched.begin());
     eff.start();
-    eff_for<uintE>(mStep, 0, e_arr.non_zeros, 50, 0, G.n);
+    eff_for<uintE>(mStep, 0, e_arr.non_zeros, 50, 0, PG.n);
     eff.stop();
 
     auto e_added =
         pbbslib::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
+    cout << "added = " << e_added.size() << endl;
+
     auto sizes = sequence<size_t>(e_added.size());
     par_for(0, e_added.size(), [&] (size_t i) {
                       const auto& e = e_added[i];
                       uintE u = std::get<0>(e) & mm::VAL_MASK;
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
-                      uintE deg_u = G.V[u].getOutDegree();
-                      uintE deg_v = G.V[v].getOutDegree();
-                      G.V[u].setOutDegree(0);
-                      G.V[v].setOutDegree(0);
+                      auto vtx_u = PG.get_vertex(u);
+                      auto vtx_v = PG.get_vertex(v);
+                      uintE deg_u = vtx_u.getOutDegree();
+                      uintE deg_v = vtx_v.getOutDegree();
+                      vtx_u.clear_vertex();
+                      vtx_v.clear_vertex();
+
                       sizes[i] = deg_u + deg_v;
                     });
     size_t total_size = pbbslib::reduce_add(sizes);
-    G.m -= total_size;
+    PG.m -= total_size;
     std::cout << "removed: " << total_size << " many edges"
               << "\n";
 
     matching.copyIn(e_added, e_added.size());
 
+    // TODO: pack out
+    auto pack_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      assert(!matched[u]);
+      return !matched[v]; // only keep edges to unmatched v's
+    };
+    filter_graph(PG, pack_pred);
+
+    // TODO: delete eid, other data returned this round
     round++;
     r = r.next();
   }
@@ -222,47 +247,50 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(G& G) {
   eff.reportTotal("eff for time");
   gete.reportTotal("get edges time");
   mt.reportTotal("Matching time");
+  PG.del();
   return std::move(ret);
 }
 
-//template <class G, class Seq>
-//inline void verify_matching(G& G, Seq& matching) {
-//  using W = typename G::weight_type;
-//  size_t n = G.n;
-//  auto ok = sequence<bool>(n, [](size_t i) { return 1; });
-//  auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
-//
-//  // Check that this is a valid matching
-//  par_for(0, matching.size(), [&] (size_t i) {
-//                    const auto& edge = matching[i];
-//                    pbbslib::write_add(&matched[std::get<0>(edge)], 1);
-//                    pbbslib::write_add(&matched[std::get<1>(edge)], 1);
-//                  });
-//
-//  bool valid = true;
-//  par_for(0, n, [&] (size_t i) {
-//    if (matched[i] > 1) valid = false;
-//  });
-//  assert(valid == true);
-//
-//  // Check maximality of the matching
-//  auto map2_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-//    if (!matched[src] && !matched[ngh]) {
-//      // could have added this edge, increasing the size of the matching
-//      ok[src] = 0;
-//      ok[ngh] = 0;
-//    }
-//  };
-//  par_for(0, n, 1, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
-//
-//  auto ok_f = [&](size_t i) { return ok[i]; };
-//  auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);
-//  size_t n_ok = pbbslib::reduce_add(ok_im);
-//  if (n == n_ok) {
-//    std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
-//  } else {
-//    std::cout << "Matching invalid---" << (n - n_ok)
-//              << " vertices saw bad neighborhoods."
-//              << "\n";
-//  }
-//}
+template <class G, class Seq>
+inline void verify_matching(G& GA, Seq& matching) {
+  using W = typename G::weight_type;
+  size_t n = GA.n;
+  auto ok = sequence<bool>(n, [](size_t i) { return 1; });
+  auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
+
+  // Check that this is a valid matching
+  par_for(0, matching.size(), [&] (size_t i) {
+                    const auto& edge = matching[i];
+                    uintE u = std::get<0>(edge) & mm::VAL_MASK;
+                    uintE v = std::get<1>(edge) & mm::VAL_MASK;
+                    pbbslib::write_add(&matched[u], 1);
+                    pbbslib::write_add(&matched[v], 1);
+                  });
+
+  bool valid = true;
+  par_for(0, n, [&] (size_t i) {
+    if (matched[i] > 1) valid = false;
+  });
+  assert(valid == true);
+
+  // Check maximality of the matching
+  auto map2_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+    if (!matched[src] && !matched[ngh]) {
+      // could have added this edge, increasing the size of the matching
+      ok[src] = 0;
+      ok[ngh] = 0;
+    }
+  };
+  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map2_f); });
+
+  auto ok_f = [&](size_t i) { return ok[i]; };
+  auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);
+  size_t n_ok = pbbslib::reduce_add(ok_im);
+  if (n == n_ok) {
+    std::cout << "Matching OK! matching size is: " << matching.size() << "\n";
+  } else {
+    std::cout << "Matching invalid---" << (n - n_ok)
+              << " vertices saw bad neighborhoods."
+              << "\n";
+  }
+}

@@ -18,7 +18,7 @@ INCLUDE_DIRS = -I../
 
 # abm flag on intel indicates lzcnt
 # see https://en.wikipedia.org/wiki/Bit_Manipulation_Instruction_Sets
-OPT = -O3 -g -mlzcnt
+OPT = -O3 -g -mlzcnt -DNDEBUG
 
 ifdef NVM
 NVMFLAGS = -lpmem -lnuma -DNVM
@@ -50,7 +50,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= BC BellmanFord BFS BFS_test Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST PageRank SCC SetCover Spanner SpanningForest Triangle wBFS WidestPath
+ALL= BC BellmanFord BFS BFS_test Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST PageRank SCC SetCover Spanner SpanningForest Triangle wBFS WidestPath PrimitiveBench
 
 all: $(ALL)
 
