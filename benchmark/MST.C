@@ -38,25 +38,7 @@
 
 #include "MST.h"
 #include "ligra.h"
-
-template <typename W,
-          typename std::enable_if<std::is_same<W, pbbslib::empty>::value,
-                                  int>::type = 0>
-inline auto gw() {
-  return [](const uintE& u, const uintE& v, const W& wgh) __attribute__((always_inline)) -> uintE {
-    return (uintE)1;
-  };
-}
-
-
-template <typename W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
-                                  int>::type = 0>
-inline auto gw() {
-  return [](const uintE& u, const uintE& v, const W& wgh) __attribute__((always_inline)) -> uintE {
-    return wgh;
-  };
-}
+#include "weight_utils.h"
 
 template <class G>
 double MST_runner(G& GA, commandLine P) {
@@ -81,13 +63,12 @@ double MST_runner(G& GA, commandLine P) {
   auto degree_im = pbbslib::make_sequence<size_t>(GA.n, degree_f);
   size_t max_degree = pbbslib::reduce_max(degree_im);
   size_t normalize = 2*max_degree+1;
-  auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> uintE {
+  auto unweighted_weights = [&] (const uintE& u, const uintE& v, const W& wgh) -> uintE {
     uintE deg_u = degree_f(u);
     uintE deg_v = degree_f(v);
     return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
   };
-
-//  auto get_weight = gw<W>();
+  auto get_weight = gw<G>(unweighted_weights);
 
   timer mst_t;
   mst_t.start();

@@ -36,6 +36,7 @@
 #define WEIGHTED 1
 
 #include "WidestPath.h"
+#include "weight_utils.h"
 
 template <class G>
 double WidestPath_runner(G& GA, commandLine P) {
@@ -52,6 +53,22 @@ double WidestPath_runner(G& GA, commandLine P) {
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
+  // Define weight type mapping from edge -> custom_weight
+  using edge_weight_type = uintE;
+  auto degree_f = [&](size_t i) {
+    auto vtx = GA.get_vertex(i);
+    return std::max(vtx.getInDegree(), vtx.getOutDegree());
+  };
+  auto degree_im = pbbslib::make_sequence<size_t>(GA.n, degree_f);
+  size_t max_degree = pbbslib::reduce_max(degree_im);
+  size_t normalize = 2*max_degree+1;
+  auto unweighted_weights = [&] (const uintE& u, const uintE& v, const W& wgh) -> uintE {
+    uintE deg_u = degree_f(u);
+    uintE deg_v = degree_f(v);
+    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
+  };
+  auto get_weight = gw<G>(unweighted_weights);
+
   if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"
               << "\n";
@@ -59,9 +76,9 @@ double WidestPath_runner(G& GA, commandLine P) {
   }
   timer t; t.start();
   if (P.getOptionValue("-bf")) {
-    auto widths = WidestPathBF(GA, src);
+    auto widths = WidestPathBF(GA, get_weight, src);
   } else {
-    auto widths = WidestPath(GA, src, num_buckets, largemem, no_blocked);
+    auto widths = WidestPath(GA, get_weight, src, num_buckets, largemem, no_blocked);
   }
   double tt = t.stop();
 

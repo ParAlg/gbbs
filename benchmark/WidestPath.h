@@ -31,14 +31,17 @@ namespace widestpath {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
 
+template <class W, class GW>
 struct Visit_F {
   sequence<uintE>& width;
-  Visit_F(sequence<uintE>& _width) : width(_width) {}
+  GW& get_weight;
+  Visit_F(sequence<uintE>& _width, GW& get_weight) : width(_width), get_weight(get_weight) {}
 
-  inline Maybe<uintE> update(const uintE& s, const uintE& d, const intE& w) {
+  inline Maybe<uintE> update(const uintE& s, const uintE& d, const W& w) {
+    uintE edgeLen = get_weight(s, d, wgh);
     uintE oval = width[d];
     uintE bottleneck = oval | TOP_BIT;
-    uintE n_width = std::min((width[s] | TOP_BIT), (w | TOP_BIT));
+    uintE n_width = std::min((width[s] | TOP_BIT), (edgeLen | TOP_BIT));
     if (n_width > bottleneck) {
       if (!(oval & TOP_BIT)) {  // First visitor
         width[d] = n_width;
@@ -50,10 +53,11 @@ struct Visit_F {
   }
 
   inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
-                                   const intE& w) {
+                                   const W& w) {
+    uintE edgeLen = get_weight(s, d, wgh);
     uintE oval = width[d];
     uintE bottleneck = oval | TOP_BIT;
-    uintE n_width = std::min((width[s] | TOP_BIT), (w | TOP_BIT));
+    uintE n_width = std::min((width[s] | TOP_BIT), (edgeLen | TOP_BIT));
     if (n_width > bottleneck) {
       if (!(oval & TOP_BIT) &&
           pbbslib::atomic_compare_and_swap(&(width[d]), oval, n_width)) {  // First visitor
@@ -67,12 +71,15 @@ struct Visit_F {
   inline bool cond(const uintE& d) const { return true; }
 };
 
+template <class W, class GW>
+Visit_F<W, GW> make_visit_f(sequence<uintE>& dists, GW& get_weight) {
+  return Visit_F<W, GW>(dists, get_weight);
+}
+
 }  // namespace widestpath
 
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
+template <class G, class GW>
+inline sequence<uintE> WidestPath(G& G, GW& get_weight, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
   timer t;
@@ -81,7 +88,8 @@ inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
   timer mw; mw.start();
   W max_weight = 0;
   parallel_for(0, G.n, [&] (size_t i) {
-    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    auto map_f = [&] (const uintE& u, const uintE& v, const W& w) {
+      auto wgh = get_weight(u, v, w);
       if (wgh > max_weight) {
         pbbslib::write_max(&max_weight, wgh);
       }
@@ -132,7 +140,7 @@ inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
   while (bkt.id != b.null_bkt) {
     auto active = vertexSubset(n, bkt.identifiers);
     emt.start();
-    auto res = edgeMapData<uintE>(G, active, widestpath::Visit_F(width), G.m / 20, fl);
+    auto res = edgeMapData<uintE>(G, active, widestpath::make_visit_f(width, get_weight), G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -158,17 +166,6 @@ inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
   for (size_t i=0; i<100; i++) {
     cout << dist_im[i] << endl;
   }
-  return width;
-}
-
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<!std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> WidestPath(graph<vertex<W>>& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
-  assert(false);  // Unimplemented for unweighted graphs; use a regular BFS.
-  auto width = sequence<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
   return width;
 }
 
