@@ -60,9 +60,10 @@ namespace spanning_forest {
   };
 
   // Returns a pair containing the cluster_ids and parents.
-  template <template <typename W> class vertex, class W>
-  inline std::pair<sequence<uintE>, sequence<uintE>> LDD_edges(graph<vertex<W> >& GA,
+  template <class G>
+  inline std::pair<sequence<uintE>, sequence<uintE>> LDD_edges(G& GA,
       double beta, bool permute = true, bool pack = false) {
+    using W = typename G::weight_type;
     size_t n = GA.n;
 
     sequence<uintE> vertex_perm;
@@ -125,7 +126,7 @@ namespace spanning_forest {
     return std::make_pair(cluster_ids, parents);
   }
 
-//  template <template <typename W> class vertex, class W, class E>
+//  template <class G, class E>
 //  inline auto contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E& edge_mapping) {
 //    // Remove duplicates by hashing
 //    using K = std::pair<uintE, uintE>;
@@ -241,11 +242,12 @@ namespace spanning_forest {
 
 
   // edge_mapping: edge -> edge
-  template <template <class W> class vertex, class W>
-  inline pbbslib::dyn_arr<edge> SpanningForest_Impl(graph<vertex<W>>& GA, double beta,
+  template <class G>
+  inline pbbslib::dyn_arr<edge> SpanningForest_Impl(G& GA, double beta,
                                             size_t level, std::function<edge(edge)>& edge_mapping, bool
                                             pack = false, bool permute = false)
   {
+    using W = typename G::weight_type;
     permute |= (level > 0);
     timer ldd_t;
     ldd_t.start();
@@ -303,8 +305,8 @@ namespace spanning_forest {
 
   // Algorithm maintains a map from edges in the current graph to original
   // edges (initially just identity).
-  template <class vertex>
-  inline pbbslib::dyn_arr<edge> SpanningForest(graph<vertex>& GA, double beta = 0.2,
+  template <class G>
+  inline pbbslib::dyn_arr<edge> SpanningForest(G& GA, double beta = 0.2,
                                         bool pack = false, bool permute = false) {
     std::function<edge(edge)> identity_mapping = [&] (edge e) {
       return e;

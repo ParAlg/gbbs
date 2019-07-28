@@ -40,8 +40,9 @@ struct cluster_and_parent {
   cluster_and_parent(uintE _cluster, uintE _parent) : cluster(_cluster), parent(_parent) { }
 };
 
-template <template <typename W> class vertex, class W, class C>
-pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+template <class G, class C>
+pbbs::sequence<edge> fetch_intercluster_te(G& GA, C& clusters, size_t num_clusters) {
+  using W = typename G::weight_type;
   debug(cout << "Running fetch edges te" << endl;);
   using K = edge;
   using V = edge;
@@ -111,8 +112,9 @@ pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, si
   return edges;
 }
 
-template <template <typename W> class vertex, class W, class C>
-pbbs::sequence<edge> fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+template <class G, class C>
+pbbs::sequence<edge> fetch_intercluster(G& GA, C& clusters, size_t num_clusters) {
+  using W = typename G::weight_type;
   using K = edge;
   using V = edge;
   using KV = std::tuple<K, V>;
@@ -167,9 +169,10 @@ pbbs::sequence<edge> fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_
   return edges;
 }
 
-template <template <typename W> class vertex, class W>
-pbbs::sequence<edge> tree_and_intercluster_edges(graph<vertex<W>>& GA,
+template <class G>
+pbbs::sequence<edge> tree_and_intercluster_edges(G& GA,
     pbbs::sequence<cluster_and_parent>& cluster_and_parents) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto edge_list = pbbslib::dyn_arr<edge>(2*n);
 
@@ -227,8 +230,9 @@ struct LDD_Parents_F {
   inline bool cond(uintE d) { return clusters[d].cluster == UINT_E_MAX; }
 };
 
-template <template <typename W> class vertex, class W>
-inline pbbs::sequence<cluster_and_parent> LDD_parents(graph<vertex<W> >& GA, double beta, bool permute = true) {
+template <class G>
+inline pbbs::sequence<cluster_and_parent> LDD_parents(G& GA, double beta, bool permute = true) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
 
   pbbs::sequence<uintE> vertex_perm;
@@ -279,8 +283,8 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(graph<vertex<W> >& GA, dou
   return clusters;
 }
 
-template <template <class W> class vertex, class W>
-inline pbbs::sequence<edge> Spanner_impl(graph<vertex<W>>& GA, double beta) {
+template <class G>
+inline pbbs::sequence<edge> Spanner(G& GA, double beta) {
   bool permute = true;
   timer ldd_t;
   ldd_t.start();
@@ -297,11 +301,6 @@ inline pbbs::sequence<edge> Spanner_impl(graph<vertex<W>>& GA, double beta) {
   // return spanner as an edge-list.
   debug(cout << "Spanner size = " << spanner_edges.size() << endl;);
   return spanner_edges;
-}
-
-template <class vertex>
-inline pbbs::sequence<edge> Spanner(graph<vertex>& GA, double beta) {
-  return Spanner_impl(GA, beta);
 }
 
 }  // namespace cc
