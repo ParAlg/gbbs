@@ -32,235 +32,255 @@
 #include "pbbslib/dyn_arr.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
+#include "pbbslib/sparse_table.h"
 
 namespace MST_boruvka {
 
-constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
-constexpr uintE VAL_MASK = INT_E_MAX;
 
 // the number of filtering steps to run
 constexpr size_t n_filter_steps = 5;
-
-//struct alignas(8) cas_type {
-//  uintE index;
-//  int32_t weight;
-//  cas_type() {
-//    index = UINT_E_MAX;
-//    weight = std::numeric_limits<int32_t>::max();
-//  }
-//  cas_type(uintE _index, int32_t _w) : index(_index), weight(_w) {}
-//};
-
-
 using cas_type = std::pair<uintE, int32_t>;
 
-template <class W, class M, class P, class D>
-inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
-                                 uintE*& next_vtxs, M& min_edges, P& parents,
-                                 D& exhausted, size_t& n) {
-  using ct = cas_type;
-  using edge = std::tuple<uintE, uintE, W>;
-  size_t m = E.non_zeros;
-  auto edges = E.E;
-  auto less = [](const ct& a, const ct& b) {
-    // returns true if (weight is <) or (weight = and index is <)
-    return (a.second < b.second) || (a.second == b.second && a.first < b.first);
-  };
+namespace boruvka {
 
-  uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) { edge_ids[i] = i; });
-  uintE* next_edge_ids = nullptr;
+  constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
+  constexpr uintE VAL_MASK = INT_E_MAX;
 
-  auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
-  auto is_root = sequence<bool>(n);
+  template <class W, class M, class P, class D>
+  inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
+                                   uintE*& next_vtxs, M& min_edges, P& parents,
+                                   D& exhausted, size_t& n) {
+    using ct = cas_type;
+    using edge = std::tuple<uintE, uintE, W>;
+    size_t m = E.non_zeros;
+    auto edges = E.E;
+    auto less = [](const ct& a, const ct& b) {
+      // returns true if (weight is <) or (weight = and index is <)
+      return (a.second < b.second) || (a.second == b.second && a.first < b.first);
+    };
 
-  // Stores edge indices that join the MST.
-  uintE* mst = pbbslib::new_array_no_init<uintE>(n);
-  size_t n_in_mst = 0;
-  size_t round = 0;
+    uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) { edge_ids[i] = i; });
+    uintE* next_edge_ids = nullptr;
 
-  while (n > 1 && m > 0) {
-    std::cout << "Boruvka round: " << round << " n: " << n << " m: " << m
-              << "\n";
+    auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
+    auto is_root = sequence<bool>(n);
 
-    timer init_t;
-    init_t.start();
-    par_for(0, n, [&] (size_t i) {
-      uintE v = vtxs[i];
-      // stores an (index, weight) pair
-      min_edges[v] = std::make_pair(UINT_E_MAX, std::numeric_limits<int32_t>::max());
-    });
-    init_t.stop();  // init_t.reportTotal("init time");
+    // Stores edge indices that join the MST.
+    uintE* mst = pbbslib::new_array_no_init<uintE>(n);
+    size_t n_in_mst = 0;
+    size_t round = 0;
 
-    // 1. write_min to select the minimum edge out of each component.
-    timer min_t;
-    min_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      uintE e_id = edge_ids[i];
-      const edge& e = edges[e_id];
-      ct cas_e(e_id, std::get<2>(e));
-      pbbslib::write_min(min_edges + std::get<0>(e), cas_e, less);
-      pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
-    });
-    min_t.stop();  // min_t.reportTotal("write min time");
+    while (n > 1 && m > 0) {
+      std::cout << "Boruvka round: " << round << " n: " << n << " m: " << m
+                << "\n";
 
-    // 2. test whether vertices found an edge incident to them
-    timer mark_t;
-    mark_t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      uintE v = vtxs[i];
-      const auto& e = min_edges[v];
-      if (e.first == UINT_E_MAX) {
-        // no more edges incident to v in this batch.
-        exhausted[v] = true;
-        is_root[i] = false;
-        new_mst_edges[i] = UINT_E_MAX;
-        debug(uintE pv = parents[v];
-        assert(pv == v););
-      } else {
-        uintE ind = e.first;
-        const auto& edge = edges[ind];
-        uintE u = std::get<0>(edge) ^ std::get<1>(edge) ^ v;
-        // pick the higher endpoint as the root.
-        if (u < v && ind == min_edges[u].first) {
-          parents[v] = v;
-          is_root[i] = true;
-          new_mst_edges[i] = UINT_E_MAX;
-        } else {
-          // v is satellite: hook onto u.
-          parents[v] = u;
+      timer init_t;
+      init_t.start();
+      par_for(0, n, [&] (size_t i) {
+        uintE v = vtxs[i];
+        // stores an (index, weight) pair
+        min_edges[v] = std::make_pair(UINT_E_MAX, std::numeric_limits<int32_t>::max());
+      });
+      init_t.stop();  // init_t.reportTotal("init time");
+
+      // 1. write_min to select the minimum edge out of each component.
+      timer min_t;
+      min_t.start();
+      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        uintE e_id = edge_ids[i];
+        const edge& e = edges[e_id];
+        ct cas_e(e_id, std::get<2>(e));
+        pbbslib::write_min(min_edges + std::get<0>(e), cas_e, less);
+        pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
+      });
+      min_t.stop();  // min_t.reportTotal("write min time");
+
+      // 2. test whether vertices found an edge incident to them
+      timer mark_t;
+      mark_t.start();
+      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        uintE v = vtxs[i];
+        const auto& e = min_edges[v];
+        if (e.first == UINT_E_MAX) {
+          // no more edges incident to v in this batch.
+          exhausted[v] = true;
           is_root[i] = false;
-          new_mst_edges[i] = ind;
+          new_mst_edges[i] = UINT_E_MAX;
+          debug(uintE pv = parents[v];
+          assert(pv == v););
+        } else {
+          uintE ind = e.first;
+          const auto& edge = edges[ind];
+          uintE u = std::get<0>(edge) ^ std::get<1>(edge) ^ v;
+          // pick the higher endpoint as the root.
+          if (u < v && ind == min_edges[u].first) {
+            parents[v] = v;
+            is_root[i] = true;
+            new_mst_edges[i] = UINT_E_MAX;
+          } else {
+            // v is satellite: hook onto u.
+            parents[v] = u;
+            is_root[i] = false;
+            new_mst_edges[i] = ind;
+          }
         }
+      });
+      mark_t.stop();  // mark_t.reportTotal("mark time");
+
+      // 3. filter out the new MST edges.
+      timer filter_t;
+      filter_t.start();
+      n_in_mst += pbbslib::filterf(new_mst_edges.begin(), mst + n_in_mst, n,
+                                [](uintE v) { return v != UINT_E_MAX; });
+      std::cout << "      " << n_in_mst << " edges added to mst."
+                << "\n";
+      filter_t.stop();  // filter_t.reportTotal("filter time");
+
+      // 4. pointer jump to find component centers.
+      timer jump_t;
+      jump_t.start();
+      par_for(0, n, [&] (size_t i) {
+        uintE v = vtxs[i];
+        size_t ctr = 0;
+        while (parents[v] != parents[parents[v]]) {
+          parents[v] = parents[parents[v]];
+          ctr++;
+        }
+      });
+      jump_t.stop();  // jump_t.reportTotal("jump time");
+
+      // 5. compact the vertices (pack out the roots)
+      timer compact_t;
+      compact_t.start();
+      auto vtxs_im = pbbslib::make_sequence<uintE>(vtxs, n);
+
+      n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
+      std::swap(vtxs, next_vtxs);
+      compact_t.stop();  // compact_t.reportTotal("compact time");
+      std::cout << "      " << n << " vertices remain."
+                << "\n";
+
+      // 6. relabel the edges with the new roots.
+      timer relab_t;
+      relab_t.start();
+      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        size_t e_id = edge_ids[i];
+        edge& e = edges[e_id];
+        uintE u = std::get<0>(e);
+        uintE v = std::get<1>(e);
+        uintE pu = parents[std::get<0>(e)];
+        uintE pv = parents[std::get<1>(e)];
+        if (u != pu || v != pv) {
+          W w = std::get<2>(e);
+          edges[e_id] = std::make_tuple(pu, pv, w);
+        }
+        if (pu == pv) {
+          edge_ids[i] |= TOP_BIT;
+        }
+      });
+      relab_t.stop();  // relab_t.reportTotal("relabel time");
+
+      // 7. filter (or ignore) self-edges.
+      auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
+      auto self_loop_im = pbbslib::make_sequence<bool>(n, self_loop_f);
+      auto edge_ids_im = pbbslib::make_sequence<uintE>(edge_ids, m);
+      if (round == 0) {
+        auto A = pbbslib::pack(edge_ids_im, self_loop_im);
+        m = A.size();
+        next_edge_ids = A.to_array();
+      } else {
+        m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m));
       }
-    });
-    mark_t.stop();  // mark_t.reportTotal("mark time");
-
-    // 3. filter out the new MST edges.
-    timer filter_t;
-    filter_t.start();
-    n_in_mst += pbbslib::filterf(new_mst_edges.begin(), mst + n_in_mst, n,
-                              [](uintE v) { return v != UINT_E_MAX; });
-    std::cout << "      " << n_in_mst << " edges added to mst."
-              << "\n";
-    filter_t.stop();  // filter_t.reportTotal("filter time");
-
-    // 4. pointer jump to find component centers.
-    timer jump_t;
-    jump_t.start();
-    par_for(0, n, [&] (size_t i) {
-      uintE v = vtxs[i];
-      size_t ctr = 0;
-      while (parents[v] != parents[parents[v]]) {
-        parents[v] = parents[parents[v]];
-        ctr++;
-      }
-    });
-    jump_t.stop();  // jump_t.reportTotal("jump time");
-
-    // 5. compact the vertices (pack out the roots)
-    timer compact_t;
-    compact_t.start();
-    auto vtxs_im = pbbslib::make_sequence<uintE>(vtxs, n);
-
-    n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
-    std::swap(vtxs, next_vtxs);
-    compact_t.stop();  // compact_t.reportTotal("compact time");
-    std::cout << "      " << n << " vertices remain."
-              << "\n";
-
-    // 6. relabel the edges with the new roots.
-    timer relab_t;
-    relab_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      size_t e_id = edge_ids[i];
-      edge& e = edges[e_id];
-      uintE u = std::get<0>(e);
-      uintE v = std::get<1>(e);
-      uintE pu = parents[std::get<0>(e)];
-      uintE pv = parents[std::get<1>(e)];
-      if (u != pu || v != pv) {
-        W w = std::get<2>(e);
-        edges[e_id] = std::make_tuple(pu, pv, w);
-      }
-      if (pu == pv) {
-        edge_ids[i] |= TOP_BIT;
-      }
-    });
-    relab_t.stop();  // relab_t.reportTotal("relabel time");
-
-    // 7. filter (or ignore) self-edges.
-    auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
-    auto self_loop_im = pbbslib::make_sequence<bool>(n, self_loop_f);
-    auto edge_ids_im = pbbslib::make_sequence<uintE>(edge_ids, m);
-    if (round == 0) {
-      auto A = pbbslib::pack(edge_ids_im, self_loop_im);
-      m = A.size();
-      next_edge_ids = A.to_array();
-    } else {
-      m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m));
+      std::cout << "filter, m is now " << m << " n is now " << n << "\n";
+      std::swap(edge_ids, next_edge_ids);
+      round++;
     }
-    std::cout << "filter, m is now " << m << " n is now " << n << "\n";
-    std::swap(edge_ids, next_edge_ids);
-    round++;
+
+    // TODO check about freeing next_edge_ids and edge_ids
+    std::cout << "Boruvka finished: total edges added to MST = " << n_in_mst
+              << "\n";
+    pbbslib::free_array(edge_ids);
+    pbbslib::free_array(next_edge_ids);
+    auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
+    return mst_im;
   }
+} // namespace boruvka
 
-  // TODO check about freeing next_edge_ids and edge_ids
-  std::cout << "Boruvka finished: total edges added to MST = " << n_in_mst
-            << "\n";
-  pbbslib::free_array(edge_ids);
-  pbbslib::free_array(next_edge_ids);
-  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
-  return mst_im;
-}
-
-constexpr size_t sample_size = 2000;
+constexpr size_t sample_size = 200000;
 inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
-
-inline size_t key_for_pair(uint32_t k1, uintE k2, pbbslib::random rnd) {
-  size_t key = (static_cast<size_t>(k1) << 32) + static_cast<size_t>(k2);
+inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
+  size_t l = std::min(k1, k2);
+  size_t r = std::max(k1, k2);
+  size_t key = (l << 32) + r;
   return rnd.ith_rand(key);
 }
 
-template <class G>
-inline edge_array<W> get_all_edges(G& G) {
+template <class edge_weight_type, class G, class GW>
+inline edge_array<edge_weight_type> get_all_edges(G& GA, GW& get_weight) {
+  cout << "fetching all edges" << endl;
   using W = typename G::weight_type;
-  auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-    return true;
-  };
-  return filter_all_edges(G, pred);
+  using edge = std::tuple<uintE, uintE, edge_weight_type>;
+  size_t n = GA.n;
+
+
+  auto vtx_degs = sequence<size_t>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    vtx_degs[i] = GA.get_vertex(i).getOutDegree();
+  }, 1024);
+
+  size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
+
+  auto eout = sequence<edge>(m);
+  parallel_for(0, n, [&] (size_t i) {
+    uintE vtx_id = i;
+    auto vtx = GA.get_vertex(vtx_id);
+    size_t off = vtx_degs[i];
+    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) -> edge_weight_type{
+      return get_weight(u, v, wgh);
+    };
+    auto write_f = [&] (const uintE& ngh, const size_t& offset, const edge_weight_type& wgh) {
+      eout[offset] = std::make_tuple(vtx_id, ngh, wgh);
+    };
+    vtx.copyOutNgh(vtx_id, off, map_f, write_f);
+  }, 1);
+
+  edge_array<edge_weight_type> e_arr;
+  e_arr.num_rows = GA.n;
+  e_arr.num_cols = GA.n;
+  e_arr.non_zeros = eout.size();
+  e_arr.E = eout.to_array();
+  return e_arr;
 }
 
-template <class G>
-inline edge_array<W> get_top_k(G& G, size_t k, pbbslib::random r,
-                               bool first_round = false) {
+template <class edge_weight_type, class G, class GW>
+inline edge_array<edge_weight_type> get_top_k(G& GA, GW& get_weight, size_t k, pbbslib::random r, bool first_round = false) {
   using W = typename G::weight_type;
-  if (k == static_cast<size_t>(G.m)) {
-    return get_all_edges(G);
-  }
-  using edge = std::tuple<uintE, uintE, W>;
+  using edge = std::tuple<uintE, uintE, edge_weight_type>;
   timer st; st.start();
 
-  size_t n = G.n;
-  size_t m = G.m;
+  // (1) sample, find splitter and splitter %
+  size_t n = GA.n;
+  size_t m = GA.m;
 
-  auto vertex_offs = sequence<long>(G.n);
+  auto vertex_offs = sequence<long>(GA.n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { vertex_offs[i] = G.V[i].getOutDegree(); });
+                  { vertex_offs[i] = GA.get_vertex(i).getOutDegree(); });
   pbbslib::scan_add_inplace(vertex_offs.slice(), pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
 
   par_for(0, sample_size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-        size_t sample_edge = r.ith_rand(i) % m;
-        uintE vtx = pbbslib::binary_search(vertex_offs, sample_edge, lte);
-        size_t ith = vertex_offs[vtx] - sample_edge - 1;
-        uintE ngh;
-        W wgh;
-        std::tie(ngh, wgh) = G.V[vtx].get_ith_out_neighbor(vtx, ith);
-        sample_edges[i] = std::make_tuple(vtx, ngh, wgh);
-      });
+    size_t sample_edge = r.ith_rand(i) % m;
+    uintE vtx = pbbslib::binary_search(vertex_offs, sample_edge, lte);
+    size_t ith = vertex_offs[vtx] - sample_edge - 1;
+    uintE ngh;
+    W orig_wgh;
+    std::tie(ngh, orig_wgh) = GA.get_vertex(vtx).get_ith_out_neighbor(vtx, ith);
+    edge_weight_type wgh = get_weight(vtx, ngh, orig_wgh);
+    sample_edges[i] = std::make_tuple(vtx, ngh, wgh);
+  });
 
   auto cmp_by_wgh = [](const edge& l, const edge& r) {
     return std::get<2>(l) < std::get<2>(r);
@@ -268,10 +288,11 @@ inline edge_array<W> get_top_k(G& G, size_t k, pbbslib::random r,
   pbbslib::sample_sort_inplace(sample_edges.slice(), cmp_by_wgh);
 
   // 2. find approximate splitter.
-  size_t ind = ((double)(k * sample_edges.size())) / G.m;
+  size_t ind = ((double)(k * sample_edges.size())) / GA.m;
   auto splitter = sample_edges[ind];
-  W split_weight = std::get<2>(splitter);
+  edge_weight_type split_weight = std::get<2>(splitter);
 
+  // laxmand: This should just be two binary searches
   size_t first_ind = 0;
   size_t last_ind = 0;
   size_t ssize = sample_edges.size();
@@ -295,52 +316,97 @@ inline edge_array<W> get_top_k(G& G, size_t k, pbbslib::random r,
   st.stop(); st.reportTotal("startup time");
 
   // 3. filter edges based on splitter
-  if (split_wgh_fraction < 0.2) {
-    auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
-      if (src > ngh) return 1;  // filter out
+  using K = std::tuple<uintE, uintE>;
+  using V = size_t;
+  auto key_hash = [&] (const K& k) -> size_t {
+    return key_for_pair(std::get<0>(k), std::get<1>(k), pbbs::random());
+  };
+  auto empty = std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), (size_t)0);
+  auto tab = make_sparse_table(1.5*k, empty, key_hash);
+
+  if (split_wgh_fraction < 0.05) {
+    auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
+      edge_weight_type wgh = get_weight(src, ngh, w);
       if (wgh <= split_weight) {
-        return 2;  // return in array
+        auto kv = std::make_tuple(std::make_tuple(src, ngh), wgh);
+        tab.insert(kv);
       }
-      return 0;
     };
-    return filter_edges(G, filter_pred);
+    GA.map_edges(map_f);
   } else {
     // Special pred for performing extra hashing on edges with weight ==
     // split_wgh.
     double frac_to_take = (1.0 * (ind - first_ind)) / weight_size;
     std::cout << "frac of split_weight to take: " << frac_to_take << "\n";
-    size_t range = (1L << pbbslib::log2_up(G.m)) - 1;
+    size_t range = (1L << pbbslib::log2_up(GA.m)) - 1;
     size_t threshold = frac_to_take * range;
     // account for filtering directed edges
     threshold *= (first_round ? 2.0 : 1.0);
-    auto filter_split_wgh_pred = [&](const uintE& src, const uintE& ngh,
-                                     const W& wgh) -> int {
-      if (src > ngh) return 1;
+
+    auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
+      edge_weight_type wgh = get_weight(src, ngh, w);
       if (wgh < split_weight) {
-        return 2;  // return in array
+        auto kv = std::make_tuple(std::make_tuple(src, ngh), wgh);
+        tab.insert(kv);
       } else if (wgh == split_weight) {
-        if (hash_to_range(key_for_pair(src, ngh, r), range) < threshold)
-          return 2;
+        if (hash_to_range(key_for_pair(src, ngh, r), range) < threshold) {
+          auto kv = std::make_tuple(std::make_tuple(src, ngh), wgh);
+          tab.insert(kv);
+        }
       }
-      return 0;
     };
-    return filter_edges(G, filter_split_wgh_pred);
+    GA.map_edges(map_f);
   }
+
+  auto ee = tab.entries();
+//  uintE fst_xor = 0;
+//  uintE snd_xor = 0;
+//  size_t wgh_xor = 0;
+//  for (size_t i=0; i<ee.size(); i++) {
+//    fst_xor ^= std::get<0>(std::get<0>(ee[i]));
+//    snd_xor ^= std::get<1>(std::get<0>(ee[i]));
+//    wgh_xor ^= std::get<1>(ee[i]);
+//  }
+//  cout << "fst_xor = " << fst_xor << endl;
+//  cout << "snd_xor = " << snd_xor << endl;
+//  cout << "wgh_xor = " << wgh_xor << endl;
+//  cout << "non_zeros = " << ee.size() << endl;
+
+  edge_array<edge_weight_type> e_arr;
+  e_arr.E = pbbs::new_array_no_init<edge>(ee.size());
+  parallel_for(0, ee.size(), [&] (size_t i) {
+    uintE u = std::get<0>(std::get<0>(ee[i]));
+    uintE v = std::get<1>(std::get<0>(ee[i]));
+    auto wgh = std::get<1>(ee[i]);
+    e_arr.E[i] = std::make_tuple(u, v, wgh);
+  }, 1024);
+
+  e_arr.num_rows = GA.n;
+  e_arr.num_cols = GA.n;
+  e_arr.non_zeros = ee.size();
+  return e_arr;
 }
 
-template <class G,
-          typename std::enable_if<!std::is_same<typename G::weight_type, pbbslib::empty>::value,
-                                  int>::type = 0>
-inline void MST(G& GA, bool largemem = false) {
-  using W = typename G::weight_type;
-  using edge = std::tuple<uintE, uintE, W>;
+template <class edge_weight_type, class GW, class G>
+inline void MST(G& GA, GW& get_weight, bool largemem = false) {
+  using W = typename G::weight_type; // underlying weight type (empty | W)
+  using edge = std::tuple<uintE, uintE, edge_weight_type>;
   using ct = cas_type;
 
   size_t n = GA.n;
   std::cout << "n = " << n << "\n";
   auto r = pbbslib::random();
 
-  auto exhausted = sequence<bool>(n, [](size_t i) { return false; });
+  // Generate packed graph by removing 1/2 the edges
+  timer ft; ft.start();
+  auto filter_pred = [&] (const uintE& s, const uintE& d, const W& wgh) {
+    return s < d;
+  };
+  auto PG = filter_graph(GA, filter_pred);
+  ft.stop(); ft.reportTotal("filter time");
+
+  // This is a lot of up-front allocations.
+  auto exhausted = sequence<bool>(n, [](size_t i) { return false; }); // bitset?
   auto parents = sequence<uintE>(n, [](size_t i) { return i; });
   auto mst_edges = pbbslib::dyn_arr<edge>(n);
 
@@ -353,29 +419,29 @@ inline void MST(G& GA, bool largemem = false) {
   uintE* next_vtxs = pbbslib::new_array_no_init<uintE>(n_active);
 
   size_t round = 0;
-  while (GA.m > 0) {
+  while (PG.m > 0) {
     timer round_t;
     round_t.start();
     std::cout << "\n";
     std::cout << "round = " << round << " n_active = " << n_active
-              << " GA.m = " << GA.m << " MST size = " << mst_edges.size << "\n";
+              << " PG.m = " << PG.m << " MST size = " << mst_edges.size << "\n";
 
     // find a prefix of lowest-weight edges.
-    size_t split_idx = std::min((3 * n) / 2, (size_t)GA.m);
+    size_t split_idx = std::min(n, (size_t)PG.m);
     if (largemem) {
-      split_idx = (round == 0) ? std::min((9 * n) / 8, (size_t)GA.m)
-                               : std::min(n / 2, (size_t)GA.m);
+      split_idx = (round == 0) ? std::min((9 * n) / 8, (size_t)PG.m)
+                               : std::min(n / 2, (size_t)PG.m);
     }
 
     timer get_t;
     get_t.start();
-    auto E = (round < n_filter_steps) ? get_top_k(GA, split_idx, r, round == 0)
-                                      : get_all_edges(GA);
+    auto E = (round < n_filter_steps && PG.m > 1.2*split_idx) ?
+      get_top_k<edge_weight_type>(PG, get_weight, split_idx, r, round == 0)
+      : get_all_edges<edge_weight_type>(PG, get_weight);
     get_t.stop();
     get_t.reportTotal("get time");
     size_t n_edges = E.non_zeros;
-    std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
-              << " G.m is now = " << GA.m << "\n";
+    std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges << endl;
 
     // relabel edges
     auto edges = E.E;
@@ -393,7 +459,7 @@ inline void MST(G& GA, bool largemem = false) {
     timer bt;
     bt.start();
     auto edge_ids =
-        Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active);
+        boruvka::Boruvka<edge_weight_type>(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active);
     bt.stop();
     bt.reportTotal("boruvka time");
     mst_edges.copyInF([&](size_t i) { return E.E[edge_ids[i]]; },
@@ -402,19 +468,13 @@ inline void MST(G& GA, bool largemem = false) {
     // reactivate vertices and reset exhausted
     timer pack_t;
     pack_t.start();
-    // TODO: remove dependency on ligra_utils
-
-
     auto vtx_range = pbbs::make_range(vtxs+n_active, vtxs+n);
     n_active += pbbslib::pack_index_out(exhausted.slice(), vtx_range);
-//    n_active += ligra_utils::seq::packIndex(vtxs + n_active, exhausted.begin(),
-//                                            (uintE)n);
-    pack_t.stop();  // pack_t.reportTotal("reactivation pack");
+    pack_t.stop();
 
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       if (exhausted[i]) exhausted[i] = false;
     });
-
 
     // pointer jump: vertices that were made inactive could have had their
     // parents change.
@@ -430,15 +490,15 @@ inline void MST(G& GA, bool largemem = false) {
     auto filter_pred = [&](const uintE& src, const uintE& ngh, const W& wgh) -> int {
       auto c_src = parents[src];
       auto c_ngh = parents[ngh];
-      return c_src == c_ngh;
+      return !(c_src == c_ngh);
     };
-    std::cout << "Filtering G, m = " << GA.m << "\n";
+    std::cout << "Filtering G, m = " << PG.m << "\n";
     timer filter_t;
     filter_t.start();
-    filter_edges(GA, filter_pred);
+    filter_graph(PG, filter_pred);
     filter_t.stop();
     filter_t.reportTotal("filter time");
-    std::cout << "After filter, m is now " << GA.m << "\n";
+    std::cout << "After filter, m is now " << PG.m << "\n";
     round++;
     round_t.stop();
     round_t.reportTotal("round time");
@@ -446,21 +506,13 @@ inline void MST(G& GA, bool largemem = false) {
     r = r.next();
   }
   std::cout << "#edges in output mst: " << mst_edges.size << "\n";
-  auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
+  auto wgh_imap_f = [&](size_t i) -> edge_weight_type { return std::get<2>(mst_edges.A[i]); };
   auto wgh_imap = pbbslib::make_sequence<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 
   mst_edges.clear();
   pbbslib::free_array(min_edges);
-}
-
-template <class G,
-    typename std::enable_if<std::is_same<typename G::weight_type, pbbslib::empty>::value, int>::type = 0>
-inline uint32_t* MST(G& GA, bool largeem = false) {
-  std::cout << "Unimplemented for unweighted graphs"
-            << "\n";
-  exit(0);
 }
 }  // namespace MST_boruvka
 

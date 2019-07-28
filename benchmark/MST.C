@@ -41,6 +41,7 @@
 
 template <class G>
 double MST_runner(G& GA, commandLine P) {
+  using W = typename G::weight_type;
   bool spec_for = P.getOption("-specfor");
   bool largemem = P.getOption("-largemem");
 
@@ -52,13 +53,24 @@ double MST_runner(G& GA, commandLine P) {
   std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << " -largemem (use settings for huge graphs) = " << largemem << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
+  // Define weight type mapping from edge -> custom_weight
+  using edge_weight_type = uintE;
+  auto degree_f = [&](size_t i) {
+    auto vtx = GA.get_vertex(i);
+    return std::max(vtx.getInDegree(), vtx.getOutDegree());
+  };
+  auto degree_im = pbbslib::make_sequence<size_t>(GA.n, degree_f);
+  size_t max_degree = pbbslib::reduce_max(degree_im);
+  size_t normalize = 2*max_degree+1;
+  auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> uintE {
+    uintE deg_u = degree_f(u);
+    uintE deg_v = degree_f(v);
+    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
+  };
+
   timer mst_t;
   mst_t.start();
-  if (spec_for) {
-    MST_spec_for::MST(GA);
-  } else {
-    MST_boruvka::MST(GA, largemem);
-  }
+  MST_boruvka::MST<uintE>(GA, get_weight, largemem);
   double tt = mst_t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
@@ -69,4 +81,4 @@ double MST_runner(G& GA, commandLine P) {
   return tt;
 }
 
-generate_weighted_main(MST_runner, true);
+generate_main(MST_runner, false);

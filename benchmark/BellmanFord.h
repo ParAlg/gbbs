@@ -79,12 +79,12 @@ inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
   };
   auto degree_im = pbbslib::make_sequence<size_t>(n, degree_f);
   size_t max_degree = pbbslib::reduce_max(degree_im);
-  size_t normalize = 2*max_degree;
+  size_t normalize = 2*max_degree+1;
 
   // edge -> custom_weight
   auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> intE {
     uintE deg_u = GA.get_vertex(u).getOutDegree();
-    uintE deg_v = GA.get_vertex(u).getOutDegree();
+    uintE deg_v = GA.get_vertex(v).getOutDegree();
     return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
   };
 

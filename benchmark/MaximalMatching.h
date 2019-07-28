@@ -68,15 +68,6 @@ namespace mm {
     }
   };
 
-  inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
-
-  inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
-    size_t l = std::min(k1, k2);
-    size_t r = std::max(k1, k2);
-    size_t key = (l << 32) + r;
-    return rnd.ith_rand(key);
-  }
-
   template <class G>
   inline edge_array<pbbs::empty> get_all_edges(G& GA, bool* matched,
                                  pbbslib::random r) {
@@ -99,7 +90,6 @@ namespace mm {
     size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
 
     auto eout = sequence<edge>(m);
-    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
     parallel_for(0, live_vtxs.size(), [&] (size_t i) {
       uintE vtx_id = live_vtxs[i];
       auto vtx = GA.get_vertex(vtx_id);
