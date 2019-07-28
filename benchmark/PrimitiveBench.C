@@ -33,26 +33,68 @@
 //     -s : indicate that the graph is symmetric
 
 #include "ligra.h"
+#include "packed_graph.h"
+
+template <class G>
+void bench_mapreduce(G& GA) {
+  using W = typename G::weight_type;
+
+  timer t; t.start();
+  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    return v; // no fetch/edge
+  };
+  auto outs = pbbs::sequence<uintE>(GA.n);
+  auto red_m = pbbs::addm<size_t>();
+  parallel_for(0, GA.n, [&] (size_t i) {
+    outs[i] = GA.get_vertex(i).reduceOutNgh(i, map_f, red_m);
+  });
+  t.stop(); t.reportTotal("bench mapreduce time");
+}
+
+template <class G>
+void bench_mapreduce_fetch(G& GA) {
+  using W = typename G::weight_type;
+
+  auto ins = pbbs::sequence<uintE>(GA.n, (uintE)1);
+  timer t; t.start();
+  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    return ins[v]; // no fetch/edge
+  };
+  auto outs = pbbs::sequence<uintE>(GA.n);
+  auto red_m = pbbs::addm<size_t>();
+  parallel_for(0, GA.n, [&] (size_t i) {
+    outs[i] = GA.get_vertex(i).reduceOutNgh(i, map_f, red_m);
+  });
+  t.stop(); t.reportTotal("bench mapreduce_fetch time");
+}
+
+template <class G>
+void bench_packedgraph(G& GA) {
+  using W = typename G::weight_type;
+
+  timer t; t.start();
+  auto PG = build_packed_graph(GA);
+  PG.del();
+  t.stop(); t.reportTotal("bench packedgraph time");
+}
 
 template <class G>
 double PrimitiveBench_runner(G& GA, commandLine P) {
-  using W = typename G::weight_type;
-  timer t; t.start();
-
-  auto ins = pbbs::sequence<uintE>(GA.n, (uintE)1);
-  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-    return ins[v];
-  };
-  auto outs = pbbs::sequence<uintE>(GA.n);
-  auto red_mon = pbbs::addm<size_t>();
-  parallel_for(0, GA.n, [&] (size_t i) {
-    outs[i] = GA.V[i].template reduceOutNgh<size_t>(i, map_f, red_mon);
-  });
-
-  double tt = t.stop();
-
-  std::cout << "### Running Time: " << tt << std::endl;
-  return tt;
+  size_t test = P.getOptionLongValue("-t", 0);
+  switch(test) {
+    case 0:
+      bench_mapreduce(GA);
+      break;
+    case 1:
+      bench_mapreduce_fetch(GA);
+      break;
+    case 2:
+      bench_packedgraph(GA);
+      break;
+    default:
+      cout << "-t : test_num" << endl;
+      exit(0);
+  }
 }
 
 generate_main(PrimitiveBench_runner, false);

@@ -58,7 +58,7 @@ struct BF_Vertex_F {
 
 template <class G>
 inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
-  using W = typename GA::weight_type;
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto Visited = sequence<int>(n, 0);
   auto SP = sequence<intE>(n, INT_MAX / 2);

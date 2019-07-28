@@ -525,15 +525,6 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   return std::make_tuple(Parents, cc.to_array());
 }
 
-
-size_t compute_xor(uintE* vals, size_t n) {
-  size_t xorr = 0;
-  for (size_t i=0; i<n; i++) {
-    xorr ^= vals[i];
-  }
-  return xorr;
-}
-
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
 template <class G>
@@ -571,16 +562,6 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA, char* out_f = 0) {
       preorder_number(GA, Parents, Sources_copy);
   pn.stop();
   debug(pn.reportTotal("preorder time"););
-
-  cout << "preorder xor = " << compute_xor(preorder_num, n) << endl;
-  cout << "aug_size xor = " << compute_xor(aug_sizes, n) << endl;
-  size_t xorr0 = 0;
-  size_t xorr1 = 0;
-  for (size_t i=0; i<n; i++) {
-    xorr0 ^= std::get<0>(min_max[i]);
-    xorr1 ^= std::get<1>(min_max[i]);
-  }
-  cout << "labels xor = " << xorr0 << " " << xorr1 << endl;
 
   return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
                                out_f);
