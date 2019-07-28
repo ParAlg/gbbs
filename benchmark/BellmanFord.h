@@ -23,11 +23,14 @@
 
 #include "ligra.h"
 
+template <class W, class GW>
 struct BF_F {
   intE* SP;
   intE* Visited;
-  BF_F(intE* _SP, intE* _Visited) : SP(_SP), Visited(_Visited) {}
-  inline bool update(const uintE& s, const uintE& d, const intE& edgeLen) {
+  GW& get_weight;
+  BF_F(intE* _SP, intE* _Visited, GW& get_weight) : SP(_SP), Visited(_Visited), get_weight(get_weight) {}
+  inline bool update(const uintE& s, const uintE& d, const W& wgh) {
+    intE edgeLen = get_weight(s, d, wgh);
     intE newDist = SP[s] + edgeLen;
     if (SP[d] > newDist) {
       SP[d] = newDist;
@@ -39,12 +42,18 @@ struct BF_F {
     return 0;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d,
-                           const intE& edgeLen) {
+                           const W& wgh) {
+    intE edgeLen = get_weight(s, d, wgh);
     intE newDist = SP[s] + edgeLen;
     return (pbbslib::write_min(&SP[d], newDist) && pbbslib::atomic_compare_and_swap(&Visited[d], 0, 1));
   }
   inline bool cond(uintE d) { return cond_true(d); }
 };
+
+template <class W, class GW>
+BF_F<W, GW> make_bf_f(intE* SP, intE* Visited, GW& get_weight) {
+  return BF_F<W, GW>(SP, Visited, get_weight);
+}
 
 // reset visited vertices
 struct BF_Vertex_F {
@@ -64,6 +73,21 @@ inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
   auto SP = sequence<intE>(n, INT_MAX / 2);
   SP[start] = 0;
 
+  auto degree_f = [&](size_t i) {
+    auto vtx = GA.get_vertex(i);
+    return std::max(vtx.getInDegree(), vtx.getOutDegree());
+  };
+  auto degree_im = pbbslib::make_sequence<size_t>(n, degree_f);
+  size_t max_degree = pbbslib::reduce_max(degree_im);
+  size_t normalize = 2*max_degree;
+
+  // edge -> custom_weight
+  auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> intE {
+    uintE deg_u = GA.get_vertex(u).getOutDegree();
+    uintE deg_v = GA.get_vertex(u).getOutDegree();
+    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
+  };
+
   vertexSubset Frontier(n, start);
   size_t round = 0;
   while (!Frontier.isEmpty()) {
@@ -73,10 +97,9 @@ inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
                       { SP[i] = -(INT_E_MAX / 2); });
       break;
     }
-    auto em_f =
-        wrap_with_default<W, intE>(BF_F(SP.begin(), Visited.begin()), (intE)1);
+    auto em_f = make_bf_f<W>(SP.begin(), Visited.begin(), get_weight);
     auto output =
-        edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
+        edgeMap(GA, Frontier, em_f, GA.m / 10, dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
     Frontier.del();

@@ -31,13 +31,16 @@ namespace wbfs {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
 
+template <class W, class GW>
 struct Visit_F {
   sequence<uintE>& dists;
-  Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
+  GW& get_weight;
+  Visit_F(sequence<uintE>& dists, GW& get_weight) : dists(dists), get_weight(get_weight) {}
 
-  inline Maybe<uintE> update(const uintE& s, const uintE& d, const intE& w) {
+  inline Maybe<uintE> update(const uintE& s, const uintE& d, const W& wgh) {
+    uintE edgeLen = get_weight(s, d, wgh);
     uintE oval = dists[d];
-    uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + w;
+    uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + edgeLen;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT)) {  // First visitor
         dists[d] = n_dist;
@@ -48,11 +51,11 @@ struct Visit_F {
     return Maybe<uintE>();
   }
 
-  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
-                                   const intE& w) {
+  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
+    uintE edgeLen = get_weight(s, d, wgh);
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT;
-    uintE n_dist = (dists[s] | TOP_BIT) + w;
+    uintE n_dist = (dists[s] | TOP_BIT) + edgeLen;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
           pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
@@ -66,21 +69,25 @@ struct Visit_F {
   inline bool cond(const uintE& d) const { return true; }
 };
 
+template <class W, class GW>
+Visit_F<W, GW> make_visit_f(sequence<uintE>& dists, GW& get_weight) {
+  return Visit_F<W, GW>(dists, get_weight);
+}
+
 }  // namespace wbfs
 
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
-  auto before_state = get_pcm_state();
+template <class G>
+inline sequence<uintE> wBFS(G& GA, uintE src,
+                            size_t num_buckets = 128, bool largemem = false,
+                            bool no_blocked = false) {
+  using W = typename G::weight_type;
+//  auto before_state = get_pcm_state();
   timer t;
   t.start();
 
   timer init;
   init.start();
-  size_t n = G.n;
+  size_t n = GA.n;
 
   auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
@@ -103,6 +110,22 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
     oldDist = dest_bkt;  // write back
   };
 
+  auto degree_f = [&](size_t i) {
+    auto vtx = GA.get_vertex(i);
+    return std::max(vtx.getInDegree(), vtx.getOutDegree());
+  };
+  auto degree_im = pbbslib::make_sequence<size_t>(n, degree_f);
+  size_t max_degree = pbbslib::reduce_max(degree_im);
+  size_t normalize = 2*max_degree;
+
+  // edge -> custom_weight
+  auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> intE {
+    uintE deg_u = GA.get_vertex(u).getOutDegree();
+    uintE deg_v = GA.get_vertex(u).getOutDegree();
+    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
+  };
+
+
   init.stop();
   init.reportTotal("init time");
   timer bt, emt;
@@ -117,7 +140,7 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
     auto res =
-        edgeMapData<uintE>(G, active, wbfs::Visit_F(dists), G.m / 20, fl);
+        edgeMapData<uintE>(GA, active, wbfs::make_visit_f<W>(dists, get_weight), GA.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -141,19 +164,8 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   std::cout << "n rounds = " << rd << "\n";
 
   double time_per_iter = t.stop();
-  auto after_state = get_pcm_state();
-  print_pcm_stats(before_state, after_state, 1, time_per_iter);
 
-  return dists;
-}
-
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<!std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
-  assert(false);  // Unimplemented for unweighted graphs; use a regular BFS.
-  auto dists = sequence<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
+//  auto after_state = get_pcm_state();
+//  print_pcm_stats(before_state, after_state, 1, time_per_iter);
   return dists;
 }

@@ -54,4 +54,4 @@ double BellmanFord_runner(G& GA, commandLine P) {
   return tt;
 }
 
-generate_weighted_main(BellmanFord_runner, false);
+generate_main(BellmanFord_runner, false);

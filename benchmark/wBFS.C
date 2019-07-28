@@ -65,4 +65,4 @@ double wBFS_runner(G& GA, commandLine P) {
   return tt;
 }
 
-generate_weighted_main(wBFS_runner, false);
+generate_main(wBFS_runner, false);
