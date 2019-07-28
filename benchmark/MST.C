@@ -74,20 +74,20 @@ double MST_runner(G& GA, commandLine P) {
 
   // Define weight type mapping from edge -> custom_weight
   using edge_weight_type = uintE;
-//  auto degree_f = [&](size_t i) {
-//    auto vtx = GA.get_vertex(i);
-//    return std::max(vtx.getInDegree(), vtx.getOutDegree());
-//  };
-//  auto degree_im = pbbslib::make_sequence<size_t>(GA.n, degree_f);
-//  size_t max_degree = pbbslib::reduce_max(degree_im);
-//  size_t normalize = 2*max_degree+1;
-//  auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> uintE {
-//    uintE deg_u = degree_f(u);
-//    uintE deg_v = degree_f(v);
-//    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
-//  };
+  auto degree_f = [&](size_t i) {
+    auto vtx = GA.get_vertex(i);
+    return std::max(vtx.getInDegree(), vtx.getOutDegree());
+  };
+  auto degree_im = pbbslib::make_sequence<size_t>(GA.n, degree_f);
+  size_t max_degree = pbbslib::reduce_max(degree_im);
+  size_t normalize = 2*max_degree+1;
+  auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> uintE {
+    uintE deg_u = degree_f(u);
+    uintE deg_v = degree_f(v);
+    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
+  };
 
-  auto get_weight = gw<W>();
+//  auto get_weight = gw<W>();
 
   timer mst_t;
   mst_t.start();
@@ -98,7 +98,6 @@ double MST_runner(G& GA, commandLine P) {
 
   // MST mutates the underlying graph (unless it is copied, which we don't do to
   // prevent memory issues), so we make sure the algorithm is run exactly once.
-  exit(0);
   return tt;
 }
 

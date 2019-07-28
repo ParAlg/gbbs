@@ -46,10 +46,10 @@ namespace boruvka {
   constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
   constexpr uintE VAL_MASK = INT_E_MAX;
 
-  template <class W, class M, class P, class D>
+  template <class W, class P, class D>
   inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
-                                   uintE*& next_vtxs, M& min_edges, P& parents,
-                                   D& exhausted, size_t& n) {
+                                   uintE*& next_vtxs, P& parents,
+                                   D& exhausted, size_t& n, size_t num_vertices) {
     using ct = cas_type;
     using edge = std::tuple<uintE, uintE, W>;
     size_t m = E.non_zeros;
@@ -71,6 +71,8 @@ namespace boruvka {
     size_t n_in_mst = 0;
     size_t round = 0;
 
+    auto min_edges = sequence<ct>(num_vertices);
+
     while (n > 1 && m > 0) {
       std::cout << "Boruvka round: " << round << " n: " << n << " m: " << m
                 << "\n";
@@ -91,8 +93,8 @@ namespace boruvka {
         uintE e_id = edge_ids[i];
         const edge& e = edges[e_id];
         ct cas_e(e_id, std::get<2>(e));
-        pbbslib::write_min(min_edges + std::get<0>(e), cas_e, less);
-        pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
+        pbbslib::write_min(min_edges.begin() + std::get<0>(e), cas_e, less);
+        pbbslib::write_min(min_edges.begin() + std::get<1>(e), cas_e, less);
       });
       min_t.stop();  // min_t.reportTotal("write min time");
 
@@ -410,7 +412,6 @@ inline void MST(G& GA, GW& get_weight, bool largemem = false) {
   auto parents = sequence<uintE>(n, [](size_t i) { return i; });
   auto mst_edges = pbbslib::dyn_arr<edge>(n);
 
-  auto min_edges = pbbslib::new_array_no_init<ct>(n);
 
   size_t n_active = n;
   uintE* vtxs = pbbslib::new_array_no_init<uintE>(n_active);
@@ -459,11 +460,13 @@ inline void MST(G& GA, GW& get_weight, bool largemem = false) {
     timer bt;
     bt.start();
     auto edge_ids =
-        boruvka::Boruvka<edge_weight_type>(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active);
+        boruvka::Boruvka<edge_weight_type>(E, vtxs, next_vtxs, parents, exhausted, n_active, n);
     bt.stop();
     bt.reportTotal("boruvka time");
     mst_edges.copyInF([&](size_t i) { return E.E[edge_ids[i]]; },
                       edge_ids.size());
+
+    E.del();
 
     // reactivate vertices and reset exhausted
     timer pack_t;
@@ -512,7 +515,7 @@ inline void MST(G& GA, GW& get_weight, bool largemem = false) {
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 
   mst_edges.clear();
-  pbbslib::free_array(min_edges);
+  PG.del();
 }
 }  // namespace MST_boruvka
 
