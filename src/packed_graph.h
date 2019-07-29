@@ -212,7 +212,9 @@ struct packed_symmetric_vertex {
   inline size_t calculateOutTemporarySpaceBytes() {
     if (block_manager.vtx_degree > 0) {
       size_t nblocks =  block_manager.vtx_num_blocks;
-      return (sizeof(uintE) * nblocks) + (block_manager.bytes_per_block * nblocks);
+      if (nblocks > block_manager.kBlockAllocThreshold) {
+        return (sizeof(uintE) * nblocks) + (block_manager.bytes_per_block * nblocks);
+      }
     }
     return 0;
   }
@@ -278,24 +280,12 @@ struct packed_graph {
 
     size_t block_mem_to_alloc =
         pbbslib::scan_add_inplace(block_bytes_offs.slice());
-
     cout << "total memory for packed_graph = " << block_mem_to_alloc << endl;
-
-    auto blocks_offs = pbbs::sequence<size_t>(n + 1);
-    parallel_for(0, n, [&](size_t i) {
-      uintE degree = GA.get_vertex(i).getOutDegree();
-      blocks_offs[i] =
-          bitsets::num_blocks(degree, bs, bs_in_bytes);
-    });
-    blocks_offs[n] = 0;
-    size_t totalblocks =
-        pbbslib::scan_add_inplace(blocks_offs.slice());
-    cout << "total_blocks = " << totalblocks << endl;
 
     // allocate blocks
     blocks = pbbs::new_array_no_init<uint8_t>(block_mem_to_alloc);
-
     VI = pbbs::new_array_no_init<vtx_info<E>>(n);
+    cout << "sizeof(vtx_info) = " << (sizeof(vtx_info<E>)) << " total vtx_info bytes = " << (n*sizeof(vtx_info<E>)) << endl;
 
     // initialize blocks and vtx_info
     parallel_for(

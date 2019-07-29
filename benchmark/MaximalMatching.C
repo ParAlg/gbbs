@@ -42,7 +42,7 @@
 
 template <class G>
 double MaximalMatching_runner(G& GA, commandLine P) {
-  std::cout << "### Application: CC (Connectivity)" << std::endl;
+  std::cout << "### Application: MaximalMatching" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
@@ -60,4 +60,4 @@ double MaximalMatching_runner(G& GA, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
 }
 
-generate_main(MaximalMatching_runner, true);
+generate_main(MaximalMatching_runner, false);

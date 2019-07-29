@@ -420,41 +420,41 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA, vertexSubset& vs, P& p,
     space[i] = GA.get_vertex(v).calculateOutTemporarySpaceBytes();
   });
 
-  size_t total_space = pbbslib::scan_add_inplace(space.slice());
-  // std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  // sequence<uint8_t> tmp(total_space);
-  uint8_t* tmp = nullptr;
-  if (total_space > 0) {
-    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
-  }
+//  size_t total_space = pbbslib::scan_add_inplace(space.slice());
+//  std::cout << "packNghs: total space allocated = " << total_space << "\n";
+////  sequence<uint8_t> tmp(total_space);
+//  uint8_t* tmp = nullptr;
+//  if (total_space > 0) {
+//    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
+//  }
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        uint8_t* tmp_v = tmp + space[i];
-        size_t ct = GA.get_vertex(v).packOutNgh(v, p, tmp_v);
+//        uint8_t* tmp_v = tmp + space[i];
+        size_t ct = GA.get_vertex(v).packOutNgh(v, p, nullptr);
         outV[i] = std::make_tuple(v, ct);
       };
       par_for(0, m, 1, [&](size_t i) { for_inner(i); });
     }
-    if (total_space > 0) {
-      pbbs::free_array(tmp);
-    }
+//    if (total_space > 0) {
+//      pbbs::free_array(tmp);
+//    }
     return vertexSubsetData<uintE>(n, m, outV);
   } else {
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-        uint8_t* tmp_v = tmp + space[i];
-        GA.get_vertex(v).packOutNgh(v, p, tmp_v);
+//        uint8_t* tmp_v = tmp + space[i];
+        GA.get_vertex(v).packOutNgh(v, p, nullptr);
       };
       par_for(0, m, 1, [&](size_t i) { for_inner(i); });
     }
-    if (total_space > 0) {
-      pbbs::free_array(tmp);
-    }
+//    if (total_space > 0) {
+//      pbbs::free_array(tmp);
+//    }
     return vertexSubsetData<uintE>(n);
   }
   // TODO: update degrees
@@ -705,10 +705,10 @@ inline size_t get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
       auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
           iFile, symmetric, mmap, mmapcopy);                               \ 
-    run_app(G, APP, rounds)                                                \
+        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);                 \
+    run_app(GA, APP, rounds)                                                \
   }
 
-//        auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
 //    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 
 
