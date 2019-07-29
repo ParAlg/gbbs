@@ -25,6 +25,7 @@
 
 #include "macros.h"
 #include "pbbslib/sequence_ops.h"
+#include "graph_utils.h"
 
 namespace intersection {
 
@@ -432,7 +433,10 @@ struct symmetricVertex {
   using E = std::tuple<uintE, W>;
   std::tuple<uintE, W>* neighbors;
   uintE degree;
-  symmetricVertex(std::tuple<uintE, W>* n, uintE d) : neighbors(n), degree(d) {}
+  symmetricVertex(vertex_data vtx_data, E* e) {
+    neighbors = e + vtx_data.offset;
+    degree = vtx_data.degree;
+  }
   void clear() { pbbslib::free_array(neighbors); }
 
   std::tuple<uintE, W>* getInNeighbors() { return neighbors; }

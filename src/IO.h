@@ -167,7 +167,7 @@ inline sequence<char> readStringFromFile(char* fileName) {
 }
 
 template <template <typename W> class vertex>
-inline graph<vertex, intE> readWeightedGraph(
+inline symmetric_graph<vertex, intE> readWeightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using W = intE;
@@ -221,223 +221,75 @@ inline graph<vertex, intE> readWeightedGraph(
   tokens.clear();
   // W.clear(); // to deal with performance bug in malloc
 
-  wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
+  auto V = pbbslib::new_array_no_init<vertex_data>(n);
 
   {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
       uintT o = offsets[i];
       uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
-      v[i].setOutDegree(l);
-      v[i].setOutNeighbors(edges + o);
+      V[i].degree = l;
+      V[i].offset = o;
     });
   }
 
-  if (!isSymmetric) {
-    uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold,
-            [&](size_t i) { tOffsets[i] = INT_T_MAX; });
-    intTriple* temp = pbbslib::new_array_no_init<intTriple>(m);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
-      uintT o = offsets[i];
-      for (uintT j = 0; j < v[i].getOutDegree(); j++) {
-        temp[o + j] = std::make_pair(v[i].getOutNeighbor(j),
-                                     std::make_pair(i, v[i].getOutWeight(j)));
-      }
-    });
+//  if (!isSymmetric) {
+//    uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
+//    par_for(0, n, pbbslib::kSequentialForThreshold,
+//            [&](size_t i) { tOffsets[i] = INT_T_MAX; });
+//    intTriple* temp = pbbslib::new_array_no_init<intTriple>(m);
+//    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
+//      uintT o = offsets[i];
+//      for (uintT j = 0; j < v[i].getOutDegree(); j++) {
+//        temp[o + j] = std::make_pair(v[i].getOutNeighbor(j),
+//                                     std::make_pair(i, v[i].getOutWeight(j)));
+//      }
+//    });
+//    pbbslib::free_array(offsets);
+//
+//    auto temp_seq = pbbslib::make_sequence(temp, m);
+//    pbbslib::integer_sort_inplace(temp_seq.slice(),
+//                                  [&](const intTriple& p) { return p.first; },
+//                                  pbbs::log2_up(n));
+//
+//    tOffsets[temp[0].first] = 0;
+//    VW* inEdges = pbbslib::new_array_no_init<VW>(m);
+//    inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
+//
+//    par_for(1, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
+//      inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
+//      if (temp[i].first != temp[i - 1].first) {
+//        tOffsets[temp[i].first] = i;
+//      }
+//    });
+//
+//    pbbslib::free_array(temp);
+//
+//    // fill in offsets of degree 0 vertices by taking closest non-zero
+//    // offset to the right
+//
+//    debug(cout << "scan I back " << endl;);
+//    auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
+//    auto M = pbbslib::minm<uintT>();
+//    M.identity = m;
+//    pbbslib::scan_inplace(t_seq.slice(), M, pbbslib::fl_scan_inclusive);
+//
+//    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
+//      uintT o = tOffsets[i];
+//      uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
+//      v[i].setInDegree(l);
+//      v[i].setInNeighbors(inEdges + o);
+//    });
+//
+//    pbbslib::free_array(tOffsets);
+//    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
+//  } else {
     pbbslib::free_array(offsets);
-
-    auto temp_seq = pbbslib::make_sequence(temp, m);
-    pbbslib::integer_sort_inplace(temp_seq.slice(),
-                                  [&](const intTriple& p) { return p.first; },
-                                  pbbs::log2_up(n));
-
-    tOffsets[temp[0].first] = 0;
-    VW* inEdges = pbbslib::new_array_no_init<VW>(m);
-    inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
-
-    par_for(1, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
-      inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
-      if (temp[i].first != temp[i - 1].first) {
-        tOffsets[temp[i].first] = i;
-      }
-    });
-
-    pbbslib::free_array(temp);
-
-    // fill in offsets of degree 0 vertices by taking closest non-zero
-    // offset to the right
-
-    debug(cout << "scan I back " << endl;);
-    auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
-    auto M = pbbslib::minm<uintT>();
-    M.identity = m;
-    pbbslib::scan_inplace(t_seq.slice(), M, pbbslib::fl_scan_inclusive);
-
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
-      uintT o = tOffsets[i];
-      uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
-      v[i].setInDegree(l);
-      v[i].setInNeighbors(inEdges + o);
-    });
-
-    pbbslib::free_array(tOffsets);
-    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
-  } else {
-    pbbslib::free_array(offsets);
-    return graph<vertex, W>(v, n, m, get_deletion_fn(v, edges));
-  }
+    return symmetric_graph<vertex, W>(V, n, m, get_deletion_fn(V, edges), edges);
+//  }
 }
 
-//template <template <typename W> class vertex>
-//graph<vertex, pbbslib::empty> readUnweightedGraphBinary(char* iFile, bool isSymmetric) {
-//  char* config = (char*) ".config";
-//  char* adj = (char*) ".adj";
-//  char* idx = (char*) ".idx";
-//  char configFile[strlen(iFile)+strlen(config)+1];
-//  char adjFile[strlen(iFile)+strlen(adj)+1];
-//  char idxFile[strlen(iFile)+strlen(idx)+1];
-//  *configFile = *adjFile = *idxFile = '\0';
-//  strcat(configFile,iFile);
-//  strcat(adjFile,iFile);
-//  strcat(idxFile,iFile);
-//  strcat(configFile,config);
-//  strcat(adjFile,adj);
-//  strcat(idxFile,idx);
-//
-//  ifstream in(configFile, ifstream::in);
-//  long n;
-//  in >> n;
-//  in.close();
-//
-//  ifstream in2(adjFile,ifstream::in | ios::binary); //stored as uints
-//  in2.seekg(0, ios::end);
-//  long size = in2.tellg();
-//  in2.seekg(0);
-//  long m = size/sizeof(uint);
-//  char* s = (char *) malloc(size);
-//  in2.read(s,size);
-//  in2.close();
-//  uintE* edges = (uintE*) s;
-//
-//  ifstream in3(idxFile,ifstream::in | ios::binary); //stored as longs
-//  in3.seekg(0, ios::end);
-//  size = in3.tellg();
-//  in3.seekg(0);
-//  if(n != size/sizeof(intT)) { cout << "File size wrong\n"; abort(); }
-//
-//  char* t = (char *) malloc(size);
-//  in3.read(t,size);
-//  in3.close();
-//  uintT* offsets = (uintT*) t;
-//
-//  vertex* v = newA(vertex,n);
-//#ifdef WEIGHTED
-//  intE* edgesAndWeights = newA(intE,2*m);
-//  {parallel_for(long i=0;i<m;i++) {
-//    edgesAndWeights[2*i] = edges[i];
-//    edgesAndWeights[2*i+1] = edges[i+m];
-//    }}
-//  //free(edges);
-//#endif
-//  {parallel_for(long i=0;i<n;i++) {
-//    uintT o = offsets[i];
-//    uintT l = ((i==n-1) ? m : offsets[i+1])-offsets[i];
-//      v[i].setOutDegree(l);
-//#ifndef WEIGHTED
-//      v[i].setOutNeighbors((uintE*)edges+o);
-//#else
-//      v[i].setOutNeighbors(edgesAndWeights+2*o);
-//#endif
-//    }}
-//
-//  if(!isSymmetric) {
-//    uintT* tOffsets = newA(uintT,n);
-//    {parallel_for(long i=0;i<n;i++) tOffsets[i] = INT_T_MAX;}
-//#ifndef WEIGHTED
-//    intPair* temp = newA(intPair,m);
-//#else
-//    intTriple* temp = newA(intTriple,m);
-//#endif
-//    {parallel_for(intT i=0;i<n;i++){
-//      uintT o = offsets[i];
-//      for(uintT j=0;j<v[i].getOutDegree();j++){
-//#ifndef WEIGHTED
-//	temp[o+j] = make_pair(v[i].getOutNeighbor(j),i);
-//#else
-//	temp[o+j] = make_pair(v[i].getOutNeighbor(j),make_pair(i,v[i].getOutWeight(j)));
-//#endif
-//      }
-//      }}
-//    free(offsets);
-//#ifndef WEIGHTED
-//#ifndef LOWMEM
-//    intSort::iSort(temp,m,n+1,getFirst<uintE>());
-//#else
-//    quickSort(temp,m,pairFirstCmp<uintE>());
-//#endif
-//#else
-//#ifndef LOWMEM
-//    intSort::iSort(temp,m,n+1,getFirst<intPair>());
-//#else
-//    quickSort(temp,m,pairFirstCmp<intPair>());
-//#endif
-//#endif
-//    tOffsets[temp[0].first] = 0;
-//#ifndef WEIGHTED
-//    uintE* inEdges = newA(uintE,m);
-//    inEdges[0] = temp[0].second;
-//#else
-//    intE* inEdges = newA(intE,2*m);
-//    inEdges[0] = temp[0].second.first;
-//    inEdges[1] = temp[0].second.second;
-//#endif
-//    {parallel_for(long i=1;i<m;i++) {
-//#ifndef WEIGHTED
-//      inEdges[i] = temp[i].second;
-//#else
-//      inEdges[2*i] = temp[i].second.first;
-//      inEdges[2*i+1] = temp[i].second.second;
-//#endif
-//      if(temp[i].first != temp[i-1].first) {
-//	tOffsets[temp[i].first] = i;
-//      }
-//      }}
-//    free(temp);
-//    //fill in offsets of degree 0 vertices by taking closest non-zero
-//    //offset to the right
-//    sequence::scanIBack(tOffsets,tOffsets,n,minF<uintT>(),(uintT)m);
-//    {parallel_for(long i=0;i<n;i++){
-//      uintT o = tOffsets[i];
-//      uintT l = ((i == n-1) ? m : tOffsets[i+1])-tOffsets[i];
-//      v[i].setInDegree(l);
-//#ifndef WEIGHTED
-//      v[i].setInNeighbors((uintE*)inEdges+o);
-//#else
-//      v[i].setInNeighbors((intE*)(inEdges+2*o));
-//#endif
-//      }}
-//    free(tOffsets);
-//#ifndef WEIGHTED
-//    Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edges,inEdges);
-//    return graph<vertex>(v,n,m,mem);
-//#else
-//    Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edgesAndWeights,inEdges);
-//    return graph<vertex>(v,n,m,mem);
-//#endif
-//  }
-//  free(offsets);
-//#ifndef WEIGHTED
-//  Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edges);
-//  return graph<vertex>(v,n,m,mem);
-//#else
-//  Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edgesAndWeights);
-//  return graph<vertex>(v,n,m,mem);
-//#endif
-//}
-//
-
 template <template <typename W> class vertex>
-inline graph<vertex, pbbslib::empty> readUnweightedGraph(
+inline symmetric_graph<vertex, pbbslib::empty> readUnweightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using W = pbbslib::empty;
@@ -484,71 +336,71 @@ inline graph<vertex, pbbslib::empty> readUnweightedGraph(
   tokens.clear();
   // W.clear();  // to deal with performance bug in malloc
 
-  wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
+  auto V = pbbslib::new_array_no_init<vertex_data>(n);
 
   par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
     uintT o = offsets[i];
     uintT l = ((i == n - 1) ? m : offsets[i + 1]) - offsets[i];
-    v[i].setOutDegree(l);
-    v[i].setOutNeighbors(((std::tuple<uintE, pbbslib::empty>*)(edges + o)));
+    V[i].degree = l;
+    V[i].offset = o;
   });
 
-  if (!isSymmetric) {
-    uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold,
-            [&](size_t i) { tOffsets[i] = INT_T_MAX; });
-    intPair* temp = pbbslib::new_array_no_init<intPair>(m);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
-      uintT o = offsets[i];
-      for (uintT j = 0; j < v[i].getOutDegree(); j++) {
-        temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
-      }
-    });
+//  if (!isSymmetric) {
+//    uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
+//    par_for(0, n, pbbslib::kSequentialForThreshold,
+//            [&](size_t i) { tOffsets[i] = INT_T_MAX; });
+//    intPair* temp = pbbslib::new_array_no_init<intPair>(m);
+//    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
+//      uintT o = offsets[i];
+//      for (uintT j = 0; j < v[i].getOutDegree(); j++) {
+//        temp[o + j] = std::make_pair(v[i].getOutNeighbor(j), i);
+//      }
+//    });
+//    pbbslib::free_array(offsets);
+//
+//    auto temp_seq = pbbslib::make_sequence(temp, m);
+//    pbbslib::integer_sort_inplace(temp_seq.slice(),
+//                                  [&](const intPair& p) { return p.first; },
+//                                  pbbs::log2_up(n));
+//
+//    tOffsets[temp[0].first] = 0;
+//    uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
+//    inEdges[0] = temp[0].second;
+//    par_for(1, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
+//      inEdges[i] = temp[i].second;
+//      if (temp[i].first != temp[i - 1].first) {
+//        tOffsets[temp[i].first] = i;
+//      }
+//    });
+//
+//    pbbslib::free_array(temp);
+//
+//    // fill in offsets of degree 0 vertices by taking closest non-zero
+//    // offset to the right
+//    auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
+//    auto M = pbbslib::minm<uintT>();
+//    M.identity = m;
+//    pbbslib::scan_inplace(t_seq.slice(), M, pbbslib::fl_scan_inclusive);
+//
+//    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
+//      uintT o = tOffsets[i];
+//      uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
+//      v[i].setInDegree(l);
+//      v[i].setInNeighbors((std::tuple<uintE, pbbslib::empty>*)(inEdges + o));
+//    });
+//
+//    pbbslib::free_array(tOffsets);
+//
+//    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
+//  } else {
     pbbslib::free_array(offsets);
-
-    auto temp_seq = pbbslib::make_sequence(temp, m);
-    pbbslib::integer_sort_inplace(temp_seq.slice(),
-                                  [&](const intPair& p) { return p.first; },
-                                  pbbs::log2_up(n));
-
-    tOffsets[temp[0].first] = 0;
-    uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
-    inEdges[0] = temp[0].second;
-    par_for(1, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
-      inEdges[i] = temp[i].second;
-      if (temp[i].first != temp[i - 1].first) {
-        tOffsets[temp[i].first] = i;
-      }
-    });
-
-    pbbslib::free_array(temp);
-
-    // fill in offsets of degree 0 vertices by taking closest non-zero
-    // offset to the right
-    auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
-    auto M = pbbslib::minm<uintT>();
-    M.identity = m;
-    pbbslib::scan_inplace(t_seq.slice(), M, pbbslib::fl_scan_inclusive);
-
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
-      uintT o = tOffsets[i];
-      uintT l = ((i == n - 1) ? m : tOffsets[i + 1]) - tOffsets[i];
-      v[i].setInDegree(l);
-      v[i].setInNeighbors((std::tuple<uintE, pbbslib::empty>*)(inEdges + o));
-    });
-
-    pbbslib::free_array(tOffsets);
-
-    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
-  } else {
-    pbbslib::free_array(offsets);
-    return graph<vertex, W>(v, n, m, get_deletion_fn(v, edges));
-  }
+    return symmetric_graph<vertex, W>(V, n, m, get_deletion_fn(V, edges), edges);
+//  }
 }
 
 // Handles both unweighted and weighted graphs.
 template <template <typename W> class vertex, class W>
-inline graph<vertex, W> readCompressedGraph(
+inline symmetric_graph<vertex, W> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
@@ -657,7 +509,7 @@ inline graph<vertex, W> readCompressedGraph(
   uintE* Degrees0 = (uintE*)(s0 + skip0);
   skip0 += n * sizeof(intE);
   uchar* edges0 = (uchar*)(s0 + skip0);
-  w_vertex* V0 = pbbslib::new_array_no_init<w_vertex>(n);
+  vertex_data* V = pbbslib::new_array_no_init<vertex_data>(n);
 
 #ifdef NVM
   uintT* offsets1 = (uintT*)(s1 + 3 * sizeof(long));
@@ -665,40 +517,26 @@ inline graph<vertex, W> readCompressedGraph(
   uintE* Degrees1 = (uintE*)(s1 + skip1);
   skip1 += n * sizeof(intE);
   uchar* edges1 = (uchar*)(s1 + skip1);
-  w_vertex* V1 = pbbslib::new_array_no_init<w_vertex>(n);
 #endif
 
   par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
     uint64_t o = offsets0[i];
     uintT d = Degrees0[i];
-    V0[i].setOutDegree(d);
-    V0[i].setOutNeighbors(edges0 + o);
-
-#ifdef NVM
-    V1[i].setOutDegree(d);
-    V1[i].setOutNeighbors(edges1 + o);
-#endif
+    V[i].degree = d;
+    V[i].offset = o;
   });
-  auto deletion_fn = get_deletion_fn(V0, s0);
+  auto deletion_fn = get_deletion_fn(V, s0);
   if (mmap && !mmapcopy) {
-#ifndef NVM
-    deletion_fn = [V0]() {
-      pbbslib::free_array(V0);
+    deletion_fn = [V]() {
+      pbbslib::free_array(V);
       unmmap_if_needed();
     };
-#else
-    deletion_fn = [V0, V1]() {
-      pbbslib::free_array(V0);
-      pbbslib::free_array(V1);
-      unmmap_if_needed();
-    };
-#endif
   }
 
-  graph<vertex, W> G(V0, n, m, deletion_fn);
-#ifdef NVM
-  G.V0 = V0;
-  G.V1 = V1;
+#ifndef NVM
+  symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges0);
+#else
+  symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges, edges1);
 #endif
   return G;
 }

@@ -256,7 +256,7 @@ template <template <class W> class vertex, class W>
 struct packed_graph {
   size_t n; /* number of vertices */
   size_t m; /* number of edges; updated by decremental updates  */
-  graph<vertex, W>& GA;
+  symmetric_graph<vertex, W>& GA;
   using E = typename vertex<W>::E;
   using weight_type = W;
 
@@ -338,7 +338,7 @@ struct packed_graph {
     metadata_size = sizeof(metadata);
   }
 
-  packed_graph(graph<vertex, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
+  packed_graph(symmetric_graph<vertex, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
     init_block_size_and_metadata();  // conditioned on vertex type
     init_block_memory();
   }
@@ -386,12 +386,12 @@ struct packed_graph {
 
 // Used to infer template arguments
 template <template <class W> class vertex, class W>
-auto build_packed_graph(graph<vertex, W>& GA) {
+auto build_packed_graph(symmetric_graph<vertex, W>& GA) {
   return packed_graph<vertex, W>(GA);
 }
 
 template <template <class W> class vertex, class W, class P>
-packed_graph<vertex, W> filter_graph(graph<vertex, W>& G, P& pred_f) {
+packed_graph<vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred_f) {
   // TODO: do allocations, but in a (medium) constant number of allocations.
   auto GA = packed_graph<vertex, W>(G);
   {

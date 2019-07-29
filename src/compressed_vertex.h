@@ -39,6 +39,8 @@
 
 #include "encodings/decoders.h"
 #include "macros.h"
+#include "IO.h"
+#include "graph_utils.h"
 
 #include "pbbslib/monoid.h"
 
@@ -189,8 +191,14 @@ inline size_t getVirtualDegree(uintE d, uchar* nghArr) {
 template <class W, class C>
 struct compressedSymmetricVertex {
   using E = uchar;
-  uchar* neighbors;
+  E* neighbors;
   uintE degree;
+
+  compressedSymmetricVertex<W, C>(vertex_data vtx_data, E* edges) {
+    neighbors = edges + vtx_data.offset;
+    degree = vtx_data.degree;
+  }
+
   uchar* getInNeighbors() { return neighbors; }
   uchar* getOutNeighbors() { return neighbors; }
   uintE getInNeighbor(intT j) {  // should not be called

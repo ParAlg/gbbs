@@ -705,10 +705,10 @@ inline size_t get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
       auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
           iFile, symmetric, mmap, mmapcopy);                               \ 
-        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);                 \
-    run_app(GA, APP, rounds)                                                \
+    run_app(G, APP, rounds)                                                \
   }
 
+//        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);                 \
 //    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 
 

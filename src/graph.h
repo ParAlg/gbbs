@@ -45,15 +45,15 @@
 // **************************************************************
 
 template <template <class W> class vertex, class W>
-struct graph {
+struct symmetric_graph {
   using w_vertex = vertex<W>;
   using weight_type = W;
-  w_vertex* V;
+  using E = typename w_vertex::E;
 
-#ifdef NVM
-  w_vertex* V0;
-  w_vertex* V1;
-#endif
+  vertex_data* V;
+
+  E* e0;
+  E* e1;
 
   size_t n;
   size_t m;
@@ -62,35 +62,30 @@ struct graph {
   std::function<void()> deletion_fn;
 
 #ifndef NVM
-  w_vertex get_vertex(size_t i) { return V[i]; }
+  w_vertex get_vertex(size_t i) {
+    return w_vertex(V[i], e0);
+  }
 #else
   w_vertex get_vertex(size_t i) {
-    //		int cpu = sched_getcpu();
-    //		int node = numa_node_of_cpu(cpu);
     if (numanode() == 0) {
-      return V0[i];
+      return w_vertex(V[i], e0);
     } else {
-      return V1[i];
+      return w_vertex(V[i], e1);
     }
   }
 #endif
 
-  graph(w_vertex* _V, long _n, long _m, std::function<void()> _d,
-        uintE* _flags = NULL)
-#ifdef NVM
-      : V(_V),
-        n(_n),
-        m(_m),
+symmetric_graph(vertex_data* V, size_t n, size_t m, std::function<void()> _d,
+        E* e0, E* e1=nullptr, uintE* _flags = NULL)
+      : V(V),
+        e0(e0),
+        e1(e1),
+        n(n),
+        m(m),
         transposed(0),
         flags(_flags),
-        deletion_fn(_d),
-        V0(_V),
-        V1(_V) {
+        deletion_fn(_d) {
   }
-#else
-      : V(_V), n(_n), m(_m), transposed(0), flags(_flags), deletion_fn(_d) {
-  }
-#endif
 
   void del() {
     if (flags != NULL) pbbslib::free_array(flags);
@@ -100,7 +95,7 @@ struct graph {
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
     par_for(0, n, 1,
-            [&](size_t i) { V[i].mapOutNgh(i, f, parallel_inner_map); });
+            [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); });
   }
 };
 
@@ -142,7 +137,7 @@ struct edge_array {
 // Mutates (sorts) the underlying array
 // Returns an unweighted, symmetric graph
 template <class W>
-inline graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A,
+inline symmetric_graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A,
                                                       bool is_sorted = false) {
   using wvertex = symmetricVertex<W>;
   using edge = std::tuple<uintE, uintE, W>;
@@ -152,14 +147,14 @@ inline graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A,
   if (m == 0) {
     std::function<void()> del = []() {};
     if (n == 0) {
-      return graph<symmetricVertex, W>(nullptr, 0, 0, del);
+      return symmetric_graph<symmetricVertex, W>(nullptr, 0, 0, del, nullptr);
     } else {
-      wvertex* v = pbbslib::new_array_no_init<wvertex>(n);
+      vertex_data* v = pbbslib::new_array_no_init<vertex_data>(n);
       par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
         v[i].degree = 0;
-        v[i].neighbors = nullptr;
+        v[i].offset = 0;
       });
-      return graph<symmetricVertex, W>(v, n, 0, del);
+      return symmetric_graph<symmetricVertex, W>(v, n, 0, del, nullptr);
     }
   }
 
@@ -171,7 +166,7 @@ inline graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A,
   }
 
   auto starts = sequence<uintT>(n);
-  wvertex* v = pbbslib::new_array_no_init<wvertex>(n);
+  vertex_data* v = pbbslib::new_array_no_init<vertex_data>(n);
   auto edges = sequence<uintE>(m, [&](size_t i) {
     // Fuse loops over edges (check if this helps)
     if (i == 0 || (std::get<0>(Am[i]) != std::get<0>(Am[i - 1]))) {
@@ -183,7 +178,8 @@ inline graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A,
     uintT o = starts[i];
     size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
     v[i].degree = degree;
-    v[i].neighbors = ((std::tuple<uintE, W>*)(edges.begin() + o));
+    v[i].offset = o;
   });
-  return graph<symmetricVertex, W>(v, n, m, get_deletion_fn(v, edges.to_array()));
+  auto edge_arr = edges.to_array();
+  return symmetric_graph<symmetricVertex, W>(v, n, m, get_deletion_fn(v, edge_arr), edge_arr);
 }
