@@ -404,7 +404,6 @@ inline symmetric_graph<vertex, W> readCompressedGraph(
     char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
-  using w_vertex = vertex<W>;
 
 #ifndef NVM
   char* s;

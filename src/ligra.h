@@ -187,7 +187,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
       size_t block_deg = (fl & in_edges)
                              ? GA.get_vertex(vtx_id).in_block_degree(j)
                              : GA.get_vertex(vtx_id).out_block_degree(j);
-      assert(block_deg <= PARALLEL_DEGREE);
+      // assert(block_deg <= PARALLEL_DEGREE); // only for compressed
       blocks[vtx_off + j] = block(i, j);  // j-th block of the i-th vertex.
       degrees[vtx_off + j] = block_deg;
     });

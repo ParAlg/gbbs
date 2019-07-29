@@ -57,8 +57,6 @@ struct symmetric_graph {
 
   size_t n;
   size_t m;
-  bool transposed;
-  uintE* flags;
   std::function<void()> deletion_fn;
 
 #ifndef NVM
@@ -76,19 +74,16 @@ struct symmetric_graph {
 #endif
 
 symmetric_graph(vertex_data* V, size_t n, size_t m, std::function<void()> _d,
-        E* e0, E* e1=nullptr, uintE* _flags = NULL)
+        E* e0, E* e1=nullptr)
       : V(V),
         e0(e0),
         e1(e1),
         n(n),
         m(m),
-        transposed(0),
-        flags(_flags),
         deletion_fn(_d) {
   }
 
   void del() {
-    if (flags != NULL) pbbslib::free_array(flags);
     deletion_fn();
   }
 
@@ -141,6 +136,7 @@ inline symmetric_graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A
                                                       bool is_sorted = false) {
   using wvertex = symmetricVertex<W>;
   using edge = std::tuple<uintE, uintE, W>;
+  using E = typename wvertex::E;
   size_t m = A.non_zeros;
   size_t n = std::max<size_t>(A.num_cols, A.num_rows);
 
@@ -181,5 +177,5 @@ inline symmetric_graph<symmetricVertex, W> sym_graph_from_edges(edge_array<W>& A
     v[i].offset = o;
   });
   auto edge_arr = edges.to_array();
-  return symmetric_graph<symmetricVertex, W>(v, n, m, get_deletion_fn(v, edge_arr), edge_arr);
+  return symmetric_graph<symmetricVertex, W>(v, n, m, get_deletion_fn(v, edge_arr), (E*)edge_arr);
 }
