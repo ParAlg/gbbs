@@ -76,7 +76,7 @@ struct sym_noop_manager {
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     E* edges = e0;
 #ifdef NVM
-    if (numa_node() == 0)
+    if (numanode() == 0)
       edges = e0;
     else
       edges = e1;

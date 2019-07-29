@@ -45,6 +45,20 @@ double BFS_runner(G& GA, commandLine P) {
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
+  if (P.getOptionValue("-maxdeg")) {
+    auto degs = [&] (size_t i) { return GA.get_vertex(i).getOutDegree(); };
+    auto deg_seq = pbbslib::make_sequence<size_t>(GA.n, degs);
+    size_t max_deg = pbbslib::reduce_max(deg_seq);
+    cout << "max_deg = " << max_deg << endl;
+    src = UINT_E_MAX;
+    parallel_for(0, GA.n, [&] (size_t i) {
+      if (deg_seq[i] == max_deg) {
+        pbbs::atomic_compare_and_swap(&src, UINT_E_MAX, (uintE)i);
+      }
+    });
+    cout << "max degree source = " << src << endl;
+  }
+
   timer t; t.start();
   auto parents = BFS(GA, src);
   double tt = t.stop();

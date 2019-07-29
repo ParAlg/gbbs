@@ -12,13 +12,24 @@ struct vtx_info {
   uintE vtx_num_blocks;     // number of blocks associated with v
   size_t vtx_block_offset;  // pointer into the block structure
 
+#ifndef NVM
   E* vtx_edges;  // pointer to the original edges (prevents one random read)
-
   vtx_info(uintE degree, uintE num_blocks, size_t block_offset, E* edges)
       : vtx_degree(degree),
         vtx_num_blocks(num_blocks),
         vtx_block_offset(block_offset),
         vtx_edges(edges) {}
+#else
+  E* vtx_edges_0; // socket 0
+  E* vtx_edges_1; // socket 0
+  vtx_info(uintE degree, uintE num_blocks, size_t block_offset, E* e0, E* e1)
+      : vtx_degree(degree),
+        vtx_num_blocks(num_blocks),
+        vtx_block_offset(block_offset),
+        vtx_edges_0(e0),
+        vtx_edges_1(e1) {}
+#endif
+
 };
 
 template <template <class W> class vertex, class W>
@@ -45,6 +56,10 @@ struct sym_bitset_manager {
   static constexpr uintE kBlockAllocThreshold = 50;
 
   E* e0;
+#ifdef NVM
+  E* e1;
+#endif
+
   sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
                      uintE vtx_original_degree, vtx_info<E>* v_infos)
       : vtx_id(vtx_id),
@@ -53,14 +68,27 @@ struct sym_bitset_manager {
     auto& v_info = v_infos[vtx_id];
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
+#ifndef NVM
     e0 = v_info.vtx_edges;
+#else
+    e0 = v_info.vtx_edges_0;
+    e1 = v_info.vtx_edges_1;
+#endif
 
     blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
   }
 
   __attribute__((always_inline)) inline E* get_edges() {
-    return e0;  // todo: NVM
+#ifndef NVM
+    return e0;
+#else
+    if (numanode() == 0) {
+      return e0;
+    } else {
+      return e1;
+    }
+#endif
   }
 
   __attribute__((always_inline)) inline uintE get_degree() {
@@ -428,6 +456,43 @@ struct sym_bitset_manager {
     return out;
   }
 
+// unsigned short __builtin_ia32_lzcnt_u16(unsigned short);
+// unsigned int __builtin_ia32_lzcnt_u32(unsigned int);
+// unsigned long long __builtin_ia32_lzcnt_u64 (unsigned long long);
+//    __attribute__((always_inline)) inline void next() {
+//      while (true) {
+//        while (proc_cur_block < cur_block_size) {
+//          if ((proc_cur_block & ((1 << 16) - 1)) == 0) { // % 8
+//            uintE idx = proc_cur_block >> 3; // byte
+//            if (cur_block_bits[idx] == 0) {
+//              if (cur_block_bits[idx+1] == 0) {
+//                proc_cur_block += 16;
+//                continue;
+//              }
+//              proc_cur_block += 8;
+//              continue;
+//            }
+//          } else if ((proc_cur_block & 0x7) == 0) { // % 8
+//            if (cur_block_bits[proc_cur_block >> 3] == 0) {
+//              proc_cur_block += 8;
+//              continue;
+//            }
+//          }
+//          // cout << "proc_cur_block = " << proc_cur_block << endl;
+//          if (bitsets::is_bit_set(cur_block_bits, proc_cur_block)) {
+//            // cout << "bit set for proc_cur_block = " << proc_cur_block << endl;
+//            last_edge = edges[cur_block_start + proc_cur_block];
+//            proc++;
+//            proc_cur_block++;
+//            return;
+//          }
+//          proc_cur_block++;
+//        }
+//        // otherwise: finished this block, find next non_empty and call next()
+//        find_next_nonempty_block();
+//      }
+//    }
+
   struct iter {
     E* edges;
     uintE vtx_degree;
@@ -468,10 +533,6 @@ struct sym_bitset_manager {
         next(); // sets last_edge
       }
     }
-
-// unsigned short __builtin_ia32_lzcnt_u16(unsigned short);
-// unsigned int __builtin_ia32_lzcnt_u32(unsigned int);
-// unsigned long long __builtin_ia32_lzcnt_u64 (unsigned long long);
 
     // precondition: there is a subsequent non-empty block
     __attribute__((always_inline)) inline void find_next_nonempty_block(bool on_initialization=false) {
@@ -531,40 +592,6 @@ struct sym_bitset_manager {
       proc++;
     }
 
-//    __attribute__((always_inline)) inline void next() {
-//      while (true) {
-//        while (proc_cur_block < cur_block_size) {
-//          if ((proc_cur_block & ((1 << 16) - 1)) == 0) { // % 8
-//            uintE idx = proc_cur_block >> 3; // byte
-//            if (cur_block_bits[idx] == 0) {
-//              if (cur_block_bits[idx+1] == 0) {
-//                proc_cur_block += 16;
-//                continue;
-//              }
-//              proc_cur_block += 8;
-//              continue;
-//            }
-//          } else if ((proc_cur_block & 0x7) == 0) { // % 8
-//            if (cur_block_bits[proc_cur_block >> 3] == 0) {
-//              proc_cur_block += 8;
-//              continue;
-//            }
-//          }
-//          // cout << "proc_cur_block = " << proc_cur_block << endl;
-//          if (bitsets::is_bit_set(cur_block_bits, proc_cur_block)) {
-//            // cout << "bit set for proc_cur_block = " << proc_cur_block << endl;
-//            last_edge = edges[cur_block_start + proc_cur_block];
-//            proc++;
-//            proc_cur_block++;
-//            return;
-//          }
-//          proc_cur_block++;
-//        }
-//        // otherwise: finished this block, find next non_empty and call next()
-//        find_next_nonempty_block();
-//      }
-//    }
-
     __attribute__((always_inline)) inline bool has_next() {
       return proc < vtx_degree;
     }
@@ -604,6 +631,10 @@ struct compressed_sym_bitset_manager {
       bytes_per_block - sizeof(metadata);
 
   E* e0;
+#ifdef NVM
+  E* e1;
+#endif
+
   compressed_sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
                                 uintE vtx_original_degree, vtx_info<E>* v_infos)
       : vtx_id(vtx_id),
@@ -612,14 +643,28 @@ struct compressed_sym_bitset_manager {
     auto& v_info = v_infos[vtx_id];
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
+#ifndef NVM
     e0 = v_info.vtx_edges;
+#else
+    e0 = v_info.vtx_edges_0;
+    e1 = v_info.vtx_edges_1;
+#endif
+
 
     blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
   }
 
   __attribute__((always_inline)) inline E* get_edges() {
-    return e0;  // todo: NVM
+#ifndef NVM
+    return e0;
+#else
+    if (numanode() == 0) {
+      return e0;
+    } else {
+      return e1;
+    }
+#endif
   }
 
   __attribute__((always_inline)) inline uintE get_degree() {
@@ -634,6 +679,10 @@ struct compressed_sym_bitset_manager {
     return bitsets::block_degree(blocks_start, block_id, vtx_num_blocks,
                                  vtx_degree);
   }
+  // the following matches the perf of noop
+  // uintE block_start = block_id*edges_per_block;
+  // uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
+  // uintE offset = block_start;
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
@@ -643,17 +692,7 @@ struct compressed_sym_bitset_manager {
 
     uint8_t* block_bits = block_data_start + bitset_bytes_per_block * block_id;
 
-    // the following matches the perf of noop
-    // uintE block_start = block_id*edges_per_block;
-    // uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
-    // uintE offset = block_start;
-
     E* e = get_edges();
-
-    // This is one way of decoding (check bit at a time). The other way is to
-    // use a fetch_next_bit function.
-    // Probably also faster to have a look-up table on the byte
-
     size_t k = 0;
     auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
       if (bitsets::is_bit_set(block_bits,
@@ -700,24 +739,131 @@ struct compressed_sym_bitset_manager {
     assert(k == (block_end - block_start)););
   }
 
+//  /* Only called when the discrepency between full and total blocks is large.
+//   * Specifically, when #full_blocks*kFullBlockPackThreshold >= vtx_num_blocks
+//   * Note: Defers to pack(..) to finish updating the degree/scan info */
+//  inline void repack_blocks_par(bool parallel) {
+//    uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
+//    uintE int_stk[kBlockAllocThreshold];
+//    uint8_t* tmp_space = (uint8_t*)stk;
+//    uintE* tmp_ints = (uintE*)int_stk;
+//    size_t total_bytes = vtx_num_blocks * bytes_per_block;
+//    if (vtx_num_blocks > kBlockAllocThreshold) {
+//      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
+//      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+//    }
+//
+//    // 1. Copy all data to tmp space
+//    parallel_for(0, total_bytes,
+//                 [&](size_t i) { tmp_space[i] = blocks_start[i]; },
+//                 512);  // tune threshold
+//
+//    // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
+//    auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
+//    auto tmp_metadata = (metadata*)tmp_space;
+//    parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
+//      new_locs[block_id] =
+//          static_cast<uintE>((tmp_metadata[block_id].offset > 0));
+//    });
+//
+//    // 3. Scan new_locs to get new block indices for full blocks
+//    size_t new_num_blocks = pbbslib::scan_add_inplace(new_locs);
+//
+//    // 4. Copy saved blocks to new positions.
+//    auto real_metadata = (metadata*)blocks_start;
+//    auto real_block_data = blocks_start + (new_num_blocks * sizeof(metadata));
+//    auto tmp_block_data = tmp_space + (vtx_num_blocks * sizeof(metadata));
+//    parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
+//      uintE block_entries = tmp_metadata[block_id].offset;
+//      if (block_entries > 0) {  // live
+//        uintE new_block_id = new_locs[block_id];
+//        // (a) copy metadata
+//        real_metadata[new_block_id] = tmp_metadata[block_id];
+//        uintE orig_block_num = real_metadata[new_block_id].block_num;
+//
+//        uint8_t* tmp_block_bits =
+//            tmp_block_data + bitset_bytes_per_block * block_id;
+//        uint8_t* real_block_bits =
+//            real_block_data + bitset_bytes_per_block * new_block_id;
+//
+//        uintE block_start = orig_block_num * edges_per_block;
+//        uintE block_end =
+//            std::min(block_start + edges_per_block, vtx_original_degree);
+//
+//        size_t this_block_size = block_end - block_start;
+//        size_t bytes_to_copy =
+//            (this_block_size + 8 - 1) / 8;  // ceil(this_block_size/8);
+//
+//        // (b) copy bitset data
+//        for (size_t i = 0; i < bytes_to_copy; i++) {
+//          real_block_bits[i] = tmp_block_bits[i];
+//        }
+//      }
+//    });
+//
+//    // 5. Update num_blocks info both locally and in v_infos
+//    uintE old_vtx_num_blocks = vtx_num_blocks;
+//    vtx_num_blocks = new_num_blocks;
+//    v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
+//
+//    if (old_vtx_num_blocks > kBlockAllocThreshold) {
+//      pbbs::free_array(tmp_space);
+//      pbbs::free_array(tmp_ints);
+//    }
+//  }
+
   /* Only called when the discrepency between full and total blocks is large.
    * Specifically, when #full_blocks*kFullBlockPackThreshold >= vtx_num_blocks
    * Note: Defers to pack(..) to finish updating the degree/scan info */
-  inline void repack_blocks_par(bool parallel) {
+  inline void repack_blocks_par(uint8_t* tmp, bool parallel) {
     uint8_t stk[bytes_per_block * kBlockAllocThreshold];  // temporary space
     uintE int_stk[kBlockAllocThreshold];
     uint8_t* tmp_space = (uint8_t*)stk;
     uintE* tmp_ints = (uintE*)int_stk;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
-    if (vtx_num_blocks > kBlockAllocThreshold) {
+    if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
       tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
       tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
     }
 
-    // 1. Copy all data to tmp space
-    parallel_for(0, total_bytes,
-                 [&](size_t i) { tmp_space[i] = blocks_start[i]; },
-                 512);  // tune threshold
+    // caller supplies:
+    // vtx_num_blocks*sizeof(uintE) +
+    // vtx_num_blocks*bytes_per_block
+
+    if (tmp) {
+      tmp_space = tmp;
+    }
+
+    metadata* block_metadata = (metadata*)blocks_start;
+
+    size_t n_full_blocks = vtx_num_blocks - 1; // full blocks
+    size_t bytes_to_copy = n_full_blocks*bytes_per_block;
+    {
+      // fetch original block
+      size_t last_block_num = vtx_num_blocks-1;
+      size_t orig_block_num = block_metadata[last_block_num].block_num;
+
+      // get block size
+      size_t block_start = orig_block_num * edges_per_block;
+      size_t block_end =
+          std::min(block_start + edges_per_block, static_cast<size_t>(vtx_original_degree));
+
+      // #bytes for this block
+      size_t last_block_size = block_end - block_start;
+      size_t last_block_bytes = sizeof(metadata) + bitsets::get_bitset_block_size_in_bytes(last_block_size);
+
+      bytes_to_copy += last_block_bytes;
+    }
+
+    // Is a blocked memcpy faster here?
+    parallel_for(0, bytes_to_copy, [&] (size_t i) {
+      tmp_space[i] = blocks_start[i];
+    }, 512);
+
+    // Tmp space for integers starts consecutively after tmp block space
+    if (tmp) {
+      tmp_ints = (uintE*)(tmp + bytes_to_copy);
+    }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
     auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
@@ -752,8 +898,7 @@ struct compressed_sym_bitset_manager {
             std::min(block_start + edges_per_block, vtx_original_degree);
 
         size_t this_block_size = block_end - block_start;
-        size_t bytes_to_copy =
-            (this_block_size + 8 - 1) / 8;  // ceil(this_block_size/8);
+        size_t bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
 
         // (b) copy bitset data
         for (size_t i = 0; i < bytes_to_copy; i++) {
@@ -767,7 +912,7 @@ struct compressed_sym_bitset_manager {
     vtx_num_blocks = new_num_blocks;
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
-    if (old_vtx_num_blocks > kBlockAllocThreshold) {
+    if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
       pbbs::free_array(tmp_space);
       pbbs::free_array(tmp_ints);
     }
@@ -776,7 +921,10 @@ struct compressed_sym_bitset_manager {
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(uintE vtx_id, P& p, bool parallel) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel, const flags fl) {
+    if (vtx_degree == 0) {
+      return 0;
+    }
     metadata* block_metadata = (metadata*)blocks_start;
 
     // 1. pack each block
@@ -785,7 +933,6 @@ struct compressed_sym_bitset_manager {
               uintE orig_block_num = block_metadata[block_id].block_num;
               uint8_t* block_bits =
                   block_data_start + bitset_bytes_per_block * block_id;
-
 
               E* e = get_edges();
 
@@ -823,19 +970,15 @@ struct compressed_sym_bitset_manager {
           });
       size_t full_blocks = pbbslib::reduce_add(full_block_seq);
 
-//    if (vtx_num_blocks > 500) {
-//      cout << "full_blocks = " << full_blocks
-//           << " vtx_blocks = " << vtx_num_blocks << endl;
-//    }
-
-    if (full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) {
-      repack_blocks_par(parallel);
+    if ((full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) ||
+        ((full_blocks < vtx_num_blocks) && (fl & compact_blocks))) {
+      repack_blocks_par(tmp, parallel);
     }
 
     // Update offset values.
     auto ptr_seq = pbbs::indirect_value_seq<uintE>(
         vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_add_inplace(ptr_seq);
+    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbs::no_flag, (uintE*)tmp);
     vtx_degree = sum;
 
     // Update the degree in vtx_info.
@@ -843,13 +986,140 @@ struct compressed_sym_bitset_manager {
     return sum;  // return the new degree
   }
 
+  std::tuple<uintE, W> ith_neighbor(size_t i) {
+    metadata* block_metadata = (metadata*)blocks_start;
+    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t i) {
+      return block_metadata[i].offset;
+    });
 
-  //  std::tuple<uintE, W> ith_neighbor(size_t i) {
-  //    E* edges = e0;
-  //#ifdef NVM
-  //    if (numa_node() == 0) edges = e0;
-  //    else edges = e1;
-  //#endif
-  //    return edges[i];
-  //  }
+    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
+    size_t block = pbbslib::binary_search(offsets_imap, i, lte);
+    assert(block > 0);
+    block = block-1;
+
+    std::tuple<uintE, W> out;
+    auto decode_f = [&] (const uintE& v, const W& wgh, const uintE& offset) {
+      if (offset == i) {
+        out = std::make_tuple(v, wgh);
+        return false;
+      }
+      return true;
+    };
+    decode_block_cond(block, decode_f);
+    return out;
+  }
+
+  struct iter {
+    E* edges;
+    uintE vtx_degree;
+    uintE vtx_original_degree;
+    uintE vtx_num_blocks;
+    uint8_t* blocks_start;
+    uint8_t* block_data_start;
+
+    uintE cur_block; // block id
+    uintE cur_block_degree; // #live edges
+    uintE cur_block_start; // start offset (in edges)
+    uintE cur_block_num_longs; // block size (in terms of #longs)
+
+    uint64_t* cur_block_longs;
+    uint64_t cur_long_value;
+    uintE cur_long_idx;
+
+    std::tuple<uintE, W> last_edge;
+    uintE proc;
+    uintE proc_cur_block;
+
+    iter(E* edges,
+        uintE vtx_degree,
+        uintE vtx_original_degree,
+        uintE vtx_num_blocks,
+        uint8_t* blocks_start,
+        uint8_t* block_data_start) :
+        edges(edges),
+        vtx_degree(vtx_degree),
+        vtx_original_degree(vtx_original_degree),
+        vtx_num_blocks(vtx_num_blocks),
+        blocks_start(blocks_start),
+        block_data_start(block_data_start),
+        proc(0) {
+      proc = 0;
+      if (vtx_degree > 0) {
+        find_next_nonempty_block(/* on_initialization = */ true);
+        next(); // sets last_edge
+      }
+    }
+
+    // precondition: there is a subsequent non-empty block
+    __attribute__((always_inline)) inline void find_next_nonempty_block(bool on_initialization=false) {
+      if (on_initialization) {
+        cur_block = 0;
+      } else {
+        cur_block++;
+      }
+      metadata* block_metadata = (metadata*)blocks_start;
+
+      // set cur_block_degree
+      uintE offset = block_metadata[cur_block].offset;
+      uintE next_block_offset = (cur_block == vtx_num_blocks - 1)
+                                    ? vtx_degree
+                                    : block_metadata[cur_block + 1].offset;
+      cur_block_degree = next_block_offset - offset;
+      assert(cur_block_degree > 0);
+
+      // reset proc_cur_block
+      proc_cur_block = 0;
+
+      // set cur_block_start and cur_block_size
+      uintE orig_block_num = block_metadata[cur_block].block_num;
+      cur_block_start = orig_block_num * edges_per_block;
+      uintE cur_block_end =
+        std::min(cur_block_start + edges_per_block, vtx_original_degree);
+      uintE cur_block_size = cur_block_end - cur_block_start;
+      cur_block_num_longs = (cur_block_size+64-1)/64;
+
+      // set cur_block_longs
+      cur_block_longs = (uint64_t*)(block_data_start + bitset_bytes_per_block * cur_block);
+
+      // initialize value to read, and the idx.
+      cur_long_value = cur_block_longs[0];
+      cur_long_idx = 0;
+    }
+
+    __attribute__((always_inline)) inline uintE degree() { return vtx_degree; }
+    __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
+
+    // updates last_edge
+    __attribute__((always_inline)) inline void next() {
+      while(cur_long_value == 0) {
+        // done with block?
+        cur_long_idx++;
+        proc_cur_block += 64;
+        if (cur_long_idx == cur_block_num_longs) {
+          find_next_nonempty_block();
+        }
+        cur_long_value = cur_block_longs[cur_long_idx];
+      }
+      // cur_long_value > 0
+
+      unsigned select_idx = _tzcnt_u64(cur_long_value); // #trailing zeros in cur_long
+      cur_long_value = _blsr_u64(cur_long_value); // clears lowest set bit
+      // TODO!! (use a compressed_iter to step)
+//      last_edge = edges[cur_block_start + proc_cur_block + select_idx];
+      proc++;
+    }
+
+    __attribute__((always_inline)) inline bool has_next() {
+      return proc < vtx_degree;
+    }
+  };
+
+  auto get_iter() {
+    return iter(get_edges(),
+        vtx_degree,
+        vtx_original_degree,
+        vtx_num_blocks,
+        blocks_start,
+        block_data_start);
+  }
 };

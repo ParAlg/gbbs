@@ -14,7 +14,7 @@ constexpr int max_weight = 32;
 #define PAR_DEGREE_TWO 256
 
 namespace byte {
-template <template <class W> class vertex, class W>
+  template <template <class W> class vertex, class W>
   void write_graph_byte_format(graph<vertex, W>& GA, ofstream& out, bool symmetric) {
     size_t n = GA.n; size_t m = GA.m;
 
@@ -461,6 +461,74 @@ namespace bytepd_amortized {
   }
 }; // namespace bytepd_amortized
 
+//namespace binary_format {
+//
+//  template <template <class W> class vertex, class W>
+//  void write_graph_byte_format(graph<vertex, W>& GA, ofstream& out, bool symmetric) {
+//    size_t n = GA.n; size_t m = GA.m;
+//
+//    // 1. Calculate total size
+//    auto degrees = pbbs::sequence<uintE>(n);
+//    auto byte_offsets = pbbs::sequence<uintT>(n+1);
+//    cout << "calculating size" << endl;
+//    parallel_for(0, n, [&] (size_t i) {
+//      size_t total_bytes = 0;
+//      uintE last_ngh = 0;
+//      size_t deg = 0;
+//      uchar tmp[16];
+//      auto f = [&] (uintE u, uintE v, W w) {
+//        long bytes = 0;
+//        if (deg == 0) {
+//          bytes = compressFirstEdge(tmp, bytes, u, v);
+//          bytes = compressWeight<W>(tmp, bytes, w);
+//        } else {
+//          bytes = compressEdge(tmp, bytes, v - last_ngh);
+//          bytes = compressWeight<W>(tmp, bytes, w);
+//        }
+//        last_ngh = v;
+//        total_bytes += bytes;
+//        deg++;
+//        return false;
+//      };
+//      GA.V[i].mapOutNgh(i, f, false);
+//
+//      degrees[i] = deg;
+//      byte_offsets[i] = total_bytes;
+//    }, 1);
+//    byte_offsets[n] = 0;
+//    size_t total_space = pbbslib::scan_add_inplace(byte_offsets.slice());
+//    cout << "total_space = " << total_space << endl;
+//
+//    // 2. Create compressed format in-memory
+//    auto edges = pbbs::sequence<uchar>(total_space);
+//    parallel_for(0, n, [&] (size_t i) {
+//      uintE deg = degrees[i];
+//      assert(deg == GA.V[i].getOutDegree());
+//      if (deg > 0) {
+//        auto it = GA.V[i].getOutIter(i);
+//        long nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+//        if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
+//          cout << "nbytes = " << nbytes << " but offs = " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << endl;
+//          exit(0);
+//        }
+//        assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+//      }
+//    }, 1);
+//
+//    long* sizes = pbbs::new_array_no_init<long>(3);
+//    sizes[0] = GA.n;
+//    sizes[1] = GA.m;
+//    sizes[2] = total_space;
+//    out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
+//    out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+//    out.write((char*)degrees.begin(),sizeof(uintE)*n);
+//    out.write((char*)edges.begin(),total_space); //write edges
+//    out.close();
+//  }
+//
+//
+//}; // namespace binary_format
+
 template <class G>
 auto converter(G& GA, commandLine P) {
   auto outfile = P.getOptionValue("-o", "");
@@ -478,6 +546,9 @@ auto converter(G& GA, commandLine P) {
   } else if (encoding == "bytepd-amortized") {
     bytepd_amortized::write_graph_bytepd_amortized_format(GA, out, symmetric);
   } else {
+//  else if (encoding == "binary") {
+//    write_graph_binary_format(GA, out, symmetric);
+//  } else {
     cout << "Unknown encoding: " << encoding << endl;
     exit(0);
   }

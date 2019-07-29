@@ -308,7 +308,11 @@ struct packed_graph {
 
           size_t num_blocks = pbbs::num_blocks(degree, bs);
           // set vertex_info for v
+#ifndef NVM
           VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, edges);
+#else
+          VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, GA.V0[v].getOutNeighbors(), GA.V1[v].getOutNeighbors());
+#endif
 
           // initialize blocks corresponding to v's neighbors
           uint8_t* our_block_start = blocks + block_byte_offset;

@@ -30,6 +30,50 @@
 
 
 template <class G>
+inline sequence<uintE> KCore_fixed_k(G& GA, uintE k, size_t num_buckets = 16) {
+  using W = typename G::weight_type;
+  const size_t n = GA.n;
+  auto D =
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
+
+  auto em = EdgeMap<uintE, G>(GA, std::make_tuple(UINT_E_MAX, 0),
+                              (size_t)GA.m / 50);
+
+  auto all_vtxs = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, [&] (uintE i) { return std::make_tuple(i, D[i]); });
+  auto lt_k = [&] (const std::tuple<uintE, uintE>& v) { return std::get<1>(v) <= k; };
+  auto active_elms = pbbs::filter(all_vtxs, lt_k);
+  auto active = vertexSubsetData<uintE>(n, active_elms); // transfers mem
+
+  size_t n_removed = 0, rho = 0;
+  while (active.size() > 0) {
+    n_removed += active.size();
+    cout << "active.size = " << active.size() << endl;
+
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const Maybe<std::tuple<uintE, uintE> > {
+      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+      uintE deg = D[v];
+      if (deg > k) {
+        uintE new_deg = std::max(deg - edgesRemoved, k);
+        D[v] = new_deg;
+        return wrap(v, new_deg);
+      }
+      return Maybe<std::tuple<uintE, uintE> >();
+    };
+
+    auto pred_f =  [&] (const uintE& u ) { return D[u] > k; };
+    vertexSubsetData<uintE> moved =
+        em.template edgeMapCount<uintE>(active, apply_f, pred_f);
+    active.del();
+    active = std::move(moved);
+    rho++;
+  }
+  std::cout << "### rho = " << rho << "\n";
+  return D;
+}
+
+
+template <class G>
 inline sequence<uintE> KCore(G& GA, size_t num_buckets = 16) {
   using W = typename G::weight_type;
   const size_t n = GA.n;

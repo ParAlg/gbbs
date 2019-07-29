@@ -288,6 +288,154 @@ inline graph<vertex, intE> readWeightedGraph(
   }
 }
 
+//template <template <typename W> class vertex>
+//graph<vertex, pbbslib::empty> readUnweightedGraphBinary(char* iFile, bool isSymmetric) {
+//  char* config = (char*) ".config";
+//  char* adj = (char*) ".adj";
+//  char* idx = (char*) ".idx";
+//  char configFile[strlen(iFile)+strlen(config)+1];
+//  char adjFile[strlen(iFile)+strlen(adj)+1];
+//  char idxFile[strlen(iFile)+strlen(idx)+1];
+//  *configFile = *adjFile = *idxFile = '\0';
+//  strcat(configFile,iFile);
+//  strcat(adjFile,iFile);
+//  strcat(idxFile,iFile);
+//  strcat(configFile,config);
+//  strcat(adjFile,adj);
+//  strcat(idxFile,idx);
+//
+//  ifstream in(configFile, ifstream::in);
+//  long n;
+//  in >> n;
+//  in.close();
+//
+//  ifstream in2(adjFile,ifstream::in | ios::binary); //stored as uints
+//  in2.seekg(0, ios::end);
+//  long size = in2.tellg();
+//  in2.seekg(0);
+//  long m = size/sizeof(uint);
+//  char* s = (char *) malloc(size);
+//  in2.read(s,size);
+//  in2.close();
+//  uintE* edges = (uintE*) s;
+//
+//  ifstream in3(idxFile,ifstream::in | ios::binary); //stored as longs
+//  in3.seekg(0, ios::end);
+//  size = in3.tellg();
+//  in3.seekg(0);
+//  if(n != size/sizeof(intT)) { cout << "File size wrong\n"; abort(); }
+//
+//  char* t = (char *) malloc(size);
+//  in3.read(t,size);
+//  in3.close();
+//  uintT* offsets = (uintT*) t;
+//
+//  vertex* v = newA(vertex,n);
+//#ifdef WEIGHTED
+//  intE* edgesAndWeights = newA(intE,2*m);
+//  {parallel_for(long i=0;i<m;i++) {
+//    edgesAndWeights[2*i] = edges[i];
+//    edgesAndWeights[2*i+1] = edges[i+m];
+//    }}
+//  //free(edges);
+//#endif
+//  {parallel_for(long i=0;i<n;i++) {
+//    uintT o = offsets[i];
+//    uintT l = ((i==n-1) ? m : offsets[i+1])-offsets[i];
+//      v[i].setOutDegree(l);
+//#ifndef WEIGHTED
+//      v[i].setOutNeighbors((uintE*)edges+o);
+//#else
+//      v[i].setOutNeighbors(edgesAndWeights+2*o);
+//#endif
+//    }}
+//
+//  if(!isSymmetric) {
+//    uintT* tOffsets = newA(uintT,n);
+//    {parallel_for(long i=0;i<n;i++) tOffsets[i] = INT_T_MAX;}
+//#ifndef WEIGHTED
+//    intPair* temp = newA(intPair,m);
+//#else
+//    intTriple* temp = newA(intTriple,m);
+//#endif
+//    {parallel_for(intT i=0;i<n;i++){
+//      uintT o = offsets[i];
+//      for(uintT j=0;j<v[i].getOutDegree();j++){
+//#ifndef WEIGHTED
+//	temp[o+j] = make_pair(v[i].getOutNeighbor(j),i);
+//#else
+//	temp[o+j] = make_pair(v[i].getOutNeighbor(j),make_pair(i,v[i].getOutWeight(j)));
+//#endif
+//      }
+//      }}
+//    free(offsets);
+//#ifndef WEIGHTED
+//#ifndef LOWMEM
+//    intSort::iSort(temp,m,n+1,getFirst<uintE>());
+//#else
+//    quickSort(temp,m,pairFirstCmp<uintE>());
+//#endif
+//#else
+//#ifndef LOWMEM
+//    intSort::iSort(temp,m,n+1,getFirst<intPair>());
+//#else
+//    quickSort(temp,m,pairFirstCmp<intPair>());
+//#endif
+//#endif
+//    tOffsets[temp[0].first] = 0;
+//#ifndef WEIGHTED
+//    uintE* inEdges = newA(uintE,m);
+//    inEdges[0] = temp[0].second;
+//#else
+//    intE* inEdges = newA(intE,2*m);
+//    inEdges[0] = temp[0].second.first;
+//    inEdges[1] = temp[0].second.second;
+//#endif
+//    {parallel_for(long i=1;i<m;i++) {
+//#ifndef WEIGHTED
+//      inEdges[i] = temp[i].second;
+//#else
+//      inEdges[2*i] = temp[i].second.first;
+//      inEdges[2*i+1] = temp[i].second.second;
+//#endif
+//      if(temp[i].first != temp[i-1].first) {
+//	tOffsets[temp[i].first] = i;
+//      }
+//      }}
+//    free(temp);
+//    //fill in offsets of degree 0 vertices by taking closest non-zero
+//    //offset to the right
+//    sequence::scanIBack(tOffsets,tOffsets,n,minF<uintT>(),(uintT)m);
+//    {parallel_for(long i=0;i<n;i++){
+//      uintT o = tOffsets[i];
+//      uintT l = ((i == n-1) ? m : tOffsets[i+1])-tOffsets[i];
+//      v[i].setInDegree(l);
+//#ifndef WEIGHTED
+//      v[i].setInNeighbors((uintE*)inEdges+o);
+//#else
+//      v[i].setInNeighbors((intE*)(inEdges+2*o));
+//#endif
+//      }}
+//    free(tOffsets);
+//#ifndef WEIGHTED
+//    Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edges,inEdges);
+//    return graph<vertex>(v,n,m,mem);
+//#else
+//    Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edgesAndWeights,inEdges);
+//    return graph<vertex>(v,n,m,mem);
+//#endif
+//  }
+//  free(offsets);
+//#ifndef WEIGHTED
+//  Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edges);
+//  return graph<vertex>(v,n,m,mem);
+//#else
+//  Uncompressed_Mem<vertex>* mem = new Uncompressed_Mem<vertex>(v,n,m,edgesAndWeights);
+//  return graph<vertex>(v,n,m,mem);
+//#endif
+//}
+//
+
 template <template <typename W> class vertex>
 inline graph<vertex, pbbslib::empty> readUnweightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
@@ -488,11 +636,11 @@ inline graph<vertex, W> readCompressedGraph(
 #else
   // TODO(laxmand): there has to be a cleaner way to do this.
   std::pair<char*, size_t> S0 =
-      pmem_from_file("/mnt/pmem12/hyperlink2012_sym.bytepda");
+      pmem_from_file("/mnt/pmem12/clueweb_sym.bytepda");
   char* s0 = S0.first;
 
   std::pair<char*, size_t> S1 =
-      pmem_from_file("/mnt/pmem13/hyperlink2012_sym.bytepda");
+      pmem_from_file("/mnt/pmem13/clueweb_sym.bytepda");
   char* s1 = S1.first;
 #endif
 

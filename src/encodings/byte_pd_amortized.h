@@ -428,27 +428,29 @@ inline void decode(T& t, uchar* edge_start, const uintE& source,
 template <class W, class T>
 inline void decode_block(T t, uchar* edge_start, const uintE& source,
                          const uintT& degree, uintE block_num) {
-  uintE virtual_degree = *((uintE*)edge_start);
-  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-  uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
-  uchar* nghs_start =
-      edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
+  if (degree > 0) {
+    uintE virtual_degree = *((uintE*)edge_start);
+    size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
+    uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+    uchar* nghs_start =
+        edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
 
-  uchar* finger =
-      (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
-  uintE start_offset = *((uintE*)finger);
-  uintE end_offset = (block_num == (num_blocks - 1)) ? degree
-                       : (*((uintE*)(edge_start + block_offsets[block_num])));
-  finger += sizeof(uintE);
+    uchar* finger =
+        (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
+    uintE start_offset = *((uintE*)finger);
+    uintE end_offset = (block_num == (num_blocks - 1)) ? degree
+                         : (*((uintE*)(edge_start + block_offsets[block_num])));
+    finger += sizeof(uintE);
 
-  if (start_offset < end_offset) {  // at least one edge in this block
-    uintE ngh = eatFirstEdge(finger, source);
-    W wgh = eatWeight<W>(finger);
-    t(ngh, wgh, start_offset);
-    for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
-      ngh += eatEdge(finger);
-      wgh = eatWeight<W>(finger);
-      t(ngh, wgh, edgeID);
+    if (start_offset < end_offset) {  // at least one edge in this block
+      uintE ngh = eatFirstEdge(finger, source);
+      W wgh = eatWeight<W>(finger);
+      t(ngh, wgh, start_offset);
+      for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
+        ngh += eatEdge(finger);
+        wgh = eatWeight<W>(finger);
+        t(ngh, wgh, edgeID);
+      }
     }
   }
 }
@@ -456,29 +458,31 @@ inline void decode_block(T t, uchar* edge_start, const uintE& source,
 template <class W, class T>
 inline void decode_block_cond(T t, uchar* edge_start, const uintE& source,
                               const uintT& degree, uintE block_num) {
-  uintE virtual_degree = *((uintE*)edge_start);
-  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-  uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
-  uchar* nghs_start =
-      edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
+  if (degree > 0) {
+    uintE virtual_degree = *((uintE*)edge_start);
+    size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
+    uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+    uchar* nghs_start =
+        edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
 
-  uchar* finger =
-      (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
-  uintE start_offset = *((uintE*)finger);
-  uintE end_offset = (block_num == (num_blocks - 1)) ? degree
-                       : (*((uintE*)(edge_start + block_offsets[block_num])));
-  finger += sizeof(uintE);
+    uchar* finger =
+        (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
+    uintE start_offset = *((uintE*)finger);
+    uintE end_offset = (block_num == (num_blocks - 1)) ? degree
+                         : (*((uintE*)(edge_start + block_offsets[block_num])));
+    finger += sizeof(uintE);
 
-  if (start_offset < end_offset) {  // at least one edge in this block
-    uintE ngh = eatFirstEdge(finger, source);
-    W wgh = eatWeight<W>(finger);
-    bool ret = t(ngh, wgh, start_offset);
-    if (!ret) return;
-    for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
-      ngh += eatEdge(finger);
-      wgh = eatWeight<W>(finger);
-      bool ret = t(ngh, wgh, edgeID);
-      if (!ret) break;
+    if (start_offset < end_offset) {  // at least one edge in this block
+      uintE ngh = eatFirstEdge(finger, source);
+      W wgh = eatWeight<W>(finger);
+      bool ret = t(ngh, wgh, start_offset);
+      if (!ret) return;
+      for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
+        ngh += eatEdge(finger);
+        wgh = eatWeight<W>(finger);
+        bool ret = t(ngh, wgh, edgeID);
+        if (!ret) break;
+      }
     }
   }
 }
@@ -683,6 +687,7 @@ inline uintE get_num_blocks(uchar* edge_start,  uintE degree) {
 }
 
 inline uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
+  if (degree == 0) { return 0; }
   uintE virtual_degree = *((uintE*)edge_start);
   size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
   uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));

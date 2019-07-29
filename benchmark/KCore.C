@@ -56,7 +56,11 @@ double KCore_runner(G& GA, commandLine P) {
 
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = (fa) ? KCore_FA<G>(GA, num_buckets) : KCore<G>(GA, num_buckets);
+  if (P.getOptionLongValue("-k", 0) > 0) {
+    auto cores_fixed = KCore_fixed_k(GA, P.getOptionLongValue("-k", 0));
+  } else {
+    auto cores = (fa) ? KCore_FA<G>(GA, num_buckets) : KCore<G>(GA, num_buckets);
+  }
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

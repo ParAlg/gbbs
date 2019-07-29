@@ -182,17 +182,19 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
     size_t vtx_off = vertex_offs[i];
     size_t num_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
+    assert(vtx_id < n);
     par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
       size_t block_deg = (fl & in_edges)
                              ? GA.get_vertex(vtx_id).in_block_degree(j)
                              : GA.get_vertex(vtx_id).out_block_degree(j);
+      assert(block_deg <= PARALLEL_DEGREE);
       blocks[vtx_off + j] = block(i, j);  // j-th block of the i-th vertex.
       degrees[vtx_off + j] = block_deg;
     });
   });
   pbbslib::scan_add_inplace(degrees.slice(), pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
-  cout << "outEdgeCount = " << (indices.numNonzeros() + outEdgeCount) << endl;
+  cout << "outEdgeCount (blocked) = " << (indices.numNonzeros() + outEdgeCount) << endl;
 
   // 3. Compute the number of threads, binary search for offsets.
   size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
@@ -701,13 +703,17 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmapcopy = mutates || P.getOptionValue("-mc");                    \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
-    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
+          iFile, symmetric, mmap, mmapcopy);                               \ 
     run_app(G, APP, rounds)                                                \
   }
 
 //        auto GA = packed_graph<symmetricVertex, pbbs::empty>(G);                 \
-//      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(  \
-//          iFile, symmetric, mmap, mmapcopy);                               \ 
+//    auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+
+
+
+
 //    auto G = readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 
 
