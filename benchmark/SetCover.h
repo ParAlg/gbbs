@@ -64,7 +64,7 @@ struct Visit_Elms {
 // interface.
 
 template <template <class W> class vertex, class W>
-inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex, W>& G, size_t num_buckets = 512) {
+inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t num_buckets = 512) {
   auto GA = build_packed_graph(G);
   timer it; it.start();
   auto Elms = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });

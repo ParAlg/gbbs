@@ -6,30 +6,14 @@
 #include "flags.h"
 
 // block degree computable by differencing two starts.
-template <class E>
 struct vtx_info {
   uintE vtx_degree;         // vertex's (packed) degree.
   uintE vtx_num_blocks;     // number of blocks associated with v
   size_t vtx_block_offset;  // pointer into the block structure
-
-#ifndef NVM
-  E* vtx_edges;  // pointer to the original edges (prevents one random read)
-  vtx_info(uintE degree, uintE num_blocks, size_t block_offset, E* edges)
+  vtx_info(uintE degree, uintE num_blocks, size_t block_offset)
       : vtx_degree(degree),
         vtx_num_blocks(num_blocks),
-        vtx_block_offset(block_offset),
-        vtx_edges(edges) {}
-#else
-  E* vtx_edges_0; // socket 0
-  E* vtx_edges_1; // socket 0
-  vtx_info(uintE degree, uintE num_blocks, size_t block_offset, E* e0, E* e1)
-      : vtx_degree(degree),
-        vtx_num_blocks(num_blocks),
-        vtx_block_offset(block_offset),
-        vtx_edges_0(e0),
-        vtx_edges_1(e1) {}
-#endif
-
+        vtx_block_offset(block_offset) {}
 };
 
 template <template <class W> class vertex, class W>
@@ -45,7 +29,7 @@ struct sym_bitset_manager {
   uint8_t* blocks_start;
   uint8_t* block_data_start;
 
-  vtx_info<E>* v_infos;
+  vtx_info* v_infos;
 
   static constexpr uintE edges_per_block = 128;
   static constexpr uintE bytes_per_block =
@@ -61,19 +45,25 @@ struct sym_bitset_manager {
 #endif
 
   sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
-                     uintE vtx_original_degree, vtx_info<E>* v_infos)
+                     uintE vtx_original_degree, vtx_info* v_infos,
+#ifndef NVM
+                     E* e0
+#else
+                     E* e0, E* e1
+#endif
+                     )
       : vtx_id(vtx_id),
         vtx_original_degree(vtx_original_degree),
-        v_infos(v_infos) {
+        v_infos(v_infos),
+#ifndef NVM
+        e0(e0)
+#else
+        e0(e0), e1(e1)
+#endif
+        {
     auto& v_info = v_infos[vtx_id];
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
-#ifndef NVM
-    e0 = v_info.vtx_edges;
-#else
-    e0 = v_info.vtx_edges_0;
-    e1 = v_info.vtx_edges_1;
-#endif
 
     blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
@@ -638,7 +628,7 @@ struct compressed_sym_bitset_manager {
   static constexpr uintE kFullBlockPackThreshold = 4;
   static constexpr uintE kBlockAllocThreshold = 50;
 
-  vtx_info<E>* v_infos;
+  vtx_info* v_infos;
 
   static constexpr uintE edges_per_block = PARALLEL_DEGREE;
   static constexpr uintE bytes_per_block = edges_per_block / 8 + sizeof(metadata);
@@ -651,20 +641,25 @@ struct compressed_sym_bitset_manager {
 #endif
 
   compressed_sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
-                                uintE vtx_original_degree, vtx_info<E>* v_infos)
+                                uintE vtx_original_degree, vtx_info* v_infos,
+#ifndef NVM
+                     E* e0
+#else
+                     E* e0, E* e1
+#endif
+                                )
       : vtx_id(vtx_id),
       vtx_original_degree(vtx_original_degree),
-      v_infos(v_infos) {
+      v_infos(v_infos),
+#ifndef NVM
+        e0(e0)
+#else
+        e0(e0), e1(e1)
+#endif
+  {
     auto& v_info = v_infos[vtx_id];
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
-#ifndef NVM
-    e0 = v_info.vtx_edges;
-#else
-    e0 = v_info.vtx_edges_0;
-    e1 = v_info.vtx_edges_1;
-#endif
-
 
     blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));

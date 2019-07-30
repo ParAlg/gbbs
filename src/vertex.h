@@ -437,7 +437,6 @@ struct symmetricVertex {
     neighbors = e + vtx_data.offset;
     degree = vtx_data.degree;
   }
-  void clear() { pbbslib::free_array(neighbors); }
 
   std::tuple<uintE, W>* getInNeighbors() { return neighbors; }
   std::tuple<uintE, W>* getOutNeighbors() { return neighbors; }
@@ -668,19 +667,16 @@ struct symmetricVertex {
 
 template <class W>
 struct asymmetricVertex {
-  std::tuple<uintE, W>*inNeighbors, *outNeighbors;
+  using E = std::tuple<uintE, W>;
+  E *inNeighbors, *outNeighbors;
   uintE inDegree;
   uintE outDegree;
-  void clear() {
-    pbbslib::free_array(inNeighbors);
-    pbbslib::free_array(outNeighbors);
-  }
-  asymmetricVertex(std::tuple<uintE, W>* iN, std::tuple<uintE, W>* oN, uintE id,
+  asymmetricVertex(E* iN, E* oN, uintE id,
                    uintE od)
       : inNeighbors(iN), outNeighbors(oN), inDegree(id), outDegree(od) {}
 
-  std::tuple<uintE, W>* getInNeighbors() { return inNeighbors; }
-  std::tuple<uintE, W>* getOutNeighbors() { return outNeighbors; }
+  E* getInNeighbors() { return inNeighbors; }
+  E* getOutNeighbors() { return outNeighbors; }
   uintE getInNeighbor(uintE j) { return std::get<0>(inNeighbors[j]); }
   uintE getOutNeighbor(uintE j) { return std::get<0>(outNeighbors[j]); }
   W getInWeight(uintE j) { return std::get<1>(inNeighbors[j]); }

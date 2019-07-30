@@ -61,6 +61,9 @@ struct symmetric_graph {
 
 #ifndef NVM
   w_vertex get_vertex(size_t i) {
+    if (i == 828111487) {
+      cout << "offset 828111487 = " << V[i].offset << endl;
+    }
     return w_vertex(V[i], e0);
   }
 #else
@@ -93,6 +96,42 @@ symmetric_graph(vertex_data* V, size_t n, size_t m, std::function<void()> _d,
             [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); });
   }
 };
+
+template <template <class W> class vertex, class W>
+struct asymmetric_graph {
+  using w_vertex = vertex<W>;
+  using weight_type = W;
+  using E = typename w_vertex::E;
+
+  w_vertex* V;
+
+  size_t n;
+  size_t m;
+  std::function<void()> deletion_fn;
+
+  w_vertex get_vertex(size_t i) {
+    return V[i];
+  }
+
+  asymmetric_graph(w_vertex* V, size_t n, size_t m, std::function<void()> _d)
+      : V(V),
+        n(n),
+        m(m),
+        deletion_fn(_d) {
+  }
+
+  void del() {
+    deletion_fn();
+  }
+
+  template <class F>
+  void map_edges(F f, bool parallel_inner_map = true) {
+    par_for(0, n, 1,
+            [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); });
+  }
+};
+
+
 
 inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
   auto df = [&](void* V, void* edges) {

@@ -156,7 +156,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       v[i].setInNeighbors(nullptr);
     }
   });
-  auto Tree = graph<asymmetricVertex, pbbslib::empty>(v, n, nghs.size(), []() {});
+  auto Tree = asymmetric_graph<asymmetricVertex, pbbslib::empty>(v, n, nghs.size(), []() {});
 
   // 1. Leaffix for Augmented Sizes
   auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });

@@ -260,7 +260,7 @@ struct packed_graph {
   using E = typename vertex<W>::E;
   using weight_type = W;
 
-  vtx_info<E>* VI;
+  vtx_info* VI;
   uint8_t* blocks;
 
   size_t bs;
@@ -284,25 +284,20 @@ struct packed_graph {
 
     // allocate blocks
     blocks = pbbs::new_array_no_init<uint8_t>(block_mem_to_alloc);
-    VI = pbbs::new_array_no_init<vtx_info<E>>(n);
-    cout << "sizeof(vtx_info) = " << (sizeof(vtx_info<E>)) << " total vtx_info bytes = " << (n*sizeof(vtx_info<E>)) << endl;
+    VI = pbbs::new_array_no_init<vtx_info>(n);
+    cout << "sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << endl;
 
     // initialize blocks and vtx_info
     parallel_for(
         0, n,
         [&](size_t v) {
           uintE degree = GA.get_vertex(v).getOutDegree();
-          E* edges = GA.get_vertex(v).getOutNeighbors();
           size_t block_byte_offset = block_bytes_offs[v];
           size_t vtx_bytes = block_bytes_offs[v + 1] - block_byte_offset;
 
           size_t num_blocks = pbbs::num_blocks(degree, bs);
           // set vertex_info for v
-#ifndef NVM
-          VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, edges);
-#else
-          VI[v] = vtx_info<E>(degree, num_blocks, block_byte_offset, GA.V0[v].getOutNeighbors(), GA.V1[v].getOutNeighbors());
-#endif
+          VI[v] = vtx_info(degree, num_blocks, block_byte_offset);
 
           // initialize blocks corresponding to v's neighbors
           uint8_t* our_block_start = blocks + block_byte_offset;
@@ -351,8 +346,14 @@ struct packed_graph {
           int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = sym_bitset_manager<vertex, W>;
-    uintE original_degree = GA.get_vertex(v).getOutDegree();
-    auto sym_blocks = block_manager(v, blocks, original_degree, VI);
+    auto vtx_data = GA.V[v];
+    uintE original_degree = vtx_data.degree;
+    uintE offset = vtx_data.offset;
+#ifndef NVM
+    auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset);
+#else
+    auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset, GA.e1 + offset);
+#endif
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 
@@ -364,8 +365,14 @@ struct packed_graph {
                 int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = compressed_sym_bitset_manager<vertex, W>;
-    uintE original_degree = GA.get_vertex(v).getOutDegree();
-    auto sym_blocks = block_manager(v, blocks, original_degree, VI);
+    auto vtx_data = GA.V[v];
+    uintE original_degree = vtx_data.degree;
+    size_t offset = vtx_data.offset;
+#ifndef NVM
+    auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset);
+#else
+    auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset, GA.e1 + offset);
+#endif
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
 

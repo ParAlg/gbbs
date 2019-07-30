@@ -294,6 +294,7 @@ inline symmetric_graph<vertex, pbbslib::empty> readUnweightedGraph(
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using W = pbbslib::empty;
   using wvtx = vertex<W>;
+  using E = typename wvtx::E;
   sequence<char*> tokens;
   sequence<char> S;
 
@@ -394,7 +395,7 @@ inline symmetric_graph<vertex, pbbslib::empty> readUnweightedGraph(
 //    return graph<vertex, W>(v, n, m, get_deletion_fn(v, inEdges, edges));
 //  } else {
     pbbslib::free_array(offsets);
-    return symmetric_graph<vertex, W>(V, n, m, get_deletion_fn(V, edges), edges);
+    return symmetric_graph<vertex, W>(V, n, m, get_deletion_fn(V, edges), (E*)edges);
 //  }
 }
 
@@ -487,11 +488,15 @@ inline symmetric_graph<vertex, W> readCompressedGraph(
 #else
   // TODO(laxmand): there has to be a cleaner way to do this.
   std::pair<char*, size_t> S0 =
-      pmem_from_file("/mnt/pmem12/clueweb_sym.bytepda");
+//      pmem_from_file("/mnt/pmem12/clueweb_sym.bytepda");
+      pmem_from_file("/mnt/pmem0/clueweb_sym.256.bytepda");
+//      pmem_from_file("/mnt/pmem0/hyperlink2012_sym.bytepda");
   char* s0 = S0.first;
 
   std::pair<char*, size_t> S1 =
-      pmem_from_file("/mnt/pmem13/clueweb_sym.bytepda");
+//      pmem_from_file("/mnt/pmem13/clueweb_sym.bytepda");
+      pmem_from_file("/mnt/pmem1/clueweb_sym.256.bytepda");
+//      pmem_from_file("/mnt/pmem1/hyperlink2012_sym.bytepda");
   char* s1 = S1.first;
 #endif
 
@@ -535,7 +540,149 @@ inline symmetric_graph<vertex, W> readCompressedGraph(
 #ifndef NVM
   symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges0);
 #else
-  symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges, edges1);
+  symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges0, edges1);
+#endif
+  return G;
+}
+
+// Handles both unweighted and weighted graphs.
+template <template <typename W> class vertex, class W>
+inline symmetric_graph<vertex, W> readUncompressedBinaryGraph(
+    char* fname, bool isSymmetric, bool mmap, bool mmapcopy,
+    char* bytes = nullptr,
+    size_t bytes_size = std::numeric_limits<size_t>::max()) {
+
+#ifndef NVM
+  char* s;
+  if (bytes == nullptr) {
+    if (mmap) {
+      std::pair<char*, size_t> S = mmapStringFromFile(fname);
+      s = S.first;
+      if (mmapcopy) {
+        debug(std::cout << "Copying compressed graph"
+                        << "\n";);
+        // Cannot mutate graph unless we copy.
+        char* bytes = pbbslib::new_array_no_init<char>(S.second);
+        par_for(0, S.second, pbbslib::kSequentialForThreshold,
+                [&](size_t i) { bytes[i] = S.first[i]; });
+        if (munmap(S.first, S.second) == -1) {
+          perror("munmap");
+          exit(-1);
+        }
+        s = bytes;
+      } else {
+        compressed_mmap_bytes = S.first;
+        compressed_mmap_bytes_size = S.second;
+      }
+    } else {  // read file using O_DIRECT
+      int fd;
+      if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
+        debug(std::cout << "input opened!"
+                        << "\n";);
+      } else {
+        std::cout << "can't open input file!";
+      }
+      //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
+
+      size_t fsize = lseek(fd, 0, SEEK_END);
+      lseek(fd, 0, 0);
+      s = (char*)memalign(4096 * 2, fsize + 4096);
+
+      debug(std::cout << "fsize = " << fsize << "\n";);
+
+      size_t sz = 0;
+
+      size_t pgsize = getpagesize();
+      debug(std::cout << "pgsize = " << pgsize << "\n";);
+
+      size_t read_size = 1024 * 1024 * 1024;
+      if (sz + read_size > fsize) {
+        size_t k = std::ceil((fsize - sz) / pgsize);
+        read_size = std::max(k * pgsize, pgsize);
+        debug(std::cout << "set read size to: " << read_size << " "
+                        << (fsize - sz) << " bytes left"
+                        << "\n";);
+      }
+
+      while (sz + read_size < fsize) {
+        void* buf = s + sz;
+        debug(std::cout << "reading: " << read_size << "\n";);
+        sz += read(fd, buf, read_size);
+        debug(std::cout << "read: " << sz << " bytes"
+                        << "\n";);
+        if (sz + read_size > fsize) {
+          size_t k = std::ceil((fsize - sz) / pgsize);
+          read_size = std::max(k * pgsize, pgsize);
+          debug(std::cout << "set read size to: " << read_size << " "
+                          << (fsize - sz) << " bytes left"
+                          << "\n";);
+        }
+      }
+      if (sz < fsize) {
+        debug(std::cout << "last read: rem = " << (fsize - sz) << "\n";);
+        void* buf = s + sz;
+        sz += read(fd, buf, pgsize);
+        debug(std::cout << "read " << sz << " bytes "
+                        << "\n";);
+      }
+      close(fd);
+    }
+  } else {
+    s = bytes;
+  }
+  char* s0 = s;
+#else
+  // TODO(laxmand): there has to be a cleaner way to do this.
+  std::pair<char*, size_t> S0 =
+      pmem_from_file("/mnt/pmem12/clueweb_sym.binary");
+  char* s0 = S0.first;
+
+  std::pair<char*, size_t> S1 =
+      pmem_from_file("/mnt/pmem13/clueweb_sym.binary");
+  char* s1 = S1.first;
+#endif
+
+  long* sizes = (long*)s0;
+  uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
+
+  debug(std::cout << "n = " << n << " m = " << m
+                  << " totalSpace = " << totalSpace << "\n";
+        std::cout << "reading file..."
+                  << "\n";);
+
+  using edge_type = std::tuple<uintE, W>;
+
+  uintT* offsets0 = (uintT*)(s0 + 3 * sizeof(long));
+  uint64_t skip0 = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+  edge_type* edges0 = (edge_type*)(s0 + skip0);
+
+  vertex_data* V = pbbslib::new_array_no_init<vertex_data>(n);
+
+#ifdef NVM
+  uintT* offsets1 = (uintT*)(s1 + 3 * sizeof(long));
+  uint64_t skip1 = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+  edge_type* edges1 = (edge_type*)(s1 + skip1);
+#endif
+
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
+    uint64_t o = offsets0[i];
+    uint64_t next_o = offsets0[i+1];
+    uintT d = next_o - o;
+    V[i].degree = d;
+    V[i].offset = o;
+  });
+  auto deletion_fn = get_deletion_fn(V, s0);
+  if (mmap && !mmapcopy) {
+    deletion_fn = [V]() {
+      pbbslib::free_array(V);
+      unmmap_if_needed();
+    };
+  }
+
+#ifndef NVM
+  symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges0);
+#else
+  symmetric_graph<vertex, W> G(V, n, m, deletion_fn, edges0, edges1);
 #endif
   return G;
 }
