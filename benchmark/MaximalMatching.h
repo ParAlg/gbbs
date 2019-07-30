@@ -135,7 +135,7 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
       return key_for_pair(std::get<0>(k), std::get<1>(k), pbbs::random());
     };
     auto empty = std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbs::empty());
-    auto tab = make_sparse_table(1.5*k, empty, key_hash);
+    auto tab = make_sparse_table(2*k, empty, key_hash);
 
     size_t range = (1L << pbbslib::log2_up(edges_remaining)) - 1;
     // edges_remaining edges going into [0, pbbslib::log2_up(edges_remaining))
