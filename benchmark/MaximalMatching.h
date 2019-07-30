@@ -26,12 +26,21 @@
 #include "speculative_for.h"
 
 #include "pbbslib/dyn_arr.h"
+#include "pbbslib/sparse_table.h"
 
 namespace mm {
 
   constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
   constexpr uintE VAL_MASK = INT_E_MAX;
   constexpr size_t n_filter_steps = 5;
+
+inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
+inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
+  size_t l = std::min(k1, k2);
+  size_t r = std::max(k1, k2);
+  size_t key = (l << 32) + r;
+  return rnd.ith_rand(key);
+}
 
   struct matchStep {
     using edge = std::tuple<uintE, uintE, pbbs::empty>;
@@ -118,32 +127,63 @@ namespace mm {
     using edge = std::tuple<uintE, uintE, pbbs::empty>;
     size_t n = GA.n;
 
-    auto vtx_degs = sequence<size_t>(n);
-    parallel_for(0, n, [&] (size_t i) {
-      vtx_degs[i] = GA.get_vertex(i).getOutDegree();
-    }, 1024);
+    size_t edges_remaining = GA.m;
 
-    size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
+    using K = std::tuple<uintE, uintE>;
+    using V = pbbs::empty;
+    auto key_hash = [&] (const K& k) -> size_t {
+      return key_for_pair(std::get<0>(k), std::get<1>(k), pbbs::random());
+    };
+    auto empty = std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbs::empty());
+    auto tab = make_sparse_table(1.5*k, empty, key_hash);
 
-    auto eout = sequence<edge>(k);
-    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-    parallel_for(0, k, [&] (size_t i) {
-      size_t edge_id = r.ith_rand(i) % m;
-      size_t vtx_id = pbbs::binary_search(vtx_degs, edge_id, lte) - 1;
-      auto vtx = GA.get_vertex(vtx_id);
-      size_t vtx_pos = vtx_degs[vtx_id];
-      assert(edge_id >= vtx_pos); // >?
-      auto eg = vtx.get_ith_out_neighbor(vtx_id, edge_id-vtx_pos);
-      assert(!matched[vtx_id]);
-      assert(!matched[std::get<0>(eg)]);
-      eout[i] = std::make_tuple(vtx_id, std::get<0>(eg), pbbs::empty());
-    }, 512);
+    size_t range = (1L << pbbslib::log2_up(edges_remaining)) - 1;
+    // edges_remaining edges going into [0, pbbslib::log2_up(edges_remaining))
+    // we want ~k edges, meaning we scale k by the same factor
+
+    double scale = double(range) / edges_remaining; // 2 >= scale > 1
+    assert(k > 1);
+    size_t scaled_k = (k * scale);
+
+    double frac_to_take = double(scaled_k) / double(range);
+    size_t threshold = frac_to_take * range;
+
+    auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
+      if (hash_to_range(key_for_pair(src, ngh, r), range) < threshold) {
+        auto kv = std::make_tuple(std::make_tuple(src, ngh), pbbs::empty());
+        tab.insert(kv);
+      }
+    };
+    GA.map_edges(map_f);
+
+    auto ee = tab.entries();
+
+//    auto vtx_degs = sequence<size_t>(n);
+//    parallel_for(0, n, [&] (size_t i) {
+//      vtx_degs[i] = GA.get_vertex(i).getOutDegree();
+//    }, 1024);
+//
+//    size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
+//
+//    auto eout = sequence<edge>(k);
+//    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
+//    parallel_for(0, k, [&] (size_t i) {
+//      size_t edge_id = r.ith_rand(i) % m;
+//      size_t vtx_id = pbbs::binary_search(vtx_degs, edge_id, lte) - 1;
+//      auto vtx = GA.get_vertex(vtx_id);
+//      size_t vtx_pos = vtx_degs[vtx_id];
+//      assert(edge_id >= vtx_pos); // >?
+//      auto eg = vtx.get_ith_out_neighbor(vtx_id, edge_id-vtx_pos);
+//      assert(!matched[vtx_id]);
+//      assert(!matched[std::get<0>(eg)]);
+//      eout[i] = std::make_tuple(vtx_id, std::get<0>(eg), pbbs::empty());
+//    }, 512);
 
     edge_array<pbbs::empty> e_arr;
     e_arr.num_rows = GA.n;
     e_arr.num_cols = GA.n;
-    e_arr.non_zeros = eout.size();
-    e_arr.E = eout.to_array();
+    e_arr.non_zeros = ee.size();
+    e_arr.E = (std::tuple<uintE, uintE, pbbs::empty>*)ee.to_array();
     return e_arr;
   }
 
