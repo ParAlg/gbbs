@@ -30,8 +30,6 @@
 
 namespace mm {
 
-  constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
-  constexpr uintE VAL_MASK = INT_E_MAX;
   constexpr size_t n_filter_steps = 5;
 
 inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
@@ -62,17 +60,16 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
       uintE u = std::get<0>(E[i]);
       uintE v = std::get<1>(E[i]);
       if (R[v] == i) {
-        R[v] = UINT_E_MAX;
+        R[v] = UINT_E_MAX; // reset
         if (R[u] == i) {
           matched[u] = matched[v] = 1;
-          R[u] = UINT_E_MAX;
-          // mark edge
-          E[i] = std::make_tuple(std::get<0>(E[i]) |= TOP_BIT, std::get<1>(E[i]),
-                                 std::get<2>(E[i]));
+          // mark edge in both directions
+          R[u] = v;
+          R[v] = u;
           return 1;
         }
       } else if (R[u] == i)
-        R[u] = UINT_E_MAX;
+        R[u] = UINT_E_MAX; // reset
       return 0;
     }
   };
@@ -158,27 +155,6 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
 
     auto ee = tab.entries();
 
-//    auto vtx_degs = sequence<size_t>(n);
-//    parallel_for(0, n, [&] (size_t i) {
-//      vtx_degs[i] = GA.get_vertex(i).getOutDegree();
-//    }, 1024);
-//
-//    size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());
-//
-//    auto eout = sequence<edge>(k);
-//    auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
-//    parallel_for(0, k, [&] (size_t i) {
-//      size_t edge_id = r.ith_rand(i) % m;
-//      size_t vtx_id = pbbs::binary_search(vtx_degs, edge_id, lte) - 1;
-//      auto vtx = GA.get_vertex(vtx_id);
-//      size_t vtx_pos = vtx_degs[vtx_id];
-//      assert(edge_id >= vtx_pos); // >?
-//      auto eg = vtx.get_ith_out_neighbor(vtx_id, edge_id-vtx_pos);
-//      assert(!matched[vtx_id]);
-//      assert(!matched[std::get<0>(eg)]);
-//      eout[i] = std::make_tuple(vtx_id, std::get<0>(eg), pbbs::empty());
-//    }, 512);
-
     edge_array<pbbs::empty> e_arr;
     e_arr.num_rows = GA.n;
     e_arr.num_cols = GA.n;
@@ -209,11 +185,10 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
   size_t n = GA.n;
   auto r = pbbslib::random();
 
-  auto R = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
+  auto matching = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
   auto matched = sequence<bool>(n, [&](size_t i) { return false; }); // bitvector
 
   size_t k = GA.n; // ((3 * GA.n) / 2);
-  auto matching = pbbslib::dyn_arr<edge>(n);
 
   size_t round = 0;
   timer gete;
@@ -230,35 +205,22 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
 
     std::cout << "Got: " << e_arr.non_zeros << " edges "
               << " PG.m is now: " << PG.m << "\n";
-    mm::matchStep mStep(e_arr.E, R.begin(), matched.begin());
+    mm::matchStep mStep(e_arr.E, matching.begin(), matched.begin()); /* use matching as R */
     eff.start();
-    eff_for<uintE>(mStep, 0, e_arr.non_zeros, 50, 0, PG.n);
+    eff_for<size_t>(mStep, 0, e_arr.non_zeros, 50, 0, PG.n);
     eff.stop();
 
-    auto e_added =
-        pbbslib::filter(eim, [](edge e) { return std::get<0>(e) & mm::TOP_BIT; });
-    cout << "added = " << e_added.size() << endl;
-
-    auto sizes = sequence<size_t>(e_added.size());
-    par_for(0, e_added.size(), [&] (size_t i) {
-                      const auto& e = e_added[i];
-                      uintE u = std::get<0>(e) & mm::VAL_MASK;
-                      uintE v = std::get<1>(e) & mm::VAL_MASK;
-                      auto vtx_u = PG.get_vertex(u);
-                      auto vtx_v = PG.get_vertex(v);
-                      uintE deg_u = vtx_u.getOutDegree();
-                      uintE deg_v = vtx_v.getOutDegree();
-                      vtx_u.clear_vertex();
-                      vtx_v.clear_vertex();
-
-                      sizes[i] = deg_u + deg_v;
-                    });
-    size_t total_size = pbbslib::reduce_add(sizes);
-    PG.m -= total_size;
-    std::cout << "removed: " << total_size << " many edges"
-              << "\n";
-
-    matching.copyIn(e_added, e_added.size());
+    auto removed_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
+      if (matching[i] != UINT_E_MAX) {
+        size_t deg =  PG.getOutDegree(i);
+        PG.get_vertex(i).clear_vertex();
+        return deg;
+      }
+      return static_cast<size_t>(0);
+    });
+    size_t deg_removed = pbbslib::reduce_add(removed_seq);
+    PG.m -= deg_removed;
+    std::cout << "removed: " << deg_removed << " many edges" << "\n";
 
     // TODO: pack out
     auto pack_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -271,13 +233,23 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
     round++;
     r = r.next();
   }
-  std::cout << "matching size = " << matching.size << "\n";
-  auto ret = sequence<edge>(matching.A, matching.size); // allocated
+
+  auto matching_seq = pbbs::delayed_seq<std::tuple<uintE, uintE, pbbs::empty>>(n, [&] (size_t i) {
+    return std::make_tuple(i, matching[i], pbbs::empty());
+  });
+  auto matching_filter = [&] (const std::tuple<uintE, uintE, pbbs::empty>& edge) {
+    uintE u = std::get<0>(edge);
+    uintE v = std::get<1>(edge);
+    return (v != UINT_E_MAX) && (u < v);
+  };
+
+  auto ret = pbbs::filter(matching_seq, matching_filter);
   mt.stop();
   eff.reportTotal("eff for time");
   gete.reportTotal("get edges time");
   mt.reportTotal("Matching time");
   PG.del();
+  std::cout << "matching size = " << ret.size() << "\n";
   return std::move(ret);
 }
 
@@ -291,8 +263,8 @@ inline void verify_matching(G& GA, Seq& matching) {
   // Check that this is a valid matching
   par_for(0, matching.size(), [&] (size_t i) {
                     const auto& edge = matching[i];
-                    uintE u = std::get<0>(edge) & mm::VAL_MASK;
-                    uintE v = std::get<1>(edge) & mm::VAL_MASK;
+                    uintE u = std::get<0>(edge);
+                    uintE v = std::get<1>(edge);
                     pbbslib::write_add(&matched[u], 1);
                     pbbslib::write_add(&matched[v], 1);
                   });

@@ -411,11 +411,14 @@ packed_graph<vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred_f) {
   auto GA = packed_graph<vertex, W>(G);
   {
     parallel_for(0, G.n, [&] (size_t v) {
-      GA.get_vertex(v).packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+      auto vtx = GA.get_vertex(v);
+      if (vtx.getOutDegree() > 0) {
+        vtx.packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+      }
     }, 1);
   }
   auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
-    return GA.get_vertex(i).getOutDegree();
+    return GA.getOutDegree(i);
   });
   auto new_m = pbbslib::reduce_add(degree_seq);
   GA.m = new_m;
@@ -428,11 +431,14 @@ void filter_graph(packed_graph<vertex, W>& GA, P& pred_f) {
   // TODO: do allocations, but in a (medium) constant number of allocations.
   {
     parallel_for(0, GA.n, [&] (size_t v) {
-      GA.get_vertex(v).packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+      auto vtx = GA.get_vertex(v);
+      if (vtx.getOutDegree() > 0) {
+        vtx.packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+      }
     }, 1);
   }
   auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
-    return GA.get_vertex(i).getOutDegree();
+    return GA.getOutDegree(i);
   });
   auto new_m = pbbslib::reduce_add(degree_seq);
   GA.m = new_m;

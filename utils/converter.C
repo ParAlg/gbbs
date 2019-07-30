@@ -384,6 +384,7 @@ namespace bytepd_amortized {
       });
       out.write((char*)edges,n_bytes); //write edges
       cout << "finished writing vertices " << start << " to " << end << endl;
+      pbbs::free_array(edges);
     }
 ////    parallel_for (0, n, [&] (size_t i) {
 //      uintE deg = degrees[i];
