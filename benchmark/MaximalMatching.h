@@ -93,7 +93,7 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
 
     auto vtx_degs = sequence<size_t>(live_vtxs.size());
     parallel_for(0, live_vtxs.size(), [&] (size_t i) {
-      vtx_degs[i] = GA.get_vertex(live_vtxs[i]).getOutDegree();
+      vtx_degs[i] = GA.getOutDegree(live_vtxs[i]);
     }, 1024);
 
     size_t m = pbbslib::scan_add_inplace(vtx_degs.slice());

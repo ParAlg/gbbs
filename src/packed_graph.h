@@ -338,6 +338,14 @@ struct packed_graph {
     init_block_memory();
   }
 
+  inline size_t getOutDegree(uintE v) {
+    return VI[v].vtx_degree;
+  }
+
+  inline size_t getInDegree(uintE v) {
+    return getOutDegree();
+  }
+
   // Symmetric: get_vertex
   template <
       bool bool_enable = true,
