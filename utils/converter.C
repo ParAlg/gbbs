@@ -221,7 +221,7 @@ namespace bytepd_amortized {
   }
 
   template <template <class W> class vertex, class W>
-  void write_graph_bytepd_amortized_format(symmetric_graph<vertex, W>& GA, ofstream& out, bool symmetric) {
+  void write_graph_bytepd_amortized_format(symmetric_graph<vertex, W>& GA, ofstream& out, bool symmetric, size_t n_batches = 6) {
     if (!symmetric) {
       write_graph_bytepd_amortized_directed(GA, out);
       return;
@@ -343,66 +343,61 @@ namespace bytepd_amortized {
     auto deg_im = pbbs::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
     cout << "sum degs = " << pbbslib::reduce_add(deg_im) << endl;
 
+    long* sizes = pbbs::new_array_no_init<long>(3);
+    sizes[0] = GA.n;
+    sizes[1] = GA.m;
+    sizes[2] = total_space;
+    out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
+    out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+    out.write((char*)degrees.begin(),sizeof(uintE)*n);
+
+
+
     // 2. Create compressed format in-memory
-    auto edges = pbbs::sequence<uchar>(total_space);
-    parallel_for (0, n, [&] (size_t i) {
-      uintE deg = degrees[i];
-      if (deg > 0) {
-        auto it = GA.get_vertex(i).getOutIter(i);
-        long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
 
-//        uchar* edgeArray = edges.begin() + byte_offsets[i];
-//        size_t degree = deg;
-//
-//        size_t current_offset = 0;
-//        size_t num_blocks = 1+(degree-1)/PAR_DEGREE_TWO;
-//        uintE* vertex_ctr = (uintE*)edgeArray;
-//        *vertex_ctr = degree;
-//
-//        uintE* block_offsets = (uintE*)(edgeArray + sizeof(uintE));
-//        current_offset += sizeof(uintE) + (num_blocks-1)*sizeof(uintE); // virtual deg + block_offs
-//
-//        size_t proc = 0;
-//        size_t cur_block = 0;
-//        uintE* prev_block_deg = nullptr;
-//        uintE last_ngh;
-//        auto map_f = [&] (uintE u, uintE v, W w) {
-//          if ((proc % PAR_DEGREE_TWO) == 0) {
-//            if (cur_block > 0) {
-//              assert(*prev_block_deg == 0);
-//              *prev_block_deg = PAR_DEGREE_TWO; // full block; write prev block's degree
-//              block_offsets[cur_block-1] = current_offset; // write start of this block
-//            }
-//            prev_block_deg = (uintE*)(edgeArray + current_offset);
-//            *prev_block_deg = 0;
-//            current_offset += sizeof(uintE);
-//            current_offset = compressFirstEdge(edgeArray, current_offset, u, v);
-//            current_offset = compressWeight<W>(edgeArray, current_offset, w);
-//            cur_block++;
-//          } else {
-//            current_offset = compressEdge(edgeArray, current_offset, v - last_ngh);
-//            current_offset = compressWeight<W>(edgeArray, current_offset, w);
-//          }
-//          last_ngh = v;
-//          proc++;
-//        };
-//
-//        GA.V[i].mapOutNgh(i, map_f, false);
-//
-//        assert(prev_block_deg != nullptr);
-//        assert(*prev_block_deg == 0);
-//        *prev_block_deg = deg % PAR_DEGREE_TWO;
-//
-//        assert(current_offset == (byte_offsets[i+1] - byte_offsets[i]));
+    size_t bs = pbbs::num_blocks(n, n_batches);
 
-        if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
-          cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << endl;
-          exit(0);
+    for (size_t i=0; i<bs; i++) {
+      size_t start = i*bs;
+      size_t end = std::min(start+bs, n);
+      if (start >= end) break;
+      cout << "writing vertices " << start << " to " << end << endl;
+
+      // create slab of graph and write out
+      size_t start_offset = byte_offsets[start];
+      size_t end_offset = byte_offsets[end];
+      size_t n_bytes = end_offset - start_offset;
+      uchar* edges = pbbs::new_array_no_init<uchar>(n_bytes);
+      parallel_for(start, end, [&] (size_t i) {
+        size_t our_offset = byte_offsets[i] - start_offset;
+        uintE deg = degrees[i];
+        if (deg > 0) {
+          auto it = GA.get_vertex(i).getOutIter(i);
+          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+
+          if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
+            cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << endl;
+            exit(0);
+          }
+          assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
         }
-        assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
-      }
-    }, 1);
-    cout << "Compressed" << endl;
+      });
+      out.write((char*)edges,n_bytes); //write edges
+      cout << "finished writing vertices " << start << " to " << end << endl;
+    }
+////    parallel_for (0, n, [&] (size_t i) {
+//      uintE deg = degrees[i];
+//      if (deg > 0) {
+//        auto it = GA.get_vertex(i).getOutIter(i);
+//        long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+//
+//        if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
+//          cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << endl;
+//          exit(0);
+//        }
+//        assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+//      }
+//    }, 1);
 //    exit(0);
 
 //    parallel_for(size_t i=0; i<n; i++) {
@@ -449,14 +444,6 @@ namespace bytepd_amortized {
 
 //    exit(0);
 
-    long* sizes = pbbs::new_array_no_init<long>(3);
-    sizes[0] = GA.n;
-    sizes[1] = GA.m;
-    sizes[2] = total_space;
-    out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
-    out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
-    out.write((char*)degrees.begin(),sizeof(uintE)*n);
-    out.write((char*)edges.begin(),total_space); //write edges
     out.close();
   }
 }; // namespace bytepd_amortized

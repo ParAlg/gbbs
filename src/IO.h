@@ -489,14 +489,14 @@ inline symmetric_graph<vertex, W> readCompressedGraph(
   // TODO(laxmand): there has to be a cleaner way to do this.
   std::pair<char*, size_t> S0 =
 //      pmem_from_file("/mnt/pmem12/clueweb_sym.bytepda");
-      pmem_from_file("/mnt/pmem0/clueweb_sym.256.bytepda");
-//      pmem_from_file("/mnt/pmem0/hyperlink2012_sym.bytepda");
+//      pmem_from_file("/mnt/pmem0/clueweb_sym.256.bytepda");
+      pmem_from_file("/mnt/pmem0/hyperlink2012_sym.bytepda");
   char* s0 = S0.first;
 
   std::pair<char*, size_t> S1 =
 //      pmem_from_file("/mnt/pmem13/clueweb_sym.bytepda");
-      pmem_from_file("/mnt/pmem1/clueweb_sym.256.bytepda");
-//      pmem_from_file("/mnt/pmem1/hyperlink2012_sym.bytepda");
+//      pmem_from_file("/mnt/pmem1/clueweb_sym.256.bytepda");
+      pmem_from_file("/mnt/pmem1/hyperlink2012_sym.bytepda");
   char* s1 = S1.first;
 #endif
 
