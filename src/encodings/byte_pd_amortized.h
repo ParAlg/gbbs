@@ -681,6 +681,9 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 }
 
 inline uintE get_num_blocks(uchar* edge_start,  uintE degree) {
+  if (degree == 0) {
+    return 0;
+  }
   uintE virtual_degree = *((uintE*)edge_start);
   size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
   return num_blocks;

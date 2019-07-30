@@ -209,6 +209,7 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
     eff.start();
     eff_for<size_t>(mStep, 0, e_arr.non_zeros, 50, 0, PG.n);
     eff.stop();
+    e_arr.del();
 
     auto removed_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
       if (matching[i] != UINT_E_MAX) {

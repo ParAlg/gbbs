@@ -545,8 +545,8 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA, char* out_f = 0) {
 //  auto Sources_copy = Sources.copy(Sources);
   auto Sources_copy = Sources; // Use copy constructor
   auto Centers = vertexSubset(n, Sources_copy.size(), Sources.to_array());
-  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
-//  auto Parents = multi_bfs(GA, Centers);
+//  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
+  auto Parents = multi_bfs(GA, Centers);
   sc.stop();
   debug(sc.reportTotal("sc, multibfs time"););
 
