@@ -31,7 +31,7 @@ struct sym_bitset_manager {
 
   vtx_info* v_infos;
 
-  static constexpr uintE edges_per_block = 128;
+  static constexpr uintE edges_per_block = 256;
   static constexpr uintE bytes_per_block =
       edges_per_block / 8 + sizeof(metadata);
   static constexpr uintE bitset_bytes_per_block =

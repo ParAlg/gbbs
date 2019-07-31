@@ -63,22 +63,25 @@ class concurrent_stack {
       if (n == NULL) return 0;
       else return n->length;
     }
-      
+
   public:
     prim_concurrent_stack() {
       head.NC.node = NULL;
       head.NC.counter = 0;
+      std::atomic_thread_fence(std::memory_order_seq_cst);
     }
 
-    size_t size() {return length(head.NC.node);}
-      
+    size_t size() {
+      return length(head.NC.node);}
+
     void push(Node* newNode){
       CAS_t oldHead, newHead;
       do {
 	oldHead = head;
 	newNode->next = oldHead.NC.node;
 	newNode->length = length(oldHead.NC.node) + 1;
-	std::atomic_thread_fence(std::memory_order_release);
+	//std::atomic_thread_fence(std::memory_order_release);
+	std::atomic_thread_fence(std::memory_order_seq_cst);
 	newHead.NC.node = newNode;
 	newHead.NC.counter = oldHead.NC.counter + 1;
       } while (!__sync_bool_compare_and_swap_16(&head.x,oldHead.x, newHead.x));
@@ -104,7 +107,7 @@ class concurrent_stack {
  public:
 
   size_t size() { return a.size();}
-  
+
   void push(T v) {
     Node* x = b.pop();
     if (!x) x = (Node*) malloc(sizeof(Node));

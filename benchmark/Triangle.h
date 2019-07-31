@@ -72,17 +72,39 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
             << "\n";);
   size_t n = DG.n;
 
+  auto work_inefficiency = sequence<size_t>(n);
   auto parallel_work = sequence<size_t>(n);
   {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
-      return DG.get_vertex(v).getOutDegree();
+      size_t degree = DG.get_vertex(v).getOutDegree();
+      assert(degree < n);
+      return degree;
     };
+//    auto map_2_f = [&](uintE u, uintE v, W wgh) -> size_t {
+//      auto ngh_vtx = DG.get_vertex(v);
+//      size_t num_out_blocks = ngh_vtx.getNumOutBlocks();
+//      if (num_out_blocks > 0) {
+//        size_t last_block_id = num_out_blocks-1;
+//        size_t last_block_size = ngh_vtx.out_block_degree(last_block_id);
+//        if (num_out_blocks > 1) {
+//          return (num_out_blocks - 1)*ngh_vtx.block_manager.edges_per_block + last_block_size;
+//        } else {
+//          return last_block_size;
+//        }
+//      }
+//      return static_cast<size_t>(0);
+//    };
     par_for(0, n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
       parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
+//      work_inefficiency[i] = DG.get_vertex(i).reduceOutNgh(i, map_2_f, monoid);
     });
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
+
+//  size_t total_work_inefficiency = pbbslib::scan_add_inplace(work_inefficiency.slice());
+//  cout << "total_work_inefficiency = " << total_work_inefficiency << endl;
+
 
   // TODO Can get even better load balance by using the actual blocks
   // corresponding to a vertex. (similar to edgeMapBlocked)
@@ -139,6 +161,9 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
     }
   };
 
+  // How to calculate the work-inefficiency?
+
+
   par_for(0, n_blocks, 1, [&] (size_t i) {
     size_t start = i * work_per_block;
     size_t end = (i + 1) * work_per_block;
@@ -167,6 +192,25 @@ inline size_t Triangle(symmetric_graph<vertex, W>& GA, const F& f) {
 
   // 1. Rank vertices based on degree
   uintE* rank = rankNodes(GA, GA.n);
+
+  size_t xorr = 0;
+  for (size_t i=0; i<n; i++) {
+    xorr ^= GA.get_vertex(i).getOutDegree();
+  }
+  cout << "xorr = " << xorr << endl;
+
+
+  auto vtx_xors = pbbs::sequence<size_t>(n);
+  parallel_for(0, n, [&] (size_t v) {
+    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      return v;
+    };
+    size_t id = 0;
+    auto reduce_f = [&] (const size_t& l, const size_t& r) { return l ^ r; };
+    auto reduce_m = pbbs::make_monoid(reduce_f, id);
+    vtx_xors[v] = GA.get_vertex(v).reduceOutNgh(v, map_f, reduce_m);
+  });
+  cout << "graph xor = " << pbbslib::reduce_xor(vtx_xors) << endl;
 
   // 2. Direct edges to point from lower to higher rank vertices.
   // Note that we currently only store out-neighbors for this graph to save
