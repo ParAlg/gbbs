@@ -61,9 +61,6 @@ struct symmetric_graph {
 
 #ifndef NVM
   w_vertex get_vertex(size_t i) {
-    if (i == 828111487) {
-      cout << "offset 828111487 = " << V[i].offset << endl;
-    }
     return w_vertex(V[i], e0);
   }
 #else
@@ -77,13 +74,16 @@ struct symmetric_graph {
 #endif
 
 symmetric_graph(vertex_data* V, size_t n, size_t m, std::function<void()> _d,
-        E* e0, E* e1=nullptr)
+        E* _e0, E* _e1=nullptr)
       : V(V),
-        e0(e0),
-        e1(e1),
+        e0(_e0),
+        e1(_e1),
         n(n),
         m(m),
         deletion_fn(_d) {
+    if (_e1 == nullptr) {
+      e1 = e0; // handles NVM case when graph is stored in symmetric memory
+    }
   }
 
   void del() {

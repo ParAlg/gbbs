@@ -55,7 +55,7 @@ ALL= BC BellmanFord BFS BFS_test Biconnectivity CC Coloring DensestSubgraph KCor
 all: $(ALL)
 
 % : %.C
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< $(JEMALLOC)
 
 .PHONY : clean
 

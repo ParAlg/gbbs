@@ -145,7 +145,11 @@ double Biconnectivity_runner(G& GA, commandLine P) {
     BiconnectivityStats(GA, in_f);
   } else {
     timer t; t.start();
-    Biconnectivity(GA, out_f);
+    auto bicc_labels = Biconnectivity(GA, out_f);
+
+    // deallocate
+    pbbs::free_array(std::get<0>(bicc_labels));
+    pbbs::free_array(std::get<1>(bicc_labels));
     double tt = t.stop();
     std::cout << "### Running Time: " << tt << std::endl;
   }

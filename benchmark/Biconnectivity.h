@@ -99,21 +99,22 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
   using W = typename G::weight_type;
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
-  auto out_edges = sequence<edge>(
-      n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
-  par_for(0, n, [&] (size_t i) {
+
+  auto out_edges = pbbs::delayed_seq<edge>(n,
+  [&] (uintE i) {
     uintE p_i = Parents[i];
     if (p_i != i) {
-      out_edges[i] = std::make_tuple(p_i, i);
+      return std::make_tuple(p_i, i);
+    } else {
+      return std::make_tuple(UINT_E_MAX, UINT_E_MAX);
     }
   });
 
-  auto edges = pbbslib::filter(
-      out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
-  out_edges.clear();
+  auto edges = pbbslib::filter(out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
   pbbslib::sample_sort_inplace(edges.slice(), sort_tup, true);
 
+  // Starts of edges incident to each vertex
   auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
   par_for(0, edges.size(), [&] (size_t i) {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
@@ -121,7 +122,6 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
     }
   });
   starts[n] = edges.size();
-
   timer seq;
   seq.start();
   for (long i = starts.size() - 1; i >= 0; i--) {
@@ -132,6 +132,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
   seq.stop();
   debug(seq.reportTotal("seq time"););
 
+  // Only save neighbors, then free edges.
   auto nghs = sequence<uintE>(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
   edges.clear();
@@ -191,15 +192,13 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
   // Optional: Prefix sum over sources with aug-size (if we want distinct
   // preorder #s)
 
-  // Use copy constructor
-  sequence<uintE> s_copy(Sources);
   size_t sources_size = Sources.size();
 
   timer pren;
   pren.start();
   auto PN = sequence<uintE>(n);
-  vs = vertexSubset(n, sources_size, s_copy.to_array());
-  par_for(0, Sources.size(), [&] (size_t i) {
+  vs = vertexSubset(n, sources_size, Sources.to_array());
+  par_for(0, sources_size, [&] (size_t i) {
     uintE v = vs.vtx(i);
     PN[v] = 0;
   });
@@ -468,15 +467,6 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     return true;
   };
 
-  auto degs = pbbs::new_array_no_init<size_t>(n);
-  auto degs_seq = pbbslib::make_sequence(degs, n);
-  parallel_for(0, n, [&] (size_t v) {
-
-    auto reduce_m = pbbs::addm<size_t>();
-    degs[v] = GA.get_vertex(v).reduceOutNgh(v, not_critical_edge, reduce_m);
-  }, 1);
-  cout << " total non_critical = " << pbbslib::reduce_add(degs_seq) << endl;
-
   timer ccpred;
   ccpred.start();
   // 1. Pack out all critical edges
@@ -489,6 +479,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   auto cc = cc::CC(PG, 0.2);
   ccpred.stop();
   debug(ccpred.reportTotal("cc pred time"););
+  PG.del();
 
   //Note that counting components here will count initially isolated vertices
   //as distinct components.
@@ -521,7 +512,6 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   pbbslib::free_array(aug_sizes_A);
   ccc.stop();
   debug(ccc.reportTotal("critical conn time"););
-  PG.del();
   return std::make_tuple(Parents, cc.to_array());
 }
 
@@ -540,13 +530,13 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(G& GA, char* out_f = 0) {
   timer sc;
   sc.start();
   auto Sources = cc_sources(Components);
+  size_t num_sources = Sources.size();
   Components.clear();
 
-//  auto Sources_copy = Sources.copy(Sources);
-  auto Sources_copy = Sources; // Use copy constructor
-  auto Centers = vertexSubset(n, Sources_copy.size(), Sources.to_array());
+  auto Sources_copy = Sources; // Save sources for call to preorder_number
+  auto Centers = vertexSubset(n, num_sources, Sources.to_array());
 //  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
-  auto Parents = multi_bfs(GA, Centers);
+  auto Parents = multi_bfs(GA, Centers); // frees Sources' memory
   sc.stop();
   debug(sc.reportTotal("sc, multibfs time"););
 
