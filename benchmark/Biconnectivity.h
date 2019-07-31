@@ -122,15 +122,21 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
     }
   });
   starts[n] = edges.size();
-  timer seq;
-  seq.start();
-  for (long i = starts.size() - 1; i >= 0; i--) {
-    if (starts[i] == UINT_E_MAX) {
-      starts[i] = starts[i + 1];
+  timer scan_t;
+  scan_t.start();
+
+  // copy scan
+  auto starts_rev = starts.rslice();
+  auto scan_f = [&] (const uintE& l, const uintE& r) {
+    if (r == UINT_E_MAX) {
+      return l;
     }
-  }
-  seq.stop();
-  debug(seq.reportTotal("seq time"););
+    return r;
+  };
+  auto scan_m = pbbs::make_monoid(scan_f, UINT_E_MAX);
+  pbbs::scan_inplace(starts_rev, scan_m, pbbs::fl_scan_inclusive);
+  scan_t.stop();
+  debug(scan_t.reportTotal("scan time"););
 
   // Only save neighbors, then free edges.
   auto nghs = sequence<uintE>(
@@ -156,7 +162,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       v[i].setInDegree(0);
       v[i].setInNeighbors(nullptr);
     }
-  });
+  }, 1024);
   auto Tree = asymmetric_graph<asymmetricVertex, pbbslib::empty>(v, n, nghs.size(), []() {});
 
   // 1. Leaffix for Augmented Sizes
@@ -198,10 +204,10 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
   pren.start();
   auto PN = sequence<uintE>(n);
   vs = vertexSubset(n, sources_size, Sources.to_array());
-  par_for(0, sources_size, [&] (size_t i) {
+  parallel_for(0, sources_size, [&] (size_t i) {
     uintE v = vs.vtx(i);
     PN[v] = 0;
-  });
+  }, 1024);
   rds = 0;
   tv = 0;
   while (!vs.isEmpty()) {
@@ -220,7 +226,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
       uintE preorder_number = PN[v] + 1;
 
       // should be tuned
-      if (deg_v < 4000) {
+      if (deg_v < 10000) {
         // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
         for (size_t j = 0; j < deg_v; j++) {
           uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
@@ -230,17 +236,17 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(G& GA,
         }
       } else {
         auto A = sequence<uintE>(deg_v);
-        par_for(0, deg_v, [&] (size_t j) {
+        parallel_for(0, deg_v, [&] (size_t j) {
           uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           A[j] = aug_sizes[ngh];
-        });
+        }, 1024);
         pbbslib::scan_add_inplace(A.slice());
-        par_for(0, deg_v, [&] (size_t j) {
+        parallel_for(0, deg_v, [&] (size_t j) {
           uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
           next_vs[off + j] = ngh;
-        });
+        }, 1024);
       }
     });
     vs.del();
