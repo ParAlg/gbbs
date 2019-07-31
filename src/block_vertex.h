@@ -49,11 +49,11 @@ size_t intersect(It& a, It& b) {
       advance_b = false;
       b.next();
     }
-    if (std::get<0>(a.cur()) == std::get<0>(b.cur())) {
+    if (a.cur() == b.cur()) {
       advance_a = true;
       advance_b = true;
       i++; j++; ans++;
-    } else if (std::get<0>(a.cur()) < std::get<0>(b.cur())) {
+    } else if (a.cur() < b.cur()) {
       advance_a = true;
       i++;
     } else {
@@ -70,18 +70,20 @@ size_t intersect_seq(S& a, It& b) {
   size_t nA = a.size(); size_t nB = b.degree();
   size_t ans = 0;
   uintE b_cur;
-  if (j < nB) b_cur = std::get<0>(b.cur());
+  if (j < nB) b_cur = b.cur();
   while (i < nA && j < nB) {
     if (a[i] == b_cur) {
       i++; j++; ans++;
-      if (b.has_next()) b.next();
-      b_cur = std::get<0>(b.cur());
-    } else if (a[i] < std::get<0>(b.cur())) {
+      if (j < nB) {
+        b_cur = b.next();
+      }
+    } else if (a[i] < b_cur) {
       i++;
     } else {
       j++;
-      if (b.has_next()) b.next();
-      b_cur = std::get<0>(b.cur());
+      if (j < nB) {
+        b_cur = b.next();
+      }
     }
   }
   return ans;

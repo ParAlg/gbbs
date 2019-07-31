@@ -325,6 +325,52 @@ struct simple_iter {
   }
 };
 
+template <class W>
+struct block_iter {
+  uchar* finger;
+  uintE src;
+
+  std::tuple<uintE, W> last_edge;
+  uintE proc;
+  uintT block_degree;
+
+  block_iter(uchar* edge_start, uintT degree, uintE src, uintE block_num)
+      : src(src) {
+    if (degree == 0) return;
+    uintE virtual_degree = *((uintE*)edge_start);
+    size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
+    uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+    uchar* nghs_start =
+        edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
+    finger =
+        (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
+    uintE start_offset = *((uintE*)finger);
+    uintE end_offset = (block_num == (num_blocks - 1)) ? degree
+                         : (*((uintE*)(edge_start + block_offsets[block_num])));
+    finger += sizeof(uintE);
+
+    block_degree = end_offset - start_offset;
+    if (block_degree > 0) {
+      std::get<0>(last_edge) = eatFirstEdge(finger, src);
+      std::get<1>(last_edge) = eatWeight<W>(finger);
+      proc = 1;
+    }
+  }
+
+  __attribute__((always_inline)) inline std::tuple<uintE, W> cur() { return last_edge; }
+
+  __attribute__((always_inline)) inline void next() {
+    std::get<0>(last_edge) += eatEdge(finger);
+    std::get<1>(last_edge) = eatWeight<W>(finger);
+    proc++;
+  }
+
+  __attribute__((always_inline)) inline bool has_next() {
+    return proc < block_degree;
+  }
+};
+
+
   // Decode unweighted edges
   template <class W, class T, typename std::enable_if<
       std::is_same<W, pbbs::empty>::value, int>::type=0>

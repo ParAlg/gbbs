@@ -413,7 +413,7 @@ packed_graph<vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred_f) {
     parallel_for(0, G.n, [&] (size_t v) {
       auto vtx = GA.get_vertex(v);
       if (vtx.getOutDegree() > 0) {
-        vtx.packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+        vtx.packOutNgh(v, pred_f, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
       }
     }, 1);
   }
@@ -433,7 +433,7 @@ void filter_graph(packed_graph<vertex, W>& GA, P& pred_f) {
     parallel_for(0, GA.n, [&] (size_t v) {
       auto vtx = GA.get_vertex(v);
       if (vtx.getOutDegree() > 0) {
-        vtx.packOutNgh(v, pred_f, /* tmp = */ nullptr, compact_blocks);
+        vtx.packOutNgh(v, pred_f, /* tmp = */ nullptr, /* parallel = */ true, /* flags = */ compact_blocks);
       }
     }, 1);
   }

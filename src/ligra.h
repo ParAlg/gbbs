@@ -473,9 +473,9 @@ inline size_t get_pcm_state() { return (size_t)1; }
     run_app(G, APP, rounds)                                                \
   }
 
-   //auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 //        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);                 \
 
+//   auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 
 
 
