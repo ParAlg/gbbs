@@ -76,6 +76,7 @@ inline sequence<uintE> BFS(G& GA, uintE src) {
   }
   Frontier.del();
   std::cout << "Reachable: " << reachable << "\n";
+  data_block_allocator::print_stats();
   return Parents;
 }
 

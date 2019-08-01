@@ -271,6 +271,8 @@ void alloc_init(G& GA) {
   size_t list_alloc_init_blocks = 1.2 * (GA.n/uintes_per_block);
   cout << "list_alloc init_blocks: " << list_alloc_init_blocks << endl;
   data_block_allocator::reserve(2* (GA.n/uintes_per_block));
+  cout << "after init: " << endl;
+  data_block_allocator::print_stats();
 
   using vtx_type = typename G::vtx_type;
   size_t work_block_size = vtx_type::getInternalBlockSize();
@@ -332,8 +334,8 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  // try to use 8*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
-  size_t block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
+  // try to use 16*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
+  size_t block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 4);
   size_t block_size = std::max(kEMBlockSize, block_size_guess);
   size_t n_threads = pbbs::num_blocks(outEdgeCount, block_size);
 
