@@ -46,9 +46,9 @@
 
 template <template <class W> class vertex, class W>
 struct symmetric_graph {
-  using w_vertex = vertex<W>;
+  using vtx_type = vertex<W>;
   using weight_type = W;
-  using E = typename w_vertex::E;
+  using E = typename vtx_type::E;
 
   vertex_data* V;
 
@@ -60,15 +60,15 @@ struct symmetric_graph {
   std::function<void()> deletion_fn;
 
 #ifndef NVM
-  w_vertex get_vertex(size_t i) {
-    return w_vertex(V[i], e0);
+  vtx_type get_vertex(size_t i) {
+    return vtx_type(V[i], e0);
   }
 #else
-  w_vertex get_vertex(size_t i) {
+  vtx_type get_vertex(size_t i) {
     if (numanode() == 0) {
-      return w_vertex(V[i], e0);
+      return vtx_type(V[i], e0);
     } else {
-      return w_vertex(V[i], e1);
+      return vtx_type(V[i], e1);
     }
   }
 #endif
@@ -99,21 +99,21 @@ symmetric_graph(vertex_data* V, size_t n, size_t m, std::function<void()> _d,
 
 template <template <class W> class vertex, class W>
 struct asymmetric_graph {
-  using w_vertex = vertex<W>;
+  using vtx_type = vertex<W>;
   using weight_type = W;
-  using E = typename w_vertex::E;
+  using E = typename vtx_type::E;
 
-  w_vertex* V;
+  vtx_type* V;
 
   size_t n;
   size_t m;
   std::function<void()> deletion_fn;
 
-  w_vertex get_vertex(size_t i) {
+  vtx_type get_vertex(size_t i) {
     return V[i];
   }
 
-  asymmetric_graph(w_vertex* V, size_t n, size_t m, std::function<void()> _d)
+  asymmetric_graph(vtx_type* V, size_t n, size_t m, std::function<void()> _d)
       : V(V),
         n(n),
         m(m),

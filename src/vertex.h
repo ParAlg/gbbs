@@ -158,7 +158,7 @@ namespace vertex_ops {
 
 // allocate temporary space for vertices with degree > kAllocThreshold
 static constexpr size_t kAllocThreshold = 10000;
-static constexpr uintE kBlockSize = 1000;
+static constexpr uintE kBlockSize = 1024;
 
 template <template <typename W> class vertex, class W, class F, class G,
           class VS>
@@ -455,6 +455,9 @@ struct symmetricVertex {
   uintE getOutDegree() { return degree; }
   uintE getInVirtualDegree() { return degree; }
   uintE getOutVirtualDegree() { return degree; }
+  static uintE getInternalBlockSize() {
+    return vertex_ops::kBlockSize;
+  }
   uintE getNumInBlocks() {
     return pbbs::num_blocks(degree, vertex_ops::kBlockSize);
   }
@@ -694,6 +697,9 @@ struct asymmetricVertex {
   uintE getOutDegree() { return outDegree; }
   uintE getInVirtualDegree() { return inDegree; }
   uintE getOutVirtualDegree() { return outDegree; }
+  static uintE getInternalBlockSize() {
+    return vertex_ops::kBlockSize;
+  }
   uintE getNumInBlocks() {
     return pbbs::num_blocks(inDegree, vertex_ops::kBlockSize);
   }
