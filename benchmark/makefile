@@ -50,12 +50,12 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= BC BellmanFord BFS BFS_test Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST PageRank SetCover Spanner SpanningForest Triangle wBFS WidestPath PrimitiveBench
+ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST PageRank SetCover Spanner SpanningForest Triangle wBFS WidestPath PrimitiveBench
 
 all: $(ALL)
 
 % : %.C
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< $(JEMALLOC)
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean
 

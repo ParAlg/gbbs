@@ -268,7 +268,7 @@ emblock* em_block;
 template <class G>
 void alloc_init(G& GA) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
-  size_t list_alloc_init_blocks = 2* (GA.n/uintes_per_block);
+  size_t list_alloc_init_blocks = 1.2 * (GA.n/uintes_per_block);
   cout << "list_alloc init_blocks: " << list_alloc_init_blocks << endl;
   data_block_allocator::reserve(2* (GA.n/uintes_per_block));
 

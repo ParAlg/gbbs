@@ -152,7 +152,7 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
                ? edgeMapDenseForward<data, G, VS, F>(GA, vs, f, fl)
                : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   } else {
-    auto vs_out = edgeMapBlocked_2<data, G, VS, F>(GA, vs, f, fl);
+    auto vs_out = edgeMapBlocked<data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }

@@ -276,7 +276,7 @@ struct MISstep {
     using E = std::tuple<int, int>;
     auto id = std::make_tuple(0, 0);
     auto monoid = pbbslib::make_monoid(red_f, id);
-    auto res = GA.V[i].reduceOutNgh(i, map_f, monoid);
+    auto res = GA.get_vertex(i).reduceOutNgh(i, map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
     } else if (std::get<1>(res) > 0) {

@@ -279,14 +279,13 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   }
 
   // (4) scan
-  size_t ct = pbbslib::scan_add_inplace(out_offs.slice());
-//  size_t ct = 0;
-//  for (size_t i = 0; i < num_buckets; i++) {
-//    size_t s = ct;
-//    ct += out_offs[i];
-//    out_offs[i] = s;
-//  }
-//  out_offs[num_buckets] = ct;
+  size_t ct = 0;
+  for (size_t i = 0; i < num_buckets; i++) {
+    size_t s = ct;
+    ct += out_offs[i];
+    out_offs[i] = s;
+  }
+  out_offs[num_buckets] = ct;
   uintT num_distinct = ct;
 
   O* res = pbbslib::new_array_no_init<O>(ct);
@@ -433,6 +432,13 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   }
 
+  //    if (n > 100000) {
+  //      std::cout << "n = " << n << " min size = " << min_size << " max size =
+  //      " << max_size << " avg size = " << avg_size << "\n"; //" k = " << gb.k
+  //      <<
+  //      "\n";
+  //    }
+
   ht.resize(ht_offs[num_buckets]);
   KV* table = ht.table;
   auto empty = ht.empty;
@@ -506,15 +512,14 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   }
 
   // (4) scan
-  out_offs[num_buckets] = 0;
-  size_t ct = pbbslib::scan_add_inplace(out_offs.slice());
-//  size_t ct = 0;
-//  for (size_t i = 0; i < num_buckets; i++) {
-//    size_t s = ct;
-//    ct += out_offs[i];
-//    out_offs[i] = s;
-//  }
-//  out_offs[num_buckets] = ct;
+  size_t ct = 0;
+  for (size_t i = 0; i < num_buckets; i++) {
+    size_t s = ct;
+    ct += out_offs[i];
+    out_offs[i] = s;
+  }
+
+  out_offs[num_buckets] = ct;
   size_t heavy_start = ct;
 
   if (heavy) {
