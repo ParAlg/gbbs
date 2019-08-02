@@ -75,9 +75,6 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
     size_t num_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
-    if (vtx_id == 978407842) {
-      cout << "i = " << i << " indices.size = " << indices.size() << endl;
-    }
     auto vtx = GA.get_vertex(vtx_id);
     par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
       size_t block_deg = (fl & in_edges)
@@ -136,7 +133,7 @@ inline vertexSubsetData<data> edgeMapBlocked(G& GA, VS& indices, F& f,
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
-  cout << "outEdgeCount (blocked) = " << (indices.numNonzeros() + outEdgeCount) << " bytes allocated = " << (sizeof(S) * outEdgeCount) << " only needed: " << (sizeof(S)*out_size) << endl;
+//  cout << "outEdgeCount (blocked) = " << (indices.numNonzeros() + outEdgeCount) << " bytes allocated = " << (sizeof(S) * outEdgeCount) << " only needed: " << (sizeof(S)*out_size) << endl;
   par_for(0, n_threads, 1, [&](size_t i) {
     size_t start = thread_offs[i];
     size_t end = thread_offs[i + 1];
@@ -179,33 +176,38 @@ struct emblock {
   size_t* perthread_counts;
 
   static constexpr size_t kPerThreadStride = 128/sizeof(size_t);
-  const size_t work_block_size;
+  static constexpr size_t kThreadBlockStride = 128/sizeof(thread_blocks);
+  size_t work_block_size;
   size_t max_block_size; // function of data
 
-  emblock(size_t work_block_size) : work_block_size(work_block_size) {
+  emblock() {
     n_workers = num_workers();
-    perthread_blocks = pbbs::new_array<thread_blocks>(n_workers);
+    cout << "tb size = " << sizeof(thread_blocks) << endl;
+    perthread_blocks = pbbs::new_array<thread_blocks>(n_workers*kThreadBlockStride);
     perthread_counts = pbbs::new_array<size_t>(n_workers);
     // init_perthread_vars();
   }
 
-  template <class data>
-  void set_max_block_size() {
+  template <class data, class G>
+  void init_parameters() {
     using ngh_data = std::tuple<uintE, data>;
     max_block_size = kDataBlockSizeBytes/sizeof(ngh_data);
+
+    using vtx_type = typename G::vtx_type;
+    work_block_size = vtx_type::getInternalBlockSize();
   }
 
   // resets the state of the per-thread variables
-  void reset() {
-    for (size_t i=0; i<n_workers; i++) {
-      perthread_blocks[i].clear();
-    }
-  }
+//  void reset() {
+//    for (size_t i=0; i<n_workers; i++) {
+//      perthread_blocks[i*kThreadBlockStride].clear();
+//    }
+//  }
 
   inline size_t scan_perthread_blocks() {
     size_t ct = 0;
     for (size_t i=0; i<n_workers; i++) {
-      size_t i_sz = perthread_blocks[i].size();
+      size_t i_sz = perthread_blocks[i*kThreadBlockStride].size();
       perthread_counts[i] = ct;
       ct += i_sz;
     }
@@ -218,20 +220,22 @@ struct emblock {
     if (total_blocks < 1000) { // handle sequentially
       size_t k=0;
       for (size_t i=0; i<n_workers; i++) {
-        auto& vec = perthread_blocks[i];
+        auto& vec = perthread_blocks[i*kThreadBlockStride];
         size_t this_thread_size = vec.size();
         for (size_t j=0; j<this_thread_size; j++) {
           all_blocks[k++] = vec[j];
         }
+        vec.clear();
       }
     } else {
       parallel_for(0, n_workers, [&] (size_t thread_id) {
         size_t this_thread_offset = perthread_counts[thread_id];
-        auto& vec = perthread_blocks[thread_id];
+        auto& vec = perthread_blocks[thread_id*kThreadBlockStride];
         size_t this_thread_size = vec.size();
         for (size_t j=0; j<this_thread_size; j++) {
           all_blocks[this_thread_offset + j] = vec[j];
         }
+        vec.clear();
       }, 1);
     }
     return std::move(all_blocks);
@@ -245,16 +249,17 @@ struct emblock {
     int thread_id = worker_id();
     em_data_block* block_ptr;
     size_t offset = 0;
-    if (perthread_blocks[thread_id].size() == 0) { // alloc new
+    auto& vec = perthread_blocks[thread_id*kThreadBlockStride];
+    if (vec.size() == 0) { // alloc new
       block_ptr = data_block_allocator::alloc();
-      perthread_blocks[thread_id].emplace_back(block_ptr);
+      vec.emplace_back(block_ptr);
       block_ptr->block_size = 0;
     } else {
-      block_ptr = perthread_blocks[thread_id].back();
+      block_ptr = vec.back();
       offset = block_ptr->block_size;
       if (offset + work_block_size > max_block_size) { // realloc
         block_ptr = data_block_allocator::alloc();
-        perthread_blocks[thread_id].emplace_back(block_ptr);
+        vec.emplace_back(block_ptr);
         block_ptr->block_size = 0;
         offset = 0;
       }
@@ -270,13 +275,11 @@ void alloc_init(G& GA) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
   size_t list_alloc_init_blocks = 1.2 * (GA.n/uintes_per_block);
   cout << "list_alloc init_blocks: " << list_alloc_init_blocks << endl;
-  data_block_allocator::reserve(2* (GA.n/uintes_per_block));
+  data_block_allocator::reserve(list_alloc_init_blocks);
   cout << "after init: " << endl;
   data_block_allocator::print_stats();
 
-  using vtx_type = typename G::vtx_type;
-  size_t work_block_size = vtx_type::getInternalBlockSize();
-  em_block = new emblock(work_block_size);
+  em_block = new emblock();
 //  emblock::init_perthread_vars();
 }
 
@@ -289,7 +292,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
                                                const flags fl) {
   // initialize em block
   auto& our_em_block = *em_block;
-  our_em_block.set_max_block_size<data>();
+  our_em_block.init_parameters<data, G>();
 
   if (fl & no_output) {
     return edgeMapSparseNoOutput<data, G, VS, F>(GA, indices, f, fl);
@@ -309,7 +312,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
-  cout << "num_blocks = " << num_blocks << endl;
+//  cout << "num_blocks = " << num_blocks << endl;
 
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
@@ -331,6 +334,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
     });
   });
   pbbslib::scan_add_inplace(degrees.slice(), pbbslib::fl_scan_inclusive);
+  vertex_offs.clear();
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
@@ -404,7 +408,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
   all_blocks.clear();
   block_offsets.clear();
 
-  our_em_block.reset();
+//  our_em_block.reset(); (handled by get_all_blocks)
 
   return vertexSubsetData<data>(n, output_size, out);
 }

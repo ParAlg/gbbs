@@ -25,6 +25,7 @@ using namespace std;
 
 int max_weight = 32;
 int* Choices;
+size_t PAR_DEGREE_TWO = 256;
 
 template <class I>
 struct wgh_it {
@@ -84,11 +85,6 @@ template <class I, class GA>
 auto make_wgh_it(I& it, uintE source, GA& G) {
   return wgh_it<I>(it, source);
 }
-
-//template <class I, class GA>
-//auto make_wgh_it(I& it, uintE source, GA& G) {
-//  return degree_wgh_it<I, GA>(it, source, G);
-//}
 
 //template <template <class W> class vertex, class W>
 //void writeWeightedAdj(symmetric_graph<vertex, W>& GA, string& outfile) {
@@ -170,7 +166,7 @@ void writeWeightedBytePDADirected(symmetric_graph<vertex, W>& GA, string& outfil
         long bytes = 0;
         uintE ind = pbbs::hash64(u ^ v);
         int weight = Choices[ind % (2 * max_weight)];
-        if ((deg % PARALLEL_DEGREE) == 0) {
+        if ((deg % PAR_DEGREE_TWO) == 0) {
           bytes = bytepd_amortized::compressFirstEdge(tmp, bytes, u, v);
           bytes = bytepd_amortized::compressWeight<int32_t>(tmp, bytes, weight);
         } else {
@@ -188,7 +184,7 @@ void writeWeightedBytePDADirected(symmetric_graph<vertex, W>& GA, string& outfil
         GA.get_vertex(i).mapOutNgh(i, f, false);
         assert(deg == GA.get_vertex(i).getOutDegree());
 
-        size_t n_chunks = 1 + (deg - 1) / PARALLEL_DEGREE;
+        size_t n_chunks = 1 + (deg - 1) / PAR_DEGREE_TWO;
         // To account for the byte offsets
         total_bytes += (n_chunks - 1) * sizeof(uintE);
         // To account for the per-block counters
@@ -215,7 +211,7 @@ void writeWeightedBytePDADirected(symmetric_graph<vertex, W>& GA, string& outfil
         auto iter = GA.get_vertex(i).getOutIter(i);
         auto it = make_wgh_it(iter, i, GA);
         long nbytes = sequentialCompressEdgeSet<int32_t>(
-            edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PARALLEL_DEGREE);
+            edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
         if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
           cout << "nbytes = " << nbytes
                << " but offs = " << (byte_offsets[i + 1] - byte_offsets[i])
@@ -265,7 +261,7 @@ void writeWeightedBytePDA(symmetric_graph<vertex, W>& GA, string& outfile,
       long bytes = 0;
       uintE ind = pbbs::hash64(u ^ v);
       int weight = Choices[ind % (2 * max_weight)];
-      if ((deg % PARALLEL_DEGREE) == 0) {
+      if ((deg % PAR_DEGREE_TWO) == 0) {
         bytes = bytepd_amortized::compressFirstEdge(tmp, bytes, u, v);
         bytes = bytepd_amortized::compressWeight<int32_t>(tmp, bytes, weight);
       } else {
@@ -283,7 +279,7 @@ void writeWeightedBytePDA(symmetric_graph<vertex, W>& GA, string& outfile,
       GA.get_vertex(i).mapOutNgh(i, f, false);
       assert(deg == GA.get_vertex(i).getOutDegree());
 
-      size_t n_chunks = 1 + (deg - 1) / PARALLEL_DEGREE;
+      size_t n_chunks = 1 + (deg - 1) / PAR_DEGREE_TWO;
       // To account for the byte offsets
       total_bytes += (n_chunks - 1) * sizeof(uintE);
       // To account for the per-block counters
@@ -333,7 +329,7 @@ void writeWeightedBytePDA(symmetric_graph<vertex, W>& GA, string& outfile,
         auto it = make_wgh_it(iter, i, GA);
         size_t our_offset = byte_offsets[i] - start_offset;
         long nbytes = sequentialCompressEdgeSet<int32_t>(
-            edges + our_offset, 0, deg, (uintE)i, it, PARALLEL_DEGREE);
+            edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
         if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
           cout << "nbytes = " << nbytes
                << " but offs = " << (byte_offsets[i + 1] - byte_offsets[i])
@@ -346,7 +342,7 @@ void writeWeightedBytePDA(symmetric_graph<vertex, W>& GA, string& outfile,
       }
     }, 1);
     cout << "Compressed" << endl;
-    out.write((char*)edges, total_space);  // write edges
+    out.write((char*)edges, n_edge_bytes);  // write edges
     cout << "Wrote" << endl;
     pbbs::free_array(edges);
   }
@@ -362,6 +358,7 @@ double Reencoder(G& GA, commandLine P) {
   auto encoding = P.getOptionValue("-enc", "adj");
   bool symmetric = P.getOptionValue("-s");
   bool unit_weights = P.getOptionValue("-unit");
+  PAR_DEGREE_TWO = P.getOptionLongValue("-bs", 256);
 
   if (!unit_weights) {
     max_weight = log2(GA.n);

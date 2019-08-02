@@ -11,7 +11,7 @@ using namespace std;
 // Provides utilities for converting between different compressed
 // representations.
 constexpr int max_weight = 32;
-#define PAR_DEGREE_TWO 256
+size_t PAR_DEGREE_TWO = 256;
 
 namespace byte {
   template <template <class W> class vertex, class W>
@@ -527,6 +527,8 @@ auto converter(G& GA, commandLine P) {
   }
   ofstream out(outfile.c_str(), ofstream::out | ios::binary);
   auto encoding = P.getOptionValue("-enc", "byte");
+
+  PAR_DEGREE_TWO = P.getOptionLongValue("-bs", 256);
 
   if (encoding == "byte") {
     byte::write_graph_byte_format(GA, out, symmetric);

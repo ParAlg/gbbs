@@ -117,14 +117,14 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
             << " work per block = " << work_per_block << "\n";);
 
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
-    uintE stk[4192];
+    uintE stk[8192];
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
       auto vtx = DG.get_vertex(i);
       size_t total_ct = 0;
 
       uintE* nghs = (uintE*)stk;
       uintE deg = vtx.getOutDegree();
-      if (deg > 4192) {
+      if (deg > 8192) {
         nghs = pbbs::new_array_no_init<uintE>(deg);
       }
       size_t k = 0;
@@ -138,7 +138,7 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
       auto map_f = [&](uintE u, uintE v, W wgh) {
         // Copy live neighbors of u into separate array?
         auto ngh_vtx = DG.get_vertex(v);
-//        uintE ngh_stk[4192];
+//        uintE ngh_stk[8192];
 //        uintE ngh_deg = ngh_vtx.getOutDegree();
 //        size_t idx = 0;
 //        auto map_ngh_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
@@ -155,7 +155,7 @@ inline size_t CountDirectedBalanced(PG& DG, size_t* counts,
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
       counts[i] = total_ct;
 
-      if (deg > 4192) {
+      if (deg > 8192) {
         pbbs::free_array(nghs);
       }
     }
@@ -193,24 +193,22 @@ inline size_t Triangle(symmetric_graph<vertex, W>& GA, const F& f) {
   // 1. Rank vertices based on degree
   uintE* rank = rankNodes(GA, GA.n);
 
-  size_t xorr = 0;
-  for (size_t i=0; i<n; i++) {
-    xorr ^= GA.get_vertex(i).getOutDegree();
-  }
-  cout << "xorr = " << xorr << endl;
-
-
-  auto vtx_xors = pbbs::sequence<size_t>(n);
-  parallel_for(0, n, [&] (size_t v) {
-    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      return v;
-    };
-    size_t id = 0;
-    auto reduce_f = [&] (const size_t& l, const size_t& r) { return l ^ r; };
-    auto reduce_m = pbbs::make_monoid(reduce_f, id);
-    vtx_xors[v] = GA.get_vertex(v).reduceOutNgh(v, map_f, reduce_m);
-  });
-  cout << "graph xor = " << pbbslib::reduce_xor(vtx_xors) << endl;
+//  size_t xorr = 0;
+//  for (size_t i=0; i<n; i++) {
+//    xorr ^= GA.get_vertex(i).getOutDegree();
+//  }
+//  cout << "xorr = " << xorr << endl;
+//  auto vtx_xors = pbbs::sequence<size_t>(n);
+//  parallel_for(0, n, [&] (size_t v) {
+//    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//      return v;
+//    };
+//    size_t id = 0;
+//    auto reduce_f = [&] (const size_t& l, const size_t& r) { return l ^ r; };
+//    auto reduce_m = pbbs::make_monoid(reduce_f, id);
+//    vtx_xors[v] = GA.get_vertex(v).reduceOutNgh(v, map_f, reduce_m);
+//  });
+//  cout << "graph xor = " << pbbslib::reduce_xor(vtx_xors) << endl;
 
   // 2. Direct edges to point from lower to higher rank vertices.
   // Note that we currently only store out-neighbors for this graph to save

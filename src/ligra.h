@@ -469,11 +469,8 @@ inline size_t get_pcm_state() { return (size_t)1; }
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
     if (P.getOptionValue("-b")) { \
-      auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
-      alloc_init(G); \
-      run_app(G, APP, rounds)                                                \
     } else { \
-      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(iFile, symmetric, mmap, mmapcopy); \
+      auto G = readCompressedGraph<csv_bytepd_amortized, pbbs::empty>(iFile, symmetric, mmap, mmapcopy); \
       alloc_init(G); \
       run_app(G, APP, rounds)                                                \
     } \
@@ -482,7 +479,9 @@ inline size_t get_pcm_state() { return (size_t)1; }
 //        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);                 \
 
 //      auto G = readUncompressedBinaryGraph<symmetricVertex, pbbslib::empty>(iFile, symmetric, mmap, mmapcopy); \
-//   auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+//      auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+//      alloc_init(G); \
+//      run_app(G, APP, rounds)                                                \
 
 
 
@@ -493,6 +492,8 @@ inline size_t get_pcm_state() { return (size_t)1; }
 //      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \
 //      auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \
 
+//    auto G = readCompressedGraph<csv_bytepd_amortized, intE>(iFile, symmetric, mmap, mmapcopy); \
+//   auto G = readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
 
 #define generate_weighted_main(APP, mutates)                             \
   int main(int argc, char* argv[]) {                                     \
@@ -506,7 +507,8 @@ inline size_t get_pcm_state() { return (size_t)1; }
     bool mmapcopy = mutates;                                             \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);              \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                  \
-    pcm_init();                                                          \
-    auto G = readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
+    auto G = readCompressedGraph<csv_bytepd_amortized, intE>(iFile, symmetric, mmap, mmapcopy); \
+      alloc_init(G); \
     run_app(G, APP, rounds)                                              \
+    data_block_allocator::print_stats(); \
   }

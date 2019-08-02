@@ -82,8 +82,10 @@ __attribute__((always_inline)) inline W eatWeight(uchar*& start) {
 }
 
 __attribute__((always_inline)) inline uintE eatFirstEdge(uchar*& start, const uintE source) {
-  uchar fb = *start++;
+  uchar fb = *start;
   uintE edgeRead = (fb & 0x3f);
+  bool sign_bit = (fb & 0x40);
+  start++;
   if (LAST_BIT_SET(fb)) {
     int shiftAmount = 6;
     while (1) {
@@ -96,7 +98,7 @@ __attribute__((always_inline)) inline uintE eatFirstEdge(uchar*& start, const ui
         break;
     }
   }
-  return (fb & 0x40) ? source - edgeRead : source + edgeRead;
+  return sign_bit ? source - edgeRead : source + edgeRead;
 }
 
 /*
@@ -108,7 +110,7 @@ __attribute__((always_inline)) inline uintE eatEdge(uchar*& start) {
 
   while (1) {
     uchar b = *start;
-    edgeRead += ((b & 0x7f) << shiftAmount);
+    edgeRead |= ((b & 0x7f) << shiftAmount);
     start++;
     if (LAST_BIT_SET(b))
       shiftAmount += EDGE_SIZE_PER_BYTE;
@@ -468,6 +470,36 @@ inline void decode(T& t, uchar* edge_start, const uintE& source,
         }
       }
     }
+  }
+}
+
+
+template <class T>
+inline void immutable_unweighted_decode(T t, uchar* edge_start, const uintE& source,
+                                        const uintT& degree, uintE block_num) {
+  size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
+  uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
+  uchar* nghs_start =
+      edge_start + (num_blocks - 1) * sizeof(uintE) + sizeof(uintE);
+
+  uchar* finger =
+      (block_num == 0) ? nghs_start : (edge_start + block_offsets[block_num - 1]);
+  int start_offset, end_offset;
+  if (block_num == num_blocks-1) {
+    start_offset = *((uintE*)finger);
+    end_offset = (block_num == (num_blocks - 1)) ? degree
+                       : (*((uintE*)(edge_start + block_offsets[block_num])));
+  } else {
+    start_offset = block_num*PARALLEL_DEGREE;
+    end_offset = start_offset + PARALLEL_DEGREE;
+  }
+  finger += sizeof(uintE);
+
+  uintE ngh = eatFirstEdge(finger, source);
+  t(ngh);
+  for (int edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
+    ngh += eatEdge(finger);
+    t(ngh);
   }
 }
 

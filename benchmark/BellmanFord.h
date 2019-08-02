@@ -83,9 +83,10 @@ inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
 
   // edge -> custom_weight
   auto get_weight = [&] (const uintE& u, const uintE& v, const W& wgh) -> intE {
-    uintE deg_u = GA.get_vertex(u).getOutDegree();
-    uintE deg_v = GA.get_vertex(v).getOutDegree();
-    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
+    return wgh;
+//    uintE deg_u = GA.get_vertex(u).getOutDegree();
+//    uintE deg_v = GA.get_vertex(v).getOutDegree();
+//    return pbbs::log2_up((size_t)((1/static_cast<double>(deg_u + deg_v + 1))*normalize));
   };
 
   vertexSubset Frontier(n, start);
@@ -99,7 +100,7 @@ inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
     }
     auto em_f = make_bf_f<W>(SP.begin(), Visited.begin(), get_weight);
     auto output =
-        edgeMap(GA, Frontier, em_f, GA.m / 10, dense_forward);
+        edgeMap(GA, Frontier, em_f, GA.m / 10, no_dense);
     vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
     Frontier.del();
