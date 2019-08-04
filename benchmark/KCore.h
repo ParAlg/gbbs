@@ -30,7 +30,8 @@
 
 
 template <class G>
-inline sequence<uintE> KCore_fixed_k(G& GA, uintE k, size_t num_buckets = 16) {
+inline sequence<uintE> KCore_fixed_k(G& GA, uintE k) {
+  cout << "Fixed k, k = " << k << endl;
   using W = typename G::weight_type;
   const size_t n = GA.n;
   auto D =
@@ -56,7 +57,9 @@ inline sequence<uintE> KCore_fixed_k(G& GA, uintE k, size_t num_buckets = 16) {
       if (deg > k) {
         uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
-        return wrap(v, new_deg);
+        if (new_deg <= k) {
+          return wrap(v, new_deg);
+        }
       }
       return Maybe<std::tuple<uintE, uintE> >();
     };
@@ -66,6 +69,7 @@ inline sequence<uintE> KCore_fixed_k(G& GA, uintE k, size_t num_buckets = 16) {
         em.template edgeMapCount<uintE>(active, apply_f, pred_f);
     active.del();
     active = std::move(moved);
+    cout << "moved.size = " << moved.size() << endl;
     rho++;
   }
   std::cout << "### rho = " << rho << "\n";

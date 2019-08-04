@@ -47,7 +47,15 @@ double BC_runner(G& GA, commandLine P) {
   std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
-  auto scores = P.getOptionValue("-fa") ? bc::BC(GA, src) : bc::BC_EM(GA, src);
+  if (P.getOptionValue("-fa")) {
+    auto scores = bc::BC(GA, src);
+  } else if (P.getOptionValue("-em")) {
+    auto scores = bc::BC_EM(GA, src);
+  } else {
+//    auto scores = bc::BC_atomicless(GA, src);
+    cout << "Unknown BC option: one of (-fa, -em)" << endl;
+    exit(0);
+  }
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 

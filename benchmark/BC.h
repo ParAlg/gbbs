@@ -30,7 +30,7 @@
 
 namespace bc {
 
-using fType = double;
+using fType = float;
 
 template <class W, class S, class V>
 struct BC_F {
@@ -269,10 +269,6 @@ inline sequence<fType> BC_EM(G& GA, const uintE& start) {
   timer bt;
   bt.start();
   for (long r = round - 2; r >= 0; r--) {
-    //      edgeMap(GA, Frontier, make_bc_f<W>(Dependencies,Visited), -1,
-    //      no_output | in_edges | dense_forward);
-    // edgeMap(GA, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
-    //         no_output | in_edges | fine_parallel);
 
     sparse_fa_dense_em(GA, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
 
@@ -290,9 +286,132 @@ inline sequence<fType> BC_EM(G& GA, const uintE& start) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
-
-
-
 }
+
+ struct round_path {
+   uintE round;
+   fType path;
+   fType dep;
+   round_path(uintE round, fType path, fType dep) : round(round), path(path), dep(dep) {}
+ };
+
+ template <class W>
+ struct BC_atomicless_acquire {
+   round_path* RP;
+   uintE round;
+   BC_atomicless_acquire(round_path* RP, uintE round) : RP(RP), round(round) {}
+   inline bool update(const uintE& s, const uintE& d, const W& w) {
+     if (RP[d].round == UINT_E_MAX) {
+       RP[d].round = round;
+       return 1;
+     } else {
+       return 0;
+     }
+   }
+   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
+     return (pbbslib::atomic_compare_and_swap(&(RP[d].round), UINT_E_MAX, round));
+   }
+   inline bool cond(const uintE& d) { return (RP[d].round == UINT_E_MAX); }
+ };
+
+ template <class G>
+ inline auto BC_atomicless(G& GA, const uintE& start) {
+   using W = typename G::weight_type;
+   size_t n = GA.n;
+
+   auto RP = pbbs::sequence<round_path>(n, round_path(UINT_E_MAX, 0, 0));
+   RP[start] = round_path(0, 1, 0);
+
+   std::vector<vertexSubset> Levels;
+
+   vertexSubset Frontier(n, start);
+
+   long round = 0;
+   while (!Frontier.isEmpty()) {
+     debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
+     round++;
+     vertexSubset output = edgeMap(GA, Frontier, BC_atomicless_acquire<W>(RP.begin(), round),
+                                   -1, sparse_blocked | fine_parallel);
+
+     // traverse in-edges, aggregate contributions
+     output.toSparse();
+     parallel_for(0, output.size(), [&] (size_t i) {
+       uintE vtx_id = output.vtx(i);
+       auto vtx = GA.get_vertex(vtx_id);
+       auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) {
+         if (RP[d].round < round) {
+           return RP[d].path;
+         } else {
+           return static_cast<fType>(0.0);
+         }
+       };
+       auto reduce_f = [&] (fType l, fType r) { return l + r; };
+       auto reduce_m = pbbs::make_monoid(reduce_f, static_cast<fType>(0.0));
+       RP[vtx_id].path = vtx.reduceInNgh(vtx_id, map_f, reduce_m);
+     }, 1);
+
+     Levels.push_back(Frontier);
+     Frontier = output;
+   }
+   Levels.push_back(Frontier);
+
+  for (size_t i=0; i<100; i++) {
+    cout << RP[i].path << endl;
+  }
+  cout << "printed numpaths" << endl;
+
+   // Invert numpaths
+   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                   { RP[i].path = 1 / RP[i].path; });
+
+   Levels[round].del();
+   Frontier = Levels[round - 1];
+   vertexMap(Frontier, [&] (const uintE& u) {
+     RP[u].dep += RP[u].path;
+   });
+   Frontier.del();
+   // No-one to aggregate contributions from in the first round
+
+   timer bt;
+   bt.start();
+   for (long r = round - 2; r >= 0; r--) {
+     Frontier = Levels[r];
+     Frontier.toSparse();
+     vertexMap(Frontier, [&] (const uintE& u) {
+       RP[u].dep += RP[u].path;
+     });
+
+     parallel_for(0, Frontier.size(), [&] (size_t i) {
+       uintE vtx_id = Frontier.vtx(i);
+       auto vtx = GA.get_vertex(vtx_id);
+       auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) {
+         if (RP[d].round > r) {
+           return RP[d].dep; // dep finalized for higher round vtxs
+         } else {
+           return static_cast<fType>(0.0);
+         }
+       };
+       auto reduce_f = [&] (fType l, fType r) { return l + r; };
+       auto reduce_m = pbbs::make_monoid(reduce_f, static_cast<fType>(0.0));
+       RP[vtx_id].dep = vtx.reduceOutNgh(vtx_id, map_f, reduce_m);
+     }, 1);
+
+     Frontier.del();
+   }
+   bt.stop();
+   debug(bt.reportTotal("back total time"););
+
+   Frontier.del();
+
+   // Update dependencies scores
+   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+     RP[i].dep = (RP[i].dep - RP[i].path) / RP[i].path;
+   });
+//   for (size_t i=0; i<100; i++) {
+//     cout << RP[i].dep << endl;
+//   }
+   return RP; // RP.dep = dependency values
+ }
+
 
 }  // namespace bc
