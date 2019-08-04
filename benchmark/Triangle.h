@@ -319,7 +319,7 @@ inline size_t Triangle(symmetric_graph<vertex, W>& GA, const F& f) {
   auto degrees = pbbslib::make_sequence<size_t>(n, get_degree);
   cout << "max_degree = " << pbbslib::reduce_max(degrees) << endl;
 
-  size_t count = CountDirectedSlabs(DG, counts.begin(), f);
+  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
   std::cout << "### Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
