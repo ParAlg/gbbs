@@ -44,8 +44,9 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
     using edge = std::tuple<uintE, uintE, pbbs::empty>;
     edge* E;
     uintE* R;
+    uintE* M;
     bool* matched;
-    matchStep(edge* _E, uintE* _R, bool* m) : E(_E), R(_R), matched(m) {}
+    matchStep(edge* _E, uintE* _R, uintE* M, bool* m) : E(_E), R(_R), M(M), matched(m) {}
 
     bool reserve(uintE i) {
       uintE u = std::get<0>(E[i]);
@@ -64,8 +65,8 @@ inline size_t key_for_pair(uintE k1, uintE k2, pbbslib::random rnd) {
         if (R[u] == i) {
           matched[u] = matched[v] = 1;
           // mark edge in both directions
-          R[u] = v;
-          R[v] = u;
+          M[u] = v;
+          M[v] = u;
           return 1;
         }
       } else if (R[u] == i)
@@ -185,6 +186,7 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
   size_t n = GA.n;
   auto r = pbbslib::random();
 
+  auto R = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
   auto matching = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
   auto matched = sequence<bool>(n, [&](size_t i) { return false; }); // bitvector
 
@@ -205,7 +207,7 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
 
     std::cout << "Got: " << e_arr.non_zeros << " edges "
               << " PG.m is now: " << PG.m << "\n";
-    mm::matchStep mStep(e_arr.E, matching.begin(), matched.begin()); /* use matching as R */
+    mm::matchStep mStep(e_arr.E, R.begin(), matching.begin(), matched.begin());
     eff.start();
     eff_for<size_t>(mStep, 0, e_arr.non_zeros, 50, 0, PG.n);
     eff.stop();
