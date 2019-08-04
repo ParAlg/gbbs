@@ -133,15 +133,15 @@ inline sequence<uintE> wBFS(G& GA, uintE src,
   auto bkt = b.next_bucket();
   size_t rd = 0;
   flags fl = dense_forward;
-  if (!largemem) fl |= no_dense;
-  if (!no_blocked) fl |= sparse_blocked;
+//  if (!largemem) fl |= no_dense;
+//  if (!no_blocked) fl |= sparse_blocked;
   while (bkt.id != b.null_bkt) {
     auto active = vertexSubset(n, bkt.identifiers);
     emt.start();
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
     auto res =
-        edgeMapData<uintE>(GA, active, wbfs::make_visit_f<W>(dists, get_weight), GA.m / 20, fl);
+        edgeMapData<uintE>(GA, active, wbfs::make_visit_f<W>(dists, get_weight), GA.m / 40, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();

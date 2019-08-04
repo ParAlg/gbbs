@@ -635,12 +635,17 @@ inline symmetric_graph<vertex, W> readUncompressedBinaryGraph(
   char* s0 = s;
 #else
   // TODO(laxmand): there has to be a cleaner way to do this.
+  auto s0_dir = std::string("/mnt/pmem0/");
+  auto s1_dir = std::string("/mnt/pmem1/");
+  auto s0_file = s0_dir + std::string(fname);
+  auto s1_file = s1_dir + std::string(fname);
+
   std::pair<char*, size_t> S0 =
-      pmem_from_file("/mnt/pmem0/clueweb_sym.binary");
+      pmem_from_file(s0_file.c_str());
   char* s0 = S0.first;
 
   std::pair<char*, size_t> S1 =
-      pmem_from_file("/mnt/pmem1/clueweb_sym.binary");
+      pmem_from_file(s1_file.c_str());
   char* s1 = S1.first;
 #endif
 

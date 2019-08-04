@@ -38,7 +38,7 @@ struct Visit_F {
   Visit_F(sequence<uintE>& _width, GW& get_weight) : width(_width), get_weight(get_weight) {}
 
   inline Maybe<uintE> update(const uintE& s, const uintE& d, const W& w) {
-    uintE edgeLen = get_weight(s, d, wgh);
+    uintE edgeLen = get_weight(s, d, w);
     uintE oval = width[d];
     uintE bottleneck = oval | TOP_BIT;
     uintE n_width = std::min((width[s] | TOP_BIT), (edgeLen | TOP_BIT));
@@ -54,7 +54,7 @@ struct Visit_F {
 
   inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& w) {
-    uintE edgeLen = get_weight(s, d, wgh);
+    uintE edgeLen = get_weight(s, d, w);
     uintE oval = width[d];
     uintE bottleneck = oval | TOP_BIT;
     uintE n_width = std::min((width[s] | TOP_BIT), (edgeLen | TOP_BIT));
@@ -79,29 +79,30 @@ Visit_F<W, GW> make_visit_f(sequence<uintE>& dists, GW& get_weight) {
 }  // namespace widestpath
 
 template <class G, class GW>
-inline sequence<uintE> WidestPath(G& G, GW& get_weight, uintE src,
+inline sequence<uintE> WidestPath(G& GA, GW& get_weight, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
+  using W = typename G::weight_type;
   timer t;
   t.start();
 
   timer mw; mw.start();
   W max_weight = 0;
-  parallel_for(0, G.n, [&] (size_t i) {
+  parallel_for(0, GA.n, [&] (size_t i) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& w) {
       auto wgh = get_weight(u, v, w);
       if (wgh > max_weight) {
         pbbslib::write_max(&max_weight, wgh);
       }
     };
-    G.V[i].mapOutNgh(i, map_f);
+    GA.get_vertex(i).mapOutNgh(i, map_f);
   }, 1);
   mw.stop(); mw.reportTotal("max weight time");
   cout << "max_weight = " << max_weight << endl;
 
   timer init;
   init.start();
-  size_t n = G.n;
+  size_t n = GA.n;
 
   auto width = sequence<uintE>(n, [&](size_t i) { return 0; });
   width[src] = INT_E_MAX;
@@ -140,7 +141,7 @@ inline sequence<uintE> WidestPath(G& G, GW& get_weight, uintE src,
   while (bkt.id != b.null_bkt) {
     auto active = vertexSubset(n, bkt.identifiers);
     emt.start();
-    auto res = edgeMapData<uintE>(G, active, widestpath::make_visit_f(width, get_weight), G.m / 20, fl);
+    auto res = edgeMapData<uintE>(GA, active, widestpath::make_visit_f<W>(width, get_weight), GA.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -202,8 +203,9 @@ struct WidestPath_BF_Vertex_F {
   }
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<intE> WidestPathBF(graph<vertex<W>>& GA, const uintE& start) {
+template <class G>
+inline sequence<intE> WidestPathBF(G& GA, const uintE& start) {
+  using W = typename G::weight_type;
   size_t n = GA.n;
   auto Visited = sequence<int>(n, 0);
   auto width = sequence<intE>(n, static_cast<intE>(-1));

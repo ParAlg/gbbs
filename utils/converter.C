@@ -447,6 +447,210 @@ namespace bytepd_amortized {
 
     out.close();
   }
+
+  template <class G>
+  inline uintE* rankNodes(G& GA, size_t n) {
+    uintE* r = pbbslib::new_array_no_init<uintE>(n);
+  //  uintE* o = pbbslib::new_array_no_init<uintE>(n);
+    sequence<uintE> o(n);
+
+    timer t;
+    t.start();
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
+    pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
+      return GA.get_vertex(u).getOutDegree() < GA.get_vertex(v).getOutDegree();
+    });
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                    { r[o[i]] = i; });
+    t.stop();
+    debug(t.reportTotal("Rank time"););
+    return r;
+  }
+
+  template <template <class W> class vertex, class W>
+  void degree_reorder(symmetric_graph<vertex, W>& GA, ofstream& out, bool symmetric, size_t n_batches = 6) {
+    if (!symmetric) {
+      assert(false);
+      exit(0);
+    }
+    size_t n = GA.n; size_t m = GA.m;
+
+    // mapping from v -> new id
+    uintE* rank = rankNodes(GA, GA.n);
+
+    auto inverse_rank = pbbs::sequence<uintE>(n);
+    parallel_for(0, n, [&] (size_t i) {
+      uintE rank_i = rank[i];
+      inverse_rank[rank_i] = i;
+    });
+
+    // 1. Calculate total size
+    auto degrees = pbbs::sequence<uintE>(n);
+    auto byte_offsets = pbbs::sequence<uintT>(n+1);
+    parallel_for(0, n, [&] (size_t i) {
+      size_t total_bytes = 0;
+      uintE last_ngh = 0;
+      size_t deg = 0;
+      uchar tmp[16];
+
+      uintE stk[8192];
+      uintE* nghs = (uintE*)stk;
+      auto vtx = GA.get_vertex(i);
+      if (vtx.getOutDegree() > 0) {
+        if (vtx.getOutDegree() > 8192) {
+          nghs = pbbs::new_array_no_init<uintE>(deg);
+        }
+
+        size_t k = 0;
+        auto map_ngh_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
+          nghs[k++] = rank[w];
+        };
+        vtx.mapOutNgh(i, map_ngh_f, false);
+
+        auto new_ngh_seq = pbbslib::make_sequence(nghs, deg);
+        pbbs::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
+
+        uintE our_new_id = rank[i];
+
+        for (size_t i=0; i<new_ngh_seq.size(); i++) {
+          long bytes = 0;
+          uintE ngh_id = new_ngh_seq[i];
+          if ((deg % PAR_DEGREE_TWO) == 0) {
+            bytes = compressFirstEdge(tmp, bytes, our_new_id, ngh_id);
+          } else {
+            bytes = compressEdge(tmp, bytes, ngh_id - last_ngh);
+          }
+          last_ngh = ngh_id;
+          total_bytes += bytes;
+          deg++;
+        }
+
+        if (deg > 0) {
+          size_t n_chunks = 1+(deg-1)/PAR_DEGREE_TWO;
+          // To account for the byte offsets
+          total_bytes += (n_chunks-1)*sizeof(uintE);
+          // To account for the per-block counters
+          total_bytes += (n_chunks)*sizeof(uintE);
+          // To account for the virtual degree
+          total_bytes += sizeof(uintE);
+        }
+        if (vtx.getOutDegree() > 8192) {
+          pbbs::free_array(nghs);
+        }
+      }
+      degrees[i] = deg;
+      byte_offsets[i] = total_bytes;
+    }, 1);
+    byte_offsets[n] = 0;
+    size_t total_space = pbbslib::scan_add_inplace(byte_offsets.slice());
+    cout << "total space = " << total_space << endl;
+    auto deg_im = pbbs::delayed_seq<size_t>(n, [&] (size_t i) { return degrees[i]; });
+    cout << "sum degs = " << pbbslib::reduce_add(deg_im) << endl;
+
+    long* sizes = pbbs::new_array_no_init<long>(3);
+    sizes[0] = GA.n;
+    sizes[1] = GA.m;
+    sizes[2] = total_space;
+    out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
+    out.write((char*)byte_offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+    out.write((char*)degrees.begin(),sizeof(uintE)*n);
+
+    // 2. Create compressed format in-memory
+
+    size_t bs = pbbs::num_blocks(n, n_batches);
+
+    for (size_t i=0; i<bs; i++) {
+      size_t start = i*bs;
+      size_t end = std::min(start+bs, n);
+      if (start >= end) break;
+      cout << "writing vertices " << start << " to " << end << endl;
+
+      // create slab of graph and write out
+      size_t start_offset = byte_offsets[start];
+      size_t end_offset = byte_offsets[end];
+      size_t n_bytes = end_offset - start_offset;
+      uchar* edges = pbbs::new_array_no_init<uchar>(n_bytes);
+      parallel_for(start, end, [&] (size_t i) {
+        size_t our_offset = byte_offsets[i] - start_offset;
+        uintE deg = degrees[i];
+        if (deg > 0) {
+          auto it = GA.get_vertex(i).getOutIter(i);
+          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+
+          if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
+            cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << endl;
+            exit(0);
+          }
+          assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+        }
+      });
+      out.write((char*)edges,n_bytes); //write edges
+      cout << "finished writing vertices " << start << " to " << end << endl;
+      pbbs::free_array(edges);
+    }
+////    parallel_for (0, n, [&] (size_t i) {
+//      uintE deg = degrees[i];
+//      if (deg > 0) {
+//        auto it = GA.get_vertex(i).getOutIter(i);
+//        long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+//
+//        if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
+//          cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << endl;
+//          exit(0);
+//        }
+//        assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+//      }
+//    }, 1);
+//    exit(0);
+
+//    parallel_for(size_t i=0; i<n; i++) {
+//      size_t xr = 0;
+//      auto map_f = [&] (uintE src, uintE ngh, const W& wgh, size_t off) {
+//        xr ^= (src ^ ngh);
+//        return true;
+//      };
+//      auto edge_start= edges.begin() + byte_offsets[i];
+//      size_t deg = degrees[i];
+//      if (deg > 0) {
+//        bytepd_amortized::decode<W>(map_f, edge_start, i, deg, false);
+//      }
+//      xors[i] = xr;
+//    }
+//    cout << "output graph: output red = " << pbbs::reduce_xor(xors) << endl;
+
+//    parallel_for(size_t i=0; i<n; i++) {
+//      assert(degrees[i] == GA.V[i].getOutDegree());
+//      uintE our_deg = pbbs::log2_up(degrees[i]);
+//      bool selfl = false;
+//      size_t pri = 0;
+//      auto map_f = [&] (uintE src, uintE ngh, const W& wgh, size_t off) {
+//        uintE ngh_deg = pbbs::log2_up(degrees[ngh]);
+//        if (src == ngh) {
+//          selfl = true;
+//        }
+//        if ((ngh_deg > our_deg) || ((ngh_deg == our_deg) && hash_or_lt(src, ngh))) {
+//          pri++;
+//        }
+//        return true;
+//      };
+//      auto edge_start= edges.begin() + byte_offsets[i];
+//      size_t deg = degrees[i];
+//      if (deg > 0) {
+//        bytepd_amortized::decode<W>(map_f, edge_start, i, deg, false);
+//      }
+//      self_arr[i] = selfl;
+//      xors[i] = pri;
+//    }
+//    cout << "output graph: priorities = " << pbbslib::reduce_add(xors) << endl;
+//    cout << "output graph: self-loops = " << pbbslib::reduce_add(self_arr) << endl;
+
+
+//    exit(0);
+
+    out.close();
+  }
+
+
 }; // namespace bytepd_amortized
 
 namespace binary_format {
@@ -535,7 +739,10 @@ auto converter(G& GA, commandLine P) {
   } else if (encoding == "bytepd-amortized") {
     bytepd_amortized::write_graph_bytepd_amortized_format(GA, out, symmetric);
   } else if (encoding == "binary") {
+    cout <<"going fucker" << endl;
     binary_format::write_graph_binary_format(GA, out);
+  } else if (encoding == "degree") {
+    bytepd_amortized::degree_reorder(GA, out, symmetric);
   } else {
     cout << "Unknown encoding: " << encoding << endl;
     exit(0);

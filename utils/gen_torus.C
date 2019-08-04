@@ -13,16 +13,13 @@
 // optimally and will result in poor compression.
 
 #include <math.h>
-#include "../src/oldlib/benchIO.h"
-#include "../src/oldlib/parse_command_line.h"
 #include "ligra.h"
-#include "utils.h"
 
 #include <algorithm>
 #include <cstring>
 #include <iostream>
 
-#include "lib/random.h"
+#include "pbbslib/random.h"
 
 using namespace std;
 
@@ -99,72 +96,57 @@ uintE loc3d(uintE n, uintE i1, uintE i2, uintE i3) {
   return ((i1 + n) % n) * n * n + ((i2 + n) % n) * n + (i3 + n) % n;
 }
 
-template <class T>
-void writeArrayToStream(ofstream& os, T* A, long n) {
-  long BSIZE = 1000000;
-  long offset = 0;
-  while (offset < n) {
-    // Generates a string for a sequence of size at most BSIZE
-    // and then wrties it to the output stream
-    cout << "Writing offset = " << offset << endl;
-    _seq<char> S = benchIO::arrayToString(A + offset, min(BSIZE, n - offset));
-    os.write(S.A, S.n);
-    S.del();
-    offset += BSIZE;
-  }
-}
+//void graph2DTorus(uintE n, char* fname) {
+//  uintE dn = round(pow((float)n, 1.0 / 2.0));
+//  uintE nn = dn * dn;
+//  size_t deg = 4;
+//  size_t nonZeros = deg * nn;
+//  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+//  uintE* edges = newA(uintE, nonZeros);
+//  parallel_for(size_t i = 0; i < dn; i++) {
+//    parallel_for(size_t j = 0; j < dn; j++) {
+//      uintE v = loc2d(dn, i, j);
+//      uintE nghs[4];
+//      nghs[0] = loc2d(dn, i, j + 1);
+//      nghs[1] = loc2d(dn, i, j - 1);
+//      nghs[2] = loc2d(dn, i + 1, j);
+//      nghs[3] = loc2d(dn, i - 1, j);
+//      std::sort(nghs, nghs + 4);
+//      size_t off = v * deg;
+//      for (size_t k = 0; k < deg; k++) {
+//        edges[off + k] = nghs[k];
+//      }
+//    }
+//  }
+//  uintT* degs = newA(uintT, nn);
+//  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * 4; }
+//
+//  ofstream file(fname, ios::out | ios::binary);
+//  if (!file.is_open()) {
+//    std::cout << "Unable to open file: " << fname << std::endl;
+//    exit(0);
+//  }
+//  file << "AdjacencyGraph" << endl;
+//  file << nn << endl;
+//  file << nonZeros << endl;
+//  writeArrayToStream(file, degs, nn);
+//  writeArrayToStream(file, edges, nonZeros);
+//  file.close();
+//  cout << "Wrote file." << endl;
+//  free(edges);
+//  free(degs);
+//}
 
-void graph2DTorus(uintE n, char* fname) {
-  uintE dn = round(pow((float)n, 1.0 / 2.0));
-  uintE nn = dn * dn;
-  size_t deg = 4;
-  size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
-  uintE* edges = newA(uintE, nonZeros);
-  parallel_for(size_t i = 0; i < dn; i++) {
-    parallel_for(size_t j = 0; j < dn; j++) {
-      uintE v = loc2d(dn, i, j);
-      uintE nghs[4];
-      nghs[0] = loc2d(dn, i, j + 1);
-      nghs[1] = loc2d(dn, i, j - 1);
-      nghs[2] = loc2d(dn, i + 1, j);
-      nghs[3] = loc2d(dn, i - 1, j);
-      std::sort(nghs, nghs + 4);
-      size_t off = v * deg;
-      for (size_t k = 0; k < deg; k++) {
-        edges[off + k] = nghs[k];
-      }
-    }
-  }
-  uintT* degs = newA(uintT, nn);
-  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * 4; }
-
-  ofstream file(fname, ios::out | ios::binary);
-  if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fname << std::endl;
-    exit(0);
-  }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
-  writeArrayToStream(file, degs, nn);
-  writeArrayToStream(file, edges, nonZeros);
-  file.close();
-  cout << "Wrote file." << endl;
-  free(edges);
-  free(degs);
-}
-
-void graph3DTorus(uintE n, char* fname) {
+void graph3DTorus(uintE n, const char* fname) {
   uintE dn = round(pow((float)n, 1.0 / 3.0));
   uintE nn = dn * dn * dn;
   size_t deg = 6;
   size_t nonZeros = deg * nn;
   cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
-  uintE* edges = newA(uintE, nonZeros);
-  parallel_for(size_t i = 0; i < dn; i++) {
-    parallel_for(size_t j = 0; j < dn; j++) {
-      parallel_for(size_t k = 0; k < dn; k++) {
+  uintE* edges = pbbs::new_array_no_init<uintE>(nonZeros);
+  parallel_for(0, dn, [&] (size_t i) {
+    parallel_for(0, dn, [&] (size_t j) {
+      parallel_for(0, dn, [&] (size_t k) {
         uintE v = loc3d(dn, i, j, k);
         uintE nghs[6];
         nghs[0] = loc3d(dn, i, j, k + 1);
@@ -178,141 +160,148 @@ void graph3DTorus(uintE n, char* fname) {
         for (size_t l = 0; l < deg; l++) {
           edges[off + l] = nghs[l];
         }
-      }
-    }
-  }
-  uintT* degs = newA(uintT, nn);
-  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * deg; }
+      });
+    }, 1);
+  }, 1);
+  uintT* degs = pbbs::new_array_no_init<uintT>(nn+1);
+  parallel_for(0, nn, [&] (size_t i) { degs[i] = i * deg; });
+  degs[nn] = nonZeros;
 
-  ofstream file(fname, ios::out | ios::binary);
-  if (!file.is_open()) {
+  ofstream out(fname, ios::out | ios::binary);
+  if (!out.is_open()) {
     std::cout << "Unable to open file: " << fname << std::endl;
     exit(0);
   }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
-  writeArrayToStream(file, degs, nn);
-  writeArrayToStream(file, edges, nonZeros);
-  file.close();
-  cout << "Wrote file." << endl;
+
+  long* sizes = pbbs::new_array_no_init<long>(3);
+  sizes[0] = nn;
+  sizes[1] = nonZeros;
+  sizes[2] = sizeof(long) * 3 + sizeof(uintT)*(nn+1) + sizeof(uintE)*nonZeros;
+  out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
+  out.write((char*)degs,sizeof(uintT)*(nn+1)); //write offsets
+  out.write((char*)edges,nonZeros*sizeof(uintE)); //write edges
+  out.close();
+
+//  file << "AdjacencyGraph" << endl;
+//  file << nn << endl;
+//  file << nonZeros << endl;
+//  writeArrayToStream(file, degs, nn);
+//  writeArrayToStream(file, edges, nonZeros);
+//  file.close();
+//  cout << "Wrote file." << endl;
   free(edges);
   free(degs);
 }
 
-void graph3DTorusWgh(uintE n, char* fname) {
-  uintE dn = round(pow((float)n, 1.0 / 3.0));
-  uintE nn = dn * dn * dn;
-  size_t deg = 6;
-  size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
-  uintE* edges = newA(uintE, nonZeros);
-  parallel_for(size_t i = 0; i < dn; i++) {
-    parallel_for(size_t j = 0; j < dn; j++) {
-      parallel_for(size_t k = 0; k < dn; k++) {
-        uintE v = loc3d(dn, i, j, k);
-        uintE nghs[6];
-        nghs[0] = loc3d(dn, i, j, k + 1);
-        nghs[1] = loc3d(dn, i, j, k - 1);
-        nghs[2] = loc3d(dn, i, j + 1, k);
-        nghs[3] = loc3d(dn, i, j - 1, k);
-        nghs[4] = loc3d(dn, i + 1, j, k);
-        nghs[5] = loc3d(dn, i - 1, j, k);
-        std::sort(nghs, nghs + deg);
-        size_t off = v * deg;
-        for (size_t l = 0; l < deg; l++) {
-          edges[off + l] = nghs[l];
-        }
-      }
-    }
-  }
-  uintT* degs = newA(uintT, nn);
-  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * deg; }
+//void graph3DTorusWgh(uintE n, char* fname) {
+//  uintE dn = round(pow((float)n, 1.0 / 3.0));
+//  uintE nn = dn * dn * dn;
+//  size_t deg = 6;
+//  size_t nonZeros = deg * nn;
+//  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+//  uintE* edges = newA(uintE, nonZeros);
+//  parallel_for(size_t i = 0; i < dn; i++) {
+//    parallel_for(size_t j = 0; j < dn; j++) {
+//      parallel_for(size_t k = 0; k < dn; k++) {
+//        uintE v = loc3d(dn, i, j, k);
+//        uintE nghs[6];
+//        nghs[0] = loc3d(dn, i, j, k + 1);
+//        nghs[1] = loc3d(dn, i, j, k - 1);
+//        nghs[2] = loc3d(dn, i, j + 1, k);
+//        nghs[3] = loc3d(dn, i, j - 1, k);
+//        nghs[4] = loc3d(dn, i + 1, j, k);
+//        nghs[5] = loc3d(dn, i - 1, j, k);
+//        std::sort(nghs, nghs + deg);
+//        size_t off = v * deg;
+//        for (size_t l = 0; l < deg; l++) {
+//          edges[off + l] = nghs[l];
+//        }
+//      }
+//    }
+//  }
+//  uintT* degs = newA(uintT, nn);
+//  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * deg; }
+//
+//  ofstream file(fname, ios::out | ios::binary);
+//  if (!file.is_open()) {
+//    std::cout << "Unable to open file: " << fname << std::endl;
+//    exit(0);
+//  }
+//  file << "AdjacencyGraph" << endl;
+//  file << nn << endl;
+//  file << nonZeros << endl;
+//  file.close();
+//  cout << "Wrote file." << endl;
+//  free(edges);
+//  free(degs);
+//}
+//
+//void graph3DTorus27(uintE n, char* fname) {
+//  uintE dn = round(pow((float)n, 1.0 / 3.0));
+//  uintE nn = dn * dn * dn;
+//  size_t deg = 26;
+//  size_t nonZeros = deg * nn;
+//  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+//  uintE* edges = newA(uintE, nonZeros);
+//  parallel_for(size_t i = 0; i < dn; i++) {
+//    parallel_for(size_t j = 0; j < dn; j++) {
+//      parallel_for(size_t k = 0; k < dn; k++) {
+//        size_t v = loc3d(dn, i, j, k);
+//        uintE nghs[26];
+//        uintE ct = 0;
+//        for (long l = -1; l < 2; l++) {
+//          for (long m = -1; m < 2; m++) {
+//            for (long n = -1; n < 2; n++) {
+//              uintE coord = loc3d(dn, i + l, j + m, k + n);
+//              if (coord != v) {
+//                nghs[ct++] = coord;
+//              }
+//            }
+//          }
+//        }
+//        assert(ct == 26);
+//        //        nghs[0] = loc3d(dn, i, j, k+1);
+//        //        nghs[1] = loc3d(dn, i, j, k-1);
+//        //        nghs[2] = loc3d(dn, i, j+1, k);
+//        //        nghs[3] = loc3d(dn, i, j-1, k);
+//        //        nghs[4] = loc3d(dn, i+1, j, k);
+//        //        nghs[5] = loc3d(dn, i-1, j, k);
+//        std::sort(nghs, nghs + deg);
+//        size_t off = v * deg;
+//        for (size_t l = 0; l < deg; l++) {
+//          edges[off + l] = nghs[l];
+//        }
+//      }
+//    }
+//  }
+//  uintT* degs = newA(uintT, nn);
+//  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * deg; }
+//
+//  ofstream file(fname, ios::out | ios::binary);
+//  if (!file.is_open()) {
+//    std::cout << "Unable to open file: " << fname << std::endl;
+//    exit(0);
+//  }
+//  file << "AdjacencyGraph" << endl;
+//  file << nn << endl;
+//  file << nonZeros << endl;
+//  cout << "writing m = " << nonZeros << endl;
+//  file.close();
+//  cout << "Wrote file." << endl;
+//  free(edges);
+//  free(degs);
+//}
 
-  ofstream file(fname, ios::out | ios::binary);
-  if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fname << std::endl;
-    exit(0);
-  }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
-  writeArrayToStream(file, degs, nn);
-  writeArrayToStream(file, edges, nonZeros);
-  file.close();
-  cout << "Wrote file." << endl;
-  free(edges);
-  free(degs);
-}
-
-void graph3DTorus27(uintE n, char* fname) {
-  uintE dn = round(pow((float)n, 1.0 / 3.0));
-  uintE nn = dn * dn * dn;
-  size_t deg = 26;
-  size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
-  uintE* edges = newA(uintE, nonZeros);
-  parallel_for(size_t i = 0; i < dn; i++) {
-    parallel_for(size_t j = 0; j < dn; j++) {
-      parallel_for(size_t k = 0; k < dn; k++) {
-        size_t v = loc3d(dn, i, j, k);
-        uintE nghs[26];
-        uintE ct = 0;
-        for (long l = -1; l < 2; l++) {
-          for (long m = -1; m < 2; m++) {
-            for (long n = -1; n < 2; n++) {
-              uintE coord = loc3d(dn, i + l, j + m, k + n);
-              if (coord != v) {
-                nghs[ct++] = coord;
-              }
-            }
-          }
-        }
-        assert(ct == 26);
-        //        nghs[0] = loc3d(dn, i, j, k+1);
-        //        nghs[1] = loc3d(dn, i, j, k-1);
-        //        nghs[2] = loc3d(dn, i, j+1, k);
-        //        nghs[3] = loc3d(dn, i, j-1, k);
-        //        nghs[4] = loc3d(dn, i+1, j, k);
-        //        nghs[5] = loc3d(dn, i-1, j, k);
-        std::sort(nghs, nghs + deg);
-        size_t off = v * deg;
-        for (size_t l = 0; l < deg; l++) {
-          edges[off + l] = nghs[l];
-        }
-      }
-    }
-  }
-  uintT* degs = newA(uintT, nn);
-  parallel_for(size_t i = 0; i < nn; i++) { degs[i] = i * deg; }
-
-  ofstream file(fname, ios::out | ios::binary);
-  if (!file.is_open()) {
-    std::cout << "Unable to open file: " << fname << std::endl;
-    exit(0);
-  }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
-  cout << "writing m = " << nonZeros << endl;
-  writeArrayToStream(file, degs, nn);
-  writeArrayToStream(file, edges, nonZeros);
-  file.close();
-  cout << "Wrote file." << endl;
-  free(edges);
-  free(degs);
-}
-
-int main(int argc, char* argv[]) {
-  commandLine P(argc, argv, "[-w] n <outFile>");
-  pair<int, char*> in = P.sizeAndFileName();
-  long n = in.first;
-  char* fname = in.second;
-  bool weighted = P.getOptionValue("-w");
-  cout << "Generating 3D torus" << endl;
-  if (weighted) {
-    graph3DTorusWgh(n, fname);
+template <class G>
+auto converter(G& GA, commandLine P) {
+  size_t n = P.getOptionLongValue("-n",1000000000);
+  auto outfile = P.getOptionValue("-o", "");
+  if (P.getOptionValue("-w")) {
+//    graph3DTorusWgh(n, outfile);
   } else {
-    graph3DTorus(n, fname);
+    graph3DTorus(n, outfile.c_str());
   }
+  return 1.0;
 }
+
+generate_main(converter, false);

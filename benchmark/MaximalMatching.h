@@ -212,7 +212,7 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
     e_arr.del();
 
     auto removed_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
-      if (matching[i] != UINT_E_MAX) {
+      if (matching[i] != UINT_E_MAX && PG.getOutDegree(i) > 0) {
         size_t deg =  PG.getOutDegree(i);
         PG.get_vertex(i).clear_vertex();
         return deg;
@@ -223,7 +223,6 @@ inline sequence<std::tuple<uintE, uintE, pbbs::empty>> MaximalMatching(G& GA) {
     PG.m -= deg_removed;
     std::cout << "removed: " << deg_removed << " many edges" << "\n";
 
-    // TODO: pack out
     auto pack_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
       assert(!matched[u]);
       return !matched[v]; // only keep edges to unmatched v's

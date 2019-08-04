@@ -100,7 +100,7 @@ inline sequence<intE> BellmanFord(G& GA, const uintE& start) {
     }
     auto em_f = make_bf_f<W>(SP.begin(), Visited.begin(), get_weight);
     auto output =
-        edgeMap(GA, Frontier, em_f, GA.m / 10, no_dense);
+        edgeMap(GA, Frontier, em_f, GA.m / 20, dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
     Frontier.del();

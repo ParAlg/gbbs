@@ -32,17 +32,20 @@ struct wgh_it {
   uintE deg;
   I& it;
   uintE source;
-  wgh_it(I& _it, uintE _src) : it(_it), source(_src), deg(0) {}
+  size_t src_shift;
+  wgh_it(I& _it, uintE _src) : it(_it), source(_src), deg(0) {
+    src_shift = static_cast<size_t>(source) << 32L;
+  }
   tuple<uintE, int> cur() {
     auto cr = it.cur();
-    uintE ind = pbbs::hash64(source ^ get<0>(cr));
+    uintE ind = pbbs::hash64(src_shift ^ get<0>(cr));
     int wgh = Choices[ind % (2 * max_weight)];
     return make_tuple(get<0>(cr), wgh);
   }
   tuple<uintE, int> next() {
     deg++;
     auto nxt = it.next();
-    uintE ind = pbbs::hash64(source ^ get<0>(nxt));
+    uintE ind = pbbs::hash64(src_shift ^ get<0>(nxt));
     int wgh = Choices[ind % (2 * max_weight)];
     return make_tuple(get<0>(nxt), wgh);
   }
@@ -256,10 +259,11 @@ void writeWeightedBytePDA(symmetric_graph<vertex, W>& GA, string& outfile,
     size_t total_bytes = 0;
     uintE last_ngh = 0;
     size_t deg = 0;
+    size_t src_shift = static_cast<size_t>(i) << 32L;
     uchar tmp[16];
     auto f = [&](const uintE& u, const uintE& v, const W& w) {
       long bytes = 0;
-      uintE ind = pbbs::hash64(u ^ v);
+      uintE ind = pbbs::hash64(src_shift | static_cast<size_t>(v));
       int weight = Choices[ind % (2 * max_weight)];
       if ((deg % PAR_DEGREE_TWO) == 0) {
         bytes = bytepd_amortized::compressFirstEdge(tmp, bytes, u, v);
@@ -351,6 +355,79 @@ void writeWeightedBytePDA(symmetric_graph<vertex, W>& GA, string& outfile,
 }
 };  // namespace bytepd_amortized
 
+namespace binary_format {
+
+  template <class G>
+  void add_weights_binary_format(G& GA, string& outfile, bool symmetric, size_t n_batches=4) {
+    size_t n = GA.n; size_t m = GA.m;
+    using W = intE;
+    using edge_type = std::tuple<uintE, W>;
+
+    ofstream out(outfile.c_str(), ofstream::out | ios::binary);
+
+    // 1. Calculate total size
+    auto offsets = pbbs::sequence<uintT>(n+1);
+    cout << "calculating size" << endl;
+    parallel_for(0, n, [&] (size_t i) {
+      offsets[i] = GA.get_vertex(i).getOutDegree();
+    });
+    offsets[n] = 0;
+    size_t offset_scan = pbbslib::scan_add_inplace(offsets.slice());
+    cout << "offset_scan = " << offset_scan << " m = " << m << endl;
+    assert(offset_scan == m);
+
+    long* sizes = pbbs::new_array_no_init<long>(3);
+    sizes[0] = GA.n;
+    sizes[1] = GA.m;
+    sizes[2] = sizeof(long) * 3 + sizeof(uintT)*(n+1) + sizeof(edge_type)*m;
+    out.write((char*)sizes,sizeof(long)*3); //write n, m and space used
+    out.write((char*)offsets.begin(),sizeof(uintT)*(n+1)); //write offsets
+
+    // 2. Create compressed format in-memory (batched)
+    size_t block_size = pbbs::num_blocks(n, n_batches);
+    size_t edges_written = 0;
+    for (size_t b=0; b<n_batches; b++) {
+      size_t start = b*block_size;
+      size_t end = std::min(start + block_size, n);
+      if (start >= end) break;
+      cout << "writing vertices " << start << " to " << end << endl;
+
+      // create slab of graph and write out
+      size_t start_offset = offsets[start];
+      size_t end_offset = offsets[end];
+      size_t n_edges = end_offset - start_offset;
+      edge_type* edges = pbbs::new_array_no_init<edge_type>(n_edges);
+
+      parallel_for(start, end, [&] (size_t i) {
+        size_t our_offset = offsets[i] - start_offset;
+        size_t src_shift = static_cast<size_t>(i) << 32L;
+        auto map_f = [&] (const uintE& u, const uintE& v, const pbbs::empty& wgh) {
+          return wgh;
+        };
+        auto write_f = [&] (const uintE& ngh, const uintT& offset, const pbbs::empty& val) {
+          uintE ind = pbbs::hash64(src_shift | static_cast<size_t>(ngh));
+          int weight = Choices[ind % (2 * max_weight)];
+          edges[offset] = std::make_tuple(ngh, weight);
+        };
+        GA.get_vertex(i).copyOutNgh(i, our_offset, map_f, write_f);
+      });
+
+      size_t edge_space = sizeof(edge_type)*n_edges;
+      out.write((char*)edges,edge_space); //write edges
+
+      cout << "finished writing vertices " << start << " to " << end << endl;
+      edges_written += n_edges;
+
+      pbbs::free_array(edges);
+    }
+    cout << "Wrote " << edges_written << " edges in total, m = " << m << endl;
+    assert(edges_written == m);
+    out.close();
+  }
+
+
+}; // namespace binary_format
+
 template <class G>
 double Reencoder(G& GA, commandLine P) {
   auto outfile =
@@ -372,12 +449,18 @@ double Reencoder(G& GA, commandLine P) {
     max_weight = 1;
     int* Choices = pbbs::new_array_no_init<int>(2*max_weight);
     Choices[0] = 1; Choices[1] = 1;
+    for (int i = 0; i < max_weight; i++) {
+      Choices[2 * i] = 1;
+      Choices[2 * i + 1] = 1;
+    }
   }
 
   if (encoding == "adj") {
 //    writeWeightedAdj(GA, outfile);
   } else if (encoding == "bytepd-amortized") {
     bytepd_amortized::writeWeightedBytePDA(GA, outfile, symmetric);
+  } else if (encoding == "binary") {
+    binary_format::add_weights_binary_format(GA, outfile, symmetric);
   }
   cout << "wrote output symmetric_graph to: " << outfile << endl;
   // prevent running multiple times if -rounds 1 is not specified
