@@ -137,14 +137,20 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
                : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   }
 
-  vs.toSparse();
-  auto degree_f = [&](size_t i) {
-    return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInDegree()
-                           : GA.get_vertex(vs.vtx(i)).getOutDegree();
-  };
-  auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
-  size_t out_degrees = pbbslib::reduce_add(degree_im);
-  cout << "out_degree = " << out_degrees << endl;
+  size_t out_degrees = 0;
+  if (vs.out_degrees_set()) {
+    out_degrees = vs.get_out_degrees();
+  } else {
+    vs.toSparse();
+    auto degree_f = [&](size_t i) {
+      return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInDegree()
+                             : GA.get_vertex(vs.vtx(i)).getOutDegree();
+    };
+    auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
+    out_degrees = pbbslib::reduce_add(degree_im);
+    cout << "out_degree = " << out_degrees << endl;
+    vs.set_out_degrees(out_degrees);
+  }
 
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
@@ -153,7 +159,7 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
                ? edgeMapDenseForward<data, G, VS, F>(GA, vs, f, fl)
                : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   } else {
-    auto vs_out = edgeMapBlocked<data, G, VS, F>(GA, vs, f, fl);
+    auto vs_out = edgeMapBlocked_2<data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }
@@ -186,41 +192,49 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA, vertexSubset& vs, P& p,
     space[i] = GA.get_vertex(v).calculateOutTemporarySpaceBytes();
   });
 
-//  size_t total_space = pbbslib::scan_add_inplace(space.slice());
-//  std::cout << "packNghs: total space allocated = " << total_space << "\n";
-////  sequence<uint8_t> tmp(total_space);
-//  uint8_t* tmp = nullptr;
-//  if (total_space > 0) {
-//    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
-//  }
+  size_t total_space = pbbslib::scan_add_inplace(space.slice());
+  std::cout << "packNghs: total space allocated = " << total_space << "\n";
+//  sequence<uint8_t> tmp(total_space);
+  uint8_t* tmp = nullptr;
+  if (total_space > 0) {
+    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
+  }
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-//        uint8_t* tmp_v = tmp + space[i];
-        size_t ct = GA.get_vertex(v).packOutNgh(v, p, nullptr);
+        uint8_t* tmp_v = nullptr;
+        auto vtx = GA.get_vertex(v);
+        if (vtx.calculateOutTemporarySpaceBytes() > 0) {
+          tmp_v = tmp + space[i];
+        }
+        size_t ct = vtx.packOutNgh(v, p, tmp_v);
         outV[i] = std::make_tuple(v, ct);
       };
       par_for(0, m, 1, [&](size_t i) { for_inner(i); });
     }
-//    if (total_space > 0) {
-//      pbbs::free_array(tmp);
-//    }
+    if (total_space > 0) {
+      pbbs::free_array(tmp);
+    }
     return vertexSubsetData<uintE>(n, m, outV);
   } else {
     {
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
-//        uint8_t* tmp_v = tmp + space[i];
-        GA.get_vertex(v).packOutNgh(v, p, nullptr);
+        uint8_t* tmp_v = nullptr;
+        auto vtx = GA.get_vertex(v);
+        if (vtx.calculateOutTemporarySpaceBytes() > 0) {
+          tmp_v = tmp + space[i];
+        }
+        vtx.packOutNgh(v, p, tmp_v);
       };
       par_for(0, m, 1, [&](size_t i) { for_inner(i); });
     }
-//    if (total_space > 0) {
-//      pbbs::free_array(tmp);
-//    }
+    if (total_space > 0) {
+      pbbs::free_array(tmp);
+    }
     return vertexSubsetData<uintE>(n);
   }
   // TODO: update degrees

@@ -18,7 +18,7 @@ INCLUDE_DIRS = -I../
 
 # abm flag on intel indicates lzcnt
 # see https://en.wikipedia.org/wiki/Bit_Manipulation_Instruction_Sets
-OPT = -O3 -g -mlzcnt
+OPT = -O3 -g -mlzcnt -DNDEBUG
 
 ifdef NVM
 NVMFLAGS = -lpmem -lnuma -DNVM

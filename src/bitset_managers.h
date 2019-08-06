@@ -37,7 +37,7 @@ struct sym_bitset_manager {
   static constexpr uintE bitset_bytes_per_block =
       bytes_per_block - sizeof(metadata);
   static constexpr uintE kFullBlockPackThreshold = 2;
-  static constexpr uintE kBlockAllocThreshold = 50;
+  static constexpr uintE kBlockAllocThreshold = 20;
 
   E* e0;
 #ifdef NVM
@@ -269,6 +269,7 @@ struct sym_bitset_manager {
 
       bytes_to_copy += last_block_bytes;
     }
+    assert(bytes_to_copy <= ((n_full_blocks+1)*bytes_per_block));
 
     // Is a blocked memcpy faster here?
     parallel_for(0, bytes_to_copy, [&] (size_t i) {
@@ -314,6 +315,7 @@ struct sym_bitset_manager {
 
         size_t this_block_size = block_end - block_start;
         size_t bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
+        assert(bytes_to_copy <= bytes_per_block);
 
         // (b) copy bitset data
         for (size_t i = 0; i < bytes_to_copy; i++) {
@@ -373,22 +375,20 @@ struct sym_bitset_manager {
               size_t live_edges = 0;
               for (size_t idx = 0; idx < block_size_num_longs; idx++) {
                 uint64_t cur_long = long_block_bits[idx];
-                size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
-                if (cnt > 0) {
-                  uint64_t long_to_write = cur_long;
-                  for (size_t i=0; i<cnt; i++) {
-                    unsigned select_idx = _tzcnt_u64(cur_long);
-                    auto& ee = e[cur_offset + select_idx];
-                    if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
-                      long_to_write ^= (1UL << select_idx);
-                    } else {
-                      live_edges++;
-                    }
-                    assert((cur_long & (1UL << select_idx)) > 0);
-                    cur_long = _blsr_u64(cur_long);
+                // size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
+                uint64_t long_to_write = cur_long;
+                while (cur_long > 0) {
+                  unsigned select_idx = _tzcnt_u64(cur_long);
+                  auto& ee = e[cur_offset + select_idx];
+                  if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
+                    long_to_write ^= (1UL << select_idx);
+                  } else {
+                    live_edges++;
                   }
-                  long_block_bits[idx] = long_to_write;
+                  assert((cur_long & (1UL << select_idx)) > 0);
+                  cur_long = _blsr_u64(cur_long);
                 }
+                long_block_bits[idx] = long_to_write;
                 cur_offset += 64; // next long
               }
 
@@ -435,6 +435,7 @@ struct sym_bitset_manager {
 
     // Update the degree in vtx_info.
     v_infos[vtx_id].vtx_degree = sum;
+    assert(sum <= vtx_original_degree);
     return sum;  // return the new degree
   }
 
@@ -590,7 +591,7 @@ struct compressed_sym_bitset_manager {
   uint8_t* blocks_start;
   uint8_t* block_data_start;
   static constexpr uintE kFullBlockPackThreshold = 4;
-  static constexpr uintE kBlockAllocThreshold = 50;
+  static constexpr uintE kBlockAllocThreshold = 20;
 
   vtx_info* v_infos;
 

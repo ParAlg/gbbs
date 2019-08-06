@@ -35,15 +35,15 @@ struct vertexSubsetData {
   using D = std::tuple<bool, data>;
 
   // An empty vertex set.
-  vertexSubsetData(size_t _n) : n(_n), m(0), s(NULL), d(NULL), isDense(0) {}
+  vertexSubsetData(size_t _n) : n(_n), m(0), s(NULL), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData(size_t _n, size_t _m, S* indices)
-      : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
+      : n(_n), m(_m), s(indices), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from a sequence.
   vertexSubsetData(size_t _n, sequence<S>& seq, bool transfer = true)
-      : n(_n), m(seq.size()), d(NULL), isDense(0) {
+      : n(_n), m(seq.size()), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     if (transfer) {
       s = seq.to_array();
     } else {
@@ -53,23 +53,35 @@ struct vertexSubsetData {
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData(size_t _n, size_t _m, D* _d)
-      : n(_n), m(_m), s(NULL), d(_d), isDense(1) {}
+      : n(_n), m(_m), s(NULL), d(_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData(size_t _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1) {
+  vertexSubsetData(size_t _n, D* _d) : n(_n), s(NULL), d(_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto df = [&](size_t i) { return (size_t)std::get<0>(_d[i]); };
     auto d_map = pbbslib::make_sequence<size_t>(n, df);
     m = pbbslib::reduce_add(d_map);
   }
 
-  vertexSubsetData() : n(0), m(0), s(NULL), d(NULL), isDense(0) {}
+  vertexSubsetData() : n(0), m(0), s(NULL), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   void del() {
     if (d != NULL) pbbslib::free_array(d);
     if (s != NULL) pbbslib::free_array(s);
     d = NULL;
     s = NULL;
+  }
+
+  bool out_degrees_set() {
+    return (sum_out_degrees == std::numeric_limits<size_t>::max());
+  }
+
+  size_t get_out_degrees() {
+    return sum_out_degrees;
+  }
+
+  size_t set_out_degrees(size_t _sum_out_degrees) {
+    sum_out_degrees = _sum_out_degrees;
   }
 
   // Sparse
@@ -145,6 +157,7 @@ struct vertexSubsetData {
   S* s;
   D* d;
   bool isDense;
+  size_t sum_out_degrees;
 };
 
 // Specialized version where data = pbbslib::empty.
@@ -154,28 +167,28 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // An empty vertex set.
   vertexSubsetData<pbbslib::empty>(size_t _n)
-      : n(_n), m(0), s(NULL), d(NULL), isDense(0) {}
+      : n(_n), m(0), s(NULL), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset with a single vertex.
   vertexSubsetData<pbbslib::empty>(size_t _n, uintE v)
-      : n(_n), m(1), d(NULL), isDense(0) {
+      : n(_n), m(1), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     s = pbbslib::new_array_no_init<uintE>(1);
     s[0] = v;
   }
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m, S* indices)
-      : n(_n), m(_m), s(indices), d(NULL), isDense(0) {}
+      : n(_n), m(_m), s(indices), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m,
                                    std::tuple<uintE, pbbslib::empty>* indices)
-      : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0) {}
+      : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from a sequence.
   vertexSubsetData<pbbslib::empty>(size_t _n, sequence<S>& seq,
                                    bool transfer = true)
-      : n(_n), m(seq.size()), d(NULL), isDense(0) {
+      : n(_n), m(seq.size()), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     if (transfer) {
       s = seq.to_array();
     } else {
@@ -184,19 +197,19 @@ struct vertexSubsetData<pbbslib::empty> {
   }
 
   vertexSubsetData<pbbslib::empty>(size_t n, sequence<S>&& seq)
-      : n(n), d(NULL), isDense(0) {
+      : n(n), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     m = seq.size();
     s = seq.to_array();
   }
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m, bool* _d)
-      : n(_n), m(_m), s(NULL), d(_d), isDense(1) {}
+      : n(_n), m(_m), s(NULL), d(_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
   vertexSubsetData<pbbslib::empty>(size_t _n, bool* _d)
-      : n(_n), s(NULL), d(_d), isDense(1) {
+      : n(_n), s(NULL), d(_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto d_f = [&](size_t i) { return _d[i]; };
     auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
     m = pbbslib::reduce_add(d_map);
@@ -206,7 +219,7 @@ struct vertexSubsetData<pbbslib::empty> {
   // number of nonzeros and store in m.
   vertexSubsetData<pbbslib::empty>(size_t _n,
                                    std::tuple<bool, pbbslib::empty>* _d)
-      : n(_n), s(NULL), d((bool*)_d), isDense(1) {
+      : n(_n), s(NULL), d((bool*)_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto d_f = [&](size_t i) { return std::get<0>(_d[i]); };
     auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
     m = pbbslib::reduce_add(d_map);
@@ -222,6 +235,18 @@ struct vertexSubsetData<pbbslib::empty> {
     }
     d = NULL;
     s = NULL;
+  }
+
+  bool out_degrees_set() {
+    return (sum_out_degrees == std::numeric_limits<size_t>::max());
+  }
+
+  size_t get_out_degrees() {
+    return sum_out_degrees;
+  }
+
+  size_t set_out_degrees(size_t _sum_out_degrees) {
+    sum_out_degrees = _sum_out_degrees;
   }
 
   // Sparse
@@ -303,6 +328,7 @@ struct vertexSubsetData<pbbslib::empty> {
   S* s;
   bool* d;
   bool isDense;
+  size_t sum_out_degrees;
 };
 
 using vertexSubset = vertexSubsetData<pbbslib::empty>;

@@ -259,6 +259,7 @@ struct packed_graph {
   symmetric_graph<vertex, W>& GA;
   using E = typename vertex<W>::E;
   using weight_type = W;
+  using vtx_type = vertex<W>;
 
   vtx_info* VI;
   uint8_t* blocks;
@@ -270,6 +271,7 @@ struct packed_graph {
   // Initializes the block memory for each vertex.
   void init_block_memory() {
     // 1. Calculate the #bytes corresponding to each vertex
+
     auto block_bytes_offs = pbbs::sequence<size_t>(n + 1);
     parallel_for(0, n, [&](size_t i) {
       uintE degree = GA.get_vertex(i).getOutDegree();
@@ -282,10 +284,20 @@ struct packed_graph {
         pbbslib::scan_add_inplace(block_bytes_offs.slice());
     cout << "total memory for packed_graph = " << block_mem_to_alloc << endl;
 
+    auto blocks_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
+      uintE degree = GA.get_vertex(i).getOutDegree();
+      if (degree == 0) { return static_cast<size_t>(0); }
+      size_t nb = pbbs::num_blocks(degree, bs);
+      return nb;
+    });
+    size_t total_blocks = pbbslib::reduce_add(blocks_seq);
+
     // allocate blocks
     blocks = pbbs::new_array_no_init<uint8_t>(block_mem_to_alloc);
     VI = pbbs::new_array_no_init<vtx_info>(n);
-    cout << "sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << endl;
+    cout << "packed graph: block_size = " << bs << endl;
+    cout << "total blocks = " << total_blocks << " sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << endl;
+    cout << "total memory usage = " << (block_mem_to_alloc + (n*sizeof(vtx_info))) << " bytes " << endl;
 
     // initialize blocks and vtx_info
     parallel_for(

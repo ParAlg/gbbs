@@ -45,6 +45,8 @@ double BFS_runner(G& GA, commandLine P) {
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
+  auto PG = build_packed_graph(GA);
+
   if (P.getOptionValue("-maxdeg")) {
     auto degs = [&] (size_t i) { return GA.get_vertex(i).getOutDegree(); };
     auto deg_seq = pbbslib::make_sequence<size_t>(GA.n, degs);
