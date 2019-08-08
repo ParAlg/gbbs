@@ -160,7 +160,7 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
                ? edgeMapDenseForward<data, G, VS, F>(GA, vs, f, fl)
                : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   } else {
-    auto vs_out = edgeMapSparse<data, G, VS, F>(GA, vs, f, fl);
+    auto vs_out = edgeMapBlocked_2<data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }
@@ -477,9 +477,6 @@ inline size_t get_pcm_state() { return (size_t)1; }
     commandLine P(argc, argv, " [-s] <inFile>");                           \
     char* iFile = P.getArgument(0);                                        \
     bool symmetric = P.getOptionValue("-s");                               \
-    bool compressed = P.getOptionValue("-c");                              \
-    bool weighted = P.getOptionValue("-w");                                \
-    assert(weighted == false);                                             \
     bool mmap = P.getOptionValue("-m");                                    \
     bool mmapcopy = mutates || P.getOptionValue("-mc");                    \
     debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                \
@@ -499,21 +496,6 @@ inline size_t get_pcm_state() { return (size_t)1; }
     } \
   }
 
-//        auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);                 \
-
-
-
-
-
-
-
-
-//      auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(       \
-//      auto GA = packed_graph<csv_bytepd_amortized, pbbs::empty>(G);           \
-
-//    auto G = readCompressedGraph<csv_bytepd_amortized, intE>(iFile, symmetric, mmap, mmapcopy); \
-//   auto G = readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
-
 #define generate_weighted_main(APP, mutates)                             \
   int main(int argc, char* argv[]) {                                     \
     commandLine P(argc, argv, " [-s] <inFile>");                         \
@@ -528,6 +510,10 @@ inline size_t get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                  \
     if (P.getOptionValue("-b")) { \
       auto G = readUncompressedBinaryGraph<symmetricVertex, intE>(iFile, symmetric, mmap, mmapcopy); \
+      alloc_init(G); \
+      run_app(G, APP, rounds)                                              \
+    } else if (P.getOptionValue("-adj")) { \
+      auto G = readWeightedGraph<symmetricVertex, intE>(iFile, symmetric, mmap, mmapcopy); \
       alloc_init(G); \
       run_app(G, APP, rounds)                                              \
     } else { \

@@ -34,7 +34,6 @@ struct bitvector {
     size_t byte_id = k >> 3;
     uint8_t offset_in_byte = k & 0x7;
 
-    bool bit_set = false;
     uint8_t val = data[byte_id];
     uint8_t new_val = val | (1 << offset_in_byte);
     data[byte_id] = new_val;

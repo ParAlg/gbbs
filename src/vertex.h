@@ -455,7 +455,7 @@ struct symmetricVertex {
   uintE getOutDegree() { return degree; }
   uintE getInVirtualDegree() { return degree; }
   uintE getOutVirtualDegree() { return degree; }
-  static uintE getInternalBlockSize() {
+  constexpr static uintE getInternalBlockSize() {
     return vertex_ops::kBlockSize;
   }
   uintE getNumInBlocks() {
@@ -697,7 +697,7 @@ struct asymmetricVertex {
   uintE getOutDegree() { return outDegree; }
   uintE getInVirtualDegree() { return inDegree; }
   uintE getOutVirtualDegree() { return outDegree; }
-  static uintE getInternalBlockSize() {
+  constexpr static uintE getInternalBlockSize() {
     return vertex_ops::kBlockSize;
   }
   uintE getNumInBlocks() {

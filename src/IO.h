@@ -171,7 +171,6 @@ inline symmetric_graph<vertex, intE> readWeightedGraph(
     char* fname, bool isSymmetric, bool mmap, char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using W = intE;
-  using wvtx = vertex<W>;
   sequence<char*> tokens;
   sequence<char> S;
   if (bytes == nullptr) {
@@ -505,10 +504,10 @@ inline symmetric_graph<vertex, W> readCompressedGraph(
   long* sizes = (long*)s0;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  debug(std::cout << "n = " << n << " m = " << m
+  std::cout << "n = " << n << " m = " << m
                   << " totalSpace = " << totalSpace << "\n";
         std::cout << "reading file..."
-                  << "\n";);
+                  << "\n";
 
   uintT* offsets0 = (uintT*)(s0 + 3 * sizeof(long));
   uint64_t skip0 = 3 * sizeof(long) + (n + 1) * sizeof(intT);
@@ -652,10 +651,10 @@ inline symmetric_graph<vertex, W> readUncompressedBinaryGraph(
   long* sizes = (long*)s0;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  debug(std::cout << "n = " << n << " m = " << m
+  std::cout << "n = " << n << " m = " << m
                   << " totalSpace = " << totalSpace << "\n";
         std::cout << "reading file..."
-                  << "\n";);
+                  << "\n";
 
   using edge_type = std::tuple<uintE, W>;
 

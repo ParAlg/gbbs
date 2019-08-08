@@ -49,14 +49,6 @@ static uintE bitset_bs_bytes(uintE block_size) {
 
 // Returns the number of bytes needed for the bitset structure for a given
 // degree and block size.
-static uintE num_blocks(uintE degree, uintE bs,
-                                     uintE bs_in_bytes) {
-  return pbbs::num_blocks(degree, bs);
-}
-
-
-// Returns the number of bytes needed for the bitset structure for a given
-// degree and block size.
 static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
                                      uintE bs_in_bytes) {
   if (degree == 0) {

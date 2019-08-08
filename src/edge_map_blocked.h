@@ -215,45 +215,30 @@ using data_block_allocator = list_allocator<em_data_block>;
 // size_t block_size (8 bytes for alignment)
 // remainder is used as std::tuple<uintE, data>
 
-struct emblock {
+template <class data, class G>
+struct emhelper {
   using thread_blocks = std::vector<em_data_block*>;
+  using ngh_data = std::tuple<uintE, data>;
+  static constexpr size_t max_block_size = kDataBlockSizeBytes/sizeof(ngh_data);
 
-  size_t n_workers; // num_workers()
+  using vtx_type = typename G::vtx_type;
+  static constexpr size_t work_block_size = vtx_type::getInternalBlockSize();
+
+  uintE n_groups;
   thread_blocks* perthread_blocks;
   size_t* perthread_counts;
 
   static constexpr size_t kPerThreadStride = 128/sizeof(size_t);
-  static constexpr size_t kThreadBlockStride = 128/sizeof(thread_blocks);
-  size_t work_block_size;
-  size_t max_block_size; // function of data
+  static constexpr size_t kThreadBlockStride = 1; //128/sizeof(thread_blocks);
 
-  emblock() {
-    n_workers = num_workers();
-    cout << "tb size = " << sizeof(thread_blocks) << endl;
-    perthread_blocks = pbbs::new_array<thread_blocks>(n_workers*kThreadBlockStride);
-    perthread_counts = pbbs::new_array<size_t>(n_workers);
-    // init_perthread_vars();
+  emhelper(size_t n_groups) : n_groups(n_groups) {
+    perthread_blocks = pbbs::new_array<thread_blocks>(n_groups*kThreadBlockStride);
+    perthread_counts = pbbs::new_array<size_t>(n_groups);
   }
-
-  template <class data, class G>
-  void init_parameters() {
-    using ngh_data = std::tuple<uintE, data>;
-    max_block_size = kDataBlockSizeBytes/sizeof(ngh_data);
-
-    using vtx_type = typename G::vtx_type;
-    work_block_size = vtx_type::getInternalBlockSize();
-  }
-
-  // resets the state of the per-thread variables
-//  void reset() {
-//    for (size_t i=0; i<n_workers; i++) {
-//      perthread_blocks[i*kThreadBlockStride].clear();
-//    }
-//  }
 
   inline size_t scan_perthread_blocks() {
     size_t ct = 0;
-    for (size_t i=0; i<n_workers; i++) {
+    for (size_t i=0; i<n_groups; i++) {
       size_t i_sz = perthread_blocks[i*kThreadBlockStride].size();
       perthread_counts[i] = ct;
       ct += i_sz;
@@ -266,7 +251,7 @@ struct emblock {
     auto all_blocks = pbbs::sequence<em_data_block*>(total_blocks);
     if (total_blocks < 1000) { // handle sequentially
       size_t k=0;
-      for (size_t i=0; i<n_workers; i++) {
+      for (size_t i=0; i<n_groups; i++) {
         auto& vec = perthread_blocks[i*kThreadBlockStride];
         size_t this_thread_size = vec.size();
         for (size_t j=0; j<this_thread_size; j++) {
@@ -275,7 +260,7 @@ struct emblock {
         vec.clear();
       }
     } else {
-      parallel_for(0, n_workers, [&] (size_t thread_id) {
+      parallel_for(0, n_groups, [&] (size_t thread_id) {
         size_t this_thread_offset = perthread_counts[thread_id];
         auto& vec = perthread_blocks[thread_id*kThreadBlockStride];
         size_t this_thread_size = vec.size();
@@ -289,14 +274,12 @@ struct emblock {
   }
 
 
-  // returns the next block for this thread, reallocates if nec.
-  template <class data>
-  em_data_block* get_block_and_offset_for_thread() {
+  // returns the next block for this group, reallocates if nec.
+  em_data_block* get_block_and_offset_for_group(size_t group_id) {
      // fetch current block for thread
-    int thread_id = worker_id();
     em_data_block* block_ptr;
     size_t offset = 0;
-    auto& vec = perthread_blocks[thread_id*kThreadBlockStride];
+    auto& vec = perthread_blocks[group_id*kThreadBlockStride];
     if (vec.size() == 0) { // alloc new
       block_ptr = data_block_allocator::alloc();
       vec.emplace_back(block_ptr);
@@ -315,8 +298,6 @@ struct emblock {
   }
 };
 
-emblock* em_block;
-
 template <class G>
 void alloc_init(G& GA) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
@@ -325,9 +306,6 @@ void alloc_init(G& GA) {
   data_block_allocator::reserve(list_alloc_init_blocks);
   cout << "after init: " << endl;
   data_block_allocator::print_stats();
-
-  em_block = new emblock();
-//  emblock::init_perthread_vars();
 }
 
 
@@ -338,8 +316,8 @@ template <
 inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
                                                const flags fl) {
   // initialize em block
-  auto& our_em_block = *em_block;
-  our_em_block.init_parameters<data, G>();
+  // auto& our_em_block = *em_block;
+  // our_em_block.init_parameters<data, G>();
 
   if (fl & no_output) {
     return edgeMapSparseNoOutput<data, G, VS, F>(GA, indices, f, fl);
@@ -359,7 +337,6 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
-//  cout << "num_blocks = " << num_blocks << endl;
 
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
@@ -385,22 +362,25 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  // try to use 16*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
-  size_t block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 4);
+  // try to use 8*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
+  size_t block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
   size_t block_size = std::max(kEMBlockSize, block_size_guess);
-  size_t n_threads = pbbs::num_blocks(outEdgeCount, block_size);
+  size_t n_groups = pbbs::num_blocks(outEdgeCount, block_size);
 
   cout << "outEdgeCount = " << outEdgeCount << endl;
-  cout << "n_threads = " << n_threads << endl;
+  cout << "n_blocks = " << num_blocks << endl;
+  cout << "n_groups = " << n_groups << endl;
+
+  auto our_emhelper = emhelper<data, G>(n_groups);
 
   // Run each thread in parallel
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
-  parallel_for(0, n_threads, [&](size_t thread_id) {
-    size_t start_off = thread_id * block_size;
+  parallel_for(0, n_groups, [&](size_t group_id) {
+    size_t start_off = group_id * block_size;
     size_t our_start = pbbslib::binary_search(degrees, start_off, lt);
     size_t our_end;
-    if (thread_id < (n_threads - 1)) {
-      size_t next_start_off = (thread_id+1) * block_size;
+    if (group_id < (n_groups - 1)) {
+      size_t next_start_off = (group_id+1) * block_size;
       our_end = pbbslib::binary_search(degrees, next_start_off, lt);
     } else {
       our_end = num_blocks;
@@ -412,7 +392,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
         // 1. before starting next work block check whether we need to reallocate
         // the output block. This guarantees that there is enough space in the
         // output block even if all items in the work block are written out
-        em_data_block* out_block = our_em_block.get_block_and_offset_for_thread<data>();
+        em_data_block* out_block = our_emhelper.get_block_and_offset_for_group(group_id);
         size_t offset = out_block->block_size;
         auto out_block_data = (std::tuple<uintE, data>*)out_block->data;
 
@@ -433,7 +413,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
   }, 1);
 
   // scan the #output blocks/thread
-  sequence<em_data_block*> all_blocks = our_em_block.get_all_blocks();
+  sequence<em_data_block*> all_blocks = our_emhelper.get_all_blocks();
   auto block_offsets = pbbs::sequence<size_t>(all_blocks.size(), [&] (size_t i) {
     return all_blocks[i]->block_size;
   });

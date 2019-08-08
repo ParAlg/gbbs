@@ -217,7 +217,7 @@ struct compressedSymmetricVertex {
   uintE getOutVirtualDegree() {
     return cvertex::getVirtualDegree<C>(degree, getOutNeighbors());
   }
-  static uintE getInternalBlockSize() {
+  constexpr static uintE getInternalBlockSize() {
     return PARALLEL_DEGREE;
   }
   uintE getNumInBlocks() { return C::get_num_blocks(neighbors, degree); }
@@ -465,7 +465,7 @@ struct compressedAsymmetricVertex {
   uintE getOutVirtualDegree() {
     return cvertex::getVirtualDegree<C>(outDegree, getOutNeighbors());
   }
-  static uintE getInternalBlockSize() {
+  constexpr static uintE getInternalBlockSize() {
     return PARALLEL_DEGREE;
   }
   uintE getNumInBlocks() { return C::get_num_blocks(inNeighbors, inDegree); }
