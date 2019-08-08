@@ -8,6 +8,53 @@
 
 #include <vector>
 
+template <class data, class G, class VS, class F>
+inline vertexSubsetData<data> edgeMapSparse(G& GA,
+                                            VS& indices, F& f,
+                                            const flags fl) {
+  using S = std::tuple<uintE, data>;
+  size_t n = indices.n;
+  size_t m = indices.size();
+  S* outEdges;
+
+  if (should_output(fl)) {
+    auto offsets = sequence<uintT>(indices.size(), [&](size_t i) {
+      return (fl & in_edges) ? GA.get_vertex(indices.vtx(i)).getInDegree()
+                             : GA.get_vertex(indices.vtx(i)).getOutDegree();
+    });
+    size_t outEdgeCount = pbbslib::scan_add_inplace(offsets.slice());
+
+    outEdges = pbbslib::new_array_no_init<S>(outEdgeCount);
+    auto g = get_emsparse_gen_full<data>(outEdges);
+    auto h = get_emsparse_gen_empty<data>(outEdges);
+    par_for(0, m, 1, [&] (size_t i) {
+      uintT v = indices.vtx(i);
+      uintT o = offsets[i];
+      auto vert = GA.get_vertex(v);
+      (fl & in_edges) ? vert.decodeInNghSparse(v, o, f, g, h)
+                      : vert.decodeOutNghSparse(v, o, f, g, h);
+    });
+
+    S* nextIndices = pbbslib::new_array_no_init<S>(outEdgeCount);
+    auto p = [](std::tuple<uintE, data>& v) {
+      return std::get<0>(v) != UINT_E_MAX;
+    };
+    size_t nextM = pbbslib::filterf(outEdges, nextIndices, outEdgeCount, p);
+    pbbslib::free_array(outEdges);
+    return vertexSubsetData<data>(n, nextM, nextIndices);
+  }
+
+  auto g = get_emsparse_nooutput_gen<data>();
+  auto h = get_emsparse_nooutput_gen_empty<data>();
+  par_for(0, m, 1, [&] (size_t i) {
+    uintT v = indices.vtx(i);
+    auto vert = GA.get_vertex(v);
+    (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h)
+                    : vert.decodeOutNghSparse(v, 0, f, g, h);
+  });
+  return vertexSubsetData<data>(n);
+}
+
 template <
     class data /* data associated with vertices in the output vertex_subset */,
     class G /* graph type */, class VS /* vertex_subset type */,
@@ -273,7 +320,7 @@ emblock* em_block;
 template <class G>
 void alloc_init(G& GA) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
-  size_t list_alloc_init_blocks = 1.2 * (GA.n/uintes_per_block);
+  size_t list_alloc_init_blocks = 0.5 * (GA.n/uintes_per_block);
   cout << "list_alloc init_blocks: " << list_alloc_init_blocks << endl;
   data_block_allocator::reserve(list_alloc_init_blocks);
   cout << "after init: " << endl;

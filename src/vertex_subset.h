@@ -73,7 +73,7 @@ struct vertexSubsetData {
   }
 
   bool out_degrees_set() {
-    return (sum_out_degrees == std::numeric_limits<size_t>::max());
+    return (sum_out_degrees != std::numeric_limits<size_t>::max());
   }
 
   size_t get_out_degrees() {
@@ -238,7 +238,7 @@ struct vertexSubsetData<pbbslib::empty> {
   }
 
   bool out_degrees_set() {
-    return (sum_out_degrees == std::numeric_limits<size_t>::max());
+    return (sum_out_degrees != std::numeric_limits<size_t>::max());
   }
 
   size_t get_out_degrees() {

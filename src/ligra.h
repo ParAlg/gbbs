@@ -151,6 +151,7 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
     cout << "out_degree = " << out_degrees << endl;
     vs.set_out_degrees(out_degrees);
   }
+  cout << "out_degrees gotten: " << out_degrees << endl;
 
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
@@ -159,7 +160,7 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
                ? edgeMapDenseForward<data, G, VS, F>(GA, vs, f, fl)
                : edgeMapDense<data, G, VS, F>(GA, vs, f, fl);
   } else {
-    auto vs_out = edgeMapBlocked_2<data, G, VS, F>(GA, vs, f, fl);
+    auto vs_out = edgeMapSparse<data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }
