@@ -37,30 +37,6 @@
 #include "block_vertex.h"
 #include "graph.h"
 
-// TODO: define concept for packable graph?
-//#ifdef CONCEPTS
-// template<typename W>
-// concept bool PackableGraph =
-//  requires(T t, size_t u) {
-//  typename T::value_type;
-//  { t.size() } -> size_t;
-//  { t.slice() };
-//  { t[u] };
-//};
-//
-// template<typename T>
-// concept bool Range =
-//  Seq<T> && requires(T t, size_t u) {
-//  { t[u] } -> typename T::value_type&;
-//  typename T::iterator;
-//};
-//#define SEQ Seq
-//#define RANGE Range
-//#else
-//#define SEQ typename
-//#define RANGE typename
-//#endif
-
 /*
  * block_manager supplies:
  *  - num_blocks

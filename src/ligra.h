@@ -148,10 +148,8 @@ inline vertexSubsetData<data> edgeMapData(G& GA, VS& vs, F f,
     };
     auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_im);
-    cout << "out_degree = " << out_degrees << endl;
     vs.set_out_degrees(out_degrees);
   }
-  cout << "out_degrees gotten: " << out_degrees << endl;
 
   if (out_degrees == 0) return vertexSubsetData<data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
@@ -194,8 +192,8 @@ inline vertexSubsetData<uintE> edgeMapPack(G& GA, vertexSubset& vs, P& p,
   });
 
   size_t total_space = pbbslib::scan_add_inplace(space.slice());
-  std::cout << "packNghs: total space allocated = " << total_space << "\n";
-//  sequence<uint8_t> tmp(total_space);
+  // std::cout << "packNghs: total space allocated = " << total_space << "\n";
+  //  sequence<uint8_t> tmp(total_space);
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
     tmp = pbbs::new_array_no_init<uint8_t>(total_space);

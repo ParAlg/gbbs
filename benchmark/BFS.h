@@ -45,7 +45,9 @@ struct BFS_F {
 };
 
 template <class G>
-inline sequence<uintE> BFS(G& GA, uintE src) {
+inline sequence<uintE> BFS(G& GG, uintE src) {
+  auto GA = build_packed_graph(GG);
+  timer bfst; bfst.start();
   using W = typename G::weight_type;
   // Creates Parents array, initialized to all -1, except for src.
   auto Parents = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
@@ -65,6 +67,8 @@ inline sequence<uintE> BFS(G& GA, uintE src) {
   }
   Frontier.del();
   std::cout << "Reachable: " << reachable << "\n";
+  bfst.stop(); bfst.reportTotal("bfs time");
+  GA.del();
   return Parents;
 }
 

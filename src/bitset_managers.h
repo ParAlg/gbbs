@@ -140,15 +140,12 @@ struct sym_bitset_manager {
     size_t cur_offset = block_start;
     for (size_t idx = 0; idx < block_size_num_longs; idx++) {
       uint64_t cur_long = long_block_bits[idx];
-      if (cur_long > 0) {
-        size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
-        for (size_t i=0; i<cnt; i++) {
-          unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
-          auto& ee = e[cur_offset + select_idx];
-          f(std::get<0>(ee), std::get<1>(ee), offset++);
-          assert((cur_long & (1UL << select_idx)) > 0);
-          cur_long = _blsr_u64(cur_long); // clears lowest set bit
-        }
+      while (cur_long > 0) {
+        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+        auto& ee = e[cur_offset + select_idx];
+        f(std::get<0>(ee), std::get<1>(ee), offset++);
+        assert((cur_long & (1UL << select_idx)) > 0);
+        cur_long = _blsr_u64(cur_long); // clears lowest set bit
       }
       cur_offset += 64; // next long
     }
@@ -197,17 +194,14 @@ struct sym_bitset_manager {
     size_t cur_offset = block_start;
     for (size_t idx = 0; idx < block_size_num_longs; idx++) {
       uint64_t cur_long = long_block_bits[idx];
-      size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
-      if (cnt > 0) {
-        for (size_t i=0; i<cnt; i++) {
-          unsigned select_idx = _tzcnt_u64(cur_long); // index of first nz bit
-          auto& ee = e[cur_offset + select_idx];
-          if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
-            return;
-          }
-          assert((cur_long & (1UL << select_idx)) > 0);
-          cur_long = _blsr_u64(cur_long); // reset lowest bit
+      while (cur_long > 0) {
+        unsigned select_idx = _tzcnt_u64(cur_long); // index of first nz bit
+        auto& ee = e[cur_offset + select_idx];
+        if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
+          return;
         }
+        assert((cur_long & (1UL << select_idx)) > 0);
+        cur_long = _blsr_u64(cur_long); // reset lowest bit
       }
       cur_offset += 64; // next long
     }
@@ -661,10 +655,6 @@ struct compressed_sym_bitset_manager {
     return bitsets::block_degree(blocks_start, block_id, vtx_num_blocks,
                                  vtx_degree);
   }
-  // the following matches the perf of noop
-  // uintE block_start = block_id*edges_per_block;
-  // uintE block_end = std::min(block_start + edges_per_block, vtx_degree);
-  // uintE offset = block_start;
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
@@ -881,50 +871,48 @@ struct compressed_sym_bitset_manager {
 
 
     // 1. pack each block
-    par_for(0, vtx_num_blocks, 1,
-            [&](size_t block_id) {
-              uintE orig_block_num = block_metadata[block_id].block_num;
-              uint8_t* block_bits =
-                  block_data_start + bitset_bytes_per_block * block_id;
+    par_for(0, vtx_num_blocks, 1, [&](size_t block_id) {
+        uintE orig_block_num = block_metadata[block_id].block_num;
+        uint8_t* block_bits =
+            block_data_start + bitset_bytes_per_block * block_id;
 
-              E* e = get_edges();
+        E* e = get_edges();
 
-              size_t k = 0;
-              size_t live_edges = 0;
-              auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-                if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
-                  if (!p(vtx_id, ngh, wgh)) {
-                    // unset the k-th bit
-                    bitsets::flip_bit(block_bits, k);
-                  } else {
-                    // otherwise increment the count of live edges
-                    live_edges++;
-                  }
-                }
-                k += 1;
-              };
-              bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-                                                         orig_block_num);
+//        // (i) decode the block
+//        uintE block_decode[PARALLEL_DEGREE];
 
-              debug(uintE block_start = orig_block_num * edges_per_block;
-              uintE block_end =
-                  std::min(block_start + edges_per_block, vtx_original_degree);
-//              if (k != (block_end - block_start)) {
-//                cout << "k = " << k << " block_end-block_start = " << (block_end - block_start) << endl;
-//              }
-              assert(k == (block_end - block_start)););
+        size_t k = 0;
+        size_t live_edges = 0;
+        auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+          if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
+            if (!p(vtx_id, ngh, wgh)) {
+              // unset the k-th bit
+              bitsets::flip_bit(block_bits, k);
+            } else {
+              // otherwise increment the count of live edges
+              live_edges++;
+            }
+          }
+          k += 1;
+        };
+        bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
+                                                   orig_block_num);
 
-              // Temporarily store #live_edges in offset positions.
-              block_metadata[block_id].offset = live_edges;
-            },
-           parallel);
+        debug(uintE block_start = orig_block_num * edges_per_block;
+        uintE block_end =
+            std::min(block_start + edges_per_block, vtx_original_degree);
+        assert(k == (block_end - block_start)););
 
-      // 2. Reduce to get the #empty_blocks
-      auto full_block_seq =
-          pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
-            return static_cast<size_t>(block_metadata[i].offset > 0);
-          });
-      size_t full_blocks = pbbslib::reduce_add(full_block_seq);
+        // Temporarily store #live_edges in offset positions.
+        block_metadata[block_id].offset = live_edges;
+    }, parallel);
+
+    // 2. Reduce to get the #empty_blocks
+    auto full_block_seq =
+        pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
+          return static_cast<size_t>(block_metadata[i].offset > 0);
+        });
+    size_t full_blocks = pbbslib::reduce_add(full_block_seq);
 
 
     if ((full_blocks * kFullBlockPackThreshold <= vtx_num_blocks) ||
