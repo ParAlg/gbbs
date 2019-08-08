@@ -224,6 +224,7 @@ struct emhelper {
   using vtx_type = typename G::vtx_type;
   static constexpr size_t work_block_size = vtx_type::getInternalBlockSize();
 
+  bool alloc;
   uintE n_groups;
   thread_blocks* perthread_blocks;
   size_t* perthread_counts;
@@ -234,6 +235,14 @@ struct emhelper {
   emhelper(size_t n_groups) : n_groups(n_groups) {
     perthread_blocks = pbbs::new_array<thread_blocks>(n_groups*kThreadBlockStride);
     perthread_counts = pbbs::new_array<size_t>(n_groups);
+    alloc = true;
+  }
+
+  void del() {
+    if (alloc) {
+      pbbs::free_array(perthread_blocks);
+      pbbs::free_array(perthread_counts);
+    }
   }
 
   inline size_t scan_perthread_blocks() {
@@ -313,12 +322,8 @@ template <
     class data /* data associated with vertices in the output vertex_subset */,
     class G /* graph type */, class VS /* vertex_subset type */,
     class F /* edgeMap struct */>
-inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
+inline vertexSubsetData<data> edgeMapChunked(G& GA, VS& indices, F& f,
                                                const flags fl) {
-  // initialize em block
-  // auto& our_em_block = *em_block;
-  // our_em_block.init_parameters<data, G>();
-
   if (fl & no_output) {
     return edgeMapSparseNoOutput<data, G, VS, F>(GA, indices, f, fl);
   }
@@ -434,6 +439,7 @@ inline vertexSubsetData<data> edgeMapBlocked_2(G& GA, VS& indices, F& f,
 
   all_blocks.clear();
   block_offsets.clear();
+  our_emhelper.del();
 
 //  our_em_block.reset(); (handled by get_all_blocks)
 

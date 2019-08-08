@@ -58,7 +58,7 @@ inline sequence<uintE> BFS(G& GA, uintE src) {
     reachable += Frontier.size();
     timer tt; tt.start();
     vertexSubset output =
-        edgeMap(GA, Frontier, BFS_F<W>(Parents.begin()), GA.m/10, sparse_blocked);
+        edgeMap(GA, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked);
     tt.stop(); tt.reportTotal("edge map time");
     Frontier.del();
     Frontier = output;
