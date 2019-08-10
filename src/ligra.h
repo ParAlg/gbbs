@@ -511,7 +511,7 @@ inline size_t get_pcm_state() { return (size_t)1; }
       alloc_init(G); \
       run_app(G, APP, rounds)                                              \
     } else if (P.getOptionValue("-adj")) { \
-      auto G = readWeightedGraph<symmetricVertex, intE>(iFile, symmetric, mmap, mmapcopy); \
+      auto G = readWeightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
       alloc_init(G); \
       run_app(G, APP, rounds)                                              \
     } else { \

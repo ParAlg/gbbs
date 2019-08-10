@@ -71,7 +71,7 @@ typedef unsigned int uintE;
 constexpr const size_t kEMBlockSize = 4000;
 
 // ======= compression macros and constants =======
-constexpr const size_t PARALLEL_DEGREE = 256;
+constexpr const size_t PARALLEL_DEGREE = 1000;
 // Take care in pushing this threshold too high; vertices with degree <
 // pack_threshold stack allocate these bytes.
 constexpr const size_t PD_PACK_THRESHOLD = 10000;

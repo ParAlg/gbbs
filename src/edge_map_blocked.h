@@ -372,9 +372,9 @@ inline vertexSubsetData<data> edgeMapChunked(G& GA, VS& indices, F& f,
   size_t block_size = std::max(kEMBlockSize, block_size_guess);
   size_t n_groups = pbbs::num_blocks(outEdgeCount, block_size);
 
-  cout << "outEdgeCount = " << outEdgeCount << endl;
-  cout << "n_blocks = " << num_blocks << endl;
-  cout << "n_groups = " << n_groups << endl;
+//  cout << "outEdgeCount = " << outEdgeCount << endl;
+//  cout << "n_blocks = " << num_blocks << endl;
+//  cout << "n_groups = " << n_groups << endl;
 
   auto our_emhelper = emhelper<data, G>(n_groups);
 

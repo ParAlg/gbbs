@@ -125,11 +125,6 @@ struct sym_bitset_manager {
         std::min(block_start + edges_per_block, vtx_original_degree);
     assert(block_start < block_end);
 
-    // the following matches the perf of noop
-    //     uintE block_start = block_id*edges_per_block;
-    //     uintE block_end = std::min(block_start + edges_per_block,
-    //     vtx_degree); uintE offset = block_start;
-
     E* e = get_edges();
 
     size_t block_size = block_end - block_start;
@@ -178,11 +173,6 @@ struct sym_bitset_manager {
     uintE block_start = orig_block_num * edges_per_block;
     uintE block_end =
         std::min(block_start + edges_per_block, vtx_original_degree);
-
-    //     the following matches the perf of noop
-    //     uintE block_start = block_id*edges_per_block;
-    //     uintE block_end = std::min(block_start + edges_per_block,
-    //     vtx_degree); uintE offset = block_start;
 
     E* e = get_edges();
 
@@ -663,9 +653,58 @@ struct compressed_sym_bitset_manager {
     uintE orig_block_num = block_metadata[block_id].block_num;
 
     E* e = get_edges();
-    uint8_t* block_bits = block_data_start + bitset_bytes_per_block * block_id;
 
-//    // 1. decode the compressed block
+    // 1. decode the compressed block
+    size_t k = 0;
+    std::tuple<uintE, W> block_decode[edges_per_block];
+    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+      block_decode[k++] = std::make_tuple(ngh, wgh);
+    };
+    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
+                                               orig_block_num);
+
+    uint64_t* long_block_bits = (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
+    uintE block_start = orig_block_num * edges_per_block;
+    size_t block_end =
+        std::min(block_start + edges_per_block, vtx_original_degree);
+    size_t block_size = block_end - block_start;
+    size_t block_size_num_longs = (block_size+64-1)/64;
+
+    // "select" on a block
+    size_t cur_offset = 0;
+    for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+      uint64_t cur_long = long_block_bits[idx];
+      while (cur_long > 0) {
+        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+        auto& ee = block_decode[cur_offset + select_idx];
+        f(std::get<0>(ee), std::get<1>(ee), offset++);
+        assert((cur_long & (1UL << select_idx)) > 0);
+        cur_long = _blsr_u64(cur_long); // clears lowest set bit
+      }
+      cur_offset += 64; // next long
+    }
+
+//    size_t k = 0;
+//    uint8_t* block_bits = block_data_start + bitset_bytes_per_block * block_id;
+//    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+//      if (bitsets::is_bit_set(block_bits,
+//                              k++)) {  // check if the k-th bit is set
+//        f(ngh, wgh, offset++);         // and apply f with the correct offset
+//      }
+//    };
+//    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
+//                                               orig_block_num);
+  }
+
+  template <class F>
+  __attribute__((always_inline)) inline void decode_block_cond(uintE block_id,
+                                                               F f) {
+    metadata* block_metadata = (metadata*)blocks_start;
+    uintE offset = block_metadata[block_id].offset;
+    uintE orig_block_num = block_metadata[block_id].block_num;
+
+    E* e = get_edges();
+
 //    size_t k = 0;
 //    std::tuple<uintE, W> block_decode[edges_per_block];
 //    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
@@ -685,51 +724,22 @@ struct compressed_sym_bitset_manager {
 //    size_t cur_offset = 0;
 //    for (size_t idx = 0; idx < block_size_num_longs; idx++) {
 //      uint64_t cur_long = long_block_bits[idx];
-//      if (cur_long > 0) {
-//        size_t cnt = _mm_popcnt_u64(cur_long); // #bits set to one
-//        for (size_t i=0; i<cnt; i++) {
-//          unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
-//          auto& ee = block_decode[cur_offset + select_idx];
-//          f(std::get<0>(ee), std::get<1>(ee), offset++);
-//          assert((cur_long & (1UL << select_idx)) > 0);
-//          cur_long = _blsr_u64(cur_long); // clears lowest set bit
+//      while (cur_long > 0) {
+//        unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+//        auto& ee = block_decode[cur_offset + select_idx];
+//        if (!f(std::get<0>(ee), std::get<1>(ee), offset++)) {
+//          return;
 //        }
+//        assert((cur_long & (1UL << select_idx)) > 0);
+//        cur_long = _blsr_u64(cur_long); // clears lowest set bit
 //      }
 //      cur_offset += 64; // next long
 //    }
 
     size_t k = 0;
-    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-      if (bitsets::is_bit_set(block_bits,
-                              k++)) {  // check if the k-th bit is set
-        f(ngh, wgh, offset++);         // and apply f with the correct offset
-      }
-    };
-    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-                                               orig_block_num);
-//    debug(assert(k == (block_end - block_start)););
-  }
-
-  template <class F>
-  __attribute__((always_inline)) inline void decode_block_cond(uintE block_id,
-                                                               F f) {
-    metadata* block_metadata = (metadata*)blocks_start;
-    uintE offset = block_metadata[block_id].offset;
-    uintE orig_block_num = block_metadata[block_id].block_num;
-
     uint8_t* block_bits = block_data_start + bitset_bytes_per_block * block_id;
-    E* e = get_edges();
-
-    size_t k = 0;
-//    std::tuple<uintE, W> block_decode[edges_per_block];
-//    auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-//      block_decode[k++] = std::make_tuple(ngh, wgh);
-//    };
-//    bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
-//                                               orig_block_num);
-
     auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-      if (bitsets::is_bit_set(block_bits,
+     if (bitsets::is_bit_set(block_bits, // about 7% overhead
                               k++)) {  // check if the k-th bit is set
         return f(ngh, wgh, offset++);  // and apply f with the correct offset
       }
@@ -737,11 +747,11 @@ struct compressed_sym_bitset_manager {
     };
     bytepd_amortized::template decode_block_cond<W>(t_f, e, vtx_id, vtx_original_degree,
                                                     orig_block_num);
-//    debug(uintE block_start = orig_block_num * edges_per_block;
-//    uintE block_end =
-//        std::min(block_start + edges_per_block, vtx_original_degree);
-//    assert(k == (block_end - block_start));
-//    );
+    debug(uintE block_start = orig_block_num * edges_per_block;
+    uintE block_end =
+        std::min(block_start + edges_per_block, vtx_original_degree);
+    assert(k == (block_end - block_start));
+    );
   }
 
   /* Only called when the discrepency between full and total blocks is large.
@@ -879,32 +889,69 @@ struct compressed_sym_bitset_manager {
         E* e = get_edges();
 
 //        // (i) decode the block
-//        uintE block_decode[PARALLEL_DEGREE];
 
         size_t k = 0;
-        size_t live_edges = 0;
+        std::tuple<uintE, W> block_decode[edges_per_block];
         auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
-          if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
-            if (!p(vtx_id, ngh, wgh)) {
-              // unset the k-th bit
-              bitsets::flip_bit(block_bits, k);
-            } else {
-              // otherwise increment the count of live edges
-              live_edges++;
-            }
-          }
-          k += 1;
+          block_decode[k++] = std::make_tuple(ngh, wgh);
         };
         bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
                                                    orig_block_num);
 
-        debug(uintE block_start = orig_block_num * edges_per_block;
-        uintE block_end =
+        uint64_t* long_block_bits = (uint64_t*)(block_data_start + bitset_bytes_per_block * block_id);
+        uintE block_start = orig_block_num * edges_per_block;
+        size_t block_end =
             std::min(block_start + edges_per_block, vtx_original_degree);
-        assert(k == (block_end - block_start)););
+        size_t block_size = block_end - block_start;
+        size_t block_size_num_longs = (block_size+64-1)/64;
 
+        // "select" on a block
+        size_t cur_offset = 0;
+        size_t live_edges = 0;
+        for (size_t idx = 0; idx < block_size_num_longs; idx++) {
+          uint64_t cur_long = long_block_bits[idx];
+          uint64_t long_to_write = cur_long;
+          while (cur_long > 0) {
+            unsigned select_idx = _tzcnt_u64(cur_long); // #trailing zeros in cur_long
+            auto& ee = block_decode[cur_offset + select_idx];
+            if (!p(vtx_id, std::get<0>(ee), std::get<1>(ee))) {
+              long_to_write ^= (1UL << select_idx);
+            } else {
+              live_edges++;
+            }
+            assert((cur_long & (1UL << select_idx)) > 0);
+            cur_long = _blsr_u64(cur_long); // clears lowest set bit
+          }
+          long_block_bits[idx] = long_to_write;
+          cur_offset += 64; // next long
+        }
         // Temporarily store #live_edges in offset positions.
         block_metadata[block_id].offset = live_edges;
+
+//        size_t k = 0;
+//        size_t live_edges = 0;
+//        auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+//          if (bitsets::is_bit_set(block_bits, k)) {  // check if the k-th bit is set
+//            if (!p(vtx_id, ngh, wgh)) {
+//              // unset the k-th bit
+//              bitsets::flip_bit(block_bits, k);
+//            } else {
+//              // otherwise increment the count of live edges
+//              live_edges++;
+//            }
+//          }
+//          k += 1;
+//        };
+//        bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
+//                                                   orig_block_num);
+//
+//        debug(uintE block_start = orig_block_num * edges_per_block;
+//        uintE block_end =
+//            std::min(block_start + edges_per_block, vtx_original_degree);
+//        assert(k == (block_end - block_start)););
+//
+//        // Temporarily store #live_edges in offset positions.
+//        block_metadata[block_id].offset = live_edges;
     }, parallel);
 
     // 2. Reduce to get the #empty_blocks

@@ -119,8 +119,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t nu
     auto P = pbbslib::random_permutation<uintE>(still_active.size(), r);
     par_for(0, still_active.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
-                      uintE pv = P[i];
-                      perm[v] = pv;
+                      perm[v] = P[i];
                     });
     P.clear();
     permt.stop();
@@ -157,10 +156,8 @@ inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t nu
     // elements as covered. Sets that didn't reset any acquired elements)
     auto reset_f = [&](const uintE& u, const uintE& v, const W& w) -> bool {
       if (Elms[v] == perm[u]) {
-        if (D[u] == UINT_E_MAX)
-          Elms[v] = sc::COVERED;
-        else
-          Elms[v] = UINT_E_MAX;
+        if (D[u] == UINT_E_MAX) Elms[v] = sc::COVERED;
+        else Elms[v] = UINT_E_MAX;
       }
       return false;
     };
@@ -174,10 +171,10 @@ inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t nu
     active.toSparse();
     auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
-      const uintE v_bkt = D[v];
-      uintE bkt = UINT_E_MAX;
-      if (!(v_bkt == UINT_E_MAX))
-        bkt = b.get_bucket(v_bkt);
+      const uintE bkt = b.get_bucket(D[v]);
+//      uintE bkt = UINT_E_MAX;
+//      if (!(v_bkt == UINT_E_MAX))
+//        bkt = b.get_bucket(v_bkt);
       return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
     //std::cout << "cover.size = " << cover.size << "\n";
