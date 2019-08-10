@@ -1,0 +1,44 @@
+rounds = 5
+num threads = 144
+gbbs_cc: r=5, med=6.2242 (6.1864,6.2752),
+gbbs_sf: r=5, med=9.9202 (9.7765,10.052),
+async_cc: r=5, med=6.532 (6.442,6.5492),
+async_sf: r=5, med=6.4981 (6.3523,6.5429),
+rem_cc: r=5, med=4.9671 (4.9108,5.3721),
+rem_sf: r=5, med=5.4588 (5.4333,5.5229),
+ndopt_cc: r=5, med=5.1093 (5.0896,5.14),
+ndopt_sf: r=5, med=5.4582 (5.4316,5.5186),
+gbbs_hybridcc: r=5, med=4.6831 (4.6075,4.7291),
+
+
+hybridcc numbers:
+  PBBS time: ldd time: 2.0499
+  PBBS time: relabel time: 0.2193
+  threshold = 21 num_clusters = 27830657
+  PBBS time: traverse edges time: 2.4015
+  PBBS time: union find time: 2.4050
+  returned clusters
+  PBBS time: ldd time: 1.9691
+  PBBS time: relabel time: 0.2434
+  threshold = 21 num_clusters = 27830657
+  PBBS time: traverse edges time: 2.4082
+  PBBS time: union find time: 2.4129
+  returned clusters
+  PBBS time: ldd time: 1.9648
+  PBBS time: relabel time: 0.2222
+  threshold = 21 num_clusters = 27830657
+  PBBS time: traverse edges time: 2.4050
+  PBBS time: union find time: 2.4081
+  returned clusters
+  PBBS time: ldd time: 2.0247
+  PBBS time: relabel time: 0.2356
+  threshold = 21 num_clusters = 27830657
+  PBBS time: traverse edges time: 2.4046
+  PBBS time: union find time: 2.4079
+  returned clusters
+  PBBS time: ldd time: 1.9304
+  PBBS time: relabel time: 0.2163
+  threshold = 21 num_clusters = 27830657
+  PBBS time: traverse edges time: 2.4007
+  PBBS time: union find time: 2.4040
+  returned clusters
