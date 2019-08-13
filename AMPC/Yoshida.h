@@ -167,7 +167,13 @@ auto YoshidaMIS(G& GA) {
   cout << "total work = " << total_work << endl;
 
   size_t max_work = pbbslib::reduce_max(search_lengths);
-  cout << "max work = " << max_work << endl;
+  cout << "max search length = " << max_work << endl;
+
+  pbbs::sample_sort_inplace(search_lengths.slice(), std::less<size_t>());
+  cout << "median search length = " << search_lengths[n/2] << endl;
+
+  cout << "avg search length = " << (static_cast<double>(total_work)/n) << endl;
+
 
 //  MIS_rootset::verify_mis(GA, in_mis);
 //  cout << "mis size = " << mis_size << endl;

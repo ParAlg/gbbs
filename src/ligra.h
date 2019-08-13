@@ -487,12 +487,14 @@ inline size_t get_pcm_state() { return (size_t)1; }
       auto G = readUnweightedGraph<symmetricVertex>(iFile, symmetric, mmap); \
       alloc_init(G); \
       run_app(G, APP, rounds)                                                \
-    } else { \
-      auto G = readCompressedGraph<csv_bytepd_amortized, pbbs::empty>(iFile, symmetric, mmap, mmapcopy); \
-      alloc_init(G); \
-      run_app(G, APP, rounds)                                                \
     } \
   }
+
+// else { \
+//      auto G = readCompressedGraph<csv_bytepd_amortized, pbbs::empty>(iFile, symmetric, mmap, mmapcopy); \
+//      alloc_init(G); \
+//      run_app(G, APP, rounds)                                                \
+//    } 
 
 #define generate_weighted_main(APP, mutates)                             \
   int main(int argc, char* argv[]) {                                     \

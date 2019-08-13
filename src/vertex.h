@@ -254,6 +254,20 @@ inline size_t decodeNghsSparseSeq(vertex<W>* v, uintE vtx_id,
   return k;
 }
 
+template <class W, class F>
+inline void decodeNghsSparseSeqCond(uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d,
+                                    F& f) {
+  for (size_t j = 0; j < d; j++) {
+    auto nw = nghs[j];
+    uintE ngh = std::get<0>(nw);
+    bool ret = f(vtx_id, ngh, std::get<1>(nw));
+    if (!ret) { // check if we should break
+      return;
+    }
+  }
+}
+
+
 template <class W, class F, class G>
 inline size_t decode_block(uintE vtx_id, std::tuple<uintE, W>* nghs, uintE d,
                            uintT o, uintE block_num, F& f, G& g) {
@@ -553,6 +567,18 @@ struct symmetricVertex {
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g);
   }
 
+  template <class F>
+  inline void decodeOutNghSparseSeqCond(uintE vtx_id, F& f) {
+    vertex_ops::decodeNghsSparseSeqCond<W, F>(
+        vtx_id, getOutNeighbors(), getOutDegree(), f);
+  }
+
+  template <class F>
+  inline void decodeInNghSparseSeqCond(uintE vtx_id, F& f) {
+    vertex_ops::decodeNghsSparseSeqCond<W, F>(
+        vtx_id, getInNeighbors(), getInDegree(), f);
+  }
+
   template <class F, class G>
   inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
                                G& g) {
@@ -800,6 +826,18 @@ struct asymmetricVertex {
   inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return vertex_ops::decodeNghsSparseSeq<asymmetricVertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g);
+  }
+
+  template <class F>
+  inline void decodeOutNghSparseSeqCond(uintE vtx_id, F& f) {
+    vertex_ops::decodeNghsSparseSeqCond<W, F>(
+        vtx_id, getOutNeighbors(), getOutDegree(), f);
+  }
+
+  template <class F>
+  inline void decodeInNghSparseSeqCond(uintE vtx_id, F& f) {
+    vertex_ops::decodeNghsSparseSeqCond<W, F>(
+        vtx_id, getInNeighbors(), getInDegree(), f);
   }
 
   template <class F, class G>

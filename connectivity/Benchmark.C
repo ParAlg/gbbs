@@ -82,7 +82,8 @@ double pick_test(G& GA, size_t id, size_t rounds, commandLine P, pbbs::sequence<
     return run_multiple(GA, rounds, correct, "ndopt_sf", P, t_ndopt_sf<G>);
   case 8:
     return run_multiple(GA, rounds, correct, "gbbs_hybridcc", P, t_gbbs_hybridcc<G>);
-
+  case 9:
+    return run_multiple(GA, rounds, correct, "stergiou_cc", P, t_stergiou_cc<G>);
   default:
     assert(false);
     exit(-1);
@@ -95,7 +96,7 @@ template <class G>
 double Benchmark_runner(G& GA, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
-  int num_tests = 9; // update if new algorithm is added
+  int num_tests = 10; // update if new algorithm is added
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;
 

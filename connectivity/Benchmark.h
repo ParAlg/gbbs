@@ -96,7 +96,7 @@ double t_gbbs_hybridcc(G& GA, commandLine P, pbbs::sequence<uintE>& correct) {
 }
 
 template <class G>
-double t_stergiou_shortcutting(G& GA, commandLine P, pbbs::sequence<uintE>& correct) {
+double t_stergiou_cc(G& GA, commandLine P, pbbs::sequence<uintE>& correct) {
   time(t, auto CC = stergiou_shortcut::CC_stergiou_shortcutting(GA));
   if (P.getOptionValue("-check")) {
     cc_check(correct, CC);
