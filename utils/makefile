@@ -44,7 +44,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= add_weights converter gen_torus
+ALL= add_weights converter weighted_converter gen_torus
 
 all: $(ALL)
 
