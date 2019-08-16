@@ -51,7 +51,6 @@ bool run_multiple(G& GA, size_t rounds, pbbs::sequence<uintE>& correct,
   double mint = reduce(t, minf);
   double maxt = reduce(t, maxf);
   double med = median(t);
-  double tt;
 
   cout << name << std::setprecision(5)
        << ": r=" << rounds
@@ -83,7 +82,10 @@ double pick_test(G& GA, size_t id, size_t rounds, commandLine P, pbbs::sequence<
   case 8:
     return run_multiple(GA, rounds, correct, "gbbs_hybridcc", P, t_gbbs_hybridcc<G>);
   case 9:
-    return run_multiple(GA, rounds, correct, "stergiou_cc", P, t_stergiou_cc<G>);
+    return run_multiple(GA, rounds, correct, "jayanti_rank_cc", P, t_jayanti_rank_cc<G>);
+//  case 9:
+//    return run_multiple(GA, rounds, correct, "stergiou_cc", P, t_stergiou_cc<G>);
+
   default:
     assert(false);
     exit(-1);
@@ -101,7 +103,7 @@ double Benchmark_runner(G& GA, commandLine P) {
   cout << "num threads = " << num_workers() << endl;
 
   auto correct = pbbs::sequence<uintE>();
-  if (P.getOptionValue("-check")); {
+  if (P.getOptionValue("-check")) {
     correct = gbbs_cc::CC(GA, 0.2, false, true);
     RelabelDet(correct);
   }

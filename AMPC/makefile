@@ -45,7 +45,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= Benchmark
+ALL= Benchmark grow
 
 all: $(ALL)
 

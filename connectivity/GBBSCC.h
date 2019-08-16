@@ -35,7 +35,6 @@ template <class G>
 inline sequence<uintE> CC_impl(G& GA, double beta,
                                  size_t level, bool pack = false,
                                  bool permute = false) {
-  using W = typename G::weight_type;
   size_t n = GA.n;
   permute |= (level > 0);
   timer ldd_t;

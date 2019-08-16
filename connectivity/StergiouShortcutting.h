@@ -60,7 +60,6 @@ namespace stergiou_shortcut {
         IDs[d] = std::min(origID,IDs[s]);
       } return 1; }
     inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-      uintE origID = IDs[d];
       pbbs::write_min(&IDs[d],IDs[s], std::less<uintE>());
       return 1;
     }
@@ -70,7 +69,7 @@ namespace stergiou_shortcut {
   template <class G>
   sequence<uintE> CC_stergiou_shortcutting(G& GA) {
     using W = typename G::weight_type;
-    long n = GA.n, m = GA.m;
+    long n = GA.n;
     uintE* IDs = pbbs::new_array_no_init<uintE>(n), *prevIDs = pbbs::new_array_no_init<uintE>(n);
     parallel_for(0, n, [&] (size_t i) {prevIDs[i] = i; IDs[i] = i;}); //initialize unique IDs
 
@@ -79,11 +78,13 @@ namespace stergiou_shortcut {
     auto active = pbbs::sequence<bool>(n, true);
     vertexSubset Active(n,n,active.to_array()); //initial frontier contains all vertices
 
+    size_t n_rounds = 0;
     while(!Active.isEmpty()){ //iterate until IDS converge
       edgeMap(GA, Active, CC_F<W>(IDs,prevIDs),-1,no_output);
       vertexSubset output = vertexFilter(All,CC_Shortcut(IDs,prevIDs));
       Active.del();
       Active = output;
+      n_rounds++;
     }
     Active.del(); All.del(); pbbs::free_array(prevIDs);
     return std::move(pbbs::sequence<uintE>(IDs, n));

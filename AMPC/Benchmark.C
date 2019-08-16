@@ -66,6 +66,8 @@ double pick_test(G& GA, size_t id, size_t rounds, commandLine P) {
   switch (id) {
   case 0:
     return run_multiple(GA, rounds, "t_mis_yoshida", P, t_mis_yoshida<G>);
+  case 1:
+    return run_multiple(GA, rounds, "t_mis_yoshida", P, t_mis_yoshida_2<G>);
   default:
     assert(false);
     exit(-1);
@@ -78,7 +80,7 @@ template <class G>
 double Benchmark_runner(G& GA, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
-  int num_tests = 10; // update if new algorithm is added
+  int num_tests = 2; // update if new algorithm is added
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;
 

@@ -247,7 +247,6 @@ namespace gbbs_sf {
                                             size_t level, std::function<edge(edge)>& edge_mapping, bool
                                             pack = false, bool permute = false)
   {
-    using W = typename G::weight_type;
     permute |= (level > 0);
     timer ldd_t;
     ldd_t.start();

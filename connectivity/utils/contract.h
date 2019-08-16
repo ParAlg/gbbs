@@ -179,13 +179,8 @@ namespace contract {
   template <class G>
   inline std::tuple<symmetric_graph<symmetricVertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
   contract(G& GA, sequence<uintE>& clusters, size_t num_clusters) {
-    using W = typename G::weight_type;
     // Remove duplicates by hashing
     using K = std::tuple<uintE, uintE>;
-    using V = pbbslib::empty;
-    using KV = std::tuple<K, V>;
-
-    size_t n = GA.n;
 
     edge* edges;
     size_t edges_size;

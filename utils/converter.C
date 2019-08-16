@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <cmath>
 
+#include "to_char_arr.h"
+
 using namespace std;
 
 // Provides utilities for converting between different compressed
@@ -721,6 +723,34 @@ namespace binary_format {
 }; // namespace binary_format
 
 template <class G>
+void edgearray(G& GA, ofstream& out) {
+  using W = typename G::weight_type;
+  size_t n = GA.n;
+  size_t m = GA.m;
+  auto r = pbbs::random();
+
+  auto degs = pbbs::sequence<uintT>(n);
+  par_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).getOutDegree(); });
+  size_t total_offs = pbbs::scan_inplace(degs.slice(), pbbs::addm<uintT>());
+
+  auto edges = pbbs::sequence<std::pair<uintE, uintE>>(m);
+
+  parallel_for(0, n, [&] (size_t i) {
+    size_t off = degs[i];
+    size_t k = 0;
+    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      edges[off + k++] = std::make_pair(u, v);
+    };
+    GA.get_vertex(i).mapOutNgh(i, map_f, false);
+    assert(k == GA.get_vertex(i).getOutDegree());
+  }, 1);
+
+  writeArrayToStream(out, edges); // m edge pairs
+  out.close();
+  cout << "Wrote file." << endl;
+}
+
+template <class G>
 auto converter(G& GA, commandLine P) {
   auto outfile = P.getOptionValue("-o", "");
   bool symmetric = P.getOptionValue("-s");
@@ -739,10 +769,11 @@ auto converter(G& GA, commandLine P) {
   } else if (encoding == "bytepd-amortized") {
     bytepd_amortized::write_graph_bytepd_amortized_format(GA, out, symmetric);
   } else if (encoding == "binary") {
-    cout <<"going fucker" << endl;
     binary_format::write_graph_binary_format(GA, out);
   } else if (encoding == "degree") {
     bytepd_amortized::degree_reorder(GA, out, symmetric);
+  } else if (encoding == "edgearray") {
+    edgearray(GA, out);
   } else {
     cout << "Unknown encoding: " << encoding << endl;
     exit(0);

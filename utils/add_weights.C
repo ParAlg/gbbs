@@ -21,9 +21,12 @@
 
 #include "pbbslib/random.h"
 #include "encodings/byte_pd_amortized.h"
+
+#include "to_char_arr.h"
+
 using namespace std;
 
-int max_weight = 32;
+size_t max_weight = 32;
 int* Choices;
 size_t PAR_DEGREE_TWO = 256;
 
@@ -52,6 +55,7 @@ struct wgh_it {
   bool has_next() { return it.has_next(); }
 };
 
+constexpr size_t max_degree_weight = INT_E_MAX/128;
 template <class I, class GA>
 struct degree_wgh_it {
   uintE deg;
@@ -66,83 +70,86 @@ struct degree_wgh_it {
     auto cr = it.cur();
     uintE ngh = get<0>(cr);
     uintE ngh_degree = G.get_vertex(ngh).getOutDegree();
-    int wgh = ngh_degree + src_degree; //(int)(((double)1)/((double)(ngh_degree + src_degree)));
+    size_t wgh = sqrt(ngh_degree*src_degree); //(int)(((double)1)/((double)(ngh_degree + src_degree)));
+    intE ret_wgh = std::min((size_t)max_degree_weight,wgh);
     //uintE ind = pbbs::hash64(source ^ get<0>(cr));
     //int wgh = Choices[ind % (2 * max_weight)];
-    return make_tuple(get<0>(cr), wgh);
+    return make_tuple(get<0>(cr), ret_wgh);
   }
   tuple<uintE, int> next() {
     deg++;
     auto nxt = it.next();
     uintE ngh = get<0>(nxt);
     uintE ngh_degree = G.get_vertex(ngh).getOutDegree();
-    int wgh = ngh_degree + src_degree; //(int)(((double)1)/((double)(ngh_degree + src_degree)));
+    size_t wgh = sqrt(ngh_degree*src_degree); //(int)(((double)1)/((double)(ngh_degree + src_degree)));
+    intE ret_wgh = std::min((size_t)max_degree_weight,wgh);
 //    uintE ind = pbbs::hash64(source ^ get<0>(nxt));
 //    int wgh = Choices[ind % (2 * max_weight)];
-    return make_tuple(get<0>(nxt), wgh);
+    return make_tuple(get<0>(nxt), ret_wgh);
   }
   bool has_next() { return it.has_next(); }
 };
 
 template <class I, class GA>
 auto make_wgh_it(I& it, uintE source, GA& G) {
-  return wgh_it<I>(it, source);
+  return degree_wgh_it<I, GA>(it, source, G);
 }
 
-//template <template <class W> class vertex, class W>
-//void writeWeightedAdj(symmetric_graph<vertex, W>& GA, string& outfile) {
-//  size_t n = GA.n;
-//  size_t m = GA.m;
-//  auto r = pbbs::random();
-//
-//  auto degs = pbbs::sequence<uintT>(n + 1);
-//  par_for(0, n, [&] (size_t i) { degs[i] = GA.V[i].getOutDegree(); });
-//  degs[n] = 0;
-//  size_t total_offs = pbbs::scan_inplace(degs.slice(), pbbs::addm<uintT>());
-//  cout << "total offs = " << total_offs << " m = " << m << endl;
-//
-//  auto edges = pbbs::sequence<uintT>(2 * m);
-//  uintT* wghs = edges.begin() + m;
-//
-//  parallel_for(0, n, [&] (size_t i) {
-//    size_t off = degs[i];
-//    size_t k = 0;
-//    auto itt = GA.V[i].getOutIter(i);
-//    auto it = make_wgh_it(itt, i, GA);
-//    if (itt.degree > 0) {
-//      while (true) {
-//        auto nghw = (k == 0) ? it.cur() : it.next();
-//        uintE ngh = get<0>(nghw);
-//        int weight = get<1>(nghw);
-//        edges[off + k] = ngh;
-//        wghs[off + k] = weight;
-//        k++;
-//        if (!it.has_next()) {
-//          break;
-//        }
-//      }
-//    }
-//
-//    if (k != GA.V[i].getOutDegree()) {
-//      cout << "k = " << k << " deg = " << GA.V[i].getOutDegree() << endl;
-//    }
-//    assert(k == GA.V[i].getOutDegree());
-//  }, 1);
-//
-//  ofstream file(outfile, ios::out | ios::binary);
-//  if (!file.is_open()) {
-//    std::cout << "Unable to open file: " << outfile << std::endl;
-//    exit(0);
-//  }
-//  file << "WeightedAdjacencyGraph" << endl;
-//  file << n << endl;
-//  file << m << endl;
-//  benchIO::writeArrayToStream(file, degs.begin(), n);
-//  benchIO::writeArrayToStream(file, edges.begin(), 2 * m);
-//  file.close();
-//  cout << "Wrote file." << endl;
-//  free(Choices);
-//}
+template <template <class W> class vertex, class W>
+void writeWeightedAdj(symmetric_graph<vertex, W>& GA, string& outfile) {
+  size_t n = GA.n;
+  size_t m = GA.m;
+  auto r = pbbs::random();
+
+  auto degs = pbbs::sequence<uintT>(n);
+  par_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).getOutDegree(); });
+  size_t total_offs = pbbs::scan_inplace(degs.slice(), pbbs::addm<uintT>());
+  cout << "total offs = " << total_offs << " m = " << m << endl;
+
+  auto edges = pbbs::sequence<uintT>(2 * m);
+  uintT* wghs = edges.begin() + m;
+
+  parallel_for(0, n, [&] (size_t i) {
+    size_t off = degs[i];
+    size_t k = 0;
+    auto itt = GA.get_vertex(i).getOutIter(i);
+    auto it = make_wgh_it(itt, i, GA);
+    if (itt.degree > 0) {
+      while (true) {
+        auto nghw = (k == 0) ? it.cur() : it.next();
+        uintE ngh = get<0>(nghw);
+        int weight = get<1>(nghw);
+        edges[off + k] = ngh;
+        wghs[off + k] = weight;
+        k++;
+        if (!it.has_next()) {
+          break;
+        }
+      }
+    }
+
+    if (k != GA.get_vertex(i).getOutDegree()) {
+      cout << "k = " << k << " deg = " << GA.get_vertex(i).getOutDegree() << endl;
+    }
+    assert(k == GA.get_vertex(i).getOutDegree());
+  }, 1);
+
+  ofstream file(outfile, ios::out | ios::binary);
+  if (!file.is_open()) {
+    std::cout << "Unable to open file: " << outfile << std::endl;
+    exit(0);
+  }
+  file << "WeightedAdjacencyGraph" << endl;
+  file << n << endl;
+  file << m << endl;
+
+  writeArrayToStream(file, degs); // n offsets
+  writeArrayToStream(file, edges); // 2m values
+
+  file.close();
+  cout << "Wrote file." << endl;
+  free(Choices);
+}
 
 namespace bytepd_amortized {
 // Only writes the out-edges. Useful for comparing to other frameworks that
@@ -456,7 +463,7 @@ double Reencoder(G& GA, commandLine P) {
   }
 
   if (encoding == "adj") {
-//    writeWeightedAdj(GA, outfile);
+    writeWeightedAdj(GA, outfile);
   } else if (encoding == "bytepd-amortized") {
     bytepd_amortized::writeWeightedBytePDA(GA, outfile, symmetric);
   } else if (encoding == "binary") {

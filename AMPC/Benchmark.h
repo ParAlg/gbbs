@@ -21,3 +21,12 @@ double t_mis_yoshida(G& GA, commandLine P) {
   return t;
 }
 
+
+template <class G>
+double t_mis_yoshida_2(G& GA, commandLine P) {
+  double beta = P.getOptionDoubleValue("-beta", 0.2);
+  double permute = P.getOptionDoubleValue("-permute", false);
+  time(t, YoshidaMIS_2(GA));
+  return t;
+}
+

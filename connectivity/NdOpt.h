@@ -57,7 +57,6 @@ namespace nd {
 template <class G>
 pbbs::sequence<uintE> NdOptCC(G& GA) {
   using W = typename G::weight_type;
-  size_t m = GA.m;
   size_t n = GA.n;
 
   auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return UINT_E_MAX; });
@@ -95,7 +94,6 @@ pbbs::sequence<uintE> NdOptCC(G& GA) {
 template <class G>
 pbbs::sequence<std::pair<uintE, uintE>> NdOptSF(G& GA) {
   using W = typename G::weight_type;
-  size_t m = GA.m;
   size_t n = GA.n;
 
   auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return UINT_E_MAX; });

@@ -92,13 +92,13 @@ template <class G>
 pbbs::sequence<uintE> AsyncCC(G& GA) {
   using W = typename G::weight_type;
   size_t n = GA.n;
-  size_t m = GA.m;
 
   auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
 
   parallel_for(0, n, [&] (size_t i) {
     auto map_f = [&] (uintE u, uintE v, const W& wgh) {
       if (u < v) {
+//        async_cc::uniteEarly(u, v, parents);
         async_cc::unite(u, v, parents);
       }
     };

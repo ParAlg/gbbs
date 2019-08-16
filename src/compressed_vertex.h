@@ -109,6 +109,15 @@ inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
   return k;
 }
 
+template <class W, class C, class F>
+inline void decodeNghsSparseSeqCond(uintE vtx_id, uintE d, uchar* nghArr, F& f) {
+  auto T = [&](const uintE& src, const uintE& target, const W& weight,
+               const uintT& edgeNumber) {
+    return !f(src, target, weight);
+  };
+  C::template decode<W>(T, nghArr, vtx_id, d, /* parallel = */ false);
+}
+
 template <class W, class C, class F, class G>
 inline size_t decode_block(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
                            uintE block_num, F& f, G& g) {
@@ -294,6 +303,18 @@ struct compressedSymmetricVertex {
   inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getOutDegree(),
                                                     getOutNeighbors(), o, f, g);
+  }
+
+  template <class F>
+  inline void decodeInNghSparseSeqCond(uintE vtx_id, F& f) {
+    cvertex::decodeNghsSparseSeqCond<W, C, F>(vtx_id, getInDegree(),
+                                                    getInNeighbors(), f);
+  }
+
+  template <class F>
+  inline void decodeOutNghSparseSeqCond(uintE vtx_id, F& f) {
+    cvertex::decodeNghsSparseSeqCond<W, C, F>(vtx_id, getOutDegree(),
+                                                 getOutNeighbors(), f);
   }
 
   template <class F, class G>
@@ -544,6 +565,17 @@ struct compressedAsymmetricVertex {
   inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getOutDegree(),
                                                     getOutNeighbors(), o, f, g);
+  }
+  template <class F>
+  inline void decodeInNghSparseSeqCond(uintE vtx_id, F& f) {
+    cvertex::decodeNghsSparseSeqCond<W, C, F>(vtx_id, getInDegree(),
+                                                    getInNeighbors(), f);
+  }
+
+  template <class F>
+  inline void decodeOutNghSparseSeqCond(uintE vtx_id, F& f) {
+    cvertex::decodeNghsSparseSeqCond<W, C, F>(vtx_id, getOutDegree(),
+                                                 getOutNeighbors(), f);
   }
 
   template <class F, class G>

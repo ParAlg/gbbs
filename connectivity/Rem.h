@@ -64,10 +64,8 @@ inline void unite(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parent, pbb
     if (parent[rx] < parent[ry]) std::swap(rx,ry);
     if (rx == parent[rx]) {
       locks[rx].lock();
-      bool success = false;
       if (rx == parent[rx]) {
 	parent[rx] = parent[ry];
-	success = true;
       }
       locks[rx].unlock();
     } else {
@@ -86,7 +84,6 @@ template <class G>
 pbbs::sequence<uintE> RemSF(G& GA) {
   using W = typename G::weight_type;
   size_t n = GA.n;
-  size_t m = GA.m;
 
   auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
   auto hooks = pbbs::sequence<uintE>(n, [&] (size_t i) { return UINT_E_MAX; });
@@ -99,7 +96,7 @@ pbbs::sequence<uintE> RemSF(G& GA) {
       }
     };
     GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
-  });
+  }, 512);
 
   timer ft; ft.start();
   parallel_for(0, n, [&] (size_t i) {
@@ -115,7 +112,6 @@ template <class G>
 pbbs::sequence<uintE> RemCC(G& GA) {
   using W = typename G::weight_type;
   size_t n = GA.n;
-  size_t m = GA.m;
 
   auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
   auto locks = pbbs::sequence<std::mutex>(n);
@@ -127,7 +123,7 @@ pbbs::sequence<uintE> RemCC(G& GA) {
       }
     };
     GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
-  });
+  }, 512);
 
   timer ft; ft.start();
   parallel_for(0, n, [&] (size_t i) {
