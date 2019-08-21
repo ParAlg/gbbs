@@ -100,8 +100,8 @@ inline size_t CountDirectedBalanced(graph<vertex<W>>& DG, size_t* counts,
 
   size_t block_size = 50000;
   size_t n_blocks = total_work/block_size + 1;
-//  size_t n_blocks = num_workers() * 8 + 1;
   size_t work_per_block = total_work / n_blocks;
+  n_blocks = (total_work/work_per_block) + 1;
   debug(std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
             << " work per block = " << work_per_block << "\n";);
 
