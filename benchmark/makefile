@@ -18,7 +18,7 @@ INCLUDE_DIRS = -I../
 
 OPT = -O3 -g
 
-CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -44,7 +44,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST PageRank RandomWalk SCC SetCover Spanner SpanningForest Triangle wBFS WidestPath
+ALL= BC BellmanFord BFS Biconnectivity CC Coloring DensestSubgraph KCore LDD MaximalMatching MIS MST PageRank SCC SetCover Spanner SpanningForest Triangle wBFS WidestPath
 
 all: $(ALL)
 
