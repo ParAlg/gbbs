@@ -188,6 +188,12 @@ namespace pbbs {
       std::swap(s, b.s); std::swap(n, b.n);
     }
 
+    // lazy shrinking
+    void shrink(size_t m) {
+      assert (m <= n);
+      n = m;
+    }
+
     size_t size() const { return n;}
     value_type* begin() const {return s;}
     value_type* end() const {return s + n;}
