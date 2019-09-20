@@ -1,9 +1,9 @@
-ifeq (, $(shell which jemalloc-config))
-JEMALLOC =
-else
-JEMALLOCLD = $(shell jemalloc-config --libdir)
-JEMALLOC = -L$(JEMALLOCLD) -ljemalloc 
-endif
+#ifeq (, $(shell which jemalloc-config))
+#JEMALLOC =
+#else
+#JEMALLOCLD = $(shell jemalloc-config --libdir)
+#JEMALLOC = -L$(JEMALLOCLD) -ljemalloc 
+#endif
 
 CONCEPTS = -fconcepts -DCONCEPTS
 CFLAGS = -mcx16 -O3 -ldl -std=c++17 -march=native -Wall 

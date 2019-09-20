@@ -21,11 +21,11 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
-#include <stdio.h>
-#include <math.h>
 #include "utilities.h"
 #include "sequence_ops.h"
 #include "transpose.h"
+#include <stdio.h>
+#include <math.h>
 #include <chrono>
 #include <thread>
 

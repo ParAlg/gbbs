@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utilities.h"
+#include <assert.h>
 
 #define hello foo
 
@@ -190,7 +191,7 @@ namespace pbbs {
 
     // lazy shrinking
     void shrink(size_t m) {
-      assert (m <= n);
+      assert(m <= n);
       n = m;
     }
 

@@ -47,18 +47,18 @@ struct block_allocator {
   struct block {
     block* next;
   };
-    
+
   using block_p = block*;
 
   struct alignas(64) thread_list {
     size_t sz;
-    block_p head;  
+    block_p head;
     block_p mid;
     char cache_line[pad_size];
     thread_list() : sz(0), head(NULL) {};
   };
 
-    
+
   block_p initialize_list(block_p);
   block_p get_list();
   concurrent_stack<uchar*> pool_roots;
@@ -106,12 +106,12 @@ auto block_allocator::initialize_list(block_p start) -> block_p {
 
 size_t block_allocator::num_used_blocks() {
   size_t free_blocks = global_stack.size()*list_length;
-  for (int i = 0; i < thread_count; ++i) 
+  for (int i = 0; i < thread_count; ++i)
     free_blocks += local_lists[i].sz;
   return blocks_allocated - free_blocks;
 }
 
-auto block_allocator::allocate_blocks(size_t num_blocks) -> uchar* { 
+auto block_allocator::allocate_blocks(size_t num_blocks) -> uchar* {
   uchar* start = (uchar*) aligned_alloc(pad_size,
 					num_blocks * block_size_+ pad_size);
   if (start == NULL) {
@@ -154,7 +154,7 @@ block_allocator::block_allocator(size_t block_size,
   block_size_ = block_size;
   list_length = list_length_;
   max_blocks = max_blocks_;
-  if (max_blocks_ == 0) 
+  if (max_blocks_ == 0)
     max_blocks = (3*getMemorySize()/block_size)/4;
 
   reserve(blocks_count);
@@ -191,7 +191,7 @@ void block_allocator::free(void* ptr) {
 }
 
 inline void* block_allocator::alloc() {
-    int id = worker_id(); 
+    int id = worker_id();
 
     if (!local_lists[id].sz)  {
       local_lists[id].head = get_list();

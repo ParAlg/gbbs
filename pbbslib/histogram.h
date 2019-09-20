@@ -95,7 +95,7 @@ namespace pbbs {
   // HashEq must contain an hash function E -> size_t
   //    and an equality function E x E -> bool
   template <typename E, typename HashEq>
-  struct get_bucket {
+  struct get_bucket_old {
     using HE = std::pair<E,int>;
     sequence<HE> hash_table;
     size_t table_mask;
@@ -110,16 +110,16 @@ namespace pbbs {
     //    the top half [2^{bits-1},2^{bits})
     //    and light items shared into the bottom half [0,2^{bits-1})
     template <typename Seq>
-    get_bucket(Seq const &A, HashEq const &heq, size_t bits) : heq(heq) {
+    get_bucket_old(Seq const &A, HashEq const &heq, size_t bits) : heq(heq) {
       size_t n = A.size();
       size_t low_bits = bits - 1;  // for the bottom half
       num_buckets = 1 << low_bits; // in bottom half
       size_t count = 2 * num_buckets;
       size_t table_size = 4 * count;
       table_mask = table_size-1;
-
+      
       hash_table = sequence<HE>(table_size, std::make_pair(E(),-1));
-
+      
       // insert sample into hash table with one less than the
       // count of how many times appears (since it starts with -1)
       for (size_t i = 0; i < count; i++) {
@@ -174,17 +174,20 @@ namespace pbbs {
     static size_t hash(intType a) {return hash64_2(a & ~((size_t) 31));}
     static bool eql(intType a, intType b) {return a == b;}
   };
-    
+
   template <typename s_size_t, typename Seq>
   sequence<s_size_t> histogram(Seq const &A, size_t m) {
     size_t n = A.size();
     using T = typename Seq::value_type;
-    
+
     // #bits is selected so each block fits into L3 cache
     //   assuming an L3 cache of size 1M per thread
     // the counting sort uses 2 x input size due to copy
     size_t cache_per_thread = 1000000;
-    size_t bits = log2_up(2 * (size_t) sizeof(T) * n / cache_per_thread);
+    size_t bits = std::max<size_t>(log2_up(1 + 2 * (size_t) sizeof(T) * n / cache_per_thread),
+				   4);
+    //if (bits == 0) 
+    //  return seq_histogram<s_size_t>(A, m);
     size_t num_buckets = (1<<bits);
     if (m < n / num_buckets)
       return  _count<s_size_t>(A, m);
@@ -192,7 +195,7 @@ namespace pbbs {
       return seq_histogram<s_size_t>(A , m);
 
     timer t("histogram", false);
-
+    
     sequence<T> B(n);
     sequence<T> Tmp(n);
 
@@ -201,19 +204,19 @@ namespace pbbs {
     // others share a bucket.
     // Keys that share low 4 bits get same bucket unless big.
     // This is to avoid false sharing.
-    get_bucket<T,int_hasheq_mask_low<T>> gb(A, int_hasheq_mask_low<T>(), bits);
+    get_bucket_old<T,int_hasheq_mask_low<T>> gb(A, int_hasheq_mask_low<T>(), bits);
     t.next("head");
-    
+
     // first buckets based on hash using a counting sort
     sequence<size_t> bucket_offsets =
       integer_sort_(A.slice(), B.slice(), Tmp.slice(), gb,
 		    bits, num_buckets, false);
     t.next("send to buckets");
-    
+
     // note that this is cache line alligned
     sequence<s_size_t> counts(m, (s_size_t) 0);
     t.next("initialize buckets");
-	
+
     // now in parallel across the buckets, sequentially process each bucket
     parallel_for(0, num_buckets, [&] (size_t i) {
       size_t start = bucket_offsets[i];

@@ -9,6 +9,7 @@
 #include <math.h>
 #include <atomic>
 #include <cstring>
+
 #include "parallel.h"
 
 using std::cout;

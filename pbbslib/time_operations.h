@@ -331,7 +331,9 @@ double t_collect_reduce_pair_dense(size_t n, bool check) {
   pbbs::sequence<par> S(n, [&] (size_t i) -> par {
       return par(r.ith_rand(i) % n, 1);});
   pbbs::sequence<T> out;
-  time(t, out = pbbs::collect_reduce(S, pbbs::addm<T>(), n););
+  auto get_key = [&] (par a) {return a.first;};
+  auto get_val = [&] (par a) {return a.second;};
+  time(t, out = pbbs::collect_reduce(S, get_key, get_val, pbbs::addm<T>(), n););
   if (check)
     check_histogram(pbbs::sequence<T>(n, [&] (size_t i) {return S[i].first;}),
 		    out);
@@ -359,7 +361,9 @@ double t_collect_reduce_8(size_t n, bool check) {
   size_t num_buckets = (1<<8);
   pbbs::sequence<par> S(n, [&] (size_t i) {
       return par(r.ith_rand(i) % num_buckets, 1);});
-  time(t, pbbs::collect_reduce(S, pbbs::addm<T>(), num_buckets););
+  auto get_key = [&] (par a) {return a.first;};
+  auto get_val = [&] (par a) {return a.first;};
+  time(t, pbbs::collect_reduce(S, get_key, get_val, pbbs::addm<T>(), num_buckets););
   return t;
 }
 

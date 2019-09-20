@@ -46,7 +46,7 @@ namespace pbbs {
 		       random r = random()) {
     size_t n = In.size();
     if (n < SEQ_THRESHOLD) {
-      if (In.begin() != Out.begin()) 
+      if (In.begin() != Out.begin())
 	parallel_for(0,n,[&] (size_t i) {
 	    assign_uninitialized(Out[i],In[i]);});
       seq_random_shuffle_(Out, r);

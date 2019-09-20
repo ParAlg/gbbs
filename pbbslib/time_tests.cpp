@@ -6,6 +6,8 @@
 #include "sequence_ops.h"
 #include "allocator.h"
 #include "parse_command_line.h"
+#include "parallel.h"
+
 #include <iostream>
 #include <ctype.h>
 #include <math.h>
@@ -13,9 +15,6 @@
 #include <vector>
 #include <algorithm>
 #include <atomic>
-
-#include "parallel.h"
-
 
 size_t str_to_int(char* str) {
     return strtol(str, NULL, 10);

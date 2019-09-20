@@ -31,13 +31,13 @@ struct commandLine {
   int argc;
   char** argv;
   std::string comLine;
-  commandLine(int _c, char** _v, std::string _cl) 
+  commandLine(int _c, char** _v, std::string _cl)
     : argc(_c), argv(_v), comLine(_cl) {
       if (getOption("-h") || getOption("-help"))
 	badArgument();
     }
 
-  commandLine(int _c, char** _v) 
+  commandLine(int _c, char** _v)
     : argc(_c), argv(_v), comLine("bad arguments") { }
 
   void badArgument() {
@@ -114,4 +114,4 @@ struct commandLine {
   }
 
 };
- 
+

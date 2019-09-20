@@ -56,7 +56,7 @@ namespace pbbs {
       swapped = !swapped;
     }
     if ((inplace && swapped) || (!inplace && !swapped)) {
-      for (size_t i=0; i < n; i++) 
+      for (size_t i=0; i < n; i++)
 	move_uninitialized(Out[i], In[i]);
     }
   }
@@ -72,11 +72,11 @@ namespace pbbs {
       seq_radix_sort_(Tmp.slice(), Out, g, key_bits, inplace);
     } else {
       if (odd) {
-	for (size_t i=0; i < n; i++) 
+	for (size_t i=0; i < n; i++)
 	  move_uninitialized(Tmp[i], In[i]);
 	seq_radix_sort_(Tmp, Out, g, key_bits, false);
       } else {
-	for (size_t i=0; i < n; i++) 
+	for (size_t i=0; i < n; i++)
 	  move_uninitialized(Out[i], In[i]);
 	seq_radix_sort_(Out, Tmp, g, key_bits, true);
       }
@@ -90,7 +90,7 @@ namespace pbbs {
   // if inplace is true, then result will be in Tmp, otherwise in Out
   // In and Out cannot be the same, but In and Tmp should be same if inplace
   template <typename SeqIn, typename Slice, typename Get_Key>
-  sequence<size_t> integer_sort_r(SeqIn const &In, Slice Out, Slice Tmp, Get_Key const &g, 
+  sequence<size_t> integer_sort_r(SeqIn const &In, Slice Out, Slice Tmp, Get_Key const &g,
 				  size_t key_bits, size_t num_buckets, bool inplace,
 				  float parallelism=1.0) {
     using T = typename SeqIn::value_type;
@@ -103,17 +103,17 @@ namespace pbbs {
     sequence<size_t> offsets;
     bool one_bucket;
     bool return_offsets = (num_buckets > 0);
-      
+
     if (key_bits == 0) {
       if (!inplace)
 	parallel_for(0, In.size(), [&] (size_t i) {Out[i] = In[i];});
       return sequence<size_t>();
-      
+
       // for small inputs or little parallelism use sequential radix sort
     } else if ((n < (1 << 17) || parallelism < .0001) && !return_offsets) {
       seq_radix_sort(In, Out, Tmp, g, key_bits, inplace);
       return sequence<size_t>();
-      
+
       // few bits, just do a single parallel count sort
     } else if (key_bits <= base_bits) {
       size_t mask = (1 << key_bits) - 1;
@@ -129,8 +129,8 @@ namespace pbbs {
 	    move_uninitialized(Tmp[i], Out[i]);});
       if (return_offsets) return offsets;
       else return sequence<size_t>();
-      
-      // recursive case  
+
+      // recursive case
     } else {
       size_t bits = 8;
       size_t shift_bits = key_bits - bits;
@@ -166,7 +166,7 @@ namespace pbbs {
 	    size_t bstart = std::min(i * num_inner_buckets, num_buckets);
 	    size_t bend = std::min((i+1) * num_inner_buckets, num_buckets);
 	    size_t m = (bend - bstart);
-	    for (size_t j=0; j < m; j++) 
+	    for (size_t j=0; j < m; j++)
 	      inner_offsets[bstart+j] = offsets[i] + r[j];
 	  }
 	}, 1);
@@ -176,7 +176,7 @@ namespace pbbs {
 
   // a top down recursive radix sort
   // g extracts the integer keys from In
-  // if inplace is false then result will be placed in Out, 
+  // if inplace is false then result will be placed in Out,
   //    otherwise they are placed in Tmp
   //    Tmp and In can be the same (i.e. to do inplace set them equal)
   // In is not directly modified, but can be indirectly if equal to Tmp
@@ -190,14 +190,12 @@ namespace pbbs {
   integer_sort_(SeqIn const &In,
 		range<IterOut> Out,
 		range<IterOut> Tmp,
-		Get_Key const &g, 
+		Get_Key const &g,
 		size_t bits,
 		size_t num_buckets,
 		bool inplace) {
-    if (slice_eq(In.slice(), Out)) {
-      cout << "in integer_sort : input and output must be different locations"
-	   << endl;
-      abort();}
+    if (slice_eq(In.slice(), Out)) 
+      throw std::invalid_argument("in integer_sort : input and output must be different locations");
     if (bits == 0) {
       auto get_key = [&] (size_t i) {return g(In[i]);};
       auto keys = delayed_seq<size_t>(In.size(), get_key);

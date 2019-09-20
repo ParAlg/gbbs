@@ -13,7 +13,7 @@ struct timer {
   std::string name;
   struct timezone tzp;
 
-  timer(std::string name = "PBBS time", bool _start = true) 
+  timer(std::string name = "PBBS time", bool _start = true)
   : total_time(0.0), on(false), name(name), tzp({0,0}) {
     if (_start) start();
   }
@@ -27,14 +27,14 @@ struct timer {
   void start () {
     on = 1;
     last_time = get_time();
-  } 
+  }
 
   double stop () {
     on = 0;
     double d = (get_time()-last_time);
     total_time += d;
     return d;
-  } 
+  }
 
   void reset() {
      total_time=0.0;

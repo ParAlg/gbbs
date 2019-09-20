@@ -29,7 +29,7 @@
 #pragma once
 #include <math.h>
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 #include "utilities.h"
 #include "sequence_ops.h"
 #include "quicksort.h"
@@ -63,7 +63,7 @@ namespace pbbs {
 	sB++; sC++;
 	if (sB == eB) break;
       }
-    } 
+    }
     *sC = eA-sA;
   }
 
@@ -72,7 +72,7 @@ namespace pbbs {
 #if defined(OPENMP)
     quicksort_serial(A.begin(), A.size(), less);
 #else
-    if (((sizeof(T) > 8) || is_pointer(A[0])) && !stable) 
+    if (((sizeof(T) > 8) || is_pointer(A[0])) && !stable)
       quicksort(A.begin(), A.size(), less);
     else bucket_sort(A, less, stable);
 #endif
@@ -135,11 +135,11 @@ namespace pbbs {
       size_t num_buckets = (sqrt/bucket_quotient) + 1;
       size_t sample_set_size = num_buckets * OVER_SAMPLE;
       size_t m = num_blocks*num_buckets;
-      
+
       // generate "random" samples with oversampling
       sequence<T> sample_set(sample_set_size, [&] (size_t i) {
 	  return In[hash64(i)%n];});
-      
+
       // sort the samples
       quicksort(sample_set.begin(), sample_set_size, less);
 
@@ -149,7 +149,7 @@ namespace pbbs {
 
       sequence<T> Tmp = sequence<T>::no_init(n);
       t.next("head");
-      
+
       // sort each block and merge with samples to get counts for each bucket
       s_size_t *counts = new_array_no_init<s_size_t>(m+1,1);
       counts[m] = 0;
@@ -198,7 +198,7 @@ namespace pbbs {
       sample_sort_<unsigned int>(A.slice(), A.slice(), less, true, stable);
     else sample_sort_<size_t>(A.slice(), A.slice(), less, true, stable);
   }
-    
+
   template<typename E, typename Compare, typename s_size_t>
   void sample_sort (E* A, s_size_t n, const Compare& less, bool stable) {
     range<E*> B(A,A+n);
