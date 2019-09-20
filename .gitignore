@@ -1,2 +1,10 @@
 experimental
 cplib.sh
+
+# bazel generated files
+bazel-bin
+bazel-gbbs
+bazel-genfiles
+bazel-out
+bazel-testlogs
+
