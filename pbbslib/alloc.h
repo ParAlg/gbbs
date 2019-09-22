@@ -4,7 +4,6 @@
 
 #include "concurrent_stack.h"
 #include "memory_size.h"
-#include "utilities.h"
 
 struct mem_pool {
   concurrent_stack<void*>* buckets;

@@ -32,7 +32,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include "bridge.h"
+#include "ligra/bridge.h"
 
 namespace bytepd_amortized {
 

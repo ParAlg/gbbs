@@ -11,15 +11,8 @@ cc_library(
 )
 
 cc_library(
-  name = "utilities",
-  hdrs = ["utilities.h"],
-  deps = [":parallel"],
-)
-
-cc_library(
   name = "concurrent_stack",
   hdrs = ["concurrent_stack.h"],
-  deps = [":utilities"],
 )
 
 cc_library(
@@ -33,7 +26,15 @@ cc_library(
   deps = [
   ":concurrent_stack",
   ":memory_size",
-  ":utilities"
+  ],
+)
+
+cc_library(
+  name = "utilities",
+  hdrs = ["utilities.h"],
+  deps = [
+  ":parallel",
+  ":alloc"
   ],
 )
 
@@ -87,6 +88,15 @@ cc_library(
   ":monoid",
   ":utilities"
   ]
+)
+
+cc_test(
+  name = "sequence_test",
+  srcs = ["sequence_test.cpp"],
+  copts = ["-Iexternal/gtest/include"],
+  deps = [
+      "@googletest//:gtest_main",
+  ],
 )
 
 cc_library(
@@ -314,6 +324,7 @@ cc_library(
   ]
 )
 
+
 cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cpp"],
@@ -326,4 +337,8 @@ cc_binary(
    ":time_operations",
    ":utilities",
   ],
+)
+
+package(
+  default_visibility = ["//visibility:public"],
 )

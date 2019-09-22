@@ -36,7 +36,7 @@
 #include "pbbslib/sequence_ops.h"
 #include "pbbslib/utilities.h"
 
-#include "macros.h"
+#include "ligra/macros.h"
 
 namespace bytepd {
 

@@ -1,8 +1,10 @@
-
 # By default build in C++17 mode.
 build --cxxopt=-std=c++17
 build --cxxopt=-mcx16
 build --cxxopt=-ldl
 build --cxxopt=-DHOMEGROWN
+build --cxxopt=-DAMORTIZEDPD
 build --cxxopt=-pthread
 build --cxxopt=-march=native
+
+

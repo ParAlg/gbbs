@@ -27,7 +27,7 @@
 // constructor call to properly initialize memory. see pbbslib::new_array(..)
 #pragma once
 
-#include "bridge.h"
+#include "ligra/bridge.h"
 
 namespace pbbslib {
 

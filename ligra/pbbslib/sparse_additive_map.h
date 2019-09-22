@@ -24,7 +24,7 @@
 
 #include <tuple>
 
-#include "bridge.h"
+#include "ligra/bridge.h"
 
 template <class K, class V>
 class sparse_additive_map {

@@ -359,7 +359,7 @@ inline vertexSubsetData<data> edgeMapBlocked(graph<vertex>& GA,
 
   // 3. Compute the number of threads, binary search for offsets.
   size_t n_threads =
-      nblocks(outEdgeCount, kEMBlockSize);  // TODO(laxmand): 4*nworkers()?
+      pbbs::num_blocks(outEdgeCount, kEMBlockSize);  // TODO(laxmand): 4*nworkers()?
   size_t* thread_offs = pbbslib::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   par_for(0, n_threads, 1, [&] (size_t i) {
