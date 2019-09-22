@@ -1,10 +1,9 @@
 # By default build in C++17 mode.
 build --cxxopt=-std=c++17
-build --cxxopt=-mcx16
+build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-ldl
-build --cxxopt=-DHOMEGROWN
-build --cxxopt=-DAMORTIZEDPD
-build --cxxopt=-pthread
+build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
+build --cxxopt=-DLONG        # use 8 byte vertex identifiers
+build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compressed graphs
+build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
-
-
