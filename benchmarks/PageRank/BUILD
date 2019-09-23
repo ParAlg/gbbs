@@ -3,7 +3,8 @@ cc_library(
   hdrs = ["PageRank.h"],
   deps = [
   "//ligra:ligra",
-  "//ligra/pbbslib:sparse_table"
+  "//ligra:edge_map_reduce",
+  "//ligra/pbbslib:sparse_table",
   ]
 )
 

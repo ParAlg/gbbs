@@ -1,16 +1,16 @@
 cc_library(
-  name = "Coloring",
-  hdrs = ["Coloring.h"],
+  name = "GraphColoring",
+  hdrs = ["GraphColoring.h"],
   deps = [
-  "//ligra:ligra"
+  "//ligra:ligra",
   "//pbbslib:random_shuffle"
   ]
 )
 
 cc_binary(
-  name = "Coloring_main",
-  srcs = ["Coloring.cpp"],
-  deps = [":Coloring"]
+  name = "GraphColoring_main",
+  srcs = ["GraphColoring.cpp"],
+  deps = [":GraphColoring"]
 )
 
 package(

@@ -47,7 +47,7 @@ ALL=DensestSubgraph
 
 all: $(ALL)
 
-% : %.C
+% : %.cpp
 	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean

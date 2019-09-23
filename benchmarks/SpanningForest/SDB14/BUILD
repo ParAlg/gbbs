@@ -5,6 +5,7 @@ cc_library(
   "//ligra:graph",
   "//ligra:macros",
   "//ligra/pbbslib:sparse_table",
+  "//ligra/pbbslib:dyn_arr",
   "//pbbslib:sequence_ops"
   ]
 )
@@ -13,7 +14,7 @@ cc_library(
   name = "SpanningForest",
   hdrs = ["SpanningForest.h"],
   deps = [
-  ":contract",
+  ":contract_sf",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
   "//ligra:ligra",
   "//ligra/pbbslib:sparse_table"

@@ -5,7 +5,7 @@ cc_library(
   "//ligra:bridge",
   "//ligra:ligra",
   "//ligra:speculative_for",
-  "//ligra/pbbslib:sparse_table"
+  "//ligra/pbbslib:sparse_table",
   "//ligra/pbbslib:dyn_arr"
   ]
 )
@@ -14,7 +14,7 @@ cc_binary(
   name = "MaximalMatching_main",
   srcs = ["MaximalMatching.cpp"],
   deps = [
-  ":MaximalMatching"
+  ":MaximalMatching",
   "//ligra:bridge",
   "//ligra:ligra",
   ]

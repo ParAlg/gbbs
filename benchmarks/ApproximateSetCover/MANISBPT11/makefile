@@ -43,11 +43,11 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL=SetCover
+ALL=ApproximateSetCover
 
 all: $(ALL)
 
-% : %.C
+% : %.cpp
 	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean

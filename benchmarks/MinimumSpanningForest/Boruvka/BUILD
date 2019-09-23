@@ -3,7 +3,12 @@ cc_library(
   hdrs = ["MinimumSpanningForest.h"],
   deps = [
   "//ligra:ligra",
-  "//ligra/pbbslib:sparse_table"
+  "//ligra:union_find",
+  "//ligra/pbbslib:sparse_table",
+  "//ligra/pbbslib:dyn_arr",
+  "//pbbslib:binary_search",
+  "//pbbslib:random",
+  "//pbbslib:sample_sort",
   ]
 )
 

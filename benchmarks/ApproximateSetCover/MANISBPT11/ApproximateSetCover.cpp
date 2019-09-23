@@ -22,51 +22,41 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./BellmanFord -src 10012 -s -m -rounds 3 twitter_wgh_SJ
+// numactl -i all ./SetCover -nb 512 -rounds 1 -s -c clueweb_sym.bytepda
 // flags:
-//   required:
-//     -s : indicate that the graph is symmetric
-//     -w: indicate that the graph is weighted
 //   optional:
-//     -c : indicate that the graph is compressed
+//     -s : indicate that the graph is symmetric
 //     -m : indicate that the graph should be mmap'd
-//     -specfor : run the speculative_for (union-find) based algorithm from pbbs
-//     -largemem : set the sampling thresholds to utilize less memory
-//
-// Note: in our experiments we set -largemem when running MST on the weighted
-// hyperlink2012 graph.
+//     -c : indicate that the graph is compressed
+//     -nb : the number of buckets to use in the bucketing implementation
 
-#include "MST.h"
+#include "ApproximateSetCover.h"
 #include "ligra/ligra.h"
 
 template <class vertex>
-double MST_runner(graph<vertex>& GA, commandLine P) {
-  bool spec_for = P.getOption("-specfor");
-  bool largemem = P.getOption("-largemem");
+double SetCover_runner(graph<vertex>& GA, commandLine P) {
+  size_t num_buckets = P.getOptionLongValue("-nb", 128);
 
-  std::cout << "### Application: MST (Minimum Spanning Forest)" << std::endl;
+  std::cout << "### Application: Approximate Set Cover" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << " -largemem (use settings for huge graphs) = " << largemem << std::endl;
+  std::cout << "### Params: -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
-  timer mst_t;
-  mst_t.start();
-  if (spec_for) {
-    MST_spec_for::MST(GA);
-  } else {
-    MST_boruvka::MST(GA, largemem);
-  }
-  double tt = mst_t.stop();
+  timer t; t.start();
+  auto cover = SetCover(GA, num_buckets);
+  cover.del();
+  double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
 
-  // MST mutates the underlying graph (unless it is copied, which we don't do to
-  // prevent memory issues), so we make sure the algorithm is run exactly once.
+  // Set-cover mutates the underlying graph (unless it is copied, which
+  // we don't do to prevent memory issues), so we make sure the algorithm is run
+  // exactly once.
   exit(0);
   return tt;
 }
 
-generate_weighted_main(MST_runner, true);
+generate_main(SetCover_runner, true)

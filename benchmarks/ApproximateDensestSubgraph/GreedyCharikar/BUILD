@@ -4,7 +4,7 @@ cc_library(
   deps = [
   "//ligra:edge_map_reduce",
   "//ligra:ligra",
-  "//benchmarks/kcore/julienne/KCore.h"
+  "//benchmarks/KCore/JulienneDBS17:KCore"
   ]
 )
 

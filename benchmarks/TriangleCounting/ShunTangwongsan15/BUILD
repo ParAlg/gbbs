@@ -3,8 +3,8 @@ cc_library(
   hdrs = ["Triangle.h"],
   deps = [
   "//ligra:ligra",
-  "//pbbslib:sample_sort"
-  "//pbbslib:monoid"
+  "//pbbslib:sample_sort",
+  "//pbbslib:monoid",
   ]
 )
 

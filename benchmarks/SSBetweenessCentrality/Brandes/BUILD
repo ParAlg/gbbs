@@ -3,8 +3,8 @@ cc_library(
   hdrs = ["SSBetweennessCentrality.h"],
   deps = [
   "//ligra:ligra",
-  "//ligra/pbbslib:sparse_table"
-  "//ligra/pbbslib:edge_map_reduce"
+  "//ligra:edge_map_reduce",
+  "//ligra/pbbslib:sparse_table",
   ]
 )
 
