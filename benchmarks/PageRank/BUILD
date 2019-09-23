@@ -1,0 +1,18 @@
+cc_library(
+  name = "PageRank",
+  hdrs = ["PageRank.h"],
+  deps = [
+  "//ligra:ligra",
+  "//ligra/pbbslib:sparse_table"
+  ]
+)
+
+cc_binary(
+  name = "PageRank_main",
+  srcs = ["PageRank.cpp"],
+  deps = [":PageRank"]
+)
+
+package(
+  default_visibility = ["//visibility:public"],
+)
