@@ -2,18 +2,21 @@ cc_library(
   name = "Biconnectivity",
   hdrs = ["Biconnectivity.h"],
   deps = [
-  "//ligra:ligra"
-  "//benchmarks/Connectivity/SDB13:Connectivity"
+  "//benchmarks/Connectivity/SDB14:Connectivity",
+  "//ligra:ligra",
+  "//ligra:speculative_for",
   "//ligra/pbbslib:dyn_arr",
+  "//ligra/pbbslib:sparse_table",
   "//pbbslib:random",
   "//pbbslib:sample_sort",
-  "//pbbslib:sparse_table",
-  "//pbbslib:speculative_for",
   ]
 )
 
 cc_binary(
   name = "Biconnectivity_main",
   srcs = ["Biconnectivity.cpp"],
-  deps = [":Biconnectivity"]
+  deps = [
+  ":Biconnectivity",
+  "//ligra/pbbslib:sparse_additive_map",
+  ]
 )

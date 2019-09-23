@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "benchmarks/Connectivity/SDB14/CC.h"
+#include "benchmarks/Connectivity/SDB14/Connectivity.h"
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
+#include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
-#include "pbbslib/sparse_table.h"
-#include "pbbslib/speculative_for.h"
+#include "ligra/speculative_for.h"
 
 namespace bc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
