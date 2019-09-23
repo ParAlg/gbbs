@@ -44,7 +44,7 @@ double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  WorkEfficientDensestSubgraph(GA, eps);
+  CharikarAppxDensestSubgraph(GA);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

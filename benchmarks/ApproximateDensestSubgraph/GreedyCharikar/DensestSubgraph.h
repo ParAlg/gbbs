@@ -22,7 +22,7 @@
 
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"
-#include "benchmarks/kCore/julienne/KCore.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 // Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
 // expected work and O(\rho\log n) depth w.h.p.
