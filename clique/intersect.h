@@ -11,12 +11,6 @@
 #include "pbbslib/dyn_arr.h"
 #include "simdinter/include/intersection.h"
 
-struct nop_f {
-void operator()(pbbs::sequence<uintE> s) const {
-    return;
-  }
-};
-
 struct lstintersect_par_struct {
   template <template <typename W> class vertex, class W, class S>
   std::tuple<sequence<uintE>, size_t> operator()(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) const {
@@ -78,7 +72,6 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(graph<vertex<W>>& DG
   SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
   size_t out_size = inter(induced.begin(), induced.size(), vtx_seq.begin(), vtx_seq.size(), out.begin());
   if (!save) {
-    out.~sequence();
     return std::make_tuple(pbbs::sequence<uintE>(), out_size);
   }
   out.shrink(out_size);

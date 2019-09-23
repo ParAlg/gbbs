@@ -18,7 +18,7 @@ INCLUDE_DIRS = -I../
 
 OPT = -O3 -g
 
-CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+CFLAGS = $(INCLUDE_DIRS) -I../ligra -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 SIMDFLAGS = -I../simdinter -I../simdinter/include -fpic -mavx -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
