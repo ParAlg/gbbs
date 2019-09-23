@@ -33,10 +33,10 @@ namespace bc {
 using fType = double;
 
 template <class W, class S, class V>
-struct BC_F {
+struct SSBetweennessCentrality_F {
   S& Scores;
   V& Visited;
-  BC_F(S& _Scores, V& _Visited) : Scores(_Scores), Visited(_Visited) {}
+  SSBetweennessCentrality_F(S& _Scores, V& _Visited) : Scores(_Scores), Visited(_Visited) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
     fType oldV = Scores[d];
     Scores[d] += Scores[s];
@@ -51,15 +51,15 @@ struct BC_F {
 };
 
 template <class W, class S, class V>
-inline BC_F<W, S, V> make_bc_f(S& scores, V& visited) {
-  return BC_F<W, S, V>(scores, visited);
+inline SSBetweennessCentrality_F<W, S, V> make_bc_f(S& scores, V& visited) {
+  return SSBetweennessCentrality_F<W, S, V>(scores, visited);
 }
 
 // marks visited
 template <class V>
-struct BC_Vertex_F {
+struct SSBetweennessCentrality_Vertex_F {
   V& Visited;
-  BC_Vertex_F(V& _Visited) : Visited(_Visited) {}
+  SSBetweennessCentrality_Vertex_F(V& _Visited) : Visited(_Visited) {}
   inline bool operator()(uintE i) {
     Visited[i] = 1;
     return 1;
@@ -67,16 +67,16 @@ struct BC_Vertex_F {
 };
 
 template <class V>
-inline BC_Vertex_F<V> make_bc_vertex_f(V& visited) {
-  return BC_Vertex_F<V>(visited);
+inline SSBetweennessCentrality_Vertex_F<V> make_bc_vertex_f(V& visited) {
+  return SSBetweennessCentrality_Vertex_F<V>(visited);
 }
 
 // marks visited and adds to dependencies
 template <class V, class D>
-struct BC_Back_Vertex_F {
+struct SSBetweennessCentrality_Back_Vertex_F {
   V& Visited;
   D& Dependencies, &NumPaths;
-  BC_Back_Vertex_F(V& _Visited, D& _Dependencies, D& _NumPaths)
+  SSBetweennessCentrality_Back_Vertex_F(V& _Visited, D& _Dependencies, D& _NumPaths)
       : Visited(_Visited), Dependencies(_Dependencies), NumPaths(_NumPaths) {}
   inline bool operator()(uintE i) {
     Visited[i] = 1;
@@ -86,13 +86,13 @@ struct BC_Back_Vertex_F {
 };
 
 template <class V, class D>
-inline BC_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
+inline SSBetweennessCentrality_Back_Vertex_F<V, D> make_bc_back_vertex_f(V& visited, D& dependencies,
                                                     D& num_paths) {
-  return BC_Back_Vertex_F<V, D>(visited, dependencies, num_paths);
+  return SSBetweennessCentrality_Back_Vertex_F<V, D>(visited, dependencies, num_paths);
 }
 
 template <template <class W> class vertex, class W>
-inline sequence<fType> BC(graph<vertex<W>>& GA, const uintE& start) {
+inline sequence<fType> SSBetweennessCentrality(graph<vertex<W>>& GA, const uintE& start) {
   size_t n = GA.n;
 
   auto NumPaths = sequence<fType>(n, [](size_t i) { return 0.0; });
@@ -217,7 +217,7 @@ vertexSubset sparse_fa_dense_em(graph<vertex<W>>& GA, E& EM, vertexSubset& Front
 }
 
 template <template <class W> class vertex, class W>
-inline sequence<fType> BC_EM(graph<vertex<W>>& GA, const uintE& start) {
+inline sequence<fType> SSBetweennessCentrality_EM(graph<vertex<W>>& GA, const uintE& start) {
   size_t n = GA.n;
   auto EM = EdgeMap<fType, vertex, W>(GA, std::make_tuple(UINT_E_MAX, (fType)0.0), (size_t)GA.m/1000);
 

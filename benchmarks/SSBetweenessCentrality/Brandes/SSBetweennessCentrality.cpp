@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./BC -src 10012 -s -m -rounds 3 twitter_SJ
+// numactl -i all ./SSBetweennessCentrality -src 10012 -s -m -rounds 3 twitter_SJ
 // flags:
 //   required:
 //     -src: the source to compute centrality contributions from
@@ -35,9 +35,9 @@
 #include "SSBetweennessCentrality.h"
 
 template <class vertex>
-double BC_runner(graph<vertex>& GA, commandLine P) {
+double SSBetweennessCentrality_runner(graph<vertex>& GA, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
-  std::cout << "### Application: BC" << std::endl;
+  std::cout << "### Application: SSBetweennessCentrality" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
@@ -46,11 +46,11 @@ double BC_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
-  auto scores = P.getOptionValue("-fa") ? bc::BC(GA, src) : bc::BC_EM(GA, src);
+  auto scores = P.getOptionValue("-fa") ? bc::SSBetweennessCentrality(GA, src) : bc::SSBetweennessCentrality_EM(GA, src);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
   return tt;
 }
 
-generate_main(BC_runner, false);
+generate_main(SSBetweennessCentrality_runner, false);
