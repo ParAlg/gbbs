@@ -185,7 +185,7 @@ inline size_t getVirtualDegree(uintE d, uchar* nghArr) {
 }  // namespace cvertex
 
 template <class W, class C>
-struct compressedSymmetricVertex {
+struct compressed_symmetric_vertex {
   uchar* neighbors;
   uintE degree;
   uchar* getInNeighbors() { return neighbors; }
@@ -375,14 +375,14 @@ struct compressedSymmetricVertex {
     return orig_degree;
   }
 
-  inline size_t intersect(compressedSymmetricVertex<W, C>* other, long our_id,
+  inline size_t intersect(compressed_symmetric_vertex<W, C>* other, long our_id,
                           long other_id) {
     return C::template intersect<W>(getOutNeighbors(), other->getOutNeighbors(),
         getOutDegree(), other->getOutDegree(), our_id, other_id);
   }
 
   template <class F>
-  inline size_t intersect_f(compressedSymmetricVertex<W, C>* other, long our_id,
+  inline size_t intersect_f(compressed_symmetric_vertex<W, C>* other, long our_id,
                             long other_id, const F& f) {
     return C::template intersect_f<W>(getOutNeighbors(),
         other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
@@ -390,7 +390,7 @@ struct compressedSymmetricVertex {
   }
 
   template <class F>
-  inline size_t intersect_f_par(compressedSymmetricVertex<W, C>* other, long our_id,
+  inline size_t intersect_f_par(compressed_symmetric_vertex<W, C>* other, long our_id,
                             long other_id, const F& f) {
     return C::template intersect_f<W>(getOutNeighbors(),
         other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
@@ -408,7 +408,7 @@ struct compressedSymmetricVertex {
 };
 
 template <class W, class C>
-struct compressedAsymmetricVertex {
+struct compressed_asymmetric_vertex {
   uchar* inNeighbors;
   uchar* outNeighbors;
   uintE outDegree;
@@ -600,14 +600,14 @@ struct compressedAsymmetricVertex {
     return deg;
   }
 
-  inline size_t intersect(compressedAsymmetricVertex<W, C>* other, long our_id,
+  inline size_t intersect(compressed_asymmetric_vertex<W, C>* other, long our_id,
                           long other_id) {
     return C::template intersect<W>(getOutNeighbors(), other->getOutNeighbors(),
         getOutDegree(), other->getOutDegree(), our_id, other_id);
   }
 
   template <class F>
-  inline size_t intersect_f(compressedAsymmetricVertex<W, C>* other,
+  inline size_t intersect_f(compressed_asymmetric_vertex<W, C>* other,
                             long our_id, long other_id, const F& f) {
     return C::template intersect_f<W>(getOutNeighbors(),
         other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
@@ -615,7 +615,7 @@ struct compressedAsymmetricVertex {
   }
 
   template <class F>
-  inline size_t intersect_f_par(compressedAsymmetricVertex<W, C>* other,
+  inline size_t intersect_f_par(compressed_asymmetric_vertex<W, C>* other,
                             long our_id, long other_id, const F& f) {
     return C::template intersect_f<W>(getOutNeighbors(),
         other->getOutNeighbors(), getOutDegree(), other->getOutDegree(), our_id,
@@ -638,21 +638,21 @@ struct compressedAsymmetricVertex {
 // cav for "compressed_asymmetric_vertex"
 template <class W>
 struct csv_bytepd_amortized
-    : compressedSymmetricVertex<W, bytepd_amortized_decode> {
-  using inner = compressedSymmetricVertex<W, bytepd_amortized_decode>;
+    : compressed_symmetric_vertex<W, bytepd_amortized_decode> {
+  using inner = compressed_symmetric_vertex<W, bytepd_amortized_decode>;
   using inner::inner;
 };
 
 template <class W>
 struct cav_bytepd_amortized
-    : compressedAsymmetricVertex<W, bytepd_amortized_decode> {
-  using inner = compressedAsymmetricVertex<W, bytepd_amortized_decode>;
+    : compressed_asymmetric_vertex<W, bytepd_amortized_decode> {
+  using inner = compressed_asymmetric_vertex<W, bytepd_amortized_decode>;
   using inner::inner;
 };
 
 template <class W>
 struct cav_byte
-    : compressedAsymmetricVertex<W, byte_decode> {
-  using inner = compressedAsymmetricVertex<W, byte_decode>;
+    : compressed_asymmetric_vertex<W, byte_decode> {
+  using inner = compressed_asymmetric_vertex<W, byte_decode>;
   using inner::inner;
 };

@@ -43,19 +43,20 @@ struct BFS_F {
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<uintE> BFS(graph<vertex<W> >& GA, uintE src) {
-  // Creates Parents array, initialized to all -1, except for src.
-  auto Parents = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
+template <class Graph>
+inline sequence<uintE> BFS(Graph& G, uintE src) {
+  using W = typename Graph::weight_type;
+  /* Creates Parents array, initialized to all -1, except for src. */
+  auto Parents = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
-  vertexSubset Frontier(GA.n, src);
+  vertexSubset Frontier(G.n, src);
   size_t reachable = 0;
   while (!Frontier.isEmpty()) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
-        edgeMap(GA, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
+        edgeMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
   }

@@ -413,11 +413,11 @@ inline iter<W> get_iter(std::tuple<uintE, W>* edges, uintE degree) {
 }  // namespace vertex_ops
 
 template <class W>
-struct symmetricVertex {
-  using wghVtx = symmetricVertex<W>;
+struct symmetric_vertex {
+  using wghVtx = symmetric_vertex<W>;
   std::tuple<uintE, W>* neighbors;
   uintE degree;
-  symmetricVertex(std::tuple<uintE, W>* n, uintE d) : neighbors(n), degree(d) {}
+  symmetric_vertex(std::tuple<uintE, W>* n, uintE d) : neighbors(n), degree(d) {}
   void clear() { pbbslib::free_array(neighbors); }
 
   std::tuple<uintE, W>* getInNeighbors() { return neighbors; }
@@ -448,19 +448,19 @@ struct symmetricVertex {
     return vertex_ops::get_iter(getOutNeighbors(), getOutDegree());
   }
 
-  inline size_t intersect(symmetricVertex<W>* other, long our_id,
+  inline size_t intersect(symmetric_vertex<W>* other, long our_id,
                           long other_id) {
     return intersection::intersect(this, other, our_id, other_id);
   }
 
   template <class F>
-  inline size_t intersect_f(symmetricVertex<W>* other, long our_id,
+  inline size_t intersect_f(symmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
     return intersection::intersect_f(this, other, our_id, other_id, f);
   }
 
   template <class F>
-  inline size_t intersect_f_par(symmetricVertex<W>* other, long our_id,
+  inline size_t intersect_f_par(symmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
@@ -469,7 +469,7 @@ struct symmetricVertex {
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {
-    vertex_ops::decodeNghsBreakEarly<symmetricVertex, W, F, G, VS>(
+    vertex_ops::decodeNghsBreakEarly<symmetric_vertex, W, F, G, VS>(
         this, vtx_id, getInNeighbors(), getInDegree(), vertexSubset, f, g,
         parallel);
   }
@@ -477,51 +477,51 @@ struct symmetricVertex {
   template <class VS, class F, class G>
   inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                      bool parallel = 0) {
-    vertex_ops::decodeNghsBreakEarly<symmetricVertex, W, F, G, VS>(
+    vertex_ops::decodeNghsBreakEarly<symmetric_vertex, W, F, G, VS>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), vertexSubset, f, g,
         parallel);
   }
 
   template <class F, class G>
   inline void decodeOutNgh(uintE vtx_id, F& f, G& g) {
-    vertex_ops::decodeNghs<symmetricVertex, W, F, G>(
+    vertex_ops::decodeNghs<symmetric_vertex, W, F, G>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), f, g);
   }
 
   template <class F, class G>
   inline void decodeInNgh(uintE vtx_id, F& f, G& g) {
-    vertex_ops::decodeNghs<symmetricVertex, W, F, G>(
+    vertex_ops::decodeNghs<symmetric_vertex, W, F, G>(
         this, vtx_id, getInNeighbors(), getInDegree(), f, g);
   }
 
   template <class F, class G, class H>
   inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
-    vertex_ops::decodeNghsSparse<symmetricVertex, W, F>(
+    vertex_ops::decodeNghsSparse<symmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h);
   }
 
   template <class F, class G, class H>
   inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
-    vertex_ops::decodeNghsSparse<symmetricVertex, W, F>(
+    vertex_ops::decodeNghsSparse<symmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h);
   }
 
   template <class F, class G>
   inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseSeq<symmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseSeq<symmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g);
   }
 
   template <class F, class G>
   inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseSeq<symmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseSeq<symmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g);
   }
 
   template <class F, class G>
   inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
                                         uintE block_num, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseBlock<symmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseBlock<symmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, block_size,
         block_num, f, g);
   }
@@ -529,86 +529,86 @@ struct symmetricVertex {
   template <class F, class G>
   inline size_t decodeInNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
                                        uintE block_num, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseBlock<symmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseBlock<symmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, block_size, block_num,
         f, g);
   }
 
   template <class F, class G>
   inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
-    vertex_ops::copyNghs<symmetricVertex, W>(this, vtx_id, getOutNeighbors(),
+    vertex_ops::copyNghs<symmetric_vertex, W>(this, vtx_id, getOutNeighbors(),
                                              getOutDegree(), o, f, g);
   }
 
   template <class F, class G>
   inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
-    vertex_ops::copyNghs<symmetricVertex, W>(this, vtx_id, getInNeighbors(),
+    vertex_ops::copyNghs<symmetric_vertex, W>(this, vtx_id, getInNeighbors(),
                                              getInDegree(), o, f, g);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return vertex_ops::get_ith_neighbor<symmetricVertex, W>(getOutNeighbors(),
+    return vertex_ops::get_ith_neighbor<symmetric_vertex, W>(getOutNeighbors(),
                                                             i);
   }
 
   inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return vertex_ops::get_ith_neighbor<symmetricVertex, W>(getInNeighbors(),
+    return vertex_ops::get_ith_neighbor<symmetric_vertex, W>(getInNeighbors(),
                                                             i);
   }
 
   template <class F>
   inline size_t countOutNgh(uintE vtx_id, F& f, bool parallel = true) {
-    return vertex_ops::countNghs<symmetricVertex, W, F>(
+    return vertex_ops::countNghs<symmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), f, parallel);
   }
 
   template <class F>
   inline size_t countInNgh(uintE vtx_id, F& f, bool parallel = true) {
-    return vertex_ops::countNghs<symmetricVertex, W, F>(
+    return vertex_ops::countNghs<symmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), f, parallel);
   }
 
   template <class E, class M, class Monoid>
   inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce) {
-    return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
+    return vertex_ops::reduceNghs<symmetric_vertex, W, E, M, Monoid>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce);
   }
 
   template <class E, class M, class Monoid>
   inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce) {
-    return vertex_ops::reduceNghs<symmetricVertex, W, E, M, Monoid>(
+    return vertex_ops::reduceNghs<symmetric_vertex, W, E, M, Monoid>(
         this, vtx_id, getInNeighbors(), getInDegree(), m, reduce);
   }
 
   template <class F>
   inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = true) {
-    vertex_ops::mapNghs<symmetricVertex, W, F>(this, vtx_id, getOutNeighbors(),
+    vertex_ops::mapNghs<symmetric_vertex, W, F>(this, vtx_id, getOutNeighbors(),
                                                getOutDegree(), f, parallel);
   }
 
   template <class F>
   inline void mapInNgh(uintE vtx_id, F& f, bool parallel = true) {
-    vertex_ops::mapNghs<symmetricVertex, W, F>(this, vtx_id, getInNeighbors(),
+    vertex_ops::mapNghs<symmetric_vertex, W, F>(this, vtx_id, getInNeighbors(),
                                                getInDegree(), f, parallel);
   }
 
   template <class P, class O>
   inline void filterOutNgh(uintE vtx_id, P& p, O& out,
                            std::tuple<uintE, W>* tmp) {
-    vertex_ops::filterNghs<symmetricVertex, W, P, O>(
+    vertex_ops::filterNghs<symmetric_vertex, W, P, O>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), p, out, tmp);
   }
 
   template <class P, class O>
   inline void filterInNgh(uintE vtx_id, P& p, O& out,
                           std::tuple<uintE, W>* tmp) {
-    vertex_ops::filterNghs<symmetricVertex, W, P, O>(
+    vertex_ops::filterNghs<symmetric_vertex, W, P, O>(
         this, vtx_id, getInNeighbors(), getInDegree(), p, out, tmp);
   }
 
   template <class P>
   inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
+    uintE k = vertex_ops::packNghs<symmetric_vertex, W, P>(
         this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
     setOutDegree(k);
     return k;
@@ -616,7 +616,7 @@ struct symmetricVertex {
 
   template <class P>
   inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<symmetricVertex, W, P>(
+    uintE k = vertex_ops::packNghs<symmetric_vertex, W, P>(
         this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
     setInDegree(k);
     return k;
@@ -632,7 +632,7 @@ struct symmetricVertex {
 };
 
 template <class W>
-struct asymmetricVertex {
+struct asymmetric_vertex {
   std::tuple<uintE, W>*inNeighbors, *outNeighbors;
   uintE inDegree;
   uintE outDegree;
@@ -640,7 +640,7 @@ struct asymmetricVertex {
     pbbslib::free_array(inNeighbors);
     pbbslib::free_array(outNeighbors);
   }
-  asymmetricVertex(std::tuple<uintE, W>* iN, std::tuple<uintE, W>* oN, uintE id,
+  asymmetric_vertex(std::tuple<uintE, W>* iN, std::tuple<uintE, W>* oN, uintE id,
                    uintE od)
       : inNeighbors(iN), outNeighbors(oN), inDegree(id), outDegree(od) {}
 
@@ -678,19 +678,19 @@ struct asymmetricVertex {
     return vertex_ops::get_iter(getOutNeighbors(), getOutDegree());
   }
 
-  inline size_t intersect(asymmetricVertex<W>* other, long our_id,
+  inline size_t intersect(asymmetric_vertex<W>* other, long our_id,
                           long other_id) {
     return intersection::intersect(this, other, our_id, other_id);
   }
 
   template <class F>
-  inline size_t intersect_f(asymmetricVertex<W>* other, long our_id,
+  inline size_t intersect_f(asymmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
     return intersection::intersect_f(this, other, our_id, other_id, f);
   }
 
   template <class F>
-  inline size_t intersect_f_par(asymmetricVertex<W>* other, long our_id,
+  inline size_t intersect_f_par(asymmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
@@ -699,7 +699,7 @@ struct asymmetricVertex {
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {
-    vertex_ops::decodeNghsBreakEarly<asymmetricVertex, W, F, G, VS>(
+    vertex_ops::decodeNghsBreakEarly<asymmetric_vertex, W, F, G, VS>(
         this, vtx_id, getInNeighbors(), getInDegree(), vertexSubset, f, g,
         parallel);
   }
@@ -707,51 +707,51 @@ struct asymmetricVertex {
   template <class VS, class F, class G>
   inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                      bool parallel = 0) {
-    vertex_ops::decodeNghsBreakEarly<asymmetricVertex, W, F, G, VS>(
+    vertex_ops::decodeNghsBreakEarly<asymmetric_vertex, W, F, G, VS>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), vertexSubset, f, g,
         parallel);
   }
 
   template <class F, class G>
   inline void decodeOutNgh(uintE vtx_id, F& f, G& g) {
-    vertex_ops::decodeNghs<asymmetricVertex, W, F, G>(
+    vertex_ops::decodeNghs<asymmetric_vertex, W, F, G>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), f, g);
   }
 
   template <class F, class G>
   inline void decodeInNgh(uintE vtx_id, F& f, G& g) {
-    vertex_ops::decodeNghs<asymmetricVertex, W, F, G>(
+    vertex_ops::decodeNghs<asymmetric_vertex, W, F, G>(
         this, vtx_id, getInNeighbors(), getInDegree(), f, g);
   }
 
   template <class F, class G, class H>
   inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
-    vertex_ops::decodeNghsSparse<asymmetricVertex, W, F>(
+    vertex_ops::decodeNghsSparse<asymmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g, h);
   }
 
   template <class F, class G, class H>
   inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
-    vertex_ops::decodeNghsSparse<asymmetricVertex, W, F>(
+    vertex_ops::decodeNghsSparse<asymmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g, h);
   }
 
   template <class F, class G>
   inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseSeq<asymmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseSeq<asymmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, f, g);
   }
 
   template <class F, class G>
   inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseSeq<asymmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseSeq<asymmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, f, g);
   }
 
   template <class F, class G>
   inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
                                         uintE block_num, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseBlock<asymmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseBlock<asymmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), o, block_size,
         block_num, f, g);
   }
@@ -759,86 +759,86 @@ struct asymmetricVertex {
   template <class F, class G>
   inline size_t decodeInNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
                                        uintE block_num, F& f, G& g) {
-    return vertex_ops::decodeNghsSparseBlock<asymmetricVertex, W, F>(
+    return vertex_ops::decodeNghsSparseBlock<asymmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), o, block_size, block_num,
         f, g);
   }
 
   template <class F, class G>
   inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
-    vertex_ops::copyNghs<asymmetricVertex, W>(this, vtx_id, getOutNeighbors(),
+    vertex_ops::copyNghs<asymmetric_vertex, W>(this, vtx_id, getOutNeighbors(),
                                               getOutDegree(), o, f, g);
   }
 
   template <class F, class G>
   inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
-    vertex_ops::copyNghs<asymmetricVertex, W>(this, vtx_id, getInNeighbors(),
+    vertex_ops::copyNghs<asymmetric_vertex, W>(this, vtx_id, getInNeighbors(),
                                               getInDegree(), o, f, g);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
-    return vertex_ops::get_ith_neighbor<asymmetricVertex, W>(getOutNeighbors(),
+    return vertex_ops::get_ith_neighbor<asymmetric_vertex, W>(getOutNeighbors(),
                                                              i);
   }
 
   inline std::tuple<uintE, W> get_ith_in_neighbor(uintE vtx_id, size_t i) {
-    return vertex_ops::get_ith_neighbor<asymmetricVertex, W>(getInNeighbors(),
+    return vertex_ops::get_ith_neighbor<asymmetric_vertex, W>(getInNeighbors(),
                                                              i);
   }
 
   template <class F>
   inline size_t countOutNgh(uintE vtx_id, F& f, bool parallel = true) {
-    return vertex_ops::countNghs<asymmetricVertex, W, F>(
+    return vertex_ops::countNghs<asymmetric_vertex, W, F>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), f, parallel);
   }
 
   template <class F>
   inline size_t countInNgh(uintE vtx_id, F& f, bool parallel = true) {
-    return vertex_ops::countNghs<asymmetricVertex, W, F>(
+    return vertex_ops::countNghs<asymmetric_vertex, W, F>(
         this, vtx_id, getInNeighbors(), getInDegree(), f, parallel);
   }
 
   template <class E, class M, class Monoid>
   inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& reduce) {
-    return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
+    return vertex_ops::reduceNghs<asymmetric_vertex, W, E, M, Monoid>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), m, reduce);
   }
 
   template <class E, class M, class Monoid>
   inline E reduceInNgh(uintE vtx_id, M& m, Monoid& reduce) {
-    return vertex_ops::reduceNghs<asymmetricVertex, W, E, M, Monoid>(
+    return vertex_ops::reduceNghs<asymmetric_vertex, W, E, M, Monoid>(
         this, vtx_id, getInNeighbors(), getInDegree(), m, reduce);
   }
 
   template <class F>
   inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = true) {
-    vertex_ops::mapNghs<asymmetricVertex, W, F>(this, vtx_id, getOutNeighbors(),
+    vertex_ops::mapNghs<asymmetric_vertex, W, F>(this, vtx_id, getOutNeighbors(),
                                                 getOutDegree(), f, parallel);
   }
 
   template <class F>
   inline void mapInNgh(uintE vtx_id, F& f, bool parallel = true) {
-    vertex_ops::mapNghs<asymmetricVertex, W, F>(this, vtx_id, getInNeighbors(),
+    vertex_ops::mapNghs<asymmetric_vertex, W, F>(this, vtx_id, getInNeighbors(),
                                                 getInDegree(), f, parallel);
   }
 
   template <class P, class O>
   inline void filterOutNgh(uintE vtx_id, P& p, O& out,
                            std::tuple<uintE, W>* tmp) {
-    vertex_ops::filterNghs<asymmetricVertex, W, P, O>(
+    vertex_ops::filterNghs<asymmetric_vertex, W, P, O>(
         this, vtx_id, getOutNeighbors(), getOutDegree(), p, out, tmp);
   }
 
   template <class P, class O>
   inline void filterInNgh(uintE vtx_id, P& p, O& out,
                           std::tuple<uintE, W>* tmp) {
-    vertex_ops::filterNghs<asymmetricVertex, W, P, O>(
+    vertex_ops::filterNghs<asymmetric_vertex, W, P, O>(
         this, vtx_id, getInNeighbors(), getInDegree(), p, out, tmp);
   }
 
   template <class P>
   inline size_t packOutNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
+    uintE k = vertex_ops::packNghs<asymmetric_vertex, W, P>(
         this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
     setOutDegree(k);
     return k;
@@ -846,7 +846,7 @@ struct asymmetricVertex {
 
   template <class P>
   inline size_t packInNgh(uintE vtx_id, P& p, std::tuple<uintE, W>* tmp) {
-    uintE k = vertex_ops::packNghs<asymmetricVertex, W, P>(
+    uintE k = vertex_ops::packNghs<asymmetric_vertex, W, P>(
         this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
     setInDegree(k);
     return k;

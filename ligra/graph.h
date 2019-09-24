@@ -216,9 +216,9 @@ inline std::function<graph<vertex>()> get_copy_fn(vertex* V, E* in_edges,
 
 template <
     template <class W> class vertex, class W, typename P,
-    typename std::enable_if<std::is_same<vertex<W>, symmetricVertex<W>>::value,
+    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
-inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
+inline graph<asymmetric_vertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = G.n;
   w_vertex* V = G.V;
@@ -292,16 +292,16 @@ inline graph<asymmetricVertex<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
     }
   });
 
-  auto AV = pbbslib::new_array_no_init<asymmetricVertex<W>>(n);
+  auto AV = pbbslib::new_array_no_init<asymmetric_vertex<W>>(n);
   par_for(0, n, [&] (size_t i) {
     uintT in_offset = in_edge_sizes[i];
     uintT out_offset = out_edge_sizes[i];
-    AV[i] = asymmetricVertex<W>(
+    AV[i] = asymmetric_vertex<W>(
         in_edges.begin() + in_offset, out_edges.begin() + out_offset,
         in_edge_sizes[i + 1] - in_offset, out_edge_sizes[i + 1] - out_offset);
   });
 
-  return graph<asymmetricVertex<W>>(
+  return graph<asymmetric_vertex<W>>(
       AV, G.n, outEdgeCount,
       get_deletion_fn(AV, out_edges.to_array(), in_edges.to_array()));
 }
@@ -404,7 +404,7 @@ inline graph<cav_byte<W>> filter_graph(graph<vertex<W>>& G, P& pred) {
 
 template <
     template <class W> class vertex, class W, typename P,
-    typename std::enable_if<std::is_same<vertex<W>, asymmetricVertex<W>>::value,
+    typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
                             int>::type = 0>
 inline auto filter_graph(graph<vertex<W>>& G, P& pred) -> decltype(G) {
   std::cout << "Filter graph not implemented for directed graphs" << std::endl;
@@ -641,9 +641,9 @@ inline edge_array<W> sample_edges(graph<vertex<W>>& G, P& pred) {
 // Mutates (sorts) the underlying array
 // Returns an unweighted, symmetric graph
 template <class W>
-inline graph<symmetricVertex<W>> sym_graph_from_edges(edge_array<W>& A,
+inline graph<symmetric_vertex<W>> sym_graph_from_edges(edge_array<W>& A,
                                                       bool is_sorted = false) {
-  using V = symmetricVertex<W>;
+  using V = symmetric_vertex<W>;
   using edge = std::tuple<uintE, uintE, W>;
   size_t m = A.non_zeros;
   size_t n = std::max<size_t>(A.num_cols, A.num_rows);

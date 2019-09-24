@@ -17,12 +17,22 @@ cc_library(
 )
 
 cc_library(
-  name = "IO",
-  hdrs = ["IO.h"],
+  name = "io",
+  hdrs = ["io.h"],
   deps = [
   ":bridge",
   ":pbbs_strings",
+  ]
+)
+
+cc_library(
+  name = "graph_io",
+  hdrs = ["graph_io.h"],
+  deps = [
+  ":bridge",
   ":graph",
+  ":io",
+  ":pbbs_strings",
   ]
 )
 
@@ -91,6 +101,19 @@ cc_library(
   ":bridge",
   ":sequential_ht",
   "//ligra/pbbslib:counting_sort_no_transpose",
+  ]
+)
+
+cc_library(
+  name = "edge_map_blocked",
+  hdrs = ["edge_map_blocked.h"],
+  deps = [
+  ":bridge",
+  ":edge_map_utils",
+  ":graph",
+  ":vertex_subset",
+  "//pbbslib:binary_search",
+  "//pbbslib:list_allocator",
   ]
 )
 
