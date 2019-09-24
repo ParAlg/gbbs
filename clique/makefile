@@ -14,11 +14,11 @@ INTE = -DEDGELONG
 endif
 
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
-INCLUDE_DIRS = -I../
+INCLUDE_DIRS = -I../ligra -I../
 
 OPT = -O3 -g
 
-CFLAGS = $(INCLUDE_DIRS) -I../ligra -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 SIMDFLAGS = -I../simdinter -I../simdinter/include -fpic -mavx -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
@@ -49,15 +49,18 @@ ALL= AppKCore
 
 all: $(ALL)
 
-intersection.o: ../simdinter/include/intersection.h ../simdinter/src/intersection.cpp
-	$(CC) $(SIMDFLAGS) -c ../simdinter/src/intersection.cpp -Iinclude
+#intersection.o: ../simdinter/include/intersection.h ../simdinter/src/intersection.cpp
+#	$(CC) $(SIMDFLAGS) -c ../simdinter/src/intersection.cpp -Iinclude
 
-OBJECTS = intersection.o
+#OBJECTS = intersection.o
 
-% : %.C $(OBJECTS)
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< $(OBJECTS) -Iinclude
+% : %.C intersection
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< ../simdinter/intersection.o
 
-.PHONY : clean
+.PHONY : clean intersection
+
+intersection:
+	make intersection.o -C ../simdinter
 
 clean :
 	rm -f *.o $(ALL)

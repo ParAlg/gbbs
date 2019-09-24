@@ -30,6 +30,7 @@
 #include "ligra.h"
 #include "pbbslib/dyn_arr.h"
 #include "intersect.h"
+#include "radix_wrapper.h"
 
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
@@ -69,7 +70,8 @@ inline sequence<uintE> AppKCore(graph<vertex<W>>& GA, double epsilon=0.1) {
       [&](uintE& p) -> uintE { return D[p]; };
   for (size_t start = 0; start < n; start += ns) {
     // sort vertices in GA by degree, from start to n
-    integer_sort_inplace(sortD.slice(start, n), get_deg);
+    //integer_sort_inplace(sortD.slice(start, n), get_deg);
+    radix::parallelIntegerSort(sortD.begin() + start, n - start, radix::utils::identityF<uintE>());
     uintE deg_max = D[sortD[std::min(ns + start, n)]];
     
     // least ns, from start to min(ns+start, n), is in order
@@ -186,6 +188,11 @@ inline size_t KCliqueIndDir(graph<vertex<W>>& DG, size_t k, F lstintersect, G g_
   });
   return pbbslib::reduce_add(tots);
 }
+
+
+// induced
+// generated
+// -i 0 (simple gbbs intersect), -i 1 (set intersect), -i 2 (simd intersect)
 
 // todo approx work and do some kind of break in gen if too much
 template <template <class W> class vertex, class W>
