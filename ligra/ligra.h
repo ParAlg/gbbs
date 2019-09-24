@@ -34,10 +34,10 @@
 #include "bridge.h"
 #include "compressed_vertex.h"
 #include "edge_map_utils.h"
+#include "edge_map_blocked.h"
 #include "flags.h"
 #include "graph.h"
-#include "IO.h"
-#include "GraphIO.h"
+#include "graph_io.h"
 #include "parse_command_line.h"
 #include "vertex.h"
 #include "vertex_subset.h"
@@ -157,6 +157,8 @@ inline vertexSubsetData<Data> edgeMapData(G& GA, VS& vs, F f,
                : edgeMapDense<Data, G, VS, F>(GA, vs, f, fl);
   } else {
     auto vs_out = edgeMapChunked<Data, G, VS, F>(GA, vs, f, fl);
+//    auto vs_out = edgeMapBlocked<Data, G, VS, F>(GA, vs, f, fl);
+//    auto vs_out = edgeMapSparse<Data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
   }
 }
@@ -399,22 +401,26 @@ inline size_t get_pcm_state() { return (size_t)1; }
     pcm_init();                                                                \
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
-        auto G = readCompressedGraph<csv_bytepd_amortized, pbbslib::empty>(    \
-            iFile, symmetric, mmap, mmapcopy);                                 \
+        auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(     \
+            iFile, mmap, mmapcopy);                                            \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
-        auto G = readCompressedGraph<cav_bytepd_amortized, pbbslib::empty>(    \
-            iFile, symmetric, mmap, mmapcopy);                                 \
+        auto G = gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(    \
+            iFile, mmap, mmapcopy);                                 \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G =                                                               \
-            read_unweighted_symmetric_graph(iFile, symmetric, mmap);           \
+            gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);  \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
         auto G =                                                               \
-            read_unweighted_asymmetric_graph(iFile, symmetric, mmap);          \
+            gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap); \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     }                                                                          \
@@ -434,21 +440,25 @@ inline size_t get_pcm_state() { return (size_t)1; }
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
         auto G = readCompressedGraph<csv_bytepd_amortized, intE>(              \
-            iFile, symmetric, mmap, mmapcopy);                                 \
+            iFile, mmap, mmapcopy);                                 \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
         auto G = readCompressedGraph<cav_bytepd_amortized, intE>(              \
-            iFile, symmetric, mmap, mmapcopy);                                 \
+            iFile, mmap, mmapcopy);                                 \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G =                                                               \
-            read_weighted_symmetric_graph(iFile, symmetric, mmap);             \
+            gbbs_io::read_weighted_symmetric_graph(iFile, mmap);             \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
         auto G =                                                               \
-            read_weighted_asymmetric_graph(iFile, symmetric, mmap);            \
+            gbbs_io::read_weighted_asymmetric_graph(iFile, mmap);            \
+        alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     }                                                                          \

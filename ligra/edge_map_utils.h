@@ -136,6 +136,34 @@ inline auto get_emsparse_blocked_gen(std::tuple<uintE, data>* outEdges) {
   };
 }
 
+template <typename data,
+          typename std::enable_if<std::is_same<data, pbbslib::empty>::value,
+                                  int>::type = 0>
+inline auto get_emblock_gen(std::tuple<uintE, data>* outEdges) {
+  return [outEdges](uintE ngh, uintT offset, bool m = false)
+      __attribute__((always_inline)) {
+    if (m) {
+      outEdges[offset] = std::make_tuple(ngh, pbbslib::empty());
+      return true;
+    }
+    return false;
+  };
+}
+
+template <typename data,
+          typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
+                                  int>::type = 0>
+inline auto get_emblock_gen(std::tuple<uintE, data>* outEdges) {
+  return [outEdges](uintE ngh, uintT offset, Maybe<data> m = Maybe<data>())
+      __attribute__((always_inline)) {
+    if (m.exists) {
+      outEdges[offset] = std::make_tuple(ngh, m.t);
+      return true;
+    }
+    return false;
+  };
+}
+
 // Gen-functions that produce no output
 template <typename data,
           typename std::enable_if<std::is_same<data, pbbslib::empty>::value,

@@ -39,10 +39,7 @@
 #include "bridge.h"
 #include "pbbs_strings.h"
 
-
-typedef std::pair<uintE, uintE> intPair;
-typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
-
+namespace gbbs_io {
 
 template <class E>
 struct pairFirstCmp {
@@ -86,6 +83,15 @@ inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   return std::make_pair(p, n);
 }
 
+void unmmap(char* bytes, size_t bytes_size) {
+  if (bytes) {
+    if (munmap(bytes, bytes_size) == -1) {
+      perror("munmap");
+      exit(-1);
+    }
+  }
+}
+
 inline sequence<char> readStringFromFile(char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
@@ -101,4 +107,62 @@ inline sequence<char> readStringFromFile(char* fileName) {
   return bytes;
 }
 
+std::tuple<char*, size_t> read_o_direct(char* fname) {
+  /* read using O_DIRECT, which bypasses caches. */
+  int fd;
+  if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
+    debug(std::cout << "input opened!"
+              << "\n";);
+  } else {
+    std::cout << "can't open input file!";
+  }
+  //    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
 
+  size_t fsize = lseek(fd, 0, SEEK_END);
+  lseek(fd, 0, 0);
+
+  /* allocate properly memaligned buffer for bytes */
+  char* bytes = (char*)memalign(4096 * 2, fsize + 4096);
+
+  debug(std::cout << "fsize = " << fsize << "\n";);
+
+  size_t sz = 0;
+
+  size_t pgsize = getpagesize();
+  debug(std::cout << "pgsize = " << pgsize << "\n";);
+
+  size_t read_size = 1024 * 1024 * 1024;
+  if (sz + read_size > fsize) {
+    size_t k = std::ceil((fsize - sz) / pgsize);
+    read_size = std::max(k * pgsize, pgsize);
+    debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+              << " bytes left"
+              << "\n";);
+  }
+
+  while (sz + read_size < fsize) {
+    void* buf = bytes + sz;
+    debug(std::cout << "reading: " << read_size << "\n";);
+    sz += read(fd, buf, read_size);
+    debug(std::cout << "read: " << sz << " bytes"
+              << "\n";);
+    if (sz + read_size > fsize) {
+      size_t k = std::ceil((fsize - sz) / pgsize);
+      read_size = std::max(k * pgsize, pgsize);
+      debug(std::cout << "set read size to: " << read_size << " " << (fsize - sz)
+                << " bytes left"
+                << "\n";);
+    }
+  }
+  if (sz < fsize) {
+    debug(std::cout << "last read: rem = " << (fsize - sz) << "\n";);
+    void* buf = bytes + sz;
+    sz += read(fd, buf, pgsize);
+    debug(std::cout << "read " << sz << " bytes "
+              << "\n";);
+  }
+  close(fd);
+  return std::make_tuple(bytes, fsize);
+}
+
+} // namespace gbbs_io

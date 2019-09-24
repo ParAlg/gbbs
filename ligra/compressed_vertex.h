@@ -123,6 +123,22 @@ inline size_t decodeNghsSparseBlock(uintE vtx_id, uintE d, uchar* nghArr,
   return k;
 }
 
+template <class W, class C, class F, class G>
+inline size_t decode_block(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
+                           uintE block_num, F& f, G& g) {
+  size_t k = 0;
+  auto T = [&](const uintE& target, const W& weight, const size_t& edge_id) {
+    if (f.cond(target)) {
+      auto m = f.updateAtomic(vtx_id, target, weight);
+      if (g(target, o + k, m)) {
+        k++;
+      }
+    }
+  };
+  C::template decode_block<W>(T, nghArr, vtx_id, d, block_num);
+  return k;
+}
+
 template <class W, class C, class F>
 inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                     bool parallel = true) {
@@ -186,10 +202,24 @@ inline size_t getVirtualDegree(uintE d, uchar* nghArr) {
 
 template <class W, class C>
 struct compressed_symmetric_vertex {
-  uchar* neighbors;
+  using vertex = compressed_symmetric_vertex<W, C>;
+  using edge_type = uchar;
+  /* the offset_type is actually tuple<uintT, uintE> */
+  using offset_type = uchar;
+  static constexpr size_t offset_size_bytes = sizeof(uintT) + sizeof(uintE);
+
+  edge_type* neighbors;
   uintE degree;
-  uchar* getInNeighbors() { return neighbors; }
-  uchar* getOutNeighbors() { return neighbors; }
+
+  compressed_symmetric_vertex(edge_type* n, offset_type* offsets, uintE id) {
+    size_t byte_offset = id*offset_size_bytes;
+    std::tuple<uintT, uintE>& offset_and_degree = *((std::tuple<uintT, uintE>*)(offsets + byte_offset));
+    neighbors = n + std::get<0>(offset_and_degree);
+    degree = std::get<1>(offset_and_degree);
+  }
+
+  edge_type* getInNeighbors() { return neighbors; }
+  edge_type* getOutNeighbors() { return neighbors; }
   uintE getInNeighbor(intT j) {
     assert(false);
     return -1;
@@ -206,8 +236,21 @@ struct compressed_symmetric_vertex {
   uintE getOutVirtualDegree() {
     return cvertex::getVirtualDegree<C>(degree, getOutNeighbors());
   }
-  void setInNeighbors(uchar* _i) { neighbors = _i; }
-  void setOutNeighbors(uchar* _i) { neighbors = _i; }
+
+  constexpr static uintE getInternalBlockSize() {
+    return PARALLEL_DEGREE;
+  }
+  uintE getNumInBlocks() { return C::get_num_blocks(neighbors, degree); }
+  uintE getNumOutBlocks() { return getNumInBlocks(); }
+  inline uintE in_block_degree(uintE block_num) {
+    return C::get_block_degree(neighbors, degree, block_num);
+  }
+  inline uintE out_block_degree(uintE block_num) {
+    return in_block_degree(block_num);
+  }
+
+  void setInNeighbors(edge_type* _i) { neighbors = _i; }
+  void setOutNeighbors(edge_type* _i) { neighbors = _i; }
   void setInDegree(uintE _d) { degree = _d; }
   void setOutDegree(uintE _d) { degree = _d; }
   void flipEdges() {}
@@ -246,15 +289,15 @@ struct compressed_symmetric_vertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getInDegree(),
-                                             getInNeighbors(), o, f, g, h);
+                                             getInNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getOutDegree(),
-                                             getOutNeighbors(), o, f, g, h);
+                                             getOutNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G>
@@ -268,6 +311,21 @@ struct compressed_symmetric_vertex {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getOutDegree(),
                                                     getOutNeighbors(), o, f, g);
   }
+
+  template <class F, class G>
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, f, g);
+  }
+
+  template <class F, class G>
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getInDegree(), getInNeighbors(), o, block_num, f, g);
+  }
+
 
   template <class F, class G>
   inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
@@ -409,12 +467,30 @@ struct compressed_symmetric_vertex {
 
 template <class W, class C>
 struct compressed_asymmetric_vertex {
-  uchar* inNeighbors;
-  uchar* outNeighbors;
+  using vertex = compressed_symmetric_vertex<W, C>;
+  using edge_type = uchar;
+  using offset_type = uchar;
+  static constexpr size_t offset_size_bytes = sizeof(uintT) + sizeof(uintE);
+
+  edge_type* inNeighbors;
+  edge_type* outNeighbors;
   uintE outDegree;
   uintE inDegree;
-  uchar* getInNeighbors() { return inNeighbors; }
-  uchar* getOutNeighbors() { return outNeighbors; }
+
+  compressed_asymmetric_vertex(edge_type* out_neighbors, offset_type* out_offsets, edge_type* in_neighbors, offset_type* in_offsets, uintE id) {
+    size_t byte_offset = id*offset_size_bytes;
+
+    std::tuple<uintT, uintE>& in_offset_and_degree = *((std::tuple<uintT, uintE>*)(in_offsets + byte_offset));
+    inNeighbors = in_neighbors + std::get<0>(in_offset_and_degree);
+    inDegree = std::get<1>(in_offset_and_degree);
+
+    std::tuple<uintT, uintE>& out_offset_and_degree = *((std::tuple<uintT, uintE>*)(out_offsets + byte_offset));
+    outNeighbors = out_neighbors + std::get<0>(out_offset_and_degree);
+    outDegree = std::get<1>(out_offset_and_degree);
+  }
+
+  edge_type* getInNeighbors() { return inNeighbors; }
+  edge_type* getOutNeighbors() { return outNeighbors; }
   uintE getInNeighbor(uintE j) {
     assert(false);
     return -1;
@@ -431,8 +507,21 @@ struct compressed_asymmetric_vertex {
   uintE getOutVirtualDegree() {
     return cvertex::getVirtualDegree<C>(outDegree, getOutNeighbors());
   }
-  void setInNeighbors(uchar* _i) { inNeighbors = _i; }
-  void setOutNeighbors(uchar* _i) { outNeighbors = _i; }
+
+  constexpr static uintE getInternalBlockSize() {
+    return PARALLEL_DEGREE;
+  }
+  uintE getNumInBlocks() { return C::get_num_blocks(inNeighbors, inDegree); }
+  uintE getNumOutBlocks() { return C::get_num_blocks(outNeighbors, outDegree); }
+  inline uintE in_block_degree(uintE block_num) {
+    return C::get_block_degree(inNeighbors, inDegree, block_num);
+  }
+  inline uintE out_block_degree(uintE block_num) {
+    return C::get_block_degree(outNeighbors, outDegree, block_num);
+  }
+
+  void setInNeighbors(edge_type* _i) { inNeighbors = _i; }
+  void setOutNeighbors(edge_type* _i) { outNeighbors = _i; }
   void setInDegree(uintE _d) { inDegree = _d; }
   void setOutDegree(uintE _d) { outDegree = _d; }
   void flipEdges() {
@@ -474,15 +563,15 @@ struct compressed_asymmetric_vertex {
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getInDegree(),
-                                             getInNeighbors(), o, f, g, h);
+                                             getInNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getOutDegree(),
-                                             getOutNeighbors(), o, f, g, h);
+                                             getOutNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G>
@@ -495,6 +584,20 @@ struct compressed_asymmetric_vertex {
   inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getOutDegree(),
                                                     getOutNeighbors(), o, f, g);
+  }
+
+  template <class F, class G>
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, f, g);
+  }
+
+  template <class F, class G>
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
+    return cvertex::decode_block<W, C, F, G>(
+        vtx_id, getInDegree(), getInNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>

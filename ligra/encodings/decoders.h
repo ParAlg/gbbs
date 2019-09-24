@@ -29,12 +29,13 @@
 struct byte_decode {
 
   template <class W, class T>
-  static inline void decode_block_seq(T t, uchar* edge_start,
-                                      const uintE& source, const uintT& degree,
-                                      uintE block_size, uintE block_num) {
+  static inline void decode_block(T t, uchar* edge_start,
+                                  const uintE& source, const uintT& degree,
+                                  uintE block_num) {
     assert(false);  // Unimplemented for byte decoder
-    return bytepd_amortized::decode_block_seq<W, T>(
-        t, edge_start, source, degree, block_size, block_num);
+    exit(0);
+    return bytepd_amortized::decode_block<W, T>(
+        t, edge_start, source, degree, block_num);
   }
 
   static inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
@@ -102,6 +103,10 @@ struct byte_decode {
                                                       uintE source,
                                                       uintE degree, size_t i) {
     return byte::get_ith_neighbor<W>(edge_start, source, degree, i);
+  }
+
+  static inline uintE get_num_blocks(uchar* edge_start, uintE degree) {
+    return 1; // single block in byte-compressed format
   }
 };
 
@@ -172,11 +177,11 @@ struct bytepd_amortized_decode {
   }
 
   template <class W, class T>
-  static inline void decode_block_seq(T t, uchar* edge_start,
+  static inline void decode_block(T t, uchar* edge_start,
                                       const uintE& source, const uintT& degree,
-                                      uintE block_size, uintE block_num) {
-    return bytepd_amortized::decode_block_seq<W, T>(
-        t, edge_start, source, degree, block_size, block_num);
+                                      uintE block_num) {
+    return bytepd_amortized::decode_block<W, T>(
+        t, edge_start, source, degree, block_num);
   }
 
   template <class W>
@@ -185,5 +190,13 @@ struct bytepd_amortized_decode {
                                                       uintE degree, size_t i) {
     return bytepd_amortized::get_ith_neighbor<W>(edge_start, source,
                                                             degree, i);
+  }
+
+  static inline uintE get_num_blocks(uchar* edge_start, uintE degree) {
+    return bytepd_amortized::get_num_blocks(edge_start, degree);
+  }
+
+  static inline uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
+    return bytepd_amortized::get_block_degree(edge_start, degree, block_num);
   }
 };

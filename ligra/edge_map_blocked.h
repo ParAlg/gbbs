@@ -226,8 +226,8 @@ struct emhelper {
   using ngh_data = std::tuple<uintE, data>;
   static constexpr size_t max_block_size = kDataBlockSizeBytes/sizeof(ngh_data);
 
-  using vtx_type = typename Graph::vtx_type;
-  static constexpr size_t work_block_size = vtx_type::getInternalBlockSize();
+  using vertex = typename Graph::vertex;
+  static constexpr size_t work_block_size = vertex::getInternalBlockSize();
 
   bool alloc;
   uintE n_groups;
