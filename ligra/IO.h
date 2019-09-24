@@ -86,17 +86,6 @@ inline std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
     exit(-1);
   }
   size_t n = sb.st_size;
-  //  char *bytes = pbbslib::new_array_no_init<char>(n);
-  //  parallel_for(size_t i=0; i<n; i++) {
-  //    bytes[i] = p[i];
-  //  }
-  //  if (munmap(p, sb.st_size) == -1) {
-  //    perror("munmap");
-  //    exit(-1);
-  //  }
-  //  std::cout << "mmapped" << "\n";
-  //  pbbslib::free_array(bytes);
-  //  exit(0);
   return std::make_pair(p, n);
 }
 
@@ -137,10 +126,6 @@ inline graph<vertex<intE>> readWeightedGraph(
       S = readStringFromFile(fname);
     }
   }
-// for binary inputs
-//   else {
-//     W = stringToWords(bytes, bytes_size);
-//   }
   tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
   assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
 
@@ -171,7 +156,6 @@ inline graph<vertex<intE>> readWeightedGraph(
   }
   S.clear();
   tokens.clear();
-  // W.clear(); // to deal with performance bug in malloc
 
   wvtx* v = pbbslib::new_array_no_init<wvtx>(n);
 

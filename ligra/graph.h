@@ -35,9 +35,75 @@
 #include "flags.h"
 #include "vertex.h"
 
-// **************************************************************
-//    ADJACENCY ARRAY REPRESENTATION
-// **************************************************************
+/* Compressed Sparse Row (CSR) based representation for symmetric graphs.
+ * Takes two template parameters:
+ * 1) vertex_type: vertex template, parametrized by the weight type associated with each edge
+ * 2) W: the weight template
+ * The graph is represented as an array of edges of type vertex_type::edge_type,
+ * which is just a pair<uintE, W>.*/
+template <template <class W> class vertex_type, class W>
+struct symmetric_graph {
+  using vertex = vertex_type<W>;
+  using weight = W;
+  using edge_type = typename vertex::edge_type;
+
+  size_t* offsets;
+
+  /* Pointer to edges */
+  edge_type* e0;
+  /* Pointer to second copy of edges--relevant if using 2-socket NVM */
+  edge_type* e1;
+
+  /* number of vertices in G */
+  size_t n;
+  /* number of edges in G */
+  size_t m;
+
+  /* called to delete the graph */
+  std::function<void()> deletion_fn;
+
+#ifndef TWOSOCKETNVM
+  vertex get_vertex(size_t i) {
+    size_t offset = offsets[i];
+    size_t degree = offsets[i+1] -offset;
+    return vertex(offset, degree, e0);
+  }
+#else
+  vertex get_vertex(size_t i) {
+    size_t offset = offsets[i];
+    size_t degree = offsets[i+1] -offset;
+    if (numanode() == 0) {
+      return vertex(offset, degree, e0);
+    } else {
+      return vertex(offset, degree, e1);
+    }
+  }
+#endif
+
+symmetric_graph(size_t* _offsets, size_t n, size_t m,
+    std::function<void()> _deletion_fn, edge_type* _e0, edge_type* _e1=nullptr)
+      : offsets(_offsets),
+        e0(_e0),
+        e1(_e1),
+        n(n),
+        m(m),
+        deletion_fn(_deletion_fn) {
+    if (_e1 == nullptr) {
+      e1 = e0; // handles NVM case when graph is stored in symmetric memory
+    }
+  }
+
+  void del() {
+    deletion_fn();
+  }
+
+  template <class F>
+  void map_edges(F f, bool parallel_inner_map = true) {
+    parallel_for(0, n, [&](size_t i) {
+      get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
+    }, 1);
+  }
+};
 
 template <class vertex>
 struct graph {
@@ -72,11 +138,10 @@ struct graph {
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map=true) {
-    par_for(0, n, 1, [&] (size_t i) {
+    parallel_for(0, n, [&] (size_t i) {
       V[i].mapOutNgh(i, f, parallel_inner_map);
-    });
+    }, 1);
   }
-
 };
 
 inline auto get_deletion_fn(void* V, void* edges) -> std::function<void()> {
