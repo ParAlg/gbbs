@@ -57,15 +57,16 @@ inline void num_clusters(Seq& s) {
   std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
 }
 
-template <template <typename W> class vertex, class W, class Seq>
-inline void num_intercluster_edges(graph<vertex<W> >& GA, Seq& s) {
-  size_t n = GA.n;
+template <class Graph, class Seq>
+inline void num_intercluster_edges(Graph& G, Seq& s) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
   auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };
-    size_t ct = GA.V[i].countOutNgh(i, pred);
+    size_t ct = G.get_vertex(i).countOutNgh(i, pred);
     ic_edges[i] = ct;
   });
   std::cout << "num. intercluster edges = " << pbbslib::reduce_add(ic_edges)
@@ -99,11 +100,11 @@ struct LDD_F {
   inline bool cond(uintE d) { return cluster_ids[d] == UINT_E_MAX; }
 };
 
-template <template <typename W> class vertex, class W, class EO>
-inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
-                                  double beta, bool permute = true,
-                                  bool pack = false) {
-  size_t n = GA.n;
+template <class Graph, class EO>
+inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
+                                  double beta, bool permute = true) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
 
   sequence<uintE> vertex_perm;
   if (permute) {
@@ -143,15 +144,7 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
 
     auto ldd_f = LDD_F<W, EO>(cluster_ids.begin(), oracle);
     vertexSubset next_frontier =
-        edgeMap(GA, frontier, ldd_f, -1, sparse_blocked);
-    if (pack) {
-      auto pred = [&](const uintE& src, const uintE& dest, const W& w) {
-        return oracle(src, dest, w) && (cluster_ids[src] != cluster_ids[dest]);
-      };
-     timer t; t.start();
-      edgeMapFilter(GA, frontier, pred, pack_edges | no_output);
-      t.stop(); debug(t.reportTotal("pack time"););
-    }
+        edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
     frontier.del();
     frontier = next_frontier;
 
@@ -160,19 +153,19 @@ inline sequence<uintE> LDD_impl(graph<vertex<W> >& GA, const EO& oracle,
   return cluster_ids;
 }
 
-template <template <typename W> class vertex, class W>
-sequence<uintE> LDD(graph<vertex<W> >& GA, double beta, bool permute = true,
-                      bool pack = false) {
+template <class Graph>
+sequence<uintE> LDD(Graph& G, double beta, bool permute = true) {
+  using W = typename Graph::weight_type;
   debug(cout << "permute = " << permute << endl;);
   auto oracle = [&](const uintE& u, const uintE& v, const W& wgh) {
     return true;
   };
-  return LDD_impl(GA, oracle, beta, permute, pack);
+  return LDD_impl(G, oracle, beta, permute);
 }
 
-template <template <typename W> class vertex, class W, class EO>
-sequence<uintE> LDD_oracle(graph<vertex<W> >& GA, EO& oracle, double beta,
-                             bool permute = true, bool pack = false) {
-  return LDD_impl(GA, oracle, beta, permute, pack);
+template <class Graph, class EO>
+sequence<uintE> LDD_oracle(Graph& G, EO& oracle, double beta,
+                             bool permute = true) {
+  return LDD_impl(G, oracle, beta, permute);
 }
 
