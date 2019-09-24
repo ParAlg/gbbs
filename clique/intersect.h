@@ -78,7 +78,6 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(graph<vertex<W>>& DG
   return std::make_tuple(out, out_size);
 }
 
-
 template <template <typename W> class vertex, class W>
 inline sequence<uintE> kintersect(graph<vertex<W>>& DG, sequence<uintE> base, size_t num) {
   if (num == 1) {

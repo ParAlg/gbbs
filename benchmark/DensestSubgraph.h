@@ -103,7 +103,7 @@ void WorkInefficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.00
 }
 
 template <template <typename W> class vertex, class W>
-void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
+double WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
   const size_t n = GA.n;
   auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
 
@@ -127,7 +127,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
     debug(std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vertices_remaining.size() << std::endl;
-    std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
+    //std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
     if (current_density > max_density) {
       max_density = current_density;
     }
@@ -177,7 +177,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vtxs_remaining.size());
     debug(std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vtxs_remaining.size() << std::endl;
-    std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
+    //std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
     if (current_density > max_density) {
       max_density = current_density;
     }
@@ -217,13 +217,14 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
   if (last_arr) {
     pbbs::free_array(last_arr);
   }
-  cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  //cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  return max_density;
 }
 
 // Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
 // expected work and O(\rho\log n) depth w.h.p.
 template <template <typename W> class vertex, class W>
-void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
+double CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
   // deg_ord = degeneracy_order(GA)
   // ## Now, density check for graph after removing each vertex, in the peeling-order.
   // Let S = stores 2*#edges to vertices > in degeneracy order. Note that 2* is
@@ -267,7 +268,8 @@ void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
     return static_cast<double>(dens) / static_cast<double>(rem);
   });
   double max_density = pbbslib::reduce_max(density_seq);
-  cout << "### Density of 2-Densest Subgraph is: " << max_density << endl;
+  //cout << "### Density of 2-Densest Subgraph is: " << max_density << endl;
+  return max_density;
 }
 
 
