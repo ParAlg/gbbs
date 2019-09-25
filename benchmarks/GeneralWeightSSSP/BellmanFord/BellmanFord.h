@@ -56,9 +56,10 @@ struct BF_Vertex_F {
   }
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
-  size_t n = GA.n;
+template <class Graph>
+inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
   auto Visited = sequence<int>(n, 0);
   auto SP = sequence<intE>(n, INT_MAX / 2);
   SP[start] = 0;
@@ -75,7 +76,7 @@ inline sequence<intE> BellmanFord(graph<vertex<W>>& GA, const uintE& start) {
     auto em_f =
         wrap_with_default<W, intE>(BF_F(SP.begin(), Visited.begin()), (intE)1);
     auto output =
-        edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
+        edgeMap(G, Frontier, em_f, G.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
     Frontier.del();

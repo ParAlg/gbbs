@@ -439,25 +439,25 @@ inline size_t get_pcm_state() { return (size_t)1; }
     pcm_init();                                                                \
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
-        auto G = readCompressedGraph<csv_bytepd_amortized, intE>(              \
-            iFile, mmap, mmapcopy);                                 \
+        auto G = gbbs_io::read_compressed_symmetric_graph<intE>(               \
+            iFile, mmap, mmapcopy);                                            \
         alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
-        auto G = readCompressedGraph<cav_bytepd_amortized, intE>(              \
-            iFile, mmap, mmapcopy);                                 \
+        auto G = gbbs_io::read_compressed_asymmetric_graph<intE>(              \
+            iFile, mmap, mmapcopy);                                            \
         alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G =                                                               \
-            gbbs_io::read_weighted_symmetric_graph(iFile, mmap);             \
+            gbbs_io::read_weighted_symmetric_graph(iFile, mmap);               \
         alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
         auto G =                                                               \
-            gbbs_io::read_weighted_asymmetric_graph(iFile, mmap);            \
+            gbbs_io::read_weighted_asymmetric_graph(iFile, mmap);              \
         alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
       }                                                                        \
