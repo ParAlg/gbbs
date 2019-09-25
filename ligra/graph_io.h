@@ -104,7 +104,14 @@ inline symmetric_graph<symmetric_vertex, intE> read_weighted_symmetric_graph(
   std::tuple<uintE, intE>* edges;
   std::tie(n, m, offsets, edges) = parse_weighted_graph(fname, mmap, bytes, bytes_size);
 
-  return symmetric_graph<symmetric_vertex, intE>(offsets, n, m, get_deletion_fn(offsets, edges), edges);
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    v_data[i].offset = offsets[i];
+    v_data[i].degree = offsets[i+1]-v_data[i].offset;
+  });
+  pbbs::free_array(offsets);
+
+  return symmetric_graph<symmetric_vertex, intE>(v_data, n, m, get_deletion_fn(v_data, edges), edges);
 }
 
 inline asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
@@ -119,13 +126,20 @@ inline asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
   std::tuple<uintE, intE>* edges;
   std::tie(n, m, offsets, edges) = parse_weighted_graph(fname, mmap, bytes, bytes_size);
 
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    v_data[i].offset = offsets[i];
+    v_data[i].degree = offsets[i+1]-v_data[i].offset;
+  });
+  pbbs::free_array(offsets);
+
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n+1);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   intTriple* temp = pbbslib::new_array_no_init<intTriple>(m);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uintT o = offsets[i];
-    uintE deg = offsets[i+1] - offsets[i];
+    uintT o = v_data[i].offset;
+    uintE deg = v_data[i].degree;
     for (uintT j = 0; j < deg; j++) {
       auto& cur_edge = (edges + o)[j];
       temp[o + j] = std::make_pair(std::get<0>(cur_edge),
@@ -157,7 +171,14 @@ inline asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
   M.identity = m;
   pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
-  return asymmetric_graph<asymmetric_vertex, intE>(offsets, tOffsets, n, m, get_deletion_fn(offsets, tOffsets, edges, inEdges), edges, inEdges);
+  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    v_in_data[i].offset = tOffsets[i];
+    v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
+  });
+  pbbs::free_array(tOffsets);
+
+  return asymmetric_graph<asymmetric_vertex, intE>(v_data, v_in_data, n, m, get_deletion_fn(v_data, v_in_data, edges, inEdges), edges, inEdges);
 }
 
 
@@ -222,8 +243,15 @@ inline symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetr
   uintE* edges;
   std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, bytes, bytes_size);
 
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    v_data[i].offset = offsets[i];
+    v_data[i].degree = offsets[i+1]-v_data[i].offset;
+  });
+  pbbs::free_array(offsets);
+
   return symmetric_graph<symmetric_vertex, pbbs::empty>(
-      offsets, n, m, get_deletion_fn(offsets, edges), (std::tuple<uintE, pbbs::empty>*)edges);
+      v_data, n, m, get_deletion_fn(v_data, edges), (std::tuple<uintE, pbbs::empty>*)edges);
 }
 
 inline asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
@@ -236,14 +264,21 @@ inline asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymm
   uintE* edges;
   std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, bytes, bytes_size);
 
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    v_data[i].offset = offsets[i];
+    v_data[i].degree = offsets[i+1]-v_data[i].offset;
+  });
+  pbbs::free_array(offsets);
+
   /* construct transpose of the graph */
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   intPair* temp = pbbslib::new_array_no_init<intPair>(m);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    uintT o = offsets[i];
-    uintT deg = offsets[i+1] - o;
+    uintT o = v_data[i].offset;
+    uintT deg = v_data[i].degree;
     for (uintT j = 0; j < deg; j++) {
       temp[o + j ] = std::make_pair((edges + o)[j], i);
     }
@@ -271,8 +306,15 @@ inline asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymm
   M.identity = m;
   pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
+  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    v_in_data[i].offset = tOffsets[i];
+    v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
+  });
+  pbbs::free_array(tOffsets);
+
   return asymmetric_graph<asymmetric_vertex, pbbs::empty>(
-      offsets, tOffsets, n, m, get_deletion_fn(offsets, tOffsets, inEdges, edges),(std::tuple<uintE, pbbs::empty>*)edges, (std::tuple<uintE, pbbs::empty>*)inEdges);
+      v_data, v_in_data, n, m, get_deletion_fn(v_data, v_in_data, inEdges, edges),(std::tuple<uintE, pbbs::empty>*)edges, (std::tuple<uintE, pbbs::empty>*)inEdges);
 }
 
 std::tuple<char*, size_t> parse_compressed_graph(
@@ -320,23 +362,20 @@ read_compressed_symmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   skip += n * sizeof(intE);
   uchar* edges = (uchar*)(bytes + skip);
 
-  size_t sizeof_offset = sizeof(uintT) + sizeof(uintE);
-  uchar* offset_data = pbbs::new_array_no_init<uchar>(sizeof_offset*n);
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
-    size_t offset = i*sizeof_offset;
-    std::tuple<uintT, uintE>& ptr = *(std::tuple<uintT, uintE>*)(offset_data + offset);
-    std::get<0>(ptr) = offsets[i];
-    std::get<1>(ptr) = Degrees[i];
+    v_data[i].offset = offsets[i];
+    v_data[i].degree = Degrees[i];
   });
 
-  auto deletion_fn = get_deletion_fn(offset_data, bytes);
+  auto deletion_fn = get_deletion_fn(v_data, bytes);
   if (mmap && !mmapcopy) {
-    deletion_fn = [offset_data, bytes, bytes_size] () {
-      pbbslib::free_array(offset_data);
+    deletion_fn = [v_data, bytes, bytes_size] () {
+      pbbslib::free_array(v_data);
       unmmap(bytes, bytes_size);
     };
   }
-  symmetric_graph<csv_bytepd_amortized, weight_type> G(offset_data, n, m, deletion_fn, edges);
+  symmetric_graph<csv_bytepd_amortized, weight_type> G(v_data, n, m, deletion_fn, edges);
   return G;
 }
 
@@ -376,30 +415,26 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   skip += n * sizeof(uintE);
   inEdges = (uchar*)(bytes+ skip);
 
-  size_t sizeof_offset = sizeof(uintT) + sizeof(uintE);
-  uchar* out_offset_data = pbbs::new_array_no_init<uchar>(sizeof_offset*n);
-  uchar* in_offset_data = pbbs::new_array_no_init<uchar>(sizeof_offset*n);
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
-    size_t vtx_offset = i*sizeof_offset;
-    std::tuple<uintT, uintE>& out_ptr = *(std::tuple<uintT, uintE>*)(out_offset_data + vtx_offset);
-    std::get<0>(out_ptr) = offsets[i];
-    std::get<1>(out_ptr) = Degrees[i];
+    v_data[i].offset = offsets[i];
+    v_data[i].degree = Degrees[i];
 
-    std::tuple<uintT, uintE>& in_ptr = *(std::tuple<uintT, uintE>*)(in_offset_data + vtx_offset);
-    std::get<0>(in_ptr) = inOffsets[i];
-    std::get<1>(in_ptr) = inDegrees[i];
+    v_in_data[i].offset = inOffsets[i];
+    v_in_data[i].degree = inDegrees[i];
   });
 
-  auto deletion_fn = get_deletion_fn(out_offset_data, in_offset_data, bytes);
+  auto deletion_fn = get_deletion_fn(v_data, v_in_data, bytes);
   if (mmap && !mmapcopy) {
-    deletion_fn = [out_offset_data, in_offset_data, bytes, bytes_size] () {
-      pbbslib::free_array(out_offset_data);
-      pbbslib::free_array(in_offset_data);
+    deletion_fn = [v_data, v_in_data, bytes, bytes_size] () {
+      pbbslib::free_array(v_data);
+      pbbslib::free_array(v_in_data);
       unmmap(bytes, bytes_size);
     };
   }
 
-  asymmetric_graph<cav_bytepd_amortized, weight_type> G(out_offset_data, in_offset_data, n, m, deletion_fn, edges, inEdges);
+  asymmetric_graph<cav_bytepd_amortized, weight_type> G(v_data, v_in_data, n, m, deletion_fn, edges, inEdges);
   return G;
 }
 

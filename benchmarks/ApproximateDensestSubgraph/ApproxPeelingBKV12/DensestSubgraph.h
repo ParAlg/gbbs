@@ -23,14 +23,15 @@
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"
 
-template <template <typename W> class vertex, class W>
-void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001) {
-  const size_t n = GA.n;
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0), (size_t)GA.m / 15);
+template <class Graph>
+void WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
+  using W = typename Graph::weight_type;
+  const size_t n = G.n;
+  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 15);
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
-  auto D = sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+  auto D = sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
   auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
@@ -43,7 +44,7 @@ void WorkEfficientDensestSubgraph(graph<vertex<W> >& GA, double epsilon = 0.001)
 
   // First round
   {
-    size_t edges_remaining = GA.m;
+    size_t edges_remaining = G.m;
     // Update density
     double current_density = ((double)edges_remaining) / ((double)vertices_remaining.size());
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());

@@ -63,8 +63,9 @@ struct Visit_Elms {
 // reductions are handled by atomic reduction operators; external to bucketing
 // interface.
 
-template <template <class W> class vertex, class W>
-inline pbbslib::dyn_arr<uintE> SetCover(graph<vertex<W>>& G, size_t num_buckets = 512) {
+template <class Graph>
+inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
+  using W = typename Graph::weight_type;
   timer it; it.start();
   auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {

@@ -26,8 +26,8 @@
 
 // Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
 // expected work and O(\rho\log n) depth w.h.p.
-template <template <typename W> class vertex, class W>
-void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
+template <class Graph>
+void CharikarAppxDensestSubgraph(Graph& GA) {
   // deg_ord = degeneracy_order(GA)
   // ## Now, density check for graph after removing each vertex, in the peeling-order.
   // Let S = stores 2*#edges to vertices > in degeneracy order. Note that 2* is
@@ -37,6 +37,7 @@ void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
   // density w/o vertex_i = S[i] / (n - i)
   // Compute the max over all v.
 
+  using W = typename Graph::weight_type;
   size_t n = GA.n;
   auto degeneracy_order = DegeneracyOrder(GA);
   auto vtx_to_position = sequence<uintE>(n);
@@ -54,7 +55,7 @@ void CharikarAppxDensestSubgraph(graph<vertex<W> >& GA) {
       uintE pos_v = vtx_to_position[v];
       return pos_u < pos_v;
     };
-    density_above[pos_u] = 2*GA.V[i].countOutNgh(i, vtx_f);
+    density_above[pos_u] = 2*GA.get_vertex(i).countOutNgh(i, vtx_f);
   });
 
   size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),

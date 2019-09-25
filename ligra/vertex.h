@@ -437,16 +437,13 @@ template <class W>
 struct symmetric_vertex {
   using vertex = symmetric_vertex<W>;
   using edge_type = std::tuple<uintE, W>;
-  using offset_type = uintT; /* can infer degrees from offsets */
 
   edge_type* neighbors;
   uintE degree;
 
-  symmetric_vertex(edge_type* n, offset_type* offsets, uintE id) {
-    offset_type our_offset = offsets[id];
-    offset_type next_offset = offsets[id+1];
-    neighbors = (n + our_offset);
-    degree = (uintE)(next_offset - our_offset);
+  symmetric_vertex(edge_type* n, vertex_data& vdata) {
+    neighbors = (n + vdata.offset);
+    degree = vdata.degree;
   }
 
   /* Unlikely to be necessary since neighbors are likeyl flat
@@ -459,12 +456,6 @@ struct symmetric_vertex {
   uintE getOutNeighbor(uintE j) { return std::get<0>(neighbors[j]); }
   W getInWeight(uintE j) { return std::get<1>(neighbors[j]); }
   W getOutWeight(uintE j) { return std::get<1>(neighbors[j]); }
-  void setInNeighbor(uintE j, uintE ngh) { std::get<0>(neighbors[j]) = ngh; }
-  void setOutNeighbor(uintE j, uintE ngh) { std::get<0>(neighbors[j]) = ngh; }
-  void setInWeight(uintE j, W wgh) { std::get<1>(neighbors[j]) = wgh; }
-  void setOutWeight(uintE j, W wgh) { std::get<1>(neighbors[j]) = wgh; }
-  void setInNeighbors(edge_type* _i) { neighbors = _i; }
-  void setOutNeighbors(edge_type* _i) { neighbors = _i; }
 
   uintE getInDegree() { return degree; }
   uintE getOutDegree() { return degree; }
@@ -698,7 +689,6 @@ template <class W>
 struct asymmetric_vertex {
   using vertex = asymmetric_vertex<W>;
   using edge_type = std::tuple<uintE, W>;
-  using offset_type = uintT; /* can infer degrees from offsets */
 
   edge_type* inNeighbors;
   edge_type* outNeighbors;
@@ -706,18 +696,13 @@ struct asymmetric_vertex {
   uintE inDegree;
   uintE outDegree;
 
-  asymmetric_vertex(edge_type* out_neighbors, offset_type* out_offsets,
-                    edge_type* in_neighbors, offset_type* in_offsets,
-                    uintE id) {
-    offset_type our_out_offset = out_offsets[id];
-    offset_type next_out_offset = out_offsets[id+1];
-    outNeighbors = (out_neighbors + our_out_offset);
-    outDegree = (uintE)(next_out_offset - our_out_offset);
+  asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data,
+                    edge_type* in_neighbors, vertex_data& in_data) {
+    inNeighbors = in_neighbors + in_data.offset;
+    outNeighbors = out_neighbors + out_data.offset;
 
-    offset_type our_in_offset = in_offsets[id];
-    offset_type next_in_offset = in_offsets[id+1];
-    inNeighbors = (in_neighbors + our_in_offset);
-    inDegree = (uintE)(next_in_offset - our_in_offset);
+    inDegree = in_data.degree;
+    outDegree = out_data.degree;
   }
 
   /* Unlikely to be necessary since neighbors are likeyl flat

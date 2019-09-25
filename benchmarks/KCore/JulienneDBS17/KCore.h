@@ -29,14 +29,14 @@
 #include "ligra/pbbslib/dyn_arr.h"
 
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> KCore(graph<vertex<W> >& GA, size_t num_buckets = 16) {
-  const size_t n = GA.n;
+template <class Graph>
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
+  const size_t n = G.n;
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
 
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)GA.m / 50);
+  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0),
+                                      (size_t)G.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
@@ -106,12 +106,13 @@ struct kcore_fetch_add {
   inline bool cond(uintE d) { return D[d] > k; }
 };
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
+template <class Graph>
+inline sequence<uintE> KCore_FA(Graph& G,
                                   size_t num_buckets = 16) {
-  const size_t n = GA.n;
+  using W = typename Graph::weight_type;
+  const size_t n = G.n;
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
   auto ER = sequence<uintE>(n, [&](size_t i) { return 0; });
 
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
@@ -136,7 +137,7 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
     };
 
     auto moved = edgeMapData<uintE>(
-        GA, active, kcore_fetch_add<W>(ER.begin(), D.begin(), k));
+        G, active, kcore_fetch_add<W>(ER.begin(), D.begin(), k));
     vertexMap(moved, apply_f);
 
     if (moved.dense()) {
@@ -153,14 +154,14 @@ inline sequence<uintE> KCore_FA(graph<vertex<W> >& GA,
   return D;
 }
 
-template <template <typename W> class vertex, class W>
-inline pbbslib::dyn_arr<uintE> DegeneracyOrder(graph<vertex<W> >& GA, size_t num_buckets = 16) {
-  const size_t n = GA.n;
+template <class Graph>
+inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
+  const size_t n = G.n;
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
 
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)GA.m / 50);
+  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0),
+                                      (size_t)G.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 

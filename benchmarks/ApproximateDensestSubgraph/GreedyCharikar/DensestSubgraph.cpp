@@ -31,20 +31,20 @@
 #include "DensestSubgraph.h"
 #include "ligra/ligra.h"
 
-template <class vertex>
-double DensestSubgraph_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double DensestSubgraph_runner(Graph& G, commandLine P) {
   double eps = P.getOptionDoubleValue("-eps", 0.001);
   std::cout << "### Application: DensestSubgraph" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << eps << std::endl;
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  CharikarAppxDensestSubgraph(GA);
+  CharikarAppxDensestSubgraph(G);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

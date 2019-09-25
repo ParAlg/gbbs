@@ -58,6 +58,19 @@ cc_library(
 )
 
 cc_library(
+  name = "edge_map_blocked",
+  hdrs = ["edge_map_blocked.h"],
+  deps = [
+  ":bridge",
+  ":edge_map_utils",
+  ":graph",
+  ":vertex_subset",
+  "//pbbslib:binary_search",
+  "//pbbslib:list_allocator",
+  ]
+)
+
+cc_library(
   name = "edge_map_reduce",
   hdrs = ["edge_map_reduce.h"],
   deps = [
@@ -95,25 +108,21 @@ cc_library(
 )
 
 cc_library(
+  name = "graph_mutation",
+  hdrs = ["graph_mutation.h"],
+  deps = [
+  ":bridge",
+  ":graph",
+  ]
+)
+
+cc_library(
   name = "histogram",
   hdrs = ["histogram.h"],
   deps = [
   ":bridge",
   ":sequential_ht",
   "//ligra/pbbslib:counting_sort_no_transpose",
-  ]
-)
-
-cc_library(
-  name = "edge_map_blocked",
-  hdrs = ["edge_map_blocked.h"],
-  deps = [
-  ":bridge",
-  ":edge_map_utils",
-  ":graph",
-  ":vertex_subset",
-  "//pbbslib:binary_search",
-  "//pbbslib:list_allocator",
   ]
 )
 

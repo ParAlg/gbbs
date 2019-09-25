@@ -68,6 +68,11 @@ typedef unsigned int uintE;
 #define UINT_E_MAX UINT_MAX
 #endif
 
+struct vertex_data {
+  size_t offset; // offset into the edges (static)
+  uintE degree; // possibly decreased by a (mutable) algorithm.
+};
+
 // edgemap_sparse_blocked granularity macro
 constexpr const size_t kEMBlockSize = 4000;
 

@@ -39,7 +39,6 @@
 
 #include "encodings/decoders.h"
 #include "macros.h"
-
 #include "pbbslib/monoid.h"
 
 namespace cvertex {
@@ -204,18 +203,13 @@ template <class W, class C>
 struct compressed_symmetric_vertex {
   using vertex = compressed_symmetric_vertex<W, C>;
   using edge_type = uchar;
-  /* the offset_type is actually tuple<uintT, uintE> */
-  using offset_type = uchar;
-  static constexpr size_t offset_size_bytes = sizeof(uintT) + sizeof(uintE);
 
   edge_type* neighbors;
   uintE degree;
 
-  compressed_symmetric_vertex(edge_type* n, offset_type* offsets, uintE id) {
-    size_t byte_offset = id*offset_size_bytes;
-    std::tuple<uintT, uintE>& offset_and_degree = *((std::tuple<uintT, uintE>*)(offsets + byte_offset));
-    neighbors = n + std::get<0>(offset_and_degree);
-    degree = std::get<1>(offset_and_degree);
+  compressed_symmetric_vertex(edge_type* n, vertex_data& vdata) {
+    neighbors = n + vdata.offset;
+    degree = vdata.degree;
   }
 
   edge_type* getInNeighbors() { return neighbors; }
@@ -469,24 +463,18 @@ template <class W, class C>
 struct compressed_asymmetric_vertex {
   using vertex = compressed_symmetric_vertex<W, C>;
   using edge_type = uchar;
-  using offset_type = uchar;
-  static constexpr size_t offset_size_bytes = sizeof(uintT) + sizeof(uintE);
 
   edge_type* inNeighbors;
   edge_type* outNeighbors;
   uintE outDegree;
   uintE inDegree;
 
-  compressed_asymmetric_vertex(edge_type* out_neighbors, offset_type* out_offsets, edge_type* in_neighbors, offset_type* in_offsets, uintE id) {
-    size_t byte_offset = id*offset_size_bytes;
+  compressed_asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data, edge_type* in_neighbors, vertex_data& in_data) {
+    inNeighbors = in_neighbors + in_data.offset;
+    outNeighbors = out_neighbors + out_data.offset;
 
-    std::tuple<uintT, uintE>& in_offset_and_degree = *((std::tuple<uintT, uintE>*)(in_offsets + byte_offset));
-    inNeighbors = in_neighbors + std::get<0>(in_offset_and_degree);
-    inDegree = std::get<1>(in_offset_and_degree);
-
-    std::tuple<uintT, uintE>& out_offset_and_degree = *((std::tuple<uintT, uintE>*)(out_offsets + byte_offset));
-    outNeighbors = out_neighbors + std::get<0>(out_offset_and_degree);
-    outDegree = std::get<1>(out_offset_and_degree);
+    inDegree = in_data.degree;
+    outDegree = out_data.degree;
   }
 
   edge_type* getInNeighbors() { return inNeighbors; }

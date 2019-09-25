@@ -46,9 +46,8 @@ struct symmetric_graph {
   using vertex = vertex_type<W>;
   using weight_type = W;
   using edge_type = typename vertex::edge_type;
-  using offset_type = typename vertex::offset_type;
 
-  offset_type* offsets;
+  vertex_data* v_data;
 
   /* Pointer to edges */
   edge_type* e0;
@@ -63,23 +62,9 @@ struct symmetric_graph {
   /* called to delete the graph */
   std::function<void()> deletion_fn;
 
-#ifndef TWOSOCKETNVM
-  vertex get_vertex(size_t i) {
-    return vertex(e0, offsets, i);
-  }
-#else
-  vertex get_vertex(size_t i) {
-    if (numanode() == 0) {
-      return vertex(e0, offsets, i);
-    } else {
-      return vertex(e1, offsets, i);
-    }
-  }
-#endif
-
-symmetric_graph(offset_type* _offsets, size_t n, size_t m,
+symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     std::function<void()> _deletion_fn, edge_type* _e0, edge_type* _e1=nullptr)
-      : offsets(_offsets),
+      : v_data(v_data),
         e0(_e0),
         e1(_e1),
         n(n),
@@ -92,6 +77,25 @@ symmetric_graph(offset_type* _offsets, size_t n, size_t m,
 
   void del() {
     deletion_fn();
+  }
+
+#ifndef TWOSOCKETNVM
+  vertex get_vertex(uintE i) {
+    return vertex(e0, v_data[i]);
+  }
+#else
+  vertex get_vertex(uintE i) {
+    if (numanode() == 0) {
+      return vertex(e0, v_data[i]);
+    } else {
+      return vertex(e1, v_data[i]);
+    }
+  }
+#endif
+
+  /* degree must be <= old_degree */
+  void decrease_degree(uintE i, uintE degree) {
+    v_data[i].degree = degree;
   }
 
   template <class F>
@@ -121,7 +125,6 @@ struct asymmetric_graph {
   using vertex = vertex_type<W>;
   using weight_type = W;
   using edge_type = typename vertex::edge_type;
-  using offset_type = typename vertex::offset_type;
 
   /* number of vertices in G */
   size_t n;
@@ -130,8 +133,8 @@ struct asymmetric_graph {
   /* called to delete the graph */
   std::function<void()> deletion_fn;
 
-  offset_type* out_offsets;
-  offset_type* in_offsets;
+  vertex_data* v_out_data;
+  vertex_data* v_in_data;
 
   /* Pointer to out-edges */
   edge_type* out_edges_0;
@@ -145,20 +148,20 @@ struct asymmetric_graph {
 
 #ifndef TWOSOCKETNVM
   vertex get_vertex(size_t i) {
-    return vertex(out_edges_0, out_offsets, in_edges_0, in_offsets, i);
+    return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
   }
 #else
   vertex get_vertex(size_t i) {
     if (numanode() == 0) {
-      return vertex(out_edges_0, out_offsets, in_edges_0, in_offsets, i);
+      return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
     } else {
-      return vertex(out_edges_1, out_offsets, in_edges_1, in_offsets, i);
+      return vertex(out_edges_1, v_out_data[i], in_edges_1, v_in_data[i]);
     }
   }
 #endif
 
-  asymmetric_graph(offset_type* _out_offsets,
-      offset_type* _in_offsets,
+  asymmetric_graph(vertex_data* v_out_data,
+      vertex_data* v_in_data,
       size_t n,
       size_t m,
       std::function<void()> _deletion_fn,
@@ -166,8 +169,8 @@ struct asymmetric_graph {
       edge_type* _in_edges_0,
       edge_type* _out_edges_1=nullptr,
       edge_type* _in_edges_1=nullptr) :
-    out_offsets(_out_offsets),
-    in_offsets(_in_offsets),
+    v_out_data(v_out_data),
+    v_in_data(v_in_data),
     n(n),
     m(m),
     deletion_fn(_deletion_fn),
@@ -185,6 +188,18 @@ struct asymmetric_graph {
     parallel_for(0, n, [&](size_t i) {
       get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
     }, 1);
+  }
+
+  /* degree must be <= old_degree */
+  void decrease_out_degree(uintE i, uintE degree) {
+    /* currently unimplemented --- implement when needed */
+    assert(false); exit(0);
+  }
+
+  /* degree must be <= old_degree */
+  void decrease_in_degree(uintE i, uintE degree) {
+    /* currently unimplemented --- implement when needed */
+    assert(false); exit(0);
   }
 };
 

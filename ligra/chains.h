@@ -65,14 +65,15 @@ inline auto make_decr(L& cts, B& fl) {
   return Decr<W, L, B>(cts, fl);
 }
 
-template <template <class W> class vertex, class W>
-inline auto remove_chains(graph<vertex<W>>& GA) {
-  const size_t n = GA.n;
-  const size_t m = GA.m;
+template <class Graph>
+inline auto remove_chains(Graph& G) {
+  using W = typename G::weight_type;
+  const size_t n = G.n;
+  const size_t m = G.m;
   auto in_d =
-      sequence<intE>(n, [&](size_t i) { return GA.V[i].getInDegree(); });
+      sequence<intE>(n, [&](size_t i) { return G.V[i].getInDegree(); });
   auto out_d =
-      sequence<intE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
+      sequence<intE>(n, [&](size_t i) { return G.V[i].getOutDegree(); });
 
   auto in_f = [&](size_t i) { return i; };
   auto in_v = pbbslib::make_sequence<uintE>(n, in_f);
@@ -114,7 +115,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
                           chains[v] = true;
                         }
                       });
-      auto next_in = edgeMap(GA, in_vs, make_decr<W>(in_d, flags_in));
+      auto next_in = edgeMap(G, in_vs, make_decr<W>(in_d, flags_in));
       in_vs.clear();
       in_vs = next_in;
     }
@@ -128,7 +129,7 @@ inline auto remove_chains(graph<vertex<W>>& GA) {
                         }
                       });
       auto next_out =
-          edgeMap(GA, out_vs, make_decr<W>(out_d, flags_out), -1, in_edges);
+          edgeMap(G, out_vs, make_decr<W>(out_d, flags_out), -1, in_edges);
       out_vs.clear();
       out_vs = next_out;
     }

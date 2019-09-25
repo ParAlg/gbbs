@@ -35,15 +35,15 @@
 
 #include "KCore.h"
 
-template <class vertex>
-double KCore_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double KCore_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
   bool fa = P.getOption("-fa");
   std::cout << "### Application: KCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -nb (num_buckets) = " << num_buckets << " -fa (use fetch_and_add) = " << fa << std::endl;
   std::cout << "### ------------------------------------" << endl;
   if (num_buckets != static_cast<size_t>((1 << pbbslib::log2_up(num_buckets)))) {
@@ -55,7 +55,7 @@ double KCore_runner(graph<vertex>& GA, commandLine P) {
 
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = (fa) ? KCore_FA(GA, num_buckets) : KCore(GA, num_buckets);
+  auto cores = (fa) ? KCore_FA(G, num_buckets) : KCore(G, num_buckets);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
