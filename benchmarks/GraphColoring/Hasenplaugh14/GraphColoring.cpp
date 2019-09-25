@@ -42,25 +42,25 @@
 #include <fstream>
 #include <iostream>
 
-template <class vertex>
-double Coloring_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double Coloring_runner(Graph& G, commandLine P) {
   bool runLF = P.getOption("-lf");
   std::cout << "### Application: Coloring" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -lf = " << runLF << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
-  auto colors = Coloring(GA, runLF);
+  auto colors = Coloring(G, runLF);
   double tt = t.stop();
   if (P.getOption("-stats")) {
     std::cout << "num_colors = " << pbbslib::reduce_max(colors) << "\n";
   }
   if (P.getOption("-verify)")) {
-    verify_coloring(GA, colors);
+    verify_coloring(G, colors);
   }
 
   std::cout << "### Running Time: " << tt << std::endl;

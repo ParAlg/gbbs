@@ -37,8 +37,8 @@
 
 #include "wBFS.h"
 
-template <class vertex>
-double wBFS_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double wBFS_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
   size_t num_buckets = P.getOptionLongValue("-nb", 32);
   bool no_blocked = P.getOptionValue("-noblocked");
@@ -47,8 +47,8 @@ double wBFS_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### Application: wBFS (Weighted Breadth-First Search)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
@@ -58,7 +58,7 @@ double wBFS_runner(graph<vertex>& GA, commandLine P) {
     exit(-1);
   }
   timer t; t.start();
-  wBFS(GA, src, num_buckets, largemem, no_blocked);
+  wBFS(G, src, num_buckets, largemem, no_blocked);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

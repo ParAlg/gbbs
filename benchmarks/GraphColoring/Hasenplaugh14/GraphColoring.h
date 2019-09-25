@@ -28,9 +28,10 @@
 #include "pbbslib/random_shuffle.h"
 
 namespace coloring {
-template <template <typename W> class vertex, class W, class Seq>
-inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
-  uintE deg = GA.V[v].getOutDegree();
+template <class Graph, class Seq>
+inline uintE color(Graph& G, uintE v, Seq& colors) {
+  using W = typename Graph::weight_type;
+  uintE deg = G.get_vertex(v).getOutDegree();
   if (deg > 0) {
     bool* bits;
     bool s_bits[1000];
@@ -47,7 +48,7 @@ inline uintE color(graph<vertex<W>>& GA, uintE v, Seq& colors) {
         bits[color] = 1;
       }
     };
-    GA.V[v].mapOutNgh(v, map_f);
+    G.get_vertex(v).mapOutNgh(v, map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = pbbslib::make_sequence<uintE>(deg, im_f);
     uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
@@ -84,11 +85,12 @@ struct coloring_f {
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
+template <class Graph>
+inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
+  using W = typename Graph::weight_type;
   timer initt;
   initt.start();
-  const size_t n = GA.n;
+  const size_t n = G.n;
 
   // For each vertex count the number of out-neighbors with log-degree >= us
   auto priorities = sequence<intE>(n);
@@ -100,13 +102,13 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     // LF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = GA.V[i].getOutDegree();
+      uintE our_deg = G.get_vertex(i).getOutDegree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = GA.V[ngh].getOutDegree();
+        uintE ngh_deg = G.get_vertex(ngh).getOutDegree();
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
-      priorities[i] = GA.V[i].countOutNgh(i, count_f);
+      priorities[i] = G.get_vertex(i).countOutNgh(i, count_f);
     });
   } else {
     std::cout << "### Running LLF"
@@ -114,14 +116,14 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     // LLF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = pbbslib::log2_up(GA.V[i].getOutDegree());
+      uintE our_deg = pbbslib::log2_up(G.get_vertex(i).getOutDegree());
       uintE i_p = P[i];
       // breaks ties using P
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = pbbslib::log2_up(GA.V[ngh].getOutDegree());
+        uintE ngh_deg = pbbslib::log2_up(G.get_vertex(ngh).getOutDegree());
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
-      priorities[i] = GA.V[i].countOutNgh(i, count_f);
+      priorities[i] = G.get_vertex(i).countOutNgh(i, count_f);
     });
   }
 
@@ -142,13 +144,13 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
     color_t.start();
     par_for(0, roots.size(), 1, [&] (size_t i) {
       uintE v = roots.vtx(i);
-      colors[v] = coloring::color(GA, v, colors);
+      colors[v] = coloring::color(G, v, colors);
     });
     color_t.stop();
 
     // compute the new rootset
     em_t.start();
-    auto new_roots = edgeMap(GA, roots, coloring_f<W>(priorities.begin()), -1,
+    auto new_roots = edgeMap(G, roots, coloring_f<W>(priorities.begin()), -1,
                              sparse_blocked);
     em_t.stop();
     roots.del();
@@ -161,8 +163,9 @@ inline sequence<uintE> Coloring(graph<vertex<W>>& GA, bool lf = false) {
   return colors;
 }
 
-template <template <typename W> class vertex, class W, class Seq>
-inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
+template <class Graph, class Seq>
+inline void verify_coloring(Graph& G, Seq& colors) {
+  using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ok = sequence<bool>(n);
   par_for(0, n, [&] (size_t i) {
@@ -171,7 +174,7 @@ inline void verify_coloring(graph<vertex<W>>& G, Seq& colors) {
       uintE ngh_color = colors[ngh];
       return src_color == ngh_color;
     };
-    size_t ct = G.V[i].countOutNgh(i, pred);
+    size_t ct = G.get_vertex(i).countOutNgh(i, pred);
     ok[i] = (ct > 0);
   });
   auto im_f = [&](size_t i) { return (size_t)ok[i]; };

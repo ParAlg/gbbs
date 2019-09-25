@@ -68,12 +68,11 @@ struct Visit_F {
 
 }  // namespace wbfs
 
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
+template <class Graph>
+inline sequence<uintE> wBFS(Graph& G, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
+  using W = typename Graph::weight_type;
   auto before_state = get_pcm_state();
   timer t;
   t.start();
@@ -116,8 +115,9 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
     emt.start();
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
+    auto em_f = wrap_with_default<W, intE>(wbfs::Visit_F(dists), (intE)1);
     auto res =
-        edgeMapData<uintE>(G, active, wbfs::Visit_F(dists), G.m / 20, fl);
+        edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -144,16 +144,5 @@ inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
   auto after_state = get_pcm_state();
   print_pcm_stats(before_state, after_state, 1, time_per_iter);
 
-  return dists;
-}
-
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<!std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> wBFS(graph<vertex<W>>& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
-  assert(false);  // Unimplemented for unweighted graphs; use a regular BFS.
-  auto dists = sequence<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
   return dists;
 }
