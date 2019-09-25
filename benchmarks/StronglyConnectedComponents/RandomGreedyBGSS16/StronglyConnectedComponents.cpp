@@ -34,21 +34,21 @@
 
 #include "StronglyConnectedComponents.h"
 
-template <class vertex>
-double StronglyConnectedComponents_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
   std::cout << "### Application: StronglyConnectedComponents (Strongly Connected Components)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   assert(!P.getOption("-s"));
   timer scc_t;
   scc_t.start();
-  auto labels = StronglyConnectedComponents(GA, beta);
+  auto labels = StronglyConnectedComponents(G, beta);
   double tt = scc_t.stop();
   if (P.getOption("-stats")) {
     num_scc(labels);

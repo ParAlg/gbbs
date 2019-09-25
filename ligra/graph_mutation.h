@@ -416,14 +416,12 @@ inline void packAllEdges(graph<wvertex<W>>& G, P& p, const flags& fl = 0) {
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
-template <template <class W> class wvertex, class W, class P>
-inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& G,
+template <class Graph, class P>
+inline vertexSubsetData<uintE> packEdges(Graph& G,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
-  using vertex = wvertex<W>;
   vs.toSparse();
-  vertex* G = G.V;
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   if (vs.size() == 0) {
@@ -432,7 +430,7 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& G,
   auto space = sequence<uintT>(m);
   par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintE v = vs.vtx(i);
-    space[i] = G[v].calculateOutTemporarySpace();
+    space[i] = G.get_vertex(v).calculateOutTemporarySpace();
   });
   size_t total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
@@ -445,8 +443,11 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& G,
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
         std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        size_t ct = G[v].packOutNgh(v, p, tmp_v);
-        outV[i] = std::make_tuple(v, ct);
+
+        uintE new_degree = G.get_vertex(v).packOutNgh(v, p, tmp_v);
+        G.decrease_degree(new_degree);
+
+        outV[i] = std::make_tuple(v, new_degree);
       };
       par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
     }
@@ -456,7 +457,10 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& G,
       auto for_inner = [&](size_t i) {
         uintE v = vs.vtx(i);
         std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-        G[v].packOutNgh(v, p, tmp_v);
+
+        uintE new_degree = G[v].packOutNgh(v, p, tmp_v);
+        G.decrease_degree(new_degree);
+
       };
       par_for(0, m, 1, [&] (size_t i) { for_inner(i); });
     }
@@ -464,16 +468,14 @@ inline vertexSubsetData<uintE> packEdges(graph<wvertex<W>>& G,
   }
 }
 
-template <template <class W> class wvertex, class W, class P>
-inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& G,
+template <class Graph, class P>
+inline vertexSubsetData<uintE> edgeMapFilter(Graph& G,
                                              vertexSubset& vs, P& p,
                                              const flags& fl = 0) {
-  using vertex = wvertex<W>;
   vs.toSparse();
   if (fl & pack_edges) {
-    return packEdges<wvertex, W, P>(G, vs, p, fl);
+    return packEdges<Graph, P>(G, vs, p, fl);
   }
-  vertex* G = G.V;
   size_t m = vs.numNonzeros();
   size_t n = vs.numRows();
   using S = std::tuple<uintE, uintE>;
@@ -487,13 +489,13 @@ inline vertexSubsetData<uintE> edgeMapFilter(graph<wvertex<W>>& G,
   if (should_output(fl)) {
     par_for(0, m, 1, [&] (size_t i) {
       uintE v = vs.vtx(i);
-      size_t ct = G[v].countOutNgh(v, p);
+      size_t ct = G.get_vertex(v).countOutNgh(v, p);
       outV[i] = std::make_tuple(v, ct);
     });
   } else {
     par_for(0, m, 1, [&] (size_t i) {
       uintE v = vs.vtx(i);
-      G[v].countOutNgh(v, p);
+      G.get_vertex(v).countOutNgh(v, p);
     });
   }
   if (should_output(fl)) {

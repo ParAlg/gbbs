@@ -93,12 +93,14 @@ inline Search_F<W, Seq, Tab> make_search_f(Tab& tab, Seq& labels, bool* bits) {
   return Search_F<W, Seq, Tab>(tab, labels, bits);
 }
 
-template <template <class W> class vertex, class W, class Seq, class VS>
-inline pbbslib::resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA,
+template <class Graph, class Seq, class VS>
+inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
                                                    Seq& labels, bool* bits,
                                                    VS& frontier,
                                                    size_t label_start,
                                                    const flags fl = 0) {
+  using W = typename Graph::weight_type;
+
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
@@ -124,8 +126,8 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(graph<vertex<W>>& GA
         // can only add labels to vertices in our subproblem
         return labels[ngh] == labels[v];
       };
-      size_t effective_degree = (fl & in_edges) ? GA.V[v].countInNgh(v, pred)
-                                                : GA.V[v].countOutNgh(v, pred);
+      size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).countInNgh(v, pred)
+                                                : GA.get_vertex(v).countOutNgh(v, pred);
       return effective_degree * n_labels;
     };
     auto im = pbbslib::make_sequence<size_t>(frontier.size(), im_f);
@@ -168,9 +170,10 @@ inline First_Search<V, L> make_first_search(V& visited, L& labels) {
   return First_Search<V, L>(visited, labels);
 }
 
-template <template <class W> class vertex, class W, class L>
-inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
+template <class Graph, class L>
+inline bool* first_search(Graph& GA, L& labels, uintE start,
                           size_t label_start, const flags fl = 0) {
+  using W = typename Graph::weight_type;
   size_t n = GA.n;
 
   auto Flags = sequence<bool>(n, false);
@@ -188,8 +191,8 @@ inline bool* first_search(graph<vertex<W>>& GA, L& labels, uintE start,
   return Flags.to_array();
 }
 
-template <class vertex>
-inline sequence<label_type> StronglyConnectedComponents(graph<vertex>& GA, double beta = 1.1) {
+template <class Graph>
+inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta = 1.1) {
   timer initt;
   initt.start();
   size_t n = GA.n;
@@ -201,10 +204,10 @@ inline sequence<label_type> StronglyConnectedComponents(graph<vertex>& GA, doubl
   auto v_im_f = [](size_t i) { return i; };
   auto v_im = pbbslib::make_sequence<uintE>(n, v_im_f);
   auto zero_pred = [&](size_t i) {
-    return (GA.V[i].getOutDegree() == 0) || (GA.V[i].getInDegree() == 0);
+    return (GA.get_vertex(i).getOutDegree() == 0) || (GA.get_vertex(i).getInDegree() == 0);
   };
   auto not_zero_pred = [&](size_t i) {
-    return (GA.V[i].getOutDegree() > 0) && (GA.V[i].getInDegree() > 0);
+    return (GA.get_vertex(i).getOutDegree() > 0) && (GA.get_vertex(i).getInDegree() > 0);
   };
   auto zero = pbbslib::filter(v_im, zero_pred);
   auto NZ = pbbslib::filter(v_im, not_zero_pred);
@@ -227,7 +230,7 @@ inline sequence<label_type> StronglyConnectedComponents(graph<vertex>& GA, doubl
     timer hd;
     hd.start();
     auto deg_im_f = [&](size_t i) {
-      return std::make_tuple(i, GA.V[i].getOutDegree());
+      return std::make_tuple(i, GA.get_vertex(i).getOutDegree());
     };
     auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,

@@ -69,12 +69,11 @@ struct Visit_F {
 
 }  // namespace widestpath
 
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> SSWidestPath(graph<vertex<W>>& G, uintE src,
+template <class Graph>
+inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
                               size_t num_buckets = 128, bool largemem = false,
                               bool no_blocked = false) {
+  using W = typename Graph::weight_type;
   timer t;
   t.start();
 
@@ -86,7 +85,7 @@ inline sequence<uintE> SSWidestPath(graph<vertex<W>>& G, uintE src,
         pbbslib::write_max(&max_weight, static_cast<uintE>(wgh));
       }
     };
-    G.V[i].mapOutNgh(i, map_f);
+    G.get_vertex(i).mapOutNgh(i, map_f);
   }, 1);
   mw.stop(); mw.reportTotal("max weight time");
   cout << "max_weight = " << max_weight << endl;
@@ -132,7 +131,8 @@ inline sequence<uintE> SSWidestPath(graph<vertex<W>>& G, uintE src,
   while (bkt.id != b.null_bkt) {
     auto active = vertexSubset(n, bkt.identifiers);
     emt.start();
-    auto res = edgeMapData<uintE>(G, active, widestpath::Visit_F(width), G.m / 20, fl);
+    auto em_f = wrap_with_default<W, intE>(widestpath::Visit_F(width), (intE)1);
+    auto res = edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
     emt.stop();
@@ -160,17 +160,6 @@ inline sequence<uintE> SSWidestPath(graph<vertex<W>>& G, uintE src,
   for (size_t i=0; i<100; i++) {
     cout << dist_im[i] << endl;
   }
-  return width;
-}
-
-template <
-    template <typename W> class vertex, class W,
-    typename std::enable_if<!std::is_same<W, int32_t>::value, int>::type = 0>
-inline sequence<uintE> SSWidestPath(graph<vertex<W>>& G, uintE src,
-                              size_t num_buckets = 128, bool largemem = false,
-                              bool no_blocked = false) {
-  assert(false);  // Unimplemented for unweighted graphs; use a regular BFS.
-  auto width = sequence<uintE>(G.n, [&](size_t i) { return INT_E_MAX; });
   return width;
 }
 
@@ -207,9 +196,10 @@ struct SSWidestPath_BF_Vertex_F {
   }
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<intE> SSWidestPathBF(graph<vertex<W>>& GA, const uintE& start) {
-  size_t n = GA.n;
+template <class Graph>
+inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
   auto Visited = sequence<int>(n, 0);
   auto width = sequence<intE>(n, static_cast<intE>(-1));
   width[start] = INT_E_MAX; // width(s) = \infty
@@ -226,7 +216,7 @@ inline sequence<intE> SSWidestPathBF(graph<vertex<W>>& GA, const uintE& start) {
     auto em_f =
         wrap_with_default<W, intE>(SSWidestPathBF_F(width.begin(), Visited.begin()), (intE)1);
     auto output =
-        edgeMap(GA, Frontier, em_f, GA.m / 10, sparse_blocked | dense_forward);
+        edgeMap(G, Frontier, em_f, G.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, SSWidestPath_BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
     Frontier.del();

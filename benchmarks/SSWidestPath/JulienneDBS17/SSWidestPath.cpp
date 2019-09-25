@@ -37,8 +37,8 @@
 
 #include "SSWidestPath.h"
 
-template <class vertex>
-double SSWidestPath_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double SSWidestPath_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
   size_t num_buckets = P.getOptionLongValue("-nb", 32);
   bool no_blocked = P.getOptionValue("-noblocked");
@@ -47,8 +47,8 @@ double SSWidestPath_runner(graph<vertex>& GA, commandLine P) {
   std::cout << "### Application: SSWidestPath (Single Source Widest-Path)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
@@ -59,9 +59,9 @@ double SSWidestPath_runner(graph<vertex>& GA, commandLine P) {
   }
   timer t; t.start();
   if (P.getOptionValue("-bf")) {
-    auto widths = SSWidestPathBF(GA, src);
+    auto widths = SSWidestPathBF(G, src);
   } else {
-    auto widths = SSWidestPath(GA, src, num_buckets, largemem, no_blocked);
+    auto widths = SSWidestPath(G, src, num_buckets, largemem, no_blocked);
   }
   double tt = t.stop();
 

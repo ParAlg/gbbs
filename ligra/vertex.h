@@ -478,8 +478,6 @@ struct symmetric_vertex {
     return in_block_degree(block_num);
   }
 
-  void setInDegree(uintE _d) { degree = _d; }
-  void setOutDegree(uintE _d) { degree = _d; }
   void flipEdges() {}
 
   auto getInIter(uintE id) -> vertex_ops::iter<W> {
@@ -664,7 +662,6 @@ struct symmetric_vertex {
   inline size_t packOutNgh(uintE vtx_id, P& p, edge_type* tmp) {
     uintE k = vertex_ops::packNghs<symmetric_vertex, W, P>(
         this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
-    setOutDegree(k);
     return k;
   }
 
@@ -718,14 +715,6 @@ struct asymmetric_vertex {
   uintE getOutNeighbor(uintE j) { return std::get<0>(outNeighbors[j]); }
   W getInWeight(uintE j) { return std::get<1>(inNeighbors[j]); }
   W getOutWeight(uintE j) { return std::get<1>(outNeighbors[j]); }
-  void setInNeighbor(uintE j, uintE ngh) { std::get<0>(inNeighbors[j]) = ngh; }
-  void setOutNeighbor(uintE j, uintE ngh) {
-    std::get<0>(outNeighbors[j]) = ngh;
-  }
-  void setInWeight(uintE j, W wgh) { std::get<1>(inNeighbors[j]) = wgh; }
-  void setOutWeight(uintE j, W wgh) { std::get<1>(outNeighbors[j]) = wgh; }
-  void setInNeighbors(edge_type* _i) { inNeighbors = _i; }
-  void setOutNeighbors(edge_type* _i) { outNeighbors = _i; }
 
   uintE getInDegree() { return inDegree; }
   uintE getOutDegree() { return outDegree; }
@@ -752,8 +741,6 @@ struct asymmetric_vertex {
     return block_end - block_start;
   }
 
-  void setInDegree(uintE _d) { inDegree = _d; }
-  void setOutDegree(uintE _d) { outDegree = _d; }
   void flipEdges() {
     std::swap(inNeighbors, outNeighbors);
     std::swap(inDegree, outDegree);
@@ -943,7 +930,6 @@ struct asymmetric_vertex {
   inline size_t packOutNgh(uintE vtx_id, P& p, edge_type* tmp) {
     uintE k = vertex_ops::packNghs<asymmetric_vertex, W, P>(
         this, vtx_id, p, getOutNeighbors(), getOutDegree(), tmp);
-    setOutDegree(k);
     return k;
   }
 
@@ -952,7 +938,6 @@ struct asymmetric_vertex {
   inline size_t packInNgh(uintE vtx_id, P& p, edge_type* tmp) {
     uintE k = vertex_ops::packNghs<asymmetric_vertex, W, P>(
         this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
-    setInDegree(k);
     return k;
   }
 

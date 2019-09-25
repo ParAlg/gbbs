@@ -33,27 +33,27 @@
 
 #include "Triangle.h"
 
-template <class vertex>
-double Triangle_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double Triangle_runner(Graph& G, commandLine P) {
   std::cout << "### Application: Triangle Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: n/a" << std::endl;
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
   size_t count = 0;
   auto f = [&] (uintE u, uintE v, uintE w) { };
   timer t; t.start();
-  count = Triangle(GA, f);
+  count = Triangle(G, f);
   double tt = t.stop();
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {
-      size_t deg = GA.V[i].getOutDegree();
+      size_t deg = G.get_vertex(i).getOutDegree();
       return (deg * deg - 1) / 2;
     };
-    auto wedge_im = pbbslib::make_sequence<size_t>(GA.n, wedge_im_f);
+    auto wedge_im = pbbslib::make_sequence<size_t>(G.n, wedge_im_f);
     size_t n_wedges = pbbslib::reduce_add(wedge_im);
     std::cout << "### n_wedges = " << n_wedges << "\n";
     std::cout << "### triangle density = " << ((3.0 * count) / n_wedges) << "\n";
