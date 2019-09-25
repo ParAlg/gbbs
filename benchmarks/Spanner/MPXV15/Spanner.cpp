@@ -37,23 +37,23 @@
 #include "Spanner.h"
 
 // Beta should be set to log n/2k. See Corollary 3.1 and Lemma 3.2 in MPVX'15.
-template <class vertex>
-double Spanner_runner(graph<vertex>& GA, commandLine P) {
-  size_t n = GA.n;
+template <class Graph>
+double Spanner_runner(Graph& G, commandLine P) {
+  size_t n = G.n;
   size_t k = P.getOptionLongValue("-k", 4);
   double beta = log(n)/(2*k);
   std::cout << "### Application: Spanner (O(k)-spanner from MPXV)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   assert(P.getOption("-s"));
   timer t;
   t.start();
-  auto spanner = spanner::Spanner(GA, beta);
+  auto spanner = spanner::Spanner(G, beta);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
   std::cout << "### ------------------------------------" << endl;

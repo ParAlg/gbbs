@@ -42,12 +42,13 @@ namespace contract_sf {
   }
 
   // Fetch edges when the numbers of clusters is < small_cluster_size
-  template <template <typename W> class vertex, class W, class C, class E>
-  auto fetch_intercluster_small(graph<vertex<W>>& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class Graph, class C, class E>
+  auto fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
     debug(cout << "Running fetch edges small" << endl;);
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
+    using W = typename Graph::weight_type;
 
     assert(num_clusters <= small_cluster_size);
     size_t n = GA.n;
@@ -67,17 +68,18 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
 
     return edge_table;
   }
 
-  template <template <typename W> class vertex, class W, class C, class E>
-  auto fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class Graph, class C, class E>
+  auto fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
     debug(cout << "Running fetch edges te" << endl;);
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
+    using W = typename Graph::weight_type;
 
     size_t n = GA.n;
 
@@ -91,7 +93,7 @@ namespace contract_sf {
       return c_src < c_ngh;
     };
     par_for(0, n, 1, [&] (size_t i)
-                    { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
+                    { deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred); });
     deg_map[n] = 0;
     pbbslib::scan_add_inplace(deg_map);
     count_t.stop();
@@ -116,15 +118,16 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
     return edge_table;
   }
 
-  template <template <typename W> class vertex, class W, class C, class E>
-  auto fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class Graph, class C, class E>
+  auto fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
+    using W = typename Graph::weight_type;
     size_t n = GA.n;
     debug(cout << "num_clusters = " << num_clusters << endl;);
     size_t estimated_edges = num_clusters*5;
@@ -147,7 +150,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge), &abort);
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
     if (abort) {
       debug(cout << "calling fetch_intercluster_te" << endl;);
       return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);
@@ -155,8 +158,8 @@ namespace contract_sf {
     return edge_table;
   }
 
-  template <template <typename W> class vertex, class W, class E>
-  inline auto contract(graph<vertex<W>>& GA, sequence<uintE>& clusters, size_t num_clusters, E& edge_mapping) {
+  template <class Graph, class E>
+  inline auto contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters, E& edge_mapping) {
     // Remove duplicates by hashing
     size_t n = GA.n;
     using K = std::pair<uintE, uintE>;

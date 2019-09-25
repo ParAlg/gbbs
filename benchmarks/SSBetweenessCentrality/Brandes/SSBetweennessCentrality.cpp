@@ -34,19 +34,19 @@
 
 #include "SSBetweennessCentrality.h"
 
-template <class vertex>
-double SSBetweennessCentrality_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
   std::cout << "### Application: SSBetweennessCentrality" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
-  auto scores = P.getOptionValue("-fa") ? bc::SSBetweennessCentrality(GA, src) : bc::SSBetweennessCentrality_EM(GA, src);
+  auto scores = P.getOptionValue("-fa") ? bc::SSBetweennessCentrality(G, src) : bc::SSBetweennessCentrality_EM(G, src);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 

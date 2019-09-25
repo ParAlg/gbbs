@@ -34,14 +34,14 @@
 
 #include "SpanningForest.h"
 
-template <class vertex>
-double SpanningForest_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double SpanningForest_runner(Graph& G, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
   std::cout << "### Application: SpanningForest" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
@@ -50,8 +50,8 @@ double SpanningForest_runner(graph<vertex>& GA, commandLine P) {
   assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
-  auto edges = spanning_forest::SpanningForest(GA, beta, pack, P.getOptionValue("-permute"));
-  cout << "n = " << GA.n << " #edges = " << edges.size << endl;
+  auto edges = spanning_forest::SpanningForest(G, beta, pack, P.getOptionValue("-permute"));
+  cout << "n = " << G.n << " #edges = " << edges.size << endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
   edges.del();

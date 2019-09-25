@@ -39,14 +39,15 @@ struct cluster_and_parent {
   cluster_and_parent(uintE _cluster, uintE _parent) : cluster(_cluster), parent(_parent) { }
 };
 
-template <template <typename W> class vertex, class W, class C>
-pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+template <class Graph, class C>
+pbbs::sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters) {
+  using W = typename Graph::weight_type;
   debug(cout << "Running fetch edges te" << endl;);
   using K = edge;
   using V = edge;
   using KV = std::tuple<K, V>;
 
-  size_t n = GA.n;
+  size_t n = G.n;
 
   debug(cout << "num_clusters = " << num_clusters << endl;);
   timer count_t;
@@ -58,7 +59,7 @@ pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, si
     return c_src < c_ngh;
   };
   par_for(0, n, 1, [&] (size_t i)
-                  { deg_map[i] = GA.V[i].countOutNgh(i, pred); });
+                  { deg_map[i] = G.get_vertex(i).countOutNgh(i, pred); });
   deg_map[n] = 0;
   pbbslib::scan_add_inplace(deg_map);
   count_t.stop();
@@ -86,7 +87,7 @@ pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, si
           std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)));
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).mapOutNgh(i, map_f); });
   auto edge_pairs = edge_table.entries();
   edge_table.del();
   ins_t.stop();
@@ -99,13 +100,14 @@ pbbs::sequence<edge> fetch_intercluster_te(graph<vertex<W>>& GA, C& clusters, si
   return edges;
 }
 
-template <template <typename W> class vertex, class W, class C>
-pbbs::sequence<edge> fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_t num_clusters) {
+template <class Graph, class C>
+pbbs::sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
   using K = edge;
   using V = edge;
   using KV = std::tuple<K, V>;
+  using W = typename Graph::weight_type;
 
-  size_t n = GA.n;
+  size_t n = G.n;
   debug(cout << "num_clusters = " << num_clusters << endl;);
   size_t estimated_edges = num_clusters*5;
 
@@ -132,10 +134,10 @@ pbbs::sequence<edge> fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_
           std::make_tuple(std::make_pair(c_src, c_ngh), std::make_pair(src, ngh)), &abort);
     }
   };
-  parallel_for(0, n, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); }, 1);
+  parallel_for(0, n, [&] (size_t i) { G.get_vertex(i).mapOutNgh(i, map_f); }, 1);
   if (abort) {
     debug(cout << "calling fetch_intercluster_te" << endl;);
-    return fetch_intercluster_te(GA, clusters, num_clusters);
+    return fetch_intercluster_te(G, clusters, num_clusters);
   }
   auto edge_pairs = edge_table.entries();
   edge_table.del();
@@ -149,10 +151,10 @@ pbbs::sequence<edge> fetch_intercluster(graph<vertex<W>>& GA, C& clusters, size_
   return edges;
 }
 
-template <template <typename W> class vertex, class W>
-pbbs::sequence<edge> tree_and_intercluster_edges(graph<vertex<W>>& GA,
+template <class Graph>
+pbbs::sequence<edge> tree_and_intercluster_edges(Graph& G,
     pbbs::sequence<cluster_and_parent>& cluster_and_parents) {
-  size_t n = GA.n;
+  size_t n = G.n;
   auto edge_list = pbbslib::dyn_arr<edge>(2*n);
 
   // Compute and add in tree edges.
@@ -179,7 +181,7 @@ pbbs::sequence<edge> tree_and_intercluster_edges(graph<vertex<W>>& GA,
   });
   size_t num_clusters = pbbs::reduce(cluster_size_seq, pbbs::addm<size_t>());
 
-  auto intercluster = fetch_intercluster(GA, clusters, num_clusters);
+  auto intercluster = fetch_intercluster(G, clusters, num_clusters);
   debug(cout << "num_intercluster edges = " << intercluster.size() << endl;);
   edge_list.copyIn(intercluster, intercluster.size());
   size_t edge_list_size = edge_list.size;
@@ -209,9 +211,10 @@ struct LDD_Parents_F {
   inline bool cond(uintE d) { return clusters[d].cluster == UINT_E_MAX; }
 };
 
-template <template <typename W> class vertex, class W>
-inline pbbs::sequence<cluster_and_parent> LDD_parents(graph<vertex<W> >& GA, double beta, bool permute = true) {
-  size_t n = GA.n;
+template <class Graph>
+inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool permute = true) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
 
   pbbs::sequence<uintE> vertex_perm;
   if (permute) {
@@ -252,7 +255,7 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(graph<vertex<W> >& GA, dou
 
     auto ldd_f = LDD_Parents_F<W>(clusters.begin());
     vertexSubset next_frontier =
-        edgeMap(GA, frontier, ldd_f, -1, sparse_blocked);
+        edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
     frontier.del();
     frontier = next_frontier;
 
@@ -261,18 +264,18 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(graph<vertex<W> >& GA, dou
   return clusters;
 }
 
-template <template <class W> class vertex, class W>
-inline pbbs::sequence<edge> Spanner_impl(graph<vertex<W>>& GA, double beta) {
+template <class Graph>
+inline pbbs::sequence<edge> Spanner_impl(Graph& G, double beta) {
   bool permute = true;
   timer ldd_t;
   ldd_t.start();
-  auto clusters_and_parents = LDD_parents(GA, beta, permute);
+  auto clusters_and_parents = LDD_parents(G, beta, permute);
   ldd_t.stop();
   debug(ldd_t.reportTotal("ldd time"););
 
   timer build_el_t;
   build_el_t.start();
-  auto spanner_edges = tree_and_intercluster_edges(GA, clusters_and_parents);
+  auto spanner_edges = tree_and_intercluster_edges(G, clusters_and_parents);
   build_el_t.stop();
   debug(build_el_t.reportTotal("build spanner edges time"););
 
@@ -281,9 +284,9 @@ inline pbbs::sequence<edge> Spanner_impl(graph<vertex<W>>& GA, double beta) {
   return spanner_edges;
 }
 
-template <class vertex>
-inline pbbs::sequence<edge> Spanner(graph<vertex>& GA, double beta) {
-  return Spanner_impl(GA, beta);
+template <class Graph>
+inline pbbs::sequence<edge> Spanner(Graph& G, double beta) {
+  return Spanner_impl(G, beta);
 }
 
 }  // namespace cc
