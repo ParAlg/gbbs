@@ -30,15 +30,16 @@
 
 namespace cc {
 
-template <template <class W> class vertex, class W>
-inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
+template <class Graph>
+inline sequence<uintE> CC_impl(Graph& G, double beta,
                                  size_t level, bool pack = false,
                                  bool permute = false) {
-  size_t n = GA.n;
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
   permute |= (level > 0);
   timer ldd_t;
   ldd_t.start();
-  auto clusters = LDD(GA, beta, permute, pack);
+  auto clusters = LDD(G, beta, permute);
   ldd_t.stop();
   debug(ldd_t.reportTotal("ldd time"););
 
@@ -51,7 +52,7 @@ inline sequence<uintE> CC_impl(graph<vertex<W>>& GA, double beta,
   timer contract_t;
   contract_t.start();
 
-  auto c_out = contract::contract(GA, clusters, num_clusters);
+  auto c_out = contract::contract(G, clusters, num_clusters);
   contract_t.stop();
   debug(contract_t.reportTotal("contract time"););
   // flags maps from clusters -> no-singleton-clusters
@@ -105,9 +106,9 @@ inline size_t largest_cc(Seq& labels) {
   return sz;
 }
 
-template <class vertex>
-inline sequence<uintE> CC(graph<vertex>& GA, double beta = 0.2, bool pack = false, bool permute = false) {
-  return CC_impl(GA, beta, 0, pack, permute);
+template <class Graph>
+inline sequence<uintE> CC(Graph& G, double beta = 0.2, bool pack = false, bool permute = false) {
+  return CC_impl(G, beta, 0, pack, permute);
 }
 
 }  // namespace cc

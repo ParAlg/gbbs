@@ -252,9 +252,9 @@ inline auto get_deletion_fn(void* a, void* b, void* c, void* d) -> std::function
 template <class W>
 inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(edge_array<W>& A,
                                                       bool is_sorted = false) {
-  using wvertex = symmetric_vertex<W>;
+  using vertex = symmetric_vertex<W>;
   using edge = std::tuple<uintE, uintE, W>;
-  using E = typename wvertex::E;
+  using edge_type = typename vertex::edge_type;
   size_t m = A.non_zeros;
   size_t n = std::max<size_t>(A.num_cols, A.num_rows);
 
@@ -263,12 +263,13 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(edge_array<W>& 
       std::function<void()> del = []() {};
       return symmetric_graph<symmetric_vertex, W>(nullptr, 0, 0, del, nullptr);
     } else {
-      uintT* offsets = pbbs::new_array_no_init<uintT>(n+1);
+      auto v_data = pbbs::new_array_no_init<vertex_data>(n);
       par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-        offsets[i] = 0;
+        v_data[i].offset = 0;
+        v_data[i].degree = 0;
       });
-      std::function<void()> del = get_deletion_fn(offsets, nullptr);
-      return symmetric_graph<symmetric_vertex, W>(offsets, n, 0, del, nullptr);
+      std::function<void()> del = get_deletion_fn(v_data, nullptr);
+      return symmetric_graph<symmetric_vertex, W>(v_data, n, 0, del, nullptr);
     }
   }
 
@@ -280,7 +281,6 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(edge_array<W>& 
   }
 
   auto starts = sequence<uintT>(n);
-  uintT* offsets = pbbslib::new_array_no_init<uintT>(n+1);
   auto edges = sequence<uintE>(m, [&](size_t i) {
     // Fuse loops over edges (check if this helps)
     if (i == 0 || (std::get<0>(Am[i]) != std::get<0>(Am[i - 1]))) {
@@ -288,11 +288,12 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(edge_array<W>& 
     }
     return std::get<1>(Am[i]);
   });
+  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintT o = starts[i];
-    offsets[i]  = o;
+    v_data[i].offset = o;
+    v_data[i].degree = (uintE)(((i == (n-1)) ? m : starts[i+1]) - o);
   });
-  offsets[n] = m;
   auto edge_arr = edges.to_array();
-  return symmetric_graph<symmetric_vertex, W>(offsets, n, m, get_deletion_fn(offsets, edge_arr), (E*)edge_arr);
+  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, get_deletion_fn(v_data, edge_arr), (edge_type*)edge_arr);
 }

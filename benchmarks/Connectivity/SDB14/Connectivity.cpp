@@ -35,14 +35,14 @@
 #include "Connectivity.h"
 #include "ligra/ligra.h"
 
-template <class vertex>
-double CC_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double CC_runner(Graph& G, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
   std::cout << "### Application: CC (Connectivity)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << " -permute = " << P.getOption("-permute") << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
@@ -51,14 +51,14 @@ double CC_runner(graph<vertex>& GA, commandLine P) {
   assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
-  auto components = cc::CC(GA, beta, pack, P.getOption("-permute"));
+  auto components = cc::CC(G, beta, pack, P.getOption("-permute"));
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
   if (P.getOption("-stats")) {
     auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
-        pbbslib::make_sequence<uintE>(GA.n, cc_f);
+        pbbslib::make_sequence<uintE>(G.n, cc_f);
     cc::num_cc(cc_im);
     cc::largest_cc(cc_im);
   }
