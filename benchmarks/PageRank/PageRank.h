@@ -26,18 +26,19 @@
 
 #include <math.h>
 
-template <template <class W> class vertex, class W>
+template <class Graph>
 struct PR_F {
+  using W = typename Graph::weight_type;
   double* p_curr, *p_next;
-  vertex<W>* V;
-  PR_F(double* _p_curr, double* _p_next, vertex<W>* _V) :
-    p_curr(_p_curr), p_next(_p_next), V(_V) {}
+  Graph& G;
+  PR_F(double* _p_curr, double* _p_next, Graph& G) :
+    p_curr(_p_curr), p_next(_p_next), G(G) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){ //update function applies PageRank equation
-    p_next[d] += p_curr[s]/V[s].getOutDegree();
+    p_next[d] += p_curr[s]/G.get_vertex(s).getOutDegree();
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbs::fetch_and_add(&p_next[d],p_curr[s]/V[s].getOutDegree());
+    pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).getOutDegree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }};
@@ -69,9 +70,10 @@ struct PR_Vertex_Reset {
 };
 
 
-template <template <class W> class vertex, class W>
-void PageRank_edgeMap(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_iters = 100) {
-  const uintE n = GA.n;
+template <class Graph>
+void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
+  using W = typename Graph::weight_type;
+  const uintE n = G.n;
   const double damping = 0.85;
   const double addedConstant = (1 -damping)*(1/static_cast<double>(n));
 
@@ -82,7 +84,7 @@ void PageRank_edgeMap(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_it
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return GA.V[i].getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
 
@@ -90,7 +92,7 @@ void PageRank_edgeMap(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_it
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
-    edgeMap(GA,Frontier,PR_F<vertex, W>(p_curr.begin(),p_next.begin(),GA.V), 0, no_output);
+    edgeMap(G,Frontier,PR_F<Graph>(p_curr.begin(),p_next.begin(),G), 0, no_output);
     vertexMap(Frontier,PR_Vertex_F(p_curr.begin(),p_next.begin(),damping,n));
 
     // Check convergence: compute L1-norm between p_curr and p_next
@@ -115,9 +117,10 @@ void PageRank_edgeMap(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_it
   }
 }
 
-template <template <class W> class vertex, class W>
-void PageRank(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_iters = 100) {
-  const uintE n = GA.n;
+template <class Graph>
+void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
+  using W = typename Graph::weight_type;
+  const uintE n = G.n;
   const double damping = 0.85;
   const double addedConstant = (1 -damping)*(1/static_cast<double>(n));
 
@@ -126,15 +129,15 @@ void PageRank(graph<vertex<W>>& GA, double eps = 0.000001, size_t max_iters = 10
   auto p_next = pbbs::sequence<double>(n, static_cast<double>(0));
   auto frontier = pbbs::sequence<bool>(n, true);
   auto p_div = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return one_over_n / static_cast<double>(GA.V[i].getOutDegree());
+    return one_over_n / static_cast<double>(G.get_vertex(i).getOutDegree());
   });
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return GA.V[i].getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
-  auto EM = EdgeMap<double, vertex, W>(GA, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)GA.m/1000);
+  auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
 
   auto cond_f = [&] (const uintE& v) { return true; };
   auto map_f = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
@@ -187,13 +190,14 @@ struct delta_and_degree {
   double delta_over_degree;
 };
 
-template <template <class W> class vertex, class W>
+template <class Graph>
 struct PR_Delta_F {
-  vertex<W>* V;
+  using W = typename Graph::weight_type;
+  Graph& G;
   delta_and_degree* Delta;
   double* nghSum;
-  PR_Delta_F(vertex<W>* _V, delta_and_degree* _Delta, double* _nghSum) :
-    V(_V), Delta(_Delta), nghSum(_nghSum) {}
+  PR_Delta_F(Graph& G, delta_and_degree* _Delta, double* _nghSum) :
+    G(G), Delta(_Delta), nghSum(_nghSum) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){
     double oldVal = nghSum[d];
     nghSum[d] += Delta[s].delta_over_degree; // Delta[s].delta/Delta[s].degree; // V[s].getOutDegree();
@@ -209,10 +213,11 @@ struct PR_Delta_F {
   inline bool cond (uintE d) { return cond_true(d); }
 };
 
-template <template <class W> class vertex, class W, class E>
-void sparse_or_dense(graph<vertex<W>>& GA, E& EM, vertexSubset& Frontier, delta_and_degree* Delta, double* nghSum, const flags fl) {
+template <class Graph, class E>
+void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* Delta, double* nghSum, const flags fl) {
+  using W = typename Graph::weight_type;
 
-  if (Frontier.size() > GA.n/5) {
+  if (Frontier.size() > G.n/5) {
     Frontier.toDense();
 
     auto cond_f = [&] (size_t i) {
@@ -220,7 +225,7 @@ void sparse_or_dense(graph<vertex<W>>& GA, E& EM, vertexSubset& Frontier, delta_
     };
     auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) -> double {
       if (Frontier.d[d]) {
-        return Delta[d].delta_over_degree; // Delta[d]/GA.V[d].getOutDegree();
+        return Delta[d].delta_over_degree; // Delta[d]/G.V[d].getOutDegree();
       } else {
         return static_cast<double>(0);
       }
@@ -241,7 +246,7 @@ void sparse_or_dense(graph<vertex<W>>& GA, E& EM, vertexSubset& Frontier, delta_
 
     dt.stop(); dt.reportTotal("dense time");
   } else {
-    edgeMap(GA,Frontier,PR_Delta_F<vertex, W>(GA.V,Delta,nghSum),GA.m/2, no_output);
+    edgeMap(G,Frontier,PR_Delta_F<Graph>(G,Delta,nghSum),G.m/2, no_output);
   }
 }
 
@@ -303,9 +308,10 @@ auto make_PR_Vertex_F(double* p, delta_and_degree* delta, double* nghSum, double
   return PR_Vertex_F<G>(p, delta, nghSum, damping, epsilon2, get_degree);
 }
 
-template <template <class W> class vertex, class W>
-void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0.01, size_t max_iters=100) {
-  const long n = GA.n;
+template <class Graph>
+void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t max_iters=100) {
+  using W = typename Graph::weight_type;
+  const long n = G.n;
   const double damping = 0.85;
 
   double one_over_n = 1/(double)n;
@@ -314,7 +320,7 @@ void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0
   auto nghSum = pbbs::sequence<double>(n);
   auto frontier = pbbs::sequence<bool>(n);
   parallel_for(0, n, [&] (size_t i) {
-    uintE degree = GA.V[i].getOutDegree();
+    uintE degree = G.get_vertex(i).getOutDegree();
     p[i] = 0.0;//one_over_n;
     Delta[i].delta = one_over_n; //initial delta propagation from each vertex
     Delta[i].delta_over_degree = one_over_n/degree;
@@ -322,8 +328,8 @@ void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0
     frontier[i] = 1;
   });
 
-  auto get_degree = [&] (size_t i) { return GA.V[i].getOutDegree(); };
-  auto EM = EdgeMap<double, vertex, W>(GA, std::make_tuple(UINT_E_MAX, (double)0.0), (size_t)GA.m/1000);
+  auto get_degree = [&] (size_t i) { return G.get_vertex(i).getOutDegree(); };
+  auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, (double)0.0), (size_t)G.m/1000);
   vertexSubset Frontier(n,n,frontier.to_array());
   auto all = pbbs::sequence<bool>(n, true);
   vertexSubset All(n,n,all.to_array()); //all vertices
@@ -331,7 +337,7 @@ void PageRankDelta(graph<vertex<W>>& GA, double eps=0.000001, double local_eps=0
   long round = 0;
   while(round++ < max_iters) {
     timer t; t.start();
-    sparse_or_dense(GA, EM, Frontier, Delta.begin(), nghSum.begin(), no_output);
+    sparse_or_dense(G, EM, Frontier, Delta.begin(), nghSum.begin(), no_output);
     vertexSubset active
       = (round == 1) ?
       vertexFilter2(All,delta::make_PR_Vertex_F_FirstRound(p.begin(),Delta.begin(),nghSum.begin(),damping,one_over_n,local_eps,get_degree)) :

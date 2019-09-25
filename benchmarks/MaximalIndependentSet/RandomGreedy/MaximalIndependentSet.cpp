@@ -36,14 +36,14 @@
 #include "MaximalIndependentSet.h"
 #include "ligra/ligra.h"
 
-template <class vertex>
-double MaximalIndependentSet_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   bool spec_for = P.getOption("-specfor");
   std::cout << "### Application: MaximalIndependentSet" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
@@ -54,30 +54,30 @@ double MaximalIndependentSet_runner(graph<vertex>& GA, commandLine P) {
   // and rootset are different
   if (spec_for) {
     timer t; t.start();
-    auto MaximalIndependentSet = MaximalIndependentSet_spec_for::MaximalIndependentSet(GA);
+    auto MaximalIndependentSet = MaximalIndependentSet_spec_for::MaximalIndependentSet(G);
     // in spec_for, MaximalIndependentSet[i] == 1 indicates that i was chosen
     tt = t.stop();
     auto size_f = [&](size_t i) { return (MaximalIndependentSet[i] == 1); };
     auto size_imap =
-        pbbslib::make_sequence<size_t>(GA.n, size_f);
+        pbbslib::make_sequence<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
       std::cout << "MaximalIndependentSet size: " << pbbslib::reduce_add(size_imap) << "\n";
     }
     if (P.getOptionValue("-verify")) {
-      verify_MaximalIndependentSet(GA, size_imap);
+      verify_MaximalIndependentSet(G, size_imap);
     }
   } else {
     timer t; t.start();
-    auto MaximalIndependentSet = MaximalIndependentSet_rootset::MaximalIndependentSet(GA);
+    auto MaximalIndependentSet = MaximalIndependentSet_rootset::MaximalIndependentSet(G);
     tt = t.stop();
     auto size_f = [&](size_t i) { return MaximalIndependentSet[i]; };
     auto size_imap =
-        pbbslib::make_sequence<size_t>(GA.n, size_f);
+        pbbslib::make_sequence<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
       std::cout << "MaximalIndependentSet size: " << pbbslib::reduce_add(size_imap) << "\n";
     }
     if (P.getOptionValue("-verify")) {
-      verify_MaximalIndependentSet(GA, size_imap);
+      verify_MaximalIndependentSet(G, size_imap);
     }
   }
 

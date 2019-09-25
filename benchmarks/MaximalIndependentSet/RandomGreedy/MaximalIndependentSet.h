@@ -31,29 +31,30 @@
 
 namespace MaximalIndependentSet_rootset {
 
-template <template <class W> class vertex, class W, class Fl>
-inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
-  auto d = sequence<uintE>(GA.n, (uintE)0);
+template <class Graph, class Fl>
+inline void verify_mis(Graph& G, Fl& in_mis) {
+  using W = typename Graph::weight_type;
+  auto d = sequence<uintE>(G.n, (uintE)0);
   auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     if (!d[ngh]) {
       d[ngh] = 1;
     }
   };
-  par_for(0, GA.n, [&] (size_t i) {
+  par_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
-      GA.V[i].mapOutNgh(i, map_f);
+      G.get_vertex(i).mapOutNgh(i, map_f);
     }
   });
-  par_for(0, GA.n, [&] (size_t i) {
+  par_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
       assert(!d[i]);
     }
   });
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
-      pbbslib::make_sequence<size_t>(GA.n, mis_f);
+      pbbslib::make_sequence<size_t>(G.n, mis_f);
   size_t mis_size = pbbslib::reduce_add(mis_int);
-  if (pbbslib::reduce_add(d) != (GA.n - mis_size)) {
+  if (pbbslib::reduce_add(d) != (G.n - mis_size)) {
     std::cout << "MaximalIndependentSet incorrect"
               << "\n";
     assert(false);
@@ -62,17 +63,18 @@ inline void verify_mis(graph<vertex<W>>& GA, Fl& in_mis) {
             << "\n";
 }
 
-template <template <class W> class vertex, class W, class VS, class P>
-inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
+template <class Graph, class VS, class P>
+inline vertexSubset get_nghs(Graph& G, VS& vs, P p) {
+  using W = typename Graph::weight_type;
   vs.toSparse();
   assert(!vs.isDense);
-  auto deg_f =  [&](size_t i) { return GA.V[vs.vtx(i)].getOutDegree(); };
+  auto deg_f =  [&](size_t i) { return G.get_vertex(vs.vtx(i)).getOutDegree(); };
   auto deg_im = pbbslib::make_sequence<size_t>(
       vs.size(), deg_f);
   size_t sum_d = pbbslib::reduce_add(deg_im);
 
-  if (sum_d > GA.m / 100) {  // dense forward case
-    auto dense = sequence<bool>(GA.n, false);
+  if (sum_d > G.m / 100) {  // dense forward case
+    auto dense = sequence<bool>(G.n, false);
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       if (p(ngh) && !dense[ngh]) {
         dense[ngh] = 1;
@@ -80,9 +82,9 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
     };
     par_for(0, vs.size(), [&] (size_t i) {
       uintE v = vs.vtx(i);
-      GA.V[v].mapOutNgh(v, map_f);
+      G.get_vertex(v).mapOutNgh(v, map_f);
     });
-    return vertexSubset(GA.n, dense.to_array());
+    return vertexSubset(G.n, dense.to_array());
   } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
     debug(std::cout << "sum_d = " << sum_d << std::endl;);
     auto ht = make_sparse_table<uintE, pbbslib::empty>(
@@ -96,12 +98,12 @@ inline vertexSubset get_nghs(graph<vertex<W>>& GA, VS& vs, P p) {
         }
       };
       uintE v = vs.vtx(i);
-      GA.V[v].mapOutNgh(v, map_f);
+      G.get_vertex(v).mapOutNgh(v, map_f);
     });
     auto nghs = ht.entries();
     ht.del();
     size_t nghs_size = nghs.size();
-    return vertexSubset(GA.n, nghs_size, (uintE*)nghs.to_array());
+    return vertexSubset(G.n, nghs_size, (uintE*)nghs.to_array());
   }
 }
 
@@ -152,11 +154,12 @@ struct mis_f_2 {
   inline bool cond(uintE d) { return (p[d] > 0); }  // still live
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<bool> MaximalIndependentSet(graph<vertex<W>>& GA) {
+template <class Graph>
+inline sequence<bool> MaximalIndependentSet(Graph& G) {
+  using W = typename Graph::weight_type;
   timer init_t;
   init_t.start();
-  size_t n = GA.n;
+  size_t n = G.n;
 
   // compute the priority DAG
   auto priorities = sequence<intE>(n);
@@ -167,7 +170,7 @@ inline sequence<bool> MaximalIndependentSet(graph<vertex<W>>& GA) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
     };
-    priorities[i] = GA.V[i].countOutNgh(i, count_f);
+    priorities[i] = G.get_vertex(i).countOutNgh(i, count_f);
   });
   init_t.stop();
   debug(init_t.reportTotal("init"););
@@ -194,7 +197,7 @@ inline sequence<bool> MaximalIndependentSet(graph<vertex<W>>& GA) {
 
     // compute neighbors of roots that are still live
     auto removed = get_nghs(
-        GA, roots, [&](const uintE& ngh) { return priorities[ngh] > 0; });
+        G, roots, [&](const uintE& ngh) { return priorities[ngh] > 0; });
     vertexMap(removed, [&](uintE v) { priorities[v] = 0; });
 
     // compute the new roots: neighbors of removed that have their priorities
@@ -203,7 +206,7 @@ inline sequence<bool> MaximalIndependentSet(graph<vertex<W>>& GA) {
     timer nr;
     nr.start();
     auto new_roots =
-        edgeMap(GA, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
+        edgeMap(G, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
     nr.stop();
     nr.reportTotal("new roots time");
 
@@ -225,13 +228,14 @@ namespace MaximalIndependentSet_spec_for {
 //   Flags = 0 indicates undecided
 //   Flags = 1 indicates chosen
 //   Flags = 2 indicates a neighbor is chosen
-template <template <class W> class vertex, class W>
+template <class Graph>
 struct MaximalIndependentSetstep {
+  using W = typename Graph::weight_type;
   char* FlagsNext;
   char* Flags;
-  graph<vertex<W>>& G;
+  Graph& G;
 
-  MaximalIndependentSetstep(char* _PF, char* _F, graph<vertex<W>>& _G)
+  MaximalIndependentSetstep(char* _PF, char* _F, Graph& _G)
       : FlagsNext(_PF), Flags(_F), G(_G) {}
 
   bool reserve(intT i) {
@@ -254,7 +258,7 @@ struct MaximalIndependentSetstep {
     using E = std::tuple<int, int>;
     auto id = std::make_tuple(0, 0);
     auto monoid = pbbslib::make_monoid(red_f, id);
-    auto res = G.V[i].template reduceOutNgh<E>(i, map_f, monoid);
+    auto res = G.get_vertex(i).template reduceOutNgh<E>(i, map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
     } else if (std::get<1>(res) > 0) {
@@ -266,26 +270,28 @@ struct MaximalIndependentSetstep {
   bool commit(intT i) { return (Flags[i] = FlagsNext[i]) > 0; }
 };
 
-template <template <class W> class vertex, class W>
-inline sequence<char> MaximalIndependentSet(graph<vertex<W>>& GA) {
-  size_t n = GA.n;
+template <class Graph>
+inline sequence<char> MaximalIndependentSet(Graph& G) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
   auto Flags = sequence<char>(n, [&](size_t i) { return 0; });
   auto FlagsNext = sequence<char>(n);
-  auto mis = MaximalIndependentSetstep<vertex, W>(FlagsNext.begin(), Flags.begin(), GA);
+  auto mis = MaximalIndependentSetstep<Graph>(FlagsNext.begin(), Flags.begin(), G);
   eff_for<uintE>(mis, 0, n, 50);
   return Flags;
 }
 };  // namespace MaximalIndependentSet_spec_for
 
-template <template <class W> class vertex, class W, class Seq>
-inline void verify_MaximalIndependentSet(graph<vertex<W>>& GA, Seq& mis) {
-  size_t n = GA.n;
+template <class Graph, class Seq>
+inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
   auto ok = sequence<bool>(n, [&](size_t i) { return 1; });
   par_for(0, n, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
-    size_t ct = GA.V[i].countOutNgh(i, pred);
+    size_t ct = G.get_vertex(i).countOutNgh(i, pred);
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
   auto ok_f = [&](size_t i) { return ok[i]; };

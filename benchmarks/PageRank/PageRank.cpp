@@ -33,13 +33,13 @@
 
 #include "PageRank.h"
 
-template <class vertex>
-double PageRank_runner(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double PageRank_runner(Graph& G, commandLine P) {
   std::cout << "### Application: PageRank" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001) << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
@@ -48,11 +48,11 @@ double PageRank_runner(graph<vertex>& GA, commandLine P) {
   double local_eps = P.getOptionDoubleValue("-leps", 0.01);
   size_t iters = P.getOptionLongValue("-iters", 100);
   if (P.getOptionValue("-em")) {
-    PageRank_edgeMap(GA, eps, iters);
+    PageRank_edgeMap(G, eps, iters);
   } else if (P.getOptionValue("-delta")) {
-    delta::PageRankDelta(GA, eps, local_eps, iters);
+    delta::PageRankDelta(G, eps, local_eps, iters);
   } else {
-    PageRank(GA, eps, iters);
+    PageRank(G, eps, iters);
   }
   double tt = t.stop();
 
