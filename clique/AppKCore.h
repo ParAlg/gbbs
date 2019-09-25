@@ -31,7 +31,8 @@
 #include "pbbslib/dyn_arr.h"
 #include "intersect.h"
 #include "radix_wrapper.h"
-#include "benchmark/DensestSubgraph.h"
+#include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
+#include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
 
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
@@ -52,8 +53,8 @@ inline uintE* rankNodes(vertex* V, size_t n) {
 }
 
 // TODO densest subgraph paper to approximate alpha, 
-template<template <typename W> class vertex, class W>
-inline sequence<uintE> DensestAppDegenOrder(graph<vertex<W>>& GA, double epsilon=0.001, bool approx=false) {
+template<class Graph>
+inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.001, bool approx=false) {
   double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
   const size_t n = GA.n;
   const size_t deg_cutoff = std::max((size_t) (ceil(alpha * epsilon)), (size_t) 1);
@@ -61,8 +62,8 @@ inline sequence<uintE> DensestAppDegenOrder(graph<vertex<W>>& GA, double epsilon
     return i;
   });
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
+  auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
   auto get_deg =
       [&](uintE& p) -> uintE { return D[p] < deg_cutoff; };
@@ -73,7 +74,7 @@ inline sequence<uintE> DensestAppDegenOrder(graph<vertex<W>>& GA, double epsilon
     auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
       return D[i + start] < deg_cutoff ? i + start : 0;});
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
-    
+
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -96,8 +97,8 @@ inline sequence<uintE> DensestAppDegenOrder(graph<vertex<W>>& GA, double epsilon
 
 // Goodrich (2+epsilon) approx for degeneracy ordering where epsilon > 0
 // Returns vertice sorted in degeneracy order
-template<template <typename W> class vertex, class W>
-inline sequence<uintE> AppKCore(graph<vertex<W>>& GA, double epsilon=0.001) {
+template<class Graph>
+inline sequence<uintE> AppKCore(Graph& GA, double epsilon=0.001) {
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 
@@ -105,8 +106,8 @@ inline sequence<uintE> AppKCore(graph<vertex<W>>& GA, double epsilon=0.001) {
     return i;
   });
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.V[i].getOutDegree(); });
-  auto em = EdgeMap<uintE, vertex, W>(GA, std::make_tuple(UINT_E_MAX, 0),
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
+  auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
   auto get_deg =
       [&](uintE& p) -> uintE { return D[p]; };
@@ -145,8 +146,8 @@ inline sequence<uintE> AppKCore(graph<vertex<W>>& GA, double epsilon=0.001) {
 
 // can preinitialize k arrays of size n for each processor, and reuse when you do mem allocations -- check
 // which processor is doing allocation and get the space assoc w/that processor
-template <template <class W> class vertex, class W>
-inline size_t KCliqueDir_rec(graph<vertex<W>>& DG, size_t k_idx, size_t k, sequence<uintE> base) {
+template <class Graph>
+inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, sequence<uintE> base) {
   // intersect outneighbors of verts in base
   auto lst_intersect = kintersect(DG, base, k_idx); // TODO hash table?, vectors, induced subgraph
   size_t num_intersect = lst_intersect.size();
@@ -168,8 +169,8 @@ inline size_t KCliqueDir_rec(graph<vertex<W>>& DG, size_t k_idx, size_t k, seque
   return total_ct;
 }
 
-template <template <class W> class vertex, class W>
-inline size_t KCliqueDir(graph<vertex<W>>& DG, size_t k) {
+template <class Graph>
+inline size_t KCliqueDir(Graph& DG, size_t k) {
   // TODO divide work -- statically or by estimating prefix sum stuff
   auto tots = sequence<size_t>::no_init(DG.n);
   parallel_for (0, DG.n,[&] (size_t i) {
@@ -182,8 +183,8 @@ inline size_t KCliqueDir(graph<vertex<W>>& DG, size_t k) {
 }
 
 // base must have space for k if count_only = false
-template <template <class W> class vertex, class W, class S, class F, class G>
-inline size_t KCliqueIndDir_rec(graph<vertex<W>>& DG, size_t k_idx, size_t k, S induced, F lstintersect,
+template <class Graph, class S, class F, class G>
+inline size_t KCliqueIndDir_rec(Graph& DG, size_t k_idx, size_t k, S induced, F lstintersect,
   sequence<uintE> base, G g_f, bool count_only = true) {
   size_t num_intersect = induced.size();
 
@@ -215,8 +216,8 @@ inline size_t KCliqueIndDir_rec(graph<vertex<W>>& DG, size_t k_idx, size_t k, S 
   return total_ct;
 }
 
-template <template <class W> class vertex, class W, class F, class G>
-inline size_t KCliqueIndDir(graph<vertex<W>>& DG, size_t k, F lstintersect, G g_f, bool count_only = true) {
+template <class Graph, class F, class G>
+inline size_t KCliqueIndDir(Graph& DG, size_t k, F lstintersect, G g_f, bool count_only = true) {
   // TODO divide work -- statically or by estimating prefix sum stuff
   auto tots = sequence<size_t>::no_init(DG.n);
   parallel_for (0, DG.n,[&] (size_t i) {
@@ -225,7 +226,7 @@ inline size_t KCliqueIndDir(graph<vertex<W>>& DG, size_t k, F lstintersect, G g_
       base = sequence<uintE>::no_init(k);
       base[0] = i;
     }
-    auto induced = pbbslib::make_sequence<uintE>((uintE*)(DG.V[i].getOutNeighbors()), DG.V[i].getOutDegree());
+    auto induced = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(i).getOutNeighbors()), DG.get_vertex(i).getOutDegree());
     tots[i] = KCliqueIndDir_rec(DG, 1, k, induced, lstintersect, base, g_f, count_only);
   });
   return pbbslib::reduce_add(tots);
@@ -237,24 +238,26 @@ inline size_t KCliqueIndDir(graph<vertex<W>>& DG, size_t k, F lstintersect, G g_
 // -i 0 (simple gbbs intersect), -i 1 (set intersect), -i 2 (simd intersect)
 
 // todo approx work and do some kind of break in gen if too much
-template <template <class W> class vertex, class W>
-inline size_t KClique(graph<vertex<W>>& GA, size_t k, double epsilon=0.001,
+template <class Graph>
+inline size_t KClique(Graph& GA, size_t k, double epsilon=0.001,
   bool induced = true, bool gen = true, long inter = 0, long order = 0) {
+  using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;
   else if (k == 2) return GA.m;
 
+  sequence<uintE> rank;
   timer t_rank; t_rank.start();
-  if (order == 0) auto rank = AppKCore(GA, epsilon);
-  else if (order == 1) auto rank = DensestAppDegenOrder(GA, epsilon, false);
-  else auto rank = DensestAppDegenOrder(GA, epsilon, true);
+  if (order == 0) rank = AppKCore(GA, epsilon);
+  else if (order == 1) rank = DensestAppDegenOrder(GA, epsilon, false);
+  else rank = DensestAppDegenOrder(GA, epsilon, true);
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DG = filter_graph<vertex, W>(GA, pack_predicate);
+  auto DG = filter_graph(GA, pack_predicate);
   auto nop_f = [&] (sequence<uintE> b) {return;};
 
   timer t; t.start();
@@ -280,13 +283,13 @@ inline size_t KClique(graph<vertex<W>>& GA, size_t k, double epsilon=0.001,
 
 // TODO keep array of size order alpha per processor???
 
-template <template <class W> class vertex, class W, class F, class G>
-inline size_t KCliqueIndGenDir(graph<vertex<W>>& DG, size_t k, F lstintersect, G g_f, bool count_only = true) {
+template <class Graph, class F, class G>
+inline size_t KCliqueIndGenDir(Graph& DG, size_t k, F lstintersect, G g_f, bool count_only = true) {
 switch (k) {
  case 2:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -315,7 +318,7 @@ switch (k) {
  case 3:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -353,7 +356,7 @@ switch (k) {
  case 4:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -400,7 +403,7 @@ switch (k) {
  case 5:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -456,7 +459,7 @@ switch (k) {
  case 6:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -521,7 +524,7 @@ switch (k) {
  case 7:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -595,7 +598,7 @@ switch (k) {
  case 8:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -678,7 +681,7 @@ switch (k) {
  case 9:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
@@ -770,7 +773,7 @@ switch (k) {
  default:
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.V[a].getOutNeighbors()), DG.V[a].getOutDegree());
+ auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto storeb = sequence<size_t>::no_init(induceda.size());
  parallel_for (0, induceda.size(), [&] (size_t b) {
  auto tupleb = lstintersect(DG, induceda[b], induceda, true);

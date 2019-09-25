@@ -12,14 +12,14 @@
 #include "simdinter/include/intersection.h"
 
 struct lstintersect_par_struct {
-  template <template <typename W> class vertex, class W, class S>
-  std::tuple<sequence<uintE>, size_t> operator()(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) const {
+  template <class Graph, class W, class S>
+  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_par(DG, vtx, induced, save);
   }
 };
 
-template <template <typename W> class vertex, class W, class S>
-inline std::tuple<sequence<uintE>, size_t> lstintersect_par(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) {
+template <class Graph, class W, class S>
+inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx, S induced, bool save = true) {
   auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[vtx].getOutNeighbors()), DG.V[vtx].getOutDegree());
   size_t index = 0;
   if (!save) {
@@ -42,15 +42,15 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_par(graph<vertex<W>>& DG
 }
 
 struct lstintersect_set_struct {
-  template <template <typename W> class vertex, class W, class S>
-  std::tuple<std::vector<uintE>, size_t> operator()(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) const {
+  template <class Graph, class W, class S>
+  std::tuple<std::vector<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_set(DG, vtx, induced, save);
   }
 };
 
 // make sure set intersection is stable
-template <template <typename W> class vertex, class W, class S>
-inline std::tuple<std::vector<uintE>, size_t> lstintersect_set(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) {
+template <class Graph, class W, class S>
+inline std::tuple<std::vector<uintE>, size_t> lstintersect_set(Graph& DG, uintE vtx, S induced, bool save = true) {
   auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[vtx].getOutNeighbors()), DG.V[vtx].getOutDegree());
   std::vector<uintE> out;
   std::set_intersection(induced.begin(), induced.end(), vtx_seq.begin(), vtx_seq.end(), std::back_inserter(out));
@@ -58,15 +58,15 @@ inline std::tuple<std::vector<uintE>, size_t> lstintersect_set(graph<vertex<W>>&
 }
 
 struct lstintersect_vec_struct {
-  template <template <typename W> class vertex, class W, class S>
-  std::tuple<sequence<uintE>, size_t> operator()(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) const {
+  template <class Graph, class W, class S>
+  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_vec(DG, vtx, induced, save);
   }
 };
 
 // TODO radix sort in place
-template <template <typename W> class vertex, class W, class S>
-inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(graph<vertex<W>>& DG, uintE vtx, S induced, bool save = true) {
+template <class Graph, class W, class S>
+inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(Graph& DG, uintE vtx, S induced, bool save = true) {
   auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[vtx].getOutNeighbors()), DG.V[vtx].getOutDegree());
   auto out = sequence<uintE>::no_init(std::min(induced.size(), vtx_seq.size()));
   SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
@@ -78,8 +78,8 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(graph<vertex<W>>& DG
   return std::make_tuple(out, out_size);
 }
 
-template <template <typename W> class vertex, class W>
-inline sequence<uintE> kintersect(graph<vertex<W>>& DG, sequence<uintE> base, size_t num) {
+template <class Graph, class W>
+inline sequence<uintE> kintersect(Graph& DG, sequence<uintE> base, size_t num) {
   if (num == 1) {
     uintT deg = DG.V[base[0]].getOutDegree();
     uintE* ngh = (uintE*)(DG.V[base[0]].getOutNeighbors());
