@@ -38,11 +38,12 @@
 
 template <class vertex>
 double AppKCore_runner(graph<vertex>& GA, commandLine P) {
-  double epsilon = P.getOptionDoubleValue("-e", 0.1);
+  double epsilon = P.getOptionDoubleValue("-e", 0.001);
   bool induced = P.getOptionValue("-induced");
   bool gen = P.getOptionValue("-gen");
   long inter = P.getOptionLongValue("-i", 0);
   long k = P.getOptionLongValue("-k", 3);
+  long order = P.geetOptionLongValue("-o", 0);
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -54,7 +55,7 @@ double AppKCore_runner(graph<vertex>& GA, commandLine P) {
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, epsilon, induced, gen, inter);
+  auto count = KClique(GA, k, epsilon, induced, gen, inter, order);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

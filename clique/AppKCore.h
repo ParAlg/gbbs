@@ -53,8 +53,8 @@ inline uintE* rankNodes(vertex* V, size_t n) {
 
 // TODO densest subgraph paper to approximate alpha, 
 template<template <typename W> class vertex, class W>
-inline sequence<uintE> DensestAppDegenOrder(graph<vertex<W>>& GA, double epsilon=0.001) {
-  double alpha = WorkEfficientDensestSubgraph(GA, epsilon);
+inline sequence<uintE> DensestAppDegenOrder(graph<vertex<W>>& GA, double epsilon=0.001, bool approx=false) {
+  double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
   const size_t n = GA.n;
   const size_t deg_cutoff = std::max((size_t) (ceil(alpha * epsilon)), (size_t) 1);
   auto sortD = sequence<uintE>(n, [&](size_t i) {
@@ -238,13 +238,16 @@ inline size_t KCliqueIndDir(graph<vertex<W>>& DG, size_t k, F lstintersect, G g_
 
 // todo approx work and do some kind of break in gen if too much
 template <template <class W> class vertex, class W>
-inline size_t KClique(graph<vertex<W>>& GA, size_t k, double epsilon=0.1, bool induced = true, bool gen = true, long inter = 0) {
+inline size_t KClique(graph<vertex<W>>& GA, size_t k, double epsilon=0.001,
+  bool induced = true, bool gen = true, long inter = 0, long order = 0) {
   assert (k >= 1);
   if (k == 1) return GA.n;
   else if (k == 2) return GA.m;
 
   timer t_rank; t_rank.start();
-  auto rank = AppKCore(GA, epsilon);
+  if (order == 0) auto rank = AppKCore(GA, epsilon);
+  else if (order == 1) auto rank = DensestAppDegenOrder(GA, epsilon, false);
+  else auto rank = DensestAppDegenOrder(GA, epsilon, true);
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 
