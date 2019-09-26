@@ -54,7 +54,7 @@ inline uintE* rankNodes(vertex* V, size_t n) {
 
 // TODO densest subgraph paper to approximate alpha, 
 template<class Graph>
-inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.001, bool approx=false) {
+inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.1, bool approx=false) {
   double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
   const size_t n = GA.n;
   const size_t deg_cutoff = std::max((size_t) (ceil(alpha * epsilon)), (size_t) 1);
@@ -70,11 +70,12 @@ inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.001, boo
   size_t start = 0;
   while (start < n) {
     // move all vert with deg < deg_cutoff in the front
+    //integer_sort_inplace(sortD.slice(start, n), get_deg);
     radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
     auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
-      return D[i + start] < deg_cutoff ? i + start : 0;});
+      return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
-
+    if (end == start) end++;
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -181,6 +182,10 @@ inline size_t KCliqueDir(Graph& DG, size_t k) {
   });
   return pbbslib::reduce_add(tots);
 }
+// STACK allocatee when < 1000 or something
+// threshold alpha
+// pbbslib list allocator
+
 
 // base must have space for k if count_only = false
 template <class Graph, class S, class F, class G>
