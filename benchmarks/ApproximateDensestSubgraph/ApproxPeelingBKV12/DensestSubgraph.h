@@ -24,7 +24,7 @@
 #include "ligra/ligra.h"
 
 template <class Graph>
-void WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
+double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   using W = typename Graph::weight_type;
   const size_t n = G.n;
   auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 15);
@@ -140,4 +140,5 @@ void WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     pbbs::free_array(last_arr);
   }
   cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  return max_density;
 }

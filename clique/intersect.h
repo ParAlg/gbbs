@@ -12,15 +12,15 @@
 #include "simdinter/include/intersection.h"
 
 struct lstintersect_par_struct {
-  template <class Graph, class W, class S>
+  template <class Graph, class S>
   std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_par(DG, vtx, induced, save);
   }
 };
 
-template <class Graph, class W, class S>
+template <class Graph, class S>
 inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx, S induced, bool save = true) {
-  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[vtx].getOutNeighbors()), DG.V[vtx].getOutDegree());
+  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
   size_t index = 0;
   if (!save) {
     auto merge_f = [&] (uintE ngh) {};
@@ -42,32 +42,32 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx
 }
 
 struct lstintersect_set_struct {
-  template <class Graph, class W, class S>
+  template <class Graph, class S>
   std::tuple<std::vector<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_set(DG, vtx, induced, save);
   }
 };
 
 // make sure set intersection is stable
-template <class Graph, class W, class S>
+template <class Graph, class S>
 inline std::tuple<std::vector<uintE>, size_t> lstintersect_set(Graph& DG, uintE vtx, S induced, bool save = true) {
-  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[vtx].getOutNeighbors()), DG.V[vtx].getOutDegree());
+  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
   std::vector<uintE> out;
   std::set_intersection(induced.begin(), induced.end(), vtx_seq.begin(), vtx_seq.end(), std::back_inserter(out));
   return std::make_tuple(out, out.size());
 }
 
 struct lstintersect_vec_struct {
-  template <class Graph, class W, class S>
+  template <class Graph, class S>
   std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_vec(DG, vtx, induced, save);
   }
 };
 
 // TODO radix sort in place
-template <class Graph, class W, class S>
+template <class Graph, class S>
 inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(Graph& DG, uintE vtx, S induced, bool save = true) {
-  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[vtx].getOutNeighbors()), DG.V[vtx].getOutDegree());
+  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
   auto out = sequence<uintE>::no_init(std::min(induced.size(), vtx_seq.size()));
   SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
   size_t out_size = inter(induced.begin(), induced.size(), vtx_seq.begin(), vtx_seq.size(), out.begin());
@@ -78,11 +78,11 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(Graph& DG, uintE vtx
   return std::make_tuple(out, out_size);
 }
 
-template <class Graph, class W>
+template <class Graph>
 inline sequence<uintE> kintersect(Graph& DG, sequence<uintE> base, size_t num) {
   if (num == 1) {
-    uintT deg = DG.V[base[0]].getOutDegree();
-    uintE* ngh = (uintE*)(DG.V[base[0]].getOutNeighbors());
+    uintT deg = DG.get_vertex(base[0]).getOutDegree();
+    uintE* ngh = (uintE*)(DG.get_vertex(base[0]).getOutNeighbors());
     return pbbslib::make_sequence<uintE>(ngh, deg);
   }
 
@@ -90,11 +90,11 @@ inline sequence<uintE> kintersect(Graph& DG, sequence<uintE> base, size_t num) {
   auto base_idxs = sequence<size_t>::no_init(num);
   parallel_for (0,num,[&] (size_t i) { base_idxs[i] = i; });
   auto base_deg_f = [&](size_t i, size_t j) -> size_t {
-    return DG.V[base[i]].getOutDegree() < DG.V[base[j]].getOutDegree() ? i : j;
+    return DG.get_vertex(base[i]).getOutDegree() < DG.get_vertex(base[j]).getOutDegree() ? i : j;
   };
   size_t min_base = pbbslib::reduce(base_idxs, pbbslib::make_monoid(base_deg_f, 0));
-  size_t min_deg = DG.V[base[min_base]].getOutDegree();
-  auto min_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[base[min_base]].getOutNeighbors()), min_deg);
+  size_t min_deg = DG.get_vertex(base[min_base]).getOutDegree();
+  auto min_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(base[min_base]).getOutNeighbors()), min_deg);
 
   // set up array to mark where min seq intersects with other outneighbors in base
   auto marks = sequence<bool>(min_deg * (num - 1), false);
@@ -106,7 +106,7 @@ inline sequence<uintE> kintersect(Graph& DG, sequence<uintE> base, size_t num) {
       size_t j = pbbslib::binary_search(min_seq, ngh, std::less<size_t>());
       marks[min_deg * idx + j] = true;
     };
-    auto a_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.V[base[i]].getOutNeighbors()), DG.V[base[i]].getOutDegree());
+    auto a_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(base[i]).getOutNeighbors()), DG.get_vertex(base[i]).getOutDegree());
     intersection::merge(min_seq, a_seq, merge_f);
     }
   });
