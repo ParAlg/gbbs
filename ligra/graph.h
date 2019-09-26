@@ -93,9 +93,15 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
   }
 #endif
 
-  /* degree must be <= old_degree */
-  void decrease_degree(uintE i, uintE degree) {
-    v_data[i].degree = degree;
+  template <class P>
+  uintE pack_neighbors(uintE id, P& p, std::tuple<uintE, W>* tmp) {
+    uintE new_degree = get_vertex(id).packOutNgh(id, p, tmp);
+    v_data[id].degree = new_degree; /* updates the degree */
+    return new_degree;
+  }
+
+  void zero_vertex_degree(uintE id) {
+    v_data[id].degree = 0;
   }
 
   template <class F>

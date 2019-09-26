@@ -243,10 +243,6 @@ struct compressed_symmetric_vertex {
     return in_block_degree(block_num);
   }
 
-  void setInNeighbors(edge_type* _i) { neighbors = _i; }
-  void setOutNeighbors(edge_type* _i) { neighbors = _i; }
-  void setInDegree(uintE _d) { degree = _d; }
-  void setOutDegree(uintE _d) { degree = _d; }
   void flipEdges() {}
   void clear() {}
 
@@ -397,7 +393,6 @@ struct compressed_symmetric_vertex {
   inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
                                             getInNeighbors(), pred, tmp);
-    setInDegree(deg);
     return deg;
   }
 
@@ -421,7 +416,6 @@ struct compressed_symmetric_vertex {
     if (orig_degree > 0) {
       size_t deg = cvertex::packNghs<W, C, P>(vtx_id, orig_degree,
                                               getOutNeighbors(), pred, tmp);
-      setOutDegree(deg);
       return deg;
     }
     return orig_degree;
@@ -508,10 +502,6 @@ struct compressed_asymmetric_vertex {
     return C::get_block_degree(outNeighbors, outDegree, block_num);
   }
 
-  void setInNeighbors(edge_type* _i) { inNeighbors = _i; }
-  void setOutNeighbors(edge_type* _i) { outNeighbors = _i; }
-  void setInDegree(uintE _d) { inDegree = _d; }
-  void setOutDegree(uintE _d) { outDegree = _d; }
   void flipEdges() {
     std::swap(inNeighbors, outNeighbors);
     std::swap(inDegree, outDegree);
@@ -679,7 +669,6 @@ struct compressed_asymmetric_vertex {
   inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
                                             getInNeighbors(), pred, tmp);
-    setInDegree(deg);
     return deg;
   }
 
@@ -687,7 +676,6 @@ struct compressed_asymmetric_vertex {
   inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getOutDegree(),
                                             getOutNeighbors(), pred, tmp);
-    setOutDegree(deg);
     return deg;
   }
 

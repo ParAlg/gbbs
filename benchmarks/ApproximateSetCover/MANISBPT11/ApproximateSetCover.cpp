@@ -59,4 +59,4 @@ double SetCover_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(SetCover_runner, true)
+generate_symmetric_main(SetCover_runner, true)

@@ -71,7 +71,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return get_bucket_clamped(G.V[i].getOutDegree()); });
+  auto D = sequence<uintE>(G.n, [&](size_t i) { return get_bucket_clamped(G.get_vertex(i).getOutDegree()); });
   auto d_slice = D.slice();
   auto b = make_vertex_buckets(G.n, d_slice, decreasing, num_buckets);
 

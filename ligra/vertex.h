@@ -669,7 +669,6 @@ struct symmetric_vertex {
   inline size_t packInNgh(uintE vtx_id, P& p, edge_type* tmp) {
     uintE k = vertex_ops::packNghs<symmetric_vertex, W, P>(
         this, vtx_id, p, getInNeighbors(), getInDegree(), tmp);
-    setInDegree(k);
     return k;
   }
 
