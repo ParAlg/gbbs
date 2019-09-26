@@ -51,7 +51,7 @@ double CC_runner(Graph& G, commandLine P) {
   assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
-  auto components = cc::CC(G, beta, pack, P.getOption("-permute"));
+  auto components = workefficient_cc::CC(G, beta, pack, P.getOption("-permute"));
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
@@ -59,8 +59,8 @@ double CC_runner(Graph& G, commandLine P) {
     auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
         pbbslib::make_sequence<uintE>(G.n, cc_f);
-    cc::num_cc(cc_im);
-    cc::largest_cc(cc_im);
+    workefficient_cc::num_cc(cc_im);
+    workefficient_cc::largest_cc(cc_im);
   }
   return tt;
 }

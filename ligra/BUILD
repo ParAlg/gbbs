@@ -137,6 +137,7 @@ cc_library(
   ":flags",
   ":graph",
   ":graph_io",
+  ":graph_mutation",
   ":parse_command_line",
   ":vertex",
   ":vertex_subset",

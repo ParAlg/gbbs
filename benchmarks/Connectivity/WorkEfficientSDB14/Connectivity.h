@@ -28,7 +28,7 @@
 #include "ligra/pbbslib/sparse_table.h"
 #include "ligra/ligra.h"
 
-namespace cc {
+namespace workefficient_cc {
 
 template <class Graph>
 inline sequence<uintE> CC_impl(Graph& G, double beta,
@@ -111,4 +111,4 @@ inline sequence<uintE> CC(Graph& G, double beta = 0.2, bool pack = false, bool p
   return CC_impl(G, beta, 0, pack, permute);
 }
 
-}  // namespace cc
+}  // namespace workefficient_cc

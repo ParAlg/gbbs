@@ -389,6 +389,49 @@ inline size_t get_pcm_state() { return (size_t)1; }
   print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
   G.del();
 
+
+#define generate_coo_main(APP, mutates)                                            \
+  int main(int argc, char* argv[]) {                                           \
+    commandLine P(argc, argv, " [-s] <inFile>");                               \
+    char* iFile = P.getArgument(0);                                            \
+    bool symmetric = P.getOptionValue("-s");                                   \
+    bool compressed = P.getOptionValue("-c");                                  \
+    bool mmap = P.getOptionValue("-m");                                        \
+    bool mmapcopy = mutates;                                                   \
+    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
+    pcm_init();                                                                \
+    if (compressed) {                                                          \
+      if (symmetric) {                                                         \
+        auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(     \
+            iFile, mmap, mmapcopy);                                            \
+        alloc_init(G);                                                         \
+        auto G_coo = to_edge_array<pbbslib::empty>(G);                                         \
+        run_app(G_coo, APP, rounds)                                            \
+      } else {                                                                 \
+        auto G = gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(    \
+            iFile, mmap, mmapcopy);                                            \
+        alloc_init(G);                                                         \
+        auto G_coo = to_edge_array<pbbslib::empty>(G);                                         \
+        run_app(G_coo, APP, rounds)                                            \
+      }                                                                        \
+    } else {                                                                   \
+      if (symmetric) {                                                         \
+        auto G =                                                               \
+            gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);             \
+        alloc_init(G);                                                         \
+        auto G_coo = to_edge_array<pbbslib::empty>(G);                                         \
+        run_app(G_coo, APP, rounds)                                            \
+      } else {                                                                 \
+        auto G =                                                               \
+            gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap);            \
+        alloc_init(G);                                                         \
+        auto G_coo = to_edge_array<pbbslib::empty>(G);                                         \
+        run_app(G_coo, APP, rounds)                                            \
+      }                                                                        \
+    }                                                                          \
+  }
+
 #define generate_main(APP, mutates)                                            \
   int main(int argc, char* argv[]) {                                           \
     commandLine P(argc, argv, " [-s] <inFile>");                               \

@@ -481,7 +481,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
-  auto cc = cc::CC(GA, 0.2, true);
+  auto cc = workefficient_cc::CC(GA, 0.2, true);
   ccpred.stop();
   debug(ccpred.reportTotal("cc pred time"););
 
@@ -538,7 +538,7 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
 
   timer fcc;
   fcc.start();
-  sequence<uintE> Components = cc::CC(GA, 0.2, false);
+  sequence<uintE> Components = workefficient_cc::CC(GA, 0.2, false);
   fcc.stop();
   debug(fcc.reportTotal("first cc"););
 

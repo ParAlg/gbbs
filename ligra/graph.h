@@ -253,6 +253,30 @@ inline auto get_deletion_fn(void* a, void* b, void* c, void* d) -> std::function
   return std::bind(df, a, b, c, d);
 }
 
+template <class W, class Graph>
+inline edge_array<W> to_edge_array(Graph& G) {
+  using edge = std::tuple<uintE, uintE, W>;
+  size_t n = G.n;
+  auto sizes = pbbs::sequence<uintT>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    sizes[i] = G.get_vertex(i).getOutDegree();
+  });
+  size_t m = pbbslib::scan_add_inplace(sizes.slice());
+  assert(m == G.m);
+
+  edge* arr = pbbs::new_array_no_init<edge>(m);
+  parallel_for(0, n, [&] (size_t i) {
+    size_t idx = 0;
+    uintT offset = sizes[i];
+    auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      arr[offset + idx] = std::make_tuple(u, v, wgh);
+      idx++;
+    };
+    G.get_vertex(i).mapOutNgh(i, map_f, /* parallel = */false);
+  });
+  return edge_array<W>(arr, n, n, m);
+}
+
 // Mutates (sorts) the underlying array
 // Returns an unweighted, symmetric graph
 template <class W>

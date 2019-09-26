@@ -2,7 +2,7 @@ cc_library(
   name = "Biconnectivity",
   hdrs = ["Biconnectivity.h"],
   deps = [
-  "//benchmarks/Connectivity/SDB14:Connectivity",
+  "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
   "//ligra:ligra",
   "//ligra:speculative_for",
   "//ligra/pbbslib:dyn_arr",
