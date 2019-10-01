@@ -47,7 +47,7 @@ ALL=wBFS
 
 all: $(ALL)
 
-% : %.cpp
+% : %.cc
 	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean

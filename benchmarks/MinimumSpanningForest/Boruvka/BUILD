@@ -14,7 +14,7 @@ cc_library(
 
 cc_binary(
   name = "MinimumSpanningForest_main",
-  srcs = ["MinimumSpanningForest.cpp"],
+  srcs = ["MinimumSpanningForest.cc"],
   deps = [":MinimumSpanningForest"]
 )
 

@@ -12,7 +12,7 @@ cc_library(
 
 cc_binary(
   name = "MaximalMatching_main",
-  srcs = ["MaximalMatching.cpp"],
+  srcs = ["MaximalMatching.cc"],
   deps = [
   ":MaximalMatching",
   "//ligra:bridge",

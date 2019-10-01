@@ -11,7 +11,7 @@ cc_library(
 
 cc_binary(
   name = "KCore_main",
-  srcs = ["KCore.cpp"],
+  srcs = ["KCore.cc"],
   deps = [":KCore"]
 )
 

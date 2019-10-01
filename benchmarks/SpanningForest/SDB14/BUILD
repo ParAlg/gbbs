@@ -23,7 +23,7 @@ cc_library(
 
 cc_binary(
   name = "SpanningForest_main",
-  srcs = ["SpanningForest.cpp"],
+  srcs = ["SpanningForest.cc"],
   deps = [":SpanningForest"]
 )
 

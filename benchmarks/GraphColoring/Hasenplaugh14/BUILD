@@ -9,7 +9,7 @@ cc_library(
 
 cc_binary(
   name = "GraphColoring_main",
-  srcs = ["GraphColoring.cpp"],
+  srcs = ["GraphColoring.cc"],
   deps = [":GraphColoring"]
 )
 

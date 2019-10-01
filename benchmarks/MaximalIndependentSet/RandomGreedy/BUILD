@@ -9,7 +9,7 @@ cc_library(
 
 cc_binary(
   name = "MaximalIndependentSet_main",
-  srcs = ["MaximalIndependentSet.cpp"],
+  srcs = ["MaximalIndependentSet.cc"],
   deps = [":MaximalIndependentSet"]
 )
 

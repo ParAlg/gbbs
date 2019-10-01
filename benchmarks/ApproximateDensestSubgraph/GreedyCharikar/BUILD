@@ -10,6 +10,6 @@ cc_library(
 
 cc_binary(
   name = "DensestSubgraph_main",
-  srcs = ["DensestSubgraph.cpp"],
+  srcs = ["DensestSubgraph.cc"],
   deps = [":DensestSubgraph"]
 )

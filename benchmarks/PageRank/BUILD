@@ -10,7 +10,7 @@ cc_library(
 
 cc_binary(
   name = "PageRank_main",
-  srcs = ["PageRank.cpp"],
+  srcs = ["PageRank.cc"],
   deps = [":PageRank"]
 )
 

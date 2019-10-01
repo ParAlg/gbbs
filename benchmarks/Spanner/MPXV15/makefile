@@ -47,7 +47,7 @@ ALL=Spanner
 
 all: $(ALL)
 
-% : %.cpp
+% : %.cc
 	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean

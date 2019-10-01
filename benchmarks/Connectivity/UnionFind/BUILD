@@ -19,7 +19,7 @@ cc_library(
 
 cc_binary(
   name = "Connectivity_main",
-  srcs = ["Connectivity.cpp"],
+  srcs = ["Connectivity.cc"],
   deps = [
   ":Connectivity",
   ":union_find_rules",

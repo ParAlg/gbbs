@@ -9,7 +9,7 @@ cc_library(
 
 cc_binary(
   name = "SSWidestPath_main",
-  srcs = ["SSWidestPath.cpp"],
+  srcs = ["SSWidestPath.cc"],
   deps = [":SSWidestPath"]
 )
 

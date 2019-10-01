@@ -10,7 +10,7 @@ cc_library(
 
 cc_binary(
   name = "SSBetweennessCentrality_main",
-  srcs = ["SSBetweennessCentrality.cpp"],
+  srcs = ["SSBetweennessCentrality.cc"],
   deps = [":SSBetweennessCentrality"]
 )
 

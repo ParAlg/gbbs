@@ -9,7 +9,7 @@ cc_library(
 
 cc_binary(
   name = "LowDiameterDecomposition_main",
-  srcs = ["LowDiameterDecomposition.cpp"],
+  srcs = ["LowDiameterDecomposition.cc"],
   deps = [":LowDiameterDecomposition"]
 )
 
