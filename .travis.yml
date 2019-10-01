@@ -24,4 +24,6 @@ script:
   - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
   - g++ --version
   - gcc --version
+  - which g++
+  - which gcc
   - bazel build -s --sandbox_debug --verbose_failures -c opt //benchmarks/...
