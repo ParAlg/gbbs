@@ -43,7 +43,7 @@
 #include "ligra/ligra.h"
 
 template <template <typename W> class vertex, class W>
-void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
+void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
   auto S = pbbslib::char_seq_from_file(s);
@@ -94,7 +94,7 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
     }
   };
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { GA.V[i].mapOutNgh(i, map_bc_label); });
+                  { GA.get_vertex(i).mapOutNgh(i, map_bc_label); });
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();
@@ -127,8 +127,8 @@ void BiconnectivityStats(graph<vertex<W>>& GA, char* s,
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 
-template <class vertex>
-double Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
+template <template <class W> class vertex, class W>
+double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   std::cout << "### Application: Biconnectivity" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -153,4 +153,4 @@ double Biconnectivity_runner(graph<vertex>& GA, commandLine P) {
   exit(0);
 }
 
-generate_main(Biconnectivity_runner, true);
+generate_symmetric_main(Biconnectivity_runner, true);
