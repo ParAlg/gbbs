@@ -551,8 +551,8 @@ inline size_t get_pcm_state() { return (size_t)1; }
   int main(int argc, char* argv[]) {                                           \
     commandLine P(argc, argv, " [-s] <inFile>");                               \
     char* iFile = P.getArgument(0);                                            \
-    bool symmetric = P.getOptionValue("-s");                                   \
-    debug(assert(symmetric););                                                 \
+    debug(bool symmetric = P.getOptionValue("-s");                             \
+    assert(symmetric););                                                       \
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \

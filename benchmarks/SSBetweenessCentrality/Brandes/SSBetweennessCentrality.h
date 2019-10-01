@@ -220,7 +220,6 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
 
 template <class Graph>
 inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) {
-  using W = typename Graph::weight_type;
   size_t n = G.n;
   auto EM = EdgeMap<fType, Graph>(G, std::make_tuple(UINT_E_MAX, (fType)0.0), (size_t)G.m/1000);
 
@@ -275,7 +274,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
     // edgeMap(G, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
     //         no_output | in_edges | fine_parallel);
 
-    vertexSubset output = sparse_fa_dense_em(G, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
+    sparse_fa_dense_em(G, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
 
     Frontier.del();
     Frontier = Levels[r];

@@ -78,11 +78,11 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   t.start();
 
   timer mw; mw.start();
-  uintE max_weight = 0;
+  W max_weight = (W)0;
   parallel_for(0, G.n, [&] (size_t i) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (wgh > max_weight) {
-        pbbslib::write_max(&max_weight, static_cast<uintE>(wgh));
+        pbbslib::write_max(&max_weight, wgh);
       }
     };
     G.get_vertex(i).mapOutNgh(i, map_f);
@@ -94,10 +94,10 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   init.start();
   size_t n = G.n;
 
-  auto width = sequence<uintE>(n, [&](size_t i) { return 0; });
+  auto width = sequence<uintE>(n, [&](size_t i) { return (uintE)0; });
   width[src] = INT_E_MAX;
 
-  auto get_bkt = [&](const uintE& width) -> const uintE {
+  auto get_bkt = [&](const W& width) -> const uintE {
     return max_weight - width + 1;
   };
   auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> const uintE {
@@ -131,7 +131,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   while (bkt.id != b.null_bkt) {
     auto active = vertexSubset(n, bkt.identifiers);
     emt.start();
-    auto em_f = wrap_with_default<W, intE>(widestpath::Visit_F(width), (intE)1);
+    auto em_f = wrap_with_default<W, W>(widestpath::Visit_F(width), (W)1);
     auto res = edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
     vertexMap(res, apply_f);
     // update buckets with vertices that just moved
@@ -152,14 +152,9 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   emt.reportTotal("edge map time");
   std::cout << "n rounds = " << rd << "\n";
 
-  double time_per_iter = t.stop();
-
-  auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?
+  auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == (uintE)(-1))) ? 0 : width[i]; }; // noop?
   auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
-  for (size_t i=0; i<100; i++) {
-    cout << dist_im[i] << endl;
-  }
   return width;
 }
 

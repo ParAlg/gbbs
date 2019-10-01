@@ -34,7 +34,6 @@ template <class Graph>
 inline sequence<uintE> CC_impl(Graph& G, double beta,
                                  size_t level, bool pack = false,
                                  bool permute = false) {
-  using W = typename Graph::weight_type;
   size_t n = G.n;
   permute |= (level > 0);
   timer ldd_t;

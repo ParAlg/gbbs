@@ -96,9 +96,6 @@ inline symmetric_graph<symmetric_vertex, intE> read_weighted_symmetric_graph(
     bool mmap,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
-  using vertex = symmetric_vertex<intE>;
-  using id_and_weight = std::tuple<uintE, intE>;
-
   size_t n, m;
   uintT* offsets;
   std::tuple<uintE, intE>* edges;
@@ -351,9 +348,10 @@ read_compressed_symmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap, mmapcopy);
 
   long* sizes = (long*)bytes;
-  uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
+  uint64_t n = sizes[0], m = sizes[1];
 
-  debug(std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
+  debug(uint64_t totalSpace = sizes[2];
+  std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
             << "\n");
 
   uintT* offsets = (uintT*)(bytes + 3 * sizeof(long));
@@ -401,13 +399,12 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   uintT* inOffsets;
   uchar* inEdges;
   uintE* inDegrees;
-  uint64_t inTotalSpace = 0;
 
   skip += totalSpace;
   uchar* inData = (uchar*)(bytes + skip);
   sizes = (long*)inData;
-  inTotalSpace = sizes[0];
-  debug(std::cout << "inTotalSpace = " << inTotalSpace << "\n";);
+  debug(size_t inTotalSpace = sizes[0];
+  std::cout << "inTotalSpace = " << inTotalSpace << "\n";);
   skip += sizeof(long);
   inOffsets = (uintT*)(bytes + skip);
   skip += (n + 1) * sizeof(uintT);
