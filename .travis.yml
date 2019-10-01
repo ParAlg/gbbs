@@ -20,8 +20,8 @@ before_install:
 script:
   - g++ --version
   - gcc --version
-  - sudo ln -s /usr/bin/g++-6 /usr/local/g++
-  - sudo ln -s /usr/bin/gcc-6 /usr/local/gcc
+  - sudo ln -s /usr/bin/g++-6 /usr/bin/g++
+  - sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
   - g++ --version
   - gcc --version
   - which g++
