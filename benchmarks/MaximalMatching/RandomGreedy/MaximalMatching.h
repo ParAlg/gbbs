@@ -80,7 +80,7 @@ namespace mm {
   }
 
   template <template <class W> class vertex, class W>
-  inline edge_array<W> get_all_edges(graph<vertex<W>>& G, bool* matched,
+  inline edge_array<W> get_all_edges(symmetric_graph<vertex, W>& G, bool* matched,
                                      pbbslib::random rnd) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
@@ -105,7 +105,7 @@ namespace mm {
   }
 
   template <template <class W> class vertex, class W>
-  inline edge_array<W> get_edges(graph<vertex<W>>& G, size_t k, bool* matched,
+  inline edge_array<W> get_edges(symmetric_graph<vertex, W>& G, size_t k, bool* matched,
                                  pbbslib::random r) {
     using edge = std::tuple<uintE, uintE, W>;
     size_t m = G.m / 2;  // assume sym
@@ -155,8 +155,7 @@ namespace mm {
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <template <class W> class vertex, class W>
-inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
-    graph<vertex<W>>& G) {
+inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<vertex, W>& G) {
   using edge = std::tuple<uintE, uintE, W>;
 
   timer mt;
@@ -197,10 +196,10 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
                       const auto& e = e_added[i];
                       uintE u = std::get<0>(e) & mm::VAL_MASK;
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
-                      uintE deg_u = G.V[u].getOutDegree();
-                      uintE deg_v = G.V[v].getOutDegree();
-                      G.V[u].setOutDegree(0);
-                      G.V[v].setOutDegree(0);
+                      uintE deg_u = G.get_vertex(u).getOutDegree();
+                      uintE deg_v = G.get_vertex(v).getOutDegree();
+                      G.zero_vertex_degree(u);
+                      G.zero_vertex_degree(v);
                       sizes[i] = deg_u + deg_v;
                     });
     size_t total_size = pbbslib::reduce_add(sizes);
@@ -223,7 +222,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(
 }
 
 template <template <class W> class vertex, class W, class Seq>
-inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
+inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   size_t n = G.n;
   auto ok = sequence<bool>(n, [](size_t i) { return 1; });
   auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
@@ -249,7 +248,7 @@ inline void verify_matching(graph<vertex<W>>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { G.V[i].mapOutNgh(i, map2_f); });
+  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).mapOutNgh(i, map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);

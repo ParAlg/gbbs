@@ -222,7 +222,7 @@ inline size_t key_for_pair(uint32_t k1, uintE k2, pbbslib::random rnd) {
 }
 
 template <template <class W> class vertex, class W>
-inline edge_array<W> get_all_edges(graph<vertex<W>>& G) {
+inline edge_array<W> get_all_edges(symmetric_graph<vertex, W>& G) {
   auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return true;
   };
@@ -230,7 +230,7 @@ inline edge_array<W> get_all_edges(graph<vertex<W>>& G) {
 }
 
 template <template <class W> class vertex, class W>
-inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
+inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib::random r,
                                bool first_round = false) {
   if (k == static_cast<size_t>(G.m)) {
     return get_all_edges(G);
@@ -243,7 +243,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
 
   auto vertex_offs = sequence<long>(G.n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { vertex_offs[i] = G.V[i].getOutDegree(); });
+                  { vertex_offs[i] = G.get_vertex(i).getOutDegree(); });
   pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
@@ -255,7 +255,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
         size_t ith = vertex_offs[vtx] - sample_edge - 1;
         uintE ngh;
         W wgh;
-        std::tie(ngh, wgh) = G.V[vtx].get_ith_out_neighbor(vtx, ith);
+        std::tie(ngh, wgh) = G.get_vertex(vtx).get_ith_out_neighbor(vtx, ith);
         sample_edges[i] = std::make_tuple(vtx, ngh, wgh);
       });
 
@@ -328,7 +328,7 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, pbbslib::random r,
 template <template <class W> class vertex, class W,
           typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
                                   int>::type = 0>
-inline void MinimumSpanningForest(graph<vertex<W>>& GA, bool largemem = false) {
+inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem = false) {
   using edge = std::tuple<uintE, uintE, W>;
   using ct = cas_type;
 
@@ -454,7 +454,7 @@ inline void MinimumSpanningForest(graph<vertex<W>>& GA, bool largemem = false) {
 template <
     template <class W> class vertex, class W,
     typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
-inline uint32_t* MinimumSpanningForest(graph<vertex<W>>& GA, bool largeem = false) {
+inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largeem = false) {
   std::cout << "Unimplemented for unweighted graphs"
             << "\n";
   exit(0);

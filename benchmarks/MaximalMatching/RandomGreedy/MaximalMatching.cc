@@ -40,33 +40,33 @@
 #include <fstream>
 #include <iostream>
 
-template <class vertex>
-double MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
+template <template <class W> class vertex, class W>
+double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   std::cout << "### Application: CC (Connectivity)" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << GA.n << std::endl;
-  std::cout << "### m: " << GA.m << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: (n/a)" << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
-    auto S = readStringFromFile(in_f);
-    auto W = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-    size_t ms = atol(W[0]);
+    auto S = gbbs_io::readStringFromFile(in_f);
+    auto Words = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    size_t ms = atol(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
     par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       matching[i] =
-          std::make_tuple(atol(W[1 + 2 * i]), atol(W[2 * (i + 1)]));
+          std::make_tuple(atol(Words[1 + 2 * i]), atol(Words[2 * (i + 1)]));
     });
-    verify_matching(GA, matching);
+    verify_matching(G, matching);
     exit(0);
   }
   timer t; t.start();
-  auto matching = MaximalMatching(GA);
+  auto matching = MaximalMatching(G);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
@@ -92,4 +92,4 @@ double MaximalMatching_runner(graph<vertex>& GA, commandLine P) {
   exit(0);
 }
 
-generate_main(MaximalMatching_runner, true);
+generate_symmetric_main(MaximalMatching_runner, true);

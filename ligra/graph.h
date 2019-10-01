@@ -100,8 +100,14 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     return new_degree;
   }
 
+  /* degree must be <= old_degree */
+  void decrease_vertex_degree(uintE id, uintE degree) {
+    assert(degree <= v_data[id].degree);
+    v_data[id].degree = degree;
+  }
+
   void zero_vertex_degree(uintE id) {
-    v_data[id].degree = 0;
+    decrease_vertex_degree(id, 0);
   }
 
   template <class F>
