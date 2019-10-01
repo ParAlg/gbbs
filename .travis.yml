@@ -16,4 +16,5 @@ before_install:
   - sudo dpkg -i bazel_0.29.1-linux-x86_64.deb
 
 script:
+  - gcc --version
   - bazel build -s --sandbox_debug --verbose_failures -c opt //benchmarks/...
