@@ -39,8 +39,8 @@
 #include "MinimumSpanningForest.h"
 #include "ligra/ligra.h"
 
-template <class vertex>
-double MinimumSpanningForest_runner(graph<vertex>& GA, commandLine P) {
+template <template <class W> class vertex, class W>
+double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   bool spec_for = P.getOption("-specfor");
   bool largemem = P.getOption("-largemem");
 
@@ -65,4 +65,4 @@ double MinimumSpanningForest_runner(graph<vertex>& GA, commandLine P) {
   return tt;
 }
 
-generate_weighted_main(MinimumSpanningForest_runner, true);
+generate_symmetric_weighted_main(MinimumSpanningForest_runner, true);

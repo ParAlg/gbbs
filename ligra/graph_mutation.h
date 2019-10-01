@@ -385,7 +385,7 @@ edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
 
   // 2. Filter edges into output arr.
   {
-    parallel_for(0, n, 1, [&](size_t i) {
+    parallel_for(0, n, [&](size_t i) {
       size_t off = std::get<0>(vtx_offs[i]);
       size_t n_to_pack = std::get<0>(vtx_offs[i + 1]) - off;
       if (n_to_pack > 0) {
@@ -396,7 +396,7 @@ edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
         };
         G.get_vertex(i).filterOutNgh(i, pred, out_f, tmp_v);
       }
-    });
+    }, 1);
   }
   return edge_array<W>(output_arr.to_array(), n, n, output_arr.size());
 }
