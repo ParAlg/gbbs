@@ -20,10 +20,12 @@ before_install:
 script:
   - g++ --version
   - gcc --version
-  - ln -s /usr/bin/g++-6 /usr/local/bin/g++
-  - ln -s /usr/bin/gcc-6 /usr/local/bin/gcc
+  - sudo ln -s /usr/bin/g++-6 /usr/local/g++
+  - sudo ln -s /usr/bin/gcc-6 /usr/local/gcc
   - g++ --version
   - gcc --version
   - which g++
   - which gcc
+  - which g++-6
+  - which gcc-6
   - bazel build -s --sandbox_debug --verbose_failures -c opt //benchmarks/...
