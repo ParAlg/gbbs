@@ -25,7 +25,7 @@ namespace find_variants {
     return j;
   }
 
-  inline uintE find_split(uintE i, pbbs::sequence<uintE>& parent) {
+  inline uintE find_atomic_split(uintE i, pbbs::sequence<uintE>& parent) {
     while(1) {
       uintE v = parent[i];
       uintE w = parent[v];
@@ -37,32 +37,43 @@ namespace find_variants {
     }
   }
 
+  inline uintE find_atomic_halve(uintE i, pbbs::sequence<uintE>& parent) {
+    while(1) {
+      uintE v = parent[i];
+      uintE w = parent[v];
+      if(v == w) return v;
+      else {
+        pbbs::atomic_compare_and_swap(&parent[i],v,w);
+        //i = w;
+        i = parent[i];
+      }
+    }
+  }
+
+  inline uintE find_split(uintE i, pbbs::sequence<uintE>& parent) {
+    while(1) {
+      uintE v = parent[i];
+      uintE w = parent[v];
+      if(v == w) return v;
+      else {
+        parent[i] = w;
+        i = v;
+      }
+    }
+  }
+
   inline uintE find_halve(uintE i, pbbs::sequence<uintE>& parent) {
     while(1) {
       uintE v = parent[i];
       uintE w = parent[v];
       if(v == w) return v;
       else {
-        pbbs::atomic_compare_and_swap(&parent[i],v,w);
+        parent[i] = w;
         //i = w;
         i = parent[i];
       }
     }
   }
-
-  inline uintE find_a_halve(uintE i, pbbs::sequence<uintE>& parent) {
-    while(1) {
-      uintE v = parent[i];
-      uintE w = parent[v];
-      if(v == w) return v;
-      else {
-        pbbs::atomic_compare_and_swap(&parent[i],v,w);
-        //i = w;
-        i = parent[i];
-      }
-    }
-  }
-
 
 } // namespace find_variants
 
@@ -174,5 +185,39 @@ namespace unite_variants {
         u = z;
       }
     }
+    inline void operator()(uintE u, uintE v, pbbs::sequence<uintE>& parents) {
+      while(1) {
+        if(u == v) return;
+        if(v < u) std::swap(u,v);
+        if(pbbs::atomic_compare_and_swap(&parents[u],u,v)) { return; }
+        uintE z = parents[u];
+        uintE w = parents[z];
+        pbbs::atomic_compare_and_swap(&parents[u],z,w);
+        u = z;
+      }
+    }
   };
+
+  template <class Find>
+  struct UniteND {
+    Find& find;
+    UniteND(Find& find) : find(find) {}
+
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parents, pbbs::sequence<uintE>& hooks) {
+      uintE u = u_orig;
+      uintE v = v_orig;
+      while(1) {
+        u = find(u,parents);
+        v = find(v,parents);
+        if(u == v) break;
+        if(u > v) std::swap(u,v);
+        if (hooks[u] == UINT_E_MAX && pbbs::atomic_compare_and_swap(&hooks[u], UINT_E_MAX,v)) {
+          parents[u] = v;
+          break;
+        }
+      }
+    }
+  };
+
+
 } // namespace unite_variants
