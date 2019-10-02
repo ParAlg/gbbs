@@ -11,15 +11,46 @@
 #include "pbbslib/dyn_arr.h"
 #include "simdinter/include/intersection.h"
 
+#define INDUCED_STACK_THR 1000
+
+/*template <typename T>
+struct inducedGraph {
+  using induced_alloc = list_allocator<uintE[INDUCED_STACK_THR]>;
+  using induced_ptr = (uintE[])*;
+  std::vector<induced_ptr> vec;
+  size_t vec_size = 0;
+
+  static void init() {
+    induced_alloc::init();
+  }
+  static void reserve (size_t n) {
+    induced_alloc::reserve(n);
+  }
+  void resize (size_t i) {
+    if (i < vec_size) return;
+    vec.resize(i);
+    for (j = vec_size; j < i; ++j) {
+      vec[j] = induced_alloc::alloc();
+    }
+  }
+  void free (size_t i) {
+    induced_alloc::free(vec[i]);
+  }
+  void finish() {
+    induced_alloc::finish();
+  }
+  inducedGraph() : {}
+}*/
+
 struct lstintersect_par_struct {
   template <class Graph, class S>
-  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
-    return lstintersect_par(DG, vtx, induced, save);
+  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) const {
+    return lstintersect_par(DG, vtx, induced, save, out_ptr);
   }
 };
 
 template <class Graph, class S>
-inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx, S induced, bool save = true) {
+inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) {
   auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
   size_t index = 0;
   if (!save) {
@@ -27,7 +58,10 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx
     return std::make_tuple(pbbs::sequence<uintE>(), intersection::merge(vtx_seq, induced, merge_f));
   }
 
-  auto out = sequence<uintE>::no_init(std::min(induced.size(), vtx_seq.size()));
+  sequence<uintE> out;
+  size_t out_size = std::min(induced.size(), vtx_seq.size());
+  if (out_ptr) out = sequence<uintE>(out_ptr, out_size);
+  else out = sequence<uintE>::no_init(out_size);
   auto merge_f = [&] (uintE ngh) {
     out[index] = ngh;
     index++;
@@ -41,7 +75,7 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_par(Graph& DG, uintE vtx
   // any element in the smallest that has num-1 marks is in our merged list
 }
 
-struct lstintersect_set_struct {
+/*struct lstintersect_set_struct {
   template <class Graph, class S>
   std::tuple<std::vector<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
     return lstintersect_set(DG, vtx, induced, save);
@@ -55,20 +89,23 @@ inline std::tuple<std::vector<uintE>, size_t> lstintersect_set(Graph& DG, uintE 
   std::vector<uintE> out;
   std::set_intersection(induced.begin(), induced.end(), vtx_seq.begin(), vtx_seq.end(), std::back_inserter(out));
   return std::make_tuple(out, out.size());
-}
+}*/
 
 struct lstintersect_vec_struct {
   template <class Graph, class S>
-  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true) const {
-    return lstintersect_vec(DG, vtx, induced, save);
+  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) const {
+    return lstintersect_vec(DG, vtx, induced, save, out_ptr);
   }
 };
 
 // TODO radix sort in place
 template <class Graph, class S>
-inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(Graph& DG, uintE vtx, S induced, bool save = true) {
+inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) {
   auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
-  auto out = sequence<uintE>::no_init(std::min(induced.size(), vtx_seq.size()));
+  sequence<uintE> out;
+  size_t tmp_size = std::min(induced.size(), vtx_seq.size());
+  if (out_ptr) out = sequence<uintE>(out_ptr, tmp_size);
+  else out = sequence<uintE>::no_init(tmp_size);
   SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
   size_t out_size = inter(induced.begin(), induced.size(), vtx_seq.begin(), vtx_seq.size(), out.begin());
   if (!save) {

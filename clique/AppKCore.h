@@ -29,6 +29,7 @@
 #include "edge_map_reduce.h"
 #include "ligra.h"
 #include "pbbslib/dyn_arr.h"
+#include "pbbslib/list_allocator.h"
 #include "intersect.h"
 #include "radix_wrapper.h"
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
@@ -75,7 +76,7 @@ inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.1, bool 
     auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
       return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
-    if (end == start) end++;
+    if (end == start) end++; //TODO step?
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -270,12 +271,12 @@ inline size_t KClique(Graph& GA, size_t k, double epsilon=0.001,
   if (!induced && !gen) count = KCliqueDir(DG, k-1);
   else if (induced && !gen) {
     if (inter == 0) count = KCliqueIndDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
-    else if (inter == 1) count = KCliqueIndDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
+    //else if (inter == 1) count = KCliqueIndDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
     else if (inter == 2) count = KCliqueIndDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
   }
   else if (induced && gen) {
     if (inter == 0) count = KCliqueIndGenDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
-    else if (inter == 1) count = KCliqueIndGenDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
+    //else if (inter == 1) count = KCliqueIndGenDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
     else if (inter == 2) count = KCliqueIndGenDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
   }
   double tt = t.stop();
@@ -290,34 +291,43 @@ inline size_t KClique(Graph& GA, size_t k, double epsilon=0.001,
 
 template <class Graph, class F, class G>
 inline size_t KCliqueIndGenDir(Graph& DG, size_t k, F lstintersect, G g_f, bool count_only = true) {
-switch (k) {
+using induced_alloc = list_allocator<uintE[INDUCED_STACK_THR]>; 
+ induced_alloc::init();
+ switch (k) {
  case 2:  {
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
  auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
+ auto ptr_storeb = induced_alloc::alloc();
+ auto storeb = sequence<uintE>(*ptr_storeb, sizea);
  parallel_for (0, sizea, [&] (size_t b) {
  size_t sizeb = 0;
  if (count_only) {
  auto tupleb = lstintersect(DG, induceda[b], induceda, false);
  sizeb = std::get<1>(tupleb);
  } else {
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
+ auto ptr_inducedb = induced_alloc::alloc();
+ auto tupleb = lstintersect(DG, induceda[b], induceda, true, *ptr_inducedb);
  auto inducedb = std::get<0>(tupleb);
  sizeb = std::get<1>(tupleb);
- auto base = sequence<uintE>::no_init(k);
+ auto ptr_base = induced_alloc::alloc();
+ auto base = sequence<uintE>(*ptr_base, k);
  base[0] = a;
  base[1] = induceda[b];
  for (size_t xx = 0; xx < sizeb; xx++) {
  base[2] = inducedb[xx];
  g_f(base);
  }
+ base.to_array(); induced_alloc::free(ptr_base);
+ inducedb.to_array(); induced_alloc::free(ptr_inducedb);
  }
  storeb[b] = sizeb;
  });
  storea[a] = pbbslib::reduce_add(storeb);
+ storeb.to_array(); induced_alloc::free(ptr_storeb);
  });
+ induced_alloc::finish();
  return pbbslib::reduce_add(storea);
  break; }
  case 3:  {
@@ -325,23 +335,28 @@ switch (k) {
  parallel_for (0, DG.n, [&] (size_t a) {
  auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
  auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
+ auto ptr_storeb = induced_alloc::alloc();
+ auto storeb = sequence<uintE>(*ptr_storeb, sizea);
  parallel_for (0, sizea, [&] (size_t b) {
  size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
+ auto ptr_inducedb = induced_alloc::alloc();
+ auto tupleb = lstintersect(DG, induceda[b], induceda, true, *ptr_inducedb);
  auto inducedb = std::get<0>(tupleb);
  sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
+ auto ptr_storec = induced_alloc::alloc();
+ auto storec = sequence<uintE>(*ptr_storec, sizeb);
  parallel_for (0, sizeb, [&] (size_t c) {
  size_t sizec = 0;
  if (count_only) {
  auto tuplec = lstintersect(DG, inducedb[c], inducedb, false);
  sizec = std::get<1>(tuplec);
  } else {
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
+ auto ptr_inducedc = induced_alloc::alloc();
+ auto tuplec = lstintersect(DG, inducedb[c], inducedb, true, *ptr_inducedc);
  auto inducedc = std::get<0>(tuplec);
  sizec = std::get<1>(tuplec);
- auto base = sequence<uintE>::no_init(k);
+ auto ptr_base = induced_alloc::alloc();
+ auto base = sequence<uintE>(*ptr_base, k);
  base[0] = a;
  base[1] = induceda[b];
  base[2] = inducedb[c];
@@ -349,506 +364,58 @@ switch (k) {
  base[3] = inducedc[xx];
  g_f(base);
  }
+ base.to_array(); induced_alloc::free(ptr_base);
+ inducedc.to_array(); induced_alloc::free(ptr_inducedc);
  }
  storec[c] = sizec;
  });
+ inducedb.to_array(); induced_alloc::free(ptr_inducedb);
  storeb[b] = pbbslib::reduce_add(storec);
+ storec.to_array(); induced_alloc::free(ptr_storec);
  });
  storea[a] = pbbslib::reduce_add(storeb);
+ storeb.to_array(); induced_alloc::free(ptr_storeb);
  });
- return pbbslib::reduce_add(storea);
- break; }
- case 4:  {
- auto storea = sequence<size_t>::no_init(DG.n);
- parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
- parallel_for (0, sizea, [&] (size_t b) {
- size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
- auto inducedb = std::get<0>(tupleb);
- sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
- parallel_for (0, sizeb, [&] (size_t c) {
- size_t sizec = 0;
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
- auto inducedc = std::get<0>(tuplec);
- sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, sizec, [&] (size_t d) {
- size_t sized = 0;
- if (count_only) {
- auto tupled = lstintersect(DG, inducedc[d], inducedc, false);
- sized = std::get<1>(tupled);
- } else {
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- sized = std::get<1>(tupled);
- auto base = sequence<uintE>::no_init(k);
- base[0] = a;
- base[1] = induceda[b];
- base[2] = inducedb[c];
- base[3] = inducedc[d];
- for (size_t xx = 0; xx < sized; xx++) {
- base[4] = inducedd[xx];
- g_f(base);
- }
- }
- stored[d] = sized;
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
- storeb[b] = pbbslib::reduce_add(storec);
- });
- storea[a] = pbbslib::reduce_add(storeb);
- });
- return pbbslib::reduce_add(storea);
- break; }
- case 5:  {
- auto storea = sequence<size_t>::no_init(DG.n);
- parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
- parallel_for (0, sizea, [&] (size_t b) {
- size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
- auto inducedb = std::get<0>(tupleb);
- sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
- parallel_for (0, sizeb, [&] (size_t c) {
- size_t sizec = 0;
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
- auto inducedc = std::get<0>(tuplec);
- sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, sizec, [&] (size_t d) {
- size_t sized = 0;
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- sized = std::get<1>(tupled);
- auto storee = sequence<size_t>::no_init(sized);
- parallel_for (0, sized, [&] (size_t e) {
- size_t sizee = 0;
- if (count_only) {
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, false);
- sizee = std::get<1>(tuplee);
- } else {
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, true);
- auto inducede = std::get<0>(tuplee);
- sizee = std::get<1>(tuplee);
- auto base = sequence<uintE>::no_init(k);
- base[0] = a;
- base[1] = induceda[b];
- base[2] = inducedb[c];
- base[3] = inducedc[d];
- base[4] = inducedd[e];
- for (size_t xx = 0; xx < sizee; xx++) {
- base[5] = inducede[xx];
- g_f(base);
- }
- }
- storee[e] = sizee;
- });
- stored[d] = pbbslib::reduce_add(storee);
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
- storeb[b] = pbbslib::reduce_add(storec);
- });
- storea[a] = pbbslib::reduce_add(storeb);
- });
- return pbbslib::reduce_add(storea);
- break; }
- case 6:  {
- auto storea = sequence<size_t>::no_init(DG.n);
- parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
- parallel_for (0, sizea, [&] (size_t b) {
- size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
- auto inducedb = std::get<0>(tupleb);
- sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
- parallel_for (0, sizeb, [&] (size_t c) {
- size_t sizec = 0;
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
- auto inducedc = std::get<0>(tuplec);
- sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, sizec, [&] (size_t d) {
- size_t sized = 0;
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- sized = std::get<1>(tupled);
- auto storee = sequence<size_t>::no_init(sized);
- parallel_for (0, sized, [&] (size_t e) {
- size_t sizee = 0;
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, true);
- auto inducede = std::get<0>(tuplee);
- sizee = std::get<1>(tuplee);
- auto storef = sequence<size_t>::no_init(sizee);
- parallel_for (0, sizee, [&] (size_t f) {
- size_t sizef = 0;
- if (count_only) {
- auto tuplef = lstintersect(DG, inducede[f], inducede, false);
- sizef = std::get<1>(tuplef);
- } else {
- auto tuplef = lstintersect(DG, inducede[f], inducede, true);
- auto inducedf = std::get<0>(tuplef);
- sizef = std::get<1>(tuplef);
- auto base = sequence<uintE>::no_init(k);
- base[0] = a;
- base[1] = induceda[b];
- base[2] = inducedb[c];
- base[3] = inducedc[d];
- base[4] = inducedd[e];
- base[5] = inducede[f];
- for (size_t xx = 0; xx < sizef; xx++) {
- base[6] = inducedf[xx];
- g_f(base);
- }
- }
- storef[f] = sizef;
- });
- storee[e] = pbbslib::reduce_add(storef);
- });
- stored[d] = pbbslib::reduce_add(storee);
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
- storeb[b] = pbbslib::reduce_add(storec);
- });
- storea[a] = pbbslib::reduce_add(storeb);
- });
- return pbbslib::reduce_add(storea);
- break; }
- case 7:  {
- auto storea = sequence<size_t>::no_init(DG.n);
- parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
- parallel_for (0, sizea, [&] (size_t b) {
- size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
- auto inducedb = std::get<0>(tupleb);
- sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
- parallel_for (0, sizeb, [&] (size_t c) {
- size_t sizec = 0;
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
- auto inducedc = std::get<0>(tuplec);
- sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, sizec, [&] (size_t d) {
- size_t sized = 0;
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- sized = std::get<1>(tupled);
- auto storee = sequence<size_t>::no_init(sized);
- parallel_for (0, sized, [&] (size_t e) {
- size_t sizee = 0;
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, true);
- auto inducede = std::get<0>(tuplee);
- sizee = std::get<1>(tuplee);
- auto storef = sequence<size_t>::no_init(sizee);
- parallel_for (0, sizee, [&] (size_t f) {
- size_t sizef = 0;
- auto tuplef = lstintersect(DG, inducede[f], inducede, true);
- auto inducedf = std::get<0>(tuplef);
- sizef = std::get<1>(tuplef);
- auto storeg = sequence<size_t>::no_init(sizef);
- parallel_for (0, sizef, [&] (size_t g) {
- size_t sizeg = 0;
- if (count_only) {
- auto tupleg = lstintersect(DG, inducedf[g], inducedf, false);
- sizeg = std::get<1>(tupleg);
- } else {
- auto tupleg = lstintersect(DG, inducedf[g], inducedf, true);
- auto inducedg = std::get<0>(tupleg);
- sizeg = std::get<1>(tupleg);
- auto base = sequence<uintE>::no_init(k);
- base[0] = a;
- base[1] = induceda[b];
- base[2] = inducedb[c];
- base[3] = inducedc[d];
- base[4] = inducedd[e];
- base[5] = inducede[f];
- base[6] = inducedf[g];
- for (size_t xx = 0; xx < sizeg; xx++) {
- base[7] = inducedg[xx];
- g_f(base);
- }
- }
- storeg[g] = sizeg;
- });
- storef[f] = pbbslib::reduce_add(storeg);
- });
- storee[e] = pbbslib::reduce_add(storef);
- });
- stored[d] = pbbslib::reduce_add(storee);
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
- storeb[b] = pbbslib::reduce_add(storec);
- });
- storea[a] = pbbslib::reduce_add(storeb);
- });
- return pbbslib::reduce_add(storea);
- break; }
- case 8:  {
- auto storea = sequence<size_t>::no_init(DG.n);
- parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
- parallel_for (0, sizea, [&] (size_t b) {
- size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
- auto inducedb = std::get<0>(tupleb);
- sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
- parallel_for (0, sizeb, [&] (size_t c) {
- size_t sizec = 0;
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
- auto inducedc = std::get<0>(tuplec);
- sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, sizec, [&] (size_t d) {
- size_t sized = 0;
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- sized = std::get<1>(tupled);
- auto storee = sequence<size_t>::no_init(sized);
- parallel_for (0, sized, [&] (size_t e) {
- size_t sizee = 0;
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, true);
- auto inducede = std::get<0>(tuplee);
- sizee = std::get<1>(tuplee);
- auto storef = sequence<size_t>::no_init(sizee);
- parallel_for (0, sizee, [&] (size_t f) {
- size_t sizef = 0;
- auto tuplef = lstintersect(DG, inducede[f], inducede, true);
- auto inducedf = std::get<0>(tuplef);
- sizef = std::get<1>(tuplef);
- auto storeg = sequence<size_t>::no_init(sizef);
- parallel_for (0, sizef, [&] (size_t g) {
- size_t sizeg = 0;
- auto tupleg = lstintersect(DG, inducedf[g], inducedf, true);
- auto inducedg = std::get<0>(tupleg);
- sizeg = std::get<1>(tupleg);
- auto storeh = sequence<size_t>::no_init(sizeg);
- parallel_for (0, sizeg, [&] (size_t h) {
- size_t sizeh = 0;
- if (count_only) {
- auto tupleh = lstintersect(DG, inducedg[h], inducedg, false);
- sizeh = std::get<1>(tupleh);
- } else {
- auto tupleh = lstintersect(DG, inducedg[h], inducedg, true);
- auto inducedh = std::get<0>(tupleh);
- sizeh = std::get<1>(tupleh);
- auto base = sequence<uintE>::no_init(k);
- base[0] = a;
- base[1] = induceda[b];
- base[2] = inducedb[c];
- base[3] = inducedc[d];
- base[4] = inducedd[e];
- base[5] = inducede[f];
- base[6] = inducedf[g];
- base[7] = inducedg[h];
- for (size_t xx = 0; xx < sizeh; xx++) {
- base[8] = inducedh[xx];
- g_f(base);
- }
- }
- storeh[h] = sizeh;
- });
- storeg[g] = pbbslib::reduce_add(storeh);
- });
- storef[f] = pbbslib::reduce_add(storeg);
- });
- storee[e] = pbbslib::reduce_add(storef);
- });
- stored[d] = pbbslib::reduce_add(storee);
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
- storeb[b] = pbbslib::reduce_add(storec);
- });
- storea[a] = pbbslib::reduce_add(storeb);
- });
- return pbbslib::reduce_add(storea);
- break; }
- case 9:  {
- auto storea = sequence<size_t>::no_init(DG.n);
- parallel_for (0, DG.n, [&] (size_t a) {
- auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto sizea = induceda.size();
- auto storeb = sequence<size_t>::no_init(sizea);
- parallel_for (0, sizea, [&] (size_t b) {
- size_t sizeb = 0;
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
- auto inducedb = std::get<0>(tupleb);
- sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
- parallel_for (0, sizeb, [&] (size_t c) {
- size_t sizec = 0;
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
- auto inducedc = std::get<0>(tuplec);
- sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, sizec, [&] (size_t d) {
- size_t sized = 0;
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- sized = std::get<1>(tupled);
- auto storee = sequence<size_t>::no_init(sized);
- parallel_for (0, sized, [&] (size_t e) {
- size_t sizee = 0;
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, true);
- auto inducede = std::get<0>(tuplee);
- sizee = std::get<1>(tuplee);
- auto storef = sequence<size_t>::no_init(sizee);
- parallel_for (0, sizee, [&] (size_t f) {
- size_t sizef = 0;
- auto tuplef = lstintersect(DG, inducede[f], inducede, true);
- auto inducedf = std::get<0>(tuplef);
- sizef = std::get<1>(tuplef);
- auto storeg = sequence<size_t>::no_init(sizef);
- parallel_for (0, sizef, [&] (size_t g) {
- size_t sizeg = 0;
- auto tupleg = lstintersect(DG, inducedf[g], inducedf, true);
- auto inducedg = std::get<0>(tupleg);
- sizeg = std::get<1>(tupleg);
- auto storeh = sequence<size_t>::no_init(sizeg);
- parallel_for (0, sizeg, [&] (size_t h) {
- size_t sizeh = 0;
- auto tupleh = lstintersect(DG, inducedg[h], inducedg, true);
- auto inducedh = std::get<0>(tupleh);
- sizeh = std::get<1>(tupleh);
- auto storei = sequence<size_t>::no_init(sizeh);
- parallel_for (0, sizeh, [&] (size_t i) {
- size_t sizei = 0;
- if (count_only) {
- auto tuplei = lstintersect(DG, inducedh[i], inducedh, false);
- sizei = std::get<1>(tuplei);
- } else {
- auto tuplei = lstintersect(DG, inducedh[i], inducedh, true);
- auto inducedi = std::get<0>(tuplei);
- sizei = std::get<1>(tuplei);
- auto base = sequence<uintE>::no_init(k);
- base[0] = a;
- base[1] = induceda[b];
- base[2] = inducedb[c];
- base[3] = inducedc[d];
- base[4] = inducedd[e];
- base[5] = inducede[f];
- base[6] = inducedf[g];
- base[7] = inducedg[h];
- base[8] = inducedh[i];
- for (size_t xx = 0; xx < sizei; xx++) {
- base[9] = inducedi[xx];
- g_f(base);
- }
- }
- storei[i] = sizei;
- });
- storeh[h] = pbbslib::reduce_add(storei);
- });
- storeg[g] = pbbslib::reduce_add(storeh);
- });
- storef[f] = pbbslib::reduce_add(storeg);
- });
- storee[e] = pbbslib::reduce_add(storef);
- });
- stored[d] = pbbslib::reduce_add(storee);
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
- storeb[b] = pbbslib::reduce_add(storec);
- });
- storea[a] = pbbslib::reduce_add(storeb);
- });
+ induced_alloc::finish();
  return pbbslib::reduce_add(storea);
  break; }
  default:
  auto storea = sequence<size_t>::no_init(DG.n);
  parallel_for (0, DG.n, [&] (size_t a) {
  auto induceda = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(a).getOutNeighbors()), DG.get_vertex(a).getOutDegree());
- auto storeb = sequence<size_t>::no_init(induceda.size());
+ auto sizea = induceda.size();
+ auto ptr_storeb = induced_alloc::alloc();
+ auto storeb = sequence<uintE>(*ptr_storeb, sizea);
  parallel_for (0, induceda.size(), [&] (size_t b) {
- auto tupleb = lstintersect(DG, induceda[b], induceda, true);
+ auto ptr_inducedb = induced_alloc::alloc();
+ auto tupleb = lstintersect(DG, induceda[b], induceda, true, *ptr_inducedb);
  auto inducedb = std::get<0>(tupleb);
  size_t sizeb = std::get<1>(tupleb);
- auto storec = sequence<size_t>::no_init(sizeb);
+ auto ptr_storec = induced_alloc::alloc();
+ auto storec = sequence<uintE>(*ptr_storec, sizeb);
  parallel_for (0, inducedb.size(), [&] (size_t c) {
- auto tuplec = lstintersect(DG, inducedb[c], inducedb, true);
+ auto ptr_inducedc = induced_alloc::alloc();
+ auto tuplec = lstintersect(DG, inducedb[c], inducedb, true, *ptr_inducedc);
  auto inducedc = std::get<0>(tuplec);
- size_t sizec = std::get<1>(tuplec);
- auto stored = sequence<size_t>::no_init(sizec);
- parallel_for (0, inducedc.size(), [&] (size_t d) {
- auto tupled = lstintersect(DG, inducedc[d], inducedc, true);
- auto inducedd = std::get<0>(tupled);
- size_t sized = std::get<1>(tupled);
- auto storee = sequence<size_t>::no_init(sized);
- parallel_for (0, inducedd.size(), [&] (size_t e) {
- auto tuplee = lstintersect(DG, inducedd[e], inducedd, true);
- auto inducede = std::get<0>(tuplee);
- size_t sizee = std::get<1>(tuplee);
- auto storef = sequence<size_t>::no_init(sizee);
- parallel_for (0, inducede.size(), [&] (size_t f) {
- auto tuplef = lstintersect(DG, inducede[f], inducede, true);
- auto inducedf = std::get<0>(tuplef);
- size_t sizef = std::get<1>(tuplef);
- auto storeg = sequence<size_t>::no_init(sizef);
- parallel_for (0, inducedf.size(), [&] (size_t g) {
- auto tupleg = lstintersect(DG, inducedf[g], inducedf, true);
- auto inducedg = std::get<0>(tupleg);
- size_t sizeg = std::get<1>(tupleg);
- auto storeh = sequence<size_t>::no_init(sizeg);
- parallel_for (0, inducedg.size(), [&] (size_t h) {
- auto tupleh = lstintersect(DG, inducedg[h], inducedg, true);
- auto inducedh = std::get<0>(tupleh);
- size_t sizeh = std::get<1>(tupleh);
- auto storei = sequence<size_t>::no_init(sizeh);
- parallel_for (0, inducedh.size(), [&] (size_t i) {
- auto tuplei = lstintersect(DG, inducedh[i], inducedh, true);
- auto inducedi = std::get<0>(tuplei);
  auto base = sequence<uintE>();
  if (!count_only) {
- base = sequence<uintE>::no_init(k);
+ auto ptr_base = induced_alloc::alloc();
+ base = sequence<uintE>(*ptr_base, k);
  base[0] = a;
  base[1] = induceda[b];
  base[2] = inducedb[c];
- base[3] = inducedc[d];
- base[4] = inducedd[e];
- base[5] = inducede[f];
- base[6] = inducedf[g];
- base[7] = inducedg[h];
- base[8] = inducedh[i];
- }
- storei[i] = KCliqueIndDir_rec(DG, 9, k, inducedi, lstintersect, base, g_f, count_only);
+ storec[c] = KCliqueIndDir_rec(DG, 3, k, inducedc, lstintersect, base, g_f, count_only);
+ base.to_array(); induced_alloc::free(ptr_base); }
+ else storec[c] = KCliqueIndDir_rec(DG, 3, k, inducedc, lstintersect, base, g_f, count_only);
  });
- storeh[h] = pbbslib::reduce_add(storei);
- });
- storeg[g] = pbbslib::reduce_add(storeh);
- });
- storef[f] = pbbslib::reduce_add(storeg);
- });
- storee[e] = pbbslib::reduce_add(storef);
- });
- stored[d] = pbbslib::reduce_add(storee);
- });
- storec[c] = pbbslib::reduce_add(stored);
- });
+ inducedb.to_array(); induced_alloc::free(ptr_inducedb);
  storeb[b] = pbbslib::reduce_add(storec);
+ storec.to_array(); induced_alloc::free(ptr_storec);
  });
  storea[a] = pbbslib::reduce_add(storeb);
+ storeb.to_array(); induced_alloc::free(ptr_storeb);
  });
+ induced_alloc::finish();
  return pbbslib::reduce_add(storea); 
  }
 }
