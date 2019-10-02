@@ -1,0 +1,13 @@
+cc_binary(
+  name = "ConnectivityBenchmark",
+  srcs = ["ConnectivityBenchmark.cc"],
+  deps = [
+  "UnionFind:Connectivity",
+  "WorkEfficientSDB14:Connectivity",
+  "HybridLDDUF:Connectivity",
+  ]
+)
+
+package(
+  default_visibility = ["//visibility:public"],
+)
