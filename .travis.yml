@@ -20,7 +20,7 @@ before_install:
 script:
   - g++ --version
   - gcc --version
-  - sudo rm /usr/bin/g++
+  - sudo rm /usr/bin/g++ # doing this seems like an awful hack, but hey it works.
   - sudo rm /usr/bin/gcc
   - sudo ln -s /usr/bin/g++-6 /usr/bin/g++
   - sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
