@@ -1,4 +1,4 @@
-# GBBS: Graph Based Benchmark Suite
+# GBBS: Graph Based Benchmark Suite [![Build Status](https://travis-ci.com/ldhulipala/gbbs.svg?branch=master)](https://travis-ci.com/ldhulipala/gbbs)
 
 Organization
 --------
