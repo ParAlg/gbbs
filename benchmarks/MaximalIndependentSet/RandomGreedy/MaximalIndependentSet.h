@@ -272,7 +272,6 @@ struct MaximalIndependentSetstep {
 
 template <class Graph>
 inline sequence<char> MaximalIndependentSet(Graph& G) {
-  using W = typename Graph::weight_type;
   size_t n = G.n;
   auto Flags = sequence<char>(n, [&](size_t i) { return 0; });
   auto FlagsNext = sequence<char>(n);

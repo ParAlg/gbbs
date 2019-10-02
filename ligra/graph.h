@@ -100,8 +100,14 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     return new_degree;
   }
 
+  /* degree must be <= old_degree */
+  void decrease_vertex_degree(uintE id, uintE degree) {
+    assert(degree <= v_data[id].degree);
+    v_data[id].degree = degree;
+  }
+
   void zero_vertex_degree(uintE id) {
-    v_data[id].degree = 0;
+    decrease_vertex_degree(id, 0);
   }
 
   template <class F>
@@ -175,11 +181,11 @@ struct asymmetric_graph {
       edge_type* _in_edges_0,
       edge_type* _out_edges_1=nullptr,
       edge_type* _in_edges_1=nullptr) :
-    v_out_data(v_out_data),
-    v_in_data(v_in_data),
     n(n),
     m(m),
     deletion_fn(_deletion_fn),
+    v_out_data(v_out_data),
+    v_in_data(v_in_data),
     out_edges_0(_out_edges_0),
     out_edges_1(_out_edges_1),
     in_edges_0(_in_edges_0),

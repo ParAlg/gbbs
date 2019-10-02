@@ -327,7 +327,7 @@ cc_library(
 
 cc_binary(
   name = "time_tests",
-  srcs = ["time_tests.cpp"],
+  srcs = ["time_tests.cc"],
   deps = [
    ":alloc",
    ":allocator",

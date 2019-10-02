@@ -186,11 +186,6 @@ namespace contract {
   contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
     using K = std::tuple<uintE, uintE>;
-    using V = pbbslib::empty;
-    using KV = std::tuple<K, V>;
-    using W = typename Graph::weight_type;
-
-    size_t n = GA.n;
 
     edge* edges;
     size_t edges_size;

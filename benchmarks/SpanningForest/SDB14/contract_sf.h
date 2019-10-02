@@ -161,10 +161,8 @@ namespace contract_sf {
   template <class Graph, class E>
   inline auto contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters, E& edge_mapping) {
     // Remove duplicates by hashing
-    size_t n = GA.n;
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
-    using KV = std::tuple<K, V>;
 
     auto table = (num_clusters < small_cluster_size) ?
       fetch_intercluster_small(GA, clusters, num_clusters, edge_mapping) :

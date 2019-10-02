@@ -14,7 +14,7 @@ cc_library(
 
 cc_binary(
   name = "Biconnectivity_main",
-  srcs = ["Biconnectivity.cpp"],
+  srcs = ["Biconnectivity.cc"],
   deps = [
   ":Biconnectivity",
   "//ligra/pbbslib:sparse_additive_map",

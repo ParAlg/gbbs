@@ -10,7 +10,7 @@ cc_library(
 
 cc_binary(
   name = "StronglyConnectedComponents_main",
-  srcs = ["StronglyConnectedComponents.cpp"],
+  srcs = ["StronglyConnectedComponents.cc"],
   deps = [":StronglyConnectedComponents"]
 )
 

@@ -8,7 +8,7 @@ cc_library(
 
 cc_binary(
   name = "BellmanFord_main",
-  srcs = ["BellmanFord.cpp"],
+  srcs = ["BellmanFord.cc"],
   deps = [":BellmanFord"]
 )
 

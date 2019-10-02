@@ -1,6 +1,6 @@
 cc_test(
   name = "test_bfs",
-  srcs = ["test_bfs.cpp"],
+  srcs = ["test_bfs.cc"],
   copts = ["-Iexternal/gtest/include"],
   deps = [
   "//benchmarks/BFS/NonDeterministicBFS:BFS",

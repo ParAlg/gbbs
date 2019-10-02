@@ -43,7 +43,7 @@ inline size_t key_for_pair(uint32_t k1, uintE k2, pbbslib::random rnd) {
 }
 
 template <template <class W> class vertex, class W, class UF>
-inline edge_array<W> get_remaining(graph<vertex<W>>& G, size_t k, UF& uf,
+inline edge_array<W> get_remaining(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
                                    pbbslib::random r) {
   auto filter_pred = [&](const uint32_t& src, const uintE& ngh, const W& wgh) {
     if (src < ngh) {
@@ -57,7 +57,7 @@ inline edge_array<W> get_remaining(graph<vertex<W>>& G, size_t k, UF& uf,
 }
 
 template <template <class W> class vertex, class W, class UF>
-inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
+inline void pack_shortcut_edges(symmetric_graph<vertex, W>& G, UF& uf) {
   auto filter_pred = [&](const uint32_t& src, const uintE& ngh,
                          const W& wgh) -> int {
     if (src > ngh) {
@@ -73,7 +73,7 @@ inline void pack_shortcut_edges(graph<vertex<W>>& G, UF& uf) {
 }
 
 template <template <class W> class vertex, class W, class UF>
-inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
+inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
                                pbbslib::random r, bool first_round = false) {
   if (k == static_cast<size_t>(G.m)) {
     return get_remaining(G, k, uf, r);
@@ -125,10 +125,8 @@ inline edge_array<W> get_top_k(graph<vertex<W>>& G, size_t k, UF& uf,
   return filter_edges(G, filter_pred);
 }
 
-template <template <class W> class vertex, class W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
-                                  int>::type = 0>
-inline void MinimumSpanningForest(graph<vertex<W>>& GA) {
+template <template <class W> class vertex, class W>
+inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   using res = reservation<uintE>;
   using edge_t = std::tuple<uintE, uintE, W>;
 
@@ -194,10 +192,4 @@ inline void MinimumSpanningForest(graph<vertex<W>>& GA) {
   mst_edges.del();
 }
 
-template <
-    template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
-inline uint32_t* MinimumSpanningForest(graph<vertex<W>>& GA) {
-  exit(0);
-}
 }  // namespace MinimumSpanningForest_spec_for

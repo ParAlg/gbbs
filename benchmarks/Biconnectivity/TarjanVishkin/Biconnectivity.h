@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "benchmarks/Connectivity/SDB14/Connectivity.h"
+#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
 #include "ligra/pbbslib/sparse_table.h"
@@ -93,7 +93,7 @@ struct MinMaxF {
 };
 
 template <template <typename W> class vertex, class W, class Seq>
-inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
+inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<vertex, W>& GA,
                                                            uintE* Parents,
                                                            Seq& Sources) {
   size_t n = GA.n;
@@ -137,30 +137,32 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
 
   timer augs;
   augs.start();
+
   // Create directed BFS tree
-  using vtx = asymmetricVertex<pbbslib::empty>;
-  auto v = pbbslib::new_array_no_init<vtx>(n);
+
+  auto v_out = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_in = pbbslib::new_array_no_init<vertex_data>(n);
   par_for(0, n, [&] (size_t i) {
     uintE out_off = starts[i];
     uintE out_deg = starts[i + 1] - out_off;
-    v[i].setOutDegree(out_deg);
-    v[i].setOutNeighbors(
-        (std::tuple<uintE, pbbslib::empty>*)(nghs.begin() + out_off));
+    v_out[i].offset = out_off;
+    v_out[i].degree = out_deg;
+
     uintE parent = Parents[i];
     if (parent != i) {
-      v[i].setInDegree(1);
-      v[i].setInNeighbors(((std::tuple<uintE, pbbslib::empty>*)(Parents + i)));
+      v_in[i].degree = 1;
+      v_in[i].offset = i;
     } else {
-      v[i].setInDegree(0);
-      v[i].setInNeighbors(nullptr);
+      v_in[i].degree = 0;
+      v_in[i].offset = i;
     }
   });
-  auto Tree = graph<vtx>(v, n, nghs.size(), []() {});
+  auto Tree = asymmetric_graph<asymmetric_vertex, pbbslib::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, pbbs::empty>*)nghs.begin(), (std::tuple<uintE, pbbs::empty>*)Parents);
 
   // 1. Leaffix for Augmented Sizes
   auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
   auto cts =
-      sequence<intE>(n, [&](size_t i) { return Tree.V[i].getOutDegree(); });
+      sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).getOutDegree(); });
   auto leaf_im = pbbslib::make_sequence<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
@@ -209,21 +211,21 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     tv += vs.size();
     auto offsets = sequence<uintE>(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
-      return Tree.V[v].getOutDegree();
+      return Tree.get_vertex(v).getOutDegree();
     });
     auto tot = pbbslib::scan_add_inplace(offsets);
     auto next_vs = sequence<uintE>(tot);
     par_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
-      uintE deg_v = Tree.V[v].getOutDegree();
+      uintE deg_v = Tree.get_vertex(v).getOutDegree();
       uintE preorder_number = PN[v] + 1;
 
       // should be tuned
       if (deg_v < 4000) {
         // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
         for (size_t j = 0; j < deg_v; j++) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           PN[ngh] = preorder_number;
           preorder_number += aug_sizes[ngh];
           next_vs[off + j] = ngh;
@@ -231,12 +233,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       } else {
         auto A = sequence<uintE>(deg_v);
         par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           A[j] = aug_sizes[ngh];
         });
         pbbslib::scan_add_inplace(A);
         par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.V[v].getOutNeighbor(j);
+          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
           next_vs[off + j] = ngh;
@@ -278,7 +280,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
       }
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { GA.V[i].mapOutNgh(i, map_f); });
+  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); });
   map_e.stop();
   debug(map_e.reportTotal("map edges time"););
 
@@ -286,7 +288,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
   leaff.start();
   // 1. Leaffix to update min/max
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { cts[i] = Tree.V[i].getOutDegree(); });
+                  { cts[i] = Tree.get_vertex(i).getOutDegree(); });
 
   size_t leafs_size = leafs.size();
   vs = vertexSubset(n, leafs_size, leafs.to_array());
@@ -302,7 +304,8 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(graph<vertex<W>>& GA,
     vs = output;
   }
   // Delete tree
-  pbbslib::free_array(v);
+  pbbslib::free_array(v_out);
+  pbbslib::free_array(v_in);
   nghs.clear();
   leaff.stop();
   debug(leaff.reportTotal("leaffix to update min max time"););
@@ -328,7 +331,7 @@ struct BC_BFS_F {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-inline uintE* multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
+inline uintE* multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
@@ -390,7 +393,7 @@ struct DET_BFS_F_2 {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-uintE* deterministic_multi_bfs(graph<vertex<W>>& GA, VS& frontier) {
+uintE* deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
   auto visited = sequence<bool>(n, [] (size_t i) { return false; });
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
@@ -428,7 +431,7 @@ inline sequence<uintE> cc_sources(Seq& labels) {
 
 template <template <class W> class vertex, class W>
 inline std::tuple<uintE*, uintE*> critical_connectivity(
-    graph<vertex<W>>& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
+    symmetric_graph<vertex, W>& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
     uintE* aug_sizes_A, char* out_f) {
   timer ccc;
   ccc.start();
@@ -531,8 +534,8 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
-template <class vertex>
-inline std::tuple<uintE*, uintE*> Biconnectivity(graph<vertex>& GA,
+template <template <class W> class vertex, class W>
+inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
                                                  char* out_f = 0) {
   size_t n = GA.n;
 

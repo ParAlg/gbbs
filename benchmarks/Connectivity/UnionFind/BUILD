@@ -1,11 +1,9 @@
 cc_library(
-  name = "contract",
-  hdrs = ["contract.h"],
+  name = "union_find_rules",
+  hdrs = ["union_find_rules.h"],
   deps = [
-  "//ligra:graph",
-  "//ligra:macros",
-  "//ligra/pbbslib:sparse_table",
-  "//pbbslib:sequence_ops"
+  "//ligra:bridge",
+  "//pbbslib:seq"
   ]
 )
 
@@ -13,8 +11,7 @@ cc_library(
   name = "Connectivity",
   hdrs = ["Connectivity.h"],
   deps = [
-  ":contract",
-  "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
+  "//ligra:bridge",
   "//ligra:ligra",
   "//ligra/pbbslib:sparse_table"
   ]
@@ -22,8 +19,11 @@ cc_library(
 
 cc_binary(
   name = "Connectivity_main",
-  srcs = ["Connectivity.cpp"],
-  deps = [":Connectivity"]
+  srcs = ["Connectivity.cc"],
+  deps = [
+  ":Connectivity",
+  ":union_find_rules",
+  ]
 )
 
 package(

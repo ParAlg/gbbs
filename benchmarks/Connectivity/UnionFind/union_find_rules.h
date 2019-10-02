@@ -3,6 +3,8 @@
 #include "ligra/bridge.h"
 #include "pbbslib/seq.h"
 
+#include <mutex>
+
 namespace find_variants {
   inline uintE find_naive(uintE i, pbbs::sequence<uintE>& parent) {
     while(i != parent[i])

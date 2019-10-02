@@ -10,7 +10,7 @@ cc_library(
 
 cc_binary(
   name = "Triangle_main",
-  srcs = ["Triangle.cpp"],
+  srcs = ["Triangle.cc"],
   deps = [":Triangle"]
 )
 

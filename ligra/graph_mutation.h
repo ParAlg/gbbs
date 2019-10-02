@@ -111,7 +111,6 @@ template <template <class W> class vertex, class W, typename P,
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
 inline asymmetric_graph<cav_byte, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
-  using w_vertex = vertex<W>;
   size_t n = G.n;
 
   debug(std::cout << "Filtering" << "\n");
@@ -385,7 +384,7 @@ edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
 
   // 2. Filter edges into output arr.
   {
-    parallel_for(0, n, 1, [&](size_t i) {
+    parallel_for(0, n, [&](size_t i) {
       size_t off = std::get<0>(vtx_offs[i]);
       size_t n_to_pack = std::get<0>(vtx_offs[i + 1]) - off;
       if (n_to_pack > 0) {
@@ -396,7 +395,7 @@ edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
         };
         G.get_vertex(i).filterOutNgh(i, pred, out_f, tmp_v);
       }
-    });
+    }, 1);
   }
   return edge_array<W>(output_arr.to_array(), n, n, output_arr.size());
 }
@@ -407,7 +406,6 @@ edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
 // in the new adjacency list if p(ngh) is true.
 template <template <class W> class vertex_type, class W, class P>
 inline void packAllEdges(symmetric_graph<vertex_type, W>& G, P& p, const flags& fl = 0) {
-  using vertex = vertex_type<W>;
   size_t n = G.n;
   auto space = sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) {
@@ -431,7 +429,6 @@ inline vertexSubsetData<uintE> packEdges(symmetric_graph<vertex_type, W>& G,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
-  using vertex = vertex_type<W>;
 
   vs.toSparse();
   size_t m = vs.numNonzeros();

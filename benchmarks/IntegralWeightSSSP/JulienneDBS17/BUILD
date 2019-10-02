@@ -9,7 +9,7 @@ cc_library(
 
 cc_binary(
   name = "wBFS_main",
-  srcs = ["wBFS.cpp"],
+  srcs = ["wBFS.cc"],
   deps = [":wBFS"]
 )
 

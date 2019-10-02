@@ -11,7 +11,7 @@ cc_library(
 
 cc_binary(
   name = "Spanner_main",
-  srcs = ["Spanner.cpp"],
+  srcs = ["Spanner.cc"],
   deps = [":Spanner"]
 )
 
