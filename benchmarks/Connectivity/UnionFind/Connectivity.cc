@@ -62,6 +62,46 @@ inline size_t largest_cc(Seq& labels) {
   return sz;
 }
 
+
+
+template <template <class Find> class Unite,
+          template <class F, class U, class G> class UFTemplate,
+          class Graph>
+pbbs::sequence<uintE> select_algorithm(Graph& G, std::string& find_arg) {
+  if (find_arg == "find_compress") {
+    auto find = find_variants::find_compress;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find);
+    return q.components();
+  } else if (find_arg == "find_naive") {
+    auto find = find_variants::find_naive;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find);
+    return q.components();
+  } else if (find_arg == "find_split") {
+    auto find = find_variants::find_split;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find);
+    return q.components();
+  } else if (find_arg == "find_halve") {
+    auto find = find_variants::find_halve;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find);
+    return q.components();
+  } else if (find_arg == "find_atomic_split") {
+    auto find = find_variants::find_atomic_split;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find);
+    return q.components();
+  } else if (find_arg == "find_atomic_halve") {
+    auto find = find_variants::find_atomic_halve;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find);
+    return q.components();
+  }
+  return pbbs::sequence<uintE>();
+}
+
 template <class Graph>
 double CC_runner(Graph& G, commandLine P) {
   std::cout << "### Application: CC (Connectivity)" << std::endl;
@@ -71,124 +111,50 @@ double CC_runner(Graph& G, commandLine P) {
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### ------------------------------------" << endl;
 
-
   std::string unite_arg = P.getOptionValue("-unite", "unite");
   std::string find_arg = P.getOptionValue("-find", "find_compress");
 
+  bool sampling_arg = P.getOptionValue("-sample"/*false by default*/);
+
   std::cout << "Params: -unite = " << unite_arg << " -find = " << find_arg << std::endl;
+
+  pbbs::sequence<uintE> components;
+  if (sampling_arg) {
+    int sampling_num_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
+    if (unite_arg == "unite") {
+      components = select_algorithm<unite_variants::Unite, union_find::UnionFindSampleTemplate, Graph>(G, find_arg);
+    } else if (unite_arg == "unite_early") {
+      components = select_algorithm<unite_variants::UniteEarly, union_find::UnionFindSampleTemplate, Graph>(G, find_arg);
+    } else if (unite_arg == "unite_nd") {
+      components = select_algorithm<unite_variants::UniteND, union_find::UnionFindSampleHookTemplate, Graph>(G, find_arg);
+    } else if (unite_arg == "unite_rem") {
+      components = select_algorithm<unite_variants::UniteRem, union_find::UnionFindSampleTemplate, Graph>(G, find_arg);
+    } else {
+      std::cout << "Unknown unite variant: " << unite_arg << std::endl;
+    }
+  } else {
+    if (unite_arg == "unite") {
+      components = select_algorithm<unite_variants::Unite, union_find::UnionFindTemplate, Graph>(G, find_arg);
+    } else if (unite_arg == "unite_early") {
+      components = select_algorithm<unite_variants::UniteEarly, union_find::UnionFindTemplate, Graph>(G, find_arg);
+    } else if (unite_arg == "unite_nd") {
+      components = select_algorithm<unite_variants::UniteND, union_find::UnionFindHookTemplate, Graph>(G, find_arg);
+    } else if (unite_arg == "unite_rem") {
+      components = select_algorithm<unite_variants::UniteRem, union_find::UnionFindTemplate, Graph>(G, find_arg);
+    } else {
+      std::cout << "Unknown unite variant: " << unite_arg << std::endl;
+    }
+  }
+
+  if (P.getOptionValue("-check")) {
+    // TODO
+  }
 
   timer t;
   t.start();
   pbbs::sequence<uintE> components;
 
-  if (unite_arg == "unite") {
-    if (find_arg == "find_compress") {
-      auto find = find_variants::find_compress;
-      auto unite = unite_variants::Unite<decltype(find)>(find);
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_naive") {
-      auto find = find_variants::find_naive;
-      auto unite = unite_variants::Unite<decltype(find)>(find);
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_split") {
-      auto find = find_variants::find_split;
-      auto unite = unite_variants::Unite<decltype(find)>(find);
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_halve") {
-      auto find = find_variants::find_halve;
-      auto unite = unite_variants::Unite<decltype(find)>(find);
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_split") {
-      auto find = find_variants::find_atomic_split;
-      auto unite = unite_variants::Unite<decltype(find)>(find);
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_halve") {
-      auto find = find_variants::find_atomic_halve;
-      auto unite = unite_variants::Unite<decltype(find)>(find);
-      components = union_find::UnionFindTemplate(G, unite, find);
-    }
-  } else if (unite_arg == "unite_rem") {
-    if (find_arg == "find_compress") {
-      auto find = find_variants::find_compress;
-      auto unite = unite_variants::UniteRem<decltype(find)>(find);
-      components = union_find::UnionFindRemTemplate(G, unite, find);
-    } else if (find_arg == "find_naive") {
-      auto find = find_variants::find_naive;
-      auto unite = unite_variants::UniteRem<decltype(find)>(find);
-      components = union_find::UnionFindRemTemplate(G, unite, find);
-    } else if (find_arg == "find_split") {
-      auto find = find_variants::find_split;
-      auto unite = unite_variants::UniteRem<decltype(find)>(find);
-      components = union_find::UnionFindRemTemplate(G, unite, find);
-    } else if (find_arg == "find_halve") {
-      auto find = find_variants::find_halve;
-      auto unite = unite_variants::UniteRem<decltype(find)>(find);
-      components = union_find::UnionFindRemTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_split") {
-      auto find = find_variants::find_atomic_split;
-      auto unite = unite_variants::UniteRem<decltype(find)>(find);
-      components = union_find::UnionFindRemTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_halve") {
-      auto find = find_variants::find_atomic_halve;
-      auto unite = unite_variants::UniteRem<decltype(find)>(find);
-      components = union_find::UnionFindRemTemplate(G, unite, find);
-    }
-  } else if (unite_arg == "unite_early") {
-    if (find_arg == "find_compress") {
-      auto find = find_variants::find_compress;
-      auto unite = unite_variants::UniteEarly();
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_naive") {
-      auto find = find_variants::find_naive;
-      auto unite = unite_variants::UniteEarly();
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_split") {
-      auto find = find_variants::find_split;
-      auto unite = unite_variants::UniteEarly();
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_halve") {
-      auto find = find_variants::find_halve;
-      auto unite = unite_variants::UniteEarly();
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_split") {
-      auto find = find_variants::find_atomic_split;
-      auto unite = unite_variants::UniteEarly();
-      components = union_find::UnionFindTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_halve") {
-      auto find = find_variants::find_atomic_halve;
-      auto unite = unite_variants::UniteEarly();
-      components = union_find::UnionFindTemplate(G, unite, find);
-    }
-  } else if (unite_arg == "unite_nd") {
-    if (find_arg == "find_compress") {
-      auto find = find_variants::find_compress;
-      auto unite = unite_variants::UniteND<decltype(find)>(find);
-      components = union_find::UnionFindHookTemplate(G, unite, find);
-    } else if (find_arg == "find_naive") {
-      auto find = find_variants::find_naive;
-      auto unite = unite_variants::UniteND<decltype(find)>(find);
-      components = union_find::UnionFindHookTemplate(G, unite, find);
-    } else if (find_arg == "find_split") {
-      auto find = find_variants::find_split;
-      auto unite = unite_variants::UniteND<decltype(find)>(find);
-      components = union_find::UnionFindHookTemplate(G, unite, find);
-    } else if (find_arg == "find_halve") {
-      auto find = find_variants::find_halve;
-      auto unite = unite_variants::UniteND<decltype(find)>(find);
-      components = union_find::UnionFindHookTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_split") {
-      auto find = find_variants::find_atomic_split;
-      auto unite = unite_variants::UniteND<decltype(find)>(find);
-      components = union_find::UnionFindHookTemplate(G, unite, find);
-    } else if (find_arg == "find_atomic_halve") {
-      auto find = find_variants::find_atomic_halve;
-      auto unite = unite_variants::UniteND<decltype(find)>(find);
-      components = union_find::UnionFindHookTemplate(G, unite, find);
-    }
-  } else {
-    std::cout << "Bad parameter combination for -hooks=true: " << unite_arg << std::endl;
-    exit(0);
-  }
+
 
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
@@ -204,3 +170,114 @@ double CC_runner(Graph& G, commandLine P) {
 }
 
 generate_main(CC_runner, false);
+
+
+//  if (unite_arg == "unite") {
+//    if (find_arg == "find_compress") {
+//      auto find = find_variants::find_compress;
+//      auto unite = Unite<decltype(find)>(find);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_naive") {
+//      auto find = find_variants::find_naive;
+//      auto unite = Unite<decltype(find)>(find);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_split") {
+//      auto find = find_variants::find_split;
+//      auto unite = Unite<decltype(find)>(find);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_halve") {
+//      auto find = find_variants::find_halve;
+//      auto unite = Unite<decltype(find)>(find);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_split") {
+//      auto find = find_variants::find_atomic_split;
+//      auto unite = Unite<decltype(find)>(find);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_halve") {
+//      auto find = find_variants::find_atomic_halve;
+//      auto unite = Unite<decltype(find)>(find);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    }
+//  } else if (unite_arg == "unite_rem") {
+//    if (find_arg == "find_compress") {
+//      auto find = find_variants::find_compress;
+//      auto unite = UniteRem<decltype(find)>(find, G.n);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_naive") {
+//      auto find = find_variants::find_naive;
+//      auto unite = UniteRem<decltype(find)>(find, G.n);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_split") {
+//      auto find = find_variants::find_split;
+//      auto unite = UniteRem<decltype(find)>(find, G.n);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_halve") {
+//      auto find = find_variants::find_halve;
+//      auto unite = UniteRem<decltype(find)>(find, G.n);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_split") {
+//      auto find = find_variants::find_atomic_split;
+//      auto unite = UniteRem<decltype(find)>(find, G.n);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_halve") {
+//      auto find = find_variants::find_atomic_halve;
+//      auto unite = UniteRem<decltype(find)>(find, G.n);
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    }
+//  } else if (unite_arg == "unite_early") {
+//    if (find_arg == "find_compress") {
+//      auto find = find_variants::find_compress;
+//      auto unite = UniteEarly();
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_naive") {
+//      auto find = find_variants::find_naive;
+//      auto unite = UniteEarly();
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_split") {
+//      auto find = find_variants::find_split;
+//      auto unite = UniteEarly();
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_halve") {
+//      auto find = find_variants::find_halve;
+//      auto unite = UniteEarly();
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_split") {
+//      auto find = find_variants::find_atomic_split;
+//      auto unite = UniteEarly();
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_halve") {
+//      auto find = find_variants::find_atomic_halve;
+//      auto unite = UniteEarly();
+//      components = union_find::UnionFindTemplate(G, unite, find);
+//    }
+//  } else if (unite_arg == "unite_nd") {
+//    if (find_arg == "find_compress") {
+//      auto find = find_variants::find_compress;
+//      auto unite = UniteND<decltype(find)>(find);
+//      components = union_find::UnionFindHookTemplate(G, unite, find);
+//    } else if (find_arg == "find_naive") {
+//      auto find = find_variants::find_naive;
+//      auto unite = UniteND<decltype(find)>(find);
+//      components = union_find::UnionFindHookTemplate(G, unite, find);
+//    } else if (find_arg == "find_split") {
+//      auto find = find_variants::find_split;
+//      auto unite = UniteND<decltype(find)>(find);
+//      components = union_find::UnionFindHookTemplate(G, unite, find);
+//    } else if (find_arg == "find_halve") {
+//      auto find = find_variants::find_halve;
+//      auto unite = UniteND<decltype(find)>(find);
+//      components = union_find::UnionFindHookTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_split") {
+//      auto find = find_variants::find_atomic_split;
+//      auto unite = UniteND<decltype(find)>(find);
+//      components = union_find::UnionFindHookTemplate(G, unite, find);
+//    } else if (find_arg == "find_atomic_halve") {
+//      auto find = find_variants::find_atomic_halve;
+//      auto unite = UniteND<decltype(find)>(find);
+//      components = union_find::UnionFindHookTemplate(G, unite, find);
+//    }
+//  } else {
+//    std::cout << "Bad parameter combination for -hooks=true: " << unite_arg << std::endl;
+//    exit(0);
+//  }
+//}

@@ -86,8 +86,8 @@ double CC_runner(edge_array<W>& G, commandLine P) {
     components = union_find::UnionFindTemplate_coo(G, unite, find);
   } else if (test == "rem") {
     auto find = find_variants::find_compress;
-    auto unite = unite_variants::UniteRem<decltype(find)>(find);
-    components = union_find::UnionFindRemTemplate_coo(G, unite, find);
+    auto unite = unite_variants::UniteRem<decltype(find)>(find, G.num_rows);
+    components = union_find::UnionFindTemplate_coo(G, unite, find);
   } else {
     cout << "Unknown test named: " << test << endl;
   }

@@ -82,7 +82,7 @@ namespace unite_variants {
   template <class Find>
   struct Unite {
     Find& find;
-    Unite(Find& find) : find(find) {}
+    Unite(uintE n, Find& find) : find(find) {}
 
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parents, pbbs::sequence<uintE>& hooks) {
       uintE u = u_orig;
@@ -121,10 +121,18 @@ namespace unite_variants {
 
   template <class Find>
   struct UniteRem {
+    uintE n;
     Find& find;
-    UniteRem(Find& find) : find(find) {}
+    std::mutex* locks;
+    UniteRem(uintE n, Find& find) : find(find), n(n) {
+      locks = pbbs::new_array<std::mutex>(n);
+    }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parent, pbbs::sequence<uintE>& hooks, pbbs::sequence<std::mutex>& locks) {
+    ~UniteRem() {
+      pbbs::free_array(locks);
+    }
+
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parent, pbbs::sequence<uintE>& hooks) {
       uintE rx = u_orig;
       uintE ry = v_orig;
       uintE z;
@@ -151,7 +159,7 @@ namespace unite_variants {
       return;
     }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parent, pbbs::sequence<std::mutex>& locks) {
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parent) {
       uintE rx = u_orig;
       uintE ry = v_orig;
       uintE z;
@@ -173,7 +181,9 @@ namespace unite_variants {
     }
   };
 
+  template <class Find>
   struct UniteEarly {
+    UniteEarly(uintE n, Find& find) {}
     inline void operator()(uintE u, uintE v, pbbs::sequence<uintE>& parents, pbbs::sequence<uintE>& hooks) {
       while(1) {
         if(u == v) return;
@@ -201,7 +211,7 @@ namespace unite_variants {
   template <class Find>
   struct UniteND {
     Find& find;
-    UniteND(Find& find) : find(find) {}
+    UniteND(uintE n, Find& find) : find(find) {}
 
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parents, pbbs::sequence<uintE>& hooks) {
       uintE u = u_orig;
