@@ -49,7 +49,7 @@ struct UnionFindHookTemplate {
   G& GA;
   Unite& unite;
   Find& find;
-  UnionFindHookTemplate(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
+  UnionFindHookTemplate(G& GA, Unite& unite, Find& find, uint32_t neighbor_rounds = 2) : GA(GA), unite(unite), find(find) {}
 
   pbbs::sequence<uintE> components() {
     using W = typename G::weight_type;
@@ -74,7 +74,6 @@ struct UnionFindHookTemplate {
       parents[i] = find(i,parents);
     });
     ft.stop(); debug(ft.reportTotal("find time"););
-    // filter UINT_E_MAX from hooks if spanning forest edges are desired.
     return parents;
   }
 };
@@ -86,7 +85,7 @@ struct UnionFindTemplate {
   G& GA;
   Unite& unite;
   Find& find;
-  UnionFindTemplate(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
+  UnionFindTemplate(G& GA, Unite& unite, Find& find, uint32_t neighbor_rounds = 2) : GA(GA), unite(unite), find(find) {}
 
   pbbs::sequence<uintE> components() {
     using W = typename G::weight_type;
@@ -110,7 +109,6 @@ struct UnionFindTemplate {
       parents[i] = find(i,parents);
     });
     ft.stop(); debug(ft.reportTotal("find time"););
-    // filter UINT_E_MAX from hooks if spanning forest edges are desired.
     return parents;
   }
 };
@@ -148,58 +146,171 @@ typename Seq::value_type sample_frequent_element(Seq& S, uint64_t num_samples=10
 // Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
 // for the well documented reference implementation of afforest.
 template <class Find, class Unite, class G>
-inline pbbs::sequence<uintE> UnionFindSampleTemplate(G& GA, Unite& unite,
-    Find& find, uint32_t neighbor_rounds = 2) {
-  using W = typename G::weight_type;
-  size_t n = GA.n;
+struct UnionFindSampleTemplate {
+  G& GA;
+  Find& find;
+  Unite& unite;
+  uint32_t neighbor_rounds;
 
-  auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+  UnionFindSampleTemplate(G& GA, Unite& unite, Find& find,
+      uint32_t neighbor_rounds = 2) :
+   GA(GA), unite(unite), find(find), neighbor_rounds(neighbor_rounds) {}
 
-  pbbs::random rnd();
+  pbbs::sequence<uintE> components() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    cout << "neighbor_rounds = " << neighbor_rounds << endl;
 
-  for (uint32_t r=0; r<neighbor_rounds; r++) {
-    parallel_for(0, n, [&] (size_t u) {
-      auto u_rnd = rnd.fork(u);
-      auto u_vtx = GA.get_vertex(u);
-      if (u_vtx.getOutDegree() > 0) {
-        size_t ngh_idx = u_rnd.rand() % u_vtx.getOutDegree();
-        uintE ngh = u_vtx.get_ith_out_neighbor(u, ngh_idx);
-        unite(u, ngh, parents);
-      }
-    }, 512);
+    auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
 
-    // compress nodes
-    parallel_for(0, n, [&] (size_t u) {
-      find(u, parents);
-    }, 512);
-  }
+    pbbs::random rnd;
 
-  uintE frequent_comp = sample_frequent_element(parents);
+    // Using random neighbor---some overhead (and faster for some graphs), also
+    // theoretically defensible
+//    for (uint32_t r=0; r<neighbor_rounds; r++) {
+//      parallel_for(0, n, [&] (size_t u) {
+//        auto u_rnd = rnd.fork(u);
+//        auto u_vtx = GA.get_vertex(u);
+//        if (u_vtx.getOutDegree() > 0) {
+//          size_t ngh_idx = u_rnd.rand() % u_vtx.getOutDegree();
+//          uintE ngh; W wgh;
+//          std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+//          unite(u, ngh, parents);
+//        }
+//      }, 512);
+//
+//      rnd = rnd.next();
+//    }
 
-  timer ut; ut.start();
-  parallel_for(0, n, [&] (size_t u) {
-    // Only process edges for vertices not linked to the main component
-    // note that this is safe only for undirected graphs. For directed graphs,
-    // the in-edges must also be explored for all vertices.
-    if (parents[u] != frequent_comp) {
-      auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-        if (u < v) {
-          unite(u, v, parents);
+    // Using r'th neighbor---usually faster, but not so defensible theoretically.
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      parallel_for(0, n, [&] (size_t u) {
+        auto u_vtx = GA.get_vertex(u);
+        if (u_vtx.getOutDegree() > r) {
+          uintE ngh; W wgh;
+          std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
+          unite(u, ngh, parents);
         }
-      };
-      GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
+      }, 512);
+      // compress nodes fully (turns out this is faster)
+      parallel_for(0, n, [&] (size_t u) {
+        find(u, parents);
+      }, 512);
     }
-  }, 1);
-  ut.stop(); debug(ut.reportTotal("union time"));
 
-  timer ft; ft.start();
-  parallel_for(0, n, [&] (size_t i) {
-    parents[i] = find(i,parents);
-  });
-  ft.stop(); debug(ft.reportTotal("find time"););
-  // filter UINT_E_MAX from hooks if spanning forest edges are desired.
-  return parents;
-}
+
+    uintE frequent_comp = sample_frequent_element(parents);
+
+    timer ut; ut.start();
+    parallel_for(0, n, [&] (size_t u) {
+      // Only process edges for vertices not linked to the main component
+      // note that this is safe only for undirected graphs. For directed graphs,
+      // the in-edges must also be explored for all vertices.
+      if (parents[u] != frequent_comp) {
+        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
+          if (u < v) {
+            unite(u, v, parents);
+          }
+        };
+        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
+      }
+    }, 1);
+    ut.stop(); debug(ut.reportTotal("union time"));
+
+    timer ft; ft.start();
+    parallel_for(0, n, [&] (size_t i) {
+      parents[i] = find(i,parents);
+    });
+    ft.stop(); debug(ft.reportTotal("find time"););
+    return parents;
+   }
+};
+
+// returns a component labeling
+// Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
+// for the well documented reference implementation of afforest.
+template <class Find, class Unite, class G>
+struct UnionFindSampleHookTemplate {
+  G& GA;
+  Find& find;
+  Unite& unite;
+  uint32_t neighbor_rounds;
+
+  UnionFindSampleHookTemplate(G& GA, Unite& unite, Find& find,
+      uint32_t neighbor_rounds = 2) :
+   GA(GA), unite(unite), find(find), neighbor_rounds(neighbor_rounds) {}
+
+  pbbs::sequence<uintE> components() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    cout << "neighbor_rounds = " << neighbor_rounds << endl;
+
+    auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+    auto hooks = pbbs::sequence<uintE>(n, [&] (size_t i) { return UINT_E_MAX; });
+
+    pbbs::random rnd;
+
+    // Using random neighbor---some overhead (and faster for some graphs), also
+    // theoretically defensible
+//    for (uint32_t r=0; r<neighbor_rounds; r++) {
+//      parallel_for(0, n, [&] (size_t u) {
+//        auto u_rnd = rnd.fork(u);
+//        auto u_vtx = GA.get_vertex(u);
+//        if (u_vtx.getOutDegree() > 0) {
+//          size_t ngh_idx = u_rnd.rand() % u_vtx.getOutDegree();
+//          uintE ngh; W wgh;
+//          std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+//          unite(u, ngh, parents, hooks);
+//        }
+//      }, 512);
+//
+//      rnd = rnd.next();
+//    }
+
+    // Using r'th neighbor---usually faster, but not so defensible theoretically.
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      parallel_for(0, n, [&] (size_t u) {
+        auto u_vtx = GA.get_vertex(u);
+        if (u_vtx.getOutDegree() > r) {
+          uintE ngh; W wgh;
+          std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
+          unite(u, ngh, parents, hooks);
+        }
+      }, 512);
+      // compress nodes fully (turns out this is faster)
+      parallel_for(0, n, [&] (size_t u) {
+        find(u, parents);
+      }, 512);
+    }
+
+
+    uintE frequent_comp = sample_frequent_element(parents);
+
+    timer ut; ut.start();
+    parallel_for(0, n, [&] (size_t u) {
+      // Only process edges for vertices not linked to the main component
+      // note that this is safe only for undirected graphs. For directed graphs,
+      // the in-edges must also be explored for all vertices.
+      if (parents[u] != frequent_comp) {
+        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
+          if (u < v) {
+            unite(u, v, parents, hooks);
+          }
+        };
+        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
+      }
+    }, 1);
+    ut.stop(); debug(ut.reportTotal("union time"));
+
+    timer ft; ft.start();
+    parallel_for(0, n, [&] (size_t i) {
+      parents[i] = find(i,parents);
+    });
+    ft.stop(); debug(ft.reportTotal("find time"););
+    // filter UINT_E_MAX from hooks if spanning forest edges are desired.
+    return parents;
+   }
+};
 
 
 /* ================================== COO templates ================================== */
