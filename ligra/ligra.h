@@ -505,6 +505,35 @@ inline size_t get_pcm_state() { return (size_t)1; }
     }                                                                          \
   }
 
+/* Macro to generate binary for unweighted graph applications that can ingest only
+ * symmetric graph inputs */
+#define generate_symmetric_once_main(APP, mutates)                                  \
+  int main(int argc, char* argv[]) {                                           \
+    commandLine P(argc, argv, " [-s] <inFile>");                               \
+    char* iFile = P.getArgument(0);                                            \
+    bool symmetric = P.getOptionValue("-s");                                   \
+    bool compressed = P.getOptionValue("-c");                                  \
+    bool mmap = P.getOptionValue("-m");                                        \
+    bool mmapcopy = mutates;                                                   \
+    if (!symmetric) { \
+      cout << "The application expects the input graph to be symmetric (-s flag)." << endl; \
+      cout << "Please run on a symmetric input." << endl; \
+    } \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
+    pcm_init();                                                                \
+    if (compressed) {                                                          \
+      auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(       \
+          iFile, mmap, mmapcopy);                                              \
+      alloc_init(G);                                                           \
+      run_app(G, APP, 1)                                                       \
+    } else {                                                                   \
+        auto G =                                                               \
+            gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);             \
+        alloc_init(G);                                                         \
+        run_app(G, APP, 1)                                                     \
+    }                                                                          \
+  }
+
 /* Macro to generate binary for weighted graph applications that can ingest
  * either symmetric or asymmetric graph inputs */
 #define generate_weighted_main(APP, mutates)                                   \
