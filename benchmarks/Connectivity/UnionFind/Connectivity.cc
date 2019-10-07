@@ -69,36 +69,36 @@ inline size_t largest_cc(Seq& labels) {
 template <template <class Find> class Unite,
           template <class F, class U, class G> class UFTemplate,
           class Graph>
-pbbs::sequence<uintE> select_algorithm(Graph& G, std::string& find_arg, uint32_t sampling_rounds=2) {
+pbbs::sequence<uintE> select_algorithm(Graph& G, std::string& find_arg, uint32_t sampling_rounds=2, bool use_hooks=false) {
   if (find_arg == "find_compress") {
     auto find = find_variants::find_compress;
     auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
     return q.components();
   } else if (find_arg == "find_naive") {
     auto find = find_variants::find_naive;
     auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
     return q.components();
   } else if (find_arg == "find_split") {
     auto find = find_variants::find_split;
     auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
     return q.components();
   } else if (find_arg == "find_halve") {
     auto find = find_variants::find_halve;
     auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
     return q.components();
   } else if (find_arg == "find_atomic_split") {
     auto find = find_variants::find_atomic_split;
     auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
     return q.components();
   } else if (find_arg == "find_atomic_halve") {
     auto find = find_variants::find_atomic_halve;
     auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
     return q.components();
   }
   return pbbs::sequence<uintE>();
@@ -164,7 +164,7 @@ double CC_runner(Graph& G, commandLine P) {
   std::string unite_arg = P.getOptionValue("-unite", "unite");
   std::string find_arg = P.getOptionValue("-find", "find_compress");
 
-  bool sampling_arg = P.getOptionValue("-sample"/*false by default*/);
+  std::string sampling_arg = P.getOptionValue("-sample", "none"); /* oneof { kout, bfs, none } */
 
   std::cout << "Params: -unite = " << unite_arg << " -find = " << find_arg << std::endl;
 
@@ -172,52 +172,76 @@ double CC_runner(Graph& G, commandLine P) {
   timer t;
   t.start();
   pbbs::sequence<uintE> components;
-  if (sampling_arg) {
-    int sampling_num_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
+  int sampling_num_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
+  if (sampling_arg == "kout") {
     if (unite_arg == "unite") {
       components = select_algorithm<
         unite_variants::Unite,
         union_find::UnionFindSampleTemplate,
-        Graph>(G, find_arg, sampling_num_rounds);
+        Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
       components = select_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindSampleTemplate,
-        Graph>(G, find_arg, sampling_num_rounds);
+        Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
       components = select_algorithm<
         unite_variants::UniteND,
-        union_find::UnionFindSampleHookTemplate,
-        Graph>(G, find_arg);
+        union_find::UnionFindSampleTemplate,
+        Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
       components = select_algorithm<
         unite_variants::UniteRem,
         union_find::UnionFindSampleTemplate,
-        Graph>(G, find_arg, sampling_num_rounds);
+        Graph>(G, find_arg, sampling_num_rounds, false);
     } else {
       std::cout << "Unknown unite variant: " << unite_arg << std::endl;
     }
-  } else {
+  } else if (sampling_arg == "bfs") {
+    if (unite_arg == "unite") {
+      components = select_algorithm<
+        unite_variants::Unite,
+        union_find::UnionFindSampledBFSTemplate,
+        Graph>(G, find_arg, sampling_num_rounds, false);
+    } else if (unite_arg == "unite_early") {
+      components = select_algorithm<
+        unite_variants::UniteEarly,
+        union_find::UnionFindSampledBFSTemplate,
+        Graph>(G, find_arg, sampling_num_rounds, false);
+    } else if (unite_arg == "unite_nd") {
+      components = select_algorithm<
+        unite_variants::UniteND,
+        union_find::UnionFindSampledBFSTemplate,
+        Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
+    } else if (unite_arg == "unite_rem") {
+      components = select_algorithm<
+        unite_variants::UniteRem,
+        union_find::UnionFindSampledBFSTemplate,
+        Graph>(G, find_arg, sampling_num_rounds, false);
+    } else {
+      std::cout << "Unknown unite variant: " << unite_arg << std::endl;
+    }
+  } else if (sampling_arg == "none") {
     if (unite_arg == "unite") {
       components = select_algorithm<
         unite_variants::Unite,
         union_find::UnionFindTemplate,
-        Graph>(G, find_arg);
+        Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
       components = select_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindTemplate,
-        Graph>(G, find_arg);
+        Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
       components = select_algorithm<
         unite_variants::UniteND,
-        union_find::UnionFindHookTemplate, /* unite_nd requires hooks */
-        Graph>(G, find_arg);
+        union_find::UnionFindTemplate,
+        Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
       components = select_algorithm<
         unite_variants::UniteRem,
         union_find::UnionFindTemplate,
-        Graph>(G, find_arg);
+        Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_rank") {
       // Note that tht there are no options for alternate find implementations
       // in this algorithm, as it uses its own specialized find implementation.
@@ -226,6 +250,8 @@ double CC_runner(Graph& G, commandLine P) {
     } else {
       std::cout << "Unknown unite variant: " << unite_arg << std::endl;
     }
+  } else {
+    std::cout << "Unknown argument for sampling parameter: " << sampling_arg << std::endl;
   }
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;

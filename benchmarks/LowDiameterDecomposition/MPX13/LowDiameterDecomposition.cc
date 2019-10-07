@@ -53,6 +53,7 @@ double LDD_runner(Graph& G, commandLine P) {
   double tt = t.stop();
   if (P.getOption("-stats")) {
     ldd_utils::num_clusters(ldd);
+    ldd_utils::cluster_sizes(ldd);
     ldd_utils::num_intercluster_edges(G, ldd);
   }
 

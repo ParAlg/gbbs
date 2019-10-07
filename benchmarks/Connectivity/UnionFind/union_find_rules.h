@@ -228,6 +228,11 @@ namespace unite_variants {
         }
       }
     }
+
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parents) {
+      assert(false);
+      exit(0);
+    }
   };
 
 

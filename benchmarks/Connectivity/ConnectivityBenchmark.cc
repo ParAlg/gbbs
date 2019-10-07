@@ -116,12 +116,12 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
   switch (id) {
   case 0:
     return run_multiple(G, rounds, correct, "gbbs_cc", P, t_gbbs_cc<Graph>);
-//  case 1:
-//    return run_multiple(G, rounds, correct, "gbbs_hybridcc", P, t_gbbs_hybridcc<G>);
-//  case 2:
-//    return run_multiple(G, rounds, correct, "jayanti_rank_cc", P, t_jayanti_rank_cc<G>);
-//  case 3:
-//    return run_multiple(G, rounds, correct, "", P, t_union_find_cc<G, Unite, Find>);
+  case 1:
+    return run_multiple(G, rounds, correct, "gbbs_hybridcc", P, t_gbbs_hybridcc<G>);
+  case 2:
+    return run_multiple(G, rounds, correct, "jayanti_rank_cc", P, t_jayanti_rank_cc<G>);
+  case 3:
+    return run_multiple(G, rounds, correct, "", P, t_union_find_cc<G, Unite, Find>);
 
   default:
     assert(false);

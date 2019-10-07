@@ -54,14 +54,6 @@ double CC_runner(Graph& G, commandLine P) {
   auto components = workefficient_cc::CC(G, beta, pack, P.getOption("-permute"));
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
-
-  if (P.getOption("-stats")) {
-    auto cc_f = [&](size_t i) { return components[i]; };
-    auto cc_im =
-        pbbslib::make_sequence<uintE>(G.n, cc_f);
-    workefficient_cc::num_cc(cc_im);
-    workefficient_cc::largest_cc(cc_im);
-  }
   return tt;
 }
 

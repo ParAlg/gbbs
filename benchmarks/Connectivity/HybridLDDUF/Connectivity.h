@@ -101,6 +101,8 @@ inline sequence<uintE> CC_impl(Graph& G, double beta,
   auto cluster_comps = UFContract(GA, clusters, num_clusters);
   uf.stop(); debug(uf.reportTotal("union find time"));
 
+  /* Try sampling most frequent element */
+
   parallel_for(0, n, [&] (size_t i) {
     uintE c_i = clusters[i];
     uintE cc_i = cluster_comps[c_i];

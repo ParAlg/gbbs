@@ -57,6 +57,23 @@ inline void num_clusters(Seq& s) {
   std::cout << "num. clusters = " << pbbslib::reduce_add(flags) << "\n";
 }
 
+template <class Seq>
+inline void cluster_sizes(Seq& s) {
+  size_t n = s.size();
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      pbbs::write_add(&flags[s[i]], 1);
+//    if (!flags[s[i]]) {
+//      flags[s[i]] = 1;
+//    }
+  });
+  for (size_t i=0; i<n; i++) {
+    if (flags[i]) {
+      std::cout << "Found cluster with size : " << flags[i] << std::endl;
+    }
+  }
+}
+
 template <class Graph, class Seq>
 inline void num_intercluster_edges(Graph& G, Seq& s) {
   using W = typename Graph::weight_type;
@@ -103,6 +120,7 @@ struct LDD_F {
 template <class Graph, class EO>
 inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
                                   double beta, bool permute = true) {
+  timer gs; gs.start();
   using W = typename Graph::weight_type;
   size_t n = G.n;
 
@@ -111,9 +129,10 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
     vertex_perm = pbbslib::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
-  auto cluster_ids = sequence<uintE>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { cluster_ids[i] = UINT_E_MAX; });
+  gs.stop(); debug(gs.reportTotal("generate shifts time"););
+  auto cluster_ids = sequence<uintE>(n, UINT_E_MAX);
+
+  timer add_t; timer vt;
 
   size_t round = 0, num_visited = 0;
   vertexSubset frontier(n);  // Initially empty
@@ -123,6 +142,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
     size_t end = std::min(static_cast<size_t>(shifts[round + 1]), n);
     size_t num_to_add = end - start;
     if (num_to_add > 0) {
+      add_t.start();
       assert((num_added + num_to_add) <= n);
       auto candidates_f = [&](size_t i) {
         if (permute)
@@ -137,19 +157,25 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
       par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
                       { cluster_ids[new_centers[i]] = new_centers[i]; });
       num_added += num_to_add;
+      add_t.stop();
     }
 
     num_visited += frontier.size();
     if (num_visited >= n) break;
 
+    vt.start();
     auto ldd_f = LDD_F<W, EO>(cluster_ids.begin(), oracle);
     vertexSubset next_frontier =
         edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
     frontier.del();
     frontier = next_frontier;
+    vt.stop();
 
     round++;
   }
+  debug(
+  add_t.reportTotal("add vertices time");
+  vt.reportTotal("edge map time"););
   return cluster_ids;
 }
 
