@@ -81,7 +81,6 @@ struct UnionFindHookTemplate {
 /* Used if the algorithm only requires a parents array */
 template <class Find, class Unite, class G>
 struct UnionFindTemplate {
-
   G& GA;
   Unite& unite;
   Find& find;

@@ -33,6 +33,7 @@
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
 #include "Connectivity.h"
+#include "jayanti.h"
 #include "union_find_rules.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
@@ -174,25 +175,54 @@ double CC_runner(Graph& G, commandLine P) {
   if (sampling_arg) {
     int sampling_num_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
     if (unite_arg == "unite") {
-      components = select_algorithm<unite_variants::Unite, union_find::UnionFindSampleTemplate, Graph>(G, find_arg, sampling_num_rounds);
+      components = select_algorithm<
+        unite_variants::Unite,
+        union_find::UnionFindSampleTemplate,
+        Graph>(G, find_arg, sampling_num_rounds);
     } else if (unite_arg == "unite_early") {
-      components = select_algorithm<unite_variants::UniteEarly, union_find::UnionFindSampleTemplate, Graph>(G, find_arg, sampling_num_rounds);
+      components = select_algorithm<
+        unite_variants::UniteEarly,
+        union_find::UnionFindSampleTemplate,
+        Graph>(G, find_arg, sampling_num_rounds);
     } else if (unite_arg == "unite_nd") {
-      components = select_algorithm<unite_variants::UniteND, union_find::UnionFindSampleHookTemplate, Graph>(G, find_arg);
+      components = select_algorithm<
+        unite_variants::UniteND,
+        union_find::UnionFindSampleHookTemplate,
+        Graph>(G, find_arg);
     } else if (unite_arg == "unite_rem") {
-      components = select_algorithm<unite_variants::UniteRem, union_find::UnionFindSampleTemplate, Graph>(G, find_arg, sampling_num_rounds);
+      components = select_algorithm<
+        unite_variants::UniteRem,
+        union_find::UnionFindSampleTemplate,
+        Graph>(G, find_arg, sampling_num_rounds);
     } else {
       std::cout << "Unknown unite variant: " << unite_arg << std::endl;
     }
   } else {
     if (unite_arg == "unite") {
-      components = select_algorithm<unite_variants::Unite, union_find::UnionFindTemplate, Graph>(G, find_arg);
+      components = select_algorithm<
+        unite_variants::Unite,
+        union_find::UnionFindTemplate,
+        Graph>(G, find_arg);
     } else if (unite_arg == "unite_early") {
-      components = select_algorithm<unite_variants::UniteEarly, union_find::UnionFindTemplate, Graph>(G, find_arg);
+      components = select_algorithm<
+        unite_variants::UniteEarly,
+        union_find::UnionFindTemplate,
+        Graph>(G, find_arg);
     } else if (unite_arg == "unite_nd") {
-      components = select_algorithm<unite_variants::UniteND, union_find::UnionFindHookTemplate, Graph>(G, find_arg);
+      components = select_algorithm<
+        unite_variants::UniteND,
+        union_find::UnionFindHookTemplate, /* unite_nd requires hooks */
+        Graph>(G, find_arg);
     } else if (unite_arg == "unite_rem") {
-      components = select_algorithm<unite_variants::UniteRem, union_find::UnionFindTemplate, Graph>(G, find_arg);
+      components = select_algorithm<
+        unite_variants::UniteRem,
+        union_find::UnionFindTemplate,
+        Graph>(G, find_arg);
+    } else if (unite_arg == "unite_rank") {
+      // Note that tht there are no options for alternate find implementations
+      // in this algorithm, as it uses its own specialized find implementation.
+      auto q = jayanti_rank::JayantiTBUnite<Graph>(G);
+      components = q.components();
     } else {
       std::cout << "Unknown unite variant: " << unite_arg << std::endl;
     }
