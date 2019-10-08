@@ -25,13 +25,14 @@
 
 #include <math.h>
 
-#include "bucket.h"
-#include "edge_map_reduce.h"
-#include "ligra.h"
-#include "pbbslib/dyn_arr.h"
+#include "ligra/bucket.h"
+#include "ligra/edge_map_reduce.h"
+#include "ligra/ligra.h"
+#include "ligra/pbbslib/dyn_arr.h"
 #include "pbbslib/list_allocator.h"
+#include "pbbslib/integer_sort.h"
 #include "intersect.h"
-#include "radix_wrapper.h"
+//#include "radix_wrapper.h"
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
 #include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
 
@@ -71,8 +72,8 @@ inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.1, bool 
   size_t start = 0;
   while (start < n) {
     // move all vert with deg < deg_cutoff in the front
-    //integer_sort_inplace(sortD.slice(start, n), get_deg);
-    radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
+    integer_sort_inplace(sortD.slice(start, n), get_deg);
+    //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
     auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
       return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
@@ -115,8 +116,8 @@ inline sequence<uintE> AppKCore(Graph& GA, double epsilon=0.001) {
       [&](uintE& p) -> uintE { return D[p]; };
   for (size_t start = 0; start < n; start += ns) {
     // sort vertices in GA by degree, from start to n
-    //integer_sort_inplace(sortD.slice(start, n), get_deg);
-    radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
+    integer_sort_inplace(sortD.slice(start, n), get_deg);
+    //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
     uintE deg_max = D[sortD[std::min(ns + start, n)]];
     
     // least ns, from start to min(ns+start, n), is in order

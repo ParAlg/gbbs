@@ -33,8 +33,7 @@
 //     -fa : run the fetch-and-add implementation of k-core
 //     -nb : the number of buckets to use in the bucketing implementation
 
-#include "AppKCore.h"
-#include "ligra.h"
+#include "Clique.h"
 
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {

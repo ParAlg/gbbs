@@ -5,10 +5,10 @@
 
 #include <math.h>
 
-#include "bucket.h"
-#include "edge_map_reduce.h"
-#include "ligra.h"
-#include "pbbslib/dyn_arr.h"
+#include "ligra/bucket.h"
+#include "ligra/edge_map_reduce.h"
+#include "ligra/ligra.h"
+#include "ligra/pbbslib/dyn_arr.h"
 #include "simdinter/include/intersection.h"
 
 #define INDUCED_STACK_THR 1000

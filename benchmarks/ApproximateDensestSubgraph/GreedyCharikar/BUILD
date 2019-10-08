@@ -13,3 +13,8 @@ cc_binary(
   srcs = ["DensestSubgraph.cc"],
   deps = [":DensestSubgraph"]
 )
+
+package(
+  default_visibility = ["//visibility:public"],
+)
+
