@@ -66,43 +66,6 @@ inline size_t largest_cc(Seq& labels) {
 
 
 
-template <template <class Find> class Unite,
-          template <class F, class U, class G> class UFTemplate,
-          class Graph>
-pbbs::sequence<uintE> select_algorithm(Graph& G, std::string& find_arg, uint32_t sampling_rounds=2, bool use_hooks=false) {
-  if (find_arg == "find_compress") {
-    auto find = find_variants::find_compress;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_naive") {
-    auto find = find_variants::find_naive;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_split") {
-    auto find = find_variants::find_split;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_halve") {
-    auto find = find_variants::find_halve;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_atomic_split") {
-    auto find = find_variants::find_atomic_split;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_atomic_halve") {
-    auto find = find_variants::find_atomic_halve;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  }
-  return pbbs::sequence<uintE>();
-}
 
 template <class Seq>
 inline size_t RelabelDet(Seq& ids) {
@@ -175,22 +138,22 @@ double CC_runner(Graph& G, commandLine P) {
   int sampling_num_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
   if (sampling_arg == "kout") {
     if (unite_arg == "unite") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::Unite,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteRem,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
@@ -199,22 +162,22 @@ double CC_runner(Graph& G, commandLine P) {
     }
   } else if (sampling_arg == "bfs") {
     if (unite_arg == "unite") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::Unite,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteRem,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
@@ -223,22 +186,22 @@ double CC_runner(Graph& G, commandLine P) {
     }
   } else if (sampling_arg == "ldd") {
     if (unite_arg == "unite") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::Unite,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteRem,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
@@ -247,22 +210,22 @@ double CC_runner(Graph& G, commandLine P) {
     }
   } else if (sampling_arg == "none") {
     if (unite_arg == "unite") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::Unite,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = select_algorithm<
+      components = union_find::select_algorithm<
         unite_variants::UniteRem,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);

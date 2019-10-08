@@ -47,22 +47,6 @@ double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
   return t;
 }
 
-//template <class Graph,
-//          class Find,
-//          template <class F> class Unite,
-//          template <class F, class U, class G> class UFTemplate>
-//double t_union_find_variant(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
-//  int sampling_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
-//  auto find = Find;
-//  auto unite = Unite<decltype(find)>(G.n, find);
-//  auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds);
-//  time(t, auto CC = q.components());
-//  if (P.getOptionValue("-check")) {
-//    cc_check(correct, CC);
-//  }
-//  return t;
-//}
-
 /* ************************* Benchmark Utils *************************** */
 
 template<typename F>
@@ -85,7 +69,7 @@ double minf(double a, double b) {return (a < b) ? a : b;};
 double maxf(double a, double b) {return (a > b) ? a : b;};
 
 template<typename Graph, typename F>
-std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct, F test, commandLine P) {
+std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct, F test, commandLine& P) {
   std::vector<double> R;
   for (size_t i=0; i < rounds; i++) {
     R.push_back(test(G, P, correct));
@@ -95,7 +79,7 @@ std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<uintE>& corre
 
 template<typename Graph, typename F>
 bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
-		  std::string name, commandLine P, F test) {
+		  std::string name, commandLine& P, F test) {
   std::vector<double> t = repeat(G, rounds, correct, test, P);
 
   double mint = reduce(t, minf);
@@ -110,6 +94,116 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
   return 1;
 }
 
+template<typename Graph,
+          template <class F, class U, class G> class UFSample>
+bool run_multiple_uf_apply_unite(Graph& G, size_t rounds,
+    pbbs::sequence<uintE>& correct, std::string sample, std::string unite,
+    std::string find, commandLine& P) {
+  std::vector<double> t;
+
+  if (unite == "unite") {
+    auto test = [&] (Graph& G, commandLine& P, pbbs::sequence<uintE>& correct) -> double {
+      size_t sampling_rounds = P.getOptionLongValue("-sample_rounds", 2L);
+      timer t; t.start();
+      auto components =
+          union_find::select_algorithm<
+          unite_variants::Unite,
+          UFSample,
+          Graph>(G, find, sampling_rounds, /* use_hooks = */false);
+      double t_out = t.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, components);
+      }
+      return t_out;
+    };
+    std::vector<double> t = repeat(G, rounds, correct, test, P);
+  } else if (unite == "unite_early") {
+    auto test = [&] (Graph& G, commandLine& P, pbbs::sequence<uintE>& correct) -> double {
+      size_t sampling_rounds = P.getOptionLongValue("-sample_rounds", 2L);
+      timer t; t.start();
+      auto components =
+          union_find::select_algorithm<
+          unite_variants::UniteEarly,
+          UFSample,
+          Graph>(G, find, sampling_rounds, /* use_hooks = */false);
+      double t_out = t.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, components);
+      }
+      return t_out;
+    };
+    std::vector<double> t = repeat(G, rounds, correct, test, P);
+  } else if (unite == "unite_nd") {
+    auto test = [&] (Graph& G, commandLine& P, pbbs::sequence<uintE>& correct) -> double {
+      size_t sampling_rounds = P.getOptionLongValue("-sample_rounds", 2L);
+      timer t; t.start();
+      auto components =
+          union_find::select_algorithm<
+          unite_variants::UniteND,
+          UFSample,
+          Graph>(G, find, sampling_rounds, /* use_hooks = */true);
+      double t_out = t.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, components);
+      }
+      return t_out;
+    };
+    std::vector<double> t = repeat(G, rounds, correct, test, P);
+  } else if (unite == "unite_rem") {
+    auto test = [&] (Graph& G, commandLine& P, pbbs::sequence<uintE>& correct) -> double {
+      size_t sampling_rounds = P.getOptionLongValue("-sample_rounds", 2L);
+      timer t; t.start();
+      auto components =
+          union_find::select_algorithm<
+          unite_variants::UniteRem,
+          UFSample,
+          Graph>(G, find, sampling_rounds, /* use_hooks = */false);
+      double t_out = t.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, components);
+      }
+      return t_out;
+    };
+    std::vector<double> t = repeat(G, rounds, correct, test, P);
+  } else {
+    std::cout << "Unknown unite argument: " << unite << std::endl;
+    exit(0);
+  }
+
+  double mint = reduce(t, minf);
+  double maxt = reduce(t, maxf);
+  double med = median(t);
+
+  auto name = "union_find; sample = " + sample + "; unite = " + unite + "; find = " + find;
+
+  cout << name << std::setprecision(5)
+       << ": r=" << rounds
+       << ", med=" << med
+       << " (" << mint << "," << maxt << "), "
+       << endl;
+  return 1;
+}
+
+template<typename Graph>
+bool run_multiple_uf(Graph& G, size_t rounds,
+    pbbs::sequence<uintE>& correct, std::string sample, std::string unite,
+    std::string find, commandLine& P) {
+  std::vector<double> t;
+
+  if (sample == "kout") {
+    return run_multiple_uf_apply_unite<Graph, union_find::UnionFindSampleTemplate>(G, rounds, correct, sample, unite, find, P);
+  } else if (sample == "bfs") {
+    return run_multiple_uf_apply_unite<Graph, union_find::UnionFindSampledBFSTemplate>(G, rounds, correct, sample, unite, find, P);
+  } else if (sample == "ldd") {
+    return run_multiple_uf_apply_unite<Graph, union_find::UnionFindLDDTemplate>(G, rounds, correct, sample, unite, find, P);
+  } else if (sample == "none") {
+    return run_multiple_uf_apply_unite<Graph, union_find::UnionFindTemplate>(G, rounds, correct, sample, unite, find, P);
+  } else {
+    std::cout << "Unknown sampling argument: " << sample << std::endl;
+    exit(0);
+  }
+}
+
 
 template <class Graph>
 double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequence<uintE>& correct) {
@@ -117,11 +211,7 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
   case 0:
     return run_multiple(G, rounds, correct, "gbbs_cc", P, t_gbbs_cc<Graph>);
   case 1:
-    return run_multiple(G, rounds, correct, "gbbs_hybridcc", P, t_gbbs_hybridcc<G>);
-  case 2:
-    return run_multiple(G, rounds, correct, "jayanti_rank_cc", P, t_jayanti_rank_cc<G>);
-  case 3:
-    return run_multiple(G, rounds, correct, "", P, t_union_find_cc<G, Unite, Find>);
+    return run_multiple_uf(G, rounds, correct, /* sample = */ "kout", /* unite = */ "unite", /* find = */ "find_compress", P);
 
   default:
     assert(false);

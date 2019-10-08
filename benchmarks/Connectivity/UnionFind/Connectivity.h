@@ -26,6 +26,7 @@
 #include "ligra/bridge.h"
 #include "ligra/ligra.h"
 #include "pbbslib/random.h"
+#include "union_find_rules.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
@@ -44,42 +45,6 @@ namespace union_find {
 
 /* ================================== CSR templates ================================== */
 
-/* Used if the algorithm either requires a hooks array, or uses the hooks array
- * to emit a spanning forest */
-template <class Find, class Unite, class G>
-struct UnionFindHookTemplate {
-  G& GA;
-  Unite& unite;
-  Find& find;
-  UnionFindHookTemplate(G& GA, Unite& unite, Find& find, uint32_t neighbor_rounds = 2, bool use_hooks=false) : GA(GA), unite(unite), find(find) {}
-
-  pbbs::sequence<uintE> components() {
-    using W = typename G::weight_type;
-    size_t n = GA.n;
-
-    auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
-    auto hooks = pbbs::sequence<uintE>(n, [&] (size_t i) { return UINT_E_MAX; });
-
-    timer ut; ut.start();
-    parallel_for(0, n, [&] (size_t i) {
-      auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-        if (u < v) {
-          unite(u, v, parents, hooks);
-        }
-      };
-      GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
-    }, 1);
-    ut.stop(); debug(ut.reportTotal("union time"));
-
-    timer ft; ft.start();
-    parallel_for(0, n, [&] (size_t i) {
-      parents[i] = find(i,parents);
-    });
-    ft.stop(); debug(ft.reportTotal("find time"););
-    return parents;
-  }
-};
-
 /* Used if the algorithm only requires a parents array */
 template <class Find, class Unite, class G>
 struct UnionFindTemplate {
@@ -96,7 +61,7 @@ struct UnionFindTemplate {
     auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
     pbbs::sequence<uintE> hooks;
     if (use_hooks) {
-      auto parents = pbbs::sequence<uintE>(n, UINT_E_MAX);
+      hooks = pbbs::sequence<uintE>(n, UINT_E_MAX);
     }
 
     timer ut; ut.start();
@@ -373,6 +338,8 @@ struct UnionFindSampledBFSTemplate {
       }
     });
 
+    auto bfs_parents = parents; // copy
+
     st.stop(); st.reportTotal("sample time");
 
     timer ut; ut.start();
@@ -380,7 +347,7 @@ struct UnionFindSampledBFSTemplate {
       // Only process edges for vertices not linked to the main component
       // note that this is safe only for undirected graphs. For directed graphs,
       // the in-edges must also be explored for all vertices.
-      if (parents[u] != skip_comp) {
+      if (bfs_parents[u] != skip_comp) {
         auto map_f = [&] (uintE u, uintE v, const W& wgh) {
           if (u < v) {
             if (use_hooks) {
@@ -392,7 +359,7 @@ struct UnionFindSampledBFSTemplate {
         };
         GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
       }
-    }, 1);
+    }, 1024);
     ut.stop(); ut.reportTotal("union time");
 
     timer ft; ft.start();
@@ -437,9 +404,6 @@ struct UnionFindLDDTemplate {
 
     uintE frequent_comp; double pct;
     std::tie(frequent_comp, pct) = sample_frequent_element(parents);
-//    ldd_utils::num_clusters(parents);
-//    ldd_utils::cluster_sizes(parents);
-
     st.stop(); st.reportTotal("sample time");
 
     timer ut; ut.start();
@@ -499,6 +463,45 @@ inline pbbs::sequence<uintE> UnionFindTemplate_coo(edge_array<W>& G, Unite& unit
   });
   ft.stop(); debug(ft.reportTotal("find time"););
   return parents;
+}
+
+
+template <template <class Find> class Unite,
+          template <class F, class U, class G> class UFTemplate,
+          class Graph>
+pbbs::sequence<uintE> select_algorithm(Graph& G, std::string& find_arg, uint32_t sampling_rounds=2, bool use_hooks=false) {
+  if (find_arg == "find_compress") {
+    auto find = find_variants::find_compress;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+    return q.components();
+  } else if (find_arg == "find_naive") {
+    auto find = find_variants::find_naive;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+    return q.components();
+  } else if (find_arg == "find_split") {
+    auto find = find_variants::find_split;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+    return q.components();
+  } else if (find_arg == "find_halve") {
+    auto find = find_variants::find_halve;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+    return q.components();
+  } else if (find_arg == "find_atomic_split") {
+    auto find = find_variants::find_atomic_split;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+    return q.components();
+  } else if (find_arg == "find_atomic_halve") {
+    auto find = find_variants::find_atomic_halve;
+    auto unite = Unite<decltype(find)>(G.n, find);
+    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+    return q.components();
+  }
+  return pbbs::sequence<uintE>();
 }
 
 }  // namespace union_find
