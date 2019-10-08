@@ -269,17 +269,17 @@ inline sequence<uintE> BFS_ComponentLabel(Graph& G, uintE src) {
   Parents[src] = src;
 
   vertexSubset Frontier(G.n, src);
-  size_t reachable = 0;
+  size_t reachable = 0; size_t rounds = 0;
   while (!Frontier.isEmpty()) {
-    std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
         edgeMap(G, Frontier, BFS_ComponentLabel_F<W>(Parents.begin(), src), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
+    rounds++;
   }
   Frontier.del();
-  std::cout << "Reachable: " << reachable << "\n";
+  std::cout << "Reachable: " << reachable << " #rounds = " << rounds << std::endl;
   return Parents;
 }
 
