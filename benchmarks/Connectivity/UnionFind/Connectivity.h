@@ -27,6 +27,8 @@
 #include "ligra/ligra.h"
 #include "pbbslib/random.h"
 
+#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
+
 #include <iostream>
 #include <limits.h>
 #include <vector>
@@ -316,9 +318,6 @@ inline sequence<uintE> BFS_ComponentLabel(Graph& G, uintE src) {
   return Parents;
 }
 
-// returns a component labeling
-// Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
-// for the well documented reference implementation of afforest.
 template <class Find, class Unite, class G>
 struct UnionFindSampledBFSTemplate {
   G& GA;
@@ -394,6 +393,73 @@ struct UnionFindSampledBFSTemplate {
         GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
       }
     }, 1);
+    ut.stop(); ut.reportTotal("union time");
+
+    timer ft; ft.start();
+    parallel_for(0, n, [&] (size_t i) {
+      parents[i] = find(i,parents);
+    });
+    ft.stop(); ft.reportTotal("find time");
+    return parents;
+   }
+};
+
+template <class Find, class Unite, class G>
+struct UnionFindLDDTemplate {
+  G& GA;
+  Find& find;
+  Unite& unite;
+  uint32_t neighbor_rounds;
+  bool use_hooks;
+
+  UnionFindLDDTemplate(G& GA, Unite& unite, Find& find,
+      uint32_t neighbor_rounds = 2, bool use_hooks=false) :
+   GA(GA), unite(unite), find(find), neighbor_rounds(neighbor_rounds), use_hooks(use_hooks) { }
+
+  pbbs::sequence<uintE> components() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    cout << "neighbor_rounds = " << neighbor_rounds << endl;
+
+    pbbs::sequence<uintE> hooks;
+    if (use_hooks) {
+      hooks = pbbs::sequence<uintE>(n, UINT_E_MAX);
+    }
+
+    pbbs::random rnd;
+    timer st; st.start();
+
+    auto clusters = LDD(GA, 0.2, /* permute = */false);
+    pbbs::sequence<uintE> parents(n);
+    parallel_for(0, n, [&] (size_t i) {
+      parents[i] = clusters[i];
+    });
+
+    uintE frequent_comp; double pct;
+    std::tie(frequent_comp, pct) = sample_frequent_element(parents);
+//    ldd_utils::num_clusters(parents);
+//    ldd_utils::cluster_sizes(parents);
+
+    st.stop(); st.reportTotal("sample time");
+
+    timer ut; ut.start();
+    parallel_for(0, n, [&] (size_t u) {
+      // Only process edges for vertices not linked to the main component
+      // note that this is safe only for undirected graphs. For directed graphs,
+      // the in-edges must also be explored for all vertices.
+      if (clusters[u] != frequent_comp) {
+        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
+          if (u < v) {
+            if (use_hooks) {
+              unite(u, v, parents, hooks);
+            } else {
+              unite(u, v, parents);
+            }
+          }
+        };
+        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
+      }
+    }, 512);
     ut.stop(); ut.reportTotal("union time");
 
     timer ft; ft.start();
