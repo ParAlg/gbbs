@@ -154,8 +154,10 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { cluster_ids[new_centers[i]] = new_centers[i]; });
+      par_for(0, new_centers.size(), [&] (size_t i) {
+        uintE new_center = new_centers[i];
+        cluster_ids[new_center] = new_center;
+      });
       num_added += num_to_add;
       add_t.stop();
     }

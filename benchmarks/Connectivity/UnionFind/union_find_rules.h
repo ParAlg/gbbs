@@ -199,8 +199,8 @@ namespace unite_variants {
     inline void operator()(uintE u, uintE v, pbbs::sequence<uintE>& parents) {
       while(1) {
         if(u == v) return;
-        if(v < u) std::swap(u,v);
-        if(pbbs::atomic_compare_and_swap(&parents[u],u,v)) { return; }
+        if(v > u) std::swap(u,v);
+        if (parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) { return; }
         uintE z = parents[u];
         uintE w = parents[z];
         pbbs::atomic_compare_and_swap(&parents[u],z,w);

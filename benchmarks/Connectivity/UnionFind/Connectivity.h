@@ -397,6 +397,14 @@ struct UnionFindLDDTemplate {
     timer st; st.start();
 
     auto clusters = LDD(GA, 0.2, /* permute = */false);
+
+   parallel_for(0, n, [&] (uintE u) {
+     if (clusters[u] == u) { // root, ok
+     } else {
+       assert(clusters[clusters[u]] == clusters[u]);
+     }
+   });
+
     pbbs::sequence<uintE> parents(n);
     parallel_for(0, n, [&] (size_t i) {
       parents[i] = clusters[i];

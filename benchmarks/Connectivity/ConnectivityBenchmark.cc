@@ -36,6 +36,9 @@ using uchar = unsigned char;
 template <class S1, class S2>
 inline void cc_check(S1& correct, S2& check);
 
+template<typename Graph, typename F>
+std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct, F test, commandLine& P);
+
 template <class Graph>
 double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -46,6 +49,17 @@ double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
   }
   return t;
 }
+
+template <class Graph>
+double t_jayanti_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+  time(t, auto q = jayanti_rank::JayantiTBUnite<Graph>(G);
+  auto CC = q.components(););
+  if (P.getOptionValue("-check")) {
+    cc_check(correct, CC);
+  }
+  return t;
+}
+
 
 /* ************************* Benchmark Utils *************************** */
 
@@ -203,6 +217,7 @@ bool run_multiple_uf(Graph& G, size_t rounds,
     exit(0);
   }
 }
+
 
 
 template <class Graph>
@@ -419,6 +434,10 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
   case 96:
     return run_multiple_uf(G, rounds, correct, /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_atomic_halve", P);
 
+  case 97: /* Jayanti */
+    return run_multiple(G, rounds, correct, "union_find: jayanti", P, t_jayanti_cc<Graph>);
+
+
 
   default:
     assert(false);
@@ -505,7 +524,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
   bool symmetric = P.getOptionValue("-s");
-  int num_tests = 97; // update if new algorithm is added
+  int num_tests = 98; // update if new algorithm is added
 
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;
