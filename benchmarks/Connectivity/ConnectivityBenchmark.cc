@@ -23,6 +23,7 @@
 
 #include "WorkEfficientSDB14/Connectivity.h"
 #include "UnionFind/Connectivity.h"
+#include "ShiloachVishkint /Connectivity.h"
 
 static timer bt;
 using uchar = unsigned char;
@@ -60,6 +61,14 @@ double t_jayanti_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
   return t;
 }
 
+template <class Graph>
+double t_shiloach_vishkin_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+  time(t, auto CC = shiloachvishkin_cc::CC(G););
+  if (P.getOptionValue("-check")) {
+    cc_check(correct, CC);
+  }
+  return t;
+}
 
 /* ************************* Benchmark Utils *************************** */
 
@@ -437,6 +446,8 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
   case 97: /* Jayanti */
     return run_multiple(G, rounds, correct, "union_find: jayanti", P, t_jayanti_cc<Graph>);
 
+  case 98: /* Shiloach-Vishkin */
+    return run_multiple(G, rounds, correct, "shiloach-vishkin", P, t_shiloach_vishkin_cc<Graph>);
 
 
   default:
