@@ -10,9 +10,16 @@ genrule(
 )
 
 cc_library(
+  name = "intersectiondeps",
+  hdrs = glob(["include/*.h"]),
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
   name = "intersection",
   srcs = ["intersection.o"],
   hdrs = ["include/intersection.h"],
+  deps = ["//:intersectiondeps"],
   visibility = ["//visibility:public"],
 )
 """

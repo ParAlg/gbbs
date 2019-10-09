@@ -9,7 +9,9 @@
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
-#include "simdinter/include/intersection.h"
+
+#include "external/simdinter/include/common.h"
+#include "external/simdinter/include/intersection.h"
 
 #define INDUCED_STACK_THR 1000
 

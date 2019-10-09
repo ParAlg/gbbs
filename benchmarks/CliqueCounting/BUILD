@@ -6,7 +6,7 @@ cc_library(
   "//ligra:edge_map_reduce",
   "//ligra:ligra",
   "//ligra/pbbslib:dyn_arr",
-  "@simdinter//:intersection"
+  "@simdinter//:intersection",
   ]
 )
 
@@ -29,7 +29,10 @@ cc_library(
 cc_binary(
   name = "Clique_main",
   srcs = ["Clique.cc"],
-  deps = [":Clique"]
+  deps = [
+  ":Clique",
+  "@simdinter//:intersectiondeps",],
+  copts = ["-Iexternal/simdinter/include"],
 )
 
 package(

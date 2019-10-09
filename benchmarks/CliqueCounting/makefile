@@ -45,7 +45,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= AppKCore
+ALL= Clique
 
 all: $(ALL)
 
@@ -54,7 +54,7 @@ all: $(ALL)
 
 #OBJECTS = intersection.o
 
-% : %.C intersection
+% : %.cc intersection
 	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< ../simdinter/intersection.o
 
 .PHONY : clean intersection
