@@ -221,13 +221,24 @@ struct edge_array {
   using edge = std::tuple<uintE, uintE, W>;
   edge* E;
   // for sq matrices, num_rows == num_cols
-  size_t num_rows; // n
-  size_t num_cols;
+  size_t num_rows; // n TODO: deprecate #rows/#cols
+  size_t num_cols; // TODO deprecate
+
+  size_t n;
+  size_t m;
+
   // non_zeros is the #edges
-  size_t non_zeros; // m
+  size_t non_zeros; // m TODO rename to "m"
   void del() { pbbslib::free_array(E); }
   edge_array(edge* _E, size_t r, size_t c, size_t nz)
-      : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {}
+      : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {
+    if (r != c) {
+      std::cout << "edge_array format currently expects square matrix" << std::endl;
+      exit(0);
+    }
+    n = r;
+    m = nz;
+  }
   edge_array() {}
   size_t size() { return non_zeros; }
 };

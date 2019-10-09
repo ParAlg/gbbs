@@ -48,7 +48,8 @@ inline sequence<uintE> CC(Graph& G) {
             if (!changed) {
               changed = true;
             }
-            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
+//            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
+            parents[larger] = smaller;
           }
         }
       };
