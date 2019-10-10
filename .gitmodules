@@ -1,0 +1,3 @@
+[submodule "simdinter"]
+	path = external/simdinter
+	url = https://github.com/lemire/SIMDCompressionAndIntersection
