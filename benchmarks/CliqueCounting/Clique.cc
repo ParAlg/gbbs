@@ -35,6 +35,12 @@
 
 #include "Clique.h"
 
+// -i 0 (simple gbbs intersect), -i 2 (simd intersect)
+// -induced
+// -gen
+// -k clique size
+// -o 0 (approx goodrich), 1 (densest using work efficient densest subgraph, exact), 2 (densest using approx densest subgraph)
+
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
   double epsilon = P.getOptionDoubleValue("-e", 0.001);

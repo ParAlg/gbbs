@@ -33,8 +33,9 @@
 #include "pbbslib/integer_sort.h"
 #include "intersect.h"
 //#include "radix_wrapper.h"
-#include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
-#include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
+
+#include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
+#include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
@@ -52,94 +53,6 @@ inline uintE* rankNodes(vertex* V, size_t n) {
   t.stop();
   debug(t.reportTotal("Rank time"););
   return r;
-}
-
-
-template<class Graph>
-inline sequence<uintE> DensestAppDegenOrder(Graph& GA, double epsilon=0.1, bool approx=false) {
-  double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
-  const size_t n = GA.n;
-  const size_t deg_cutoff = std::max((size_t) (ceil(alpha * epsilon)), (size_t) 1);
-  auto sortD = sequence<uintE>(n, [&](size_t i) {
-    return i;
-  });
-  auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
-  auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)GA.m / 50);
-  auto get_deg =
-      [&](uintE& p) -> uintE { return D[p] < deg_cutoff; };
-  size_t start = 0;
-  while (start < n) {
-    // move all vert with deg < deg_cutoff in the front
-    integer_sort_inplace(sortD.slice(start, n), get_deg);
-    //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
-    auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
-      return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
-    size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
-    if (end == start) end++; //TODO step?
-    // least ns, from start to min(ns+start, n), is in order
-    // update degrees based on peeled vert
-    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
-      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-        D[v] -= edgesRemoved;
-      return Maybe<std::tuple<uintE, uintE> >();
-    };
-    auto active =
-        vertexSubset(n, end - start, sortD.begin() + start);
-    auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
-
-    moved.del();
-    start = end;
-  }
-  auto ret = sequence<uintE>::no_init(n);
-  parallel_for (0,n,[&] (size_t j) { ret[sortD[j]] = j; });
-  return ret;
-}
-
-// Goodrich (2+epsilon) approx for degeneracy ordering where epsilon > 0
-// Returns vertice sorted in degeneracy order
-template<class Graph>
-inline sequence<uintE> AppKCore(Graph& GA, double epsilon=0.001) {
-  const size_t n = GA.n;
-  const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
-
-  auto sortD = sequence<uintE>(n, [&](size_t i) {
-    return i;
-  });
-  auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
-  auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)GA.m / 50);
-  auto get_deg =
-      [&](uintE& p) -> uintE { return D[p]; };
-  for (size_t start = 0; start < n; start += ns) {
-    // sort vertices in GA by degree, from start to n
-    integer_sort_inplace(sortD.slice(start, n), get_deg);
-    //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
-    uintE deg_max = D[sortD[std::min(ns + start, n)]];
-    
-    // least ns, from start to min(ns+start, n), is in order
-    // update degrees based on peeled vert
-    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
-      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
-      //if (D[v] >= deg_max) {
-        D[v] -= edgesRemoved;
-      //  return wrap(v, D[v]);
-      //}
-      return Maybe<std::tuple<uintE, uintE> >();
-    };
-    auto active =
-        vertexSubset(n, std::min(ns + start, n) - start, sortD.begin() + start);
-    auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
-
-    moved.del();
-  }
-  auto ret = sequence<uintE>::no_init(n);
-  parallel_for (0,n,[&] (size_t j) { ret[sortD[j]] = j; });
-  return ret;
 }
 
 // keep track of induced subgraph as you go up -- store edge lists
@@ -239,7 +152,7 @@ inline size_t KCliqueIndDir(Graph& DG, size_t k, F lstintersect, G g_f, bool cou
 
 // induced
 // generated
-// -i 0 (simple gbbs intersect), -i 1 (set intersect), -i 2 (simd intersect)
+// -i 0 (simple gbbs intersect), -i 2 (simd intersect)
 
 // todo approx work and do some kind of break in gen if too much
 template <class Graph>
@@ -252,9 +165,9 @@ inline size_t KClique(Graph& GA, size_t k, double epsilon=0.001,
 
   sequence<uintE> rank;
   timer t_rank; t_rank.start();
-  if (order == 0) rank = AppKCore(GA, epsilon);
-  else if (order == 1) rank = DensestAppDegenOrder(GA, epsilon, false);
-  else rank = DensestAppDegenOrder(GA, epsilon, true);
+  if (order == 0) rank = goodrichpszona_degen::DegeneracyOrder(GA, epsilon);
+  else if (order == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon, false);
+  else rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon, true);
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 

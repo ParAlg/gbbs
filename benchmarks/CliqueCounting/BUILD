@@ -20,8 +20,8 @@ cc_library(
   "//ligra/pbbslib:dyn_arr",
   "//pbbslib:list_allocator",
   "//pbbslib:integer_sort",
-  "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph",
-  "//benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12:DensestSubgraph",
+  "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
+  "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   ":intersect"
   ]
 )

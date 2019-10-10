@@ -15,35 +15,6 @@
 
 #define INDUCED_STACK_THR 1000
 
-/*template <typename T>
-struct inducedGraph {
-  using induced_alloc = list_allocator<uintE[INDUCED_STACK_THR]>;
-  using induced_ptr = (uintE[])*;
-  std::vector<induced_ptr> vec;
-  size_t vec_size = 0;
-
-  static void init() {
-    induced_alloc::init();
-  }
-  static void reserve (size_t n) {
-    induced_alloc::reserve(n);
-  }
-  void resize (size_t i) {
-    if (i < vec_size) return;
-    vec.resize(i);
-    for (j = vec_size; j < i; ++j) {
-      vec[j] = induced_alloc::alloc();
-    }
-  }
-  void free (size_t i) {
-    induced_alloc::free(vec[i]);
-  }
-  void finish() {
-    induced_alloc::finish();
-  }
-  inducedGraph() : {}
-}*/
-
 struct lstintersect_par_struct {
   template <class Graph, class S>
   std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) const {
