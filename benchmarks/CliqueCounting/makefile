@@ -19,7 +19,7 @@ INCLUDE_DIRS = -I../../ -I../../external/simdinter/include
 OPT = -O3 -g
 
 CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
-SIMDFLAGS = -I../simdinter -I../simdinter/include -fpic -mavx -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+#SIMDFLAGS = -I../simdinter -I../simdinter/include -fpic -mavx -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
