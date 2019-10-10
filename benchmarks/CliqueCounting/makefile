@@ -14,7 +14,7 @@ INTE = -DEDGELONG
 endif
 
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
-INCLUDE_DIRS = -I../ligra -I../
+INCLUDE_DIRS = -I../../ -I../../external/simdinter/include
 
 OPT = -O3 -g
 
@@ -55,12 +55,12 @@ all: $(ALL)
 #OBJECTS = intersection.o
 
 % : %.cc intersection
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< ../simdinter/intersection.o
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< ../../external/simdinter/intersection.o
 
 .PHONY : clean intersection
 
 intersection:
-	make intersection.o -C ../simdinter
+	make intersection.o -C ../../external/simdinter
 
 clean :
 	rm -f *.o $(ALL)
