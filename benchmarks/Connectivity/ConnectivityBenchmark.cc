@@ -109,6 +109,7 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
   double maxt = reduce(t, maxf);
   double med = median(t);
 
+  cout << "Test_" << name << std::setprecision(5) << ", " << med << std::endl;
   cout << name << std::setprecision(5)
        << ": r=" << rounds
        << ", med=" << med
@@ -199,6 +200,7 @@ bool run_multiple_uf_apply_unite(Graph& G, size_t rounds,
 
   auto name = "union_find; sample = " + sample + "; unite = " + unite + "; find = " + find;
 
+  cout << "Test_" << name << std::setprecision(5) << ", " << med << std::endl;
   cout << name << std::setprecision(5)
        << ": r=" << rounds
        << ", med=" << med

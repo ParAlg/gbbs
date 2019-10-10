@@ -75,7 +75,7 @@ struct UnionFindTemplate {
           }
         }
       };
-      GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
+      GA.get_vertex(i).mapOutNgh(i, map_f, false); // in parallel
     }, 1);
     ut.stop(); debug(ut.reportTotal("union time"));
 
@@ -166,7 +166,7 @@ struct UnionFindSampleTemplate {
       }, 512);
       // compress nodes fully (turns out this is faster)
       parallel_for(0, n, [&] (size_t u) {
-        find(u, parents);
+        parents[u] = find(u, parents);
       }, 512);
       rnd = rnd.next();
     }
@@ -203,7 +203,7 @@ struct UnionFindSampleTemplate {
 //      }
 //      // compress nodes fully (turns out this is faster)
 //      parallel_for(0, n, [&] (size_t u) {
-//        find(u, parents);
+//        parents[u] = find(u, parents);
 //      }, 512);
 //    }
 

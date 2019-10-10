@@ -22,8 +22,8 @@
 // SOFTWARE.
 
 #include "Connectivity.h"
-#include "union_find_rules.h"
-#include "barabasi_albert.h
+//#include "barabasi_albert.h"
+#include "rmat.h"
 
 
 template <class Graph>
@@ -41,21 +41,36 @@ double CC_runner(Graph& G, commandLine P) {
    *   b) base graph { NONE, SOME(base_graph) },
    *   c) update/query ratio = double
    * } */
-
   /* models = random, 3D grid, localX, rMatX  */
 
-  P.getOptionValue("-model", "barabasi_albert");
+  std::string model = P.getOptionValue("-model", "rmat");
+  size_t num_updates = P.getOptionLongValue("-num_updates", G.n*10);
+  size_t batch_size = P.getOptionLongValue("-batch_size", 1000000);
+  double query_update_ratio = P.getOptionDoubleValue("-ratio", 1.0); // queries:updates 1:1
 
+  size_t n = 1UL << pbbs::log2_up(G.n);
 
+  pbbs::sequence<std::tuple<uintE, uintE>> updates;
+  if (model == "rmat") {
+    updates = rmat::generate_updates(n, num_updates, 4);
+  } else {
+    std::cout << "Unknown model: " << model << std::endl;
+  }
 
   timer tt; tt.start();
   /* 2. select options for unite/find, and time each batch + total */
 
-  double tt = t.stop();
+  size_t n_batches = (num_updates + batch_size - 1) / batch_size;
+
+  for (size_t i=0; i<n_batches; i++) {
+
+  }
+
+  double t_out = tt.stop();
 
   /* 3. calculate throughput/time statistics to report */
 
-  return tt; // return total time, or total time/#batches for tim
+  return t_out; // return total time, or total time/#batches for tim
 }
 
 generate_main(CC_runner, false);
