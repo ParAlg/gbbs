@@ -54,13 +54,18 @@ all: $(ALL)
 
 #OBJECTS = intersection.o
 
-% : %.cc intersection
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< ../../external/simdinter/intersection.o
+% : %.cc simdinter graphsetinter
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< ../../external/simdinter/intersection.o ../../external/graphsetinter/src/set_operation.o
 
-.PHONY : clean intersection
+.PHONY : clean simdinter
 
-intersection:
+simdinter:
 	make intersection.o -C ../../external/simdinter
+
+.PHONY : clean graphsetinter
+
+graphsetinter:
+	make set_operation.o -C ../../external/graphsetinter/src
 
 clean :
 	rm -f *.o $(ALL)

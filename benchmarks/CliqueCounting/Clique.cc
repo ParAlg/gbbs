@@ -35,7 +35,7 @@
 
 #include "Clique.h"
 
-// -i 0 (simple gbbs intersect), -i 2 (simd intersect)
+// -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (set intersect)
 // -induced
 // -gen
 // -k clique size

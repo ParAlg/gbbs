@@ -1,3 +1,6 @@
 [submodule "simdinter"]
 	path = external/simdinter
 	url = https://github.com/lemire/SIMDCompressionAndIntersection
+[submodule "graphsetinter"]
+	path = external/graphsetinter
+	url = https://github.com/jeshi96/GraphSetIntersection.git

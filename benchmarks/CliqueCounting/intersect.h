@@ -12,6 +12,7 @@
 
 #include "external/simdinter/include/common.h"
 #include "external/simdinter/include/intersection.h"
+#include "external/graphsetinter/src/set_operation.hpp"
 
 #define INDUCED_STACK_THR 1000
 
@@ -86,6 +87,47 @@ inline std::tuple<sequence<uintE>, size_t> lstintersect_vec(Graph& DG, uintE vtx
   }
   out.shrink(out_size);
   return std::make_tuple(out, out_size);
+}
+
+struct lstintersect_set_struct {
+  template <class Graph, class S>
+  std::tuple<sequence<uintE>, size_t> operator()(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) const {
+    return lstintersect_set(DG, vtx, induced, save, out_ptr);
+  }
+};
+
+//intersect_simd4x_count(pool_edges + u.start, u.deg, pool_edges + v.start, v.deg);
+//int intersect_simd4x(int *set_a, int size_a, int *set_b, int size_b, int *set_c);
+//int intersect_simd4x_count(int* set_a, int size_a, int* set_b, int size_b);
+// HARD: int cast be careful
+template <class Graph, class S>
+inline std::tuple<sequence<uintE>, size_t> lstintersect_set(Graph& DG, uintE vtx, S induced, bool save = true, uintE* out_ptr = nullptr) {
+  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
+
+  sequence<uintE> out;
+  size_t tmp_size = std::min(induced.size(), vtx_seq.size());
+  if (out_ptr && save) out = sequence<uintE>(out_ptr, tmp_size);
+  else out = sequence<uintE>::no_init(tmp_size);
+
+  if (!save) {
+#if SIMD_STATE == 2
+    int out_size = intersect_scalar2x_count((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size());
+#elif SIMD_STATE == 4
+    int out_size = intersect_simd4x_count((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size());
+#else
+    int out_size = intersect_count((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size());
+#endif
+    return std::make_tuple(pbbs::sequence<uintE>(), (size_t) out_size);
+  }
+#if SIMD_STATE == 2
+  int out_size = intersect_scalar2x((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size(), (int*) out.begin());
+#elif SIMD_STATE == 4
+  int out_size = intersect_simd4x((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size(), (int*) out.begin());
+#else
+  int out_size = intersect((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size(), (int*) out.begin());
+#endif
+  out.shrink(out_size);
+  return std::make_tuple(out, (size_t) out_size);
 }
 
 template <class Graph>

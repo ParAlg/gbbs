@@ -7,6 +7,7 @@ cc_library(
   "//ligra:ligra",
   "//ligra/pbbslib:dyn_arr",
   "@simdinter//:intersection",
+  "@graphsetinter//:intersection",
   ]
 )
 

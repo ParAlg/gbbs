@@ -37,6 +37,8 @@
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 
+#define SIMD_STATE 4
+
 template <class vertex>
 inline uintE* rankNodes(vertex* V, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
@@ -182,10 +184,12 @@ inline size_t KClique(Graph& GA, size_t k, double epsilon=0.001,
   if (!induced && !gen) count = KCliqueDir(DG, k-1);
   else if (induced && !gen) {
     if (inter == 0) count = KCliqueIndDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
+    else if (inter == 1) count = KCliqueIndDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
     else if (inter == 2) count = KCliqueIndDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
   }
   else if (induced && gen) {
     if (inter == 0) count = KCliqueIndGenDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
+    else if (inter == 1) count = KCliqueIndGenDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
     else if (inter == 2) count = KCliqueIndGenDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
   }
   double tt = t.stop();
