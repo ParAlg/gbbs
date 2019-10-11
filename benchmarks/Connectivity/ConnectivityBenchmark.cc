@@ -185,7 +185,7 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
 //      return t_out;
 //    };
 //    t = repeat(G, rounds, correct, test, P);
-//  } else if (unite == "unite_rem") {
+//  } else if (unite == "unite_rem_lock") {
 //    auto test = [&] (Graph& G, commandLine& P, pbbs::sequence<uintE>& correct) -> double {
 //      size_t sampling_rounds = P.getOptionLongValue("-sample_rounds", 2L);
 //      timer t; t.start();
@@ -305,17 +305,17 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_early", /* find = */ "find_atomic_halve", P);
 
   case 19:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem", /* find = */ "find_compress", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem_lock", /* find = */ "find_compress", P);
   case 20:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem", /* find = */ "find_naive", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem_lock", /* find = */ "find_naive", P);
   case 21:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem", /* find = */ "find_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem_lock", /* find = */ "find_split", P);
   case 22:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem", /* find = */ "find_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem_lock", /* find = */ "find_halve", P);
   case 23:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem", /* find = */ "find_atomic_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_split", P);
   case 24:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem", /* find = */ "find_atomic_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "kout", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_halve", P);
 
   case 25:
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite", /* find = */ "find_compress", P);
@@ -357,17 +357,17 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_early", /* find = */ "find_atomic_halve", P);
 
   case 43:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem", /* find = */ "find_compress", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem_lock", /* find = */ "find_compress", P);
   case 44:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem", /* find = */ "find_naive", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem_lock", /* find = */ "find_naive", P);
   case 45:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem", /* find = */ "find_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem_lock", /* find = */ "find_split", P);
   case 46:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem", /* find = */ "find_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem_lock", /* find = */ "find_halve", P);
   case 47:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem", /* find = */ "find_atomic_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_split", P);
   case 48:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem", /* find = */ "find_atomic_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "bfs", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_halve", P);
 
   case 49:
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite", /* find = */ "find_compress", P);
@@ -409,17 +409,17 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_early", /* find = */ "find_atomic_halve", P);
 
   case 67:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem", /* find = */ "find_compress", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem_lock", /* find = */ "find_compress", P);
   case 68:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem", /* find = */ "find_naive", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem_lock", /* find = */ "find_naive", P);
   case 69:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem", /* find = */ "find_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem_lock", /* find = */ "find_split", P);
   case 70:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem", /* find = */ "find_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem_lock", /* find = */ "find_halve", P);
   case 71:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem", /* find = */ "find_atomic_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_split", P);
   case 72:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem", /* find = */ "find_atomic_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "ldd", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_halve", P);
 
   case 73:
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite", /* find = */ "find_compress", P);
@@ -461,17 +461,17 @@ double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequen
     return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_early", /* find = */ "find_atomic_halve", P);
 
   case 91:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_compress", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem_lock", /* find = */ "find_compress", P);
   case 92:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_naive", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem_lock", /* find = */ "find_naive", P);
   case 93:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem_lock", /* find = */ "find_split", P);
   case 94:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem_lock", /* find = */ "find_halve", P);
   case 95:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_atomic_split", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_split", P);
   case 96:
-    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem", /* find = */ "find_atomic_halve", P);
+    return run_multiple_framework_alg(G, rounds, correct, /* type = */ "uf", /* sample = */ "none", /* unite = */ "unite_rem_lock", /* find = */ "find_atomic_halve", P);
 
   case 97: /* Jayanti */
     return run_multiple(G, rounds, correct, "jayanti", P, t_jayanti_cc<Graph>);

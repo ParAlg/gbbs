@@ -52,7 +52,7 @@ namespace connectit {
       std::string& unite,
       std::string& find,
       commandLine& P) {
-    if (algorithm_type == "union_find") {
+    if (algorithm_type == "uf") {
       if (sample == "kout") {
         return run_algorithm_sampler<Graph, union_find::UnionFindSampleTemplate>(G, unite, find, P);
       } else if (sample == "bfs") {

@@ -254,6 +254,7 @@ namespace unite_variants {
     std::mutex* locks;
     UniteRemLock(uintE n, Find& find) : n(n) {
       locks = pbbs::new_array<std::mutex>(n);
+      std::cout << "created locks;" << std::endl;
     }
 
     ~UniteRemLock() {
