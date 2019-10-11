@@ -52,6 +52,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
   using D = std::tuple<bool, Data>;
   size_t n = GA.n;
   auto dense_par = fl & dense_parallel;
+  std::cout << "dense" << std::endl;
   if (should_output(fl)) {
     D* next = pbbslib::new_array_no_init<D>(n);
     auto g = get_emdense_gen<Data>(next);
@@ -91,6 +92,7 @@ template <class Data  /* per-vertex data in the emitted vertex_subset */,
 inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F& f,
                                                   const flags fl) {
   debug(std::cout << "dense forward" << std::endl;);
+  std::cout << "dense_forward" << std::endl;
   using D = std::tuple<bool, Data>;
   size_t n = GA.n;
   if (should_output(fl)) {

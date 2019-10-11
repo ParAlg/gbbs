@@ -90,7 +90,7 @@ namespace jayanti_rank {
       if (vd.is_root()) return v;
 
       // CAS 1
-      uintE w = ud.get_parent();
+      uintE w = vd.get_parent();
       auto expected_u = vdata(v, ud.get_rank(), false);
       auto new_u = vdata(w, ud.get_rank(), false);
       pbbs::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);

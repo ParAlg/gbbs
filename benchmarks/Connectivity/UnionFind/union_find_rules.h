@@ -33,6 +33,7 @@ namespace find_variants {
       if(v == w) return v;
       else {
         pbbs::atomic_compare_and_swap(&parent[i],v,w);
+        // i = its parent
         i = v;
       }
     }
@@ -45,7 +46,7 @@ namespace find_variants {
       if(v == w) return v;
       else {
         pbbs::atomic_compare_and_swap(&parent[i],v,w);
-        //i = w;
+        // i = its grandparent
         i = parent[i];
       }
     }
@@ -76,9 +77,136 @@ namespace find_variants {
     }
   }
 
+  /* Used in Rem-CAS variants */
+  // compresses the path up to root
+  inline void compress(uintE start, uintE root, pbbs::sequence<uintE>& parent) {
+    uintE tmp;
+    while ((tmp = parent[start]) < root) {
+      parent[start] = root;
+      start = tmp;
+    }
+  }
+
+  /* Used in Rem-CAS variants for splice */
+  inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<uintE>& parent) {
+    uintE v = parent[i];
+    uintE w = parent[v];
+    if(v == w) return v;
+    else {
+      pbbs::atomic_compare_and_swap(&parent[i],v,w);
+      i = v;
+    }
+  }
+
+  /* Used in Rem-CAS variants for splice */
+  inline uintE halve_atomic_one(uintE i, uintE x, pbbs::sequence<uintE>& parent) {
+    uintE v = parent[i];
+    uintE w = parent[v];
+    if(v == w) return v;
+    else {
+      pbbs::atomic_compare_and_swap(&parent[i],v,w);
+      //i = w;
+      i = parent[i];
+    }
+  }
+
+  /* Used in Rem-CAS variants for splice */
+  inline uintE splice(uintE u, uintE v, pbbs::sequence<uintE>& parent) {
+    uintE z = parent[u];
+    parent[u] = parent[v];
+    return z;
+  }
+
+  /* Used in Rem-CAS variants for splice */
+  inline uintE splice_atomic(uintE u, uintE v, pbbs::sequence<uintE>& parent) {
+    uintE z = parent[u];
+    pbbs::atomic_compare_and_swap(&parent[u], z, parent[v]);
+    return z;
+  }
+
+
 } // namespace find_variants
 
 namespace unite_variants {
+
+  template <class Splice, class Compress>
+  struct UniteRemCAS {
+    Splice& splice;
+    Compress& compress;
+    UniteRemCAS(uintE n, Splice& splice, Compress& compress) : splice(splice), compress(compress) {}
+
+    inline void unite(uintE rx, uintE ry, pbbs::sequence<uintE>& parent, pbbs::sequence<uintE>& hooks) {
+      assert(false);
+      exit(0);
+    }
+
+    inline void operator()(uintE x, uintE y, pbbs::sequence<uintE>& parent) {
+      uintE rx = x; uintE ry = y;
+      while (parent[rx] != parent[ry]) {
+        if (parent[rx] > parent[ry]) {
+          std::swap(rx, ry);
+        }
+        if (rx == parent[rx] && pbbs::atomic_compare_and_swap(&parent[rx], rx, parent[ry])) {
+          // success
+          compress(x, parent);
+          compress(y, parent);
+          return;
+        } else {
+          // failure: locally compress by splicing and try again
+          rx = splice(rx, ry, parent);
+        }
+      }
+      return;
+      exit(0);
+    }
+  };
+
+//  inline void unite(uintT i, edge<uintT>* E, uintT* parent, uintT* hooks) {
+//  uintT rx = E[i].u;
+//  uintT ry = E[i].v;
+//  uintT z;
+//  while (parent[rx] != parent[ry]) {
+//    if (parent[rx] > parent[ry]) {
+//      swap(rx, ry);
+//    }
+//
+//    if (rx == parent[rx]) {
+//      if (__sync_bool_compare_and_swap(&parent[rx], rx, parent[ry])) {
+//        hooks[rx] = i;
+//#ifdef COMPRESS
+//        compress(E[i].u, parent[ry], parent);
+//        compress(E[i].v, parent[ry], parent);
+//#endif
+//
+//#ifdef SPLIT
+//        split(E[i].u, parent);
+//        split(E[i].v, parent);
+//#endif
+//
+//#ifdef HALVE
+//        halve(E[i].u, parent);
+//        halve(E[i].v, parent);
+//#endif
+//        return;
+//      }
+//    } else {
+//#ifdef SPLICE
+//      rx = splice(rx, ry, parent);
+//#endif
+//
+//#ifdef SPLICE_CAS
+//      rx = splice_CAS(rx, ry, parent);
+//#endif
+//
+//#ifdef SPLIT_ONE
+//      rx = split_one(rx, parent);
+//#endif
+//
+//    }
+//  }
+//  return;
+//  }
+
 
   template <class Find>
   struct Unite {
@@ -121,15 +249,14 @@ namespace unite_variants {
   };
 
   template <class Find>
-  struct UniteRem {
+  struct UniteRemLock {
     uintE n;
-    Find& find;
     std::mutex* locks;
-    UniteRem(uintE n, Find& find) : find(find), n(n) {
+    UniteRemLock(uintE n, Find& find) : n(n) {
       locks = pbbs::new_array<std::mutex>(n);
     }
 
-    ~UniteRem() {
+    ~UniteRemLock() {
       pbbs::free_array(locks);
     }
 
@@ -181,6 +308,7 @@ namespace unite_variants {
       return;
     }
   };
+
 
   template <class Find>
   struct UniteEarly {
@@ -234,6 +362,8 @@ namespace unite_variants {
       exit(0);
     }
   };
+
+  /* Add unite-by-size (lock-based?) */
 
 
 } // namespace unite_variants

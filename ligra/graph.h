@@ -241,6 +241,16 @@ struct edge_array {
   }
   edge_array() {}
   size_t size() { return non_zeros; }
+
+  template <class F>
+  void map_edges(F f, bool parallel_inner_map = true) {
+    parallel_for(0, m, [&](size_t i) {
+      uintE u, v; W w;
+      std::tie(u,v, w) = E[i];
+      f(u, v, w);
+    }, 512);
+  }
+
 };
 
 inline auto get_deletion_fn(void* a, void* b) -> std::function<void()> {

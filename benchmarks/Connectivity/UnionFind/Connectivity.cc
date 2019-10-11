@@ -138,23 +138,23 @@ double CC_runner(Graph& G, commandLine P) {
   int sampling_num_rounds = P.getOptionLongValue("-sample_rounds", /*default rounds=*/2);
   if (sampling_arg == "kout") {
     if (unite_arg == "unite") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::Unite,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = union_find::select_algorithm<
-        unite_variants::UniteRem,
+      components = union_find::select_framework_algorithm<
+        unite_variants::UniteRemLock,
         union_find::UnionFindSampleTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else {
@@ -162,23 +162,23 @@ double CC_runner(Graph& G, commandLine P) {
     }
   } else if (sampling_arg == "bfs") {
     if (unite_arg == "unite") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::Unite,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = union_find::select_algorithm<
-        unite_variants::UniteRem,
+      components = union_find::select_framework_algorithm<
+        unite_variants::UniteRemLock,
         union_find::UnionFindSampledBFSTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else {
@@ -186,23 +186,23 @@ double CC_runner(Graph& G, commandLine P) {
     }
   } else if (sampling_arg == "ldd") {
     if (unite_arg == "unite") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::Unite,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = union_find::select_algorithm<
-        unite_variants::UniteRem,
+      components = union_find::select_framework_algorithm<
+        unite_variants::UniteRemLock,
         union_find::UnionFindLDDTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else {
@@ -210,23 +210,23 @@ double CC_runner(Graph& G, commandLine P) {
     }
   } else if (sampling_arg == "none") {
     if (unite_arg == "unite") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::Unite,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_early") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteEarly,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_nd") {
-      components = union_find::select_algorithm<
+      components = union_find::select_framework_algorithm<
         unite_variants::UniteND,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, /* use_hooks = */true);
     } else if (unite_arg == "unite_rem") {
-      components = union_find::select_algorithm<
-        unite_variants::UniteRem,
+      components = union_find::select_framework_algorithm<
+        unite_variants::UniteRemLock,
         union_find::UnionFindTemplate,
         Graph>(G, find_arg, sampling_num_rounds, false);
     } else if (unite_arg == "unite_rank") {
