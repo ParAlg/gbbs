@@ -538,7 +538,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
   bool symmetric = P.getOptionValue("-s");
-  int num_tests = 100; // update if new algorithm is added
+  int num_tests = 109; // update if new algorithm is added
 
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;

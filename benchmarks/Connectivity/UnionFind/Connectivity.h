@@ -56,6 +56,10 @@ struct UFAlgorithm {
   void compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
     size_t n = GA.n;
+    pbbs::sequence<uintE> clusters;
+    if constexpr (provides_frequent_comp) {
+      clusters = parents;
+    }
 
     timer ut; ut.start();
     parallel_for(0, n, [&] (size_t i) {
@@ -65,7 +69,7 @@ struct UFAlgorithm {
         }
       };
       if constexpr (provides_frequent_comp) {
-        if (parents[i] == frequent_comp) {
+        if (clusters[i] != frequent_comp) {
           GA.get_vertex(i).mapOutNgh(i, map_f);
         }
       } else {

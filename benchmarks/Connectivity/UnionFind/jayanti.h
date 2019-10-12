@@ -139,9 +139,6 @@ namespace jayanti_rank {
       auto vdatas = pbbs::sequence<vdata>(n);
       parallel_for(0, n, [&] (uintE i) {
         vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ true);
-        assert(vdatas[i].is_root());
-        assert(vdatas[i].get_rank() == 1);
-        assert(vdatas[i].get_parent() == i);
       });
 
       timer ut; ut.start();
@@ -163,7 +160,7 @@ namespace jayanti_rank {
           GA.get_vertex(i).mapOutNgh(i, map_f);
         }
       }, 1);
-      ut.stop(); debug(ut.reportTotal("union time"));
+      ut.stop(); ut.reportTotal("union time");
 
       timer ft; ft.start();
       parallel_for(0, n, [&] (size_t i) {
