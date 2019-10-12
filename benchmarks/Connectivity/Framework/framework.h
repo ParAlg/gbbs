@@ -215,44 +215,37 @@ namespace connectit {
   }
 
 
-  /* Shiloach-Vishkin strategies */
-
-  template <SamplingOption sampling_option>
-  std::string shiloach_vishkin_options_to_string() {
-    return "shiloach-vishking; sample="
-      + sampling_to_string<sampling_option>();
-  };
-
   template <
     class Graph,
-    SamplingOption sampling_option>
-  pbbs::sequence<uintE> run_shiloach_vishkin_alg(
+    SamplingOption sampling_option,
+    template <class G> class Algorithm>
+  pbbs::sequence<uintE> run_sample_only_algorithm(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
-    using SV = shiloachvishkin_cc::SVAlgorithm<Graph>;
-    auto alg = SV(G);
+    using ALG = Algorithm<Graph>;
+    auto alg = ALG(G);
 
     if constexpr (sampling_option == kout) {
       auto fc = find_variants::find_compress;
       auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
       using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
       auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, SV>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, SV>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, ALG>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, SV>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, ALG>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
-      auto connectivity = NoSamplingAlgorithmTemplate<Graph, SV>(G, alg);
+      auto connectivity = NoSamplingAlgorithmTemplate<Graph, ALG>(G, alg);
       return connectivity.components();
     }
   }
