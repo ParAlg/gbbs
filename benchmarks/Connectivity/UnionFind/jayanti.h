@@ -4,13 +4,13 @@
 #include "ligra/ligra.h"
 
 namespace jayanti_rank {
-  static constexpr uintE TOP_BIT = UINT_E_MAX ^ ((uintE)INT_E_MAX);
   static constexpr uintE RANK_MASK = (uintE)INT_E_MAX;
   static constexpr uintE TOP_BIT_SHIFT = sizeof(uintE)*8 - 1;
+  static constexpr uintE TOP_BIT = ((uintE)1) << TOP_BIT_SHIFT;
 
   struct vdata {
-    uintE rank; // top bit is used to indicate root or not
-    uintE parent; // parent id
+    volatile uintE rank; // top bit is used to indicate root or not
+    volatile uintE parent; // parent id
 
     vdata() { }
 
@@ -53,7 +53,7 @@ namespace jayanti_rank {
     if (ud.get_rank() < vd.get_rank()) { // u.r < v.r
       auto expected_u = vdata(ud.get_parent(), ud.get_rank(), /* is_root= */ true);
       auto new_u = vdata(v, ud.get_rank(), /* is_root= */ false);
-      pbbs::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
+      pbbs::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
     } else if (ud.get_rank() > vd.get_rank()) { // v.r < u.r
       auto expected_v = vdata(vd.get_parent(), vd.get_rank(), /* is_root= */ true);
       auto new_v = vdata(u, vd.get_rank(), /* is_root= */ false);
