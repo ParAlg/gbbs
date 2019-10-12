@@ -218,7 +218,7 @@ namespace connectit {
   /* Shiloach-Vishkin strategies */
 
   template <SamplingOption sampling_option>
-  std::string sv_options_to_string() {
+  std::string shiloach_vishkin_options_to_string() {
     return "shiloach-vishking; sample="
       + sampling_to_string<sampling_option>();
   };
@@ -226,7 +226,7 @@ namespace connectit {
   template <
     class Graph,
     SamplingOption sampling_option>
-  pbbs::sequence<uintE> run_shiloach_vishkin_algorithm(
+  pbbs::sequence<uintE> run_shiloach_vishkin_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;

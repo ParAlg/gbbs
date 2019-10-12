@@ -178,6 +178,30 @@ namespace connectit {
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
+  template<
+    class Graph,
+    SamplingOption    sampling_option>
+  bool run_multiple_shiloach_vishkin(
+      Graph& G,
+      size_t rounds,
+      pbbs::sequence<uintE>& correct,
+      commandLine& P) {
+    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+      timer tt; tt.start();
+      auto CC =
+          run_shiloach_vishkin_alg<
+            Graph,
+            sampling_option>(G, P);
+      double t = tt.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, CC);
+      }
+      return t;
+    };
+    auto name = shiloach_vishkin_options_to_string<sampling_option>();
+    return run_multiple(G, rounds, correct, name, P, test);
+  }
+
 
   template <class Graph>
   double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequence<uintE>& correct) {
@@ -412,8 +436,17 @@ namespace connectit {
     case 104:
       return run_multiple_jayanti_alg<Graph, no_sampling, find_simple>(G, rounds, correct,  P);
 
-//    case 105: /* Shiloach-Vishkin */
-//      return run_multiple(G, rounds, correct, "shiloach-vishkin", P, t_shiloach_vishkin_cc<Graph>);
+    /* Shiloach-Vishkin strategies */
+    case 105:
+      return run_multiple_shiloach_vishkin<Graph, kout>(G, rounds, correct, P);
+    case 106:
+      return run_multiple_shiloach_vishkin<Graph, bfs>(G, rounds, correct, P);
+    case 107:
+      return run_multiple_shiloach_vishkin<Graph, ldd>(G, rounds, correct, P);
+    case 108:
+      return run_multiple_shiloach_vishkin<Graph, no_sampling>(G, rounds, correct, P);
+
+
 
 //  case 99: /* Plain label-prop */
 //    return run_multiple(G, rounds, correct, "label-propagation", P, t_label_propagation_cc<Graph>);
