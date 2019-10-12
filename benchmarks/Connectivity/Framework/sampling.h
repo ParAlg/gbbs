@@ -55,10 +55,10 @@ struct AfforestSamplingTemplate {
 
   AfforestSamplingTemplate(
       G& GA,
-      Unite& unite,
       Find& find,
+      Unite& unite,
       commandLine& P) :
-   GA(GA), unite(unite), find(find) {
+   GA(GA), find(find), unite(unite) {
     neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
    }
 

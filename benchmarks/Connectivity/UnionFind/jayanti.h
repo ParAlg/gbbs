@@ -72,8 +72,7 @@ namespace jayanti_rank {
     }
   }
 
-  template <class S>
-  inline uintE find(uintE x, S& vdatas) {
+  inline uintE find(uintE x, pbbs::sequence<vdata>& vdatas) {
     uintE u = x;
     while (!vdatas[u].is_root()) { // * on u.is_root()
       u = vdatas[u].get_parent();
@@ -81,8 +80,7 @@ namespace jayanti_rank {
     return u; // u is a root
   }
 
-  template <class S>
-  inline uintE find_twotry_splitting(uintE x, S& vdatas) {
+  inline uintE find_twotry_splitting(uintE x, pbbs::sequence<vdata>& vdatas) {
     uintE u = x;
     while (!vdatas[u].is_root()) { // * on u.is_root()
       auto ud = vdatas[u]; uintE v = ud.get_parent();
@@ -110,14 +108,14 @@ namespace jayanti_rank {
     return u; // u is a root
   }
 
-  template <class S>
-  void unite(uintE x, uintE y, S& vdatas, pbbs::random r) {
-    uintE u = find_twotry_splitting(x, vdatas);
-    uintE v = find_twotry_splitting(y, vdatas);
+  template <class S, class Find>
+  void unite(uintE x, uintE y, S& vdatas, pbbs::random r, Find& find) {
+    uintE u = find(x, vdatas);
+    uintE v = find(y, vdatas);
     while (u != v) {
       link(u, v, vdatas, r);
-      u = find_twotry_splitting(u, vdatas);
-      v = find_twotry_splitting(v, vdatas);
+      u = find(u, vdatas);
+      v = find(v, vdatas);
       r = r.next();
     }
   }
@@ -127,18 +125,20 @@ namespace jayanti_rank {
   /* Implementation of randomized linking-by-rank as proposed in
    * Randomized Concurrent Set Union and Generalized Wake-Up
    * by Jayanti, Tarjan, and Boix-Adserà */
-  template <class G>
+  template <class G, class Find>
   struct JayantiTBUnite {
     G& GA;
-    JayantiTBUnite(G& GA) : GA(GA) {}
+    Find& find;
+    JayantiTBUnite(G& GA, Find& find) : GA(GA), find(find) {}
 
-    pbbs::sequence<uintE> components() {
+    template <bool provides_frequent_comp>
+    pbbs::sequence<uintE> compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
 
-      auto vdatas = pbbs::new_array_no_init<vdata>(n);
+      auto vdatas = pbbs::sequence<vdata>(n);
       parallel_for(0, n, [&] (uintE i) {
-        vdatas[i] = vdata(/* parent */ i, /* rank */ 1, /* is_root */ true);
+        vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ true);
         assert(vdatas[i].is_root());
         assert(vdatas[i].get_rank() == 1);
         assert(vdatas[i].get_parent() == i);
@@ -146,25 +146,30 @@ namespace jayanti_rank {
 
       timer ut; ut.start();
       auto r = pbbs::random();
+
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (uintE u, uintE v, const W& wgh) {
           auto r_u = r.fork(u);
           auto r_uv = r_u.fork(v);
           if (u < v) {
-          unite(u, v, vdatas, r_uv);
+            unite(u, v, vdatas, r_uv, find);
           }
         };
-        GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
+        if constexpr (provides_frequent_comp) {
+          if (parents[i] != frequent_comp) {
+            GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
+          }
+        } else {
+          GA.get_vertex(i).mapOutNgh(i, map_f);
+        }
       }, 1);
       ut.stop(); debug(ut.reportTotal("union time"));
 
       timer ft; ft.start();
-      auto parents = pbbs::sequence<uintE>(n);
       parallel_for(0, n, [&] (size_t i) {
         parents[i] = find(i,vdatas);
       });
       ft.stop(); ft.reportTotal("find time");
-      pbbs::free_array(vdatas);
 
       return parents;
     }

@@ -57,31 +57,22 @@ struct UFAlgorithm {
     using W = typename G::weight_type;
     size_t n = GA.n;
 
-    if constexpr (provides_frequent_comp) {
-      timer ut; ut.start();
-      parallel_for(0, n, [&] (size_t i) {
-        if (parents[i] != frequent_comp) {
-          auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-            if (u < v) {
-              unite(u, v, parents);
-            }
-          };
+    timer ut; ut.start();
+    parallel_for(0, n, [&] (size_t i) {
+      auto map_f = [&] (uintE u, uintE v, const W& wgh) {
+        if (u < v) {
+          unite(u, v, parents);
+        }
+      };
+      if constexpr (provides_frequent_comp) {
+        if (parents[i] == frequent_comp) {
           GA.get_vertex(i).mapOutNgh(i, map_f);
         }
-      }, 1);
-      ut.stop(); debug(ut.reportTotal("union time"));
-    } else {
-      timer ut; ut.start();
-      parallel_for(0, n, [&] (size_t i) {
-        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-          if (u < v) {
-            unite(u, v, parents);
-          }
-        };
+      } else {
         GA.get_vertex(i).mapOutNgh(i, map_f);
-      }, 1);
-      ut.stop(); debug(ut.reportTotal("union time"));
-    }
+      }
+    }, 1);
+    ut.stop(); debug(ut.reportTotal("union time"));
 
     timer ft; ft.start();
     parallel_for(0, n, [&] (size_t i) {

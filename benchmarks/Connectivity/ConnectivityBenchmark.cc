@@ -54,16 +54,6 @@ double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
 }
 
 template <class Graph>
-double t_jayanti_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
-  time(t, auto q = jayanti_rank::JayantiTBUnite<Graph>(G);
-  auto CC = q.components(););
-  if (P.getOptionValue("-check")) {
-    cc_check(correct, CC);
-  }
-  return t;
-}
-
-template <class Graph>
 double t_shiloach_vishkin_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
   time(t, auto CC = shiloachvishkin_cc::CC(G););
   if (P.getOptionValue("-check")) {
@@ -134,33 +124,60 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
 
 namespace connectit {
 
-template<
-  class Graph,
-  SamplingOption sampling_option,
-  UniteOption    unite_option,
-  FindOption     find_option>
-bool run_multiple_uf_alg(
-    Graph& G,
-    size_t rounds,
-    pbbs::sequence<uintE>& correct,
-    commandLine& P) {
-  auto test = [&] (Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
-    timer tt; tt.start();
-    auto CC =
-        run_uf_algorithm<
-          Graph,
-          sampling_option,
-          find_option,
-          unite_option>(G, P);
-    double t = tt.stop();
-    if (P.getOptionValue("-check")) {
-      cc_check(correct, CC);
-    }
-    return t;
-  };
-  auto name = options_to_string<sampling_option, find_option, unite_option>();
-  return run_multiple(G, rounds, correct, name, P, test);
-}
+  template<
+    class Graph,
+    SamplingOption sampling_option,
+    UniteOption    unite_option,
+    FindOption     find_option>
+  bool run_multiple_uf_alg(
+      Graph& G,
+      size_t rounds,
+      pbbs::sequence<uintE>& correct,
+      commandLine& P) {
+    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+      timer tt; tt.start();
+      auto CC =
+          run_uf_algorithm<
+            Graph,
+            sampling_option,
+            find_option,
+            unite_option>(G, P);
+      double t = tt.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, CC);
+      }
+      return t;
+    };
+    auto name = uf_options_to_string<sampling_option, find_option, unite_option>();
+    return run_multiple(G, rounds, correct, name, P, test);
+  }
+
+  template<
+    class Graph,
+    SamplingOption    sampling_option,
+    JayantiFindOption find_option>
+  bool run_multiple_jayanti_alg(
+      Graph& G,
+      size_t rounds,
+      pbbs::sequence<uintE>& correct,
+      commandLine& P) {
+    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+      timer tt; tt.start();
+      auto CC =
+          run_jayanti_alg<
+            Graph,
+            sampling_option,
+            find_option>(G, P);
+      double t = tt.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, CC);
+      }
+      return t;
+    };
+    auto name = jayanti_options_to_string<sampling_option, find_option>();
+    return run_multiple(G, rounds, correct, name, P, test);
+  }
+
 
   template <class Graph>
   double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequence<uintE>& correct) {
@@ -377,23 +394,38 @@ bool run_multiple_uf_alg(
     case 96:
       return run_multiple_uf_alg<Graph, kout, unite_rem_lock, find_halve>(G, rounds, correct, P);
 
-  case 97: /* Jayanti */
-    return run_multiple(G, rounds, correct, "jayanti", P, t_jayanti_cc<Graph>);
+    /* Jayanti strategies */
+    case 97:
+      return run_multiple_jayanti_alg<Graph, kout, find_twotrysplit>(G, rounds, correct,  P);
+    case 98:
+      return run_multiple_jayanti_alg<Graph, kout, find_simple>(G, rounds, correct,  P);
+    case 99:
+      return run_multiple_jayanti_alg<Graph, bfs, find_twotrysplit>(G, rounds, correct,  P);
+    case 100:
+      return run_multiple_jayanti_alg<Graph, bfs, find_simple>(G, rounds, correct,  P);
+    case 101:
+      return run_multiple_jayanti_alg<Graph, ldd, find_twotrysplit>(G, rounds, correct,  P);
+    case 102:
+      return run_multiple_jayanti_alg<Graph, ldd, find_simple>(G, rounds, correct,  P);
+    case 103:
+      return run_multiple_jayanti_alg<Graph, no_sampling, find_twotrysplit>(G, rounds, correct,  P);
+    case 104:
+      return run_multiple_jayanti_alg<Graph, no_sampling, find_simple>(G, rounds, correct,  P);
 
-  case 98: /* Shiloach-Vishkin */
-    return run_multiple(G, rounds, correct, "shiloach-vishkin", P, t_shiloach_vishkin_cc<Graph>);
+//    case 105: /* Shiloach-Vishkin */
+//      return run_multiple(G, rounds, correct, "shiloach-vishkin", P, t_shiloach_vishkin_cc<Graph>);
 
-  case 99: /* Plain label-prop */
-    return run_multiple(G, rounds, correct, "label-propagation", P, t_label_propagation_cc<Graph>);
+//  case 99: /* Plain label-prop */
+//    return run_multiple(G, rounds, correct, "label-propagation", P, t_label_propagation_cc<Graph>);
 
 
-  default:
-    assert(false);
-    std::cout << "Unknown test" << std::endl;
-    exit(-1);
-    return 0.0 ;
+    default:
+      assert(false);
+      std::cout << "Unknown test" << std::endl;
+      exit(-1);
+      return 0.0 ;
+    }
   }
-}
 } // namespace connectit
 
 /* ************************* Utils *************************** */

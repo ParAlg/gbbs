@@ -48,8 +48,7 @@ inline sequence<uintE> CC(Graph& G) {
             if (!changed) {
               changed = true;
             }
-//            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
-            parents[larger] = smaller;
+            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
           }
         }
       };
@@ -66,5 +65,44 @@ inline sequence<uintE> CC(Graph& G) {
   std::cout << "Ran: " << rounds << " many rounds" << std::endl;
   return parents;
 }
+
+
+template <class Graph>
+struct SVAlgorithm {
+  Graph& GA;
+  SVAlgorithm(Graph& GA) : GA(GA) {}
+
+  template <bool provides_frequent_comp>
+  void compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
+    using W = typename Graph::weight_type;
+    size_t n = GA.n;
+
+    bool changed = true;
+    size_t rounds = 0;
+
+    /* Can this algorithm make use of checking against. frequent_comp? */
+    while (changed) {
+      changed = false;
+      rounds++;
+      parallel_for(0, n, [&] (uintE u) {
+        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+          uintE p_u = parents[u];
+          uintE p_v = parents[v];
+          if (p_u != p_v) {
+            uintE larger = std::max(u,v);
+            uintE smaller = std::min(u,v); // tricks require sign extension
+            if (larger == parents[larger]) {
+              if (!changed) {
+                changed = true;
+              }
+              pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
+            }
+          }
+        };
+      }, 1);
+    }
+  }
+};
+
 
 }  // namespace shiloachvishkin_cc
