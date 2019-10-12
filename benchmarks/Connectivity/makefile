@@ -15,7 +15,7 @@ endif
 
 INCLUDE_DIRS = -I../../
 
-OPT = -O3 -g -DNDEBUG
+OPT = -O3 -g
 
 CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
@@ -27,23 +27,23 @@ ifdef CLANG
 CC = clang++
 PFLAGS = $(CILKFLAGS)
 else ifdef CILK
-CC = g++
+CC = g++-7
 PFLAGS = $(CILKFLAGS)
 else ifdef OPENMP
-CC = g++
+CC = g++-7
 PFLAGS = $(OMPFLAGS)
 else ifdef HOMEGROWN
-CC = g++
+CC = g++-7
 PFLAGS = $(HGFLAGS)
 else ifdef SERIAL
-CC = g++
+CC = g++-7
 PFLAGS =
 else # default is homegrown
-CC = g++
+CC = g++-7
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= ConnectivityBenchmark
+ALL=ConnectivityBenchmark
 
 all: $(ALL)
 
