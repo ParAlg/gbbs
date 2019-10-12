@@ -474,43 +474,43 @@ inline pbbs::sequence<uintE> UnionFindTemplate_coo(edge_array<W>& G, Unite& unit
 }
 
 
-template <template <class Find> class Unite,
-          template <class F, class U, class G> class UFTemplate,
-          class Graph>
-pbbs::sequence<uintE> select_framework_algorithm(Graph& G, std::string& find_arg, uint32_t sampling_rounds=2, bool use_hooks=false) {
-  if (find_arg == "find_compress") {
-    auto find = find_variants::find_compress;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_naive") {
-    auto find = find_variants::find_naive;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_split") {
-    auto find = find_variants::find_split;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_halve") {
-    auto find = find_variants::find_halve;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_atomic_split") {
-    auto find = find_variants::find_atomic_split;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  } else if (find_arg == "find_atomic_halve") {
-    auto find = find_variants::find_atomic_halve;
-    auto unite = Unite<decltype(find)>(G.n, find);
-    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
-    return q.components();
-  }
-  return pbbs::sequence<uintE>();
-}
+//template <template <class Find> class Unite,
+//          template <class F, class U, class G> class UFTemplate,
+//          class Graph>
+//pbbs::sequence<uintE> select_framework_algorithm(Graph& G, std::string& find_arg, uint32_t sampling_rounds=2, bool use_hooks=false) {
+//  if (find_arg == "find_compress") {
+//    auto find = find_variants::find_compress;
+//    auto unite = Unite<decltype(find)>(G.n, find);
+//    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+//    return q.components();
+//  } else if (find_arg == "find_naive") {
+//    auto find = find_variants::find_naive;
+//    auto unite = Unite<decltype(find)>(G.n, find);
+//    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+//    return q.components();
+//  } else if (find_arg == "find_split") {
+//    auto find = find_variants::find_split;
+//    auto unite = Unite<decltype(find)>(G.n, find);
+//    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+//    return q.components();
+//  } else if (find_arg == "find_halve") {
+//    auto find = find_variants::find_halve;
+//    auto unite = Unite<decltype(find)>(G.n, find);
+//    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+//    return q.components();
+//  } else if (find_arg == "find_atomic_split") {
+//    auto find = find_variants::find_atomic_split;
+//    auto unite = Unite<decltype(find)>(G.n, find);
+//    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+//    return q.components();
+//  } else if (find_arg == "find_atomic_halve") {
+//    auto find = find_variants::find_atomic_halve;
+//    auto unite = Unite<decltype(find)>(G.n, find);
+//    auto q = UFTemplate<decltype(find), decltype(unite), Graph>(G, unite, find, sampling_rounds, use_hooks);
+//    return q.components();
+//  }
+//  return pbbs::sequence<uintE>();
+//}
 
 
 //template <template <class Find, class Compress> class Unite,

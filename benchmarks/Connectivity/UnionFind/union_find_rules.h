@@ -123,8 +123,6 @@ namespace find_variants {
     pbbs::atomic_compare_and_swap(&parent[u], z, parent[v]);
     return z;
   }
-
-
 } // namespace find_variants
 
 namespace unite_variants {
@@ -366,5 +364,51 @@ namespace unite_variants {
 
   /* Add unite-by-size (lock-based?) */
 
-
 } // namespace unite_variants
+
+namespace union_find {
+
+  template <class Find, class Unite, class Graph>
+  struct UFAlgorithm {
+    Graph& GA;
+    Unite& unite;
+    Find& find;
+    bool use_hooks;
+    UFAlgorithm(Graph& GA, Unite& unite, Find& find, bool use_hooks=false) :
+      GA(GA), unite(unite), find(find), use_hooks(use_hooks) {}
+
+    void components(pbbs::sequence& parents, long frequent_comp=-1) {
+      size_t n = GA.n;
+
+      timer ut; ut.start();
+      parallel_for(0, n, [&] (size_t u) {
+	// Only process edges for vertices not linked to the main component
+	// note that this is safe only for undirected graphs. For directed graphs,
+	// the in-edges must also be explored for all vertices.
+	if (parents[u] != frequent_comp) {
+	  auto map_f = [&] (uintE u, uintE v, const W& wgh) {
+	    if (u < v) {
+	      if (use_hooks) {
+		unite(u, v, parents, hooks);
+	      } else {
+		unite(u, v, parents);
+	      }
+	    }
+	  };
+	  GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
+	}
+      }, 1);
+      ut.stop(); ut.reportTotal("union time");
+
+      timer ft; ft.start();
+      parallel_for(0, n, [&] (size_t i) {
+	parents[i] = find(i,parents);
+      });
+      ft.stop(); ft.reportTotal("find time");
+
+    }
+
+
+  }
+
+} // namespace union_find

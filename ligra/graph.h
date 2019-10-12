@@ -251,6 +251,25 @@ struct edge_array {
     }, 512);
   }
 
+  // F : edge -> edge
+  template <class F>
+  void alter_edges(F f, bool parallel_inner_map = true) {
+    parallel_for(0, m, [&](size_t i) {
+      uintE u, v; W w;
+      std::tie(u,v, w) = E[i];
+      E[i] = f(u, v, w);
+    }, 512);
+  }
+
+  template <class P>
+  void filter_edges(P p) {
+    auto in_seq = pbbslib::make_sequence<edge>(m, E);
+    auto q = pbbs::filter(in_seq, p);
+    size_t q_s = q.size();
+    pbbs::free_array(E);
+    E = q.to_array(); m = q_s;
+  }
+
 };
 
 inline auto get_deletion_fn(void* a, void* b) -> std::function<void()> {
