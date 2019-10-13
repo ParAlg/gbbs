@@ -225,7 +225,7 @@ namespace connectit {
     auto unite = get_unite_function<unite_option, decltype(find)>(n, find);
     using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
     auto alg = UF(G, unite, find);
-    compose_algorithm_and_sampling<
+    return compose_algorithm_and_sampling<
       Graph,
       decltype(alg),
       sampling_option,
@@ -250,7 +250,7 @@ namespace connectit {
     auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find)>(splice, find);
     using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
     auto alg = UF(G, unite, find);
-    compose_algorithm_and_sampling<
+    return compose_algorithm_and_sampling<
       Graph,
       decltype(alg),
       sampling_option,
