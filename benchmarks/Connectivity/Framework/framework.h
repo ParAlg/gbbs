@@ -33,10 +33,10 @@ namespace connectit {
 
   /* LiuTarjan-specific options */
 
-  using LiuTarjanConnectOption = liu_tarjan::LiuTarjanConnectOption;
-  using LiuTarjanUpdateOption = liu_tarjan::LiuTarjanUpdateOption;
-  using LiuTarjanShortcutOption = liu_tarjan::LiuTarjanShortcutOption;
-  using LiuTarjanAlterOption = liu_tarjan::LiuTarjanAlterOption;
+  using LiuTarjanConnectOption = lt::LiuTarjanConnectOption;
+  using LiuTarjanUpdateOption = lt::LiuTarjanUpdateOption;
+  using LiuTarjanShortcutOption = lt::LiuTarjanShortcutOption;
+  using LiuTarjanAlterOption = lt::LiuTarjanAlterOption;
 
   template <FindOption find_option>
   std::string find_to_string() {
@@ -360,7 +360,68 @@ namespace connectit {
   }
 
 
+
   /* Selects the sampling strategy, and calls the appropriate dispatcher */
+
+  template <LiuTarjanConnectOption connect_option>
+  auto connect_to_string() {
+    if constexpr (connect_option == lt::simple_connect) {
+      return "connect";
+    } else if constexpr (connect_option == lt::parent_connect) {
+      return "parent_connect";
+    } else if constexpr (connect_option == lt::extended_connect) {
+      return "extended_connect";
+    } else {
+      abort();
+    }
+  }
+
+  template <LiuTarjanUpdateOption update_option>
+  auto update_to_string() {
+    if constexpr (update_option == lt::simple_update) {
+      return "simple_update";
+    } else if constexpr (update_option == lt::root_update) {
+      return "root_update";
+    } else {
+      abort();
+    }
+  }
+
+  template <LiuTarjanShortcutOption shortcut_option>
+  auto shortcut_to_string() {
+    if constexpr (shortcut_option == lt::shortcut) {
+      return "shortcut";
+    } else if constexpr (shortcut_option == lt::full_shortcut) {
+      return "full_shortcut";
+    } else {
+      abort();
+    }
+  }
+
+  template <LiuTarjanAlterOption alter_option>
+  auto alter_to_string() {
+    if constexpr (alter_option == lt::alter) {
+      return "alter";
+    } else {
+      return "no_alter";
+    }
+  }
+
+
+  template <
+    SamplingOption sampling_option,
+    LiuTarjanConnectOption connect_option,
+    LiuTarjanUpdateOption update_option,
+    LiuTarjanShortcutOption shortcut_option,
+    LiuTarjanAlterOption alter_option>
+  std::string liu_tarjan_options_to_string() {
+    return "liu_tarjan; sample = " + sampling_to_string<sampling_option>()
+      + "connect = " + connect_to_string<connect_option>()
+      + "; update = " + update_to_string<update_option>()
+      + "; shortcut = " + shortcut_to_string<shortcut_option>()
+      + "; alter = " + alter_to_string<alter_option>();
+  }
+
   template <
     class Graph,
     SamplingOption          sampling_option,
@@ -372,27 +433,50 @@ namespace connectit {
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
-    auto connect = liu_tarjan::get_connect_function<connect_option>();
-    auto update = liu_tarjan::get_update_function<update_option>();
-    auto shortcut = liu_tarjan::get_shortcut_function<shortcut_option>();
+    auto connect = lt::get_connect_function<connect_option>();
+    auto update = lt::get_update_function<update_option>();
+    auto shortcut = lt::get_shortcut_function<shortcut_option>();
 
-    using LT = liu_tarjan::LiuTarjanAlgorithm<
-      decltype(connect),
-      connect_option,
-      decltype(update),
-      update_option,
-      decltype(shortcut),
-      shortcut_option,
-      Graph>;
-    auto alg = LT(G, connect, update, shortcut);
+    if constexpr (alter_option == lt::no_alter) { /* no alter */
+      using LT = lt::LiuTarjanAlgorithm<
+        decltype(connect),
+        connect_option,
+        decltype(update),
+        update_option,
+        decltype(shortcut),
+        shortcut_option,
+        Graph>;
+      auto alg = LT(G, connect, update, shortcut);
 
-    return compose_algorithm_and_sampling<
-      Graph,
-      decltype(alg),
-      sampling_option,
-      find_compress,
-      unite,
-      splice>(G, P, alg);
+      return compose_algorithm_and_sampling<
+        Graph,
+        decltype(alg),
+        sampling_option,
+        find_compress,
+        unite,
+        splice>(G, P, alg);
+    } else { /* using alter */
+      auto alter = lt::get_alter_function<alter_option>();
+      using LT = lt::LiuTarjanAlgorithmAlter<
+        decltype(connect),
+        connect_option,
+        decltype(update),
+        update_option,
+        decltype(shortcut),
+        shortcut_option,
+        decltype(alter),
+        alter_option,
+        Graph>;
+      auto alg = LT(G, connect, update, shortcut, alter);
+
+      return compose_algorithm_and_sampling<
+        Graph,
+        decltype(alg),
+        sampling_option,
+        find_compress,
+        unite,
+        splice>(G, P, alg);
+    }
   }
 
 } // namesapce connectit

@@ -237,7 +237,7 @@ namespace connectit {
       }
       return t;
     };
-    auto name = liu_tarjan_options_to_string<sampling_option, find_option>();
+    auto name = liu_tarjan_options_to_string<sampling_option, connect_option, update_option, shortcut_option, alter_option>();
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
@@ -267,6 +267,7 @@ namespace connectit {
 
   template <class Graph>
   double pick_test(Graph& G, size_t id, size_t rounds, commandLine P, pbbs::sequence<uintE>& correct) {
+
     switch (id) {
     case 0:
       return run_multiple(G, rounds, correct, "gbbs_cc", P, t_gbbs_cc<Graph>);
@@ -701,7 +702,127 @@ namespace connectit {
 
     /* Liu-Tarjan algorithms */
     case 193:
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, simple_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      /* <parent_connect, update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 194:
+      /* <parent_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::root_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 195:
+      /* <extended_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::extended_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 196:
+      /* <parent_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 197:
+      /* <parent_connect, root_update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::root_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 198:
+      /* <extended_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::extended_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+
+    case 199:
+      /* <parent_connect, update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, kout, lt::parent_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 200:
+      /* <parent_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, kout, lt::parent_connect, lt::root_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 201:
+      /* <extended_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, kout, lt::extended_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 202:
+      /* <parent_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, kout, lt::parent_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 203:
+      /* <parent_connect, root_update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, kout, lt::parent_connect, lt::root_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 204:
+      /* <extended_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, kout, lt::extended_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+
+    case 205:
+      /* <parent_connect, update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, bfs, lt::parent_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 206:
+      /* <parent_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, bfs, lt::parent_connect, lt::root_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 207:
+      /* <extended_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, bfs, lt::extended_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 208:
+      /* <parent_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, bfs, lt::parent_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 209:
+      /* <parent_connect, root_update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, bfs, lt::parent_connect, lt::root_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 210:
+      /* <extended_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, bfs, lt::extended_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+
+    case 211:
+      /* <parent_connect, update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, ldd, lt::parent_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 212:
+      /* <parent_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, ldd, lt::parent_connect, lt::root_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 213:
+      /* <extended_connect, root_update, shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, ldd, lt::extended_connect, lt::simple_update, lt::shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 214:
+      /* <parent_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, ldd, lt::parent_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 215:
+      /* <parent_connect, root_update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, ldd, lt::parent_connect, lt::root_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+    case 216:
+      /* <extended_connect, update, full_shortcut> */
+      return run_multiple_liu_tarjan_alg<Graph, ldd, lt::extended_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
+
+
+
+
+//    case 193:
+//      /* <connect, update, shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::simple_connect, lt::simple_update, lt::shortcut, lt::alter>(G, rounds, correct, P);
+//    case 194:
+//      /* <connect, root_update, shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::simple_connect, lt::root_update, lt::shortcut, lt::alter>(G, rounds, correct, P);
+//
+//    case 195:
+//      /* <parent_connect, update, shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::simple_update, lt::shortcut, lt::alter>(G, rounds, correct, P);
+//    case 196:
+//      /* <parent_connect, root_update, shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::root_update, lt::shortcut, lt::alter>(G, rounds, correct, P);
+//
+//    case 199:
+//      /* <extended_connect, root_update, shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::extended_connect, lt::simple_update, lt::shortcut, lt::alter>(G, rounds, correct, P);
+//
+//    case 201:
+//      /* <connect, update, full_shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::simple_connect, lt::simple_update, lt::full_shortcut, lt::alter>(G, rounds, correct, P);
+//    case 202:
+//      /* <connect, root_update, full_shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::simple_connect, lt::root_update, lt::full_shortcut, lt::alter>(G, rounds, correct, P);
+//
+//    case 203:
+//      /* <parent_connect, update, full_shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::simple_update, lt::full_shortcut, lt::alter>(G, rounds, correct, P);
+//    case 204:
+//      /* <parent_connect, root_update, full_shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::parent_connect, lt::root_update, lt::full_shortcut, lt::alter>(G, rounds, correct, P);
+//
+//    case 207:
+//      /* <extended_connect, update, full_shortcut, alter> */
+//      return run_multiple_liu_tarjan_alg<Graph, no_sampling, lt::extended_connect, lt::simple_update, lt::full_shortcut, lt::alter>(G, rounds, correct, P);
+
+
+
+
+
+
+
+
 
 
 
@@ -792,7 +913,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
   bool symmetric = P.getOptionValue("-s");
-  int num_tests = 133; // update if new algorithm is added
+  int num_tests = 217; // update if new algorithm is added
 
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;

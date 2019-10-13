@@ -116,6 +116,12 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
       get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
     }, 1);
   }
+
+  // F : edge -> edge
+  template <class F>
+  void alter_edges(F f, bool parallel_inner_map = true) {
+    abort(); /* unimplemented for CSR */
+  }
 };
 
 /* Compressed Sparse Row (CSR) based representation for asymmetric
@@ -256,7 +262,7 @@ struct edge_array {
   void alter_edges(F f, bool parallel_inner_map = true) {
     parallel_for(0, m, [&](size_t i) {
       uintE u, v; W w;
-      std::tie(u,v, w) = E[i];
+      std::tie(u, v, w) = E[i];
       E[i] = f(u, v, w);
     }, 512);
   }

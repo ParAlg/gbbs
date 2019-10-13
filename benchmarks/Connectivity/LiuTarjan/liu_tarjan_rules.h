@@ -2,7 +2,7 @@
 
 #include "ligra/maybe.h"
 
-namespace liu_tarjan {
+namespace lt {
 
   namespace primitives {
     /* send minimum end to maximum end */
@@ -20,16 +20,18 @@ namespace liu_tarjan {
       return pbbs::write_min<uintE>(&P[max_v], min_v, std::less<uintE>());
     }
 
-    void extended_connect(uintE v, uintE w, pbbs::sequence<uintE>& P) {
+    bool extended_connect(uintE v, uintE w, pbbs::sequence<uintE>& P) {
       uintE x = P[v];
       uintE y = P[w];
+      bool updated = false;
       if (y < x) { /* send y to {v, x}*/
-        pbbs::write_min<uintE>(&P[v], y, std::less<uintE>());
-        pbbs::write_min<uintE>(&P[x], y, std::less<uintE>());
+        updated |= pbbs::write_min<uintE>(&P[v], y, std::less<uintE>());
+        updated |= pbbs::write_min<uintE>(&P[x], y, std::less<uintE>());
       } else { /* send x to {y, w} */
-        pbbs::write_min<uintE>(&P[y], x, std::less<uintE>());
-        pbbs::write_min<uintE>(&P[w], x, std::less<uintE>());
+        updated |= pbbs::write_min<uintE>(&P[y], x, std::less<uintE>());
+        updated |= pbbs::write_min<uintE>(&P[w], x, std::less<uintE>());
       }
+      return updated;
     }
 
     void simple_update(uintE u, pbbs::sequence<uintE>& P) {
@@ -59,15 +61,11 @@ namespace liu_tarjan {
       }
     }
 
-    Maybe<std::tuple<uintE, uintE>>
+    std::tuple<uintE, uintE>
     alter(uintE u, uintE v, pbbs::sequence<uintE>& P) {
       uintE x = P[u];
       uintE y = P[v];
-      if (x == y) {
-        return Maybe<std::tuple<uintE, uintE>>();
-      } else {
-        return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(x, y));
-      }
+      return std::make_tuple(x, y);
     }
   } // namespace primitives
 
@@ -130,4 +128,4 @@ namespace liu_tarjan {
 //    }
 //  }
 
-} // namespace liu_tarjan
+} // namespace lt
