@@ -415,11 +415,11 @@ namespace connectit {
     LiuTarjanShortcutOption shortcut_option,
     LiuTarjanAlterOption alter_option>
   std::string liu_tarjan_options_to_string() {
-    return "liu_tarjan; sample = " + sampling_to_string<sampling_option>()
-      + "connect = " + connect_to_string<connect_option>()
-      + "; update = " + update_to_string<update_option>()
-      + "; shortcut = " + shortcut_to_string<shortcut_option>()
-      + "; alter = " + alter_to_string<alter_option>();
+    return "liu_tarjan; sample=" + sampling_to_string<sampling_option>()
+      + "; connect=" + connect_to_string<connect_option>()
+      + "; update=" + update_to_string<update_option>()
+      + "; shortcut=" + shortcut_to_string<shortcut_option>()
+      + "; alter=" + alter_to_string<alter_option>();
   }
 
   template <

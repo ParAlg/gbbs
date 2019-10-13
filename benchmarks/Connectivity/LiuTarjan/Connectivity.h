@@ -129,7 +129,7 @@ struct LiuTarjanAlgorithm {
       GA.map_edges(map_f);
 
       // Can skip this step for a regular update
-      if constexpr (update_option == simple_update) {
+      if constexpr (update_option != simple_update) {
         // Update
         parallel_for(0, n, [&] (size_t u) {
           update(u, P);
@@ -184,7 +184,7 @@ struct LiuTarjanAlgorithmAlter {
       GA.map_edges(map_f);
 
       // Can skip this step for a regular update
-      if constexpr (update_option == simple_update) {
+      if constexpr (update_option != simple_update) {
         // Update
         parallel_for(0, n, [&] (size_t u) {
           update(u, P);

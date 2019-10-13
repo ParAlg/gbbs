@@ -18,8 +18,7 @@ FORMAT = -DCSR # (oneof {DCSR, DCOO})
 INCLUDE_DIRS = -I../../
 
 #OPT = -O3 -g
-#OPT = -O3 -g -DNDEBUG
-OPT = -O3 -g
+OPT = -O3 -g -DNDEBUG
 
 CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC $(FORMAT)
 
