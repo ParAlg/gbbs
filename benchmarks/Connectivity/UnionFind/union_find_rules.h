@@ -76,19 +76,10 @@ namespace find_variants {
       }
     }
   }
+} // namespace find_variants
 
 
-
-  /* Used in Rem-CAS variants */
-  // compresses the path up to root
-  inline void compress(uintE start, uintE root, pbbs::sequence<uintE>& parent) {
-    uintE tmp;
-    while ((tmp = parent[start]) < root) {
-      parent[start] = root;
-      start = tmp;
-    }
-  }
-
+namespace splice_variants {
   /* Used in Rem-CAS variants for splice */
   inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<uintE>& parent) {
     uintE v = parent[i];
@@ -125,9 +116,7 @@ namespace find_variants {
     pbbs::atomic_compare_and_swap(&parent[u], z, parent[v]);
     return z;
   }
-} // namespace find_variants
-
-
+} // namespace splice_variants
 
 
 namespace unite_variants {
@@ -191,12 +180,9 @@ namespace unite_variants {
 
   template <class Splice, class Compress>
   struct UniteRemCAS {
-    Splice splice;
-    Compress compress;
-    UniteRemCAS() {
-      splice = Splice();
-      compress = Compress();
-    }
+    Splice& splice;
+    Compress& compress;
+    UniteRemCAS(Splice& splice, Compress& compress) : splice(splice), compress(compress) { }
 
     inline void operator()(uintE x, uintE y, pbbs::sequence<uintE>& parent) {
       uintE rx = x; uintE ry = y;
@@ -215,7 +201,6 @@ namespace unite_variants {
         }
       }
       return;
-      exit(0);
     }
   };
 
