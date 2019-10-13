@@ -360,50 +360,39 @@ namespace connectit {
   }
 
 
-//  /* Selects the sampling strategy, and calls the appropriate dispatcher */
-//  template <
-//    class Graph,
-//    LiuTarjanConnectOption connect_option,
-//    LiuTarjanUpdateOption update_option,
-//    LiuTarjanShortcutOption shortcut_option>
-//  pbbs::sequence<uintE> run_liu_tarjan_alg(
-//      Graph& G,
-//      commandLine& P) {
-//    size_t n = G.n;
-//    auto connect = liu_tarjan::get_connect_function<connect_option>();
-//    auto update = liu_tarjan::get_update_function<update_option>();
-//    auto shortcut = liu_tarjan::get_shortcut_function<shortcut_option>();
-//
-//    using LT = union_find::LiuTarjanAlgorithm<
-//      decltype(connect),
-//      connect_option,
-//      decltype(update),
-//      update_option,
-//      decltype(shortcut),
-//      shortcut_option
-//      Graph>;
-//    auto alg = LT(G, connect, update, shortcut);
-//
-//    if constexpr (sampling_option == kout) {
-//      using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
-//      auto sample = Afforest(G, find, unite, P);
-//      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, LT>(G, sample, alg);
-//      return connectivity.components();
-//    } else if constexpr (sampling_option == bfs) {
-//      using BFS = BFSSamplingTemplate<Graph>;
-//      auto sample = BFS(G, P);
-//      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, LT>(G, sample, alg);
-//      return connectivity.components();
-//    } else if constexpr (sampling_option == ldd) {
-//      using LDD = LDDSamplingTemplate<Graph>;
-//      auto sample = LDD(G, P);
-//      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, LT>(G, sample, alg);
-//      return connectivity.components();
-//    } else {
-//      static_assert(sampling_option == no_sampling);
-//      auto connectivity = NoSamplingAlgorithmTemplate<Graph, LT>(G, alg);
-//      return connectivity.components();
-//    }
-//  }
+  /* Selects the sampling strategy, and calls the appropriate dispatcher */
+  template <
+    class Graph,
+    SamplingOption          sampling_option,
+    LiuTarjanConnectOption  connect_option,
+    LiuTarjanUpdateOption   update_option,
+    LiuTarjanShortcutOption shortcut_option,
+    LiuTarjanAlterOption    alter_option>
+  pbbs::sequence<uintE> run_liu_tarjan_alg(
+      Graph& G,
+      commandLine& P) {
+    size_t n = G.n;
+    auto connect = liu_tarjan::get_connect_function<connect_option>();
+    auto update = liu_tarjan::get_update_function<update_option>();
+    auto shortcut = liu_tarjan::get_shortcut_function<shortcut_option>();
+
+    using LT = liu_tarjan::LiuTarjanAlgorithm<
+      decltype(connect),
+      connect_option,
+      decltype(update),
+      update_option,
+      decltype(shortcut),
+      shortcut_option,
+      Graph>;
+    auto alg = LT(G, connect, update, shortcut);
+
+    return compose_algorithm_and_sampling<
+      Graph,
+      decltype(alg),
+      sampling_option,
+      find_compress,
+      unite,
+      splice>(G, P, alg);
+  }
 
 } // namesapce connectit

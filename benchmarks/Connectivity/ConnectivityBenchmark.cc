@@ -208,6 +208,39 @@ namespace connectit {
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
+
+  template<
+    class Graph,
+    SamplingOption          sampling_option,
+    LiuTarjanConnectOption  connect_option,
+    LiuTarjanUpdateOption   update_option,
+    LiuTarjanShortcutOption shortcut_option,
+    LiuTarjanAlterOption    alter_option>
+  bool run_multiple_liu_tarjan_alg(
+      Graph& G,
+      size_t rounds,
+      pbbs::sequence<uintE>& correct,
+      commandLine& P) {
+    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+      timer tt; tt.start();
+      auto CC =
+          run_liu_tarjan_alg<
+            Graph,
+            sampling_option,
+            connect_option,
+            update_option,
+            shortcut_option,
+            alter_option>(G, P);
+      double t = tt.stop();
+      if (P.getOptionValue("-check")) {
+        cc_check(correct, CC);
+      }
+      return t;
+    };
+    auto name = liu_tarjan_options_to_string<sampling_option, find_option>();
+    return run_multiple(G, rounds, correct, name, P, test);
+  }
+
   template<
     class Graph,
     SamplingOption    sampling_option,
@@ -665,6 +698,11 @@ namespace connectit {
       return run_multiple_uf_alg<Graph, ldd, unite_rem_cas, find_halve, splice>(G, rounds, correct, P);
     case 192:
       return run_multiple_uf_alg<Graph, ldd, unite_rem_cas, find_halve, splice_atomic>(G, rounds, correct, P);
+
+    /* Liu-Tarjan algorithms */
+    case 193:
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, simple_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+
 
 
 

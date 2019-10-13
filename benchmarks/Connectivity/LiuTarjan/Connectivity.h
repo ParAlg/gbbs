@@ -51,8 +51,49 @@ enum LiuTarjanShortcutOption {
   shortcut, full_shortcut
 };
 enum LiuTarjanAlterOption {
-  alter
+  alter, no_alter
 };
+
+template <LiuTarjanConnectOption connect_option>
+auto get_connect_function() {
+  if constexpr (connect_option == simple_connect) {
+    return primitives::connect;
+  } else if constexpr (connect_option == parent_connect) {
+    return primitives::parent_connect;
+  } else if constexpr (connect_option == extended_connect) {
+    return primitives::extended_connect;
+  } else {
+    abort();
+  }
+}
+
+template <LiuTarjanUpdateOption update_option>
+auto get_update_function() {
+  if constexpr (update_option == simple_update) {
+    return primitives::simple_update;
+  } else if constexpr (update_option == root_update) {
+    return primitives::root_update;
+  } else {
+    abort();
+  }
+}
+
+template <LiuTarjanShortcutOption shortcut_option>
+auto get_shortcut_function() {
+  if constexpr (shortcut_option == shortcut) {
+    return primitives::shortcut;
+  } else if constexpr (shortcut_option == full_shortcut) {
+    return primitives::root_shortcut;
+  } else {
+    abort();
+  }
+}
+
+template <LiuTarjanAlterOption alter_option>
+auto get_alter_function() {
+  return primitives::alter;
+}
+
 
 template <class Connect,
           LiuTarjanConnectOption connect_option,
