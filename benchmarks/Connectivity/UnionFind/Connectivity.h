@@ -64,8 +64,12 @@ struct UFAlgorithm {
     timer ut; ut.start();
     parallel_for(0, n, [&] (size_t i) {
       auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-        if (u < v) {
-          unite(u, v, parents);
+        if constexpr (provides_frequent_comp) {
+            unite(u, v, parents);
+        } else {
+          if (u < v) {
+            unite(u, v, parents);
+          }
         }
       };
       if constexpr (provides_frequent_comp) {

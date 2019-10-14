@@ -877,20 +877,21 @@ inline size_t largest_cc(Seq& labels) {
 }
 
 template <class Seq>
-inline size_t RelabelDet(Seq& ids) {
+inline void RelabelDet(Seq& ids) {
   using T = typename Seq::value_type;
   size_t n = ids.size();
   auto component_map = pbbs::sequence<T>(n + 1, (T)0);
-  T cur_comp = 1;
+  T cur_comp = 0;
   for (size_t i=0; i<n; i++) {
     T comp = ids[i];
-    T new_comp = cur_comp++;
     if (component_map[comp] == 0) {
-      component_map[comp] = new_comp;
+      component_map[comp] = cur_comp;
+      ids[i] = cur_comp;
+      cur_comp++;
+    } else {
+      ids[i] = component_map[comp];
     }
-    ids[i] = new_comp;
   }
-  return cur_comp;
 }
 
 template <class S1, class S2>
@@ -905,6 +906,7 @@ inline void cc_check(S1& correct, S2& check) {
     if ((correct[i] != check[i])) {
       is_correct = false;
       cout << "at i = " << i << " cor = " << correct[i] << " got: " << check[i] << endl;
+      abort();
     }
     if (correct[i] > max_cor) {
       pbbs::write_max(&max_cor, correct[i], std::less<uintE>());

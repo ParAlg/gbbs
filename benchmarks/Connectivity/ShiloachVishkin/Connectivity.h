@@ -99,6 +99,7 @@ struct SVAlgorithm {
             }
           }
         };
+        GA.get_vertex(u).mapOutNgh(u, map_f);
       }, 1);
     }
   }

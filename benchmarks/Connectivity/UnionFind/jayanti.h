@@ -138,7 +138,7 @@ namespace jayanti_rank {
 
       auto vdatas = pbbs::sequence<vdata>(n);
       parallel_for(0, n, [&] (uintE i) {
-        vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ true);
+        vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ (i == parents[i]));
       });
 
       timer ut; ut.start();
@@ -148,8 +148,12 @@ namespace jayanti_rank {
         auto map_f = [&] (uintE u, uintE v, const W& wgh) {
           auto r_u = r.fork(u);
           auto r_uv = r_u.fork(v);
-          if (u < v) {
+          if constexpr (provides_frequent_comp) {
             unite(u, v, vdatas, r_uv, find);
+          } else {
+            if (u < v) {
+              unite(u, v, vdatas, r_uv, find);
+            }
           }
         };
         if constexpr (provides_frequent_comp) {
