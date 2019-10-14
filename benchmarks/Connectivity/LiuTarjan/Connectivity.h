@@ -27,6 +27,7 @@
 #include "ligra/ligra.h"
 #include "pbbslib/random.h"
 #include "liu_tarjan_rules.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 #include <iostream>
 #include <limits.h>
@@ -111,7 +112,7 @@ struct LiuTarjanAlgorithm {
     GA(GA), connect(connect), update(update), shortcut(shortcut) {}
 
   template <bool provides_frequent_comp>
-  void compute_components(pbbs::sequence<uintE>& P, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& P, uintE frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -164,7 +165,7 @@ struct LiuTarjanAlgorithmAlter {
     GA(GA), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
 
   template <bool provides_frequent_comp>
-  void compute_components(pbbs::sequence<uintE>& P, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& P, uintE frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 

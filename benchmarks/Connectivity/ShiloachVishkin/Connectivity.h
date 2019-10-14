@@ -24,14 +24,15 @@
 #pragma once
 
 #include "ligra/ligra.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace shiloachvishkin_cc {
 
 template <class Graph>
-inline sequence<uintE> CC(Graph& G) {
+inline sequence<parent> CC(Graph& G) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto parents = pbbs::sequence<uintE>(n, [&] (uintE i) { return i; });
+  auto parents = pbbs::sequence<parent>(n, [&] (uintE i) { return i; });
   bool changed = true;
   size_t rounds = 0;
   while (changed) {
@@ -54,14 +55,15 @@ inline sequence<uintE> CC(Graph& G) {
       };
       G.get_vertex(u).mapOutNgh(u, map_f);
     }, 1);
+
+    // compress
+    parallel_for(0, n, [&] (uintE u) {
+      while (parents[u] != parents[parents[u]]) {
+        parents[u] = parents[parents[u]];
+      }
+    });
   }
 
-  // compress
-  parallel_for(0, n, [&] (uintE u) {
-    while (parents[u] != parents[parents[u]]) {
-      parents[u] = parents[parents[u]];
-    }
-  });
   std::cout << "# Ran: " << rounds << " many rounds" << std::endl;
   return parents;
 }
@@ -73,14 +75,13 @@ struct SVAlgorithm {
   SVAlgorithm(Graph& GA) : GA(GA) {}
 
   template <bool provides_frequent_comp>
-  void compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
     bool changed = true;
     size_t rounds = 0;
 
-    /* Can this algorithm make use of checking against. frequent_comp? */
     while (changed) {
       changed = false;
       rounds++;
@@ -88,21 +89,24 @@ struct SVAlgorithm {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
           uintE p_u = parents[u];
           uintE p_v = parents[v];
-          if (p_u != p_v) {
-            uintE larger = std::max(u,v);
-            uintE smaller = std::min(u,v); // tricks require sign extension
-            if (larger == parents[larger]) {
-              if (!changed) {
-                changed = true;
-              }
-              pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
-            }
+          if (p_u < p_v && p_u == parents[p_u]) {
+//            parents[p_v] = p_u;
+            pbbs::write_min<uintE>(&parents[p_v], p_u, std::less<uintE>());
+            if (!changed) { changed = true; }
           }
         };
         GA.get_vertex(u).mapOutNgh(u, map_f);
       }, 1);
+
+      // compress
+      parallel_for(0, n, [&] (uintE u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      });
     }
   }
+
 };
 
 

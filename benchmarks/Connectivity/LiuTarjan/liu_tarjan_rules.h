@@ -1,18 +1,19 @@
 #pragma once
 
 #include "ligra/maybe.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace lt {
 
   namespace primitives {
     /* send minimum end to maximum end */
-    bool connect(uintE u, uintE v, pbbs::sequence<uintE>& P) {
+    bool connect(uintE u, uintE v, pbbs::sequence<parent>& P) {
       uintE min_v = std::min(u, v);
       uintE max_v = std::max(u, v);
       return pbbs::write_min<uintE>(&P[max_v], min_v, std::less<uintE>());
     }
 
-    bool parent_connect(uintE u, uintE v, pbbs::sequence<uintE>& P) {
+    bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P) {
       uintE p_u = P[u];
       uintE p_v = P[v];
       auto min_v = std::min(p_u, p_v);
@@ -20,7 +21,7 @@ namespace lt {
       return pbbs::write_min<uintE>(&P[max_v], min_v, std::less<uintE>());
     }
 
-    bool extended_connect(uintE v, uintE w, pbbs::sequence<uintE>& P) {
+    bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P) {
       uintE x = P[v];
       uintE y = P[w];
       bool updated = false;
@@ -34,11 +35,11 @@ namespace lt {
       return updated;
     }
 
-    void simple_update(uintE u, pbbs::sequence<uintE>& P) {
+    void simple_update(uintE u, pbbs::sequence<parent>& P) {
       abort(); // should not be called, since this fn is a noop
     }
 
-    void root_update(uintE u, pbbs::sequence<uintE>& P) {
+    void root_update(uintE u, pbbs::sequence<parent>& P) {
       /* find root */
       uintE r = u;
       while (P[r] != P[P[r]]) {
@@ -49,20 +50,20 @@ namespace lt {
       }
     }
 
-    void shortcut(uintE u, pbbs::sequence<uintE>& P) {
+    void shortcut(uintE u, pbbs::sequence<parent>& P) {
       if (P[u] != P[P[u]]) {
         P[u] = P[P[u]];
       }
     }
 
-    void root_shortcut(uintE u, pbbs::sequence<uintE>& P) {
+    void root_shortcut(uintE u, pbbs::sequence<parent>& P) {
       while (P[u] != P[P[u]]) {
         P[u] = P[P[u]];
       }
     }
 
     std::tuple<uintE, uintE>
-    alter(uintE u, uintE v, pbbs::sequence<uintE>& P) {
+    alter(uintE u, uintE v, pbbs::sequence<parent>& P) {
       uintE x = P[u];
       uintE y = P[v];
       return std::make_tuple(x, y);
@@ -79,11 +80,11 @@ namespace lt {
 //    class Shortcut,
 //    class Alter,
 //    bool  should_edge_filter>
-//  pbbs::sequence<uintE> liu_tarjan_algorithm(Graph& G, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) {
+//  pbbs::sequence<parent> liu_tarjan_algorithm(Graph& G, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) {
 //    size_t n = G.n;
 //    using W = typename G::weight_type;
 //
-//    auto P = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+//    auto P = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
 //    auto next_P = P; // copy
 //
 //    auto parents_changed = true;

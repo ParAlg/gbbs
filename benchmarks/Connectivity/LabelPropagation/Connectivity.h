@@ -25,14 +25,15 @@
 
 #include "ligra/ligra.h"
 #include "pbbslib/random_shuffle.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace labelprop_cc {
 
   template <class W>
   struct LabelProp_F {
-    pbbs::sequence<uintE>& components;
+    pbbs::sequence<parent>& components;
     pbbs::sequence<bool>& changed;
-    LabelProp_F(pbbs::sequence<uintE>& components, pbbs::sequence<bool>& changed) : components(components), changed(changed) {}
+    LabelProp_F(pbbs::sequence<parent>& components, pbbs::sequence<bool>& changed) : components(components), changed(changed) {}
     inline bool update(const uintE& s, const uintE& d, const W& w) {
       if (components[s] < components[d]) {
         components[d] = components[s];
@@ -56,7 +57,7 @@ namespace labelprop_cc {
   };
 
   template <class Graph>
-  void CC_impl(Graph& G, pbbs::sequence<uintE>& components) {
+  void CC_impl(Graph& G, pbbs::sequence<parent>& components) {
     using W = typename Graph::weight_type;
     size_t n = G.n;
     auto all = pbbs::sequence<bool>(n, true);
@@ -80,13 +81,13 @@ namespace labelprop_cc {
   }
 
   template <bool use_permutation, class Graph>
-  inline sequence<uintE> CC(Graph& G) {
+  inline sequence<parent> CC(Graph& G) {
     size_t n = G.n;
-    pbbs::sequence<uintE> components;
+    pbbs::sequence<parent> components;
     if constexpr (use_permutation) {
       components = pbbs::random_permutation<uintE>(n);
     } else {
-      components = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+      components = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     }
     CC_impl(G, components);
     return components;
@@ -98,7 +99,7 @@ namespace labelprop_cc {
     LPAlgorithm(Graph& GA) : GA(GA) {}
 
     template <bool provides_frequent_comp>
-    void compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
+    void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
       using W = typename Graph::weight_type;
       size_t n = GA.n;
 

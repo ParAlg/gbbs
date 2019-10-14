@@ -27,18 +27,21 @@
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "ligra/ligra.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace workefficient_cc {
 
 template <class Graph>
-inline sequence<uintE> CC_impl(Graph& G, double beta,
+inline sequence<parent> CC_impl(Graph& G, double beta,
                                  size_t level, bool pack = false,
                                  bool permute = false) {
   size_t n = G.n;
   permute |= (level > 0);
   timer ldd_t;
   ldd_t.start();
-  auto clusters = LDD(G, beta, permute);
+  auto clusters_in = LDD(G, beta, permute);
+  auto s = clusters_in.to_array();
+  auto clusters = pbbs::sequence((parent*)s, n);
   ldd_t.stop();
   debug(ldd_t.reportTotal("ldd time"););
 
@@ -106,7 +109,7 @@ inline size_t largest_cc(Seq& labels) {
 }
 
 template <class Graph>
-inline sequence<uintE> CC(Graph& G, double beta = 0.2, bool pack = false, bool permute = false) {
+inline sequence<parent> CC(Graph& G, double beta = 0.2, bool pack = false, bool permute = false) {
   return CC_impl(G, beta, 0, pack, permute);
 }
 

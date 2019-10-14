@@ -27,6 +27,7 @@
 #include "ligra/ligra.h"
 #include "pbbslib/random.h"
 #include "union_find_rules.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
@@ -53,10 +54,10 @@ struct UFAlgorithm {
   UFAlgorithm(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
 
   template <bool provides_frequent_comp>
-  void compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
     size_t n = GA.n;
-    pbbs::sequence<uintE> clusters;
+    pbbs::sequence<parent> clusters;
     if constexpr (provides_frequent_comp) {
       clusters = parents;
     }
@@ -88,6 +89,11 @@ struct UFAlgorithm {
     });
     ft.stop(); debug(ft.reportTotal("find time"););
   }
+
+//  void process_batch(pbbs::sequence<parent>& parents, EdgeBatch& batch) {
+//
+//  }
+
 };
 
 }  // namespace union_find

@@ -97,7 +97,8 @@ namespace pbbs {
 
   template<typename T>
   inline void assign_uninitialized(T& a, const T& b) {
-    new (static_cast<void*>(std::addressof(a))) T(b);
+    using TT = typename std::remove_volatile<T>::type;
+    new (static_cast<void*>((TT*)std::addressof(a))) TT(b);
   }
 
   template<typename T>
@@ -200,7 +201,9 @@ namespace pbbs {
 	parallel_for(0, n, f);
       } else for (size_t i = 0; i < n; i++) A[i].~E();
     }
-    my_free(A);
+    using NVE = typename std::remove_volatile<E>::type;
+    NVE* AA = (NVE*)A;
+    my_free(AA);
   }
 
   template <typename ET>
@@ -220,6 +223,29 @@ namespace pbbs {
       std::memcpy(&r_oval, &oldval, sizeof(ET));
       std::memcpy(&r_nval, &newval, sizeof(ET));
       return __sync_bool_compare_and_swap(reinterpret_cast<uint64_t*>(a), r_oval, r_nval);
+    } else {
+      std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
+      exit(0);
+    }
+  }
+
+  template <typename ET>
+  inline bool atomic_compare_and_swap(volatile ET* a, ET oldval, ET newval) {
+    if (sizeof(ET) == 1) {
+      uint8_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint8_t*>(a), r_oval, r_nval);
+    } else if (sizeof(ET) == 4) {
+      uint32_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint32_t*>(a), r_oval, r_nval);
+    } else if (sizeof(ET) == 8) {
+      uint64_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint64_t*>(a), r_oval, r_nval);
     } else {
       std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
       exit(0);
@@ -258,6 +284,15 @@ namespace pbbs {
     return r;
   }
 
+
+  template <typename ET, typename F>
+  inline bool write_min(volatile ET *a, ET b, F less) {
+    ET c; bool r=0;
+    do c = *a;
+    while (less(b,c) && !(r=atomic_compare_and_swap(a,c,b)));
+    return r;
+  }
+
   template <typename ET, typename F>
   inline bool write_min(std::atomic<ET> *a, ET b, F less) {
     ET c; bool r=0;
@@ -268,6 +303,14 @@ namespace pbbs {
 
   template <typename ET, typename F>
   inline bool write_max(ET *a, ET b, F less) {
+    ET c; bool r=0;
+    do c = *a;
+    while (less(c,b) && !(r=atomic_compare_and_swap(a,c,b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_max(volatile ET *a, ET b, F less) {
     ET c; bool r=0;
     do c = *a;
     while (less(c,b) && !(r=atomic_compare_and_swap(a,c,b)));

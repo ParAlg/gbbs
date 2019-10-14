@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include "ligra/ligra.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace jayanti_rank {
   static constexpr uintE RANK_MASK = (uintE)INT_E_MAX;
@@ -10,13 +11,13 @@ namespace jayanti_rank {
 
   struct vdata {
     volatile uintE rank; // top bit is used to indicate root or not
-    volatile uintE parent; // parent id
+    volatile uintE par; // parent id
 
     vdata() { }
 
     vdata(uintE _parent, uintE _rank, bool is_root) {
       rank = combine_root_rank(is_root, _rank);
-      parent = _parent;
+      par = _parent;
     }
 
     __attribute__((always_inline)) inline uintE combine_root_rank(bool is_root, uintE _rank) const {
@@ -32,7 +33,7 @@ namespace jayanti_rank {
     }
 
      __attribute__((always_inline)) inline uintE get_parent() const {
-      return parent;
+      return par;
     }
 
     void print(uintE vtx_id) const {
@@ -132,7 +133,7 @@ namespace jayanti_rank {
     JayantiTBUnite(G& GA, Find& find) : GA(GA), find(find) {}
 
     template <bool provides_frequent_comp>
-    pbbs::sequence<uintE> compute_components(pbbs::sequence<uintE>& parents, uintE frequent_comp = UINT_E_MAX) {
+    void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
 
@@ -171,8 +172,6 @@ namespace jayanti_rank {
         parents[i] = find(i,vdatas);
       });
       ft.stop(); ft.reportTotal("find time");
-
-      return parents;
     }
   };
 } // namespace jayanti_rank

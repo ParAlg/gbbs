@@ -5,6 +5,7 @@
 #include "ligra/macros.h"
 #include "ligra/graph.h"
 #include <tuple>
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace contract {
 
@@ -183,7 +184,7 @@ namespace contract {
 
   template <class Graph>
   inline std::tuple<symmetric_graph<symmetric_vertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
-  contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
+  contract(Graph& GA, sequence<parent>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
     using K = std::tuple<uintE, uintE>;
 

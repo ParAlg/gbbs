@@ -14,10 +14,10 @@ template <
     Algorithm& algorithm;
     SamplingAlgorithmTemplate(Graph& G, Sampler& sampler, Algorithm& algorithm) : G(G), sampler(sampler), algorithm(algorithm) {}
 
-    pbbs::sequence<uintE> components() {
+    pbbs::sequence<parent> components() {
       auto parents = sampler.initial_components();
 
-      uintE frequent_comp; double pct;
+      parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
 
       algorithm.template compute_components</* provides_frequent_comp = */true>(parents, frequent_comp);
@@ -33,9 +33,9 @@ template <
     Algorithm& algorithm;
     NoSamplingAlgorithmTemplate(Graph& G, Algorithm& algorithm) : G(G), algorithm(algorithm) {}
 
-    pbbs::sequence<uintE> components() {
+    pbbs::sequence<parent> components() {
       size_t n = G.n;
-      auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+      auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
       algorithm.template compute_components</* provides_frequent_comp = */false>(parents);
       return parents;
     }
@@ -62,12 +62,12 @@ struct AfforestSamplingTemplate {
     neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
    }
 
-  pbbs::sequence<uintE> initial_components() {
+  pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
     cout << "neighbor_rounds = " << neighbor_rounds << endl;
 
-    auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     pbbs::sequence<uintE> hooks;
 
     pbbs::random rnd;
@@ -129,9 +129,9 @@ struct AfforestSamplingTemplate {
 
 template <class W>
 struct BFS_ComponentLabel_F {
-  uintE* Parents;
+  parent* Parents;
   uintE src;
-  BFS_ComponentLabel_F(uintE* _Parents, uintE src) : Parents(_Parents), src(src) {}
+  BFS_ComponentLabel_F(parent* _Parents, uintE src) : Parents(_Parents), src(src) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (Parents[d] != src) {
       Parents[d] = src;
@@ -141,7 +141,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbslib::atomic_compare_and_swap(&Parents[d], d, src));
+    return (pbbs::atomic_compare_and_swap(&Parents[d], d, src));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == d); }
 };
@@ -149,10 +149,10 @@ struct BFS_ComponentLabel_F {
 /* Returns a mapping from either i --> i, if i is not reached by the BFS, or
  * i --> src, if i is reachable from src in the BFS */
 template <class Graph>
-inline sequence<uintE> BFS_ComponentLabel(Graph& G, uintE src) {
+inline sequence<parent> BFS_ComponentLabel(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
   /* Creates Parents array, initialized to all -1, except for src. */
-  auto Parents = sequence<uintE>(G.n, [&](size_t i) { return i; });
+  auto Parents = sequence<parent>(G.n, [&](size_t i) { return i; });
   Parents[src] = src;
 
   vertexSubset Frontier(G.n, src);
@@ -177,11 +177,11 @@ struct BFSSamplingTemplate {
   BFSSamplingTemplate(G& GA, commandLine& P) :
    GA(GA) {}
 
-  pbbs::sequence<uintE> initial_components() {
+  pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
 
-    pbbs::sequence<uintE> parents;
+    pbbs::sequence<parent> parents;
 
     pbbs::random rnd;
     timer st; st.start();
@@ -196,7 +196,7 @@ struct BFSSamplingTemplate {
       uintE src = rnd.rand() % n;
       auto bfs_parents = BFS_ComponentLabel(GA, src);
 
-      uintE frequent_comp; double pct;
+      parent frequent_comp; double pct;
       parents = std::move(bfs_parents);
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
       if (pct > static_cast<double>(0.1)) {
@@ -254,11 +254,14 @@ struct LDDSamplingTemplate {
 
   LDDSamplingTemplate(G& GA, commandLine& P) : GA(GA) { }
 
-  pbbs::sequence<uintE> initial_components() {
+  pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
 
-    auto clusters = LDD(GA, 0.2, /* permute = */false);
+    auto clusters_in = LDD(GA, 0.2, /* permute = */false);
+    auto s = clusters_in.to_array();
+    auto clusters = pbbs::sequence((parent*)s, n);
+
     return clusters;
   }
 };
@@ -270,7 +273,7 @@ struct LDDSamplingTemplate {
 //     }
 //   });
 //
-//    pbbs::sequence<uintE> parents(n);
+//    pbbs::sequence<parent> parents(n);
 //    parallel_for(0, n, [&] (size_t i) {
 //      parents[i] = clusters[i];
 //    });

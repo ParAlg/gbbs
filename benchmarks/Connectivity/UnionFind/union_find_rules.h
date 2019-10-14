@@ -3,76 +3,79 @@
 #include "ligra/bridge.h"
 #include "pbbslib/seq.h"
 #include "jayanti.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 #include <mutex>
 
 namespace find_variants {
-  inline uintE find_naive(uintE i, pbbs::sequence<uintE>& parent) {
-    while(i != parent[i])
-      i = parent[i];
+  inline uintE find_naive(uintE i, pbbs::sequence<parent>& parents) {
+    while(i != parents[i])
+      i = parents[i];
     return i;
   }
 
-  inline uintE find_compress(uintE i, pbbs::sequence<uintE>& parent) {
+  inline uintE find_compress(uintE i, pbbs::sequence<parent>& parents) {
     uintE j = i;
-    if (parent[j] == j) return j;
+    if (parents[j] == j) return j;
     do {
-      j = parent[j];
-    } while (parent[j] != j);
+      j = parents[j];
+    } while (parents[j] != j);
     uintE tmp;
-    while ((tmp=parent[i])<j) {
-      parent[i]=j; i=tmp;
+    while ((tmp=parents[i])<j) {
+      parents[i]=j; i=tmp;
     }
     return j;
   }
 
-  inline uintE find_atomic_split(uintE i, pbbs::sequence<uintE>& parent) {
+  inline uintE find_atomic_split(uintE i, pbbs::sequence<parent>& parents) {
     while(1) {
-      uintE v = parent[i];
-      uintE w = parent[v];
+      uintE v = parents[i];
+      uintE w = parents[v];
       if(v == w) return v;
       else {
-        pbbs::atomic_compare_and_swap(&parent[i],v,w);
-        // i = its parent
+        pbbs::atomic_compare_and_swap(&parents[i],v,w);
+        // i = its parents
         i = v;
       }
     }
   }
 
-  inline uintE find_atomic_halve(uintE i, pbbs::sequence<uintE>& parent) {
+  inline uintE find_atomic_halve(uintE i, pbbs::sequence<parent>& parents) {
     while(1) {
-      uintE v = parent[i];
-      uintE w = parent[v];
+      uintE v = parents[i];
+      uintE w = parents[v];
       if(v == w) return v;
       else {
-        pbbs::atomic_compare_and_swap(&parent[i],v,w);
+        pbbs::atomic_compare_and_swap(&parents[i],(parent)v,(parent)w);
         // i = its grandparent
-        i = parent[i];
+        i = parents[i];
       }
     }
   }
 
-  inline uintE find_split(uintE i, pbbs::sequence<uintE>& parent) {
+  inline uintE find_split(uintE i, pbbs::sequence<parent>& parents) {
     while(1) {
-      uintE v = parent[i];
-      uintE w = parent[v];
+      uintE v = parents[i];
+      uintE w = parents[v];
       if(v == w) return v;
       else {
-        parent[i] = w;
+        parents[i] = w;
         i = v;
+        std::atomic_thread_fence(std::memory_order_seq_cst);
       }
     }
   }
 
-  inline uintE find_halve(uintE i, pbbs::sequence<uintE>& parent) {
+  inline uintE find_halve(uintE i, pbbs::sequence<parent>& parents) {
     while(1) {
-      uintE v = parent[i];
-      uintE w = parent[v];
+      uintE v = parents[i];
+      uintE w = parents[v];
       if(v == w) return v;
       else {
-        parent[i] = w;
+        parents[i] = w;
         //i = w;
-        i = parent[i];
+        i = parents[i];
+        std::atomic_thread_fence(std::memory_order_seq_cst);
       }
     }
   }
@@ -81,39 +84,39 @@ namespace find_variants {
 
 namespace splice_variants {
   /* Used in Rem-CAS variants for splice */
-  inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<uintE>& parent) {
-    uintE v = parent[i];
-    uintE w = parent[v];
+  inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+    uintE v = parents[i];
+    uintE w = parents[v];
     if(v == w) return v;
     else {
-      pbbs::atomic_compare_and_swap(&parent[i],v,w);
+      pbbs::atomic_compare_and_swap(&parents[i],v,w);
       i = v;
     }
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE halve_atomic_one(uintE i, uintE x, pbbs::sequence<uintE>& parent) {
-    uintE v = parent[i];
-    uintE w = parent[v];
+  inline uintE halve_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+    uintE v = parents[i];
+    uintE w = parents[v];
     if(v == w) return v;
     else {
-      pbbs::atomic_compare_and_swap(&parent[i],v,w);
+      pbbs::atomic_compare_and_swap(&parents[i],v,w);
       //i = w;
-      i = parent[i];
+      i = parents[i];
     }
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE splice(uintE u, uintE v, pbbs::sequence<uintE>& parent) {
-    uintE z = parent[u];
-    parent[u] = parent[v];
+  inline uintE splice(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+    uintE z = parents[u];
+    parents[u] = parents[v];
     return z;
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE splice_atomic(uintE u, uintE v, pbbs::sequence<uintE>& parent) {
-    uintE z = parent[u];
-    pbbs::atomic_compare_and_swap(&parent[u], z, parent[v]);
+  inline uintE splice_atomic(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+    uintE z = parents[u];
+    pbbs::atomic_compare_and_swap(&parents[u], z, parents[v]);
     return z;
   }
 } // namespace splice_variants
@@ -127,7 +130,7 @@ namespace unite_variants {
     Unite(Find& find) : find(find) {
     }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parents) {
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
       uintE u = u_orig;
       uintE v = v_orig;
       while(1) {
@@ -155,21 +158,21 @@ namespace unite_variants {
       pbbs::free_array(locks);
     }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parent) {
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
       uintE rx = u_orig;
       uintE ry = v_orig;
       uintE z;
-      while (parent[rx] != parent[ry]) {
-        if (parent[rx] < parent[ry]) std::swap(rx,ry);
-        if (rx == parent[rx]) {
+      while (parents[rx] != parents[ry]) {
+        if (parents[rx] < parents[ry]) std::swap(rx,ry);
+        if (rx == parents[rx]) {
           locks[rx].lock();
-          if (rx == parent[rx]) {
-    	parent[rx] = parent[ry];
+          if (rx == parents[rx]) {
+    	parents[rx] = parents[ry];
           }
           locks[rx].unlock();
         } else {
-          z = parent[rx];
-          parent[rx] = parent[ry];
+          z = parents[rx];
+          parents[rx] = parents[ry];
           rx = z;
         }
       }
@@ -183,20 +186,20 @@ namespace unite_variants {
     Compress& compress;
     UniteRemCAS(Splice& splice, Compress& compress) : splice(splice), compress(compress) { }
 
-    inline void operator()(uintE x, uintE y, pbbs::sequence<uintE>& parent) {
+    inline void operator()(uintE x, uintE y, pbbs::sequence<parent>& parents) {
       uintE rx = x; uintE ry = y;
-      while (parent[rx] != parent[ry]) {
-        if (parent[rx] > parent[ry]) {
+      while (parents[rx] != parents[ry]) {
+        if (parents[rx] > parents[ry]) {
           std::swap(rx, ry);
         }
-        if (rx == parent[rx] && pbbs::atomic_compare_and_swap(&parent[rx], rx, parent[ry])) {
+        if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, parents[ry])) {
           // success
-          compress(x, parent);
-          compress(y, parent);
+          compress(x, parents);
+          compress(y, parents);
           return;
         } else {
           // failure: locally compress by splicing and try again
-          rx = splice(rx, ry, parent);
+          rx = splice(rx, ry, parents);
         }
       }
       return;
@@ -205,7 +208,7 @@ namespace unite_variants {
 
   struct UniteEarly {
     UniteEarly() {}
-    inline void operator()(uintE u, uintE v, pbbs::sequence<uintE>& parents) {
+    inline void operator()(uintE u, uintE v, pbbs::sequence<parent>& parents) {
       while(1) {
         if(u == v) return;
         if(v > u) std::swap(u,v);
@@ -226,7 +229,7 @@ namespace unite_variants {
       hooks = pbbs::sequence<uintE>(n, UINT_E_MAX);
     }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<uintE>& parents) {
+    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
       uintE u = u_orig;
       uintE v = v_orig;
       while(1) {

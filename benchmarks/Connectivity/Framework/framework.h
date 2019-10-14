@@ -175,7 +175,7 @@ namespace connectit {
     FindOption find_option, /* for afforest */
     UniteOption unite_option /* for afforest */,
     SpliceOption splice_option /* for afforest */>
-  pbbs::sequence<uintE> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
+  pbbs::sequence<parent> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
     size_t n = G.n;
     if constexpr (sampling_option == kout) {
       auto find = get_find_function<find_option>();
@@ -217,7 +217,7 @@ namespace connectit {
     SamplingOption sampling_option,
     FindOption find_option,
     UniteOption unite_option>
-  pbbs::sequence<uintE> run_uf_alg(
+  pbbs::sequence<parent> run_uf_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
@@ -240,7 +240,7 @@ namespace connectit {
     FindOption find_option,
     UniteOption unite_option,
     SpliceOption splice_option>
-  pbbs::sequence<uintE> run_uf_alg(
+  pbbs::sequence<parent> run_uf_alg(
       Graph& G,
       commandLine& P) {
     static_assert(unite_option == unite_rem_cas);
@@ -291,7 +291,7 @@ namespace connectit {
     class Graph,
     SamplingOption sampling_option,
     JayantiFindOption find_option>
-  pbbs::sequence<uintE> run_jayanti_alg(
+  pbbs::sequence<parent> run_jayanti_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
@@ -328,7 +328,7 @@ namespace connectit {
     class Graph,
     SamplingOption sampling_option,
     template <class G> class Algorithm>
-  pbbs::sequence<uintE> run_sample_only_alg(
+  pbbs::sequence<parent> run_sample_only_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
@@ -429,7 +429,7 @@ namespace connectit {
     LiuTarjanUpdateOption   update_option,
     LiuTarjanShortcutOption shortcut_option,
     LiuTarjanAlterOption    alter_option>
-  pbbs::sequence<uintE> run_liu_tarjan_alg(
+  pbbs::sequence<parent> run_liu_tarjan_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;

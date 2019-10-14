@@ -24,14 +24,15 @@
 #pragma once
 
 #include "ligra/ligra.h"
+#include "benchmarks/Connectivity/Common/common.h"
 
 namespace bfs_cc {
 
 template <class W>
 struct BFS_ComponentLabel_F {
-  uintE* Parents;
+  parent* Parents;
   uintE src;
-  BFS_ComponentLabel_F(uintE* _Parents, uintE src) : Parents(_Parents), src(src) {}
+  BFS_ComponentLabel_F(parent* _Parents, uintE src) : Parents(_Parents), src(src) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (Parents[d] != src) {
       Parents[d] = src;
@@ -41,7 +42,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbslib::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, src));
+    return (pbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, src));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };
@@ -49,11 +50,12 @@ struct BFS_ComponentLabel_F {
 /* Returns a mapping from either i --> i, if i is not reached by the BFS, or
  * i --> src, if i is reachable from src in the BFS */
 template <class Graph>
-void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<uintE>& parents) {
+void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
   using W = typename Graph::weight_type;
 
   vertexSubset Frontier(G.n, src);
   size_t reachable = 0; size_t rounds = 0;
+  parents[src] = src;
   while (!Frontier.isEmpty()) {
     reachable += Frontier.size();
     vertexSubset output =
@@ -67,10 +69,10 @@ void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<uintE>& parents) {
 
 
 template <class Graph>
-inline sequence<uintE> CC(Graph& G) {
+inline sequence<parent> CC(Graph& G) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto parents = pbbs::sequence<uintE>(n, UINT_E_MAX);
+  auto parents = pbbs::sequence<parent>(n, UINT_E_MAX);
   for (size_t i=0; i<n; i++) {
     if (parents[i] == UINT_E_MAX) {
       BFS_ComponentLabel(G, i, parents);
