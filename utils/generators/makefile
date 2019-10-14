@@ -13,22 +13,11 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-FORMAT = -DCSR # (oneof {DCSR, DCOO})
-
 INCLUDE_DIRS = -I../../
 
-#OPT = -O3 -g
 OPT = -O3 -g -DNDEBUG
 
-INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
-
-ifdef INTEL_PCM_HOME
-	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
-	EXT_OBJECTS=$(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o $(INTEL_PCM_HOME)/utils.o $(INTEL_PCM_HOME)/mmio.o
-	PCM = -DUSE_PCM_LIB
-endif
-
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC $(FORMAT) $(PCM) $(EXT_OBJECTS)
+CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -38,23 +27,23 @@ ifdef CLANG
 CC = clang++
 PFLAGS = $(CILKFLAGS)
 else ifdef CILK
-CC = g++-7
+CC = g++
 PFLAGS = $(CILKFLAGS)
 else ifdef OPENMP
-CC = g++-7
+CC = g++
 PFLAGS = $(OMPFLAGS)
 else ifdef HOMEGROWN
-CC = g++-7
+CC = g++
 PFLAGS = $(HGFLAGS)
 else ifdef SERIAL
-CC = g++-7
+CC = g++
 PFLAGS =
 else # default is homegrown
-CC = g++-7
+CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL=ConnectivityBenchmark
+ALL=RMAT BarabasiAlbert
 
 all: $(ALL)
 

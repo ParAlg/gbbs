@@ -655,6 +655,11 @@ namespace pbbslib {
     return t_to_stringlen(a.first) + t_to_stringlen(a.second) + 1;
   }
 
+  template <class A, class B>
+  inline int t_to_stringlen(std::tuple<A, B> a) {
+    return t_to_stringlen(std::get<0>(a)) + t_to_stringlen(std::get<1>(a)) + 1;
+  }
+
   inline void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
 
   template <class A, class B>
@@ -663,6 +668,14 @@ namespace pbbslib {
     type_to_string(s, a.first);
     s[l] = ' ';
     type_to_string(s + l + 1, a.second);
+  }
+
+  template <class A, class B>
+  inline void type_to_string(char* s, std::tuple<A, B> a) {
+    int l = t_to_stringlen(std::get<0>(a));
+    type_to_string(s, std::get<0>(a));
+    s[l] = ' ';
+    type_to_string(s + l + 1, std::get<1>(a));
   }
 
   template <class TSeq>

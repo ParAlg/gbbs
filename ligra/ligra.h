@@ -319,6 +319,106 @@ inline EdgeMap_F<W, F> make_em_f(F f) {
 }
 
 #ifdef USE_PCM_LIB
+
+#include "cpucounters.h"
+
+/* Aggregate metrics for a repeated experiment, repeated num_rounds times. */
+struct cpu_stats {
+  double ipc; /* instructions per clock */
+  size_t total_cycles;
+  double l2_hit_ratio;
+  double l3_hit_ratio;
+  size_t l2_misses;
+  size_t l2_hits;
+  size_t l3_misses;
+  size_t l3_hits;
+  size_t bytes_read;
+  size_t bytes_written;
+  double total_time;
+
+  size_t num_rounds;
+
+  cpu_stats(
+      double ipc,
+      size_t total_cycles,
+      double l2_hit_ratio,
+      double l3_hit_ratio,
+      size_t l2_misses,
+      size_t l2_hits,
+      size_t l3_misses,
+      size_t l3_hits,
+      size_t bytes_read,
+      size_t bytes_written,
+      double total_time,
+      size_t num_rounds) :
+    ipc(ipc), total_cycles(total_cycles), l2_hit_ratio(l2_hit_ratio),
+    l3_hit_ratio(l3_hit_ratio), l2_misses(l2_misses), l2_hits(l2_hits),
+    l3_misses(l3_misses), l3_hits(l3_hits), bytes_read(bytes_read),
+    bytes_written(bytes_written), total_time(total_time), num_rounds(num_rounds) {}
+
+  double get_ipc() {
+    return ipc; /* already an average */
+  }
+
+  size_t get_total_cycles() {
+    return total_cycles / num_rounds;
+  }
+
+  double get_l2_hit_ratio() {
+    return l2_hit_ratio; /* already an average */
+  }
+
+  double get_l3_hit_ratio() {
+    return l3_hit_ratio; /* already an average */
+  }
+
+  size_t get_l2_misses() {
+    return l2_misses / num_rounds;
+  }
+
+  size_t get_l2_hits() {
+    return l2_hits / num_rounds;
+  }
+
+  size_t get_l3_misses() {
+    return l3_misses / num_rounds;
+  }
+
+  size_t get_l3_hits() {
+    return l3_hits / num_rounds;
+  }
+
+  double get_throughput() {
+    constexpr size_t GB = 1024*1024*1024;
+    return
+      ((static_cast<double>(bytes_read + bytes_written) / total_time) /* bytes/sec */
+      / GB); /* GB/sec */
+  }
+};
+
+cpu_stats get_pcm_stats(
+    SystemCounterState& before_state,
+    SystemCounterState& after_state,
+    double elapsed,
+    size_t rounds) {
+  double ipc = getIPC(before_state, after_state);
+  size_t total_cycles = getCycles(before_state, after_state);
+  double l2_hit_ratio = getL2CacheHitRatio(before_state, after_state);
+  double l3_hit_ratio = getL3CacheHitRatio(before_state, after_state);
+  size_t l2_misses = getL2CacheMisses(before_state, after_state);
+  size_t l2_hits = getL2CacheHits(before_state, after_state);
+  size_t l3_misses = getL3CacheMisses(before_state, after_state);
+  size_t l3_hits = getL3CacheHits(before_state, after_state);
+
+  size_t bytes_read = getBytesReadFromMC(before_state, after_state);
+  size_t bytes_written = getBytesWrittenToMC(before_state, after_state);
+
+  return cpu_stats(
+      ipc, total_cycles, l2_hit_ratio, l3_hit_ratio,
+      l2_misses, l2_hits, l3_misses, l3_hits,
+      bytes_read, bytes_written, elapsed, rounds);
+}
+
 inline void print_pcm_stats(SystemCounterState& before_sstate,
                             SystemCounterState& after_sstate, size_t rounds,
                             double elapsed) {
@@ -368,12 +468,12 @@ inline void pcm_init() {
     exit(0);
   }
 }
-inline size_t get_pcm_state() { return getSystemCounterState(); }
+inline auto get_pcm_state() { return getSystemCounterState(); }
 #else
 inline void print_pcm_stats(size_t before, size_t after, size_t rounds,
                             double elapsed) {}
 inline void pcm_init() {}
-inline size_t get_pcm_state() { return (size_t)1; }
+inline auto get_pcm_state() { return (size_t)1; }
 #endif
 
 #define run_app(G, APP, rounds)                                      \

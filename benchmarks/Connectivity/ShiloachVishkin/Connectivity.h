@@ -62,7 +62,7 @@ inline sequence<uintE> CC(Graph& G) {
       parents[u] = parents[parents[u]];
     }
   });
-  std::cout << "Ran: " << rounds << " many rounds" << std::endl;
+  std::cout << "# Ran: " << rounds << " many rounds" << std::endl;
   return parents;
 }
 

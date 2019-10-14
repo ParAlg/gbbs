@@ -88,7 +88,7 @@ inline size_t num_cc(Seq& labels) {
     }
   });
   pbbslib::scan_add_inplace(flags);
-  std::cout << "n_cc = " << flags[n] << "\n";
+  std::cout << "# n_cc = " << flags[n] << "\n";
   return flags[n];
 }
 
@@ -101,7 +101,7 @@ inline size_t largest_cc(Seq& labels) {
     flags[labels[i]] += 1;
   }
   size_t sz = pbbslib::reduce_max(flags);
-  std::cout << "largest_cc has size: " << sz << "\n";
+  std::cout << "# largest_cc has size: " << sz << "\n";
   return sz;
 }
 

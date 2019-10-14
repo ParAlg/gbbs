@@ -111,11 +111,12 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
   double maxt = reduce(t, maxf);
   double med = median(t);
 
-  cout << "Test_" << name << std::setprecision(5) << ", " << med << std::endl;
-  cout << name << std::setprecision(5)
-       << ": r=" << rounds
-       << ", med=" << med
-       << " (" << mint << "," << maxt << "), "
+  cout << "Test = {"
+       << "\"name\":" << name << std::setprecision(5)
+       << ", \"rounds\":" << rounds
+       << ", \"med\":" << med
+       << ", \"min\":" << mint
+       << ", \"max\":" << maxt << "}"
        << endl;
   return 1;
 }
@@ -825,9 +826,6 @@ namespace connectit {
 
 
 
-
-
-
     default:
       assert(false);
       std::cout << "Unknown test" << std::endl;
@@ -909,6 +907,20 @@ inline void cc_check(S1& correct, S2& check) {
 
 /* ************************* ***** *************************** */
 
+void print_cpu_stats(cpu_stats& stats, commandLine& P) {
+  std::cout <<
+    "Stats = { \"ipc\":" + std::to_string(stats.get_ipc())
+    + " ,\"total_cycles\":" + std::to_string(stats.get_total_cycles())
+    + " ,\"l2_hit_ratio\":" + std::to_string(stats.get_l2_hit_ratio())
+    + " ,\"l3_hit_ratio\":" + std::to_string(stats.get_l3_hit_ratio())
+    + " ,\"l2_misses\":" + std::to_string(stats.get_l2_misses())
+    + " ,\"l2_hits\":" + std::to_string(stats.get_l2_hits())
+    + " ,\"l3_misses\":" + std::to_string(stats.get_l3_misses())
+    + " ,\"l3_hits\":" + std::to_string(stats.get_l3_hits())
+    + " ,\"throughput\":" + std::to_string(stats.get_throughput())
+    + "}" << std::endl;
+}
+
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
@@ -927,7 +939,18 @@ double Benchmark_runner(Graph& G, commandLine P) {
   if (test_num == -1) {
     for (int i=0; i < num_tests; i++) {
       std::cout << "running test #: " << i << std::endl;
+#ifdef USE_PCM_LIB
+  auto before_state = get_pcm_state();
+  timer ot; ot.start();
+#endif
       connectit::pick_test(G, i, rounds, P, correct);
+#ifdef USE_PCM_LIB
+  double elapsed = ot.stop();
+  auto after_state = get_pcm_state();
+  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
+  print_cpu_stats(stats, P);
+#endif
+
     }
   } else {
     connectit::pick_test(G, test_num, rounds, P, correct);

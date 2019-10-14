@@ -166,7 +166,7 @@ inline sequence<uintE> BFS_ComponentLabel(Graph& G, uintE src) {
     rounds++;
   }
   Frontier.del();
-  std::cout << "Reachable: " << reachable << " #rounds = " << rounds << std::endl;
+  // std::cout << "Reachable: " << reachable << " #rounds = " << rounds << std::endl;
   return Parents;
 }
 
@@ -200,12 +200,12 @@ struct BFSSamplingTemplate {
       parents = std::move(bfs_parents);
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
       if (pct > static_cast<double>(0.1)) {
-        std::cout << "BFS covered: " << pct << " of graph" << std::endl;
+        std::cout << "# BFS covered: " << pct << " of graph" << std::endl;
         skip_comp = frequent_comp;
         found_massive_component = true;
         break;
       }
-      std::cout << "BFS covered only: " << pct << " of graph." << std::endl;
+      std::cout << "# BFS covered only: " << pct << " of graph." << std::endl;
       rnd = rnd.next();
     }
 
