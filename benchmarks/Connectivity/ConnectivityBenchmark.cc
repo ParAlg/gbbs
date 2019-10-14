@@ -25,6 +25,7 @@
 #include "UnionFind/Connectivity.h"
 #include "ShiloachVishkin/Connectivity.h"
 #include "LabelPropagation/Connectivity.h"
+#include "BFSCC/Connectivity.h"
 #include "Framework/framework.h"
 
 static timer bt;
@@ -47,6 +48,15 @@ double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
   double permute = P.getOptionDoubleValue("-permute", false);
   time(t, auto CC = workefficient_cc::CC(G, beta, false, permute));
+  if (P.getOptionValue("-check")) {
+    cc_check(correct, CC);
+  }
+  return t;
+}
+
+template <class Graph>
+double t_bfs_cc(Graph& G, commandLine P, pbbs::sequence<uintE>& correct) {
+  time(t, auto CC = bfs_cc::CC(G));
   if (P.getOptionValue("-check")) {
     cc_check(correct, CC);
   }
@@ -112,7 +122,7 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<uintE>& correct,
   double med = median(t);
 
   cout << "Test = {"
-       << "\"name\":" << name << std::setprecision(5)
+       << "\"name\": \"" << name << "\"" << std::setprecision(5)
        << ", \"rounds\":" << rounds
        << ", \"med\":" << med
        << ", \"min\":" << mint
@@ -778,6 +788,8 @@ namespace connectit {
       /* <extended_connect, update, full_shortcut> (EF) */
       return run_multiple_liu_tarjan_alg<Graph, ldd, lt::extended_connect, lt::simple_update, lt::full_shortcut, lt::no_alter>(G, rounds, correct, P);
 
+    case 217:
+      return run_multiple(G, rounds, correct, "gbbs_cc", P, t_bfs_cc<Graph>);
 
 
 
@@ -953,7 +965,17 @@ double Benchmark_runner(Graph& G, commandLine P) {
 
     }
   } else {
+#ifdef USE_PCM_LIB
+  auto before_state = get_pcm_state();
+  timer ot; ot.start();
+#endif
     connectit::pick_test(G, test_num, rounds, P, correct);
+#ifdef USE_PCM_LIB
+  double elapsed = ot.stop();
+  auto after_state = get_pcm_state();
+  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
+  print_cpu_stats(stats, P);
+#endif
   }
   return 1.0;
 }

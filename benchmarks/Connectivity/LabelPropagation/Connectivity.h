@@ -122,18 +122,15 @@ namespace labelprop_cc {
       auto changed = pbbs::sequence<bool>(n, false);
       size_t vertices_processed = 0;
       while (!vs.isEmpty()) {
-        std::cout << vs.size() << std::endl;
         vertices_processed += vs.size();
-        timer tt; tt.start();
         auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(parents, changed), -1, dense_forward);
-        tt.stop(); tt.reportTotal("edge map time");
         vs.del();
         vs = next_vs;
         vertexMap(vs, [&] (const uintE u) { changed[u] = false; });
         rounds++;
       }
-      std::cout << "LabelProp: ran " << rounds << " many rounds." << std::endl;
-      std::cout << "processed " << vertices_processed << " many vertices" << std::endl;
+      std::cout << "# LabelProp: ran " << rounds << " many rounds." << std::endl;
+      std::cout << "# processed " << vertices_processed << " many vertices" << std::endl;
     }
   };
 
