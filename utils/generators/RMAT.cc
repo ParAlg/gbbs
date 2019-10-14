@@ -27,6 +27,11 @@ int main(int argc, char* argv[]) {
   uintE seed = 4;
   auto updates = rmat::generate_updates(n, m, seed, a, b, c);
 
+  if (n != (1UL << (pbbs::log2_up(n)))) {
+    std::cout << "n must be a power of two" << std::endl;
+    abort();
+  }
+
   auto C = pbbslib::sequence_to_string(updates);
   for (size_t i=0; i<100; i++) {
     cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i]) << std::endl;
