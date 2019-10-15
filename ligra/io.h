@@ -132,7 +132,7 @@ std::tuple<char*, size_t> read_o_direct(char* fname) {
 #if defined(__APPLE__)
   char* bytes = NULL;
   posix_memalign((void**)&bytes, 4096 * 2, fsize + 4096);
-#elif
+#else
   char* bytes = (char*)memalign(4096 * 2, fsize + 4096);
 #endif
   debug(std::cout << "fsize = " << fsize << "\n";);
