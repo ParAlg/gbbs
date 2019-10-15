@@ -251,10 +251,13 @@ using induced_alloc = list_allocator<uintE[INDUCED_STACK_THR]>;
  base[2] = inducedb[xx];
  g_f(base);
  }
+ induced_alloc::free(ptr_base);
+ induced_alloc::free(ptr_inducedb);
  }
  storeb[b] = sizeb;
  });
  storea[a] = pbbslib::reduce_add(storeb);
+ induced_alloc::free(ptr_storeb);
  });
  induced_alloc::finish();
  return pbbslib::reduce_add(storea);
@@ -293,12 +296,17 @@ using induced_alloc = list_allocator<uintE[INDUCED_STACK_THR]>;
  base[3] = inducedc[xx];
  g_f(base);
  }
+ induced_alloc::free(ptr_base);
+ induced_alloc::free(ptr_inducedc);
  }
  storec[c] = sizec;
  });
+ induced_alloc::free(ptr_inducedb);
  storeb[b] = pbbslib::reduce_add(storec);
+ induced_alloc::free(ptr_storec);
  });
  storea[a] = pbbslib::reduce_add(storeb);
+ induced_alloc::free(ptr_storeb);
  });
  induced_alloc::finish();
  return pbbslib::reduce_add(storea);
@@ -328,12 +336,16 @@ using induced_alloc = list_allocator<uintE[INDUCED_STACK_THR]>;
  base[0] = a;
  base[1] = induceda[b];
  base[2] = inducedb[c];
- storec[c] = KCliqueIndDir_rec(DG, 3, k, inducedc, lstintersect_sub, base, g_f, count_only);}
+ storec[c] = KCliqueIndDir_rec(DG, 3, k, inducedc, lstintersect_sub, base, g_f, count_only);
+ induced_alloc::free(ptr_base); }
  else storec[c] = KCliqueIndDir_rec(DG, 3, k, inducedc, lstintersect_sub, base, g_f, count_only);
  });
+ induced_alloc::free(ptr_inducedb);
  storeb[b] = pbbslib::reduce_add(storec);
+ induced_alloc::free(ptr_storec);
  });
  storea[a] = pbbslib::reduce_add(storeb);
+ induced_alloc::free(ptr_storeb);
  });
  induced_alloc::finish();
  return pbbslib::reduce_add(storea); 
