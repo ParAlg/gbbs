@@ -26,7 +26,10 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#if defined(__APPLE__)
+#else
 #include <malloc.h>
+#endif
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -110,7 +113,11 @@ inline sequence<char> readStringFromFile(char* fileName) {
 std::tuple<char*, size_t> read_o_direct(char* fname) {
   /* read using O_DIRECT, which bypasses caches. */
   int fd;
+#if defined(__APPLE__)
+  if ((fd = open(fname, O_RDONLY)) != -1) {
+#else
   if ((fd = open(fname, O_RDONLY | O_DIRECT)) != -1) {
+#endif
     debug(std::cout << "input opened!"
               << "\n";);
   } else {
@@ -122,8 +129,12 @@ std::tuple<char*, size_t> read_o_direct(char* fname) {
   lseek(fd, 0, 0);
 
   /* allocate properly memaligned buffer for bytes */
+#if defined(__APPLE__)
+  char* bytes = NULL;
+  posix_memalign((void**)&bytes, 4096 * 2, fsize + 4096);
+#elif
   char* bytes = (char*)memalign(4096 * 2, fsize + 4096);
-
+#endif
   debug(std::cout << "fsize = " << fsize << "\n";);
 
   size_t sz = 0;

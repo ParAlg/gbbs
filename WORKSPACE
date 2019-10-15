@@ -27,7 +27,7 @@ cc_library(
 new_git_repository(
   name = "graphsetinter",
   remote = "https://github.com/jeshi96/GraphSetIntersection.git",
-  commit = "27339f4cfec1f989d39dff67bd39bee26748de7b",
+  commit = "ca7e88ae14b804f1ec6889b989544053d842b1c9",
   build_file_content = GRAPHSETINTER_BUILD,
 )
 
