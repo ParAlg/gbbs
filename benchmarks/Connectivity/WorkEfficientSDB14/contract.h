@@ -5,7 +5,7 @@
 #include "ligra/macros.h"
 #include "ligra/graph.h"
 #include <tuple>
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 namespace contract {
 

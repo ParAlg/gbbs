@@ -27,7 +27,7 @@
 #include "ligra/ligra.h"
 #include "pbbslib/random.h"
 #include "liu_tarjan_rules.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 #include <iostream>
 #include <limits.h>
@@ -41,19 +41,6 @@
 
 
 namespace lt {
-
-enum LiuTarjanConnectOption {
-  simple_connect, parent_connect, extended_connect
-};
-enum LiuTarjanUpdateOption {
-  simple_update, root_update
-};
-enum LiuTarjanShortcutOption {
-  shortcut, full_shortcut
-};
-enum LiuTarjanAlterOption {
-  alter, no_alter
-};
 
 template <LiuTarjanConnectOption connect_option>
 auto get_connect_function() {
@@ -142,8 +129,64 @@ struct LiuTarjanAlgorithm {
         shortcut(u, P);
       });
     }
-
   }
+
+  template <class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+    using W = typename Graph::weight_type;
+    size_t n = GA.n;
+
+    auto parents_changed = true;
+    auto& P = parents;
+    size_t round = 0;
+    while (parents_changed) {
+      parents_changed = false;
+
+      // Parent-Connect
+
+      parallel_for(0, batch.size(), [&] (size_t i) {
+        uintE u, v;
+        std::tie(u,v) = batch[i];
+        if (i % insert_to_query != 0) { /* is an update */
+          bool updated = connect(u, v, P);
+          if (updated && !parents_changed) {
+            parents_changed = true;
+          }
+        }
+      });
+
+      // Can skip this step for a regular update
+      if constexpr (update_option != simple_update) {
+        // Update
+        parallel_for(0, n, [&] (size_t u) {
+          update(u, P);
+        });
+      }
+
+      // Shortcut
+      parallel_for(0, batch.size(), [&] (size_t i) {
+        uintE u, v;
+        std::tie(u,v) = batch[i];
+        if (i % insert_to_query != 0) { /* is an update */
+          shortcut(u, P);
+        } else { /* answer the query, if it is the first round*/
+          if (round == 0) {
+            while (P[u] != P[P[u]]) {
+              P[u] = P[P[u]];
+            }
+            uintE p_u = P[u];
+
+            while (P[v] != P[P[v]]) {
+              P[v] = P[P[v]];
+            }
+            uintE p_v = P[v];
+          }
+        }
+      });
+      round++;
+    }
+  }
+
 };
 
 template <class Connect,

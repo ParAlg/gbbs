@@ -24,7 +24,7 @@
 #pragma once
 
 #include "ligra/ligra.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 namespace shiloachvishkin_cc {
 
@@ -102,6 +102,40 @@ struct SVAlgorithm {
       parallel_for(0, n, [&] (uintE u) {
         while (parents[u] != parents[parents[u]]) {
           parents[u] = parents[parents[u]];
+        }
+      });
+    }
+  }
+
+  template <class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+
+    bool changed = true;
+    while (changed) {
+      changed = false;
+      parallel_for(0, batch.size(), [&] (size_t i) {
+        uintE u, v;
+        std::tie(u,v) = batch[i];
+        if (i % insert_to_query != 0) { /* update */
+          uintE p_u = parents[u];
+          uintE p_v = parents[v];
+          if (p_u < p_v && p_u == parents[p_u]) {
+            pbbs::write_min<uintE>(&parents[p_v], p_u, std::less<uintE>());
+            if (!changed) { changed = true; }
+          }
+        } else { /* query, ignore until the find in the next step*/
+        }
+      });
+
+      // compress the edges in this batch
+      parallel_for(0, batch.size(), [&] (uintE i) {
+        uintE u, v;
+        std::tie(u,v) = batch[i];
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+        while (parents[v] != parents[parents[v]]) {
+          parents[v] = parents[parents[v]];
         }
       });
     }

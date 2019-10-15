@@ -3,7 +3,7 @@
 #include "ligra/bridge.h"
 #include "pbbslib/seq.h"
 #include "jayanti.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 #include <mutex>
 

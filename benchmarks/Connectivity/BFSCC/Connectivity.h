@@ -24,7 +24,7 @@
 #pragma once
 
 #include "ligra/ligra.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 namespace bfs_cc {
 

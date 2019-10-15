@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ligra/maybe.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 namespace lt {
 

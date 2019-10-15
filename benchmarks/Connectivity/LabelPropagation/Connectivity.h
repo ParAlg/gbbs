@@ -25,7 +25,7 @@
 
 #include "ligra/ligra.h"
 #include "pbbslib/random_shuffle.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 namespace labelprop_cc {
 
@@ -98,31 +98,32 @@ namespace labelprop_cc {
     Graph& GA;
     LPAlgorithm(Graph& GA) : GA(GA) {}
 
-    template <bool provides_frequent_comp>
+    template <SamplingOption sampling_option>
     void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
       using W = typename Graph::weight_type;
       size_t n = GA.n;
 
 
       auto vs = vertexSubset(n);
-      if constexpr (provides_frequent_comp) {
-        auto in_imap = pbbslib::make_sequence<uintE>(n, [&] (size_t i) {
-          return i;
-        });
-        auto out = pbbs::filter(in_imap, [&] (const uintE& u) {
-          return parents[u] != frequent_comp;
-        });
-        size_t out_size = out.size();
-        vs = vertexSubset(n, out_size, ((std::tuple<uintE, pbbs::empty>*)out.to_array()));
-      } else {
+//      if constexpr (sampling_option == sample_bfs) { /* provides component */
+//        auto in_imap = pbbslib::make_sequence<uintE>(n, [&] (size_t i) {
+//          return i;
+//        });
+//        auto out = pbbs::filter(in_imap, [&] (const uintE& u) {
+//          return parents[u] != frequent_comp;
+//        });
+//        size_t out_size = out.size();
+//        vs = vertexSubset(n, out_size, ((std::tuple<uintE, pbbs::empty>*)out.to_array()));
+//      } else {
         auto all = pbbs::sequence<bool>(n, true);
         vs = vertexSubset(n, n, all.to_array());
-      }
+//      }
 
       size_t rounds = 0;
       auto changed = pbbs::sequence<bool>(n, false);
       size_t vertices_processed = 0;
       while (!vs.isEmpty()) {
+        std::cout << "vs size = " << vs.size() << std::endl;
         vertices_processed += vs.size();
         auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(parents, changed), -1, dense_forward);
         vs.del();

@@ -4,39 +4,12 @@
 #include "benchmarks/Connectivity/ShiloachVishkin/Connectivity.h"
 #include "benchmarks/Connectivity/LabelPropagation/Connectivity.h"
 #include "benchmarks/Connectivity/LiuTarjan/Connectivity.h"
+#include "benchmarks/Connectivity/common.h"
 
+#include "sampling.h"
 #include "sampling.h"
 
 namespace connectit {
-
-  enum SamplingOption {
-    kout, bfs, ldd, no_sampling
-  };
-
-  /* Union-Find options */
-  enum FindOption {
-    find_compress, find_naive, find_split, find_halve, find_atomic_split, find_atomic_halve
-  };
-  enum UniteOption {
-    unite, unite_early, unite_nd, unite_rem_lock, unite_rem_cas
-  };
-
-  /* RemCAS-specific options */
-  enum SpliceOption {
-    split_atomic_one, halve_atomic_one, splice, splice_atomic
-  };
-
-  /* Jayanti-specific options */
-  enum JayantiFindOption {
-    find_twotrysplit, find_simple
-  };
-
-  /* LiuTarjan-specific options */
-
-  using LiuTarjanConnectOption = lt::LiuTarjanConnectOption;
-  using LiuTarjanUpdateOption = lt::LiuTarjanUpdateOption;
-  using LiuTarjanShortcutOption = lt::LiuTarjanShortcutOption;
-  using LiuTarjanAlterOption = lt::LiuTarjanAlterOption;
 
   template <FindOption find_option>
   std::string find_to_string() {
@@ -64,8 +37,8 @@ namespace connectit {
       return "split_atomic_one";
     } else if constexpr (splice_option == halve_atomic_one) {
       return "halve_atomic_one";
-    } else if constexpr (splice_option == splice) {
-      return "splice";
+    } else if constexpr (splice_option == splice_simple) {
+      return "splice_simple";
     } else {
       return "splice_atomic";
     }
@@ -91,11 +64,11 @@ namespace connectit {
 
   template <SamplingOption sampling_option>
   std::string sampling_to_string() {
-    if constexpr (sampling_option == kout) {
+    if constexpr (sampling_option == sample_kout) {
       return "kout";
-    } else if constexpr (sampling_option == bfs) {
+    } else if constexpr (sampling_option == sample_bfs) {
       return "bfs";
-    } else if constexpr (sampling_option == ldd) {
+    } else if constexpr (sampling_option == sample_ldd) {
       return "ldd";
     } else {
       return "no_sampling";
@@ -144,7 +117,7 @@ namespace connectit {
       return splice_variants::split_atomic_one;
     } else if constexpr (splice_option == halve_atomic_one) {
       return splice_variants::halve_atomic_one;
-    } else if constexpr (splice_option == splice) {
+    } else if constexpr (splice_option == splice_simple) {
       return splice_variants::splice;
     } else {
       return splice_variants::splice_atomic;
@@ -177,31 +150,31 @@ namespace connectit {
     SpliceOption splice_option /* for afforest */>
   pbbs::sequence<parent> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
     size_t n = G.n;
-    if constexpr (sampling_option == kout) {
+    if constexpr (sampling_option == sample_kout) {
       auto find = get_find_function<find_option>();
       if constexpr (unite_option == unite_rem_cas) {
         auto splice = get_splice_function<splice_option>();
         auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find)>(splice, find);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
-        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm>(G, sample, alg);
+        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, sampling_option>(G, sample, alg);
         return connectivity.components();
       } else {
         auto unite = get_unite_function<unite_option, decltype(find)>(n, find);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
-        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm>(G, sample, alg);
+        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, sampling_option>(G, sample, alg);
         return connectivity.components();
       }
-    } else if constexpr (sampling_option == bfs) {
+    } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, Algorithm>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, Algorithm, sampling_option>(G, sample, alg);
       return connectivity.components();
-    } else if constexpr (sampling_option == ldd) {
+    } else if constexpr (sampling_option == sample_ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, Algorithm>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, Algorithm, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
@@ -231,7 +204,7 @@ namespace connectit {
       sampling_option,
       find_option,
       unite_option,
-      splice>(G, P, alg);
+      splice_simple>(G, P, alg);
   }
 
   template <
@@ -299,22 +272,22 @@ namespace connectit {
     using UF = jayanti_rank::JayantiTBUnite<Graph, decltype(find)>;
     auto alg = UF(G, find);
 
-    if constexpr (sampling_option == kout) {
+    if constexpr (sampling_option == sample_kout) {
       auto fc = find_variants::find_compress;
       auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
       using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
       auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, UF>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, UF, sampling_option>(G, sample, alg);
       return connectivity.components();
-    } else if constexpr (sampling_option == bfs) {
+    } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, UF>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, UF, sampling_option>(G, sample, alg);
       return connectivity.components();
-    } else if constexpr (sampling_option == ldd) {
+    } else if constexpr (sampling_option == sample_ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, UF>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, UF, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
@@ -335,22 +308,22 @@ namespace connectit {
     using ALG = Algorithm<Graph>;
     auto alg = ALG(G);
 
-    if constexpr (sampling_option == kout) {
+    if constexpr (sampling_option == sample_kout) {
       auto fc = find_variants::find_compress;
       auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
       using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
       auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG, sampling_option>(G, sample, alg);
       return connectivity.components();
-    } else if constexpr (sampling_option == bfs) {
+    } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, ALG>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, ALG, sampling_option>(G, sample, alg);
       return connectivity.components();
-    } else if constexpr (sampling_option == ldd) {
+    } else if constexpr (sampling_option == sample_ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, ALG>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, ALG, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
@@ -365,11 +338,11 @@ namespace connectit {
 
   template <LiuTarjanConnectOption connect_option>
   auto connect_to_string() {
-    if constexpr (connect_option == lt::simple_connect) {
+    if constexpr (connect_option == simple_connect) {
       return "connect";
-    } else if constexpr (connect_option == lt::parent_connect) {
+    } else if constexpr (connect_option == parent_connect) {
       return "parent_connect";
-    } else if constexpr (connect_option == lt::extended_connect) {
+    } else if constexpr (connect_option == extended_connect) {
       return "extended_connect";
     } else {
       abort();
@@ -378,9 +351,9 @@ namespace connectit {
 
   template <LiuTarjanUpdateOption update_option>
   auto update_to_string() {
-    if constexpr (update_option == lt::simple_update) {
+    if constexpr (update_option == simple_update) {
       return "simple_update";
-    } else if constexpr (update_option == lt::root_update) {
+    } else if constexpr (update_option == root_update) {
       return "root_update";
     } else {
       abort();
@@ -389,9 +362,9 @@ namespace connectit {
 
   template <LiuTarjanShortcutOption shortcut_option>
   auto shortcut_to_string() {
-    if constexpr (shortcut_option == lt::shortcut) {
+    if constexpr (shortcut_option == shortcut) {
       return "shortcut";
-    } else if constexpr (shortcut_option == lt::full_shortcut) {
+    } else if constexpr (shortcut_option == full_shortcut) {
       return "full_shortcut";
     } else {
       abort();
@@ -400,7 +373,7 @@ namespace connectit {
 
   template <LiuTarjanAlterOption alter_option>
   auto alter_to_string() {
-    if constexpr (alter_option == lt::alter) {
+    if constexpr (alter_option == alter) {
       return "alter";
     } else {
       return "no_alter";
@@ -437,7 +410,7 @@ namespace connectit {
     auto update = lt::get_update_function<update_option>();
     auto shortcut = lt::get_shortcut_function<shortcut_option>();
 
-    if constexpr (alter_option == lt::no_alter) { /* no alter */
+    if constexpr (alter_option == no_alter) { /* no alter */
       using LT = lt::LiuTarjanAlgorithm<
         decltype(connect),
         connect_option,
@@ -454,7 +427,7 @@ namespace connectit {
         sampling_option,
         find_compress,
         unite,
-        splice>(G, P, alg);
+        splice_simple>(G, P, alg);
     } else { /* using alter */
       auto alter = lt::get_alter_function<alter_option>();
       using LT = lt::LiuTarjanAlgorithmAlter<
@@ -475,7 +448,7 @@ namespace connectit {
         sampling_option,
         find_compress,
         unite,
-        splice>(G, P, alg);
+        splice_simple>(G, P, alg);
     }
   }
 

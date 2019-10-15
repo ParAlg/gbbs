@@ -735,3 +735,10 @@ struct cav_byte
   using inner = compressed_asymmetric_vertex<W, byte_decode>;
   using inner::inner;
 };
+
+template <class W>
+struct csv_byte
+    : compressed_symmetric_vertex<W, byte_decode> {
+  using inner = compressed_symmetric_vertex<W, byte_decode>;
+  using inner::inner;
+};

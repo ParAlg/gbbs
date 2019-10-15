@@ -19,6 +19,7 @@ INCLUDE_DIRS = -I../../
 
 #OPT = -O3 -g
 OPT = -O3 -g -DNDEBUG
+#OPT = -O0 -g
 
 INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
 
@@ -54,7 +55,7 @@ CC = g++-7
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL=ConnectivityBenchmark
+ALL=ConnectivityBenchmark IncrementalBenchmark
 
 all: $(ALL)
 

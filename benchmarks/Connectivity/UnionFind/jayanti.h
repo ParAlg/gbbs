@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include "ligra/ligra.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 namespace jayanti_rank {
   static constexpr uintE RANK_MASK = (uintE)INT_E_MAX;
@@ -130,14 +130,16 @@ namespace jayanti_rank {
   struct JayantiTBUnite {
     G& GA;
     Find& find;
-    JayantiTBUnite(G& GA, Find& find) : GA(GA), find(find) {}
+    pbbs::sequence<vdata> vdatas;
+    JayantiTBUnite(G& GA, Find& find) : GA(GA), find(find) {
+      vdatas = pbbs::sequence<vdata>(GA.n);
+    }
 
     template <bool provides_frequent_comp>
     void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
 
-      auto vdatas = pbbs::sequence<vdata>(n);
       parallel_for(0, n, [&] (uintE i) {
         vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ (i == parents[i]));
       });
@@ -173,5 +175,23 @@ namespace jayanti_rank {
       });
       ft.stop(); ft.reportTotal("find time");
     }
+
+    template <class Seq>
+    void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+      auto r = pbbs::random();
+      parallel_for(0, batch.size(), [&] (size_t i) {
+        uintE u, v;
+        std::tie(u,v) = batch[i];
+        auto r_u = r.fork(u);
+        auto r_uv = r_u.fork(v);
+        if (i % insert_to_query == 0) { /* query */
+          size_t p_u = find(u, vdatas);
+          size_t p_v = find(v, vdatas);
+        } else { /* insert */
+          unite(u, v, vdatas, r_uv, find);
+        }
+      });
+    }
+
   };
 } // namespace jayanti_rank

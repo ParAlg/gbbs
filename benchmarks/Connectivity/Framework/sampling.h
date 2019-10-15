@@ -7,7 +7,8 @@
 template <
     class Graph,
     class Sampler,
-    class Algorithm>
+    class Algorithm,
+    SamplingOption sampling_option>
   struct SamplingAlgorithmTemplate {
     Graph& G;
     Sampler& sampler;
@@ -20,7 +21,7 @@ template <
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
 
-      algorithm.template compute_components</* provides_frequent_comp = */true>(parents, frequent_comp);
+      algorithm.template compute_components<sampling_option>(parents, frequent_comp);
       return parents;
     }
   };
@@ -36,7 +37,7 @@ template <
     pbbs::sequence<parent> components() {
       size_t n = G.n;
       auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-      algorithm.template compute_components</* provides_frequent_comp = */false>(parents);
+      algorithm.template compute_components<no_sampling>(parents);
       return parents;
     }
   };

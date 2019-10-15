@@ -13,10 +13,9 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-#INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../
 
-OPT = -O3 -g
+OPT = -O3 -g -DNDEBUG
 
 CFLAGS = $(INCLUDE_DIRS) -I../src -mcx16 -ldl -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
 
@@ -44,7 +43,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= add_weights converter gen_torus
+ALL= add_weights converter gen_torus random_reorder to_edge_list
 
 all: $(ALL)
 

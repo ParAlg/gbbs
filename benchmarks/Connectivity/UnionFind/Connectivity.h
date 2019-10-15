@@ -27,7 +27,7 @@
 #include "ligra/ligra.h"
 #include "pbbslib/random.h"
 #include "union_find_rules.h"
-#include "benchmarks/Connectivity/Common/common.h"
+#include "benchmarks/Connectivity/common.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
@@ -90,9 +90,19 @@ struct UFAlgorithm {
     ft.stop(); debug(ft.reportTotal("find time"););
   }
 
-//  void process_batch(pbbs::sequence<parent>& parents, EdgeBatch& batch) {
-//
-//  }
+  template <class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+    parallel_for(0, batch.size(), [&] (size_t i) {
+      uintE u, v;
+      std::tie(u,v) = batch[i];
+      if (i % insert_to_query == 0) { /* query */
+        size_t p_u = find(u, parents);
+        size_t p_v = find(v, parents);
+      } else { /* insert */
+        unite(u, v, parents);
+      }
+    });
+  }
 
 };
 

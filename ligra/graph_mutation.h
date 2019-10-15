@@ -7,16 +7,16 @@
 
 /* Filters a symmetric graph, G, with a predicate function pred.  Note
  * that the predicate does not have to be symmetric, i.e. f(u,v) is
- * not necesssarily equal to f(v,u). The output graph is therefore
- * directed. */
+ * not necesssarily equal to f(v,u), but we only represent the out-edges of this
+ * (possibly) directed graph. For convenience in cases where the graph needed is
+ * symmetric, we coerce this to a symmetric_graph. */
 template <template <class W> class vertex, class W, typename P,
     typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
-inline asymmetric_graph<asymmetric_vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
+inline symmetric_graph<symmetric_vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = G.n;
   auto outOffsets = sequence<uintT>(n + 1);
-  auto inOffsets = sequence<uintT>(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(i);
@@ -24,33 +24,21 @@ inline asymmetric_graph<asymmetric_vertex, W> filter_graph(symmetric_graph<verte
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
     };
     auto out_im = pbbslib::make_sequence<int>(u.getOutDegree(), out_f);
-    auto in_f = [&](uintE j) {
-      return static_cast<int>(pred(u.getInNeighbor(j), i, u.getInWeight(j)));
-    };
-    auto in_im = pbbslib::make_sequence<int>(u.getInDegree(), in_f);
 
     if (out_im.size() > 0)
       outOffsets[i] = pbbslib::reduce_add(out_im);
     else
       outOffsets[i] = 0;
-    if (in_im.size() > 0)
-      inOffsets[i] = pbbslib::reduce_add(in_im);
-    else
-      inOffsets[i] = 0;
   }, 1);
 
   outOffsets[n] = 0;
-  inOffsets[n] = 0;
   uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
-  uintT inEdgeCount = pbbslib::scan_add_inplace(inOffsets);
 
-  assert(G.m / 2 == outEdgeCount);
-  assert(G.m / 2 == inEdgeCount);
+  // assert(G.m / 2 == outEdgeCount);
 
   using edge = std::tuple<uintE, W>;
 
   auto out_edges = sequence<edge>(outEdgeCount);
-  auto in_edges = sequence<edge>(inEdgeCount);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(i);
@@ -68,41 +56,18 @@ inline asymmetric_graph<asymmetric_vertex, W> filter_graph(symmetric_graph<verte
     }
   }, 1);
 
-  parallel_for(0, n, [&] (size_t i) {
-    w_vertex u = G.get_vertex(i);
-    size_t in_offset = inOffsets[i];
-    uintE d = u.getInDegree();
-    if (d > 0) {
-      edge* nghs = u.getInNeighbors();
-      edge* dir_nghs = in_edges.begin() + in_offset;
-
-      auto pred_c = [&](const edge& e) {
-        return pred(std::get<0>(e), i, std::get<1>(e));
-      };
-      auto n_im_f = [&](size_t i) { return nghs[i]; };
-      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
-    }
-  }, 1);
-
   auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
-  auto in_vdata = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = outOffsets[i];
     out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];
-
-    in_vdata[i].offset = inOffsets[i];
-    in_vdata[i].degree = inOffsets[i+1]-inOffsets[i];
   });
   outOffsets.clear();
-  inOffsets.clear();
 
   auto out_edge_arr = out_edges.to_array();
-  auto in_edge_arr = in_edges.to_array();
-  return asymmetric_graph<asymmetric_vertex, W>(
-      out_vdata, in_vdata, G.n, outEdgeCount,
-      get_deletion_fn(out_vdata, in_vdata, out_edge_arr, in_edge_arr),
-      out_edge_arr, in_edge_arr);
+  return symmetric_graph<symmetric_vertex, W>(
+      out_vdata, G.n, outEdgeCount,
+      get_deletion_fn(out_vdata, out_edge_arr),
+      out_edge_arr);
 }
 
 // byte version
@@ -110,7 +75,7 @@ template <template <class W> class vertex, class W, typename P,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
-inline asymmetric_graph<cav_byte, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
+inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
   size_t n = G.n;
 
   debug(std::cout << "Filtering" << "\n");
@@ -183,7 +148,7 @@ inline asymmetric_graph<cav_byte, W> filter_graph(symmetric_graph<vertex, W>& G,
   uintT total_deg = pbbslib::reduce_add(deg_map);
   auto edge_arr = edges.to_array();
   std::cout << "Filtered, total_deg = " << total_deg << "\n";
-  return asymmetric_graph<cav_byte, W>(out_vdata, out_vdata, G.n, total_deg,
+  return symmetric_graph<csv_byte, W>(out_vdata, G.n, total_deg,
                             get_deletion_fn(out_vdata, edge_arr),
                             edge_arr, edge_arr);
 }
