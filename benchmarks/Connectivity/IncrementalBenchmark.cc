@@ -132,6 +132,8 @@ namespace connectit {
       Alg& alg) {
     /* compute initial components */
     auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+
+    alg.initialize(parents);
     if constexpr (provides_initial_graph) {
       alg.template compute_components</*provides_frequent_comp = */ false>(parents);
     }
@@ -176,7 +178,6 @@ namespace connectit {
     auto test = [&] (Graph& G, commandLine P) {
       /* Create initial parents array */
 
-      size_t n = G.n;
       auto find = get_find_function<find_option>();
       auto unite = get_unite_function<unite_option, decltype(find)>(n, find);
       using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
@@ -197,6 +198,7 @@ namespace connectit {
     bool provides_initial_graph>
   bool run_multiple_uf_alg(
       Graph& G,
+      size_t n,
       pbbs::sequence<std::tuple<uintE, uintE>>& updates,
       size_t batch_size,
       size_t insert_to_query,
@@ -205,7 +207,6 @@ namespace connectit {
     static_assert(unite_option == unite_rem_cas);
 
     auto test = [&] (Graph& G, commandLine P) {
-      size_t n = G.n;
       auto find = get_find_function<find_option>();
       auto splice = get_splice_function<splice_option>();
       auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find)>(splice, find);
@@ -234,7 +235,7 @@ namespace connectit {
     auto test = [&] (Graph& G, commandLine& P) {
       auto find = get_jayanti_find_function<find_option>();
       using UF = jayanti_rank::JayantiTBUnite<Graph, decltype(find)>;
-      auto alg = UF(G, find);
+      auto alg = UF(G, n, find);
       return run_abstract_alg<Graph, decltype(alg), provides_initial_graph>(G, n, updates, batch_size, insert_to_query, alg);
     };
 
@@ -273,7 +274,7 @@ namespace connectit {
         decltype(shortcut),
         shortcut_option,
         Graph>;
-      auto alg = LT(G, connect, update, shortcut);
+      auto alg = LT(G, n, connect, update, shortcut);
       return run_abstract_alg<Graph, decltype(alg), provides_initial_graph>(G, n, updates, batch_size, insert_to_query, alg);
     };
 
@@ -303,7 +304,7 @@ namespace connectit {
 
 
   template <class Graph, bool provides_initial_graph>
-  double pick_test(Graph& G, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t id, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  double pick_test(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t id, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     switch (id) {
       case 1:
         return run_multiple_uf_alg<Graph, unite, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
@@ -349,7 +350,7 @@ namespace connectit {
 
       /* UF Rem-CAS strategies */
       case 19:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, split_atomic_one>(G, n, updates, batch_size, insert_to_query, rounds, P);
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
       case 20:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
       case 21:
@@ -358,7 +359,7 @@ namespace connectit {
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
       case 23:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, split_atomic_one>(G, n, updates, batch_size, insert_to_query, rounds, P);
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
       case 24:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
       case 25:
@@ -367,7 +368,7 @@ namespace connectit {
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
       case 27:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, split_atomic_one>(G, n, updates, batch_size, insert_to_query, rounds, P);
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
       case 28:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
       case 29:
@@ -488,13 +489,14 @@ double Benchmark_nonempty_start(Graph& G, commandLine P) {
 
   /* select a static_alg */
 
+  size_t n = FG.n;
   if (test_num == -1) {
     std::cout << "test_num == -1" << std::endl;
     for (int i=1; i <= num_tests; i++) {
-      connectit::pick_test<Graph, true>(FG, n, updates, i, batch_size, insert_to_query, rounds, P);
+      connectit::pick_test<decltype(FG), true>(FG, n, updates, i, batch_size, insert_to_query, rounds, P);
     }
   } else {
-    connectit::pick_test<Graph, true>(FG, n, updates, test_num, batch_size, insert_to_query, rounds, P);
+    connectit::pick_test<decltype(FG), true>(FG, n, updates, test_num, batch_size, insert_to_query, rounds, P);
   }
 
   return 1.0;
@@ -530,27 +532,33 @@ int main(int argc, char* argv[]) {
   }
   size_t m = tokens.size() / 2;
   auto updates = pbbs::sequence<std::tuple<uintE, uintE>>(m);
+
+
+  uintE n = 0;
   parallel_for(0, m, [&] (size_t i) {
     uintE l = std::atoi(tokens[2*i]);
     uintE r = std::atoi(tokens[2*i + 1]);
+    if (l > n) {
+      pbbs::write_min<uintE>(&n, l, std::greater<uintE>());
+    }
+    if (r > n) {
+      pbbs::write_min<uintE>(&n, r, std::greater<uintE>());
+    }
     updates[i] = std::make_tuple(l, r);
   });
-
-  exit(0);
+  n = n + 1; /* 0 indexed */
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 
   size_t insert_to_query = P.getOptionLongValue("-insert_to_query", 2);
 
-  size_t n = 10; // TODO
-
-  int FG = 3;
+  auto FG = edge_array<pbbs::empty>();
   if (test_num == -1) {
     for (int i=1; i <= num_tests; i++) {
-      connectit::pick_test<int, false>(FG, n, updates, i, batch_size, insert_to_query, rounds, P);
+      connectit::pick_test<decltype(FG), false>(FG, n, updates, i, batch_size, insert_to_query, rounds, P);
     }
   } else {
-    connectit::pick_test<int, false>(FG, n, updates, test_num, batch_size, insert_to_query, rounds, P);
+    connectit::pick_test<decltype(FG), false>(FG, n, updates, test_num, batch_size, insert_to_query, rounds, P);
   }
 }
 

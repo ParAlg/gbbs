@@ -22,7 +22,7 @@ namespace find_variants {
     } while (parents[j] != j);
     uintE tmp;
     while ((tmp=parents[i])<j) {
-      parents[i]=j; i=tmp;
+      parents[i] = j; i=tmp;
     }
     return j;
   }
@@ -163,16 +163,18 @@ namespace unite_variants {
       uintE ry = v_orig;
       uintE z;
       while (parents[rx] != parents[ry]) {
-        if (parents[rx] < parents[ry]) std::swap(rx,ry);
+        if (parents[rx] > parents[ry]) std::swap(rx,ry);
         if (rx == parents[rx]) {
           locks[rx].lock();
-          if (rx == parents[rx]) {
-    	parents[rx] = parents[ry];
+          uintE py = parents[ry];
+          if (rx == parents[rx] && rx < py) {
+            parents[rx] = py;
           }
           locks[rx].unlock();
         } else {
           z = parents[rx];
-          parents[rx] = parents[ry];
+          // parents[rx] = parents[ry];
+          pbbs::atomic_compare_and_swap(&parents[rx], z, parents[ry]);
           rx = z;
         }
       }

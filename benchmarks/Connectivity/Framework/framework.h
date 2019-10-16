@@ -270,7 +270,7 @@ namespace connectit {
     size_t n = G.n;
     auto find = get_jayanti_find_function<find_option>();
     using UF = jayanti_rank::JayantiTBUnite<Graph, decltype(find)>;
-    auto alg = UF(G, find);
+    auto alg = UF(G, n, find);
 
     if constexpr (sampling_option == sample_kout) {
       auto fc = find_variants::find_compress;
@@ -419,7 +419,7 @@ namespace connectit {
         decltype(shortcut),
         shortcut_option,
         Graph>;
-      auto alg = LT(G, connect, update, shortcut);
+      auto alg = LT(G, G.n, connect, update, shortcut);
 
       return compose_algorithm_and_sampling<
         Graph,
@@ -440,7 +440,7 @@ namespace connectit {
         decltype(alter),
         alter_option,
         Graph>;
-      auto alg = LT(G, connect, update, shortcut, alter);
+      auto alg = LT(G, G.n, connect, update, shortcut, alter);
 
       return compose_algorithm_and_sampling<
         Graph,

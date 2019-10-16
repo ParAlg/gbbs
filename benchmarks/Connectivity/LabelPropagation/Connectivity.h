@@ -98,6 +98,8 @@ namespace labelprop_cc {
     Graph& GA;
     LPAlgorithm(Graph& GA) : GA(GA) {}
 
+    void initialize(pbbs::sequence<parent>& P) {}
+
     template <SamplingOption sampling_option>
     void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
       using W = typename Graph::weight_type;

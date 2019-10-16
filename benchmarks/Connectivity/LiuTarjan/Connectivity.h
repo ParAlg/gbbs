@@ -92,11 +92,14 @@ template <class Connect,
           class Graph>
 struct LiuTarjanAlgorithm {
   Graph& GA;
+  size_t n;
   Connect& connect;
   Update& update;
   Shortcut& shortcut;
-  LiuTarjanAlgorithm(Graph& GA, Connect& connect, Update& update, Shortcut& shortcut) :
-    GA(GA), connect(connect), update(update), shortcut(shortcut) {}
+  LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut) :
+    GA(GA), connect(connect), update(update), shortcut(shortcut), n(n) {}
+
+  void initialize(pbbs::sequence<parent>& P) {}
 
   template <bool provides_frequent_comp>
   void compute_components(pbbs::sequence<parent>& P, uintE frequent_comp = UINT_E_MAX) {
@@ -134,7 +137,6 @@ struct LiuTarjanAlgorithm {
   template <class Seq>
   void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
     using W = typename Graph::weight_type;
-    size_t n = GA.n;
 
     auto parents_changed = true;
     auto& P = parents;
@@ -206,6 +208,8 @@ struct LiuTarjanAlgorithmAlter {
   Alter& alter;
   LiuTarjanAlgorithmAlter(Graph& GA, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
     GA(GA), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
+
+  void initialize(pbbs::sequence<parent>& P) {}
 
   template <bool provides_frequent_comp>
   void compute_components(pbbs::sequence<parent>& P, uintE frequent_comp = UINT_E_MAX) {

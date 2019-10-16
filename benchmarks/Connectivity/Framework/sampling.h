@@ -21,6 +21,8 @@ template <
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
 
+      algorithm.initialize(parents);
+
       algorithm.template compute_components<sampling_option>(parents, frequent_comp);
       return parents;
     }
@@ -37,6 +39,7 @@ template <
     pbbs::sequence<parent> components() {
       size_t n = G.n;
       auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+      algorithm.initialize(parents);
       algorithm.template compute_components<no_sampling>(parents);
       return parents;
     }

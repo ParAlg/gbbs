@@ -224,6 +224,7 @@ struct asymmetric_graph {
 // Edge Array Representation
 template <class W>
 struct edge_array {
+  using weight_type = W;
   using edge = std::tuple<uintE, uintE, W>;
   edge* E;
   // for sq matrices, num_rows == num_cols

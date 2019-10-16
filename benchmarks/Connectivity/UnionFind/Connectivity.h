@@ -53,6 +53,8 @@ struct UFAlgorithm {
   Find& find;
   UFAlgorithm(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
 
+  void initialize(pbbs::sequence<parent>& P) {}
+
   template <bool provides_frequent_comp>
   void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
@@ -96,6 +98,7 @@ struct UFAlgorithm {
 
   template <class Seq>
   void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+    std::cout << "starting, bs = " << batch.size() << std::endl;
     parallel_for(0, batch.size(), [&] (size_t i) {
       uintE u, v;
       std::tie(u,v) = batch[i];
@@ -106,6 +109,7 @@ struct UFAlgorithm {
         unite(u, v, parents);
       }
     });
+    std::cout << "ending" << std::endl;
   }
 
 };

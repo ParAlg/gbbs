@@ -131,18 +131,21 @@ namespace jayanti_rank {
     G& GA;
     Find& find;
     pbbs::sequence<vdata> vdatas;
-    JayantiTBUnite(G& GA, Find& find) : GA(GA), find(find) {
-      vdatas = pbbs::sequence<vdata>(GA.n);
+    size_t n;
+    JayantiTBUnite(G& GA, size_t n, Find& find) : GA(GA), find(find), n(n) {
+      vdatas = pbbs::sequence<vdata>(n);
+    }
+
+    void initialize(pbbs::sequence<parent>& parents) {
+      parallel_for(0, n, [&] (uintE i) {
+        vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ (i == parents[i]));
+      });
     }
 
     template <bool provides_frequent_comp>
     void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
-
-      parallel_for(0, n, [&] (uintE i) {
-        vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ (i == parents[i]));
-      });
 
       timer ut; ut.start();
       auto r = pbbs::random();

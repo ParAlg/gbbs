@@ -74,6 +74,8 @@ struct SVAlgorithm {
   Graph& GA;
   SVAlgorithm(Graph& GA) : GA(GA) {}
 
+  void initialize(pbbs::sequence<parent>& P) {}
+
   template <bool provides_frequent_comp>
   void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
