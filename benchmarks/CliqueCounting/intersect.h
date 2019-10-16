@@ -43,6 +43,7 @@ inline size_t lstintersect_par(uintE* a, size_t size_a, uintE* b, size_t size_b,
 }
 
 struct lstintersect_par_struct {
+  bool count_space_flag = false;
   size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
     return lstintersect_par(a, size_a, b, size_b, save, out);
   }
@@ -56,6 +57,7 @@ inline size_t lstintersect_vec(uintE* a, size_t size_a, uintE* b, size_t size_b,
 }
 
 struct lstintersect_vec_struct {
+  bool count_space_flag = true;
   size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
     return lstintersect_vec(a, size_a, b, size_b, save, out);
   }
@@ -82,6 +84,7 @@ inline size_t lstintersect_set(uintE* a, size_t size_a, uintE* b, size_t size_b,
 }
 
 struct lstintersect_set_struct {
+  bool count_space_flag = false;
   size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
     return lstintersect_set(a, size_a, b, size_b, save, out);
   }
@@ -95,8 +98,7 @@ std::tuple<uintE*, size_t> lstintersect(F f, Graph& DG, uintE vtx, uintE* induce
   size_t min_size = std::min((size_t) induced_size, (size_t) vtx_size);
   if (min_size == 0) return std::make_tuple(nullptr, 0);
   bool out_ptr_flag = false;
-
-  if (!out_ptr) {
+  if (!out_ptr && (save || f.count_space_flag)) {
     out_ptr_flag = true;
     out_ptr = pbbs::new_array_no_init<uintE>(min_size);
   }
