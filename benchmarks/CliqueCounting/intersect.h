@@ -93,13 +93,24 @@ std::tuple<uintE*, size_t> lstintersect(F f, Graph& DG, uintE vtx, uintE* induce
   auto vtx_ptr = (uintE*)(DG.get_vertex(vtx).getOutNeighbors());
   auto vtx_size = DG.get_vertex(vtx).getOutDegree();
   size_t min_size = std::min((size_t) induced_size, (size_t) vtx_size);
+  if (min_size == 0) return std::make_tuple(nullptr, 0);
+  bool out_ptr_flag = false;
 
-  if (!out_ptr) out_ptr = pbbs::new_array_no_init<uintE>(min_size);
+  if (!out_ptr) {
+    out_ptr_flag = true;
+    out_ptr = pbbs::new_array_no_init<uintE>(min_size);
+  }
 
   size_t out_size = f(vtx_ptr, vtx_size, induced, induced_size, save, out_ptr);
 
   //if (out_ptr && out_size > 0) assert(out[0] < DG.n);
   //if (out_ptr || !save) out.to_array();
+  if (out_ptr_flag && (!save || out_size == 0)) {
+    pbbs::delete_array<uintE>(out_ptr, min_size);
+    out_ptr = nullptr;
+  } //else if (out_ptr_flag && out_size < min_size) {
+    //pbbs::delete_array<uintE>(out_ptr + out_size, min_size - out_size);
+  //}
   return std::make_tuple(out_ptr, out_size);
 }
 
