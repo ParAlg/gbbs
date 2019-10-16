@@ -24,93 +24,83 @@
 // is the size (and an empty sequence)
 // otherwise, if you have no pointer, the sequence gets allocated for you
 
-template <class A, class S, class O>
-inline size_t lstintersect_par(A& vtx_seq, S& induced, bool save, O& out) {
-  size_t index = 0;
+inline size_t lstintersect_par(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
+  auto seq_a = pbbslib::make_sequence<uintE>(a, size_a);
+  auto seq_b = pbbslib::make_sequence<uintE>(b, size_b);
+
   if (!save) {
     auto merge_f = [&] (uintE ngh) {};
-    return intersection::merge(vtx_seq, induced, merge_f);
+    return intersection::merge(seq_a, seq_b, merge_f);
   }
 
+  size_t index = 0;
   auto merge_f = [&] (uintE ngh) {
     out[index] = ngh;
     index++;
   };
-  intersection::merge(vtx_seq, induced, merge_f);
-  out.shrink(index);
-  return out.size();
+  intersection::merge(seq_a, seq_b, merge_f);
+  return index;
 }
 
 struct lstintersect_par_struct {
-  template <class A, class S, class O>
-  size_t operator()(A& vtx_seq, S& induced, bool save, O& out) const {
-    return lstintersect_par(vtx_seq, induced, save, out);
+  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
+    return lstintersect_par(a, size_a, b, size_b, save, out);
   }
 };
 
 // TODO radix sort in place
-template <class A, class S, class O>
-inline size_t lstintersect_vec(A& vtx_seq, S& induced, bool save, O& out) {
+inline size_t lstintersect_vec(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
   SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
-  size_t out_size = inter(induced.begin(), induced.size(), vtx_seq.begin(), vtx_seq.size(), out.begin());
-  out.shrink(out_size);
+  size_t out_size = inter(a, size_a, b, size_b, out);
   return out_size;
 }
 
 struct lstintersect_vec_struct {
-  template <class A, class S, class O>
-  size_t operator()(A& vtx_seq, S& induced, bool save, O& out) const {
-    return lstintersect_vec(vtx_seq, induced, save, out);
+  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
+    return lstintersect_vec(a, size_a, b, size_b, save, out);
   }
 };
 
-
-template <class A, class S, class O>
-inline size_t lstintersect_set(A& vtx_seq, S& induced, bool save, O& out) {
+inline size_t lstintersect_set(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
   if (!save) {
 #if SIMD_STATE == 2
-    return (size_t) intersect_scalar2x_count((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size());
+    return (size_t) intersect_scalar2x_count((int*) a, (int) size_a, (int*) b, (int) size_b);
 #elif SIMD_STATE == 4
-    return (size_t) intersect_simd4x_count((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size());
+    return (size_t) intersect_simd4x_count((int*) a, (int) size_a, (int*) b, (int) size_b);
 #else
-    return (size_t) intersect_count((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size());
+    return (size_t) intersect_count((int*) a, (int) size_a, (int*) b, (int) size_b);
 #endif
   }
 #if SIMD_STATE == 2
-  int out_size = intersect_scalar2x((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size(), (int*) out.begin());
+  int out_size = intersect_scalar2x((int*) a, (int) size_a, (int*) b, (int) size_b, (int*) out);
 #elif SIMD_STATE == 4
-  int out_size = intersect_simd4x((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size(), (int*) out.begin());
+  int out_size = intersect_simd4x((int*) a, (int) size_a, (int*) b, (int) size_b, (int*) out);
 #else
-  int out_size = intersect((int*) induced.begin(), (int) induced.size(), (int*) vtx_seq.begin(), (int) vtx_seq.size(), (int*) out.begin());
+  int out_size = intersect((int*) a, (int) size_a, (int*) b, (int) size_b, (int*) out);
 #endif
-  out.shrink(out_size);
   return (size_t) out_size;
 }
 
 struct lstintersect_set_struct {
-  template <class A, class S, class O>
-  size_t operator()(A& vtx_seq, S& induced, bool save, O& out) const {
-    return lstintersect_set(vtx_seq, induced, save, out);
+  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
+    return lstintersect_set(a, size_a, b, size_b, save, out);
   }
 };
 
-template <class F, class Graph, class S>
-std::tuple<sequence<uintE>, size_t> lstintersect(F f, Graph& DG, uintE vtx, S& induced, bool save = true, uintE* out_ptr = nullptr) {
+template <class F, class Graph>
+std::tuple<uintE*, size_t> lstintersect(F f, Graph& DG, uintE vtx, uintE* induced, size_t induced_size, bool save = true, uintE* out_ptr = nullptr) {
   assert (vtx < DG.n);
-  auto vtx_seq = pbbslib::make_sequence<uintE>((uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree());
-  size_t min_size = std::min(induced.size(), vtx_seq.size());
+  auto vtx_ptr = (uintE*)(DG.get_vertex(vtx).getOutNeighbors());
+  auto vtx_size = DG.get_vertex(vtx).getOutDegree();
+  size_t min_size = std::min((size_t) induced_size, (size_t) vtx_size);
 
-  sequence<uintE> out;
-  if (out_ptr) out = pbbslib::make_sequence<uintE>(out_ptr, min_size);
-  else out = sequence<uintE>::no_init(min_size);
+  if (!out_ptr) out_ptr = pbbs::new_array_no_init<uintE>(min_size);
 
-  size_t out_size = f(vtx_seq, induced, save, out);
-  /*SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
-  size_t out_size = inter(induced.begin(), induced.size(), vtx_seq.begin(), vtx_seq.size(), out.begin());
-  out.shrink(out_size);*/
+  size_t out_size = f(vtx_ptr, vtx_size, induced, induced_size, save, out_ptr);
 
+  //if (out_ptr && out_size > 0) assert(out[0] < DG.n);
   //if (out_ptr || !save) out.to_array();
-  return std::make_tuple(out, out_size);
+  return std::make_tuple(out_ptr, out_size);
 }
 
 template <class Graph>
