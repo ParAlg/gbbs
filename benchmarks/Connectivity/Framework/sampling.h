@@ -259,7 +259,9 @@ struct LDDSamplingTemplate {
     using W = typename G::weight_type;
     size_t n = GA.n;
 
+    timer lddt; lddt.start();
     auto clusters_in = LDD(GA, 0.2, /* permute = */false);
+    lddt.stop(); lddt.reportTotal("## ldd time");
     auto s = clusters_in.to_array();
     auto clusters = pbbs::sequence((parent*)s, n);
 

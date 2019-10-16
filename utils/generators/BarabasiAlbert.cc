@@ -33,9 +33,9 @@ int main(int argc, char* argv[]) {
     std::cout << "Unable to open file for writing: " << out_f  << std::endl;
     return 1;
   }
-  file << "# COO Format" << std::endl;
-  file << "# n = " << n << std::endl;
-  file << "# m = " << (n*edges_per_vertex) << std::endl;
+//  file << "# COO Format" << std::endl;
+//  file << "# n = " << n << std::endl;
+//  file << "# m = " << (n*edges_per_vertex) << std::endl;
 
   file.write(C.begin(), nn);
   file.close();

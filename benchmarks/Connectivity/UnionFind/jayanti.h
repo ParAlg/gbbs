@@ -147,6 +147,13 @@ namespace jayanti_rank {
       timer ut; ut.start();
       auto r = pbbs::random();
 
+      uintE granularity;
+      if constexpr (provides_frequent_comp) {
+        granularity = 512;
+      } else {
+        granularity = 1;
+      }
+
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (uintE u, uintE v, const W& wgh) {
           auto r_u = r.fork(u);
@@ -166,7 +173,7 @@ namespace jayanti_rank {
         } else {
           GA.get_vertex(i).mapOutNgh(i, map_f);
         }
-      }, 1);
+      }, granularity);
       ut.stop(); ut.reportTotal("union time");
 
       timer ft; ft.start();

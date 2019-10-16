@@ -58,8 +58,12 @@ struct UFAlgorithm {
     using W = typename G::weight_type;
     size_t n = GA.n;
     pbbs::sequence<parent> clusters;
+    uintE granularity;
     if constexpr (provides_frequent_comp) {
       clusters = parents;
+      granularity = 512;
+    } else {
+      granularity = 1;
     }
 
     timer ut; ut.start();
@@ -80,7 +84,7 @@ struct UFAlgorithm {
       } else {
         GA.get_vertex(i).mapOutNgh(i, map_f);
       }
-    }, 1);
+    }, granularity);
     ut.stop(); debug(ut.reportTotal("union time"));
 
     timer ft; ft.start();

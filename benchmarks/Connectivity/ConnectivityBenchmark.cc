@@ -109,7 +109,9 @@ template<typename Graph, typename F>
 std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<parent>& correct, F test, commandLine& P) {
   std::vector<double> R;
   for (size_t i=0; i < rounds; i++) {
-    R.push_back(test(G, P, correct));
+    auto t = test(G, P, correct);
+    std::cout << "### t = " << t << std::endl;
+    R.push_back(t);
   }
   return R;
 }
@@ -569,79 +571,79 @@ namespace connectit {
     /* Liu-Tarjan algorithms */
     case 125:
       /* <parent_connect, update, shortcut> (Algorithm P) */
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 126:
       /* <parent_connect, root_update, shortcut> (Algorithm R) */
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
     case 127:
       /* <extended_connect, update, shortcut> (Algorithm E) */
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 128:
       /* <parent_connect, update, full_shortcut> (PF) */
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 129:
       /* <parent_connect, root_update, full_shortcut> (RF) */
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 130:
       /* <extended_connect, update, full_shortcut> (EF) */
-      return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
     case 131:
       /* <parent_connect, update, shortcut> (Algorithm P) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 132:
       /* <parent_connect, root_update, shortcut> (Algorithm R) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
     case 133:
       /* <extended_connect, update, shortcut> (Algorithm E) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 134:
       /* <parent_connect, update, full_shortcut> (PF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 135:
       /* <parent_connect, root_update, full_shortcut> (RF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 136:
       /* <extended_connect, update, full_shortcut> (EF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
     case 137:
       /* <parent_connect, update, shortcut> (Algorithm P) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 138:
       /* <parent_connect, root_update, shortcut> (Algorithm R) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
     case 139:
       /* <extended_connect, update, shortcut> (Algorithm E) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 140:
       /* <parent_connect, update, full_shortcut> (PF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 141:
       /* <parent_connect, root_update, full_shortcut> (RF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 142:
       /* <extended_connect, update, full_shortcut> (EF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
     case 143:
       /* <parent_connect, update, shortcut> (Algorithm P) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 144:
       /* <parent_connect, root_update, shortcut> (Algorithm R) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
     case 145:
       /* <extended_connect, update, shortcut> (Algorithm E) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
     case 146:
       /* <parent_connect, update, full_shortcut> (PF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 147:
       /* <parent_connect, root_update, full_shortcut> (RF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
     case 148:
       /* <extended_connect, update, full_shortcut> (EF) */
-      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
+      return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
     case 149:
       return run_multiple(G, rounds, correct, "bfs_cc", P, t_bfs_cc<Graph>);

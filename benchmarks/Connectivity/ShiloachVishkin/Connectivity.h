@@ -90,7 +90,6 @@ struct SVAlgorithm {
           uintE p_u = parents[u];
           uintE p_v = parents[v];
           if (p_u < p_v && p_u == parents[p_u]) {
-//            parents[p_v] = p_u;
             pbbs::write_min<uintE>(&parents[p_v], p_u, std::less<uintE>());
             if (!changed) { changed = true; }
           }

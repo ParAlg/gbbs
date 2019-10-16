@@ -315,7 +315,7 @@ struct emhelper {
 template <class Graph>
 void alloc_init(Graph& G) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
-  size_t list_alloc_init_blocks = 0.5 * (G.n/uintes_per_block);
+  size_t list_alloc_init_blocks = std::max(0.5 * (G.n/uintes_per_block), 1000);
   cout << "list_alloc init_blocks: " << list_alloc_init_blocks << endl;
   data_block_allocator::reserve(list_alloc_init_blocks);
   cout << "after init: " << endl;
