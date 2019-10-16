@@ -126,12 +126,14 @@ inline size_t KCliqueIndDir_rec(Graph& DG, size_t k_idx, size_t k, uintE* induce
     if (!count_only) base[k_idx] = induced[i];
     auto new_induced_tup = lstintersect(lstintersect_sub, DG, induced[i], induced, num_intersect, true);
     if (std::get<1>(new_induced_tup) > 0) total_ct += KCliqueIndDir_rec(DG, k_idx+1, k, std::get<0>(new_induced_tup), std::get<1>(new_induced_tup), lstintersect_sub, base, g_f, count_only);
+    pbbs::delete_array<uintE>(std::get<0>(new_induced_tup), std::get<1>(new_induced_tup));
   }
   //auto count_seq = pbbslib::make_sequence<size_t>(counts, active_size);
   //size_t count = pbbslib::reduce_add(count_seq);
 
   return total_ct;
 }
+//TODO del array in ind gen dyn
 
 template <class Graph, class F, class G>
 inline size_t KCliqueIndDir(Graph& DG, size_t k, F lstintersect_sub, G g_f, bool count_only = true) {
@@ -435,6 +437,7 @@ switch (k) {
  base[2] = inducedb[xx];
  g_f(base);
  }
+ pbbs::delete_array<uintE>(inducedb, sizeb);
  }
  storeb[b] = sizeb;
  });
@@ -471,9 +474,11 @@ switch (k) {
  base[3] = inducedc[xx];
  g_f(base);
  }
+ pbbs::delete_array<uintE>(inducedc, sizec);
  }
  storec[c] = sizec;
  });
+ pbbs::delete_array<uintE>(inducedb, sizeb);
  storeb[b] = pbbslib::reduce_add(storec);
  });
  storea[a] = pbbslib::reduce_add(storeb);
@@ -504,6 +509,7 @@ switch (k) {
  }
  storec[c] = KCliqueIndDir_rec(DG, 3, k, inducedc, sizec, lstintersect_sub, base, g_f, count_only);
  });
+ pbbs::delete_array<uintE>(inducedb, sizeb);
  storeb[b] = pbbslib::reduce_add(storec);
  });
  storea[a] = pbbslib::reduce_add(storeb);
