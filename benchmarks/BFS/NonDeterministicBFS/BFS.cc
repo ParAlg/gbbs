@@ -37,7 +37,7 @@
 template <class Graph>
 double BFS_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
-  std::cout << "### Application: BC" << std::endl;
+  std::cout << "### Application: BFS" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
