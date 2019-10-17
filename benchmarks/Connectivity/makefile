@@ -18,8 +18,8 @@ FORMAT = -DCSR # (oneof {DCSR, DCOO})
 INCLUDE_DIRS = -I../../
 
 #OPT = -O3 -g
-OPT = -O3 -g -DNDEBUG
-#OPT = -O0 -g
+#OPT = -O3 -g -DNDEBUG
+OPT = -O0 -g
 
 INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
 
