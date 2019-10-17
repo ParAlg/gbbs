@@ -107,19 +107,8 @@ namespace labelprop_cc {
 
 
       auto vs = vertexSubset(n);
-//      if constexpr (sampling_option == sample_bfs) { /* provides component */
-//        auto in_imap = pbbslib::make_sequence<uintE>(n, [&] (size_t i) {
-//          return i;
-//        });
-//        auto out = pbbs::filter(in_imap, [&] (const uintE& u) {
-//          return parents[u] != frequent_comp;
-//        });
-//        size_t out_size = out.size();
-//        vs = vertexSubset(n, out_size, ((std::tuple<uintE, pbbs::empty>*)out.to_array()));
-//      } else {
-        auto all = pbbs::sequence<bool>(n, true);
-        vs = vertexSubset(n, n, all.to_array());
-//      }
+      auto all = pbbs::sequence<bool>(n, true);
+      vs = vertexSubset(n, n, all.to_array());
 
       size_t rounds = 0;
       auto changed = pbbs::sequence<bool>(n, false);
