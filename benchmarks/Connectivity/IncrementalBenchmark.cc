@@ -119,6 +119,20 @@ bool run_multiple(Graph& G, size_t rounds,
   return 1;
 }
 
+void print_cpu_stats(cpu_stats& stats, commandLine& P) {
+  std::cout <<
+    "Stats = { \"ipc\":" + std::to_string(stats.get_ipc())
+    + " ,\"total_cycles\":" + std::to_string(stats.get_total_cycles())
+    + " ,\"l2_hit_ratio\":" + std::to_string(stats.get_l2_hit_ratio())
+    + " ,\"l3_hit_ratio\":" + std::to_string(stats.get_l3_hit_ratio())
+    + " ,\"l2_misses\":" + std::to_string(stats.get_l2_misses())
+    + " ,\"l2_hits\":" + std::to_string(stats.get_l2_hits())
+    + " ,\"l3_misses\":" + std::to_string(stats.get_l3_misses())
+    + " ,\"l3_hits\":" + std::to_string(stats.get_l3_hits())
+    + " ,\"throughput\":" + std::to_string(stats.get_throughput())
+    + "}" << std::endl;
+}
+
 
 namespace connectit {
 
@@ -209,7 +223,7 @@ namespace connectit {
     auto test = [&] (Graph& G, commandLine P) {
       auto find = get_find_function<find_option>();
       auto splice = get_splice_function<splice_option>();
-      auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find)>(splice, find);
+      auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
       using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
       auto alg = UF(G, unite, find);
 
@@ -305,6 +319,11 @@ namespace connectit {
 
   template <class Graph, bool provides_initial_graph>
   double pick_test(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t id, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+#ifdef USE_PCM_LIB
+  auto before_state = get_pcm_state();
+  timer ot; ot.start();
+#endif
+
     switch (id) {
       case 1:
         return run_multiple_uf_alg<Graph, unite, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
@@ -400,30 +419,35 @@ namespace connectit {
       case 37:
         return run_multiple_shiloach_vishkin<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
+      /* UF Rem-CAS strategies */
+      case 38:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+      case 39:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+      case 40:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+      case 41:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+
+
+
+
       default:
         std::cout << "Unknown test: " << id << std::endl;
         return 0.0 ;
     }
+#ifdef USE_PCM_LIB
+  double elapsed = ot.stop();
+  auto after_state = get_pcm_state();
+  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
+  print_cpu_stats(stats, P);
+#endif
+
   }
 } // namespace connectit
 
 
 
-/* ************************* Utils *************************** */
-
-void print_cpu_stats(cpu_stats& stats, commandLine& P) {
-  std::cout <<
-    "Stats = { \"ipc\":" + std::to_string(stats.get_ipc())
-    + " ,\"total_cycles\":" + std::to_string(stats.get_total_cycles())
-    + " ,\"l2_hit_ratio\":" + std::to_string(stats.get_l2_hit_ratio())
-    + " ,\"l3_hit_ratio\":" + std::to_string(stats.get_l3_hit_ratio())
-    + " ,\"l2_misses\":" + std::to_string(stats.get_l2_misses())
-    + " ,\"l2_hits\":" + std::to_string(stats.get_l2_hits())
-    + " ,\"l3_misses\":" + std::to_string(stats.get_l3_misses())
-    + " ,\"l3_hits\":" + std::to_string(stats.get_l3_hits())
-    + " ,\"throughput\":" + std::to_string(stats.get_throughput())
-    + "}" << std::endl;
-}
 
 /* Compatible algorithms:
  * - UF-variants
@@ -435,7 +459,7 @@ void print_cpu_stats(cpu_stats& stats, commandLine& P) {
  * starting from empty graph
  * starting with a full graph, sub-sample some % of it to use as updates */
 
-constexpr int num_tests = 37; // update if new algorithm is added
+constexpr int num_tests = 42; // update if new algorithm is added
 
 
 

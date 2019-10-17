@@ -182,7 +182,7 @@ namespace unite_variants {
     }
   };
 
-  template <class Splice, class Compress>
+  template <class Splice, class Compress, FindOption find_option>
   struct UniteRemCAS {
     Splice& splice;
     Compress& compress;
@@ -196,8 +196,10 @@ namespace unite_variants {
         }
         if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, parents[ry])) {
           // success
-          compress(x, parents);
-          compress(y, parents);
+          if constexpr (find_option != find_naive) { /* aka find_none */
+            compress(x, parents);
+            compress(y, parents);
+          }
           return;
         } else {
           // failure: locally compress by splicing and try again

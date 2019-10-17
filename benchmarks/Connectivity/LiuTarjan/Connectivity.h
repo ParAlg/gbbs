@@ -165,6 +165,7 @@ struct LiuTarjanAlgorithm {
         });
       }
 
+      /* TODO: separate queries and updates here */
       // Shortcut
       parallel_for(0, batch.size(), [&] (size_t i) {
         uintE u, v;
@@ -187,6 +188,28 @@ struct LiuTarjanAlgorithm {
       });
       round++;
     }
+
+    // Process queries, no need to skip.
+    parallel_for(0, batch.size(), [&] (size_t i) {
+      uintE u, v;
+      std::tie(u,v) = batch[i];
+      if (i % insert_to_query != 0) { /* is an update */
+        shortcut(u, P);
+      } else { /* answer the query, if it is the first round*/
+        if (round == 0) {
+          while (P[u] != P[P[u]]) {
+            P[u] = P[P[u]];
+          }
+          uintE p_u = P[u];
+
+          while (P[v] != P[P[v]]) {
+            P[v] = P[P[v]];
+          }
+          uintE p_v = P[v];
+        }
+      }
+    });
+
   }
 
 };

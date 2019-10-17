@@ -154,7 +154,7 @@ namespace connectit {
       auto find = get_find_function<find_option>();
       if constexpr (unite_option == unite_rem_cas) {
         auto splice = get_splice_function<splice_option>();
-        auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find)>(splice, find);
+        auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
         auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, sampling_option>(G, sample, alg);
@@ -220,7 +220,7 @@ namespace connectit {
     size_t n = G.n;
     auto find = get_find_function<find_option>();
     auto splice = get_splice_function<splice_option>();
-    auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find)>(splice, find);
+    auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
     using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
     auto alg = UF(G, unite, find);
     return compose_algorithm_and_sampling<
