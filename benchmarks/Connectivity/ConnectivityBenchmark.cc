@@ -250,7 +250,8 @@ namespace connectit {
   template<
     class Graph,
     SamplingOption    sampling_option,
-    template <class G> class Algorithm>
+    template <class G> class Algorithm,
+    AlgorithmType algorithm_type>
   bool run_multiple_sample_only_alg(
       Graph& G,
       size_t rounds,
@@ -259,7 +260,7 @@ namespace connectit {
       std::string name) {
     auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
       timer tt; tt.start();
-      auto CC = run_sample_only_alg<Graph, sampling_option, Algorithm>(G, P);
+      auto CC = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(G, P);
       double t = tt.stop();
       if (P.getOptionValue("-check")) {
         cc_check(correct, CC);
@@ -442,13 +443,13 @@ namespace connectit {
 
       /* Label Propagation strategies */
       case 73:
-        return run_multiple_sample_only_alg<Graph, sample_kout, labelprop_cc::LPAlgorithm>(G, rounds, correct, P, "label_prop");
+        return run_multiple_sample_only_alg<Graph, sample_kout, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
       case 74:
-        return run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_cc::LPAlgorithm>(G, rounds, correct, P, "label_prop");
+        return run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
       case 75:
-        return run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_cc::LPAlgorithm>(G, rounds, correct, P, "label_prop");
+        return run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
       case 76:
-        return run_multiple_sample_only_alg<Graph, no_sampling, labelprop_cc::LPAlgorithm>(G, rounds, correct, P, "label_prop");
+        return run_multiple_sample_only_alg<Graph, no_sampling, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
 
       /* UF Rem-CAS strategies */
       case 77:
@@ -641,13 +642,13 @@ namespace connectit {
 
       /* Shiloach-Vishkin strategies */
       case 150:
-        return run_multiple_sample_only_alg<Graph, sample_kout, shiloachvishkin_cc::SVAlgorithm>(G, rounds, correct, P, "shiloach_vishkin");
+        return run_multiple_sample_only_alg<Graph, sample_kout, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
       case 151:
-        return run_multiple_sample_only_alg<Graph, sample_bfs, shiloachvishkin_cc::SVAlgorithm>(G, rounds, correct, P, "shiloach_vishkin");
+        return run_multiple_sample_only_alg<Graph, sample_bfs, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
       case 152:
-        return run_multiple_sample_only_alg<Graph, sample_ldd, shiloachvishkin_cc::SVAlgorithm>(G, rounds, correct, P, "shiloach_vishkin");
+        return run_multiple_sample_only_alg<Graph, sample_ldd, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
       case 153:
-        return run_multiple_sample_only_alg<Graph, no_sampling, shiloachvishkin_cc::SVAlgorithm>(G, rounds, correct, P, "shiloach_vishkin");
+        return run_multiple_sample_only_alg<Graph, no_sampling, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
 
     case 154:
       return run_multiple_uf_alg<Graph, no_sampling, unite, find_split>(G, rounds, correct, P);
