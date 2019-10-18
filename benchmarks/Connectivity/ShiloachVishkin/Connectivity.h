@@ -28,45 +28,45 @@
 
 namespace shiloachvishkin_cc {
 
-template <class Graph>
-inline sequence<parent> CC(Graph& G) {
-  using W = typename Graph::weight_type;
-  size_t n = G.n;
-  auto parents = pbbs::sequence<parent>(n, [&] (uintE i) { return i; });
-  bool changed = true;
-  size_t rounds = 0;
-  while (changed) {
-    changed = false;
-    rounds++;
-    parallel_for(0, n, [&] (uintE u) {
-      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        uintE p_u = parents[u];
-        uintE p_v = parents[v];
-        if (p_u != p_v) {
-          uintE larger = std::max(u,v);
-          uintE smaller = std::min(u,v); // tricks require sign extension
-          if (larger == parents[larger]) {
-            if (!changed) {
-              changed = true;
-            }
-            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
-          }
-        }
-      };
-      G.get_vertex(u).mapOutNgh(u, map_f);
-    }, 1);
-
-    // compress
-    parallel_for(0, n, [&] (uintE u) {
-      while (parents[u] != parents[parents[u]]) {
-        parents[u] = parents[parents[u]];
-      }
-    });
-  }
-
-  std::cout << "# Ran: " << rounds << " many rounds" << std::endl;
-  return parents;
-}
+//template <class Graph>
+//inline sequence<parent> CC(Graph& G) {
+//  using W = typename Graph::weight_type;
+//  size_t n = G.n;
+//  auto parents = pbbs::sequence<parent>(n, [&] (uintE i) { return i; });
+//  bool changed = true;
+//  size_t rounds = 0;
+//  while (changed) {
+//    changed = false;
+//    rounds++;
+//    parallel_for(0, n, [&] (uintE u) {
+//      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//        uintE p_u = parents[u];
+//        uintE p_v = parents[v];
+//        if (p_u != p_v) {
+//          uintE larger = std::max(u,v);
+//          uintE smaller = std::min(u,v); // tricks require sign extension
+//          if (larger == parents[larger]) {
+//            if (!changed) {
+//              changed = true;
+//            }
+//            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
+//          }
+//        }
+//      };
+//      G.get_vertex(u).mapOutNgh(u, map_f);
+//    }, 1);
+//
+//    // compress
+//    parallel_for(0, n, [&] (uintE u) {
+//      while (parents[u] != parents[parents[u]]) {
+//        parents[u] = parents[parents[u]];
+//      }
+//    });
+//  }
+//
+//  std::cout << "# Ran: " << rounds << " many rounds" << std::endl;
+//  return parents;
+//}
 
 
 template <class Graph>
@@ -76,13 +76,18 @@ struct SVAlgorithm {
 
   void initialize(pbbs::sequence<parent>& P) {}
 
-  template <bool provides_frequent_comp>
+  template <SamplingOption sampling_option>
   void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
     bool changed = true;
     size_t rounds = 0;
+
+    pbbs::sequence<parent> clusters;
+    if constexpr (sampling_option != no_sampling) {
+      clusters = parents;
+    }
 
     while (changed) {
       changed = false;
@@ -91,12 +96,20 @@ struct SVAlgorithm {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
           uintE p_u = parents[u];
           uintE p_v = parents[v];
-          if (p_u < p_v && p_u == parents[p_u]) {
-            pbbs::write_min<uintE>(&parents[p_v], p_u, std::less<uintE>());
+          uintE l = std::min(p_u, p_v);
+          uintE h = std::max(p_u, p_v);
+          if (l != h  &&    h == parents[h]) {
+            pbbs::write_min<uintE>(&parents[h], l, std::less<uintE>());
             if (!changed) { changed = true; }
           }
         };
-        GA.get_vertex(u).mapOutNgh(u, map_f);
+        if constexpr (sampling_option != no_sampling) {
+          if (clusters[u] != frequent_comp) {
+            GA.get_vertex(u).mapOutNgh(u, map_f);
+          }
+        } else {
+          GA.get_vertex(u).mapOutNgh(u, map_f);
+        }
       }, 1);
 
       // compress
@@ -106,6 +119,7 @@ struct SVAlgorithm {
         }
       });
     }
+    std::cout << "#rounds = " << rounds << std::endl;
   }
 
   template <class Seq>

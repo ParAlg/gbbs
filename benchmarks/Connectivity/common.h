@@ -44,4 +44,10 @@ enum LiuTarjanAlterOption {
   alter, no_alter
 };
 
+/* Finish Algorithm Types */
+enum AlgorithmType {
+  union_find_type, liu_tarjan_type, shiloach_vishkin_type, label_prop_type
+};
+
+uintE largest_comp = UINT_E_MAX;
 

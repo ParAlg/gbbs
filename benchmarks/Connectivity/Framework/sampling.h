@@ -8,6 +8,7 @@ template <
     class Graph,
     class Sampler,
     class Algorithm,
+    AlgorithmType algorithm_type,
     SamplingOption sampling_option>
   struct SamplingAlgorithmTemplate {
     Graph& G;
@@ -23,14 +24,29 @@ template <
 
       algorithm.initialize(parents);
 
-      algorithm.template compute_components<sampling_option>(parents, frequent_comp);
+      if constexpr (algorithm_type == liu_tarjan_type) {
+        parallel_for(0, G.n, [&] (size_t i) {
+          if (parents[i] == frequent_comp) {
+            parents[i] = largest_comp;
+          }
+        }, 2048);
+        algorithm.template compute_components<sampling_option>(parents, largest_comp);
+        parallel_for(0, G.n, [&] (size_t i) {
+          if (parents[i] == largest_comp) {
+            parents[i] = frequent_comp;
+          }
+        }, 2048);
+      } else {
+        algorithm.template compute_components<sampling_option>(parents, frequent_comp);
+      }
       return parents;
     }
   };
 
 template <
     class Graph,
-    class Algorithm>
+    class Algorithm,
+    AlgorithmType algorithm_type>
   struct NoSamplingAlgorithmTemplate {
     Graph& G;
     Algorithm& algorithm;

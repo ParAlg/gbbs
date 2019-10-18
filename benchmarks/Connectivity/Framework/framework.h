@@ -144,6 +144,7 @@ namespace connectit {
   template <
     class Graph,
     class Algorithm,
+    AlgorithmType algorithm_type,
     SamplingOption sampling_option,
     FindOption find_option, /* for afforest */
     UniteOption unite_option /* for afforest */,
@@ -157,28 +158,28 @@ namespace connectit {
         auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
-        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, sampling_option>(G, sample, alg);
+        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
         return connectivity.components();
       } else {
         auto unite = get_unite_function<unite_option, decltype(find)>(n, find);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
-        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, sampling_option>(G, sample, alg);
+        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
         return connectivity.components();
       }
     } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, Algorithm, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, Algorithm, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
-      auto connectivity = NoSamplingAlgorithmTemplate<Graph, Algorithm>(G, alg);
+      auto connectivity = NoSamplingAlgorithmTemplate<Graph, Algorithm, algorithm_type>(G, alg);
       return connectivity.components();
     }
   }
@@ -201,6 +202,7 @@ namespace connectit {
     return compose_algorithm_and_sampling<
       Graph,
       decltype(alg),
+      union_find_type,
       sampling_option,
       find_option,
       unite_option,
@@ -226,6 +228,7 @@ namespace connectit {
     return compose_algorithm_and_sampling<
       Graph,
       decltype(alg),
+      union_find_type,
       sampling_option,
       find_option,
       unite_option,
@@ -277,21 +280,21 @@ namespace connectit {
       auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
       using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
       auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, UF, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, UF, union_find_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, UF, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, UF, union_find_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, UF, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, UF, union_find_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
-      auto connectivity = NoSamplingAlgorithmTemplate<Graph, UF>(G, alg);
+      auto connectivity = NoSamplingAlgorithmTemplate<Graph, UF, union_find_type>(G, alg);
       return connectivity.components();
     }
   }
@@ -300,7 +303,8 @@ namespace connectit {
   template <
     class Graph,
     SamplingOption sampling_option,
-    template <class G> class Algorithm>
+    template <class G> class Algorithm,
+    AlgorithmType algorithm_type>
   pbbs::sequence<parent> run_sample_only_alg(
       Graph& G,
       commandLine& P) {
@@ -313,21 +317,21 @@ namespace connectit {
       auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
       using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
       auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG, algorithm_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
       auto sample = BFS(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, ALG, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, BFS, ALG, algorithm_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_ldd) {
       using LDD = LDDSamplingTemplate<Graph>;
       auto sample = LDD(G, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, ALG, sampling_option>(G, sample, alg);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, LDD, ALG, algorithm_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else {
       static_assert(sampling_option == no_sampling);
-      auto connectivity = NoSamplingAlgorithmTemplate<Graph, ALG>(G, alg);
+      auto connectivity = NoSamplingAlgorithmTemplate<Graph, ALG, algorithm_type>(G, alg);
       return connectivity.components();
     }
   }
@@ -424,6 +428,7 @@ namespace connectit {
       return compose_algorithm_and_sampling<
         Graph,
         decltype(alg),
+        liu_tarjan_type,
         sampling_option,
         find_compress,
         unite,
@@ -445,6 +450,7 @@ namespace connectit {
       return compose_algorithm_and_sampling<
         Graph,
         decltype(alg),
+        liu_tarjan_type,
         sampling_option,
         find_compress,
         unite,
