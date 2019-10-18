@@ -66,15 +66,6 @@ double t_bfs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
 }
 
 template <class Graph>
-double t_shiloach_vishkin_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
-  time(t, auto CC = shiloachvishkin_cc::CC(G););
-  if (P.getOptionValue("-check")) {
-    cc_check(correct, CC);
-  }
-  return t;
-}
-
-template <class Graph>
 double t_sample_only_algorithm_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
   time(t, auto CC = labelprop_cc::CC</*use_permutation = */false>(G););
   if (P.getOptionValue("-check")) {
@@ -780,7 +771,8 @@ inline void cc_check(S1& correct, S2& check) {
 
 /* ************************* ***** *************************** */
 
-void print_cpu_stats(cpu_stats& stats, commandLine& P) {
+template <class CPUStats>
+void print_cpu_stats(CPUStats& stats, commandLine& P) {
   std::cout <<
     "Stats = { \"ipc\":" + std::to_string(stats.get_ipc())
     + " ,\"total_cycles\":" + std::to_string(stats.get_total_cycles())

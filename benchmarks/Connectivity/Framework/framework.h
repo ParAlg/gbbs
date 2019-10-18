@@ -434,27 +434,28 @@ namespace connectit {
         unite,
         splice_simple>(G, P, alg);
     } else { /* using alter */
-      auto alter = lt::get_alter_function<alter_option>();
-      using LT = lt::LiuTarjanAlgorithmAlter<
-        decltype(connect),
-        connect_option,
-        decltype(update),
-        update_option,
-        decltype(shortcut),
-        shortcut_option,
-        decltype(alter),
-        alter_option,
-        Graph>;
-      auto alg = LT(G, G.n, connect, update, shortcut, alter);
-
-      return compose_algorithm_and_sampling<
-        Graph,
-        decltype(alg),
-        liu_tarjan_type,
-        sampling_option,
-        find_compress,
-        unite,
-        splice_simple>(G, P, alg);
+      abort();
+//      auto alter = lt::get_alter_function<alter_option>();
+//      using LT = lt::LiuTarjanAlgorithmAlter<
+//        decltype(connect),
+//        connect_option,
+//        decltype(update),
+//        update_option,
+//        decltype(shortcut),
+//        shortcut_option,
+//        decltype(alter),
+//        alter_option,
+//        Graph>;
+//      auto alg = LT(G, G.n, connect, update, shortcut, alter);
+//
+//      return compose_algorithm_and_sampling<
+//        Graph,
+//        decltype(alg),
+//        liu_tarjan_type,
+//        sampling_option,
+//        find_compress,
+//        unite,
+//        splice_simple>(G, P, alg);
     }
   }
 
