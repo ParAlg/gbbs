@@ -57,6 +57,169 @@ inline uintE* rankNodes(vertex* V, size_t n) {
   return r;
 }
 
+// induced_space must have: num_induced, .del()
+template <class IN, class Graph, class I, class F, class H>
+inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space,
+  F intersect_op, sequence<uintE>& base, H base_op, bool count_only = true) {
+  size_t num_induced = induced_space.num_induced;
+  if (k_idx == k) {
+    base_op(base);
+    return num_induced;
+  }
+
+  // optimization if counting and not listing
+  if (k_idx + 1 == k && count_only) {
+    auto counts = sequence<size_t>::no_init(num_induced);
+    parallel_for (0, num_induced, [&] (size_t i) {
+      auto new_induced_space = IN();
+      counts[i] = intersect_op(DG, k_idx, i, induced_space, base, false, new_induced_space);
+    });
+    return pbbslib::reduce_add(counts);
+  }
+
+  size_t total_ct = 0;
+  for (size_t i=0; i < num_induced; ++i) {
+    auto new_induced_space = IN();
+    size_t new_num_induced = intersect_op(DG, k_idx, i, induced_space, base, true, new_induced_space);
+  
+    if (new_num_induced != 0) {
+      total_ct += KCliqueDir_rec<IN>(DG, k_idx + 1, k, new_induced_space, intersect_op, base, base_op, count_only);
+      new_induced_space.del();
+    }
+  }
+
+  return total_ct;
+}
+
+template <class IN, class Graph, class F, class H>
+inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool count_only = true) {
+  IN::init();
+
+  auto tots = sequence<size_t>::no_init(DG.n);
+  parallel_for (0, DG.n,[&] (size_t i) {
+    if (DG.get_vertex(i).getOutDegree() == 0) {
+      tots[i] = 0;
+    } else {
+      sequence<uintE> base = sequence<uintE>();
+      if (!count_only) {
+        base = sequence<uintE>::no_init(k);
+        base[0] = i;
+      }
+      InducedSpace_dyn induced_space = InducedSpace_dyn((uintE*)(DG.get_vertex(i).getOutNeighbors()), DG.get_vertex(i).getOutDegree());
+      tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, base, base_op, count_only);
+    }
+  });
+
+  IN::finish();
+  return pbbslib::reduce_add(tots);
+}
+
+template <class Graph>
+void assert_induced_stack_thr(Graph& DG) {
+  auto idxs = sequence<size_t>::no_init(DG.n);
+  parallel_for (0,DG.n,[&] (size_t i) { idxs[i] = DG.get_vertex(i).getOutDegree(); });
+  auto base_deg_f = [&](size_t i, size_t j) -> size_t {
+    return idxs[i] > idxs[j] ? idxs[i] : idxs[j];
+  };
+  size_t max_deg = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));
+  assert (max_deg <= INDUCED_STACK_THR);
+}
+
+template <class Graph, class F>
+size_t assemble_induced_KCliqueDir(Graph& DG, size_t k, F inter_use, long subspace_type, bool count_only) {
+  auto nop_f = [] (sequence<uintE> b) {return;};
+  auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_induced(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
+  //auto lstintersect = lstintersect_induced_struct{k-1, inter_use, count_only};
+  if (subspace_type == 0) return KCliqueDir<InducedSpace_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+    else if (subspace_type == 1) {
+      assert_induced_stack_thr(DG);
+      return KCliqueDir<InducedSpace_alloc>(DG, k-1, lstintersect, nop_f, count_only);
+    }
+    else {
+      assert_induced_stack_thr(DG);
+      return KCliqueDir<InducedSpace_stack>(DG, k-1, lstintersect, nop_f, count_only);
+    }
+}
+
+// induced
+// generated
+// -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (graph set inter)
+// -o 0 (goodrich), 1 (barnboimelkin approx), 2 (barenboimelkin exact)
+
+// todo approx work and do some kind of break in gen if too much
+template <class Graph>
+inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1, 
+bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_type = 0) {
+  using W = typename Graph::weight_type;
+  assert (k >= 1);
+  if (k == 1) return GA.n;
+  else if (k == 2) return GA.m;
+
+  sequence<uintE> rank;
+  timer t_rank; t_rank.start();
+  if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder(GA, epsilon);
+  else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
+  double tt_rank = t_rank.stop();
+  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
+
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
+  };
+  auto DG = filter_graph(GA, pack_predicate);
+
+  // Done preprocessing
+  timer t; t.start();
+  size_t count = 0;
+  bool count_only = true;
+
+  //if (!gen_type && space_type == 0) {
+    if (inter_type == 0){
+      count = assemble_induced_KCliqueDir(DG, k, lstintersect_par_struct{}, subspace_type, count_only);
+    }
+    else if (inter_type == 1) {
+      assert (DG.n < INT_MAX);
+      //auto inter_use = [](uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {return lstintersect_set(a, size_a, b, size_b, save, out);};
+      count = assemble_induced_KCliqueDir(DG, k, lstintersect_set_struct{}, subspace_type, count_only);
+    }
+    else {
+      //auto inter_use = [](uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {return lstintersect_vec(a, size_a, b, size_b, save, out);};
+      count = assemble_induced_KCliqueDir(DG, k, lstintersect_vec_struct{}, subspace_type, count_only);
+    }
+  //}
+  /*if (!induced && !gen) count = KCliqueIndDir_alloc(DG, k-1, lstintersect_par_struct{}, nop_f, true); //count = KCliqueDir(DG, k-1);
+  else if (induced && !gen) {
+    if (inter == 0) count = KCliqueIndDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
+    else if (inter == 1) {
+      assert (DG.n < INT_MAX);
+      count = KCliqueIndDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
+    }
+    else if (inter == 2) count = KCliqueIndDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
+  }
+  else if (induced && gen) {
+    if (inter == 0) count = KCliqueIndGenDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
+    else if (inter == 1) {
+      assert (DG.n < INT_MAX);
+      count = KCliqueIndGenDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
+    }
+    else if (inter == 2) count = KCliqueIndGenDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
+  }*/
+  double tt = t.stop();
+  std::cout << "### Count Running Time: " << tt << std::endl;
+  std::cout << "### Num " << k << " cliques = " << count << "\n";
+  return count;
+}
+
+
+
+
+
+
+
+
+
+
+/*
+
 // keep track of induced subgraph as you go up -- store edge lists
 // this would be P alpha k space; P k if we edidn't have induced subgraph, but longer to do k way intersect instead of 2 way intersect (k factor in work)
 
@@ -99,7 +262,6 @@ inline size_t KCliqueDir(Graph& DG, size_t k) {
   });
   return pbbslib::reduce_add(tots);
 }
-
 
 // base must have space for k if count_only = false
 template <class Graph, class F, class G>
@@ -294,64 +456,6 @@ inline size_t KCliqueIndDir_alloc(Graph& DG, size_t k, F lstintersect_sub, G g_f
   return pbbslib::reduce_add(tots);
 }
 
-
-// induced
-// generated
-// -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (graph set inter)
-// -o 0 (goodrich), 1 (barnboimelkin approx), 2 (barenboimelkin exact)
-
-// todo approx work and do some kind of break in gen if too much
-template <class Graph>
-inline size_t KClique(Graph& GA, size_t k, double epsilon=0.001,
-  bool induced = true, bool gen = true, long inter = 0, long order = 0) {
-  using W = typename Graph::weight_type;
-  assert (k >= 1);
-  if (k == 1) return GA.n;
-  else if (k == 2) return GA.m;
-
-  sequence<uintE> rank;
-  timer t_rank; t_rank.start();
-  if (order == 0) rank = goodrichpszona_degen::DegeneracyOrder(GA, epsilon);
-  else if (order == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon, false);
-  else rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon, true);
-  double tt_rank = t_rank.stop();
-  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
-
-  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]) && !(GA.get_vertex(u).getOutDegree() < k || GA.get_vertex(v).getOutDegree()  < k);
-  };
-  auto DG = filter_graph(GA, pack_predicate);
-  auto nop_f = [&] (sequence<uintE> b) {return;};
-
-  /*auto k_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return !(DG_prev.get_vertex(u).getOutDegree() < k || DG_prev.get_vertex(v).getOutDegree()  < k);
-  };
-  auto DG = filter_graph(DG_prev, k_predicate);*/
-
-  timer t; t.start();
-  size_t count = 0;
-  if (!induced && !gen) count = KCliqueIndDir_alloc(DG, k-1, lstintersect_par_struct{}, nop_f, true); //count = KCliqueDir(DG, k-1);
-  else if (induced && !gen) {
-    if (inter == 0) count = KCliqueIndDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
-    else if (inter == 1) {
-      assert (DG.n < INT_MAX);
-      count = KCliqueIndDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
-    }
-    else if (inter == 2) count = KCliqueIndDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
-  }
-  else if (induced && gen) {
-    if (inter == 0) count = KCliqueIndGenDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
-    else if (inter == 1) {
-      assert (DG.n < INT_MAX);
-      count = KCliqueIndGenDir(DG, k-1, lstintersect_set_struct{}, nop_f, true);
-    }
-    else if (inter == 2) count = KCliqueIndGenDir(DG, k-1, lstintersect_vec_struct{}, nop_f, true);
-  }
-  double tt = t.stop();
-  std::cout << "### Count Running Time: " << tt << std::endl;
-  std::cout << "### Num " << k << " cliques = " << count << "\n";
-  return count;
-}
 
 //**********************************************************************GENERATED
 
@@ -1000,3 +1104,4 @@ switch (k) {
 // hash table for outvert of G -- would make it technically work-efficient, to do intersection
 // where should we parallelize? first level only? through? be careful of space usage
 // would approx kcore be faster if we used buckets instead? instead of the sort?
+*/

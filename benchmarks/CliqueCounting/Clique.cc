@@ -36,7 +36,8 @@
 #include "Clique.h"
 
 // -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (set intersect)
-// -induced
+// -space 0 = induced
+// -subspace 0 = dyn, 1 = alloc, 2 = stack
 // -gen
 // -k clique size
 // -o 0 (approx goodrich), 1 (densest using work efficient densest subgraph, exact), 2 (densest using approx densest subgraph)
@@ -44,7 +45,8 @@
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
   double epsilon = P.getOptionDoubleValue("-e", 0.001);
-  bool induced = P.getOptionValue("-induced");
+  long space = P.getOptionLongValue("-space", 0);
+  long subspace = P.getOptionLongValue("-subspace", 0);
   bool gen = P.getOptionValue("-gen");
   long inter = P.getOptionLongValue("-i", 0);
   long k = P.getOptionLongValue("-k", 3);
@@ -54,13 +56,13 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << " -induced = " << induced << " -gen = " << gen << std::endl;
+  std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << " -gen = " << gen << std::endl;
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, epsilon, induced, gen, inter, order);
+  auto count = KClique(GA, k, order, epsilon, gen, space, subspace, inter);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
