@@ -220,7 +220,7 @@ namespace unite_variants {
         uintE z = parents[u];
         uintE w = parents[z];
         pbbs::atomic_compare_and_swap(&parents[u],z,w);
-        u = z;
+        u = w;
       }
     }
   };

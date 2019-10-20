@@ -149,7 +149,7 @@ namespace connectit {
 
     alg.initialize(parents);
     if constexpr (provides_initial_graph) {
-      alg.template compute_components</*provides_frequent_comp = */ false>(parents);
+      alg.template compute_components<no_sampling>(parents);
     }
 
     /* process batches */

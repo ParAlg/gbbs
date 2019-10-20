@@ -21,7 +21,7 @@ INCLUDE_DIRS = -I../../
 OPT = -O3 -g -DNDEBUG
 #OPT = -O0 -g
 
-#INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
+INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
 
 ifdef INTEL_PCM_HOME
 	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
