@@ -325,13 +325,13 @@ struct FullSpace_csv_dyn {
     };
     auto deg_f = [&](size_t i) { return DG.get_vertex(induced[i]).getOutDegree(); };
     size_t num_edges = reduce(pbbslib::make_sequence<uintE>(num_induced, deg_f), pbbslib::addm<uintE>());
-    if (num_induced < 1000) return prune_seq(get_edges, num_edges, min_deg);
+    if (num_induced < 100) return prune_seq(get_edges, num_edges, min_deg);
     return prune_par(get_edges, min_deg);
   }
 
   template <class E>
   void prune_par(E& get_edges, size_t min_deg = 0) {
-    if (!induced) return;
+    if (!induced || num_induced == 0) return;
 
     // first, construct induced_offsets
     // TODO: alternatively, if we do everything sequentially, we can skip this and just take the hit
@@ -351,8 +351,12 @@ struct FullSpace_csv_dyn {
       if (intersect_op_type.count_space_flag) pbbs::delete_array<uintE>(out_ptr, std::min((size_t) orig_v_deg, (size_t) num_induced));
       induced_offsets[i] = out_size >= min_deg ? out_size : 0;
     });
-    scan(pbbslib::make_sequence<uintE>(induced_offsets, num_induced + 1), pbbslib::addm<uintE>());
-
+    scan_inplace((pbbslib::make_sequence<uintE>(induced_offsets, num_induced + 1)).slice(), pbbslib::addm<uintE>());
+  
+    if (induced_offsets[num_induced] == 0) {del(); num_induced = 0; return;}
+    assert (induced_offsets[num_induced] > 0);
+    assert (induced_offsets[0] == 0);
+  
     induced_edges = pbbs::new_array_no_init<uintE>(induced_offsets[num_induced]);
     parallel_for (0, num_induced, [&] (size_t i) { 
     //for (size_t i=0; i < num_induced; ++i) {
@@ -376,7 +380,7 @@ struct FullSpace_csv_dyn {
 
   template <class E>
   void prune_seq(E& get_edges, size_t num_edges, size_t min_deg = 0) {
-    if (!induced) return;
+    if (!induced || num_induced == 0) return;
 
     // first, construct induced_offsets
     induced_offsets = pbbs::new_array_no_init<uintE>(num_induced + 1);
@@ -420,13 +424,14 @@ size_t lstintersect_full(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced
   auto out_ptr = new_induced_space.induced;
 
   size_t out_size = intersect_op_type(induced_space.getNeighbors(i), vtx_size, induced_space.induced, induced_space.num_induced, to_save, out_ptr);
+  new_induced_space.num_induced = out_size;
 
   if (out_ptr_flag && (!to_save || out_size == 0)) {
     new_induced_space.del();
   } else if (to_save && out_size > 0) {
     new_induced_space.prune(induced_space, k - k_idx);
   }
-  new_induced_space.num_induced = out_size;
+
   return out_size;
 }
 
