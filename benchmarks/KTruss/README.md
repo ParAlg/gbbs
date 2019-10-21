@@ -38,7 +38,6 @@ only runs once. This restriction can be removed in general (e.g., by copying the
 graph, or using more sophisticated techniques for filtering edges), but the
 preliminary version currently does not support these features.
 
-The largest graph we have currently run the code on has a couple of billion
-edges.
+The code should run fine on graphs with up to a few billion edges.
 
 If you have questions, please contact {ldhulipa@cs.cmu.edu, jshun@mit.edu}.
