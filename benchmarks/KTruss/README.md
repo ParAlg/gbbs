@@ -14,8 +14,14 @@ $ make
 g++ -I../../ -mcx16 -ldl -std=c++17 -march=native -O3 -g -DLONG  -DAMORTIZEDPD  -DUSEMALLOC -DHOMEGROWN -pthread -o KTruss KTruss.cc
 
 $ numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/soc-LiveJournal1_sym.adj
-
-$ numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/twitter_sym.adj
+### Application: KTruss
+### Graph: /usr0/home/ldhulipa/inputs/soc-LiveJournal1_sym.adj
+### Threads: 144
+### n: 4847571
+### m: 85702474
+### Params: -nb (num_buckets) = 16 -no_buckets = 0
+### ------------------------------------
+...
 ```
 
 * -s indicates that the input graph is symmetric
@@ -31,5 +37,8 @@ Note that due to an optimization that packs out neighbor-lists, the benchmark
 only runs once. This restriction can be removed in general (e.g., by copying the
 graph, or using more sophisticated techniques for filtering edges), but the
 preliminary version currently does not support these features.
+
+The largest graph we have currently run the code on has a couple of billion
+edges.
 
 If you have questions, please contact {ldhulipa@cs.cmu.edu, jshun@mit.edu}.
