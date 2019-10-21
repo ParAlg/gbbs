@@ -10,6 +10,7 @@ GBBS.
 You can run the code as follows:
 
 > numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/soc-LiveJournal1_sym.adj
+
 > numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/twitter_sym.adj
 
 * -s indicates that the input graph is symmetric
