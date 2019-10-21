@@ -1,17 +1,22 @@
 ### Problem: KTruss
 
-This directory contains a preliminary version of a $k$-Truss benchmark. The
+This directory contains a preliminary version of a k-Truss benchmark. The
 algorithm is currently unpublished, but if you use this code in your work,
 please consider citing our SPAA'18 paper.
 
-The code uses bucketing, and works similarly to the $k$-core code available in
+The code uses bucketing, and works similarly to the k-core code available in
 GBBS.
 
 You can run the code as follows:
 
-> numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/soc-LiveJournal1_sym.adj
+```
+$ make
+g++ -I../../ -mcx16 -ldl -std=c++17 -march=native -O3 -g -DLONG  -DAMORTIZEDPD  -DUSEMALLOC -DHOMEGROWN -pthread -o KTruss KTruss.cc
 
-> numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/twitter_sym.adj
+$ numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/soc-LiveJournal1_sym.adj
+
+$ numactl -i all ./KTruss -m -nb 16 -rounds 1 -s ~/inputs/twitter_sym.adj
+```
 
 * -s indicates that the input graph is symmetric
 * -nb indicates the number of buckets to use (16 seems to be a reasonable choice
