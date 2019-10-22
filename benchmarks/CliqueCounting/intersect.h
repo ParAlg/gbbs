@@ -361,7 +361,7 @@ struct FullSpace_csv_dyn {
         size_t out_size = intersect_op_type(nbhrs, deg, induced, num_induced, true, out_ptr);
         //offsets += out_size; //= out_size >= k ? offsets + out_size : offsets;
       //}
-      if (out_size >= k-1) {
+      if (out_size >= k-2) {
         for (size_t l=0; l < out_size; l++) {
           induced_edges[offsets + l] = out_ptr[l];
         }
