@@ -23,6 +23,7 @@ cc_library(
   "//pbbslib:integer_sort",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
+  "//benchmarks/KCore/JulienneDBS17:KCore",
   ":intersect"
   ]
 )

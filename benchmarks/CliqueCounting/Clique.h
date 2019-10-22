@@ -36,6 +36,7 @@
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 #define SIMD_STATE 4
 
@@ -62,13 +63,19 @@ template <class IN, class Graph, class I, class F, class H>
 inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space,
   F intersect_op, sequence<uintE>& base, H base_op, bool count_only = true) {
   size_t num_induced = induced_space.num_induced;
+  if (num_induced == 0) return 0;
+
   if (k_idx == k) {
     base_op(base);
     return num_induced;
   }
 
+  //if (k_idx + 1 == k && count_only && induced_space.full_flag) {
+  //  return induced_space.num_edges;
+  //}
   // optimization if counting and not listing
   if (k_idx + 1 == k && count_only) {
+    if (induced_space.full_flag) return induced_space.num_edges;
     auto counts = sequence<size_t>::no_init(num_induced);
     parallel_for (0, num_induced, [&] (size_t i) {
       auto new_induced_space = IN();
@@ -96,7 +103,8 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool co
   IN::init();
 
   auto tots = sequence<size_t>::no_init(DG.n);
-  parallel_for (0, DG.n,[&] (size_t i) {
+  for (size_t i=0; i < DG.n ; ++i ){
+  //parallel_for (0, DG.n,[&] (size_t i) {
     if (DG.get_vertex(i).getOutDegree() == 0) {
       tots[i] = 0;
     } else {
@@ -106,9 +114,10 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool co
         base[0] = i;
       }
       I induced_space = I(DG, k, i);
-      tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, base, base_op, count_only);
+      if (induced_space.num_induced == 0) tots[i] = 0;
+      else tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, base, base_op, count_only);
     }
-  });
+  }//);
 
   IN::finish();
   return pbbslib::reduce_add(tots);
@@ -159,6 +168,12 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
   timer t_rank; t_rank.start();
   if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder(GA, epsilon);
   else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
+  else if (order_type == 2) {
+    rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
+    auto kcore = KCore(GA);
+    auto get_core = [&](uintE& p) -> uintE { return kcore[p]; };
+    integer_sort_inplace(rank.slice(), get_core);
+  }
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 
@@ -188,8 +203,8 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
   }
   else if (!gen_type && space_type == 1) {
     auto nop_f = [] (sequence<uintE> b) {return;};
-    auto inter_use = lstintersect_par_struct{};
-    auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_induced(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
+    auto inter_use = lstintersect_vec_struct{};
+    auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_full(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
     count = KCliqueDir<FullSpace_csv_dyn, FullSpace_csv_dyn>(DG, k-1, lstintersect, nop_f, count_only);
   }
   /*if (!induced && !gen) count = KCliqueIndDir_alloc(DG, k-1, lstintersect_par_struct{}, nop_f, true); //count = KCliqueDir(DG, k-1);

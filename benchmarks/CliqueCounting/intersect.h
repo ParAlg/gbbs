@@ -173,6 +173,9 @@ struct InducedSpace_dyn {
   size_t num_induced;
   uintE* induced;
   bool protected_flag;
+  bool full_flag = false;
+  size_t num_edges = 0;
+  bool pruned = false;
 
   InducedSpace_dyn() : num_induced(0), induced(nullptr), protected_flag(false) {}
 
@@ -183,12 +186,19 @@ struct InducedSpace_dyn {
   }
 
   void alloc_induced(size_t size) {
+    timer t; t.start();
     if (!induced) induced = pbbs::new_array_no_init<uintE>(size);
+    double time = t.stop();
   }
 
   void del() {
-    if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced); induced = nullptr;}
+    timer t; t.start();
+    if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
+    induced = nullptr;
+    double time = t.stop();
   }
+
+  ~InducedSpace_dyn() {del();}
 
   static void init() {}
   static void finish() {}
@@ -199,38 +209,57 @@ struct InducedSpace_alloc {
   size_t num_induced;
   uintE* induced;
   uintE(* ptr_induced)[INDUCED_STACK_THR];
+  bool full_flag = false;
+  size_t num_edges = 0;
+  bool pruned = false;
 
   InducedSpace_alloc() : num_induced(0), induced(nullptr) {}
 
   void alloc_induced(size_t size) {
+    timer t; t.start();
     if (!induced) {
       ptr_induced = induced_alloc::alloc();
       induced = *ptr_induced;
     }
+    double time = t.stop();
   }
 
   void del() {
-    if (induced) { induced_alloc::free(ptr_induced); induced = nullptr; }
+    timer t; t.start();
+    if (induced) { induced_alloc::free(ptr_induced); }
+    induced = nullptr; 
+    double time = t.stop();
   }
 
+  ~InducedSpace_alloc() {del();}
+
   static void init() {
+    timer t; t.start();
     induced_alloc::init();
+    double time = t.stop();
   }
 
   static void finish() {
+    timer t; t.start();
     induced_alloc::finish();
+    double time = t.stop();
   }
 };
 
 struct InducedSpace_stack {
   size_t num_induced;
   uintE induced[INDUCED_STACK_THR];
+  bool full_flag = false;
+  size_t num_edges = 0;
+  bool pruned = false;
 
   InducedSpace_stack() : num_induced(0) {}
 
   void alloc_induced(size_t size) {}
 
   void del() {}
+
+  ~InducedSpace_stack() {}
 
   static void init() {}
   static void finish() {}
@@ -268,21 +297,202 @@ size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, I& indu
 
 
 
+
+
+
+
+
+
+
+
+
 struct FullSpace_csv_dyn {
+  size_t num_induced;
+  uintE* induced;
+  bool protected_flag;
+  bool full_flag = true;
+  size_t num_edges = 0;
+  uintE* induced_edges;
+  uintE* induced_offsets;
+  size_t nn = 0;
+
+  FullSpace_csv_dyn() : num_induced(0), induced(nullptr), protected_flag(false), induced_edges(nullptr), induced_offsets(nullptr) {}
+
+  size_t getDegree(size_t i) { assert (induced_offsets); return induced_offsets[i+1] - induced_offsets[i]; }
+  uintE* getNeighbors(size_t i) { assert(induced_edges); return induced_edges + induced_offsets[i];}
+
+  template <class Graph>
+  FullSpace_csv_dyn(Graph& DG, size_t k, size_t i) : protected_flag(true) {
+    induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
+    num_induced = DG.get_vertex(i).getOutDegree();
+    if (num_induced == 0) return;
+    
+    /*auto deg_seq = pbbs::delayed_seq<size_t>(num_induced, [&] (size_t l) {
+      return DG.get_vertex(induced[l]).getOutDegree();
+    });
+    size_t max_edges = pbbs::reduce(deg_seq, pbbs::addm<size_t>());*/
+    size_t max_edges = 0;
+    for (long l =0; l < num_induced; ++l) {
+      max_edges += DG.get_vertex(induced[l]).getOutDegree();
+    }
+    induced_offsets = pbbs::new_array_no_init<uintE>(num_induced + 1);
+    induced_offsets[0] = 0;
+    induced_edges = pbbs::new_array_no_init<uintE>(max_edges);
+    size_t offsets = 0;
+    auto intersect_op_type = lstintersect_vec_struct{};
+
+    auto lte = [] (const uintE& l, const uintE& r) { return l < r; };
+    auto orig_induced_seq = pbbslib::make_sequence<uintE>(induced, num_induced);
+
+    for (size_t j = 0; j < num_induced; j++) {
+      // intersect neighbors of each vert in induced with induced
+      uintE v = induced[j];
+      uintE* nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+      size_t deg = DG.get_vertex(v).getOutDegree();
+      /*for (size_t l = 0; l < deg; l++) {
+        size_t find_idx = pbbs::binary_search(orig_induced_seq, nbhrs[l], lte);
+        if (find_idx < num_induced) {
+          induced_edges[offsets++] = nbhrs[l];
+        }
+      }*/
+      uintE* out_ptr = pbbs::new_array_no_init<uintE>(deg);
+      //if (deg > 0) {
+        // induced_edges + offsets
+        size_t out_size = intersect_op_type(nbhrs, deg, induced, num_induced, true, out_ptr);
+        //offsets += out_size; //= out_size >= k ? offsets + out_size : offsets;
+      //}
+      if (out_size >= k-1) {
+        for (size_t l=0; l < out_size; l++) {
+          induced_edges[offsets + l] = out_ptr[l];
+        }
+        offsets += out_size; //>= k ? offsets + out_size : offsets;
+      }
+      pbbs::delete_array<uintE>(out_ptr, deg);
+      
+      induced_offsets[j+1] = offsets;
+    }
+    num_edges = induced_offsets[num_induced];
+    nn = DG.n;
+  }
+
+  template<class O, class F>
+  void prune(O& orig, size_t min_deg, F intersect_op_type) {
+    if (num_induced == 0 || orig.num_edges == 0 || !induced) return;
+    nn = orig.nn;
+    induced_offsets = pbbs::new_array_no_init<uintE>(num_induced + 1);
+    induced_offsets[0] = 0;
+    induced_edges = pbbs::new_array_no_init<uintE>(orig.num_edges);
+    size_t offsets = 0;
+    auto lte = [] (const uintE& l, const uintE& r) { return l < r; };
+    auto orig_induced_seq = pbbslib::make_sequence<uintE>(orig.induced, orig.num_induced);
+
+    for (size_t j=0; j < num_induced; j++) {
+      uintE v = induced[j];
+      size_t find_idx = pbbs::binary_search(orig_induced_seq, v, lte);
+      assert (v == orig.induced[find_idx]);
+      uintE v_offset = orig.induced_offsets[find_idx];
+      uintE v_deg = orig.induced_offsets[find_idx + 1] - v_offset;
+      uintE* v_edges = orig.induced_edges + v_offset;
+
+      uintE* out_ptr = pbbs::new_array_no_init<uintE>(v_deg);
+      size_t out_size = intersect_op_type(v_edges, v_deg, induced, num_induced, true, out_ptr);
+      if (out_size >= min_deg) {
+        for (size_t l=0; l < out_size; l++) {
+          induced_edges[offsets + l] = out_ptr[l];
+        }
+        offsets += out_size;
+      }
+      pbbs::delete_array<uintE>(out_ptr, v_deg);
+      induced_offsets[j+1] = offsets;
+    }
+    num_edges = induced_offsets[num_induced];
+  }
+
+  void alloc_induced(size_t size) {
+    if (!induced) induced = pbbs::new_array_no_init<uintE>(size);
+  }
+
+  void del() {
+    if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
+    induced = nullptr;
+    if (induced_offsets) {pbbs::delete_array<uintE>(induced_offsets, num_induced + 1);}
+    induced_offsets = nullptr;
+    if (induced_edges) {pbbs::delete_array<uintE>(induced_edges, num_edges);}
+    induced_edges = nullptr;
+  }
+
+  ~FullSpace_csv_dyn() {del();}
+
+  static void init() {}
+  static void finish() {}
+};
+
+// space must have: getDegree(i), getNeighbors(i), induced, num_induced, prune(induced_space, min_deg), alloc_induced(size)
+template <class Graph, class I, class F, class IN>
+size_t lstintersect_full(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
+  sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space) {
+  if (!count_only) base[k_idx] = induced_space.induced[i];
+  //uintE vtx = induced_space.induced[i];
+  if (induced_space.getDegree(i) < k - k_idx) return 0;
+
+  new_induced_space.protected_flag = true;
+  new_induced_space.induced = induced_space.getNeighbors(i);
+  new_induced_space.num_induced = induced_space.getDegree(i);
+
+  /*uintE* vtx_ptr;
+  size_t vtx_size;
+  //if (induced_space.induced_offsets) {
+  vtx_ptr = induced_space.getNeighbors(i);
+  vtx_size = induced_space.getDegree(i);
+  //}
+  //else {
+  //  vtx_ptr = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+  //  vtx_size = DG.get_vertex(v).getOutDegree();
+  //}
+  size_t min_size = std::min((size_t) induced_space.num_induced, (size_t) vtx_size);
+  if (min_size < k - k_idx) return 0;
+
+  bool out_ptr_flag = false;
+  if (!new_induced_space.induced && (to_save || intersect_op_type.count_space_flag)) {
+    out_ptr_flag = true;
+    new_induced_space.alloc_induced(min_size);
+  }
+  auto out_ptr = new_induced_space.induced;
+
+  size_t out_size = intersect_op_type(vtx_ptr, vtx_size, induced_space.induced, induced_space.num_induced, to_save, out_ptr);
+
+  if (out_ptr_flag && (!to_save || out_size == 0)) {
+    new_induced_space.del();
+  }
+  new_induced_space.num_induced = out_size;*/
+  new_induced_space.prune(induced_space, k-k_idx-1, intersect_op_type);
+  return new_induced_space.num_induced;
+}
+
+
+
+/*
+struct FullSpace_csv_dyn {
+  bool full_flag = true;
+  size_t num_edges = 0;
   bool protected_flag = false;
   size_t num_induced = 0;
   uintE* induced = nullptr;
   uintE* induced_offsets = nullptr;
   uintE* induced_edges = nullptr;
   static constexpr auto intersect_op_type = lstintersect_par_struct{};
+  bool pruned = false;
+  size_t nn = 0;
 
   FullSpace_csv_dyn() {}
 
   template <class Graph>
-  FullSpace_csv_dyn(Graph& DG, size_t min_deg, size_t i) : protected_flag(true) {
+  FullSpace_csv_dyn(Graph& DG, size_t min_deg, size_t i) {
+    protected_flag = true;
     induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
     num_induced = DG.get_vertex(i).getOutDegree();
     prune_init(DG, min_deg);
+    nn = DG.n;
   }
 
   void alloc_induced(size_t size) {
@@ -291,11 +501,16 @@ struct FullSpace_csv_dyn {
 
   void del() {
     if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced); induced = nullptr;}
-    if (induced_edges) {pbbs::delete_array<uintE>(induced_edges, induced_offsets[num_induced]); induced_edges = nullptr;}
+    if (induced_edges) {pbbs::delete_array<uintE>(induced_edges, num_edges); induced_edges = nullptr;}
     if (induced_offsets) {pbbs::delete_array<uintE>(induced_offsets, num_induced + 1); induced_offsets = nullptr;}
   }
 
+  ~FullSpace_csv_dyn() {del();}
+
   uintE* getNeighbors(size_t i) {
+    assert (i < num_induced);
+    assert (induced_offsets);
+    assert (induced_edges);
     return induced_edges + induced_offsets[i];
   }
 
@@ -305,28 +520,98 @@ struct FullSpace_csv_dyn {
 
   template <class O>
   void prune(O& orig, size_t min_deg) {
-    auto get_edges = [&](uintE v) {
-      auto lte = [] (const uintE& l, const uintE& r) { return l < r; };
-      auto orig_induced_seq = pbbslib::make_sequence<uintE>(orig.induced, orig.num_induced);
-      size_t find_idx = pbbs::binary_search(orig_induced_seq, v, lte);
-      uintE orig_v_offset = orig.induced_offsets[find_idx];
-      uintE orig_v_deg = orig.induced_offsets[find_idx + 1] - orig_v_offset;
-      uintE* orig_v_edges = orig.induced_edges + orig_v_offset;
-      return std::make_tuple(orig_v_edges, orig_v_deg);
-    };
-    if (num_induced < 1000) return prune_seq(get_edges, orig.induced_offsets[num_induced], min_deg);
-    return prune_par(get_edges, min_deg);
+    if (num_induced == 0) return;
+  
+    nn = orig.nn;
+    if (nn > 0) {
+    for(size_t i=0; i < num_induced; i++) {
+        uintE orig_v_offset = orig.induced_offsets[i];
+        uintE orig_v_deg = orig.induced_offsets[i + 1] - orig_v_offset;
+        uintE* orig_v_edges = orig.induced_edges + orig_v_offset;
+        for(size_t j=0; j < orig_v_deg; j++) {
+          assert (orig_v_edges[j] < nn);
+        }
+      }
+    }
+
+    if (orig.num_edges == 0) {del(); num_induced = 0; return;}
+    prune_seq_orig(orig, orig.num_edges, min_deg);
+    //prune_par(get_edges, min_deg);
+    if (num_induced > 0) num_edges = induced_offsets[num_induced];
+    else del();
   }
 
   template <class Graph>
   void prune_init(Graph& DG, size_t min_deg = 0) {
-    auto get_edges = [&](uintE v) {
-      return std::make_tuple((uintE*)(DG.get_vertex(v).getOutNeighbors()), DG.get_vertex(v).getOutDegree());
-    };
+    if (num_induced == 0) return;
+
     auto deg_f = [&](size_t i) { return DG.get_vertex(induced[i]).getOutDegree(); };
-    size_t num_edges = reduce(pbbslib::make_sequence<uintE>(num_induced, deg_f), pbbslib::addm<uintE>());
-    if (num_induced < 100) return prune_seq(get_edges, num_edges, min_deg);
-    return prune_par(get_edges, min_deg);
+    size_t orig_num_edges = reduce(pbbslib::make_sequence<uintE>(num_induced, deg_f), pbbslib::addm<uintE>());
+
+    if (orig_num_edges == 0) {del(); num_induced = 0; return;}
+    prune_seq(DG, orig_num_edges, min_deg);
+
+    if (num_induced > 0) {
+      num_edges = induced_offsets[num_induced];
+  
+      for(size_t i=0; i < num_induced; i++) {
+        uintE orig_v_offset = induced_offsets[i];
+        uintE orig_v_deg = induced_offsets[i + 1] - orig_v_offset;
+        uintE* orig_v_edges = induced_edges + orig_v_offset;
+        for(size_t j=0; j < orig_v_deg; j++) {
+          assert (orig_v_edges[j] < DG.n);
+        }
+      }
+    } else del();
+  }
+
+  template <class O>
+  void prune_seq_orig(O& orig, size_t orig_num_edges, size_t min_deg = 0) {
+    if (!induced || num_induced == 0) return;
+    if (orig_num_edges == 0) {num_induced = 0; return;}
+
+    // first, construct induced_offsets
+    induced_offsets = pbbs::new_array_no_init<uintE>(num_induced + 1);
+    induced_edges = pbbs::new_array_no_init<uintE>(orig_num_edges);
+    induced_offsets[0] = 0;
+    uintE offsets = 0;
+
+    for (size_t i = 0; i < num_induced; ++i) {
+      uintE v = induced[i];
+      size_t orig_v_deg;
+      uintE* orig_v_edges;
+        auto lte = [] (const uintE& l, const uintE& r) { return l < r; };
+      auto orig_induced_seq = pbbslib::make_sequence<uintE>(orig.induced, orig.num_induced);
+      size_t find_idx = pbbs::binary_search(orig_induced_seq, v, lte);
+      assert (find_idx < orig.num_induced);
+      uintE orig_v_offset = orig.induced_offsets[find_idx];
+      size_t out_size = intersect_op_type(orig.induced_edges + orig_v_offset, orig.induced_offsets[find_idx + 1] - orig_v_offset, induced, num_induced, true, induced_edges + offsets);
+      offsets = out_size >= min_deg ? out_size + offsets : offsets;
+      induced_offsets[i + 1] = offsets;
+    }
+
+    if (induced_offsets[num_induced] == 0) {num_induced = 0; return;}
+  }
+
+  template <class Graph>
+  void prune_seq(Graph& DG, size_t orig_num_edges, size_t min_deg = 0) {
+    if (!induced || num_induced == 0) return;
+    if (orig_num_edges == 0) {num_induced = 0; return;}
+
+    // first, construct induced_offsets
+    induced_offsets = pbbs::new_array_no_init<uintE>(num_induced + 1);
+    induced_edges = pbbs::new_array_no_init<uintE>(orig_num_edges+1);
+    induced_offsets[0] = 0;
+    uintE offsets = 0;
+
+    for (size_t i = 0; i < num_induced; ++i) {
+      uintE v = induced[i];
+      size_t out_size = intersect_op_type((uintE*)(DG.get_vertex(v).getOutNeighbors()), DG.get_vertex(v).getOutDegree(), induced, num_induced, true, induced_edges + offsets);
+      offsets = (out_size >= min_deg) ? out_size + offsets : offsets;
+      induced_offsets[i + 1] = offsets;
+    }
+
+    if (induced_offsets[num_induced] == 0) {num_induced = 0; return;}
   }
 
   template <class E>
@@ -343,19 +628,20 @@ struct FullSpace_csv_dyn {
       uintE v = induced[i];
       auto edges_tup = get_edges(v);
       auto orig_v_deg = std::get<1>(edges_tup);
-      auto orig_v_edges = std::get<0>(edges_tup);
+      if (orig_v_deg > 0) {
+        uintE* orig_v_edges = std::get<0>(edges_tup);
 
-      uintE* out_ptr = nullptr;
-      if (intersect_op_type.count_space_flag) out_ptr = pbbs::new_array_no_init<uintE>(std::min((size_t) orig_v_deg, (size_t) num_induced));
-      size_t out_size = intersect_op_type(orig_v_edges, orig_v_deg, induced, num_induced, false, out_ptr);
-      if (intersect_op_type.count_space_flag) pbbs::delete_array<uintE>(out_ptr, std::min((size_t) orig_v_deg, (size_t) num_induced));
-      induced_offsets[i] = out_size >= min_deg ? out_size : 0;
+        uintE* out_ptr = nullptr;
+        if (intersect_op_type.count_space_flag) out_ptr = pbbs::new_array_no_init<uintE>(std::min((size_t) orig_v_deg, (size_t) num_induced));
+        size_t out_size = intersect_op_type(orig_v_edges, orig_v_deg, induced, num_induced, false, out_ptr);
+        if (intersect_op_type.count_space_flag) pbbs::delete_array<uintE>(out_ptr, std::min((size_t) orig_v_deg, (size_t) num_induced));
+        induced_offsets[i] = out_size >= min_deg ? out_size : 0;
+      }
+      else induced_offsets[i] = 0;
     });
     scan_inplace((pbbslib::make_sequence<uintE>(induced_offsets, num_induced + 1)).slice(), pbbslib::addm<uintE>());
   
     if (induced_offsets[num_induced] == 0) {del(); num_induced = 0; return;}
-    assert (induced_offsets[num_induced] > 0);
-    assert (induced_offsets[0] == 0);
   
     induced_edges = pbbs::new_array_no_init<uintE>(induced_offsets[num_induced]);
     parallel_for (0, num_induced, [&] (size_t i) { 
@@ -378,62 +664,12 @@ struct FullSpace_csv_dyn {
     // otherwise, we'll record its edges
   }
 
-  template <class E>
-  void prune_seq(E& get_edges, size_t num_edges, size_t min_deg = 0) {
-    if (!induced || num_induced == 0) return;
-
-    // first, construct induced_offsets
-    induced_offsets = pbbs::new_array_no_init<uintE>(num_induced + 1);
-    induced_edges = pbbs::new_array_no_init<uintE>(num_edges);
-    induced_offsets[0] = 0;
-    uintE offsets = 0;
-
-    for (size_t i = 0; i < num_induced; ++i) {
-      uintE v = induced[i];
-      auto edges_tup = get_edges(v);
-      auto orig_v_deg = std::get<1>(edges_tup);
-      auto orig_v_edges = std::get<0>(edges_tup);
-
-      size_t out_size = intersect_op_type(orig_v_edges, orig_v_deg, induced, num_induced, true, induced_edges + offsets);
-      offsets = out_size >= min_deg ? out_size + offsets : offsets;
-      induced_offsets[i + 1] = offsets;
-    }
-  }
+  
 
   static void init() {}
   static void finish() {}
-};
+};*/
 
-// space must have: getDegree(i), getNeighbors(i), induced, num_induced, prune(induced_space, min_deg), alloc_induced(size)
-template <class Graph, class I, class F, class IN>
-size_t lstintersect_full(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
-  sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space) {
-  if (!count_only) base[k_idx] = induced_space.induced[i];
-  uintE vtx = induced_space.induced[i];
-  //assert (vtx < DG.n);
-
-  auto vtx_size = induced_space.getDegree(i);
-  size_t min_size = std::min((size_t) induced_space.num_induced, (size_t) vtx_size);
-  if (min_size < k - k_idx) return 0;
-
-  bool out_ptr_flag = false;
-  if (!new_induced_space.induced && (to_save || intersect_op_type.count_space_flag)) {
-    out_ptr_flag = true;
-    new_induced_space.alloc_induced(min_size);
-  }
-  auto out_ptr = new_induced_space.induced;
-
-  size_t out_size = intersect_op_type(induced_space.getNeighbors(i), vtx_size, induced_space.induced, induced_space.num_induced, to_save, out_ptr);
-  new_induced_space.num_induced = out_size;
-
-  if (out_ptr_flag && (!to_save || out_size == 0)) {
-    new_induced_space.del();
-  } else if (to_save && out_size > 0) {
-    new_induced_space.prune(induced_space, k - k_idx);
-  }
-
-  return out_size;
-}
 
 /*template <class F>
 struct lstintersect_induced_struct {
