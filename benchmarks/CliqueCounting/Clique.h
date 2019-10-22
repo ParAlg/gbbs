@@ -103,8 +103,8 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool co
   IN::init();
 
   auto tots = sequence<size_t>::no_init(DG.n);
-  for (size_t i=0; i < DG.n ; ++i ){
-  //parallel_for (0, DG.n,[&] (size_t i) {
+  //for (size_t i=0; i < DG.n ; ++i ){
+  parallel_for (0, DG.n,[&] (size_t i) {
     if (DG.get_vertex(i).getOutDegree() == 0) {
       tots[i] = 0;
     } else {
@@ -117,7 +117,7 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool co
       if (induced_space.num_induced == 0) tots[i] = 0;
       else tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, base, base_op, count_only);
     }
-  }//);
+  });
 
   IN::finish();
   return pbbslib::reduce_add(tots);
