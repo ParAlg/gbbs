@@ -324,7 +324,7 @@ struct FullSpace_bool_dyn {
   uintE* getNeighbors(size_t i) { return induced_edges[i]; }
   void hash_induced() {
     induced_table.resize_no_copy((size_t)1 << pbbslib::log2_up((size_t)(1.5 * num_induced)));
-    par_for (0, num_induced, pbbslib::kSequentialForThreshold, [&] (size_t j) {
+    parallel_for (0, num_induced, [&] (size_t j) {
       induced_table.insert(std::make_tuple(induced[j], (uintE) j));
     });
   }
@@ -341,7 +341,7 @@ struct FullSpace_bool_dyn {
 
     auto intersect_op_type = lstintersect_vec_struct{};
 
-    par_for(0, num_induced, pbbslib::kSequentialForThreshold, [&] (size_t j) {
+    parallel_for(0, num_induced, [&] (size_t j) {
       // intersect neighbors of each vert in induced with induced
       uintE v = induced[j];
       uintE* nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
@@ -368,7 +368,7 @@ struct FullSpace_bool_dyn {
     induced_degs = pbbs::new_array_no_init<uintE>(num_induced);
     if (to_save) induced_edges = pbbs::new_array_no_init<uintE*>(num_induced);
 
-    par_for(0, num_induced, pbbslib::kSequentialForThreshold, [&] (size_t j) {
+    parallel_for(0, num_induced, [&] (size_t j) {
     //for (size_t j=0; j < num_induced; j++) {
       uintE v = induced[j];
       //size_t find_idx = pbbs::binary_search(orig_induced_seq, v, lte);
