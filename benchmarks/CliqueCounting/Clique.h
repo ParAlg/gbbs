@@ -89,7 +89,7 @@ inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space
     auto new_induced_space = IN();
     size_t new_num_induced = intersect_op(DG, k_idx, i, induced_space, base, true, new_induced_space);
   
-    if (new_num_induced != 0) {
+    if (new_num_induced > 0) { // >= k - k_idx
       total_ct += KCliqueDir_rec<IN>(DG, k_idx + 1, k, new_induced_space, intersect_op, base, base_op, count_only);
       new_induced_space.del();
     }
@@ -103,7 +103,9 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool co
   IN::init();
 
   auto tots = sequence<size_t>::no_init(DG.n);
-  //for (size_t i=0; i < DG.n ; ++i ){
+  long stepSize = 48 * 15;
+  //for(size_t step = 0; step < (DG.n+stepSize-1)/stepSize; step++) {
+   //parallel_for(step*stepSize, std::min((size_t) (step+1)*stepSize,(size_t) DG.n), [&] (size_t i) {
   parallel_for (0, DG.n,[&] (size_t i) {
     if (DG.get_vertex(i).getOutDegree() == 0) {
       tots[i] = 0;
@@ -118,6 +120,7 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, H base_op, bool co
       else tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, base, base_op, count_only);
     }
   });
+  //}
 
   IN::finish();
   return pbbslib::reduce_add(tots);
@@ -156,6 +159,7 @@ size_t assemble_induced_KCliqueDir(Graph& DG, size_t k, F inter_use, long subspa
 // -o 0 (goodrich), 1 (barnboimelkin approx), 2 (barenboimelkin exact)
 
 // todo approx work and do some kind of break in gen if too much
+// TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1, 
 bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_type = 0) {
@@ -205,7 +209,9 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
     auto nop_f = [] (sequence<uintE> b) {return;};
     auto inter_use = lstintersect_vec_struct{};
     auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_full(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
-    count = KCliqueDir<FullSpace_csv_dyn, FullSpace_csv_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+    if (subspace_type == 0) count = KCliqueDir<FullSpace_bool_dyn, FullSpace_bool_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+    //else if (subspace_type == 1) count = KCliqueDir<FullSpace_csv_hash_dyn, FullSpace_csv_hash_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+    else count = KCliqueDir<FullSpace_csv_dyn, FullSpace_csv_dyn>(DG, k-1, lstintersect, nop_f, count_only);
   }
   /*if (!induced && !gen) count = KCliqueIndDir_alloc(DG, k-1, lstintersect_par_struct{}, nop_f, true); //count = KCliqueDir(DG, k-1);
   else if (induced && !gen) {
