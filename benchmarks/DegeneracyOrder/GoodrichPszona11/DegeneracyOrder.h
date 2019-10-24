@@ -4,6 +4,7 @@
 #include "ligra/pbbslib/dyn_arr.h"
 #include "pbbslib/integer_sort.h"
 #include "pbbslib/kth_smallest.h"
+#include "pbbslib/random.h"
 
 namespace goodrichpszona_degen {
 
@@ -26,6 +27,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.001) {
 
   auto ret = pbbslib::dyn_arr<uintE>(n);
 
+  pbbs::random r;
   timer kt, ft;
   while (active.size() > 0) {
     /* compute cutoff using kth-smallest */
@@ -34,10 +36,12 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.001) {
       uintE v = active[i];
       return D[v];
     });
+    debug(
     std::cout << "Kth smallesting w ns = " << ns << std::endl;
-    std::cout << "num remaining = " << active_degs.size() << std::endl;
+    std::cout << "num remaining = " << active_degs.size() << std::endl;);
     kt.start();
-    uintE threshold = pbbs::approximate_kth_smallest(active_degs, ns, std::less<uintE>());
+    uintE threshold = pbbs::approximate_kth_smallest(active_degs, ns, std::less<uintE>(), r);
+    r = r.next();
     kt.stop();
 
 
@@ -72,8 +76,9 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.001) {
   }
   pbbs::sequence<uintE> ret_seq(ret.A, n);
   ret.A = nullptr; ret.alloc = false; /* sketchy */
+  debug(
   kt.reportTotal("kth time");
-  ft.reportTotal("filter time");
+  ft.reportTotal("filter time"););
   return ret_seq;
 }
 
