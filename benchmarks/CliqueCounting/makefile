@@ -16,7 +16,7 @@ endif
 #INCLUDE_DIRS = -I/usr0/home/ldhulipa/
 INCLUDE_DIRS = -I../../ -I../../external/simdinter/include
 
-OPT = -O3 -g
+OPT = -O3 -g -DNDEBUG
 
 CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 #SIMDFLAGS = -I../simdinter -I../simdinter/include -fpic -mavx -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC

@@ -7,6 +7,7 @@ cc_library(
   "//ligra:ligra",
   "//ligra/pbbslib:dyn_arr",
   "//pbbslib:integer_sort",
+  "//pbbslib:kth_smallest",
   ]
 )
 

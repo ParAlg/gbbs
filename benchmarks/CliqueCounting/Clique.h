@@ -181,10 +181,13 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 
+  timer t_filter; t_filter.start();
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
   auto DG = filter_graph(GA, pack_predicate);
+  double tt_filter = t_filter.stop();
+  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
   // Done preprocessing
   timer t; t.start();

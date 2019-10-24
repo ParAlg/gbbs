@@ -156,7 +156,7 @@ inline size_t Triangle(Graph& G, const F& f) {
   };
   auto DG = filter_graph(G, pack_predicate);
   gt.stop();
-  debug(gt.reportTotal("build graph time"););
+  gt.reportTotal("build graph time");
 
   // 3. Count triangles on the digraph
   timer ct;

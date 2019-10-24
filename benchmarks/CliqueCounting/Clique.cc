@@ -70,4 +70,4 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   return tt;
 }
 
-generate_main(AppKCore_runner, false);
+generate_symmetric_main(AppKCore_runner, false);

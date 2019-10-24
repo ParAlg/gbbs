@@ -17,8 +17,13 @@ double DegeneracyOrder_runner(Graph& G, commandLine P) {
   auto order = goodrichpszona_degen::DegeneracyOrder(G, eps);
   double tt = t.stop();
 
-  std::cout << "### Running Time: " << tt << std::endl;
+  timer q; q.start();
+  auto order2 = goodrichpszona_degen::DegeneracyOrder_nointsort(G, eps);
+  double qq = q.stop();
+
+  std::cout << "### Running Time (1): " << tt << std::endl;
+  std::cout << "### Running Time (2): " << qq << std::endl;
   return tt;
 }
 
-generate_main(DegeneracyOrder_runner, false);
+generate_symmetric_main(DegeneracyOrder_runner, false);
