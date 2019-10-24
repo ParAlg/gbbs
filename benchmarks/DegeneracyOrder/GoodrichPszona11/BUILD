@@ -10,6 +10,12 @@ cc_library(
   ]
 )
 
+cc_binary(
+  name = "DegeneracyOrder_main",
+  srcs = ["DegeneracyOrder.cc"],
+  deps = [":DegeneracyOrder"]
+)
+
 package(
   default_visibility = ["//visibility:public"],
 )
