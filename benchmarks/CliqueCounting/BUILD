@@ -24,7 +24,7 @@ cc_library(
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore",
-  ":intersect"
+  ":intersect",
   ]
 )
 

@@ -268,7 +268,7 @@ struct InducedSpace_stack {
 
 // induced_space must have: num_induced, .clear(), induced (array)
 template <class Graph, class I, class F, class IN>
-size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
+inline size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
   sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space) {
   if (!count_only) base[k_idx] = induced_space.induced[i];
   uintE vtx = induced_space.induced[i];
@@ -546,7 +546,7 @@ struct FullSpace_csv_dyn {
 
 // space must have: getDegree(i), getNeighbors(i), induced, num_induced, prune(induced_space, min_deg), alloc_induced(size)
 template <class Graph, class I, class F, class IN>
-size_t lstintersect_full(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
+inline size_t lstintersect_full(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
   sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space) {
   if (!count_only) base[k_idx] = induced_space.induced[i];
   if (induced_space.getDegree(i) < k - k_idx) return 0;
