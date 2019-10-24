@@ -40,8 +40,8 @@
 
 #define SIMD_STATE 4
 
-template <class vertex>
-inline uintE* rankNodes(vertex* V, size_t n) {
+template <class Graph>
+inline uintE* rankNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
   sequence<uintE> o(n);
 
@@ -49,7 +49,7 @@ inline uintE* rankNodes(vertex* V, size_t n) {
   t.start();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-    return V[u].getOutDegree() < V[v].getOutDegree();
+    return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
   });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
@@ -196,6 +196,7 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
     auto get_core = [&](uintE& p) -> uintE { return kcore[p]; };
     integer_sort_inplace(rank.slice(), get_core);
   }
+  else if (order_type == 3) rank = pbbslib::make_sequence(rankNodes(GA, GA.n), GA.n);
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 
