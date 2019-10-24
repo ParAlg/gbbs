@@ -309,7 +309,7 @@ size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, I& indu
 struct FullSpace_bool_dyn {
   size_t num_induced;
   uintE* induced;
-  sparse_table<uintE, uintE, hash_struct> induced_table = sparse_table(0, std::make_tuple((uintE) UINT_E_MAX, (uintE) UINT_E_MAX), hash_struct());
+  sparse_table<uintE, uintE, hash_struct> induced_table = sparse_table<uintE, uintE, hash_struct>(0, std::make_tuple((uintE) UINT_E_MAX, (uintE) UINT_E_MAX), hash_struct());
   bool protected_flag;
   bool full_flag = true;
   bool del_flag = false;
