@@ -27,12 +27,14 @@
 
 
 inline size_t lstintersect_simple(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
+  auto seq_b = pbbslib::make_sequence(b, size_b);
   size_t out_idx = 0;
   for (size_t i=0; i < size_a; i++) {
     size_t j=0;
     for (j=0; j < size_b; j++) {
       if (a[i] == b[j]) break;
     }
+    //size_t j = pbbslib::binary_search(seq_b, a[i], std::less<uintE>());
     if (j < size_b) {
       out[out_idx] = b[j];
       out_idx++;
@@ -53,7 +55,7 @@ inline size_t lstintersect_par(uintE* a, size_t size_a, uintE* b, size_t size_b,
 
   if (!save) {
     auto merge_f = [&] (uintE ngh) {};
-    return intersection::merge(seq_a, seq_b, merge_f);
+    return intersection::seq_merge_full(seq_a, seq_b, merge_f);
   }
 
   size_t index = 0;
@@ -61,8 +63,7 @@ inline size_t lstintersect_par(uintE* a, size_t size_a, uintE* b, size_t size_b,
     out[index] = ngh;
     index++;
   };
-  intersection::merge(seq_a, seq_b, merge_f);
-  return index;
+  return intersection::seq_merge_full(seq_a, seq_b, merge_f);
 }
 
 struct lstintersect_par_struct {
