@@ -220,7 +220,7 @@ struct InducedSpace_dyn {
     double time = t.stop();
   }
 
-  ~InducedSpace_dyn() {del();}
+  //~InducedSpace_dyn() {del();}
 
   static void init() {}
   static void finish() {}
@@ -252,7 +252,7 @@ struct InducedSpace_alloc {
     double time = t.stop();
   }
 
-  ~InducedSpace_alloc() {del();}
+  //~InducedSpace_alloc() {del();}
 
   static void init() {
     timer t; t.start();
@@ -281,7 +281,7 @@ struct InducedSpace_stack {
 
   void del() {induced = nullptr;}
 
-  ~InducedSpace_stack() {}
+  //~InducedSpace_stack() {}
 
   static void init() {}
   static void finish() {}
@@ -311,7 +311,36 @@ struct InducedSpace_stack_setup {
 
   void del() { induced = nullptr; }
 
-  ~InducedSpace_stack_setup() {del();}
+  //~InducedSpace_stack_setup() {del();}
+
+  static void init() {}
+  static void finish() {}
+};
+
+struct InducedSpace_dyn_setup {
+  size_t num_induced;
+  uintE* induced = nullptr;
+  bool full_flag = false;
+  size_t num_edges = 0;
+
+  InducedSpace_dyn_setup() : num_induced(0) {}
+
+  template <class Graph>
+  InducedSpace_dyn_setup(Graph& DG, size_t k, size_t i) {
+    num_induced = DG.get_vertex(i).getOutDegree();
+    induced = pbbs::new_array_no_init<uintE>(k*num_induced);
+    auto tmp_induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
+    parallel_for (0, num_induced, [&] (size_t j) {
+      induced[j] = tmp_induced[j];
+    });
+  }
+
+  template <class I>
+  void alloc_induced(size_t size, I prev) {}
+
+  void del() { if (induced) pbbs::free_array(induced); induced = nullptr; }
+
+  //~InducedSpace_dyn_setup() {del();}
 
   static void init() {}
   static void finish() {}
@@ -330,7 +359,7 @@ struct InducedSpace_rec {
 
   void del() { induced = nullptr; }
 
-  ~InducedSpace_rec() {del();}
+  //~InducedSpace_rec() {del();}
 
   static void init() {}
   static void finish() {}

@@ -155,7 +155,7 @@ size_t assemble_induced_KCliqueDir(Graph& DG, size_t k, F inter_use, long subspa
   }
   else if (subspace_type == 3) {
     assert_induced_stack_thr(DG, k);
-    return KCliqueDir<InducedSpace_rec, InducedSpace_stack_setup>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+    return KCliqueDir<InducedSpace_rec, InducedSpace_dyn_setup>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
   }
 }
 /*
