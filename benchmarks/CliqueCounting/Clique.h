@@ -125,8 +125,8 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, G intersect_op_typ
   return pbbslib::reduce_add(tots);
 }
 
-//template <class IN, class I, class Graph, class F, class H>
-//size_t KCliqueDirGen(Graph& DG, size_t k, F intersect_op, H base_op, bool count_only);
+template <class IN, class I, class Graph, class F, class G, class H>
+size_t KCliqueDirGen(Graph& DG, size_t k, F intersect_op, G intersect_op_type, H base_op, bool count_only);
 
 template <class Graph>
 void assert_induced_stack_thr(Graph& DG, size_t k = 1) {
@@ -162,21 +162,24 @@ size_t assemble_induced_KCliqueDir(Graph& DG, size_t k, F inter_use, long subspa
     return KCliqueDir<InducedSpace_rec, InducedSpace_stack_setup>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
   }
 }
-/*
+
 template <class Graph, class F>
 size_t assemble_induced_KCliqueDirGen(Graph& DG, size_t k, F inter_use, long subspace_type, bool count_only) {
   auto nop_f = [] (sequence<uintE> b) {return;};
-  auto lstintersect = lstintersect_induced_struct{k, inter_use, count_only};
-  if (subspace_type == 0) return KCliqueDirGen<InducedSpace_dyn, InducedSpace_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-    else if (subspace_type == 1) {
-      assert_induced_stack_thr(DG);
-      return KCliqueDirGen<InducedSpace_alloc, InducedSpace_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-    }
-    else {
-      assert_induced_stack_thr(DG);
-      return KCliqueDirGen<InducedSpace_stack, InducedSpace_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-    }
-}*/
+  //auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_induced(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
+  auto lstintersect = lstintersect_induced_struct2{};
+  assert (subspace_type != 3 && subspace_type != 4);
+  // cannot use rec types
+  if (subspace_type == 0) return KCliqueDir<InducedSpace_dyn, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+  else if (subspace_type == 1) {
+    assert_induced_stack_thr(DG);
+    return KCliqueDirGen<InducedSpace_alloc, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+  }
+  else if (subspace_type == 2) {
+    assert_induced_stack_thr(DG);
+    return KCliqueDirGen<InducedSpace_stack, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+  }
+}
 
 // induced
 // generated
@@ -242,7 +245,7 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
     if (subspace_type == 0) count = KCliqueDir<FullSpace_bool_dyn, FullSpace_bool_dyn>(DG, k-1, lstintersect, nop_f, count_only);
     //else if (subspace_type == 1) count = KCliqueDir<FullSpace_csv_hash_dyn, FullSpace_csv_hash_dyn>(DG, k-1, lstintersect, nop_f, count_only);
     else count = KCliqueDir<FullSpace_csv_dyn, FullSpace_csv_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-  }
+  }*/
   else if (gen_type && space_type == 0) {
     if (inter_type == 0){
       count = assemble_induced_KCliqueDirGen(DG, k, lstintersect_par_struct{}, subspace_type, count_only);
@@ -254,7 +257,7 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
     else {
       count = assemble_induced_KCliqueDirGen(DG, k, lstintersect_vec_struct{}, subspace_type, count_only);
     }
-  }*/
+  }
   /*if (!induced && !gen) count = KCliqueIndDir_alloc(DG, k-1, lstintersect_par_struct{}, nop_f, true); //count = KCliqueDir(DG, k-1);
   else if (induced && !gen) {
     if (inter == 0) count = KCliqueIndDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);
@@ -279,10 +282,10 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
 }
 
 
-/*
-template <class IN, class I, class Graph, class F, class H>
-inline size_t KCliqueDirGen(Graph& DG, size_t k, F intersect_op, H base_op, bool count_only) {
-IN::init();
+
+template <class IN, class I, class Graph, class F, class G, class H>
+inline size_t KCliqueDirGen(Graph& DG, size_t k, F intersect_op, G intersect_op_type, H base_op, bool count_only) {
+  IN::init();
  sequence<uintE> base = sequence<uintE>();
  if (!count_only) base = sequence<uintE>::no_init(k);
  switch (k) {
@@ -297,9 +300,9 @@ IN::init();
  size_t sizeb = 0;
  auto inducedb = IN();
  if (count_only) {
- sizeb = intersect_op(DG, 1, b, induceda, base, false, inducedb);
+ sizeb = intersect_op(DG, 1, k, b, induceda, intersect_op_type, base, count_only, false, inducedb);
  } else {
- sizeb = intersect_op(DG, 1, b, induceda, base, true, inducedb);
+ sizeb = intersect_op(DG, 1, k, b, induceda, intersect_op_type, base, count_only, true, inducedb);
  if (sizeb >= k - 1) {
  for (size_t xx = 0; xx < sizeb; xx++) {
  base[2] = inducedb.induced[xx];
@@ -326,16 +329,16 @@ IN::init();
  parallel_for (0, sizea, [&] (size_t b) {
  size_t sizeb = 0;
  auto inducedb = IN();
- sizeb = intersect_op(DG, 1, b, induceda, base, true, inducedb);
+ sizeb = intersect_op(DG, 1, k, b, induceda,intersect_op_type, base, count_only, true, inducedb);
  if (sizeb >= k - 1) {
  auto storec = sequence<size_t>::no_init(sizeb);
  parallel_for (0, sizeb, [&] (size_t c) {
  size_t sizec = 0;
  auto inducedc = IN();
  if (count_only) {
- sizec = intersect_op(DG, 2, c, inducedb, base, false, inducedc);
+ sizec = intersect_op(DG, 2, k, c, inducedb, intersect_op_type, base, count_only, false, inducedc);
  } else {
- sizec = intersect_op(DG, 2, c, inducedb, base, true, inducedc);
+ sizec = intersect_op(DG, 2, k, c, inducedb, intersect_op_type, base, count_only, true, inducedc);
  if (sizec >= k - 2) {
  for (size_t xx = 0; xx < sizec; xx++) {
  base[3] = inducedc.induced[xx];
@@ -365,22 +368,22 @@ IN::init();
  parallel_for (0, sizea, [&] (size_t b) {
  size_t sizeb = 0;
  auto inducedb = IN();
- sizeb = intersect_op(DG, 1, b, induceda, base, true, inducedb);
+ sizeb = intersect_op(DG, 1, k, b, induceda,intersect_op_type, base, count_only, true, inducedb);
  if (sizeb >= k - 1) {
  auto storec = sequence<size_t>::no_init(sizeb);
  parallel_for (0, sizeb, [&] (size_t c) {
  size_t sizec = 0;
  auto inducedc = IN();
- sizec = intersect_op(DG, 2, c, inducedb, base, true, inducedc);
+ sizec = intersect_op(DG, 2, k, c, inducedb,intersect_op_type, base, count_only, true, inducedc);
  if (sizec >= k - 2) {
  auto stored = sequence<size_t>::no_init(sizec);
  parallel_for (0, sizec, [&] (size_t d) {
  size_t sized = 0;
  auto inducedd = IN();
  if (count_only) {
- sized = intersect_op(DG, 3, d, inducedc, base, false, inducedd);
+ sized = intersect_op(DG, 3, k, d, inducedc, intersect_op_type, base, count_only, false, inducedd);
  } else {
- sized = intersect_op(DG, 3, d, inducedc, base, true, inducedd);
+ sized = intersect_op(DG, 3, k, d, inducedc, intersect_op_type, base, count_only, true, inducedd);
  if (sized >= k - 3) {
  for (size_t xx = 0; xx < sized; xx++) {
  base[4] = inducedd.induced[xx];
@@ -412,19 +415,19 @@ IN::init();
  auto storeb = sequence<size_t>::no_init(sizea);
  parallel_for (0, sizea, [&] (size_t b) {
  auto inducedb = IN();
- size_t sizeb = intersect_op(DG, 1, b, induceda, base, true, inducedb);
+ size_t sizeb = intersect_op(DG, 1, k, b, induceda, intersect_op_type, base, count_only, true, inducedb);
  if (sizeb >= k - 1) {
  auto storec = sequence<size_t>::no_init(sizeb);
  parallel_for (0, sizeb, [&] (size_t c) {
  auto inducedc = IN();
- size_t sizec = intersect_op(DG, 2, c, inducedb, base, true, inducedc);
+ size_t sizec = intersect_op(DG, 2, k, c, inducedb, intersect_op_type, base, count_only, true, inducedc);
  if (sizec >= k - 2) {
  auto stored = sequence<size_t>::no_init(sizec);
  parallel_for (0, sizec, [&] (size_t d) {
  auto inducedd = IN();
- size_t sized = intersect_op(DG, 3, d, inducedc, base, true, inducedd);
+ size_t sized = intersect_op(DG, 3, k, d, inducedc, intersect_op_type, base, count_only, true, inducedd);
  if (sized >= k - 3) {
- stored[d] = KCliqueDir_rec<IN>(DG, 4, k, inducedd, intersect_op, base, base_op, count_only);} else stored[d] = 0;
+ stored[d] = KCliqueDir_rec<IN>(DG, 4, k, inducedd, intersect_op, intersect_op_type, base, base_op, count_only);} else stored[d] = 0;
  });
  storec[c] = pbbslib::reduce_add(stored);} else storec[c] = 0;
  });
@@ -437,8 +440,6 @@ IN::init();
  return pbbslib::reduce_add(storea); 
  }
 }
-*/
-
 
 
 
