@@ -70,9 +70,6 @@ inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space
     return num_induced;
   }
 
-  //if (k_idx + 1 == k && count_only && induced_space.full_flag) {
-  //  return induced_space.num_edges;
-  //}
   // optimization if counting and not listing
   if (k_idx + 1 == k && count_only) {
     if (induced_space.full_flag) return induced_space.num_edges;
@@ -103,6 +100,8 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, G intersect_op_typ
   IN::init();
 
   auto tots = sequence<size_t>::no_init(DG.n);
+  //size_t stepSize=15;
+  //for (size_t i=0; i < DG.n; ++i) {
   //for(size_t step = 0; step < (DG.n+stepSize-1)/stepSize; step++) {
    //parallel_for(step*stepSize, std::min((size_t) (step+1)*stepSize,(size_t) DG.n), [&] (size_t i) {
   parallel_for (0, DG.n,[&] (size_t i) {
@@ -117,6 +116,7 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, G intersect_op_typ
       I induced_space = I(DG, k, i);
       if (induced_space.num_induced == 0) tots[i] = 0;
       else tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, intersect_op_type, base, base_op, count_only);
+      induced_space.del();
     }
   });
   //}
@@ -129,14 +129,14 @@ inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, G intersect_op_typ
 //size_t KCliqueDirGen(Graph& DG, size_t k, F intersect_op, H base_op, bool count_only);
 
 template <class Graph>
-void assert_induced_stack_thr(Graph& DG) {
+void assert_induced_stack_thr(Graph& DG, size_t k = 1) {
   auto idxs = sequence<size_t>::no_init(DG.n);
   parallel_for (0,DG.n,[&] (size_t i) { idxs[i] = DG.get_vertex(i).getOutDegree(); });
   auto base_deg_f = [&](size_t i, size_t j) -> size_t {
     return idxs[i] > idxs[j] ? idxs[i] : idxs[j];
   };
   size_t max_deg = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));
-  assert (max_deg <= INDUCED_STACK_THR);
+  assert (max_deg*k <= INDUCED_STACK_THR);
 }
 
 template <class Graph, class F>
@@ -145,14 +145,18 @@ size_t assemble_induced_KCliqueDir(Graph& DG, size_t k, F inter_use, long subspa
   //auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_induced(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
   auto lstintersect = lstintersect_induced_struct2{};
   if (subspace_type == 0) return KCliqueDir<InducedSpace_dyn, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
-    else if (subspace_type == 1) {
-      assert_induced_stack_thr(DG);
-      return KCliqueDir<InducedSpace_alloc, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
-    }
-    else {
-      assert_induced_stack_thr(DG);
-      return KCliqueDir<InducedSpace_stack, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
-    }
+  else if (subspace_type == 1) {
+    assert_induced_stack_thr(DG);
+    return KCliqueDir<InducedSpace_alloc, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+  }
+  else if (subspace_type == 2) {
+    assert_induced_stack_thr(DG);
+    return KCliqueDir<InducedSpace_stack, InducedSpace_dyn>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+  }
+  else if (subspace_type == 3) {
+    assert_induced_stack_thr(DG, k);
+    return KCliqueDir<InducedSpace_rec, InducedSpace_stack_setup>(DG, k-1, lstintersect, inter_use, nop_f, count_only);
+  }
 }
 /*
 template <class Graph, class F>

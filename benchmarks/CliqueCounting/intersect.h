@@ -15,7 +15,7 @@
 #include "external/simdinter/include/intersection.h"
 #include "external/graphsetinter/src/set_operation.hpp"
 
-#define INDUCED_STACK_THR 1000
+#define INDUCED_STACK_THR 500
 
 // TODO retry using lambdas for intersects
 // TODO make intersects more modularized -- have some kind of wrapper that generates the vtx_seq and everything, and just have the intersects
@@ -208,10 +208,9 @@ struct InducedSpace_dyn {
     num_induced = DG.get_vertex(i).getOutDegree();
   }
 
-  void alloc_induced(size_t size) {
-    timer t; t.start();
+  template <class I>
+  void alloc_induced(size_t size, I prev) {
     if (!induced) induced = pbbs::new_array_no_init<uintE>(size);
-    double time = t.stop();
   }
 
   void del() {
@@ -238,13 +237,12 @@ struct InducedSpace_alloc {
 
   InducedSpace_alloc() : num_induced(0), induced(nullptr) {}
 
-  void alloc_induced(size_t size) {
-    timer t; t.start();
+  template <class I>
+  void alloc_induced(size_t size, I prev) {
     if (!induced) {
       ptr_induced = induced_alloc::alloc();
       induced = *ptr_induced;
     }
-    double time = t.stop();
   }
 
   void del() {
@@ -278,7 +276,8 @@ struct InducedSpace_stack {
 
   InducedSpace_stack() : num_induced(0) {}
 
-  void alloc_induced(size_t size) {induced =  (uintE*) induced_stack;}
+  template <class I>
+  void alloc_induced(size_t size, I prv) {induced =  (uintE*) induced_stack;}
 
   void del() {induced = nullptr;}
 
@@ -287,6 +286,56 @@ struct InducedSpace_stack {
   static void init() {}
   static void finish() {}
 };
+
+struct InducedSpace_stack_setup {
+  size_t num_induced;
+  uintE* induced = nullptr;
+  uintE induced_stack[INDUCED_STACK_THR];
+  bool full_flag = false;
+  size_t num_edges = 0;
+
+  InducedSpace_stack_setup() : num_induced(0) {}
+
+  template <class Graph>
+  InducedSpace_stack_setup(Graph& DG, size_t k, size_t i) {
+    num_induced = DG.get_vertex(i).getOutDegree();
+    auto tmp_induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
+    parallel_for (0, num_induced, [&] (size_t j) {
+      induced_stack[j] = tmp_induced[j];
+    });
+    induced =  (uintE*) induced_stack;
+  }
+
+  template <class I>
+  void alloc_induced(size_t size, I prev) {}
+
+  void del() { induced = nullptr; }
+
+  ~InducedSpace_stack_setup() {del();}
+
+  static void init() {}
+  static void finish() {}
+};
+
+struct InducedSpace_rec {
+  size_t num_induced;
+  uintE* induced = nullptr;
+  bool full_flag = false;
+  size_t num_edges = 0;
+
+  InducedSpace_rec() : num_induced(0) {}
+
+  template <class I>
+  void alloc_induced(size_t size, I prev) { induced = prev.induced + prev.num_induced; }
+
+  void del() { induced = nullptr; }
+
+  ~InducedSpace_rec() {del();}
+
+  static void init() {}
+  static void finish() {}
+};
+
 
 // induced_space must have: num_induced, .clear(), induced (array)
 template <class Graph, class I, class F, class IN>
@@ -304,9 +353,10 @@ inline size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, 
   bool out_ptr_flag = false;
   if (!new_induced_space.induced && (to_save || intersect_op_type.count_space_flag)) {
     out_ptr_flag = true;
-    new_induced_space.alloc_induced(min_size);
+    new_induced_space.alloc_induced(min_size, induced_space);
   }
   auto out_ptr = new_induced_space.induced;
+  new_induced_space.num_induced = min_size;
 
   size_t out_size = intersect_op_type(vtx_ptr, vtx_size, induced_space.induced, induced_space.num_induced, to_save, out_ptr);
 
