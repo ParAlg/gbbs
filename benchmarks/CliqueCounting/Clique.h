@@ -220,8 +220,11 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
       assert (DG.n < INT_MAX);
       count = assemble_induced_KCliqueDir(DG, k, lstintersect_set_struct{}, subspace_type, count_only);
     }
-    else {
+    else if (inter_type == 2){
       count = assemble_induced_KCliqueDir(DG, k, lstintersect_vec_struct{}, subspace_type, count_only);
+    }
+    else {
+      count = assemble_induced_KCliqueDir(DG, k, lstintersect_simple_struct{}, subspace_type, count_only);
     }
   }
   /*else if (!gen_type && space_type == 1) {

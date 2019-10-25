@@ -25,6 +25,28 @@
 // is the size (and an empty sequence)
 // otherwise, if you have no pointer, the sequence gets allocated for you
 
+
+inline size_t lstintersect_simple(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
+  size_t out_idx = 0;
+  for (size_t i=0; i < size_a; i++) {
+    size_t j=0;
+    for (j=0; j < size_b; j++) {
+      if (a[i] == b[j]) break;
+    }
+    if (j < size_b) {
+      out[out_idx] = b[j];
+      out_idx++;
+    }
+  }
+  return out_idx;
+}
+struct lstintersect_simple_struct {
+  bool count_space_flag = true;
+  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
+    return lstintersect_simple(a, size_a, b, size_b, save, out);
+  }
+};
+
 inline size_t lstintersect_par(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
   auto seq_a = pbbslib::make_sequence<uintE>(a, size_a);
   auto seq_b = pbbslib::make_sequence<uintE>(b, size_b);
@@ -249,16 +271,16 @@ struct InducedSpace_alloc {
 
 struct InducedSpace_stack {
   size_t num_induced;
-  uintE induced[INDUCED_STACK_THR];
+  uintE* induced = nullptr;
+  uintE induced_stack[INDUCED_STACK_THR];
   bool full_flag = false;
   size_t num_edges = 0;
-  bool pruned = false;
 
   InducedSpace_stack() : num_induced(0) {}
 
-  void alloc_induced(size_t size) {}
+  void alloc_induced(size_t size) {induced =  (uintE*) induced_stack;}
 
-  void del() {}
+  void del() {induced = nullptr;}
 
   ~InducedSpace_stack() {}
 
