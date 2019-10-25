@@ -295,6 +295,26 @@ inline size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, 
   return out_size;
 }
 
+template <class F>
+struct lstintersect_induced_struct {
+  size_t k;
+  F intersect_op_type;
+  bool count_only;
+
+  lstintersect_induced_struct (size_t  _k, F _intersect_op_type, bool _count_only) : k(_k-1), intersect_op_type(_intersect_op_type), count_only(_count_only) {}
+  
+  template <class Graph, class I, class IN>
+  size_t operator()(Graph& DG, size_t k_idx, size_t i, I& induced_space, sequence<uintE>& base, bool to_save, IN& new_induced_space) const {
+    return lstintersect_induced(DG, k_idx, k, i, induced_space, intersect_op_type, base, count_only, to_save, new_induced_space);
+  }
+};
+
+struct lstintersect_induced_struct2 {
+  template <class Graph, class I, class F, class IN>
+  size_t operator()(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space)const {
+    return lstintersect_induced(DG, k_idx, k, i, induced_space, intersect_op_type, base, count_only, to_save, new_induced_space);
+  }
+};
 
 // for each node u in induced, and each node v adj to u, if label of v is l, then set  to l-1 and add v to our new level
 // then, for each v that we've added to our new subgraph, for each w that was adjacent to it in G, check if w was labeled with l-1; if so, add  to adj list of v
@@ -1028,18 +1048,6 @@ struct FullSpace_csv_dyn {
 };*/
 
 
-/*template <class F>
-struct lstintersect_induced_struct {
-  size_t k;
-  F intersect_op_type;
-  bool count_only;
 
-  lstintersect_induced_struct (size_t  _k, F _intersect_op_type, bool _count_only) : k(_k), intersect_op_type(_intersect_op_type), count_only(_count_only) {}
-  
-  template <class Graph, class I, class IN>
-  size_t operator()(Graph& DG, size_t k_idx, size_t i, I& induced_space, sequence<uintE>& base, bool to_save, IN& new_induced_space) const {
-    return lstintersect_induced(DG, k_idx, k, i, induced_space, intersect_op_type, base, count_only, to_save, new_induced_space);
-  }
-};*/
 
 #endif

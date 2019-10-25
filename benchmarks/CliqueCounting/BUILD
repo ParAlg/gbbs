@@ -6,6 +6,7 @@ cc_library(
   "//ligra:edge_map_reduce",
   "//ligra:ligra",
   "//ligra/pbbslib:dyn_arr",
+  "//ligra/pbbslib:sparse_table",
   "@simdinter//:intersection",
   "@graphsetinter//:intersection",
   ]
