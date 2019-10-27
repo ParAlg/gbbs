@@ -479,6 +479,10 @@ struct FullSpace_orig {
     step = 0;
     for (size_t j=0; j < num_induced; j++) {
       if (DG.get_vertex(induced_g[j]).getOutDegree() > step) step = DG.get_vertex(induced_g[j]).getOutDegree();
+      if (step > num_induced) {
+        step = num_induced;
+        break;
+      }
     }
     auto intersect_op_type = lstintersect_vec_struct{};
 
@@ -487,7 +491,16 @@ struct FullSpace_orig {
       uintE v = induced_g[j];
       uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
       size_t v_deg = DG.get_vertex(v).getOutDegree();
-      induced_degs[j] = intersect_op_type(v_nbhrs, v_deg, induced_g, num_induced, true, induced_edges+j*step);
+      for (size_t l=0; l < v_deg; l++) {
+        for (size_t o=0; o < num_induced; o++) {
+          if (v_nbhrs[l] == induced_g[o]) {
+            induced_edges[j*step + induced_degs[j]] = o;
+            induced_degs[j]++;
+            break;
+          }
+        }
+      }
+      /*induced_degs[j] = intersect_op_type(v_nbhrs, v_deg, induced_g, num_induced, true, induced_edges+j*step);
       // map vert we put into induced_edges to induced
       parallel_for(0, induced_degs[j], [&] (size_t l) {
         for (size_t o=0; o<num_induced; o++) {
@@ -496,7 +509,7 @@ struct FullSpace_orig {
             break;
           }
         }
-      });
+      });*/
     });
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
@@ -506,8 +519,6 @@ struct FullSpace_orig {
   void prune(Graph& DG, size_t i, O& orig, bool to_save, size_t k_idx) {
     protected_flag = true;
     orig_flag = false;
-    assert (orig.induced_degs);
-    assert (orig.induced_edges);
     uintE idx = orig.induced[i];
     num_induced = orig.induced_degs[idx];
     if (num_induced == 0) return;
@@ -516,11 +527,10 @@ struct FullSpace_orig {
     step = orig.step;
     induced_edges = orig.induced_edges;
     labels = orig.labels;
-    for (size_t j=0; j < num_induced; j++) {
-    //parallel_for(0, num_induced, [&] (size_t j){
-      assert(induced[j] < nn);
+    //for (size_t j=0; j < num_induced; j++) {
+    parallel_for(0, num_induced, [&] (size_t j){
       orig.labels[induced[j]] = k_idx;
-    }//);
+    });
     
     induced_degs = pbbs::new_array_no_init<uintE>(nn);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
@@ -532,7 +542,7 @@ struct FullSpace_orig {
       size_t end = v_deg;
       for (size_t l=0; l < end; l++) {
         if (labels[v_edges[l]] == k_idx) induced_degs[v]++;
-        else {// if (to_save)
+        else if (to_save){
           auto tmp = v_edges[l];
           v_edges[l--] = v_edges[--end];
           v_edges[end] = tmp;
@@ -547,11 +557,11 @@ struct FullSpace_orig {
   static void finish(){}
 
   void del() {
-    //if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
+    if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
     induced = nullptr;
-    //if (orig_flag && induced_edges) {pbbs::delete_array<uintE>(induced_edges, nn*step);}
+    if (orig_flag && induced_edges) {pbbs::delete_array<uintE>(induced_edges, nn*step);}
     induced_edges = nullptr;
-    //if (orig_flag && labels) {pbbs::delete_array<uintE>(labels, nn);}
+    if (orig_flag && labels) {pbbs::delete_array<uintE>(labels, nn);}
     labels = nullptr;
     if (induced_degs) {pbbs::delete_array<uintE>(induced_degs, nn);}
     induced_degs = nullptr;
