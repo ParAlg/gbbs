@@ -422,6 +422,147 @@ struct lstintersect_induced_struct2 {
 // then, for each v that we've added to our new subgraph, for each w that was adjacent to it in G, check if w was labeled with l-1; if so, add  to adj list of v
 // rearrange and keep track of an endpoint
 
+// space must have: getDegree(i), getNeighbors(i), induced, num_induced, prune(induced_space, min_deg), alloc_induced(size)
+template <class Graph, class I, class F, class IN>
+inline size_t lstintersect_orig(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
+  sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space) {
+  if (!count_only) base[k_idx] = induced_space.induced[i];
+  if (induced_space.getDegree(i) < k - k_idx) return 0;
+
+  new_induced_space.prune(DG, i, induced_space, (k-k_idx > 2), k_idx);
+  return new_induced_space.num_induced;
+}
+
+struct lstintersect_orig_struct {
+  template <class Graph, class I, class F, class IN>
+  size_t operator()(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space)const {
+    return lstintersect_orig(DG, k_idx, k, i, induced_space, intersect_op_type, base, count_only, to_save, new_induced_space);
+  }
+};
+
+struct FullSpace_orig {
+  size_t num_induced = 0;
+  uintE* induced = nullptr;
+  bool protected_flag = false;
+  bool full_flag = true;
+  bool orig_flag = false;
+  size_t num_edges = 0;
+  uintE* induced_edges = nullptr;
+  uintE* induced_degs = nullptr;
+  uintE* labels = nullptr;
+  size_t nn = 0;
+  size_t step = 0;
+
+  FullSpace_orig() {}
+
+  size_t getDegree(size_t i) { return induced_degs[induced[i]]; }
+
+  template <class Graph>
+  FullSpace_orig(Graph& DG, size_t k, size_t i) : protected_flag(false), orig_flag(true) {
+    num_induced = DG.get_vertex(i).getOutDegree();
+    if (num_induced == 0) return;
+    nn = num_induced;
+    induced = pbbs::new_array_no_init<uintE>(num_induced);
+    uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    parallel_for(0, num_induced, [&] (size_t j) { induced[j] = j; });
+    induced_degs = pbbs::new_array_no_init<uintE>(nn);
+    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
+    labels = pbbs::new_array_no_init<uintE>(nn);
+    parallel_for(0, nn, [&] (size_t j) { labels[j] = 0; });
+
+    /*auto idxs = sequence<size_t>::no_init(num_induced);
+    parallel_for (0, num_induced, [&] (size_t j) { idxs[j] = DG.get_vertex(induced_g[j]).getOutDegree(); });
+    auto base_deg_f = [&](size_t i, size_t j) -> size_t {
+      return idxs[i] > idxs[j] ? idxs[i] : idxs[j];
+    };
+    step = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));*/
+    step = 0;
+    for (size_t j=0; j < num_induced; j++) {
+      if (DG.get_vertex(induced_g[j]).getOutDegree() > step) step = DG.get_vertex(induced_g[j]).getOutDegree();
+    }
+    auto intersect_op_type = lstintersect_vec_struct{};
+
+    induced_edges = pbbs::new_array_no_init<uintE>(nn*step);
+    parallel_for(0, num_induced, [&] (size_t j) {
+      uintE v = induced_g[j];
+      uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      induced_degs[j] = intersect_op_type(v_nbhrs, v_deg, induced_g, num_induced, true, induced_edges+j*step);
+      // map vert we put into induced_edges to induced
+      parallel_for(0, induced_degs[j], [&] (size_t l) {
+        for (size_t o=0; o<num_induced; o++) {
+          if (induced_edges[j*step + l] == induced_g[o]) {
+            induced_edges[j*step] = o;
+            break;
+          }
+        }
+      });
+    });
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
+  template<class Graph, class O>
+  void prune(Graph& DG, size_t i, O& orig, bool to_save, size_t k_idx) {
+    protected_flag = true;
+    orig_flag = false;
+    num_induced = orig.induced_degs[orig.induced[i]];
+    if (num_induced == 0) return;
+    induced = orig.induced_edges + (orig.induced[i]*orig.step);
+    nn = orig.nn;
+    step = orig.step;
+    induced_edges = orig.induced_edges;
+    labels = orig.labels;
+    for (size_t j=0; j < num_induced; j++) {
+    //parallel_for(0, num_induced, [&] (size_t j){
+      assert(induced[j] < nn);
+      labels[induced[j]] = k_idx;
+    }//);
+    
+    induced_degs = pbbs::new_array_no_init<uintE>(nn);
+    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
+    
+    parallel_for(0, num_induced, [&] (size_t j) {
+      uintE v = induced[j];
+      uintE v_deg = orig.induced_degs[v];
+      uintE* v_edges = orig.induced_edges + v*orig.step;
+      size_t end = v_deg;
+      for (size_t l=0; l < end; l++) {
+        if (labels[v_edges[l]] == k_idx) induced_degs[v]++;
+        else if (to_save) {
+          auto tmp = v_edges[l];
+          v_edges[l--] = v_edges[--end];
+          v_edges[end] = tmp;
+        }
+      }
+    });
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
+  static void init(){}
+  static void finish(){}
+
+  void del() {
+    if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
+    induced = nullptr;
+    if (orig_flag && induced_edges) {pbbs::delete_array<uintE>(induced_edges, nn*step);}
+    induced_edges = nullptr;
+    if (orig_flag && labels) {pbbs::delete_array<uintE>(labels, nn);}
+    labels = nullptr;
+    if (induced_degs) {pbbs::delete_array<uintE>(induced_degs, nn);}
+    induced_degs = nullptr;
+  }
+
+};
+
+
+
+
+
+
+
+
   struct hash_struct {
     inline size_t operator () (const uintE& t) {
       return pbbslib::hash64_2((size_t) t);

@@ -238,6 +238,11 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
       count = assemble_induced_KCliqueDir(DG, k, lstintersect_simple_struct{}, subspace_type, count_only);
     }
   }
+  else if (!gen_type && space_type == 1) {
+    auto nop_f = [] (sequence<uintE> b) {return;};
+    auto lstintersect = lstintersect_orig_struct{};
+    count = KCliqueDir<FullSpace_orig, FullSpace_orig>(DG, k-1, lstintersect, lstintersect_simple_struct{}, nop_f, count_only);
+  }
   /*else if (!gen_type && space_type == 1) {
     auto nop_f = [] (sequence<uintE> b) {return;};
     auto inter_use = lstintersect_vec_struct{};
