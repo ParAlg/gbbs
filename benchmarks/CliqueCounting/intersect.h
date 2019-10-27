@@ -470,16 +470,16 @@ struct FullSpace_orig {
     labels = pbbs::new_array_no_init<uintE>(nn);
     parallel_for(0, nn, [&] (size_t j) { labels[j] = 0; });
 
-    auto idxs = sequence<size_t>::no_init(num_induced);
+    /*auto idxs = sequence<size_t>::no_init(num_induced);
     parallel_for (0, num_induced, [&] (size_t j) { idxs[j] = DG.get_vertex(induced_g[j]).getOutDegree(); });
     auto base_deg_f = [&](size_t l, size_t j) -> size_t {
       return idxs[l] > idxs[j] ? idxs[l] : idxs[j];
     };
-    step = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));
-    /*step = 0;
+    step = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));*/
+    step = 0;
     for (size_t j=0; j < num_induced; j++) {
       if (DG.get_vertex(induced_g[j]).getOutDegree() > step) step = DG.get_vertex(induced_g[j]).getOutDegree();
-    }*/
+    }
     auto intersect_op_type = lstintersect_vec_struct{};
 
     induced_edges = pbbs::new_array_no_init<uintE>(nn*step);
