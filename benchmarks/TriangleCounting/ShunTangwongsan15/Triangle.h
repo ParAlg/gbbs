@@ -26,6 +26,10 @@
 #include "pbbslib/monoid.h"
 #include "ligra/ligra.h"
 
+#include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
+#include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
+
 template <class Graph>
 struct countF {
   Graph& G;
@@ -60,7 +64,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
   t.stop();
-  debug(t.reportTotal("Rank time"););
+  t.reportTotal("Rank time");
   return r;
 }
 
@@ -104,8 +108,8 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
   size_t n_blocks = total_work/block_size + 1;
   size_t work_per_block = total_work / n_blocks;
   n_blocks = (total_work/work_per_block) + 1;
-  debug(std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
-            << " work per block = " << work_per_block << "\n";);
+  std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
+            << " work per block = " << work_per_block << "\n";
 
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
@@ -136,7 +140,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
 }
 
 template <class Graph, class F>
-inline size_t Triangle(Graph& G, const F& f) {
+inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   using W = typename Graph::weight_type;
   timer gt;
   gt.start();
@@ -166,7 +170,66 @@ inline size_t Triangle(Graph& G, const F& f) {
   std::cout << "### Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
-  debug(ct.reportTotal("count time"););
+  ct.reportTotal("count time");
   pbbslib::free_array(rank);
   return count;
+}
+
+template <class Graph, class F, class O>
+inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) {
+  using W = typename Graph::weight_type;
+  timer gt;
+  gt.start();
+  uintT n = G.n;
+  auto counts = sequence<size_t>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                  { counts[i] = 0; });
+
+  timer rt; rt.start();
+  auto ordering = ordering_fn(G);
+  rt.stop(); rt.reportTotal("rank time");
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return (ordering[u] < ordering[v]);
+  };
+
+  auto DG = filter_graph(G, pack_predicate);
+  gt.stop();
+  gt.reportTotal("build graph time");
+
+  // 3. Count triangles on the digraph
+  timer ct;
+  ct.start();
+
+  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
+  std::cout << "### Num triangles = " << count << "\n";
+  DG.del();
+  ct.stop();
+  ct.reportTotal("count time");
+  return count;
+}
+
+template <class Graph, class F>
+inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, commandLine& P) {
+  if (ordering == "degree") {
+    return Triangle_degree_ordering<Graph, F>(G, f);
+  } else if (ordering == "goodrich") {
+    auto eps = P.getOptionDoubleValue("-e", 0.1);
+    auto ff = [&] (Graph& G) -> pbbs::sequence<uintE> {
+      return goodrichpszona_degen::DegeneracyOrder_intsort(G, eps);
+    };
+    return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
+  } else if (ordering == "kcore") {
+    auto ff = [&] (Graph& G) -> pbbs::sequence<uintE> {
+      auto dyn_arr = DegeneracyOrder(G);
+      auto arr = dyn_arr.A; dyn_arr.A = nullptr;
+      dyn_arr.alloc = false;
+      return pbbs::sequence<uintE>(arr, G.n);
+    };
+    return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
+  } else if (ordering == "barenboimelkin") {
+    auto ff = [&] (Graph& G) -> pbbs::sequence<uintE> {
+      return barenboimelkin_degen::DegeneracyOrder(G);
+    };
+    return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
+  }
 }
