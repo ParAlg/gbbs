@@ -17,8 +17,7 @@ double DegeneracyOrder_runner(Graph& G, commandLine P) {
   auto order = goodrichpszona_degen::DegeneracyOrder(G, eps);
   double tt = t.stop();
 
-  std::cout << "### Running Time (1): " << tt << std::endl;
-  std::cout << "### Running Time (2): " << qq << std::endl;
+  std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
 
