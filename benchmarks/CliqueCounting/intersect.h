@@ -476,15 +476,16 @@ struct FullSpace_orig {
       return idxs[l] > idxs[j] ? idxs[l] : idxs[j];
     };
     step = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));*/
-    step = 0;
+    /*step = 0;
     for (size_t j=0; j < num_induced; j++) {
       if (DG.get_vertex(induced_g[j]).getOutDegree() > step) step = DG.get_vertex(induced_g[j]).getOutDegree();
       if (step > num_induced) {
         step = num_induced;
         break;
       }
-    }
-    auto intersect_op_type = lstintersect_vec_struct{};
+    }*/
+    step = num_induced;
+    //auto intersect_op_type = lstintersect_vec_struct{};
 
     induced_edges = pbbs::new_array_no_init<uintE>(nn*step);
     parallel_for(0, num_induced, [&] (size_t j) {
@@ -529,25 +530,28 @@ struct FullSpace_orig {
     labels = orig.labels;
     //for (size_t j=0; j < num_induced; j++) {
     parallel_for(0, num_induced, [&] (size_t j){
-      orig.labels[induced[j]] = k_idx;
+      labels[induced[j]] = k_idx;
     });
     
     induced_degs = pbbs::new_array_no_init<uintE>(nn);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     
     parallel_for(0, num_induced, [&] (size_t j) {
-      uintE v = induced[j];
-      uintE v_deg = orig.induced_degs[v];
-      uintE* v_edges = orig.induced_edges + v*orig.step;
+      uintE v_idx = induced[j];
+      uintE v_deg = orig.induced_degs[v_idx];
+      uintE* v_edges = induced_edges + v_idx*step;
       size_t end = v_deg;
       for (size_t l=0; l < end; l++) {
-        if (labels[v_edges[l]] == k_idx) induced_degs[v]++;
+        if (labels[v_edges[l]] == k_idx) induced_degs[v_idx]++;
         else if (to_save){
           auto tmp = v_edges[l];
           v_edges[l--] = v_edges[--end];
           v_edges[end] = tmp;
         }
       }
+    });
+    parallel_for(0, num_induced, [&] (size_t j){
+      labels[induced[j]] = k_idx - 1;
     });
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
