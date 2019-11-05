@@ -200,6 +200,7 @@ struct InducedSpace_dyn {
   bool full_flag = false;
   size_t num_edges = 0;
   bool pruned = false;
+  size_t running_sum = 0;
 
   InducedSpace_dyn() : num_induced(0), induced(nullptr), protected_flag(false) {}
 
@@ -207,6 +208,7 @@ struct InducedSpace_dyn {
   InducedSpace_dyn(Graph& DG, size_t k, size_t i) : protected_flag(true) {
     induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
     num_induced = DG.get_vertex(i).getOutDegree();
+    running_sum = num_induced;
   }
 
   template <class I>
@@ -235,6 +237,7 @@ struct InducedSpace_alloc {
   bool full_flag = false;
   size_t num_edges = 0;
   bool pruned = false;
+  size_t running_sum = 0;
 
   InducedSpace_alloc() : num_induced(0), induced(nullptr) {}
 
@@ -274,6 +277,7 @@ struct InducedSpace_stack {
   uintE induced_stack[INDUCED_STACK_THR];
   bool full_flag = false;
   size_t num_edges = 0;
+  size_t running_sum = 0;
 
   InducedSpace_stack() : num_induced(0) {}
 
@@ -294,6 +298,7 @@ struct InducedSpace_stack_setup {
   uintE induced_stack[INDUCED_STACK_THR];
   bool full_flag = false;
   size_t num_edges = 0;
+  size_t running_sum = 0;
 
   InducedSpace_stack_setup() : num_induced(0) {}
 
@@ -305,6 +310,7 @@ struct InducedSpace_stack_setup {
       induced_stack[j] = tmp_induced[j];
     });
     induced =  (uintE*) induced_stack;
+    running_sum = num_induced;
   }
 
   template <class I>
@@ -323,6 +329,7 @@ struct InducedSpace_dyn_setup {
   uintE* induced = nullptr;
   bool full_flag = false;
   size_t num_edges = 0;
+  size_t running_sum = 0;
 
   InducedSpace_dyn_setup() : num_induced(0) {}
 
@@ -334,6 +341,7 @@ struct InducedSpace_dyn_setup {
     parallel_for (0, num_induced, [&] (size_t j) {
       induced[j] = tmp_induced[j];
     });
+    running_sum = num_induced;
   }
 
   template <class I>
@@ -352,6 +360,7 @@ struct InducedSpace_rec {
   uintE* induced = nullptr;
   bool full_flag = false;
   size_t num_edges = 0;
+  size_t running_sum = 0;
 
   InducedSpace_rec() : num_induced(0) {}
 
@@ -394,6 +403,7 @@ inline size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, 
     new_induced_space.del();
   }
   new_induced_space.num_induced = out_size;
+  new_induced_space.running_sum = induced_space.running_sum + new_induced_space.num_induced;
   return out_size;
 }
 
@@ -452,6 +462,7 @@ struct FullSpace_orig {
   uintE* labels = nullptr;
   size_t nn = 0;
   size_t step = 0;
+  size_t running_sum = 0;
 
   FullSpace_orig() {}
 
@@ -460,6 +471,7 @@ struct FullSpace_orig {
   template <class Graph>
   FullSpace_orig(Graph& DG, size_t k, size_t i) : protected_flag(false), orig_flag(true) {
     num_induced = DG.get_vertex(i).getOutDegree();
+    running_sum = num_induced;
     if (num_induced == 0) return;
     nn = num_induced;
     induced = pbbs::new_array_no_init<uintE>(num_induced);
@@ -553,6 +565,7 @@ struct FullSpace_orig {
     
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
+    running_sum += num_induced;
   }
 
   static void init(){}

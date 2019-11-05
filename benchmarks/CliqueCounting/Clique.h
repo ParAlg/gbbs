@@ -40,6 +40,137 @@
 
 #define SIMD_STATE 4
 
+struct nonMaxUintTF{bool operator() (uintT &a) {return (a != UINT_T_MAX);}};
+template<class W>
+size_t delZeroDeg(sequence<uintT>& offsets, sequence<std::tuple<uintE, W>>& edges, size_t n, size_t num_edges) {
+  auto offsets_f = sequence<uintT>(n + 1);
+  auto offsets_ff = sequence<uintT>(n + 1);
+  //using edge = std::tuple<uintE, W>;
+  //auto out_edges = sequence<edge>(num_edges);
+
+  // Mark singleton vertices
+  parallel_for(0, n, [&] (size_t i) {
+    if (offsets[i] == offsets[i+1]) offsets_f[i] = UINT_T_MAX; 
+    else offsets_f[i] = i;
+  });
+
+  // Filter out singleton vertices, leaving a list of vertices to keep
+  /*long num_ff = pbbs::filter_out(offsets_f,offsets_ff,nonMaxUintTF());
+  */
+  size_t num_ff = 0;
+  for (size_t i = 0; i < n; ++i) {
+    if (offsets_f[i] < UINT_T_MAX) {
+      offsets_ff[num_ff++] = offsets_f[i];
+    }
+  }
+  for(size_t i=0; i < num_ff; ++i) {
+    assert(offsets_ff[i] < n);
+  }
+
+  // Create a mapping to rename vertices, so that indices are incremental
+  parallel_for(0, num_ff, [&] (size_t i) {
+    offsets_f[offsets_ff[i]] = i;
+  });
+  // Rename all neighbors using the new mapping
+  parallel_for(0, num_edges, [&] (size_t i) {
+    edges[i] = std::make_tuple(offsets_f[std::get<0>(edges[i])], std::get<1>(edges[i]));
+  });
+
+  // Create new offsets list for our renamed vertices
+  parallel_for(0, num_ff, [&] (size_t i) {
+    offsets_ff[i] = offsets[offsets_ff[i]];
+  });
+  offsets_ff[num_ff] = offsets[n];
+
+  parallel_for(0, num_ff+1, [&] (size_t i) {
+    offsets[i] = offsets_ff[i];
+  });
+  offsets.shrink(num_ff+1);
+  offsets_f.clear(); offsets_ff.clear();
+  return num_ff;
+  //free(offsets_f);
+  //return bipartiteCSR(offsetsV_ff, offsetsU_ff, edgesV, edgesU, num_vff, num_uff, G.numEdges);
+  //return std::make_tuple(offsets_ff, out_edges);
+}
+template <template <class W> class vertex, class W, typename P,
+          typename std::enable_if<
+              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
+              int>::type = 0>
+inline auto relabel_graph(symmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
+  assert(false); return G;
+}
+template <
+    template <class W> class vertex, class W, typename P,
+    typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
+                            int>::type = 0>
+inline auto relabel_graph(asymmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
+  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+  return G;
+}
+
+template <
+    template <class W> class vertex, class W, typename P,
+    typename std::enable_if<
+        std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
+inline auto relabel_graph(asymmetric_graph<vertex, W>& G,uintE* rank, P& pred) -> decltype(G) {
+  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
+  assert(false);  // Not implemented for directed graphs
+  return G;
+}
+template <template <class W> class vertex, class W, typename P,
+    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
+                            int>::type = 0>
+inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) {
+  using w_vertex = vertex<W>;
+  auto G = filter_graph(GA, pred);
+  size_t n = G.n;
+  auto outOffsets = sequence<uintT>(n + 1);
+
+  parallel_for(0, n, [&] (size_t i) {
+    w_vertex u = G.get_vertex(i);
+    outOffsets[rank[i]] = u.getOutDegree();
+  }, 1);
+
+  outOffsets[n] = 0;
+  uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
+
+  using edge = std::tuple<uintE, W>;
+
+  auto out_edges = sequence<edge>(outEdgeCount);
+
+  parallel_for(0, n, [&] (size_t i) {
+    w_vertex u = G.get_vertex(i);
+    size_t out_offset = outOffsets[rank[i]];
+    uintE d = u.getOutDegree();
+    edge* nghs = u.getOutNeighbors();
+    edge* dir_nghs = out_edges.begin() + out_offset;
+    for (size_t j=0; j < d; j++) {
+      dir_nghs[j] = std::make_tuple(rank[std::get<0>(nghs[j])], std::get<1>(nghs[j]));
+    }
+    pbbslib::sample_sort (dir_nghs, d, [&](const edge u, const edge v) {
+      return std::get<0>(u) < std::get<0>(v);
+    }, true);
+  }, 1);
+
+  //n = delZeroDeg(outOffsets, out_edges, n, outEdgeCount);
+  //assert (outEdgeCount == outOffsets[n]);
+
+  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
+  parallel_for(0, n, [&] (size_t i) {
+    out_vdata[i].offset = outOffsets[i];
+    out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];
+  });
+  outOffsets.clear();
+
+  auto out_edge_arr = out_edges.to_array();
+  G.del();
+  return symmetric_graph<symmetric_vertex, W>(
+      out_vdata, n, outEdgeCount,
+      get_deletion_fn(out_vdata, out_edge_arr),
+      out_edge_arr);
+}
+
 template <class Graph>
 inline uintE* rankNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
@@ -73,6 +204,7 @@ inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space
   // optimization if counting and not listing
   if (k_idx + 1 == k && count_only) {
     if (induced_space.full_flag) return induced_space.num_edges;
+    //return induced_space.running_sum;
     auto counts = sequence<size_t>::no_init(num_induced);
     parallel_for (0, num_induced, [&] (size_t i) {
       auto new_induced_space = IN();
@@ -214,7 +346,7 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
-  auto DG = filter_graph(GA, pack_predicate);
+  auto DG = relabel_graph(GA, rank.begin(), pack_predicate); //filter_graph(GA, pack_predicate);
   double tt_filter = t_filter.stop();
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
