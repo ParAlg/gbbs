@@ -448,7 +448,7 @@ struct FullSpace_orig {
   bool orig_flag = false;
   size_t num_edges = 0;
   uintE* induced_edges = nullptr;
-  uintE* induced_degs = nullptr;
+  size_t* induced_degs = nullptr;
   uintE* labels = nullptr;
   size_t nn = 0;
   size_t step = 0;
@@ -465,7 +465,7 @@ struct FullSpace_orig {
     induced = pbbs::new_array_no_init<uintE>(num_induced);
     uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     parallel_for(0, num_induced, [&] (size_t j) { induced[j] = j; });
-    induced_degs = pbbs::new_array_no_init<uintE>(nn);
+    induced_degs = pbbs::new_array_no_init<size_t>(nn);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     labels = pbbs::new_array_no_init<uintE>(nn);
     parallel_for(0, nn, [&] (size_t j) { labels[j] = 0; });
@@ -528,12 +528,12 @@ struct FullSpace_orig {
     step = orig.step;
     induced_edges = orig.induced_edges;
     labels = orig.labels;
-    //for (size_t j=0; j < num_induced; j++) {
     parallel_for(0, num_induced, [&] (size_t j){
       labels[induced[j]] = k_idx;
     });
     
-    induced_degs = pbbs::new_array_no_init<uintE>(nn);
+    
+    induced_degs = pbbs::new_array_no_init<size_t>(nn);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     
     parallel_for(0, num_induced, [&] (size_t j) {
@@ -550,9 +550,7 @@ struct FullSpace_orig {
         }
       }
     });
-    parallel_for(0, num_induced, [&] (size_t j){
-      labels[induced[j]] = k_idx - 1;
-    });
+    
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
@@ -561,13 +559,18 @@ struct FullSpace_orig {
   static void finish(){}
 
   void del() {
+    if (orig_flag && labels) {pbbs::delete_array<uintE>(labels, nn);}
+    else if (labels && induced) {
+      parallel_for(0, num_induced, [&] (size_t j){
+        labels[induced[j]] = 0;
+      });
+    }
     if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
     induced = nullptr;
     if (orig_flag && induced_edges) {pbbs::delete_array<uintE>(induced_edges, nn*step);}
     induced_edges = nullptr;
-    if (orig_flag && labels) {pbbs::delete_array<uintE>(labels, nn);}
     labels = nullptr;
-    if (induced_degs) {pbbs::delete_array<uintE>(induced_degs, nn);}
+    if (induced_degs) {pbbs::delete_array<size_t>(induced_degs, nn);}
     induced_degs = nullptr;
   }
 
