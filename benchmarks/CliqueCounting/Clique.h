@@ -40,58 +40,6 @@
 
 #define SIMD_STATE 4
 
-struct nonMaxUintTF{bool operator() (uintT &a) {return (a != UINT_T_MAX);}};
-template<class W>
-size_t delZeroDeg(sequence<uintT>& offsets, sequence<std::tuple<uintE, W>>& edges, size_t n, size_t num_edges) {
-  auto offsets_f = sequence<uintT>(n + 1);
-  auto offsets_ff = sequence<uintT>(n + 1);
-  //using edge = std::tuple<uintE, W>;
-  //auto out_edges = sequence<edge>(num_edges);
-
-  // Mark singleton vertices
-  parallel_for(0, n, [&] (size_t i) {
-    if (offsets[i] == offsets[i+1]) offsets_f[i] = UINT_T_MAX; 
-    else offsets_f[i] = i;
-  });
-
-  // Filter out singleton vertices, leaving a list of vertices to keep
-  /*long num_ff = pbbs::filter_out(offsets_f,offsets_ff,nonMaxUintTF());
-  */
-  size_t num_ff = 0;
-  for (size_t i = 0; i < n; ++i) {
-    if (offsets_f[i] < UINT_T_MAX) {
-      offsets_ff[num_ff++] = offsets_f[i];
-    }
-  }
-  for(size_t i=0; i < num_ff; ++i) {
-    assert(offsets_ff[i] < n);
-  }
-
-  // Create a mapping to rename vertices, so that indices are incremental
-  parallel_for(0, num_ff, [&] (size_t i) {
-    offsets_f[offsets_ff[i]] = i;
-  });
-  // Rename all neighbors using the new mapping
-  parallel_for(0, num_edges, [&] (size_t i) {
-    edges[i] = std::make_tuple(offsets_f[std::get<0>(edges[i])], std::get<1>(edges[i]));
-  });
-
-  // Create new offsets list for our renamed vertices
-  parallel_for(0, num_ff, [&] (size_t i) {
-    offsets_ff[i] = offsets[offsets_ff[i]];
-  });
-  offsets_ff[num_ff] = offsets[n];
-
-  parallel_for(0, num_ff+1, [&] (size_t i) {
-    offsets[i] = offsets_ff[i];
-  });
-  offsets.shrink(num_ff+1);
-  offsets_f.clear(); offsets_ff.clear();
-  return num_ff;
-  //free(offsets_f);
-  //return bipartiteCSR(offsetsV_ff, offsetsU_ff, edgesV, edgesU, num_vff, num_uff, G.numEdges);
-  //return std::make_tuple(offsets_ff, out_edges);
-}
 template <template <class W> class vertex, class W, typename P,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
@@ -152,9 +100,6 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       return std::get<0>(u) < std::get<0>(v);
     }, true);
   }, 1);
-
-  //n = delZeroDeg(outOffsets, out_edges, n, outEdgeCount);
-  //assert (outEdgeCount == outOffsets[n]);
 
   auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
