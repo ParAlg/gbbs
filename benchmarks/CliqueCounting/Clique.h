@@ -40,6 +40,22 @@
 
 #define SIMD_STATE 4
 
+/*struct lw_sym_graph {
+  size_t n;
+  size_t m;
+  sequence<uintT> offsets;
+  sequence<uintE> edges;
+
+  lw_sym_graph(size_t _n, size_t _m, sequence<uintT> _offsets, sequence<uintE> _edges) : n(_n), m(_m), offsets(_offsets), edges(_edges) {}
+
+  uintE getOutDegree(uintT i) {
+    return offsets[i+1]-offsets[i];
+  }
+  uintE* getOutNeighbors(uintT i) {
+    return edges.begin() + offsets[i];
+  }
+};*/
+
 template <template <class W> class vertex, class W, typename P,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
@@ -139,7 +155,7 @@ template <class IN, class Graph, class I, class F, class G, class H>
 inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space,
   F intersect_op, G intersect_op_type, sequence<uintE>& base, H base_op, bool count_only = true) {
   size_t num_induced = induced_space.num_induced;
-  if (num_induced == 0) return 0;
+  if (num_induced == 0) return 0; //return induced_space.running_sum;
 
   if (k_idx == k) {
     base_op(base);
@@ -148,8 +164,8 @@ inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space
 
   // optimization if counting and not listing
   if (k_idx + 1 == k && count_only) {
+    //return num_induced;
     if (induced_space.full_flag) return induced_space.num_edges;
-    //return induced_space.running_sum;
     auto counts = sequence<size_t>::no_init(num_induced);
     parallel_for (0, num_induced, [&] (size_t i) {
       auto new_induced_space = IN();
@@ -169,7 +185,7 @@ inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space
     }
   }
 
-  return total_ct;
+  return total_ct; // num_induced + 
 }
 
 template <class IN, class I, class Graph, class F, class G, class H>

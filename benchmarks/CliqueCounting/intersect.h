@@ -387,7 +387,7 @@ inline size_t lstintersect_induced(Graph& DG, size_t k_idx, size_t k, size_t i, 
   auto vtx_ptr = (uintE*)(DG.get_vertex(vtx).getOutNeighbors());
   auto vtx_size = DG.get_vertex(vtx).getOutDegree();
   size_t min_size = std::min((size_t) induced_space.num_induced, (size_t) vtx_size);
-  if (min_size < k - k_idx) return 0;
+  if (min_size < k - k_idx) {new_induced_space.running_sum = induced_space.running_sum; return 0;}
 
   bool out_ptr_flag = false;
   if (!new_induced_space.induced && (to_save || intersect_op_type.count_space_flag)) {
@@ -437,7 +437,7 @@ template <class Graph, class I, class F, class IN>
 inline size_t lstintersect_orig(Graph& DG, size_t k_idx, size_t k, size_t i, I& induced_space, F intersect_op_type, 
   sequence<uintE>& base, bool count_only, bool to_save, IN& new_induced_space) {
   if (!count_only) base[k_idx] = induced_space.induced[i];
-  if (induced_space.getDegree(i) < k - k_idx) return 0;
+  if (induced_space.getDegree(i) < k - k_idx) {new_induced_space.running_sum = induced_space.running_sum; return 0;}
 
   new_induced_space.prune(DG, i, induced_space, (k-k_idx > 2), k_idx);
   return new_induced_space.num_induced;
@@ -534,7 +534,7 @@ struct FullSpace_orig {
     orig_flag = false;
     uintE idx = orig.induced[i];
     num_induced = orig.induced_degs[idx];
-    if (num_induced == 0) return;
+    if (num_induced == 0) {running_sum = orig.running_sum; return;}
     induced = orig.induced_edges + (idx*orig.step);
     nn = orig.nn;
     step = orig.step;
@@ -565,7 +565,7 @@ struct FullSpace_orig {
     
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
-    running_sum += num_induced;
+    running_sum = orig.running_sum + num_induced;
   }
 
   static void init(){}
