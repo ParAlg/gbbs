@@ -7,26 +7,34 @@ This repository contains code for our SPAA paper "Theoretically Efficient
 Parallel Graph Algorithms Can Be Fast and Scalable" (SPAA'18). It includes
 implementations of the following parallel graph algorithms:
 
+**Shortest Path Problems**
 * Single-Source Betweenness Centrality
 * Bellman-Ford
 * Breadth-First Search
-* Biconnectivity
-* Connectivity
-* Coloring
-* KCore
+* Single-Source Widest Path
+* Weighted Breadth-First Search
+* k-Spanner 
+
+**Connectivity Problems**
 * Low-Diameter Decomposition
-* Maximal Matching
-* Maximal Independent Set
+* Connectivity
+* Spanning Forest
+* Biconnectivity
 * Minimum Spanning Tree
 * Strongly Connected Components
+
+**Covering Problems**
+* Coloring
+* Maximal Matching
+* Maximal Independent Set
 * Approximate Set Cover
+
+**Substructure Problems**
 * Triangle Counting
-* Weighted Breadth-First Search
 * Approximate Densest Subgraph
-* Spanning Forest
+
+**Eigenvector Problems**
 * PageRank
-* Single-Source Widest Path
-* k-Spanner 
 
 The code for these applications is located in the `benchmark` directory. The
 implementations are based on the Ligra/Ligra+/Julienne graph processing
