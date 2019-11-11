@@ -83,6 +83,8 @@ namespace find_variants {
 
 
 namespace splice_variants {
+
+
   /* Used in Rem-CAS variants for splice */
   inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
     uintE v = parents[i];

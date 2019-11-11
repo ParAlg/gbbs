@@ -41,7 +41,7 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
   ldd_t.start();
   auto clusters_in = LDD(G, beta, permute);
   auto s = clusters_in.to_array();
-  auto clusters = pbbs::sequence((parent*)s, n);
+  auto clusters = pbbs::sequence<parent>((parent*)s, n);
   ldd_t.stop();
   debug(ldd_t.reportTotal("ldd time"););
 
