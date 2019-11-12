@@ -38,6 +38,7 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+
 #define SIMD_STATE 4
 
 /*struct lw_sym_graph {
@@ -150,6 +151,22 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   return r;
 }
 
+template<class Graph>
+size_t get_max_deg(Graph& DG) {
+  size_t max_deg = 0;
+  for (size_t i=0; i < DG.n; i++) {
+    size_t deg = DG.get_vertex(i).getOutDegree();
+    if (deg > max_deg) max_deg = deg;
+  }
+  return max_deg;
+  //auto idxs = sequence<size_t>::no_init(DG.n);
+  //parallel_for (0,DG.n,[&] (size_t i) { idxs[i] = DG.get_vertex(i).getOutDegree(); });
+  //auto base_deg_f = [&](size_t i, size_t j) -> size_t {
+  //  return idxs[i] > idxs[j] ? idxs[i] : idxs[j];
+  //};
+  //return pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));
+}
+
 // induced_space must have: num_induced, .del()
 template <class IN, class Graph, class I, class F, class G, class H>
 inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space,
@@ -166,12 +183,14 @@ inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space
   if (k_idx + 1 == k && count_only) {
     //return num_induced;
     if (induced_space.full_flag) return induced_space.num_edges;
-    auto counts = sequence<size_t>::no_init(num_induced);
-    parallel_for (0, num_induced, [&] (size_t i) {
+    //sequence<size_t> counts = sequence<size_t>::no_init(num_induced);
+    size_t counts = 0;
+    //parallel_for (0, num_induced, [&] (size_t i) {
+    for (size_t i=0; i < num_induced; i++) {
       auto new_induced_space = IN();
-      counts[i] = intersect_op(DG, k_idx, k, i, induced_space, intersect_op_type, base, count_only, false, new_induced_space);
-    });
-    return pbbslib::reduce_add(counts);
+      counts += intersect_op(DG, k_idx, k, i, induced_space, intersect_op_type, base, count_only, false, new_induced_space);
+    }//);
+    return counts; //pbbslib::reduce_add(counts);
   }
 
   size_t total_ct = 0;
@@ -192,43 +211,54 @@ template <class IN, class I, class Graph, class F, class G, class H>
 inline size_t KCliqueDir(Graph& DG, size_t k, F intersect_op, G intersect_op_type, H base_op, bool count_only = true) {
   IN::init();
 
-  auto tots = sequence<size_t>::no_init(DG.n);
-  //size_t stepSize=15;
-  //for (size_t i=0; i < DG.n; ++i) {
-  //for(size_t step = 0; step < (DG.n+stepSize-1)/stepSize; step++) {
-   //parallel_for(step*stepSize, std::min((size_t) (step+1)*stepSize,(size_t) DG.n), [&] (size_t i) {
-  parallel_for (0, DG.n,[&] (size_t i) {
-    if (DG.get_vertex(i).getOutDegree() == 0) {
-      tots[i] = 0;
-    } else {
+  //auto tots = sequence<size_t>::no_init(DG.n);
+  //static I* induced_space_pt = nullptr;
+  size_t n = 0;
+  size_t max_deg = get_max_deg(DG);
+  //uintE* induced = nullptr;
+  I* induced = nullptr;
+  //#pragma omp threadprivate(induced)
+  #pragma omp parallel private(induced) reduction(+:n)
+  {
+  induced = new I(max_deg, k); //(uintE*) malloc(k*max_deg*sizeof(uintE)); //max_deg
+  #pragma omp for schedule(dynamic, 1) nowait
+  for (size_t i=0; i < DG.n; ++i) {
+  //parallel_for (0, DG.n,[&] (size_t i) {
+    //if (DG.get_vertex(i).getOutDegree() == 0) tots[i] = 0;
+    //else {
+    if (DG.get_vertex(i).getOutDegree() != 0) {
       sequence<uintE> base = sequence<uintE>();
-      if (!count_only) {
-        base = sequence<uintE>::no_init(k);
-        base[0] = i;
-      }
-      I induced_space = I(DG, k, i);
-      if (induced_space.num_induced == 0) tots[i] = 0;
-      else tots[i] = KCliqueDir_rec<IN>(DG, 1, k, induced_space, intersect_op, intersect_op_type, base, base_op, count_only);
-      induced_space.del();
+      //if (!count_only) {
+      //  base = sequence<uintE>::no_init(k);
+      //  base[0] = i;
+      //}
+      //I induced_space = I(DG, k, i);
+      //I induced_space = I(induced);
+      induced->setup(DG, k, i);
+      //if (induced_space.num_induced == 0) tots[i] = 0;
+      //else
+      n += KCliqueDir_rec<IN>(DG, 1, k, *induced, intersect_op, intersect_op_type, base, base_op, count_only);
+      //induced_space.del();
     }
-  });
-  //}
+  }//);
+
+  // {free(induced); induced = nullptr; }
+  if (induced != nullptr) { induced->del(); delete induced; }
+
+  }
 
   IN::finish();
-  return pbbslib::reduce_add(tots);
+  return n; //pbbslib::reduce_add(tots);
 }
 
 template <class IN, class I, class Graph, class F, class G, class H>
 size_t KCliqueDirGen(Graph& DG, size_t k, F intersect_op, G intersect_op_type, H base_op, bool count_only);
 
+
+
 template <class Graph>
 void assert_induced_stack_thr(Graph& DG, size_t k = 1) {
-  auto idxs = sequence<size_t>::no_init(DG.n);
-  parallel_for (0,DG.n,[&] (size_t i) { idxs[i] = DG.get_vertex(i).getOutDegree(); });
-  auto base_deg_f = [&](size_t i, size_t j) -> size_t {
-    return idxs[i] > idxs[j] ? idxs[i] : idxs[j];
-  };
-  size_t max_deg = pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));
+  size_t max_deg = get_max_deg(DG);
   assert (max_deg*k <= INDUCED_STACK_THR);
 }
 
@@ -336,15 +366,7 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
     auto lstintersect = lstintersect_orig_struct{};
     count = KCliqueDir<FullSpace_orig, FullSpace_orig>(DG, k-1, lstintersect, lstintersect_simple_struct{}, nop_f, count_only);
   }
-  /*else if (!gen_type && space_type == 1) {
-    auto nop_f = [] (sequence<uintE> b) {return;};
-    auto inter_use = lstintersect_vec_struct{};
-    auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_full(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
-    if (subspace_type == 0) count = KCliqueDir<FullSpace_bool_dyn, FullSpace_bool_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-    //else if (subspace_type == 1) count = KCliqueDir<FullSpace_csv_hash_dyn, FullSpace_csv_hash_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-    else count = KCliqueDir<FullSpace_csv_dyn, FullSpace_csv_dyn>(DG, k-1, lstintersect, nop_f, count_only);
-  }*/
-  else if (gen_type && space_type == 0) {
+  /*else if (gen_type && space_type == 0) {
     if (inter_type == 0){
       count = assemble_induced_KCliqueDirGen(DG, k, lstintersect_par_struct{}, subspace_type, count_only);
     }
@@ -355,7 +377,16 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
     else {
       count = assemble_induced_KCliqueDirGen(DG, k, lstintersect_vec_struct{}, subspace_type, count_only);
     }
-  }
+  }*/
+
+  /*else if (!gen_type && space_type == 1) {
+    auto nop_f = [] (sequence<uintE> b) {return;};
+    auto inter_use = lstintersect_vec_struct{};
+    auto lstintersect = [&](auto& DGA, size_t k_idx, size_t i, auto& induced_space, sequence<uintE>& base, bool to_save, auto& new_induced_space) {return lstintersect_full(DGA, k_idx, k-1, i, induced_space, inter_use, base, count_only, to_save, new_induced_space);};
+    if (subspace_type == 0) count = KCliqueDir<FullSpace_bool_dyn, FullSpace_bool_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+    //else if (subspace_type == 1) count = KCliqueDir<FullSpace_csv_hash_dyn, FullSpace_csv_hash_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+    else count = KCliqueDir<FullSpace_csv_dyn, FullSpace_csv_dyn>(DG, k-1, lstintersect, nop_f, count_only);
+  }*/
   /*if (!induced && !gen) count = KCliqueIndDir_alloc(DG, k-1, lstintersect_par_struct{}, nop_f, true); //count = KCliqueDir(DG, k-1);
   else if (induced && !gen) {
     if (inter == 0) count = KCliqueIndDir(DG, k-1, lstintersect_par_struct{}, nop_f, true);

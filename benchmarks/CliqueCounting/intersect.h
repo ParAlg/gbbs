@@ -15,7 +15,7 @@
 #include "external/simdinter/include/intersection.h"
 #include "external/graphsetinter/src/set_operation.hpp"
 
-#define INDUCED_STACK_THR 500
+#define INDUCED_STACK_THR 5000
 
 // TODO retry using lambdas for intersects
 // TODO make intersects more modularized -- have some kind of wrapper that generates the vtx_seq and everything, and just have the intersects
@@ -204,11 +204,19 @@ struct InducedSpace_dyn {
 
   InducedSpace_dyn() : num_induced(0), induced(nullptr), protected_flag(false) {}
 
+  InducedSpace_dyn(size_t max_induced, size_t k) {}
+
   template <class Graph>
-  InducedSpace_dyn(Graph& DG, size_t k, size_t i) : protected_flag(true) {
+  void setup(Graph& DG, size_t k, size_t i) {
+    protected_flag = true;
     induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
     num_induced = DG.get_vertex(i).getOutDegree();
     running_sum = num_induced;
+  }
+
+  template <class Graph>
+  InducedSpace_dyn(Graph& DG, size_t k, size_t i) {
+    setup(DG, k, i);
   }
 
   template <class I>
@@ -302,8 +310,10 @@ struct InducedSpace_stack_setup {
 
   InducedSpace_stack_setup() : num_induced(0) {}
 
+  InducedSpace_stack_setup(size_t max_induced, size_t k) {}
+
   template <class Graph>
-  InducedSpace_stack_setup(Graph& DG, size_t k, size_t i) {
+  void setup(Graph& DG, size_t k, size_t i) {
     num_induced = DG.get_vertex(i).getOutDegree();
     auto tmp_induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
     parallel_for (0, num_induced, [&] (size_t j) {
@@ -311,6 +321,11 @@ struct InducedSpace_stack_setup {
     });
     induced =  (uintE*) induced_stack;
     running_sum = num_induced;
+  }
+
+  template <class Graph>
+  InducedSpace_stack_setup(Graph& DG, size_t k, size_t i) {
+    setup(DG, k, i);
   }
 
   template <class I>
@@ -330,24 +345,39 @@ struct InducedSpace_dyn_setup {
   bool full_flag = false;
   size_t num_edges = 0;
   size_t running_sum = 0;
+  bool protected_flag = false;
 
   InducedSpace_dyn_setup() : num_induced(0) {}
 
-  template <class Graph>
-  InducedSpace_dyn_setup(Graph& DG, size_t k, size_t i) {
+  InducedSpace_dyn_setup(size_t max_induced, size_t k) {
+    induced = pbbs::new_array_no_init<uintE>(k*max_induced);
+  }
+
+  InducedSpace_dyn_setup(uintE* ptr) {
+    protected_flag = true;
+    induced  = ptr;
+  }
+
+  template<class Graph>
+  void setup(Graph& DG, size_t k, size_t i) {
     num_induced = DG.get_vertex(i).getOutDegree();
-    induced = pbbs::new_array_no_init<uintE>(k*num_induced);
-    auto tmp_induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
+    //if (induced == nullptr) induced = pbbs::new_array_no_init<uintE>(k*num_induced);
+    //uintE* tmp_induced = (uintE*)(DG.get_vertex(i).getOutNeighbors());
     parallel_for (0, num_induced, [&] (size_t j) {
-      induced[j] = tmp_induced[j];
+      induced[j] = ((uintE*)(DG.get_vertex(i).getOutNeighbors()))[j];
     });
     running_sum = num_induced;
+  }
+
+  template <class Graph>
+  InducedSpace_dyn_setup(Graph& DG, size_t k, size_t i) {
+    setup(DG, k, i);
   }
 
   template <class I>
   void alloc_induced(size_t size, I prev) {}
 
-  void del() { if (induced) pbbs::free_array(induced); induced = nullptr; }
+  void del() { if (!protected_flag && induced) pbbs::free_array(induced); induced = nullptr; }
 
   //~InducedSpace_dyn_setup() {del();}
 
@@ -468,18 +498,24 @@ struct FullSpace_orig {
 
   size_t getDegree(size_t i) { return induced_degs[induced[i]]; }
 
+  FullSpace_orig(size_t max_induced, size_t k) {
+    induced = pbbs::new_array_no_init<uintE>(max_induced);
+    induced_degs = pbbs::new_array_no_init<size_t>(k*max_induced);
+    labels = pbbs::new_array_no_init<uintE>(max_induced);
+    induced_edges = pbbs::new_array_no_init<uintE>(max_induced*max_induced);
+    protected_flag = false; orig_flag = true;
+  }
+
   template <class Graph>
-  FullSpace_orig(Graph& DG, size_t k, size_t i) : protected_flag(false), orig_flag(true) {
+  void setup(Graph& DG, size_t k, size_t i) {
+    protected_flag = false; orig_flag = true;
     num_induced = DG.get_vertex(i).getOutDegree();
     running_sum = num_induced;
     if (num_induced == 0) return;
     nn = num_induced;
-    induced = pbbs::new_array_no_init<uintE>(num_induced);
     uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     parallel_for(0, num_induced, [&] (size_t j) { induced[j] = j; });
-    induced_degs = pbbs::new_array_no_init<size_t>(nn);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-    labels = pbbs::new_array_no_init<uintE>(nn);
     parallel_for(0, nn, [&] (size_t j) { labels[j] = 0; });
 
     /*auto idxs = sequence<size_t>::no_init(num_induced);
@@ -499,7 +535,6 @@ struct FullSpace_orig {
     step = num_induced;
     //auto intersect_op_type = lstintersect_vec_struct{};
 
-    induced_edges = pbbs::new_array_no_init<uintE>(nn*step);
     parallel_for(0, num_induced, [&] (size_t j) {
       uintE v = induced_g[j];
       uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
@@ -528,6 +563,11 @@ struct FullSpace_orig {
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
+  template <class Graph>
+  FullSpace_orig(Graph& DG, size_t k, size_t i) {
+    setup(DG, k, i);
+  }
+
   template<class Graph, class O>
   void prune(Graph& DG, size_t i, O& orig, bool to_save, size_t k_idx) {
     protected_flag = true;
@@ -545,7 +585,7 @@ struct FullSpace_orig {
     });
     
     
-    induced_degs = pbbs::new_array_no_init<size_t>(nn);
+    induced_degs = orig.induced_degs + nn; //pbbs::new_array_no_init<size_t>(nn);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     
     parallel_for(0, num_induced, [&] (size_t j) {
@@ -583,7 +623,7 @@ struct FullSpace_orig {
     if (orig_flag && induced_edges) {pbbs::delete_array<uintE>(induced_edges, nn*step);}
     induced_edges = nullptr;
     labels = nullptr;
-    if (induced_degs) {pbbs::delete_array<size_t>(induced_degs, nn);}
+    if (orig_flag && induced_degs) {pbbs::delete_array<size_t>(induced_degs, nn);}
     induced_degs = nullptr;
   }
 

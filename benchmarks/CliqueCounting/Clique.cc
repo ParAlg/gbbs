@@ -35,6 +35,8 @@
 
 #include "Clique.h"
 
+//#include "kClistNodeParallel.c"
+
 // -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (set intersect)
 // -space 0 = induced
 // -subspace 0 = dyn, 1 = alloc, 2 = stack
@@ -59,6 +61,15 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << " -gen = " << gen << std::endl;
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
+
+  /*timer tclist; tclist.start();
+  std::string file = P.getOptionValue("-file", "");
+  auto countcount = kClist(k, file.c_str());
+  double ttclist = tclist.stop();
+  std::cout << "count: " << countcount << std::endl;
+  std::cout << "### Running Time: " << ttclist << std::endl;
+  return ttclist;*/
+
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
