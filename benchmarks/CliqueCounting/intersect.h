@@ -339,6 +339,17 @@ struct InducedSpace_stack_setup {
   static void finish() {}
 };
 
+struct InducedSpace_lw {
+  uintE* num_induced = 0;
+  uintE* induced = nullptr;
+  size_t num_edges = 0; size_t running_sum = 0;
+  InducedSpace_lw(size_t max_deg, size_t k) {
+    induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
+    num_induced = (uintE*) malloc(k*sizeof(uintE));
+  }
+  void del() { if(induced) free(induced); if (num_induced) free(num_induced);}
+};
+
 struct InducedSpace_dyn_setup {
   size_t num_induced;
   uintE* induced = nullptr;
