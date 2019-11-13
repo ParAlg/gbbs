@@ -525,13 +525,16 @@ struct FullSpace_orig {
     if (num_induced == 0) return;
     nn = num_induced;
     uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
-    parallel_for(0, num_induced, [&] (size_t j) { induced[j] = j; });
-    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-    parallel_for(0, nn, [&] (size_t j) { labels[j] = 0; });
+    //parallel_for(0, num_induced, [&] (size_t j) { induced[j] = j; });
+    for (size_t j=0; j < num_induced; j++) { induced[j] = j; }
+    //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+    //parallel_for(0, nn, [&] (size_t j) { labels[j] = 0; });
+    for (size_t j=0; j < nn; j++) { labels[j] = j; }
 
     step = num_induced;
 
-    parallel_for(0, num_induced, [&] (size_t j) {
+    for (size_t j=0; j < num_induced; j++) {
       uintE v = induced_g[j];
       uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
       size_t v_deg = DG.get_vertex(v).getOutDegree();
@@ -544,7 +547,22 @@ struct FullSpace_orig {
           }
         }
       }
-    });
+    }
+
+    /*parallel_for(0, num_induced, [&] (size_t j) {
+      uintE v = induced_g[j];
+      uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      for (size_t l=0; l < v_deg; l++) {
+        for (size_t o=0; o < num_induced; o++) {
+          if (v_nbhrs[l] == induced_g[o]) {
+            induced_edges[j*step + induced_degs[j]] = o;
+            induced_degs[j]++;
+            break;
+          }
+        }
+      }
+    });*/
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
@@ -566,15 +584,16 @@ struct FullSpace_orig {
     step = orig.step;
     induced_edges = orig.induced_edges;
     labels = orig.labels;
-    parallel_for(0, num_induced, [&] (size_t j){
-      labels[induced[j]] = k_idx;
-    });
+    //parallel_for(0, num_induced, [&] (size_t j){ labels[induced[j]] = k_idx; });
+    for (size_t j=0; j < num_induced; j++) { labels[induced[j]] = k_idx; }
     
     
     induced_degs = orig.induced_degs + nn; //pbbs::new_array_no_init<size_t>(nn);
-    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
+    //parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
     
-    parallel_for(0, num_induced, [&] (size_t j) {
+    for (size_t j=0; j < num_induced; j++) {
+    //parallel_for(0, num_induced, [&] (size_t j) {
       uintE v_idx = induced[j];
       uintE v_deg = orig.induced_degs[v_idx];
       uintE* v_edges = induced_edges + v_idx*step;
@@ -587,7 +606,7 @@ struct FullSpace_orig {
           v_edges[end] = tmp;
         }
       }
-    });
+    }//);
     
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
@@ -600,9 +619,10 @@ struct FullSpace_orig {
   void del() {
     if (orig_flag && labels) {pbbs::delete_array<uintE>(labels, nn);}
     else if (labels && induced) {
-      parallel_for(0, num_induced, [&] (size_t j){
+      for (size_t j=0; j < num_induced; j++) {
+      //parallel_for(0, num_induced, [&] (size_t j){
         labels[induced[j]] = 0;
-      });
+      }//);
     }
     if (!protected_flag && induced) {pbbs::delete_array<uintE>(induced, num_induced);}
     induced = nullptr;

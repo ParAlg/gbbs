@@ -234,9 +234,12 @@ inline size_t KCliqueDir_fast(Graph& DG, size_t k) {
   for (size_t i=0; i < DG.n; ++i) {
     if (DG.get_vertex(i).getOutDegree() != 0) {
       induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
-      parallel_for (0, induced->num_induced[0], [&] (size_t j) {
+      //parallel_for (0, induced->num_induced[0], [&] (size_t j) {
+      //  induced->induced[j] = ((uintE*)(DG.get_vertex(i).getOutNeighbors()))[j];
+      //});
+      for  (size_t j=0; j < induced->num_induced[0]; j++) {
         induced->induced[j] = ((uintE*)(DG.get_vertex(i).getOutNeighbors()))[j];
-      });
+      }
       n += KCliqueDir_fast_rec(DG, 1, k, induced);
     }
   }
