@@ -47,10 +47,7 @@
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
   double epsilon = P.getOptionDoubleValue("-e", 0.001);
-  long space = P.getOptionLongValue("-space", 0);
-  long subspace = P.getOptionLongValue("-subspace", 0);
-  bool gen = P.getOptionValue("-gen");
-  long inter = P.getOptionLongValue("-i", 0);
+  long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
   std::cout << "### Application: AppKCore" << std::endl;
@@ -58,7 +55,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << " -gen = " << gen << std::endl;
+  std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << std::endl;
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
 
@@ -73,7 +70,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, gen, space, subspace, inter);
+  auto count = KClique(GA, k, order, epsilon, space);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
