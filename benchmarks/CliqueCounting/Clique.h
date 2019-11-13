@@ -248,6 +248,95 @@ inline size_t KCliqueDir_fast(Graph& DG, size_t k) {
   return n;
 }
 
+template <class Graph>
+inline size_t KCliqueDir_fast_orig_rec(Graph& DG, size_t k_idx, size_t k, FullSpace_orig_lw* induced) {
+  size_t num_induced = induced->num_induced[k_idx-1];
+  uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
+  uintE* prev_induced_degs = induced->induced_degs + induced->nn * (k_idx - 1);
+  if (num_induced == 0) return 0;
+
+  if (k_idx + 1 == k) return induced->num_edges[k_idx - 1];
+
+  size_t total_ct = 0;
+  for (size_t i=0; i < num_induced; ++i) {
+    uintE idx = prev_induced[i];
+    uintE* new_induced = induced->induced + induced->nn * k_idx;
+    induced->num_induced[k_idx] = prev_induced_degs[idx];
+    uintE new_num_induced = induced->num_induced[k_idx];
+    //parallel_for(0, new_num_induced, [&] (size_t j) {new_induced[j] = induced->induced_edges[idx * induced->nn + j]; });
+    for (size_t j=0; j < new_num_induced; j++) { new_induced[j] = induced->induced_edges[idx * induced->nn + j]; }
+    //parallel_for(0, new_num_induced, [&] (size_t j){ induced->labels[new_induced[j]] = k_idx; });
+    for (size_t j=0; j < new_num_induced; j++) { induced->labels[new_induced[j]] = k_idx; }
+    uintE* new_induced_degs = induced->induced_degs + induced->nn * k_idx;
+    //parallel_for(0, induced->nn, [&] (size_t j) { new_induced_degs[j] = 0; });
+    for (size_t j=0; j < induced->nn; j++) { new_induced_degs[j] = 0; }
+    
+    for (size_t j=0; j < new_num_induced; j++) {
+      uintE v_idx = new_induced[j];
+      uintE v_deg = prev_induced_degs[v_idx];
+      uintE* v_edges = induced->induced_edges + v_idx * induced->nn;
+      size_t end = v_deg;
+      for (size_t l=0; l < end; l++) {
+        if (induced->labels[v_edges[l]] == k_idx) new_induced_degs[v_idx]++;
+        else { // if (to_save)
+          auto tmp = v_edges[l];
+          v_edges[l--] = v_edges[--end];
+          v_edges[end] = tmp;
+        }
+      }
+    }
+    
+    /*parallel_for(0, new_num_induced, [&] (size_t j) {
+      uintE v_idx = new_induced[j];
+      uintE v_deg = prev_induced_degs[v_idx];
+      uintE* v_edges = induced->induced_edges + v_idx * induced->nn;
+      size_t end = v_deg;
+      for (size_t l=0; l < end; l++) {
+        if (induced->labels[v_edges[l]] == k_idx) new_induced_degs[v_idx]++;
+        else { // if (to_save)
+          auto tmp = v_edges[l];
+          v_edges[l--] = v_edges[--end];
+          v_edges[end] = tmp;
+        }
+      }
+    });*/
+    
+    auto deg_seq = pbbslib::make_sequence(new_induced_degs, induced->nn);
+    induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
+
+    //uintE vtx = prev_induced[i];
+    //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx); 
+    if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_orig_rec(DG, k_idx + 1, k, induced);
+    //parallel_for(0, new_num_induced, [&] (size_t j){ induced->labels[new_induced[j]] = k_idx-1; });
+    for (size_t j=0; j < new_num_induced; j++) { induced->labels[new_induced[j]] = k_idx-1; }
+  }
+
+  return total_ct;
+}
+
+template <class Graph>
+inline size_t KCliqueDir_fast_orig(Graph& DG, size_t k) {
+  size_t n = 0;
+  size_t max_deg = get_max_deg(DG);
+  FullSpace_orig_lw* induced = nullptr;
+  #pragma omp parallel private(induced) reduction(+:n)
+  {
+  induced = new FullSpace_orig_lw(max_deg, k);
+  #pragma omp for schedule(dynamic, 1) nowait
+  for (size_t i=0; i < DG.n; ++i) {
+    if (DG.get_vertex(i).getOutDegree() != 0) {
+      induced->setup(DG, k, i);
+      n += KCliqueDir_fast_orig_rec(DG, 1, k, induced);
+    }
+  }
+
+  if (induced != nullptr) { induced->del(); delete induced; }
+
+  }
+
+  return n;
+}
+
 // induced_space must have: num_induced, .del()
 template <class IN, class Graph, class I, class F, class G, class H>
 inline size_t KCliqueDir_rec(Graph& DG, size_t k_idx, size_t k, I& induced_space,
@@ -449,6 +538,9 @@ bool gen_type = true, long space_type = 0, long subspace_type = 0, long inter_ty
   }
   else if (!gen_type && space_type == 2) {
     count = KCliqueDir_fast(DG, k-1);
+  }
+  else if (!gen_type && space_type == 3) {
+    count = KCliqueDir_fast_orig(DG, k-1);
   }
   /*else if (gen_type && space_type == 0) {
     if (inter_type == 0){
