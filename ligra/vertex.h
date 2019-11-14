@@ -45,6 +45,70 @@ inline size_t intersect(vertex<W>* A, vertex<W>* B, uintE a, uintE b) {
   return ans;
 }
 
+template <template <typename W> class vertex, class W>
+inline size_t intersect(vertex<W>* A, uintE a, uintE* arr, uintE arr_len) {
+  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = arr_len;
+  auto nghA = A->getOutNeighbors();
+  auto nghB = arr;
+  size_t ans = 0;
+  while (i < nA && j < nB) {
+    if (std::get<0>(nghA[i]) == nghB[j])
+      i++, j++, ans++;
+    else if (std::get<0>(nghA[i]) < nghB[j])
+      i++;
+    else
+      j++;
+  }
+  return ans;
+}
+
+template <template <typename W> class vertex, class W>
+inline size_t intersect_ret(vertex<W>* A, vertex<W>* B, uintE a, uintE b, uintE* ret) {
+  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
+  auto nghA = A->getOutNeighbors();
+  auto nghB = B->getOutNeighbors();
+  size_t ans = 0;
+  while (i < nA && j < nB) {
+    if (std::get<0>(nghA[i]) == std::get<0>(nghB[j])) {
+      ret[ans++] = std::get<0>(nghB[j]);
+      i++, j++;
+    } else if (std::get<0>(nghA[i]) < std::get<0>(nghB[j])) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  return ans;
+}
+
+template <template <typename W> class vertex, class W> inline size_t intersect(vertex<W>* A, vertex<W>* B, vertex<W>* C, uintE a, uintE b, uintE c) {
+  uintT i = 0, j = 0, k = 0, nA = A->getOutDegree(), nB = B->getOutDegree(), nC = C->getOutDegree();
+  auto nghA = A->getOutNeighbors();
+  auto nghB = B->getOutNeighbors();
+  auto nghC = C->getOutNeighbors();
+  size_t ans = 0;
+  while ((i < nA) && (j < nB) && (k < nC)) {
+    const auto& va = std::get<0>(nghA[i]);
+    const auto& vb = std::get<0>(nghB[j]);
+    const auto& vc = std::get<0>(nghC[k]);
+    if ((va == vb) && (va == vc)) {
+      i++, j++, k++, ans++;
+      continue;
+    }
+    auto minv = std::min(std::min(va, vb), vc);
+    if (va == minv) {
+      i++;
+    }
+    if (vb == minv) {
+      j++;
+    }
+    if (vc == minv) {
+      k++;
+    }
+  }
+  return ans;
+}
+
 template <template <typename W> class vertex, class W, class F>
 inline size_t intersect_f(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
                           const F& f) {
@@ -75,8 +139,8 @@ size_t seq_merge_full(SeqA& A, SeqB& B, F& f) {
   size_t i = 0, j = 0;
   size_t ct = 0;
   while (i < nA && j < nB) {
-    T& a = A[i];
-    T& b = B[j];
+    const T a = A[i];
+    const T b = B[j];
     if (a == b) {
       f(a);
       i++;
@@ -97,9 +161,9 @@ size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   size_t nA = A.size();
   size_t ct = 0;
   for (size_t i=0; i < nA; i++) {
-    const T& a = A[i];
+    const T a = A[i];
     size_t mB = pbbslib::binary_search(B, a, std::less<T>());
-    const T& b = B[mB];
+    const T b = B[mB];
     if (a == b) {
       f(a);
       ct++;
@@ -492,6 +556,15 @@ struct symmetric_vertex {
     return intersection::intersect(this, other, our_id, other_id);
   }
 
+  inline size_t intersect(uintE* arr, uintE arr_len, long our_id) {
+    return intersection::intersect(this, our_id, arr, arr_len);
+  }
+
+  inline size_t intersect_ret(symmetric_vertex<W>* other, long our_id,
+                              long other_id, uintE* ret) {
+    return intersection::intersect_ret(this, other, our_id, other_id, ret);
+  }
+
   template <class F>
   inline size_t intersect_f(symmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
@@ -755,6 +828,20 @@ struct asymmetric_vertex {
   inline size_t intersect(asymmetric_vertex<W>* other, long our_id,
                           long other_id) {
     return intersection::intersect(this, other, our_id, other_id);
+  }
+
+  inline size_t intersect(uintE* arr, uintE arr_len, long our_id) {
+    return intersection::intersect(this, our_id, arr, arr_len);
+  }
+
+  inline size_t intersect_ret(asymmetric_vertex<W>* other, long our_id,
+                              long other_id, uintE* ret) {
+    return intersection::intersect_ret(this, other, our_id, other_id, ret);
+  }
+
+  inline size_t intersect(asymmetric_vertex<W>* fst, asymmetric_vertex<W>* snd,
+      long our_id, long fst_id, long snd_id) {
+    return intersection::intersect(this, fst, snd, our_id, fst_id, snd_id);
   }
 
   template <class F>

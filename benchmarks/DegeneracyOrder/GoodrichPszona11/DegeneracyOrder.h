@@ -85,7 +85,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
 // Goodrich (2+epsilon) approx for degeneracy ordering where epsilon > 0
 // Returns vertice sorted in degeneracy order
 template<class Graph>
-inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) {
+inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, commandLine& P) {
+  auto epsilon = P.getOptionDoubleValue("-eps", 0.001);
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 

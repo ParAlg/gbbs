@@ -21,18 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Usage:
-// numactl -i all ./KCore -rounds 3 -s -m com-orkut.ungraph.txt_SJ
-// flags:
-//   required:
-//     -s : indicates that the graph is symmetric
-//   optional:
-//     -m : indicate that the graph should be mmap'd
-//     -c : indicate that the graph is compressed
-//     -rounds : the number of times to run the algorithm
-//     -fa : run the fetch-and-add implementation of k-core
-//     -nb : the number of buckets to use in the bucketing implementation
-
 #include "Clique.h"
 
 //#include "kClistNodeParallel.c"
@@ -46,7 +34,6 @@
 
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
-  double epsilon = P.getOptionDoubleValue("-e", 0.001);
   long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
@@ -55,7 +42,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
-  std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << std::endl;
+  std::cout << "### Params: -k = " << k << std::endl;
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
 
@@ -70,7 +57,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, space);
+  auto count = KClique(GA, k, P, order, space);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

@@ -638,18 +638,12 @@ inline auto get_pcm_state() { return (size_t)1; }
     } \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
-    if (compressed) {                                                          \
-      auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(       \
-          iFile, mmap, mmapcopy);                                              \
-      alloc_init(G);                                                           \
-      run_app(G, APP, rounds)                                                  \
-    } else {                                                                   \
         auto G =                                                               \
             gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);             \
         alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
-    }                                                                          \
   }
+
 
 /* Macro to generate binary for unweighted graph applications that can ingest only
  * symmetric graph inputs */
