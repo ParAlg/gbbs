@@ -317,10 +317,8 @@ void alloc_init(Graph& G) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
   size_t list_alloc_init_blocks = std::max(static_cast<size_t>(0.5 * (G.n/uintes_per_block)),
       static_cast<size_t>(1000));
-  cout << "list_alloc init_blocks: " << list_alloc_init_blocks << endl;
   data_block_allocator::reserve(list_alloc_init_blocks);
-  cout << "after init: " << endl;
-  data_block_allocator::print_stats();
+  // data_block_allocator::print_stats();
 }
 
 template <class data  /* data associated with vertices in the output vertex_subset */,
