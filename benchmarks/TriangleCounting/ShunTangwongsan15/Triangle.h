@@ -215,24 +215,20 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
   } else if (ordering == "goodrich") {
     auto eps = P.getOptionDoubleValue("-e", 0.1);
     auto ff = [&] (Graph& G) -> pbbs::sequence<uintE> {
-      return goodrichpszona_degen::DegeneracyOrder_intsort(G, P);
+      return goodrichpszona_degen::DegeneracyOrder_intsort(G, eps);
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
   } else if (ordering == "kcore") {
     auto ff = [&] (Graph& G) -> pbbs::sequence<uintE> {
       auto dyn_arr = DegeneracyOrder(G);
-      auto ord = pbbs::sequence<uintE>(G.n);
-      parallel_for(0, G.n, [&] (size_t i) {
-        uintE v = dyn_arr.A[i];
-        ord[v] = i;
-      });
-      dyn_arr.del();
-      return ord;
+      auto arr = dyn_arr.A; dyn_arr.A = nullptr;
+      dyn_arr.alloc = false;
+      return pbbs::sequence<uintE>(arr, G.n);
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
   } else if (ordering == "barenboimelkin") {
     auto ff = [&] (Graph& G) -> pbbs::sequence<uintE> {
-      return barenboimelkin_degen::DegeneracyOrder(G, P);
+      return barenboimelkin_degen::DegeneracyOrder(G);
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
   }

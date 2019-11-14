@@ -9,9 +9,7 @@
 
 namespace barenboimelkin_degen {
 template<class Graph>
-inline sequence<uintE> DegeneracyOrder(Graph& GA, commandLine& P) {
-  double epsilon = P.getOptionDoubleValue("-eps", 0.001);
-  bool approx = P.getOption("-approx");
+inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool approx=false) {
   double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
   const size_t n = GA.n;
   const size_t deg_cutoff = std::max((size_t) (ceil(alpha * epsilon)), (size_t) 1);

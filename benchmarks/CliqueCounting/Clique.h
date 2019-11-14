@@ -305,7 +305,8 @@ inline size_t KCliqueDir_fast_orig(Graph& DG, size_t k) {
 // todo approx work and do some kind of break in gen if too much
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
-inline size_t KClique(Graph& GA, size_t k, commandLine& P, long order_type = 0, long space_type = 2) {
+inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1, 
+long space_type = 2) {
   using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;
@@ -313,8 +314,8 @@ inline size_t KClique(Graph& GA, size_t k, commandLine& P, long order_type = 0, 
 
   sequence<uintE> rank;
   timer t_rank; t_rank.start();
-  if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, P);
-  else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, P);
+  if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
+  else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
   else if (order_type == 2) {
     rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
     auto kcore = KCore(GA);
