@@ -34,6 +34,7 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "Clique.h"
+#include <fstream>
 
 //#include "kClistNodeParallel.c"
 
@@ -67,10 +68,22 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Running Time: " << ttclist << std::endl;
   return ttclist;*/
 
+  std::string rankfile = P.getOptionValue("-rankfile", "");
+  uintE* r = nullptr;
+  if (rankfile != "") {
+    std::ifstream infile(rankfile);
+    r = pbbslib::new_array_no_init<uintE>(GA.n);
+    int a;
+    size_t idx = 0;
+    while (infile >> a) {
+      r[idx++] = a;
+    }
+  }
+
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, space);
+  auto count = KClique(GA, k, order, epsilon, space, r);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

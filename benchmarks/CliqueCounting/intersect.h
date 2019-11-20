@@ -117,14 +117,18 @@ struct lstintersect_set_struct {
 
 
 struct InducedSpace_lw {
-  uintE* num_induced = 0;
+  uintE* num_induced = nullptr;
   uintE* induced = nullptr;
-  size_t num_edges = 0; size_t running_sum = 0;
-  InducedSpace_lw(size_t max_deg, size_t k) {
+  int* intersect = nullptr;
+  InducedSpace_lw(size_t max_deg, size_t k, size_t n) {
     induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
     num_induced = (uintE*) malloc(k*sizeof(uintE));
+    intersect = (int*) malloc(n*sizeof(int));
+    for (size_t  i=0; i < n; i++) {
+      intersect[i] = 0;
+    }
   }
-  void del() { if(induced) free(induced); if (num_induced) free(num_induced);}
+  void del() { if(induced) free(induced); if (num_induced) free(num_induced); if (intersect) free(intersect);}
 };
 
 struct FullSpace_orig_lw {
