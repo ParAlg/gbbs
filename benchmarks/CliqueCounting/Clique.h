@@ -31,14 +31,14 @@
 #include "ligra/pbbslib/dyn_arr.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
-#include "intersect.h"
-#include "relabel.h"
-//#include "radix_wrapper.h"
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+#include "intersect.h"
+#include "induced_intersection.h"
+#include "relabel.h"
 
 #define SIMD_STATE 4
 
@@ -60,98 +60,6 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   return r;
 }
 
-template<class Graph>
-size_t get_max_deg(Graph& DG) {
-  size_t max_deg = 0;
-  parallel_for(0, DG.n, [&] (size_t i) {
-    size_t deg = DG.get_vertex(i).getOutDegree();
-    pbbs::write_min(&max_deg, deg, std::greater<size_t>());
-  });
-  return max_deg;
-}
-
-template <class Graph>
-inline size_t KCliqueDir_fast_rec(Graph& DG, size_t k_idx, size_t k, InducedSpace_lw* induced) {
-  size_t num_induced = induced->num_induced[k_idx-1];
-  uintE* prev_induced = induced->induced + induced->num_induced[0] * (k_idx - 1);
-  if (num_induced == 0) return 0;
-
-  for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx; }
-
-  if (k_idx + 1 == k) {
-    size_t counts = 0;
-    for (size_t i=0; i < num_induced; i++) {
-      uintE vtx = prev_induced[i];
-      uintE* intersect = (uintE*)(DG.get_vertex(vtx).getOutNeighbors());
-      for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
-        if (induced->intersect[intersect[j]] == k_idx) counts++;
-      }
-      //counts += lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), false, nullptr);
-    }
-    for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx - 1; }
-    return counts;
-  }
-
-  size_t total_ct = 0;
-  for (size_t i=0; i < num_induced; ++i) {
-    uintE vtx = prev_induced[i];
-    uintE* intersect = (uintE*)(DG.get_vertex(vtx).getOutNeighbors());
-    uintE* out = induced->induced + induced->num_induced[0] * k_idx;
-    uintE count = 0;
-    for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
-      if (induced->intersect[intersect[j]] == k_idx) {
-        out[count] = intersect[j];
-        count++;
-      }
-    }
-    induced->num_induced[k_idx] = count;
-    //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx);
-    if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_rec(DG, k_idx + 1, k, induced);
-  }
-
-  for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx - 1; }
-  return total_ct;
-}
-
-template <class Graph>
-inline size_t KCliqueDir_fast(Graph& DG, size_t k) {
-  //sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
-  size_t n = 0;
-  size_t max_deg = get_max_deg(DG);
-  /*InducedSpace_lw** induceds = (InducedSpace_lw**) malloc(num_workers()*sizeof(InducedSpace_lw*));
-  parallel_for (0, num_workers(), [&](size_t i) {
-    induceds[i] = new InducedSpace_lw(k, max_deg, DG.n);
-  });*/
-  InducedSpace_lw* induced = nullptr;
-  #pragma omp parallel private(induced) reduction(+:n)
-  {
-    induced = new InducedSpace_lw(max_deg, k, DG.n);
-    #pragma omp for schedule(dynamic, 1) nowait
-    for (size_t i=0; i < DG.n; i++) {
-  //parallel_for (0, DG.n, [&](size_t i) {
-    //InducedSpace_lw* induced = induceds[worker_id()];
-    if (DG.get_vertex(i).getOutDegree() != 0) {
-      induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
-      for  (size_t j=0; j < induced->num_induced[0]; j++) {
-        induced->induced[j] = ((uintE*)(DG.get_vertex(i).getOutNeighbors()))[j];
-      }
-      n += KCliqueDir_fast_rec(DG, 1, k, induced);
-    } //else tots[i] = 0;
-  }//);
-  }
-
-  if (induced != nullptr) {induced->del(); delete induced;}
-
-  //parallel_for (0, num_workers(), [&](size_t i) {
-  //  induceds[i]->del(); delete induceds[i];
-  //});
-  //free(induceds);
-
-  //size_t  total = 0;
-  //for (size_t i=0; i < DG.n ;i++) { total += tots[i]; }
-
-  return n; //total; //pbbslib::reduce_add(tots);
-}
 
 template <class Graph>
 inline size_t KCliqueDir_fast_orig_rec(Graph& DG, size_t k_idx, size_t k, FullSpace_orig_lw* induced) {
@@ -242,6 +150,22 @@ inline size_t KCliqueDir_fast_orig(Graph& DG, size_t k) {
   return n;
 }
 
+template <class Graph>
+pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1, uintE* rankfile = nullptr) {
+  if (order_type == 0) return goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
+  else if (order_type == 1) return barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
+  else if (order_type == 2) {
+    auto rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
+    auto kcore = KCore(GA);
+    auto get_core = [&](uintE& p) -> uintE { return kcore[p]; };
+    pbbs::integer_sort_inplace(rank.slice(), get_core);
+    return rank;
+  }
+  else if (order_type == 3) return pbbslib::make_sequence(rankNodes(GA, GA.n), GA.n);
+  else if (order_type == 4) return pbbslib::make_sequence(rankfile, GA.n);
+}
+
+
 // induced
 // generated
 // -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (graph set inter)
@@ -257,18 +181,8 @@ long space_type = 2, uintE* rankfile = nullptr) {
   if (k == 1) return GA.n;
   else if (k == 2) return GA.m;
 
-  sequence<uintE> rank;
   timer t_rank; t_rank.start();
-  if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
-  else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
-  else if (order_type == 2) {
-    rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
-    auto kcore = KCore(GA);
-    auto get_core = [&](uintE& p) -> uintE { return kcore[p]; };
-    integer_sort_inplace(rank.slice(), get_core);
-  }
-  else if (order_type == 3) rank = pbbslib::make_sequence(rankNodes(GA, GA.n), GA.n);
-  else if (order_type == 4) rank = pbbslib::make_sequence(rankfile, GA.n);
+  sequence<uintE> rank = get_ordering(GA, order_type, epsilon, rankfile);
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 

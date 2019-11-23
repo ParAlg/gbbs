@@ -13,6 +13,15 @@ cc_library(
 )
 
 cc_library(
+  name = "induced_intersection",
+  hdrs = ["induced_intersection.h"],
+  deps = [
+  ":intersect",
+  "//ligra/pbbslib:seq",
+  ]
+)
+
+cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [

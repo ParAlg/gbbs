@@ -117,8 +117,14 @@ struct lstintersect_set_struct {
 
 
 struct InducedSpace_lw {
+  // Array storing size of induced neighbor list, for each level of recursion.
   uintE* num_induced = nullptr;
+  // Array storing induced neighbor list, for all levels of recursion. Levels go
+  // from i=0 ... k-1. For each i, the induced neighbor list at level i is
+  // induced + num_induced[0]*i (num_induced[0] is an upper-bound on the maximum
+  // number of induced neighbors at any level).
   uintE* induced = nullptr;
+
   int* intersect = nullptr;
   InducedSpace_lw(size_t max_deg, size_t k, size_t n) {
     induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
