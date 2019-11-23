@@ -22,6 +22,15 @@ cc_library(
 )
 
 cc_library(
+  name = "induced_neighborhood",
+  hdrs = ["induced_neighborhood.h"],
+  deps = [
+  ":intersect",
+  "//ligra/pbbslib:seq",
+  ]
+)
+
+cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [
