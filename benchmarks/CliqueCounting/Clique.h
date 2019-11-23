@@ -32,6 +32,7 @@
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
 #include "intersect.h"
+#include "relabel.h"
 //#include "radix_wrapper.h"
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -40,83 +41,6 @@
 
 
 #define SIMD_STATE 4
-
-
-template <template <class W> class vertex, class W, typename P,
-          typename std::enable_if<
-              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
-              int>::type = 0>
-inline auto relabel_graph(symmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
-  assert(false); return G;
-}
-template <
-    template <class W> class vertex, class W, typename P,
-    typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
-                            int>::type = 0>
-inline auto relabel_graph(asymmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
-  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return G;
-}
-
-template <
-    template <class W> class vertex, class W, typename P,
-    typename std::enable_if<
-        std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
-inline auto relabel_graph(asymmetric_graph<vertex, W>& G,uintE* rank, P& pred) -> decltype(G) {
-  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
-  return G;
-}
-template <template <class W> class vertex, class W, typename P,
-    typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
-                            int>::type = 0>
-inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) {
-  using w_vertex = vertex<W>;
-  auto G = filter_graph(GA, pred);
-  size_t n = G.n;
-  auto outOffsets = sequence<uintT>(n + 1);
-
-  parallel_for(0, n, [&] (size_t i) {
-    w_vertex u = G.get_vertex(i);
-    outOffsets[rank[i]] = u.getOutDegree();
-  }, 1);
-
-  outOffsets[n] = 0;
-  uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
-
-  using edge = std::tuple<uintE, W>;
-
-  auto out_edges = sequence<edge>(outEdgeCount);
-
-  parallel_for(0, n, [&] (size_t i) {
-    w_vertex u = G.get_vertex(i);
-    size_t out_offset = outOffsets[rank[i]];
-    uintE d = u.getOutDegree();
-    edge* nghs = u.getOutNeighbors();
-    edge* dir_nghs = out_edges.begin() + out_offset;
-    for (size_t j=0; j < d; j++) {
-      dir_nghs[j] = std::make_tuple(rank[std::get<0>(nghs[j])], std::get<1>(nghs[j]));
-    }
-    pbbslib::sample_sort (dir_nghs, d, [&](const edge u, const edge v) {
-      return std::get<0>(u) < std::get<0>(v);
-    }, true);
-  }, 1);
-
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
-  parallel_for(0, n, [&] (size_t i) {
-    out_vdata[i].offset = outOffsets[i];
-    out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];
-  });
-  outOffsets.clear();
-
-  auto out_edge_arr = out_edges.to_array();
-  G.del();
-  return symmetric_graph<symmetric_vertex, W>(
-      out_vdata, n, outEdgeCount,
-      get_deletion_fn(out_vdata, out_edge_arr),
-      out_edge_arr);
-}
 
 template <class Graph>
 inline uintE* rankNodes(Graph& G, size_t n) {
@@ -139,20 +63,12 @@ inline uintE* rankNodes(Graph& G, size_t n) {
 template<class Graph>
 size_t get_max_deg(Graph& DG) {
   size_t max_deg = 0;
-  for (size_t i=0; i < DG.n; i++) {
+  parallel_for(0, DG.n, [&] (size_t i) {
     size_t deg = DG.get_vertex(i).getOutDegree();
-    if (deg > max_deg) max_deg = deg;
-  }
+    pbbs::write_min(&max_deg, deg, std::greater<size_t>());
+  });
   return max_deg;
-  //auto idxs = sequence<size_t>::no_init(DG.n);
-  //parallel_for (0,DG.n,[&] (size_t i) { idxs[i] = DG.get_vertex(i).getOutDegree(); });
-  //auto base_deg_f = [&](size_t i, size_t j) -> size_t {
-  //  return idxs[i] > idxs[j] ? idxs[i] : idxs[j];
-  //};
-  //return pbbslib::reduce(idxs, pbbslib::make_monoid(base_deg_f, 0));
 }
-
-
 
 template <class Graph>
 inline size_t KCliqueDir_fast_rec(Graph& DG, size_t k_idx, size_t k, InducedSpace_lw* induced) {
@@ -170,7 +86,7 @@ inline size_t KCliqueDir_fast_rec(Graph& DG, size_t k_idx, size_t k, InducedSpac
       for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
         if (induced->intersect[intersect[j]] == k_idx) counts++;
       }
-      //counts += lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), false, nullptr); 
+      //counts += lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), false, nullptr);
     }
     for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx - 1; }
     return counts;
@@ -259,7 +175,7 @@ inline size_t KCliqueDir_fast_orig_rec(Graph& DG, size_t k_idx, size_t k, FullSp
     uintE* new_induced_degs = induced->induced_degs + induced->nn * k_idx;
     //parallel_for(0, induced->nn, [&] (size_t j) { new_induced_degs[j] = 0; });
     for (size_t j=0; j < induced->nn; j++) { new_induced_degs[j] = 0; }
-    
+
     for (size_t j=0; j < new_num_induced; j++) {
       uintE v_idx = new_induced[j];
       uintE v_deg = prev_induced_degs[v_idx];
@@ -274,7 +190,7 @@ inline size_t KCliqueDir_fast_orig_rec(Graph& DG, size_t k_idx, size_t k, FullSp
         }
       }
     }
-    
+
     /*parallel_for(0, new_num_induced, [&] (size_t j) {
       uintE v_idx = new_induced[j];
       uintE v_deg = prev_induced_degs[v_idx];
@@ -289,12 +205,12 @@ inline size_t KCliqueDir_fast_orig_rec(Graph& DG, size_t k_idx, size_t k, FullSp
         }
       }
     });*/
-    
+
     auto deg_seq = pbbslib::make_sequence(new_induced_degs, induced->nn);
     induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
 
     //uintE vtx = prev_induced[i];
-    //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx); 
+    //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx);
     if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_orig_rec(DG, k_idx + 1, k, induced);
     //parallel_for(0, new_num_induced, [&] (size_t j){ induced->labels[new_induced[j]] = k_idx-1; });
     for (size_t j=0; j < new_num_induced; j++) { induced->labels[new_induced[j]] = k_idx-1; }
@@ -334,7 +250,7 @@ inline size_t KCliqueDir_fast_orig(Graph& DG, size_t k) {
 // todo approx work and do some kind of break in gen if too much
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
-inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1, 
+inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1,
 long space_type = 2, uintE* rankfile = nullptr) {
   using W = typename Graph::weight_type;
   assert (k >= 1);
