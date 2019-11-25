@@ -27,7 +27,7 @@
 
 
 inline size_t lstintersect_simple(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
-  auto seq_b = pbbslib::make_sequence(b, size_b);
+  // auto seq_b = pbbslib::make_sequence(b, size_b);
   size_t out_idx = 0;
   for (size_t i=0; i < size_a; i++) {
     size_t j=0;

@@ -17,7 +17,7 @@ cc_library(
   hdrs = ["induced_intersection.h"],
   deps = [
   ":intersect",
-  "//ligra/pbbslib:seq",
+  "//pbbslib:seq",
   ]
 )
 
@@ -26,7 +26,7 @@ cc_library(
   hdrs = ["induced_neighborhood.h"],
   deps = [
   ":intersect",
-  "//ligra/pbbslib:seq",
+  "//pbbslib:seq",
   ]
 )
 
@@ -36,7 +36,7 @@ cc_library(
   deps = [
   "//ligra:ligra",
   "//ligra:graph",
-  "//ligra/pbbslib:seq",
+  "//pbbslib:seq",
   ]
 )
 
@@ -44,6 +44,9 @@ cc_library(
   name = "Clique",
   hdrs = ["Clique.h"],
   deps = [
+  ":relabel",
+  ":induced_neighborhood",
+  ":induced_intersection",
   "//ligra:bucket",
   "//ligra:edge_map_reduce",
   "//ligra:ligra",
