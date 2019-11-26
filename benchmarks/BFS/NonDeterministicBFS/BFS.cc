@@ -50,6 +50,7 @@ double BFS_runner(Graph& G, commandLine P) {
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
+  std::cout << pbbs::log2_up(31) << " " << pbbs::log2_up(32) <<  " " << pbbs::log2_up(33) << std::endl;
   return tt;
 }
 

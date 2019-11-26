@@ -456,15 +456,6 @@ namespace connectit {
         return run_multiple_sample_only_alg<Graph, no_sampling, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
 
       /* UF Rem-CAS strategies */
-      case 77:
-        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, split_atomic_one>(G, rounds, correct, P);
-      case 78:
-        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, halve_atomic_one>(G, rounds, correct, P);
-      case 79:
-        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, splice_simple>(G, rounds, correct, P);
-      case 80:
-        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, splice_atomic>(G, rounds, correct, P);
-
       case 81:
         return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
       case 82:
@@ -511,208 +502,187 @@ namespace connectit {
         return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 
       case 101:
-        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_compress, split_atomic_one>(G, rounds, correct, P);
-      case 102:
-        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_compress, halve_atomic_one>(G, rounds, correct, P);
-      case 103:
-        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_compress, splice_simple>(G, rounds, correct, P);
-      case 104:
-        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_compress, splice_atomic>(G, rounds, correct, P);
-
-      case 105:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
-      case 106:
+      case 102:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
-      case 107:
+      case 103:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_split, splice_simple>(G, rounds, correct, P);
-      case 108:
+      case 104:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_split, splice_atomic>(G, rounds, correct, P);
 
-      case 109:
+      case 105:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_halve, split_atomic_one>(G, rounds, correct, P);
-      case 110:
+      case 106:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
-      case 111:
+      case 107:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_halve, splice_simple>(G, rounds, correct, P);
-      case 112:
+      case 108:
         return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 
-      case 113:
-        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_compress, split_atomic_one>(G, rounds, correct, P);
-      case 114:
-        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_compress, halve_atomic_one>(G, rounds, correct, P);
-      case 115:
-        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_compress, splice_simple>(G, rounds, correct, P);
-      case 116:
-        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_compress, splice_atomic>(G, rounds, correct, P);
-
-      case 117:
+      case 109:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
-      case 118:
+      case 110:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
-      case 119:
+      case 111:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_split, splice_simple>(G, rounds, correct, P);
-      case 120:
+      case 112:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_split, splice_atomic>(G, rounds, correct, P);
 
-      case 121:
+      case 113:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_halve, split_atomic_one>(G, rounds, correct, P);
-      case 122:
+      case 114:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
-      case 123:
+      case 115:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_halve, splice_simple>(G, rounds, correct, P);
-      case 124:
+      case 116:
         return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 
       /* Liu-Tarjan algorithms */
-      case 125:
+      case 117:
         /* <parent_connect, update, shortcut> (Algorithm P) */
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 126:
+      case 118:
         /* <parent_connect, root_update, shortcut> (Algorithm R) */
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 127:
+      case 119:
         /* <extended_connect, update, shortcut> (Algorithm E) */
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 128:
+      case 120:
         /* <parent_connect, update, full_shortcut> (PF) */
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 129:
+      case 121:
         /* <parent_connect, root_update, full_shortcut> (RF) */
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 130:
+      case 122:
         /* <extended_connect, update, full_shortcut> (EF) */
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
-      case 131:
+      case 123:
         /* <parent_connect, update, shortcut> (Algorithm P) */
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 132:
+      case 124:
         /* <parent_connect, root_update, shortcut> (Algorithm R) */
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 133:
+      case 125:
         /* <extended_connect, update, shortcut> (Algorithm E) */
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 134:
+      case 126:
         /* <parent_connect, update, full_shortcut> (PF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 135:
+      case 127:
         /* <parent_connect, root_update, full_shortcut> (RF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 136:
+      case 128:
         /* <extended_connect, update, full_shortcut> (EF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
-      case 137:
+      case 129:
         /* <parent_connect, update, shortcut> (Algorithm P) */
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 138:
+      case 130:
         /* <parent_connect, root_update, shortcut> (Algorithm R) */
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 139:
+      case 131:
         /* <extended_connect, update, shortcut> (Algorithm E) */
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 140:
+      case 132:
         /* <parent_connect, update, full_shortcut> (PF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 141:
+      case 133:
         /* <parent_connect, root_update, full_shortcut> (RF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 142:
+      case 134:
         /* <extended_connect, update, full_shortcut> (EF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
-      case 143:
+      case 135:
         /* <parent_connect, update, shortcut> (Algorithm P) */
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 144:
+      case 136:
         /* <parent_connect, root_update, shortcut> (Algorithm R) */
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 145:
+      case 137:
         /* <extended_connect, update, shortcut> (Algorithm E) */
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
-      case 146:
+      case 138:
         /* <parent_connect, update, full_shortcut> (PF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 147:
+      case 139:
         /* <parent_connect, root_update, full_shortcut> (RF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 148:
+      case 140:
         /* <extended_connect, update, full_shortcut> (EF) */
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
 
-      case 149:
+      case 141:
         return run_multiple(G, rounds, correct, "bfs_cc", P, t_bfs_cc<Graph>);
 
       /* Shiloach-Vishkin strategies */
-      case 150:
+      case 142:
         return run_multiple_sample_only_alg<Graph, sample_kout, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
-      case 151:
+      case 143:
         return run_multiple_sample_only_alg<Graph, sample_bfs, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
-      case 152:
+      case 144:
         return run_multiple_sample_only_alg<Graph, sample_ldd, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
-      case 153:
+      case 145:
         return run_multiple_sample_only_alg<Graph, no_sampling, shiloachvishkin_cc::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "shiloach_vishkin");
 
-    case 154:
-      return run_multiple_uf_alg<Graph, no_sampling, unite, find_split>(G, rounds, correct, P);
+      case 146:
+        return run_multiple_uf_alg<Graph, no_sampling, unite, find_split>(G, rounds, correct, P);
 
-    /* UF Rem-CAS strategies */
-    case 155:
-      return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
-    case 156:
-      return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
-    case 157:
-      return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
-    case 158:
-      return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
+      /* UF Rem-CAS strategies */
+      case 147:
+        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
+      case 148:
+        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
+      case 149:
+        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
+      case 150:
+        return run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
 
-    case 159:
-      return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
-    case 160:
-      return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
-    case 161:
-      return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
-    case 162:
-      return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
+      case 151:
+        return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
+      case 152:
+        return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
+      case 153:
+        return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
+      case 154:
+        return run_multiple_uf_alg<Graph, sample_kout, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
 
-    case 163:
-      return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
-    case 164:
-      return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
-    case 165:
-      return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
-    case 166:
-      return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
+      case 155:
+        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
+      case 156:
+        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
+      case 157:
+        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
+      case 158:
+        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
 
-    case 167:
-      return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
-    case 168:
-      return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
-    case 169:
-      return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
-    case 170:
-      return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
+      case 159:
+        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
+      case 160:
+        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
+      case 161:
+        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, splice_simple>(G, rounds, correct, P);
+      case 162:
+        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
 
-
-      case 171:
+      case 163:
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 172:
+      case 164:
         return run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 173:
+      case 165:
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 174:
+      case 166:
         return run_multiple_liu_tarjan_alg<Graph, sample_kout, extended_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 175:
+      case 167:
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 176:
+      case 168:
         return run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-      case 177:
+      case 169:
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
-      case 178:
+      case 170:
         return run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
-
-
 
       default:
       std::cout << "Unknown test" << std::endl;

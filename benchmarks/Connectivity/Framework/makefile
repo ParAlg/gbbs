@@ -55,7 +55,7 @@ CC = g++-7
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL=ConnectivityBenchmark IncrementalBenchmark
+ALL=ConnectivityBenchmark
 
 all: $(ALL)
 
