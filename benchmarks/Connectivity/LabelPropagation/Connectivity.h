@@ -127,6 +127,4 @@ namespace labelprop_cc {
     }
   };
 
-
-
 }  // namespace labelprop_cc

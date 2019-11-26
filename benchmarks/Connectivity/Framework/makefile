@@ -15,7 +15,7 @@ endif
 
 FORMAT = -DCSR # (oneof {DCSR, DCOO})
 
-INCLUDE_DIRS = -I../../
+INCLUDE_DIRS = -I../../../
 
 #OPT = -O3 -g
 OPT = -O3 -g -DNDEBUG

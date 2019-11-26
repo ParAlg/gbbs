@@ -2,7 +2,9 @@ cc_library(
   name = "Connectivity",
   hdrs = ["Connectivity.h"],
   deps = [
+  "//benchmarks/Connectivity:common",
   "//ligra:ligra",
+  "//pbbslib:random_shuffle",
   ]
 )
 
