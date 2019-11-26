@@ -21,12 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "WorkEfficientSDB14/Connectivity.h"
-#include "UnionFind/Connectivity.h"
-#include "ShiloachVishkin/Connectivity.h"
-#include "LabelPropagation/Connectivity.h"
-#include "BFSCC/Connectivity.h"
-#include "Framework/framework.h"
+#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/Connectivity/UnionFind/Connectivity.h"
+#include "benchmarks/Connectivity/ShiloachVishkin/Connectivity.h"
+#include "benchmarks/Connectivity/LabelPropagation/Connectivity.h"
+#include "benchmarks/Connectivity/BFSCC/Connectivity.h"
+#include "benchmarks/Connectivity/Framework/framework.h"
 
 #include "ligra/graph_mutation.h"
 
