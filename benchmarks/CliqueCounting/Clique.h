@@ -40,7 +40,7 @@
 
 // Clique files
 #include "intersect.h"
-#include "my_induced_intersection.h"
+#include "induced_intersection.h"
 #include "induced_neighborhood.h"
 #include "relabel.h"
 
