@@ -42,6 +42,7 @@
 #include "intersect.h"
 #include "induced_intersection.h"
 #include "induced_neighborhood.h"
+#include "induced_hybrid.h"
 #include "relabel.h"
 
 #define SIMD_STATE 4
@@ -115,6 +116,9 @@ long space_type = 2) {
   }
   else if (space_type == 3) {
     count = induced_neighborhood::CountCliques(DG, k-1);
+  }
+  else if (space_type == 5) {
+    count = induced_hybrid::CountCliques(DG, k-1);
   }
 
   double tt = t.stop();

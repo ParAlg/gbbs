@@ -31,6 +31,15 @@ cc_library(
 )
 
 cc_library(
+  name = "induced_hybrid",
+  hdrs = ["induced_hybrid.h"],
+  deps = [
+  ":intersect",
+  "//pbbslib:seq",
+  ]
+)
+
+cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [
@@ -47,6 +56,7 @@ cc_library(
   ":relabel",
   ":induced_neighborhood",
   ":induced_intersection",
+  ":induced_hybrid",
   "//ligra:bucket",
   "//ligra:edge_map_reduce",
   "//ligra:ligra",

@@ -218,6 +218,77 @@ struct FullSpace_orig_lw {
 
 
 
+struct HybridSpace_lw {
+  uintE* num_induced = nullptr;
+  uintE* induced = nullptr;
+  uintE num_edges = 0;
+  uintE* induced_edges = nullptr;
+  uintE* induced_degs = nullptr;
+  uintE* labels = nullptr;
+  size_t nn = 0;
+
+  HybridSpace_lw(size_t max_induced, size_t k) {
+    induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
+    induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
+    labels = (uintE*) malloc(sizeof(uintE)*max_induced);
+    induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
+    num_induced = (uintE*) malloc(sizeof(uintE)*k);
+  }
+
+  template <class Graph>
+  void setup(Graph& DG, size_t k, size_t i) {
+    static uintE* old_labels = nullptr;
+	  #pragma omp threadprivate(old_labels)
+    if (old_labels == nullptr) {
+      old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
+      for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
+    }
+
+    num_induced[0] = DG.get_vertex(i).getOutDegree();
+    nn = num_induced[0];
+    uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+    for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
+
+    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = o + 1; }
+
+
+    for (size_t j=0; j < nn; j++) {
+      uintE v = induced_g[j];
+      uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
+      // store result in induced_edges[j*nn]
+      // store size in induced_degs[j]
+      for (size_t l=0; l < v_deg; l++) {
+        if (old_labels[v_nbhrs[l]] > 0) {
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhrs[l]] - 1;
+          induced_degs[j]++;
+        }
+      }
+    }
+
+    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = 0; }
+
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
+  static void init(){}
+  static void finish(){}
+
+  void del() {
+    if (labels) free(labels);
+    if (induced) free(induced);
+    if (induced_edges) free(induced_edges);
+    if (induced_degs) free(induced_degs);
+    if (num_induced) free(num_induced);
+  }
+
+};
+
+
 
 
 
