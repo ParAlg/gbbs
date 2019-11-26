@@ -68,7 +68,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Running Time: " << ttclist << std::endl;
   return ttclist;*/
 
-  std::string rankfile = P.getOptionValue("-rankfile", "");
+  /*std::string rankfile = P.getOptionValue("-rankfile", "");
   uintE* r = nullptr;
   if (rankfile != "") {
     std::ifstream infile(rankfile);
@@ -78,12 +78,12 @@ double AppKCore_runner(Graph& GA, commandLine P) {
     while (infile >> a) {
       r[idx++] = a;
     }
-  }
+  }*/
 
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, space, r);
+  auto count = KClique(GA, k, order, epsilon, space);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

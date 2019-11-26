@@ -65,7 +65,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
 }
 
 template <class Graph>
-pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1, uintE* rankfile = nullptr) {
+pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
   if (order_type == 0) return goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
   else if (order_type == 1) return barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
   else if (order_type == 2) {
@@ -76,7 +76,6 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
     return rank;
   }
   else if (order_type == 3) return pbbslib::make_sequence(rankNodes(GA, GA.n), GA.n);
-  else if (order_type == 4) return pbbslib::make_sequence(rankfile, GA.n);
 }
 
 
@@ -89,14 +88,14 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1,
-long space_type = 2, uintE* rankfile = nullptr) {
+long space_type = 2) {
   using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;
   else if (k == 2) return GA.m;
 
   timer t_rank; t_rank.start();
-  sequence<uintE> rank = get_ordering(GA, order_type, epsilon, rankfile);
+  sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
   double tt_rank = t_rank.stop();
   std::cout << "### Rank Running Time: " << tt_rank << std::endl;
 

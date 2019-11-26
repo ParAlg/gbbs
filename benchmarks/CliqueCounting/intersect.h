@@ -157,12 +157,21 @@ struct FullSpace_orig_lw {
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
+    static uintE* old_labels = nullptr;
+	  #pragma omp threadprivate(old_labels)
+    if (old_labels == nullptr) {
+      old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
+      for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
+    }
+
     num_induced[0] = DG.get_vertex(i).getOutDegree();
     nn = num_induced[0];
     uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
     for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
+
+    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = o + 1; }
 
 
     for (size_t j=0; j < nn; j++) {
@@ -173,15 +182,21 @@ struct FullSpace_orig_lw {
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
       for (size_t l=0; l < v_deg; l++) {
-        for (size_t o=0; o < num_induced[0]; o++) {
+        if (old_labels[v_nbhrs[l]] > 0) {
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhrs[l]] - 1;
+          induced_degs[j]++;
+        }
+        /*for (size_t o=0; o < num_induced[0]; o++) {
           if (v_nbhrs[l] == induced_g[o]) {
             induced_edges[j*nn + induced_degs[j]] = o;
             induced_degs[j]++;
             break;
           }
-        }
+        }*/
       }
     }
+
+    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = 0; }
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges[0] = pbbslib::reduce_add(deg_seq);
