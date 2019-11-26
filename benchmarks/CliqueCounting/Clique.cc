@@ -47,7 +47,7 @@
 
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
-  double epsilon = P.getOptionDoubleValue("-e", 0.001);
+  double epsilon = P.getOptionDoubleValue("-e", 0.1);
   long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
