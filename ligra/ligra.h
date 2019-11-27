@@ -665,7 +665,6 @@ inline auto get_pcm_state() { return (size_t)1; }
       cout << "The application expects the input graph to be symmetric (-s flag)." << endl; \
       cout << "Please run on a symmetric input." << endl; \
     } \
-    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
       auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(       \

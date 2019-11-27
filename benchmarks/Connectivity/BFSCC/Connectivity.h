@@ -52,7 +52,6 @@ struct BFS_ComponentLabel_F {
 template <class Graph>
 void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
   using W = typename Graph::weight_type;
-
   vertexSubset Frontier(G.n, src);
   size_t reachable = 0; size_t rounds = 0;
   parents[src] = src;
@@ -70,7 +69,6 @@ void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
 
 template <class Graph>
 inline sequence<parent> CC(Graph& G) {
-  using W = typename Graph::weight_type;
   size_t n = G.n;
   auto parents = pbbs::sequence<parent>(n, UINT_E_MAX);
   for (size_t i=0; i<n; i++) {

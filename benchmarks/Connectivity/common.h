@@ -52,38 +52,3 @@ enum AlgorithmType {
 uintE largest_comp = UINT_E_MAX;
 
 
-/********************************* vertex incremental ************************/
-
-struct ResizableParents {
-
-  parent** arrays;
-  size_t initial_size;
-
-  ResizableParents(size_t initial_size) : initial_size(initial_size) {
-     /* double each time; 64 arrays is plenty */
-    arrays = pbbs::new_array_no_init<parent*>(64);
-
-    /* base array has size = initial_size */
-    arrays[0] = pbbs::new_array_no_init<parent>(initial_size);
-  }
-
-  /* idx is 0-indexed */
-  uintE get_array_idx(uintE idx) {
-    uintE mapped_idx = idx + 1; /* convert to 1-indexed */
-    mapped_idx += 1; /* shift so that values fall in [... 2^{k}] */
-    uintE array_idx = pbbs::log2_up(mapped_idx);
-    array_idx -= 1; /* make array index 0-indexed */
-    assert(array_idx >= 0);
-    return array_idx;
-  }
-
-  uintE get_array_position(uintE idx, uintE array_idx) {
-    uintE array_slots = 1 << array_idx;
-    uintE one_indexed_idx = idx + 1;
-    /* clear top bit */
-
-  }
-
-};
-
-

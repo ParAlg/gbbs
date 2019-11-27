@@ -97,7 +97,7 @@ struct LiuTarjanAlgorithm {
   Update& update;
   Shortcut& shortcut;
   LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut) :
-    GA(GA), connect(connect), update(update), shortcut(shortcut), n(n) {}
+    GA(GA), n(n), connect(connect), update(update), shortcut(shortcut) {}
 
   void initialize(pbbs::sequence<parent>& P) {}
 
@@ -144,7 +144,6 @@ struct LiuTarjanAlgorithm {
 
   template <class Seq>
   void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
-    using W = typename Graph::weight_type;
 
     auto parents_changed = true;
     auto& P = parents;
@@ -185,12 +184,12 @@ struct LiuTarjanAlgorithm {
             while (P[u] != P[P[u]]) {
               P[u] = P[P[u]];
             }
-            uintE p_u = P[u];
+            /* found p_u */
 
             while (P[v] != P[P[v]]) {
               P[v] = P[P[v]];
             }
-            uintE p_v = P[v];
+            /* found p_v */
           }
         }
       });
@@ -208,12 +207,12 @@ struct LiuTarjanAlgorithm {
           while (P[u] != P[P[u]]) {
             P[u] = P[P[u]];
           }
-          uintE p_u = P[u];
+          /* found p_u */
 
           while (P[v] != P[P[v]]) {
             P[v] = P[P[v]];
           }
-          uintE p_v = P[v];
+          /* found p_v */
         }
       }
     });

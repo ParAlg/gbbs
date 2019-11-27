@@ -156,14 +156,6 @@ struct SVAlgorithm {
     }
   }
 
-  template <class Seq>
-  void process_batch(ResizableParents& parents, Seq& batch, size_t insert_to_query) {
-
-  }
-
-
-
-
 };
 
 

@@ -103,8 +103,8 @@ struct UFAlgorithm {
       uintE u, v;
       std::tie(u,v) = batch[i];
       if (i % insert_to_query == 0) { /* query */
-        size_t p_u = find(u, parents);
-        size_t p_v = find(v, parents);
+        u = find(u, parents); /* force */
+        v = find(v, parents); /* force */
       } else { /* insert */
         unite(u, v, parents);
       }

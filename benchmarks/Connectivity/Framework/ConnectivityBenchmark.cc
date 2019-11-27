@@ -21,13 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
-#include "benchmarks/Connectivity/UnionFind/Connectivity.h"
-#include "benchmarks/Connectivity/ShiloachVishkin/Connectivity.h"
-#include "benchmarks/Connectivity/LabelPropagation/Connectivity.h"
-#include "benchmarks/Connectivity/BFSCC/Connectivity.h"
 #include "framework.h"
-
+#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/Connectivity/BFSCC/Connectivity.h"
 #include "benchmarks/Connectivity/common.h"
 
 static timer bt;
@@ -785,7 +781,6 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
-  bool symmetric = P.getOptionValue("-s");
   int num_tests = 179; // update if new algorithm is added
 
   int starting_num = P.getOptionIntValue("-start", 0);
@@ -819,7 +814,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   auto before_state = get_pcm_state();
   timer ot; ot.start();
 #endif
-    bool ret = connectit::pick_test(G, test_num, rounds, P, correct);
+    connectit::pick_test(G, test_num, rounds, P, correct);
 #ifdef USE_PCM_LIB
   double elapsed = ot.stop();
   auto after_state = get_pcm_state();

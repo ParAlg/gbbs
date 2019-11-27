@@ -195,8 +195,8 @@ namespace jayanti_rank {
         auto r_u = r.fork(u);
         auto r_uv = r_u.fork(v);
         if (i % insert_to_query == 0) { /* query */
-          size_t p_u = find(u, vdatas);
-          size_t p_v = find(v, vdatas);
+          u = find(u, vdatas);
+          v = find(v, vdatas);
         } else { /* insert */
           unite(u, v, vdatas, r_uv, find);
         }

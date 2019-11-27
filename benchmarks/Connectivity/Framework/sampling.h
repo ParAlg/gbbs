@@ -198,7 +198,6 @@ struct BFSSamplingTemplate {
    GA(GA) {}
 
   pbbs::sequence<parent> initial_components() {
-    using W = typename G::weight_type;
     size_t n = GA.n;
 
     pbbs::sequence<parent> parents;
@@ -210,8 +209,6 @@ struct BFSSamplingTemplate {
      * graph. Run BFSs at most max_trials times until we find it. */
 
     uint32_t max_trials = 3;
-    uintE skip_comp = UINT_E_MAX;
-    bool found_massive_component = false;
     for (uint32_t r=0; r<max_trials; r++) {
       uintE src = rnd.rand() % n;
       auto bfs_parents = BFS_ComponentLabel(GA, src);
@@ -221,8 +218,6 @@ struct BFSSamplingTemplate {
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
       if (pct > static_cast<double>(0.1)) {
         std::cout << "# BFS covered: " << pct << " of graph" << std::endl;
-        skip_comp = frequent_comp;
-        found_massive_component = true;
         break;
       }
       std::cout << "# BFS covered only: " << pct << " of graph." << std::endl;
@@ -275,7 +270,6 @@ struct LDDSamplingTemplate {
   LDDSamplingTemplate(G& GA, commandLine& P) : GA(GA) { }
 
   pbbs::sequence<parent> initial_components() {
-    using W = typename G::weight_type;
     size_t n = GA.n;
 
     timer lddt; lddt.start();

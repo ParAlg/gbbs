@@ -93,6 +93,7 @@ namespace splice_variants {
     else {
       pbbs::atomic_compare_and_swap(&parents[i],v,w);
       i = v;
+      return i;
     }
   }
 
@@ -105,6 +106,7 @@ namespace splice_variants {
       pbbs::atomic_compare_and_swap(&parents[i],v,w);
       //i = w;
       i = parents[i];
+      return i;
     }
   }
 

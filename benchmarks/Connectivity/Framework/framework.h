@@ -7,7 +7,6 @@
 #include "benchmarks/Connectivity/common.h"
 
 #include "sampling.h"
-#include "sampling.h"
 
 namespace connectit {
 
@@ -150,7 +149,6 @@ namespace connectit {
     UniteOption unite_option /* for afforest */,
     SpliceOption splice_option /* for afforest */>
   pbbs::sequence<parent> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
-    size_t n = G.n;
     if constexpr (sampling_option == sample_kout) {
       auto find = get_find_function<find_option>();
       if constexpr (unite_option == unite_rem_cas) {
@@ -161,7 +159,7 @@ namespace connectit {
         auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
         return connectivity.components();
       } else {
-        auto unite = get_unite_function<unite_option, decltype(find)>(n, find);
+        auto unite = get_unite_function<unite_option, decltype(find)>(G.n, find);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
         auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
@@ -219,7 +217,6 @@ namespace connectit {
       Graph& G,
       commandLine& P) {
     static_assert(unite_option == unite_rem_cas);
-    size_t n = G.n;
     auto find = get_find_function<find_option>();
     auto splice = get_splice_function<splice_option>();
     auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
@@ -308,13 +305,12 @@ namespace connectit {
   pbbs::sequence<parent> run_sample_only_alg(
       Graph& G,
       commandLine& P) {
-    size_t n = G.n;
     using ALG = Algorithm<Graph>;
     auto alg = ALG(G);
 
     if constexpr (sampling_option == sample_kout) {
       auto fc = find_variants::find_compress;
-      auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
+      auto unite = unite_variants::UniteND<decltype(fc)>(G.n, fc);
       using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
       auto sample = Afforest(G, fc, unite, P);
       auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG, algorithm_type, sampling_option>(G, sample, alg);
@@ -409,7 +405,6 @@ namespace connectit {
   pbbs::sequence<parent> run_liu_tarjan_alg(
       Graph& G,
       commandLine& P) {
-    size_t n = G.n;
     auto connect = lt::get_connect_function<connect_option>();
     auto update = lt::get_update_function<update_option>();
     auto shortcut = lt::get_shortcut_function<shortcut_option>();
