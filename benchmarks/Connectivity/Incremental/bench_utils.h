@@ -28,6 +28,14 @@ auto repeat(Graph& G, size_t rounds, F test, commandLine& P) {
   std::vector<double> thput;
   for (size_t i=0; i < rounds; i++) {
     double tot, avg, thp;
+#ifdef REPORT_PATH_LENGTHS
+    max_pathlen.reset();
+    total_pathlen.reset();
+#endif
+#ifdef REPORT_MAX_TRIES
+    max_uf_tries.reset();
+    total_uf_tries.reset();
+#endif
     std::tie(tot, avg, thp) = test(G, P);
     total.push_back(tot);
     average_batch.push_back(avg);
@@ -85,5 +93,9 @@ void print_cpu_stats(Stats& stats, commandLine& P) {
     + " ,\"l3_misses\":" + std::to_string(stats.get_l3_misses())
     + " ,\"l3_hits\":" + std::to_string(stats.get_l3_hits())
     + " ,\"throughput\":" + std::to_string(stats.get_throughput())
+    + " ,\"max_path_len\":" + std::to_string(max_pathlen.get_value())
+    + " ,\"total_path_len\":" + std::to_string(total_pathlen.get_value())
+    + " ,\"max_uf_tries\":" + std::to_string(max_uf_tries.get_value())
+    + " ,\"total_uf_tries\":" + std::to_string(total_uf_tries.get_value())
     + "}" << std::endl;
 }

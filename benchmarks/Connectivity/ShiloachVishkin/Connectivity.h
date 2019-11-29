@@ -28,47 +28,6 @@
 
 namespace shiloachvishkin_cc {
 
-//template <class Graph>
-//inline sequence<parent> CC(Graph& G) {
-//  using W = typename Graph::weight_type;
-//  size_t n = G.n;
-//  auto parents = pbbs::sequence<parent>(n, [&] (uintE i) { return i; });
-//  bool changed = true;
-//  size_t rounds = 0;
-//  while (changed) {
-//    changed = false;
-//    rounds++;
-//    parallel_for(0, n, [&] (uintE u) {
-//      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-//        uintE p_u = parents[u];
-//        uintE p_v = parents[v];
-//        if (p_u != p_v) {
-//          uintE larger = std::max(u,v);
-//          uintE smaller = std::min(u,v); // tricks require sign extension
-//          if (larger == parents[larger]) {
-//            if (!changed) {
-//              changed = true;
-//            }
-//            pbbs::write_min(&parents[larger], smaller, std::less<uintE>());
-//          }
-//        }
-//      };
-//      G.get_vertex(u).mapOutNgh(u, map_f);
-//    }, 1);
-//
-//    // compress
-//    parallel_for(0, n, [&] (uintE u) {
-//      while (parents[u] != parents[parents[u]]) {
-//        parents[u] = parents[parents[u]];
-//      }
-//    });
-//  }
-//
-//  std::cout << "# Ran: " << rounds << " many rounds" << std::endl;
-//  return parents;
-//}
-
-
 template <class Graph>
 struct SVAlgorithm {
   Graph& GA;

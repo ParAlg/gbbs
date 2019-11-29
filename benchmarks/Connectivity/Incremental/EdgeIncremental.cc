@@ -236,112 +236,99 @@ namespace connectit {
 #endif
 
     switch (id) {
-      case 1:
+      /* {unite, unite_early, unite_nd} x {find_compress, find_naive, find_atomic_split, find_atomic_halve} */
+      case 0:
         return run_multiple_uf_alg<Graph, unite, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 2:
+      case 1:
         return run_multiple_uf_alg<Graph, unite, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 3:
+      case 2:
         return run_multiple_uf_alg<Graph, unite, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 4:
+      case 3:
         return run_multiple_uf_alg<Graph, unite, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
-      case 5:
+      case 4:
         return run_multiple_uf_alg<Graph, unite_early, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 6:
+      case 5:
         return run_multiple_uf_alg<Graph, unite_early, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 7:
+      case 6:
         return run_multiple_uf_alg<Graph, unite_early, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 8:
+      case 7:
         return run_multiple_uf_alg<Graph, unite_early, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
-      case 9:
+      case 8:
         return run_multiple_uf_alg<Graph, unite_nd, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 10:
+      case 9:
         return run_multiple_uf_alg<Graph, unite_nd, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 11:
+      case 10:
         return run_multiple_uf_alg<Graph, unite_nd, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 12:
+      case 11:
         return run_multiple_uf_alg<Graph, unite_nd, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
-      case 13:
-        return run_multiple_uf_alg<Graph, unite_rem_lock, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 14:
+      /* unite_rem_lock x {find_naive, find_atomic_split, find_atomic_halve} */
+      case 12:
         return run_multiple_uf_alg<Graph, unite_rem_lock, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 15:
+      case 13:
         return run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 16:
+      case 14:
         return run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
-      /* Jayanti strategies */
-      case 17:
-        return run_multiple_jayanti_alg<Graph, find_twotrysplit, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
-      case 18:
-        return run_multiple_jayanti_alg<Graph, find_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
-
-      /* UF Rem-CAS strategies */
-      case 19:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 20:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 21:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, splice_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 22:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_compress, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-
-      case 23:
+      /* unite_rem_cas x {find_naive, find_atomic_split, find_atomic_halve} x {split_atomic_one, halve_atomic_one, splice_simple, splice_atomic} */
+      case 15:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 24:
+      case 16:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 25:
+      case 17:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, splice_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 26:
+      case 18:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_split, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
-      case 27:
+      case 19:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 28:
+      case 20:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 29:
+      case 21:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, splice_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 30:
+      case 22:
         return run_multiple_uf_alg<Graph, unite_rem_cas, find_atomic_halve, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
+      case 23:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+      case 24:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+      case 25:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+      case 26:
+        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+
+      /* Jayanti strategies */
+      case 27:
+        return run_multiple_jayanti_alg<Graph, find_twotrysplit, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
+      case 28:
+        return run_multiple_jayanti_alg<Graph, find_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
+
       /* Liu-Tarjan algorithms */
-      case 31:
+      case 29:
         /* <parent_connect, update, shortcut> (Algorithm P) */
         return run_multiple_liu_tarjan_alg<Graph, parent_connect, simple_update, shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 32:
+      case 30:
         /* <parent_connect, root_update, shortcut> (Algorithm R) */
         return run_multiple_liu_tarjan_alg<Graph, parent_connect, root_update, shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 33:
+      case 31:
         /* <extended_connect, update, shortcut> (Algorithm E) */
         return run_multiple_liu_tarjan_alg<Graph, extended_connect, simple_update, shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 34:
+      case 32:
         /* <parent_connect, update, full_shortcut> (PF) */
         return run_multiple_liu_tarjan_alg<Graph, parent_connect, simple_update, full_shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 35:
+      case 33:
         /* <parent_connect, root_update, full_shortcut> (RF) */
         return run_multiple_liu_tarjan_alg<Graph, parent_connect, root_update, full_shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 36:
+      case 34:
         /* <extended_connect, update, full_shortcut> (EF) */
         return run_multiple_liu_tarjan_alg<Graph, extended_connect, simple_update, full_shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
 
-      /* Shiloach-Vishkin strategies */
-      case 37:
+      /* Shiloach-Vishkin */
+      case 35:
         return run_multiple_shiloach_vishkin<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-
-      /* UF Rem-CAS strategies */
-      case 38:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 39:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 40:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-      case 41:
-        return run_multiple_uf_alg<Graph, unite_rem_cas, find_naive, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-
-
-
 
       default:
         std::cout << "Unknown test: " << id << std::endl;
@@ -370,7 +357,7 @@ namespace connectit {
  * starting from empty graph
  * starting with a full graph, sub-sample some % of it to use as updates */
 
-constexpr int num_tests = 42; // update if new algorithm is added
+constexpr int num_tests = 36; // update if new algorithm is added
 
 
 
@@ -423,7 +410,7 @@ double Benchmark_nonempty_start(Graph& G, commandLine P) {
   size_t n = FG.n;
   if (test_num == -1) {
     std::cout << "test_num == -1" << std::endl;
-    for (int i=1; i <= num_tests; i++) {
+    for (int i=0; i <= num_tests; i++) {
       connectit::pick_test<decltype(FG), true>(FG, n, updates, i, batch_size, insert_to_query, rounds, P);
     }
   } else {
@@ -435,7 +422,6 @@ double Benchmark_nonempty_start(Graph& G, commandLine P) {
 
 // Two different modes: one starting without a base graph, and one starting with
 // a base graph.
-
 #ifdef EMPTY_STARTING_GRAPH
 
 /* run synthetic coo */

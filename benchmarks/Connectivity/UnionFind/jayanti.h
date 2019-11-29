@@ -75,18 +75,40 @@ namespace jayanti_rank {
 
   inline uintE find(uintE x, pbbs::sequence<vdata>& vdatas) {
     uintE u = x;
+#ifdef REPORT_PATH_LENGTHS
+      uintE pathlen = 0;
+#endif
     while (!vdatas[u].is_root()) { // * on u.is_root()
       u = vdatas[u].get_parent();
+#ifdef REPORT_PATH_LENGTHS
+      pathlen++;
+#endif
     }
+#ifdef REPORT_PATH_LENGTHS
+      max_pathlen.update_value(pathlen);
+      total_pathlen.update_value(pathlen);
+#endif
     return u; // u is a root
   }
 
   inline uintE find_twotry_splitting(uintE x, pbbs::sequence<vdata>& vdatas) {
     uintE u = x;
+#ifdef REPORT_PATH_LENGTHS
+      uintE pathlen = 0;
+#endif
     while (!vdatas[u].is_root()) { // * on u.is_root()
       auto ud = vdatas[u]; uintE v = ud.get_parent();
       auto vd = vdatas[v];
-      if (vd.is_root()) return v;
+#ifdef REPORT_PATH_LENGTHS
+      pathlen++;
+#endif
+      if (vd.is_root()) {
+#ifdef REPORT_PATH_LENGTHS
+      max_pathlen.update_value(pathlen);
+      total_pathlen.update_value(pathlen);
+#endif
+        return v;
+      }
 
       // CAS 1
       uintE w = vd.get_parent();
@@ -97,7 +119,13 @@ namespace jayanti_rank {
       // read and check
       ud = vdatas[u]; v = ud.get_parent();
       vd = vdatas[v]; w = vd.get_parent();
-      if (vd.is_root()) return v;
+      if (vd.is_root()) {
+#ifdef REPORT_PATH_LENGTHS
+      max_pathlen.update_value(pathlen);
+      total_pathlen.update_value(pathlen);
+#endif
+        return v;
+      }
 
       // CAS 2
       expected_u = vdata(v, ud.get_rank(), false);
@@ -106,6 +134,10 @@ namespace jayanti_rank {
 
       u = v;
     }
+#ifdef REPORT_PATH_LENGTHS
+      max_pathlen.update_value(pathlen);
+      total_pathlen.update_value(pathlen);
+#endif
     return u; // u is a root
   }
 
@@ -113,12 +145,18 @@ namespace jayanti_rank {
   void unite(uintE x, uintE y, S& vdatas, pbbs::random r, Find& find) {
     uintE u = find(x, vdatas);
     uintE v = find(y, vdatas);
+    uintE tries = 0;
     while (u != v) {
+      tries++;
       link(u, v, vdatas, r);
       u = find(u, vdatas);
       v = find(v, vdatas);
       r = r.next();
     }
+#ifdef REPORT_MAX_TRIES
+      max_uf_tries.update_value(tries);
+      total_uf_tries.update_value(tries);
+#endif
   }
 
   // implementation of randomized linking-by-rank.

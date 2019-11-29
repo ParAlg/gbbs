@@ -1,5 +1,7 @@
 #pragma once
 
+#include "benchmarks/Connectivity/UnionFind/atomic_max_counter.h"
+#include "benchmarks/Connectivity/UnionFind/atomic_sum_counter.h"
 //struct parent {
 //  volatile uintE parent;
 //};
@@ -51,4 +53,10 @@ enum AlgorithmType {
 
 uintE largest_comp = UINT_E_MAX;
 
+
+atomic_max_counter<uintE> max_pathlen;
+atomic_max_counter<uintE> max_uf_tries;
+
+atomic_sum_counter<size_t> total_pathlen;
+atomic_sum_counter<size_t> total_uf_tries;
 
