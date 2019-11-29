@@ -102,7 +102,7 @@ struct LiuTarjanAlgorithm {
   void initialize(pbbs::sequence<parent>& P) {}
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& P, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -231,7 +231,7 @@ struct StergiouAlgorithm {
   void initialize(pbbs::sequence<parent>& P) { }
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -249,14 +249,14 @@ struct StergiouAlgorithm {
 
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          uintE parent_u = previous_parents[u];
-          uintE parent_v = previous_parents[v];
+          parent parent_u = previous_parents[u];
+          parent parent_v = previous_parents[v];
           bool updated = false;
           if (parents[v] > parent_u) {
-            updated |= pbbs::write_min(&parents[v], parent_u, std::less<uintE>());
+            updated |= pbbs::write_min(&parents[v], parent_u, std::less<parent>());
           }
           if (parents[u] > parent_v) {
-            updated |= pbbs::write_min(&parents[u], parent_v, std::less<uintE>());
+            updated |= pbbs::write_min(&parents[u], parent_v, std::less<parent>());
           }
           if (updated && !parents_changed) {
             parents_changed = true;

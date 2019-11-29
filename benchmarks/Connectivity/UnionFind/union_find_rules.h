@@ -29,7 +29,7 @@ namespace find_variants {
 #ifdef REPORT_PATH_LENGTHS
     uintE pathlen = 1;
 #endif
-    uintE j = i;
+    parent j = i;
     if (parents[j] == j) return j;
     do {
       j = parents[j];
@@ -37,8 +37,8 @@ namespace find_variants {
       pathlen++;
 #endif
     } while (parents[j] != j);
-    uintE tmp;
-    while ((tmp=parents[i])<j) {
+    parent tmp;
+    while ((tmp=parents[i])>j) {
       parents[i] = j; i=tmp;
     }
 #ifdef REPORT_PATH_LENGTHS
@@ -53,8 +53,8 @@ namespace find_variants {
     uintE pathlen = 1;
 #endif
     while(1) {
-      uintE v = parents[i];
-      uintE w = parents[v];
+      parent v = parents[i];
+      parent w = parents[v];
       if (v == w) {
 #ifdef REPORT_PATH_LENGTHS
     max_pathlen.update_value(pathlen);
@@ -78,8 +78,8 @@ namespace find_variants {
     uintE pathlen = 1;
 #endif
     while(1) {
-      uintE v = parents[i];
-      uintE w = parents[v];
+      parent v = parents[i];
+      parent w = parents[v];
       if(v == w) {
 #ifdef REPORT_PATH_LENGTHS
     max_pathlen.update_value(pathlen);
@@ -102,8 +102,8 @@ namespace find_variants {
     uintE pathlen = 1;
 #endif
     while(1) {
-      uintE v = parents[i];
-      uintE w = parents[v];
+      parent v = parents[i];
+      parent w = parents[v];
       if(v == w) {
 #ifdef REPORT_PATH_LENGTHS
         max_pathlen.update_value(pathlen);
@@ -127,8 +127,8 @@ namespace find_variants {
     uintE pathlen = 1;
 #endif
     while(1) {
-      uintE v = parents[i];
-      uintE w = parents[v];
+      parent v = parents[i];
+      parent w = parents[v];
       if(v == w) {
 #ifdef REPORT_PATH_LENGTHS
         max_pathlen.update_value(pathlen);
@@ -156,8 +156,8 @@ namespace splice_variants {
 
   /* Used in Rem-CAS variants for splice */
   inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
-    uintE v = parents[i];
-    uintE w = parents[v];
+    parent v = parents[i];
+    parent w = parents[v];
     if(v == w) return v;
     else {
       pbbs::atomic_compare_and_swap(&parents[i],v,w);
@@ -168,8 +168,8 @@ namespace splice_variants {
 
   /* Used in Rem-CAS variants for splice */
   inline uintE halve_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
-    uintE v = parents[i];
-    uintE w = parents[v];
+    parent v = parents[i];
+    parent w = parents[v];
     if(v == w) return v;
     else {
       pbbs::atomic_compare_and_swap(&parents[i],v,w);
@@ -180,14 +180,14 @@ namespace splice_variants {
 
   /* Used in Rem-CAS variants for splice */
   inline uintE splice(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-    uintE z = parents[u];
+    parent z = parents[u];
     parents[u] = parents[v];
     return z;
   }
 
   /* Used in Rem-CAS variants for splice */
   inline uintE splice_atomic(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-    uintE z = parents[u];
+    parent z = parents[u];
     pbbs::atomic_compare_and_swap(&parents[u], z, parents[v]);
     return z;
   }
@@ -202,18 +202,18 @@ namespace unite_variants {
     Unite(Find& find) : find(find) { }
 
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
-      uintE u = u_orig;
-      uintE v = v_orig;
+      parent u = u_orig;
+      parent v = v_orig;
       uintE tries = 0;
       while(1) {
         tries++;
         u = find(u,parents);
         v = find(v,parents);
         if(u == v) break;
-        else if (u < v && parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) {
+        else if (u > v && parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) {
           break;
         }
-        else if (v < u && parents[v] == v && pbbs::atomic_compare_and_swap(&parents[v],v,u)) {
+        else if (v > u && parents[v] == v && pbbs::atomic_compare_and_swap(&parents[v],v,u)) {
           break;
         }
       }
@@ -236,18 +236,20 @@ namespace unite_variants {
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
-      uintE rx = u_orig;
-      uintE ry = v_orig;
-      uintE z;
+      parent rx = u_orig;
+      parent ry = v_orig;
+      parent z;
 #ifdef REPORT_PATH_LENGTHS
       uintE pathlen = 1;
 #endif
       while (parents[rx] != parents[ry]) {
-        if (parents[rx] > parents[ry]) std::swap(rx,ry);
+        /* link from high -> low */
+        if (parents[rx] < parents[ry]) std::swap(rx,ry);
         if (rx == parents[rx]) {
           locks[rx].lock();
-          uintE py = parents[ry];
-          if (rx == parents[rx] && rx < py) {
+          parent py = parents[ry];
+          /* link high -> low */
+          if (rx == parents[rx] && rx > py) {
             parents[rx] = py;
           }
           locks[rx].unlock();
@@ -280,10 +282,12 @@ namespace unite_variants {
       uintE pathlen = 1;
 #endif
       while (parents[rx] != parents[ry]) {
-        if (parents[rx] > parents[ry]) {
+        /* link high -> low */
+        parent p_ry = parents[ry];
+        if (parents[rx] < p_ry) {
           std::swap(rx, ry);
         }
-        if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, parents[ry])) {
+        if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
           // success
           if constexpr (find_option != find_naive) { /* aka find_none */
             compress(x, parents);
@@ -312,10 +316,11 @@ namespace unite_variants {
       uintE tries = 0;
       while(u != v) {
         tries++;
+        /* link high -> low */
         if(v > u) std::swap(u,v);
         if (parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) { return; }
-        uintE z = parents[u];
-        uintE w = parents[z];
+        parent z = parents[u];
+        parent w = parents[z];
         pbbs::atomic_compare_and_swap(&parents[u],z,w);
         u = w;
       }
@@ -335,15 +340,16 @@ namespace unite_variants {
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
-      uintE u = u_orig;
-      uintE v = v_orig;
+      parent u = u_orig;
+      parent v = v_orig;
       uintE tries = 0;
       while(1) {
         tries++;
         u = find(u,parents);
         v = find(v,parents);
         if(u == v) break;
-        if(u > v) std::swap(u,v);
+        /* link high -> low */
+        if(u < v) std::swap(u,v);
         if (hooks[u] == UINT_E_MAX && pbbs::atomic_compare_and_swap(&hooks[u], UINT_E_MAX,v)) {
           parents[u] = v;
           break;

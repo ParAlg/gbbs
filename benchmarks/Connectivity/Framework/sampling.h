@@ -17,7 +17,10 @@ template <
     SamplingAlgorithmTemplate(Graph& G, Sampler& sampler, Algorithm& algorithm) : G(G), sampler(sampler), algorithm(algorithm) {}
 
     pbbs::sequence<parent> components() {
+      timer sample_t; sample_t.start();
       auto parents = sampler.initial_components();
+      sample_t.stop();
+      sample_t.reportTotal("sample time");
 
       parent frequent_comp; double pct;
       std::tie(frequent_comp, pct) = sample_frequent_element(parents);
@@ -82,6 +85,22 @@ struct AfforestSamplingTemplate {
     neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
    }
 
+  void link(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+    parent p1 = parents[u];
+    parent p2 = parents[v];
+    while (p1 != p2) {
+      parent high = p1 > p2 ? p1 : p2;
+      parent low = p1 + (p2 - high);
+      parent p_high = parents[high];
+      // Was already 'low' or succeeded in writing 'low'
+      if ((p_high == low) ||
+          (p_high == high && pbbs::atomic_compare_and_swap(&parents[high], high, low)))
+        break;
+      p1 = parents[parents[high]];
+      p2 = parents[low];
+    }
+  }
+
   pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
@@ -91,23 +110,45 @@ struct AfforestSamplingTemplate {
     pbbs::sequence<uintE> hooks;
 
     pbbs::random rnd;
-    // Using random neighbor---some overhead (and faster for some graphs), also
-    // theoretically defensible
+    uintE granularity = 1024;
+  // Using random neighbor---some overhead (and faster for some graphs), also
+  // theoretically defensible
     for (uint32_t r=0; r<neighbor_rounds; r++) {
-      parallel_for(0, n, [&] (size_t u) {
-        auto u_rnd = rnd.fork(u);
-        auto u_vtx = GA.get_vertex(u);
-        if (u_vtx.getOutDegree() > 0) {
-          size_t ngh_idx = u_rnd.rand() % u_vtx.getOutDegree();
-          uintE ngh; W wgh;
-          std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
-          unite(u, ngh, parents);
-        }
-      }, 512);
+      if (r == 0) {
+        /* First round: sample a directed forest and compress instead of using
+         * unite */
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > r) {
+            uintE ngh; W wgh;
+            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      } else {
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_rnd = rnd.fork(u);
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > 0) {
+            uintE deglb = (1 << std::max((int)pbbs::log2_up(u_vtx.getOutDegree()), (int)1) - 1) - 1;
+            uintE ngh_idx;
+            if (deglb == 0) {
+              ngh_idx = 0;
+            } else {
+              ngh_idx = u_rnd.rand() & deglb;
+            }
+            uintE ngh; W wgh;
+            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      }
       // compress nodes fully (turns out this is faster)
       parallel_for(0, n, [&] (size_t u) {
-        parents[u] = find(u, parents);
-      }, 512);
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
       rnd = rnd.next();
     }
 
@@ -125,7 +166,7 @@ struct AfforestSamplingTemplate {
 //              parents[u] = ngh;
 //            }
 //          }
-//        }, 512);
+//        });
 //      } else {
 //        /* Subsequent rounds: use unite */
 //        parallel_for(0, n, [&] (size_t u) {
@@ -133,14 +174,16 @@ struct AfforestSamplingTemplate {
 //          if (u_vtx.getOutDegree() > r) {
 //            uintE ngh; W wgh;
 //            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
-//            unite(u, ngh, parents);
+//            link(u, ngh, parents);
 //          }
-//        }, 512);
+//        });
 //      }
 //      // compress nodes fully (turns out this is faster)
 //      parallel_for(0, n, [&] (size_t u) {
-//        parents[u] = find(u, parents);
-//      }, 512);
+//        while (parents[u] != parents[parents[u]]) {
+//          parents[u] = parents[parents[u]];
+//        }
+//      });
 //    }
 
     return parents;
@@ -161,7 +204,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbs::atomic_compare_and_swap(&Parents[d], d, src));
+    return (pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == d); }
 };

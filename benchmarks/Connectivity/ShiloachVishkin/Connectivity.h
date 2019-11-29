@@ -36,7 +36,7 @@ struct SVAlgorithm {
   void initialize(pbbs::sequence<parent>& P) {}
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -53,12 +53,12 @@ struct SVAlgorithm {
       rounds++;
       parallel_for(0, n, [&] (uintE u) {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          uintE p_u = parents[u];
-          uintE p_v = parents[v];
-          uintE l = std::min(p_u, p_v);
-          uintE h = std::max(p_u, p_v);
+          parent p_u = parents[u];
+          parent p_v = parents[v];
+          parent l = std::min(p_u, p_v);
+          parent h = std::max(p_u, p_v);
           if (l != h  &&    h == parents[h]) {
-            pbbs::write_min<uintE>(&parents[h], l, std::less<uintE>());
+            pbbs::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         };
@@ -88,13 +88,13 @@ struct SVAlgorithm {
     while (changed) {
       changed = false;
       parallel_for(0, batch.size(), [&] (size_t i) {
-        uintE u, v;
+        parent u, v;
         std::tie(u,v) = batch[i];
         if (i % insert_to_query != 0) { /* update */
-          uintE p_u = parents[u];
-          uintE p_v = parents[v];
+          parent p_u = parents[u];
+          parent p_v = parents[v];
           if (p_u < p_v && p_u == parents[p_u]) {
-            pbbs::write_min<uintE>(&parents[p_v], p_u, std::less<uintE>());
+            pbbs::write_min<parent>(&parents[p_v], p_u, std::less<parent>());
             if (!changed) { changed = true; }
           }
         } else { /* query, ignore until the find in the next step*/

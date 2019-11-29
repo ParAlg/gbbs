@@ -42,7 +42,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbs::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, src));
+    return (pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(UINT_E_MAX), static_cast<parent>(src)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };

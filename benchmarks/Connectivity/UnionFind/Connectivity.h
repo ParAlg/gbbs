@@ -55,18 +55,21 @@ struct UFAlgorithm {
 
   void initialize(pbbs::sequence<parent>& P) {}
 
-  template <bool provides_frequent_comp>
+  template <SamplingOption sampling_option>
   void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
+    constexpr bool provides_frequent_comp = sampling_option != no_sampling;
     size_t n = GA.n;
     pbbs::sequence<parent> clusters;
     uintE granularity;
     if constexpr (provides_frequent_comp) {
       clusters = parents;
-      granularity = 512;
+      granularity = 2048;
+      std::cout << "provides frequent comp" << std::endl;
     } else {
       granularity = 1;
     }
+    std::cout << "frequent_comp = " << frequent_comp << " gran = " << granularity << std::endl;
 
     timer ut; ut.start();
     parallel_for(0, n, [&] (size_t i) {
@@ -74,7 +77,7 @@ struct UFAlgorithm {
         if constexpr (provides_frequent_comp) {
             unite(u, v, parents);
         } else {
-          if (u < v) {
+          if (v < u) {
             unite(u, v, parents);
           }
         }
@@ -87,7 +90,7 @@ struct UFAlgorithm {
         GA.get_vertex(i).mapOutNgh(i, map_f);
       }
     }, granularity);
-    ut.stop(); debug(ut.reportTotal("union time"));
+    ut.stop(); ut.reportTotal("union time");
 
     timer ft; ft.start();
     parallel_for(0, n, [&] (size_t i) {
