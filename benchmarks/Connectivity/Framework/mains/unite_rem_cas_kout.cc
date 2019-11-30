@@ -94,7 +94,6 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 #endif
     test(G, rounds, P, correct);
 #ifdef USE_PCM_LIB
-  va_end(args);
   double elapsed = ot.stop();
   auto after_state = get_pcm_state();
   cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);

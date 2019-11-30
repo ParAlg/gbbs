@@ -21,15 +21,15 @@ INCLUDE_DIRS = -I../../../../
 OPT = -O3 -g -DNDEBUG
 #OPT = -O0 -g
 
-#INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
+INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
 
-#ifdef INTEL_PCM_HOME
-#	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
-#	EXT_OBJECTS=$(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o $(INTEL_PCM_HOME)/utils.o $(INTEL_PCM_HOME)/mmio.o
-#	PCM = -DUSE_PCM_LIB
-#endif
+ifdef INTEL_PCM_HOME
+	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
+	EXT_OBJECTS=$(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o $(INTEL_PCM_HOME)/utils.o $(INTEL_PCM_HOME)/mmio.o
+	PCM = -DUSE_PCM_LIB
+endif
 
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC $(FORMAT) $(PCM) $(EXT_OBJECTS)
+CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC $(FORMAT) $(PCM) $(EXT_OBJECTS) -DREPORT_PATH_LENGTHS -DREPORT_MAX_TRIES
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -55,7 +55,7 @@ CC = g++-7
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL=unite_nosample unite_nd_nosample unite_early_nosample unite_rem_lock_nosample unite_rem_cas_nosample unite_kout unite_nd_kout unite_early_kout unite_rem_lock_kout unite_rem_cas_kout unite_bfs unite_nd_bfs unite_early_bfs unite_rem_lock_bfs unite_rem_cas_bfs unite_ldd unite_nd_ldd unite_early_ldd unite_rem_lock_ldd unite_rem_cas_ldd jayanti_nosample jayanti_kout jayanti_bfs jayanti_ldd label_propagation liutarjan_nosample shiloach_vishkin bfscc gbbscc
+ALL=unite_nosample unite_nd_nosample unite_early_nosample unite_rem_lock_nosample unite_rem_cas_nosample unite_kout unite_nd_kout unite_early_kout unite_rem_lock_kout unite_rem_cas_kout unite_bfs unite_nd_bfs unite_early_bfs unite_rem_lock_bfs unite_rem_cas_bfs unite_ldd unite_nd_ldd unite_early_ldd unite_rem_lock_ldd unite_rem_cas_ldd jayanti_nosample jayanti_kout jayanti_bfs jayanti_ldd label_propagation liutarjan_nosample liutarjan_bfs liutarjan_kout liutarjan_ldd shiloach_vishkin bfscc gbbscc
 
 all: $(ALL)
 

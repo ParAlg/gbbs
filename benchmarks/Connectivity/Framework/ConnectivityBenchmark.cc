@@ -352,9 +352,9 @@ namespace connectit {
 //        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_split>(G, rounds, correct, P);
 //      case 30:
 //        return run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_halve>(G, rounds, correct, P);
-
-      case 31:
-        return run_multiple_uf_alg<Graph, sample_ldd, unite, find_compress>(G, rounds, correct, P);
+//
+//      case 31:
+//        return run_multiple_uf_alg<Graph, sample_ldd, unite, find_compress>(G, rounds, correct, P);
 //      case 32:
 //        return run_multiple_uf_alg<Graph, sample_ldd, unite, find_naive>(G, 1, correct, P);
 //      case 33:
@@ -388,8 +388,9 @@ namespace connectit {
 //        return run_multiple_uf_alg<Graph, sample_ldd, unite_rem_lock, find_atomic_halve>(G, rounds, correct, P);
 //
 //
-//      case 46:
-//        return run_multiple_uf_alg<Graph, sample_kout, unite, find_compress>(G, rounds, correct, P);
+
+      case 46:
+        return run_multiple_uf_alg<Graph, sample_kout, unite, find_compress>(G, rounds, correct, P);
 //      case 47:
 //        return run_multiple_uf_alg<Graph, sample_kout, unite, find_naive>(G, 1, correct, P);
 //      case 48:

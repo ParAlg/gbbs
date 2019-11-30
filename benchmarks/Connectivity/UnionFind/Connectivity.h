@@ -64,7 +64,7 @@ struct UFAlgorithm {
     uintE granularity;
     if constexpr (provides_frequent_comp) {
       clusters = parents;
-      granularity = 2048;
+      granularity = 512;
       std::cout << "provides frequent comp" << std::endl;
     } else {
       granularity = 1;

@@ -89,7 +89,6 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 #endif
     test(G, rounds, P, correct);
 #ifdef USE_PCM_LIB
-  va_end(args);
   double elapsed = ot.stop();
   auto after_state = get_pcm_state();
   cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
@@ -101,7 +100,7 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
-  int rounds = P.getOptionIntValue("-r", 5);
+  int rounds = 1; // P.getOptionIntValue("-r", 5);
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;
 
