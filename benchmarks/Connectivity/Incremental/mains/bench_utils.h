@@ -137,6 +137,9 @@ namespace connectit {
     size_t m = updates.size();
     size_t n_batches = (m + batch_size - 1) / batch_size;
     std::vector<double> batch_times;
+    std::cout << "Total number of updates (all batches): " << m << std::endl;
+    std::cout << "Num batches. " << n_batches << std::endl;
+    std::cout << "Batch size. " << batch_size << std::endl;
     for (size_t i=0; i<n_batches; i++) {
       size_t start = i*batch_size;
       size_t end = std::min((i+1)*batch_size, m);

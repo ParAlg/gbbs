@@ -36,8 +36,6 @@ namespace connectit {
       return "split_atomic_one";
     } else if constexpr (splice_option == halve_atomic_one) {
       return "halve_atomic_one";
-    } else if constexpr (splice_option == splice_simple) {
-      return "splice_simple";
     } else {
       return "splice_atomic";
     }
@@ -102,10 +100,6 @@ namespace connectit {
       return find_variants::find_atomic_split;
     } else if constexpr (find_option == find_atomic_halve) {
       return find_variants::find_atomic_halve;
-    } else if constexpr (find_option == find_split) {
-      return find_variants::find_split;
-    } else if constexpr (find_option == find_halve) {
-      return find_variants::find_halve;
     }
   };
 
@@ -116,8 +110,6 @@ namespace connectit {
       return splice_variants::split_atomic_one;
     } else if constexpr (splice_option == halve_atomic_one) {
       return splice_variants::halve_atomic_one;
-    } else if constexpr (splice_option == splice_simple) {
-      return splice_variants::splice;
     } else {
       return splice_variants::splice_atomic;
     }
@@ -127,12 +119,22 @@ namespace connectit {
   auto get_unite_function(size_t n, Find& find) {
     if constexpr (unite_option == unite) {
       return unite_variants::Unite<Find>(find);
-    } else if constexpr (unite_option == unite_rem_lock) {
-      return unite_variants::UniteRemLock(n);
     } else if constexpr (unite_option == unite_early) {
       return unite_variants::UniteEarly();
     } else if constexpr (unite_option == unite_nd) {
       return unite_variants::UniteND<Find>(n, find);
+    } else {
+      std::cout << "Unsupported unite option" << std::endl;
+      abort();
+    }
+  };
+
+  template <UniteOption unite_option, class Find, class Splice, FindOption find_option>
+  auto get_unite_function(size_t n, Find& find, Splice& splice) {
+    if constexpr (unite_option == unite_rem_lock) {
+      return unite_variants::UniteRemLock(find, splice, n);
+    } else if constexpr (unite_option == unite_rem_cas) {
+      return unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(find, splice);
     } else {
       std::cout << "Unsupported unite option" << std::endl;
       abort();
@@ -151,9 +153,9 @@ namespace connectit {
   pbbs::sequence<parent> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
     if constexpr (sampling_option == sample_kout) {
       auto find = get_find_function<find_option>();
-      if constexpr (unite_option == unite_rem_cas) {
+      if constexpr (unite_option == unite_rem_cas || unite_option == unite_rem_lock) {
         auto splice = get_splice_function<splice_option>();
-        auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
+        auto unite = get_unite_function<unite_option, decltype(find), decltype(splice), find_option>(G.n, find, splice);
         using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
         auto sample = Afforest(G, find, unite, P);
         auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
@@ -204,7 +206,7 @@ namespace connectit {
       sampling_option,
       find_option,
       unite_option,
-      splice_simple>(G, P, alg);
+      splice_atomic>(G, P, alg);
   }
 
   template <
@@ -216,10 +218,10 @@ namespace connectit {
   pbbs::sequence<parent> run_uf_alg(
       Graph& G,
       commandLine& P) {
-    static_assert(unite_option == unite_rem_cas);
+    static_assert(unite_option == unite_rem_cas || unite_option == unite_rem_lock);
     auto find = get_find_function<find_option>();
     auto splice = get_splice_function<splice_option>();
-    auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
+    auto unite = get_unite_function<unite_option, decltype(find), decltype(splice), find_option>(G.n, find, splice);
     using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
     auto alg = UF(G, unite, find);
     return compose_algorithm_and_sampling<
@@ -427,30 +429,9 @@ namespace connectit {
         sampling_option,
         find_compress,
         unite,
-        splice_simple>(G, P, alg);
+        splice_atomic>(G, P, alg);
     } else { /* using alter */
       abort();
-//      auto alter = lt::get_alter_function<alter_option>();
-//      using LT = lt::LiuTarjanAlgorithmAlter<
-//        decltype(connect),
-//        connect_option,
-//        decltype(update),
-//        update_option,
-//        decltype(shortcut),
-//        shortcut_option,
-//        decltype(alter),
-//        alter_option,
-//        Graph>;
-//      auto alg = LT(G, G.n, connect, update, shortcut, alter);
-//
-//      return compose_algorithm_and_sampling<
-//        Graph,
-//        decltype(alg),
-//        liu_tarjan_type,
-//        sampling_option,
-//        find_compress,
-//        unite,
-//        splice_simple>(G, P, alg);
     }
   }
 

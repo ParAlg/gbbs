@@ -60,3 +60,16 @@ atomic_max_counter<uintE> max_uf_tries;
 atomic_sum_counter<size_t> total_pathlen;
 atomic_sum_counter<size_t> total_uf_tries;
 
+void report_pathlen(uintE pathlen) {
+#ifdef REPORT_PATH_LENGTHS
+  max_pathlen.update_value(pathlen);
+  total_pathlen.update_value(pathlen);
+#endif
+}
+
+void report_tries(uintE tries) {
+#ifdef REPORT_MAX_TRIES
+  max_uf_tries.update_value(tries);
+  total_uf_tries.update_value(tries);
+#endif
+}

@@ -9,57 +9,38 @@
 
 namespace find_variants {
   inline uintE find_naive(uintE i, pbbs::sequence<parent>& parents) {
-#ifdef REPORT_PATH_LENGTHS
     uintE pathlen = 1;
-#endif
     while(i != parents[i]) {
       i = parents[i];
-#ifdef REPORT_PATH_LENGTHS
       pathlen++;
-#endif
     }
-#ifdef REPORT_PATH_LENGTHS
-    max_pathlen.update_value(pathlen);
-    total_pathlen.update_value(pathlen);
-#endif
+    report_pathlen(pathlen);
     return i;
   }
 
   inline uintE find_compress(uintE i, pbbs::sequence<parent>& parents) {
-#ifdef REPORT_PATH_LENGTHS
     uintE pathlen = 1;
-#endif
     parent j = i;
     if (parents[j] == j) return j;
     do {
       j = parents[j];
-#ifdef REPORT_PATH_LENGTHS
       pathlen++;
-#endif
     } while (parents[j] != j);
     parent tmp;
     while ((tmp=parents[i])>j) {
       parents[i] = j; i=tmp;
     }
-#ifdef REPORT_PATH_LENGTHS
-    max_pathlen.update_value(pathlen);
-    total_pathlen.update_value(pathlen);
-#endif
+    report_pathlen(pathlen);
     return j;
   }
 
   inline uintE find_atomic_split(uintE i, pbbs::sequence<parent>& parents) {
-#ifdef REPORT_PATH_LENGTHS
     uintE pathlen = 1;
-#endif
     while(1) {
       parent v = parents[i];
       parent w = parents[v];
       if (v == w) {
-#ifdef REPORT_PATH_LENGTHS
-    max_pathlen.update_value(pathlen);
-    total_pathlen.update_value(pathlen);
-#endif
+        report_pathlen(pathlen);
         return v;
       }
       else {
@@ -67,92 +48,30 @@ namespace find_variants {
         // i = its parents
         i = v;
       }
-#ifdef REPORT_PATH_LENGTHS
       pathlen++;
-#endif
     }
   }
 
   inline uintE find_atomic_halve(uintE i, pbbs::sequence<parent>& parents) {
-#ifdef REPORT_PATH_LENGTHS
     uintE pathlen = 1;
-#endif
     while(1) {
       parent v = parents[i];
       parent w = parents[v];
       if(v == w) {
-#ifdef REPORT_PATH_LENGTHS
-    max_pathlen.update_value(pathlen);
-    total_pathlen.update_value(pathlen);
-#endif
+        report_pathlen(pathlen);
         return v;
       } else {
         pbbs::atomic_compare_and_swap(&parents[i],(parent)v,(parent)w);
         // i = its grandparent
         i = parents[i];
       }
-#ifdef REPORT_PATH_LENGTHS
       pathlen++;
-#endif
     }
   }
-
-  inline uintE find_split(uintE i, pbbs::sequence<parent>& parents) {
-#ifdef REPORT_PATH_LENGTHS
-    uintE pathlen = 1;
-#endif
-    while(1) {
-      parent v = parents[i];
-      parent w = parents[v];
-      if(v == w) {
-#ifdef REPORT_PATH_LENGTHS
-        max_pathlen.update_value(pathlen);
-        total_pathlen.update_value(pathlen);
-#endif
-        return v;
-      }
-      else {
-        parents[i] = w;
-        i = v;
-        std::atomic_thread_fence(std::memory_order_seq_cst);
-      }
-#ifdef REPORT_PATH_LENGTHS
-      pathlen++;
-#endif
-    }
-  }
-
-  inline uintE find_halve(uintE i, pbbs::sequence<parent>& parents) {
-#ifdef REPORT_PATH_LENGTHS
-    uintE pathlen = 1;
-#endif
-    while(1) {
-      parent v = parents[i];
-      parent w = parents[v];
-      if(v == w) {
-#ifdef REPORT_PATH_LENGTHS
-        max_pathlen.update_value(pathlen);
-        total_pathlen.update_value(pathlen);
-#endif
-        return v;
-      }
-      else {
-        parents[i] = w;
-        //i = w;
-        i = parents[i];
-        std::atomic_thread_fence(std::memory_order_seq_cst);
-      }
-#ifdef REPORT_PATH_LENGTHS
-      pathlen++;
-#endif
-    }
-  }
-
 } // namespace find_variants
 
 
 namespace splice_variants {
-
 
   /* Used in Rem-CAS variants for splice */
   inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
@@ -176,13 +95,6 @@ namespace splice_variants {
       i = w;
       return i;
     }
-  }
-
-  /* Used in Rem-CAS variants for splice */
-  inline uintE splice(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-    parent z = parents[u];
-    parents[u] = parents[v];
-    return z;
   }
 
   /* Used in Rem-CAS variants for splice */
@@ -217,17 +129,17 @@ namespace unite_variants {
           break;
         }
       }
-#ifdef REPORT_MAX_TRIES
-      max_uf_tries.update_value(tries);
-      total_uf_tries.update_value(tries);
-#endif
+      report_tries(tries);
     }
   };
 
+  template <class Compress, class Splice>
   struct UniteRemLock {
     uintE n;
     std::mutex* locks;
-    UniteRemLock(uintE n) : n(n) {
+    Compress& compress;
+    Splice& splice;
+    UniteRemLock(Compress& compress, Splice& splice, uintE n) : n(n), compress(compress), splice(splice) {
       locks = pbbs::new_array<std::mutex>(n);
     }
 
@@ -239,9 +151,7 @@ namespace unite_variants {
       parent rx = u_orig;
       parent ry = v_orig;
       parent z;
-#ifdef REPORT_PATH_LENGTHS
       uintE pathlen = 1;
-#endif
       while (parents[rx] != parents[ry]) {
         /* link from high -> low */
         if (parents[rx] < parents[ry]) std::swap(rx,ry);
@@ -254,33 +164,26 @@ namespace unite_variants {
           }
           locks[rx].unlock();
         } else {
-          z = parents[rx];
-          pbbs::atomic_compare_and_swap(&parents[rx], z, parents[ry]);
-          rx = z;
+          rx = splice(rx, ry, parents);
         }
-#ifdef REPORT_PATH_LENGTHS
         pathlen++;
-#endif
       }
-#ifdef REPORT_PATH_LENGTHS
-      max_pathlen.update_value(pathlen);
-      total_pathlen.update_value(pathlen);
-#endif
+      compress(u_orig, parents);
+      compress(v_orig, parents);
+      report_pathlen(pathlen);
       return;
     }
   };
 
   template <class Splice, class Compress, FindOption find_option>
   struct UniteRemCAS {
-    Splice& splice;
     Compress& compress;
-    UniteRemCAS(Splice& splice, Compress& compress) : splice(splice), compress(compress) { }
+    Splice& splice;
+    UniteRemCAS(Compress& compress, Splice& splice) : compress(compress), splice(splice) { }
 
     inline void operator()(uintE x, uintE y, pbbs::sequence<parent>& parents) {
       uintE rx = x; uintE ry = y;
-#ifdef REPORT_PATH_LENGTHS
       uintE pathlen = 1;
-#endif
       while (parents[rx] != parents[ry]) {
         /* link high -> low */
         parent p_ry = parents[ry];
@@ -298,14 +201,9 @@ namespace unite_variants {
           // failure: locally compress by splicing and try again
           rx = splice(rx, ry, parents);
         }
-#ifdef REPORT_PATH_LENGTHS
         pathlen++;
-#endif
       }
-#ifdef REPORT_PATH_LENGTHS
-      max_pathlen.update_value(pathlen);
-      total_pathlen.update_value(pathlen);
-#endif
+      report_pathlen(pathlen);
       return;
     }
   };
@@ -313,7 +211,7 @@ namespace unite_variants {
   struct UniteEarly {
     UniteEarly() {}
     inline void operator()(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-      uintE tries = 0;
+      uintE tries = 1;
       while(u != v) {
         tries++;
         /* link high -> low */
@@ -324,10 +222,7 @@ namespace unite_variants {
         pbbs::atomic_compare_and_swap(&parents[u],z,w);
         u = w;
       }
-#ifdef REPORT_MAX_TRIES
-      max_uf_tries.update_value(tries);
-      total_uf_tries.update_value(tries);
-#endif
+      report_tries(tries);
     }
   };
 
@@ -355,10 +250,7 @@ namespace unite_variants {
           break;
         }
       }
-#ifdef REPORT_MAX_TRIES
-      max_uf_tries.update_value(tries);
-      total_uf_tries.update_value(tries);
-#endif
+      report_tries(tries);
     }
   };
 

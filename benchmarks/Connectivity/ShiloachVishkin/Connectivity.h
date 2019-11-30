@@ -73,9 +73,12 @@ struct SVAlgorithm {
 
       // compress
       parallel_for(0, n, [&] (uintE u) {
+        uintE pathlen = 1;
         while (parents[u] != parents[parents[u]]) {
           parents[u] = parents[parents[u]];
+          pathlen++;
         }
+        report_pathlen(pathlen);
       });
     }
     std::cout << "#rounds = " << rounds << std::endl;

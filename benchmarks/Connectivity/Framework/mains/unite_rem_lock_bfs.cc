@@ -32,18 +32,48 @@
 namespace connectit {
 
 template <class Graph>
-void unite_rem_lock_find_naive(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_naive>(G, rounds, correct, P);
+void unite_rem_lock_find_naive_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_naive, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_split(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_split>(G, rounds, correct, P);
+void unite_rem_lock_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_naive, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_halve(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_halve>(G, rounds, correct, P);
+void unite_rem_lock_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_naive, splice_atomic>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_lock_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_lock_find_atomic_split_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_lock_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_split, splice_atomic>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_lock_find_atomic_halve_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_halve, split_atomic_one>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_lock_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 }
 
 }
@@ -72,7 +102,7 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
-  int rounds = P.getOptionIntValue("-r", 5);
+  int rounds = 1; //P.getOptionIntValue("-r", 5);
   cout << "rounds = " << rounds << endl;
   cout << "num threads = " << num_workers() << endl;
 
@@ -81,11 +111,17 @@ double Benchmark_runner(Graph& G, commandLine P) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);
   }
-  run_tests(G, rounds, P, correct, connectit::unite_rem_lock_find_naive<Graph>,
+  run_tests(G, rounds, P, correct, connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
     {
-      connectit::unite_rem_lock_find_naive<Graph>,
-      connectit::unite_rem_lock_find_atomic_split<Graph>,
-      connectit::unite_rem_lock_find_atomic_halve<Graph>
+      connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_naive_splice_atomic<Graph>,
+      connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph>,
+      connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph>,
     });
   return 1.0;
 }
