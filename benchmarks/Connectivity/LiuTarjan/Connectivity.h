@@ -152,7 +152,6 @@ struct LiuTarjanAlgorithm {
       parents_changed = false;
 
       // Parent-Connect
-
       parallel_for(0, batch.size(), [&] (size_t i) {
         uintE u, v;
         std::tie(u,v) = batch[i];
@@ -216,7 +215,6 @@ struct LiuTarjanAlgorithm {
         }
       }
     });
-
   }
 
 };

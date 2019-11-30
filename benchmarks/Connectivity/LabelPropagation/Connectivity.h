@@ -125,6 +125,12 @@ namespace labelprop_cc {
       std::cout << "# LabelProp: ran " << rounds << " many rounds." << std::endl;
       std::cout << "# processed " << vertices_processed << " many vertices" << std::endl;
     }
+
+    template <class Seq>
+    void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+
+    }
+
   };
 
 }  // namespace labelprop_cc

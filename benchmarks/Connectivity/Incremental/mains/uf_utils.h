@@ -43,12 +43,12 @@ namespace connectit {
       size_t insert_to_query,
       size_t rounds,
       commandLine& P) {
-    static_assert(unite_option == unite_rem_cas);
+    static_assert(unite_option == unite_rem_cas || unite_option == unite_rem_lock);
 
     auto test = [&] (Graph& G, commandLine P) {
       auto find = get_find_function<find_option>();
       auto splice = get_splice_function<splice_option>();
-      auto unite = unite_variants::UniteRemCAS<decltype(splice), decltype(find), find_option>(splice, find);
+      auto unite = get_unite_function<unite_option, decltype(find), decltype(splice), find_option>(G.n, find, splice);
       using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
       auto alg = UF(G, unite, find);
 

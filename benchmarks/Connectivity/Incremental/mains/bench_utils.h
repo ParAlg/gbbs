@@ -148,8 +148,10 @@ namespace connectit {
       timer tt; tt.start();
       alg.process_batch(parents, update, insert_to_query);
       double batch_time = tt.stop();
+      if (i % 1000 == 0) {
+        std::cout << "Finished : " << i << " out of " << n_batches << " batches." << std::endl;
+      }
       batch_times.emplace_back(batch_time);
-      // (optional correctness check after each batch)
     }
     double t = tt.stop();
     double med_batch_time = median(batch_times);

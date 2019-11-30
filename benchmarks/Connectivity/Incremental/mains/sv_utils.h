@@ -1,6 +1,7 @@
 #pragma once
 
 namespace connectit {
+
   template <class Graph, bool provides_initial_graph>
   bool run_multiple_shiloach_vishkin(
       Graph& G,
@@ -18,4 +19,5 @@ namespace connectit {
     auto name = "shiloach_vishkin";
     return run_multiple(G, rounds, name, P, test);
   }
-}
+
+} // connectit

@@ -30,19 +30,50 @@
 namespace connectit {
 
   template <class Graph, bool provides_initial_graph>
-  void unite_rem_lock_find_naive(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_lock, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  void unite_rem_lock_find_naive_split_atomic_one(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_naive, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_rem_lock_find_atomic_split(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  void unite_rem_lock_find_naive_halve_atomic_one(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_naive, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_rem_lock_find_atomic_halve(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  void unite_rem_lock_find_naive_splice_atomic(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_naive, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
+
+  template <class Graph, bool provides_initial_graph>
+  void unite_rem_lock_find_atomic_split_split_atomic_one(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_split, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  template <class Graph, bool provides_initial_graph>
+  void unite_rem_lock_find_atomic_split_halve_atomic_one(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_split, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  template <class Graph, bool provides_initial_graph>
+  void unite_rem_lock_find_atomic_split_splice_atomic(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_split, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  template <class Graph, bool provides_initial_graph>
+  void unite_rem_lock_find_atomic_halve_split_atomic_one(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_halve, split_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  template <class Graph, bool provides_initial_graph>
+  void unite_rem_lock_find_atomic_halve_halve_atomic_one(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_halve, halve_atomic_one, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  template <class Graph, bool provides_initial_graph>
+  void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_uf_alg<Graph, unite_rem_lock, find_atomic_halve, splice_atomic, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
 
 } // namespace connectit
 
@@ -69,11 +100,19 @@ void run_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& upd
 template <class Graph, bool provides_initial_graph>
 void run_all_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
-      connectit::unite_rem_lock_find_naive<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_naive_split_atomic_one<Graph, provides_initial_graph>,
       {
-        connectit::unite_rem_lock_find_naive<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_atomic_split<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_atomic_halve<Graph, provides_initial_graph>
+        connectit::unite_rem_lock_find_naive_split_atomic_one<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_naive_splice_atomic<Graph, provides_initial_graph>,
+
+        connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph, provides_initial_graph>,
+
+        connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph, provides_initial_graph>,
+        connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph, provides_initial_graph>
       });
 }
 
