@@ -170,7 +170,7 @@ struct LiuTarjanAlgorithm {
         uintE u, v;
         UpdateType utype;
         std::tie(u,v, utype) = insertions[i];
-        bool updated = connect(u, v, P);
+        bool updated = connect(u, v, P, messages);
         if (updated && !parents_changed) {
           parents_changed = true;
         }
@@ -180,7 +180,7 @@ struct LiuTarjanAlgorithm {
       if constexpr (update_option != simple_update) {
         // Update
         parallel_for(0, n, [&] (size_t u) {
-          update(u, P);
+          update(u, P, messages);
         });
       }
 
@@ -190,6 +190,7 @@ struct LiuTarjanAlgorithm {
         UpdateType utype;
         std::tie(u,v, utype) = insertions[i];
         shortcut(u, P);
+        messages[u] = P[u];
       });
       round++;
     }
