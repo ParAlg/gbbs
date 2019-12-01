@@ -24,17 +24,6 @@ cc_library(
   deps = []
 )
 
-cc_binary(
-  name = "ConnectivityBenchmark",
-  srcs = ["ConnectivityBenchmark.cc"],
-  deps = [":framework",
-          "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
-          "//benchmarks/Connectivity/BFSCC:Connectivity",
-          "//ligra:graph_mutation",
-          "//pbbslib/strings:string_basics"
-         ]
-)
-
 package(
   default_visibility = ["//visibility:public"],
 )
