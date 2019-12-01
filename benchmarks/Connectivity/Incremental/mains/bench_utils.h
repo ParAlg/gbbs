@@ -77,6 +77,10 @@ bool run_multiple(Graph& G, size_t rounds,
        << ", \"med_throughput\":" << medtp
        << ", \"min_throughput\":" << mintp
        << ", \"max_throughput\":" << maxtp
+       << ", \"max_path_len\":" << std::to_string(max_pathlen.get_value())
+       << ", \"total_path_len\":" << std::to_string(total_pathlen.get_value())
+       << ", \"max_uf_tries\":" << std::to_string(max_uf_tries.get_value())
+       << ", \"total_uf_tries\":" << std::to_string(total_uf_tries.get_value())
        << "}"
        << endl;
   return 1;
@@ -116,11 +120,11 @@ inline void cc_check(S1& correct, S2& check);
 
 namespace connectit {
 
-  template <class Graph, class Alg, bool provides_initial_graph>
+  template <class Graph, class Alg, bool provides_initial_graph, bool reorder_batch>
   auto run_abstract_alg(
       Graph& G,
       size_t n,
-      pbbs::sequence<std::tuple<uintE, uintE>>& updates,
+      pbbs::sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       Alg& alg) {
@@ -136,27 +140,30 @@ namespace connectit {
     timer tt; tt.start();
     size_t m = updates.size();
     size_t n_batches = (m + batch_size - 1) / batch_size;
+
     std::vector<double> batch_times;
     std::cout << "Total number of updates (all batches): " << m << std::endl;
     std::cout << "Num batches. " << n_batches << std::endl;
     std::cout << "Batch size. " << batch_size << std::endl;
+    size_t updates_processed = 0;
     for (size_t i=0; i<n_batches; i++) {
       size_t start = i*batch_size;
       size_t end = std::min((i+1)*batch_size, m);
       auto update = updates.slice(start, end);
 
       timer tt; tt.start();
-      alg.process_batch(parents, update, insert_to_query);
+      alg.template process_batch<reorder_batch>(parents, update);
       double batch_time = tt.stop();
-      if (i % 1000 == 0) {
+      if (i % 10000 == 0) {
         std::cout << "Finished : " << i << " out of " << n_batches << " batches." << std::endl;
       }
       batch_times.emplace_back(batch_time);
+      updates_processed += update.size();
     }
     double t = tt.stop();
     double med_batch_time = median(batch_times);
 
-    double throughput = static_cast<double>(updates.size()) / t;
+    double throughput = static_cast<double>(updates_processed) / t;
     return std::make_tuple(t, med_batch_time, throughput);
   }
 

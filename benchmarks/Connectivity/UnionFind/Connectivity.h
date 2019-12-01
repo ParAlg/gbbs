@@ -99,20 +99,44 @@ struct UFAlgorithm {
     ft.stop(); debug(ft.reportTotal("find time"););
   }
 
-  template <class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
-    // std::cout << "starting, bs = " << batch.size() << std::endl;
-    parallel_for(0, batch.size(), [&] (size_t i) {
-      uintE u, v;
-      std::tie(u,v) = batch[i];
-      if (i % insert_to_query == 0) { /* query */
+  template <bool reorder_batch, class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+    if constexpr (reorder_batch == true) {
+      std::cout << "reordering batch" << std::endl;
+      auto ret = reorder_updates(updates);
+      auto reordered_updates = ret.first;
+      size_t update_end = ret.second;
+      auto insertions = reordered_updates.slice(0, update_end);
+      auto queries = reordered_updates.slice(update_end, updates.size());
+      /* run updates */
+      parallel_for(0, insertions.size(), [&] (size_t i) {
+        uintE u, v;
+        UpdateType optype;
+        std::tie(u,v,optype) = insertions[i];
+        unite(u, v, parents);
+      });
+      /* run queries */
+      parallel_for(0, queries.size(), [&] (size_t i) {
+        uintE u, v;
+        UpdateType optype;
+        std::tie(u,v,optype) = queries[i];
         u = find(u, parents); /* force */
         v = find(v, parents); /* force */
-      } else { /* insert */
-        unite(u, v, parents);
-      }
-    });
-    // std::cout << "ending" << std::endl;
+      });
+    } else {
+      /* run queries and updates together */
+      parallel_for(0, updates.size(), [&] (size_t i) {
+        uintE u, v;
+        UpdateType optype;
+        std::tie(u,v,optype) = updates[i];
+        if (optype == query_type) { /* query */
+          u = find(u, parents); /* force */
+          v = find(v, parents); /* force */
+        } else { /* insert */
+          unite(u, v, parents);
+        }
+      });
+    }
   }
 
 };

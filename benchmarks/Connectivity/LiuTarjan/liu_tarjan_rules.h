@@ -52,42 +52,42 @@ namespace lt {
   namespace primitives {
 
     /* send minimum end to maximum end */
-    bool connect(uintE u, uintE v, pbbs::sequence<parent>& P) {
+    bool connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       uintE min_v = std::min(u, v);
       uintE max_v = std::max(u, v);
-      return pbbs::write_min<uintE>(&P[max_v], min_v, std::less<uintE>());
+      return pbbs::write_min<uintE>(&messages[max_v], min_v, std::less<uintE>());
     }
 
-    bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P) {
+    bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       uintE p_u = P[u];
       uintE p_v = P[v];
       auto min_v = lt_min(p_u, p_v);
       auto max_v = lt_max(p_u, p_v);
       if (min_v != max_v) {
-        return pbbs::write_min<uintE>(&P[max_v], min_v, lt_less);
+        return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);
       }
       return false;
     }
 
-    bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P) {
+    bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       uintE x = P[v];
       uintE y = P[w];
       bool updated = false;
       if (lt_less(y, x)) { /* send y to {v, x}*/
-        updated |= pbbs::write_min(&P[v], y, lt_less);
-        updated |= pbbs::write_min(&P[x], y, lt_less);
+        updated |= pbbs::write_min(&messages[v], y, lt_less);
+        updated |= pbbs::write_min(&messages[x], y, lt_less);
       } else if (lt_greater(y, x)) { /* send x to {y, w} */
-        updated |= pbbs::write_min(&P[y], x, lt_less);
-        updated |= pbbs::write_min(&P[w], x, lt_less);
+        updated |= pbbs::write_min(&messages[y], x, lt_less);
+        updated |= pbbs::write_min(&messages[w], x, lt_less);
       }
       return updated;
     }
 
-    void simple_update(uintE u, pbbs::sequence<parent>& P) {
+    void simple_update(uintE u, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       abort(); // should not be called, since this fn is a noop
     }
 
-    void root_update(uintE u, pbbs::sequence<parent>& P) {
+    void root_update(uintE u, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       /* find root */
       uintE pu = P[u];
       while (pu != largest_comp && pu != P[pu]) {

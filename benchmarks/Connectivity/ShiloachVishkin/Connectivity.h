@@ -84,15 +84,17 @@ struct SVAlgorithm {
     std::cout << "#rounds = " << rounds << std::endl;
   }
 
-  template <class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+  template <bool reorder_updates, class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+    static_assert(reorder_updates == false);
     bool changed = true;
     while (changed) {
       changed = false;
-      parallel_for(0, batch.size(), [&] (size_t i) {
+      parallel_for(0, updates.size(), [&] (size_t i) {
         parent u, v;
-        std::tie(u,v) = batch[i];
-        if (i % insert_to_query != 0) { /* update */
+        UpdateType utype;
+        std::tie(u,v, utype) = updates[i];
+        if (utype == insertion_type) { /* update */
           parent p_u = parents[u];
           parent p_v = parents[v];
           if (p_u < p_v && p_u == parents[p_u]) {
@@ -103,10 +105,11 @@ struct SVAlgorithm {
         }
       });
 
-      // compress the edges in this batch
-      parallel_for(0, batch.size(), [&] (uintE i) {
+      // compress the edges in this update batch (also performs queries)
+      parallel_for(0, updates.size(), [&] (uintE i) {
         uintE u, v;
-        std::tie(u,v) = batch[i];
+        UpdateType utype;
+        std::tie(u,v, utype) = updates[i];
         while (parents[u] != parents[parents[u]]) {
           parents[u] = parents[parents[u]];
         }

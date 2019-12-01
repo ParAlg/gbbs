@@ -203,15 +203,17 @@ namespace jayanti_rank {
       ft.stop(); ft.reportTotal("find time");
     }
 
-    template <class Seq>
-    void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+    template <bool reorder_updates, class Seq>
+    void process_batch(pbbs::sequence<parent>& parents, Seq& batch) {
+      static_assert(reorder_updates == false);
       auto r = pbbs::random();
       parallel_for(0, batch.size(), [&] (size_t i) {
         uintE u, v;
-        std::tie(u,v) = batch[i];
+        UpdateType utype;
+        std::tie(u,v, utype) = batch[i];
         auto r_u = r.fork(u);
         auto r_uv = r_u.fork(v);
-        if (i % insert_to_query == 0) { /* query */
+        if (utype == query_type) { /* query */
           u = find(u, vdatas);
           v = find(v, vdatas);
         } else { /* insert */

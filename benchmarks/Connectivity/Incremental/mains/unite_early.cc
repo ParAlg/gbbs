@@ -29,29 +29,29 @@
 
 namespace connectit {
   template <class Graph, bool provides_initial_graph>
-  void unite_early_find_compress(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_early_find_compress(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_early, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_early_find_naive(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_early_find_naive(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_early, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_early_find_atomic_split(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_early_find_atomic_split(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_early, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_early_find_atomic_halve(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_early_find_atomic_halve(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_early, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
 } // namespace connectit
 
 template <class Graph, bool provides_initial_graph, class F>
-void run_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
+void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
   for (auto test : tests) {
 #ifdef USE_PCM_LIB
   auto before_state = get_pcm_state();
@@ -71,7 +71,7 @@ void run_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& upd
 
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::unite_early_find_compress<Graph, provides_initial_graph>,
       {

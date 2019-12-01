@@ -29,18 +29,18 @@
 
 namespace connectit {
   template <class Graph, bool provides_initial_graph>
-  void jayanti_find_twotrysplit(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void jayanti_find_twotrysplit(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_jayanti_alg<Graph, find_twotrysplit, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void jayanti_find_simple(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void jayanti_find_simple(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_jayanti_alg<Graph, find_simple, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds,  P);
   }
 } // namespace connectit
 
 template <class Graph, bool provides_initial_graph, class F>
-void run_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
+void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
   for (auto test : tests) {
 #ifdef USE_PCM_LIB
   auto before_state = get_pcm_state();
@@ -60,7 +60,7 @@ void run_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& upd
 
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::jayanti_find_twotrysplit<Graph, provides_initial_graph>,
       {

@@ -3,7 +3,7 @@
 #ifdef EMPTY_STARTING_GRAPH
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
+void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
 /* run synthetic coo */
 int main(int argc, char* argv[]) {
@@ -48,9 +48,11 @@ int main(int argc, char* argv[]) {
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 
-  size_t insert_to_query = P.getOptionLongValue("-insert_to_query", 2);
+  /* fraction of insertions to queries: between [0, 1] */
+  double insert_to_query = P.getOptionDoubleValue("-insert_to_query", 0.5);
+  auto annotated_updates = annotate_updates(updates, insert_to_query);
 
   auto FG = edge_array<pbbs::empty>();
-  run_all_tests<decltype(FG), false>(FG, n, updates, batch_size, insert_to_query, rounds, P);
+  run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
 }
 #endif

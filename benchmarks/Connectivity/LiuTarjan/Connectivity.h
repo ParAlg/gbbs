@@ -96,10 +96,16 @@ struct LiuTarjanAlgorithm {
   Connect& connect;
   Update& update;
   Shortcut& shortcut;
+  pbbs::sequence<uintE> messages;
   LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut) :
     GA(GA), n(n), connect(connect), update(update), shortcut(shortcut) {}
 
-  void initialize(pbbs::sequence<parent>& P) {}
+  void initialize(pbbs::sequence<parent>& P) {
+    messages = pbbs::sequence<uintE>(P.size());
+    parallel_for(0, n, [&] (size_t i) {
+      messages[i] = P[i];;
+    });
+  }
 
   template <SamplingOption sampling_option>
   void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
@@ -110,10 +116,10 @@ struct LiuTarjanAlgorithm {
     while (parents_changed) {
       parents_changed = false;
 
-      // Parent-Connect
+      // connect
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          bool updated = connect(u, v, P);
+          bool updated = connect(u, v, P, P);
           if (updated && !parents_changed) {
             parents_changed = true;
           }
@@ -131,19 +137,27 @@ struct LiuTarjanAlgorithm {
       if constexpr (update_option != simple_update) {
         // Update
         parallel_for(0, n, [&] (size_t u) {
-          update(u, P);
+          update(u, P, P);
         });
       }
 
       // Shortcut
       parallel_for(0, n, [&] (size_t u) {
         shortcut(u, P);
+        // messages[u] = P[u];
       });
     }
   }
 
-  template <class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+  template <bool reorder_batch, class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+
+    /* Must reorder updates, can ignore template argument and just reorder. */
+    auto ret = reorder_updates(updates);
+    auto reordered_updates = ret.first;
+    size_t update_end = ret.second;
+    auto insertions = reordered_updates.slice(0, update_end);
+    auto queries = reordered_updates.slice(update_end, updates.size());
 
     auto parents_changed = true;
     auto& P = parents;
@@ -152,14 +166,13 @@ struct LiuTarjanAlgorithm {
       parents_changed = false;
 
       // Parent-Connect
-      parallel_for(0, batch.size(), [&] (size_t i) {
+      parallel_for(0, insertions.size(), [&] (size_t i) {
         uintE u, v;
-        std::tie(u,v) = batch[i];
-        if (i % insert_to_query != 0) { /* is an update */
-          bool updated = connect(u, v, P);
-          if (updated && !parents_changed) {
-            parents_changed = true;
-          }
+        UpdateType utype;
+        std::tie(u,v, utype) = insertions[i];
+        bool updated = connect(u, v, P);
+        if (updated && !parents_changed) {
+          parents_changed = true;
         }
       });
 
@@ -171,49 +184,28 @@ struct LiuTarjanAlgorithm {
         });
       }
 
-      /* TODO: separate queries and updates here */
       // Shortcut
-      parallel_for(0, batch.size(), [&] (size_t i) {
+      parallel_for(0, insertions.size(), [&] (size_t i) {
         uintE u, v;
-        std::tie(u,v) = batch[i];
-        if (i % insert_to_query != 0) { /* is an update */
-          shortcut(u, P);
-        } else { /* answer the query, if it is the first round*/
-          if (round == 0) {
-            while (P[u] != P[P[u]]) {
-              P[u] = P[P[u]];
-            }
-            /* found p_u */
-
-            while (P[v] != P[P[v]]) {
-              P[v] = P[P[v]];
-            }
-            /* found p_v */
-          }
-        }
+        UpdateType utype;
+        std::tie(u,v, utype) = insertions[i];
+        shortcut(u, P);
       });
       round++;
     }
 
-    // Process queries, no need to skip.
-    parallel_for(0, batch.size(), [&] (size_t i) {
+    // Process queries
+    parallel_for(0, queries.size(), [&] (size_t i) {
       uintE u, v;
-      std::tie(u,v) = batch[i];
-      if (i % insert_to_query != 0) { /* is an update */
-        shortcut(u, P);
-      } else { /* answer the query, if it is the first round*/
-        if (round == 0) {
-          while (P[u] != P[P[u]]) {
-            P[u] = P[P[u]];
-          }
-          /* found p_u */
+      UpdateType utype;
+      std::tie(u,v, utype) = updates[i];
+      while (P[u] != P[P[u]]) {
+        P[u] = P[P[u]];
+      } /* found p_u */
 
-          while (P[v] != P[P[v]]) {
-            P[v] = P[P[v]];
-          }
-          /* found p_v */
-        }
-      }
+      while (P[v] != P[P[v]]) {
+        P[v] = P[P[v]];
+      } /* found p_v */
     });
   }
 
@@ -274,91 +266,6 @@ struct StergiouAlgorithm {
           lt::primitives::shortcut(u, parents);
       });
     }
-  }
-
-  /* processes a batch of edge insertions and edge queries */
-  template <class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
-
-//    auto parents_changed = true;
-//    auto& P = parents;
-//    size_t round = 0;
-//    while (parents_changed) {
-//      parents_changed = false;
-//
-//
-//      parallel_for(0, batch.size(), [&] (size_t i) {
-//        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-//          uintE u, v;
-//          std::tie(u,v) = batch[i];
-//
-//          uintE parent_u = previous_parent[u];
-//          uintE parent_v = previous_parent[v];
-//          bool updated = false;
-//          if (parents[v] > parent_u) {
-//            updated |= pbbs::write_min(&parents[v], parent_u);
-//          }
-//          if (parent[u] > parent_v) {
-//            updated |= pbbs::write_min(&parents[u], parent_v);
-//          }
-//          if (updated && !parents_changed) {
-//            parents_changed = true;
-//          }
-//        };
-//        if constexpr (sampling_option != no_sampling) {
-//          if (parents[i] != frequent_comp) {
-//            GA.get_vertex(i).mapOutNgh(i, map_f);
-//          }
-//        } else {
-//          GA.get_vertex(i).mapOutNgh(i, map_f);
-//        }
-//      });
-//
-//      // Shortcut
-//      parallel_for(0, batch.size(), [&] (size_t i) {
-//        uintE u, v;
-//        std::tie(u,v) = batch[i];
-//        if (i % insert_to_query != 0) { /* is an update */
-//          shortcut(u, P);
-//        } else { /* answer the query, if it is the first round*/
-//          if (round == 0) {
-//            while (P[u] != P[P[u]]) {
-//              P[u] = P[P[u]];
-//            }
-//            /* found p_u */
-//
-//            while (P[v] != P[P[v]]) {
-//              P[v] = P[P[v]];
-//            }
-//            /* found p_v */
-//          }
-//        }
-//      });
-//
-//      round++;
-//    }
-//
-//    // Process queries, no need to skip.
-//    parallel_for(0, batch.size(), [&] (size_t i) {
-//      uintE u, v;
-//      std::tie(u,v) = batch[i];
-//      if (i % insert_to_query != 0) { /* is an update */
-//        shortcut(u, P);
-//      } else { /* answer the query, if it is the first round*/
-//        if (round == 0) {
-//          while (P[u] != P[P[u]]) {
-//            P[u] = P[P[u]];
-//          }
-//          /* found p_u */
-//
-//          while (P[v] != P[P[v]]) {
-//            P[v] = P[P[v]];
-//          }
-//          /* found p_v */
-//        }
-//      }
-//    });
-//
   }
 
 };

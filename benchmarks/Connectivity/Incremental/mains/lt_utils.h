@@ -11,7 +11,7 @@ namespace connectit {
   bool run_multiple_liu_tarjan_alg(
       Graph& G,
       size_t n,
-      pbbs::sequence<std::tuple<uintE, uintE>>& updates,
+      pbbs::sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       size_t rounds,
@@ -33,7 +33,7 @@ namespace connectit {
         shortcut_option,
         Graph>;
       auto alg = LT(G, n, connect, update, shortcut);
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph>(G, n, updates, batch_size, insert_to_query, alg);
+      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, alg);
     };
 
     auto name = liu_tarjan_options_to_string<no_sampling,connect_option,update_option,shortcut_option,alter_option>();

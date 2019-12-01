@@ -3,7 +3,7 @@
 #ifndef EMPTY_STARTING_GRAPH
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<std::tuple<uintE, uintE>>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
+void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
 template <class Graph>
 double Run(Graph& G, commandLine P) {
@@ -14,9 +14,8 @@ double Run(Graph& G, commandLine P) {
   double update_pct = P.getOptionDoubleValue("-update_pct", 0.1); /* percentage of edges to sample for updates */
   double deletion_pct = P.getOptionDoubleValue("-deletion_pct", 0.6) + update_pct; /* percentage of edges to delete */
 
-//  double insert_to_query_ratio = P.getOptionDoubleValue("-insert_to_query", 0.5); /* 2 ins/query */
-//  assert(insert_to_query_ratio < 1.0);
-  size_t insert_to_query = P.getOptionLongValue("-insert_to_query", 2);
+  /* fraction of updates that are insertions */
+  double insert_to_query = P.getOptionDoubleValue("-insert_to_query", 0.5);
 
 
   /* idea: hash every edge to a double in (0, 1). */
@@ -49,8 +48,10 @@ double Run(Graph& G, commandLine P) {
 
   /* select a static_alg */
 
+  auto annotated_updates = annotate_updates(updates, insert_to_query);
+
   size_t n = FG.n;
-  run_all_tests<decltype(FG), true>(FG, n, updates, batch_size, insert_to_query, rounds, P);
+  run_all_tests<decltype(FG), true>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
 
   return 1.0;
 }
