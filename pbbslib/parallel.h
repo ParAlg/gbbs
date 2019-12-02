@@ -33,6 +33,9 @@ static void parallel_for(long start, long end, F f,
 template <typename Lf, typename Rf>
 static void par_do(Lf left, Rf right, bool conservative=false);
 
+template <typename A, typename Af, typename Df, typename F>
+static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity = 0, bool conservative=false);
+
 //***************************************
 
 // cilkplus
@@ -78,6 +81,16 @@ inline void par_do(Lf left, Rf right, bool conservative) {
     cilk_sync;
 }
 
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+  parallel_for(start, end, [&](long i)
+  {
+    A* alloc = init_alloc();
+    f(i, alloc);
+    finish_alloc(alloc);
+  }, granularity, conservative);
+}
+
 // openmp
 #elif defined(OPENMP)
 #include <omp.h>
@@ -120,6 +133,18 @@ inline void par_do(Lf left, Rf right, bool conservative) {
 template <typename Job>
 inline void parallel_run(Job job, int num_threads=0) {
   job();
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+  A* alloc = nullptr;
+  #pragma omp parallel private(alloc)
+  {
+    alloc = init_alloc();
+    #pragma omp for schedule(dynamic, 1) nowait
+    for(long i=start; i<end; i++) f(i, alloc);
+    finish_alloc(alloc);
+  }
 }
 
 // Guy's scheduler (ABP)
@@ -171,6 +196,16 @@ inline void parallel_run(Job job, int num_threads=0) {
   job();
 }
 
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+  parallel_for(start, end, [&](long i)
+  {
+    A* alloc = init_alloc();
+    f(i, alloc);
+    finish_alloc(alloc);
+  }, granularity, conservative);
+}
+
 // c++
 #else
 
@@ -196,6 +231,16 @@ inline void par_do(Lf left, Rf right, bool conservative) {
 template <typename Job>
 inline void parallel_run(Job job, int num_threads=0) {
   job();
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+  parallel_for(start, end, [&](long i)
+  {
+    A* alloc = init_alloc();
+    f(i, alloc);
+    finish_alloc(alloc);
+  }, granularity, conservative);
 }
 
 #endif

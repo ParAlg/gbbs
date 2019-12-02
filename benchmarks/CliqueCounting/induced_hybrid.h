@@ -52,7 +52,7 @@ namespace induced_hybrid {
         }
       }
       induced->num_induced[k_idx] = count;
-      if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced);
+      if (induced->num_induced[k_idx] > k - k_idx - 1) total_ct += KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced);
     }
 
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
@@ -61,9 +61,19 @@ namespace induced_hybrid {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
-    size_t n = 0;
+    //size_t n = 0;
+    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
     size_t max_deg = get_max_deg(DG);
-    HybridSpace_lw* induced = nullptr;
+    auto init_induced = [&]() {return new HybridSpace_lw(max_deg, k);};
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { induced->del(); delete induced; } };
+    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+      assert(induced!=nullptr);
+      if (DG.get_vertex(i).getOutDegree() != 0) {
+        induced->setup(DG, k, i);
+        tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
+      } else tots[i] = 0;
+    } );
+    /*
     #pragma omp parallel private(induced) reduction(+:n)
     {
     induced = new HybridSpace_lw(max_deg, k);
@@ -77,9 +87,9 @@ namespace induced_hybrid {
 
     if (induced != nullptr) { induced->del(); delete induced; }
 
-    }
+    }*/
 
-    return n;
+    return pbbslib::reduce_add(tots);
   }
 
 } // namespace induced_neighborhood
