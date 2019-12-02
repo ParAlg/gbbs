@@ -286,6 +286,7 @@ struct HybridSpace_lw {
     if (induced_edges) free(induced_edges);
     if (induced_degs) free(induced_degs);
     if (num_induced) free(num_induced);
+    if (old_labels) free(old_labels);
   }
 
 };
