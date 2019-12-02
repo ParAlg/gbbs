@@ -36,15 +36,13 @@ static void par_do(Lf left, Rf right, bool conservative=false);
 template <typename A, typename Af, typename Df, typename F>
 static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity = 0, bool conservative=false);
 
-template <typename A, typename Af, typename Df, typename F>
-static void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity = 0, bool conservative=false);
-
 //***************************************
 
 // cilkplus
 #if defined(CILK)
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
+#include <cilk/holder.h>
 #include <iostream>
 #include <sstream>
 #define PAR_GRANULARITY 2000
@@ -84,21 +82,25 @@ inline void par_do(Lf left, Rf right, bool conservative) {
     cilk_sync;
 }
 
+/*template <typename A, typename Af, typename Df, typename F>
+inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+  cilk::holder<A*> alloc_holder;
+  parallel_for(start, end, [&](size_t i)
+  {
+    alloc_holder() = init_alloc();
+    f(i, alloc_holder());
+    finish_alloc(alloc_holder());
+  }, granularity, conservative);
+}*/
+
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  parallel_for(start, end, [&](size_t i)
+  parallel_for(start, end, [&](long i)
   {
     A* alloc = init_alloc();
     f(i, alloc);
     finish_alloc(alloc);
   }, granularity, conservative);
-}
-
-template <typename A, typename Af, typename Df, typename F>
-inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
-  A* alloc = init_alloc();
-  f(alloc);
-  finish_alloc(alloc);
 }
 
 // openmp
@@ -155,15 +157,6 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
     for(long i=start; i<end; i++) f(i, alloc);
     finish_alloc(alloc);
   }
-}
-
-template <typename A, typename Af, typename Df, typename F>
-inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
-  static A* alloc = nullptr;
-	#pragma omp threadprivate(alloc)
-  if (alloc == nullptr) alloc = init_alloc();
-  f(alloc);
-  //finish_alloc(alloc);
 }
 
 // Guy's scheduler (ABP)
@@ -225,13 +218,6 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
   }, granularity, conservative);
 }
 
-template <typename A, typename Af, typename Df, typename F>
-inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
-  A* alloc = init_alloc();
-  f(alloc);
-  finish_alloc(alloc);
-}
-
 // c++
 #else
 
@@ -264,14 +250,6 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
   A* alloc = init_alloc();
   for (long i=start; i<end; i++) { f(i, alloc); }
   finish_alloc(alloc);
-}
-
-template <typename A, typename Af, typename Df, typename F>
-inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
-  static A* alloc = nullptr;
-  if (alloc == nullptr) alloc = init_alloc();
-  f(alloc);
-  //finish_alloc(alloc);
 }
 
 #endif

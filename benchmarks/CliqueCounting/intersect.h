@@ -225,25 +225,20 @@ struct HybridSpace_lw {
   uintE* induced_edges = nullptr;
   uintE* induced_degs = nullptr;
   uintE* labels = nullptr;
+  uintE* old_labels = nullptr;
   size_t nn = 0;
 
-  HybridSpace_lw(size_t max_induced, size_t k) {
+  HybridSpace_lw(size_t max_induced, size_t k, size_t n) {
     induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
     labels = (uintE*) malloc(sizeof(uintE)*max_induced);
     induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     num_induced = (uintE*) malloc(sizeof(uintE)*k);
+    old_labels = (uintE*) calloc(n, sizeof(uintE));
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    auto init_old_labels = [&] () {
-      uintE* old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
-      for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
-      return old_labels;
-    };
-    auto finish_old_labels = [&] (uintE* old_labels) { if (old_labels != nullptr) free(old_labels); };
-    parallel_static_alloc<uintE>(init_old_labels, finish_old_labels, [&](uintE* old_labels) {
     /*static uintE* old_labels = nullptr;
 	  #pragma omp threadprivate(old_labels)
     if (old_labels == nullptr) {
@@ -280,7 +275,6 @@ struct HybridSpace_lw {
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
-    });
   }
 
   static void init(){}
