@@ -237,12 +237,19 @@ struct HybridSpace_lw {
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    static uintE* old_labels = nullptr;
+    auto init_old_labels = [&] () {
+      uintE* old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
+      for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
+      return old_labels;
+    };
+    auto finish_old_labels = [&] (uintE* old_labels) { if (old_labels != nullptr) free(old_labels); };
+    parallel_static_alloc<uintE>(init_old_labels, finish_old_labels, [&](uintE* old_labels) {
+    /*static uintE* old_labels = nullptr;
 	  #pragma omp threadprivate(old_labels)
     if (old_labels == nullptr) {
       old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
       for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
-    }
+    }*/
 
     num_induced[0] = DG.get_vertex(i).getOutDegree();
     nn = num_induced[0];
@@ -273,6 +280,7 @@ struct HybridSpace_lw {
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
+    });
   }
 
   static void init(){}

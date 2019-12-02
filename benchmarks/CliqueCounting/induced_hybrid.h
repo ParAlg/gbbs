@@ -67,7 +67,6 @@ namespace induced_hybrid {
     auto init_induced = [&]() {return new HybridSpace_lw(max_deg, k);};
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { induced->del(); delete induced; } };
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-      assert(induced!=nullptr);
       if (DG.get_vertex(i).getOutDegree() != 0) {
         induced->setup(DG, k, i);
         tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);

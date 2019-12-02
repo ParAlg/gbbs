@@ -36,6 +36,9 @@ static void par_do(Lf left, Rf right, bool conservative=false);
 template <typename A, typename Af, typename Df, typename F>
 static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity = 0, bool conservative=false);
 
+template <typename A, typename Af, typename Df, typename F>
+static void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity = 0, bool conservative=false);
+
 //***************************************
 
 // cilkplus
@@ -83,12 +86,19 @@ inline void par_do(Lf left, Rf right, bool conservative) {
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  parallel_for(start, end, [&](long i)
+  parallel_for(start, end, [&](size_t i)
   {
     A* alloc = init_alloc();
     f(i, alloc);
     finish_alloc(alloc);
   }, granularity, conservative);
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
+  A* alloc = init_alloc();
+  f(alloc);
+  finish_alloc(alloc);
 }
 
 // openmp
@@ -145,6 +155,15 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
     for(long i=start; i<end; i++) f(i, alloc);
     finish_alloc(alloc);
   }
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
+  static A* alloc = nullptr;
+	#pragma omp threadprivate(alloc)
+  if (alloc == nullptr) alloc = init_alloc();
+  f(alloc);
+  //finish_alloc(alloc);
 }
 
 // Guy's scheduler (ABP)
@@ -206,6 +225,13 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
   }, granularity, conservative);
 }
 
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
+  A* alloc = init_alloc();
+  f(alloc);
+  finish_alloc(alloc);
+}
+
 // c++
 #else
 
@@ -235,12 +261,17 @@ inline void parallel_run(Job job, int num_threads=0) {
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  parallel_for(start, end, [&](long i)
-  {
-    A* alloc = init_alloc();
-    f(i, alloc);
-    finish_alloc(alloc);
-  }, granularity, conservative);
+  A* alloc = init_alloc();
+  for (long i=start; i<end; i++) { f(i, alloc); }
+  finish_alloc(alloc);
+}
+
+template <typename A, typename Af, typename Df, typename F>
+inline void parallel_static_alloc(Af init_alloc, Df finish_alloc, F f, long granularity, bool conservative) {
+  static A* alloc = nullptr;
+  if (alloc == nullptr) alloc = init_alloc();
+  f(alloc);
+  //finish_alloc(alloc);
 }
 
 #endif
