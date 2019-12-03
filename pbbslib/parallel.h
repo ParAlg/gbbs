@@ -42,7 +42,7 @@ static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
 #if defined(CILK)
 #include <cilk/cilk.h>
 #include <cilk/cilk_api.h>
-#include <cilk/holder.h>
+#include <cilk/reducer.h>
 #include <iostream>
 #include <sstream>
 #define PAR_GRANULARITY 2000
@@ -82,25 +82,35 @@ inline void par_do(Lf left, Rf right, bool conservative) {
     cilk_sync;
 }
 
-/*template <typename A, typename Af, typename Df, typename F>
-inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  cilk::holder<A*> alloc_holder;
-  parallel_for(start, end, [&](size_t i)
-  {
-    alloc_holder() = init_alloc();
-    f(i, alloc_holder());
-    finish_alloc(alloc_holder());
-  }, granularity, conservative);
-}*/
+template <typename A>
+class alloc_holder
+{
+   struct Monoid: cilk::monoid_base<A>
+   {
+     static void reduce (A *left, A *right) {}
+   };
+
+public:
+  cilk::reducer<Monoid> imp_;
+  alloc_holder() : imp_() { }
+};
+//imp_.view();
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  parallel_for(start, end, [&](long i)
+  alloc_holder<A> alloc;
+  //cilk::holder<A*> alloc_holder;
+
+  parallel_for(start, end, [&](size_t i)
   {
-    A* alloc = init_alloc();
-    f(i, alloc);
-    finish_alloc(alloc);
+    init_alloc(&alloc.imp_.view());
+    f(i, &(alloc.imp_.view()));
+    //alloc_holder() = init_alloc();
+    //f(i, alloc_holder());
+    //finish_alloc(alloc_holder());
+    //finish_alloc(&(alloc.imp_.view()));
   }, granularity, conservative);
+  //finish_alloc(&(alloc.imp_.view()));
 }
 
 // openmp
@@ -152,7 +162,8 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
   A* alloc = nullptr;
   #pragma omp parallel private(alloc)
   {
-    alloc = init_alloc();
+    alloc = new A();
+    init_alloc(alloc);
     #pragma omp for schedule(dynamic, 1) nowait
     for(long i=start; i<end; i++) f(i, alloc);
     finish_alloc(alloc);
@@ -212,7 +223,8 @@ template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
   parallel_for(start, end, [&](long i)
   {
-    A* alloc = init_alloc();
+    A* alloc = new A();
+    init_alloc(alloc);
     f(i, alloc);
     finish_alloc(alloc);
   }, granularity, conservative);
@@ -247,7 +259,8 @@ inline void parallel_run(Job job, int num_threads=0) {
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  A* alloc = init_alloc();
+  A* alloc = new A();
+  init_alloc(alloc);
   for (long i=start; i<end; i++) { f(i, alloc); }
   finish_alloc(alloc);
 }

@@ -227,14 +227,15 @@ struct HybridSpace_lw {
   uintE* labels = nullptr;
   uintE* old_labels = nullptr;
   size_t nn = 0;
+  HybridSpace_lw () {}
 
-  HybridSpace_lw(size_t max_induced, size_t k, size_t n) {
-    induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
-    induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
-    labels = (uintE*) malloc(sizeof(uintE)*max_induced);
-    induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
-    num_induced = (uintE*) malloc(sizeof(uintE)*k);
-    old_labels = (uintE*) calloc(n, sizeof(uintE));
+  void alloc(size_t max_induced, size_t k, size_t n) {
+    if (induced == nullptr) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
+    if (induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
+    if (labels == nullptr) labels = (uintE*) malloc(sizeof(uintE)*max_induced);
+    if (induced_edges == nullptr) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
+    if (num_induced == nullptr) num_induced = (uintE*) malloc(sizeof(uintE)*k);
+    if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
   }
 
   template <class Graph>
@@ -288,6 +289,8 @@ struct HybridSpace_lw {
     if (num_induced) free(num_induced);
     if (old_labels) free(old_labels);
   }
+
+  ~HybridSpace_lw() { del(); }
 
 };
 
