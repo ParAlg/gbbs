@@ -85,25 +85,18 @@ namespace induced_neighborhood {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
-    size_t n = 0;
+    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
     size_t max_deg = get_max_deg(DG);
-    FullSpace_orig_lw* induced = nullptr;
-    #pragma omp parallel private(induced) reduction(+:n)
-    {
-    induced = new FullSpace_orig_lw(max_deg, k);
-    #pragma omp for schedule(dynamic, 1) nowait
-    for (size_t i=0; i < DG.n; ++i) {
+    auto init_induced = [&](FullSpace_orig_lw* induced) { induced->alloc(max_deg, k, DG.n); };
+    auto finish_induced = [&](FullSpace_orig_lw* induced) { if (induced != nullptr) { delete induced; } };
+    parallel_for_alloc<FullSpace_orig_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, FullSpace_orig_lw* induced) {
       if (DG.get_vertex(i).getOutDegree() != 0) {
         induced->setup(DG, k, i);
-        n += KCliqueDir_fast_orig_rec(DG, 1, k, induced);
-      }
-    }
+        tots[i] = KCliqueDir_fast_orig_rec(DG, 1, k, induced);
+      } else tots[i] = 0;
+    } );
 
-    if (induced != nullptr) { induced->del(); delete induced; }
-
-    }
-
-    return n;
+    return pbbslib::reduce_add(tots);
   }
 
 } // namespace induced_neighborhood

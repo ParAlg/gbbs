@@ -126,15 +126,25 @@ struct InducedSpace_lw {
   uintE* induced = nullptr;
 
   int* intersect = nullptr;
-  InducedSpace_lw(size_t max_deg, size_t k, size_t n) {
-    induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
-    num_induced = (uintE*) malloc(k*sizeof(uintE));
-    intersect = (int*) malloc(n*sizeof(int));
-    for (size_t  i=0; i < n; i++) {
-      intersect[i] = 0;
+  InducedSpace_lw() {}
+
+  void alloc(size_t max_deg, size_t k, size_t n) {
+    if (!induced) induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
+    if (!num_induced) num_induced = (uintE*) malloc(k*sizeof(uintE));
+    if (!intersect) {
+      intersect = (int*) malloc(n*sizeof(int));
+      for (size_t  i=0; i < n; i++) {
+        intersect[i] = 0;
+      }
     }
   }
-  void del() { if(induced) free(induced); if (num_induced) free(num_induced); if (intersect) free(intersect);}
+  void del() {
+    if (induced) { free(induced); induced = nullptr; }
+    if (num_induced) { free(num_induced); num_induced = nullptr; }
+    if (intersect) { free(intersect); intersect = nullptr; }
+  }
+
+  ~InducedSpace_lw() { del(); }
 };
 
 struct FullSpace_orig_lw {
@@ -144,26 +154,23 @@ struct FullSpace_orig_lw {
   uintE* induced_edges = nullptr;
   uintE* induced_degs = nullptr;
   uintE* labels = nullptr;
+  uintE* old_labels = nullptr;
   size_t nn = 0;
 
-  FullSpace_orig_lw(size_t max_induced, size_t k) {
+  FullSpace_orig_lw() {}
+
+  void alloc(size_t max_induced, size_t k, size_t n) {
     induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     induced_degs = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     labels = (uintE*) malloc(sizeof(uintE)*max_induced);
     induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     num_induced = (uintE*) malloc(sizeof(uintE)*k);
     num_edges = (uintE*) malloc(sizeof(uintE)*k);
+    if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    static uintE* old_labels = nullptr;
-	  #pragma omp threadprivate(old_labels)
-    if (old_labels == nullptr) {
-      old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
-      for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
-    }
-
     num_induced[0] = DG.get_vertex(i).getOutDegree();
     nn = num_induced[0];
     uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
@@ -206,13 +213,16 @@ struct FullSpace_orig_lw {
   static void finish(){}
 
   void del() {
-    if (labels) free(labels);
-    if (induced) free(induced);
-    if (induced_edges) free(induced_edges);
-    if (induced_degs) free(induced_degs);
-    if (num_edges) free(num_edges);
-    if (num_induced) free(num_induced);
+    if (labels) { free(labels); labels = nullptr; }
+    if (induced) { free(induced); induced = nullptr; }
+    if (induced_edges) { free(induced_edges); induced_edges = nullptr; }
+    if (induced_degs) { free(induced_degs); induced_degs = nullptr; }
+    if (num_edges) { free(num_edges); num_edges = nullptr; }
+    if (num_induced) { free(num_induced); num_induced = nullptr; }
+    if (old_labels) { free(old_labels); old_labels=nullptr; }
   }
+
+  ~FullSpace_orig_lw() { del(); }
 
 };
 

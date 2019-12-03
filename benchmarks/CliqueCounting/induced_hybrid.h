@@ -61,7 +61,6 @@ namespace induced_hybrid {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
-    //size_t n = 0;
     sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };

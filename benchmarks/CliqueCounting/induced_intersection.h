@@ -61,41 +61,21 @@ namespace induced_intersection {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
-    //sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
-    size_t n = 0;
+    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+
     size_t max_deg = get_max_deg(DG);
-    /*InducedSpace_lw** induceds = (InducedSpace_lw**) malloc(num_workers()*sizeof(InducedSpace_lw*));
-    parallel_for (0, num_workers(), [&](size_t i) {
-      induceds[i] = new InducedSpace_lw(k, max_deg, DG.n);
-    });*/
-    InducedSpace_lw* induced = nullptr;
-    #pragma omp parallel private(induced) reduction(+:n)
-    {
-      induced = new InducedSpace_lw(max_deg, k, DG.n);
-      #pragma omp for schedule(dynamic, 1) nowait
-      for (size_t i=0; i < DG.n; i++) {
-    //parallel_for (0, DG.n, [&](size_t i) {
-      //InducedSpace_lw* induced = induceds[worker_id()];
+    auto init_induced = [&](InducedSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };
+    auto finish_induced = [&](InducedSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+    parallel_for_alloc<InducedSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, InducedSpace_lw* induced) {
       if (DG.get_vertex(i).getOutDegree() != 0) {
         induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
-        for  (size_t j=0; j < induced->num_induced[0]; j++) {
+        for (size_t j=0; j < induced->num_induced[0]; j++) {
           induced->induced[j] = ((uintE*)(DG.get_vertex(i).getOutNeighbors()))[j];
         }
-        n += KCliqueDir_fast_rec(DG, 1, k, induced);
-      } //else tots[i] = 0;
-    }//);
-    }
+        tots[i] = KCliqueDir_fast_rec(DG, 1, k, induced);
+      } else tots[i] = 0;
+    } );
 
-    if (induced != nullptr) {induced->del(); delete induced;}
-
-    //parallel_for (0, num_workers(), [&](size_t i) {
-    //  induceds[i]->del(); delete induceds[i];
-    //});
-    //free(induceds);
-
-    //size_t  total = 0;
-    //for (size_t i=0; i < DG.n ;i++) { total += tots[i]; }
-
-    return n; //total; //pbbslib::reduce_add(tots);
+    return pbbslib::reduce_add(tots);
   }
 } // induced_intersection

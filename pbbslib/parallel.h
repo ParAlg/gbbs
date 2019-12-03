@@ -94,22 +94,17 @@ public:
   cilk::reducer<Monoid> imp_;
   alloc_holder() : imp_() { }
 };
-//imp_.view();
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
   alloc_holder<A> alloc;
-  //cilk::holder<A*> alloc_holder;
 
   parallel_for(start, end, [&](size_t i)
   {
     init_alloc(&alloc.imp_.view());
     f(i, &(alloc.imp_.view()));
-    //alloc_holder() = init_alloc();
-    //f(i, alloc_holder());
-    //finish_alloc(alloc_holder());
-    //finish_alloc(&(alloc.imp_.view()));
   }, granularity, conservative);
+
   //finish_alloc(&(alloc.imp_.view()));
 }
 
