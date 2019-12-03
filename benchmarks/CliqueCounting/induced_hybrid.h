@@ -65,7 +65,7 @@ namespace induced_hybrid {
     sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { }; //if (induced != nullptr) { induced->del(); delete induced; }
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
       if (DG.get_vertex(i).getOutDegree() != 0) {
         induced->setup(DG, k, i);

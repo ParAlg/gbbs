@@ -282,12 +282,12 @@ struct HybridSpace_lw {
   static void finish(){}
 
   void del() {
-    if (labels) free(labels);
-    if (induced) free(induced);
-    if (induced_edges) free(induced_edges);
-    if (induced_degs) free(induced_degs);
-    if (num_induced) free(num_induced);
-    if (old_labels) free(old_labels);
+    if (labels) {free(labels); labels=nullptr;}
+    if (induced) {free(induced); induced=nullptr;}
+    if (induced_edges) {free(induced_edges); induced_edges=nullptr;}
+    if (induced_degs) {free(induced_degs); induced_degs=nullptr;}
+    if (num_induced) {free(num_induced); num_induced=nullptr;}
+    if (old_labels) {free(old_labels); old_labels=nullptr;}
   }
 
   ~HybridSpace_lw() { del(); }
