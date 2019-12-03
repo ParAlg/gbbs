@@ -103,9 +103,8 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
   {
     init_alloc(&alloc.imp_.view());
     f(i, &(alloc.imp_.view()));
+    //finish_alloc(&(alloc.imp_.view()));
   }, granularity, conservative);
-
-  //finish_alloc(&(alloc.imp_.view()));
 }
 
 // openmp
