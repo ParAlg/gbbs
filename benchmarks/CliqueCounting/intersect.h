@@ -240,31 +240,26 @@ struct HybridSpace_lw {
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n) {
-    if (induced == nullptr) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
+    if (induced == nullptr && k > 2) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     if (induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
-    if (labels == nullptr) labels = (uintE*) malloc(sizeof(uintE)*max_induced);
-    if (induced_edges == nullptr) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
-    if (num_induced == nullptr) num_induced = (uintE*) malloc(sizeof(uintE)*k);
+    if (labels == nullptr && k > 2) labels = (uintE*) calloc(max_induced, sizeof(uintE));
+    if (induced_edges == nullptr && k > 2) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
+    if (num_induced == nullptr && k > 2) num_induced = (uintE*) malloc(sizeof(uintE)*k);
     if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    /*static uintE* old_labels = nullptr;
-	  #pragma omp threadprivate(old_labels)
-    if (old_labels == nullptr) {
-      old_labels = (uintE*) malloc(DG.n * sizeof(uintE));
-      for (size_t o=0; o < DG.n; o++) { old_labels[o] = 0; }
-    }*/
-
-    num_induced[0] = DG.get_vertex(i).getOutDegree();
-    nn = num_induced[0];
+    nn = DG.get_vertex(i).getOutDegree();
     uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
-    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
-    for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
+  
+    if (k > 2) {
+      num_induced[0] = nn;
+      for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    }
 
-    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = o + 1; }
+    for (size_t o=0; o < nn; o++) { old_labels[induced_g[o]] = o + 1; }
 
 
     for (size_t j=0; j < nn; j++) {
@@ -276,13 +271,13 @@ struct HybridSpace_lw {
       // store size in induced_degs[j]
       for (size_t l=0; l < v_deg; l++) {
         if (old_labels[v_nbhrs[l]] > 0) {
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhrs[l]] - 1;
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhrs[l]] - 1;
           induced_degs[j]++;
         }
       }
     }
 
-    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = 0; }
+    for (size_t o=0; o < nn; o++) { old_labels[induced_g[o]] = 0; }
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
