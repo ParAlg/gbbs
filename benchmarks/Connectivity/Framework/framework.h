@@ -156,15 +156,15 @@ namespace connectit {
       if constexpr (unite_option == unite_rem_cas || unite_option == unite_rem_lock) {
         auto splice = get_splice_function<splice_option>();
         auto unite = get_unite_function<unite_option, decltype(find), decltype(splice), find_option>(G.n, find, splice);
-        using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
-        auto sample = Afforest(G, find, unite, P);
-        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
+        using KOut = KOutSamplingTemplate<decltype(find), decltype(unite), Graph>;
+        auto sample = KOut(G, find, unite, P);
+        auto connectivity = SamplingAlgorithmTemplate<Graph, KOut, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
         return connectivity.components();
       } else {
         auto unite = get_unite_function<unite_option, decltype(find)>(G.n, find);
-        using Afforest = AfforestSamplingTemplate<decltype(find), decltype(unite), Graph>;
-        auto sample = Afforest(G, find, unite, P);
-        auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
+        using KOut = KOutSamplingTemplate<decltype(find), decltype(unite), Graph>;
+        auto sample = KOut(G, find, unite, P);
+        auto connectivity = SamplingAlgorithmTemplate<Graph, KOut, Algorithm, algorithm_type, sampling_option>(G, sample, alg);
         return connectivity.components();
       }
     } else if constexpr (sampling_option == sample_bfs) {
@@ -277,9 +277,9 @@ namespace connectit {
     if constexpr (sampling_option == sample_kout) {
       auto fc = find_variants::find_compress;
       auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
-      using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
-      auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, UF, union_find_type, sampling_option>(G, sample, alg);
+      using KOut = KOutSamplingTemplate<decltype(fc), decltype(unite), Graph>;
+      auto sample = KOut(G, fc, unite, P);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, KOut, UF, union_find_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;
@@ -313,9 +313,9 @@ namespace connectit {
     if constexpr (sampling_option == sample_kout) {
       auto fc = find_variants::find_compress;
       auto unite = unite_variants::UniteND<decltype(fc)>(G.n, fc);
-      using Afforest = AfforestSamplingTemplate<decltype(fc), decltype(unite), Graph>;
-      auto sample = Afforest(G, fc, unite, P);
-      auto connectivity = SamplingAlgorithmTemplate<Graph, Afforest, ALG, algorithm_type, sampling_option>(G, sample, alg);
+      using KOut = KOutSamplingTemplate<decltype(fc), decltype(unite), Graph>;
+      auto sample = KOut(G, fc, unite, P);
+      auto connectivity = SamplingAlgorithmTemplate<Graph, KOut, ALG, algorithm_type, sampling_option>(G, sample, alg);
       return connectivity.components();
     } else if constexpr (sampling_option == sample_bfs) {
       using BFS = BFSSamplingTemplate<Graph>;

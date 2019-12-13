@@ -50,11 +50,10 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   assert(!pack); // discouraged for now. Using the optimized contraction method is faster.
   timer t;
   t.start();
-  auto edges = spanning_forest::SpanningForest(G, beta, pack, P.getOptionValue("-permute"));
-  cout << "n = " << G.n << " #edges = " << edges.size << endl;
+  auto edges = workefficient_sf::SpanningForest(G, beta, pack, P.getOptionValue("-permute"));
+  cout << "n = " << G.n << " #edges = " << edges.size() << endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
-  edges.del();
 
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can

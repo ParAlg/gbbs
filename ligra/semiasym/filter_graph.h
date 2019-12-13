@@ -53,7 +53,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
   size_t total_space_bytes =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
   size_t output_size = std::get<1>(vtx_offs[n]);
-  std::cout << "tmp bytes to allocate = " << total_space_bytes
+  std::cout << "# tmp bytes to allocate = " << total_space_bytes
             << " output size = " << output_size << "\n";
   auto arr = sequence<edge>(output_size);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
@@ -97,7 +97,7 @@ inline edge_array<W> filter_edges(graph<vertex<W>>& G, P& pred, const flags fl =
       [&](size_t i) { return G.V[i].getOutDegree(); });
 
   G.m = pbbslib::reduce_add(degree_imap);
-  std::cout << "G.m is now = " << G.m << "\n";
+  std::cout << "# G.m is now = " << G.m << "\n";
 
   return edge_array<W>(arr.to_array(), n, n, arr.size());
 }
@@ -112,7 +112,6 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     offs[i] = std::make_tuple(G.V[i].countOutNgh(i, p),
                               G.V[i].calculateOutTemporarySpace());
   });
-  //  std::cout << "fall e" << "\n";
   offs[n] = std::make_tuple(0, 0);
   auto scan_f = [](const std::tuple<uintT, uintT>& l,
                    const std::tuple<uintT, uintT>& r) {
@@ -122,7 +121,7 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
   pbbslib::scan_inplace(offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
-  std::cout << "tmp space allocated = " << total_space << "\n";
+  std::cout << "# tmp space allocated = " << total_space << "\n";
 
   size_t total_edges = std::get<0>(offs[n]);
   auto arr = sequence<edge>(total_edges);
@@ -142,7 +141,6 @@ inline edge_array<W> filter_all_edges(graph<vertex<W>>& G, P& p) {
     };
     par_for(0, n, [&] (size_t i) { for_inner(i); });
   }
-  //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
   return edge_array<W>(arr.to_array(), n, n, arr.size());
 }

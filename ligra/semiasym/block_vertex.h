@@ -34,13 +34,10 @@ template <class It>
 size_t intersect(It& a, It& b) {
   size_t i=0; size_t j=0;
   size_t nA = a.degree(); size_t nB = b.degree();
-//  cout << "nA = " << nA << " nB = " << nB << endl;
-//  cout << "acur = " << std::get<0>(a.cur()) << " bcur = " << std::get<0>(b.cur()) << endl;
   size_t ans = 0;
   bool advance_a = false;
   bool advance_b = false;
   while (i < nA && j < nB) {
-//    cout << "i = " << i << " j = " << j << " (a) = " << std::get<0>(a.cur()) << " (b) = " << std::get<0>(b.cur()) << endl;
     if (advance_a) {
       advance_a = false;
       a.next();

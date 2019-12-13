@@ -12,7 +12,7 @@ inline size_t num_cc(Seq& labels) {
     }
   });
   pbbslib::scan_add_inplace(flags);
-  std::cout << "n_cc = " << flags[n] << "\n";
+  std::cout << "# n_cc = " << flags[n] << "\n";
   return flags[n];
 }
 
@@ -25,7 +25,7 @@ inline size_t largest_cc(Seq& labels) {
     flags[labels[i]] += 1;
   }
   size_t sz = pbbslib::reduce_max(flags);
-  std::cout << "largest_cc has size: " << sz << "\n";
+  std::cout << "# largest_cc has size: " << sz << "\n";
   return sz;
 }
 
@@ -58,7 +58,7 @@ inline void cc_check(S1& correct, S2& check) {
     assert(correct[i] == check[i]);
     if ((correct[i] != check[i])) {
       is_correct = false;
-      std::cout << "at i = " << i << " cor = " << correct[i] << " got: " << check[i] << std::endl;
+      std::cout << "# at i = " << i << " cor = " << correct[i] << " got: " << check[i] << std::endl;
       std::cout.flush();
       abort();
     }
@@ -69,6 +69,6 @@ inline void cc_check(S1& correct, S2& check) {
       pbbs::write_max(&max_chk, check[i], std::less<parent>());
     }
   }
-  cout << "correctness check: " << is_correct << endl;
-  cout << "max_cor = " << max_cor << " max_chk = " << max_chk << endl;
+  cout << "# correctness check: " << is_correct << endl;
+  cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << endl;
 }

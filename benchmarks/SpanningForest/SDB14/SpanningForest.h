@@ -24,14 +24,14 @@
 #pragma once
 
 #include "contract_sf.h"
-#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "ligra/pbbslib/dyn_arr.h"
 
-namespace spanning_forest {
+#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
+#include "benchmarks/SpanningForest/common.h"
 
-  using edge = std::pair<uintE, uintE>;
+namespace workefficient_sf {
 
   template <class W>
   struct LDD_Edge_F {
@@ -181,12 +181,12 @@ namespace spanning_forest {
   // Algorithm maintains a map from edges in the current graph to original
   // edges (initially just identity).
   template <class Graph>
-  inline pbbslib::dyn_arr<edge> SpanningForest(Graph& G, double beta = 0.2,
+  inline pbbs::sequence<edge> SpanningForest(Graph& G, double beta = 0.2,
                                         bool pack = false, bool permute = false) {
     std::function<edge(edge)> identity_mapping = [&] (edge e) {
       return e;
     };
-    return SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute);
+    return SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute).to_seq();
   }
 
 }  // namespace spanning_forest

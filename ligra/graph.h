@@ -240,7 +240,7 @@ struct edge_array {
   edge_array(edge* _E, size_t r, size_t c, size_t nz)
       : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {
     if (r != c) {
-      std::cout << "edge_array format currently expects square matrix" << std::endl;
+      std::cout << "# edge_array format currently expects square matrix" << std::endl;
       exit(0);
     }
     n = r;

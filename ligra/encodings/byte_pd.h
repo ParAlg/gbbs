@@ -752,12 +752,12 @@ void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d,
   uintE total_space = pbbslib::scan_add_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
-    std::cout << "Space error!"
+    std::cout << "# Space error!"
               << "\n";
     exit(0);
   }
   if (total_space == (last_finger - edgeArray)) {
-    std::cout << "d = " << d << " to exactly the same space"
+    std::cout << "# d = " << d << " to exactly the same space"
               << "\n";
   }
 

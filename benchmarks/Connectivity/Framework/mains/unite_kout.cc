@@ -77,8 +77,6 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
-  cout << "rounds = " << rounds << endl;
-  cout << "num threads = " << num_workers() << endl;
 
   auto correct = pbbs::sequence<parent>();
   if (P.getOptionValue("-check")) {

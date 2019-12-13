@@ -258,7 +258,7 @@ struct packed_graph {
 
     size_t block_mem_to_alloc =
         pbbslib::scan_add_inplace(block_bytes_offs.slice());
-    cout << "total memory for packed_graph = " << block_mem_to_alloc << endl;
+    std::cout << "# total memory for packed_graph = " << block_mem_to_alloc << std::endl;
 
     auto blocks_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
       uintE degree = GA.get_vertex(i).getOutDegree();
@@ -271,9 +271,9 @@ struct packed_graph {
     // allocate blocks
     blocks = pbbs::new_array_no_init<uint8_t>(block_mem_to_alloc);
     VI = pbbs::new_array_no_init<vtx_info>(n);
-    cout << "packed graph: block_size = " << bs << endl;
-    cout << "total blocks = " << total_blocks << " sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << endl;
-    cout << "total memory usage = " << (block_mem_to_alloc + (n*sizeof(vtx_info))) << " bytes " << endl;
+    std::cout << "# packed graph: block_size = " << bs << std::endl;
+    std::cout << "# total blocks = " << total_blocks << " sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << std::endl;
+    std::cout << "# total memory usage = " << (block_mem_to_alloc + (n*sizeof(vtx_info))) << " bytes " << std::endl;
 
     // initialize blocks and vtx_info
     parallel_for(
@@ -381,7 +381,7 @@ struct packed_graph {
   }
 
   void del() {
-    cout << "deleting packed_graph" << endl;
+    std::cout << "# deleting packed_graph" << std::endl;
     pbbs::free_array(VI);
     pbbs::free_array(blocks);
   }
@@ -410,7 +410,7 @@ packed_graph<vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred_f) {
   });
   auto new_m = pbbslib::reduce_add(degree_seq);
   GA.m = new_m;
-  cout << "Returning new packed graph, new m = " << new_m << endl;
+  std::cout << "# Returning new packed graph, new m = " << new_m << std::endl;
   return GA;
 }
 
@@ -430,6 +430,6 @@ void filter_graph(packed_graph<vertex, W>& GA, P& pred_f) {
   });
   auto new_m = pbbslib::reduce_add(degree_seq);
   GA.m = new_m;
-  cout << "Packing packed graph: new m = " << new_m << endl;
+  std::cout << "# Packing packed graph: new m = " << new_m << std::endl;
 }
 

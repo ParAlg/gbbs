@@ -70,13 +70,13 @@ template <
 // Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
 // for the well documented reference implementation of afforest.
 template <class Find, class Unite, class G>
-struct AfforestSamplingTemplate {
+struct KOutSamplingTemplate {
   G& GA;
   Find& find;
   Unite& unite;
   uint32_t neighbor_rounds;
 
-  AfforestSamplingTemplate(
+  KOutSamplingTemplate(
       G& GA,
       Find& find,
       Unite& unite,
@@ -104,15 +104,13 @@ struct AfforestSamplingTemplate {
   pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
-    cout << "neighbor_rounds = " << neighbor_rounds << endl;
+    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
 
     auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     pbbs::sequence<uintE> hooks;
 
     pbbs::random rnd;
     uintE granularity = 1024;
-  // Using random neighbor---some overhead (and faster for some graphs), also
-  // theoretically defensible
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {
         /* First round: sample a directed forest and compress instead of using
@@ -151,43 +149,73 @@ struct AfforestSamplingTemplate {
       }, granularity);
       rnd = rnd.next();
     }
-
-//    // Using r'th neighbor---usually faster, but not so defensible theoretically.
-//    for (uint32_t r=0; r<neighbor_rounds; r++) {
-//      if (r == 0) {
-//        /* First round: sample a directed forest and compress instead of using
-//         * unite */
-//        parallel_for(0, n, [&] (size_t u) {
-//          auto u_vtx = GA.get_vertex(u);
-//          if (u_vtx.getOutDegree() > r) {
-//            uintE ngh; W wgh;
-//            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
-//            if (u_vtx.getOutDegree() < GA.get_vertex(ngh).getOutDegree()) {
-//              parents[u] = ngh;
-//            }
-//          }
-//        });
-//      } else {
-//        /* Subsequent rounds: use unite */
-//        parallel_for(0, n, [&] (size_t u) {
-//          auto u_vtx = GA.get_vertex(u);
-//          if (u_vtx.getOutDegree() > r) {
-//            uintE ngh; W wgh;
-//            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
-//            link(u, ngh, parents);
-//          }
-//        });
-//      }
-//      // compress nodes fully (turns out this is faster)
-//      parallel_for(0, n, [&] (size_t u) {
-//        while (parents[u] != parents[parents[u]]) {
-//          parents[u] = parents[parents[u]];
-//        }
-//      });
-//    }
-
     return parents;
    }
+
+  pbbs::sequence<parent> initial_components_pure() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
+
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    pbbs::sequence<uintE> hooks;
+
+    pbbs::random rnd;
+    uintE granularity = 1024;
+  // Using random neighbor---some overhead (and faster for some graphs), also
+  // theoretically defensible
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      parallel_for(0, n, [&] (size_t u) {
+        auto u_rnd = rnd.fork(u);
+        auto u_vtx = GA.get_vertex(u);
+        auto out_degree = u_vtx.getOutDegree();
+        if (out_degree > 0) {
+          uintE ngh_idx = u_rnd.rand() % out_degree;
+          auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+          link(u, ngh, parents);
+        }
+      }, granularity);
+      // compress nodes fully
+      parallel_for(0, n, [&] (size_t u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
+      rnd = rnd.next();
+    }
+    return parents;
+   }
+
+  pbbs::sequence<parent> initial_components_afforest() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
+
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    pbbs::sequence<uintE> hooks;
+
+    uintE granularity = 1024;
+  // Using random neighbor---some overhead (and faster for some graphs), also
+  // theoretically defensible
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      parallel_for(0, n, [&] (size_t u) {
+        auto u_vtx = GA.get_vertex(u);
+        auto out_degree = u_vtx.getOutDegree();
+        if (out_degree > r) {
+          auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, r);
+          link(u, ngh, parents);
+        }
+      }, granularity);
+      // compress nodes fully
+      parallel_for(0, n, [&] (size_t u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
+    }
+    return parents;
+   }
+
 };
 
 template <class W>

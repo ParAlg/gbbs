@@ -1288,7 +1288,7 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
           compressFirstEdge(edgeArray, current_offset, source, last_ngh);
       auto decf = eatFirstEdge(test_fing, source);
       if (decf != last_ngh) {
-        std::cout << "first enc: " << source << " and " << last_ngh
+        std::cout << "# first enc: " << source << " and " << last_ngh
                   << " got back " << decf << "\n";
       }
       //        assert(eatFirstEdge(test_fing, source) == last_ngh);
@@ -1302,7 +1302,7 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
         current_offset = compressEdge(edgeArray, current_offset, difference);
         auto dec = eatEdge(test_fing);
         if (dec != difference) {
-          std::cout << "src = " << source << " enc = " << std::get<0>(nxt)
+          std::cout << "# src = " << source << " enc = " << std::get<0>(nxt)
                     << "\n";
         }
         //          assert(eatEdge(test_fing) == std::get<0>(nxt));

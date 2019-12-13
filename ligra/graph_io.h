@@ -162,7 +162,7 @@ inline asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
 
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
-  debug(cout << "scan I back " << endl;);
+  debug(cout << "# scan I back " << endl;);
   auto t_seq = pbbslib::make_sequence(tOffsets, n+1).rslice();
   auto M = pbbslib::minm<uintT>();
   M.identity = m;
@@ -212,7 +212,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
 
-  debug(std::cout << "n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
+  debug(std::cout << "# n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
   uint64_t len = tokens.size() - 1;
   assert(len == n + m + 2););
 
@@ -322,7 +322,7 @@ std::tuple<char*, size_t> parse_compressed_graph(
   if (mmap) {
     std::tie(bytes, bytes_size) = mmapStringFromFile(fname);
     if (mmapcopy) {
-      debug(std::cout << "Copying compressed graph due to mmapcopy being set."
+      debug(std::cout << "# Copying compressed graph due to mmapcopy being set."
                 << "\n";);
       char* next_bytes = pbbslib::new_array_no_init<char>(bytes_size);
       par_for(0, bytes_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -351,7 +351,7 @@ read_compressed_symmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   uint64_t n = sizes[0], m = sizes[1];
 
   debug(uint64_t totalSpace = sizes[2];
-  std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
+  std::cout << "# n = " << n << " m = " << m << " totalSpace = " << totalSpace
             << "\n");
 
   uintT* offsets = (uintT*)(bytes + 3 * sizeof(long));
@@ -387,7 +387,7 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   long* sizes = (long*)bytes;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  debug(std::cout << "n = " << n << " m = " << m << " totalSpace = " << totalSpace
+  debug(std::cout << "# n = " << n << " m = " << m << " totalSpace = " << totalSpace
             << "\n");
 
   uintT* offsets = (uintT*)(bytes + 3 * sizeof(long));
@@ -404,7 +404,7 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   uchar* inData = (uchar*)(bytes + skip);
   sizes = (long*)inData;
   debug(size_t inTotalSpace = sizes[0];
-  std::cout << "inTotalSpace = " << inTotalSpace << "\n";);
+  std::cout << "# inTotalSpace = " << inTotalSpace << "\n";);
   skip += sizeof(long);
   inOffsets = (uintT*)(bytes + skip);
   skip += (n + 1) * sizeof(uintT);

@@ -148,7 +148,7 @@ void list_allocator<T>::print_stats() {
   size_t used = num_used_blocks();
   size_t allocated = num_allocated_blocks();
   size_t size = block_size();
-  std::cout << "Used: " << used << ", allocated: " << allocated
+  std::cout << "# Used: " << used << ", allocated: " << allocated
 		<< ", node size: " << size
 		<< ", bytes: " << size*allocated << std::endl;
 }

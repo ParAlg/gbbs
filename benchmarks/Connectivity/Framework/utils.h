@@ -28,9 +28,9 @@ sample_frequent_element(Seq& S, uint64_t num_samples=1024) {
     [](const kvp_type& a, const kvp_type& b) { return a.second < b.second; });
 
   double frac_of_graph = static_cast<double>(most_frequent->second) / num_samples;
-  std::cout
-    << "# Skipping largest intermediate component (ID: " << most_frequent->first
-    << ", approx. " << (frac_of_graph * 100)
-    << "% of the graph)" << std::endl;
+//  std::cout
+//    << "# Skipping largest intermediate component (ID: " << most_frequent->first
+//    << ", approx. " << (frac_of_graph * 100)
+//    << "% of the graph)" << std::endl;
   return std::make_pair(most_frequent->first, frac_of_graph);
 }
