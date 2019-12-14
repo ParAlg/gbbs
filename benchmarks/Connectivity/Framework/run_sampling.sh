@@ -1,7 +1,7 @@
 #!/bin/bash
 
-graphs=("/ssd1/graphs/bench_experiments/soc-LiveJournal1_sym.adj") #"/ssd1/graphs/bench_experiments/com-orkut.ungraph.adj" "/ssd0/graphs/bench_experiments/usa_road.adj" "/ssd1/graphs/bench_experiments/twitter_sym.adj" "/ssd1/graphs/bench_experiments/friendster_sym.adj")
-#c_graphs=("/ssd0/graphs/bench_experiments/clueweb_sym.bytepda" "/ssd0/graphs/bench_experiments/hyperlink2014_sym.bytepda" "/ssd1/graphs/bench_experiments/hyperlink2012_sym.bytepda" )
+graphs=("/ssd1/graphs/bench_experiments/soc-LiveJournal1_sym.adj" "/ssd1/graphs/bench_experiments/com-orkut.ungraph.adj" "/ssd0/graphs/bench_experiments/usa_road.adj" "/ssd1/graphs/bench_experiments/twitter_sym.adj" "/ssd1/graphs/bench_experiments/friendster_sym.adj")
+c_graphs=("/ssd0/graphs/bench_experiments/clueweb_sym.bytepda" "/ssd0/graphs/bench_experiments/hyperlink2014_sym.bytepda" "/ssd1/graphs/bench_experiments/hyperlink2012_sym.bytepda" )
 
 binaries=("benchmark_sampling")
 output_dir="sampling_data"
@@ -25,7 +25,7 @@ do
   done
 done
 
-for graph in ${graphs[@]}
+for graph in ${c_graphs[@]}
 do
   NAME=$(basename $graph .adj)
   sync; echo 1 | sudo tee /proc/sys/vm/drop_caches
