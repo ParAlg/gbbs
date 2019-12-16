@@ -75,6 +75,13 @@ inline void parallel_for(long start, long end, F f,
   }
 }
 
+template <typename F>
+inline void parallel_for_1(long start, long end, F f,
+			 long granularity,
+			 bool conservative) {
+  _Pragma("cilk grainsize = 1") cilk_for(long i=start; i<end; i++) f(i);
+}
+
 template <typename Lf, typename Rf>
 inline void par_do(Lf left, Rf right, bool conservative) {
     cilk_spawn right();
@@ -95,11 +102,12 @@ public:
   alloc_holder() : imp_() { }
 };
 
+// TODO try parallel_for_1
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
   alloc_holder<A> alloc;
 
-  parallel_for(start, end, [&](size_t i)
+  parallel_for_1(start, end, [&](size_t i)
   {
     init_alloc(&alloc.imp_.view());
     f(i, &(alloc.imp_.view()));
@@ -121,6 +129,14 @@ inline void parallel_for(long start, long end, F f,
 			 long granularity,
 			 bool conservative) {
   _Pragma("omp parallel for")
+    for(long i=start; i<end; i++) f(i);
+}
+
+template <typename F>
+inline void parallel_for_1(long start, long end, F f,
+			 long granularity,
+			 bool conservative) {
+  #pragma omp for schedule(dynamic, 1) nowait
     for(long i=start; i<end; i++) f(i);
 }
 
@@ -158,8 +174,9 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
   {
     alloc = new A();
     init_alloc(alloc);
-    #pragma omp for schedule(dynamic, 1) nowait
-    for(long i=start; i<end; i++) f(i, alloc);
+    parallel_for_1(start, end, [&](size_t i) { f(i, alloc); }, granularity, conservative);
+    //#pragma omp for schedule(dynamic, 1) nowait
+    //for(long i=start; i<end; i++) f(i, alloc);
     finish_alloc(alloc);
   }
 }

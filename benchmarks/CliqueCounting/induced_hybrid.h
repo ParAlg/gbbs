@@ -21,7 +21,7 @@ namespace induced_hybrid {
   inline size_t KCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced) {
     if (k == 2) return induced->num_edges;
     size_t num_induced = induced->num_induced[k_idx-1];
-    if (num_induced == 0) return 0
+    if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
 
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
@@ -129,7 +129,7 @@ namespace induced_hybrid {
           tots[j] += KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
         }
       }
-    } );
+    }, 1, false);
     /*
     #pragma omp parallel private(induced) reduction(+:n)
     {
