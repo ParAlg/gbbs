@@ -186,7 +186,7 @@ namespace contract {
   inline std::tuple<symmetric_graph<symmetric_vertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
   contract(Graph& GA, sequence<parent>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
-    using K = std::tuple<uintE, uintE>;
+    using K = std::tuple<uintE, uintE, pbbs::empty>;
 
     edge* edges;
     size_t edges_size;
@@ -218,20 +218,18 @@ namespace contract {
       size_t src_edge = i / 2;
       if (i % 2) {
         return std::make_tuple(flags[std::get<0>(edges[src_edge])],
-                               flags[std::get<1>(edges[src_edge])]);
+                               flags[std::get<1>(edges[src_edge])],
+                               pbbs::empty());
       } else {
         return std::make_tuple(flags[std::get<1>(edges[src_edge])],
-                               flags[std::get<0>(edges[src_edge])]);
+                               flags[std::get<0>(edges[src_edge])],
+                               pbbs::empty());
       }
     });
 
     pbbs::free_array(edges);
 
-    auto EA = edge_array<pbbslib::empty>(
-        (std::tuple<uintE, uintE, pbbslib::empty>*)sym_edges.begin(),
-        num_ns_clusters, num_ns_clusters, sym_edges.size());
-
-    auto GC = sym_graph_from_edges<pbbslib::empty>(EA);
+    auto GC = sym_graph_from_edges<pbbslib::empty>(/* edges = */sym_edges, /* n = */num_ns_clusters);
     return std::make_tuple(GC, std::move(flags), std::move(mapping));
   }
 
