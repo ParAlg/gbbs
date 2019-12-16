@@ -191,22 +191,17 @@ namespace contract_sf {
                       }
                     });
 
-    auto sym_edges = sequence<std::tuple<uintE, uintE>>(2 * edges.size(), [&](size_t i) {
+    auto sym_edges = sequence<std::tuple<uintE, uintE, pbbs::empty>>(2 * edges.size(), [&](size_t i) {
       size_t src_edge = i / 2;
       auto e0 = std::get<0>(edges[src_edge]);
       if (i % 2) {
-        return std::make_tuple(flags[e0.first], flags[e0.second]);
+        return std::make_tuple(flags[e0.first], flags[e0.second], pbbs::empty());
       } else {
-        return std::make_tuple(flags[e0.second], flags[e0.first]);
+        return std::make_tuple(flags[e0.second], flags[e0.first], pbbs::empty());
       }
     });
 
-
-    auto EA = edge_array<pbbslib::empty>(
-        (std::tuple<uintE, uintE, pbbslib::empty>*)sym_edges.begin(),
-        num_ns_clusters, num_ns_clusters, sym_edges.size());
-
-    auto GC = sym_graph_from_edges<pbbslib::empty>(EA);
+    auto GC = sym_graph_from_edges<pbbslib::empty>(sym_edges, num_ns_clusters);
 
     debug(cout << "table.size = " << table.m << endl;);
     auto ret_table = sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
