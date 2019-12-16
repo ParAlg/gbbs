@@ -234,7 +234,7 @@ struct HybridSpace_lw {
   uintE num_edges = 0;
   uintE* induced_edges = nullptr;
   uintE* induced_degs = nullptr;
-  uintE* labels = nullptr;
+  char* labels = nullptr;
   uintE* old_labels = nullptr;
   size_t nn = 0;
   HybridSpace_lw () {}
@@ -242,7 +242,7 @@ struct HybridSpace_lw {
   void alloc(size_t max_induced, size_t k, size_t n) {
     if (induced == nullptr && k > 2) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     if (induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
-    if (labels == nullptr && k > 2) labels = (uintE*) calloc(max_induced, sizeof(uintE));
+    if (labels == nullptr && k > 2) labels = (char*) calloc(max_induced, sizeof(char));
     if (induced_edges == nullptr && k > 2) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     if (num_induced == nullptr && k > 2) num_induced = (uintE*) malloc(sizeof(uintE)*k);
     if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
