@@ -29,8 +29,6 @@
 #include "union_find_rules.h"
 #include "benchmarks/Connectivity/common.h"
 
-#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-
 #include <iostream>
 #include <limits.h>
 #include <vector>

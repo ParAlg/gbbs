@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utils.h"
+#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
 /* ****************************** Sampling ******************************/
 
