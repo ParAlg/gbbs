@@ -29,7 +29,6 @@
 #include "ligra/pbbslib/dyn_arr.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-#include "benchmarks/SpanningForest/common.h"
 
 namespace workefficient_sf {
 
@@ -118,6 +117,7 @@ namespace workefficient_sf {
   }
 
   // edge_mapping: edge -> edge
+  using edge = std::pair<uintE, uintE>;
   template <class Graph>
   inline pbbslib::dyn_arr<edge> SpanningForest_Impl(Graph& G, double beta,
                                             size_t level, std::function<edge(edge)>& edge_mapping, bool

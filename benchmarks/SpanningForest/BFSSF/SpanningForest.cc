@@ -34,6 +34,8 @@
 
 #include "SpanningForest.h"
 #include "ligra/ligra.h"
+//#include "benchmarks/SpanningForest/common.h"
+#include "benchmarks/SpanningForest/check.h"
 
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
@@ -46,9 +48,13 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   assert(P.getOption("-s"));
   timer t;
   t.start();
-  auto components = bfs_sf::SpanningForest(G);
+  auto edges = P.getOption("-det") ? bfs_sf::SpanningForestDet(G) : bfs_sf::SpanningForest(G);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
+
+  if (P.getOptionValue("-check")) {
+    spanning_forest::sf_compute_and_check(G, edges);
+  }
 
   return tt;
 }

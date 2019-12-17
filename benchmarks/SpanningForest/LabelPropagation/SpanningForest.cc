@@ -23,6 +23,8 @@
 
 #include "SpanningForest.h"
 #include "ligra/ligra.h"
+#include "benchmarks/SpanningForest/common.h"
+#include "benchmarks/SpanningForest/check.h"
 
 template <class Graph>
 double SF_runner(Graph& G, commandLine P) {
@@ -35,13 +37,18 @@ double SF_runner(Graph& G, commandLine P) {
 
   timer t;
   t.start();
+  pbbs::sequence<edge> edges;
   if (P.getOptionValue("-permute")) {
-    auto components = labelprop_sf::SpanningForest</*use_permutation=*/true>(G);
+    edges = labelprop_sf::SpanningForest</*use_permutation=*/true>(G);
   } else {
-    auto components = labelprop_sf::SpanningForest</*use_permutation=*/false>(G);
+    edges = labelprop_sf::SpanningForest</*use_permutation=*/false>(G);
   }
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
+
+  if (P.getOptionValue("-check")) {
+    spanning_forest::sf_compute_and_check(G, edges);
+  }
 
   return tt;
 }

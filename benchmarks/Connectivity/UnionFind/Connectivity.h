@@ -141,4 +141,17 @@ struct UFAlgorithm {
 
 };
 
+/* default union_find algorithm using find_compress and unite */
+template <class Seq>
+pbbs::sequence<parent> find_compress_uf(size_t n, Seq& updates) {
+  auto find = find_variants::find_compress;
+  auto unite = unite_variants::Unite<decltype(find)>(find);
+  auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+  parallel_for(0, updates.size(), [&] (size_t i) {
+    auto [u, v] = updates[i];
+    unite(u, v, parents);
+  });
+  return parents;
+}
+
 }  // namespace union_find

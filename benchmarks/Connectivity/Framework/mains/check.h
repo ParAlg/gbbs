@@ -55,11 +55,11 @@ inline void cc_check(S1& correct, S2& check) {
   parent max_cor = 0;
   parent max_chk = 0;
   for (size_t i=0; i<correct.size(); i++) {
-    assert(correct[i] == check[i]);
     if ((correct[i] != check[i])) {
       is_correct = false;
       std::cout << "# at i = " << i << " cor = " << correct[i] << " got: " << check[i] << std::endl;
       std::cout.flush();
+      assert(correct[i] == check[i]);
       abort();
     }
     if (correct[i] > max_cor) {

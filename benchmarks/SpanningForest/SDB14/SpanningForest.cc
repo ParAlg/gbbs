@@ -55,6 +55,8 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
+  std::cout << "vtx 0 has degree: " << G.get_vertex(0).getOutDegree() << std::endl;
+
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can
     // only be run once unless the input graph is copied.

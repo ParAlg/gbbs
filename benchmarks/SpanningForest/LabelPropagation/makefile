@@ -15,7 +15,8 @@ endif
 
 INCLUDE_DIRS = -I../../../
 
-OPT = -O3 -g -DNDEBUG
+#OPT = -O3 -g -DNDEBUG
+OPT = -O0 -g
 
 CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 

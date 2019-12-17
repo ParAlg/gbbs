@@ -33,12 +33,8 @@ struct BFS_SpanningForest_F {
   parent* Parents;
   BFS_SpanningForest_F(parent* _Parents) : Parents(_Parents) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
-    if (Parents[d] == UINT_E_MAX) { /* probably not nec? */
-      Parents[d] = s;
-      return 1;
-    } else {
-      return 0;
-    }
+    Parents[d] = s;
+    return 1;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
     return (pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(UINT_E_MAX), static_cast<parent>(s)));
@@ -46,13 +42,12 @@ struct BFS_SpanningForest_F {
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };
 
-
+/* nondeterministic version */
 template <class Graph>
 void BFS_SpanningForest(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
   using W = typename Graph::weight_type;
   vertexSubset Frontier(G.n, src);
   size_t reachable = 0; size_t rounds = 0;
-  parents[src] = src;
   while (!Frontier.isEmpty()) {
     reachable += Frontier.size();
     vertexSubset output =
@@ -71,10 +66,84 @@ inline pbbs::sequence<edge> SpanningForest(Graph& G) {
   auto parents = pbbs::sequence<parent>(n, UINT_E_MAX);
   for (size_t i=0; i<n; i++) {
     if (parents[i] == UINT_E_MAX) {
+      parents[i] = i;
       BFS_SpanningForest(G, i, parents);
     }
   }
-  return parents_to_edges(parents);
+  return spanning_forest::parents_to_edges(parents);
+}
+
+/* deterministic version */
+template <class W>
+struct BFS_SpanningForest_Det_F {
+  pbbs::sequence<parent>& Parents;
+  pbbs::sequence<bool>& visited;
+  BFS_SpanningForest_Det_F(pbbs::sequence<parent>& _Parents, pbbs::sequence<bool>& visited) : Parents(_Parents), visited(visited) {}
+  inline bool update(const uintE& s, const uintE& d, const W& w) {
+    if (s < Parents[d]) {
+      Parents[d] = s;
+    }
+    return false;
+  }
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
+    pbbs::write_min<parent>(&Parents[d], static_cast<parent>(s), std::less<parent>());
+    return false;
+  }
+  inline bool cond(const uintE& d) { return (!visited[d]); }
+};
+
+template <class W>
+struct BFS_SpanningForest_Det_F_2 {
+  pbbs::sequence<parent>& Parents;
+  pbbs::sequence<bool>& visited;
+  BFS_SpanningForest_Det_F_2(pbbs::sequence<parent>& _Parents, pbbs::sequence<bool>& visited) : Parents(_Parents), visited(visited) {}
+  inline bool update(const uintE& s, const uintE& d, const W& wgh) {  // Update
+    if (Parents[d] == s) {
+      visited[d] = true;
+      return true;
+    }
+    return false;
+  }
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {  // Atomic version of Update
+    if (Parents[d] == s) {
+      visited[d] = true;
+      return true;
+    }
+    return false;
+  }
+  // Cond function checks if vertex has been visited yet
+  inline bool cond(uintE d) { return !visited[d]; }
+};
+
+template <class Graph>
+void BFS_SpanningForest_Det(Graph& G, uintE src, pbbs::sequence<parent>& parents, pbbs::sequence<bool>& visited) {
+  using W = typename Graph::weight_type;
+  vertexSubset Frontier(G.n, src);
+  size_t reachable = 0; size_t rounds = 0;
+  while (!Frontier.isEmpty()) {
+    reachable += Frontier.size();
+    vertexMap(Frontier, [&] (const uintE& u) { visited[u] = true; } );
+    edgeMap(G, Frontier, BFS_SpanningForest_Det_F<W>(parents, visited), -1, sparse_blocked | dense_parallel);
+    auto output = edgeMap(G, Frontier, BFS_SpanningForest_Det_F_2<W>(parents, visited), -1, sparse_blocked | dense_parallel);
+    Frontier.del();
+    Frontier = output;
+    rounds++;
+  }
+  Frontier.del();
+}
+
+template <class Graph>
+inline pbbs::sequence<edge> SpanningForestDet(Graph& G) {
+  size_t n = G.n;
+  auto parents = pbbs::sequence<parent>(n, UINT_E_MAX);
+  auto visited = pbbs::sequence<bool>(G.n, false);
+  for (size_t i=0; i<n; i++) {
+    if (parents[i] == UINT_E_MAX) {
+      parents[i] = i;
+      BFS_SpanningForest_Det(G, i, parents, visited);
+    }
+  }
+  return spanning_forest::parents_to_edges(parents);
 }
 
 }  // namespace bfs_sf
