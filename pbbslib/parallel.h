@@ -232,13 +232,14 @@ inline void parallel_run(Job job, int num_threads=0) {
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+  
   parallel_for(start, end, [&](long i)
   {
-    A* alloc = new A();
+    static thread_local A* alloc = new A();
     init_alloc(alloc);
     f(i, alloc);
-    finish_alloc(alloc);
   }, granularity, conservative);
+  //finish_alloc(alloc);
 }
 
 // c++
