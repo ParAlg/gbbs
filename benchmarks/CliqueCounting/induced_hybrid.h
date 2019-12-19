@@ -94,6 +94,8 @@ namespace induced_hybrid {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
+  
+    timer t; t.start();
     using W = typename Graph::weight_type;
     auto parallel_work = sequence<size_t>(DG.n);
     {
@@ -111,7 +113,10 @@ namespace induced_hybrid {
     size_t n_blocks = total_work/block_size + 1;
     size_t work_per_block = total_work / n_blocks;
     n_blocks = (total_work/work_per_block) + 1;
+    double tt = t.stop();
+    std::cout << "##### Triangle scheduling: " << tt << std::endl;
 
+    timer t2; t2.start();
     sequence<size_t> tots = sequence<size_t>::no_init(n_blocks); //DG.n
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };
@@ -130,6 +135,20 @@ namespace induced_hybrid {
         }
       }
     }, 1, false);
+    double tt2 = t2.stop();
+    std::cout << "##### Actual counting: " << tt2 << std::endl;
+
+
+    /*sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    size_t max_deg = get_max_deg(DG);
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
+    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+      if (DG.get_vertex(i).getOutDegree() != 0) {
+        induced->setup(DG, k, i);
+        tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
+      } else tots[i] = 0;
+    }, 1, false);*/
     /*
     #pragma omp parallel private(induced) reduction(+:n)
     {
