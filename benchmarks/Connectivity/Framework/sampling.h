@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils.h"
+#include "benchmarks/Connectivity/connectit.h"
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
 /* ****************************** Sampling ******************************/
@@ -24,7 +24,7 @@ template <
       sample_t.reportTotal("sample time");
 
       parent frequent_comp; double pct;
-      std::tie(frequent_comp, pct) = sample_frequent_element(parents);
+      std::tie(frequent_comp, pct) = connectit::sample_frequent_element(parents);
 
       algorithm.initialize(parents);
 
@@ -70,19 +70,15 @@ template <
 // returns a component labeling
 // Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
 // for the well documented reference implementation of afforest.
-template <class Find, class Unite, class G>
+template <class G>
 struct KOutSamplingTemplate {
   G& GA;
-  Find& find;
-  Unite& unite;
   uint32_t neighbor_rounds;
 
   KOutSamplingTemplate(
       G& GA,
-      Find& find,
-      Unite& unite,
       commandLine& P) :
-   GA(GA), find(find), unite(unite) {
+   GA(GA) {
     neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
    }
 
@@ -163,8 +159,8 @@ struct KOutSamplingTemplate {
 
     pbbs::random rnd;
     uintE granularity = 1024;
-  // Using random neighbor---some overhead (and faster for some graphs), also
-  // theoretically defensible
+    // Using random neighbor---some overhead (and faster for some graphs), also
+    // theoretically defensible
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       parallel_for(0, n, [&] (size_t u) {
         auto u_rnd = rnd.fork(u);
@@ -196,8 +192,8 @@ struct KOutSamplingTemplate {
     pbbs::sequence<uintE> hooks;
 
     uintE granularity = 1024;
-  // Using random neighbor---some overhead (and faster for some graphs), also
-  // theoretically defensible
+    // Using random neighbor---some overhead (and faster for some graphs), also
+    // theoretically defensible
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       parallel_for(0, n, [&] (size_t u) {
         auto u_vtx = GA.get_vertex(u);
@@ -287,7 +283,7 @@ struct BFSSamplingTemplate {
 
       parent frequent_comp; double pct;
       parents = std::move(bfs_parents);
-      std::tie(frequent_comp, pct) = sample_frequent_element(parents);
+      std::tie(frequent_comp, pct) = connectit::sample_frequent_element(parents);
       if (pct > static_cast<double>(0.1)) {
         std::cout << "# BFS covered: " << pct << " of graph" << std::endl;
         break;
@@ -299,40 +295,6 @@ struct BFSSamplingTemplate {
     return parents;
   }
 };
-
-//    parallel_for(0, n, [&] (size_t i) {
-//      if (!found_massive_component || parents[i] != skip_comp) {
-//        parents[i] = i;
-//      }
-//    });
-//
-//    auto bfs_parents = parents; // copy
-//
-//    st.stop(); st.reportTotal("sample time");
-//
-//    timer ut; ut.start();
-//    parallel_for(0, n, [&] (size_t u) {
-//      // Only process edges for vertices not linked to the main component
-//      // note that this is safe only for undirected graphs. For directed graphs,
-//      // the in-edges must also be explored for all vertices.
-//      if (bfs_parents[u] != skip_comp) {
-//        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-//          if (u < v) {
-//            unite(u, v, parents);
-//          }
-//        };
-//        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
-//      }
-//    }, 1024);
-//    ut.stop(); ut.reportTotal("union time");
-//
-//    timer ft; ft.start();
-//    parallel_for(0, n, [&] (size_t i) {
-//      parents[i] = find(i,parents);
-//    });
-//    ft.stop(); ft.reportTotal("find time");
-//    return parents;
-//   }
 
 
 template <class G>
@@ -353,45 +315,4 @@ struct LDDSamplingTemplate {
     return clusters;
   }
 };
-
-//   parallel_for(0, n, [&] (uintE u) {
-//     if (clusters[u] == u) { // root, ok
-//     } else {
-//       assert(clusters[clusters[u]] == clusters[u]);
-//     }
-//   });
-//
-//    pbbs::sequence<parent> parents(n);
-//    parallel_for(0, n, [&] (size_t i) {
-//      parents[i] = clusters[i];
-//    });
-//
-//    uintE frequent_comp; double pct;
-//    std::tie(frequent_comp, pct) = sample_frequent_element(parents);
-//    st.stop(); st.reportTotal("sample time");
-//
-//    timer ut; ut.start();
-//    parallel_for(0, n, [&] (size_t u) {
-//      // Only process edges for vertices not linked to the main component
-//      // note that this is safe only for undirected graphs. For directed graphs,
-//      // the in-edges must also be explored for all vertices.
-//      if (clusters[u] != frequent_comp) {
-//        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-//          if (u < v) {
-//            unite(u, v, parents);
-//          }
-//        };
-//        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
-//      }
-//    }, 512);
-//    ut.stop(); ut.reportTotal("union time");
-//
-//    timer ft; ft.start();
-//    parallel_for(0, n, [&] (size_t i) {
-//      parents[i] = find(i,parents);
-//    });
-//    ft.stop(); ft.reportTotal("find time");
-//    return parents;
-//   }
-//};
 

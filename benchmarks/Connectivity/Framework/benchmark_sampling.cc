@@ -2,7 +2,6 @@
 
 #include "framework.h"
 #include "sampling.h"
-#include "utils.h"
 
 #include "utils/benchmark.h"
 
@@ -30,7 +29,7 @@ void TestBFSSampling(Graph& G, commandLine& P) {
     auto parents = sampler.initial_components();
     double sampling_time = t.stop();
 
-    auto [frequent_comp, pct] = sample_frequent_element(parents);
+    auto [frequent_comp, pct] = connectit::sample_frequent_element(parents);
     pcts.emplace_back(pct);
 
     return sampling_time;
@@ -52,7 +51,7 @@ void TestLDDSampling(Graph& G, commandLine& P) {
     auto parents = sampler.initial_components();
     double sampling_time = t.stop();
 
-    auto [frequent_comp, pct] = sample_frequent_element(parents);
+    auto [frequent_comp, pct] = connectit::sample_frequent_element(parents);
     pcts.emplace_back(pct);
 
     return sampling_time;
@@ -70,16 +69,14 @@ double TestKOutSampling(Graph& G, commandLine& P) {
   size_t n = G.n;
   std::vector<double> pcts;
   auto test = [&] () {
-    auto fc = find_variants::find_compress;
-    auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
-    using KOut = KOutSamplingTemplate<decltype(fc), decltype(unite), Graph>;
-    auto sampler = KOut(G, fc, unite, P);
+    using KOut = KOutSamplingTemplate<Graph>;
+    auto sampler = KOut(G, P);
 
     timer t; t.start();
     auto parents = sampler.initial_components();
     double sampling_time = t.stop();
 
-    auto [frequent_comp, pct] = sample_frequent_element(parents);
+    auto [frequent_comp, pct] = connectit::sample_frequent_element(parents);
     pcts.emplace_back(pct);
     return sampling_time;
   };
@@ -96,16 +93,14 @@ double TestKOutAfforestSampling(Graph& G, commandLine& P) {
   size_t n = G.n;
   std::vector<double> pcts;
   auto test = [&] () {
-    auto fc = find_variants::find_compress;
-    auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
-    using KOut = KOutSamplingTemplate<decltype(fc), decltype(unite), Graph>;
-    auto sampler = KOut(G, fc, unite, P);
+    using KOut = KOutSamplingTemplate<Graph>;
+    auto sampler = KOut(G, P);
 
     timer t; t.start();
     auto parents = sampler.initial_components_afforest();
     double sampling_time = t.stop();
 
-    auto [frequent_comp, pct] = sample_frequent_element(parents);
+    auto [frequent_comp, pct] = connectit::sample_frequent_element(parents);
     pcts.emplace_back(pct);
     return sampling_time;
   };
@@ -122,16 +117,14 @@ double TestKOutPureSampling(Graph& G, commandLine& P) {
   size_t n = G.n;
   std::vector<double> pcts;
   auto test = [&] () {
-    auto fc = find_variants::find_compress;
-    auto unite = unite_variants::UniteND<decltype(fc)>(n, fc);
-    using KOut = KOutSamplingTemplate<decltype(fc), decltype(unite), Graph>;
-    auto sampler = KOut(G, fc, unite, P);
+    using KOut = KOutSamplingTemplate<Graph>;
+    auto sampler = KOut(G, P);
 
     timer t; t.start();
     auto parents = sampler.initial_components_pure();
     double sampling_time = t.stop();
 
-    auto [frequent_comp, pct] = sample_frequent_element(parents);
+    auto [frequent_comp, pct] = connectit::sample_frequent_element(parents);
     pcts.emplace_back(pct);
     return sampling_time;
   };
