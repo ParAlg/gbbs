@@ -195,16 +195,16 @@ inline void vertexMap(VS& V, F f) {
 template <class VS, class F,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f) {
+inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThreshold) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, granularity, [&] (size_t i) {
       if (V.isIn(i)) {
         f(i);
       }
-    });
+    }, granularity);
   } else {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, granularity, [&] (size_t i)
                     { f(V.vtx(i)); });
   }
 }
