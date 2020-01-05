@@ -1,7 +1,10 @@
 cc_library(
     name = "scan",
-    srcs = ["scan.cc"],
-    hdrs = ["scan.h"],
+    srcs = ["symmetric_2d_table.cc"],
+    hdrs = [
+        "scan.h",
+        "symmetric_2d_table.h",
+    ],
     deps = [
         "//ligra:macros",
         "//utils:assert",

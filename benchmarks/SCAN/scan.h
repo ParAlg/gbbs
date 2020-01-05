@@ -8,8 +8,9 @@
 
 #include "ligra/macros.h"
 #include "pbbslib/parallel.h"
+#include "benchmarks/SCAN/symmetric_2d_table.h"
 
-// Index for an undirected graph from which clustering the graph with SCAN
+// Index for an undirected graph from which clustering the graph with SCAN is
 // quick.
 //
 // Based off of SCAN index presented in "Efficient Structural Graph Clustering:
@@ -27,15 +28,17 @@ class ScanIndex {
   void SetSimilarity(uintE u, uintE v, float similarity);
 
   const uintE num_vertices_;
-  // Stores structural similarities between each pair of vertices. Similarities
-  // are packed into a single dimensional array.
-  std::vector<float> similarities_;
+  // Stores structural similarities between each pair of vertices.
+  // TODO(tom.tseng): This is a poor way to store these similarities.
+  // A similarity are only non-zero if there's an edge between the pair of
+  // vertices. Replace this with a symmetric hash map.
+  Symmetric2DTable similarities_;
 };
 
 template <class Graph>
 ScanIndex::ScanIndex(Graph& graph)
   : num_vertices_{static_cast<uintE>(graph.n)}
-  , similarities_(num_vertices_ * (num_vertices_ + 1) / 2, 0.) {
+  , similarities_{graph.n} {
   using Vertex = typename Graph::vertex;
   using Weight = typename Graph::weight_type;
 
@@ -57,11 +60,12 @@ ScanIndex::ScanIndex(Graph& graph)
     vertex.mapOutNgh(vertex_id, update_adjacency_list, kParallel);
   });
 
-  parallel_for(0, graph.n, [&](const size_t u) {
-    const auto& u_neighbors{adjacency_list[u]};
-    parallel_for(0, u+1, [&](const size_t v) {
+  graph.map_edges([&](
+        const uintE u,
+        const uintE v,
+        const Weight weight) {
+      const auto& u_neighbors{adjacency_list[u]};
       const auto& v_neighbors{adjacency_list[v]};
-
       const bool u_neighbors_is_smaller{
         u_neighbors.size() < v_neighbors.size()
       };
@@ -79,11 +83,8 @@ ScanIndex::ScanIndex(Graph& graph)
         }
       }
 
-      // TODO(tom.tseng): this doesn't work because SetSimilarity isn't defined.
-      // Move Set/GetSimilarity out to another SymmetricVertexTable class
-      SetSimilarity(u, v,
+      similarities_.SetEntry(u, v,
           num_shared_neighbors /
               (sqrt(u_neighbors.size()) * sqrt(v_neighbors.size())));
-    });
   });
 }

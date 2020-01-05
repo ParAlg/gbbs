@@ -1,3 +1,5 @@
+// Runs SCAN to cluster a graph and times how long the computation takes.
+//
 // Usage example:
 // numactl -i all ./scan -rounds 3 -s -m twitter_SJ
 // flags:
