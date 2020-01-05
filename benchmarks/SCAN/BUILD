@@ -3,6 +3,7 @@ cc_library(
     srcs = ["scan.cc"],
     hdrs = ["scan.h"],
     deps = [
+        "//ligra:macros",
         "//utils:assert",
     ],
 )

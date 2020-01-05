@@ -5,11 +5,7 @@
 
 #include "utils/assert.h"
 
-ScanIndex::ScanIndex(uint64_t num_vertices)
-  : num_vertices_{num_vertices}
-  , similarities_(num_vertices_ * (num_vertices_ + 1) / 2, 0.) {}
-
-float ScanIndex::GetSimilarity(uint64_t u, uint64_t v) {
+float ScanIndex::GetSimilarity(uintE u, uintE v) {
   ASSERT(0 <= u && u < num_vertices_);
   ASSERT(0 <= v && v < num_vertices_);
   if (u > v) {
@@ -18,7 +14,7 @@ float ScanIndex::GetSimilarity(uint64_t u, uint64_t v) {
   return similarities_[u * (u + 1) / 2 + v];
 }
 
-void ScanIndex::SetSimilarity(uint64_t u, uint64_t v, float similarity) {
+void ScanIndex::SetSimilarity(uintE u, uintE v, const float similarity) {
   ASSERT(0 <= u && u < num_vertices_);
   ASSERT(0 <= v && v < num_vertices_);
   if (u > v) {

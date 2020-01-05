@@ -18,15 +18,16 @@
 
 // Execute SCAN on the input graph and report stats on the execution.
 template <class Graph>
-double RunScan(const Graph& graph, commandLine parameters) {
+double RunScan(Graph& graph, commandLine parameters) {
   ASSERT(parameters.getOption("-s"), "Input graph must be symmetric");
 
   timer timer{};
   timer.start();
+  ScanIndex scan_index{graph};
   const double running_time{timer.stop()};
   std::cout << "Running Time: " << running_time << std::endl;
   return running_time;
 }
 
-const bool MUTATES{false};
-generate_main(RunScan, MUTATES);
+static const bool kMutates{false};
+generate_main(RunScan, kMutates);
