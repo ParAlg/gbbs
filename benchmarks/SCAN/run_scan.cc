@@ -1,5 +1,3 @@
-// Copyright 2019 Thomas Tseng
-//
 // Usage example:
 // numactl -i all ./scan -rounds 3 -s -m twitter_SJ
 // flags:

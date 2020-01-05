@@ -1,4 +1,3 @@
-// Copyright 2019 Thomas Tseng
 #pragma once
 
 #include <cmath>

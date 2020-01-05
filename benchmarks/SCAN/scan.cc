@@ -1,4 +1,3 @@
-// Copyright 2019 Thomas Tseng
 #include "benchmarks/SCAN/scan.h"
 
 #include <utility>
