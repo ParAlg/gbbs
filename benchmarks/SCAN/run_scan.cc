@@ -11,6 +11,8 @@
 //     -rounds : the number of times to run the algorithm
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
+#include "benchmarks/SCAN/scan.h"
+
 #include "ligra/ligra.h"
 #include "utils/assert.h"
 

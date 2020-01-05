@@ -1,7 +1,17 @@
-cc_binary(
+cc_library(
     name = "scan",
-    srcs = ["main.cc"],
+    srcs = ["scan.cc"],
+    hdrs = ["scan.h"],
     deps = [
+        "//utils:assert",
+    ],
+)
+
+cc_binary(
+    name = "run_scan",
+    srcs = ["run_scan.cc"],
+    deps = [
+        ":scan",
         "//ligra",
         "//utils:assert",
     ],
