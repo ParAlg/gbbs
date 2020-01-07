@@ -1,3 +1,5 @@
+#define NOTMAIN
+
 #include "benchmarks/SCAN/scan.h"
 
 #include <cmath>
@@ -63,3 +65,6 @@ ScanIndex::ScanIndex(Graph* graph)
               (sqrt(u_neighbors.size()) * sqrt(v_neighbors.size()))});
   });
 }
+
+template
+ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);

@@ -185,6 +185,10 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
 #elif defined(HOMEGROWN)
 #include "scheduler.h"
 
+// Since `fj` is a global variable in a header file, the linker may complain
+// about `fj` being duplicated in two object files. To resolve this, try adding
+// `#define NOTMAIN` to the top of the implementation (.cc) files of the
+// offending libraries.
 #ifdef NOTMAIN
 extern fork_join_scheduler fj;
 #else

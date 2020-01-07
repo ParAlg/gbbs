@@ -20,6 +20,3 @@ class ScanIndex {
     UndirectedEdge, float, std::function<decltype(HashUndirectedEdge)>>
     similarities_;
 };
-
-template
-ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);

@@ -68,7 +68,7 @@ struct maybe {
 };
 
 #if defined(__APPLE__)
-void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
+inline void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
 #else
 #ifdef USEMALLOC
 #include <malloc.h>
