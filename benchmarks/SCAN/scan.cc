@@ -3,6 +3,7 @@
 #include "benchmarks/SCAN/scan.h"
 
 #include <cmath>
+#include <atomic>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -21,17 +22,24 @@ ScanIndex::ScanIndex(Graph* graph)
 
   // Compute structural similarities between each pair of adjacent vertices.
 
-  std::vector<std::unordered_set<uintE>> adjacency_list{graph->n};
+  std::vector<sparse_table<
+    uintE, pbbslib::empty, std::function<decltype(pbbslib::hash64_2)>>>
+    adjacency_list{graph->n};
   parallel_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     auto& neighbors{adjacency_list[vertex_id]};
-    neighbors.reserve(vertex.getOutDegree());
+    neighbors = make_sparse_table<
+      uintE, pbbslib::empty, std::function<decltype(pbbslib::hash64_2)>>(
+        // Adding 1 avoids having small tables completely full
+        vertex.getOutDegree() + 1,
+        {UINT_E_MAX, pbbslib::empty{}},
+        pbbslib::hash64_2);
 
     const auto update_adjacency_list = [&neighbors](
         const uintE source_vertex,
         const uintE neighbor_vertex,
         const Weight weight) {
-      neighbors.insert(neighbor_vertex);
+      neighbors.insert(std::make_pair(neighbor_vertex, pbbslib::empty{}));
     };
     const bool kParallel{false};
     vertex.mapOutNgh(vertex_id, update_adjacency_list, kParallel);
@@ -53,12 +61,13 @@ ScanIndex::ScanIndex(Graph* graph)
         u_neighbors_is_smaller? v_neighbors : u_neighbors
       };
 
-      uintE num_shared_neighbors = 0;
-      for (const uintE neighbor : smaller_neighbor_list) {
-        if (larger_neighbor_list.count(neighbor) > 0) {
-          num_shared_neighbors++;
-        }
-      }
+      std::atomic<uintE> num_shared_neighbors{0};
+      smaller_neighbor_list.map(
+        [&](const std::pair<uintE, pbbslib::empty>& kv) {
+          if (larger_neighbor_list.contains(kv.first)) {
+              num_shared_neighbors++;
+          }
+      });
 
       similarities_.insert({UndirectedEdge{u, v},
           num_shared_neighbors /

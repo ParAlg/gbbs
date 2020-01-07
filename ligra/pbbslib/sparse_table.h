@@ -40,7 +40,7 @@ class sparse_table {
   bool alloc;
   KeyHash key_hash;
 
-  size_t size() {
+  size_t size() const {
     return m;
   }
 
@@ -49,9 +49,9 @@ class sparse_table {
                     { A[i] = kv; });
   }
 
-  inline size_t hashToRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K& k) { return hashToRange(key_hash(k)); }
-  inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
+  inline size_t hashToRange(size_t h) const { return h & mask; }
+  inline size_t firstIndex(K& k) const { return hashToRange(key_hash(k)); }
+  inline size_t incrementIndex(size_t h) const { return hashToRange(h + 1); }
 
   void del() {
     if (alloc) {
@@ -218,7 +218,7 @@ class sparse_table {
     }
   }
 
-  bool contains(K k) {
+  bool contains(K k) const {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == k) {
@@ -229,6 +229,15 @@ class sparse_table {
       h = incrementIndex(h);
     }
     return false;
+  }
+
+  template <class F>
+  void map(const F& f) const {
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      if (std::get<0>(table[i]) != empty_key) {
+        f(table[i]);
+      }
+    });
   }
 
   V find(K k, V default_value) {
