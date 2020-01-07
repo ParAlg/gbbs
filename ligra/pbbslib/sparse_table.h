@@ -89,7 +89,7 @@ class sparse_table {
       : empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-    double space_mult;
+    double space_mult = inp_space_mult;
     if (inp_space_mult == -1) space_mult = 1.1;
     m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m));
     mask = m - 1;

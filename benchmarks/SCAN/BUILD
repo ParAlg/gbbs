@@ -1,12 +1,17 @@
 cc_library(
     name = "scan",
-    srcs = ["symmetric_2d_table.cc"],
+    srcs = [
+        "scan.cc",
+        "undirected_edge.cc",
+    ],
     hdrs = [
         "scan.h",
-        "symmetric_2d_table.h",
+        "undirected_edge.h",
     ],
     deps = [
+        "//ligra:graph",
         "//ligra:macros",
+        "//ligra/pbbslib:sparse_table",
         "//utils:assert",
     ],
 )

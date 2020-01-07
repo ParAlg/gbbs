@@ -23,7 +23,7 @@ double RunScan(Graph& graph, commandLine parameters) {
 
   timer timer{};
   timer.start();
-  ScanIndex scan_index{graph};
+  ScanIndex scan_index{&graph};
   const double running_time{timer.stop()};
   std::cout << "Running Time: " << running_time << std::endl;
   return running_time;
