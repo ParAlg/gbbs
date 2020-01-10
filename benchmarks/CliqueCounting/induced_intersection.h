@@ -28,10 +28,12 @@ namespace induced_intersection {
       size_t counts = 0;
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
-        auto intersect = DG.get_vertex(vtx).getOutNeighbors();
-        for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
-          if (induced->intersect[std::get<0>(intersect[j])] == k_idx) counts++;
-        }
+        //auto intersect = DG.get_vertex(vtx).getOutNeighbors();
+        //for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
+        auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
+          if (induced->intersect[nbhr] == k_idx) counts++;
+        };
+        DG.get_vertex(vtx).mapOutNgh(vtx, map_intersect_f, false);
         //counts += lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), false, nullptr);
       }
       for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx - 1; }
@@ -41,15 +43,17 @@ namespace induced_intersection {
     size_t total_ct = 0;
     for (size_t i=0; i < num_induced; ++i) {
       uintE vtx = prev_induced[i];
-      auto intersect = DG.get_vertex(vtx).getOutNeighbors();
+      //auto intersect = DG.get_vertex(vtx).getOutNeighbors();
       uintE* out = induced->induced + induced->num_induced[0] * k_idx;
       uintE count = 0;
-      for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
-        if (induced->intersect[std::get<0>(intersect[j])] == k_idx) {
-          out[count] = std::get<0>(intersect[j]);
+      //for (size_t j=0; j < DG.get_vertex(vtx).getOutDegree(); j++) {
+      auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
+        if (induced->intersect[nbhr] == k_idx) {
+          out[count] = nbhr;
           count++;
         }
-      }
+      };
+      DG.get_vertex(vtx).mapOutNgh(vtx, map_intersect_f, false);
       induced->num_induced[k_idx] = count;
       //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx);
       if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_rec(DG, k_idx + 1, k, induced);
@@ -69,9 +73,13 @@ namespace induced_intersection {
     parallel_for_alloc<InducedSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, InducedSpace_lw* induced) {
       if (DG.get_vertex(i).getOutDegree() != 0) {
         induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
-        for (size_t j=0; j < induced->num_induced[0]; j++) {
-          induced->induced[j] = std::get<0>((DG.get_vertex(i).getOutNeighbors())[j]);
-        }
+        //for (size_t j=0; j < induced->num_induced[0]; j++) {
+        size_t j = 0;
+        auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
+          induced->induced[j] = nbhr;
+          j++;
+        };
+        DG.get_vertex(i).mapOutNgh(i, map_intersect_f, false);
         tots[i] = KCliqueDir_fast_rec(DG, 1, k, induced);
       } else tots[i] = 0;
     } );
