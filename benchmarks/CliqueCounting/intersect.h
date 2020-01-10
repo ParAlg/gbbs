@@ -173,24 +173,24 @@ struct FullSpace_orig_lw {
   void setup(Graph& DG, size_t k, size_t i) {
     num_induced[0] = DG.get_vertex(i).getOutDegree();
     nn = num_induced[0];
-    uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    auto induced_g = DG.get_vertex(i).getOutNeighbors();
     for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
     for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
 
-    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = o + 1; }
+    for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
 
 
     for (size_t j=0; j < nn; j++) {
-      uintE v = induced_g[j];
-      uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+      uintE v = std::get<0>(induced_g[j]);
+      auto v_nbhrs = DG.get_vertex(v).getOutNeighbors();
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
       for (size_t l=0; l < v_deg; l++) {
-        if (old_labels[v_nbhrs[l]] > 0) {
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhrs[l]] - 1;
+        if (old_labels[std::get<0>(v_nbhrs[l])] > 0) {
+          induced_edges[j*nn + induced_degs[j]] = old_labels[std::get<0>(v_nbhrs[l])] - 1;
           induced_degs[j]++;
         }
         /*for (size_t o=0; o < num_induced[0]; o++) {
@@ -203,7 +203,7 @@ struct FullSpace_orig_lw {
       }
     }
 
-    for (size_t o=0; o < num_induced[0]; o++) { old_labels[induced_g[o]] = 0; }
+    for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges[0] = pbbslib::reduce_add(deg_seq);
@@ -251,7 +251,7 @@ struct HybridSpace_lw {
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
     nn = DG.get_vertex(i).getOutDegree();
-    uintE* induced_g = ((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
   
     if (k > 2) {
@@ -259,25 +259,25 @@ struct HybridSpace_lw {
       for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     }
 
-    for (size_t o=0; o < nn; o++) { old_labels[induced_g[o]] = o + 1; }
+    for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
 
 
     for (size_t j=0; j < nn; j++) {
-      uintE v = induced_g[j];
-      uintE* v_nbhrs = (uintE*)(DG.get_vertex(v).getOutNeighbors());
+      uintE v = std::get<0>(induced_g[j]);
+      auto v_nbhrs = DG.get_vertex(v).getOutNeighbors();
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
       for (size_t l=0; l < v_deg; l++) {
-        if (old_labels[v_nbhrs[l]] > 0) {
-          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhrs[l]] - 1;
+        if (old_labels[std::get<0>(v_nbhrs[l])] > 0) {
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[std::get<0>(v_nbhrs[l])] - 1;
           induced_degs[j]++;
         }
       }
     }
 
-    for (size_t o=0; o < nn; o++) { old_labels[induced_g[o]] = 0; }
+    for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
