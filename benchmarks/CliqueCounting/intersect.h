@@ -203,7 +203,7 @@ struct FullSpace_orig_lw {
           induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; //std::get<0>(v_nbhrs[l])
           induced_degs[j]++;
         }
-      }
+      };
       DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
       //}
     //}
@@ -296,7 +296,7 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false)
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
       //}
       j++;
     };
