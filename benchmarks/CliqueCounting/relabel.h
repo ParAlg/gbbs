@@ -4,13 +4,6 @@
 #include "ligra/graph.h"
 #include "pbbslib/seq.h"
 
-template <template <class W> class vertex, class W, typename P,
-          typename std::enable_if<
-              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
-              int>::type = 0>
-inline auto relabel_graph(symmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
-  assert(false); return G;
-}
 template <
     template <class W> class vertex, class W, typename P,
     typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
@@ -30,6 +23,20 @@ inline auto relabel_graph(asymmetric_graph<vertex, W>& G,uintE* rank, P& pred) -
   assert(false);  // Not implemented for directed graphs
   return G;
 }
+
+
+
+
+template <template <class W> class vertex, class W, typename P,
+          typename std::enable_if<
+              std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
+              int>::type = 0>
+inline auto relabel_graph(symmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
+  assert(false);  // Not implemented for directed graphs
+  return G;
+}
+
+
 template <template <class W> class vertex, class W, typename P,
     typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
