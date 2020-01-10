@@ -4,6 +4,17 @@
 #include "ligra/pbbslib/sparse_table.h"
 #include "benchmarks/SCAN/undirected_edge.h"
 
+namespace internal {
+
+using StructuralSimilarities =
+  sparse_table<
+    UndirectedEdge, float, std::function<decltype(HashUndirectedEdge)>>;
+
+template <class Graph>
+StructuralSimilarities ComputeStructuralSimilaries(Graph* graph);
+
+}  // namespace internal
+
 // Index for an undirected graph from which clustering the graph with SCAN is
 // quick.
 //
@@ -16,7 +27,5 @@ class ScanIndex {
 
  private:
   // Stores structural similarities between each pair of adjacent vertices.
-  sparse_table<
-    UndirectedEdge, float, std::function<decltype(HashUndirectedEdge)>>
-    similarities_;
+  const internal::StructuralSimilarities similarities_;
 };

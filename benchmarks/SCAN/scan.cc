@@ -11,16 +11,19 @@
 #include "ligra/macros.h"
 #include "pbbslib/parallel.h"
 
+namespace internal {
+
+// Compute structural similarities (as defined by SCAN) between each pair of
+// adjacent vertices.
 template <class Graph>
-ScanIndex::ScanIndex(Graph* graph)
-  : similarities_{
-      graph->m,
-      std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
-      HashUndirectedEdge} {
+StructuralSimilarities ComputeStructuralSimilaries(Graph* graph) {
   using Vertex = typename Graph::vertex;
   using Weight = typename Graph::weight_type;
 
-  // Compute structural similarities between each pair of adjacent vertices.
+  StructuralSimilarities similarities{
+    graph->m,
+    std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
+    HashUndirectedEdge};
 
   std::vector<sparse_table<
     uintE, pbbslib::empty, std::function<decltype(pbbslib::hash64_2)>>>
@@ -69,11 +72,23 @@ ScanIndex::ScanIndex(Graph* graph)
           }
       });
 
-      similarities_.insert({UndirectedEdge{u, v},
+      similarities.insert({UndirectedEdge{u, v},
           num_shared_neighbors /
               (sqrt(u_neighbors.size()) * sqrt(v_neighbors.size()))});
   });
+
+  return similarities;
 }
+
+template
+StructuralSimilarities ComputeStructuralSimilaries(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>*);
+
+}  // namespace internal
+
+template <class Graph>
+ScanIndex::ScanIndex(Graph* graph)
+  : similarities_{internal::ComputeStructuralSimilaries(graph)} {}
 
 template
 ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);
