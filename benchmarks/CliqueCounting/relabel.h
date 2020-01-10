@@ -34,6 +34,8 @@ template <template <class W> class vertex, class W, typename P,
 inline auto relabel_graph(symmetric_graph<vertex, W>& G, uintE* rank, P& pred) -> decltype(G) {
   assert(false);  // Not implemented for directed graphs
   return G;
+  //TODO: basically same as filter, but we have to write out neighbors to do the sort per vert, then use this to compute
+  //the byte offsets since it is dependent on rank
 }
 
 
