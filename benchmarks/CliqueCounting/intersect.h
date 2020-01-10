@@ -171,6 +171,7 @@ struct FullSpace_orig_lw {
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
+    using W = typename Graph::weight_type;
     num_induced[0] = DG.get_vertex(i).getOutDegree();
     nn = num_induced[0];
     
@@ -261,6 +262,7 @@ struct HybridSpace_lw {
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
+    using W = typename Graph::weight_type;
     nn = DG.get_vertex(i).getOutDegree();
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }

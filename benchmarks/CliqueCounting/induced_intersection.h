@@ -18,6 +18,7 @@ namespace induced_intersection {
 
   template <class Graph>
   inline size_t KCliqueDir_fast_rec(Graph& DG, size_t k_idx, size_t k, InducedSpace_lw* induced) {
+    using W = typename Graph::weight_type;
     size_t num_induced = induced->num_induced[k_idx-1];
     uintE* prev_induced = induced->induced + induced->num_induced[0] * (k_idx - 1);
     if (num_induced == 0) return 0;
@@ -65,6 +66,7 @@ namespace induced_intersection {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
+    using W = typename Graph::weight_type;
     sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
 
     size_t max_deg = get_max_deg(DG);
