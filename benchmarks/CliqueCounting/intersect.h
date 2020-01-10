@@ -262,7 +262,7 @@ struct HybridSpace_lw {
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
     nn = DG.get_vertex(i).getOutDegree();
-    auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
   
     if (k > 2) {
@@ -270,25 +270,41 @@ struct HybridSpace_lw {
       for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     }
 
-    for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
+    //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
+    size_t o = 0;
+    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      old_labels[ngh] = o + 1;
+      o++;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
 
-
-    for (size_t j=0; j < nn; j++) {
-      uintE v = std::get<0>(induced_g[j]);
-      auto v_nbhrs = DG.get_vertex(v).getOutNeighbors();
+    size_t j = 0;
+    auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+    //for (size_t j=0; j < nn; j++) {
+      //uintE v = std::get<0>(induced_g[j]);
+      //auto v_nbhrs = DG.get_vertex(v).getOutNeighbors();
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
-      for (size_t l=0; l < v_deg; l++) {
-        if (old_labels[std::get<0>(v_nbhrs[l])] > 0) {
-          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[std::get<0>(v_nbhrs[l])] - 1;
+      //for (size_t l=0; l < v_deg; l++) {
+      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        if (old_labels[v_nbhr] > 0) {
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
         }
-      }
-    }
+      };
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false)
+      //}
+      j++;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_f, false);
 
-    for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
+    //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
+    auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      old_labels[ngh] = 0;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
