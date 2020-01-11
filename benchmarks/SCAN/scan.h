@@ -4,14 +4,15 @@
 #include "ligra/pbbslib/sparse_table.h"
 #include "benchmarks/SCAN/undirected_edge.h"
 
+namespace scan {
+
 namespace internal {
 
 using StructuralSimilarities =
-  sparse_table<
-    UndirectedEdge, float, std::function<decltype(HashUndirectedEdge)>>;
+  sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 
 template <class Graph>
-StructuralSimilarities ComputeStructuralSimilaries(Graph* graph);
+StructuralSimilarities ComputeStructuralSimilarities(Graph* graph);
 
 }  // namespace internal
 
@@ -29,3 +30,5 @@ class ScanIndex {
   // Stores structural similarities between each pair of adjacent vertices.
   const internal::StructuralSimilarities similarities_;
 };
+
+}  // namespace scan

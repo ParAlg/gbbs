@@ -25,3 +25,12 @@ cc_binary(
         "//utils:assert",
     ],
 )
+
+cc_test(
+    name = "scan_test",
+    srcs = ["unit_tests/scan_test.cc"],
+    deps = [
+        ":scan",
+        "@googletest//:gtest_main",
+    ],
+)

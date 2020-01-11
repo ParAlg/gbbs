@@ -11,19 +11,21 @@
 #include "ligra/macros.h"
 #include "pbbslib/parallel.h"
 
+namespace scan {
+
 namespace internal {
 
 // Compute structural similarities (as defined by SCAN) between each pair of
 // adjacent vertices.
 template <class Graph>
-StructuralSimilarities ComputeStructuralSimilaries(Graph* graph) {
+StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
   using Vertex = typename Graph::vertex;
   using Weight = typename Graph::weight_type;
 
   StructuralSimilarities similarities{
     graph->m,
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
-    HashUndirectedEdge};
+    std::hash<UndirectedEdge>{}};
 
   std::vector<sparse_table<
     uintE, pbbslib::empty, std::function<decltype(pbbslib::hash64_2)>>>
@@ -81,14 +83,16 @@ StructuralSimilarities ComputeStructuralSimilaries(Graph* graph) {
 }
 
 template
-StructuralSimilarities ComputeStructuralSimilaries(
+StructuralSimilarities ComputeStructuralSimilarities(
     symmetric_graph<symmetric_vertex, pbbslib::empty>*);
 
 }  // namespace internal
 
 template <class Graph>
 ScanIndex::ScanIndex(Graph* graph)
-  : similarities_{internal::ComputeStructuralSimilaries(graph)} {}
+  : similarities_{internal::ComputeStructuralSimilarities(graph)} {}
 
 template
 ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);
+
+}  // namespace scan

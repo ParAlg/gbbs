@@ -196,6 +196,7 @@ namespace pbbs {
     }
 
     size_t size() const { return n;}
+    bool empty() const { return size() == 0; }
     value_type* begin() const {return s;}
     value_type* end() const {return s + n;}
 
