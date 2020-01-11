@@ -82,11 +82,11 @@ TEST(ComputeStructuralSimilarities, BasicUsage) {
   const auto similarities{similarity_table.entries()};
 
   EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
-        Pair(Pair(0, 1), FloatEq(1.0 / sqrt(3))),
-        Pair(Pair(1, 2), FloatEq(2.0 / sqrt(12))),
-        Pair(Pair(1, 3), FloatEq(2.0 / sqrt(9))),
-        Pair(Pair(2, 3), FloatEq(3.0 / sqrt(12))),
-        Pair(Pair(2, 4), FloatEq(2.0 / sqrt(8))),
-        Pair(Pair(2, 5), FloatEq(1.0 / sqrt(4))),
-        Pair(Pair(3, 4), FloatEq(2.0 / sqrt(6)))));
+        std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)),
+        std::make_tuple(UndirectedEdge{1, 2}, 3.0 / sqrt(20)),
+        std::make_tuple(UndirectedEdge{1, 3}, 3.0 / sqrt(16)),
+        std::make_tuple(UndirectedEdge{2, 3}, 4.0 / sqrt(20)),
+        std::make_tuple(UndirectedEdge{2, 4}, 3.0 / sqrt(15)),
+        std::make_tuple(UndirectedEdge{2, 5}, 2.0 / sqrt(10)),
+        std::make_tuple(UndirectedEdge{3, 4}, 3.0 / sqrt(12))));
 }

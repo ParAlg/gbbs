@@ -35,6 +35,7 @@ namespace pbbs {
   public:
     using value_type = typename std::iterator_traits<Iterator>::value_type;
     using iterator = Iterator;
+    using const_iterator = const value_type*;
     range() {};
     range(iterator s, iterator e) : s(s), e(e) {};
     value_type& operator[] (const size_t i) const {return s[i];}

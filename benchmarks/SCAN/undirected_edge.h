@@ -15,9 +15,12 @@ struct hash<UndirectedEdge> {
 
 }  // namespace std
 
-// Represents an undirected edge in a graph.
+// Represents an unweighted, undirected edge in a graph.
 class UndirectedEdge {
  public:
+  using first_type = uintE;
+  using second_type = uintE;
+
   UndirectedEdge(uintE u, uintE v);
   explicit UndirectedEdge(std::pair<uintE, uintE> edge);
 

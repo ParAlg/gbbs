@@ -17,6 +17,12 @@ namespace internal {
 
 // Compute structural similarities (as defined by SCAN) between each pair of
 // adjacent vertices.
+//
+// The structural similarity between two vertices u and v is
+//   (size of intersection of closed neighborhoods of u and v) /
+//   (geometric mean of size of closed neighborhoods of u and of v)
+// where the closed neighborhood of a vertex x consists of all neighbors of x
+// along with x itself.
 template <class Graph>
 StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
   using Vertex = typename Graph::vertex;
@@ -46,8 +52,7 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
         const Weight weight) {
       neighbors.insert(std::make_pair(neighbor_vertex, pbbslib::empty{}));
     };
-    const bool kParallel{false};
-    vertex.mapOutNgh(vertex_id, update_adjacency_list, kParallel);
+    vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
 
   graph->map_edges([&](
@@ -74,9 +79,13 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
           }
       });
 
+      // The neighborhoods we've computed are open neighborhoods -- since
+      // structural similarity uses closed neighborhoods, we need to adjust the
+      // number and denominator a little.
       similarities.insert({UndirectedEdge{u, v},
-          num_shared_neighbors /
-              (sqrt(u_neighbors.size()) * sqrt(v_neighbors.size()))});
+          (num_shared_neighbors + 2) /
+              (sqrt(graph->get_vertex(u).getOutDegree() + 1) *
+               sqrt(graph->get_vertex(v).getOutDegree() + 1))});
   });
 
   return similarities;
