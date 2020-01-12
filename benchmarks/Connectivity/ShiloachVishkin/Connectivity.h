@@ -43,32 +43,42 @@ struct SVAlgorithm {
     bool changed = true;
     size_t rounds = 0;
 
-    pbbs::sequence<parent> clusters;
+    /* generate candidates based on frequent_comp (if using sampling) */
+    size_t candidates_size = n;
+    pbbs::sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
-      clusters = parents;
+      auto all_vertices = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
+      unhooked = pbbs::filter(all_vertices, [&] (uintE v) {
+        return parents[v] != frequent_comp;
+      });
+      candidates_size = unhooked.size();
     }
 
+    auto candidates = pbbs::delayed_seq<uintE>(candidates_size, [&] (size_t i) {
+      if constexpr (sampling_option == no_sampling) {
+        return i;
+      } else {
+        return unhooked[i];
+      }
+    });
+
+    auto prev_parents = parents;
     while (changed) {
       changed = false;
       rounds++;
-      parallel_for(0, n, [&] (uintE u) {
+      parallel_for(0, candidates.size(), [&] (uintE i) {
+        uintE u = candidates[i];
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
           parent p_u = parents[u];
           parent p_v = parents[v];
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
-          if (l != h  &&    h == parents[h]) {
+          if (l != h && h == prev_parents[h]) {
             pbbs::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         };
-        if constexpr (sampling_option != no_sampling) {
-          if (clusters[u] != frequent_comp) {
-            GA.get_vertex(u).mapOutNgh(u, map_f);
-          }
-        } else {
-          GA.get_vertex(u).mapOutNgh(u, map_f);
-        }
+        GA.get_vertex(u).mapOutNgh(u, map_f);
       }, 1);
 
       // compress
@@ -78,6 +88,7 @@ struct SVAlgorithm {
           parents[u] = parents[parents[u]];
           pathlen++;
         }
+        prev_parents[u] = parents[u];
         report_pathlen(pathlen);
       });
     }
