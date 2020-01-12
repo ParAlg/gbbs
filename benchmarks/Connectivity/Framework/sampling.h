@@ -28,7 +28,8 @@ template <
 
       algorithm.initialize(parents);
 
-      if constexpr (algorithm_type == liu_tarjan_type) {
+      /* relabel for liu_tarjan */
+      if constexpr (algorithm_type == liu_tarjan_type || algorithm_type == label_prop_type) {
         parallel_for(0, G.n, [&] (size_t i) {
           if (parents[i] == frequent_comp) {
             parents[i] = largest_comp;

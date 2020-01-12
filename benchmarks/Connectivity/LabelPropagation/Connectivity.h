@@ -29,13 +29,17 @@
 
 namespace labelprop_cc {
 
+  bool lp_less(uintE l, uintE r) {
+    return (l == UINT_E_MAX || r == UINT_E_MAX) ? false : (l < r);
+  }
+
   template <class W>
   struct LabelProp_F {
     pbbs::sequence<parent>& components;
     pbbs::sequence<bool>& changed;
     LabelProp_F(pbbs::sequence<parent>& components, pbbs::sequence<bool>& changed) : components(components), changed(changed) {}
     inline bool update(const uintE& s, const uintE& d, const W& w) {
-      if (components[s] < components[d]) {
+      if (lp_less(components[s], components[d])) {
         components[d] = components[s];
         if (!changed[d]) {
           changed[d] = true;
@@ -46,7 +50,7 @@ namespace labelprop_cc {
     }
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
       if (components[s] < components[d]) {
-        pbbs::write_min<uintE>(&components[d], components[s], std::less<uintE>());
+        pbbs::write_min<uintE>(&components[d], components[s], lp_less);
         if (!changed[d]) {
           return pbbs::atomic_compare_and_swap(&changed[d], false, true);
         }
