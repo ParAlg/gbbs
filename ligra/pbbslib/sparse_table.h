@@ -231,15 +231,6 @@ class sparse_table {
     return false;
   }
 
-  template <class F>
-  void map(const F& f) const {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-      if (std::get<0>(table[i]) != empty_key) {
-        f(table[i]);
-      }
-    });
-  }
-
   V find(K k, V default_value) {
     size_t h = firstIndex(k);
     while (true) {

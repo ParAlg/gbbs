@@ -36,10 +36,10 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
   std::vector<sparse_table<
     uintE, pbbslib::empty, std::function<decltype(pbbslib::hash64_2)>>>
     adjacency_list{graph->n};
-  parallel_for(0, graph->n, [&](const size_t vertex_id) {
+  parallel_for(0, graph->n, [&graph, &adjacency_list](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
-    auto& neighbors{adjacency_list[vertex_id]};
-    neighbors = make_sparse_table<
+    auto* neighbors{&adjacency_list[vertex_id]};
+    *neighbors = make_sparse_table<
       uintE, pbbslib::empty, std::function<decltype(pbbslib::hash64_2)>>(
         // Adding 1 avoids having small tables completely full
         vertex.getOutDegree() + 1,
@@ -50,42 +50,49 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
         const uintE source_vertex,
         const uintE neighbor_vertex,
         const Weight weight) {
-      neighbors.insert(std::make_pair(neighbor_vertex, pbbslib::empty{}));
+      neighbors->insert(std::make_pair(neighbor_vertex, pbbslib::empty{}));
     };
     vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
 
-  graph->map_edges([&](
-        const uintE u,
-        const uintE v,
-        const Weight weight) {
-      const auto& u_neighbors{adjacency_list[u]};
-      const auto& v_neighbors{adjacency_list[v]};
-      const bool u_neighbors_is_smaller{
-        u_neighbors.size() < v_neighbors.size()
-      };
-      const auto& smaller_neighbor_list{
-        u_neighbors_is_smaller? u_neighbors : v_neighbors
-      };
-      const auto& larger_neighbor_list{
-        u_neighbors_is_smaller? v_neighbors : u_neighbors
-      };
+  graph->map_edges([&graph, &adjacency_list, &similarities](
+        const uintE u_id,
+        const uintE v_id,
+        const Weight) {
+      // Only perform this computation once for each undirected edge
+      if (u_id < v_id) {
+        Vertex u{graph->get_vertex(u_id)};
+        Vertex v{graph->get_vertex(v_id)};
+        const auto& u_neighbors{adjacency_list[u_id]};
+        const auto& v_neighbors{adjacency_list[v_id]};
 
-      std::atomic<uintE> num_shared_neighbors{0};
-      smaller_neighbor_list.map(
-        [&](const std::pair<uintE, pbbslib::empty>& kv) {
-          if (larger_neighbor_list.contains(kv.first)) {
-              num_shared_neighbors++;
-          }
-      });
+        const bool u_degree_is_smaller{u.getOutDegree() < v.getOutDegree()};
+        const uintE smaller_degree_vertex_id{u_degree_is_smaller ? u_id : v_id};
+        Vertex* smaller_degree_vertex{u_degree_is_smaller ? &u : &v};
+        const auto& larger_degree_vertex_neighbors{
+          u_degree_is_smaller ? v_neighbors : u_neighbors
+        };
 
-      // The neighborhoods we've computed are open neighborhoods -- since
-      // structural similarity uses closed neighborhoods, we need to adjust the
-      // number and denominator a little.
-      similarities.insert({UndirectedEdge{u, v},
-          (num_shared_neighbors + 2) /
-              (sqrt(graph->get_vertex(u).getOutDegree() + 1) *
-               sqrt(graph->get_vertex(v).getOutDegree() + 1))});
+        std::atomic<uintE> num_shared_neighbors{0};
+        const auto count_shared_neighbors{
+          [&larger_degree_vertex_neighbors, &num_shared_neighbors]
+          (const uintE, const uintE neighbor, const Weight) {
+            if (larger_degree_vertex_neighbors.contains(neighbor)) {
+                num_shared_neighbors++;
+            }
+          }};
+        smaller_degree_vertex->mapOutNgh(
+            smaller_degree_vertex_id,
+            count_shared_neighbors);
+
+        // The neighborhoods we've computed are open neighborhoods -- since
+        // structural similarity uses closed neighborhoods, we need to adjust the
+        // number and denominator a little.
+        similarities.insert({UndirectedEdge{u_id, v_id},
+            (num_shared_neighbors + 2) /
+                (sqrt(graph->get_vertex(u_id).getOutDegree() + 1) *
+                 sqrt(graph->get_vertex(v_id).getOutDegree() + 1))});
+      }
   });
 
   return similarities;
