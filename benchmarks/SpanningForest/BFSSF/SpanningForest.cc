@@ -49,25 +49,12 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   timer t;
   t.start();
   auto edges_nd = bfs_sf::SpanningForest(G);
-  auto edges_det = bfs_sf::SpanningForestDet(G);
   double tt = t.stop();
 
-  size_t cor_xor = 0; size_t check_xor = 0;
-  for (size_t i=0; i<edges_nd.size(); i++) {
-    auto [u, v] = edges_nd[i];
-    auto [up, vp] = edges_det[i];
-    cor_xor ^= ((static_cast<size_t>(u) << 32L) + static_cast<size_t>(v));
-    check_xor ^= ((static_cast<size_t>(up) << 32L) + static_cast<size_t>(vp));
+  if (P.getOptionValue("-check")) {
+    auto edges_det = bfs_sf::SpanningForestDet(G);
+    spanning_forest::check_spanning_forest(G.n, edges_nd, edges_det);
   }
-  std::cout << "correct xor = " << cor_xor << " check_xor = " << check_xor << std::endl;
-
-  spanning_forest::check_spanning_forest(G.n, edges_nd, edges_det);
-//  auto edges = P.getOption("-det") ? bfs_sf::SpanningForestDet(G) : bfs_sf::SpanningForest(G);
-//  std::cout << "### Running Time: " << tt << std::endl;
-//
-//  if (P.getOptionValue("-check")) {
-//    spanning_forest::sf_compute_and_check(G, edges);
-//  }
 
   return tt;
 }
