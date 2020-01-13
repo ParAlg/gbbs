@@ -90,6 +90,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1,
 long space_type = 2) {
+  std::cout << "### Starting clique counting" << std::endl;
   using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;

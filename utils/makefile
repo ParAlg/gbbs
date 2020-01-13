@@ -13,7 +13,7 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-INCLUDE_DIRS = -I../
+INCLUDE_DIRS = -I../ -I../ligra
 
 OPT = -O3 -g -DNDEBUG
 
