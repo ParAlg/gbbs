@@ -51,6 +51,8 @@ struct UFAlgorithm {
   Find& find;
   UFAlgorithm(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
 
+  void initialize(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {}
+
   template <SamplingOption sampling_option>
   void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;

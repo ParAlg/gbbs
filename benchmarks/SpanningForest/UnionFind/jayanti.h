@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include "ligra/ligra.h"
-#include "benchmarks/Connectivity/common.h"
+#include "benchmarks/SpanningForest/common.h"
 
 namespace jayanti_rank {
   static constexpr uintE RANK_MASK = (uintE)INT_E_MAX;
@@ -88,7 +88,7 @@ namespace jayanti_rank {
       u = vdatas[u].get_parent();
       pathlen++;
     }
-    report_pathlen(pathlen);
+    //report_pathlen(pathlen);
     return u; // u is a root
   }
 
@@ -100,7 +100,7 @@ namespace jayanti_rank {
       auto vd = vdatas[v];
       pathlen++;
       if (vd.is_root()) {
-        report_pathlen(pathlen);
+        //report_pathlen(pathlen);
         return v;
       }
 
@@ -114,7 +114,7 @@ namespace jayanti_rank {
       ud = vdatas[u]; v = ud.get_parent();
       vd = vdatas[v]; w = vd.get_parent();
       if (vd.is_root()) {
-        report_pathlen(pathlen);
+        //report_pathlen(pathlen);
         return v;
       }
 
@@ -127,7 +127,7 @@ namespace jayanti_rank {
 
       u = v;
     }
-    report_pathlen(pathlen);
+    //report_pathlen(pathlen);
     return u; // u is a root
   }
 
@@ -143,7 +143,7 @@ namespace jayanti_rank {
       v = find(v, vdatas);
       r = r.next();
     }
-    report_tries(tries);
+    //report_tries(tries);
   }
 
   // implementation of randomized linking-by-rank.
@@ -190,7 +190,7 @@ namespace jayanti_rank {
             unite(u, v, vdatas, r_uv, find, Edges);
           } else {
             if (u < v) {
-              unite(u, v, vdatas, r_uv, find);
+              unite(u, v, vdatas, r_uv, find, Edges);
             }
           }
         };

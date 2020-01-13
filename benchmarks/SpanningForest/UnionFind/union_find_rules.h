@@ -194,7 +194,7 @@ namespace unite_variants {
           std::swap(rx, ry);
         }
         if (rx == Parents[rx] && pbbs::atomic_compare_and_swap(&Parents[rx], rx, p_ry)) {
-          Edges[rx] = std::make_pair(u_orig, v_orig);
+          Edges[rx] = std::make_pair(x, y);
           // success
           if constexpr (find_option != find_naive) { /* aka find_none */
             compress(x, Parents);
