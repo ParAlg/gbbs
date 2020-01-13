@@ -1,5 +1,6 @@
 #pragma once
 #include "benchmarks/Connectivity/Framework/framework.h"
+#include "benchmarks/Connectivity/Framework/mains/check.h"
 
 /* ************************* Benchmark Utils *************************** */
 
@@ -120,6 +121,26 @@ inline void cc_check(S1& correct, S2& check);
 
 namespace connectit {
 
+  template <class S>
+  void baseline_process_batch(pbbs::sequence<uintE>& parents, S& batch) {
+    auto F = connectit::get_find_function<find_compress>();
+    auto U = connectit::get_unite_function<unite, decltype(F)>(parents.size(), F);
+    for (size_t i=0; i<batch.size(); i++) {
+      auto [u, v, utype] = batch[i];
+      if (utype == insertion_type) {
+        U(u,v, parents);
+      }
+    }
+  }
+
+  void shortcut(pbbs::sequence<uintE>& parents, uintE u) {
+    uintE p_u = parents[u];
+    while (p_u != parents[p_u]) {
+      p_u = parents[p_u];
+    }
+    parents[u] = p_u;
+  }
+
   template <class Graph, class Alg, bool provides_initial_graph, bool reorder_batch>
   auto run_abstract_alg(
       Graph& G,
@@ -127,13 +148,20 @@ namespace connectit {
       pbbs::sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
+      bool check,
       Alg& alg) {
-    /* compute initial components */
     auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
-
     alg.initialize(parents);
+
+    pbbs::sequence<uintE> correct_parents;
+
+    /* compute initial components if nec. */
     if constexpr (provides_initial_graph) {
       alg.template compute_components<no_sampling>(parents);
+    }
+
+    if (check) {
+      correct_parents = parents; /* copy */
     }
 
     /* process batches */
@@ -142,9 +170,9 @@ namespace connectit {
     size_t n_batches = (m + batch_size - 1) / batch_size;
 
     std::vector<double> batch_times;
-    std::cout << "Total number of updates (all batches): " << m << std::endl;
-    std::cout << "Num batches. " << n_batches << std::endl;
-    std::cout << "Batch size. " << batch_size << std::endl;
+    std::cout << "## Total number of updates (all batches): " << m << std::endl;
+    std::cout << "## Num batches. " << n_batches << std::endl;
+    std::cout << "## Batch size. " << batch_size << std::endl;
     size_t updates_processed = 0;
     for (size_t i=0; i<n_batches; i++) {
       size_t start = i*batch_size;
@@ -155,10 +183,27 @@ namespace connectit {
       alg.template process_batch<reorder_batch>(parents, update);
       double batch_time = tt.stop();
       if (i % 10000 == 0) {
-        std::cout << "Finished : " << i << " out of " << n_batches << " batches." << std::endl;
+        std::cout << "## Finished : " << i << " out of " << n_batches << " batches." << std::endl;
       }
       batch_times.emplace_back(batch_time);
       updates_processed += update.size();
+
+      if (check) {
+        /* 1. run check algorithm */
+        baseline_process_batch(correct_parents, update);
+
+        /* 2. check that labels are consistent */
+        auto parents_copy = parents;
+        auto correct_parents_copy = correct_parents;
+        parallel_for(0, n, [&] (size_t i) {
+          shortcut(parents_copy, i);
+          shortcut(correct_parents_copy, i);
+        });
+
+        RelabelDet(correct_parents_copy);
+        cc_check(correct_parents_copy, parents_copy);
+      }
+
     }
     double t = tt.stop();
     double med_batch_time = median(batch_times);

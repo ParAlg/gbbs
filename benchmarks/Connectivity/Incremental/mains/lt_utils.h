@@ -33,7 +33,8 @@ namespace connectit {
         shortcut_option,
         Graph>;
       auto alg = LT(G, n, connect, update, shortcut);
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, alg);
+      bool check = P.getOptionValue("-check");
+      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, check, alg);
     };
 
     auto name = liu_tarjan_options_to_string<no_sampling,connect_option,update_option,shortcut_option,alter_option>();

@@ -28,7 +28,8 @@ namespace connectit {
                     unite_option == unite_early ||
                     unite_option == unite_nd);
 
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */false>(G, n, updates, batch_size, insert_to_query, alg);
+      bool check = P.getOptionValue("-check");
+      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */false>(G, n, updates, batch_size, insert_to_query, check, alg);
     };
 
     auto name = uf_options_to_string<no_sampling, find_option, unite_option>();
@@ -58,7 +59,8 @@ namespace connectit {
       using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
       auto alg = UF(G, unite, find);
 
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, alg);
+      bool check = P.getOptionValue("-check");
+      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, check, alg);
     };
 
     auto name = uf_options_to_string<no_sampling, find_option, unite_option>();
@@ -81,7 +83,8 @@ namespace connectit {
       auto find = get_jayanti_find_function<find_option>();
       using UF = jayanti_rank::JayantiTBUnite<Graph, decltype(find)>;
       auto alg = UF(G, n, find);
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */ false>(G, n, updates, batch_size, insert_to_query, alg);
+      bool check = P.getOptionValue("-check");
+      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */ false>(G, n, updates, batch_size, insert_to_query, check, alg);
     };
 
     auto name = jayanti_options_to_string<no_sampling, find_option>();
