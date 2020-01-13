@@ -34,7 +34,7 @@ struct SVAlgorithm {
   Graph& GA;
   SVAlgorithm(Graph& GA) : GA(GA) {}
 
-  void initialize(pbbs::sequence<parent>& P) {}
+  void initialize(pbbs::sequence<parent>& P, pbbs::sequence<edge>& E) {}
 
   template <SamplingOption sampling_option>
   void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
@@ -63,6 +63,7 @@ struct SVAlgorithm {
       }
     });
 
+    std::cout << "## Frequent comp = " << frequent_comp << std::endl;
     std::cout << "## Starting loop: candidates.size = " << candidates_size << std::endl;
     auto PrevParents = Parents;
     while (changed) {
@@ -108,7 +109,6 @@ struct SVAlgorithm {
           pathlen++;
         }
         PrevParents[u] = Parents[u];
-        // report_pathlen(pathlen);
       });
     }
     std::cout << "#rounds = " << rounds << std::endl;
