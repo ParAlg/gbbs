@@ -102,7 +102,7 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
-  int rounds = 1; //P.getOptionIntValue("-r", 5);
+  int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();
   if (P.getOptionValue("-check")) {
@@ -114,9 +114,11 @@ double Benchmark_runner(Graph& G, commandLine P) {
       connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
       connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph>,
       connectit::unite_rem_lock_find_naive_splice_atomic<Graph>,
+
       connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph>,
       connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph>,
       connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph>,
+
       connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph>,
       connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph>,
       connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph>,

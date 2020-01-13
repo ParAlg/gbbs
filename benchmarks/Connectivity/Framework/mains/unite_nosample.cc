@@ -76,7 +76,7 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
-  int rounds = 1; // P.getOptionIntValue("-r", 5);
+  int rounds = P.getOptionIntValue("-r", 5);
   
   auto correct = pbbs::sequence<parent>();
   if (P.getOptionValue("-check")) {
