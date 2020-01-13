@@ -53,12 +53,12 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
         {UINT_E_MAX, pbbslib::empty{}},
         pbbslib::hash64_2);
 
-    const auto update_adjacency_list = [&neighbors](
+    const auto update_adjacency_list{[&neighbors](
         const uintE source_vertex,
         const uintE neighbor_vertex,
         const Weight weight) {
       neighbors->insert(std::make_pair(neighbor_vertex, pbbslib::empty{}));
-    };
+    }};
     vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
 
