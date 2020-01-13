@@ -91,15 +91,15 @@ namespace spanning_forest {
     }
     /* convert to graphs, and check connectivity induced by edges */
 
-    auto double_check = double_edges(check);
-    auto G_check = sym_graph_from_edges(double_check, n);
-    auto conn_check = workefficient_cc::CC(G_check);
-    num_cc(conn_check);
-
     auto double_correct = double_edges(correct);
     auto G_double = sym_graph_from_edges(double_correct, n);
     auto conn_correct = workefficient_cc::CC(G_double);
     num_cc(conn_correct);
+
+    auto double_check = double_edges(check);
+    auto G_check = sym_graph_from_edges(double_check, n);
+    auto conn_check = workefficient_cc::CC(G_check);
+    num_cc(conn_check);
 
     cc_check(conn_correct, conn_check);
   }
