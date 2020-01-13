@@ -5,7 +5,7 @@ struct BFS_ComponentLabel_F {
   pbbs::sequence<parent>& Parents;
   pbbs::sequence<edge>& Edges;
   uintE src;
-  BFS_ComponentLabel_F(pbbs::sequence<parent>& _Parents, pbbs::sequence<edge>& Edges, uintE src) : Parents(_Parents), src(src) {}
+  BFS_ComponentLabel_F(pbbs::sequence<parent>& _Parents, pbbs::sequence<edge>& Edges, uintE src) : Parents(_Parents), Edges(Edges), src(src) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (Parents[d] != src) {
       Parents[d] = src;
@@ -16,7 +16,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    if (pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src))) {
+    if (Parents[d] != src && pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src))) {
       Edges[d] = std::make_pair(s, d);
       return true;
     }
@@ -74,9 +74,11 @@ struct BFSSamplingTemplate {
       parent frequent_comp; double pct;
       Parents = std::move(bfs_parents);
       Edges = std::move(bfs_edges);
+
+      std::cout << Edges[src].first << " " << Edges[src].second << std::endl;
       std::tie(frequent_comp, pct) = connectit::sample_frequent_element(Parents);
       if (pct > static_cast<double>(0.1)) {
-        std::cout << "# BFS covered: " << pct << " of graph" << std::endl;
+        std::cout << "# BFS from " << src << " covered: " << pct << " of graph" << std::endl;
         break;
       }
       std::cout << "# BFS covered only: " << pct << " of graph." << std::endl;

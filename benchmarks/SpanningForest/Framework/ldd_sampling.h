@@ -44,7 +44,7 @@ inline std::pair<pbbs::sequence<uintE>, pbbs::sequence<edge>> LDD_sample_edges(G
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Parents[i] = UINT_E_MAX; });
 
-  auto Edges = pbbs::sequence<edge>(n, UINT_E_MAX);
+  auto Edges = pbbs::sequence<edge>(n, empty_edge);
 
   size_t round = 0, num_visited = 0;
   vertexSubset frontier(n);  // Initially empty
