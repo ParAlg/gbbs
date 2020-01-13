@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "ligra/graph.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/seq.h"
@@ -14,7 +12,14 @@ namespace internal {
 using StructuralSimilarities =
   sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 
-using NeighborOrder = pbbs::sequence<pbbs::sequence<std::pair<uintE, float>>>;
+struct NeighborSimilarity {
+  uintE neighbor;
+  float similarity;
+};
+
+bool operator==(const NeighborSimilarity&, const NeighborSimilarity&);
+
+using NeighborOrder = pbbs::sequence<pbbs::sequence<NeighborSimilarity>>;
 
 template <class Graph>
 StructuralSimilarities ComputeStructuralSimilarities(Graph* graph);

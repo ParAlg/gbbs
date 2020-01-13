@@ -5,6 +5,7 @@
 #include <cmath>
 #include <atomic>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "ligra/macros.h"
@@ -15,6 +16,11 @@
 namespace scan {
 
 namespace internal {
+
+bool operator==(const NeighborSimilarity& a, const NeighborSimilarity& b) {
+  return
+    std::tie(a.neighbor, a.similarity) == std::tie(b.neighbor, b.similarity);
+}
 
 // Compute structural similarities (as defined by SCAN) between each pair of
 // adjacent vertices.
@@ -122,7 +128,7 @@ ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities) {
   NeighborOrder neighbor_order{
     graph->n,
     [&graph](size_t i) {
-      return pbbs::sequence<std::pair<uintE, float>>{
+      return pbbs::sequence<NeighborSimilarity>{
         graph->get_vertex(i).getOutDegree()};
     }
   };
@@ -136,14 +142,14 @@ ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities) {
       const float kNotFound{-1.0};
       const float similarity{
         similarities.find(UndirectedEdge{v, neighbor}, kNotFound)};
-      v_order[i] = std::make_pair(neighbor, similarity);
+      v_order[i] = NeighborSimilarity{neighbor, similarity};
     });
 
     // Sort by descending structural similarity
     const auto compare_similarities_descending{[](
-        const std::pair<uintE, float> a,
-        const std::pair<uintE, float> b) {
-      return a.second > b.second;
+        const NeighborSimilarity& a,
+        const NeighborSimilarity& b) {
+      return a.similarity > b.similarity;
     }};
     pbbs::sample_sort_inplace(v_order.slice(), compare_similarities_descending);
   });

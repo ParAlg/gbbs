@@ -102,16 +102,32 @@ TEST(ScanSubroutines, BasicUsage) {
 
   const scan::internal::NeighborOrder neighbor_order{
     scan::internal::ComputeNeighborOrder(&graph, similarity_table)};
-  const std::vector<std::vector<std::pair<uintE, float>>>
+  const std::vector<std::vector<scan::internal::NeighborSimilarity>>
     kExpectedNeighborOrder{
-      {{1, 2.0 / sqrt(8)}},
-      {{3, 3.0 / sqrt(16)}, {0, 2.0 / sqrt(8)}, {2, 3.0 / sqrt(20)}},
-      {{3, 4.0 / sqrt(20)}, {4, 3.0 / sqrt(15)}, {1, 3.0 / sqrt(20)},
-       {5, 2.0 / sqrt(10)}},
-      {{2, 4.0 / sqrt(20)}, {4, 3.0 / sqrt(12)}, {1, 3.0 / sqrt(16)}},
-      {{3, 3.0 / sqrt(12)}, {2, 3.0 / sqrt(15)}},
-      {{2, 2.0 / sqrt(10)}},
-      {}};
+      {{.neighbor = 1, .similarity = static_cast<float>(2.0 / sqrt(8))}},
+      {
+        {.neighbor = 3, .similarity = static_cast<float>(3.0 / sqrt(16))},
+        {.neighbor = 0, .similarity = static_cast<float>(2.0 / sqrt(8))},
+        {.neighbor = 2, .similarity = static_cast<float>(3.0 / sqrt(20))},
+      },
+      {
+        {.neighbor = 3, .similarity = static_cast<float>(4.0 / sqrt(20))},
+        {.neighbor = 4, .similarity = static_cast<float>(3.0 / sqrt(15))},
+        {.neighbor = 1, .similarity = static_cast<float>(3.0 / sqrt(20))},
+        {.neighbor = 5, .similarity = static_cast<float>(2.0 / sqrt(10))},
+      },
+      {
+        {.neighbor = 2, .similarity = static_cast<float>(4.0 / sqrt(20))},
+        {.neighbor = 4, .similarity = static_cast<float>(3.0 / sqrt(12))},
+        {.neighbor = 1, .similarity = static_cast<float>(3.0 / sqrt(16))},
+      },
+      {
+        {.neighbor = 3, .similarity = static_cast<float>(3.0 / sqrt(12))},
+        {.neighbor = 2, .similarity = static_cast<float>(3.0 / sqrt(15))},
+      },
+      {{.neighbor = 2, .similarity = static_cast<float>(2.0 / sqrt(10))}},
+      {},
+    };
   ASSERT_EQ(neighbor_order.size(), kExpectedNeighborOrder.size());
   for (int64_t i = 0; i < neighbor_order.size(); ++i) {
     EXPECT_THAT(neighbor_order[i].slice(),
