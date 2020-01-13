@@ -103,7 +103,7 @@ namespace labelprop_sf {
     Graph& GA;
     LPAlgorithm(Graph& GA) : GA(GA) {}
 
-    void initialize(pbbs::sequence<parent>& P) {}
+    void initialize(pbbs::sequence<parent>& P, pbbs::sequence<edge>& E) {}
 
     template <SamplingOption sampling_option>
     void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
