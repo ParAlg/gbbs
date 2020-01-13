@@ -43,6 +43,7 @@ double SF_runner(Graph& G, commandLine P) {
   } else {
     edges = labelprop_sf::SpanningForest</*use_permutation=*/false>(G);
   }
+  std::cout << "sf has: " << edges.size() << " many edges" << std::endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
