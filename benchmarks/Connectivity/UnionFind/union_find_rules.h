@@ -133,7 +133,7 @@ namespace unite_variants {
     }
   };
 
-  template <class Compress, class Splice>
+  template <class Splice, class Compress, FindOption find_option>
   struct UniteRemLock {
     uintE n;
     std::mutex* locks;
@@ -168,8 +168,10 @@ namespace unite_variants {
         }
         pathlen++;
       }
-      compress(u_orig, parents);
-      compress(v_orig, parents);
+      if constexpr (find_option != find_naive) { /* aka find_none */
+        compress(u_orig, parents);
+        compress(v_orig, parents);
+      }
       report_pathlen(pathlen);
       return;
     }
