@@ -103,7 +103,7 @@ struct LiuTarjanAlgorithm {
   void initialize(pbbs::sequence<parent>& P) {
     messages = pbbs::sequence<uintE>(P.size());
     parallel_for(0, n, [&] (size_t i) {
-      messages[i] = P[i];;
+      messages[i] = i;
     });
   }
 
@@ -119,7 +119,7 @@ struct LiuTarjanAlgorithm {
       // connect
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          bool updated = connect(u, v, P, P);
+          bool updated = connect(u, v, P, messages);
           if (updated && !parents_changed) {
             parents_changed = true;
           }
@@ -133,26 +133,23 @@ struct LiuTarjanAlgorithm {
         }
       });
 
-      // Can skip this step for a regular update
-      if constexpr (update_option != simple_update) {
-        // Update
-        parallel_for(0, n, [&] (size_t u) {
-          update(u, P, P);
-        });
-      }
+      // Update
+      parallel_for(0, n, [&] (size_t u) {
+        update(u, P, messages);
+      });
 
       // Shortcut
       parallel_for(0, n, [&] (size_t u) {
         shortcut(u, P);
-        // messages[u] = P[u];
       });
+
     }
   }
 
   template <bool reorder_batch, class Seq>
   void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
 
-    /* Must reorder updates, can ignore template argument and just reorder. */
+    /* Must reorder updates since queries are not linearizable o.w. */
     auto ret = reorder_updates(updates);
     auto reordered_updates = ret.first;
     size_t update_end = ret.second;
@@ -176,13 +173,11 @@ struct LiuTarjanAlgorithm {
         }
       });
 
+      /* TODO */
       // Can skip this step for a regular update
-      if constexpr (update_option != simple_update) {
-        // Update
-        parallel_for(0, n, [&] (size_t u) {
-          update(u, P, messages);
-        });
-      }
+      parallel_for(0, n, [&] (size_t u) {
+        update(u, P, messages);
+      });
 
       // Shortcut
       parallel_for(0, insertions.size(), [&] (size_t i) {

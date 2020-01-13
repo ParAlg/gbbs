@@ -65,32 +65,32 @@ namespace connectit {
 
   template <class Graph>
   void liutarjan_P(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
   void liutarjan_R(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, shortcut, no_alter>(G, 1, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
   void liutarjan_E(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, shortcut, no_alter>(G, 1, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
   void liutarjan_PF(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
   void liutarjan_RF(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, full_shortcut, no_alter>(G, 1, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
   void liutarjan_EF(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, full_shortcut, no_alter>(G, 1, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, no_sampling, extended_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 }
 
@@ -118,7 +118,7 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& cor
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
-  int rounds = 1; // P.getOptionIntValue("-r", 5);
+  int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();
   if (P.getOptionValue("-check")) {

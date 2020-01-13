@@ -6,10 +6,8 @@
 namespace lt {
 
   bool lt_less(uintE u, uintE v) {
-    if (u == v) {
-      return false;
-    } else if (u == UINT_E_MAX) {
-      return true;
+    if (u == UINT_E_MAX) {
+      return (v != UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
       return false;
     }
@@ -17,10 +15,8 @@ namespace lt {
   }
 
   bool lt_greater(uintE u, uintE v) {
-    if (u == v) {
-      return false;
-    } else if (u == UINT_E_MAX) {
-      return false;
+    if (u == UINT_E_MAX) {
+      return (v == UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
       return true;
     }
@@ -28,9 +24,7 @@ namespace lt {
   }
 
   uintE lt_min(uintE u, uintE v) {
-    if (u == v) {
-      return u;
-    } else if (u == UINT_E_MAX) {
+    if (u == UINT_E_MAX) {
       return u;
     } else if (v == UINT_E_MAX) {
       return v;
@@ -39,9 +33,7 @@ namespace lt {
   }
 
   uintE lt_max(uintE u, uintE v) {
-    if (u == v) {
-      return u;
-    } else if (u == UINT_E_MAX) {
+    if (u == UINT_E_MAX) {
       return v;
     } else if (v == UINT_E_MAX) {
       return u;
@@ -51,13 +43,16 @@ namespace lt {
 
   namespace primitives {
 
-    /* send minimum end to maximum end */
+    // For each edge e, send min{e.v, e.w} to max{e.v, e.w}.
     bool connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
+      abort(); /* not used by any algorithms */
       uintE min_v = std::min(u, v);
       uintE max_v = std::max(u, v);
-      return pbbs::write_min<uintE>(&messages[max_v], min_v, std::less<uintE>());
+      return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);
     }
 
+    // For each edge e, request e.v.p from e.v and e.w.p from e.w; send the minimum of
+    // the received vertices to the maximum of the received vertices.
     bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       uintE p_u = P[u];
       uintE p_v = P[v];
@@ -69,6 +64,9 @@ namespace lt {
       return false;
     }
 
+    // For each edge e, request e.v.p from e.v and e.w.p from e.w; let the received
+    // values be x and y, respectively; if y < x then send y to v and to x
+    // else send x to w and to y.
     bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
       uintE x = P[v];
       uintE y = P[w];
@@ -84,34 +82,33 @@ namespace lt {
     }
 
     void simple_update(uintE u, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
-      abort(); // should not be called, since this fn is a noop
+      auto p_u = P[u];
+      // update P[u] to min{cur_parent, received messages}
+      P[u] = lt_min(p_u, messages[u]);
     }
 
     void root_update(uintE u, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
-      /* find root */
-      uintE pu = P[u];
-      while (pu != largest_comp && pu != P[pu]) {
-        pu = P[pu];
+      // find root
+      uintE p_u = P[u];
+      if (u != p_u) {
+        return;
       }
-      uintE r = pu;
-
-      if (r != u) {
-        P[u] = r; // shortcut
-      }
+      // otherwise u is a root. replace parent with min of self, and messages[u]
+      P[u] = lt_min(p_u, messages[u]);
     }
 
     void shortcut(uintE u, pbbs::sequence<parent>& P) {
-      uintE pu = P[u];
-      if (pu != largest_comp && pu != P[pu]) {
-        P[u] = P[pu];
+      uintE p_u = P[u];
+      if (p_u != largest_comp && p_u != P[p_u]) {
+        P[u] = P[p_u];
       }
     }
 
     void root_shortcut(uintE u, pbbs::sequence<parent>& P) {
-      uintE pu = P[u];
-      while (pu != largest_comp && pu != P[pu]) {
-        P[u] = P[pu];
-        pu = P[u];
+      uintE p_u = P[u];
+      while (p_u != largest_comp && p_u != P[p_u]) {
+        P[u] = P[p_u];
+        p_u = P[u];
       }
     }
 
