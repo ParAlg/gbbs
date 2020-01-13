@@ -58,7 +58,7 @@ inline auto relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) 
     };
     G.get_vertex(i).mapOutNgh(i, f, false);
     // need to sort tmp_edges
-    pbbslib::sample_sort (tmp_edges, deg, [&](const edge u, const edge v) {
+    pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
       return std::get<0>(u) < std::get<0>(v);
     }, true);
     // now need to compute total_bytes (TODO: this could be parallelized, b/c we know what last_ngh is)
@@ -101,11 +101,11 @@ inline auto relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) 
       };
       G.get_vertex(i).mapOutNgh(i, f, false);
       // need to sort tmp_edges
-      pbbslib::sample_sort (tmp_edges, deg, [&](const edge u, const edge v) {
+      pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
         return std::get<0>(u) < std::get<0>(v);
       }, true);
 
-      auto iter = vertex_ops::get_iter(tmp_edges, deg);
+      auto iter = vertex_ops::get_iter(tmp_edges.begin(), deg);
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(
           edges.begin() + byte_offsets[rank[i]], 0, deg, rank[i], iter);
     }
