@@ -31,7 +31,7 @@ template <template <class W> class vertex, class W, typename P,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
-inline auto relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) -> decltype(GA) {
+inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) { // -> decltype(GA) 
   //assert(false);  // Not implemented for directed graphs
   //return G;
   //TODO: basically same as filter, but we have to write out neighbors to do the sort per vert, then use this to compute
