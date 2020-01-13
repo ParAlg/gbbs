@@ -5,11 +5,12 @@
 #include <cmath>
 #include <atomic>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "ligra/macros.h"
+#include "ligra/vertex.h"
 #include "pbbslib/parallel.h"
+#include "pbbslib/sample_sort.h"
 
 namespace scan {
 
@@ -86,8 +87,8 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
             count_shared_neighbors);
 
         // The neighborhoods we've computed are open neighborhoods -- since
-        // structural similarity uses closed neighborhoods, we need to adjust the
-        // number and denominator a little.
+        // structural similarity uses closed neighborhoods, we need to adjust
+        // the number and denominator a little.
         similarities.insert({UndirectedEdge{u_id, v_id},
             (num_shared_neighbors + 2) /
                 (sqrt(graph->get_vertex(u_id).getOutDegree() + 1) *
@@ -102,11 +103,63 @@ template
 StructuralSimilarities ComputeStructuralSimilarities(
     symmetric_graph<symmetric_vertex, pbbslib::empty>*);
 
+// Computes an adjacency list for the graph in which each neighbor list is
+// sorted by descending structural similarity with the source vertex.
+//
+// The output adjacency list `NO` is such that `NO[v][i]` is a pair `{u, sigma}`
+// where `sigma` is the structural similarity between `v` and `u` and where `u`
+// is the neighbor of `v` with the (zero-indexed) `i`-th  highest structural
+// similarity with `v`.
+//
+// Unlike the presentation in "Efficient Structural Graph Clustering:  An
+// Index-Based Approach", the neighbor list for a vertex `v` will not contain
+// `v` itself, unless `(v, v)` is explicitly given as an edge in `graph`.
+template <class Graph>
+NeighborOrder
+ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities) {
+  using Vertex = typename Graph::vertex;
+
+  NeighborOrder neighbor_order{
+    graph->n,
+    [&graph](size_t i) {
+      return pbbs::sequence<std::pair<uintE, float>>{
+        graph->get_vertex(i).getOutDegree()};
+    }
+  };
+
+  par_for(0, graph->n, [&](const uintE v) {
+    Vertex vertex{graph->get_vertex(v)};
+    auto& v_order{neighbor_order[v]};
+
+    par_for(0, vertex.getOutDegree(), [&](const size_t i) {
+      const uintE neighbor{vertex.getOutNeighbor(i)};
+      const float kNotFound{-1.0};
+      const float similarity{
+        similarities.find(UndirectedEdge{v, neighbor}, kNotFound)};
+      v_order[i] = std::make_pair(neighbor, similarity);
+    });
+
+    // Sort by descending structural similarity
+    const auto compare_similarities_descending{[](
+        const std::pair<uintE, float> a,
+        const std::pair<uintE, float> b) {
+      return a.second > b.second;
+    }};
+    pbbs::sample_sort_inplace(v_order.slice(), compare_similarities_descending);
+  });
+
+  return neighbor_order;
+}
+
+template
+NeighborOrder ComputeNeighborOrder(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>*,
+    const StructuralSimilarities&);
+
 }  // namespace internal
 
 template <class Graph>
-ScanIndex::ScanIndex(Graph* graph)
-  : similarities_{internal::ComputeStructuralSimilarities(graph)} {}
+ScanIndex::ScanIndex(Graph* graph) {}
 
 template
 ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);

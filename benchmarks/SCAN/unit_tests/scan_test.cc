@@ -10,10 +10,11 @@
 #include "ligra/vertex.h"
 #include "pbbslib/seq.h"
 
-using testing::FloatEq;
-using testing::IsEmpty;
-using testing::Pair;
-using testing::UnorderedElementsAre;
+using ::testing::ElementsAreArray;
+using ::testing::FloatEq;
+using ::testing::IsEmpty;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 namespace {
 
@@ -36,29 +37,38 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeGraph(
 
 }  // namespace
 
-TEST(ComputeStructuralSimilarities, NullGraph) {
+TEST(ScanSubroutines, NullGraph) {
   const size_t kNumVertices{0};
   const std::unordered_set<UndirectedEdge> kEdges{};
 
   auto graph{MakeGraph(kNumVertices, kEdges)};
   const scan::internal::StructuralSimilarities similarity_table{
     scan::internal::ComputeStructuralSimilarities(&graph)};
-  const auto similarities{similarity_table.entries()};
-  EXPECT_THAT(similarities, IsEmpty());
+  EXPECT_THAT(similarity_table.entries(), IsEmpty());
+
+  const scan::internal::NeighborOrder neighbor_order{
+    scan::internal::ComputeNeighborOrder(&graph, similarity_table)};
+  EXPECT_THAT(neighbor_order, IsEmpty());
 }
 
-TEST(ComputeStructuralSimilarities, EmptyGraph) {
+TEST(ScanSubroutines, EmptyGraph) {
   const size_t kNumVertices{7};
   const std::unordered_set<UndirectedEdge> kEdges{};
 
   auto graph{MakeGraph(kNumVertices, kEdges)};
   const scan::internal::StructuralSimilarities similarity_table{
     scan::internal::ComputeStructuralSimilarities(&graph)};
-  const auto similarities{similarity_table.entries()};
-  EXPECT_THAT(similarities, IsEmpty());
+  EXPECT_THAT(similarity_table.entries(), IsEmpty());
+
+  const scan::internal::NeighborOrder neighbor_order{
+    scan::internal::ComputeNeighborOrder(&graph, similarity_table)};
+  EXPECT_EQ(neighbor_order.size(), kNumVertices);
+  for (const auto& vertex_order : neighbor_order) {
+    EXPECT_THAT(vertex_order, IsEmpty());
+  }
 }
 
-TEST(ComputeStructuralSimilarities, BasicUsage) {
+TEST(ScanSubroutines, BasicUsage) {
   // Graph diagram:
   //
   //     0 --- 1 -- 2 -- 5   6
@@ -82,11 +92,29 @@ TEST(ComputeStructuralSimilarities, BasicUsage) {
   const auto similarities{similarity_table.entries()};
 
   EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
-        std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)),
-        std::make_tuple(UndirectedEdge{1, 2}, 3.0 / sqrt(20)),
-        std::make_tuple(UndirectedEdge{1, 3}, 3.0 / sqrt(16)),
-        std::make_tuple(UndirectedEdge{2, 3}, 4.0 / sqrt(20)),
-        std::make_tuple(UndirectedEdge{2, 4}, 3.0 / sqrt(15)),
-        std::make_tuple(UndirectedEdge{2, 5}, 2.0 / sqrt(10)),
-        std::make_tuple(UndirectedEdge{3, 4}, 3.0 / sqrt(12))));
+        std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)   /* .71 */),
+        std::make_tuple(UndirectedEdge{1, 2}, 3.0 / sqrt(20)  /* .67 */),
+        std::make_tuple(UndirectedEdge{1, 3}, 3.0 / sqrt(16)  /* .75 */),
+        std::make_tuple(UndirectedEdge{2, 3}, 4.0 / sqrt(20)  /* .89 */),
+        std::make_tuple(UndirectedEdge{2, 4}, 3.0 / sqrt(15)  /* .77 */),
+        std::make_tuple(UndirectedEdge{2, 5}, 2.0 / sqrt(10)  /* .63 */),
+        std::make_tuple(UndirectedEdge{3, 4}, 3.0 / sqrt(12)  /* .87 */)));
+
+  const scan::internal::NeighborOrder neighbor_order{
+    scan::internal::ComputeNeighborOrder(&graph, similarity_table)};
+  const std::vector<std::vector<std::pair<uintE, float>>>
+    kExpectedNeighborOrder{
+      {{1, 2.0 / sqrt(8)}},
+      {{3, 3.0 / sqrt(16)}, {0, 2.0 / sqrt(8)}, {2, 3.0 / sqrt(20)}},
+      {{3, 4.0 / sqrt(20)}, {4, 3.0 / sqrt(15)}, {1, 3.0 / sqrt(20)},
+       {5, 2.0 / sqrt(10)}},
+      {{2, 4.0 / sqrt(20)}, {4, 3.0 / sqrt(12)}, {1, 3.0 / sqrt(16)}},
+      {{3, 3.0 / sqrt(12)}, {2, 3.0 / sqrt(15)}},
+      {{2, 2.0 / sqrt(10)}},
+      {}};
+  ASSERT_EQ(neighbor_order.size(), kExpectedNeighborOrder.size());
+  for (int64_t i = 0; i < neighbor_order.size(); ++i) {
+    EXPECT_THAT(neighbor_order[i].slice(),
+        ElementsAreArray(kExpectedNeighborOrder[i]));
+  }
 }

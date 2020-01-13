@@ -231,7 +231,7 @@ class sparse_table {
     return false;
   }
 
-  V find(K k, V default_value) {
+  V find(K k, V default_value) const {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == k) {

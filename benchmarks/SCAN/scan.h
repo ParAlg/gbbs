@@ -1,7 +1,10 @@
 #pragma once
 
+#include <utility>
+
 #include "ligra/graph.h"
 #include "ligra/pbbslib/sparse_table.h"
+#include "pbbslib/seq.h"
 #include "benchmarks/SCAN/undirected_edge.h"
 
 namespace scan {
@@ -11,8 +14,14 @@ namespace internal {
 using StructuralSimilarities =
   sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 
+using NeighborOrder = pbbs::sequence<pbbs::sequence<std::pair<uintE, float>>>;
+
 template <class Graph>
 StructuralSimilarities ComputeStructuralSimilarities(Graph* graph);
+
+template <class Graph>
+NeighborOrder
+ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities);
 
 }  // namespace internal
 
@@ -26,9 +35,8 @@ class ScanIndex {
   template <class Graph>
   explicit ScanIndex(Graph* graph);
 
- private:
-  // Stores structural similarities between each pair of adjacent vertices.
-  const internal::StructuralSimilarities similarities_;
+  // TODO(tom.tseng): Make this class actually store stuff
+  // TODO(tom.tseng): add functions for outputting SCAN clusterings of graph
 };
 
 }  // namespace scan
