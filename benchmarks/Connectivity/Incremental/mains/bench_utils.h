@@ -133,7 +133,7 @@ namespace connectit {
     }
   }
 
-  void shortcut(pbbs::sequence<uintE>& parents, uintE u) {
+  void check_shortcut(pbbs::sequence<uintE>& parents, uintE u) {
     uintE p_u = parents[u];
     while (p_u != parents[p_u]) {
       p_u = parents[p_u];
@@ -163,6 +163,8 @@ namespace connectit {
     if (check) {
       correct_parents = parents; /* copy */
     }
+
+    alg.initialize(parents);
 
     /* process batches */
     timer tt; tt.start();
@@ -196,8 +198,8 @@ namespace connectit {
         auto parents_copy = parents;
         auto correct_parents_copy = correct_parents;
         parallel_for(0, n, [&] (size_t i) {
-          shortcut(parents_copy, i);
-          shortcut(correct_parents_copy, i);
+          check_shortcut(parents_copy, i);
+          check_shortcut(correct_parents_copy, i);
         });
 
         RelabelDet(correct_parents_copy);

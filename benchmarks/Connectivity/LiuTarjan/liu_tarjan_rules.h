@@ -45,7 +45,6 @@ namespace lt {
 
     // For each edge e, send min{e.v, e.w} to max{e.v, e.w}.
     bool connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
-      abort(); /* not used by any algorithms */
       uintE min_v = std::min(u, v);
       uintE max_v = std::max(u, v);
       return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);

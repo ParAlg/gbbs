@@ -199,20 +199,23 @@ namespace connectit {
   pbbs::sequence<parent> run_liu_tarjan_alg(
       Graph& G,
       commandLine& P) {
-    auto connect = lt::get_connect_function<connect_option>();
-    auto update = lt::get_update_function<update_option>();
-    auto shortcut = lt::get_shortcut_function<shortcut_option>();
+    auto alg_connect = lt::get_connect_function<connect_option>();
+    auto alg_update = lt::get_update_function<update_option>();
+    auto alg_shortcut = lt::get_shortcut_function<shortcut_option>();
+    auto alg_alter = lt::get_alter_function<alter_option>();
 
     if constexpr (alter_option == no_alter) { /* no alter */
       using LT = lt::LiuTarjanAlgorithm<
-        decltype(connect),
+        decltype(alg_connect),
         connect_option,
-        decltype(update),
+        decltype(alg_update),
         update_option,
-        decltype(shortcut),
+        decltype(alg_shortcut),
         shortcut_option,
+        decltype(alg_alter),
+        alter_option,
         Graph>;
-      auto alg = LT(G, G.n, connect, update, shortcut);
+      auto alg = LT(G, G.n, alg_connect, alg_update, alg_shortcut, alg_alter);
 
       return compose_algorithm_and_sampling<
         Graph,

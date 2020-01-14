@@ -89,6 +89,8 @@ template <class Connect,
           LiuTarjanUpdateOption update_option,
           class Shortcut,
           LiuTarjanShortcutOption shortcut_option,
+          class Alter,
+          LiuTarjanAlterOption alter_option,
           class Graph>
 struct LiuTarjanAlgorithm {
   Graph& GA;
@@ -96,9 +98,10 @@ struct LiuTarjanAlgorithm {
   Connect& connect;
   Update& update;
   Shortcut& shortcut;
+  Alter& alter;
   pbbs::sequence<uintE> messages;
-  LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut) :
-    GA(GA), n(n), connect(connect), update(update), shortcut(shortcut) {}
+  LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
+    GA(GA), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
 
   void initialize(pbbs::sequence<parent>& P) {
     messages = pbbs::sequence<uintE>(P.size());
@@ -143,6 +146,9 @@ struct LiuTarjanAlgorithm {
         shortcut(u, P);
       });
 
+      // Note that alter is not applied since we do not process edges
+      // in COO, and performing edge modification/filtering on CSR
+      // would be prohibitively costly.
     }
   }
 
@@ -156,6 +162,12 @@ struct LiuTarjanAlgorithm {
     auto insertions = reordered_updates.slice(0, update_end);
     auto queries = reordered_updates.slice(update_end, updates.size());
 
+    using edge = std::pair<uintE, uintE>;
+    auto inserts = pbbs::sequence<edge>(insertions.size(), [&] (size_t i) {
+      auto [u, v, typ] = insertions[i];
+      return std::make_pair(u,v);
+    });
+
     auto parents_changed = true;
     auto& P = parents;
     size_t round = 0;
@@ -163,31 +175,55 @@ struct LiuTarjanAlgorithm {
       parents_changed = false;
 
       // Parent-Connect
-      parallel_for(0, insertions.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType utype;
-        std::tie(u,v, utype) = insertions[i];
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
         bool updated = connect(u, v, P, messages);
         if (updated && !parents_changed) {
           parents_changed = true;
         }
       });
 
-      /* TODO */
-      // Can skip this step for a regular update
-      parallel_for(0, n, [&] (size_t u) {
+      // Update local neighborhoods
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        auto p_u = P[u];
+        auto p_v = P[v];
         update(u, P, messages);
+        update(v, P, messages);
+        update(p_u, P, messages);
+        update(p_v, P, messages);
       });
 
       // Shortcut
-      parallel_for(0, insertions.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType utype;
-        std::tie(u,v, utype) = insertions[i];
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
         shortcut(u, P);
+        shortcut(v, P);
         messages[u] = P[u];
+        messages[v] = P[v];
       });
       round++;
+
+      if constexpr (alter_option != no_alter) {
+        // Alter
+        constexpr uintE null_comp = UINT_E_MAX - 1;
+        constexpr edge nullary_edge = std::make_pair(null_comp, null_comp);
+        parallel_for(0, inserts.size(), [&] (size_t i) {
+          auto [u,v] = inserts[i];
+          uintE p_u, p_v;
+          p_u = P[u]; p_v = P[v];
+          if (p_u == p_v) {
+            inserts[i] = std::make_pair(null_comp, null_comp);
+          } else {
+            inserts[i] = std::make_pair(p_u, p_v);
+          }
+        });
+
+        auto new_inserts = pbbs::filter(inserts, [&] (edge& e) {
+          return e != nullary_edge;
+        });
+        inserts = new_inserts;
+      }
     }
 
     // Process queries
@@ -203,6 +239,7 @@ struct LiuTarjanAlgorithm {
         P[v] = P[P[v]];
       } /* found p_v */
     });
+
   }
 
 };
