@@ -32,8 +32,11 @@ template <class Graph>
 struct SVAlgorithm {
   Graph& GA;
   SVAlgorithm(Graph& GA) : GA(GA) {}
+  pbbs::sequence<parent> prev_parents;
 
-  void initialize(pbbs::sequence<parent>& P) {}
+  void initialize(pbbs::sequence<parent>& P) {
+    prev_parents = P;
+  }
 
   template <SamplingOption sampling_option>
   void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
@@ -62,7 +65,6 @@ struct SVAlgorithm {
       }
     });
 
-    auto prev_parents = parents;
     while (changed) {
       changed = false;
       rounds++;
@@ -99,6 +101,7 @@ struct SVAlgorithm {
   void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
     static_assert(reorder_updates == false);
     bool changed = true;
+
     while (changed) {
       changed = false;
       parallel_for(0, updates.size(), [&] (size_t i) {
@@ -108,25 +111,33 @@ struct SVAlgorithm {
         if (utype == insertion_type) { /* update */
           parent p_u = parents[u];
           parent p_v = parents[v];
-          if (p_u < p_v && p_u == parents[p_u]) {
-            pbbs::write_min<parent>(&parents[p_v], p_u, std::less<parent>());
+          parent l = std::min(p_u, p_v);
+          parent h = std::max(p_u, p_v);
+          if (l != h && h == prev_parents[h]) {
+            pbbs::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
-        } else { /* query, ignore until the find in the next step*/
-        }
+        } /* ignore queries for now */
       });
 
-      // compress the edges in this update batch (also performs queries)
+      // compress (also performs queries implicitly on last round)
       parallel_for(0, updates.size(), [&] (uintE i) {
-        uintE u, v;
-        UpdateType utype;
-        std::tie(u,v, utype) = updates[i];
+        uintE pathlen = 1;
+        auto [u, v, utype] = updates[i];
         while (parents[u] != parents[parents[u]]) {
           parents[u] = parents[parents[u]];
+          pathlen++;
         }
+        report_pathlen(pathlen);
+
+        pathlen = 0;
         while (parents[v] != parents[parents[v]]) {
           parents[v] = parents[parents[v]];
+          pathlen++;
         }
+        prev_parents[u] = parents[u];
+        prev_parents[v] = parents[v];
+        report_pathlen(pathlen);
       });
     }
   }
