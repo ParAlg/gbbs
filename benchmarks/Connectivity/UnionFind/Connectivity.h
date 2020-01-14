@@ -100,7 +100,6 @@ struct UFAlgorithm {
   template <bool reorder_batch, class Seq>
   void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
     if constexpr (reorder_batch == true) {
-      std::cout << "reordering batch" << std::endl;
       auto ret = reorder_updates(updates);
       auto reordered_updates = ret.first;
       size_t update_end = ret.second;

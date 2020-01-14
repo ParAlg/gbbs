@@ -189,8 +189,10 @@ namespace unite_variants {
       while (parents[rx] != parents[ry]) {
         /* link high -> low */
         parent p_ry = parents[ry];
-        if (parents[rx] < p_ry) {
+        parent p_rx = parents[rx];
+        if (p_rx < p_ry) {
           std::swap(rx, ry);
+          std::swap(p_rx, p_ry);
         }
         if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
           // success
