@@ -207,10 +207,9 @@ namespace jayanti_rank {
     void process_batch(pbbs::sequence<parent>& parents, Seq& batch) {
       static_assert(reorder_updates == false);
       auto r = pbbs::random();
+
       parallel_for(0, batch.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType utype;
-        std::tie(u,v, utype) = batch[i];
+        auto [u,v, utype] = batch[i];
         auto r_u = r.fork(u);
         auto r_uv = r_u.fork(v);
         if (utype == query_type) { /* query */
@@ -220,6 +219,12 @@ namespace jayanti_rank {
           unite(u, v, vdatas, r_uv, find);
         }
       });
+
+      // To enable correctness checking (otherwise the correct parent values are
+      // stored in vdatas)
+      // parallel_for(0, n, [&] (size_t i) {
+      //   parents[i] = find(i, vdatas);
+      // });
     }
 
   };
