@@ -91,10 +91,10 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
       {
         connectit::liutarjan_R<Graph, provides_initial_graph>,
         connectit::liutarjan_RF<Graph, provides_initial_graph>,
-//        connectit::liutarjan_RA<Graph, provides_initial_graph>,
-//        connectit::liutarjan_RFA<Graph, provides_initial_graph>,
-//        connectit::liutarjan_PRA<Graph, provides_initial_graph>,
-//        connectit::liutarjan_PRFA<Graph, provides_initial_graph>,
+        connectit::liutarjan_RA<Graph, provides_initial_graph>,
+        connectit::liutarjan_RFA<Graph, provides_initial_graph>,
+        connectit::liutarjan_PRA<Graph, provides_initial_graph>,
+        connectit::liutarjan_PRFA<Graph, provides_initial_graph>,
       });
 }
 
