@@ -35,12 +35,12 @@ namespace connectit {
     }
   };
 
-  template <UniteOption unite_option, class Find>
+  template <UniteOption unite_option, class Find, FindOption find_option>
   auto get_unite_function(size_t n, Find& find) {
     if constexpr (unite_option == unite) {
       return unite_variants::Unite<Find>(find);
     } else if constexpr (unite_option == unite_early) {
-      return unite_variants::UniteEarly();
+      return unite_variants::UniteEarly<Find, find_option>(find);
     } else if constexpr (unite_option == unite_nd) {
       return unite_variants::UniteND<Find>(n, find);
     } else {
@@ -117,7 +117,7 @@ namespace connectit {
       commandLine& P) {
     size_t n = G.n;
     auto find = get_find_function<find_option>();
-    auto unite = get_unite_function<unite_option, decltype(find)>(n, find);
+    auto unite = get_unite_function<unite_option, decltype(find), find_option>(n, find);
     using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
     auto alg = UF(G, unite, find);
     return compose_algorithm_and_sampling<

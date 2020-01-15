@@ -64,13 +64,13 @@ void TestLDDSampling(Graph& G, commandLine& P) {
 }
 
 template <class Graph>
-double TestKOutSampling(Graph& G, commandLine& P) {
+double TestKOutSampling(Graph& G, commandLine& P, int neighbor_rounds) {
   long rounds = P.getOptionLongValue("-r", 5);
   size_t n = G.n;
   std::vector<double> pcts;
   auto test = [&] () {
     using KOut = KOutSamplingTemplate<Graph>;
-    auto sampler = KOut(G, P);
+    auto sampler = KOut(G, P, neighbor_rounds);
 
     timer t; t.start();
     auto parents = sampler.initial_components();
@@ -84,17 +84,17 @@ double TestKOutSampling(Graph& G, commandLine& P) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
 
-  print_result(P, "kout-hybrid", rounds, medt, medpct);
+  print_result(P, "kout-hybrid", rounds, medt, medpct, neighbor_rounds);
 }
 
 template <class Graph>
-double TestKOutAfforestSampling(Graph& G, commandLine& P) {
+double TestKOutAfforestSampling(Graph& G, commandLine& P, int neighbor_rounds) {
   long rounds = P.getOptionLongValue("-r", 5);
   size_t n = G.n;
   std::vector<double> pcts;
   auto test = [&] () {
     using KOut = KOutSamplingTemplate<Graph>;
-    auto sampler = KOut(G, P);
+    auto sampler = KOut(G, P, neighbor_rounds);
 
     timer t; t.start();
     auto parents = sampler.initial_components_afforest();
@@ -108,17 +108,17 @@ double TestKOutAfforestSampling(Graph& G, commandLine& P) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
 
-  print_result(P, "kout-afforest", rounds, medt, medpct);
+  print_result(P, "kout-afforest", rounds, medt, medpct, neighbor_rounds);
 }
 
 template <class Graph>
-double TestKOutPureSampling(Graph& G, commandLine& P) {
+double TestKOutPureSampling(Graph& G, commandLine& P, int neighbor_rounds) {
   long rounds = P.getOptionLongValue("-r", 5);
   size_t n = G.n;
   std::vector<double> pcts;
   auto test = [&] () {
     using KOut = KOutSamplingTemplate<Graph>;
-    auto sampler = KOut(G, P);
+    auto sampler = KOut(G, P, neighbor_rounds);
 
     timer t; t.start();
     auto parents = sampler.initial_components_pure();
@@ -132,7 +132,7 @@ double TestKOutPureSampling(Graph& G, commandLine& P) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
 
-  print_result(P, "kout", rounds, medt, medpct);
+  print_result(P, "kout", rounds, medt, medpct, neighbor_rounds);
 }
 
 template <class Graph>
@@ -142,11 +142,35 @@ double Sampler(Graph& G, commandLine& P) {
   std::cout << "," << endl;
   TestLDDSampling<Graph>(G, P);
   std::cout << "," << endl;
-  TestKOutSampling<Graph>(G, P);
+
+  TestKOutSampling<Graph>(G, P, 1);
   std::cout << "," << endl;
-  TestKOutAfforestSampling<Graph>(G, P);
+  TestKOutSampling<Graph>(G, P, 2);
   std::cout << "," << endl;
-  TestKOutPureSampling<Graph>(G, P);
+  TestKOutSampling<Graph>(G, P, 3);
+  std::cout << "," << endl;
+  TestKOutSampling<Graph>(G, P, 4);
+  std::cout << "," << endl;
+
+
+  TestKOutAfforestSampling<Graph>(G, P, 1);
+  std::cout << "," << endl;
+  TestKOutAfforestSampling<Graph>(G, P, 2);
+  std::cout << "," << endl;
+  TestKOutAfforestSampling<Graph>(G, P, 3);
+  std::cout << "," << endl;
+  TestKOutAfforestSampling<Graph>(G, P, 4);
+  std::cout << "," << endl;
+
+
+  TestKOutPureSampling<Graph>(G, P, 1);
+  std::cout << "," << std::endl;
+  TestKOutPureSampling<Graph>(G, P, 2);
+  std::cout << "," << std::endl;
+  TestKOutPureSampling<Graph>(G, P, 3);
+  std::cout << "," << std::endl;
+  TestKOutPureSampling<Graph>(G, P, 4);
+
   std::cout << "]" << std::endl;
 }
 

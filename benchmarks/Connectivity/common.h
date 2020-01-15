@@ -61,8 +61,8 @@ auto annotate_updates(pbbs::sequence<std::tuple<uintE, uintE>>& updates, double 
       num_queries++;
     }
   }
-  std::cout << "Total num insertions = " << num_inserts << std::endl;
-  std::cout << "Total num queries = " << num_queries << std::endl;
+  std::cout << "# Total num insertions = " << num_inserts << std::endl;
+  std::cout << "# Total num queries = " << num_queries << std::endl;
 
   return result;
 }

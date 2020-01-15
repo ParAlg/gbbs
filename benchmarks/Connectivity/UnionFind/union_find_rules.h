@@ -116,9 +116,7 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
       parent u = u_orig;
       parent v = v_orig;
-      uintE tries = 0;
       while(1) {
-        tries++;
         u = find(u,parents);
         v = find(v,parents);
         if(u == v) break;
@@ -129,7 +127,6 @@ namespace unite_variants {
           break;
         }
       }
-      report_tries(tries);
     }
   };
 
@@ -212,21 +209,27 @@ namespace unite_variants {
     }
   };
 
+  template <class Find, FindOption find_option>
   struct UniteEarly {
-    UniteEarly() {}
+    Find& find;
+    UniteEarly(Find& find) : find(find) {}
     inline void operator()(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-      uintE tries = 1;
+      uintE u_orig = u, v_orig = v;
       while(u != v) {
-        tries++;
         /* link high -> low */
         if(v > u) std::swap(u,v);
-        if (parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) { return; }
+        if (parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) {
+          break;
+        }
         parent z = parents[u];
         parent w = parents[z];
         pbbs::atomic_compare_and_swap(&parents[u],z,w);
         u = w;
       }
-      report_tries(tries);
+      if constexpr (find_option != find_naive) {
+        u = find(u_orig, parents); /* force */
+        v = find(v_orig, parents); /* force */
+      }
     }
   };
 
@@ -241,9 +244,7 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
       parent u = u_orig;
       parent v = v_orig;
-      uintE tries = 0;
       while(1) {
-        tries++;
         u = find(u,parents);
         v = find(v,parents);
         if(u == v) break;
@@ -254,7 +255,6 @@ namespace unite_variants {
           break;
         }
       }
-      report_tries(tries);
     }
   };
 

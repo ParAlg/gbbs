@@ -78,9 +78,10 @@ struct KOutSamplingTemplate {
 
   KOutSamplingTemplate(
       G& GA,
-      commandLine& P) :
+      commandLine& P,
+      int ngh_rounds = -1) :
    GA(GA) {
-    neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
+    neighbor_rounds = (ngh_rounds == -1) ? P.getOptionLongValue("-sample_rounds", 2L) : ngh_rounds;
    }
 
   void link(uintE u, uintE v, pbbs::sequence<parent>& parents) {
@@ -255,7 +256,6 @@ inline sequence<parent> BFS_ComponentLabel(Graph& G, uintE src) {
     rounds++;
   }
   Frontier.del();
-  // std::cout << "Reachable: " << reachable << " #rounds = " << rounds << std::endl;
   return Parents;
 }
 

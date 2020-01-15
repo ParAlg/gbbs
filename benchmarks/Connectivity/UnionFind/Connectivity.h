@@ -63,11 +63,11 @@ struct UFAlgorithm {
     if constexpr (provides_frequent_comp) {
       clusters = parents;
       granularity = 512;
-      std::cout << "provides frequent comp" << std::endl;
+      std::cout << "# provides frequent comp" << std::endl;
     } else {
       granularity = 1;
     }
-    std::cout << "frequent_comp = " << frequent_comp << " gran = " << granularity << std::endl;
+    std::cout << "# frequent_comp = " << frequent_comp << " gran = " << granularity << std::endl;
 
     timer ut; ut.start();
     parallel_for(0, n, [&] (size_t i) {

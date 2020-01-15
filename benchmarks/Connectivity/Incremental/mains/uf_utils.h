@@ -18,7 +18,7 @@ namespace connectit {
       /* Create initial parents array */
 
       auto find_fn = get_find_function<find_option>();
-      auto unite_fn = get_unite_function<unite_option, decltype(find_fn)>(n, find_fn);
+      auto unite_fn = get_unite_function<unite_option, decltype(find_fn), find_option>(n, find_fn);
       using UF = union_find::UFAlgorithm<decltype(find_fn), decltype(unite_fn), Graph>;
       auto alg = UF(G, unite_fn, find_fn);
 
