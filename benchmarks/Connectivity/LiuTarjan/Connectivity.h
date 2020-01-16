@@ -244,6 +244,88 @@ struct LiuTarjanAlgorithm {
 
 };
 
+
+template <class Connect,
+          LiuTarjanConnectOption connect_option,
+          class Update,
+          LiuTarjanUpdateOption update_option,
+          class Shortcut,
+          LiuTarjanShortcutOption shortcut_option,
+          class Alter,
+          LiuTarjanAlterOption alter_option>
+struct LiuTarjanAlgorithmCOO {
+  using edge = std::pair<uintE, uintE>;
+  pbbs::sequence<edge> graph;
+  size_t n;
+
+  Connect& connect;
+  Update& update;
+  Shortcut& shortcut;
+  Alter& alter;
+
+  pbbs::sequence<uintE> messages;
+
+  LiuTarjanAlgorithmCOO(pbbs::sequence<edge>&& graph, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
+    graph(std::move(graph)), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
+
+  void initialize(pbbs::sequence<parent>& P) {
+    messages = pbbs::sequence<uintE>(P.size());
+    parallel_for(0, n, [&] (size_t i) {
+      messages[i] = i;
+    });
+  }
+
+  void my_alter(pbbs::sequence<parent>& P) {
+    parallel_for(0, graph.size(), [&] (size_t i) {
+      edge& e = graph[i];
+      e = std::make_pair(P[e.first], P[e.second]);
+    });
+    //auto new_edges = pbbs::filter(graph, [&] (const edge& e) {
+    //  return e.first != e.second;
+    //});
+    //graph = new_edges;
+  }
+
+  bool my_connect(pbbs::sequence<parent>& P) {
+    bool parents_changed = false;
+    parallel_for(0, graph.size(), [&] (size_t i) {
+      const edge& e = graph[i];
+      bool updated = connect(e.first, e.second, P, messages);
+      if (updated && !parents_changed) {
+        parents_changed = true;
+      }
+    });
+    return parents_changed;
+  }
+
+  void my_update(pbbs::sequence<parent>& P) {
+    parallel_for(0, n, [&] (size_t u) {
+      update(u, P, messages);
+    });
+  }
+
+  void my_shortcut(pbbs::sequence<parent>& P) {
+    parallel_for(0, n, [&] (size_t u) {
+      shortcut(u, P);
+    });
+  }
+
+  template <SamplingOption sampling_option>
+  void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
+    auto parents_changed = true;
+    static_assert(alter_option != no_alter);
+    my_alter(P);
+    while (parents_changed) {
+      parents_changed = my_connect(P);
+      my_update(P);
+      my_shortcut(P);
+      my_alter(P);
+    }
+  }
+
+};
+
+
 template <class Graph>
 struct StergiouAlgorithm {
   Graph& GA;

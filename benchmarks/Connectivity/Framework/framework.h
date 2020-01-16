@@ -227,4 +227,40 @@ namespace connectit {
     }
   }
 
+  /* LiuTarjan: Selects the sampling strategy, and calls the appropriate dispatcher */
+  template <
+    class Graph,
+    SamplingOption          sampling_option,
+    LiuTarjanConnectOption  connect_option,
+    LiuTarjanUpdateOption   update_option,
+    LiuTarjanShortcutOption shortcut_option,
+    LiuTarjanAlterOption    alter_option>
+  pbbs::sequence<parent> run_liu_tarjan_alg(
+      Graph& G,
+      pbbs::sequence<std::pair<uintE, uintE>>&& mutable_graph,
+      commandLine& P) {
+    auto alg_connect = lt::get_connect_function<connect_option>();
+    auto alg_update = lt::get_update_function<update_option>();
+    auto alg_shortcut = lt::get_shortcut_function<shortcut_option>();
+    auto alg_alter = lt::get_alter_function<alter_option>();
+
+    using LT = lt::LiuTarjanAlgorithmCOO<
+      decltype(alg_connect),
+      connect_option,
+      decltype(alg_update),
+      update_option,
+      decltype(alg_shortcut),
+      shortcut_option,
+      decltype(alg_alter),
+      alter_option>;
+    auto alg = LT(std::move(mutable_graph), G.n, alg_connect, alg_update, alg_shortcut, alg_alter);
+
+    return compose_algorithm_and_sampling<
+      Graph,
+      decltype(alg),
+      liu_tarjan_type,
+      sampling_option>(G, P, alg);
+  }
+
+
 } // namesapce connectit
