@@ -324,7 +324,7 @@ inline EdgeMap_F<W, F> make_em_f(F f) {
 
 /* Aggregate metrics for a repeated experiment, repeated num_rounds times. */
 struct cpu_stats {
-  double ipc; /* instructions per clock */
+  double ipc;
   size_t total_cycles;
   double l2_hit_ratio;
   double l3_hit_ratio;
@@ -335,8 +335,22 @@ struct cpu_stats {
   size_t bytes_read;
   size_t bytes_written;
   double total_time;
-
   size_t num_rounds;
+
+  cpu_stats() {
+    ipc = 0;
+    total_cycles = 0;
+    l2_hit_ratio = 0;
+    l3_hit_ratio = 0;
+    l2_misses = 0;
+    l2_hits = 0;
+    l3_misses = 0;
+    l3_hits = 0;
+    bytes_read = 0;
+    bytes_written = 0;
+    total_time = 0;
+    num_rounds = 0;
+  }
 
   cpu_stats(
       double ipc,

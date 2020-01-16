@@ -127,15 +127,12 @@ namespace jayanti_rank {
   void unite(uintE x, uintE y, S& vdatas, pbbs::random r, Find& find) {
     uintE u = find(x, vdatas);
     uintE v = find(y, vdatas);
-    uintE tries = 1;
     while (u != v) {
-      tries++;
       link(u, v, vdatas, r);
       u = find(u, vdatas);
       v = find(v, vdatas);
       r = r.next();
     }
-    report_tries(tries);
   }
 
   // implementation of randomized linking-by-rank.
@@ -159,7 +156,7 @@ namespace jayanti_rank {
       });
     }
 
-    template <bool provides_frequent_comp>
+    template <SamplingOption sampling_option>
     void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
@@ -168,6 +165,7 @@ namespace jayanti_rank {
       auto r = pbbs::random();
 
       uintE granularity;
+      constexpr bool provides_frequent_comp = (sampling_option != no_sampling);
       if constexpr (provides_frequent_comp) {
         granularity = 512;
       } else {
