@@ -100,6 +100,7 @@ struct KOutSamplingTemplate {
     }
   }
 
+  /* The Hybrid version */
   pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
@@ -119,6 +120,68 @@ struct KOutSamplingTemplate {
           if (u_vtx.getOutDegree() > r) {
             uintE ngh; W wgh;
             std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      } else {
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_rnd = rnd.fork(u);
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > 0) {
+            uintE deglb = (1 << std::max((int)pbbs::log2_up(u_vtx.getOutDegree()), (int)1) - 1) - 1;
+            uintE ngh_idx;
+            if (deglb == 0) {
+              ngh_idx = 0;
+            } else {
+              ngh_idx = u_rnd.rand() & deglb;
+            }
+            uintE ngh; W wgh;
+            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      }
+      // compress nodes fully (turns out this is faster)
+      parallel_for(0, n, [&] (size_t u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
+      rnd = rnd.next();
+    }
+    return parents;
+   }
+
+  /* The max-degree version */
+  pbbs::sequence<parent> initial_components_max_degree() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
+
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    pbbs::sequence<uintE> hooks;
+
+    pbbs::random rnd;
+    uintE granularity = 1024;
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      if (r == 0) {
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > 0) {
+            // compute max degree neighbor
+            auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+              return std::make_pair(v, GA.get_vertex(v).getOutDegree());
+            };
+            using int_pair = std::pair<uintE, uintE>;
+            auto reduce_f = [&] (const int_pair& l, const int_pair& r) {
+              if (l.second < r.second) {
+                return r;
+              } else {
+                return l;
+              }
+            };
+            auto reduce_m = pbbs::make_monoid(reduce_f, std::make_pair(0, 0));
+            auto [ngh, degree] = u_vtx.template reduceOutNgh<int_pair>(u, map_f, reduce_m);
             link(u, ngh, parents);
           }
         }, granularity);
