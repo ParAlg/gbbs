@@ -63,7 +63,7 @@ namespace connectit {
       return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, check, alg);
     };
 
-    auto name = uf_options_to_string<no_sampling, find_option, unite_option>();
+    auto name = uf_options_to_string<no_sampling, find_option, unite_option, splice_option>();
     return run_multiple(G, rounds, name, P, test);
   }
 

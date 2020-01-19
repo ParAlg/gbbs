@@ -22,6 +22,11 @@ double Run(Graph& G, commandLine P) {
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 
+
+  global_insert_to_query = insert_to_query;
+  global_update_pct = update_pct;
+  global_batch_size = batch_size;
+
   /* 1) sample edges to use as updates */
 
   auto hash_to_double = [&] (const uintE& u, const uintE& v) -> double {

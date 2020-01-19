@@ -22,7 +22,7 @@ OPT = -O3 -g -DNDEBUG
 #OPT = -O0 -g
 
 #INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
-#
+
 #ifdef INTEL_PCM_HOME
 #	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
 #	EXT_OBJECTS=$(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o $(INTEL_PCM_HOME)/utils.o $(INTEL_PCM_HOME)/mmio.o
