@@ -318,9 +318,6 @@ inline EdgeMap_F<W, F> make_em_f(F f) {
   return EdgeMap_F<W, F>(f);
 }
 
-#ifdef USE_PCM_LIB
-
-#include "cpucounters.h"
 
 /* Aggregate metrics for a repeated experiment, repeated num_rounds times. */
 struct cpu_stats {
@@ -348,8 +345,8 @@ struct cpu_stats {
     l3_hits = 0;
     bytes_read = 0;
     bytes_written = 0;
-    total_time = 0;
-    num_rounds = 0;
+    total_time = 1.0;
+    num_rounds = 1;
   }
 
   cpu_stats(
@@ -409,6 +406,10 @@ struct cpu_stats {
       / GB); /* GB/sec */
   }
 };
+
+#ifdef USE_PCM_LIB
+
+#include "cpucounters.h"
 
 cpu_stats get_pcm_stats(
     SystemCounterState& before_state,
