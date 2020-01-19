@@ -64,6 +64,9 @@ namespace connectit {
       return run_multiple(G, rounds, correct, name, P, test);
     } else {
       auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+        if (G.m > 10000000000UL) {
+          return 0.0; /* too large to run in COO */
+        }
         // Convert graph to COO format:
         auto mutable_edges_raw = G.edges();
         using W = typename Graph::weight_type;
@@ -94,15 +97,6 @@ namespace connectit {
     }
   }
 
-  template <class Graph>
-  void liutarjan_P(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
-  }
-
-  template <class Graph>
-  void liutarjan_E(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
-  }
 
   template <class Graph>
   void liutarjan_CA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
@@ -110,13 +104,23 @@ namespace connectit {
   }
 
   template <class Graph>
-  void liutarjan_PR(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
+  void liutarjan_CRA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, simple_connect, root_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_CRA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, simple_connect, root_update, shortcut, alter>(G, rounds, correct, P);
+  void liutarjan_CRFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, simple_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
+  }
+
+  template <class Graph>
+  void liutarjan_P(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+  }
+
+  template <class Graph>
+  void liutarjan_PR(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
@@ -140,13 +144,28 @@ namespace connectit {
   }
 
   template <class Graph>
+  void liutarjan_PRA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, shortcut, alter>(G, rounds, correct, P);
+  }
+
+  template <class Graph>
   void liutarjan_PRFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_ldd, parent_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
+  void liutarjan_E(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
+  }
+
+  template <class Graph>
+  void liutarjan_ER(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
+  }
+
+  template <class Graph>
   void liutarjan_EA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, full_shortcut, alter>(G, rounds, correct, P);
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, simple_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
@@ -165,17 +184,15 @@ namespace connectit {
   }
 
   template <class Graph>
-  void liutarjan_ERFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
+  void liutarjan_ERA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, root_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_CRFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-    run_multiple_liu_tarjan_alg<Graph, sample_ldd, simple_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
+  void liutarjan_ERFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+    run_multiple_liu_tarjan_alg<Graph, sample_ldd, extended_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
   }
-
 }
-
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
@@ -189,22 +206,25 @@ double Benchmark_runner(Graph& G, commandLine P) {
   }
   run_tests(G, rounds, P, correct, connectit::liutarjan_P<Graph>,
     {
-      connectit::liutarjan_P<Graph>,
-      connectit::liutarjan_E<Graph>,
       connectit::liutarjan_CA<Graph>,
-      connectit::liutarjan_PR<Graph>,
       connectit::liutarjan_CRA<Graph>,
-      connectit::liutarjan_PA<Graph>,
+      connectit::liutarjan_CRFA<Graph>,
+      connectit::liutarjan_P<Graph>,
+      connectit::liutarjan_PR<Graph>,
       connectit::liutarjan_PF<Graph>,
+      connectit::liutarjan_PA<Graph>,
       connectit::liutarjan_PRF<Graph>,
+      connectit::liutarjan_PRA<Graph>,
       connectit::liutarjan_PFA<Graph>,
       connectit::liutarjan_PRFA<Graph>,
-      connectit::liutarjan_EA<Graph>,
+      connectit::liutarjan_E<Graph>,
+      connectit::liutarjan_ER<Graph>,
       connectit::liutarjan_EF<Graph>,
+      connectit::liutarjan_EA<Graph>,
       connectit::liutarjan_ERF<Graph>,
+      connectit::liutarjan_ERA<Graph>,
       connectit::liutarjan_EFA<Graph>,
-      connectit::liutarjan_ERFA<Graph>,
-      connectit::liutarjan_CRFA<Graph>
+      connectit::liutarjan_ERFA<Graph>
     });
   return 1.0;
 }
