@@ -5,7 +5,7 @@
 
 #include "utils/benchmark.h"
 
-void print_result(commandLine& P, std::string sampling_method, size_t rounds, double sampling_time, double pct_covered, size_t k=0) {
+void print_result(commandLine& P, std::string sampling_method, size_t rounds, double sampling_time, double pct_covered, double pct_ic_edges, size_t k=0) {
   std::cout << "{" << std::endl;
   std::cout << "  \"test_type\": \"sampling_result\"," << std::endl;
   std::cout << "  \"graph\" : \"" << P.getArgument(0) << "\"," << std::endl;
@@ -13,6 +13,7 @@ void print_result(commandLine& P, std::string sampling_method, size_t rounds, do
   std::cout << "  \"rounds\" : " << rounds << "," << std::endl;
   std::cout << "  \"sampling_time\" : " << sampling_time << "," << std::endl;
   std::cout << "  \"pct_covered\" : " << pct_covered << "," << std::endl;
+  std::cout << "  \"pct_ic_edges\" : " << pct_ic_edges << "," << std::endl;
   std::cout << "  \"k\" : " << k << std::endl;
   std::cout << "}" << std::endl;
 }
@@ -119,7 +120,7 @@ double TestKOutSampling(Graph& G, commandLine& P, int neighbor_rounds) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
   auto med_icpct = benchmark::median(ic_edge_pcts);
-  print_result(P, "kout", rounds, medt, medpct, med_icpct);
+  print_result(P, "kout", rounds, medt, medpct, med_icpct, neighbor_rounds);
 }
 
 template <class Graph>
@@ -149,7 +150,7 @@ double TestKOutAfforestSampling(Graph& G, commandLine& P, int neighbor_rounds) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
   auto med_icpct = benchmark::median(ic_edge_pcts);
-  print_result(P, "kout-afforest", rounds, medt, medpct, med_icpct);
+  print_result(P, "kout-afforest", rounds, medt, medpct, med_icpct, neighbor_rounds);
 }
 
 template <class Graph>
@@ -179,7 +180,7 @@ double TestKOutPureSampling(Graph& G, commandLine& P, int neighbor_rounds) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
   auto med_icpct = benchmark::median(ic_edge_pcts);
-  print_result(P, "kout-pure", rounds, medt, medpct, med_icpct);
+  print_result(P, "kout-pure", rounds, medt, medpct, med_icpct, neighbor_rounds);
 }
 
 template <class Graph>
@@ -209,7 +210,7 @@ double TestKOutMaxDegreeSampling(Graph& G, commandLine& P, int neighbor_rounds) 
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
   auto med_icpct = benchmark::median(ic_edge_pcts);
-  print_result(P, "kout-maxdeg", rounds, medt, medpct, med_icpct);
+  print_result(P, "kout-maxdeg", rounds, medt, medpct, med_icpct, neighbor_rounds);
 }
 
 template <class Graph>

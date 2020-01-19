@@ -13,18 +13,18 @@ mkdir -p ${output_dir}/raw
 
 make benchmark_sampling
 
-#for graph in ${graphs[@]}
-#do
-#  NAME=$(basename $graph .adj)
-#  sync; echo 1 | sudo tee /proc/sys/vm/drop_caches
-#  for binary in ${binaries[@]}
-#  do
-#    echo "sudo numactl -i all ./${binary} -s -m -r ${rounds} $graph > ${output_dir}/raw/${NAME}.data"
-#    sudo numactl -i all ./${binary} -s -m -r ${rounds} $graph > ${output_dir}/raw/${NAME}.data
-#    echo "cat ${output_dir}/raw/${NAME}.data | grep \"^[^#;]\" > ${output_dir}/json/${NAME}.json"
-#    cat ${output_dir}/raw/${NAME}.data | grep "^[^#;]" > ${output_dir}/json/${NAME}.json
-#  done
-#done
+for graph in ${graphs[@]}
+do
+  NAME=$(basename $graph .adj)
+  sync; echo 1 | sudo tee /proc/sys/vm/drop_caches
+  for binary in ${binaries[@]}
+  do
+    echo "sudo numactl -i all ./${binary} -s -m -r ${rounds} $graph > ${output_dir}/raw/${NAME}.data"
+    sudo numactl -i all ./${binary} -s -m -r ${rounds} $graph > ${output_dir}/raw/${NAME}.data
+    echo "cat ${output_dir}/raw/${NAME}.data | grep \"^[^#;]\" > ${output_dir}/json/${NAME}.json"
+    cat ${output_dir}/raw/${NAME}.data | grep "^[^#;]" > ${output_dir}/json/${NAME}.json
+  done
+done
 
 for graph in ${c_graphs[@]}
 do
