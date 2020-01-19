@@ -116,9 +116,7 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
       parent u = u_orig;
       parent v = v_orig;
-      uintE tries = 0;
       while(1) {
-        tries++;
         u = find(u,Parents);
         v = find(v,Parents);
         if(u == v) break;
@@ -131,7 +129,6 @@ namespace unite_variants {
           break;
         }
       }
-      report_tries(tries);
     }
   };
 
@@ -217,9 +214,7 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
       uintE u = u_orig;
       uintE v = v_orig;
-      uintE tries = 1;
       while(u != v) {
-        tries++;
         /* link high -> low */
         if(v > u) std::swap(u,v);
         if (Parents[u] == u && pbbs::atomic_compare_and_swap(&Parents[u],u,v)) {
@@ -231,7 +226,6 @@ namespace unite_variants {
         pbbs::atomic_compare_and_swap(&Parents[u],z,w);
         u = w;
       }
-      report_tries(tries);
     }
   };
 
@@ -246,9 +240,7 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
       parent u = u_orig;
       parent v = v_orig;
-      uintE tries = 0;
       while(1) {
-        tries++;
         u = find(u,Parents);
         v = find(v,Parents);
         if(u == v) break;
@@ -260,7 +252,6 @@ namespace unite_variants {
           break;
         }
       }
-      report_tries(tries);
     }
   };
 

@@ -143,7 +143,6 @@ namespace jayanti_rank {
       v = find(v, vdatas);
       r = r.next();
     }
-    //report_tries(tries);
   }
 
   // implementation of randomized linking-by-rank.
