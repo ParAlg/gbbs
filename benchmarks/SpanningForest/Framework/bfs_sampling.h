@@ -75,7 +75,6 @@ struct BFSSamplingTemplate {
       Parents = std::move(bfs_parents);
       Edges = std::move(bfs_edges);
 
-      std::cout << Edges[src].first << " " << Edges[src].second << std::endl;
       std::tie(frequent_comp, pct) = connectit::sample_frequent_element(Parents);
       if (pct > static_cast<double>(0.1)) {
         std::cout << "# BFS from " << src << " covered: " << pct << " of graph" << std::endl;

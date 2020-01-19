@@ -1,8 +1,13 @@
 #pragma once
 #include "benchmarks/Connectivity/Framework/framework.h"
 #include "benchmarks/Connectivity/Framework/mains/check.h"
+#include "ligra/ligra.h"
 
 /* ************************* Benchmark Utils *************************** */
+
+size_t global_batch_size = 0;
+double global_update_pct = 0.0;
+double global_insert_to_query = 0.0;
 
 template<typename F>
 double reduce(std::vector<double> V, F f) {
@@ -34,10 +39,6 @@ auto repeat(Graph& G, size_t rounds, F test, commandLine& P) {
     max_pathlen.reset();
     total_pathlen.reset();
 #endif
-#ifdef REPORT_MAX_TRIES
-    max_uf_tries.reset();
-    total_uf_tries.reset();
-#endif
     std::tie(tot, avg, thp) = test(G, P);
     total.push_back(tot);
     average_batch.push_back(avg);
@@ -46,13 +47,61 @@ auto repeat(Graph& G, size_t rounds, F test, commandLine& P) {
   return std::make_tuple(total, average_batch, thput);
 }
 
+template <class CPUStats>
+void print_cpu_stats(std::string& name, size_t rounds, 
+    double medt, double mint, double maxt,
+    double med_batch, double min_batch, double max_batch,
+    double med_throughput, double min_throughput, double max_throughput,
+    CPUStats& stats, commandLine& P) {
+  std::cout << "{" << std::endl;
+  std::cout << "  \"test_type\": \"static_connectivity_result\"," << std::endl;
+  std::cout << "  \"test_name\" : \"" << name << "\"," << std::endl;
+  std::cout << "  \"graph\" : \"" << P.getArgument(0) << "\"," << std::endl;
+  std::cout << "  \"rounds\" : " << rounds << "," << std::endl;
+  std::cout << "  \"insert_to_query\" : \"" << global_insert_to_query << "\"," << std::endl;
+  std::cout << "  \"update_pct\" : \"" << global_update_pct << "\"," << std::endl;
+  std::cout << "  \"batch_size\" : \"" << global_batch_size << "\"," << std::endl;
+  std::cout << "  \"medt\" : " << std::setprecision(5) << medt << "," << std::endl;
+  std::cout << "  \"mint\" : " << mint << "," << std::endl;
+  std::cout << "  \"maxt\" : " << maxt << "," << std::endl;
+  std::cout << "  \"med_batch_time\" : " << med_batch << "," << std::endl;
+  std::cout << "  \"min_batch_time\" : " << min_batch << "," << std::endl;
+  std::cout << "  \"max_batch_time\" : " << max_batch << "," << std::endl;
+  std::cout << "  \"med_throughput\" : " << med_throughput << "," << std::endl;
+  std::cout << "  \"min_throughput\" : " << min_throughput << "," << std::endl;
+  std::cout << "  \"max_throughput\" : " << max_throughput << "," << std::endl;
+  std::cout << "  \"ipc\" : " << std::to_string(stats.get_ipc()) << "," << std::endl;
+  std::cout << "  \"total_cycles\" : " << std::to_string(stats.get_total_cycles()) << "," << std::endl;
+  std::cout << "  \"l2_hit_ratio\" : " << std::to_string(stats.get_l2_hit_ratio()) << "," << std::endl;
+  std::cout << "  \"l3_hit_ratio\" : " << std::to_string(stats.get_l3_hit_ratio()) << "," << std::endl;
+  std::cout << "  \"l2_misses\" : " << std::to_string(stats.get_l2_misses()) << "," << std::endl;
+  std::cout << "  \"l2_hits\" : " << std::to_string(stats.get_l2_hits()) << "," << std::endl;
+  std::cout << "  \"l3_misses\" : " << std::to_string(stats.get_l3_misses()) << "," << std::endl;
+  std::cout << "  \"l3_hits\" : " << std::to_string(stats.get_l3_hits()) << "," << std::endl;
+  std::cout << "  \"throughput\" : " << std::to_string(stats.get_throughput()) << "," << std::endl;
+  std::cout << "  \"max_path_len\" : " << std::to_string(max_pathlen.get_value()) << "," << std::endl;
+  std::cout << "  \"total_path_len\" : " << std::to_string(total_pathlen.get_value()) << std::endl;
+  std::cout << "}" << std::endl;
+}
+
 template<typename Graph, typename F>
 bool run_multiple(Graph& G, size_t rounds,
 		  std::string name, commandLine& P, F test) {
   std::vector<double> t; /* total */
   std::vector<double> a;
   std::vector<double> tp;
+#ifdef USE_PCM_LIB
+  auto before_state = get_pcm_state();
+  timer ot; ot.start();
+#endif
   std::tie(t, a, tp) = repeat(G, rounds, test, P);
+#ifdef USE_PCM_LIB
+  double elapsed = ot.stop();
+  auto after_state = get_pcm_state();
+  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
+#else
+  cpu_stats stats;
+#endif
 
   double mint = reduce(t, minf);
   double maxt = reduce(t, maxf);
@@ -66,46 +115,16 @@ bool run_multiple(Graph& G, size_t rounds,
   double maxtp = reduce(tp, maxf);
   double medtp = median(tp);
 
-  cout << "Test = {"
-       << "\"name\": \"" << name << "\"" << std::setprecision(5)
-       << ", \"rounds\":" << rounds
-       << ", \"med_time\":" << medt
-       << ", \"min_time\":" << mint
-       << ", \"max_time\":" << maxt
-       << ", \"med_batch_time\":" << meda
-       << ", \"min_batch_time\":" << mina
-       << ", \"max_batch_time\":" << maxa
-       << ", \"med_throughput\":" << medtp
-       << ", \"min_throughput\":" << mintp
-       << ", \"max_throughput\":" << maxtp
-       << ", \"max_path_len\":" << std::to_string(max_pathlen.get_value())
-       << ", \"total_path_len\":" << std::to_string(total_pathlen.get_value())
-       << ", \"max_uf_tries\":" << std::to_string(max_uf_tries.get_value())
-       << ", \"total_uf_tries\":" << std::to_string(total_uf_tries.get_value())
-       << "}"
-       << endl;
+  print_cpu_stats(name, rounds, medt, mint, maxt, meda, mina, maxa, medtp, mintp, maxtp, stats, P);
   return 1;
 }
 
-template <class Stats>
-void print_cpu_stats(Stats& stats, commandLine& P) {
-  std::cout <<
-    "Stats = { \"ipc\":" + std::to_string(stats.get_ipc())
-    + " ,\"total_cycles\":" + std::to_string(stats.get_total_cycles())
-    + " ,\"l2_hit_ratio\":" + std::to_string(stats.get_l2_hit_ratio())
-    + " ,\"l3_hit_ratio\":" + std::to_string(stats.get_l3_hit_ratio())
-    + " ,\"l2_misses\":" + std::to_string(stats.get_l2_misses())
-    + " ,\"l2_hits\":" + std::to_string(stats.get_l2_hits())
-    + " ,\"l3_misses\":" + std::to_string(stats.get_l3_misses())
-    + " ,\"l3_hits\":" + std::to_string(stats.get_l3_hits())
-    + " ,\"throughput\":" + std::to_string(stats.get_throughput())
-    + " ,\"max_path_len\":" + std::to_string(max_pathlen.get_value())
-    + " ,\"total_path_len\":" + std::to_string(total_pathlen.get_value())
-    + " ,\"max_uf_tries\":" + std::to_string(max_uf_tries.get_value())
-    + " ,\"total_uf_tries\":" + std::to_string(total_uf_tries.get_value())
-    + "}" << std::endl;
+template <class Graph, bool provides_initial_graph, class F>
+void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
+  for (auto test : tests) {
+    test(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
 }
-
 
 static timer bt;
 using uchar = unsigned char;
@@ -124,7 +143,7 @@ namespace connectit {
   template <class S>
   void baseline_process_batch(pbbs::sequence<uintE>& parents, S& batch) {
     auto F = connectit::get_find_function<find_compress>();
-    auto U = connectit::get_unite_function<unite, decltype(F)>(parents.size(), F);
+    auto U = connectit::get_unite_function<unite, decltype(F), find_compress>(parents.size(), F);
     for (size_t i=0; i<batch.size(); i++) {
       auto [u, v, utype] = batch[i];
       if (utype == insertion_type) {
@@ -157,7 +176,12 @@ namespace connectit {
 
     /* compute initial components if nec. */
     if constexpr (provides_initial_graph) {
-      alg.template compute_components<no_sampling>(parents);
+      auto find_fn = get_find_function<find_compress>();
+      auto unite_fn = get_unite_function<unite, decltype(find_fn), find_compress>(n, find_fn);
+      using UF = union_find::UFAlgorithm<decltype(find_fn), decltype(unite_fn), Graph>;
+      auto uf_alg = UF(G, unite_fn, find_fn);
+
+      uf_alg.template compute_components<no_sampling>(parents);
     }
 
     if (check) {
