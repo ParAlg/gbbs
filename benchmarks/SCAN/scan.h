@@ -49,6 +49,19 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order);
 
 }  // namespace internal
 
+// Clustering resulting from running SCAN.
+struct Clustering {
+  // A list of clusters; `clusters[i]` is a list of vertices in the i-th
+  // cluster.
+  // Clusters are not necessarily disjoint, and they do not necessarily cover
+  // the entire graph.
+  pbbs::sequence<pbbs::sequence<uintE>> clusters;
+  // Vertices not in any cluster but is adjacent to at least two clusters.
+  pbbs::sequence<uintE> hubs;
+  // Vertices not in any cluster and adjacent to at most one cluster.
+  pbbs::sequence<uintE> outliers;
+};
+
 // Index for an undirected graph from which clustering the graph with SCAN is
 // quick.
 //
@@ -59,8 +72,22 @@ class ScanIndex {
   template <class Graph>
   explicit ScanIndex(Graph* graph);
 
-  // TODO(tom.tseng): Make this class actually store stuff
-  // TODO(tom.tseng): add functions for outputting SCAN clusterings of graph
+  // Compute a SCAN clustering of the indexed graph using SCAN parameters
+  // epsilon and mu.
+  //
+  // Explanation of parameters:
+  // - epsilon: a threshold value on the "similarity" between adjacent vertices
+  //   based on how much they share neighbors. Increasing this makes
+  //   finer-grained, smaller clusters.
+  // - mu: how many neighbors a vertex needs to be epsilon-similar to in order
+  //   to be considered a "core" vertex from which a cluster is grown.
+  //   Increasing this increases the minimum cluster size and but also makes
+  //   large clusters less likely to appear.
+  Clustering Cluster(float epsilon, uint64_t mu) const;
+
+ private:
+  internal::NeighborOrder neighbor_order;
+  internal::CoreOrder core_order;
 };
 
 }  // namespace scan

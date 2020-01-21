@@ -269,9 +269,19 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
 }  // namespace internal
 
 template <class Graph>
-ScanIndex::ScanIndex(Graph* graph) {}
+ScanIndex::ScanIndex(Graph* graph)
+  : neighbor_order{
+      internal::ComputeNeighborOrder(
+          graph,
+          internal::ComputeStructuralSimilarities(graph))}
+  , core_order{internal::ComputeCoreOrder(neighbor_order)} {}
 
 template
 ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);
+
+Clustering ScanIndex::Cluster(const float epsilon, uint64_t mu) const {
+  // TODO(tomtseng) implement
+  return {};
+}
 
 }  // namespace scan
