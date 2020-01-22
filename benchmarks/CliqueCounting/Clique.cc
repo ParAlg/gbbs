@@ -51,6 +51,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
+  bool label = P.getOptionValue("-l");   
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -83,7 +84,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
   //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, space);
+  auto count = KClique(GA, k, order, epsilon, space, label);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

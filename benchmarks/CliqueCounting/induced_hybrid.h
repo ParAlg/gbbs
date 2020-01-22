@@ -93,8 +93,7 @@ namespace induced_hybrid {
 
 
   template <class Graph>
-  inline size_t CountCliques(Graph& DG, size_t k) {
-  
+  inline size_t CountCliques(Graph& DG, size_t k, bool label = true) {
     timer t; t.start();
     using W = typename Graph::weight_type;
     auto parallel_work = sequence<size_t>(DG.n);
@@ -119,7 +118,7 @@ namespace induced_hybrid {
     timer t2; t2.start();
     sequence<size_t> tots = sequence<size_t>::no_init(n_blocks); //DG.n
     size_t max_deg = get_max_deg(DG);
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, n_blocks, [&](size_t j, HybridSpace_lw* induced) {
       size_t start = j * work_per_block;

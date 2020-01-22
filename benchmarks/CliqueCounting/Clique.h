@@ -89,7 +89,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1,
-long space_type = 2) {
+long space_type = 2, bool label = true) {
   std::cout << "### Starting clique counting" << std::endl;
   using W = typename Graph::weight_type;
   assert (k >= 1);
@@ -119,7 +119,7 @@ long space_type = 2) {
     count = induced_neighborhood::CountCliques(DG, k-1);
   }
   else if (space_type == 5) {
-    count = induced_hybrid::CountCliques(DG, k-1);
+    count = induced_hybrid::CountCliques(DG, k-1, label);
   }
 
   double tt = t.stop();

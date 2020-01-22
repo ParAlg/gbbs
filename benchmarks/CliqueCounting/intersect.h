@@ -249,19 +249,71 @@ struct HybridSpace_lw {
   char* labels = nullptr;
   uintE* old_labels = nullptr;
   size_t nn = 0;
+  bool use_old_labels = true;
   HybridSpace_lw () {}
 
-  void alloc(size_t max_induced, size_t k, size_t n) {
+  void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels) {
+    use_old_labels = _use_old_labels;
     if (induced == nullptr && k > 2) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     if (induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
     if (labels == nullptr && k > 2) labels = (char*) calloc(max_induced, sizeof(char));
     if (induced_edges == nullptr && k > 2) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     if (num_induced == nullptr && k > 2) num_induced = (uintE*) malloc(sizeof(uintE)*k);
-    if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
+    if (use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
+    if (use_old_labels) setup_labels(DG, k, i);
+    else setup_intersect(DG, k, i);
+  }
+
+  template <class Graph>
+  void setup_intersect(Graph& DG, size_t k, size_t i) {
+    using W = typename Graph::weight_type;
+    nn = DG.get_vertex(i).getOutDegree();
+    //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+  
+    if (k > 2) {
+      num_induced[0] = nn;
+      for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    }
+
+    size_t j = 0;
+    auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
+      // store result in induced_edges[j*nn]
+      // store size in induced_degs[j]
+      size_t o = 0;
+      auto i_iter = GA.get_vertex(i).getOutIter(i);
+      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        // search for v_nbhr as a neighbor of i
+        // if it is a neighbor, let its index be stored
+        while (std::get<0>(i_iter.cur()) < v_nbhr) {
+          if (!i_iter.has_next()) break;
+          i_iter.next();
+          o++;
+        }
+        // first check if iter.cur == v_nbhr
+        // if iter.cur < v_nbhr, increment o and go to iter.next
+        if (std::get<0>(i_iter.cur()) == v_nbhr) {
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = o;
+          induced_degs[j]++;
+        }
+      };
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      j++;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_f, false);
+
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
+  template <class Graph>
+  void setup_labels(Graph& DG, size_t k, size_t i) {
     using W = typename Graph::weight_type;
     nn = DG.get_vertex(i).getOutDegree();
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
@@ -279,6 +331,7 @@ struct HybridSpace_lw {
       o++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
+  
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -321,7 +374,7 @@ struct HybridSpace_lw {
     if (induced_edges) {free(induced_edges); induced_edges=nullptr;}
     if (induced_degs) {free(induced_degs); induced_degs=nullptr;}
     if (num_induced) {free(num_induced); num_induced=nullptr;}
-    if (old_labels) {free(old_labels); old_labels=nullptr;}
+    if (use_old_labels && old_labels) {free(old_labels); old_labels=nullptr;}
   }
 
   ~HybridSpace_lw() { del(); }
