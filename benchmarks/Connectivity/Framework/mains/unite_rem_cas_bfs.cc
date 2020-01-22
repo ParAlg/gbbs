@@ -44,7 +44,7 @@ void unite_rem_cas_find_atomic_split_halve_atomic_one(Graph& G, int rounds, comm
 
 template <class Graph>
 void unite_rem_cas_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_split, splice_atomic>(G, rounds, correct, P);
 }
 
 /* find_atomic_halve variants */
@@ -60,7 +60,7 @@ void unite_rem_cas_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, comm
 
 template <class Graph>
 void unite_rem_cas_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 }
 
 /* find_naive variants (noop for find) */
@@ -76,7 +76,7 @@ void unite_rem_cas_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine
 
 template <class Graph>
 void unite_rem_cas_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
-  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
 }
 
 }
@@ -94,16 +94,16 @@ double Benchmark_runner(Graph& G, commandLine P) {
   }
   run_tests(G, rounds, P, correct, connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph>,
     {
-      connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph>,
-      connectit::unite_rem_cas_find_atomic_split_halve_atomic_one<Graph>,
+//      connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph>,
+//      connectit::unite_rem_cas_find_atomic_split_halve_atomic_one<Graph>,
       connectit::unite_rem_cas_find_atomic_split_splice_atomic<Graph>,
 
-      connectit::unite_rem_cas_find_atomic_halve_split_atomic_one<Graph>,
-      connectit::unite_rem_cas_find_atomic_halve_halve_atomic_one<Graph>,
+//      connectit::unite_rem_cas_find_atomic_halve_split_atomic_one<Graph>,
+//      connectit::unite_rem_cas_find_atomic_halve_halve_atomic_one<Graph>,
       connectit::unite_rem_cas_find_atomic_halve_splice_atomic<Graph>,
 
-      connectit::unite_rem_cas_find_naive_split_atomic_one<Graph>,
-      connectit::unite_rem_cas_find_naive_halve_atomic_one<Graph>,
+//      connectit::unite_rem_cas_find_naive_split_atomic_one<Graph>,
+//      connectit::unite_rem_cas_find_naive_halve_atomic_one<Graph>,
       connectit::unite_rem_cas_find_naive_splice_atomic<Graph>,
     });
   return 1.0;
