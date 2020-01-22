@@ -18,6 +18,20 @@ void print_result(commandLine& P, std::string sampling_method, size_t rounds, do
   std::cout << "}" << std::endl;
 }
 
+void print_ldd_result(commandLine& P, std::string sampling_method, size_t rounds, double sampling_time, double pct_covered, double pct_ic_edges, double beta, bool permute) {
+  std::cout << "{" << std::endl;
+  std::cout << "  \"test_type\": \"sampling_result\"," << std::endl;
+  std::cout << "  \"graph\" : \"" << P.getArgument(0) << "\"," << std::endl;
+  std::cout << "  \"sampling_method\" : " << "\"" << sampling_method << "\"," << std::endl;
+  std::cout << "  \"rounds\" : " << rounds << "," << std::endl;
+  std::cout << "  \"beta\" : " << beta << "," << std::endl;
+  std::cout << "  \"permute\" : " << permute << "," << std::endl;
+  std::cout << "  \"sampling_time\" : " << sampling_time << "," << std::endl;
+  std::cout << "  \"pct_covered\" : " << pct_covered << "," << std::endl;
+  std::cout << "  \"pct_ic_edges\" : " << pct_ic_edges << std::endl;
+  std::cout << "}" << std::endl;
+}
+
 template <class Graph>
 size_t intercomponent_edges(Graph& G, pbbs::sequence<parent>& parents) {
   using W = typename Graph::weight_type;
@@ -66,10 +80,10 @@ void TestBFSSampling(Graph& G, commandLine& P) {
 }
 
 template <class Graph>
-void TestLDDSampling(Graph& G, commandLine& P) {
-  long rounds = P.getOptionLongValue("-r", 5);
+void TestLDDSampling(Graph& G, commandLine& P, double beta=0.2, bool permute = false) {
+  long rounds = P.getOptionLongValue("-r", 1);
   using LDD = LDDSamplingTemplate<Graph>;
-  auto sampler = LDD(G, P);
+  auto sampler = LDD(G, P, beta, permute);
   std::vector<double> pcts;
   std::vector<double> ic_edge_pcts;
   auto test = [&] () {
@@ -90,7 +104,7 @@ void TestLDDSampling(Graph& G, commandLine& P) {
   auto [mint, maxt, medt] = benchmark::run_multiple(rounds, test);
   auto medpct = benchmark::median(pcts);
   auto med_icpct = benchmark::median(ic_edge_pcts);
-  print_result(P, "ldd", rounds, medt, medpct, med_icpct);
+  print_ldd_result(P, "ldd", rounds, medt, medpct, med_icpct, beta, permute);
 }
 
 template <class Graph>
@@ -218,8 +232,58 @@ double Sampler(Graph& G, commandLine& P) {
   std::cout << "[" << std::endl;
   TestBFSSampling<Graph>(G, P);
   std::cout << "," << endl;
-  TestLDDSampling<Graph>(G, P);
+//  TestLDDSampling<Graph>(G, P, 0.01, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.05, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.1, false);
+//  std::cout << "," << endl;
+  TestLDDSampling<Graph>(G, P, 0.2, false);
   std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.3, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.4, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.5, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.6, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.7, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.8, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.9, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.95, false);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.999, false);
+//  std::cout << "," << endl;
+
+//  TestLDDSampling<Graph>(G, P, 0.01, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.05, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.1, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.2, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.3, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.4, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.5, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.6, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.7, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.8, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.9, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.95, true);
+//  std::cout << "," << endl;
+//  TestLDDSampling<Graph>(G, P, 0.999, true);
 
   TestKOutSampling<Graph>(G, P, 1);
   std::cout << "," << endl;
@@ -228,6 +292,8 @@ double Sampler(Graph& G, commandLine& P) {
   TestKOutSampling<Graph>(G, P, 3);
   std::cout << "," << endl;
   TestKOutSampling<Graph>(G, P, 4);
+  std::cout << "," << endl;
+  TestKOutSampling<Graph>(G, P, 5);
   std::cout << "," << endl;
 
   TestKOutAfforestSampling<Graph>(G, P, 1);
@@ -238,6 +304,8 @@ double Sampler(Graph& G, commandLine& P) {
   std::cout << "," << endl;
   TestKOutAfforestSampling<Graph>(G, P, 4);
   std::cout << "," << endl;
+  TestKOutAfforestSampling<Graph>(G, P, 5);
+  std::cout << "," << endl;
 
   TestKOutPureSampling<Graph>(G, P, 1);
   std::cout << "," << std::endl;
@@ -246,6 +314,8 @@ double Sampler(Graph& G, commandLine& P) {
   TestKOutPureSampling<Graph>(G, P, 3);
   std::cout << "," << std::endl;
   TestKOutPureSampling<Graph>(G, P, 4);
+  std::cout << "," << std::endl;
+  TestKOutPureSampling<Graph>(G, P, 5);
 
   TestKOutMaxDegreeSampling<Graph>(G, P, 1);
   std::cout << "," << std::endl;
@@ -254,6 +324,8 @@ double Sampler(Graph& G, commandLine& P) {
   TestKOutMaxDegreeSampling<Graph>(G, P, 3);
   std::cout << "," << std::endl;
   TestKOutMaxDegreeSampling<Graph>(G, P, 4);
+  std::cout << "," << std::endl;
+  TestKOutMaxDegreeSampling<Graph>(G, P, 5);
 
   std::cout << "]" << std::endl;
 }

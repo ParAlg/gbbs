@@ -100,7 +100,7 @@ struct KOutSamplingTemplate {
     }
   }
 
-  /* The Hybrid version */
+  /* The Hybrid version: kout-hybrid */
   pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
@@ -127,16 +127,10 @@ struct KOutSamplingTemplate {
         parallel_for(0, n, [&] (size_t u) {
           auto u_rnd = rnd.fork(u);
           auto u_vtx = GA.get_vertex(u);
-          if (u_vtx.getOutDegree() > 0) {
-            uintE deglb = (1 << std::max((int)pbbs::log2_up(u_vtx.getOutDegree()), (int)1) - 1) - 1;
-            uintE ngh_idx;
-            if (deglb == 0) {
-              ngh_idx = 0;
-            } else {
-              ngh_idx = u_rnd.rand() & deglb;
-            }
-            uintE ngh; W wgh;
-            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+          if (u_vtx.getOutDegree() > 1) {
+            uintE deg = u_vtx.getOutDegree() - 1;
+            uintE ngh_idx = 1 + (u_rnd.rand() % deg);
+            auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
             link(u, ngh, parents);
           }
         }, granularity);
@@ -190,15 +184,9 @@ struct KOutSamplingTemplate {
           auto u_rnd = rnd.fork(u);
           auto u_vtx = GA.get_vertex(u);
           if (u_vtx.getOutDegree() > 0) {
-            uintE deglb = (1 << std::max((int)pbbs::log2_up(u_vtx.getOutDegree()), (int)1) - 1) - 1;
-            uintE ngh_idx;
-            if (deglb == 0) {
-              ngh_idx = 0;
-            } else {
-              ngh_idx = u_rnd.rand() & deglb;
-            }
-            uintE ngh; W wgh;
-            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            uintE deg = u_vtx.getOutDegree();
+            uintE ngh_idx = u_rnd.rand() % deg;
+            auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
             link(u, ngh, parents);
           }
         }, granularity);
@@ -364,14 +352,16 @@ struct BFSSamplingTemplate {
 template <class G>
 struct LDDSamplingTemplate {
   G& GA;
+  double beta;
+  bool permute;
 
-  LDDSamplingTemplate(G& GA, commandLine& P) : GA(GA) { }
+  LDDSamplingTemplate(G& GA, commandLine& P, double beta = 0.2, bool permute = false) : GA(GA), beta(beta), permute(permute) { }
 
   pbbs::sequence<parent> initial_components() {
     size_t n = GA.n;
 
     timer lddt; lddt.start();
-    auto clusters_in = LDD(GA, 0.2, /* permute = */false);
+    auto clusters_in = LDD(GA, beta, permute);
     lddt.stop(); lddt.reportTotal("## ldd time");
     auto s = clusters_in.to_array();
     auto clusters = pbbs::sequence((parent*)s, n);
