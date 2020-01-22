@@ -119,6 +119,14 @@ struct LiuTarjanAlgorithm {
     while (parents_changed) {
       parents_changed = false;
 
+      uintE granularity;
+      constexpr bool provides_frequent_comp = sampling_option != no_sampling;
+      if constexpr (provides_frequent_comp) {
+        granularity = 512;
+        std::cout << "# provides frequent comp" << std::endl;
+      } else {
+        granularity = 1;
+      }
       // connect
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -134,7 +142,7 @@ struct LiuTarjanAlgorithm {
         } else {
           GA.get_vertex(i).mapOutNgh(i, map_f);
         }
-      });
+      }, granularity);
 
       // Update
       parallel_for(0, n, [&] (size_t u) {
@@ -278,21 +286,19 @@ struct LiuTarjanAlgorithmCOO {
   void my_alter(pbbs::sequence<parent>& P) {
     parallel_for(0, graph.size(), [&] (size_t i) {
       edge& e = graph[i];
-      e = std::make_pair(P[e.first], P[e.second]);
+      e = std::make_pair((e.first == largest_comp) ? largest_comp : P[e.first], (e.second == largest_comp) ? largest_comp : P[e.second]);
     });
-    //auto new_edges = pbbs::filter(graph, [&] (const edge& e) {
-    //  return e.first != e.second;
-    //});
-    //graph = new_edges;
   }
 
   bool my_connect(pbbs::sequence<parent>& P) {
     bool parents_changed = false;
     parallel_for(0, graph.size(), [&] (size_t i) {
       const edge& e = graph[i];
-      bool updated = connect(e.first, e.second, P, messages);
-      if (updated && !parents_changed) {
-        parents_changed = true;
+      if (e.first != e.second) {
+        bool updated = connect(e.first, e.second, P, messages);
+        if (updated && !parents_changed) {
+          parents_changed = true;
+        }
       }
     });
     return parents_changed;

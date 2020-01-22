@@ -45,8 +45,6 @@ namespace lt {
 
     // For each edge e, send min{e.v, e.w} to max{e.v, e.w}.
     bool connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
-      uintE p_u = P[u];
-      uintE p_v = P[v];
       uintE min_v = lt_min(u, v);
       uintE max_v = lt_max(u, v);
       if (min_v != max_v) {
@@ -58,8 +56,8 @@ namespace lt {
     // For each edge e, request e.v.p from e.v and e.w.p from e.w; send the minimum of
     // the received vertices to the maximum of the received vertices.
     bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
-      uintE p_u = P[u];
-      uintE p_v = P[v];
+      uintE p_u = (u == largest_comp) ? u : P[u];
+      uintE p_v = (v == largest_comp) ? v : P[v];
       auto min_v = lt_min(p_u, p_v);
       auto max_v = lt_max(p_u, p_v);
       if (min_v != max_v) {
@@ -72,9 +70,10 @@ namespace lt {
     // values be x and y, respectively; if y < x then send y to v and to x
     // else send x to w and to y.
     bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
-      uintE x = P[v];
-      uintE y = P[w];
+      uintE x = (v == largest_comp) ? v : P[v];
+      uintE y = (w == largest_comp) ? w : P[w];
       bool updated = false;
+      if (x == y) return updated;
       if (lt_less(y, x)) { /* send y to {v, x}*/
         updated |= pbbs::write_min(&messages[v], y, lt_less);
         updated |= pbbs::write_min(&messages[x], y, lt_less);
