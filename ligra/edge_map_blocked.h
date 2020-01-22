@@ -443,6 +443,11 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
       data_block_allocator::free(block);
     }, 1);
     ret = vertexSubsetData<data>(n, output_size, out);
+  } else {
+    parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
+      em_data_block* block = all_blocks[block_id];
+      data_block_allocator::free(block);
+    });
   }
 
   all_blocks.clear();
@@ -450,6 +455,5 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   our_emhelper.del();
 
 //  our_em_block.reset(); (handled by get_all_blocks)
-
   return std::move(ret);
 }
