@@ -287,7 +287,7 @@ struct HybridSpace_lw {
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
       size_t o = 0;
-      auto i_iter = GA.get_vertex(i).getOutIter(i);
+      auto i_iter = DG.get_vertex(i).getOutIter(i);
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         // search for v_nbhr as a neighbor of i
         // if it is a neighbor, let its index be stored
