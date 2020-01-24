@@ -21,7 +21,7 @@ namespace bytepd_amortized {
   template <class Graph>
   void write_graph_bytepd_amortized_directed(Graph& GA, ofstream& out) {
     using W = typename Graph::weight_type;
-    size_t n = GA.n; size_t m = GA.m;
+    size_t n = GA.n;
 
     // out-edges
     // 1. Calculate total size
@@ -72,7 +72,7 @@ namespace bytepd_amortized {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.get_vertex(i).getOutIter(i);
-          long nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+          size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -141,7 +141,7 @@ namespace bytepd_amortized {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.get_vertex(i).getInIter(i);
-          long nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+          size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -166,7 +166,7 @@ namespace bytepd_amortized {
       write_graph_bytepd_amortized_directed(GA, out);
       return;
     }
-    size_t n = GA.n; size_t m = GA.m;
+    size_t n = GA.n;
 
 //    auto xors = sequence<size_t>(n);
 //    parallel_for(size_t i=0; i<n; i++) {
@@ -290,7 +290,7 @@ namespace bytepd_amortized {
       uintE deg = degrees[i];
       if (deg > 0) {
         auto it = GA.get_vertex(i).getOutIter(i);
-        long nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+        size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
 
 //        uchar* edgeArray = edges.begin() + byte_offsets[i];
 //        size_t degree = deg;
@@ -405,7 +405,6 @@ namespace bytepd_amortized {
 
 template <class Graph>
 double converter(Graph& GA, commandLine P) {
-  using W = typename Graph::weight_type;
   auto outfile = P.getOptionValue("-o", "");
   bool symmetric = P.getOptionValue("-s");
   std::cout << "Outfile: " << outfile << std::endl;

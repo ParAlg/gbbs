@@ -1258,10 +1258,10 @@ inline void filter(P pred, uchar* edge_start, const uintE& source,
 
 template <class W, class I>
 inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
-                                      uintT degree, uintE source, I& it) {
+                                      uintT degree, uintE source, I& it, size_t encoded_degree=PARALLEL_DEGREE) {
   if (degree > 0) {
     size_t start_offset = current_offset;
-    size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
+    size_t num_blocks = 1 + (degree - 1) / encoded_degree;
     uintE* vertex_ctr = (uintE*)edgeArray;
     *vertex_ctr = degree;
     uintE* block_offsets = (uintE*)(edgeArray + sizeof(uintE));
@@ -1269,8 +1269,8 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
         sizeof(uintE) +
         (num_blocks - 1) * sizeof(uintE);  // virtual deg + block_offs
     for (size_t i = 0; i < num_blocks; i++) {
-      size_t o = i * PARALLEL_DEGREE;
-      size_t end = std::min<size_t>(PARALLEL_DEGREE, degree - o);
+      size_t o = i * encoded_degree;
+      size_t end = std::min<size_t>(encoded_degree, degree - o);
 
       if (i > 0)
         block_offsets[i - 1] =

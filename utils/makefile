@@ -43,7 +43,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= add_weights converter gen_torus random_reorder to_edge_list
+ALL= add_weights converter compressor gen_torus random_reorder to_edge_list
 
 all: $(ALL)
 
