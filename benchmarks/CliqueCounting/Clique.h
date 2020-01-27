@@ -88,8 +88,8 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // todo approx work and do some kind of break in gen if too much
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
-inline size_t KClique(Graph& GA, size_t k, long order_type = 0, double epsilon = 0.1,
-long space_type = 2, bool label = true) {
+inline size_t KClique(Graph& GA, size_t k, long order_type, double epsilon,
+long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   std::cout << "### Starting clique counting" << std::endl;
   using W = typename Graph::weight_type;
   assert (k >= 1);
@@ -105,13 +105,16 @@ long space_type = 2, bool label = true) {
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
-  auto DG = relabel_graph(GA, rank.begin(), pack_predicate); //TODO see if relabel is really needed or not //filter_graph(GA, pack_predicate);
+  auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate); //TODO see if relabel is really needed or not
   double tt_filter = t_filter.stop();
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
   // Done preprocessing
   timer t; t.start();
   size_t count = 0;
+
+  if (!use_base) {
+    auto base_f = [&](uintE* base) {};
   if (space_type == 2) {
     count = induced_intersection::CountCliques(DG, k-1);
   }
@@ -119,11 +122,88 @@ long space_type = 2, bool label = true) {
     count = induced_neighborhood::CountCliques(DG, k-1);
   }
   else if (space_type == 5) {
-    count = induced_hybrid::CountCliques(DG, k-1, label);
+    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
+  }
+  } else {
+    auto base_f = [&](uintE* base) {
+      for (size_t i=0; i < k; i++) {
+        pbbs::write_add(&(per_vert[base[i]]), 1);
+      }
+    }; // TODO problem with relabel not being consistent; but if using filter should be ok
+  if (space_type == 2) {
+    count = induced_intersection::CountCliques(DG, k-1);
+  }
+  else if (space_type == 3) {
+    count = induced_neighborhood::CountCliques(DG, k-1);
+  }
+  else if (space_type == 5) {
+    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
+  }
   }
 
   double tt = t.stop();
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << k << " cliques = " << count << "\n";
   return count;
+}
+
+
+
+
+
+template <class Graph>
+sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t num_buckets=128) {
+  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[i]; });
+  auto d_slice = D.slice();
+  auto b = make_vertex_buckets(G.n, d_slice, increasing, num_buckets);
+
+  size_t rounds = 0;
+  // Peel each bucket
+  while (true) {
+    // Retrieve next bucket
+    auto bkt = b.next_bucket();
+    auto active = vertexSubset(G.n, bkt.identifiers);
+    size_t cur_bkt = bkt.id;
+    if (cur_bkt == b.null_bkt) {
+      break;
+    }
+    active.toSparse();
+
+// here, update D[i] if necessary
+// for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
+// also drop if already peeled -- check using D
+auto update_d = [&](uintE* base) {
+  for (size_t i=0; i <= k; i++) {
+    pbbs::write_add(&(D[base[i]]), -1);
+  }
+};
+
+sequence<size_t> tots = sequence<size_t>::no_init(active.size());
+size_t max_deg = get_max_deg(G); // coould instead do max_deg of active
+auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
+  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
+    if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
+      induced->setup(G, k, active.vtx(i));
+      tots[i] = KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+    } else tots[i] = 0;
+  }, 1, false);
+
+    
+    auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
+      const uintE v = active.vtx(i);
+      const uintE v_bkt = D[v];
+      uintE bkt = UINT_E_MAX;
+      if (!(v_bkt == UINT_E_MAX))
+        bkt = b.get_bucket(v_bkt);
+      return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
+    };
+    b.update_buckets(f, active.size());
+    active.del();
+    rounds++;
+  }
+
+  b.del();
+
+  return D;
 }

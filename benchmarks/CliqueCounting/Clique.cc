@@ -51,7 +51,9 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
-  bool label = P.getOptionValue("-l");   
+  bool label = P.getOptionValue("-l");
+  bool filter = P.getOptionValue("-f");
+  bool use_base = P.getOptionValue("-b");
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -83,11 +85,14 @@ double AppKCore_runner(Graph& GA, commandLine P) {
 
 
   timer t; t.start();
-  //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, space, label);
+  uintE* per_vert = use_base ? (uintE*) malloc(sizeof(uintE)*GA.n) : nullptr;
+  size_t count = KClique(GA, k, order, epsilon, space, label, filter, use_base, per_vert);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
+
+  //TODO peeling
+  if (use_base) free(per_vert);
 
   return tt;
 }

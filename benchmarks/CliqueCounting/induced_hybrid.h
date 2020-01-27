@@ -17,9 +17,9 @@ namespace induced_hybrid {
     return max_deg;
   }
 
-  template <class Graph>
-  inline size_t KCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced) {
-    if (k == 2) return induced->num_edges;
+  template <class Graph, class F>
+  inline size_t KCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced, F base_f) {
+    //if (k == 2) return induced->num_edges;
     size_t num_induced = induced->num_induced[k_idx-1];
     if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
@@ -30,10 +30,17 @@ namespace induced_hybrid {
       size_t counts = 0;
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
+        if (induced->use_base) induced->base[k_idx] = induced->relabel[vtx];
         //  get neighbors of vtx
         uintE* intersect = induced->induced_edges + vtx * induced->nn;
         for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
-          if (induced->labels[intersect[j]] == k_idx) counts++;
+          if (induced->labels[intersect[j]] == k_idx) {
+            counts++;
+            if (induced->use_base) {
+              induced->base[k] = induced->relabel[intersect[j]];
+              base_f(induced->base);
+            }
+          } 
         }
       }
       for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
@@ -43,6 +50,7 @@ namespace induced_hybrid {
     size_t total_ct = 0;
     for (size_t i=0; i < num_induced; ++i) {
       uintE vtx = prev_induced[i];
+      if (induced->use_base) induced->base[k_idx] = induced->relabel[vtx]; // TODO problem w/storing base -- we've relabeled our vert w/relabeling: check base is correct
       uintE* intersect = induced->induced_edges + vtx * induced->nn;
       uintE* out = induced->induced + induced->num_induced[0] * k_idx;
       uintE count = 0;
@@ -53,14 +61,14 @@ namespace induced_hybrid {
         }
       }
       induced->num_induced[k_idx] = count;
-      if (induced->num_induced[k_idx] > k - k_idx - 1) total_ct += KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced);
+      if (induced->num_induced[k_idx] > k - k_idx - 1) total_ct += KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced, base_f);
     }
 
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
     return total_ct;
   }
 
-  template <class Graph>
+  /*template <class Graph>
   inline size_t CountCliques_unbalanced(Graph& DG, size_t k) {
     sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
     size_t max_deg = get_max_deg(DG);
@@ -72,28 +80,13 @@ namespace induced_hybrid {
         tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
       } else tots[i] = 0;
     } );
-    /*
-    #pragma omp parallel private(induced) reduction(+:n)
-    {
-    induced = new HybridSpace_lw(max_deg, k);
-    #pragma omp for schedule(dynamic, 1) nowait
-    for (size_t i=0; i < DG.n; ++i) {
-      if (DG.get_vertex(i).getOutDegree() != 0) {
-        induced->setup(DG, k, i);
-        n += KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
-      }
-    }
-
-    if (induced != nullptr) { induced->del(); delete induced; }
-
-    }*/
 
     return pbbslib::reduce_add(tots);
-  }
+  }*/
 
 
-  template <class Graph>
-  inline size_t CountCliques(Graph& DG, size_t k, bool label = true) {
+  template <class Graph, class F>
+  inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true) {
     timer t; t.start();
     using W = typename Graph::weight_type;
     auto parallel_work = sequence<size_t>(DG.n);
@@ -118,7 +111,7 @@ namespace induced_hybrid {
     timer t2; t2.start();
     sequence<size_t> tots = sequence<size_t>::no_init(n_blocks); //DG.n
     size_t max_deg = get_max_deg(DG);
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label); };
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, n_blocks, [&](size_t j, HybridSpace_lw* induced) {
       size_t start = j * work_per_block;
@@ -130,7 +123,7 @@ namespace induced_hybrid {
       for (size_t i=start_ind; i < end_ind; i++) {
         if (DG.get_vertex(i).getOutDegree() != 0) {
           induced->setup(DG, k, i);
-          tots[j] += KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
+          tots[j] += KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f);
         }
       }
     }, 1, false);

@@ -250,27 +250,49 @@ struct HybridSpace_lw {
   uintE* old_labels = nullptr;
   size_t nn = 0;
   bool use_old_labels = true;
+
+  uintE* base = nullptr;
+  uintE* relabel = nullptr;
+  bool use_base = false;
   HybridSpace_lw () {}
 
-  void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels) {
+  void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base) {
     use_old_labels = _use_old_labels;
+    use_base = _use_base;
     if (induced == nullptr && k > 2) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
     if (induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
     if (labels == nullptr && k > 2) labels = (char*) calloc(max_induced, sizeof(char));
     if (induced_edges == nullptr && k > 2) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     if (num_induced == nullptr && k > 2) num_induced = (uintE*) malloc(sizeof(uintE)*k);
     if (use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
+    if (use_base && base == nullptr) { base = (uintE*) malloc(sizeof(uintE)*k); relabel = (uintE*) malloc(sizeof(uintE)*max_induced);}
+  }
+
+  // f should denote if a vert is active or not
+  template <class Graph, class F>
+  void setup(Graph& DG, size_t k, size_t i, F f) {
+    if (use_base) base[0] = i;
+    if (use_old_labels) setup_labels(DG, k, i, f);
+    else setup_intersect(DG, k, i, f);
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    if (use_old_labels) setup_labels(DG, k, i);
-    else setup_intersect(DG, k, i);
+    if (use_base) base[0] = i;
+    auto f = [&](const uintE& u) { return true; };
+    if (use_old_labels) setup_labels(DG, k, i, f);
+    else setup_intersect(DG, k, i, f);
   }
 
-  template <class Graph>
-  void setup_intersect(Graph& DG, size_t k, size_t i) {
+  template <class Graph, class F>
+  void setup_intersect(Graph& DG, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
+    if (use_base) {
+      size_t j = 0;
+      auto map_base_f = [&] (const uintE& src, const uintE& v, const W& wgh) { relabel[j] = v; j++;};
+      DG.get_vertex(i).mapOutNgh(i, map_base_f, false);
+    }
+
     nn = DG.get_vertex(i).getOutDegree();
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
@@ -282,6 +304,7 @@ struct HybridSpace_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+      if (!f(v)) { j++; return; }
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
@@ -289,6 +312,7 @@ struct HybridSpace_lw {
       size_t o = 0;
       auto i_iter = DG.get_vertex(i).getOutIter(i);
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        if (!f(v_nbhr)) return;
         // search for v_nbhr as a neighbor of i
         // if it is a neighbor, let its index be stored
         while (std::get<0>(i_iter.cur()) < v_nbhr) {
@@ -312,8 +336,8 @@ struct HybridSpace_lw {
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
-  template <class Graph>
-  void setup_labels(Graph& DG, size_t k, size_t i) {
+  template <class Graph, class F>
+  void setup_labels(Graph& DG, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
     nn = DG.get_vertex(i).getOutDegree();
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
@@ -327,7 +351,9 @@ struct HybridSpace_lw {
     //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      if (!f(ngh)) return;
       old_labels[ngh] = o + 1;
+      if (use_base) { relabel[o] = ngh; }
       o++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
@@ -335,9 +361,7 @@ struct HybridSpace_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-    //for (size_t j=0; j < nn; j++) {
-      //uintE v = std::get<0>(induced_g[j]);
-      //auto v_nbhrs = DG.get_vertex(v).getOutNeighbors();
+      if (!f(v)) { j++; return; }
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
@@ -375,6 +399,8 @@ struct HybridSpace_lw {
     if (induced_degs) {free(induced_degs); induced_degs=nullptr;}
     if (num_induced) {free(num_induced); num_induced=nullptr;}
     if (use_old_labels && old_labels) {free(old_labels); old_labels=nullptr;}
+    if (use_base && base) {free(base); base=nullptr;}
+    if (use_base && relabel) {free(relabel); relabel=nullptr;}
   }
 
   ~HybridSpace_lw() { del(); }
