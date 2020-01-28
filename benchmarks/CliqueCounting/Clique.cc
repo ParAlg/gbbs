@@ -92,7 +92,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  uintE* per_vert = use_base ? (uintE*) malloc(eltsPerCacheLine*sizeof(uintE)*GA.n) : nullptr;
+  uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
   size_t count = KClique(GA, k, order, epsilon, space, label, filter, use_base, per_vert);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
@@ -105,7 +105,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   for (size_t j=0; j < GA.n; j++) {
     allcount += per_vert[eltsPerCacheLine*j];
   }
-  assert(allcount == count);
+  assert(allcount / k == count);
   timer t2; t2.start();
   sequence<uintE> cores = Peel(GA, k-1, per_vert, label);
   double tt2 = t2.stop();
