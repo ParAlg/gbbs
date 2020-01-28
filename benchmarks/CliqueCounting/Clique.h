@@ -182,7 +182,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     for (size_t i=0; i <= k; i++) {
       auto tmp = D[base[i]];
       pbbs::write_add(&(D[base[i]]), -1);
-      assert (tmp > D[base[i]]);
+      //assert (tmp > D[base[i]]);
     }
   };
 
