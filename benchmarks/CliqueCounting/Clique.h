@@ -176,9 +176,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 // here, update D[i] if necessary
 // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
 // also drop if already peeled -- check using D
-  auto update_d = [&](uintE vtx, size_t count) {
-    pbbs::write_add(&(D[vtx]), (-1)*count);
-  };
+  
 
   sequence<size_t> tots = sequence<size_t>::no_init(active.size());
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
@@ -186,7 +184,13 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-      auto ignore_f = [&](const uintE& u) { return still_active[u] == 0 || (still_active[u] == 1 && u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+      auto ignore_f = [&](const uintE& u) { return still_active[vtx] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+  auto update_d = [&](uintE vtx, size_t count) {
+    assert(still_active[vtx] != 2);
+    assert(still_active[vtx] != 1 || vtx > active.vtx(i));
+    assert (D[vtx] >= count);
+    pbbs::write_add(&(D[vtx]), (-1)*count);
+  };
       induced->setup(G, k, active.vtx(i), ignore_f);
       tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       update_d(active.vtx(i), tots[i]);

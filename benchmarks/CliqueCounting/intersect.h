@@ -351,7 +351,7 @@ struct HybridSpace_lw {
     //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      if (!f(ngh)) return;
+      //if (!f(ngh)) return;
       old_labels[ngh] = o + 1;
       if (use_base) { relabel[o] = ngh; }
       o++;
@@ -368,6 +368,7 @@ struct HybridSpace_lw {
       // store size in induced_degs[j]
       //for (size_t l=0; l < v_deg; l++) {
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        if (!f(v_nbhr)) return;
         if (old_labels[v_nbhr] > 0) {
           if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
