@@ -187,7 +187,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
   auto update_d = [&](uintE vtx, size_t count) {
     assert(still_active[vtx] != 2);
-    assert(still_active[vtx] != 1 || vtx > active.vtx(i));
+    assert(still_active[vtx] != 1 || vtx >= active.vtx(i));
     assert (D[vtx] >= count);
     pbbs::write_add(&(D[vtx]), (-1)*count);
   };
