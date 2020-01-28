@@ -30,18 +30,17 @@ namespace induced_hybrid {
       size_t counts = 0;
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
-        if (induced->use_base) induced->base[k_idx] = induced->relabel[vtx];
         //  get neighbors of vtx
         uintE* intersect = induced->induced_edges + vtx * induced->nn;
+        size_t tmp_counts = 0;
         for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
           if (induced->labels[intersect[j]] == k_idx) {
-            counts++;
-            if (induced->use_base) {
-              induced->base[k] = induced->relabel[intersect[j]];
-              base_f(induced->base);
-            }
+            tmp_counts++;
+            if (induced->use_base) base_f(induced->relabel[intersect[j]], 1);
           } 
         }
+        if (induced->use_base) base_f(induced->relabel[vtx], tmp_counts);
+        counts += tmp_counts;
       }
       for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
       return counts;
@@ -50,7 +49,7 @@ namespace induced_hybrid {
     size_t total_ct = 0;
     for (size_t i=0; i < num_induced; ++i) {
       uintE vtx = prev_induced[i];
-      if (induced->use_base) induced->base[k_idx] = induced->relabel[vtx]; // TODO problem w/storing base -- we've relabeled our vert w/relabeling: check base is correct
+      //if (induced->use_base) induced->base[k_idx] = induced->relabel[vtx]; // TODO problem w/storing base -- we've relabeled our vert w/relabeling: check base is correct
       uintE* intersect = induced->induced_edges + vtx * induced->nn;
       uintE* out = induced->induced + induced->num_induced[0] * k_idx;
       uintE count = 0;
@@ -61,7 +60,11 @@ namespace induced_hybrid {
         }
       }
       induced->num_induced[k_idx] = count;
-      if (induced->num_induced[k_idx] > k - k_idx - 1) total_ct += KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced, base_f);
+      if (induced->num_induced[k_idx] > k - k_idx - 1) {
+        auto curr_counts = KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced, base_f);
+        total_ct += curr_counts;
+        if (induced->use_base) base_f(induced->relabel[vtx], curr_counts);
+      }
     }
 
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
@@ -123,7 +126,9 @@ namespace induced_hybrid {
       for (size_t i=start_ind; i < end_ind; i++) {
         if (DG.get_vertex(i).getOutDegree() != 0) {
           induced->setup(DG, k, i);
-          tots[j] += KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f);
+          auto curr_counts = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f);
+          tots[j] += curr_counts;
+          if (induced->use_base) base_f(i, curr_counts);
         }
       }
     }, 1, false);

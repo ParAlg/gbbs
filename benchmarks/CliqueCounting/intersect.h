@@ -251,7 +251,7 @@ struct HybridSpace_lw {
   size_t nn = 0;
   bool use_old_labels = true;
 
-  uintE* base = nullptr;
+  //uintE* base = nullptr;
   uintE* relabel = nullptr;
   bool use_base = false;
   HybridSpace_lw () {}
@@ -265,20 +265,20 @@ struct HybridSpace_lw {
     if (induced_edges == nullptr && k > 2) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
     if (num_induced == nullptr && k > 2) num_induced = (uintE*) malloc(sizeof(uintE)*k);
     if (use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
-    if (use_base && base == nullptr) { base = (uintE*) malloc(sizeof(uintE)*k); relabel = (uintE*) malloc(sizeof(uintE)*max_induced);}
+    if (use_base && relabel == nullptr) { relabel = (uintE*) malloc(sizeof(uintE)*max_induced);} //base = (uintE*) malloc(sizeof(uintE)*k); 
   }
 
   // f should denote if a vert is active or not
   template <class Graph, class F>
   void setup(Graph& DG, size_t k, size_t i, F f) {
-    if (use_base) base[0] = i;
+    //if (use_base) base[0] = i;
     if (use_old_labels) setup_labels(DG, k, i, f);
     else setup_intersect(DG, k, i, f);
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    if (use_base) base[0] = i;
+    //if (use_base) base[0] = i;
     auto f = [&](const uintE& u) { return true; };
     if (use_old_labels) setup_labels(DG, k, i, f);
     else setup_intersect(DG, k, i, f);
@@ -399,7 +399,7 @@ struct HybridSpace_lw {
     if (induced_degs) {free(induced_degs); induced_degs=nullptr;}
     if (num_induced) {free(num_induced); num_induced=nullptr;}
     if (use_old_labels && old_labels) {free(old_labels); old_labels=nullptr;}
-    if (use_base && base) {free(base); base=nullptr;}
+    //if (use_base && base) {free(base); base=nullptr;}
     if (use_base && relabel) {free(relabel); relabel=nullptr;}
   }
 
