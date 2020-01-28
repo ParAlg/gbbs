@@ -183,14 +183,14 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   };
 
   sequence<size_t> tots = sequence<size_t>::no_init(active.size());
-  size_t max_deg = get_max_deg(G); // could instead do max_deg of active
+  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
-      tots[i] = KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+      tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     } else tots[i] = 0;
   }, 1, false);
 
