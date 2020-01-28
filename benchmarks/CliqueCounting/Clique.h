@@ -91,6 +91,7 @@ template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type, double epsilon,
 long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   std::cout << "### Starting clique counting" << std::endl;
+  const size_t eltsPerCacheLine = 64/sizeof(long);
   using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;
@@ -127,7 +128,7 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   } else {
     auto base_f = [&](uintE* base) {
       for (size_t i=0; i < k; i++) {
-        pbbs::write_add(&(per_vert[base[i]]), 1);
+        pbbs::write_add(&(per_vert[eltsPerCacheLine*base[i]]), 1);
       }
     }; // TODO problem with relabel not being consistent; but if using filter should be ok
   if (space_type == 2) {
@@ -153,7 +154,8 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
 
 template <class Graph>
 sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t num_buckets=128) {
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[i]; });
+  const size_t eltsPerCacheLine = 64/sizeof(long);
+  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   auto d_slice = D.slice();
   auto b = make_vertex_buckets(G.n, d_slice, increasing, num_buckets);
 
