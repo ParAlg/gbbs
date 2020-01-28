@@ -304,7 +304,7 @@ struct HybridSpace_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-      if (!f(v)) { j++; return; }
+      if (f(v)) { 
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
@@ -312,7 +312,7 @@ struct HybridSpace_lw {
       size_t o = 0;
       auto i_iter = DG.get_vertex(i).getOutIter(i);
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (!f(v_nbhr)) return;
+        if (f(v_nbhr)){
         // search for v_nbhr as a neighbor of i
         // if it is a neighbor, let its index be stored
         while (std::get<0>(i_iter.cur()) < v_nbhr) {
@@ -326,8 +326,10 @@ struct HybridSpace_lw {
           if (k > 2) induced_edges[j*nn + induced_degs[j]] = o;
           induced_degs[j]++;
         }
+        }
       };
       DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      }
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
