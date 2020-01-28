@@ -45,6 +45,12 @@
 // -k clique size
 // -o 0 (approx goodrich), 1 (densest using work efficient densest subgraph, exact), 2 (densest using approx densest subgraph)
 
+// count in total, count per vert
+// if count per vert, peel or no
+
+// right now, -b = count per vert and peel; no -b means count in total
+// if -b, then -f (did not do per vert relabeling for relabeled graph
+
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
   double epsilon = P.getOptionDoubleValue("-e", 0.1);
@@ -92,7 +98,18 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
 
   //TODO peeling
-  if (use_base) free(per_vert);
+  if (!use_base) return tt;
+  assert(filter);
+  size_t allcount=0;
+  for (size_t j=0; j < GA.n; j++) {
+    allcount += per_vert[j];
+  }
+  assert(allcount == count);
+  timer t2; t2.start();
+  sequence<uintE> cores = Peel(GA, k-1, per_vert, label);
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  free(per_vert);
 
   return tt;
 }

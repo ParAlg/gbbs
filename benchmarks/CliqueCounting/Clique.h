@@ -157,6 +157,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto d_slice = D.slice();
   auto b = make_vertex_buckets(G.n, d_slice, increasing, num_buckets);
 
+  char* still_active = (char*) calloc(G.n, sizeof(char));
+
   size_t rounds = 0;
   // Peel each bucket
   while (true) {
@@ -169,22 +171,25 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     }
     active.toSparse();
 
+  for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
+
 // here, update D[i] if necessary
 // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
 // also drop if already peeled -- check using D
-auto update_d = [&](uintE* base) {
-  for (size_t i=0; i <= k; i++) {
-    pbbs::write_add(&(D[base[i]]), -1);
-  }
-};
+  auto update_d = [&](uintE* base) {
+    for (size_t i=0; i <= k; i++) {
+      pbbs::write_add(&(D[base[i]]), -1);
+    }
+  };
 
-sequence<size_t> tots = sequence<size_t>::no_init(active.size());
-size_t max_deg = get_max_deg(G); // coould instead do max_deg of active
-auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
-auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
+  sequence<size_t> tots = sequence<size_t>::no_init(active.size());
+  size_t max_deg = get_max_deg(G); // could instead do max_deg of active
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-      induced->setup(G, k, active.vtx(i));
+      auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+      induced->setup(G, k, active.vtx(i), ignore_f);
       tots[i] = KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     } else tots[i] = 0;
   }, 1, false);
@@ -199,11 +204,15 @@ auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { d
       return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
     b.update_buckets(f, active.size());
+
+    for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+
     active.del();
     rounds++;
   }
 
   b.del();
+  free(still_active);
 
   return D;
 }
