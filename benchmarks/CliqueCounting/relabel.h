@@ -32,7 +32,7 @@ template <template <class W> class vertex, class W, typename P,
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
 inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) { // -> decltype(GA) 
-  size_t n = G.n;
+  size_t n = GA.n;
   using edge = std::tuple<uintE, W>;
 
   // 1. Calculate total size
@@ -136,7 +136,7 @@ template <template <class W> class vertex, class W, typename P,
                             int>::type = 0>
 inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) {
   using w_vertex = vertex<W>;
-  size_t n = G.n;
+  size_t n = GA.n;
   auto outOffsets = sequence<uintT>(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
