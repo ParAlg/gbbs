@@ -104,7 +104,7 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
 
   timer t_filter; t_filter.start();
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
+    return (u < v) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
   auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate); //TODO see if relabel is really needed or not
   double tt_filter = t_filter.stop();
@@ -182,18 +182,16 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
+
+  auto update_d = [&](uintE vtx, size_t count) {
+    pbbs::write_add(&(D[vtx]), (-1)*count);
+  };
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
-  auto update_d = [&](uintE vtx, size_t count) {
-    assert(still_active[vtx] != 2);
-    assert(still_active[vtx] != 1 || vtx >= active.vtx(i));
-    assert (D[vtx] >= count);
-    pbbs::write_add(&(D[vtx]), (-1)*count);
-  };
       induced->setup(G, k, active.vtx(i), ignore_f);
       tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      update_d(active.vtx(i), tots[i]);
+      //update_d(active.vtx(i), tots[i]);
     } else tots[i] = 0;
   }, 1, false);
 

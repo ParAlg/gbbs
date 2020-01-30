@@ -134,13 +134,20 @@ template <template <class W> class vertex, class W, typename P,
                             int>::type = 0>
 inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) {
   using w_vertex = vertex<W>;
-  auto G = filter_graph(GA, pred);
   size_t n = G.n;
   auto outOffsets = sequence<uintT>(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(i);
-    outOffsets[rank[i]] = u.getOutDegree();
+    auto out_f = [&](uintE j) {
+      return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
+    };
+    auto out_im = pbbslib::make_sequence<int>(u.getOutDegree(), out_f);
+
+    if (out_im.size() > 0)
+      outOffsets[rank[i]] = pbbslib::reduce_add(out_im);
+    else
+      outOffsets[rank[i]] = 0;
   }, 1);
 
   outOffsets[n] = 0;
@@ -154,14 +161,20 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     w_vertex u = G.get_vertex(i);
     size_t out_offset = outOffsets[rank[i]];
     uintE d = u.getOutDegree();
-    edge* nghs = u.getOutNeighbors();
-    edge* dir_nghs = out_edges.begin() + out_offset;
-    for (size_t j=0; j < d; j++) {
-      dir_nghs[j] = std::make_tuple(rank[std::get<0>(nghs[j])], std::get<1>(nghs[j]));
+    if (d > 0) {
+      edge* nghs = u.getOutNeighbors();
+      edge* dir_nghs = out_edges.begin() + out_offset;
+      auto pred_c = [&](const edge& e) {
+        return pred(i, std::get<0>(e), std::get<1>(e));
+      };
+      auto n_im_f = [&](size_t i) { return std::make_tuple(rank[std::get<0>(nghs[i])], std::get<1>(nghs[i])); };
+      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
+      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
+
+      pbbslib::sample_sort (dir_nghs, d, [&](const edge u, const edge v) {
+        return std::get<0>(u) < std::get<0>(v);
+      }, true);
     }
-    pbbslib::sample_sort (dir_nghs, d, [&](const edge u, const edge v) {
-      return std::get<0>(u) < std::get<0>(v);
-    }, true);
   }, 1);
 
   auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
@@ -172,9 +185,8 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   outOffsets.clear();
 
   auto out_edge_arr = out_edges.to_array();
-  G.del();
   return symmetric_graph<symmetric_vertex, W>(
-      out_vdata, n, outEdgeCount,
+      out_vdata, G.n, outEdgeCount,
       get_deletion_fn(out_vdata, out_edge_arr),
       out_edge_arr);
 }
