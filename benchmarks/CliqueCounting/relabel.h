@@ -32,37 +32,37 @@ template <template <class W> class vertex, class W, typename P,
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
 inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) { // -> decltype(GA) 
-  //assert(false);  // Not implemented for directed graphs
-  //return G;
-  //TODO: basically same as filter, but we have to write out neighbors to do the sort per vert, then use this to compute
-  //the byte offsets since it is dependent on rank
-  using edge = std::tuple<uintE, W>;
-  auto G = filter_graph(GA, pred);
   size_t n = G.n;
+  using edge = std::tuple<uintE, W>;
 
   // 1. Calculate total size
-  auto byte_offsets = sequence<uintT>(n + 1);
   auto degrees = sequence<uintE>(n);
+  auto byte_offsets = sequence<uintT>(n + 1);
   parallel_for(0, n, [&] (size_t i) {
     size_t total_bytes = 0;
     uintE last_ngh = 0;
-    size_t deg = G.get_vertex(i).getOutDegree();
+    size_t deg = 0;
     uchar tmp[16];
+  
+    size_t prev_deg = G.get_vertex(i).getOutDegree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
-    auto tmp_edges = sequence<edge>(deg);
-    size_t j = 0;
+    auto tmp_edges = sequence<edge>(prev_deg);
     auto f = [&](uintE u, uintE v, W w) {
-      tmp_edges[j] = std::make_tuple(rank[v], w);
-      j++;
+      if (pred(rank[u], rank[v], w)) {
+        tmp_edges[deg] = std::make_tuple(rank[v], w);
+        deg++;
+      }
       return false;
     };
     G.get_vertex(i).mapOutNgh(i, f, false);
     // need to sort tmp_edges
+    tmp_edges.shrink(deg);
     pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
       return std::get<0>(u) < std::get<0>(v);
     }, true);
+
     // now need to compute total_bytes (TODO: this could be parallelized, b/c we know what last_ngh is)
-    for (j=0; j < deg; j++) {
+    for (size_t j=0; j < deg; j++) {
       size_t bytes = 0;
       auto v = std::get<0>(tmp_edges[j]);
       auto wgh = std::get<1>(tmp_edges[j]);
@@ -79,24 +79,26 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     tmp_edges.clear();
 
     byte_offsets[rank[i]] = total_bytes;
-    degrees[rank[i]] = deg;
+    degrees[i] = deg;
   }, 1);
   byte_offsets[n] = 0;
   size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
-  //std::cout << "# size is: " << last_offset << "\n";
+  std::cout << "# size is: " << last_offset << "\n";
 
   auto edges = sequence<uchar>(last_offset);
+
   // redo the sort from above, but now actually store your edges
-  // WIP
   parallel_for(0, n, [&] (size_t i) {
-    uintE deg = G.get_vertex(i).getOutDegree();
+    uintE deg = degrees[i];
     if (deg > 0) {
       // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
       auto tmp_edges = sequence<edge>(deg);
       size_t j = 0;
       auto f = [&](uintE u, uintE v, W w) {
-        tmp_edges[j] = std::make_tuple(rank[v], w);
-        j++;
+        if (pred(rank[u], rank[v], w)) {
+          tmp_edges[j] = std::make_tuple(rank[v], w);
+          j++;
+        }
         return false;
       };
       G.get_vertex(i).mapOutNgh(i, f, false);
@@ -114,7 +116,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = byte_offsets[i];
-    out_vdata[i].degree = degrees[i];
+    out_vdata[rank[i]].degree = degrees[i];
   });
   byte_offsets.clear();
 
@@ -122,7 +124,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   auto edge_arr = edges.to_array();
-  //std::cout << "# Filtered, total_deg = " << total_deg << "\n";
+  std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, G.n, total_deg,
                             get_deletion_fn(out_vdata, edge_arr),
                             edge_arr, edge_arr);
