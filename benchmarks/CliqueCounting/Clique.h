@@ -104,7 +104,7 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
 
   timer t_filter; t_filter.start();
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (u < v) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
+    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
   auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate); //TODO see if relabel is really needed or not
   double tt_filter = t_filter.stop();
