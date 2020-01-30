@@ -44,7 +44,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     size_t deg = 0;
     uchar tmp[16];
   
-    size_t prev_deg = G.get_vertex(i).getOutDegree();
+    size_t prev_deg = GA.get_vertex(i).getOutDegree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
     auto tmp_edges = sequence<edge>(prev_deg);
     auto f = [&](uintE u, uintE v, W w) {
@@ -54,7 +54,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
       }
       return false;
     };
-    G.get_vertex(i).mapOutNgh(i, f, false);
+    GA.get_vertex(i).mapOutNgh(i, f, false);
     // need to sort tmp_edges
     tmp_edges.shrink(deg);
     pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
@@ -101,7 +101,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
         }
         return false;
       };
-      G.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).mapOutNgh(i, f, false);
       // need to sort tmp_edges
       pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
         return std::get<0>(u) < std::get<0>(v);
@@ -125,7 +125,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   uintT total_deg = pbbslib::reduce_add(deg_map);
   auto edge_arr = edges.to_array();
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
-  return symmetric_graph<csv_byte, W>(out_vdata, G.n, total_deg,
+  return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
                             get_deletion_fn(out_vdata, edge_arr),
                             edge_arr, edge_arr);
 }
@@ -140,7 +140,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   auto outOffsets = sequence<uintT>(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
-    w_vertex u = G.get_vertex(i);
+    w_vertex u = GA.get_vertex(i);
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
     };
@@ -160,7 +160,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   auto out_edges = sequence<edge>(outEdgeCount);
 
   parallel_for(0, n, [&] (size_t i) {
-    w_vertex u = G.get_vertex(i);
+    w_vertex u = GA.get_vertex(i);
     size_t out_offset = outOffsets[rank[i]];
     uintE d = u.getOutDegree();
     if (d > 0) {
@@ -188,7 +188,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   auto out_edge_arr = out_edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
-      out_vdata, G.n, outEdgeCount,
+      out_vdata, GA.n, outEdgeCount,
       get_deletion_fn(out_vdata, out_edge_arr),
       out_edge_arr);
 }
