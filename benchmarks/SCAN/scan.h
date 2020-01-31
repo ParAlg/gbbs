@@ -86,8 +86,9 @@ class ScanIndex {
   Clustering Cluster(float epsilon, uint64_t mu) const;
 
  private:
-  internal::NeighborOrder neighbor_order;
-  internal::CoreOrder core_order;
+  const size_t num_vertices;
+  const internal::NeighborOrder neighbor_order;
+  const internal::CoreOrder core_order;
 };
 
 }  // namespace scan

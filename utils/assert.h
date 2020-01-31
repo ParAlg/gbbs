@@ -16,10 +16,23 @@
 //     The condition on which to assert.
 //   (optional) message: string
 //     An explanatory message to print out when the condition fails.
-#define ASSERT(...) BOOST_PP_OVERLOAD(__ASSERT, __VA_ARGS__)(__VA_ARGS__)
+#define ASSERT(...) BOOST_PP_OVERLOAD(_ASSERT, __VA_ARGS__)(__VA_ARGS__)
 
-// Internal. Implementation of ASSERT with one argument.
-#define __ASSERT1(condition) \
+// Prints out message and terminates the program.
+#define ABORT(message) \
+  do { \
+    std::cerr << __FILE__ << ":" << __LINE__ << ": Abort: "  \
+         << message << std::endl; \
+    std::terminate(); \
+  } while (false)
+
+
+//////////////
+// Internal //
+//////////////
+
+// Implementation of ASSERT with one argument.
+#define _ASSERT1(condition) \
   do { \
     if (!(condition)) { \
       std::cerr << __FILE__ << ":" << __LINE__ << ": Failed assertion `"  \
@@ -29,7 +42,7 @@
   } while (false)
 
 // Internal. Implementation of ASSERT with two arguments.
-#define __ASSERT2(condition, message) \
+#define _ASSERT2(condition, message) \
   do { \
     if (!(condition)) { \
       std::cerr << __FILE__ << ":" << __LINE__ << ": Failed assertion `"  \

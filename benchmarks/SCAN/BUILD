@@ -9,6 +9,7 @@ cc_library(
         "undirected_edge.h",
     ],
     deps = [
+        "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
         "//ligra:graph",
         "//ligra:macros",
         "//ligra/pbbslib:sparse_table",

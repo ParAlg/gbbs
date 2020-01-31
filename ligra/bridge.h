@@ -301,6 +301,10 @@ namespace pbbslib {
   }
 
   // Scans the input sequence using the addm monoid.
+  //
+  // This computes in-place an exclusive prefix sum on the input sequence, that is,
+  //   Out[i] = In[0] + In[1] + ... + In[i - 1],
+  // and the return value is the sum over the whole input sequence.
   template <RANGE In_Seq>
   inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag) -> typename In_Seq::value_type {
     using T = typename In_Seq::value_type;
