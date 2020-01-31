@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ligra/graph.h"
+#include "ligra/vertex.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/seq.h"
 #include "benchmarks/SCAN/undirected_edge.h"
@@ -38,12 +39,12 @@ std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
 
 using CoreOrder = pbbs::sequence<pbbs::sequence<CoreThreshold>>;
 
-template <class Graph>
-StructuralSimilarities ComputeStructuralSimilarities(Graph* graph);
+StructuralSimilarities ComputeStructuralSimilarities(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
 
-template <class Graph>
-NeighborOrder
-ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities);
+NeighborOrder ComputeNeighborOrder(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph,
+    const StructuralSimilarities& similarities);
 
 CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order);
 
@@ -69,8 +70,7 @@ struct Clustering {
 // An Index-Based Approach" by Wen et al.
 class ScanIndex {
  public:
-  template <class Graph>
-  explicit ScanIndex(Graph* graph);
+  explicit ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
 
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
   // epsilon and mu.

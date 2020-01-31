@@ -12,7 +12,6 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "ligra/bridge.h"
 #include "ligra/macros.h"
-#include "ligra/vertex.h"
 #include "pbbslib/binary_search.h"
 #include "pbbslib/parallel.h"
 #include "pbbslib/sample_sort.h"
@@ -22,8 +21,10 @@ namespace scan {
 
 namespace {
 
-using DirectedEdge = std::pair<uintE, uintE>;
+using Weight = pbbslib::empty;
+using Vertex = symmetric_vertex<Weight>;
 
+using DirectedEdge = std::pair<uintE, uintE>;
 using VertexSet =
   sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
 
@@ -103,11 +104,8 @@ operator<<(std::ostream& os, const CoreThreshold& core_threshold) {
 //   (geometric mean of size of closed neighborhoods of u and of v)
 // where the closed neighborhood of a vertex x consists of all neighbors of x
 // along with x itself.
-template <class Graph>
-StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
-  using Vertex = typename Graph::vertex;
-  using Weight = typename Graph::weight_type;
-
+StructuralSimilarities ComputeStructuralSimilarities(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph) {
   StructuralSimilarities similarities{
     graph->m,
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
@@ -172,10 +170,6 @@ StructuralSimilarities ComputeStructuralSimilarities(Graph* graph) {
   return similarities;
 }
 
-template
-StructuralSimilarities ComputeStructuralSimilarities(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>*);
-
 // Computes an adjacency list for the graph in which each neighbor list is
 // sorted by descending structural similarity with the source vertex.
 //
@@ -187,11 +181,9 @@ StructuralSimilarities ComputeStructuralSimilarities(
 // Unlike the presentation in "Efficient Structural Graph Clustering:  An
 // Index-Based Approach", the neighbor list for a vertex `v` will not contain
 // `v` itself, unless `(v, v)` is explicitly given as an edge in `graph`.
-template <class Graph>
-NeighborOrder
-ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities) {
-  using Vertex = typename Graph::vertex;
-
+NeighborOrder ComputeNeighborOrder(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph,
+    const StructuralSimilarities& similarities) {
   NeighborOrder neighbor_order{
     graph->n,
     [&graph](size_t i) {
@@ -223,11 +215,6 @@ ComputeNeighborOrder(Graph* graph, const StructuralSimilarities& similarities) {
 
   return neighbor_order;
 }
-
-template
-NeighborOrder ComputeNeighborOrder(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>*,
-    const StructuralSimilarities&);
 
 // Returns a sequence CO where CO[i] for i >= 2 is a list of vertices that
 // can be a core when the SCAN parameter mu is set to i. The vertices in
@@ -306,17 +293,13 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
 
 }  // namespace internal
 
-template <class Graph>
-ScanIndex::ScanIndex(Graph* graph)
+ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph)
   : num_vertices{graph->n}
   , neighbor_order{
       internal::ComputeNeighborOrder(
           graph,
           internal::ComputeStructuralSimilarities(graph))}
   , core_order{internal::ComputeCoreOrder(neighbor_order)} {}
-
-template
-ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>*);
 
 Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
   if (mu <= 1) {
@@ -395,7 +378,8 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
           // Only need to check second endpoint. First endpoint is a core.
           return !cores_set.contains(edge.second);
         });
-  auto core_to_core_edges{partitioned_core_edges.slice(0, num_core_to_core_edges)};
+  auto core_to_core_edges{
+    partitioned_core_edges.slice(0, num_core_to_core_edges)};
 
   // Create graph consisting of edges of sufficient similarity between cores.
   // The vertex ids of the cores are kept the same for simplicity, so actually
@@ -406,8 +390,7 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
         num_vertices,
         [](const DirectedEdge& edge) { return edge.first; },
         [](const DirectedEdge& edge) { return edge.second; },
-        [](const DirectedEdge& edge) { return pbbslib::empty{}; }
-    )};
+        [](const DirectedEdge& edge) { return pbbslib::empty{}; })};
 
   const pbbs::sequence<parent> core_connected_components{
     workefficient_cc::CC(core_graph)};
@@ -428,8 +411,6 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
 
   // Process remaining core, non-core edges to assign non-core verts to cores...
   // TODO how to do this properly?
-  //
-  // TODO kill templates --- always want symmetric graph
 
   return {};
 }
