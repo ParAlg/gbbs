@@ -27,3 +27,11 @@ build --cxxopt=-DLONG        # use 8 byte vertex identifiers
 build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compressed graphs
 build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
+
+# AddressSanitizer configuration. Invoke using `bazel build --config=asan`.
+build:asan --strip=never
+build:asan --copt -fsanitize=address
+build:asan --copt -O1
+build:asan --copt -g
+build:asan --copt -fno-omit-frame-pointer
+build:asan --linkopt -fsanitize=address
