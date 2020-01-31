@@ -21,7 +21,7 @@ namespace pbbs {
     size_t start = 0;
     size_t end = I.size();
     while (end-start > _binary_search_base) {
-      size_t mid = (end+start)/2;
+      size_t mid = start + (end-start)/2;
       if (!less(I[mid],v)) end = mid;
       else start = mid + 1;
     }
@@ -41,7 +41,7 @@ namespace pbbs {
     size_t start = 0;
     size_t end = I.size();
     while (end-start > _binary_search_base) {
-      size_t mid = (end+start)/2;
+      size_t mid = start + (end-start)/2;
       if (!less(I[mid])) end = mid;
       else start = mid + 1;
     }
