@@ -164,15 +164,12 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   size_t rounds = 0;
   size_t finished = 0;
   // Peel each bucket
-   while (finished != n) {
+   while (finished != G.n) {
     // Retrieve next bucket
     auto bkt = b.next_bucket();
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
     size_t cur_bkt = bkt.id;
-    if (cur_bkt == b.null_bkt) {
-      break;
-    }
     active.toSparse();
 
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
