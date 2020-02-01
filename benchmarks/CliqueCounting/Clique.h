@@ -162,11 +162,13 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   char* still_active = (char*) calloc(G.n, sizeof(char));
 
   size_t rounds = 0;
+  size_t finished = 0;
   // Peel each bucket
-  while (true) {
+   while (finished != n) {
     // Retrieve next bucket
     auto bkt = b.next_bucket();
     auto active = vertexSubset(G.n, bkt.identifiers);
+    finished += active.size();
     size_t cur_bkt = bkt.id;
     if (cur_bkt == b.null_bkt) {
       break;
