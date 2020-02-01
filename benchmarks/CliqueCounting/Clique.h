@@ -214,6 +214,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
     D_update[v] = 0;
+    assert (cliques[v] >= std::get<1>(D_filter[i]));
+    cliques[v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
       uintE new_deg = std::max(deg - std::get<1>(D_filter[i]), cur_bkt);
