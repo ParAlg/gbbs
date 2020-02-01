@@ -218,16 +218,19 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     cliques[v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
-      uintE new_deg = std::max(deg - std::get<1>(D_filter[i]), cur_bkt);
+      uintE new_deg = std::max(cliques[v], cur_bkt);
       D[v] = new_deg;
-      uintE bkt = b.get_bucket(new_deg);
-    }
+      uintE bkt = b.get_bucket(deg, new_deg);
+      // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
+      D_filter[i] = std::make_tuple(v, bkt);
+    } else D_filter[i] = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   });
     
   auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
     const uintE v = std::get<0>(D_filter[i]);
-    uintE bkt = b.get_bucket(D[v]);
-    return wrap(v, bkt);
+    const uintE bkt = std::get<0>(D_filter[i]);
+    if (v != UINT_E_MAX) return wrap(v, bkt);
+    return Maybe<std::tuple<uintE, uintE> >();
   };
   b.update_buckets(apply_f, filter_size);
 
