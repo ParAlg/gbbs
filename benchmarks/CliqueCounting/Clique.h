@@ -150,10 +150,14 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
 
 
 
+
+
+
 template <class Graph>
 sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
+  //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_update = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_filter = sequence<std::tuple<uintE, uintE>>(G.n);
   auto d_slice = D.slice();
@@ -163,14 +167,17 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   size_t rounds = 0;
   size_t finished = 0;
+  size_t cur_bkt = 0;
+  size_t max_bkt = 0;
   // Peel each bucket
    while (finished != G.n) {
     // Retrieve next bucket
     auto bkt = b.next_bucket();
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
-    size_t cur_bkt = bkt.id;
-    active.toSparse();
+    cur_bkt = bkt.id;
+    max_bkt = std::max(cur_bkt, bkt.id);
+    //active.toSparse();
 
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
 
@@ -196,27 +203,51 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     } else tots[i] = 0;
   }, 1, false);
 
+  for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
   auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
   auto D_delayed = pbbs::delayed_sequence<std::tuple<uintE, uintE>, decltype(D_delayed_f)>(G.n, D_delayed_f);
   auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
+
+  parallel_for(size_t i = 0; i < filter_size; i++) { 
+    const uintE v = std::get<0>(D_filter[i]);
+    uintE deg = D[v];
+    if (deg > cur_bkt) {
+      uintE new_deg = std::max(deg - std::get<1>(D_filter[i]), cur_bkt);
+      D[v] = new_deg;
+      uintE bkt = b.get_bucket(new_deg);
+    }
+  }
     
-    auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
-      const uintE v = std::get<0>(D_filter[i]);
-      D[v] -= std::get<1>(D_filter[i]);
-      const uintE v_bkt = D[v];
-      uintE bkt = UINT_E_MAX;
-      if (!(v_bkt == UINT_E_MAX))
-        bkt = b.get_bucket(v_bkt);
-      return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
-    };
-    b.update_buckets(f, filter_size);
+  auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
+    const uintE v = std::get<0>(D_filter[i]);
+    uintE bkt = b.get_bucket(D[v]);
+    return wrap(v, bkt);
+  };
+  b.update_buckets(apply_f, filter_size);
 
-    for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+    // so update buckets can take fn rep
+    // so what we should do is use apply_f for 0 to filter_size, and then create
 
+    // here, we use apply_f for 0 to filter_size, get a tuple<uintE,long>* to update buckets
+    // use another filter for that
+    // then put it through update_buckets
+
+    //auto moved = edgeMapData<uintE>(
+    //    G, active, kcore_fetch_add<W>(ER.begin(), D.begin(), cur_bkt));
+    //vertexMap(moved, apply_f);
+
+    //if (moved.dense()) {
+    //  b.update_buckets(moved.get_fn_repr(), n);
+    //} else {
+    //  b.update_buckets(moved.get_fn_repr(), moved.size());
+    //}
+    //moved.del();
     active.del();
+  
     rounds++;
   }
 
