@@ -212,7 +212,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
 
-  parallel_for(size_t i = 0; i < filter_size; i++) { 
+  parallel_for(0, filter_size, [&] (size_t i) { 
     const uintE v = std::get<0>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
@@ -220,7 +220,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
       D[v] = new_deg;
       uintE bkt = b.get_bucket(new_deg);
     }
-  }
+  });
     
   auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
     const uintE v = std::get<0>(D_filter[i]);
