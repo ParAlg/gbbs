@@ -160,8 +160,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_update = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_filter = sequence<std::tuple<uintE, uintE>>(G.n);
-  auto d_slice = D.slice();
-  auto b = make_vertex_buckets(G.n, d_slice, increasing, num_buckets);
+  auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
 
@@ -213,6 +212,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
 
   parallel_for(0, filter_size, [&] (size_t i) { 
+    D_update[i] = 0;
     const uintE v = std::get<0>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
