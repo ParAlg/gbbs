@@ -167,8 +167,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   size_t rounds = 0;
   size_t finished = 0;
-  size_t cur_bkt = 0;
-  size_t max_bkt = 0;
+  uintE cur_bkt = 0;
+  uintE max_bkt = 0;
   // Peel each bucket
    while (finished != G.n) {
     // Retrieve next bucket
