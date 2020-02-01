@@ -211,9 +211,9 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
 
-  parallel_for(0, filter_size, [&] (size_t i) { 
-    D_update[i] = 0;
+  parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
+    D_update[v] = 0;
     uintE deg = D[v];
     if (deg > cur_bkt) {
       uintE new_deg = std::max(deg - std::get<1>(D_filter[i]), cur_bkt);
