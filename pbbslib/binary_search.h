@@ -48,4 +48,17 @@ namespace pbbs {
     return start + linear_search(I.slice(start,end),less);
   }
 
+  template <typename Seq, typename F, typename G>
+  size_t binary_search_eq(Seq const &I, const F& less, const G& eq) {
+    size_t start = 0;
+    size_t end = I.size();
+    while (end-start > _binary_search_base) {
+      size_t mid = start + (end-start)/2;
+      if (eq(I[mid])) return mid;
+      else if (!less(I[mid])) end = mid;
+      else start = mid + 1;
+    }
+    return start + linear_search(I.slice(start,end),less);
+  }
+
 }

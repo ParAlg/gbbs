@@ -315,7 +315,7 @@ struct HybridSpace_lw {
         if (!f(v_nbhr)) return;
         // search for v_nbhr as a neighbor of i
         // if it is a neighbor, let its index be stored
-        while (std::get<0>(i_iter.cur()) < v_nbhr) {
+        while (std::get<0>(i_iter.cur()) < v_nbhr) { // here use binary search eq
           if (!i_iter.has_next()) break;
           i_iter.next();
           o++;

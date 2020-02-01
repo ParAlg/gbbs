@@ -154,6 +154,8 @@ template <class Graph>
 sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
+  auto D_update = sequence<uintE>(G.n, [&](size_t i) { return 0; });
+  auto D_filter = sequence<std::tuple<uintE, uintE>>(G.n);
   auto d_slice = D.slice();
   auto b = make_vertex_buckets(G.n, d_slice, increasing, num_buckets);
 
@@ -184,7 +186,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
 
   auto update_d = [&](uintE vtx, size_t count) {
-    pbbs::write_add(&(D[vtx]), (-1)*count);
+    pbbs::write_add(&(D_update[vtx]), count);
   };
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
@@ -195,16 +197,21 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     } else tots[i] = 0;
   }, 1, false);
 
+  // filter D_update for nonzero elements
+  // subtract these from D and then we can rebucket these elements
+  auto D_delayed = pbbs::delayed_sequence(G.n,[&](size_t i) { return std:make_tuple(i, D_update[i]); });
+  size_t filter_size = pbbs::filter_out(D_delayed, D_filter, [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ) 
     
     auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
-      const uintE v = active.vtx(i);
+      const uintE v = std::get<0>(D_filter[i]);
+      D[v] -= std::get<1>(D_filter[i]);
       const uintE v_bkt = D[v];
       uintE bkt = UINT_E_MAX;
       if (!(v_bkt == UINT_E_MAX))
         bkt = b.get_bucket(v_bkt);
       return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
-    b.update_buckets(f, active.size());
+    b.update_buckets(f, filter_size);
 
     for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
 
