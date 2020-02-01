@@ -176,7 +176,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
     cur_bkt = bkt.id;
-    max_bkt = std::max(cur_bkt, bkt.id);
+    max_bkt = std::max(cur_bkt, (uintE) bkt.id);
     //active.toSparse();
 
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
