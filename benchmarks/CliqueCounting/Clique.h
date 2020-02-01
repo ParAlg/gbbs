@@ -199,8 +199,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
-  auto D_delayed = pbbs::delayed_sequence(G.n,[&](size_t i) { return std:make_tuple(i, D_update[i]); });
-  size_t filter_size = pbbs::filter_out(D_delayed, D_filter, [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ) 
+  auto D_delayed = pbbs::delayed_sequence(G.n,[&](size_t i) { return std::make_tuple(i, D_update[i]); });
+  size_t filter_size = pbbs::filter_out(D_delayed, D_filter, [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } );
     
     auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       const uintE v = std::get<0>(D_filter[i]);
