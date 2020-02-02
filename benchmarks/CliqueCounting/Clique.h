@@ -230,7 +230,9 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     const uintE v = std::get<0>(D_filter[i]);
     const uintE bkt = std::get<0>(D_filter[i]);
     if (v != UINT_E_MAX) return wrap(v, bkt);
-    return Maybe<std::tuple<uintE, uintE> >();
+    auto ret = Maybe<std::tuple<uintE, uintE> >();
+    ret.exists = std::get<0>(d[v]);
+    return ret;
   };
   b.update_buckets(apply_f, filter_size);
 
