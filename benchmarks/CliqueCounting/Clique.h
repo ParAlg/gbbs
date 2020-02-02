@@ -217,7 +217,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     assert (cliques[v] >= std::get<1>(D_filter[i]));
     cliques[v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
-    if (deg > cur_bkt) {
+    if (deg > cur_bkt && still_active[v] != 2) {
       uintE new_deg = std::max(cliques[v], cur_bkt);
       D[v] = new_deg;
       uintE bkt = b.get_bucket(deg, new_deg);
