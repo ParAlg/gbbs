@@ -394,24 +394,30 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
 
   const pbbs::sequence<parent> core_connected_components{
     workefficient_cc::CC(core_graph)};
-  // TODO there's some kind of seg fault. See if WorkEfficientSDB14 runs
-  // without seg faulting
-
-  // TODO(tomtseng) implement
-
-  // Parallel CC on (core, core) edges.
-  // try WorkEfficientSDB14 or [find_compress + UniteND] in union_find_rules.h
+  // TODO how do I use the result?
+  // these are labels
+  // remember, you have a bunch of non-core singletons, and possibly also core
+  // singletons (though ultimately no cluster will be a singleton -- any core
+  // will have its epsilon-neighborhood in its cluster)
   //
-  // To do this we need to process our edges into a symmetric_graph.
-  // Options:
-  //   -try to figure out how the constructor works and set up the format
-  //   manually
-  //   -use one of the sym_graph_from_edges functions
-  //      -- probably just this
+  // you don't care about the labels, you're just returning a list of clusters
+  // -- don't necessarily need to do any renumbering here
+  //
+  // each non-core can be in several clusters, and it can have several edges that
+  // attach to the same cluster (though not too many, or else it would become a
+  // core itself)
+  //
+  // ok, maybe just map the edges to relabel endpoint with core's cluster ID,
+  // then sort?
+  //
+  // should also determine --- are the cluster ID's contiguous? it might not
+  // actually matter for us though. Just read through the code and try to
+  // understand it... Adding a comment to the file would be helpful
 
   // Process remaining core, non-core edges to assign non-core verts to cores...
   // TODO how to do this properly?
 
+  // TODO implement
   return {};
 }
 
