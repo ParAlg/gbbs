@@ -309,8 +309,28 @@ struct HybridSpace_lw {
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
-      size_t o = 0;
       auto i_iter = DG.get_vertex(i).getOutIter(i);
+      auto v_iter = DG.get_vertex(v).getOutIter(v);
+      size_t i_iter_idx = 0;
+      size_t v_iter_idx = 0;
+
+      while (i_iter_idx < nn && v_iter_idx < v_deg) {
+        if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
+          i_iter_idx++; v_iter_idx++;
+          induced_degs[j]++;
+          if (i_iter.has_next()) i_iter.next();
+          if (v_iter.has_next()) v_iter.next();
+        } else if (std::get<0>(i_iter.cur()) < std::get<0>(v_iter.cur())) {
+          i_iter_idx++;
+          if (i_iter.has_next()) i_iter.next();
+        }
+        else {
+          v_iter_idx++;
+          if (v_iter.has_next()) v_iter.next();
+        }
+      }
+      /*size_t o = 0;
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         if (!f(v_nbhr)) return;
         // search for v_nbhr as a neighbor of i
@@ -327,7 +347,7 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);*/
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
