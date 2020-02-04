@@ -78,6 +78,10 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
     return rank;
   }
   else if (order_type == 3) return pbbslib::make_sequence(rankNodes(GA, GA.n), GA.n);
+  else if (order_type == 4) {
+    auto rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
+    return rank;
+  }
 }
 
 
