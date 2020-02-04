@@ -560,7 +560,7 @@ struct SplitSpace{
 
   // k here should be k left, so something like k - k_idx + 1 (or k - k_idx if doing it before next kick off)
   template <class Graph>
-  void switch_alloc(Graph& DG, size_t k_sub, size_t n, size_t num_induced) {
+  void switch_alloc(Graph& DG, size_t k_sub, size_t n, size_t _num_induced) {
     if (!hybrid_space) {
       hybrid_space = new HybridSpace_lw();
       hybrid_space->alloc(k_threshold, k_sub, n, use_old_labels, use_base);
