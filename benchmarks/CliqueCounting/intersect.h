@@ -410,6 +410,115 @@ struct HybridSpace_lw {
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
+
+
+
+
+  template <class Graph>
+  void setup(uintE* induced, size_t num_induced, Graph& DG, size_t k) {
+    //if (use_base) base[0] = i;
+    auto f = [&](const uintE& u) { return true; };
+    if (use_old_labels) setup_labels(induced, num_induced, DG, k, i, f);
+    else setup_intersect(induced, num_induced, DG, k, i, f);
+  }
+
+  template <class Graph, class F>
+  void setup(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
+    //if (use_base) base[0] = i;
+    if (use_old_labels) setup_labels(induced, num_induced, DG, k, i, f);
+    else setup_intersect(induced, num_induced, DG, k, i, f);
+  }
+
+
+  template <class Graph, class F>
+  void setup_intersect(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
+    using W = typename Graph::weight_type;
+    if (use_base) {
+      for (size_t j=0; j < num_induced; j++) {
+        relabel[j] = induced[j];
+      }
+    }
+
+    nn = num_induced;
+    //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+  
+    if (k > 2) {
+      num_induced[0] = nn;
+      for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    }
+
+    for (size_t j=0; j < nn; j++) {
+      if (!f(v)) continue;
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
+      // store result in induced_edges[j*nn]
+      // store size in induced_degs[j]
+      auto v_iter = DG.get_vertex(v).getOutIter(v);
+      size_t i_iter_idx = 0;
+      size_t v_iter_idx = 0;
+
+      while (i_iter_idx < nn && v_iter_idx < v_deg) {
+        if (induced[i_iter_idx] == std::get<0>(v_iter.cur())) {
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
+          i_iter_idx++; v_iter_idx++;
+          induced_degs[j]++;
+          if (v_iter.has_next()) v_iter.next();
+        } else if (induced[i_iter_idx] < std::get<0>(v_iter.cur())) {
+          i_iter_idx++;
+        }
+        else {
+          v_iter_idx++;
+          if (v_iter.has_next()) v_iter.next();
+        }
+      }
+    }
+
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
+  template <class Graph, class F>
+  void setup_labels(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
+    using W = typename Graph::weight_type;
+    nn = num_induced;
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+  
+    if (k > 2) {
+      num_induced[0] = nn;
+      for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    }
+
+    for (size_t o=0; o < nn; o++) { 
+      old_labels[induced[o]] = o + 1;
+      if (use_base) { relabel[o] = induced[o]; }
+    }
+  
+
+    for (size_t j=0; j < nn; j++) {
+      if (!f(v)) continue;
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
+      // store result in induced_edges[j*nn]
+      // store size in induced_degs[j]
+      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        if (!f(v_nbhr)) return;
+        if (old_labels[v_nbhr] > 0) {
+          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
+          induced_degs[j]++;
+        }
+      };
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+    }
+
+    for (size_t o=0; o < nn; o++) { 
+      old_labels[induced[o]] = 0;
+    }
+
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
   static void init(){}
   static void finish(){}
 
@@ -426,6 +535,44 @@ struct HybridSpace_lw {
 
   ~HybridSpace_lw() { del(); }
 
+};
+
+
+struct SplitSpace{
+  InducedSpace_lw* induced_space = nullptr;
+  HybridSpace_lw* hybrid_space = nullptr;
+  bool switched = false;
+  bool use_old_labels = true;
+  bool use_base = false;
+  size_t k_threshold = 0;
+
+  SplitSpace() {}
+
+  void alloc(size_t max_deg, size_t k, size_t n, bool _use_old_labels, bool _use_base, size_t _k_threshold) {
+    if(!induced_space) induced_space = new InducedSpace_lw();
+    induced_space->alloc(max_deg, k, n);
+    switched = false;
+    use_old_labels = _use_old_labels; use_base = _use_base;
+    k_threshold = _k_threshold;
+  }
+
+  // k here should be k left, so something like k - k_idx + 1 (or k - k_idx if doing it before next kick off)
+  void switch_alloc(Graph& DG, size_t k_sub, size_t n) {
+    if (!hybrid_space) {
+      hybrid_space = new HybridSpace_lw();
+      hybrid_space->alloc(k_threshold, k_sub, n, use_old_labels, use_base);
+    }
+    hybrid_space->setup(induced_space->induced, induced_space->num_induced, DG, k_sub);
+    switched = true;
+  }
+
+  void del() {
+    if (induced_space) { delete induced_space; induced_space = nullptr; }
+    if (hybrid_space) { delete hybrid_space; hybrid_space = nullptr; }
+    switched = false;
+  }
+
+  ~SplitSpace() { del(); }
 };
 
 
