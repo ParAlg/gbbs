@@ -139,7 +139,7 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   else if (space_type == 5) {
     count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
   }
-  else if (space_type == 5) {
+  else if (space_type == 6) {
     count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, 300);
   }
   }
