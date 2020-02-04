@@ -16,7 +16,7 @@ namespace induced_split {
     return max_deg;
   }
 
-  template <class Graph, class F>
+  template <class Graph>
   inline size_t KCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, SplitSpace* induced) {
     //if (k == 2) return induced->num_edges;
     size_t num_induced = induced->hybrid_space->num_induced[k_idx-1];
@@ -30,7 +30,7 @@ namespace induced_split {
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
         //  get neighbors of vtx
-        uintE* intersect = induced->hybrid_space->induced_edges + vtx * induced->nn;
+        uintE* intersect = induced->hybrid_space->induced_edges + vtx * induced->hybrid_space->nn;
         size_t tmp_counts = 0;
         for (size_t j=0; j < induced->hybrid_space->induced_degs[vtx]; j++) {
           if (induced->hybrid_space->labels[intersect[j]] == k_idx) {
