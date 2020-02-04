@@ -415,18 +415,18 @@ struct HybridSpace_lw {
 
 
   template <class Graph>
-  void setup(uintE* induced, size_t num_induced, Graph& DG, size_t k) {
+  void setup(uintE* induced, size_t _num_induced, Graph& DG, size_t k) {
     //if (use_base) base[0] = i;
     auto f = [&](const uintE& u) { return true; };
-    if (use_old_labels) setup_labels(induced, num_induced, DG, k, f);
-    else setup_intersect(induced, num_induced, DG, k, f);
+    if (use_old_labels) setup_labels(induced, _num_induced, DG, k, f);
+    else setup_intersect(induced, _num_induced, DG, k, f);
   }
 
   template <class Graph, class F>
-  void setup(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
+  void setup(uintE* induced, size_t _num_induced, Graph& DG, size_t k, F f) {
     //if (use_base) base[0] = i;
-    if (use_old_labels) setup_labels(induced, num_induced, DG, k, f);
-    else setup_intersect(induced, num_induced, DG, k, f);
+    if (use_old_labels) setup_labels(induced, _num_induced, DG, k, f);
+    else setup_intersect(induced, _num_induced, DG, k, f);
   }
 
 
@@ -434,7 +434,7 @@ struct HybridSpace_lw {
   void setup_intersect(uintE* induced, size_t _num_induced, Graph& DG, size_t k, F f) {
     using W = typename Graph::weight_type;
     if (use_base) {
-      for (size_t j=0; j < num_induced; j++) {
+      for (size_t j=0; j < _num_induced; j++) {
         relabel[j] = induced[j];
       }
     }

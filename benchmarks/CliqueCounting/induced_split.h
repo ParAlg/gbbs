@@ -21,7 +21,7 @@ namespace induced_split {
     //if (k == 2) return induced->num_edges;
     size_t num_induced = induced->hybrid_space->num_induced[k_idx-1];
     if (num_induced == 0) return 0;
-    uintE* prev_induced = induced->hybrid_space->induced + induced->nn * (k_idx - 1);
+    uintE* prev_induced = induced->hybrid_space->induced + induced->hybrid_space->nn * (k_idx - 1);
 
     for (size_t i=0; i < num_induced; i++) { induced->hybrid_space->labels[prev_induced[i]] = k_idx; }
 
@@ -32,7 +32,7 @@ namespace induced_split {
         //  get neighbors of vtx
         uintE* intersect = induced->hybrid_space->induced_edges + vtx * induced->nn;
         size_t tmp_counts = 0;
-        for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
+        for (size_t j=0; j < induced->hybrid_space->induced_degs[vtx]; j++) {
           if (induced->hybrid_space->labels[intersect[j]] == k_idx) {
             tmp_counts++;
             //if (induced->use_base) base_f(induced->relabel[intersect[j]], 1);
@@ -65,7 +65,7 @@ namespace induced_split {
       }
     }
 
-    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+    for (size_t i=0; i < num_induced; i++) { induced->hybrid_space->labels[prev_induced[i]] = k_idx - 1; }
     return total_ct;
   }
 
@@ -127,7 +127,7 @@ namespace induced_split {
     return total_ct;
   }
 
-  template <class Graph>
+  template <class Graph, class F>
   inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, size_t k_threshold=0) {
     using W = typename Graph::weight_type;
     sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
