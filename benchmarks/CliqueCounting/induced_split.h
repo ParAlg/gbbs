@@ -49,7 +49,7 @@ namespace induced_split {
     for (size_t i=0; i < num_induced; ++i) {
       uintE vtx = prev_induced[i];
       //TODO problem w/storing base -- we've relabeled our vert w/relabeling: check base is correct
-      uintE* intersect = induced->hybrid_space->induced_edges + vtx * induced->nn;
+      uintE* intersect = induced->hybrid_space->induced_edges + vtx * induced->hybrid_space->nn;
       uintE* out = induced->hybrid_space->induced + induced->hybrid_space->num_induced[0] * k_idx;
       uintE count = 0;
       for (size_t j=0; j < induced->hybrid_space->induced_degs[vtx]; j++) {
@@ -97,7 +97,7 @@ namespace induced_split {
     }
 
     if (num_induced * (k-k_idx) <= induced->k_threshold) {
-      induced->switch_alloc(DG, k-k_idx+1, DG.n);
+      induced->switch_alloc(DG, k-k_idx+1, DG.n, num_induced);
       return KCliqueDir_fast_hybrid_rec(DG, 1, k-k_idx+1, induced);
     }
 
