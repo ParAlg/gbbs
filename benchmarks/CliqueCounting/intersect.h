@@ -541,8 +541,8 @@ struct HybridSpace_lw {
 
 
 struct SplitSpace{
-  InducedSpace_lw* induced_space = nullptr;
-  HybridSpace_lw* hybrid_space = nullptr;
+  InducedSpace_lw* induced_space = new InducedSpace_lw();
+  HybridSpace_lw* hybrid_space = new HybridSpace_lw();
   bool switched = false;
   bool use_old_labels = true;
   bool use_base = false;
@@ -551,7 +551,7 @@ struct SplitSpace{
   SplitSpace() {}
 
   void alloc(size_t max_deg, size_t k, size_t n, bool _use_old_labels, bool _use_base, size_t _k_threshold) {
-    if(!induced_space) induced_space = new InducedSpace_lw();
+    //if(!induced_space) induced_space = new InducedSpace_lw();
     induced_space->alloc(max_deg, k, n);
     switched = false;
     use_old_labels = _use_old_labels; use_base = _use_base;
@@ -561,10 +561,10 @@ struct SplitSpace{
   // k here should be k left, so something like k - k_idx + 1 (or k - k_idx if doing it before next kick off)
   template <class Graph>
   void switch_alloc(Graph& DG, size_t k_sub, size_t n, size_t _num_induced) {
-    if (!hybrid_space) {
-      hybrid_space = new HybridSpace_lw();
+    //if (!hybrid_space) {
+      //hybrid_space = new HybridSpace_lw();
       hybrid_space->alloc(k_threshold, k_sub, n, use_old_labels, use_base);
-    }
+    //}
     hybrid_space->setup(induced_space->induced, _num_induced, DG, k_sub);
     switched = true;
   }
