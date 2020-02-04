@@ -418,20 +418,20 @@ struct HybridSpace_lw {
   void setup(uintE* induced, size_t num_induced, Graph& DG, size_t k) {
     //if (use_base) base[0] = i;
     auto f = [&](const uintE& u) { return true; };
-    if (use_old_labels) setup_labels(induced, num_induced, DG, k, i, f);
-    else setup_intersect(induced, num_induced, DG, k, i, f);
+    if (use_old_labels) setup_labels(induced, num_induced, DG, k, f);
+    else setup_intersect(induced, num_induced, DG, k, f);
   }
 
   template <class Graph, class F>
   void setup(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
     //if (use_base) base[0] = i;
-    if (use_old_labels) setup_labels(induced, num_induced, DG, k, i, f);
-    else setup_intersect(induced, num_induced, DG, k, i, f);
+    if (use_old_labels) setup_labels(induced, num_induced, DG, k, f);
+    else setup_intersect(induced, num_induced, DG, k, f);
   }
 
 
   template <class Graph, class F>
-  void setup_intersect(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
+  void setup_intersect(uintE* induced, size_t _num_induced, Graph& DG, size_t k, F f) {
     using W = typename Graph::weight_type;
     if (use_base) {
       for (size_t j=0; j < num_induced; j++) {
@@ -439,7 +439,7 @@ struct HybridSpace_lw {
       }
     }
 
-    nn = num_induced;
+    nn = _num_induced;
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
   
@@ -449,6 +449,7 @@ struct HybridSpace_lw {
     }
 
     for (size_t j=0; j < nn; j++) {
+      auto v = induced[j];
       if (!f(v)) continue;
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
@@ -479,9 +480,9 @@ struct HybridSpace_lw {
   }
 
   template <class Graph, class F>
-  void setup_labels(uintE* induced, size_t num_induced, Graph& DG, size_t k, F f) {
+  void setup_labels(uintE* induced, size_t _num_induced, Graph& DG, size_t k, F f) {
     using W = typename Graph::weight_type;
-    nn = num_induced;
+    nn = _num_induced;
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
   
     if (k > 2) {
@@ -496,6 +497,7 @@ struct HybridSpace_lw {
   
 
     for (size_t j=0; j < nn; j++) {
+      auto v = induced[j];
       if (!f(v)) continue;
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
@@ -557,6 +559,7 @@ struct SplitSpace{
   }
 
   // k here should be k left, so something like k - k_idx + 1 (or k - k_idx if doing it before next kick off)
+  template <class Graph>
   void switch_alloc(Graph& DG, size_t k_sub, size_t n) {
     if (!hybrid_space) {
       hybrid_space = new HybridSpace_lw();

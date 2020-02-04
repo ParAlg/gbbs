@@ -137,10 +137,10 @@ namespace induced_split {
     auto finish_induced = [&](SplitSpace* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<SplitSpace>(init_induced, finish_induced, 0, DG.n, [&](size_t i, SplitSpace* induced) {
       if (DG.get_vertex(i).getOutDegree() != 0) {
-        induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
+        induced->induced_space->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
         size_t j = 0;
         auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
-          induced->induced[j] = nbhr;
+          induced->induced_space->induced[j] = nbhr;
           j++;
         };
         DG.get_vertex(i).mapOutNgh(i, map_intersect_f, false);
