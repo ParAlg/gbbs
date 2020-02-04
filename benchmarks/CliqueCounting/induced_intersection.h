@@ -38,7 +38,7 @@ namespace induced_intersection {
         auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
           counts++;
         };
-        DG.get_vertex(vtx).filterOutNgh(vtx, pred, out_f, tmp);
+        DG.get_vertex(vtx).filterOutNgh(vtx, pred, out_f, tmp.begin());
 
         /*auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
           if (induced->intersect[nbhr] == k_idx) counts++;
@@ -60,7 +60,7 @@ namespace induced_intersection {
         out[count] = std::get<0>(nw);
         count++;
       };
-      DG.get_vertex(vtx).filterOutNgh(vtx, pred, out_f, tmp);
+      DG.get_vertex(vtx).filterOutNgh(vtx, pred, out_f, tmp.begin());
 
       /*auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
         if (induced->intersect[nbhr] == k_idx) {
