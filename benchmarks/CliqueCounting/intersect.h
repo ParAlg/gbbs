@@ -316,9 +316,11 @@ struct HybridSpace_lw {
 
       while (i_iter_idx < nn && v_iter_idx < v_deg) {
         if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
-          if (k > 2) induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
+          if (f(std::get<0>(i_iter.cur()))) {
+            induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
+            induced_degs[j]++;
+          }
           i_iter_idx++; v_iter_idx++;
-          induced_degs[j]++;
           if (i_iter.has_next()) i_iter.next();
           if (v_iter.has_next()) v_iter.next();
         } else if (std::get<0>(i_iter.cur()) < std::get<0>(v_iter.cur())) {
