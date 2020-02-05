@@ -196,7 +196,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 // also drop if already peeled -- check using D
   
 
-  sequence<size_t> tots = sequence<size_t>::no_init(active.size());
+  //sequence<size_t> tots = sequence<size_t>::no_init(active.size());
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
@@ -208,9 +208,9 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
-      tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
-    } else tots[i] = 0;
+    } //else tots[i] = 0;
   }, 1, false);
 
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
@@ -221,19 +221,23 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto D_delayed = pbbs::delayed_sequence<std::tuple<uintE, uintE>, decltype(D_delayed_f)>(G.n, D_delayed_f);
   auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
   //size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
+
   size_t filter_size = 0;
   for (size_t l=0; l < G.n; l++) {
-    if (D_filter_f(D_delayed[l])) {
-      D_filter[filter_size] = D_delayed[l];
+    if (D_update[l] > 0) {
+      D_filter[filter_size] = std::make_tuple(l, D_update[l]);
+      cliques[v] -= D_update[l];
+      D_update[l] = 0;
       filter_size++;
     }
   }
 
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
-    D_update[v] = 0;
-    assert (cliques[v] >= std::get<1>(D_filter[i]));
-    cliques[v] -= std::get<1>(D_filter[i]);
+    assert (v < G.n);
+    //D_update[v] = 0;
+    //assert (cliques[v] >= std::get<1>(D_filter[i]));
+    //cliques[v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt && still_active[v] != 2) {
       uintE new_deg = std::max(cliques[v], cur_bkt);
