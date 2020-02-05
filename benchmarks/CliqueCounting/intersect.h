@@ -305,6 +305,7 @@ struct HybridSpace_lw {
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
       if (!f(v)) { j++; return; }
+      assert (f(relabel[j]));
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
@@ -319,6 +320,7 @@ struct HybridSpace_lw {
           if (f(std::get<0>(i_iter.cur()))) {
             induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
             induced_degs[j]++;
+            assert (f(relabel[i_iter_idx]));
           }
           i_iter_idx++; v_iter_idx++;
           if (i_iter.has_next()) i_iter.next();
