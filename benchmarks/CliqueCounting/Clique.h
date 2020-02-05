@@ -220,7 +220,14 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
   auto D_delayed = pbbs::delayed_sequence<std::tuple<uintE, uintE>, decltype(D_delayed_f)>(G.n, D_delayed_f);
   auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
-  size_t filter_size = pbbs::filter(D_delayed, D_filter, D_filter_f);
+  //size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
+  size_t filter_size = 0;
+  for (size_t l=0; l < G.n; l++) {
+    if (D_filter_f(D_delayed[l])) {
+      D_filter[filter_size] = D_delayed[l];
+      filter_size++;
+    }
+  }
 
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
