@@ -226,7 +226,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   for (size_t l=0; l < G.n; l++) {
     if (D_update[l] > 0) {
       D_filter[filter_size] = std::make_tuple(l, D_update[l]);
-      cliques[l] -= D_update[l];
+      cliques[eltsPerCacheLine*l] -= D_update[l];
       D_update[l] = 0;
       filter_size++;
     }
@@ -239,8 +239,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     //assert (cliques[v] >= std::get<1>(D_filter[i]));
     //cliques[v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
-    if (deg > cur_bkt && still_active[v] != 2) {
-      uintE new_deg = std::max(cliques[v], cur_bkt);
+    if (deg > cur_bkt) {
+      uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
       D[v] = new_deg;
       uintE bkt = b.get_bucket(deg, new_deg);
       // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
