@@ -39,7 +39,7 @@ namespace induced_hybrid {
             if (induced->use_base) base_f(induced->relabel[intersect[j]], 1);
           } 
         }
-        if (induced->use_base) base_f(induced->relabel[vtx], tmp_counts);
+        if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
         counts += tmp_counts;
       }
       for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
@@ -63,7 +63,7 @@ namespace induced_hybrid {
       if (induced->num_induced[k_idx] > k - k_idx - 1) {
         auto curr_counts = KCliqueDir_fast_hybrid_rec(DG, k_idx + 1, k, induced, base_f);
         total_ct += curr_counts;
-        if (induced->use_base) base_f(induced->relabel[vtx], curr_counts);
+        if (induced->use_base && curr_counts > 0) base_f(induced->relabel[vtx], curr_counts);
       }
     }
 
@@ -128,7 +128,7 @@ namespace induced_hybrid {
           induced->setup(DG, k, i);
           auto curr_counts = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f);
           tots[j] += curr_counts;
-          if (induced->use_base) base_f(i, curr_counts);
+          if (induced->use_base && curr_counts > 0) base_f(i, curr_counts);
         }
       }
     }, 1, false);

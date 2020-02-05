@@ -358,10 +358,6 @@ struct HybridSpace_lw {
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
-
-    for (size_t  j=0; j < nn; j++) { 
-      assert (f(relabel[j]) || induced_degs[j] == 0);
-    }
   }
 
   template <class Graph, class F>
