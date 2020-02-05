@@ -76,7 +76,18 @@ void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, int rounds, comman
   run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 }
 
+template <class Graph>
+void unite_rem_lock_find_compress_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_compress, split_atomic_one>(G, rounds, correct, P);
 }
+
+template <class Graph>
+void unite_rem_lock_find_compress_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, sample_bfs, unite_rem_lock, find_compress, halve_atomic_one>(G, rounds, correct, P);
+}
+
+}
+
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
@@ -90,17 +101,17 @@ double Benchmark_runner(Graph& G, commandLine P) {
   }
   run_tests(G, rounds, P, correct, connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
     {
-      connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_naive_splice_atomic<Graph>,
-
-      connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph>,
-
-      connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph>,
-      connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph>,
+//      connectit::unite_rem_lock_find_naive_split_atomic_one<Graph>,
+//      connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph>,
+//      connectit::unite_rem_lock_find_naive_splice_atomic<Graph>,
+//      connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph>,
+//      connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph>,
+//      connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph>,
+//      connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph>,
+//      connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph>,
+//      connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph>,
+      connectit::unite_rem_lock_find_compress_split_atomic_one<Graph>,
+      connectit::unite_rem_lock_find_compress_halve_atomic_one<Graph>,
     });
   return 1.0;
 }

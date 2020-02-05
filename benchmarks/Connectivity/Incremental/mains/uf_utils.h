@@ -55,12 +55,16 @@ namespace connectit {
     auto test = [&] (Graph& G, commandLine P) {
       auto find = get_find_function<find_option>();
       auto splice = get_splice_function<splice_option>();
-      auto unite = get_unite_function<unite_option, decltype(find), decltype(splice), find_option>(G.n, find, splice);
+      auto unite = get_unite_function<unite_option, decltype(find), decltype(splice), find_option>(n, find, splice);
       using UF = union_find::UFAlgorithm<decltype(find), decltype(unite), Graph>;
       auto alg = UF(G, unite, find);
 
       bool check = P.getOptionValue("-check");
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, check, alg);
+      if constexpr (splice_option == splice_atomic) {
+        return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, check, alg);
+      } else {
+        return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */false>(G, n, updates, batch_size, insert_to_query, check, alg);
+      }
     };
 
     auto name = uf_options_to_string<no_sampling, find_option, unite_option, splice_option>();

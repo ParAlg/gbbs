@@ -3,16 +3,18 @@
 import sys
 import os
 
-graphs = ["/ssd1/graphs/bench_experiments/soc-LiveJournal1_sym.adj", "/ssd1/graphs/bench_experiments/com-orkut.ungraph.adj", "/ssd0/graphs/bench_experiments/usa_road.adj", "/ssd1/graphs/bench_experiments/twitter_sym.adj", "/ssd1/graphs/bench_experiments/friendster_sym.adj"]
-c_graphs = ["/ssd0/graphs/bench_experiments/clueweb_sym.bytepda", "/ssd0/graphs/bench_experiments/hyperlink2014_sym.bytepda"] #"/ssd1/graphs/bench_experiments/hyperlink2012_sym.bytepda"]
+graphs = []
+graphs = ["/ssd1/graphs/bench_experiments/soc-LiveJournal1_sym.adj", "/ssd1/graphs/bench_experiments/com-orkut.ungraph.adj", "/ssd0/graphs/bench_experiments/usa_road.adj", "/ssd1/graphs/bench_experiments/twitter_sym.adj", "/ssd1/graphs/tmp/friendster_sym.adj"]
+c_graphs = ["/ssd0/graphs/bench_experiments/clueweb_sym.bytepda", "/ssd0/graphs/bench_experiments/hyperlink2014_sym.bytepda", "/ssd1/graphs/bench_experiments/hyperlink2012_sym.bytepda"]
 binary_dir = "mains"
-output_dir = "data_lt_rerun"
-rounds = 3
+output_dir = "data_uf_rerun"
+rounds = 5
 
 os.makedirs(output_dir, exist_ok=True)
 
-binaries=["bfscc", "gbbscc", "jayanti_bfs", "jayanti_kout", "jayanti_ldd", "jayanti_nosample", "label_propagation", "liutarjan_nosample", "liutarjan_bfs", "liutarjan_ldd", "liutarjan_kout", "shiloach_vishkin", "unite_bfs", "unite_early_bfs", "unite_early_kout", "unite_early_ldd", "unite_early_nosample", "unite_kout", "unite_ldd", "unite_nd_bfs", "unite_nd_kout", "unite_nd_ldd", "unite_nd_nosample", "unite_nosample", "unite_rem_cas_bfs", "unite_rem_cas_kout", "unite_rem_cas_ldd", "unite_rem_cas_nosample", "unite_rem_lock_bfs", "unite_rem_lock_kout", "unite_rem_lock_ldd", "unite_rem_lock_nosample"]
+#binaries=["bfscc", "gbbscc", "jayanti_bfs", "jayanti_kout", "jayanti_ldd", "jayanti_nosample", "label_propagation", "liutarjan_nosample", "liutarjan_bfs", "liutarjan_ldd", "liutarjan_kout", "shiloach_vishkin", "unite_bfs", "unite_early_bfs", "unite_early_kout", "unite_early_ldd", "unite_early_nosample", "unite_kout", "unite_ldd", "unite_nd_bfs", "unite_nd_kout", "unite_nd_ldd", "unite_nd_nosample", "unite_nosample", "unite_rem_cas_bfs", "unite_rem_cas_kout", "unite_rem_cas_ldd", "unite_rem_cas_nosample", "unite_rem_lock_bfs", "unite_rem_lock_kout", "unite_rem_lock_ldd", "unite_rem_lock_nosample"]
 
+binaries=["gbbscc", "unite_rem_cas_bfs", "unite_rem_cas_kout", "unite_rem_cas_ldd", "unite_rem_cas_nosample", "unite_rem_lock_bfs", "unite_rem_lock_kout", "unite_rem_lock_ldd", "unite_rem_lock_nosample"]
 
 bad_binaries=["bfscc", "jayanti_nosample", "label_propagation", "liutarjan_nosample", "shiloach_vishkin", "unite_early_nosample", "unite_nd_nosample", "unite_nosample"]
 

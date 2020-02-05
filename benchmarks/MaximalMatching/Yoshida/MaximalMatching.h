@@ -27,71 +27,18 @@
 #include "ligra/ligra.h"
 #include "ligra/speculative_for.h"
 #include "ligra/pbbslib/dyn_arr.h"
-#include "pbbslib/random_shuffle.h"
 #include "reorder.h"
+#include "utils.h"
 
-size_t n = 0;
-
-size_t get_edge_pri(uintE u, uintE v) {
-  uintE min_u = std::min(u, v);
-  uintE max_u = std::max(u, v);
-  size_t key = (static_cast<size_t>(min_u) << 32UL) | static_cast<size_t>(max_u);
-  return pbbs::hash64(key);
-}
-
-template <class LT>
-struct sorted_it {
-  uintE* ngh_a;
-  uintE* ngh_b;
-  size_t deg_a;
-  size_t deg_b;
-  uintE id_a;
-  uintE id_b;
-  size_t ct_a;
-  size_t ct_b;
-  size_t tot;
-  LT& lt;
-  sorted_it(uintE* ngh_a, uintE* ngh_b, uintE deg_a, uintE deg_b, uintE id_a, uintE id_b, LT& lt) : ngh_a(ngh_a), ngh_b(ngh_b), deg_a(deg_a), deg_b(deg_b), id_a(id_a), id_b(id_b), lt(lt) {
-    ct_a = 0;
-    ct_b = 0;
-    tot = deg_a + deg_b;
-  }
-
-  std::pair<uintE, uintE> get_next() {
-    if (ct_a < deg_a) {
-      if (ct_b < deg_b) {
-        uintE a = ngh_a[ct_a];
-        uintE b = ngh_b[ct_b];
-        auto pair_a = std::make_pair(std::min(id_a, a), std::max(id_a, a));
-        auto pair_b = std::make_pair(std::min(id_b, b), std::max(id_b, b));
-        auto ret = lt(pair_a.first, pair_a.second, pair_b.first, pair_b.second);
-        if (ret == pair_a) {
-          ct_a++;
-        } else {
-          ct_b++;
-        }
-        assert(ret.first < n && ret.second < n);
-        return ret;
-      } else { /* exhausted b */
-        assert(ct_a < deg_a);
-        assert(id_a < n && ngh_a[ct_a] < n);
-        return std::make_pair(id_a, ngh_a[ct_a++]);
-      }
-    } else { /* exhausted a */
-      assert(ct_b < deg_b);
-      assert(id_b < n && ngh_b[ct_b] < n);
-      return std::make_pair(id_b, ngh_b[ct_b++]);
-    }
-  }
-
-  bool has_next() {
-    return ct_a + ct_b < tot;
-  }
+enum mm_status {
+  in,
+  out,
+  unknown
 };
 
 /* returns pair of (in_matching, query_work) */
 template <class Graph>
-std::pair<bool, size_t> mm_query(uintE u, uintE v, Graph& G) {
+std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so_far, size_t query_cutoff) {
   assert(u < v);
   auto vtx_u = G.get_vertex(u); auto vtx_v = G.get_vertex(v);
   uintE deg_u = vtx_u.getOutDegree(); uintE deg_v = vtx_v.getOutDegree();
@@ -99,40 +46,23 @@ std::pair<bool, size_t> mm_query(uintE u, uintE v, Graph& G) {
 
   size_t our_pri = get_edge_pri(u,v);
 
-  auto lt = [&] (const uintE& aa, const uintE& n_aa, const uintE& bb, const uintE& n_bb) {
-    uintE a = std::min(aa, n_aa); uintE n_a = std::max(aa, n_aa);
-    uintE b = std::min(bb, n_bb); uintE n_b = std::max(bb, n_bb);
+  auto it = sorted_it(nghs_u, nghs_v, deg_u, deg_v, u, v);
 
-    auto a_p = get_edge_pri(a,n_a);
-    auto b_p = get_edge_pri(b,n_b);
-    if (a_p < b_p) {
-      return std::make_pair(a, n_a);
-    } else if (b_p < a_p) {
-      return std::make_pair(b, n_b);
-    } else {
-      assert(a != n_a && b != n_b);
-      if (std::make_pair(a, n_a) < std::make_pair(b, n_b)) {
-        return std::make_pair(a, n_a);
-      } else {
-        return std::make_pair(b, n_b);
-      }
-    }
-  };
-  auto it = sorted_it(nghs_u, nghs_v, deg_u, deg_v, u, v, lt);
-
-  size_t work = 0;
+  size_t work = work_so_far;
   size_t last_pri = 0;
   while (it.has_next()) {
-    auto [aa, n_aa] = it.get_next();
-    auto a = std::min(aa, n_aa); auto n_a = std::max(aa, n_aa);
+    if (work == query_cutoff) {
+      return std::make_pair(unknown, query_cutoff);
+    }
+    auto [a, n_a] = it.get_next();
     work++;
 
-    auto e_p = get_edge_pri(a, n_a);
-    assert(e_p >= last_pri); /* no inversions */
-    last_pri = e_p;
-    if (our_pri < e_p) {
+    auto ep = get_edge_pri(a, n_a);
+    assert(ep >= last_pri); /* no inversions */
+    last_pri = ep;
+    if (our_pri < ep) {
       break; /* done */
-    } else if (our_pri == e_p) {
+    } else if (our_pri == ep) {
       if (a == u && n_a == v) {
         break;
       } /* not equal, but hashes equal */
@@ -140,28 +70,30 @@ std::pair<bool, size_t> mm_query(uintE u, uintE v, Graph& G) {
         break; /* done */
       }
     }
-    /* have to recursively check (a, n_a) */
 
-    auto [status, rec_work] = mm_query(a, n_a, G);
-    work += rec_work;
-    if (status) {
-      return std::make_pair(false, work);
-    } /* else: continue */
+    /* recursively check (a, n_a) */
+    auto [status, rec_work] = mm_query(a, n_a, G, work, query_cutoff);
+    work = rec_work;
+    if (status == in) { /* neighboring edge in mm */
+      return std::make_pair(out, work);
+    } else if (status == unknown) { /* hit query limit---return */
+      return std::make_pair(unknown, work);
+    }
   }
   /* made it! return in_matching */
-  return std::make_pair(true, work);
+  return std::make_pair(in, work);
 }
 
 // Runs a constant number of filters on the whole graph, and runs the
 // prefix-based algorithm on them. Finishes off the rest of the graph with the
 // prefix-based algorithm.
 template <class Graph>
-auto MaximalMatching(Graph& G) {
+auto MaximalMatching(Graph& G, size_t query_cutoff) {
   using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
 
   size_t m = G.m;
-  n = G.n;
+  size_t n = G.n;
 
   auto edge_to_priority = [&] (const uintE& u, const std::tuple<uintE, W>& ngh) {
     auto v = std::get<0>(ngh);
@@ -172,34 +104,43 @@ auto MaximalMatching(Graph& G) {
   size_t max_query_length = 0;
   auto matching_cts = pbbs::sequence<uintE>(n, (uintE)0);
   auto total_work = pbbs::sequence<size_t>(n, (size_t)0);
+  auto got_answer = pbbs::sequence<size_t>(n, (size_t)0);
   auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
-      auto [in_mm, work] = mm_query(u, v, RG);
+      auto [in_mm, work] = mm_query(u, v, RG, 0, query_cutoff);
       pbbs::write_add(&total_work[v], work);
       pbbs::write_max(&max_query_length, work, std::less<size_t>());
-      if (in_mm) {
+      if (in_mm == in) {
         pbbs::write_add(&matching_cts[u], 1);
         pbbs::write_add(&matching_cts[v], 1);
+      }
+      if (in_mm == in || in_mm == out) {
+        pbbs::write_add(&got_answer[u], 1);
       }
     }
   };
   RG.map_edges(map_f);
-  std::cout << "Max query length = " << max_query_length << std::endl;
-  std::cout << "Total work = " << pbbslib::reduce_add(total_work.slice()) << std::endl;
+  size_t tot_work = pbbslib::reduce_add(total_work.slice());
+  double fraction_covered = (static_cast<double>(pbbslib::reduce_add(got_answer.slice())) / (static_cast<double>(m)/2));
+  std::cout << "# Max query length = " << max_query_length << std::endl;
+  std::cout << "# Total work = " << tot_work << std::endl;
+  std::cout << "# Answers for: " << fraction_covered << " fraction of edges" << std::endl;
 
-  // Verify that we found a matching.
-  for (size_t i=0; i<n; i++) {
-    if (matching_cts[i] > 1) {
-      std::cout << "mct = " << matching_cts[i] << " i = " << i << " deg = " << G.get_vertex(i).getOutDegree() << std::endl;
+  if (query_cutoff == std::numeric_limits<size_t>::max()) {
+    // Verify that we found a matching.
+    for (size_t i=0; i<n; i++) {
+      if (matching_cts[i] > 1) {
+        std::cout << "mct = " << matching_cts[i] << " i = " << i << " deg = " << G.get_vertex(i).getOutDegree() << std::endl;
+      }
+      assert(matching_cts[i] <= 1);
     }
-    assert(matching_cts[i] <= 1);
+
+    // Verify that the matching is maximal.
+    auto verify_f = [&] (const uintE u, const uintE& v, const W& wgh) {
+      assert(!(matching_cts[u] == 0 && matching_cts[v] == 0)); // !(we could add this edge to the matching)
+    };
+    G.map_edges(verify_f);
   }
 
-  // Verify that the matching is maximal.
-  auto verify_f = [&] (const uintE u, const uintE& v, const W& wgh) {
-    assert(!(matching_cts[u] == 0 && matching_cts[v] == 0)); // !(we could add this edge to the matching)
-  };
-  G.map_edges(verify_f);
-
-  return 1;
+  return std::make_tuple(max_query_length, tot_work, fraction_covered);
 }

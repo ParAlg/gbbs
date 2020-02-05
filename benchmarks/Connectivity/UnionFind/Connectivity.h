@@ -107,16 +107,12 @@ struct UFAlgorithm {
       auto queries = reordered_updates.slice(update_end, updates.size());
       /* run updates */
       parallel_for(0, insertions.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType optype;
-        std::tie(u,v,optype) = insertions[i];
+        auto [u,v,optype] = insertions[i];
         unite(u, v, parents);
       });
       /* run queries */
       parallel_for(0, queries.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType optype;
-        std::tie(u,v,optype) = queries[i];
+        auto [u,v,optype] = queries[i];
         u = find(u, parents); /* force */
         v = find(v, parents); /* force */
       });
@@ -127,8 +123,8 @@ struct UFAlgorithm {
         UpdateType optype;
         std::tie(u,v,optype) = updates[i];
         if (optype == query_type) { /* query */
-          u = find(u, parents); /* force */
-          v = find(v, parents); /* force */
+          find(u, parents); /* force */
+          find(v, parents); /* force */
         } else { /* insert */
           unite(u, v, parents);
         }

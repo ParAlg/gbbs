@@ -55,7 +55,7 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::unite_find_compress<Graph, provides_initial_graph>,
       {
-        connectit::unite_find_compress<Graph, provides_initial_graph>
+        connectit::unite_find_compress<Graph, provides_initial_graph>,
 //        connectit::unite_find_naive<Graph, provides_initial_graph>,
 //        connectit::unite_find_atomic_split<Graph, provides_initial_graph>,
 //        connectit::unite_find_atomic_halve<Graph, provides_initial_graph>

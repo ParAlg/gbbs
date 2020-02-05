@@ -63,7 +63,3 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
         connectit::shiloach_vishkin<Graph, provides_initial_graph>
       });
 }
-
-
-#include "empty_starting_graph.h"
-#include "subsample_starting_graph.h"

@@ -82,17 +82,17 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
         connectit::unite_rem_lock_find_naive_split_atomic_one<Graph, provides_initial_graph>,
       {
-        connectit::unite_rem_lock_find_naive_split_atomic_one<Graph, provides_initial_graph>,
+//        connectit::unite_rem_lock_find_naive_split_atomic_one<Graph, provides_initial_graph>,
         connectit::unite_rem_lock_find_naive_halve_atomic_one<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_naive_splice_atomic<Graph, provides_initial_graph>,
-
-        connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph, provides_initial_graph>,
-
-        connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph, provides_initial_graph>,
-        connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph, provides_initial_graph>
+//        connectit::unite_rem_lock_find_naive_splice_atomic<Graph, provides_initial_graph>,
+//
+//        connectit::unite_rem_lock_find_atomic_split_split_atomic_one<Graph, provides_initial_graph>,
+//        connectit::unite_rem_lock_find_atomic_split_halve_atomic_one<Graph, provides_initial_graph>,
+//        connectit::unite_rem_lock_find_atomic_split_splice_atomic<Graph, provides_initial_graph>,
+//
+//        connectit::unite_rem_lock_find_atomic_halve_split_atomic_one<Graph, provides_initial_graph>,
+//        connectit::unite_rem_lock_find_atomic_halve_halve_atomic_one<Graph, provides_initial_graph>,
+//        connectit::unite_rem_lock_find_atomic_halve_splice_atomic<Graph, provides_initial_graph>
       });
 }
 

@@ -56,9 +56,9 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
       connectit::unite_nd_find_compress<Graph, provides_initial_graph>,
       {
         connectit::unite_nd_find_compress<Graph, provides_initial_graph>,
-        connectit::unite_nd_find_naive<Graph, provides_initial_graph>,
-        connectit::unite_nd_find_atomic_split<Graph, provides_initial_graph>,
-        connectit::unite_nd_find_atomic_halve<Graph, provides_initial_graph>
+//        connectit::unite_nd_find_naive<Graph, provides_initial_graph>,
+//        connectit::unite_nd_find_atomic_split<Graph, provides_initial_graph>,
+//        connectit::unite_nd_find_atomic_halve<Graph, provides_initial_graph>
       });
 }
 

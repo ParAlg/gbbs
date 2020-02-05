@@ -133,15 +133,49 @@ namespace unite_variants {
   template <class Splice, class Compress, FindOption find_option>
   struct UniteRemLock {
     uintE n;
-    std::mutex* locks;
+    //pbbs::sequence<std::atomic<bool>> locks;
+    pbbs::sequence<bool> locks;
     Compress& compress;
     Splice& splice;
     UniteRemLock(Compress& compress, Splice& splice, uintE n) : n(n), compress(compress), splice(splice) {
-      locks = pbbs::new_array<std::mutex>(n);
+      locks = pbbs::sequence<bool>(n, false);
+//      locks = pbbs::sequence<std::atomic<bool>>(n);
+//      std::cout << "initializing locks, n = " << n << std::endl;
+//      parallel_for(0, n, [&] (size_t i) {
+//        locks[i].store(false);
+//      });
+//      parallel_for (0, n, [&] (size_t i) {
+//        if (locks[i].load()) {
+//          std::cout << "Bad memory at i = " << i << std::endl;
+//        }
+//      });
     }
 
-    ~UniteRemLock() {
-      pbbs::free_array(locks);
+    inline void fence() {
+      std::atomic_thread_fence(std::memory_order_seq_cst);
+    }
+
+    bool acquire_lock(uintE u) {
+      if (!locks[u] && pbbs::atomic_compare_and_swap(&locks[u], false, true)) {
+        return true;
+      }
+      return false;
+//      bool expected = false;
+//      if (locks[u].compare_exchange_strong(expected, true)) {
+//        return true;
+//      }
+//      return false;
+    }
+
+    void release_lock(uintE u) {
+      locks[u] = false;
+//      bool expected = true;
+//      bool ret = locks[u].compare_exchange_strong(expected, false, std::memory_order_seq_cst);
+//      assert(ret);
+//      assert(expected);
+      //locks[u] = false;
+//      bool ret = pbbs::atomic_compare_and_swap<bool>(&locks[u], true, false);
+//      assert(ret);
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
@@ -149,17 +183,24 @@ namespace unite_variants {
       parent ry = v_orig;
       parent z;
       uintE pathlen = 1;
+      uintE lock_attempts = 0;
       while (parents[rx] != parents[ry]) {
         /* link from high -> low */
         if (parents[rx] < parents[ry]) std::swap(rx,ry);
         if (rx == parents[rx]) {
-          locks[rx].lock();
-          parent py = parents[ry];
-          /* link high -> low */
-          if (rx == parents[rx] && rx > py) {
-            parents[rx] = py;
+          if (acquire_lock(rx)) {
+            parent py = parents[ry];
+            if (rx == parents[rx] && rx > py) {
+              parents[rx] = py;
+            }
+            release_lock(rx);
+          } else {
+            lock_attempts++;
+            if (lock_attempts % 10000000 == 0) {
+              std::cout << "Spinning trying to acquire: " << rx << " lock says: " << locks[rx] << std::endl;
+            }
           }
-          locks[rx].unlock();
+          /* link high -> low */
         } else {
           rx = splice(rx, ry, parents);
         }
@@ -215,6 +256,7 @@ namespace unite_variants {
     UniteEarly(Find& find) : find(find) {}
     inline void operator()(uintE u, uintE v, pbbs::sequence<parent>& parents) {
       uintE u_orig = u, v_orig = v;
+      int pathlen = 0;
       while(u != v) {
         /* link high -> low */
         if(v > u) std::swap(u,v);
@@ -225,11 +267,13 @@ namespace unite_variants {
         parent w = parents[z];
         pbbs::atomic_compare_and_swap(&parents[u],z,w);
         u = w;
+        pathlen++;
       }
       if constexpr (find_option != find_naive) {
         u = find(u_orig, parents); /* force */
         v = find(v_orig, parents); /* force */
       }
+      report_pathlen(pathlen);
     }
   };
 

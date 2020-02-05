@@ -31,6 +31,17 @@
 
 namespace connectit {
 
+/* find_compress variants */
+template <class Graph>
+void unite_rem_cas_find_compress_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, split_atomic_one>(G, rounds, correct, P);
+}
+
+template <class Graph>
+void unite_rem_cas_find_compress_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, halve_atomic_one>(G, rounds, correct, P);
+}
+
 /* find_atomic_split variants */
 template <class Graph>
 void unite_rem_cas_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
@@ -94,17 +105,20 @@ double Benchmark_runner(Graph& G, commandLine P) {
   }
   run_tests(G, rounds, P, correct, connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph>,
     {
+      connectit::unite_rem_cas_find_compress_split_atomic_one<Graph>,
+      connectit::unite_rem_cas_find_compress_halve_atomic_one<Graph>,
+
 //      connectit::unite_rem_cas_find_atomic_split_split_atomic_one<Graph>,
 //      connectit::unite_rem_cas_find_atomic_split_halve_atomic_one<Graph>,
-      connectit::unite_rem_cas_find_atomic_split_splice_atomic<Graph>,
-
+//      connectit::unite_rem_cas_find_atomic_split_splice_atomic<Graph>,
+//
 //      connectit::unite_rem_cas_find_atomic_halve_split_atomic_one<Graph>,
 //      connectit::unite_rem_cas_find_atomic_halve_halve_atomic_one<Graph>,
-      connectit::unite_rem_cas_find_atomic_halve_splice_atomic<Graph>,
-
+//      connectit::unite_rem_cas_find_atomic_halve_splice_atomic<Graph>,
+//
 //      connectit::unite_rem_cas_find_naive_split_atomic_one<Graph>,
 //      connectit::unite_rem_cas_find_naive_halve_atomic_one<Graph>,
-      connectit::unite_rem_cas_find_naive_splice_atomic<Graph>,
+//      connectit::unite_rem_cas_find_naive_splice_atomic<Graph>,
     });
   return 1.0;
 }

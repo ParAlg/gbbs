@@ -9,6 +9,8 @@ size_t global_batch_size = 0;
 double global_update_pct = 0.0;
 double global_insert_to_query = 0.0;
 
+extern bool print_batch_time;
+
 template<typename F>
 double reduce(std::vector<double> V, F f) {
   double x = V[0];
@@ -33,22 +35,24 @@ auto repeat(Graph& G, size_t rounds, F test, commandLine& P) {
   std::vector<double> total;
   std::vector<double> average_batch;
   std::vector<double> thput;
+  size_t cc_before, cc_after;
   for (size_t i=0; i < rounds; i++) {
     double tot, avg, thp;
 #ifdef REPORT_PATH_LENGTHS
     max_pathlen.reset();
     total_pathlen.reset();
 #endif
-    std::tie(tot, avg, thp) = test(G, P);
+    std::tie(tot, avg, thp, cc_before, cc_after) = test(G, P);
     total.push_back(tot);
     average_batch.push_back(avg);
     thput.push_back(thp);
   }
-  return std::make_tuple(total, average_batch, thput);
+  return std::make_tuple(total, average_batch, thput, cc_before, cc_after);
 }
 
 template <class CPUStats>
-void print_cpu_stats(std::string& name, size_t rounds, 
+void print_cpu_stats(std::string& name, size_t rounds,
+    size_t cc_before, size_t cc_after,
     double medt, double mint, double maxt,
     double med_batch, double min_batch, double max_batch,
     double med_throughput, double min_throughput, double max_throughput,
@@ -61,6 +65,8 @@ void print_cpu_stats(std::string& name, size_t rounds,
   std::cout << "  \"insert_to_query\" : \"" << global_insert_to_query << "\"," << std::endl;
   std::cout << "  \"update_pct\" : \"" << global_update_pct << "\"," << std::endl;
   std::cout << "  \"batch_size\" : \"" << global_batch_size << "\"," << std::endl;
+  std::cout << "  \"cc_before\" : \"" << cc_before << "\"," << std::endl;
+  std::cout << "  \"cc_after\" : \"" << cc_after << "\"," << std::endl;
   std::cout << "  \"medt\" : " << std::setprecision(5) << medt << "," << std::endl;
   std::cout << "  \"mint\" : " << mint << "," << std::endl;
   std::cout << "  \"maxt\" : " << maxt << "," << std::endl;
@@ -90,11 +96,12 @@ bool run_multiple(Graph& G, size_t rounds,
   std::vector<double> t; /* total */
   std::vector<double> a;
   std::vector<double> tp;
+  size_t cc_before, cc_after;
 #ifdef USE_PCM_LIB
   auto before_state = get_pcm_state();
   timer ot; ot.start();
 #endif
-  std::tie(t, a, tp) = repeat(G, rounds, test, P);
+  std::tie(t, a, tp, cc_before, cc_after) = repeat(G, rounds, test, P);
 #ifdef USE_PCM_LIB
   double elapsed = ot.stop();
   auto after_state = get_pcm_state();
@@ -115,7 +122,7 @@ bool run_multiple(Graph& G, size_t rounds,
   double maxtp = reduce(tp, maxf);
   double medtp = median(tp);
 
-  print_cpu_stats(name, rounds, medt, mint, maxt, meda, mina, maxa, medtp, mintp, maxtp, stats, P);
+  print_cpu_stats(name, rounds, cc_before, cc_after, medt, mint, maxt, meda, mina, maxa, medtp, mintp, maxtp, stats, P);
   return 1;
 }
 
@@ -170,7 +177,7 @@ namespace connectit {
       bool check,
       Alg& alg) {
     auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
-    alg.initialize(parents);
+
 
     pbbs::sequence<uintE> correct_parents;
 
@@ -184,11 +191,15 @@ namespace connectit {
       uf_alg.template compute_components<no_sampling>(parents);
     }
 
+    size_t ncc_before = num_cc(parents);
+
     if (check) {
       correct_parents = parents; /* copy */
     }
 
+    timer init_t; init_t.start();
     alg.initialize(parents);
+    init_t.stop(); init_t.reportTotal("#alg initialization time");
 
     /* process batches */
     timer tt; tt.start();
@@ -204,15 +215,21 @@ namespace connectit {
       size_t start = i*batch_size;
       size_t end = std::min((i+1)*batch_size, m);
       auto update = updates.slice(start, end);
-
+      if (i % 10000 == 0) {
+        std::cout << "# starting batch" << std::endl;
+      }
       timer tt; tt.start();
       alg.template process_batch<reorder_batch>(parents, update);
       double batch_time = tt.stop();
-      if (i % 10000 == 0) {
-        std::cout << "## Finished : " << i << " out of " << n_batches << " batches." << std::endl;
-      }
+//      std::cout << "# finished batch" << std::endl;
+//      if (i % 10000 == 0) {
+//        std::cout << "## Finished : " << i << " out of " << n_batches << " batches." << std::endl;
+//      }
       batch_times.emplace_back(batch_time);
       updates_processed += update.size();
+      if (print_batch_time) {
+        std::cout << "batch-time: " << batch_time << std::endl;
+      }
 
       if (check) {
         /* 1. run check algorithm */
@@ -228,14 +245,19 @@ namespace connectit {
 
         RelabelDet(correct_parents_copy);
         cc_check(correct_parents_copy, parents_copy);
+        size_t ncc_after = num_cc(parents_copy);
       }
-
     }
     double t = tt.stop();
     double med_batch_time = median(batch_times);
+    parallel_for(0, n, [&] (size_t i) {
+      check_shortcut(parents, i);
+    });
+
+    size_t ncc_after = num_cc(parents);
 
     double throughput = static_cast<double>(updates_processed) / t;
-    return std::make_tuple(t, med_batch_time, throughput);
+    return std::make_tuple(t, med_batch_time, throughput, ncc_before, ncc_after);
   }
 
 } // connectit

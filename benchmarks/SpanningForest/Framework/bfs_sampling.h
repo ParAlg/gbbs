@@ -3,13 +3,11 @@
 template <class W>
 struct BFS_ComponentLabel_F {
   pbbs::sequence<parent>& Parents;
-  pbbs::sequence<edge>& Edges;
   uintE src;
-  BFS_ComponentLabel_F(pbbs::sequence<parent>& _Parents, pbbs::sequence<edge>& Edges, uintE src) : Parents(_Parents), Edges(Edges), src(src) {}
+  BFS_ComponentLabel_F(pbbs::sequence<parent>& _Parents,uintE src) : Parents(_Parents),  src(src) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (Parents[d] != src) {
       Parents[d] = src;
-      Edges[d] = std::make_pair(s, d);
       return 1;
     } else {
       return 0;
@@ -17,7 +15,6 @@ struct BFS_ComponentLabel_F {
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
     if (Parents[d] != src && pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src))) {
-      Edges[d] = std::make_pair(s, d);
       return true;
     }
     return false;
@@ -40,12 +37,18 @@ inline auto BFS_ComponentLabel(Graph& G, uintE src) {
   while (!Frontier.isEmpty()) {
     reachable += Frontier.size();
     vertexSubset output =
-        edgeMap(G, Frontier, BFS_ComponentLabel_F<W>(Parents, Edges, src), -1, sparse_blocked | dense_parallel);
+        edgeMap(G, Frontier, BFS_ComponentLabel_F<W>(Parents, src), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
     rounds++;
   }
   Frontier.del();
+  parallel_for(0, G.n, [&] (size_t i) {
+    uintE par = Parents[i];
+    if (par != i) {
+      Edges[i] = std::make_pair(i, Parents[i]);
+    }
+  });
   // std::cout << "Reachable: " << reachable << " #rounds = " << rounds << std::endl;
   return std::make_pair(std::move(Parents), std::move(Edges));
 }

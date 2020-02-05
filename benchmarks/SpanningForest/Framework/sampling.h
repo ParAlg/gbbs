@@ -38,6 +38,7 @@ template <
 
       algorithm.template compute_spanning_forest<sampling_option>(Parents, Edges, frequent_comp);
 
+      return Edges;
       /* filter empty_edge pairs from Edge */
       return pbbs::filter(Edges, [&] (const edge& e) {
         return e != empty_edge;
@@ -60,6 +61,7 @@ template <
       auto Edges = pbbs::sequence<edge>(n, empty_edge);
       algorithm.initialize(Parents, Edges);
       algorithm.template compute_spanning_forest<no_sampling>(Parents, Edges);
+      return Edges;
       return pbbs::filter(Edges, [&] (const edge& e) {
         return e != empty_edge;
       });

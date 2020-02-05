@@ -84,20 +84,46 @@ struct KOutSamplingTemplate {
     neighbor_rounds = (ngh_rounds == -1) ? P.getOptionLongValue("-sample_rounds", 2L) : ngh_rounds;
    }
 
+//  /* Used in Rem-CAS variants for splice */
+//  inline uintE my_split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+//    parent v = parents[i];
+//    parent w = parents[v];
+//    if(v == w) return v;
+//    else {
+//      pbbs::atomic_compare_and_swap(&parents[i],v,w);
+//      i = v;
+//      return i;
+//    }
+//  }
+
   void link(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-    parent p1 = parents[u];
-    parent p2 = parents[v];
-    while (p1 != p2) {
-      parent high = p1 > p2 ? p1 : p2;
-      parent low = p1 + (p2 - high);
-      parent p_high = parents[high];
-      // Was already 'low' or succeeded in writing 'low'
-      if ((p_high == low) ||
-          (p_high == high && pbbs::atomic_compare_and_swap(&parents[high], high, low)))
-        break;
-      p1 = parents[parents[high]];
-      p2 = parents[low];
-    }
+//    uintE rx = u; uintE ry = v;
+//    while (parents[rx] != parents[ry]) {
+//      parent p_ry = parents[ry];
+//      parent p_rx = parents[rx];
+//      if (p_rx < p_ry) {
+//        std::swap(rx, ry);
+//        std::swap(p_rx, p_ry);
+//      }
+//      if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
+//        break;
+//      } else {
+//        rx = my_split_atomic_one(rx, ry, parents);
+//      }
+//    }
+  parent p1 = parents[u];
+  parent p2 = parents[v];
+  while (p1 != p2) {
+    parent high = p1 > p2 ? p1 : p2;
+    parent low = p1 + (p2 - high);
+    parent p_high = parents[high];
+    // Was already 'low' or succeeded in writing 'low'
+    if ((p_high == low) ||
+        (p_high == high && pbbs::atomic_compare_and_swap(&parents[high], high, low)))
+      break;
+    p1 = parents[parents[high]];
+    p2 = parents[low];
+  }
   }
 
   /* The Hybrid version: kout-hybrid */

@@ -100,6 +100,7 @@ struct LiuTarjanAlgorithm {
   Shortcut& shortcut;
   Alter& alter;
   pbbs::sequence<uintE> messages;
+  pbbs::sequence<bool> flags;
   LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
     GA(GA), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
 
@@ -108,6 +109,7 @@ struct LiuTarjanAlgorithm {
     parallel_for(0, n, [&] (size_t i) {
       messages[i] = i;
     });
+    flags = pbbs::sequence<bool>(P.size(), false);
   }
 
   template <SamplingOption sampling_option>
@@ -180,9 +182,12 @@ struct LiuTarjanAlgorithm {
     auto& P = parents;
     size_t round = 0;
     while (parents_changed) {
+      round++;
       parents_changed = false;
+      std::cout << "# round = " << round << std::endl;
 
       // Parent-Connect
+      timer pc; pc.start();
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
         bool updated = connect(u, v, P, messages);
@@ -190,28 +195,70 @@ struct LiuTarjanAlgorithm {
           parents_changed = true;
         }
       });
+      pc.stop(); pc.reportTotal("# pc time");
 
       // Update local neighborhoods
+      timer ut; ut.start();
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
         auto p_u = P[u];
         auto p_v = P[v];
-        update(u, P, messages);
-        update(v, P, messages);
-        update(p_u, P, messages);
-        update(p_v, P, messages);
+        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+          update(u, P, messages);
+        }
+        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+          update(v, P, messages);
+        }
+        if (flags[p_u] == false && pbbs::atomic_compare_and_swap(&flags[p_u], false, true)) {
+          update(p_u, P, messages);
+        }
+        if (flags[p_v] == false && pbbs::atomic_compare_and_swap(&flags[p_v], false, true)) {
+          update(p_v, P, messages);
+        }
       });
-
-      // Shortcut
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
-        shortcut(u, P);
-        shortcut(v, P);
-        messages[u] = P[u];
-        messages[v] = P[v];
+        if (flags[u]) {
+          flags[u] = false; 
+        }
+        if (flags[P[u]]) {
+          flags[P[u]] = false;
+        }
+        if (flags[v]) {
+          flags[v] = false;
+        }
+        if (flags[P[v]]) {
+          flags[P[v]] = false;
+        }
       });
-      round++;
+      ut.stop(); ut.reportTotal("# update time");
 
+      // Shortcut
+      timer sc; sc.start();
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+          shortcut(u, P);
+          messages[u] = P[u];
+        }
+        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+          shortcut(v, P);
+          messages[v] = P[v];
+        }
+      });
+      sc.stop(); sc.reportTotal("# shortcut time");
+
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        if (flags[u]) {
+          flags[u] = false;
+        }
+        if (flags[v]) {
+          flags[v] = false;
+        }
+      });
+
+      timer at; at.start();
       if constexpr (alter_option != no_alter) {
         // Alter
         constexpr uintE null_comp = UINT_E_MAX - 1;
@@ -232,13 +279,13 @@ struct LiuTarjanAlgorithm {
         });
         inserts = new_inserts;
       }
+      at.stop(); at.reportTotal("# alter time");
     }
 
     // Process queries
     parallel_for(0, queries.size(), [&] (size_t i) {
-      uintE u, v;
-      UpdateType utype;
-      std::tie(u,v, utype) = updates[i];
+      auto [u,v, utype] = updates[i];
+
       while (P[u] != P[P[u]]) {
         P[u] = P[P[u]];
       } /* found p_u */
@@ -247,7 +294,6 @@ struct LiuTarjanAlgorithm {
         P[v] = P[P[v]];
       } /* found p_v */
     });
-
   }
 
 };

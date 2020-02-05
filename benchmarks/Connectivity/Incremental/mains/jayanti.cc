@@ -45,7 +45,7 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
       connectit::jayanti_find_twotrysplit<Graph, provides_initial_graph>,
       {
         connectit::jayanti_find_twotrysplit<Graph, provides_initial_graph>,
-        connectit::jayanti_find_simple<Graph, provides_initial_graph>
+//        connectit::jayanti_find_simple<Graph, provides_initial_graph>
       });
 }
 

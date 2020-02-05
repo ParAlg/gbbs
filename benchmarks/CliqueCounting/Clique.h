@@ -180,13 +180,14 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   uintE cur_bkt = 0;
   uintE max_bkt = 0;
   // Peel each bucket
-   while (finished != G.n) {
+  while (finished != G.n) {
     // Retrieve next bucket
     auto bkt = b.next_bucket();
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, (uintE) bkt.id);
+    std::cout << "Fetching bucket: " << cur_bkt << std::endl;
     //active.toSparse();
 
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
@@ -194,14 +195,13 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 // here, update D[i] if necessary
 // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
 // also drop if already peeled -- check using D
-  
 
   //sequence<size_t> tots = sequence<size_t>::no_init(active.size());
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
-  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
-  
-  
+  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+
+
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& v, const uintE& u) {
@@ -220,21 +220,21 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
-  //auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
-  //auto D_delayed = pbbs::delayed_sequence<std::tuple<uintE, uintE>, decltype(D_delayed_f)>(G.n, D_delayed_f);
-  //auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
-  //size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
+  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
+  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, uintE>>(G.n, D_delayed_f);
+  auto D_filter_f = [&](const std::tuple<uintE,uintE>& tup) { return std::get<1>(tup) > 0; } ;
+  size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
 
-  size_t filter_size = 0;
-  for (size_t l=0; l < G.n; l++) {
-    if (D_update[l] > 0) {
-      D_filter[filter_size] = std::make_tuple(l, D_update[l]);
-      assert (cliques[eltsPerCacheLine*l] >= D_update[l]);
-      cliques[eltsPerCacheLine*l] -= D_update[l];
-      D_update[l] = 0;
-      filter_size++;
-    }
-  }
+  //size_t filter_size = 0;
+  //for (size_t l=0; l < G.n; l++) {
+  //  if (D_update[l] > 0) {
+  //    D_filter[filter_size] = std::make_tuple(l, D_update[l]);
+  //    assert (cliques[eltsPerCacheLine*l] >= D_update[l]);
+  //    cliques[eltsPerCacheLine*l] -= D_update[l];
+  //    D_update[l] = 0;
+  //    filter_size++;
+  //  }
+  //}
 
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
@@ -251,7 +251,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
       D_filter[i] = std::make_tuple(v, bkt);
     } else D_filter[i] = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   });
-    
+
   auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
     const uintE v = std::get<0>(D_filter[i]);
     const uintE bkt = std::get<1>(D_filter[i]);
@@ -280,9 +280,10 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     //}
     //moved.del();
     active.del();
-  
+
     rounds++;
   }
+   std::cout << "rho = " << rounds << std::endl;
 
   b.del();
   free(still_active);

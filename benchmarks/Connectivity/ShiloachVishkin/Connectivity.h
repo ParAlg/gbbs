@@ -33,9 +33,11 @@ struct SVAlgorithm {
   Graph& GA;
   SVAlgorithm(Graph& GA) : GA(GA) {}
   pbbs::sequence<parent> prev_parents;
+  pbbs::sequence<bool> flags;
 
   void initialize(pbbs::sequence<parent>& P) {
     prev_parents = P;
+    flags = pbbs::sequence<bool>(P.size(), false);
   }
 
   template <SamplingOption sampling_option>
@@ -68,11 +70,12 @@ struct SVAlgorithm {
     while (changed) {
       changed = false;
       rounds++;
+      std::cout << "# round = " << rounds << std::endl;
       parallel_for(0, candidates.size(), [&] (uintE i) {
         uintE u = candidates[i];
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          parent p_u = parents[u];
-          parent p_v = parents[v];
+          parent p_u = prev_parents[u];
+          parent p_v = prev_parents[v];
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
@@ -102,15 +105,18 @@ struct SVAlgorithm {
     static_assert(reorder_updates == false);
     bool changed = true;
 
+    size_t rounds = 0;
     while (changed) {
+      rounds++;
+      std::cout << "# running round = " << rounds << std::endl;
       changed = false;
       parallel_for(0, updates.size(), [&] (size_t i) {
         parent u, v;
         UpdateType utype;
         std::tie(u,v, utype) = updates[i];
         if (utype == insertion_type) { /* update */
-          parent p_u = parents[u];
-          parent p_v = parents[v];
+          parent p_u = prev_parents[u];
+          parent p_v = prev_parents[v];
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
@@ -120,25 +126,64 @@ struct SVAlgorithm {
         } /* ignore queries for now */
       });
 
-      // compress (also performs queries implicitly on last round)
-      parallel_for(0, updates.size(), [&] (uintE i) {
+//      auto diff_map = pbbs::make_sequence<size_t>(parents.size(), [&] (size_t i) {
+//        return parents[i] != prev_parents[i];
+//      });
+
+      // compress
+      parallel_for(0, updates.size(), [&] (size_t i) {
         uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
-        while (parents[u] != parents[parents[u]]) {
-          parents[u] = parents[parents[u]];
-          pathlen++;
+        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+          while (parents[u] != parents[parents[u]]) {
+            parents[u] = parents[parents[u]];
+            pathlen++;
+          }
+          prev_parents[u] = parents[u];
+          report_pathlen(pathlen);
         }
-        report_pathlen(pathlen);
 
-        pathlen = 0;
-        while (parents[v] != parents[parents[v]]) {
-          parents[v] = parents[parents[v]];
-          pathlen++;
+        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+          while (parents[v] != parents[parents[v]]) {
+            parents[v] = parents[parents[v]];
+            pathlen++;
+          }
+          prev_parents[v] = parents[v];
+          report_pathlen(pathlen);
         }
-        prev_parents[u] = parents[u];
-        prev_parents[v] = parents[v];
-        report_pathlen(pathlen);
       });
+
+      // reset flags
+      parallel_for(0, updates.size(), [&] (size_t i) {
+        uintE pathlen = 1;
+        auto [u, v, utype] = updates[i];
+        if (flags[u]) {
+          flags[u] = false;
+        }
+        if (flags[v]) {
+          flags[v] = false;
+        }
+      });
+
+      // compress (also performs queries implicitly on last round)
+//      parallel_for(0, updates.size(), [&] (uintE i) {
+//        uintE pathlen = 1;
+//        auto [u, v, utype] = updates[i];
+//        while (parents[u] != parents[parents[u]]) {
+//          parents[u] = parents[parents[u]];
+//          pathlen++;
+//        }
+//        report_pathlen(pathlen);
+//
+//        pathlen = 1;
+//        while (parents[v] != parents[parents[v]]) {
+//          parents[v] = parents[parents[v]];
+//          pathlen++;
+//        }
+//        prev_parents[u] = parents[u];
+//        prev_parents[v] = parents[v];
+//        report_pathlen(pathlen);
+//      });
     }
   }
 
