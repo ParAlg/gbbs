@@ -249,6 +249,30 @@ namespace pbbs {
     return Out;
   }
 
+  template <SEQ In_Seq, SEQ Out_Seq, class F>
+  size_t filter(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag)
+  {
+    using T = typename In_Seq::value_type;
+    size_t n = In.size();
+    size_t l = num_blocks(n,_block_size);
+    sequence<size_t> Sums(l);
+    sequence<bool> Fl(n);
+    sliced_for (n, _block_size,
+		[&] (size_t i, size_t s, size_t e)
+		{ size_t r = 0;
+		  for (size_t j=s; j < e; j++)
+		    r += (Fl[j] = f(In[j]));
+		  Sums[i] = r;});
+    size_t m = scan_inplace(Sums.slice(), addm<size_t>());
+    sliced_for (n, _block_size,
+		[&] (size_t i, size_t s, size_t e)
+		{ pack_serial_at(In.slice(s,e),
+				 Fl.slice(s,e),
+				 Out.slice(Sums[i], (i == l-1) ? m : Sums[i+1]));});
+    return m;
+  }
+
+
   // Filter and write the output to the output range.
   template <SEQ In_Seq, RANGE Out_Seq, class F>
   size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
