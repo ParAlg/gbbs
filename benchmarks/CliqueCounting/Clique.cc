@@ -100,12 +100,12 @@ double AppKCore_runner(Graph& GA, commandLine P) {
 
   //TODO peeling
   if (!use_base) return tt;
-  assert(filter);
-  size_t allcount=0;
-  for (size_t j=0; j < GA.n; j++) {
-    allcount += per_vert[eltsPerCacheLine*j];
-  }
-  assert(allcount / k == count);
+  //assert(filter);
+  //size_t allcount=0;
+  //for (size_t j=0; j < GA.n; j++) {
+  //  allcount += per_vert[eltsPerCacheLine*j];
+  //}
+  //assert(allcount / k == count);
   timer t2; t2.start();
   sequence<uintE> cores = Peel(GA, k-1, per_vert, label);
   double tt2 = t2.stop();
