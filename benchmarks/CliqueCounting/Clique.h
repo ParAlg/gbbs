@@ -223,7 +223,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   size_t filter_size = 0;
   for (size_t l=0; l < G.n; l++) {
-    if (D_update[l] > 0) {
+    if (D_update[l] > 0 && still_active[l] != 2) {
       D_filter[filter_size] = std::make_tuple(l, D_update[l]);
       assert (cliques[eltsPerCacheLine*l] >= D_update[l]);
       cliques[eltsPerCacheLine*l] -= D_update[l];
