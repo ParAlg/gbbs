@@ -174,7 +174,6 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
-  for (size_t i=0; i < G.n; i++) {still_active[i] = 0;}
 
   size_t rounds = 0;
   size_t finished = 0;
@@ -205,9 +204,13 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-      auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+      auto ignore_f = [&](const uintE& v, const uintE& u) {
+        if (still_active[u] == 2 || still_active[v] == 2) return false;
+        return u < v;
+        //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
+      }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
-      auto update_d = [&](uintE vtx, size_t count) { assert(ignore_f(vtx)); pbbs::write_add(&(D_update[vtx]), count); };
+      auto update_d = [&](uintE vtx, size_t count) { pbbs::write_add(&(D_update[vtx]), count); };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;

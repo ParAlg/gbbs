@@ -279,7 +279,7 @@ struct HybridSpace_lw {
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
     //if (use_base) base[0] = i;
-    auto f = [&](const uintE& u) { return true; };
+    auto f = [&](const uintE& src, const uintE& u) { return true; };
     if (use_old_labels) setup_labels(DG, k, i, f);
     else setup_intersect(DG, k, i, f);
   }
@@ -304,8 +304,7 @@ struct HybridSpace_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-      if (!f(v)) { j++; return; }
-      assert (f(relabel[j]));
+      if (!f(src, v)) { j++; return; }
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
@@ -317,10 +316,9 @@ struct HybridSpace_lw {
 
       while (i_iter_idx < nn && v_iter_idx < v_deg) {
         if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
-          if (f(std::get<0>(i_iter.cur()))) {
+          if (f(i, std::get<0>(i_iter.cur())) && f(v, std::get<0>(i_iter.cur()))) {
             induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
             induced_degs[j]++;
-            assert (f(relabel[i_iter_idx]));
           }
           i_iter_idx++; v_iter_idx++;
           if (i_iter.has_next()) i_iter.next();
@@ -334,24 +332,6 @@ struct HybridSpace_lw {
           if (v_iter.has_next()) v_iter.next();
         }
       }
-      /*size_t o = 0;
-      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (!f(v_nbhr)) return;
-        // search for v_nbhr as a neighbor of i
-        // if it is a neighbor, let its index be stored
-        while (std::get<0>(i_iter.cur()) < v_nbhr) { // here use binary search eq
-          if (!i_iter.has_next()) break;
-          i_iter.next();
-          o++;
-        }
-        // first check if iter.cur == v_nbhr
-        // if iter.cur < v_nbhr, increment o and go to iter.next
-        if (std::get<0>(i_iter.cur()) == v_nbhr) {
-          if (k > 2) induced_edges[j*nn + induced_degs[j]] = o;
-          induced_degs[j]++;
-        }
-      };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);*/
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
@@ -367,15 +347,13 @@ struct HybridSpace_lw {
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
   
-    if (k > 2) {
-      num_induced[0] = nn;
-      for (size_t  j=0; j < nn; j++) { induced[j] = j; }
-    }
+    num_induced[0] = nn;
+    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
 
     //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      //if (!f(ngh)) return;
+      if (!f(src, ngh)) {o++; return;}
       old_labels[ngh] = o + 1;
       if (use_base) { relabel[o] = ngh; }
       o++;
@@ -385,16 +363,16 @@ struct HybridSpace_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-      if (!f(v)) { j++; return; }
+      if (!f(src, v)) { j++; return; }
       size_t v_deg = DG.get_vertex(v).getOutDegree();
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
       //for (size_t l=0; l < v_deg; l++) {
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (!f(v_nbhr)) return;
+        if (!f(src_v, v_nbhr)) return;
         if (old_labels[v_nbhr] > 0) {
-          if (k > 2) induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
         }
       };
