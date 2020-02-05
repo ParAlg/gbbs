@@ -174,7 +174,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
-  for (size_t i=0; i < G.n; i++) {stil_active[i] = 0;}
+  for (size_t i=0; i < G.n; i++) {still_active[i] = 0;}
 
   size_t rounds = 0;
   size_t finished = 0;
