@@ -201,13 +201,15 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
 
-  auto update_d = [&](uintE vtx, size_t count) {
-    pbbs::write_add(&(D_update[vtx]), count);
-  };
+  
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
+      auto update_d = [&](uintE vtx, size_t count) {
+    if (!ignore_f(vtx))
+    pbbs::write_add(&(D_update[vtx]), count);
+  };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;
@@ -217,9 +219,9 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
-  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
-  auto D_delayed = pbbs::delayed_sequence<std::tuple<uintE, uintE>, decltype(D_delayed_f)>(G.n, D_delayed_f);
-  auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
+  //auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
+  //auto D_delayed = pbbs::delayed_sequence<std::tuple<uintE, uintE>, decltype(D_delayed_f)>(G.n, D_delayed_f);
+  //auto D_filter_f = [&](std::tuple<uintE,uintE> tup) { return std::get<1>(tup) > 0; } ;
   //size_t filter_size = pbbs::filter_out(D_delayed, D_filter, D_filter_f);
 
   size_t filter_size = 0;
