@@ -226,7 +226,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   for (size_t l=0; l < G.n; l++) {
     if (D_update[l] > 0) {
       D_filter[filter_size] = std::make_tuple(l, D_update[l]);
-      cliques[v] -= D_update[l];
+      cliques[l] -= D_update[l];
       D_update[l] = 0;
       filter_size++;
     }
