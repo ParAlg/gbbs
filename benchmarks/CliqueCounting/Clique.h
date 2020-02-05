@@ -201,12 +201,13 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
-  auto update_d = [&](uintE vtx, size_t count) { pbbs::write_add(&(D_update[vtx]), count); };
+  
   
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
+      auto update_d = [&](uintE vtx, size_t count) { assert(ignore_f(vtx)); pbbs::write_add(&(D_update[vtx]), count); };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;
@@ -223,7 +224,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
 
   size_t filter_size = 0;
   for (size_t l=0; l < G.n; l++) {
-    if (D_update[l] > 0 && still_active[l] != 2) {
+    if (D_update[l] > 0) {
       D_filter[filter_size] = std::make_tuple(l, D_update[l]);
       assert (cliques[eltsPerCacheLine*l] >= D_update[l]);
       cliques[eltsPerCacheLine*l] -= D_update[l];
