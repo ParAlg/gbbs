@@ -207,9 +207,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
       auto ignore_f = [&](const uintE& u) { return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i)); }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
       auto update_d = [&](uintE vtx, size_t count) {
-    if (!ignore_f(vtx))
-    pbbs::write_add(&(D_update[vtx]), count);
-  };
+        if (!ignore_f(vtx)) pbbs::write_add(&(D_update[vtx]), count);
+      };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;

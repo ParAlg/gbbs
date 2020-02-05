@@ -297,10 +297,15 @@ struct HybridSpace_lw {
     //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
   
-    if (k > 2) {
-      num_induced[0] = nn;
-      for (size_t  j=0; j < nn; j++) { induced[j] = j; }
-    }
+    //if (k > 2) {
+    //num_induced[0] = nn;
+    //  for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    //}
+    size_t j_idx = 0;
+    size_t j_idx_idx = 0;
+    auto map_j_f = [&] (const uintE& src, const uintE& v, const W& wgh) { if(f(v)) { induced[j_idx_idx] = j_idx; j_idx_idx++; } j_idx++;};
+    DG.get_vertex(i).mapOutNgh(i, map_j_f, false);
+    num_induced[0] = j_idx_idx;
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
