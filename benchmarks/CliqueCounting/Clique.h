@@ -94,10 +94,10 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type, double epsilon,
-long space_type, bool label, bool filter, bool use_base) {
+long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  
+
   using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;

@@ -92,7 +92,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
 
   timer t; t.start();
-  size_t count = KClique(GA, k, order, epsilon, space, label, filter, use_base);
+  size_t count = KClique(GA, k, order, epsilon, space, label, filter, use_base, per_vert);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
