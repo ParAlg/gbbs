@@ -97,7 +97,6 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
-  uintE* inverse_rank = use_base ? (uintE*) malloc(GA.n*sizeof(uintE)) : nullptr;
 
   using W = typename Graph::weight_type;
   assert (k >= 3);
@@ -159,12 +158,13 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   if (!use_base) return count;
 
   timer t2; t2.start();
+  uintE* inverse_per_vert = use_base && !filter ? (uintE*) malloc(eltsPerCacheLine*GA.n*sizeof(uintE)) : nullptr;
   if (!filter) {
-    parallel_for(0, GA.n, [&] (size_t i) { inverse_rank[rank[i]] = i; });
-  } else {
-    parallel_for(0, GA.n, [&] (size_t i) { inverse_rank[i] = i; });
+    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[eltsPerCacheLine*rank[i]]; });
+    free(per_vert);
+    per_vert = inverse_per_vert;
   }
-  sequence<uintE> cores = Peel(GA, k-1, per_vert, label, rank, inverse_rank);
+  sequence<uintE> cores = Peel(GA, k-1, per_vert, label, rank);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   free(per_vert);
@@ -175,9 +175,9 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
 
 template <class Graph>
-sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<uintE> &rank, uintE* inverse_rank, size_t num_buckets=128) {
+sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*inverse_rank[i]]; });
+  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_update = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_filter = sequence<std::tuple<uintE, uintE>>(G.n);
@@ -252,11 +252,11 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
     const uintE v = std::get<0>(D_filter[i]);
     assert (v < G.n);
     D_update[v] = 0;
-    assert (cliques[eltsPerCacheLine*inverse_rank[v]] >= std::get<1>(D_filter[i]));
-    cliques[eltsPerCacheLine*inverse_rank[v]] -= std::get<1>(D_filter[i]);
+    assert (cliques[eltsPerCacheLine*v] >= std::get<1>(D_filter[i]));
+    cliques[eltsPerCacheLine*v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
-      uintE new_deg = std::max(cliques[eltsPerCacheLine*inverse_rank[v]], cur_bkt);
+      uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
       D[v] = new_deg;
       uintE bkt = b.get_bucket(deg, new_deg);
       // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
