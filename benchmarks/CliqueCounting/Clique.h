@@ -198,7 +198,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
     finished += active.size();
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, (uintE) bkt.id);
-    std::cout << "Fetching bucket: " << cur_bkt << std::endl;
+    //std::cout << "Fetching bucket: " << cur_bkt << std::endl;
     //active.toSparse();
 
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
