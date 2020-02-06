@@ -88,7 +88,6 @@ TEST(ScanSubroutines, EmptyGraph) {
 
 TEST(ScanSubroutines, BasicUsage) {
   // Graph diagram:
-  //
   //     0 --- 1 -- 2 -- 5
   //           |   /|
   //           | /  |
@@ -281,4 +280,43 @@ TEST(Cluster, EmptyGraph) {
   for (const auto& vertex_type : clustering.clusters_by_vertex) {
     EXPECT_TRUE(std::holds_alternative<scan::Outlier>(vertex_type));
   }
+}
+
+TEST(Cluster, BasicUsage) {
+  // Graph diagram:
+  //
+  //     0 --- 1 -- 2 -- 5
+  //           |   /|
+  //           | /  |
+  //           3 -- 4
+  const size_t kNumVertices{6};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {1, 2},
+    {1, 3},
+    {2, 3},
+    {2, 4},
+    {2, 5},
+    {3, 4},
+  };
+  auto graph{MakeGraph(kNumVertices, kEdges)};
+
+  const scan::ScanIndex index{&graph};
+
+  EXPECT_EQ("TODO", "DONE");
+}
+
+TEST(Cluster, DisconnectedGraph) {
+  // Graph diagram:
+  //     0 -- 1    2    3 -- 4 -- 5
+
+  const size_t kNumVertices{6};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {3, 4},
+    {4, 5},
+  };
+  auto graph{MakeGraph(kNumVertices, kEdges)};
+
+  EXPECT_EQ("TODO", "DONE");
 }
