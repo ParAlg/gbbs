@@ -233,28 +233,28 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
 
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
-  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
-  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, uintE>>(G.n, D_delayed_f);
-  auto D_filter_f = [&](const std::tuple<uintE,uintE>& tup) { return std::get<1>(tup) > 0; } ;
-  size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
+  //auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
+  //auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, uintE>>(G.n, D_delayed_f);
+  //auto D_filter_f = [&](const std::tuple<uintE,uintE>& tup) { return std::get<1>(tup) > 0; } ;
+  //size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
 
-  //size_t filter_size = 0;
-  //for (size_t l=0; l < G.n; l++) {
-  //  if (D_update[l] > 0) {
-  //    D_filter[filter_size] = std::make_tuple(l, D_update[l]);
-  //    assert (cliques[eltsPerCacheLine*l] >= D_update[l]);
-  //    cliques[eltsPerCacheLine*l] -= D_update[l];
-  //    D_update[l] = 0;
-  //    filter_size++;
-  //  }
-  //}
+  size_t filter_size = 0;
+  for (size_t l=0; l < G.n; l++) {
+    if (D_update[l] > 0) {
+      D_filter[filter_size] = std::make_tuple(l, D_update[l]);
+      assert (cliques[eltsPerCacheLine*l] >= D_update[l]);
+      cliques[eltsPerCacheLine*l] -= D_update[l];
+      D_update[l] = 0;
+      filter_size++;
+    }
+  }
 
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
-    assert (v < G.n);
-    D_update[v] = 0;
-    assert (cliques[v] >= std::get<1>(D_filter[i]));
-    cliques[v] -= std::get<1>(D_filter[i]);
+    //assert (v < G.n);
+    //D_update[v] = 0;
+    //assert (cliques[v] >= std::get<1>(D_filter[i]));
+    //cliques[v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
       uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
