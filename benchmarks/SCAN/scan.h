@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include "ligra/graph.h"
 #include "ligra/vertex.h"
 #include "ligra/pbbslib/sparse_table.h"
@@ -50,17 +52,29 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order);
 
 }  // namespace internal
 
+// Represents a vertex that is in at least one SCAN cluster.
+struct ClusterMember {
+  // IDs of the clusters that the vertex is in. Vertices at the peripheries of
+  // clusters may belong to multiple clusters.
+  pbbs::sequence<uintE> clusters;
+};
+// Represents a vertex that is not in a cluster but is adjacent to at least two
+// clusters.
+struct Hub{};
+// Represents a vertex that is not in a cluster and is adjacent to at most one
+// cluster.
+struct Outlier{};
+
+// Possible results for a vertex in a SCAN clustering.
+using VertexType = std::variant<ClusterMember, Hub, Outlier>;
+
 // Clustering resulting from running SCAN.
 struct Clustering {
-  // A list of clusters; `clusters[i]` is a list of vertices in the i-th
-  // cluster.
-  // Clusters are not necessarily disjoint, and they do not necessarily cover
-  // the entire graph.
-  pbbs::sequence<pbbs::sequence<uintE>> clusters;
-  // Vertices not in any cluster but is adjacent to at least two clusters.
-  pbbs::sequence<uintE> hubs;
-  // Vertices not in any cluster and adjacent to at most one cluster.
-  pbbs::sequence<uintE> outliers;
+  // Number of clusters.
+  uintE num_clusters;
+  // clusters_by_vertex[i] is the SCAN clustering result for vertex i. Cluster
+  // IDs are in the range [0, num_clusters).
+  pbbs::sequence<VertexType> clusters_by_vertex;
 };
 
 // Index for an undirected graph from which clustering the graph with SCAN is
@@ -75,6 +89,9 @@ class ScanIndex {
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
   // epsilon and mu.
   //
+  // Returns an <number of vertices in graph>-length sequence S in which S[i] is
+  // the clustering status of vertex i.
+  //
   // Explanation of parameters:
   // - epsilon: a threshold value on the "similarity" between adjacent vertices
   //   based on how much they share neighbors. Increasing this makes
@@ -86,9 +103,9 @@ class ScanIndex {
   Clustering Cluster(float epsilon, uint64_t mu) const;
 
  private:
-  const size_t num_vertices;
-  const internal::NeighborOrder neighbor_order;
-  const internal::CoreOrder core_order;
+  const size_t num_vertices_;
+  const internal::NeighborOrder neighbor_order_;
+  const internal::CoreOrder core_order_;
 };
 
 }  // namespace scan

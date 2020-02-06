@@ -5,6 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include <atomic>
+#include <tuple>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -50,11 +51,13 @@ VertexSet MakeVertexSet(const size_t capacity) {
 // (which will be the return value) for which `predicate(sequence[i])` is true
 // for all j < i and for which `predicate(sequence[i])` is false for all j >= i.
 //
+// `predicate` should take a `SeqElement` and return a boolean.
+//
 // Running time is O(log [return value]).
-template <typename SeqElement>
+template <class SeqElement, class Func>
 size_t BinarySearch(
     const pbbs::sequence<SeqElement>& sequence,
-    std::function<bool(const SeqElement&)> predicate) {
+    Func&& predicate) {
   // Start off the binary search with an exponential search so that running time
   // while be O(log [return value]) rather than O(log sequence.size()).
   // In practice this probably doesn't matter much....
@@ -67,7 +70,6 @@ size_t BinarySearch(
 
   return pbbs::binary_search(sequence.slice(lo, hi), predicate);
 }
-
 }  // namespace
 
 namespace internal {
@@ -294,37 +296,35 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
 }  // namespace internal
 
 ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph)
-  : num_vertices{graph->n}
-  , neighbor_order{
+  : num_vertices_{graph->n}
+  , neighbor_order_{
       internal::ComputeNeighborOrder(
           graph,
           internal::ComputeStructuralSimilarities(graph))}
-  , core_order{internal::ComputeCoreOrder(neighbor_order)} {}
+  , core_order_{internal::ComputeCoreOrder(neighbor_order_)} {}
 
 Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
   if (mu <= 1) {
     // Every vertex is a core. Return connected components on edges with
     // similarity > epsilon.
-    ABORT("SCAN for `mu <= 1` not yet implemented");
+    ABORT("SCAN for `mu <= 1` is unimplemented");
   }
-  if (mu >= core_order.size()) {
+  if (mu >= core_order_.size()) {
     // Nothing is a core. There are no clusters, and every vertex is an outlier.
     return Clustering {
-        .clusters = pbbs::sequence<pbbs::sequence<uintE>>{},
-        .hubs = pbbs::sequence<uintE>{},
-        .outliers =
-          pbbs::sequence<uintE>{
-            num_vertices, [](const size_t i) { return i; }}
+        .num_clusters = 0,
+        .clusters_by_vertex =
+          pbbs::sequence<VertexType>{num_vertices_, VertexType{Outlier{}}}
     };
   }
 
   const size_t cores_end{
     BinarySearch<internal::CoreThreshold>(
-        core_order[mu],
+        core_order_[mu],
         [epsilon](const internal::CoreThreshold& core_threshold) {
           return core_threshold.threshold >= epsilon;
         })};
-  const pbbs::range cores{core_order[mu].slice(0, cores_end)};
+  const pbbs::range cores{core_order_[mu].slice(0, cores_end)};
 
   pbbs::sequence<size_t> epsilon_neighborhood_offsets{
       pbbs::map<size_t>(
@@ -334,7 +334,7 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
             // `core_threshold.vertex_id` that have at least `epsilon`
             // structural similarity with the core.
             return BinarySearch<internal::NeighborSimilarity>(
-                neighbor_order[core_threshold.vertex_id],
+                neighbor_order_[core_threshold.vertex_id],
                 [epsilon](const internal::NeighborSimilarity& ns) {
                   return ns.similarity >= epsilon;
                 });
@@ -355,7 +355,7 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
        ? num_core_incident_edges
        : epsilon_neighborhood_offsets[i + 1]) - offset};
     const uintE core_id{cores[i].vertex_id};
-    const auto& core_neighbors{neighbor_order[core_id]};
+    const auto& core_neighbors{neighbor_order_[core_id]};
     par_for(0, size, [&](const size_t j) {
       core_incident_edges[offset + j] =
         std::make_pair(core_id, core_neighbors[j].neighbor);
@@ -387,38 +387,141 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
   symmetric_graph<symmetric_vertex, pbbslib::empty> core_graph{
     sym_graph_from_edges<pbbslib::empty>(
         core_to_core_edges,
-        num_vertices,
+        num_vertices_,
         [](const DirectedEdge& edge) { return edge.first; },
         [](const DirectedEdge& edge) { return edge.second; },
         [](const DirectedEdge& edge) { return pbbslib::empty{}; })};
 
-  const pbbs::sequence<parent> core_connected_components{
+  Clustering clustering{
+    .num_clusters = 0,
+    // Mark everything as an outlier for now.
+    .clusters_by_vertex =
+      pbbs::sequence<VertexType>{num_vertices_, VertexType{Outlier{}}}
+  };
+
+  // Get connected components in the resulting core graph. Relabel the resulting
+  // component IDs to be contiguous and to ignore the non-core vertices. This
+  // identifies the clusters for all the core vertices.
+  pbbs::sequence<parent> core_connected_components{
     workefficient_cc::CC(core_graph)};
-  // TODO how do I use the result?
-  // these are labels
-  // remember, you have a bunch of non-core singletons, and possibly also core
-  // singletons (though ultimately no cluster will be a singleton -- any core
-  // will have its epsilon-neighborhood in its cluster)
-  //
-  // you don't care about the labels, you're just returning a list of clusters
-  // -- don't necessarily need to do any renumbering here
-  //
-  // each non-core can be in several clusters, and it can have several edges that
-  // attach to the same cluster (though not too many, or else it would become a
-  // core itself)
-  //
-  // ok, maybe just map the edges to relabel endpoint with core's cluster ID,
-  // then sort?
-  //
-  // should also determine --- are the cluster ID's contiguous? it might not
-  // actually matter for us though. Just read through the code and try to
-  // understand it... Adding a comment to the file would be helpful
+  pbbs::sequence<uintE> component_relabel_map{num_vertices_, 0U};
+  par_for(0, cores.size(), [&](const size_t i) {
+    const uintE cluster{core_connected_components[cores[i].vertex_id]};
+    if (component_relabel_map[cluster] == 0) {
+      component_relabel_map[cluster] = 1;
+    }
+  });
+  clustering.num_clusters = pbbslib::scan_add_inplace(component_relabel_map);
+  par_for(0, cores.size(), [&](const size_t i) {
+    const uintE core{cores[i].vertex_id};
+    clustering.clusters_by_vertex[core] =
+      ClusterMember{
+        .clusters =
+          pbbs::sequence{
+            1,
+            component_relabel_map[core_connected_components[core]]}
+      };
+  });
 
-  // Process remaining core, non-core edges to assign non-core verts to cores...
-  // TODO how to do this properly?
+  // Non-core vertices that are epsilon-similar to cores are assigned to the
+  // core's cluster. These vertices may belong to more than one cluster.
+  auto core_to_noncore_edges{
+    partitioned_core_edges.slice(num_core_to_core_edges,
+        partitioned_core_edges.size())};
+  par_for(0, core_to_noncore_edges.size(), [&](const size_t i) {
+    // Replace core vertex ID with its cluster ID.
+    core_to_noncore_edges[i].first =
+      std::get<ClusterMember>(
+          clustering.clusters_by_vertex[core_to_noncore_edges[i].first])
+      .clusters[0];
+  });
+  pbbs::sample_sort_inplace(
+      core_to_noncore_edges,
+      // Sort first by non-core endpoint.
+      [](const DirectedEdge& a, const DirectedEdge& b) {
+        return std::tie(a.second, a.first) < std::tie(b.second, b.first);
+      });
+  // Table storing the last index at which a non-core vertex in
+  // core_to_noncore_edges[*].second appears in core_to_noncore_edges.
+  auto noncore_ends{
+    make_sparse_table<uintE, uintT, decltype(&pbbslib::hash64_2)>(
+      std::min<size_t>(num_vertices_, core_to_noncore_edges.size()) + 1,
+      {UINT_E_MAX, UINT_T_MAX},
+      pbbslib::hash64_2)};
+  par_for(0, core_to_noncore_edges.size(), [&](const size_t i) {
+    const uintE noncore{core_to_noncore_edges[i].second};
+    if (i == core_to_noncore_edges.size() - 1 ||
+        noncore != core_to_noncore_edges[i + 1].second) {
+      noncore_ends.insert({noncore, i + 1});
+    }
+  });
+  par_for(0, core_to_noncore_edges.size(), [&](const size_t i) {
+    const uintE noncore{core_to_noncore_edges[i].second};
+    if (i == 0 || noncore != core_to_noncore_edges[i - 1].second) {
+      constexpr uintT kDefaultEnd{UINT_T_MAX};
+      const uintT noncore_end{noncore_ends.find(noncore, kDefaultEnd)};
+      VertexSet clusters{
+        MakeVertexSet(
+            std::min<size_t>(noncore_end - i, clustering.num_clusters))};
+      par_for(i, noncore_end, [&](const size_t j) {
+        const uintE cluster{core_to_noncore_edges[i].first};
+        if (j == i || cluster != core_to_noncore_edges[i - 1].first) {
+          clusters.insert({cluster, pbbslib::empty{}});
+        }
+      });
+      clustering.clusters_by_vertex[noncore] =
+        ClusterMember{
+          .clusters =
+            pbbs::map<uintE>(
+                clusters.entries(),
+                [](const std::tuple<uintE, pbbslib::empty> kv) {
+                  return std::get<0>(kv);
+                })
+        };
+    }
+  });
 
-  // TODO implement
-  return {};
+  par_for(0, num_vertices_, [&](const size_t i) {
+    auto& vertex_type{clustering.clusters_by_vertex[i]};
+    if (!std::holds_alternative<ClusterMember>(vertex_type)) {
+      // Determine whether remaining vertex i is a hub or outlier.
+
+      const auto& neighbors{neighbor_order_[i]};
+      bool is_hub{false};
+      // `candidate_cluster` holds a cluster ID that vertex i is adjacent to, or
+      // UINT_E_MAX before such a cluster is found.
+      uintE candidate_cluster{UINT_E_MAX};
+      par_for(0, neighbors.size(), [&](const size_t j) {
+        const ClusterMember* const neighbor_clusters{
+          std::get_if<ClusterMember>(
+              &clustering.clusters_by_vertex[neighbors[j].neighbor])};
+        if (neighbor_clusters != nullptr) {
+          if (neighbor_clusters->clusters.size() > 1) {
+            if (!is_hub) {
+              is_hub = true;
+            }
+          } else {
+            const uintE neighbor_cluster{neighbor_clusters->clusters[0]};
+            // If `candidate_cluster` is at its default value of UINT_E_MAX,
+            // assign `neighbor_cluster` to it. Otherwise, if it has a value
+            // differing from `neighbor_cluster`, then we know vertex i is
+            // adjacent to multiple clusters and is a hub.
+            if (!(candidate_cluster == UINT_E_MAX
+                  && pbbs::atomic_compare_and_swap(
+                        &candidate_cluster, UINT_E_MAX, neighbor_cluster))
+                && candidate_cluster != neighbor_cluster
+                && !is_hub) {
+              is_hub = true;
+            }
+          }
+        }
+
+        vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
+      });
+    }
+  });
+
+  return clustering;
 }
 
 }  // namespace scan
