@@ -218,7 +218,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
         if (still_active[u] == 2 || still_active[v] == 2) return false;
         if (still_active[u] == 1 && still_active[v] == 0) return true;
         if (still_active[u] == 0 && still_active[v] == 1) return false;
-        return u < v;
+        return rank[u] < rank[v];
         //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
       }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
