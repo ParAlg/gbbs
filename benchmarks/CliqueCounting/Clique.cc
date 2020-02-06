@@ -88,22 +88,12 @@ double AppKCore_runner(Graph& GA, commandLine P) {
       r[idx++] = a;
     }
   }*/
-  const size_t eltsPerCacheLine = 64/sizeof(long);
-  uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
 
   timer t; t.start();
-  size_t count = KClique(GA, k, order, epsilon, space, label, filter, use_base, per_vert);
+  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
-
-  if (!use_base) return tt;
-
-  timer t2; t2.start();
-  sequence<uintE> cores = Peel(GA, k-1, per_vert, label);
-  double tt2 = t2.stop();
-  std::cout << "### Peel Running Time: " << tt2 << std::endl;
-  free(per_vert);
 
   return tt;
 }

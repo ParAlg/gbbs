@@ -93,15 +93,15 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // todo approx work and do some kind of break in gen if too much
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
-inline size_t KClique(Graph& GA, size_t k, long order_type, double epsilon,
-long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
+inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
+  uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
+  uintE* inverse_rank = use_base ? (uintE*) malloc(GA.n*sizeof(uintE)) : nullptr;
 
   using W = typename Graph::weight_type;
-  assert (k >= 1);
-  if (k == 1) return GA.n;
-  else if (k == 2) return GA.m;
+  assert (k >= 3);
+  // TODO put in triangle counting here
 
   timer t_rank; t_rank.start();
   sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
@@ -112,7 +112,7 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
-  auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate); //TODO see if relabel is really needed or not
+  auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
   double tt_filter = t_filter.stop();
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
@@ -156,23 +156,28 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << k << " cliques = " << count << "\n";
 
+  if (!use_base) return count;
 
-
+  timer t2; t2.start();
+  if (!filter) {
+    parallel_for(0, GA.n, [&] (size_t i) { inverse_rank[rank[i]] = i; });
+  } else {
+    parallel_for(0, GA.n, [&] (size_t i) { inverse_rank[i] = i; });
+  }
+  sequence<uintE> cores = Peel(GA, k-1, per_vert, label, rank, inverse_rank);
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  free(per_vert);
 
   return count;
 }
 
 
 
-
-
-
-
-
 template <class Graph>
-sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, size_t num_buckets=128) {
+sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<uintE> &rank, uintE* inverse_rank, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
+  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*inverse_rank[i]]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_update = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_filter = sequence<std::tuple<uintE, uintE>>(G.n);
@@ -247,11 +252,11 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, size_t num_
     const uintE v = std::get<0>(D_filter[i]);
     assert (v < G.n);
     D_update[v] = 0;
-    assert (cliques[eltsPerCacheLine*v] >= std::get<1>(D_filter[i]));
-    cliques[eltsPerCacheLine*v] -= std::get<1>(D_filter[i]);
+    assert (cliques[eltsPerCacheLine*inverse_rank[v]] >= std::get<1>(D_filter[i]));
+    cliques[eltsPerCacheLine*inverse_rank[v]] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
-      uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
+      uintE new_deg = std::max(cliques[eltsPerCacheLine*inverse_rank[v]], cur_bkt);
       D[v] = new_deg;
       uintE bkt = b.get_bucket(deg, new_deg);
       // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
