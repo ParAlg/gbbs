@@ -94,9 +94,10 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t KClique(Graph& GA, size_t k, long order_type, double epsilon,
-long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
+long space_type, bool label, bool filter, bool use_base) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
+  uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
   using W = typename Graph::weight_type;
   assert (k >= 1);
   if (k == 1) return GA.n;
@@ -154,6 +155,15 @@ long space_type, bool label, bool filter, bool use_base, uintE* per_vert) {
   double tt = t.stop();
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << k << " cliques = " << count << "\n";
+
+
+  if (!use_base) return count;
+
+  timer t2; t2.start();
+  sequence<uintE> cores = Peel(GA, k-1, per_vert, label);
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  free(per_vert);
   return count;
 }
 
@@ -206,6 +216,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label=true, size_t
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& v, const uintE& u) {
         if (still_active[u] == 2 || still_active[v] == 2) return false;
+        if (still_active[u] == 0 && still_active[v] == 1) return true;
+        if (still_active[u] == 1 && still_active[v] == 0) return false;
         return u < v;
         //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
       }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
