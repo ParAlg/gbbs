@@ -50,8 +50,8 @@ MakeCoreThreshold(const uintE vertex_id, const double threshold) {
 TEST(ScanSubroutines, NullGraph) {
   const size_t kNumVertices{0};
   const std::unordered_set<UndirectedEdge> kEdges{};
-
   auto graph{MakeGraph(kNumVertices, kEdges)};
+
   const si::StructuralSimilarities similarity_table{
     si::ComputeStructuralSimilarities(&graph)};
   EXPECT_THAT(similarity_table.entries(), IsEmpty());
@@ -67,8 +67,8 @@ TEST(ScanSubroutines, NullGraph) {
 TEST(ScanSubroutines, EmptyGraph) {
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{};
-
   auto graph{MakeGraph(kNumVertices, kEdges)};
+
   const si::StructuralSimilarities similarity_table{
     si::ComputeStructuralSimilarities(&graph)};
   EXPECT_THAT(similarity_table.entries(), IsEmpty());
@@ -103,12 +103,11 @@ TEST(ScanSubroutines, BasicUsage) {
     {2, 5},
     {3, 4},
   };
-
   auto graph{MakeGraph(kNumVertices, kEdges)};
+
   const si::StructuralSimilarities similarity_table{
     si::ComputeStructuralSimilarities(&graph)};
   const auto similarities{similarity_table.entries()};
-
   EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
         std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)   /* .71 */),
         std::make_tuple(UndirectedEdge{1, 2}, 3.0 / sqrt(20)  /* .67 */),
@@ -202,12 +201,11 @@ TEST(ScanSubroutines, DisconnectedGraph) {
     {3, 4},
     {4, 5},
   };
-
   auto graph{MakeGraph(kNumVertices, kEdges)};
+
   const si::StructuralSimilarities similarity_table{
     si::ComputeStructuralSimilarities(&graph)};
   const auto similarities{similarity_table.entries()};
-
   EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
         std::make_tuple(UndirectedEdge{0, 1}, 1.0),
         std::make_tuple(UndirectedEdge{3, 4}, 2.0 / sqrt(6)  /* .82 */),
@@ -252,4 +250,35 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   EXPECT_THAT(
       core_order[3].slice(),
       ElementsAre(MakeCoreThreshold(4, 2.0 / sqrt(6))));
+}
+
+TEST(Cluster, NullGraph) {
+  const size_t kNumVertices{0};
+  const std::unordered_set<UndirectedEdge> kEdges{};
+  auto graph{MakeGraph(kNumVertices, kEdges)};
+
+  const scan::ScanIndex index{&graph};
+  constexpr float kEpsilon{0.5};
+  constexpr float kMu{2};
+  scan::Clustering clustering{index.Cluster(kEpsilon, kMu)};
+
+  EXPECT_EQ(clustering.num_clusters, 0);
+  EXPECT_THAT(clustering.clusters_by_vertex, IsEmpty());
+}
+
+TEST(Cluster, EmptyGraph) {
+  const size_t kNumVertices{6};
+  const std::unordered_set<UndirectedEdge> kEdges{};
+  auto graph{MakeGraph(kNumVertices, kEdges)};
+
+  const scan::ScanIndex index{&graph};
+  constexpr float kEpsilon{0.5};
+  constexpr float kMu{2};
+  scan::Clustering clustering{index.Cluster(kEpsilon, kMu)};
+
+  EXPECT_EQ(clustering.num_clusters, 0);
+  ASSERT_THAT(clustering.clusters_by_vertex.size(), kNumVertices);
+  for (const auto& vertex_type : clustering.clusters_by_vertex) {
+    EXPECT_TRUE(std::holds_alternative<scan::Outlier>(vertex_type));
+  }
 }
