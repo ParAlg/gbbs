@@ -160,7 +160,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   timer t2; t2.start();
   uintE* inverse_per_vert = use_base && !filter ? (uintE*) malloc(eltsPerCacheLine*GA.n*sizeof(uintE)) : nullptr;
   if (!filter) {
-    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[eltsPerCacheLine*rank[i]]; });
+    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[eltsPerCacheLine*i] = per_vert[eltsPerCacheLine*rank[i]]; });
     free(per_vert);
     per_vert = inverse_per_vert;
   }
