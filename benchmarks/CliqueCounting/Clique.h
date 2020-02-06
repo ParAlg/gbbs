@@ -219,7 +219,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
         if (still_active[u] == 2 || still_active[v] == 2) return false;
         //if (still_active[u] == 1 && still_active[v] == 0) return true;
         //if (still_active[u] == 0 && still_active[v] == 1) return false;
-        return u < v;
+        return v < u;
         //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
       }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
@@ -238,7 +238,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
   auto D_filter_f = [&](const std::tuple<uintE,uintE>& tup) { return std::get<1>(tup) > 0; } ;
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
 
-  /*size_t filter_size = 0;
+  size_t filter_size = 0;
   for (size_t l=0; l < G.n; l++) {
     if (D_update[l] > 0) {
       D_filter[filter_size] = std::make_tuple(l, D_update[l]);
@@ -247,7 +247,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
       D_update[l] = 0;
       filter_size++;
     }
-  }*/
+  }
 
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
