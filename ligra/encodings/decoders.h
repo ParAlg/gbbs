@@ -74,7 +74,8 @@ struct byte_decode {
   static inline void filter(P pred, uchar* edge_start, const uintE& source,
                             const uintE& degree, std::tuple<uintE, W>* tmp,
                             O& out) {
-    return byte::filter(pred, edge_start, source, degree, tmp, out);
+    byte::filter(pred, edge_start, source, degree, tmp, out);
+    return;
   }
 
   template <class W, class P>

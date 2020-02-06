@@ -122,6 +122,24 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
   void alter_edges(F f, bool parallel_inner_map = true) {
     abort(); /* unimplemented for CSR */
   }
+
+  pbbs::sequence<std::tuple<uintE, uintE, W>> edges() {
+    using g_edge = std::tuple<uintE, uintE, W>;
+    auto degs = pbbs::sequence<size_t>(n, [&] (size_t i) {
+      return get_vertex(i).getOutDegree();
+    });
+    size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
+    assert(sum_degs == m);
+    auto edges = pbbs::sequence<g_edge>(sum_degs);
+    parallel_for(0, n, [&](size_t i) {
+      size_t k = degs[i];
+      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        edges[k++] = std::make_tuple(u, v, wgh);
+      };
+      get_vertex(i).mapOutNgh(i, map_f, false);
+    }, 1);
+    return edges;
+  }
 };
 
 /* Compressed Sparse Row (CSR) based representation for asymmetric
@@ -240,7 +258,7 @@ struct edge_array {
   edge_array(edge* _E, size_t r, size_t c, size_t nz)
       : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {
     if (r != c) {
-      std::cout << "edge_array format currently expects square matrix" << std::endl;
+      std::cout << "# edge_array format currently expects square matrix" << std::endl;
       exit(0);
     }
     n = r;
@@ -248,6 +266,12 @@ struct edge_array {
   }
   edge_array() {}
   size_t size() { return non_zeros; }
+
+  pbbs::sequence<edge> to_seq() {
+    auto ret = pbbs::sequence<edge>(E, non_zeros);
+    non_zeros = 0; E = nullptr;
+    return std::move(ret);
+  }
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
@@ -330,16 +354,28 @@ inline edge_array<W> to_edge_array(Graph& G) {
   return edge_array<W>(arr, n, n, m);
 }
 
-// Mutates (sorts) the underlying array
-// Returns an unweighted, symmetric graph
-template <class W>
-inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(edge_array<W>& A,
-                                                      bool is_sorted = false) {
+// Mutates (sorts) the underlying array A containing a black-box description of
+// an edge of typename A::value_type. The caller provides functions GetU, GetV, and GetW
+// which extract the u, v, and weight of a (u,v,w) edge respective (if the edge
+// is a std::tuple<uinte, uintE, W> this is just get<0>, ..<1>, ..<2>
+// respectively.
+// e.g.:
+//   using edge = std::tuple<uintE, uintE, W>;
+//   auto get_u = [&] (const edge& e) { return std::get<0>(e); };
+//   auto get_v = [&] (const edge& e) { return std::get<1>(e); };
+//   auto get_w = [&] (const edge& e) { return std::get<2>(e); };
+//   auto G = sym_graph_from_edges<W>(coo1, get_u, get_v, get_w, 10, false);
+template <class W, class EdgeSeq, class GetU, class GetV, class GetW>
+inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
+    EdgeSeq& A,
+    size_t n,
+    GetU& get_u,
+    GetV& get_v,
+    GetW& get_w,
+    bool is_sorted = false) {
   using vertex = symmetric_vertex<W>;
-  using edge = std::tuple<uintE, uintE, W>;
   using edge_type = typename vertex::edge_type;
-  size_t m = A.non_zeros;
-  size_t n = std::max<size_t>(A.num_cols, A.num_rows);
+  size_t m = A.size();
 
   if (m == 0) {
     if (n == 0) {
@@ -356,27 +392,68 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(edge_array<W>& 
     }
   }
 
-  auto Am = pbbslib::make_sequence<edge>(A.E, m);
   if (!is_sorted) {
     auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(Am, first, bits);
+    pbbslib::integer_sort_inplace(A.slice(), first, bits);
   }
 
-  auto starts = sequence<uintT>(n);
-  auto edges = sequence<uintE>(m, [&](size_t i) {
+  auto starts = sequence<uintT>(n+1, (uintT) 0);
+
+  using neighbor = std::tuple<uintE, W>;
+  auto edges = sequence<neighbor>(m, [&](size_t i) {
     // Fuse loops over edges (check if this helps)
-    if (i == 0 || (std::get<0>(Am[i]) != std::get<0>(Am[i - 1]))) {
-      starts[std::get<0>(Am[i])] = i;
+    if (i == 0 || (get_u(A[i]) != get_u(A[i - 1]))) {
+      starts[get_u(A[i])] = i;
     }
-    return std::get<1>(Am[i]);
+    if (i != (m-1)) {
+      uintE our_vtx = get_u(A[i]);
+      uintE next_vtx = get_u(A[i+1]);
+      if (our_vtx != next_vtx && (our_vtx + 1 != next_vtx)) {
+        par_for(our_vtx+1, next_vtx, pbbslib::kSequentialForThreshold, [&] (size_t k) {
+          starts[k] = i+1;
+        });
+      }
+    }
+    if (i == (m-1)) { /* last edge */
+      starts[get_u(A[i]) + 1] = m;
+    }
+    return std::make_tuple(get_v(A[i]), get_w(A[i]));
   });
+
+//  auto copy_f = [&] (const uintT& u, const uintT& v) -> uintT {
+//    if (v == 0) { return u; }
+//    return v;
+//  };
+//  auto copy_m = pbbs::make_monoid(copy_f, (uintT)0);
+//  pbbs::scan_inplace(starts.slice(), copy_m, pbbs::fl_inplace);
+//  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+//    uintT o = starts[i];
+//    size_t degree = ((i == n - 1) ? m : starts[i + 1]) - o;
+//    v[i].degree = degree;
+//    v[i].neighbors = ((std::tuple<uintE, W>*)(edges.begin() + o));
+//    /* sort each neighbor list if needed */
+//  });
+//  return graph<V>(v, n, m, get_deletion_fn(v, edges.to_array()));
+
   auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     uintT o = starts[i];
     v_data[i].offset = o;
     v_data[i].degree = (uintE)(((i == (n-1)) ? m : starts[i+1]) - o);
   });
-  auto edge_arr = edges.to_array();
-  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, get_deletion_fn(v_data, edge_arr), (edge_type*)edge_arr);
+  auto new_edge_arr = edges.to_array();
+  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, get_deletion_fn(v_data, new_edge_arr), (edge_type*)new_edge_arr);
+}
+
+template <class W>
+inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
+    pbbs::sequence<std::tuple<uintE, uintE, W>>& A,
+    size_t n,
+    bool is_sorted = false) {
+  using edge = std::tuple<uintE, uintE, W>;
+  auto get_u = [&] (const edge& e) { return std::get<0>(e); };
+  auto get_v = [&] (const edge& e) { return std::get<1>(e); };
+  auto get_w = [&] (const edge& e) { return std::get<2>(e); };
+  return sym_graph_from_edges<W>(A, n, get_u, get_v, get_w, is_sorted);
 }

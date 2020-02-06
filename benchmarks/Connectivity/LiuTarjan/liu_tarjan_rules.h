@@ -6,10 +6,8 @@
 namespace lt {
 
   bool lt_less(uintE u, uintE v) {
-    if (u == v) {
-      return false;
-    } else if (u == UINT_E_MAX) {
-      return true;
+    if (u == UINT_E_MAX) {
+      return (v != UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
       return false;
     }
@@ -17,10 +15,8 @@ namespace lt {
   }
 
   bool lt_greater(uintE u, uintE v) {
-    if (u == v) {
-      return false;
-    } else if (u == UINT_E_MAX) {
-      return false;
+    if (u == UINT_E_MAX) {
+      return (v == UINT_E_MAX);
     } else if (v == UINT_E_MAX) {
       return true;
     }
@@ -28,9 +24,7 @@ namespace lt {
   }
 
   uintE lt_min(uintE u, uintE v) {
-    if (u == v) {
-      return u;
-    } else if (u == UINT_E_MAX) {
+    if (u == UINT_E_MAX) {
       return u;
     } else if (v == UINT_E_MAX) {
       return v;
@@ -39,9 +33,7 @@ namespace lt {
   }
 
   uintE lt_max(uintE u, uintE v) {
-    if (u == v) {
-      return u;
-    } else if (u == UINT_E_MAX) {
+    if (u == UINT_E_MAX) {
       return v;
     } else if (v == UINT_E_MAX) {
       return u;
@@ -51,67 +43,75 @@ namespace lt {
 
   namespace primitives {
 
-    /* send minimum end to maximum end */
-    bool connect(uintE u, uintE v, pbbs::sequence<parent>& P) {
-      uintE min_v = std::min(u, v);
-      uintE max_v = std::max(u, v);
-      return pbbs::write_min<uintE>(&P[max_v], min_v, std::less<uintE>());
-    }
-
-    bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P) {
-      uintE p_u = P[u];
-      uintE p_v = P[v];
-      auto min_v = lt_min(p_u, p_v);
-      auto max_v = lt_max(p_u, p_v);
+    // For each edge e, send min{e.v, e.w} to max{e.v, e.w}.
+    bool connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
+      uintE min_v = lt_min(u, v);
+      uintE max_v = lt_max(u, v);
       if (min_v != max_v) {
-        return pbbs::write_min<uintE>(&P[max_v], min_v, lt_less);
+        return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);
       }
       return false;
     }
 
-    bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P) {
-      uintE x = P[v];
-      uintE y = P[w];
+    // For each edge e, request e.v.p from e.v and e.w.p from e.w; send the minimum of
+    // the received vertices to the maximum of the received vertices.
+    bool parent_connect(uintE u, uintE v, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
+      uintE p_u = (u == largest_comp) ? u : P[u];
+      uintE p_v = (v == largest_comp) ? v : P[v];
+      auto min_v = lt_min(p_u, p_v);
+      auto max_v = lt_max(p_u, p_v);
+      if (min_v != max_v) {
+        return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);
+      }
+      return false;
+    }
+
+    // For each edge e, request e.v.p from e.v and e.w.p from e.w; let the received
+    // values be x and y, respectively; if y < x then send y to v and to x
+    // else send x to w and to y.
+    bool extended_connect(uintE v, uintE w, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
+      uintE x = (v == largest_comp) ? v : P[v];
+      uintE y = (w == largest_comp) ? w : P[w];
       bool updated = false;
+      if (x == y) return updated;
       if (lt_less(y, x)) { /* send y to {v, x}*/
-        updated |= pbbs::write_min(&P[v], y, lt_less);
-        updated |= pbbs::write_min(&P[x], y, lt_less);
+        updated |= pbbs::write_min(&messages[v], y, lt_less);
+        updated |= pbbs::write_min(&messages[x], y, lt_less);
       } else if (lt_greater(y, x)) { /* send x to {y, w} */
-        updated |= pbbs::write_min(&P[y], x, lt_less);
-        updated |= pbbs::write_min(&P[w], x, lt_less);
+        updated |= pbbs::write_min(&messages[y], x, lt_less);
+        updated |= pbbs::write_min(&messages[w], x, lt_less);
       }
       return updated;
     }
 
-    void simple_update(uintE u, pbbs::sequence<parent>& P) {
-      abort(); // should not be called, since this fn is a noop
+    void simple_update(uintE u, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
+      auto p_u = P[u];
+      // update P[u] to min{cur_parent, received messages}
+      P[u] = lt_min(p_u, messages[u]);
     }
 
-    void root_update(uintE u, pbbs::sequence<parent>& P) {
-      /* find root */
-      uintE pu = P[u];
-      while (pu != largest_comp && pu != P[pu]) {
-        pu = P[pu];
+    void root_update(uintE u, pbbs::sequence<parent>& P, pbbs::sequence<parent>& messages) {
+      // find root
+      uintE p_u = P[u];
+      if (u != p_u) {
+        return;
       }
-      uintE r = pu;
-
-      if (r != u) {
-        P[u] = r; // shortcut
-      }
+      // otherwise u is a root. replace parent with min of self, and messages[u]
+      P[u] = lt_min(p_u, messages[u]);
     }
 
     void shortcut(uintE u, pbbs::sequence<parent>& P) {
-      uintE pu = P[u];
-      if (pu != largest_comp && pu != P[pu]) {
-        P[u] = P[pu];
+      uintE p_u = P[u];
+      if (p_u != largest_comp && p_u != P[p_u]) {
+        P[u] = P[p_u];
       }
     }
 
     void root_shortcut(uintE u, pbbs::sequence<parent>& P) {
-      uintE pu = P[u];
-      while (pu != largest_comp && pu != P[pu]) {
-        P[u] = P[pu];
-        pu = P[u];
+      uintE p_u = P[u];
+      while (p_u != largest_comp && p_u != P[p_u]) {
+        P[u] = P[p_u];
+        p_u = P[u];
       }
     }
 
@@ -123,64 +123,5 @@ namespace lt {
     }
 
   } // namespace primitives
-
-
-//  /* Only suitable for edge_array (COO), or for a graph_type permitting
-//   * modifications of elements (alter) */
-//  template <
-//    class Graph,
-//    class Connect,
-//    class Update,
-//    class Shortcut,
-//    class Alter,
-//    bool  should_edge_filter>
-//  pbbs::sequence<parent> liu_tarjan_algorithm(Graph& G, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) {
-//    size_t n = G.n;
-//    using W = typename G::weight_type;
-//
-//    auto P = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-//    auto next_P = P; // copy
-//
-//    auto parents_changed = true;
-//    while (parents_changed) {
-//      parents_changed = false;
-//      // Parent-Connect
-//      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-//        connect(u, v, P, next_P);
-//      };
-//      G.map_edges(map_f);
-//
-//      // Update
-//      parallel_for(0, n, [&] (size_t u) {
-//        bool changed = update(u, P, next_P);
-//        if (changed && !parents_changed) {
-//          parents_changed = true;
-//        }
-//      });
-//
-//      // Shortcut
-//      parallel_for(0, n, [&] (size_t u) {
-//        shortcut(u, P);
-//      });
-//
-//      auto alter_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-//        uintE au, av;
-//        std::tie(au, av) = alter(u, v, P);
-//        return std::make_tuple(u, v, wgh);
-//      };
-//
-//      G.alter_edges(alter_f);
-//
-//      /* Can optionally filter */
-//      if constexpr (should_edge_filter) {
-//        auto p = [&] (const uintE& u, const uintE& v, const W& wgh) {
-//          return u != v;
-//        };
-//        G.filter_edges(p);
-//      }
-//
-//      return P;
-//    }
-//  }
 
 } // namespace lt

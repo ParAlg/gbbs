@@ -9,8 +9,8 @@ addons:
     packages:
       - wget
       - pkg-config
-      - g++-6
-      - gcc-6
+      - g++-7
+      - gcc-7
 
 before_install:
   - wget https://github.com/bazelbuild/bazel/releases/download/0.29.1/bazel_0.29.1-linux-x86_64.deb
@@ -22,12 +22,12 @@ script:
   - gcc --version
   - sudo rm /usr/bin/g++ # doing this seems like an awful hack, but hey it works.
   - sudo rm /usr/bin/gcc
-  - sudo ln -s /usr/bin/g++-6 /usr/bin/g++
-  - sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
+  - sudo ln -s /usr/bin/g++-7 /usr/bin/g++
+  - sudo ln -s /usr/bin/gcc-7 /usr/bin/gcc
   - g++ --version
   - gcc --version
   - which g++
   - which gcc
-  - which g++-6
-  - which gcc-6
+  - which g++-7
+  - which gcc-7
   - bazel build -s --sandbox_debug --verbose_failures -c opt //benchmarks/...

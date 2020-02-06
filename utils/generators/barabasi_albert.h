@@ -38,8 +38,7 @@ auto generate_updates(
     }
   });
   // now force the m-edges_per_node unfilled slots
-  // note that we can make this work-efficient and O(log n) depth (and it would
-  // probably be pretty practical), but it is too much effort for now.
+  // note that it is easy to make this work-efficient and O(log n) depth.
   for (size_t i=edges_per_node; i<m; i++) {
     auto& ref = edges[i];
     uintE offset = ref.second;
@@ -53,6 +52,3 @@ auto generate_updates(
   return edges;
 }
 } // namespace barabasi_albert
-
-/* As in Kanat's paper, show a figure showing for each point in the stream the
- * number of connected components in the stream */

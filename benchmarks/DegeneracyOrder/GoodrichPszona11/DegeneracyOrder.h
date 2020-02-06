@@ -102,7 +102,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
     // sort vertices in GA by degree, from start to n
     integer_sort_inplace(sortD.slice(start, n), get_deg);
     //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
-    uintE deg_max = D[sortD[std::min(ns + start, n)]];
+    // uintE deg_max = D[sortD[std::min(ns + start, n)]];
 
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert

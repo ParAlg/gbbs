@@ -52,6 +52,14 @@ namespace pbbslib {
       }
     }
 
+    pbbs::sequence<E> to_seq() {
+      assert(A);
+      auto ret = pbbs::sequence<E>(A, size);
+      size = 0;
+      A = nullptr;
+      return std::move(ret);
+    }
+
     void clear() { size = 0; }
 
     inline void resize(size_t n) {

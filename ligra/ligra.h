@@ -90,7 +90,7 @@ template <class Data  /* per-vertex data in the emitted vertex_subset */,
           class F     /* edgeMap struct */>
 inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F& f,
                                                   const flags fl) {
-  debug(std::cout << "dense forward" << std::endl;);
+  debug(std::cout << "# dense forward" << std::endl;);
   using D = std::tuple<bool, Data>;
   size_t n = GA.n;
   if (should_output(fl)) {
@@ -195,16 +195,16 @@ inline void vertexMap(VS& V, F f) {
 template <class VS, class F,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f) {
+inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThreshold) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, granularity, [&] (size_t i) {
       if (V.isIn(i)) {
         f(i);
       }
-    });
+    }, granularity);
   } else {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, granularity, [&] (size_t i)
                     { f(V.vtx(i)); });
   }
 }
@@ -318,13 +318,10 @@ inline EdgeMap_F<W, F> make_em_f(F f) {
   return EdgeMap_F<W, F>(f);
 }
 
-#ifdef USE_PCM_LIB
-
-#include "cpucounters.h"
 
 /* Aggregate metrics for a repeated experiment, repeated num_rounds times. */
 struct cpu_stats {
-  double ipc; /* instructions per clock */
+  double ipc;
   size_t total_cycles;
   double l2_hit_ratio;
   double l3_hit_ratio;
@@ -335,8 +332,22 @@ struct cpu_stats {
   size_t bytes_read;
   size_t bytes_written;
   double total_time;
-
   size_t num_rounds;
+
+  cpu_stats() {
+    ipc = 0;
+    total_cycles = 0;
+    l2_hit_ratio = 0;
+    l3_hit_ratio = 0;
+    l2_misses = 0;
+    l2_hits = 0;
+    l3_misses = 0;
+    l3_hits = 0;
+    bytes_read = 0;
+    bytes_written = 0;
+    total_time = 1.0;
+    num_rounds = 1;
+  }
 
   cpu_stats(
       double ipc,
@@ -396,6 +407,10 @@ struct cpu_stats {
   }
 };
 
+#ifdef USE_PCM_LIB
+
+#include "cpucounters.h"
+
 cpu_stats get_pcm_stats(
     SystemCounterState& before_state,
     SystemCounterState& after_state,
@@ -422,40 +437,40 @@ cpu_stats get_pcm_stats(
 inline void print_pcm_stats(SystemCounterState& before_sstate,
                             SystemCounterState& after_sstate, size_t rounds,
                             double elapsed) {
-  std::cout << "Instructions per clock:        "
+  std::cout << "# Instructions per clock:        "
             << (getIPC(before_sstate, after_sstate) / rounds) << "\n";
-  std::cout << "Total Cycles:                  "
+  std::cout << "# Total Cycles:                  "
             << (getCycles(before_sstate, after_sstate) / rounds) << "\n";
-  std::cout << "========= Cache misses/hits ========="
+  std::cout << "# ========= Cache misses/hits ========="
             << "\n";
-  std::cout << "L2 Hit ratio:                  "
+  std::cout << "# L2 Hit ratio:                  "
             << (getL2CacheHitRatio(before_sstate, after_sstate) / rounds)
             << "\n";
-  std::cout << "L3 Hit ratio:                  "
+  std::cout << "# L3 Hit ratio:                  "
             << (getL3CacheHitRatio(before_sstate, after_sstate) / rounds)
             << "\n";
-  std::cout << "L2 Misses:                     "
+  std::cout << "# L2 Misses:                     "
             << (getL2CacheMisses(before_sstate, after_sstate) / rounds) << "\n";
-  std::cout << "L2 Hits:                       "
+  std::cout << "# L2 Hits:                       "
             << (getL2CacheHits(before_sstate, after_sstate) / rounds) << "\n";
-  std::cout << "L3 Misses:                     "
+  std::cout << "# L3 Misses:                     "
             << (getL3CacheMisses(before_sstate, after_sstate) / rounds) << "\n";
-  std::cout << "L3 Hits:                       "
+  std::cout << "# L3 Hits:                       "
             << (getL3CacheHits(before_sstate, after_sstate) / rounds) << "\n";
-  std::cout << "========= Bytes read/written ========="
+  std::cout << "# ========= Bytes read/written ========="
             << "\n";
   auto bytes_read = getBytesReadFromMC(before_sstate, after_sstate) / rounds;
   auto bytes_written =
       getBytesWrittenToMC(before_sstate, after_sstate) / rounds;
   size_t GB = 1024 * 1024 * 1024;
   auto throughput = ((bytes_read + bytes_written) / elapsed) / GB;
-  std::cout << "Bytes read:                    " << bytes_read << "\n";
-  std::cout << "Bytes written:                 " << bytes_written << "\n";
-  std::cout << "Throughput: " << throughput << " GB/s"
+  std::cout << "# Bytes read:                    " << bytes_read << "\n";
+  std::cout << "# Bytes written:                 " << bytes_written << "\n";
+  std::cout << "# Throughput: " << throughput << " GB/s"
             << "\n";
-  std::cout << "========= Other statistics ========="
+  std::cout << "# ========= Other statistics ========="
             << "\n";
-  std::cout << "Average relative frequency:    "
+  std::cout << "# Average relative frequency:    "
             << (getActiveRelativeFrequency(before_sstate, after_sstate) /
                 rounds)
             << "\n";
@@ -463,7 +478,7 @@ inline void print_pcm_stats(SystemCounterState& before_sstate,
 inline void pcm_init() {
   auto* m = PCM::getInstance();
   if (m->program() != PCM::Success) {
-    std::cout << "Could not enable program counters"
+    std::cout << "# Could not enable program counters"
               << "\n";
     exit(0);
   }
@@ -484,7 +499,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     total_time += APP(G, P);                                         \
   }                                                                  \
   auto time_per_iter = total_time / rounds;                          \
-  std::cout << "time per iter: " << time_per_iter << "\n";           \
+  std::cout << "# time per iter: " << time_per_iter << "\n";           \
   auto after_state = get_pcm_state();                                \
   print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
   G.del();
@@ -502,7 +517,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
@@ -548,7 +563,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
@@ -592,7 +607,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
@@ -633,8 +648,8 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     if (!symmetric) { \
-      cout << "The application expects the input graph to be symmetric (-s flag)." << endl; \
-      cout << "Please run on a symmetric input." << endl; \
+      cout << "# The application expects the input graph to be symmetric (-s flag)." << endl; \
+      cout << "# Please run on a symmetric input." << endl; \
     } \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
@@ -662,10 +677,9 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     if (!symmetric) { \
-      cout << "The application expects the input graph to be symmetric (-s flag)." << endl; \
-      cout << "Please run on a symmetric input." << endl; \
+      cout << "# The application expects the input graph to be symmetric (-s flag)." << endl; \
+      cout << "# Please run on a symmetric input." << endl; \
     } \
-    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
       auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(       \
@@ -690,7 +704,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \
@@ -731,7 +745,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
-    debug(std::cout << "mmapcopy = " << mmapcopy << "\n";);                    \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                    \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     pcm_init();                                                                \
     if (compressed) {                                                          \

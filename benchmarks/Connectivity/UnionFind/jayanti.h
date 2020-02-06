@@ -37,7 +37,7 @@ namespace jayanti_rank {
     }
 
     void print(uintE vtx_id) const {
-      cout << "vtx: " << vtx_id << " parent = " << get_parent() << " rank = " << get_rank() << " is_root = " << is_root() << endl;
+      cout << "# vtx: " << vtx_id << " parent = " << get_parent() << " rank = " << get_rank() << " is_root = " << is_root() << endl;
     }
   };
 
@@ -75,18 +75,26 @@ namespace jayanti_rank {
 
   inline uintE find(uintE x, pbbs::sequence<vdata>& vdatas) {
     uintE u = x;
+    uintE pathlen = 1;
     while (!vdatas[u].is_root()) { // * on u.is_root()
       u = vdatas[u].get_parent();
+      pathlen++;
     }
+    report_pathlen(pathlen);
     return u; // u is a root
   }
 
   inline uintE find_twotry_splitting(uintE x, pbbs::sequence<vdata>& vdatas) {
     uintE u = x;
+    uintE pathlen = 1;
     while (!vdatas[u].is_root()) { // * on u.is_root()
       auto ud = vdatas[u]; uintE v = ud.get_parent();
       auto vd = vdatas[v];
-      if (vd.is_root()) return v;
+      pathlen++;
+      if (vd.is_root()) {
+        report_pathlen(pathlen);
+        return v;
+      }
 
       // CAS 1
       uintE w = vd.get_parent();
@@ -97,7 +105,12 @@ namespace jayanti_rank {
       // read and check
       ud = vdatas[u]; v = ud.get_parent();
       vd = vdatas[v]; w = vd.get_parent();
-      if (vd.is_root()) return v;
+      if (vd.is_root()) {
+        report_pathlen(pathlen);
+        return v;
+      }
+
+      pathlen++;
 
       // CAS 2
       expected_u = vdata(v, ud.get_rank(), false);
@@ -106,6 +119,7 @@ namespace jayanti_rank {
 
       u = v;
     }
+    report_pathlen(pathlen);
     return u; // u is a root
   }
 
@@ -142,7 +156,7 @@ namespace jayanti_rank {
       });
     }
 
-    template <bool provides_frequent_comp>
+    template <SamplingOption sampling_option>
     void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
@@ -151,6 +165,7 @@ namespace jayanti_rank {
       auto r = pbbs::random();
 
       uintE granularity;
+      constexpr bool provides_frequent_comp = (sampling_option != no_sampling);
       if constexpr (provides_frequent_comp) {
         granularity = 512;
       } else {
@@ -186,21 +201,28 @@ namespace jayanti_rank {
       ft.stop(); ft.reportTotal("find time");
     }
 
-    template <class Seq>
-    void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
+    template <bool reorder_updates, class Seq>
+    void process_batch(pbbs::sequence<parent>& parents, Seq& batch) {
+      static_assert(reorder_updates == false);
       auto r = pbbs::random();
+
       parallel_for(0, batch.size(), [&] (size_t i) {
-        uintE u, v;
-        std::tie(u,v) = batch[i];
+        auto [u,v, utype] = batch[i];
         auto r_u = r.fork(u);
         auto r_uv = r_u.fork(v);
-        if (i % insert_to_query == 0) { /* query */
-          size_t p_u = find(u, vdatas);
-          size_t p_v = find(v, vdatas);
+        if (utype == query_type) { /* query */
+          u = find(u, vdatas);
+          v = find(v, vdatas);
         } else { /* insert */
           unite(u, v, vdatas, r_uv, find);
         }
       });
+
+      // To enable correctness checking (otherwise the correct parent values are
+      // stored in vdatas)
+      // parallel_for(0, n, [&] (size_t i) {
+      //   parents[i] = find(i, vdatas);
+      // });
     }
 
   };

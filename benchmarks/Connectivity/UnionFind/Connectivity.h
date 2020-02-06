@@ -29,8 +29,6 @@
 #include "union_find_rules.h"
 #include "benchmarks/Connectivity/common.h"
 
-#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-
 #include <iostream>
 #include <limits.h>
 #include <vector>
@@ -55,18 +53,21 @@ struct UFAlgorithm {
 
   void initialize(pbbs::sequence<parent>& P) {}
 
-  template <bool provides_frequent_comp>
+  template <SamplingOption sampling_option>
   void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
+    constexpr bool provides_frequent_comp = sampling_option != no_sampling;
     size_t n = GA.n;
     pbbs::sequence<parent> clusters;
     uintE granularity;
     if constexpr (provides_frequent_comp) {
       clusters = parents;
       granularity = 512;
+      std::cout << "# provides frequent comp" << std::endl;
     } else {
       granularity = 1;
     }
+    std::cout << "# frequent_comp = " << frequent_comp << " gran = " << granularity << std::endl;
 
     timer ut; ut.start();
     parallel_for(0, n, [&] (size_t i) {
@@ -74,7 +75,7 @@ struct UFAlgorithm {
         if constexpr (provides_frequent_comp) {
             unite(u, v, parents);
         } else {
-          if (u < v) {
+          if (v < u) {
             unite(u, v, parents);
           }
         }
@@ -87,7 +88,7 @@ struct UFAlgorithm {
         GA.get_vertex(i).mapOutNgh(i, map_f);
       }
     }, granularity);
-    ut.stop(); debug(ut.reportTotal("union time"));
+    ut.stop(); ut.reportTotal("union time");
 
     timer ft; ft.start();
     parallel_for(0, n, [&] (size_t i) {
@@ -96,22 +97,54 @@ struct UFAlgorithm {
     ft.stop(); debug(ft.reportTotal("find time"););
   }
 
-  template <class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
-    std::cout << "starting, bs = " << batch.size() << std::endl;
-    parallel_for(0, batch.size(), [&] (size_t i) {
-      uintE u, v;
-      std::tie(u,v) = batch[i];
-      if (i % insert_to_query == 0) { /* query */
-        size_t p_u = find(u, parents);
-        size_t p_v = find(v, parents);
-      } else { /* insert */
+  template <bool reorder_batch, class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+    if constexpr (reorder_batch == true) {
+      auto ret = reorder_updates(updates);
+      auto reordered_updates = ret.first;
+      size_t update_end = ret.second;
+      auto insertions = reordered_updates.slice(0, update_end);
+      auto queries = reordered_updates.slice(update_end, updates.size());
+      /* run updates */
+      parallel_for(0, insertions.size(), [&] (size_t i) {
+        auto [u,v,optype] = insertions[i];
         unite(u, v, parents);
-      }
-    });
-    std::cout << "ending" << std::endl;
+      });
+      /* run queries */
+      parallel_for(0, queries.size(), [&] (size_t i) {
+        auto [u,v,optype] = queries[i];
+        u = find(u, parents); /* force */
+        v = find(v, parents); /* force */
+      });
+    } else {
+      /* run queries and updates together */
+      parallel_for(0, updates.size(), [&] (size_t i) {
+        uintE u, v;
+        UpdateType optype;
+        std::tie(u,v,optype) = updates[i];
+        if (optype == query_type) { /* query */
+          find(u, parents); /* force */
+          find(v, parents); /* force */
+        } else { /* insert */
+          unite(u, v, parents);
+        }
+      });
+    }
   }
 
 };
+
+/* default union_find algorithm using find_compress and unite */
+template <class Seq>
+pbbs::sequence<parent> find_compress_uf(size_t n, Seq& updates) {
+  auto find = find_variants::find_compress;
+  auto unite = unite_variants::Unite<decltype(find)>(find);
+  auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+  parallel_for(0, updates.size(), [&] (size_t i) {
+    auto [u, v] = updates[i];
+    unite(u, v, parents);
+  });
+  return parents;
+}
 
 }  // namespace union_find

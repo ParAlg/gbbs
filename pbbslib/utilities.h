@@ -223,6 +223,11 @@ namespace pbbs {
       std::memcpy(&r_oval, &oldval, sizeof(ET));
       std::memcpy(&r_nval, &newval, sizeof(ET));
       return __sync_bool_compare_and_swap(reinterpret_cast<uint64_t*>(a), r_oval, r_nval);
+    } else if (sizeof(ET) == 16) {
+      __int128 r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap_16(reinterpret_cast<__int128*>(a), r_oval, r_nval);
     } else {
       std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
       exit(0);
@@ -246,6 +251,11 @@ namespace pbbs {
       std::memcpy(&r_oval, &oldval, sizeof(ET));
       std::memcpy(&r_nval, &newval, sizeof(ET));
       return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint64_t*>(a), r_oval, r_nval);
+    } else if (sizeof(ET) == 16) {
+      __int128 r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap_16(reinterpret_cast<volatile __int128*>(a), r_oval, r_nval);
     } else {
       std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
       exit(0);

@@ -89,6 +89,8 @@ template <class Connect,
           LiuTarjanUpdateOption update_option,
           class Shortcut,
           LiuTarjanShortcutOption shortcut_option,
+          class Alter,
+          LiuTarjanAlterOption alter_option,
           class Graph>
 struct LiuTarjanAlgorithm {
   Graph& GA;
@@ -96,13 +98,22 @@ struct LiuTarjanAlgorithm {
   Connect& connect;
   Update& update;
   Shortcut& shortcut;
-  LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut) :
-    GA(GA), connect(connect), update(update), shortcut(shortcut), n(n) {}
+  Alter& alter;
+  pbbs::sequence<uintE> messages;
+  pbbs::sequence<bool> flags;
+  LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
+    GA(GA), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
 
-  void initialize(pbbs::sequence<parent>& P) {}
+  void initialize(pbbs::sequence<parent>& P) {
+    messages = pbbs::sequence<uintE>(P.size());
+    parallel_for(0, n, [&] (size_t i) {
+      messages[i] = i;
+    });
+    flags = pbbs::sequence<bool>(P.size(), false);
+  }
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& P, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -110,10 +121,18 @@ struct LiuTarjanAlgorithm {
     while (parents_changed) {
       parents_changed = false;
 
-      // Parent-Connect
+      uintE granularity;
+      constexpr bool provides_frequent_comp = sampling_option != no_sampling;
+      if constexpr (provides_frequent_comp) {
+        granularity = 512;
+        std::cout << "# provides frequent comp" << std::endl;
+      } else {
+        granularity = 1;
+      }
+      // connect
       parallel_for(0, n, [&] (size_t i) {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          bool updated = connect(u, v, P);
+          bool updated = connect(u, v, P, messages);
           if (updated && !parents_changed) {
             parents_changed = true;
           }
@@ -125,102 +144,299 @@ struct LiuTarjanAlgorithm {
         } else {
           GA.get_vertex(i).mapOutNgh(i, map_f);
         }
-      });
+      }, granularity);
 
-      // Can skip this step for a regular update
-      if constexpr (update_option != simple_update) {
-        // Update
-        parallel_for(0, n, [&] (size_t u) {
-          update(u, P);
-        });
-      }
+      // Update
+      parallel_for(0, n, [&] (size_t u) {
+        update(u, P, messages);
+      });
 
       // Shortcut
       parallel_for(0, n, [&] (size_t u) {
         shortcut(u, P);
       });
+
+      // Note that alter is not applied since we do not process edges
+      // in COO, and performing edge modification/filtering on CSR
+      // would be prohibitively costly.
     }
   }
 
-  template <class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& batch, size_t insert_to_query) {
-    using W = typename Graph::weight_type;
+  template <bool reorder_batch, class Seq>
+  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+
+    /* Must reorder updates since queries are not linearizable o.w. */
+    auto ret = reorder_updates(updates);
+    auto reordered_updates = ret.first;
+    size_t update_end = ret.second;
+    auto insertions = reordered_updates.slice(0, update_end);
+    auto queries = reordered_updates.slice(update_end, updates.size());
+
+    using edge = std::pair<uintE, uintE>;
+    auto inserts = pbbs::sequence<edge>(insertions.size(), [&] (size_t i) {
+      auto [u, v, typ] = insertions[i];
+      return std::make_pair(u,v);
+    });
 
     auto parents_changed = true;
     auto& P = parents;
     size_t round = 0;
     while (parents_changed) {
+      round++;
       parents_changed = false;
+      std::cout << "# round = " << round << std::endl;
 
       // Parent-Connect
-
-      parallel_for(0, batch.size(), [&] (size_t i) {
-        uintE u, v;
-        std::tie(u,v) = batch[i];
-        if (i % insert_to_query != 0) { /* is an update */
-          bool updated = connect(u, v, P);
-          if (updated && !parents_changed) {
-            parents_changed = true;
-          }
+      timer pc; pc.start();
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        bool updated = connect(u, v, P, messages);
+        if (updated && !parents_changed) {
+          parents_changed = true;
         }
       });
+      pc.stop(); pc.reportTotal("# pc time");
 
-      // Can skip this step for a regular update
-      if constexpr (update_option != simple_update) {
-        // Update
-        parallel_for(0, n, [&] (size_t u) {
-          update(u, P);
-        });
-      }
+      // Update local neighborhoods
+      timer ut; ut.start();
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        auto p_u = P[u];
+        auto p_v = P[v];
+        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+          update(u, P, messages);
+        }
+        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+          update(v, P, messages);
+        }
+        if (flags[p_u] == false && pbbs::atomic_compare_and_swap(&flags[p_u], false, true)) {
+          update(p_u, P, messages);
+        }
+        if (flags[p_v] == false && pbbs::atomic_compare_and_swap(&flags[p_v], false, true)) {
+          update(p_v, P, messages);
+        }
+      });
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        if (flags[u]) {
+          flags[u] = false; 
+        }
+        if (flags[P[u]]) {
+          flags[P[u]] = false;
+        }
+        if (flags[v]) {
+          flags[v] = false;
+        }
+        if (flags[P[v]]) {
+          flags[P[v]] = false;
+        }
+      });
+      ut.stop(); ut.reportTotal("# update time");
 
-      /* TODO: separate queries and updates here */
       // Shortcut
-      parallel_for(0, batch.size(), [&] (size_t i) {
-        uintE u, v;
-        std::tie(u,v) = batch[i];
-        if (i % insert_to_query != 0) { /* is an update */
+      timer sc; sc.start();
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           shortcut(u, P);
-        } else { /* answer the query, if it is the first round*/
-          if (round == 0) {
-            while (P[u] != P[P[u]]) {
-              P[u] = P[P[u]];
-            }
-            uintE p_u = P[u];
-
-            while (P[v] != P[P[v]]) {
-              P[v] = P[P[v]];
-            }
-            uintE p_v = P[v];
-          }
+          messages[u] = P[u];
+        }
+        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+          shortcut(v, P);
+          messages[v] = P[v];
         }
       });
-      round++;
+      sc.stop(); sc.reportTotal("# shortcut time");
+
+      parallel_for(0, inserts.size(), [&] (size_t i) {
+        auto [u,v] = inserts[i];
+        if (flags[u]) {
+          flags[u] = false;
+        }
+        if (flags[v]) {
+          flags[v] = false;
+        }
+      });
+
+      timer at; at.start();
+      if constexpr (alter_option != no_alter) {
+        // Alter
+        constexpr uintE null_comp = UINT_E_MAX - 1;
+        constexpr edge nullary_edge = std::make_pair(null_comp, null_comp);
+        parallel_for(0, inserts.size(), [&] (size_t i) {
+          auto [u,v] = inserts[i];
+          uintE p_u, p_v;
+          p_u = P[u]; p_v = P[v];
+          if (p_u == p_v) {
+            inserts[i] = std::make_pair(null_comp, null_comp);
+          } else {
+            inserts[i] = std::make_pair(p_u, p_v);
+          }
+        });
+
+        auto new_inserts = pbbs::filter(inserts, [&] (edge& e) {
+          return e != nullary_edge;
+        });
+        inserts = new_inserts;
+      }
+      at.stop(); at.reportTotal("# alter time");
     }
 
-    // Process queries, no need to skip.
-    parallel_for(0, batch.size(), [&] (size_t i) {
-      uintE u, v;
-      std::tie(u,v) = batch[i];
-      if (i % insert_to_query != 0) { /* is an update */
-        shortcut(u, P);
-      } else { /* answer the query, if it is the first round*/
-        if (round == 0) {
-          while (P[u] != P[P[u]]) {
-            P[u] = P[P[u]];
-          }
-          uintE p_u = P[u];
+    // Process queries
+    parallel_for(0, queries.size(), [&] (size_t i) {
+      auto [u,v, utype] = updates[i];
 
-          while (P[v] != P[P[v]]) {
-            P[v] = P[P[v]];
-          }
-          uintE p_v = P[v];
-        }
-      }
+      while (P[u] != P[P[u]]) {
+        P[u] = P[P[u]];
+      } /* found p_u */
+
+      while (P[v] != P[P[v]]) {
+        P[v] = P[P[v]];
+      } /* found p_v */
     });
-
   }
 
 };
+
+
+template <class Connect,
+          LiuTarjanConnectOption connect_option,
+          class Update,
+          LiuTarjanUpdateOption update_option,
+          class Shortcut,
+          LiuTarjanShortcutOption shortcut_option,
+          class Alter,
+          LiuTarjanAlterOption alter_option>
+struct LiuTarjanAlgorithmCOO {
+  using edge = std::pair<uintE, uintE>;
+  pbbs::sequence<edge> graph;
+  size_t n;
+
+  Connect& connect;
+  Update& update;
+  Shortcut& shortcut;
+  Alter& alter;
+
+  pbbs::sequence<uintE> messages;
+
+  LiuTarjanAlgorithmCOO(pbbs::sequence<edge>&& graph, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
+    graph(std::move(graph)), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
+
+  void initialize(pbbs::sequence<parent>& P) {
+    messages = pbbs::sequence<uintE>(P.size());
+    parallel_for(0, n, [&] (size_t i) {
+      messages[i] = i;
+    });
+  }
+
+  void my_alter(pbbs::sequence<parent>& P) {
+    parallel_for(0, graph.size(), [&] (size_t i) {
+      edge& e = graph[i];
+      e = std::make_pair((e.first == largest_comp) ? largest_comp : P[e.first], (e.second == largest_comp) ? largest_comp : P[e.second]);
+    });
+  }
+
+  bool my_connect(pbbs::sequence<parent>& P) {
+    bool parents_changed = false;
+    parallel_for(0, graph.size(), [&] (size_t i) {
+      const edge& e = graph[i];
+      if (e.first != e.second) {
+        bool updated = connect(e.first, e.second, P, messages);
+        if (updated && !parents_changed) {
+          parents_changed = true;
+        }
+      }
+    });
+    return parents_changed;
+  }
+
+  void my_update(pbbs::sequence<parent>& P) {
+    parallel_for(0, n, [&] (size_t u) {
+      update(u, P, messages);
+    });
+  }
+
+  void my_shortcut(pbbs::sequence<parent>& P) {
+    parallel_for(0, n, [&] (size_t u) {
+      shortcut(u, P);
+    });
+  }
+
+  template <SamplingOption sampling_option>
+  void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
+    auto parents_changed = true;
+    static_assert(alter_option != no_alter);
+    my_alter(P);
+    while (parents_changed) {
+      parents_changed = my_connect(P);
+      my_update(P);
+      my_shortcut(P);
+      my_alter(P);
+    }
+  }
+
+};
+
+
+template <class Graph>
+struct StergiouAlgorithm {
+  Graph& GA;
+  size_t n;
+  StergiouAlgorithm(Graph& GA, size_t n) :
+    GA(GA), n(n) { }
+
+  void initialize(pbbs::sequence<parent>& P) { }
+
+  template <SamplingOption sampling_option>
+  void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
+    using W = typename Graph::weight_type;
+    size_t n = GA.n;
+
+    pbbs::sequence<parent> previous_parents(n);
+
+    auto parents_changed = true;
+    size_t rounds = 0;
+    while (parents_changed) {
+      parents_changed = false;
+      if (rounds > 0) {
+        parallel_for(0, n, [&] (size_t i) {
+          previous_parents[i] = parents[i];
+        });
+      }
+
+      parallel_for(0, n, [&] (size_t i) {
+        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+          parent parent_u = previous_parents[u];
+          parent parent_v = previous_parents[v];
+          bool updated = false;
+          if (parents[v] > parent_u) {
+            updated |= pbbs::write_min(&parents[v], parent_u, std::less<parent>());
+          }
+          if (parents[u] > parent_v) {
+            updated |= pbbs::write_min(&parents[u], parent_v, std::less<parent>());
+          }
+          if (updated && !parents_changed) {
+            parents_changed = true;
+          }
+        };
+        if constexpr (sampling_option != no_sampling) {
+          if (parents[i] != frequent_comp) {
+            GA.get_vertex(i).mapOutNgh(i, map_f);
+          }
+        } else {
+          GA.get_vertex(i).mapOutNgh(i, map_f);
+        }
+      });
+
+      // Shortcut
+      parallel_for(0, n, [&] (size_t u) {
+          lt::primitives::shortcut(u, parents);
+      });
+    }
+  }
+
+};
+
 
 
 }  // namespace lt

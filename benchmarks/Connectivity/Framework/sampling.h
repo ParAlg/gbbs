@@ -1,6 +1,7 @@
 #pragma once
 
-#include "utils.h"
+#include "benchmarks/Connectivity/connectit.h"
+#include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
 /* ****************************** Sampling ******************************/
 
@@ -17,14 +18,18 @@ template <
     SamplingAlgorithmTemplate(Graph& G, Sampler& sampler, Algorithm& algorithm) : G(G), sampler(sampler), algorithm(algorithm) {}
 
     pbbs::sequence<parent> components() {
+      timer sample_t; sample_t.start();
       auto parents = sampler.initial_components();
+      sample_t.stop();
+      sample_t.reportTotal("sample time");
 
       parent frequent_comp; double pct;
-      std::tie(frequent_comp, pct) = sample_frequent_element(parents);
+      std::tie(frequent_comp, pct) = connectit::sample_frequent_element(parents);
 
       algorithm.initialize(parents);
 
-      if constexpr (algorithm_type == liu_tarjan_type) {
+      /* relabel for liu_tarjan */
+      if constexpr (algorithm_type == liu_tarjan_type || algorithm_type == label_prop_type) {
         parallel_for(0, G.n, [&] (size_t i) {
           if (parents[i] == frequent_comp) {
             parents[i] = largest_comp;
@@ -66,85 +71,227 @@ template <
 // returns a component labeling
 // Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
 // for the well documented reference implementation of afforest.
-template <class Find, class Unite, class G>
-struct AfforestSamplingTemplate {
+template <class G>
+struct KOutSamplingTemplate {
   G& GA;
-  Find& find;
-  Unite& unite;
   uint32_t neighbor_rounds;
 
-  AfforestSamplingTemplate(
+  KOutSamplingTemplate(
       G& GA,
-      Find& find,
-      Unite& unite,
-      commandLine& P) :
-   GA(GA), find(find), unite(unite) {
-    neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
+      commandLine& P,
+      int ngh_rounds = -1) :
+   GA(GA) {
+    neighbor_rounds = (ngh_rounds == -1) ? P.getOptionLongValue("-sample_rounds", 2L) : ngh_rounds;
    }
 
+//  /* Used in Rem-CAS variants for splice */
+//  inline uintE my_split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+//    parent v = parents[i];
+//    parent w = parents[v];
+//    if(v == w) return v;
+//    else {
+//      pbbs::atomic_compare_and_swap(&parents[i],v,w);
+//      i = v;
+//      return i;
+//    }
+//  }
+
+  void link(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+//    uintE rx = u; uintE ry = v;
+//    while (parents[rx] != parents[ry]) {
+//      parent p_ry = parents[ry];
+//      parent p_rx = parents[rx];
+//      if (p_rx < p_ry) {
+//        std::swap(rx, ry);
+//        std::swap(p_rx, p_ry);
+//      }
+//      if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
+//        break;
+//      } else {
+//        rx = my_split_atomic_one(rx, ry, parents);
+//      }
+//    }
+  parent p1 = parents[u];
+  parent p2 = parents[v];
+  while (p1 != p2) {
+    parent high = p1 > p2 ? p1 : p2;
+    parent low = p1 + (p2 - high);
+    parent p_high = parents[high];
+    // Was already 'low' or succeeded in writing 'low'
+    if ((p_high == low) ||
+        (p_high == high && pbbs::atomic_compare_and_swap(&parents[high], high, low)))
+      break;
+    p1 = parents[parents[high]];
+    p2 = parents[low];
+  }
+  }
+
+  /* The Hybrid version: kout-hybrid */
   pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
-    cout << "neighbor_rounds = " << neighbor_rounds << endl;
+    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
 
     auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     pbbs::sequence<uintE> hooks;
 
     pbbs::random rnd;
+    uintE granularity = 1024;
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      if (r == 0) {
+        /* First round: sample a directed forest and compress instead of using
+         * unite */
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > r) {
+            uintE ngh; W wgh;
+            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      } else {
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_rnd = rnd.fork(u);
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > 1) {
+            uintE deg = u_vtx.getOutDegree() - 1;
+            uintE ngh_idx = 1 + (u_rnd.rand() % deg);
+            auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      }
+      // compress nodes fully (turns out this is faster)
+      parallel_for(0, n, [&] (size_t u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
+      rnd = rnd.next();
+    }
+    return parents;
+   }
+
+  /* The max-degree version */
+  pbbs::sequence<parent> initial_components_max_degree() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
+
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    pbbs::sequence<uintE> hooks;
+
+    pbbs::random rnd;
+    uintE granularity = 1024;
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      if (r == 0) {
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > 0) {
+            // compute max degree neighbor
+            auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+              return std::make_pair(v, GA.get_vertex(v).getOutDegree());
+            };
+            using int_pair = std::pair<uintE, uintE>;
+            auto reduce_f = [&] (const int_pair& l, const int_pair& r) {
+              if (l.second < r.second) {
+                return r;
+              } else {
+                return l;
+              }
+            };
+            auto reduce_m = pbbs::make_monoid(reduce_f, std::make_pair(0, 0));
+            auto [ngh, degree] = u_vtx.template reduceOutNgh<int_pair>(u, map_f, reduce_m);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      } else {
+        parallel_for(0, n, [&] (size_t u) {
+          auto u_rnd = rnd.fork(u);
+          auto u_vtx = GA.get_vertex(u);
+          if (u_vtx.getOutDegree() > 0) {
+            uintE deg = u_vtx.getOutDegree();
+            uintE ngh_idx = u_rnd.rand() % deg;
+            auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            link(u, ngh, parents);
+          }
+        }, granularity);
+      }
+      // compress nodes fully (turns out this is faster)
+      parallel_for(0, n, [&] (size_t u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
+      rnd = rnd.next();
+    }
+    return parents;
+   }
+
+  pbbs::sequence<parent> initial_components_pure() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
+
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    pbbs::sequence<uintE> hooks;
+
+    pbbs::random rnd;
+    uintE granularity = 1024;
     // Using random neighbor---some overhead (and faster for some graphs), also
     // theoretically defensible
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       parallel_for(0, n, [&] (size_t u) {
         auto u_rnd = rnd.fork(u);
         auto u_vtx = GA.get_vertex(u);
-        if (u_vtx.getOutDegree() > 0) {
-          size_t ngh_idx = u_rnd.rand() % u_vtx.getOutDegree();
-          uintE ngh; W wgh;
-          std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, ngh_idx);
-          unite(u, ngh, parents);
+        auto out_degree = u_vtx.getOutDegree();
+        if (out_degree > 0) {
+          uintE ngh_idx = u_rnd.rand() % out_degree;
+          auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+          link(u, ngh, parents);
         }
-      }, 512);
-      // compress nodes fully (turns out this is faster)
+      }, granularity);
+      // compress nodes fully
       parallel_for(0, n, [&] (size_t u) {
-        parents[u] = find(u, parents);
-      }, 512);
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
       rnd = rnd.next();
     }
-
-//    // Using r'th neighbor---usually faster, but not so defensible theoretically.
-//    for (uint32_t r=0; r<neighbor_rounds; r++) {
-//      if (r == 0) {
-//        /* First round: sample a directed forest and compress instead of using
-//         * unite */
-//        parallel_for(0, n, [&] (size_t u) {
-//          auto u_vtx = GA.get_vertex(u);
-//          if (u_vtx.getOutDegree() > r) {
-//            uintE ngh; W wgh;
-//            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
-//            if (u_vtx.getOutDegree() < GA.get_vertex(ngh).getOutDegree()) {
-//              parents[u] = ngh;
-//            }
-//          }
-//        }, 512);
-//      } else {
-//        /* Subsequent rounds: use unite */
-//        parallel_for(0, n, [&] (size_t u) {
-//          auto u_vtx = GA.get_vertex(u);
-//          if (u_vtx.getOutDegree() > r) {
-//            uintE ngh; W wgh;
-//            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
-//            unite(u, ngh, parents);
-//          }
-//        }, 512);
-//      }
-//      // compress nodes fully (turns out this is faster)
-//      parallel_for(0, n, [&] (size_t u) {
-//        parents[u] = find(u, parents);
-//      }, 512);
-//    }
-
     return parents;
    }
+
+  pbbs::sequence<parent> initial_components_afforest() {
+    using W = typename G::weight_type;
+    size_t n = GA.n;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
+
+    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    pbbs::sequence<uintE> hooks;
+
+    uintE granularity = 1024;
+    // Using random neighbor---some overhead (and faster for some graphs), also
+    // theoretically defensible
+    for (uint32_t r=0; r<neighbor_rounds; r++) {
+      parallel_for(0, n, [&] (size_t u) {
+        auto u_vtx = GA.get_vertex(u);
+        auto out_degree = u_vtx.getOutDegree();
+        if (out_degree > r) {
+          auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, r);
+          link(u, ngh, parents);
+        }
+      }, granularity);
+      // compress nodes fully
+      parallel_for(0, n, [&] (size_t u) {
+        while (parents[u] != parents[parents[u]]) {
+          parents[u] = parents[parents[u]];
+        }
+      }, granularity);
+    }
+    return parents;
+   }
+
 };
 
 template <class W>
@@ -161,7 +308,7 @@ struct BFS_ComponentLabel_F {
     }
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbs::atomic_compare_and_swap(&Parents[d], d, src));
+    return (pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(d), static_cast<parent>(src)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == d); }
 };
@@ -186,7 +333,6 @@ inline sequence<parent> BFS_ComponentLabel(Graph& G, uintE src) {
     rounds++;
   }
   Frontier.del();
-  // std::cout << "Reachable: " << reachable << " #rounds = " << rounds << std::endl;
   return Parents;
 }
 
@@ -198,7 +344,6 @@ struct BFSSamplingTemplate {
    GA(GA) {}
 
   pbbs::sequence<parent> initial_components() {
-    using W = typename G::weight_type;
     size_t n = GA.n;
 
     pbbs::sequence<parent> parents;
@@ -210,19 +355,15 @@ struct BFSSamplingTemplate {
      * graph. Run BFSs at most max_trials times until we find it. */
 
     uint32_t max_trials = 3;
-    uintE skip_comp = UINT_E_MAX;
-    bool found_massive_component = false;
     for (uint32_t r=0; r<max_trials; r++) {
       uintE src = rnd.rand() % n;
       auto bfs_parents = BFS_ComponentLabel(GA, src);
 
       parent frequent_comp; double pct;
       parents = std::move(bfs_parents);
-      std::tie(frequent_comp, pct) = sample_frequent_element(parents);
+      std::tie(frequent_comp, pct) = connectit::sample_frequent_element(parents);
       if (pct > static_cast<double>(0.1)) {
         std::cout << "# BFS covered: " << pct << " of graph" << std::endl;
-        skip_comp = frequent_comp;
-        found_massive_component = true;
         break;
       }
       std::cout << "# BFS covered only: " << pct << " of graph." << std::endl;
@@ -233,53 +374,20 @@ struct BFSSamplingTemplate {
   }
 };
 
-//    parallel_for(0, n, [&] (size_t i) {
-//      if (!found_massive_component || parents[i] != skip_comp) {
-//        parents[i] = i;
-//      }
-//    });
-//
-//    auto bfs_parents = parents; // copy
-//
-//    st.stop(); st.reportTotal("sample time");
-//
-//    timer ut; ut.start();
-//    parallel_for(0, n, [&] (size_t u) {
-//      // Only process edges for vertices not linked to the main component
-//      // note that this is safe only for undirected graphs. For directed graphs,
-//      // the in-edges must also be explored for all vertices.
-//      if (bfs_parents[u] != skip_comp) {
-//        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-//          if (u < v) {
-//            unite(u, v, parents);
-//          }
-//        };
-//        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
-//      }
-//    }, 1024);
-//    ut.stop(); ut.reportTotal("union time");
-//
-//    timer ft; ft.start();
-//    parallel_for(0, n, [&] (size_t i) {
-//      parents[i] = find(i,parents);
-//    });
-//    ft.stop(); ft.reportTotal("find time");
-//    return parents;
-//   }
-
 
 template <class G>
 struct LDDSamplingTemplate {
   G& GA;
+  double beta;
+  bool permute;
 
-  LDDSamplingTemplate(G& GA, commandLine& P) : GA(GA) { }
+  LDDSamplingTemplate(G& GA, commandLine& P, double beta = 0.2, bool permute = false) : GA(GA), beta(beta), permute(permute) { }
 
   pbbs::sequence<parent> initial_components() {
-    using W = typename G::weight_type;
     size_t n = GA.n;
 
     timer lddt; lddt.start();
-    auto clusters_in = LDD(GA, 0.2, /* permute = */false);
+    auto clusters_in = LDD(GA, beta, permute);
     lddt.stop(); lddt.reportTotal("## ldd time");
     auto s = clusters_in.to_array();
     auto clusters = pbbs::sequence((parent*)s, n);
@@ -287,45 +395,4 @@ struct LDDSamplingTemplate {
     return clusters;
   }
 };
-
-//   parallel_for(0, n, [&] (uintE u) {
-//     if (clusters[u] == u) { // root, ok
-//     } else {
-//       assert(clusters[clusters[u]] == clusters[u]);
-//     }
-//   });
-//
-//    pbbs::sequence<parent> parents(n);
-//    parallel_for(0, n, [&] (size_t i) {
-//      parents[i] = clusters[i];
-//    });
-//
-//    uintE frequent_comp; double pct;
-//    std::tie(frequent_comp, pct) = sample_frequent_element(parents);
-//    st.stop(); st.reportTotal("sample time");
-//
-//    timer ut; ut.start();
-//    parallel_for(0, n, [&] (size_t u) {
-//      // Only process edges for vertices not linked to the main component
-//      // note that this is safe only for undirected graphs. For directed graphs,
-//      // the in-edges must also be explored for all vertices.
-//      if (clusters[u] != frequent_comp) {
-//        auto map_f = [&] (uintE u, uintE v, const W& wgh) {
-//          if (u < v) {
-//            unite(u, v, parents);
-//          }
-//        };
-//        GA.get_vertex(u).mapOutNgh(u, map_f); // in parallel
-//      }
-//    }, 512);
-//    ut.stop(); ut.reportTotal("union time");
-//
-//    timer ft; ft.start();
-//    parallel_for(0, n, [&] (size_t i) {
-//      parents[i] = find(i,parents);
-//    });
-//    ft.stop(); ft.reportTotal("find time");
-//    return parents;
-//   }
-//};
 

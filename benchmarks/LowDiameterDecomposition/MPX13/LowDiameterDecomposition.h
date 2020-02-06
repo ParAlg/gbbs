@@ -34,10 +34,10 @@ inline size_t total_rounds(size_t n, double beta) {
 }
 
 // Shifts[i] is the start of the vertices to take on round i
-inline sequence<uintE> generate_shifts(size_t n, double beta) {
+inline sequence<size_t> generate_shifts(size_t n, double beta) {
   // Create (ln n)/beta levels
   uintE last_round = total_rounds(n, beta);
-  auto shifts = sequence<uintE>(last_round + 1);
+  auto shifts = sequence<size_t>(last_round + 1);
   par_for(0, last_round, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;

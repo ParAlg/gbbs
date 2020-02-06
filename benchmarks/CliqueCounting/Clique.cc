@@ -34,6 +34,7 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "Clique.h"
+#include <fstream>
 
 //#include "kClistNodeParallel.c"
 
@@ -44,12 +45,21 @@
 // -k clique size
 // -o 0 (approx goodrich), 1 (densest using work efficient densest subgraph, exact), 2 (densest using approx densest subgraph)
 
+// count in total, count per vert
+// if count per vert, peel or no
+
+// right now, -b = count per vert and peel; no -b means count in total
+// if -b, then -f (did not do per vert relabeling for relabeled graph
+
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
-  double epsilon = P.getOptionDoubleValue("-e", 0.001);
+  double epsilon = P.getOptionDoubleValue("-e", 0.1);
   long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
+  bool label = P.getOptionValue("-l");
+  bool filter = P.getOptionValue("-f");
+  bool use_base = P.getOptionValue("-b");
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -67,10 +77,20 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### Running Time: " << ttclist << std::endl;
   return ttclist;*/
 
+  /*std::string rankfile = P.getOptionValue("-rankfile", "");
+  uintE* r = nullptr;
+  if (rankfile != "") {
+    std::ifstream infile(rankfile);
+    r = pbbslib::new_array_no_init<uintE>(GA.n);
+    int a;
+    size_t idx = 0;
+    while (infile >> a) {
+      r[idx++] = a;
+    }
+  }*/
 
   timer t; t.start();
-  //auto core = AppKCore(GA, epsilon);
-  auto count = KClique(GA, k, order, epsilon, space);
+  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

@@ -23,9 +23,6 @@ int main(int argc, char* argv[]) {
   auto updates = barabasi_albert::generate_updates(n, edges_per_vertex);
 
   auto C = pbbslib::sequence_to_string(updates);
-  for (size_t i=0; i<100; i++) {
-    cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i]) << std::endl;
-  }
 
   size_t nn = C.size();
   std::ofstream file (out_f.c_str(), std::ios::out | std::ios::binary);

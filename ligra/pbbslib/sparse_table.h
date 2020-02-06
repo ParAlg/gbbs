@@ -38,7 +38,7 @@ class sparse_table {
   K empty_key;
   T* table;
   bool alloc;
-  KeyHash& key_hash;
+  KeyHash key_hash;
 
   size_t size() {
     return m;
@@ -68,13 +68,13 @@ class sparse_table {
       if (alloc) {
         pbbslib::free_array(table);
       }
-      cout << "Resizing decrement table, was: " << m;
+      cout << "# Resizing decrement table, was: " << m;
       m = incoming;
       mask = m - 1;
       table = pbbslib::new_array_no_init<T>(m);
       clearA(table, m, empty);
       alloc = true;
-      cout << " is now: " << m << endl;
+      cout << "#  is now: " << m << endl;
     }
   }
 
@@ -85,11 +85,12 @@ class sparse_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long space_mult=-1)
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1)
       : empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-    if (space_mult == -1) space_mult = 1.1;
+    double space_mult;
+    if (inp_space_mult == -1) space_mult = 1.1;
     m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m));
     mask = m - 1;
     table = pbbslib::new_array_no_init<T>(m);

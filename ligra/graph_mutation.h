@@ -78,7 +78,7 @@ template <template <class W> class vertex, class W, typename P,
 inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
   size_t n = G.n;
 
-  debug(std::cout << "Filtering" << "\n");
+  debug(std::cout << "# Filtering" << "\n");
 
   // 1. Calculate total size
   auto degrees = sequence<uintE>(n);
@@ -111,7 +111,7 @@ inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, 
   }, 1);
   byte_offsets[n] = 0;
   size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
-  std::cout << " size is: " << last_offset << "\n";
+  std::cout << "# size is: " << last_offset << "\n";
 
   auto edges = sequence<uchar>(last_offset);
 
@@ -128,7 +128,7 @@ inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, 
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(
           edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
-        std::cout << "degree is: " << new_deg << " nbytes should be: "
+        std::cout << "# degree is: " << new_deg << " nbytes should be: "
                   << (byte_offsets[i + 1] - byte_offsets[i])
                   << " but is: " << nbytes << "\n";
         assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
@@ -147,7 +147,7 @@ inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, 
   auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   auto edge_arr = edges.to_array();
-  std::cout << "Filtered, total_deg = " << total_deg << "\n";
+  std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, G.n, total_deg,
                             get_deletion_fn(out_vdata, edge_arr),
                             edge_arr, edge_arr);
@@ -158,7 +158,7 @@ template <
     typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
                             int>::type = 0>
 inline auto filter_graph(asymmetric_graph<vertex, W>& G, P& pred) -> decltype(G) {
-  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
+  std::cout << "# Filter graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
   return G;
 }
@@ -168,7 +168,7 @@ template <
     typename std::enable_if<
         std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
 inline auto filter_graph(asymmetric_graph<vertex, W>& G, P& pred) -> decltype(G) {
-  std::cout << "Filter graph not implemented for directed graphs" << std::endl;
+  std::cout << "# Filter graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
   return G;
 }
@@ -222,7 +222,7 @@ inline edge_array<W> filter_edges(symmetric_graph<vertex, W>& G, P& pred, const 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
   size_t output_size = std::get<1>(vtx_offs[n]);
-  std::cout << "tmp space to allocate = " << total_space
+  std::cout << "# tmp space to allocate = " << total_space
             << " output size = " << output_size << "\n";
   auto arr = sequence<edge>(output_size);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
@@ -264,7 +264,7 @@ inline edge_array<W> filter_edges(symmetric_graph<vertex, W>& G, P& pred, const 
       [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
 
   G.m = pbbslib::reduce_add(degree_imap);
-  std::cout << "G.m is now = " << G.m << "\n";
+  std::cout << "# G.m is now = " << G.m << "\n";
 
   return edge_array<W>(arr.to_array(), n, n, arr.size());
 }
@@ -289,7 +289,7 @@ inline edge_array<W> filter_all_edges(symmetric_graph<vertex, W>& G, P& p) {
   pbbslib::scan_inplace(offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
-  std::cout << "tmp space allocated = " << total_space << "\n";
+  std::cout << "# tmp space allocated = " << total_space << "\n";
 
   size_t total_edges = std::get<0>(offs[n]);
   auto arr = sequence<edge>(total_edges);
