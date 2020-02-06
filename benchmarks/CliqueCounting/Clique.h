@@ -219,7 +219,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
         if (still_active[u] == 2 || still_active[v] == 2) return false;
         //if (still_active[u] == 1 && still_active[v] == 0) return true;
         //if (still_active[u] == 0 && still_active[v] == 1) return false;
-        return rank[u] < rank[v];
+        return u < v;
         //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
       }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
@@ -253,8 +253,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
     const uintE v = std::get<0>(D_filter[i]);
     //assert (v < G.n);
     //D_update[v] = 0;
-    //assert (cliques[v] >= std::get<1>(D_filter[i]));
-    //cliques[v] -= std::get<1>(D_filter[i]);
+    //assert (cliques[eltsPerCacheLine*v] >= std::get<1>(D_filter[i]));
+    //cliques[eltsPerCacheLine*v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
       uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
