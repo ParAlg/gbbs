@@ -4,7 +4,6 @@
 
 #include <cmath>
 #include <algorithm>
-#include <atomic>
 #include <tuple>
 #include <unordered_set>
 #include <utility>
@@ -39,7 +38,7 @@ struct VertexDegree {
 VertexSet MakeVertexSet(const size_t capacity) {
   return
     make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
-      // Adding 1 avoids having small tables completely full
+      // Adding 1 avoids having small tables completely full.
       capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
 }
 
@@ -63,13 +62,16 @@ size_t BinarySearch(
   // In practice this probably doesn't matter much....
   size_t hi{0};
   while (hi < sequence.size() && predicate(sequence[hi])) {
-    hi = std::min(sequence.size(), 2 * hi + 1);
+    hi = 2 * hi + 1;
   }
-  // Invariant: predicate(sequence[lo]) && !predicate(sequence[hi])
   const size_t lo{hi / 2};
+  if (sequence.size() < hi) {
+    hi = sequence.size();
+  }
 
   return pbbs::binary_search(sequence.slice(lo, hi), predicate);
 }
+
 }  // namespace
 
 namespace internal {
@@ -116,14 +118,14 @@ StructuralSimilarities ComputeStructuralSimilarities(
   std::vector<VertexSet> adjacency_list{graph->n};
   parallel_for(0, graph->n, [&graph, &adjacency_list](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
-    auto* neighbors{&adjacency_list[vertex_id]};
+    auto* const neighbors{&adjacency_list[vertex_id]};
     *neighbors = MakeVertexSet(vertex.getOutDegree());
 
     const auto update_adjacency_list{[&neighbors](
         const uintE source_vertex,
         const uintE neighbor_vertex,
         const Weight weight) {
-      neighbors->insert(std::make_pair(neighbor_vertex, pbbslib::empty{}));
+      neighbors->insert({neighbor_vertex, pbbslib::empty{}});
     }};
     vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
@@ -148,24 +150,24 @@ StructuralSimilarities ComputeStructuralSimilarities(
           u_degree_is_smaller ? v_neighbors : u_neighbors
         };
 
-        std::atomic<uintE> num_shared_neighbors{0};
-        const auto count_shared_neighbors{
+        const auto is_shared_neighbor{
           [&](const uintE, const uintE neighbor, const Weight) {
-            if (larger_degree_vertex_neighbors.contains(neighbor)) {
-                num_shared_neighbors++;
-            }
+            return larger_degree_vertex_neighbors.contains(neighbor);
           }};
-        smaller_degree_vertex->mapOutNgh(
-            smaller_degree_vertex_id,
-            count_shared_neighbors);
+        const auto add_monoid{pbbslib::addm<size_t>()};
+        const size_t num_shared_neighbors{
+          smaller_degree_vertex->reduceOutNgh<size_t>(
+              smaller_degree_vertex_id,
+              is_shared_neighbor,
+              add_monoid)};
 
         // The neighborhoods we've computed are open neighborhoods -- since
         // structural similarity uses closed neighborhoods, we need to adjust
         // the number and denominator a little.
-        similarities.insert({UndirectedEdge{u_id, v_id},
+        similarities.insert(
+            {UndirectedEdge{u_id, v_id},
             (num_shared_neighbors + 2) /
-                (sqrt(graph->get_vertex(u_id).getOutDegree() + 1) *
-                 sqrt(graph->get_vertex(v_id).getOutDegree() + 1))});
+                (sqrt(u.getOutDegree() + 1) * sqrt(v.getOutDegree() + 1))});
       }
   });
 
@@ -188,7 +190,7 @@ NeighborOrder ComputeNeighborOrder(
     const StructuralSimilarities& similarities) {
   NeighborOrder neighbor_order{
     graph->n,
-    [&graph](size_t i) {
+    [&graph](const size_t i) {
       return pbbs::sequence<NeighborSimilarity>{
         graph->get_vertex(i).getOutDegree()};
     }
@@ -196,23 +198,25 @@ NeighborOrder ComputeNeighborOrder(
 
   par_for(0, graph->n, [&](const uintE v) {
     Vertex vertex{graph->get_vertex(v)};
-    auto& v_order{neighbor_order[v]};
+    auto* const v_order{&neighbor_order[v]};
 
     par_for(0, vertex.getOutDegree(), [&](const size_t i) {
       const uintE neighbor{vertex.getOutNeighbor(i)};
-      const float kNotFound{-1.0};
+      constexpr float kNotFound{-1.0};
       const float similarity{
         similarities.find(UndirectedEdge{v, neighbor}, kNotFound)};
-      v_order[i] = NeighborSimilarity{
+      (*v_order)[i] = NeighborSimilarity{
           .neighbor = neighbor, .similarity = similarity};
     });
 
-    // Sort by descending structural similarity
-    const auto compare_similarities_descending{[](
-        const NeighborSimilarity& a, const NeighborSimilarity& b) {
-      return a.similarity > b.similarity;
-    }};
-    pbbs::sample_sort_inplace(v_order.slice(), compare_similarities_descending);
+    // Sort by descending structural similarity.
+    const auto compare_similarities_descending{
+      [](const NeighborSimilarity& a, const NeighborSimilarity& b) {
+        return a.similarity > b.similarity;
+      }};
+    pbbs::sample_sort_inplace(
+        v_order->slice(),
+        compare_similarities_descending);
   });
 
   return neighbor_order;
@@ -233,7 +237,8 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
   pbbs::sequence<VertexDegree> vertex_degrees{
     pbbs::map_with_index<VertexDegree>(
         neighbor_order,
-        [](size_t i, const pbbs::sequence<NeighborSimilarity>& similarity) {
+        [](const size_t i,
+           const pbbs::sequence<NeighborSimilarity>& similarity) {
           return VertexDegree{
             .vertex_id = static_cast<uintE>(i),
             .degree = static_cast<uintE>(similarity.size())};
@@ -280,11 +285,11 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
             .threshold =
                 neighbor_order[vertex_degree.vertex_id][mu - 2].similarity};
         })};
-    // Sort by descending threshold
-    const auto compare_threshold_descending{[](
-        const CoreThreshold& a, const CoreThreshold& b) {
-      return a.threshold > b.threshold;
-    }};
+    // Sort by descending threshold.
+    const auto compare_threshold_descending{
+      [](const CoreThreshold& a, const CoreThreshold& b) {
+        return a.threshold > b.threshold;
+      }};
     pbbs::sample_sort_inplace(
         core_thresholds.slice(), compare_threshold_descending);
     return core_thresholds;
@@ -482,8 +487,8 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
   });
 
   par_for(0, num_vertices_, [&](const size_t i) {
-    auto& vertex_type{clustering.clusters_by_vertex[i]};
-    if (!std::holds_alternative<ClusterMember>(vertex_type)) {
+    auto* const vertex_type{&clustering.clusters_by_vertex[i]};
+    if (!std::holds_alternative<ClusterMember>(*vertex_type)) {
       // Determine whether remaining vertex i is a hub or outlier.
 
       const auto& neighbors{neighbor_order_[i]};
@@ -516,7 +521,7 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
           }
         }
 
-        vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
+        *vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
       });
     }
   });
