@@ -164,7 +164,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     free(per_vert);
     per_vert = inverse_per_vert;
   }
-  sequence<uintE> cores = Peel(GA, k-1, per_vert, label, rank);
+  sequence<long> cores = Peel(GA, k-1, per_vert, label, rank);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   free(per_vert);
