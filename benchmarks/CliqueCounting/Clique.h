@@ -190,7 +190,8 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
-  auto D_update = sequence<long>(G.n, [&](size_t i) { return 0; });
+  auto D_update = sequence<long>(eltsPerCacheLine*G.n);
+  paralle_for(0, G.n. [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
@@ -233,7 +234,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
         //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
       }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
-      auto update_d = [&](uintE vtx, size_t count) { pbbslib::xadd(&(D_update[vtx]), (long) count); };
+      auto update_d = [&](uintE vtx, size_t count) { pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count); };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;
@@ -243,7 +244,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
 
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
-  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
+  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[eltsPerCacheLine*i]); };
   auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, long>>(G.n, D_delayed_f);
   auto D_filter_f = [&](const std::tuple<uintE, long>& tup) { return std::get<1>(tup) > 0; } ;
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
@@ -262,7 +263,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   parallel_for(0, filter_size, [&] (size_t i) {
     const uintE v = std::get<0>(D_filter[i]);
     assert (v < G.n);
-    D_update[v] = 0;
+    D_update[eltsPerCacheLine*v] = 0;
     assert (cliques[eltsPerCacheLine*v] >= std::get<1>(D_filter[i]));
     cliques[eltsPerCacheLine*v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
