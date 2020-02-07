@@ -62,7 +62,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
   t.stop();
-  debug(t.reportTotal("Rank time"););
+  t.reportTotal("Rank time");
   return r;
 }
 
@@ -96,7 +96,7 @@ template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  uintE* per_vert = use_base ? (uintE*) calloc(eltsPerCacheLine*GA.n, sizeof(uintE)) : nullptr;
+  long* per_vert = use_base ? (long*) calloc(eltsPerCacheLine*GA.n, sizeof(long)) : nullptr;
 
   using W = typename Graph::weight_type;
   assert (k >= 3);
@@ -135,7 +135,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   }
   } else {
     auto base_f = [&](uintE vtx, size_t count) {
-      pbbs::write_add(&(per_vert[eltsPerCacheLine*vtx]), count);
+      pbbslib::xadd(&(per_vert[eltsPerCacheLine*vtx]), (long) count);
     }; // TODO problem with relabel not being consistent; but if using filter should be ok
   if (space_type == 2) {
     count = induced_intersection::CountCliques(DG, k-1);
@@ -158,7 +158,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   if (!use_base) return count;
 
   timer t2; t2.start();
-  uintE* inverse_per_vert = use_base && !filter ? (uintE*) malloc(eltsPerCacheLine*GA.n*sizeof(uintE)) : nullptr;
+  long* inverse_per_vert = use_base && !filter ? (long*) malloc(eltsPerCacheLine*GA.n*sizeof(long)) : nullptr;
   if (!filter) {
     parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[eltsPerCacheLine*i] = per_vert[eltsPerCacheLine*rank[i]]; });
     free(per_vert);
@@ -175,12 +175,12 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
 
 template <class Graph>
-sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
+sequence<uintE> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
-  auto D_update = sequence<uintE>(G.n, [&](size_t i) { return 0; });
-  auto D_filter = sequence<std::tuple<uintE, uintE>>(G.n);
+  auto D_update = sequence<long>(G.n, [&](size_t i) { return 0; });
+  auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
@@ -222,7 +222,7 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
         //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
       }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
       induced->setup(G, k, active.vtx(i), ignore_f);
-      auto update_d = [&](uintE vtx, size_t count) { pbbs::write_add(&(D_update[vtx]), count); };
+      auto update_d = [&](uintE vtx, size_t count) { pbbslib::xadd(&(D_update[vtx]), (long) count); };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;
@@ -233,8 +233,8 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
   auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[i]); };
-  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, uintE>>(G.n, D_delayed_f);
-  auto D_filter_f = [&](const std::tuple<uintE,uintE>& tup) { return std::get<1>(tup) > 0; } ;
+  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, long>>(G.n, D_delayed_f);
+  auto D_filter_f = [&](const std::tuple<uintE, long>& tup) { return std::get<1>(tup) > 0; } ;
   size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
 
   /*size_t filter_size = 0;
@@ -258,10 +258,10 @@ sequence<uintE> Peel(Graph& G, size_t k, uintE* cliques, bool label, sequence<ui
     if (deg > cur_bkt) {
       uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
       D[v] = new_deg;
-      uintE bkt = b.get_bucket(deg, new_deg);
+      long bkt = b.get_bucket(deg, new_deg);
       // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
       D_filter[i] = std::make_tuple(v, bkt);
-    } else D_filter[i] = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
+    } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
   });
 
   auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
