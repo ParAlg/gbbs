@@ -56,9 +56,13 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   timer t;
   t.start();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
-  pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-    return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
+
+  pbbs::integer_sort_inplace(o.slice(), [&] (size_t p) {
+    return G.get_vertex(p).getOutDegree();
   });
+//  pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
+//    return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
+//  });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
   t.stop();
