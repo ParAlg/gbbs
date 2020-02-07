@@ -131,7 +131,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
   }
   else if (space_type == 6) {
-    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, 300);
+    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label);
   }
   } else {
     auto base_f = [&](uintE vtx, size_t count) {
@@ -147,7 +147,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
   }
   else if (space_type == 6) {
-    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, 300);
+    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label);
   }
   }
 
