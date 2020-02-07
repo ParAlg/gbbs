@@ -191,7 +191,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_update = sequence<long>(eltsPerCacheLine*G.n);
-  paralle_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
+  parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
