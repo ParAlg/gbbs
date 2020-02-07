@@ -177,7 +177,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 template <class Graph>
 sequence<uintE> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
+  auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
   auto D_update = sequence<long>(G.n, [&](size_t i) { return 0; });
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
@@ -187,8 +187,8 @@ sequence<uintE> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uin
 
   size_t rounds = 0;
   size_t finished = 0;
-  uintE cur_bkt = 0;
-  uintE max_bkt = 0;
+  long cur_bkt = 0;
+  long max_bkt = 0;
   // Peel each bucket
   while (finished != G.n) {
     // Retrieve next bucket
@@ -256,7 +256,7 @@ sequence<uintE> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uin
     cliques[eltsPerCacheLine*v] -= std::get<1>(D_filter[i]);
     uintE deg = D[v];
     if (deg > cur_bkt) {
-      uintE new_deg = std::max(cliques[eltsPerCacheLine*v], cur_bkt);
+      long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
       D[v] = new_deg;
       long bkt = b.get_bucket(deg, new_deg);
       // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
