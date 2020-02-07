@@ -175,7 +175,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
 
 template <class Graph>
-sequence<uintE> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
+sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
@@ -196,7 +196,7 @@ sequence<uintE> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uin
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
     cur_bkt = bkt.id;
-    max_bkt = std::max(cur_bkt, (uintE) bkt.id);
+    max_bkt = std::max(cur_bkt, (long) bkt.id);
     //std::cout << "Fetching bucket: " << cur_bkt << std::endl;
     //active.toSparse();
 
