@@ -100,7 +100,7 @@ template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  long* per_vert = use_base ? (long*) calloc(eltsPerCacheLine*GA.n, sizeof(long)) : nullptr;
+  long* per_vert = use_base ? (long*) calloc(eltsPerCacheLine*GA.n*num_workers(), sizeof(long)) : nullptr;
 
   using W = typename Graph::weight_type;
   assert (k >= 3);
@@ -139,7 +139,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   }
   } else {
     auto base_f = [&](uintE vtx, size_t count) {
-      pbbslib::xadd(&(per_vert[eltsPerCacheLine*vtx]), (long) count);
+      //pbbslib::xadd(&(per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)]), (long) count);
+      per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)] += count;
     }; // TODO problem with relabel not being consistent; but if using filter should be ok
   if (space_type == 2) {
     count = induced_intersection::CountCliques(DG, k-1);
@@ -160,6 +161,12 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   std::cout << "### Num " << k << " cliques = " << count << "\n";
 
   if (!use_base) return count;
+
+  for (size_t j=1; j < num_workers(); j++) {
+    parallel_for(0,GA.n,[&](size_t l) {
+      per_vert[eltsPerCacheLine*l] += per_vert[eltsPerCacheLine*(l + j*GA.n)];
+    });
+  }
 
   timer t2; t2.start();
   long* inverse_per_vert = use_base && !filter ? (long*) malloc(eltsPerCacheLine*GA.n*sizeof(long)) : nullptr;
