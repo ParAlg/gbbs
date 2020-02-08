@@ -186,7 +186,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
 
 template <class Graph>
-sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=128) {
+sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=32) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
