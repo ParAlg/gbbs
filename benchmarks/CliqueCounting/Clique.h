@@ -219,12 +219,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
 // also drop if already peeled -- check using D
 
   //sequence<size_t> tots = sequence<size_t>::no_init(active.size());
-  //size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
-  size_t max_deg = 0;
-    parallel_for(0, active.size(), [&] (size_t i) {
-      size_t deg = G.get_vertex(active.vtx(i)).getOutDegree();
-      pbbs::write_min(&max_deg, deg, std::greater<size_t>());
-    });
+  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
 
