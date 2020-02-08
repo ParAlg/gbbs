@@ -223,7 +223,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
 
-if (active.size() < 30) {
+if (active.size() < 10) {
   HybridSpace_lw* induced = new HybridSpace_lw();
   induced->alloc(max_deg, k, G.n, label, true); 
     for (size_t i=0; i < active.size(); i++) {
