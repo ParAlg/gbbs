@@ -219,7 +219,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
 // also drop if already peeled -- check using D
   size_t max_deg = 0;
   parallel_for(0, active.size(), [&] (size_t i) {
-    size_t deg = DG.get_vertex(active.vtx(i)).getOutDegree();
+    size_t deg = G.get_vertex(active.vtx(i)).getOutDegree();
     pbbs::write_min(&max_deg, deg, std::greater<size_t>());
   });
   //sequence<size_t> tots = sequence<size_t>::no_init(active.size());
