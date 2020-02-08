@@ -291,8 +291,8 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
 
     rounds++;
   }
-  std::cout << "rho = " << rounds << std::endl;
-  std::cout << "max_bkt = " << max_bkt << std::endl;
+  std::cout << "rho: " << rounds << std::endl;
+  std::cout << "max_bkt: " << max_bkt << std::endl;
 
   bkt_t.reportTotal("bkt time");
   filter_t.reportTotal("filter time");
