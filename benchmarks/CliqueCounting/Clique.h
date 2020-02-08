@@ -204,78 +204,86 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   size_t finished = 0;
   long cur_bkt = 0;
   long max_bkt = 0;
+  timer updct_t, bkt_t, filter_t;
   // Peel each bucket
   while (finished != G.n) {
     // Retrieve next bucket
+    bkt_t.start();
     auto bkt = b.next_bucket();
+    bkt_t.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, (long) bkt.id);
-  
-  auto edge_table = sparse_table<uintE, bool, hashtup>(cur_bkt*k*active.size(), std::make_tuple(UINT_E_MAX, false), hashtup());
 
-  for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
+    auto edge_table = sparse_table<uintE, bool, hashtup>(cur_bkt*k*active.size(), std::make_tuple(UINT_E_MAX, false), hashtup());
 
-// here, update D[i] if necessary
-// for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
-// also drop if already peeled -- check using D
+    for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
 
-  
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
-  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+    // here, update D[i] if necessary
+    // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
+    // also drop if already peeled -- check using D
 
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
-    if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-      auto ignore_f = [&](const uintE& u, const uintE& v) {
-        if (still_active[u] == 2 || still_active[v] == 2) return false;
-        if (still_active[u] == 1 && still_active[v] == 0) return true;
-        if (still_active[u] == 0 && still_active[v] == 1) return false;
-        return rank[u] < rank[v];
-        //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
-      }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
-      induced->setup(G, k, active.vtx(i), ignore_f);
-      auto update_d = [&](uintE vtx, size_t count) {
-        pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
-        edge_table.insert(std::make_tuple(vtx, true));
-      };
-      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      //update_d(active.vtx(i), tots[i]);
-    } //else tots[i] = 0;
-  }, 1, false);
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
-  for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+    updct_t.start();
+    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
+      if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
+        auto ignore_f = [&](const uintE& u, const uintE& v) {
+          if (still_active[u] == 2 || still_active[v] == 2) return false;
+          if (still_active[u] == 1 && still_active[v] == 0) return true;
+          if (still_active[u] == 0 && still_active[v] == 1) return false;
+          return rank[u] < rank[v];
+          //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
+        }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+        induced->setup(G, k, active.vtx(i), ignore_f);
+        auto update_d = [&](uintE vtx, size_t count) {
+          pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
+          edge_table.insert(std::make_tuple(vtx, true));
+        };
+        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+        //update_d(active.vtx(i), tots[i]);
+      } //else tots[i] = 0;
+    }, 1, false);
+    updct_t.stop();
 
-  // filter D_update for nonzero elements
-  // subtract these from D and then we can rebucket these elements
-//  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[eltsPerCacheLine*i]); };
-//  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, long>>(G.n, D_delayed_f);
-//  auto D_filter_f = [&](const std::tuple<uintE, long>& tup) { return std::get<1>(tup) > 0; } ;
-//  size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
-  auto changed_vtxs = edge_table.entries();
-  edge_table.del();
+    for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
 
-  parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-    const uintE v = std::get<0>(changed_vtxs[i]);
-    cliques[eltsPerCacheLine*v] -= D_update[eltsPerCacheLine*v];
-    D_update[eltsPerCacheLine*v] = 0;
-    uintE deg = D[v];
-    if (deg > cur_bkt) {
-      long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
-      D[v] = new_deg;
-      long bkt = b.get_bucket(deg, new_deg);
-      // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
-      D_filter[i] = std::make_tuple(v, bkt);
-    } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
-  });
+    // filter D_update for nonzero elements
+    // subtract these from D and then we can rebucket these elements
+  //  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[eltsPerCacheLine*i]); };
+  //  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, long>>(G.n, D_delayed_f);
+  //  auto D_filter_f = [&](const std::tuple<uintE, long>& tup) { return std::get<1>(tup) > 0; } ;
+  //  size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
+    auto changed_vtxs = edge_table.entries();
+    edge_table.del();
 
-  auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
-    uintE v = std::get<0>(D_filter[i]);
-    uintE bkt = std::get<1>(D_filter[i]);
-    if (still_active[v] != 2 && v != UINT_E_MAX) return wrap(v, bkt);
-    return Maybe<std::tuple<uintE, uintE> >();
-  };
+    filter_t.start();
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      const uintE v = std::get<0>(changed_vtxs[i]);
+      cliques[eltsPerCacheLine*v] -= D_update[eltsPerCacheLine*v];
+      D_update[eltsPerCacheLine*v] = 0;
+      uintE deg = D[v];
+      if (deg > cur_bkt) {
+        long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
+        D[v] = new_deg;
+        long bkt = b.get_bucket(deg, new_deg);
+        // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
+        D_filter[i] = std::make_tuple(v, bkt);
+      } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
+    });
+    filter_t.stop();
+
+    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
+      uintE v = std::get<0>(D_filter[i]);
+      uintE bkt = std::get<1>(D_filter[i]);
+      if (still_active[v] != 2 && v != UINT_E_MAX) return wrap(v, bkt);
+      return Maybe<std::tuple<uintE, uintE> >();
+    };
+    bkt_t.start();
     b.update_buckets(apply_f, changed_vtxs.size());
+    bkt_t.stop();
 
     active.del();
 
@@ -283,6 +291,10 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   }
   std::cout << "rho = " << rounds << std::endl;
   std::cout << "max_bkt = " << max_bkt << std::endl;
+
+  bkt_t.reportTotal("bkt time");
+  filter_t.reportTotal("filter time");
+  updct_t.reportTotal("update count time");
 
   b.del();
   free(still_active);
