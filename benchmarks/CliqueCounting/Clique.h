@@ -216,10 +216,12 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, (long) bkt.id);
 
-    auto edge_table = sparse_table<uintE, bool, hashtup>(cur_bkt*k*active.size(), std::make_tuple(UINT_E_MAX, false), hashtup());
+    size_t active_deg = 0;
+    for (size_t i=0; i < active.size(); i++) { active_deg += G.get_vertex(active.vtx(i)).getOutDegree(); }
+    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
+    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
-    for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
-
+    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;});
     // here, update D[i] if necessary
     // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
     // also drop if already peeled -- check using D
@@ -248,7 +250,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
     }, 1, false);
     updct_t.stop();
 
-    for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
 
     // filter D_update for nonzero elements
     // subtract these from D and then we can rebucket these elements
