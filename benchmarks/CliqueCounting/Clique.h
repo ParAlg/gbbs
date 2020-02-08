@@ -223,27 +223,6 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
 
-if (active.size() < 10) {
-  HybridSpace_lw* induced = new HybridSpace_lw();
-  induced->alloc(max_deg, k, G.n, label, true); 
-    for (size_t i=0; i < active.size(); i++) {
-    if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-      auto ignore_f = [&](const uintE& u, const uintE& v) {
-        if (still_active[u] == 2 || still_active[v] == 2) return false;
-        if (still_active[u] == 1 && still_active[v] == 0) return true;
-        if (still_active[u] == 0 && still_active[v] == 1) return false;
-        return rank[u] < rank[v];
-        //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
-      }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
-      induced->setup(G, k, active.vtx(i), ignore_f);
-      auto update_d = [&](uintE vtx, size_t count) { pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count); };
-      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      //update_d(active.vtx(i), tots[i]);
-    } //else tots[i] = 0;
-  }
-  if (induced != nullptr) { delete induced; }
-}
-else {
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
     if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
       auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -259,7 +238,7 @@ else {
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;
   }, 1, false);
-}
+
   for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
 
   // filter D_update for nonzero elements
