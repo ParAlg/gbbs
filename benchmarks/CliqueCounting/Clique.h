@@ -186,7 +186,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
 
 template <class Graph>
-sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=32) {
+sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   //auto ER = sequence<uintE>(G.n, [&](size_t i) { return 0; });
@@ -212,14 +212,38 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
     //std::cout << "Fetching bucket: " << cur_bkt << std::endl;
     //active.toSparse();
 
-  for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
-
+  //for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 1; }
+  parallel_for(0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;});
 // here, update D[i] if necessary
 // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
 // also drop if already peeled -- check using D
-
+  size_t max_deg = 0;
+  parallel_for(0, active.size(), [&] (size_t i) {
+    size_t deg = DG.get_vertex(active.vtx(i)).getOutDegree();
+    pbbs::write_min(&max_deg, deg, std::greater<size_t>());
+  });
   //sequence<size_t> tots = sequence<size_t>::no_init(active.size());
-  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
+if (active.size() < 300) {
+  HybridSpace_lw* induced = new HybridSpace_lw();
+  induced->alloc(max_deg, k, G.n, label, true);
+  for (size_t i=0; i < active.size(); i++) {
+    if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
+      auto ignore_f = [&](const uintE& u, const uintE& v) {
+        if (still_active[u] == 2 || still_active[v] == 2) return false;
+        if (still_active[u] == 1 && still_active[v] == 0) return true;
+        if (still_active[u] == 0 && still_active[v] == 1) return false;
+        return rank[u] < rank[v];
+        //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
+      }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+      induced->setup(G, k, active.vtx(i), ignore_f);
+      auto update_d = [&](uintE vtx, size_t count) { pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count); };
+      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+      //update_d(active.vtx(i), tots[i]);
+    }
+  }
+  if (induced != nullptr) { delete induced; }
+}
+else {
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
 
@@ -239,8 +263,9 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
       //update_d(active.vtx(i), tots[i]);
     } //else tots[i] = 0;
   }, 1, false);
-
-  for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+}
+  //for (size_t j=0; j < active.size(); j++) { still_active[active.vtx(j)] = 2; }
+  parallel_for(0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
 
   // filter D_update for nonzero elements
   // subtract these from D and then we can rebucket these elements
