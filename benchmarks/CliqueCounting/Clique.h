@@ -222,7 +222,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   //size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active
   size_t max_deg = 0;
     parallel_for(0, active.size(), [&] (size_t i) {
-      size_t deg = DG.get_vertex(active.vtx(i)).getOutDegree();
+      size_t deg = G.get_vertex(active.vtx(i)).getOutDegree();
       pbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
