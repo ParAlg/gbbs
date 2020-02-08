@@ -16,8 +16,8 @@ namespace induced_intersection {
     return max_deg;
   }
 
-  template <class Graph>
-  inline size_t KCliqueDir_fast_rec(Graph& DG, size_t k_idx, size_t k, InducedSpace_lw* induced) {
+  template <class Graph, class F>
+  inline size_t KCliqueDir_fast_rec(Graph& DG, size_t k_idx, size_t k, InducedSpace_lw* induced, F base_f, bool use_base) {
     using W = typename Graph::weight_type;
     size_t num_induced = induced->num_induced[k_idx-1];
     uintE* prev_induced = induced->induced + induced->num_induced[0] * (k_idx - 1);
@@ -33,12 +33,17 @@ namespace induced_intersection {
     if (k_idx + 1 == k) {
       size_t counts = 0;
       for (size_t i=0; i < num_induced; i++) {
+        size_t tmp_counts = 0;
         uintE vtx = prev_induced[i];
 
         auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
-          counts++;
+          tmp_counts++;
+          if (use_base) base_f(std::get<0>(nw), 1);
         };
         DG.get_vertex(vtx).filterOutNgh(vtx, pred, out_f, tmp.begin());
+        if (use_base && tmp_counts > 0) base_f(vtx, tmp_counts);
+        counts += tmp_counts;
+        tmp_counts = 0;
 
         /*auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
           if (induced->intersect[nbhr] == k_idx) counts++;
@@ -62,24 +67,21 @@ namespace induced_intersection {
       };
       DG.get_vertex(vtx).filterOutNgh(vtx, pred, out_f, tmp.begin());
 
-      /*auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
-        if (induced->intersect[nbhr] == k_idx) {
-          out[count] = nbhr;
-          count++;
-        }
-      };
-      DG.get_vertex(vtx).mapOutNgh(vtx, map_intersect_f, false);*/
       induced->num_induced[k_idx] = count;
       //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx);
-      if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_rec(DG, k_idx + 1, k, induced);
+      if (induced->num_induced[k_idx] > 0) {
+        auto curr_ct = KCliqueDir_fast_rec(DG, k_idx + 1, k, induced, base_f, use_base);
+        if (use_base && curr_ct > 0) base_f(vtx, curr_ct);
+        total_ct += curr_ct;
+      }
     }
 
     for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx - 1; }
     return total_ct;
   }
 
-  template <class Graph>
-  inline size_t CountCliques(Graph& DG, size_t k) {
+  template <class Graph, class G, class F>
+  inline size_t CountCliques(Graph& DG, size_t k, G use_f, F base_f, bool use_base=false) {
     using W = typename Graph::weight_type;
     sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
 
@@ -92,11 +94,14 @@ namespace induced_intersection {
         //for (size_t j=0; j < induced->num_induced[0]; j++) {
         size_t j = 0;
         auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
-          induced->induced[j] = nbhr;
-          j++;
+          if (use_f(i, nbhr)) {
+            induced->induced[j] = nbhr;
+            j++;
+          }
         };
         DG.get_vertex(i).mapOutNgh(i, map_intersect_f, false);
-        tots[i] = KCliqueDir_fast_rec(DG, 1, k, induced);
+        tots[i] = KCliqueDir_fast_rec(DG, 1, k, induced, base_f, use_base);
+        if (use_base && tots[i] > 0) base_f(i, tots[i]);
       } else tots[i] = 0;
     } );
 
