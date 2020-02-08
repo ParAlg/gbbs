@@ -222,6 +222,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
     size_t deg = G.get_vertex(active.vtx(i)).getOutDegree();
     pbbs::write_min(&max_deg, deg, std::greater<size_t>());
   });
+  max_deg++;
   //sequence<size_t> tots = sequence<size_t>::no_init(active.size());
 if (active.size() < 300) {
   HybridSpace_lw* induced = new HybridSpace_lw();
