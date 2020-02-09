@@ -172,7 +172,7 @@ namespace induced_intersection {
       }
       induced->num_induced[k_idx] = count;
       if (count > 0) {
-        auto curr_ct = KCliqueDir_fast_rec(DG, k_idx + 1, k, induced, base_f, use_base);
+        auto curr_ct = KCliqueDir_simple(DG, k_idx + 1, k, induced, base_f, use_base);
         if (use_base && curr_ct > 0) base_f(vtx, curr_ct);
         total_ct += curr_ct;
       }
