@@ -202,7 +202,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   auto used_vert_size = sequence<size_t>(num_workers()+1);
   parallel_for(0, num_workers()+1, [&](size_t j){used_vert_size[j] = 0;});
 
-  auto D_filter = sequence<std::tuple<uintE, long>>(std::min(num_workers()*G.n, (size_t) 500));
+  auto D_filter = sequence<std::tuple<uintE, long>>(std::max(G.n,std::min(num_workers()*G.n, (size_t) 500)));
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
