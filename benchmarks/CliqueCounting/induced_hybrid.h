@@ -25,7 +25,8 @@ namespace induced_hybrid {
     if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
 
-    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
+    //for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
+    parallel_for(0, num_induced, [&] (size_t i) {induced->labels[prev_induced[i]] = k_idx;});
 
     if (k_idx + 1 == k) {
       size_t counts = 0;
@@ -43,7 +44,7 @@ namespace induced_hybrid {
         if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
         counts += tmp_counts;
       }
-      for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+      parallel_for(0, num_induced, [&] (size_t i) { induced->labels[prev_induced[i]] = k_idx - 1; });
       return counts;
     }
 size_t total_ct = 0;
@@ -90,7 +91,8 @@ if (recursive_level < k_idx || num_induced < 2) {
     });
     total_ct += pbbslib::reduce_add(tots);
 }
-    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+    //for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+    parallel_for(0, num_induced, [&] (size_t i) { induced->labels[prev_induced[i]] = k_idx - 1; });
     return total_ct;
   }
 

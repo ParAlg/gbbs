@@ -302,13 +302,13 @@ struct HybridSpace_lw {
     }
 
     nn = DG.get_vertex(i).getOutDegree();
-    //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
-    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+
+    //for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
   
-    //if (k > 2) {
     num_induced[0] = nn;
-    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
-    //}
+    //for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -352,16 +352,16 @@ struct HybridSpace_lw {
   void setup_labels(Graph& DG, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
     nn = DG.get_vertex(i).getOutDegree();
-    //auto induced_g = DG.get_vertex(i).getOutNeighbors(); //((uintE*)(DG.get_vertex(i).getOutNeighbors()));
-    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+    //for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
   
     num_induced[0] = nn;
-    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    //for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
-    //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      if (!f(src, ngh)) {o++; return;}
+      if (!f(src, ngh)) return;
       old_labels[ngh] = o + 1;
       if (use_base) { relabel[o] = ngh; }
       o++;
@@ -376,7 +376,6 @@ struct HybridSpace_lw {
       // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
-      //for (size_t l=0; l < v_deg; l++) {
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         if (!f(src_v, v_nbhr)) return;
         if (old_labels[v_nbhr] > 0) {
@@ -385,12 +384,10 @@ struct HybridSpace_lw {
         }
       };
       DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      //}
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
 
-    //for (size_t o=0; o < nn; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
     };
