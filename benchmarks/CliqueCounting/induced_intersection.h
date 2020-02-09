@@ -113,8 +113,8 @@ namespace induced_intersection {
 
 
 
-  template <class Graph, class F>
-  inline size_t KCliqueDir_simple(Graph& DG, size_t k_idx, size_t k, SimpleSpace* induced, F base_f, bool use_base) {
+  template <class Graph, class F, class G>
+  inline size_t KCliqueDir_simple(Graph& DG, size_t k_idx, size_t k, SimpleSpace* induced, F base_f, bool use_base, G use_f) {
     using W = typename Graph::weight_type;
     size_t num_induced = induced->num_induced[k_idx-1];
     uintE* prev_induced = induced->induced + induced->num_induced[0] * (k_idx - 1);
@@ -132,8 +132,10 @@ namespace induced_intersection {
       size_t v_iter_idx = 0;
       while (i_iter_idx < num_induced && v_iter_idx < v_deg) {
         if (prev_induced[i_iter_idx] == std::get<0>(v_iter.cur())) {
-          tmp_counts++;
-          if (use_base) base_f(prev_induced[i_iter_idx], 1);
+          if (use_f(vtx, prev_induced[i_iter_idx])) {
+            tmp_counts++;
+            if (use_base) base_f(prev_induced[i_iter_idx], 1);
+          }
           i_iter_idx++; v_iter_idx++;
           if (v_iter.has_next()) v_iter.next();
         } else if (prev_induced[i_iter_idx] < std::get<0>(v_iter.cur())) i_iter_idx++;
@@ -160,8 +162,10 @@ namespace induced_intersection {
       size_t v_iter_idx = 0;
       while (i_iter_idx < num_induced && v_iter_idx < v_deg) {
         if (prev_induced[i_iter_idx] == std::get<0>(v_iter.cur())) {
-          out[count] = prev_induced[i_iter_idx];
-          count++;
+          if (use_f(vtx, prev_induced[i_iter_idx])) {
+            out[count] = prev_induced[i_iter_idx];
+            count++;
+          }
           i_iter_idx++; v_iter_idx++;
           if (v_iter.has_next()) v_iter.next();
         } else if (prev_induced[i_iter_idx] < std::get<0>(v_iter.cur())) i_iter_idx++;
@@ -172,7 +176,7 @@ namespace induced_intersection {
       }
       induced->num_induced[k_idx] = count;
       if (count > 0) {
-        auto curr_ct = KCliqueDir_simple(DG, k_idx + 1, k, induced, base_f, use_base);
+        auto curr_ct = KCliqueDir_simple(DG, k_idx + 1, k, induced, base_f, use_base, use_f);
         if (use_base && curr_ct > 0) base_f(vtx, curr_ct);
         total_ct += curr_ct;
       }

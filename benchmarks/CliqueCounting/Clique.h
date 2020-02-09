@@ -199,10 +199,11 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   auto D_update = sequence<long>(num_workers()*G.n);
   parallel_for(0, num_workers()*G.n, [&](size_t j){D_update[j] = 0;});
   auto used_vert = sequence<uintE>(num_workers()*max_deg);
-  auto used_vert_size = sequence<size_t>(num_workers()+1);
-  parallel_for(0, num_workers()+1, [&](size_t j){used_vert_size[j] = 0;});
+  auto used_vert_size = sequence<size_t>(num_workers());
+  parallel_for(0, num_workers(), [&](size_t j){used_vert_size[j] = 0;});
 
-  auto D_filter = sequence<std::tuple<uintE, long>>(std::max(G.n,std::min(num_workers()*G.n, (size_t) 500)));
+  size_t lim = 500;
+  auto D_filter = sequence<std::tuple<uintE, long>>(std::max(G.n, lim));
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
@@ -278,7 +279,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
         };
         G.get_vertex(i).mapOutNgh(i, map_intersect_f, false);
         induced->num_induced[0] = (uintE) j;
-        if (j > 0) induced_intersection::KCliqueDir_simple(G, 1, k, induced, update_d, true);
+        if (j > 0) induced_intersection::KCliqueDir_simple(G, 1, k, induced, update_d, true, use_f);
       }
     } );*/
     updct_t.stop();
@@ -287,7 +288,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
 
     size_t filter_size = pbbslib::reduce_add(used_vert_size);
 
-if (filter_size < 500) {
+if (filter_size < lim) {
 
     filter_t.start();
     size_t l = 0;
@@ -309,19 +310,9 @@ if (filter_size < 500) {
       }
     }
     filter_size = l;
-    parallel_for (0, num_workers()+1, [&](size_t j) {used_vert_size[j] = 0;});
 
     filter_t.stop();
 
-    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
-      uintE v = std::get<0>(D_filter[i]);
-      uintE bkt = std::get<1>(D_filter[i]);
-      if (v != UINT_E_MAX) return wrap(v, bkt);
-      return Maybe<std::tuple<uintE, uintE> >();
-    };
-    bkt_t.start();
-    b.update_buckets(apply_f, filter_size);
-    bkt_t.stop();
 } else {
       auto edge_table = sparse_additive_map<uintE, long>(filter_size, std::make_tuple(UINT_E_MAX, LONG_MAX));
 
@@ -334,7 +325,7 @@ if (filter_size < 500) {
         edge_table.insert(std::make_tuple(v, update_val));
       }
     });
-    parallel_for (0, num_workers()+1, [&](size_t j) {used_vert_size[j] = 0;});
+    
     auto edge_table_entries = edge_table.entries();
     edge_table.del();
     filter_size = edge_table_entries.size();
@@ -351,7 +342,8 @@ if (filter_size < 500) {
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
     });
     filter_t.stop();
-
+}
+    parallel_for (0, num_workers(), [&](size_t j) {used_vert_size[j] = 0;});
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       uintE v = std::get<0>(D_filter[i]);
       uintE bkt = std::get<1>(D_filter[i]);
@@ -361,7 +353,7 @@ if (filter_size < 500) {
     bkt_t.start();
     b.update_buckets(apply_f, filter_size);
     bkt_t.stop();
-}
+
     active.del();
 
     rounds++;

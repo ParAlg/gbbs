@@ -249,9 +249,11 @@ struct SimpleSpace {
   // induced + num_induced[0]*i (num_induced[0] is an upper-bound on the maximum
   // number of induced neighbors at any level).
   uintE* induced = nullptr;
+  size_t max_deg;
   SimpleSpace() {}
 
-  void alloc(size_t max_deg, size_t k, size_t n) {
+  void alloc(size_t _max_deg, size_t k, size_t n) {
+    max_deg = _max_deg;
     if (!induced) induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
     if (!num_induced) num_induced = (uintE*) malloc(k*sizeof(uintE));
   }
