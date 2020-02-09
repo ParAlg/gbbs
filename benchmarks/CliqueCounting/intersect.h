@@ -416,15 +416,15 @@ struct HybridSpace_lw {
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
       if (!f(src, v)) { j++; return; }
-      if (still_active[v] == 0) {
+      //if (still_active[v] == 0) {
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (still_active[v_nbhr] == 0 && old_labels[v_nbhr] > 0) {
+        if (old_labels[v_nbhr] > 0) { //still_active[v_nbhr] != 2 && 
           induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
         }
       };
       DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      } else {
+      /*} else {
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         if (!f(src_v, v_nbhr)) return;
         if (old_labels[v_nbhr] > 0) {
@@ -433,7 +433,7 @@ struct HybridSpace_lw {
         }
       };
       G.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      }
+      }*/
       j++;
     };
     G.get_vertex(i).mapOutNgh(i, map_f, false);
