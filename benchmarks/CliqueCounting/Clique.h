@@ -295,9 +295,9 @@ if (filter_size < lim) {
     for (size_t i=0; i < num_workers(); i++) {
       for (size_t j=0; j < used_vert_size[i]; j++) {
         const uintE v = used_vert[j + i*max_deg];
-        if (still_active[v] == 2) continue;
         auto update_val = D_update[v + i*G.n];
         D_update[v + i*G.n] = 0;
+        if (still_active[v] == 2) continue;
       
       cliques[eltsPerCacheLine*v] -= update_val;
       uintE deg = D[v];
