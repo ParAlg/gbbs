@@ -244,7 +244,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
       D_update[vtx+worker_id2*G.n] += count;
     };
     
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+    /*auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
@@ -257,8 +257,8 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
         induced->setup(G, k, active.vtx(i), ignore_f);
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       }
-    }, 1, false);
-    /*auto init_induced = [&](SimpleSpace* induced) { induced->alloc(max_deg, k, G.n); };
+    }, 1, false);*/
+    auto init_induced = [&](SimpleSpace* induced) { induced->alloc(max_deg, k, G.n); };
     auto finish_induced = [&](SimpleSpace* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<SimpleSpace>(init_induced, finish_induced, 0, active.size(), [&](size_t l, SimpleSpace* induced) {
       auto i = active.vtx(l);
@@ -280,7 +280,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
         induced->num_induced[0] = (uintE) j;
         if (j > 0) induced_intersection::KCliqueDir_simple(G, 1, k, induced, update_d, true);
       }
-    } );*/
+    } );
     updct_t.stop();
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
@@ -313,7 +313,7 @@ if (filter_size < 500) {
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       uintE v = std::get<0>(D_filter[i]);
       uintE bkt = std::get<1>(D_filter[i]);
-      if (still_active[v] != 2 && v != UINT_E_MAX) return wrap(v, bkt);
+      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
       return Maybe<std::tuple<uintE, uintE> >();
     };
     bkt_t.start();
