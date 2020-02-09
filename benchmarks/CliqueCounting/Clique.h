@@ -292,7 +292,7 @@ if (filter_size < 500) {
     filter_t.start();
     size_t l = 0;
     for (size_t i=0; i < num_workers(); i++) {
-      for (size_t j=0; j < used_vert_size[i+1] - used_vert_size[i]; j++) {
+      for (size_t j=0; j < used_vert_size[i]; j++) {
         const uintE v = used_vert[j + i*max_deg];
         auto update_val = D_update[v + i*G.n];
         D_update[v + i*G.n] = 0;
