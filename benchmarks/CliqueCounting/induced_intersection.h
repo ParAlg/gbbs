@@ -25,7 +25,7 @@ namespace induced_intersection {
 
     for (size_t i=0; i < num_induced; i++) { induced->intersect[prev_induced[i]] = k_idx; }
 
-    auto tmp = sequence<std::tuple<uintE, W>>(induced->max_deg);
+    auto tmp = sequence<std::tuple<uintE, W>>(num_induced);
     auto pred = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
       return (induced->intersect[nbhr] == k_idx);
     };
@@ -90,7 +90,7 @@ namespace induced_intersection {
     auto finish_induced = [&](InducedSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<InducedSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, InducedSpace_lw* induced) {
       if (DG.get_vertex(i).getOutDegree() != 0) {
-        //induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
+        induced->num_induced[0] = (uintE) DG.get_vertex(i).getOutDegree();
         //for (size_t j=0; j < induced->num_induced[0]; j++) {
         size_t j = 0;
         auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
@@ -100,87 +100,11 @@ namespace induced_intersection {
           }
         };
         DG.get_vertex(i).mapOutNgh(i, map_intersect_f, false);
-        induced->num_induced[0] = (uintE) j;
         tots[i] = KCliqueDir_fast_rec(DG, 1, k, induced, base_f, use_base);
         if (use_base && tots[i] > 0) base_f(i, tots[i]);
       } else tots[i] = 0;
     } );
 
     return pbbslib::reduce_add(tots);
-  }
-
-
-
-
-
-  template <class Graph, class F, class G>
-  inline size_t KCliqueDir_simple(Graph& DG, size_t k_idx, size_t k, SimpleSpace* induced, F base_f, bool use_base, G use_f) {
-    using W = typename Graph::weight_type;
-    size_t num_induced = induced->num_induced[k_idx-1];
-    uintE* prev_induced = induced->induced + induced->num_induced[0] * (k_idx - 1);
-    if (num_induced == 0) return 0;
-
-    if (k_idx + 1 == k) {
-      size_t counts = 0;
-      for (size_t i=0; i < num_induced; i++) {
-        size_t tmp_counts = 0;
-        uintE vtx = prev_induced[i];
-// TODO intersect prev_induced w/nbhrs of vtx in merge intersect
-     size_t v_deg = DG.get_vertex(vtx).getOutDegree();
-      auto v_iter = DG.get_vertex(vtx).getOutIter(vtx);
-      size_t i_iter_idx = 0;
-      size_t v_iter_idx = 0;
-      while (i_iter_idx < num_induced && v_iter_idx < v_deg) {
-        if (prev_induced[i_iter_idx] == std::get<0>(v_iter.cur())) {
-          if (use_f(vtx, prev_induced[i_iter_idx])) {
-            tmp_counts++;
-            if (use_base) base_f(prev_induced[i_iter_idx], 1);
-          }
-          i_iter_idx++; v_iter_idx++;
-          if (v_iter.has_next()) v_iter.next();
-        } else if (prev_induced[i_iter_idx] < std::get<0>(v_iter.cur())) i_iter_idx++;
-        else {
-          v_iter_idx++;
-          if (v_iter.has_next()) v_iter.next();
-        }
-      }
-        if (use_base && tmp_counts > 0) base_f(vtx, tmp_counts);
-        counts += tmp_counts;
-      }
-      return counts;
-    }
-
-    size_t total_ct = 0;
-    for (size_t i=0; i < num_induced; ++i) {
-      uintE vtx = prev_induced[i];
-      uintE* out = induced->induced + induced->num_induced[0] * k_idx;
-      uintE count = 0;
-// TODO intersect prev_induced w/nbhrs of vtx in merge intersect
-     size_t v_deg = DG.get_vertex(vtx).getOutDegree();
-      auto v_iter = DG.get_vertex(vtx).getOutIter(vtx);
-      size_t i_iter_idx = 0;
-      size_t v_iter_idx = 0;
-      while (i_iter_idx < num_induced && v_iter_idx < v_deg) {
-        if (prev_induced[i_iter_idx] == std::get<0>(v_iter.cur())) {
-          if (use_f(vtx, prev_induced[i_iter_idx])) {
-            out[count] = prev_induced[i_iter_idx];
-            count++;
-          }
-          i_iter_idx++; v_iter_idx++;
-          if (v_iter.has_next()) v_iter.next();
-        } else if (prev_induced[i_iter_idx] < std::get<0>(v_iter.cur())) i_iter_idx++;
-        else {
-          v_iter_idx++;
-          if (v_iter.has_next()) v_iter.next();
-        }
-      }
-      induced->num_induced[k_idx] = count;
-      if (count > 0) {
-        auto curr_ct = KCliqueDir_simple(DG, k_idx + 1, k, induced, base_f, use_base, use_f);
-        if (use_base && curr_ct > 0) base_f(vtx, curr_ct);
-        total_ct += curr_ct;
-      }
-    }
-    return total_ct;
   }
 } // induced_intersection
