@@ -57,6 +57,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   long space = P.getOptionLongValue("-space", 2);
   long k = P.getOptionLongValue("-k", 3);
   long order = P.getOptionLongValue("-o", 0);
+  long recursive_level = P.getOptionLongValue("-r", 0);
   bool label = P.getOptionValue("-l");
   bool filter = P.getOptionValue("-f");
   bool use_base = P.getOptionValue("-b");
@@ -69,28 +70,8 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### ------------------------------------" << endl;
   assert(P.getOption("-s"));
 
-  /*timer tclist; tclist.start();
-  std::string file = P.getOptionValue("-file", "");
-  auto countcount = kClist(k, file.c_str());
-  double ttclist = tclist.stop();
-  std::cout << "count: " << countcount << std::endl;
-  std::cout << "### Running Time: " << ttclist << std::endl;
-  return ttclist;*/
-
-  /*std::string rankfile = P.getOptionValue("-rankfile", "");
-  uintE* r = nullptr;
-  if (rankfile != "") {
-    std::ifstream infile(rankfile);
-    r = pbbslib::new_array_no_init<uintE>(GA.n);
-    int a;
-    size_t idx = 0;
-    while (infile >> a) {
-      r[idx++] = a;
-    }
-  }*/
-
   timer t; t.start();
-  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base);
+  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

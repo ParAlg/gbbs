@@ -98,7 +98,8 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // todo approx work and do some kind of break in gen if too much
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
-inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base) {
+inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base, 
+  long recursive_level) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   long* per_vert = use_base ? (long*) calloc(eltsPerCacheLine*GA.n*num_workers(), sizeof(long)) : nullptr;
@@ -134,10 +135,10 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     count = induced_neighborhood::CountCliques(DG, k-1);
   }
   else if (space_type == 5) {
-    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
+    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
   }
   else if (space_type == 6) {
-    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label);
+    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
   }
   } else {
     auto base_f = [&](uintE vtx, size_t count) {
@@ -151,10 +152,10 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     count = induced_neighborhood::CountCliques(DG, k-1);
   }
   else if (space_type == 5) {
-    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label);
+    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
   }
   else if (space_type == 6) {
-    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label);
+    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
   }
   }
 

@@ -250,23 +250,31 @@ struct HybridSpace_lw {
   uintE* old_labels = nullptr;
   size_t nn = 0;
   bool use_old_labels = true;
-
-  //uintE* base = nullptr;
+  bool free_relabel = true;
   uintE* relabel = nullptr;
   bool use_base = false;
   HybridSpace_lw () {}
 
-  void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base) {
+  void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
     use_old_labels = _use_old_labels;
     use_base = _use_base;
-    if (induced == nullptr && k > 2) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
-    if (induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
-    if (labels == nullptr && k > 2) labels = (char*) calloc(max_induced, sizeof(char));
-    if (induced_edges == nullptr && k > 2) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
-    if (num_induced == nullptr && k > 2) num_induced = (uintE*) malloc(sizeof(uintE)*k);
-    if (use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
-    if (use_base && relabel == nullptr) { relabel = (uintE*) malloc(sizeof(uintE)*max_induced);} //base = (uintE*) malloc(sizeof(uintE)*k); 
+    free_relabel = _free_relabel;
+    if (induced == nullptr) induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
+    if (free_relabel && induced_degs == nullptr) induced_degs = (uintE*) malloc(sizeof(uintE)*max_induced);
+    if (labels == nullptr) labels = (char*) calloc(max_induced, sizeof(char));
+    if (free_relabel && induced_edges == nullptr) induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
+    if (num_induced == nullptr) num_induced = (uintE*) malloc(sizeof(uintE)*k);
+    if (free_relabel && use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
+    if (free_relabel && use_base && relabel == nullptr) { relabel = (uintE*) malloc(sizeof(uintE)*max_induced);}
   }
+  
+  void copy(HybridSpace_lw* space) {
+    if (use_base) relabel = space->relabel;
+    induced_edges = space->induced_edges;
+    induced_degs = space->induced_degs;
+    nn = space->nn;
+  }
+
 
   // f should denote if a vert is active or not
   template <class Graph, class F>
@@ -416,7 +424,6 @@ struct HybridSpace_lw {
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
       if (!f(src, v)) { j++; return; }
-      //if (still_active[v] == 0) {
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         if (old_labels[v_nbhr] > 0) { //still_active[v_nbhr] != 2 && 
           induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
@@ -424,16 +431,6 @@ struct HybridSpace_lw {
         }
       };
       DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      /*} else {
-      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (!f(src_v, v_nbhr)) return;
-        if (old_labels[v_nbhr] > 0) {
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
-          induced_degs[j]++;
-        }
-      };
-      G.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      }*/
       j++;
     };
     G.get_vertex(i).mapOutNgh(i, map_f, false);
@@ -449,18 +446,144 @@ struct HybridSpace_lw {
 
 
 
+
+
+  template <class Graph, class F>
+  void setup_edge(Graph& DG, size_t k, size_t i, size_t l, F f) {
+    //if (use_base) base[0] = i;
+    if (use_old_labels) setup_labels_edge(DG, k, i, l, f);
+    else setup_intersect_edge(DG, k, i, l, f);
+  }
+
+  template <class Graph>
+  void setup_edge(Graph& DG, size_t k, size_t i, size_t l) {
+    auto f = [&](const uintE& src, const uintE& u) { return true; };
+    if (use_old_labels) setup_labels_edge(DG, k, i, l, f);
+    else setup_intersect_edge(DG, k, i, l, f);
+  }
+
+ template <class Graph, class F>
+  void setup_labels_edge(Graph& DG, size_t k, size_t i, size_t l, F f) {
+  using W = typename Graph::weight_type;
+    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      if (!f(src, ngh)) return;
+      old_labels[ngh] = UINT_E_MAX;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
+    size_t o = 0;
+    auto lmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      if (!f(src, ngh)) return;
+      if (old_labels[ngh] == UINT_E_MAX) {
+        induced[o] = ngh;
+        old_labels[ngh] = o + 1;
+        if (use_base) { relabel[o] = ngh; }
+        o++;
+      }
+    };
+    DG.get_vertex(l).mapOutNgh(l, lmap_label_f, false);
+    auto remap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) { if (old_labels[ngh] == UINT_E_MAX) old_labels[ngh] = 0; };
+    DG.get_vertex(i).mapOutNgh(i, remap_label_f, true);
+    nn = o; num_induced[0] = o;
+    parallel_for (0, nn, [&] (size_t p) { induced_degs[p] = 0; });
+  
+    for (size_t j=0; j < nn; j++) {
+      // intersect each vertex in induced against indced
+      auto v = induced[j];
+      size_t v_deg = DG.get_vertex(v).getOutDegree();
+      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        if (!f(src_v, v_nbhr)) return;
+        if (old_labels[v_nbhr] > 0) {
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
+          induced_degs[j]++;
+        }
+      };
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+    }
+
+    for (size_t p=0; p < nn; p++) { induced[p] = p; }
+    auto lremap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) { old_labels[ngh] = 0; };
+    DG.get_vertex(l).mapOutNgh(l, lremap_label_f, true);
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+
+  }
+
+template <class Graph, class F>
+  void setup_intersect_edge(Graph& DG, size_t k, size_t i, size_t l, F f) {
+    using W = typename Graph::weight_type;
+    size_t j = 0;
+    size_t v_deg = DG.get_vertex(l).getOutDegree();
+    size_t i_deg = DG.get_vertex(i).getOutDegree();
+    auto i_iter = DG.get_vertex(i).getOutIter(i);
+    auto v_iter = DG.get_vertex(l).getOutIter(l);
+    size_t i_iter_idx = 0;
+    size_t v_iter_idx = 0;
+    while (i_iter_idx < i_deg && v_iter_idx < v_deg) {
+      if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
+        if (f(i, std::get<0>(i_iter.cur())) && f(l, std::get<0>(i_iter.cur()))) {
+          induced[j] = i_iter_idx;
+          j++;
+        }
+        i_iter_idx++; v_iter_idx++;
+        if (i_iter.has_next()) i_iter.next();
+        if (v_iter.has_next()) v_iter.next();
+      } else if (std::get<0>(i_iter.cur()) < std::get<0>(v_iter.cur())) {
+        i_iter_idx++;
+        if (i_iter.has_next()) i_iter.next();
+      }
+      else {
+        v_iter_idx++;
+        if (v_iter.has_next()) v_iter.next();
+      }
+    }
+    nn = j; num_induced[0] = j;
+    if (use_base) {
+      parallel_for(0, nn, [&] (size_t p) { relabel[p] = induced[p]; });
+    }
+    parallel_for (0, nn, [&] (size_t p) { induced_degs[p] = 0; });
+  
+    for (size_t p=0; p < nn; p++) {
+      // intersect each vertex in induced against indced
+      size_t u_deg = DG.get_vertex(induced[p]).getOutDegree();
+      auto u_iter = DG.get_vertex(induced[p]).getOutIter(induced[p]);
+      size_t u_iter_idx = 0;
+      i_iter_idx = 0;
+      while (i_iter_idx < nn && u_iter_idx < u_deg) {
+        if (induced[i_iter_idx] == std::get<0>(u_iter.cur())) {
+          if (f(induced[p], induced[i_iter_idx])) {
+            induced_edges[p*nn + induced_degs[p]] = i_iter_idx;
+            induced_degs[p]++;
+          }
+          i_iter_idx++; u_iter_idx++;
+          if (u_iter.has_next()) u_iter.next();
+        } else if (induced[i_iter_idx] < std::get<0>(u_iter.cur())) {
+          i_iter_idx++;
+        }
+        else {
+          u_iter_idx++;
+          if (u_iter.has_next()) u_iter.next();
+        }
+      }
+    }
+
+    for (size_t p=0; p < nn; j++) { induced[p] = p; }
+
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges = pbbslib::reduce_add(deg_seq);
+  }
+
   static void init(){}
   static void finish(){}
 
   void del() {
     if (labels) {free(labels); labels=nullptr;}
     if (induced) {free(induced); induced=nullptr;}
-    if (induced_edges) {free(induced_edges); induced_edges=nullptr;}
-    if (induced_degs) {free(induced_degs); induced_degs=nullptr;}
+    if (free_relabel && induced_edges) {free(induced_edges); induced_edges=nullptr;}
+    if (free_relabel && induced_degs) {free(induced_degs); induced_degs=nullptr;}
     if (num_induced) {free(num_induced); num_induced=nullptr;}
     if (use_old_labels && old_labels) {free(old_labels); old_labels=nullptr;}
-    //if (use_base && base) {free(base); base=nullptr;}
-    if (use_base && relabel) {free(relabel); relabel=nullptr;}
+    if (use_base && relabel && free_relabel) {free(relabel); relabel=nullptr;}
+    if (!free_relabel) {relabel = nullptr; induced_edges=nullptr; induced_degs=nullptr;}
   }
 
   ~HybridSpace_lw() { del(); }

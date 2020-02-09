@@ -17,7 +17,7 @@ namespace induced_split {
   }
 
   template <class Graph, class F>
-  inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true) {
+  inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, long recursive_level=0) {
     timer t; t.start();
     using W = typename Graph::weight_type;
     auto parallel_work = sequence<size_t>(DG.n);
@@ -54,7 +54,7 @@ namespace induced_split {
           HybridSpace_lw* induced = new HybridSpace_lw();
           induced->alloc(DG.get_vertex(i).getOutDegree(), k, DG.n, label, use_base);
           induced->setup(DG, k, i);
-          auto curr_counts = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f);
+          auto curr_counts = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, recursive_level);
           tots[j] += curr_counts;
           if (induced->use_base && curr_counts > 0) base_f(i, curr_counts);
           if (induced != nullptr) { delete induced; }
