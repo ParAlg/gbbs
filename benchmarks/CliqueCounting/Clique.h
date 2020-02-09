@@ -191,6 +191,7 @@ inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 template <class Graph>
 sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
+  using W = typename Graph::weight_type;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
@@ -233,10 +234,18 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
     // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
     // also drop if already peeled -- check using D
 
+    updct_t.start();
+    auto update_d = [&](uintE vtx, size_t count) {
+      auto worker_id2 = worker_id();
+      if (D_update[vtx+worker_id2*G.n] == 0) {
+        used_vert[used_vert_size[worker_id2] + worker_id2*max_deg] = vtx;
+        used_vert_size[worker_id2]++;
+      }
+      D_update[vtx+worker_id2*G.n] += count;
+    };
+    
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-
-    updct_t.start();
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
         auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -246,26 +255,39 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
           return rank[u] < rank[v];
         };
         induced->setup(G, k, active.vtx(i), ignore_f);
-        auto update_d = [&](uintE vtx, size_t count) {
-          auto worker_id2 = worker_id();
-          if (D_update[vtx+worker_id2*G.n] == 0) {
-            used_vert[used_vert_size[worker_id2] + worker_id2*max_deg] = vtx;
-            used_vert_size[worker_id2]++;
-          }
-          D_update[vtx+worker_id2*G.n] += count;
-          //pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
-          //edge_table.insert(std::make_tuple(vtx, true));
-        };
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       }
     }, 1, false);
+    /*auto init_induced = [&](InducedSpace_lw* induced) { induced->alloc(max_deg, k, G.n); };
+    auto finish_induced = [&](InducedSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+    parallel_for_alloc<InducedSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t l, InducedSpace_lw* induced) {
+      auto i = active.vtx(l);
+      if (G.get_vertex(i).getOutDegree() != 0) {
+        auto use_f = [&](const uintE& u, const uintE& v) {
+          if (still_active[u] == 2 || still_active[v] == 2) return false;
+          if (still_active[u] == 1 && still_active[v] == 0) return true;
+          if (still_active[u] == 0 && still_active[v] == 1) return false;
+          return rank[u] < rank[v];
+        };
+        size_t j = 0;
+        auto map_intersect_f = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
+          if (use_f(i, nbhr)) {
+            induced->induced[j] = nbhr;
+            j++;
+          }
+        };
+        G.get_vertex(i).mapOutNgh(i, map_intersect_f, false);
+        induced->num_induced[0] = (uintE) j;
+        if (j > 0) induced_intersection::KCliqueDir_fast_rec(G, 1, k, induced, update_d, true);
+      }
+    } );*/
     updct_t.stop();
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
 
     size_t filter_size = pbbslib::scan_add_inplace(used_vert_size.slice());
 
-if (filter_size < 100) {
+if (filter_size < 500) {
 
     filter_t.start();
     for (size_t i=0; i < num_workers(); i++) {

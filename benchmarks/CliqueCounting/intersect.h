@@ -126,9 +126,11 @@ struct InducedSpace_lw {
   uintE* induced = nullptr;
 
   int* intersect = nullptr;
+  size_t max_deg = 0;
   InducedSpace_lw() {}
 
-  void alloc(size_t max_deg, size_t k, size_t n) {
+  void alloc(size_t _max_deg, size_t k, size_t n) {
+    max_deg = _max_deg;
     if (!induced) induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
     if (!num_induced) num_induced = (uintE*) malloc(k*sizeof(uintE));
     if (!intersect) {
@@ -236,6 +238,29 @@ struct FullSpace_orig_lw {
 
   ~FullSpace_orig_lw() { del(); }
 
+};
+
+
+struct SimpleSpace {
+  // Array storing size of induced neighbor list, for each level of recursion.
+  uintE* num_induced = nullptr;
+  // Array storing induced neighbor list, for all levels of recursion. Levels go
+  // from i=0 ... k-1. For each i, the induced neighbor list at level i is
+  // induced + num_induced[0]*i (num_induced[0] is an upper-bound on the maximum
+  // number of induced neighbors at any level).
+  uintE* induced = nullptr;
+  InducedSpace() {}
+
+  void alloc(size_t _max_deg, size_t k, size_t n) {
+    if (!induced) induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
+    if (!num_induced) num_induced = (uintE*) malloc(k*sizeof(uintE));
+  }
+  void del() {
+    if (induced) { free(induced); induced = nullptr; }
+    if (num_induced) { free(num_induced); num_induced = nullptr; }
+  }
+
+  ~SimpleSpace() { del(); }
 };
 
 
