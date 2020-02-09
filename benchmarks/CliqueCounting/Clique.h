@@ -31,6 +31,7 @@
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
 #include "ligra/pbbslib/sparse_table.h"
+#include "ligra/pbbslib/sparse_additive_map.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
 
@@ -192,13 +193,19 @@ template <class Graph>
 sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
-  auto D_update = sequence<long>(eltsPerCacheLine*G.n);
-  parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
+  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
+
+  auto D_update = sequence<long>(num_workers()*G.n);
+  parallel_for(0, num_workers()*G.n, [&](size_t j){D_update[j] = 0;});
+  auto used_vert = sequence<uintE>(num_workers()*max_deg);
+  auto used_vert_size = sequence<size_t>(num_workers()+1);
+  parallel_for(0, num_workers()+1, [&](size_t j){used_vert_size[j] = 0;});
+
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
-  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
+  
 
   size_t rounds = 0;
   size_t finished = 0;
@@ -216,10 +223,10 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, (long) bkt.id);
 
-    size_t active_deg = 0;
-    for (size_t i=0; i < active.size(); i++) { active_deg += G.get_vertex(active.vtx(i)).getOutDegree(); }
-    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+    //size_t active_deg = 0;
+    //for (size_t i=0; i < active.size(); i++) { active_deg += G.get_vertex(active.vtx(i)).getOutDegree(); }
+    //size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
+    //auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;});
     // here, update D[i] if necessary
@@ -237,41 +244,84 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
           if (still_active[u] == 1 && still_active[v] == 0) return true;
           if (still_active[u] == 0 && still_active[v] == 1) return false;
           return rank[u] < rank[v];
-          //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
-        }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
+        };
         induced->setup(G, k, active.vtx(i), ignore_f);
         auto update_d = [&](uintE vtx, size_t count) {
-          pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
-          edge_table.insert(std::make_tuple(vtx, true));
+          auto worker_id2 = worker_id();
+          if (D_update[vtx+worker_id2*G.n] == 0) {
+            used_vert[used_vert_size[worker_id2] + worker_id2*max_deg] = vtx;
+            used_vert_size[worker_id2]++;
+          }
+          D_update[vtx+worker_id2*G.n] += count;
+          //pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
+          //edge_table.insert(std::make_tuple(vtx, true));
         };
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-        //update_d(active.vtx(i), tots[i]);
-      } //else tots[i] = 0;
+      }
     }, 1, false);
     updct_t.stop();
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
 
-    // filter D_update for nonzero elements
-    // subtract these from D and then we can rebucket these elements
-  //  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[eltsPerCacheLine*i]); };
-  //  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, long>>(G.n, D_delayed_f);
-  //  auto D_filter_f = [&](const std::tuple<uintE, long>& tup) { return std::get<1>(tup) > 0; } ;
-  //  size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
-    auto changed_vtxs = edge_table.entries();
-    edge_table.del();
+    size_t filter_size = pbbslib::scan_add_inplace(used_vert_size.slice());
+
+if (filter_size < 100) {
 
     filter_t.start();
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      const uintE v = std::get<0>(changed_vtxs[i]);
-      cliques[eltsPerCacheLine*v] -= D_update[eltsPerCacheLine*v];
-      D_update[eltsPerCacheLine*v] = 0;
+    for (size_t i=0; i < num_workers(); i++) {
+      for (size_t j=0; j < used_vert_size[i+1] - used_vert_size[i]; j++) {
+        const uintE v = used_vert[j + i*max_deg];
+        auto update_val = D_update[v + i*G.n];
+        D_update[v + i*G.n] = 0;
+      
+      cliques[eltsPerCacheLine*v] -= update_val;
       uintE deg = D[v];
       if (deg > cur_bkt) {
         long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
         D[v] = new_deg;
         long bkt = b.get_bucket(deg, new_deg);
-        // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
+        D_filter[used_vert_size[i] + j] = std::make_tuple(v, bkt);
+      } else D_filter[used_vert_size[i] + j] = std::make_tuple(UINT_E_MAX, LONG_MAX);
+      }
+    }
+    parallel_for (0, num_workers()+1, [&](size_t j) {used_vert_size[j] = 0;});
+
+    filter_t.stop();
+
+    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
+      uintE v = std::get<0>(D_filter[i]);
+      uintE bkt = std::get<1>(D_filter[i]);
+      if (still_active[v] != 2 && v != UINT_E_MAX) return wrap(v, bkt);
+      return Maybe<std::tuple<uintE, uintE> >();
+    };
+    bkt_t.start();
+    b.update_buckets(apply_f, filter_size);
+    bkt_t.stop();
+} else {
+      auto edge_table = sparse_additive_map<uintE, long>(filter_size, std::make_tuple(UINT_E_MAX, LONG_MAX));
+
+    filter_t.start();
+    parallel_for(0, num_workers(), [&] (size_t i) {
+      for (size_t j=0; j < used_vert_size[i+1] - used_vert_size[i]; j++) {
+        const uintE v = used_vert[j + i*max_deg];
+        auto update_val = D_update[v + i*G.n];
+        D_update[v + i*G.n] = 0;
+        edge_table.insert(std::make_tuple(v, update_val));
+      }
+    });
+    parallel_for (0, num_workers()+1, [&](size_t j) {used_vert_size[j] = 0;});
+    auto edge_table_entries = edge_table.entries();
+    edge_table.del();
+    filter_size = edge_table_entries.size();
+
+    parallel_for (0, filter_size,[&](size_t i) {
+      const uintE v = std::get<0>(edge_table_entries[i]);
+      cliques[eltsPerCacheLine*v] -= std::get<1>(edge_table_entries[i]);
+      uintE deg = D[v];
+      if (deg > cur_bkt) {
+        long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
+        D[v] = new_deg;
+        long bkt = b.get_bucket(deg, new_deg);
         D_filter[i] = std::make_tuple(v, bkt);
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
     });
@@ -284,9 +334,9 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
       return Maybe<std::tuple<uintE, uintE> >();
     };
     bkt_t.start();
-    b.update_buckets(apply_f, changed_vtxs.size());
+    b.update_buckets(apply_f, filter_size);
     bkt_t.stop();
-
+}
     active.del();
 
     rounds++;
