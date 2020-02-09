@@ -295,6 +295,7 @@ if (filter_size < lim) {
     for (size_t i=0; i < num_workers(); i++) {
       for (size_t j=0; j < used_vert_size[i]; j++) {
         const uintE v = used_vert[j + i*max_deg];
+        if (still_active[v] == 2) continue;
         auto update_val = D_update[v + i*G.n];
         D_update[v + i*G.n] = 0;
       
@@ -314,7 +315,7 @@ if (filter_size < lim) {
     filter_t.stop();
 
 } else {
-      auto edge_table = sparse_additive_map<uintE, long>(filter_size, std::make_tuple(UINT_E_MAX, LONG_MAX));
+      auto edge_table = sparse_additive_map<uintE, long>(std::min(filter_size,G.n), std::make_tuple(UINT_E_MAX, LONG_MAX));
 
     filter_t.start();
     parallel_for(0, num_workers(), [&] (size_t i) {
@@ -322,7 +323,7 @@ if (filter_size < lim) {
         const uintE v = used_vert[j + i*max_deg];
         auto update_val = D_update[v + i*G.n];
         D_update[v + i*G.n] = 0;
-        edge_table.insert(std::make_tuple(v, update_val));
+        if (still_active[v] != 2) edge_table.insert(std::make_tuple(v, update_val));
       }
     });
     
