@@ -244,7 +244,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
       D_update[vtx+worker_id2*G.n] += count;
     };
     
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+    /*auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
@@ -257,8 +257,8 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
         induced->setup(G, k, active.vtx(i), ignore_f);
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       }
-    }, 1, false);
-    /*auto init_induced = [&](SimpleSpace* induced) { induced->alloc(max_deg, k, G.n); };
+    }, 1, false);*/
+    auto init_induced = [&](SimpleSpace* induced) { induced->alloc(max_deg, k, G.n); };
     auto finish_induced = [&](SimpleSpace* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<SimpleSpace>(init_induced, finish_induced, 0, active.size(), [&](size_t l, SimpleSpace* induced) {
       auto i = active.vtx(l);
@@ -280,16 +280,17 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
         induced->num_induced[0] = (uintE) j;
         if (j > 0) induced_intersection::KCliqueDir_simple(G, 1, k, induced, update_d, true);
       }
-    } );*/
+    } );
     updct_t.stop();
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
 
-    size_t filter_size = pbbslib::scan_add_inplace(used_vert_size.slice());
+    size_t filter_size = pbbslib::reduce_add(used_vert_size);
 
 if (filter_size < 500) {
 
     filter_t.start();
+    size_t l = 0;
     for (size_t i=0; i < num_workers(); i++) {
       for (size_t j=0; j < used_vert_size[i+1] - used_vert_size[i]; j++) {
         const uintE v = used_vert[j + i*max_deg];
@@ -302,10 +303,12 @@ if (filter_size < 500) {
         long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
         D[v] = new_deg;
         long bkt = b.get_bucket(deg, new_deg);
-        D_filter[used_vert_size[i] + j] = std::make_tuple(v, bkt);
-      } else D_filter[used_vert_size[i] + j] = std::make_tuple(UINT_E_MAX, LONG_MAX);
+        D_filter[l] = std::make_tuple(v, bkt);
+        l++;
+      }
       }
     }
+    filter_size = l;
     parallel_for (0, num_workers()+1, [&](size_t j) {used_vert_size[j] = 0;});
 
     filter_t.stop();
