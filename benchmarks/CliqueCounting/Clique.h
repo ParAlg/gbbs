@@ -313,7 +313,7 @@ if (filter_size < 500) {
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       uintE v = std::get<0>(D_filter[i]);
       uintE bkt = std::get<1>(D_filter[i]);
-      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
+      if (v != UINT_E_MAX) return wrap(v, bkt);
       return Maybe<std::tuple<uintE, uintE> >();
     };
     bkt_t.start();
@@ -352,7 +352,7 @@ if (filter_size < 500) {
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       uintE v = std::get<0>(D_filter[i]);
       uintE bkt = std::get<1>(D_filter[i]);
-      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
+      if (v != UINT_E_MAX) return wrap(v, bkt);
       return Maybe<std::tuple<uintE, uintE> >();
     };
     bkt_t.start();
