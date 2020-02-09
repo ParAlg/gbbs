@@ -136,23 +136,27 @@ if (recursive_level != 1) {
     return pbbslib::reduce_add(tots);
 }
 
-   sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+   
    size_t max_deg = get_max_deg(DG);
+   sequence<size_t> degs = sequence<size_t>::no_init(DG.n+1);
+    parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).getOutDegree();});
+    degs[DG.n] = 0;
+    size_t num_edges = pbbslib::scan_add_inplace(degs.slice());
+    num_edges = degs[DG.n];
+    sequence<size_t> tots = sequence<size_t>::no_init(num_edges);
+
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-     auto i_deg = DG.get_vertex(i).getOutDegree();
-     if (i_deg != 0) {
-       sequence<size_t> tots2 = sequence<size_t>::no_init(i_deg);
-       for (size_t j=0; j < i_deg; j++) {
-         uintE ngh = DG.get_vertex(i).getOutNeighbor(j);
-         induced->setup_edge(DG,k,i,ngh);
-         tots2[j] = KCliqueDir_fast_hybrid_rec(DG, 1, k-1, induced, base_f, 0);
-         if (use_base && tots2[j] > 0) base_f(ngh, tots2[j]);
-       }  //, 1, false);
-       tots[i] = pbbslib::reduce_add(tots2);
-       if (use_base && tots[i] > 0) base_f(i, tots[i]);
-     } else tots[i] = 0;
+  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, num_edges, [&](size_t j, HybridSpace_lw* induced) {
+    // to find i and ngh, binary search for j in degs; the index - 1 is i
+    // then, DG.get_vertex(i).getOutNeighbor(j - degs[index-1]) is ngh
+    auto less_fn = [&](size_t a, size_t b){ return a <= b; };
+    size_t idx = pbbslib::binary_search(degs, j, less_fn);
+    auto i = idx - 1;
+    auto ngh = DG.get_vertex(i).getOutNeighbor(j - degs[idx - 1]);
+    induced->setup_edge(DG,k,i,ngh);
+    tots[j] = KCliqueDir_fast_hybrid_rec(DG, 1, k-1, induced, base_f, 0);
+    if (use_base && tots[j] > 0) { base_f(ngh, tots[j]); base_f(i, tots[j]); } 
    }, 1, false);
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
