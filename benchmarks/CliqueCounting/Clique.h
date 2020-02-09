@@ -177,7 +177,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     free(per_vert);
     per_vert = inverse_per_vert;
   }
-  sequence<long> cores = Peel(GA, k-1, per_vert, label, rank);
+  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   free(per_vert);
@@ -188,8 +188,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 struct hashtup {
 inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
-template <class Graph>
-sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
+template <class Graph, class Graph2>
+sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
   auto D_update = sequence<long>(eltsPerCacheLine*G.n);
@@ -239,7 +239,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
           return rank[u] < rank[v];
           //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
         }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
-        induced->setup(G, k, active.vtx(i), ignore_f);
+        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active); //, still_active
         auto update_d = [&](uintE vtx, size_t count) {
           pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
           edge_table.insert(std::make_tuple(vtx, true));
