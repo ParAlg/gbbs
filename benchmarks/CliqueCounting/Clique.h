@@ -194,7 +194,7 @@ sequence<long> Peel(Graph& G, size_t k, long* cliques, bool label, sequence<uint
   using W = typename Graph::weight_type;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
-  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
+  size_t max_deg = induced_hybrid::get_max_deg(G) + 1; // could instead do max_deg of active?
 
   auto D_update = sequence<long>(num_workers()*G.n);
   parallel_for(0, num_workers()*G.n, [&](size_t j){D_update[j] = 0;});
