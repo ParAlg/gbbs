@@ -348,7 +348,22 @@ struct buckets {
                 << "\n";
       assert(m == num_elms);  // corrruption in bucket structure.
     }
-    update_buckets(g, m);
+    size_t updated = update_buckets(g, m);
+    size_t num_in_range = updated - bkts[open_buckets].size;
+    //none in range
+    if(num_in_range == 0 && bkts[open_buckets].size > 0) {
+      auto imap = pbbslib::make_sequence<uintE>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
+      if(order == increasing) {
+        auto min = [] (size_t x, size_t y) { return std::min(x, y); };
+        size_t minBkt = pbbs::reduce(imap, pbbs::minm<size_t>());
+        cur_range = minBkt/open_buckets-1; //will be incremented in next unpack() call
+      }
+      else if(order == decreasing) {
+        auto max = [] (size_t x, size_t y) { return std::max(x, y); };
+        size_t minBkt = pbbs::reduce(imap, pbbs::maxm<size_t>());
+        cur_range = (open_buckets+minBkt)/open_buckets+1; //will be decremented in next unpack() call
+      }
+    }
     num_elms -= m;
   }
 
