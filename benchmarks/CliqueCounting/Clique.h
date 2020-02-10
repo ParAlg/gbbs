@@ -99,7 +99,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
-  long recursive_level, bool par_serial) {
+  long recursive_level, bool par_serial, commandLine& P) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   long* per_vert = use_base ? (long*) calloc(GA.n*num_workers(), sizeof(long)) : nullptr;
@@ -178,7 +178,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     free(per_vert);
     per_vert = inverse_per_vert;
   }
-  auto log_per_round = P.getOptionValue("-log_per_round");
+  bool log_per_round = P.getOptionValue("-log_per_round");
   sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial, log_per_round);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
@@ -211,10 +211,10 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
   long max_bkt = 0;
   timer updct_t, bkt_t, filter_t;
   timer next_b;
-  // Peel each bucket
+  /* peel each bucket */
   while (finished != G.n) {
     timer round_t; round_t.start();
-    // Retrieve next bucket
+    /* retrieve next bucket */
     next_b.start();
     auto bkt = b.next_bucket();
     next_b.stop();
@@ -231,12 +231,11 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
       std::cout << "Starting bucket = " << cur_bkt << " size = " << active.size() << std::endl;
     }
 
-    size_t active_deg = 0;
     auto degree_map = pbbslib::make_sequence<size_t>(active.size(), [&] (size_t i) { return G.get_vertex(active.vtx(i)).getOutDegree(); });
-    active_deg += pbbslib::reduce_add(degree_map);
+    size_t active_deg = pbbslib::reduce_add(degree_map);
 
     size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+    auto edge_table = sparse_table<uintE, pbbs::empty, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, pbbs::empty()), hashtup());
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;}, 2048);
     // here, update D[i] if necessary
@@ -261,7 +260,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
           size_t ct = per_processor_counts[worker*n + vtx];
           per_processor_counts[worker*n + vtx] += count;
           if (ct == 0) { /* only need bother trying hash table if our count is 0 */
-            edge_table.insert(std::make_tuple(vtx, true));
+            edge_table.insert(std::make_tuple(vtx, pbbs::empty()));
           }
         };
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);

@@ -72,7 +72,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
+  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, P);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
