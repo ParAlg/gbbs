@@ -102,7 +102,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   long recursive_level) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  long* per_vert = use_base ? (long*) calloc(eltsPerCacheLine*GA.n*num_workers(), sizeof(long)) : nullptr;
+  long* per_vert = use_base ? (long*) calloc(GA.n*num_workers(), sizeof(long)) : nullptr;
 
   using W = typename Graph::weight_type;
   assert (k >= 3);
@@ -143,7 +143,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   } else {
     auto base_f = [&](uintE vtx, size_t count) {
       //pbbslib::xadd(&(per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)]), (long) count);
-      per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)] += count;
+      per_vert[(vtx+worker_id()*GA.n)] += count;
     }; // TODO problem with relabel not being consistent; but if using filter should be ok
   if (space_type == 2) {
     count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
@@ -167,14 +167,14 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   for (size_t j=1; j < num_workers(); j++) {
     parallel_for(0,GA.n,[&](size_t l) {
-      per_vert[eltsPerCacheLine*l] += per_vert[eltsPerCacheLine*(l + j*GA.n)];
+      per_vert[l] += per_vert[(l + j*GA.n)];
     });
   }
 
   timer t2; t2.start();
-  long* inverse_per_vert = use_base && !filter ? (long*) malloc(eltsPerCacheLine*GA.n*sizeof(long)) : nullptr;
+  long* inverse_per_vert = use_base && !filter ? (long*) malloc(GA.n*sizeof(long)) : nullptr;
   if (!filter) {
-    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[eltsPerCacheLine*i] = per_vert[eltsPerCacheLine*rank[i]]; });
+    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[rank[i]]; });
     free(per_vert);
     per_vert = inverse_per_vert;
   }
@@ -192,7 +192,7 @@ inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 template <class Graph, class Graph2>
 sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  auto D = sequence<long>(G.n, [&](size_t i) { return cliques[eltsPerCacheLine*i]; });
+  auto D = sequence<long>(G.n, [&](size_t i) { return cliques[i]; });
   auto D_update = sequence<long>(eltsPerCacheLine*G.n);
   parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
@@ -266,11 +266,11 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     filter_t.start();
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       const uintE v = std::get<0>(changed_vtxs[i]);
-      cliques[eltsPerCacheLine*v] -= D_update[eltsPerCacheLine*v];
+      cliques[v] -= D_update[eltsPerCacheLine*v];
       D_update[eltsPerCacheLine*v] = 0;
       uintE deg = D[v];
       if (deg > cur_bkt) {
-        long new_deg = std::max(cliques[eltsPerCacheLine*v], (long) cur_bkt);
+        long new_deg = std::max(cliques[v], (long) cur_bkt);
         D[v] = new_deg;
         long bkt = b.get_bucket(deg, new_deg);
         // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
