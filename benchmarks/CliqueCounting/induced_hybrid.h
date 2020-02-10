@@ -257,7 +257,7 @@ if (recursive_level != 1) {
  tmp_counts++;
  } 
  }
- etots[i] += tmp_counts;
+ tots[i] += tmp_counts;
  }
  for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
  } }
@@ -382,7 +382,7 @@ if (recursive_level != 1) {
  tmp_counts++;
  } 
  }
- etots[i] += tmp_counts;
+ tots[i] += tmp_counts;
  }
  for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
  } }
@@ -507,7 +507,7 @@ if (recursive_level != 1) {
  tmp_counts++;
  } 
  }
- etots[i] += tmp_counts;
+ tots[i] += tmp_counts;
  }
  for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
  } }
