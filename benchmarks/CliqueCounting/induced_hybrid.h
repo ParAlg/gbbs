@@ -20,13 +20,11 @@ namespace induced_hybrid {
   template <class Graph, class F>
   inline size_t KCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced, F base_f,
     size_t recursive_level=0) {
-    //if (k == 2) return induced->num_edges;
     size_t num_induced = induced->num_induced[k_idx-1];
     if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
 
-    //for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
-    parallel_for(0, num_induced, [&] (size_t i) {induced->labels[prev_induced[i]] = k_idx;});
+    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
 
     if (k_idx + 1 == k) {
       size_t counts = 0;
@@ -44,7 +42,7 @@ namespace induced_hybrid {
         if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
         counts += tmp_counts;
       }
-      parallel_for(0, num_induced, [&] (size_t i) { induced->labels[prev_induced[i]] = k_idx - 1; });
+      for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
       return counts;
     }
 size_t total_ct = 0;
@@ -92,25 +90,9 @@ if (recursive_level < k_idx || num_induced < 2) {
     total_ct += pbbslib::reduce_add(tots);
 }
     //for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
-    parallel_for(0, num_induced, [&] (size_t i) { induced->labels[prev_induced[i]] = k_idx - 1; });
+    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
     return total_ct;
   }
-
-  /*template <class Graph>
-  inline size_t CountCliques_unbalanced(Graph& DG, size_t k) {
-    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
-    size_t max_deg = get_max_deg(DG);
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-      if (DG.get_vertex(i).getOutDegree() != 0) {
-        induced->setup(DG, k, i);
-        tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced);
-      } else tots[i] = 0;
-    } );
-
-    return pbbslib::reduce_add(tots);
-  }*/
 
 
   template <class Graph, class F>
@@ -164,4 +146,433 @@ if (recursive_level != 1) {
     return pbbslib::reduce_add(tots);
   }
 
+
+
+
+  template <class Graph, class F>
+  inline size_t CountCliques_gen(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, long recursive_level=0) {
+    timer t2; t2.start();
+    using W = typename Graph::weight_type;
+
+    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    size_t max_deg = get_max_deg(DG);
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; 
+
+
+ switch (k) {
+ case 3:  {
+ parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+ if (DG.get_vertex(i).getOutDegree() != 0) {
+ induced->setup(DG, k, i);
+ size_t k_idx = 1;
+ size_t counts; uintE count; uintE* out; uintE* prev_induced; size_t num_induced; uintE vtx; uintE* intersect=nullptr;
+ k_idx = 1;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t acurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t b=0; b < num_induced; b++) { induced->labels[prev_induced[b]] = k_idx; }
+ for (size_t b=0; b < num_induced; ++b) {
+ auto bvtx = prev_induced[b];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t c=0; c < induced->induced_degs[vtx]; c++) {
+ if (induced->labels[intersect[c]] == k_idx) {
+ out[count] = intersect[c];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 2;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t bcurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t c=0; c < num_induced; c++) { induced->labels[prev_induced[c]] = k_idx; }
+ for (size_t c=0; c < num_induced; ++c) {
+ auto cvtx = prev_induced[c];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t d=0; d < induced->induced_degs[vtx]; d++) {
+ if (induced->labels[intersect[d]] == k_idx) {
+ out[count] = intersect[d];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 3;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t ccurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t d=0; d < num_induced; d++) { induced->labels[prev_induced[d]] = k_idx; }
+ for (size_t d=0; d < num_induced; ++d) {
+ auto dvtx = prev_induced[d];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t e=0; e < induced->induced_degs[vtx]; e++) {
+ if (induced->labels[intersect[e]] == k_idx) {
+ out[count] = intersect[e];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 4;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t dcurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t e=0; e < num_induced; e++) { induced->labels[prev_induced[e]] = k_idx; }
+ for (size_t e=0; e < num_induced; ++e) {
+ auto evtx = prev_induced[e];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t f=0; f < induced->induced_degs[vtx]; f++) {
+ if (induced->labels[intersect[f]] == k_idx) {
+ out[count] = intersect[f];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 5;
+ num_induced = induced->num_induced[k_idx-1];
+ if (num_induced == 0) {continue;}
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ size_t ecurr_counts=0;
+ counts = 0;
+ for (size_t x=0; x < num_induced; i++) {
+ vtx = prev_induced[x];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ size_t tmp_counts = 0;
+ for (size_t y=0; y < induced->induced_degs[vtx]; y++) {
+ if (induced->labels[intersect[y]] == k_idx) {
+ tmp_counts++;
+ if (induced->use_base) base_f(induced->relabel[intersect[y]], 1);
+ } 
+ }
+ if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
+ ecurr_counts += tmp_counts;
+ }
+ for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
+ dcurr_counts += ecurr_counts;
+ if (induced->use_base && ecurr_counts > 0) base_f(induced->relabel[evtx], ecurr_counts);
+ } }
+ k_idx = 4;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t f=0; f<num_induced; f++) { induced->labels[prev_induced[f]] = k_idx - 1; }
+  }
+ ccurr_counts += dcurr_counts;
+ if (induced->use_base && dcurr_counts > 0) base_f(induced->relabel[dvtx], dcurr_counts);
+ } }
+ k_idx = 3;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t e=0; e<num_induced; e++) { induced->labels[prev_induced[e]] = k_idx - 1; }
+  }
+ bcurr_counts += ccurr_counts;
+ if (induced->use_base && ccurr_counts > 0) base_f(induced->relabel[cvtx], ccurr_counts);
+ } }
+ k_idx = 2;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t d=0; d<num_induced; d++) { induced->labels[prev_induced[d]] = k_idx - 1; }
+  }
+ acurr_counts += bcurr_counts;
+ if (induced->use_base && bcurr_counts > 0) base_f(induced->relabel[bvtx], bcurr_counts);
+ } }
+ k_idx = 1;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t c=0; c<num_induced; c++) { induced->labels[prev_induced[c]] = k_idx - 1; }
+  }
+ tots[i] = acurr_counts;if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
+ break; }
+ case 4:  {
+ parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+ if (DG.get_vertex(i).getOutDegree() != 0) {
+ induced->setup(DG, k, i);
+ size_t k_idx = 1;
+ size_t counts; uintE count; uintE* out; uintE* prev_induced; size_t num_induced; uintE vtx; uintE* intersect=nullptr;
+ k_idx = 1;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t acurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t b=0; b < num_induced; b++) { induced->labels[prev_induced[b]] = k_idx; }
+ for (size_t b=0; b < num_induced; ++b) {
+ auto bvtx = prev_induced[b];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t c=0; c < induced->induced_degs[vtx]; c++) {
+ if (induced->labels[intersect[c]] == k_idx) {
+ out[count] = intersect[c];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 2;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t bcurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t c=0; c < num_induced; c++) { induced->labels[prev_induced[c]] = k_idx; }
+ for (size_t c=0; c < num_induced; ++c) {
+ auto cvtx = prev_induced[c];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t d=0; d < induced->induced_degs[vtx]; d++) {
+ if (induced->labels[intersect[d]] == k_idx) {
+ out[count] = intersect[d];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 3;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t ccurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t d=0; d < num_induced; d++) { induced->labels[prev_induced[d]] = k_idx; }
+ for (size_t d=0; d < num_induced; ++d) {
+ auto dvtx = prev_induced[d];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t e=0; e < induced->induced_degs[vtx]; e++) {
+ if (induced->labels[intersect[e]] == k_idx) {
+ out[count] = intersect[e];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 4;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t dcurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t e=0; e < num_induced; e++) { induced->labels[prev_induced[e]] = k_idx; }
+ for (size_t e=0; e < num_induced; ++e) {
+ auto evtx = prev_induced[e];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t f=0; f < induced->induced_degs[vtx]; f++) {
+ if (induced->labels[intersect[f]] == k_idx) {
+ out[count] = intersect[f];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 5;
+ num_induced = induced->num_induced[k_idx-1];
+ if (num_induced == 0) {continue;}
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ size_t ecurr_counts=0;
+ counts = 0;
+ for (size_t x=0; x < num_induced; i++) {
+ vtx = prev_induced[x];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ size_t tmp_counts = 0;
+ for (size_t y=0; y < induced->induced_degs[vtx]; y++) {
+ if (induced->labels[intersect[y]] == k_idx) {
+ tmp_counts++;
+ if (induced->use_base) base_f(induced->relabel[intersect[y]], 1);
+ } 
+ }
+ if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
+ ecurr_counts += tmp_counts;
+ }
+ for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
+ dcurr_counts += ecurr_counts;
+ if (induced->use_base && ecurr_counts > 0) base_f(induced->relabel[evtx], ecurr_counts);
+ } }
+ k_idx = 4;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t f=0; f<num_induced; f++) { induced->labels[prev_induced[f]] = k_idx - 1; }
+  }
+ ccurr_counts += dcurr_counts;
+ if (induced->use_base && dcurr_counts > 0) base_f(induced->relabel[dvtx], dcurr_counts);
+ } }
+ k_idx = 3;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t e=0; e<num_induced; e++) { induced->labels[prev_induced[e]] = k_idx - 1; }
+  }
+ bcurr_counts += ccurr_counts;
+ if (induced->use_base && ccurr_counts > 0) base_f(induced->relabel[cvtx], ccurr_counts);
+ } }
+ k_idx = 2;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t d=0; d<num_induced; d++) { induced->labels[prev_induced[d]] = k_idx - 1; }
+  }
+ acurr_counts += bcurr_counts;
+ if (induced->use_base && bcurr_counts > 0) base_f(induced->relabel[bvtx], bcurr_counts);
+ } }
+ k_idx = 1;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t c=0; c<num_induced; c++) { induced->labels[prev_induced[c]] = k_idx - 1; }
+  }
+ tots[i] = acurr_counts;if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
+ break; }
+ case 5:  {
+ parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+ if (DG.get_vertex(i).getOutDegree() != 0) {
+ induced->setup(DG, k, i);
+ size_t k_idx = 1;
+ size_t counts; uintE count; uintE* out; uintE* prev_induced; size_t num_induced; uintE vtx; uintE* intersect=nullptr;
+ k_idx = 1;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t acurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t b=0; b < num_induced; b++) { induced->labels[prev_induced[b]] = k_idx; }
+ for (size_t b=0; b < num_induced; ++b) {
+ auto bvtx = prev_induced[b];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t c=0; c < induced->induced_degs[vtx]; c++) {
+ if (induced->labels[intersect[c]] == k_idx) {
+ out[count] = intersect[c];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 2;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t bcurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t c=0; c < num_induced; c++) { induced->labels[prev_induced[c]] = k_idx; }
+ for (size_t c=0; c < num_induced; ++c) {
+ auto cvtx = prev_induced[c];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t d=0; d < induced->induced_degs[vtx]; d++) {
+ if (induced->labels[intersect[d]] == k_idx) {
+ out[count] = intersect[d];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 3;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t ccurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t d=0; d < num_induced; d++) { induced->labels[prev_induced[d]] = k_idx; }
+ for (size_t d=0; d < num_induced; ++d) {
+ auto dvtx = prev_induced[d];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t e=0; e < induced->induced_degs[vtx]; e++) {
+ if (induced->labels[intersect[e]] == k_idx) {
+ out[count] = intersect[e];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 4;
+ num_induced = induced->num_induced[k_idx-1];
+ size_t dcurr_counts=0;
+ if (num_induced != 0) {
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t e=0; e < num_induced; e++) { induced->labels[prev_induced[e]] = k_idx; }
+ for (size_t e=0; e < num_induced; ++e) {
+ auto evtx = prev_induced[e];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ out = induced->induced + induced->nn * k_idx;
+ count = 0;
+ for (size_t f=0; f < induced->induced_degs[vtx]; f++) {
+ if (induced->labels[intersect[f]] == k_idx) {
+ out[count] = intersect[f];
+ count++;
+ }
+ }
+ induced->num_induced[k_idx] = count;
+ if (induced->num_induced[k_idx] > k - k_idx - 1) {
+ k_idx = 5;
+ num_induced = induced->num_induced[k_idx-1];
+ if (num_induced == 0) {continue;}
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ size_t ecurr_counts=0;
+ counts = 0;
+ for (size_t x=0; x < num_induced; i++) {
+ vtx = prev_induced[x];
+ intersect = induced->induced_edges + vtx * induced->nn;
+ size_t tmp_counts = 0;
+ for (size_t y=0; y < induced->induced_degs[vtx]; y++) {
+ if (induced->labels[intersect[y]] == k_idx) {
+ tmp_counts++;
+ if (induced->use_base) base_f(induced->relabel[intersect[y]], 1);
+ } 
+ }
+ if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
+ ecurr_counts += tmp_counts;
+ }
+ for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
+ dcurr_counts += ecurr_counts;
+ if (induced->use_base && ecurr_counts > 0) base_f(induced->relabel[evtx], ecurr_counts);
+ } }
+ k_idx = 4;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t f=0; f<num_induced; f++) { induced->labels[prev_induced[f]] = k_idx - 1; }
+  }
+ ccurr_counts += dcurr_counts;
+ if (induced->use_base && dcurr_counts > 0) base_f(induced->relabel[dvtx], dcurr_counts);
+ } }
+ k_idx = 3;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t e=0; e<num_induced; e++) { induced->labels[prev_induced[e]] = k_idx - 1; }
+  }
+ bcurr_counts += ccurr_counts;
+ if (induced->use_base && ccurr_counts > 0) base_f(induced->relabel[cvtx], ccurr_counts);
+ } }
+ k_idx = 2;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t d=0; d<num_induced; d++) { induced->labels[prev_induced[d]] = k_idx - 1; }
+  }
+ acurr_counts += bcurr_counts;
+ if (induced->use_base && bcurr_counts > 0) base_f(induced->relabel[bvtx], bcurr_counts);
+ } }
+ k_idx = 1;
+ num_induced = induced->num_induced[k_idx-1];
+ prev_induced = induced->induced + induced->nn * (k_idx - 1);
+ for (size_t c=0; c<num_induced; c++) { induced->labels[prev_induced[c]] = k_idx - 1; }
+  }
+ tots[i] = acurr_counts;if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
+ break; } 
+ }
+    double tt2 = t2.stop();
+    std::cout << "##### Actual counting: " << tt2 << std::endl;
+
+    return pbbslib::reduce_add(tots);
+  }
 } // namespace induced_neighborhood
