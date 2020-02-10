@@ -214,9 +214,12 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto bkt = b.next_bucket();
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
+    if (active.size() <= 200) {
+      break;
+    }
     finished += active.size();
     cur_bkt = bkt.id;
-    max_bkt = std::max(cur_bkt, (long) bkt.id);
+    max_bkt = std::max(cur_bkt, max_bkt);
 
     size_t active_deg = 0;
     for (size_t i=0; i < active.size(); i++) { active_deg += G.get_vertex(active.vtx(i)).getOutDegree(); }
@@ -259,19 +262,15 @@ else {
         auto ignore_f = [&](const uintE& u, const uintE& v) {
           if (still_active[u] == 2 || still_active[v] == 2) return false;
           if (still_active[v] == 0) return true;
-          //if (still_active[u] == 1 && still_active[v] == 0) return true;
-          //if (still_active[u] == 0 && still_active[v] == 1) return false;
           return rank[u] < rank[v];
-          //return still_active[u] != 2 && (still_active[u] != 1 || u > active.vtx(i));
-        }; // false if u is dead, false if u is in active and u < active.vtx(i), true otherwise
-        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active); //, still_active
+        };
+        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
         auto update_d = [&](uintE vtx, size_t count) {
           pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
           edge_table.insert(std::make_tuple(vtx, true));
         };
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-        //update_d(active.vtx(i), tots[i]);
-      } //else tots[i] = 0;
+      }
     }, 1, false);
 }
     updct_t.stop();
@@ -280,10 +279,6 @@ else {
 
     // filter D_update for nonzero elements
     // subtract these from D and then we can rebucket these elements
-  //  auto D_delayed_f = [&](size_t i) { return std::make_tuple(i, D_update[eltsPerCacheLine*i]); };
-  //  auto D_delayed = pbbslib::make_sequence<std::tuple<uintE, long>>(G.n, D_delayed_f);
-  //  auto D_filter_f = [&](const std::tuple<uintE, long>& tup) { return std::get<1>(tup) > 0; } ;
-  //  size_t filter_size = pbbs::filter_out(D_delayed, D_filter.slice(), D_filter_f);
     auto changed_vtxs = edge_table.entries();
     edge_table.del();
 
@@ -317,6 +312,10 @@ else {
 
     rounds++;
   }
+  if (finished != G.n) {
+    auto bkt = _Peel_serial(G, DG, k, cliques, label, rank, still_active);
+    max_bkt = std::max(max_bkt, bkt);
+  }
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "max_bkt: " << max_bkt << std::endl;
 
@@ -329,4 +328,61 @@ else {
   free(still_active);
 
   return D;
+}
+
+template <class Graph, class Graph2>
+long _Peel_serial(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, char* still_active) {
+  bheapLLU* heap=mkheapLLU(cliques,still_active,G.n);
+  auto heap_init_size = heap->n-1;
+  auto D_update = sequence<long>(G.n);
+  size_t num_updates = 0;
+  size_t finished=0;
+  size_t max_deg = induced_hybrid::get_max_deg(G);
+  /*parallel_for(0, DG.n, [&] (size_t i) {
+    if (still_active[i] != 2) {
+      size_t deg = DG.get_vertex(i).getOutDegree();
+      pbbs::write_min(&max_deg, deg, std::greater<size_t>());
+    }
+  });*/
+  HybridSpace_lw* induced = new HybridSpace_lw();
+  induced->alloc(max_deg, k, G.n, label, true);
+  auto update_idxs = sequence<long>(max_deg);
+  long c = 0;
+  while (finished != heap_init_size) {
+    num_updates = 0;
+    auto kv=popminLLU(heap);
+    auto v = kv.key;
+    if (kv.value > c){
+			c = kv.value;
+		}
+    if (G.get_vertex(v).getOutDegree() != 0) {
+      auto ignore_f = [&](const uintE& a, const uintE& b) {
+        if (still_active[a] == 2 || still_active[b] == 2) return false;
+        return true;
+      };
+      auto update_d = [&](uintE vtx, size_t count) {
+        if (D_update[vtx] == 0 && count > 0) {
+          update_idxs[num_updates] = vtx;
+          num_updates++;
+        }
+        D_update[vtx] += count;
+      };
+      induced->setup(G, DG, k, v, ignore_f, still_active);
+      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+    }
+
+    for (size_t j=0; j < num_updates; j++) {
+      auto u = update_idxs[j];
+      updateLLU(heap,u,D_update[u]);
+      D_update[u] = 0;
+    }
+    
+    still_active[v] = 2;
+    finished++;
+  }
+  freeheapLLU(heap);
+  if (induced != nullptr) { delete induced; }
+
+  return c;
+
 }
