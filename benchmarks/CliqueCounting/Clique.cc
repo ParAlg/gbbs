@@ -61,6 +61,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   bool label = P.getOptionValue("-l");
   bool filter = P.getOptionValue("-f");
   bool use_base = P.getOptionValue("-b");
+  bool par_serial = P.getOptionValue("-p");
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -71,7 +72,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level);
+  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;

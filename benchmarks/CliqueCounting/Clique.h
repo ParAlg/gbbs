@@ -99,7 +99,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base, 
-  long recursive_level) {
+  long recursive_level, bool par_serial) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   long* per_vert = use_base ? (long*) calloc(GA.n*num_workers(), sizeof(long)) : nullptr;
@@ -178,7 +178,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     free(per_vert);
     per_vert = inverse_per_vert;
   }
-  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank);
+  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   free(per_vert);
@@ -190,7 +190,7 @@ struct hashtup {
 inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 template <class Graph, class Graph2>
-sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, size_t num_buckets=16) {
+sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[i]; });
   auto D_update = sequence<long>(eltsPerCacheLine*G.n);
@@ -231,6 +231,28 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
     updct_t.start();
+if (par_serial) {
+  HybridSpace_lw* induced = new HybridSpace_lw();
+  induced->alloc(max_deg, k, G.n, label, true);
+    for (size_t i=0; i < active.size(); i++) {
+      if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
+        auto ignore_f = [&](const uintE& u, const uintE& v) {
+          if (still_active[u] == 2 || still_active[v] == 2) return false;
+          if (still_active[v] == 0) return true;
+          return rank[u] < rank[v];
+        };
+        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
+        auto update_d = [&](uintE vtx, size_t count) {
+          D_update[eltsPerCacheLine*vtx] += count;
+          edge_table.insert(std::make_tuple(vtx, true));
+        };
+        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+        //update_d(active.vtx(i), tots[i]);
+      }
+    };
+  if (induced != nullptr) { delete induced; }
+}
+else {
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
         auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -250,6 +272,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
         //update_d(active.vtx(i), tots[i]);
       } //else tots[i] = 0;
     }, 1, false);
+}
     updct_t.stop();
 
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
