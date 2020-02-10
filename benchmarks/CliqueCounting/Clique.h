@@ -98,7 +98,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 // todo approx work and do some kind of break in gen if too much
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
-inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base, 
+inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
   long recursive_level, bool par_serial) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
@@ -178,7 +178,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     free(per_vert);
     per_vert = inverse_per_vert;
   }
-  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
+  auto log_per_round = P.getOptionValue("-log_per_round");
+  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial, log_per_round);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   free(per_vert);
@@ -190,13 +191,16 @@ struct hashtup {
 inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 template <class Graph, class Graph2>
-sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
+sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16, bool log_per_round=false) {
+  size_t n = G.n;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[i]; });
   auto D_update = sequence<long>(eltsPerCacheLine*G.n);
   parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
   auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
+
+  auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
@@ -209,20 +213,28 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
   timer next_b;
   // Peel each bucket
   while (finished != G.n) {
+    timer round_t; round_t.start();
     // Retrieve next bucket
     next_b.start();
     auto bkt = b.next_bucket();
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
-    if (active.size() <= 200) {
-      break;
-    }
+// Note(laxman): I commented this out for now.
+//    if (active.size() <= 200) {
+//      break;
+//    }
     finished += active.size();
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, max_bkt);
 
+    if (log_per_round) {
+      std::cout << "Starting bucket = " << cur_bkt << " size = " << active.size() << std::endl;
+    }
+
     size_t active_deg = 0;
-    for (size_t i=0; i < active.size(); i++) { active_deg += G.get_vertex(active.vtx(i)).getOutDegree(); }
+    auto degree_map = pbbslib::make_sequence<size_t>(active.size(), [&] (size_t i) { return G.get_vertex(active.vtx(i)).getOutDegree(); });
+    active_deg += pbbslib::reduce_add(degree_map);
+
     size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
@@ -235,58 +247,52 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
     updct_t.start();
-if (par_serial) {
-  HybridSpace_lw* induced = new HybridSpace_lw();
-  induced->alloc(max_deg, k, G.n, label, true);
-    for (size_t i=0; i < active.size(); i++) {
-      if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-        auto ignore_f = [&](const uintE& u, const uintE& v) {
-          if (still_active[u] == 2 || still_active[v] == 2) return false;
-          if (still_active[v] == 0) return true;
-          return rank[u] < rank[v];
-        };
-        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
-        auto update_d = [&](uintE vtx, size_t count) {
-          D_update[eltsPerCacheLine*vtx] += count;
-          edge_table.insert(std::make_tuple(vtx, true));
-        };
-        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-        //update_d(active.vtx(i), tots[i]);
-      }
-    };
-  if (induced != nullptr) { delete induced; }
-}
-else {
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
         auto ignore_f = [&](const uintE& u, const uintE& v) {
-          if (still_active[u] == 2 || still_active[v] == 2) return false;
-          if (still_active[v] == 0) return true;
-          return rank[u] < rank[v];
+          auto status_u = still_active[u]; auto status_v = still_active[v];
+          if (status_u == 2 || status_v == 2) return false; /* deleted edge */
+          if (status_v == 0) return true; /* higher edge */
+          return rank[u] < rank[v]; /* orient edge within bucket */
         };
         induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
         auto update_d = [&](uintE vtx, size_t count) {
-          pbbslib::xadd(&(D_update[eltsPerCacheLine*vtx]), (long) count);
-          edge_table.insert(std::make_tuple(vtx, true));
+          size_t worker = worker_id();
+          size_t ct = per_processor_counts[worker*n + vtx];
+          per_processor_counts[worker*n + vtx] += count;
+          if (ct == 0) { /* only need bother trying hash table if our count is 0 */
+            edge_table.insert(std::make_tuple(vtx, true));
+          }
         };
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       }
     }, 1, false);
-}
     updct_t.stop();
 
+    /* mark all as deleted */
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;}, 2048);
 
-    // filter D_update for nonzero elements
-    // subtract these from D and then we can rebucket these elements
+    /* extract the vertices that had their count changed */
     auto changed_vtxs = edge_table.entries();
     edge_table.del();
+
+    /* Aggregate the updated counts across all worker's local arrays, into the
+     * first worker's array. Also zero out the other worker's updated counts. */
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      size_t nthreads = num_workers();
+      uintE v = std::get<0>(changed_vtxs[i]);
+      for (size_t i=1; i<nthreads; i++) {
+        per_processor_counts[v] += per_processor_counts[i*n + v];
+        per_processor_counts[i*n + v] = 0;
+      }
+    }, 128);
 
     filter_t.start();
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       const uintE v = std::get<0>(changed_vtxs[i]);
-      cliques[v] -= D_update[eltsPerCacheLine*v];
-      D_update[eltsPerCacheLine*v] = 0;
+      /* Update the clique count for v, and zero out first worker's count */
+      cliques[v] -= per_processor_counts[v];
+      per_processor_counts[v] = 0;
       uintE deg = D[v];
       if (deg > cur_bkt) {
         long new_deg = std::max(cliques[v], (long) cur_bkt);
@@ -311,11 +317,17 @@ else {
     active.del();
 
     rounds++;
+    round_t.stop();
+    if (log_per_round) {
+      round_t.reportTotal("round time");
+    }
   }
+timer ser_t; ser_t.start();
   if (finished != G.n) {
     auto bkt = _Peel_serial(G, DG, k, cliques, label, rank, still_active);
     max_bkt = std::max(max_bkt, bkt);
   }
+ser_t.stop(); ser_t.reportTotal("serial time");
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "max_bkt: " << max_bkt << std::endl;
 
@@ -376,7 +388,7 @@ long _Peel_serial(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, seq
       updateLLU(heap,u,D_update[u]);
       D_update[u] = 0;
     }
-    
+
     still_active[v] = 2;
     finished++;
   }
