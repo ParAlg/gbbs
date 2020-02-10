@@ -469,13 +469,13 @@ struct HybridSpace_lw {
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
     size_t o = 0;
     auto lmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      if (!f(src, ngh)) {o++; return;}
+      if (!f(src, ngh)) {return;}
       if (old_labels[ngh] == UINT_E_MAX) {
         induced[o] = ngh;
         old_labels[ngh] = o + 1;
         if (use_base) { relabel[o] = ngh; }
+        o++;
       }
-      o++;
     };
     DG.get_vertex(l).mapOutNgh(l, lmap_label_f, false);
     auto remap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) { if (old_labels[ngh] == UINT_E_MAX) old_labels[ngh] = 0; };
