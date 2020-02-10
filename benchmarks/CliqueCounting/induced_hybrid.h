@@ -159,7 +159,6 @@ if (recursive_level != 1) {
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; 
 
-
  switch (k) {
  case 3:  {
  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
@@ -256,46 +255,35 @@ if (recursive_level != 1) {
  for (size_t y=0; y < induced->induced_degs[vtx]; y++) {
  if (induced->labels[intersect[y]] == k_idx) {
  tmp_counts++;
- if (induced->use_base) base_f(induced->relabel[intersect[y]], 1);
  } 
  }
- if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
- ecurr_counts += tmp_counts;
+ etots[i] += tmp_counts;
  }
  for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
- dcurr_counts += ecurr_counts;
- if (induced->use_base && ecurr_counts > 0) base_f(induced->relabel[evtx], ecurr_counts);
  } }
  k_idx = 4;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t f=0; f<num_induced; f++) { induced->labels[prev_induced[f]] = k_idx - 1; }
   }
- ccurr_counts += dcurr_counts;
- if (induced->use_base && dcurr_counts > 0) base_f(induced->relabel[dvtx], dcurr_counts);
  } }
  k_idx = 3;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t e=0; e<num_induced; e++) { induced->labels[prev_induced[e]] = k_idx - 1; }
   }
- bcurr_counts += ccurr_counts;
- if (induced->use_base && ccurr_counts > 0) base_f(induced->relabel[cvtx], ccurr_counts);
  } }
  k_idx = 2;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t d=0; d<num_induced; d++) { induced->labels[prev_induced[d]] = k_idx - 1; }
   }
- acurr_counts += bcurr_counts;
- if (induced->use_base && bcurr_counts > 0) base_f(induced->relabel[bvtx], bcurr_counts);
  } }
  k_idx = 1;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t c=0; c<num_induced; c++) { induced->labels[prev_induced[c]] = k_idx - 1; }
-  }
- tots[i] = acurr_counts;if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
+  }if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
  break; }
  case 4:  {
  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
@@ -392,46 +380,35 @@ if (recursive_level != 1) {
  for (size_t y=0; y < induced->induced_degs[vtx]; y++) {
  if (induced->labels[intersect[y]] == k_idx) {
  tmp_counts++;
- if (induced->use_base) base_f(induced->relabel[intersect[y]], 1);
  } 
  }
- if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
- ecurr_counts += tmp_counts;
+ etots[i] += tmp_counts;
  }
  for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
- dcurr_counts += ecurr_counts;
- if (induced->use_base && ecurr_counts > 0) base_f(induced->relabel[evtx], ecurr_counts);
  } }
  k_idx = 4;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t f=0; f<num_induced; f++) { induced->labels[prev_induced[f]] = k_idx - 1; }
   }
- ccurr_counts += dcurr_counts;
- if (induced->use_base && dcurr_counts > 0) base_f(induced->relabel[dvtx], dcurr_counts);
  } }
  k_idx = 3;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t e=0; e<num_induced; e++) { induced->labels[prev_induced[e]] = k_idx - 1; }
   }
- bcurr_counts += ccurr_counts;
- if (induced->use_base && ccurr_counts > 0) base_f(induced->relabel[cvtx], ccurr_counts);
  } }
  k_idx = 2;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t d=0; d<num_induced; d++) { induced->labels[prev_induced[d]] = k_idx - 1; }
   }
- acurr_counts += bcurr_counts;
- if (induced->use_base && bcurr_counts > 0) base_f(induced->relabel[bvtx], bcurr_counts);
  } }
  k_idx = 1;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t c=0; c<num_induced; c++) { induced->labels[prev_induced[c]] = k_idx - 1; }
-  }
- tots[i] = acurr_counts;if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
+  }if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
  break; }
  case 5:  {
  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
@@ -528,48 +505,38 @@ if (recursive_level != 1) {
  for (size_t y=0; y < induced->induced_degs[vtx]; y++) {
  if (induced->labels[intersect[y]] == k_idx) {
  tmp_counts++;
- if (induced->use_base) base_f(induced->relabel[intersect[y]], 1);
  } 
  }
- if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
- ecurr_counts += tmp_counts;
+ etots[i] += tmp_counts;
  }
  for (size_t z=0; z < num_induced; z++) { induced->labels[prev_induced[z]] = k_idx - 1; }
- dcurr_counts += ecurr_counts;
- if (induced->use_base && ecurr_counts > 0) base_f(induced->relabel[evtx], ecurr_counts);
  } }
  k_idx = 4;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t f=0; f<num_induced; f++) { induced->labels[prev_induced[f]] = k_idx - 1; }
   }
- ccurr_counts += dcurr_counts;
- if (induced->use_base && dcurr_counts > 0) base_f(induced->relabel[dvtx], dcurr_counts);
  } }
  k_idx = 3;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t e=0; e<num_induced; e++) { induced->labels[prev_induced[e]] = k_idx - 1; }
   }
- bcurr_counts += ccurr_counts;
- if (induced->use_base && ccurr_counts > 0) base_f(induced->relabel[cvtx], ccurr_counts);
  } }
  k_idx = 2;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t d=0; d<num_induced; d++) { induced->labels[prev_induced[d]] = k_idx - 1; }
   }
- acurr_counts += bcurr_counts;
- if (induced->use_base && bcurr_counts > 0) base_f(induced->relabel[bvtx], bcurr_counts);
  } }
  k_idx = 1;
  num_induced = induced->num_induced[k_idx-1];
  prev_induced = induced->induced + induced->nn * (k_idx - 1);
  for (size_t c=0; c<num_induced; c++) { induced->labels[prev_induced[c]] = k_idx - 1; }
-  }
- tots[i] = acurr_counts;if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
+  }if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);} else tots[i] = 0;}, 1, false);
  break; } 
  }
+
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
 
