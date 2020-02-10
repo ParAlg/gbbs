@@ -206,12 +206,13 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
   long cur_bkt = 0;
   long max_bkt = 0;
   timer updct_t, bkt_t, filter_t;
+  timer next_b;
   // Peel each bucket
   while (finished != G.n) {
     // Retrieve next bucket
-    bkt_t.start();
+    next_b.start();
     auto bkt = b.next_bucket();
-    bkt_t.stop();
+    next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
     finished += active.size();
     cur_bkt = bkt.id;
@@ -222,7 +223,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
-    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;});
+    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;}, 2048);
     // here, update D[i] if necessary
     // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
     // also drop if already peeled -- check using D
@@ -275,7 +276,7 @@ else {
 }
     updct_t.stop();
 
-    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;});
+    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;}, 2048);
 
     // filter D_update for nonzero elements
     // subtract these from D and then we can rebucket these elements
@@ -299,7 +300,7 @@ else {
         // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
         D_filter[i] = std::make_tuple(v, bkt);
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
-    });
+    }, 2048);
     filter_t.stop();
 
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
@@ -320,6 +321,7 @@ else {
   std::cout << "max_bkt: " << max_bkt << std::endl;
 
   bkt_t.reportTotal("bkt time");
+  next_b.reportTotal("next bucket time");
   filter_t.reportTotal("filter time");
   updct_t.reportTotal("update count time");
 
