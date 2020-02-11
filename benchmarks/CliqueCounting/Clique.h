@@ -241,7 +241,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
 
     size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
     size_t filter_size = 0;
-if (active.size() > 10) {
+if (active.size() > 1) {
     size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
     updct_t.start();
