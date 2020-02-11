@@ -37,7 +37,7 @@ namespace induced_hybrid {
           if (induced->labels[intersect[j]] == k_idx) {
             tmp_counts++;
             if (induced->use_base) base_f(induced->relabel[intersect[j]], 1);
-          } 
+          }
         }
         if (induced->use_base && tmp_counts > 0) base_f(induced->relabel[vtx], tmp_counts);
         counts += tmp_counts;
@@ -100,25 +100,23 @@ if (recursive_level < k_idx || num_induced < 2) {
     timer t2; t2.start();
     using W = typename Graph::weight_type;
 
-if (recursive_level != 1) {
-    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
-    size_t max_deg = get_max_deg(DG);
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del(); 
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-      if (DG.get_vertex(i).getOutDegree() != 0) {
-        induced->setup(DG, k, i);
-        tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, recursive_level);
-        if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);
-      } else tots[i] = 0;
-    }, 1, false);
-    double tt2 = t2.stop();
-    std::cout << "##### Actual counting: " << tt2 << std::endl;
+    if (recursive_level != 1) {
+      sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+      size_t max_deg = get_max_deg(DG);
+      auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
+      auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
+      parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+        if (DG.get_vertex(i).getOutDegree() != 0) {
+          induced->setup(DG, k, i);
+          tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, recursive_level);
+          if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);
+        } else tots[i] = 0;
+      }, 1, false);
+      double tt2 = t2.stop();
+      std::cout << "##### Actual counting: " << tt2 << std::endl;
+      return pbbslib::reduce_add(tots);
+    }
 
-    return pbbslib::reduce_add(tots);
-}
-
-   
    size_t max_deg = get_max_deg(DG);
    sequence<size_t> degs = sequence<size_t>::no_init(DG.n+1);
     parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).getOutDegree();});
@@ -138,14 +136,12 @@ if (recursive_level != 1) {
     auto ngh = DG.get_vertex(i).getOutNeighbor(j - degs[idx - 1]);
     induced->setup_edge(DG,k,i,ngh);
     tots[j] = KCliqueDir_fast_hybrid_rec(DG, 1, k-1, induced, base_f, 0);
-    if (use_base && tots[j] > 0) { base_f(ngh, tots[j]); base_f(i, tots[j]); } 
+    if (use_base && tots[j] > 0) { base_f(ngh, tots[j]); base_f(i, tots[j]); }
    }, 1, false);
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
 
     return pbbslib::reduce_add(tots);
   }
-
-
 
 } // namespace induced_neighborhood

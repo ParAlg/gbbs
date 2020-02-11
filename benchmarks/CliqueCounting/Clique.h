@@ -245,6 +245,9 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
+
+    size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
+
     updct_t.start();
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
@@ -265,7 +268,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
         };
         induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
       }
-    }, 1, false);
+    }, granularity, false);
     updct_t.stop();
 
     /* mark all as deleted */
