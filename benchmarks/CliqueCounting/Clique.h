@@ -210,6 +210,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
   size_t finished = 0;
   long cur_bkt = 0;
   long max_bkt = 0;
+  size_t rounds1 = 0;
   timer updct_t, bkt_t, filter_t;
   timer next_b;
   // Peel each bucket
@@ -220,6 +221,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto bkt = b.next_bucket();
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
+    if (active.size() == 1) { rounds1++; }
     if (par_serial && active.size() <= 200) { /* switch */
       break;
     }
@@ -372,6 +374,7 @@ timer ser_t; ser_t.start();
 ser_t.stop(); ser_t.reportTotal("serial time");
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "max_bkt: " << max_bkt << std::endl;
+  std::cout << "rho1: " << rounds1 << std::endl;
 
   bkt_t.reportTotal("bkt time");
   next_b.reportTotal("next bucket time");
