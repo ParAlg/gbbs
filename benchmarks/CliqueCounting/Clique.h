@@ -178,8 +178,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     free(per_vert);
     per_vert = inverse_per_vert;
   }
-  auto log_per_round = P.getOptionValue("-log_per_round");
-  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial, log_per_round);
+//  auto log_per_round = P.getOptionValue("-log_per_round");
+  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
   free(per_vert);
@@ -191,7 +191,7 @@ struct hashtup {
 inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 template <class Graph, class Graph2>
-sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16, bool log_per_round=false) {
+sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
   size_t n = G.n;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[i]; });
@@ -219,17 +219,16 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto bkt = b.next_bucket();
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
-// Note(laxman): I commented this out for now.
-//    if (active.size() <= 200) {
-//      break;
-//    }
+    if (par_serial && active.size() <= 200) { /* switch */
+      break;
+    }
     finished += active.size();
     cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, max_bkt);
 
-    if (log_per_round) {
-      std::cout << "Starting bucket = " << cur_bkt << " size = " << active.size() << std::endl;
-    }
+//    if (log_per_round) {
+//      std::cout << "Starting bucket = " << cur_bkt << " size = " << active.size() << std::endl;
+//    }
 
     size_t active_deg = 0;
     auto degree_map = pbbslib::make_sequence<size_t>(active.size(), [&] (size_t i) { return G.get_vertex(active.vtx(i)).getOutDegree(); });
@@ -318,9 +317,9 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
 
     rounds++;
     round_t.stop();
-    if (log_per_round) {
-      round_t.reportTotal("round time");
-    }
+//    if (log_per_round) {
+//      round_t.reportTotal("round time");
+//    }
   }
 timer ser_t; ser_t.start();
   if (finished != G.n) {
