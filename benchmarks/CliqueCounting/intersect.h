@@ -22,7 +22,7 @@ typedef unsigned long long uintC;
 #define UINT_C_MAX ULLONG_MAX
 #else
 typedef long intC;
-typedef unsignedlong uintC;
+typedef unsigned long uintC;
 #define INT_C_MAX LONG_MAX
 #define UINT_C_MAX ULONG_MAX
 #endif
