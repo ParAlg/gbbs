@@ -195,3 +195,20 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 }
 
 
+
+template <class Graph>
+auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
+  using W = typename Graph::weight_type;
+  size_t n = GA.n;
+  double p = 1/denom;
+  // Color vertices with denom colors
+  uintE numColors = std::max((size_t) 1,denom);
+  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbs::hash64_2((uintE) seed+i) % numColors; });
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return colors[u] == colors[v];
+  };
+  auto edges = sample_edges(GA, pack_predicate);
+  auto edges_seq = edges.to_seq();
+  //return filter_graph(GA, pack_predicate);
+  return sym_graph_from_edges(edges_seq, edges_seq.size());
+}

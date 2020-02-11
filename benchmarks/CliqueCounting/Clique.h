@@ -171,7 +171,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     });
   }
 
-  timer t2; t2.start();
+
   long* inverse_per_vert = use_base && !filter ? (long*) malloc(GA.n*sizeof(long)) : nullptr;
   if (!filter) {
     parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[rank[i]]; });
@@ -180,8 +180,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   }
 //  auto log_per_round = P.getOptionValue("-log_per_round");
   sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
-  double tt2 = t2.stop();
-  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+
   free(per_vert);
 
   return count;
@@ -192,6 +191,8 @@ inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 template <class Graph, class Graph2>
 sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
+auto stats = sequence<size_t>(G.n);
+timer t2; t2.start();
   size_t n = G.n;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<long>(G.n, [&](size_t i) { return cliques[i]; });
@@ -210,7 +211,6 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
   size_t finished = 0;
   long cur_bkt = 0;
   long max_bkt = 0;
-  size_t rounds1 = 0;
   timer updct_t, bkt_t, filter_t;
   timer next_b;
   // Peel each bucket
@@ -221,7 +221,7 @@ sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, s
     auto bkt = b.next_bucket();
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
-    if (active.size() == 1) { rounds1++; }
+    stats[rounds] = active.size();
     if (par_serial && active.size() <= 200) { /* switch */
       break;
     }
@@ -366,20 +366,33 @@ if (active.size() > 1) {
     rounds++;
     round_t.stop();
   }
+
 timer ser_t; ser_t.start();
   if (finished != G.n) {
     auto bkt = _Peel_serial(G, DG, k, cliques, label, rank, still_active);
     max_bkt = std::max(max_bkt, bkt);
   }
-ser_t.stop(); ser_t.reportTotal("serial time");
+ser_t.stop();
+double tt2 = t2.stop();
+std::cout << "### Peel Running Time: " << tt2 << std::endl; 
+ser_t.reportTotal("serial time");
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "max_bkt: " << max_bkt << std::endl;
-  std::cout << "rho1: " << rounds1 << std::endl;
 
   bkt_t.reportTotal("bkt time");
   next_b.reportTotal("next bucket time");
   filter_t.reportTotal("filter time");
   updct_t.reportTotal("update count time");
+
+auto const Q1 = rounds / 4;
+auto const Q2 = rounds / 2;
+auto const Q3 = Q1 + Q2;
+pbbs::integer_sort_inplace(stats.slice(0, rounds), [&] (size_t x) {
+    return stats[x];
+  });
+std::cout << "Q1: " << stats[Q1] << std::endl;
+std::cout << "Q2: " << stats[Q2] << std::endl;
+std::cout << "Q3: " << stats[Q3] << std::endl;
 
   b.del();
   free(still_active);
@@ -437,6 +450,7 @@ long _Peel_serial(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, seq
     still_active[v] = 2;
     finished++;
   }
+
   freeheapLLU(heap);
   if (induced != nullptr) { delete induced; }
 

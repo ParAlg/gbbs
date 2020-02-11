@@ -34,6 +34,7 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "Clique.h"
+#include <math.h>
 #include <fstream>
 
 //#include "kClistNodeParallel.c"
@@ -53,15 +54,17 @@
 
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
-  double epsilon = P.getOptionDoubleValue("-e", 0.1);
-  long space = P.getOptionLongValue("-space", 2);
-  long k = P.getOptionLongValue("-k", 3);
-  long order = P.getOptionLongValue("-o", 0);
-  long recursive_level = P.getOptionLongValue("-r", 0);
-  bool label = P.getOptionValue("-l");
-  bool filter = P.getOptionValue("-f");
-  bool use_base = P.getOptionValue("-b");
-  bool par_serial = P.getOptionValue("-p");
+  double epsilon = P.getOptionDoubleValue("-e", 0.1); // epsilon for rank 0, 1
+  long space = P.getOptionLongValue("-space", 5); // just use -space 5 forget about everything else
+  long k = P.getOptionLongValue("-k", 3); // k-cliques
+  long order = P.getOptionLongValue("-o", 0); //  ranking 0--4
+  long recursive_level = P.getOptionLongValue("-r", 0); // -r 1 means kick off by edge, -r 2 and up is basically ineffective but same idea
+  bool label = P.getOptionValue("-l"); // for -space 5, use a label intersect O(n) when setting up graph
+  bool filter = P.getOptionValue("-f"); // filter only -- needed for peeeling
+  bool use_base = P.getOptionValue("-b"); // this flag means count per vert + peel
+  bool par_serial = P.getOptionValue("-p"); // this flag means switch to serial peeling after 200 in active
+  bool sparsify = P.getOptionValue("--sparse");
+  long sparsify_denom = P.getOptionLongValue("--colors", 0);
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -72,7 +75,15 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   assert(P.getOption("-s"));
 
   timer t; t.start();
-  size_t count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
+  size_t count = 0;
+  if (sparsify) {
+    auto GA_sparse = clr_sparsify_graph(GA, sparsify_denom, 7398234);
+    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
+    std::cout << "sparse count: " << count << std::endl;
+    count = count * pow(sparsify_denom,k-1);
+  } else {
+    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
+  }
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
