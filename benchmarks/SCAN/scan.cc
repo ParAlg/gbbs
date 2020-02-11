@@ -65,11 +65,54 @@ size_t BinarySearch(
     hi = 2 * hi + 1;
   }
   const size_t lo{hi / 2};
-  if (sequence.size() < hi) {
+  if (hi > sequence.size()) {
     hi = sequence.size();
   }
 
   return pbbs::binary_search(sequence.slice(lo, hi), predicate);
+}
+
+// Get edges with structural similarity at least `epsilon` that are incident on
+// a vertex in `vertices`.
+//
+// Edges of the form {v, u} where v is in `vertices` but `u` is not will appear
+// once in the output in the form (v, u). Edges where both `v` and `u`
+// are in `vertices`, on the other hand will appear twice, as (v, u) and as (u,
+// v).
+pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
+    const internal::NeighborOrder& neighbor_order,
+    const pbbs::sequence<uintE>& vertices,
+    const float epsilon) {
+  pbbs::sequence<size_t> epsilon_neighborhood_offsets{
+      pbbs::map<size_t>(
+          vertices,
+          [&](const uintE vertex) {
+            // Get the number of neighbors of `vertex` that have at least
+            // `epsilon` structural similarity with the core.
+            return BinarySearch<internal::NeighborSimilarity>(
+                neighbor_order[vertex],
+                [epsilon](const internal::NeighborSimilarity& ns) {
+                  return ns.similarity >= epsilon;
+                });
+          })};
+  const size_t num_incident_edges{
+    pbbslib::scan_add_inplace(epsilon_neighborhood_offsets)};
+  const pbbs::sequence<DirectedEdge> incident_edges{
+    pbbs::sequence<DirectedEdge>::no_init(num_incident_edges)};
+  par_for(0, vertices.size(), [&](const size_t i) {
+    const uintE vertex{vertices[i]};
+    const size_t offset{epsilon_neighborhood_offsets[i]};
+    const size_t num_incident_on_vertex{
+      (i + 1 == vertices.size()
+       ? num_incident_edges
+       : epsilon_neighborhood_offsets[i + 1]) - offset};
+    const auto& neighbors{neighbor_order[vertex]};
+    par_for(0, num_incident_on_vertex, [&](const size_t j) {
+      incident_edges[offset + j] =
+        std::make_pair(vertex, neighbors[j].neighbor);
+    });
+  });
+  return incident_edges;
 }
 
 }  // namespace
@@ -130,8 +173,6 @@ StructuralSimilarities ComputeStructuralSimilarities(
     vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
 
-  // TODO(tom.tseng): This all might be overkill --- look at
-  // ligra/vertex.h intersection::intersect
   graph->map_edges([&graph, &adjacency_list, &similarities](
         const uintE u_id,
         const uintE v_id,
@@ -191,8 +232,8 @@ NeighborOrder ComputeNeighborOrder(
   NeighborOrder neighbor_order{
     graph->n,
     [&graph](const size_t i) {
-      return pbbs::sequence<NeighborSimilarity>{
-        graph->get_vertex(i).getOutDegree()};
+      return pbbs::sequence<NeighborSimilarity>::no_init(
+        graph->get_vertex(i).getOutDegree());
     }
   };
 
@@ -224,24 +265,25 @@ NeighborOrder ComputeNeighborOrder(
 
 // Returns a sequence CO where CO[i] for i >= 2 is a list of vertices that
 // can be a core when the SCAN parameter mu is set to i. The vertices in
-// CO[i], are sorted by their core threshold values, the maximum value of SCAN
+// CO[i] are sorted by their core threshold values, the maximum value of SCAN
 // parameter epsilon such that the vertex is a core when mu == i.
 //
 // CO[0] and CO[1] are left empty --- when mu is less than 2, all vertices are
 // always cores and have a core threshold of 1.
-CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
+pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
+    const NeighborOrder& neighbor_order) {
   if (neighbor_order.empty()) {
-    return CoreOrder{};
+    return {};
   }
 
   pbbs::sequence<VertexDegree> vertex_degrees{
     pbbs::map_with_index<VertexDegree>(
         neighbor_order,
-        [](const size_t i,
-           const pbbs::sequence<NeighborSimilarity>& similarity) {
+        [](const size_t v,
+           const pbbs::sequence<NeighborSimilarity>& neighbors) {
           return VertexDegree{
-            .vertex_id = static_cast<uintE>(i),
-            .degree = static_cast<uintE>(similarity.size())};
+            .vertex_id = static_cast<uintE>(v),
+            .degree = static_cast<uintE>(neighbors.size())};
         })
   };
   // Sort `vertex_degrees` by ascending degree.
@@ -272,6 +314,7 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
     if (mu <= 1) {
       return pbbs::sequence<CoreThreshold>{};
     }
+
     // Only vertices with high enough degree can be cores.
     const pbbs::sequence<VertexDegree>& core_vertices{
       vertex_degrees.slice(degree_offsets[mu - 1], vertex_degrees.size())};
@@ -295,10 +338,58 @@ CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order) {
     return core_thresholds;
   }};
 
-  return CoreOrder{max_degree + 2, get_core_order};
+  return pbbs::sequence<pbbs::sequence<CoreThreshold>>{
+      max_degree + 2,
+      get_core_order};
+}
+
+CoreOrder::CoreOrder(const NeighborOrder& neighbor_order)
+    : num_vertices_{neighbor_order.size()}
+    , order_{ComputeCoreOrder(neighbor_order)} {}
+
+// Return all vertices that are cores under SCAN parameters `mu` and `epsilon`.
+pbbs::sequence<uintE>
+CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
+  if (mu <= 1) { // All vertices are cores.
+    return
+      pbbs::sequence<uintE>(num_vertices_, [](const size_t i) { return i; });
+  }
+  if (mu >= order_.size()) { // No vertices are cores.
+    return pbbs::sequence<uintE>{};
+  }
+
+  const pbbs::sequence<CoreThreshold>& possible_cores{order_[mu]};
+  const size_t cores_end{
+    BinarySearch<internal::CoreThreshold>(
+        possible_cores,
+        [epsilon](const internal::CoreThreshold& core_threshold) {
+          return core_threshold.threshold >= epsilon;
+        })};
+  return pbbs::map<uintE>(
+      possible_cores.slice(0, cores_end),
+      [](const internal::CoreThreshold& core_threshold) {
+        return core_threshold.vertex_id;
+      });
 }
 
 }  // namespace internal
+
+bool operator==(const ClusterMember& a, const ClusterMember& b) {
+  return a.clusters == b.clusters;
+}
+
+bool operator==(const Hub&, const Hub&) {
+  return true;
+}
+
+bool operator==(const Outlier&, const Outlier&) {
+  return true;
+}
+
+bool operator==(const Clustering& a, const Clustering& b) {
+  return std::tie(a.num_clusters, a.clusters_by_vertex)
+    == std::tie(b.num_clusters, b.clusters_by_vertex);
+}
 
 ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph)
   : num_vertices_{graph->n}
@@ -306,15 +397,11 @@ ScanIndex::ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph)
       internal::ComputeNeighborOrder(
           graph,
           internal::ComputeStructuralSimilarities(graph))}
-  , core_order_{internal::ComputeCoreOrder(neighbor_order_)} {}
+  , core_order_{neighbor_order_} {}
 
-Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
-  if (mu <= 1) {
-    // Every vertex is a core. Return connected components on edges with
-    // similarity > epsilon.
-    ABORT("SCAN for `mu <= 1` is unimplemented");
-  }
-  if (mu >= core_order_.size()) {
+Clustering ScanIndex::Cluster(const uint64_t mu, const float epsilon) const {
+  const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
+  if (cores.empty()) {
     // Nothing is a core. There are no clusters, and every vertex is an outlier.
     return Clustering {
         .num_clusters = 0,
@@ -323,53 +410,12 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
     };
   }
 
-  const size_t cores_end{
-    BinarySearch<internal::CoreThreshold>(
-        core_order_[mu],
-        [epsilon](const internal::CoreThreshold& core_threshold) {
-          return core_threshold.threshold >= epsilon;
-        })};
-  const pbbs::range cores{core_order_[mu].slice(0, cores_end)};
-
-  pbbs::sequence<size_t> epsilon_neighborhood_offsets{
-      pbbs::map<size_t>(
-          cores,
-          [&](const internal::CoreThreshold& core_threshold) {
-            // Get the number of neighbors of core vertex
-            // `core_threshold.vertex_id` that have at least `epsilon`
-            // structural similarity with the core.
-            return BinarySearch<internal::NeighborSimilarity>(
-                neighbor_order_[core_threshold.vertex_id],
-                [epsilon](const internal::NeighborSimilarity& ns) {
-                  return ns.similarity >= epsilon;
-                });
-          })};
-  const size_t num_core_incident_edges{
-    pbbslib::scan_add_inplace(epsilon_neighborhood_offsets)};
-  // List of edges with structural similarity at least `epsilon` that are
-  // incident on a core.
-  // Note: edges of the form (core vertex, non-core) will appear only once in
-  // this list. On the other hand, edges of the form (core vertex 1, core
-  // vertex 2) will appear twice in this list, once in each direction.
   const pbbs::sequence<DirectedEdge> core_incident_edges{
-    pbbs::sequence<DirectedEdge>::no_init(num_core_incident_edges)};
-  par_for(0, cores.size(), [&](const size_t i) {
-    const size_t offset{epsilon_neighborhood_offsets[i]};
-    const size_t size{
-      (i == cores.size()
-       ? num_core_incident_edges
-       : epsilon_neighborhood_offsets[i + 1]) - offset};
-    const uintE core_id{cores[i].vertex_id};
-    const auto& core_neighbors{neighbor_order_[core_id]};
-    par_for(0, size, [&](const size_t j) {
-      core_incident_edges[offset + j] =
-        std::make_pair(core_id, core_neighbors[j].neighbor);
-    });
-  });
+    GetSimilarIncidentEdges(neighbor_order_, cores, epsilon)};
 
   VertexSet cores_set{MakeVertexSet(cores.size())};
   par_for(0, cores.size(), [&](const size_t i) {
-    cores_set.insert(std::make_pair(cores[i].vertex_id, pbbslib::empty{}));
+    cores_set.insert(std::make_pair(cores[i], pbbslib::empty{}));
   });
 
   // `partitioned_core_edges` is `core_incident_edges` partitioned into edges
@@ -411,14 +457,14 @@ Clustering ScanIndex::Cluster(const float epsilon, const uint64_t mu) const {
     workefficient_cc::CC(core_graph)};
   pbbs::sequence<uintE> component_relabel_map{num_vertices_, 0U};
   par_for(0, cores.size(), [&](const size_t i) {
-    const uintE cluster{core_connected_components[cores[i].vertex_id]};
+    const uintE cluster{core_connected_components[cores[i]]};
     if (component_relabel_map[cluster] == 0) {
       component_relabel_map[cluster] = 1;
     }
   });
   clustering.num_clusters = pbbslib::scan_add_inplace(component_relabel_map);
   par_for(0, cores.size(), [&](const size_t i) {
-    const uintE core{cores[i].vertex_id};
+    const uintE core{cores[i]};
     clustering.clusters_by_vertex[core] =
       ClusterMember{
         .clusters =

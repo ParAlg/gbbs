@@ -60,7 +60,7 @@ TEST(ScanSubroutines, NullGraph) {
     si::ComputeNeighborOrder(&graph, similarity_table)};
   EXPECT_THAT(neighbor_order, IsEmpty());
 
-  const si::CoreOrder core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
   EXPECT_THAT(core_order, IsEmpty());
 }
 
@@ -80,7 +80,7 @@ TEST(ScanSubroutines, EmptyGraph) {
     EXPECT_THAT(vertex_order, IsEmpty());
   }
 
-  const si::CoreOrder core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
   ASSERT_EQ(core_order.size(), 2);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -151,7 +151,7 @@ TEST(ScanSubroutines, BasicUsage) {
       ElementsAre(
         MakeNeighborSimilarity(2, 2.0 / sqrt(10))));
 
-  const si::CoreOrder core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
   EXPECT_EQ(core_order.size(), 6);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -230,7 +230,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
       neighbor_order[5].slice(),
       ElementsAre(MakeNeighborSimilarity(4, 2.0 / sqrt(6))));
 
-  const si::CoreOrder core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
   EXPECT_EQ(core_order.size(), 4);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -257,9 +257,9 @@ TEST(Cluster, NullGraph) {
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
   const scan::ScanIndex index{&graph};
-  constexpr float kEpsilon{0.5};
   constexpr float kMu{2};
-  scan::Clustering clustering{index.Cluster(kEpsilon, kMu)};
+  constexpr float kEpsilon{0.5};
+  scan::Clustering clustering{index.Cluster(kMu, kEpsilon)};
 
   EXPECT_EQ(clustering.num_clusters, 0);
   EXPECT_THAT(clustering.clusters_by_vertex, IsEmpty());
@@ -271,9 +271,9 @@ TEST(Cluster, EmptyGraph) {
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
   const scan::ScanIndex index{&graph};
-  constexpr float kEpsilon{0.5};
   constexpr float kMu{2};
-  scan::Clustering clustering{index.Cluster(kEpsilon, kMu)};
+  constexpr float kEpsilon{0.5};
+  scan::Clustering clustering{index.Cluster(kMu, kEpsilon)};
 
   EXPECT_EQ(clustering.num_clusters, 0);
   ASSERT_THAT(clustering.clusters_by_vertex.size(), kNumVertices);
@@ -300,7 +300,6 @@ TEST(Cluster, BasicUsage) {
     {3, 4},
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
-
   const scan::ScanIndex index{&graph};
 
   EXPECT_EQ("TODO", "DONE");
@@ -317,6 +316,7 @@ TEST(Cluster, DisconnectedGraph) {
     {4, 5},
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
+  const scan::ScanIndex index{&graph};
 
   EXPECT_EQ("TODO", "DONE");
 }

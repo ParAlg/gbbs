@@ -12,19 +12,12 @@ namespace scan {
 
 namespace internal {
 
-using StructuralSimilarities =
-  sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
-
 struct NeighborSimilarity {
   // Vertex ID.
   uintE neighbor;
   // Similarity of neighbor vertex to some original reference vertex.
   float similarity;
 };
-
-bool operator==(const NeighborSimilarity&, const NeighborSimilarity&);
-
-std::ostream& operator<<(std::ostream& os, const NeighborSimilarity&);
 
 using NeighborOrder = pbbs::sequence<pbbs::sequence<NeighborSimilarity>>;
 
@@ -35,20 +28,17 @@ struct CoreThreshold {
   float threshold;
 };
 
-bool operator==(const CoreThreshold&, const CoreThreshold&);
+class CoreOrder {
+ public:
+  CoreOrder(const NeighborOrder& neighbor_order);
 
-std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
+  uint64_t MaxMu() const;
+  pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
 
-using CoreOrder = pbbs::sequence<pbbs::sequence<CoreThreshold>>;
-
-StructuralSimilarities ComputeStructuralSimilarities(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
-
-NeighborOrder ComputeNeighborOrder(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph,
-    const StructuralSimilarities& similarities);
-
-CoreOrder ComputeCoreOrder(const NeighborOrder& neighbor_order);
+ private:
+  const size_t num_vertices_;
+  pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
+};
 
 }  // namespace internal
 
@@ -58,12 +48,17 @@ struct ClusterMember {
   // clusters may belong to multiple clusters.
   pbbs::sequence<uintE> clusters;
 };
+bool operator==(const ClusterMember&, const ClusterMember&);
+
 // Represents a vertex that is not in a cluster but is adjacent to at least two
 // clusters.
 struct Hub{};
+bool operator==(const Hub&, const Hub&);
+
 // Represents a vertex that is not in a cluster and is adjacent to at most one
 // cluster.
 struct Outlier{};
+bool operator==(const Outlier&, const Outlier&);
 
 // Possible results for a vertex in a SCAN clustering.
 using VertexType = std::variant<ClusterMember, Hub, Outlier>;
@@ -76,6 +71,7 @@ struct Clustering {
   // IDs are in the range [0, num_clusters).
   pbbs::sequence<VertexType> clusters_by_vertex;
 };
+bool operator==(const Clustering&, const Clustering&);
 
 // Index for an undirected graph from which clustering the graph with SCAN is
 // quick.
@@ -87,7 +83,7 @@ class ScanIndex {
   explicit ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
 
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
-  // epsilon and mu.
+  // mu and epsilon.
   //
   // Returns an <number of vertices in graph>-length sequence S in which S[i] is
   // the clustering status of vertex i.
@@ -100,12 +96,35 @@ class ScanIndex {
   //   to be considered a "core" vertex from which a cluster is grown.
   //   Increasing this increases the minimum cluster size and but also makes
   //   large clusters less likely to appear.
-  Clustering Cluster(float epsilon, uint64_t mu) const;
+  Clustering Cluster(uint64_t mu, float epsilon) const;
 
  private:
   const size_t num_vertices_;
   const internal::NeighborOrder neighbor_order_;
   const internal::CoreOrder core_order_;
 };
+
+namespace internal {
+
+using StructuralSimilarities =
+  sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
+
+bool operator==(const NeighborSimilarity&, const NeighborSimilarity&);
+std::ostream& operator<<(std::ostream& os, const NeighborSimilarity&);
+
+bool operator==(const CoreThreshold&, const CoreThreshold&);
+std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
+
+StructuralSimilarities ComputeStructuralSimilarities(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
+
+NeighborOrder ComputeNeighborOrder(
+    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph,
+    const StructuralSimilarities& similarities);
+
+pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
+    const NeighborOrder& neighbor_order);
+
+}  // namespace internal
 
 }  // namespace scan
