@@ -514,7 +514,7 @@ timer t2; t2.start();
     // move all vert with deg < deg_cutoff in the front
     integer_sort_inplace(sortD.slice(start, n), get_cutoff);
     auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
-      return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
+      return D[sortD[i + start]] < rho ? i + start : 0;});
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
     if (end == start) end++; //TODO step?
     // peel all vertices from start to end
