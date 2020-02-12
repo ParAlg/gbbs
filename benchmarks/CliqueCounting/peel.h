@@ -350,7 +350,7 @@ timer t2; t2.start();
   size_t finished = 0;
   bucket_t cur_bkt = 0;
   bucket_t max_bkt = 0;
-  bool log = true;
+  bool log = false;
   timer updct_t, bkt_t, filter_t;
   timer next_b; timer round_t;
   // Peel each bucket
