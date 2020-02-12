@@ -292,6 +292,12 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 }
 
 
+template <typename bucket_t>
+sequence<bucket_t> TriPeel(symmetric_graph<csv_bytepd_amortized, pbbs::empty>& G, symmetric_graph<csv_byte, pbbs::empty>& DG, size_t* cliques, sequence<uintE>& rank){
+  assert(false);
+  return sequence<bucket_t>(G.n);
+}
+
 
 
 template <typename bucket_t, class Graph>
