@@ -301,12 +301,12 @@ sequence<bucket_t> TriPeel(symmetric_graph<csv_bytepd_amortized, pbbs::empty>& G
 
 
 
-template <class Graph, class Graph2, class F, class G>
-void vtx_intersect(Graph& G, Graph2& DG, F f, G ignore_f, uintE vg, uintE vdg) {
+template <class Graph, class Graph2, class F, class H>
+void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
     size_t v_deg = G.get_vertex(vg).getOutDegree();
     size_t i_deg = DG.get_vertex(vdg).getOutDegree();
-    auto i_iter = DG.get_vertex(vdg).getOutIter(i);
-    auto v_iter = G.get_vertex(vg).getOutIter(l);
+    auto i_iter = DG.get_vertex(vdg).getOutIter(vdg);
+    auto v_iter = G.get_vertex(vg).getOutIter(vg);
     size_t i_iter_idx = 0;
     size_t v_iter_idx = 0;
     size_t j = 0;
@@ -498,6 +498,7 @@ timer t2; t2.start();
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G);
+  auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
   //auto update_idxs = sequence<uintE>(max_deg);
 
   size_t rounds = 0;
@@ -508,7 +509,7 @@ timer t2; t2.start();
   while (start != n) {
     double rho = ((double) num_cliques) / ((double) (n - start));
     max_rho = std::max(max_rho, rho);
-    rho *= (k+1)*(1.+eps)
+    rho *= (k+1)*(1.+eps);
     auto get_cutoff = [&](uintE& p) -> uintE { return D[p] < rho; };
     // move all vert with deg < deg_cutoff in the front
     integer_sort_inplace(sortD.slice(start, n), get_cutoff);
