@@ -353,7 +353,8 @@ timer t2; t2.start();
   bucket_t cur_bkt = 0;
   bucket_t max_bkt = 0;
   bool log = true;
-  timer round_t;
+  timer updct_t, bkt_t, filter_t;
+  timer next_b;
   // Peel each bucket
   while (finished != G.n) {
     round_t.start();
