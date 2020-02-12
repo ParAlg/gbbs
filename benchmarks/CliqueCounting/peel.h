@@ -394,12 +394,12 @@ timer t2; t2.start();
       if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
     };
 
-    parallel_for (0, active.size(), [&](size_t i) {  // check LEQ
+    parallel_for (0, active.size(), [&](size_t i) {
       auto vtx = G.get_vertex(active.vtx(i));
       auto map_f = [&](uintE u, uintE v, W wgh) {
         if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
       };
-      vtx.mapOutNgh(i, map_f, false);
+      vtx.mapOutNgh(vtx, map_f, false);
       // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
     }, granularity, false);
     updct_t.stop();
