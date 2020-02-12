@@ -17,14 +17,14 @@
 
 #if defined(CLONG)
 typedef long long intC;
-typedef long long uintC;
+typedef unsigned long long uintC;
 #define INT_C_MAX LLONG_MAX
-#define UINT_C_MAX LLONG_MAX
+#define UINT_C_MAX ULLONG_MAX
 #else
 typedef long intC;
-typedef long uintC;
+typedef unsigned long uintC;
 #define INT_C_MAX LONG_MAX
-#define UINT_C_MAX LONG_MAX
+#define UINT_C_MAX ULONG_MAX
 #endif
 
 #define INDUCED_STACK_THR 5000
