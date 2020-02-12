@@ -65,6 +65,8 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   bool par_serial = P.getOptionValue("-p"); // this flag means switch to serial peeling after 200 in active
   bool sparsify = P.getOptionValue("--sparse");
   long sparsify_denom = P.getOptionLongValue("--colors", 0);
+  bool approx_peel = P.getOptionValue("--approxpeel");
+  double approx_eps = P.getOptionDoubleValue("--approxeps", 0.1);
   std::cout << "### Application: AppKCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
@@ -78,11 +80,11 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   size_t count = 0;
   if (sparsify) {
     auto GA_sparse = clr_sparsify_graph(GA, sparsify_denom, 7398234);
-    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
+    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, approx_peel, approx_eps);
     std::cout << "sparse count: " << count << std::endl;
     count = count * pow(sparsify_denom,k-1);
   } else {
-    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial);
+    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, approx_peel, approx_eps);
   }
   double tt = t.stop();
   std::cout << "count: " << count << std::endl;

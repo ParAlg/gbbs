@@ -167,7 +167,7 @@ inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_bas
 // TODO get rid of duplicates in edge lists????
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
-  long recursive_level, bool par_serial) {
+  long recursive_level, bool par_serial, bool approx_peel, double approx_eps) {
   if (k == 3) return TriClique(GA, order_type, epsilon, use_base, par_serial);
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
@@ -250,7 +250,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   auto per_vert_seq = pbbslib::make_sequence<size_t>(GA.n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
-
+if (!approx_peel) {
 //  auto log_per_round = P.getOptionValue("-log_per_round");
 //  sequence<long> cores;
   std::cout << "Max per-vertex count is: " << max_per_vert << std::endl;
@@ -261,6 +261,16 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     std::cout << "Calling peeling with bucket_t = uintE (4-byte bucket types)" << std::endl;
     Peel<uintE>(GA, DG, k-1, per_vert, label, rank, par_serial);
   }
+} else {
+  std::cout << "Max per-vertex count is: " << max_per_vert << std::endl;
+  if (max_per_vert >= std::numeric_limits<uintE>::max()) {
+    std::cout << "Calling peeling with bucket_t = size_t (8-byte bucket types)" << std::endl;
+    ApproxPeel<size_t>(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+  } else {
+    std::cout << "Calling peeling with bucket_t = uintE (4-byte bucket types)" << std::endl;
+    ApproxPeel<uintE>(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+  }
+}
 
   free(per_vert);
   DG.del();
