@@ -199,7 +199,9 @@ timer t2; t2.start();
   //auto D_update = sequence<long>(eltsPerCacheLine*G.n);
   //parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
-  auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
+
+  auto b = make_vertex_large_buckets(G.n, D, increasing, num_buckets); /* uses size_t as the bucket type */
+  auto null_bkt = b.null_bkt;
 
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
@@ -213,6 +215,7 @@ timer t2; t2.start();
   long max_bkt = 0;
   timer updct_t, bkt_t, filter_t;
   timer next_b;
+  bool log = false;
   // Peel each bucket
   while (finished != G.n) {
     timer round_t; round_t.start();
@@ -222,13 +225,16 @@ timer t2; t2.start();
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
     stats[rounds] = active.size();
+    cur_bkt = bkt.id;
+    if (log) {
+      std::cout << "bkt = " << cur_bkt << " size = " << active.size() << std::endl;
+    }
     if (par_serial && active.size() <= 200) { /* switch */
       break;
     }
     finished += active.size();
-    cur_bkt = bkt.id;
     max_bkt = std::max(cur_bkt, max_bkt);
-  
+
     size_t active_deg = 0;
     auto degree_map = pbbslib::make_sequence<size_t>(active.size(), [&] (size_t i) { return G.get_vertex(active.vtx(i)).getOutDegree(); });
     active_deg += pbbslib::reduce_add(degree_map);
@@ -365,6 +371,9 @@ if (active.size() > 1) {
 
     rounds++;
     round_t.stop();
+    if (log) {
+      round_t.reportTotal("round time");
+    }
   }
 
 timer ser_t; ser_t.start();
@@ -374,7 +383,7 @@ timer ser_t; ser_t.start();
   }
 ser_t.stop();
 double tt2 = t2.stop();
-std::cout << "### Peel Running Time: " << tt2 << std::endl; 
+std::cout << "### Peel Running Time: " << tt2 << std::endl;
 ser_t.reportTotal("serial time");
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "max_bkt: " << max_bkt << std::endl;

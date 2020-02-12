@@ -153,7 +153,7 @@ struct buckets {
 
   // Computes a bucket_dest for an identifier moving to bucket_id next.
   inline bucket_id get_bucket(const bucket_id& next) const {
-    uintE nb = to_range(next);
+    bucket_t nb = to_range(next);
     // Note that the interface currently only implements strictly_decreasing
     // priority, which is why the code below does not check pri_order.
     if (order == increasing) {
@@ -352,7 +352,7 @@ struct buckets {
     size_t num_in_range = updated - bkts[open_buckets].size;
     //none in range
     if(num_in_range == 0 && bkts[open_buckets].size > 0) {
-      auto imap = pbbslib::make_sequence<uintE>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
+      auto imap = pbbslib::make_sequence<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
       if(order == increasing) {
         auto min = [] (size_t x, size_t y) { return std::min(x, y); };
         size_t minBkt = pbbs::reduce(imap, pbbs::minm<size_t>());
@@ -434,4 +434,10 @@ template <class D>
 inline buckets<D, uintE, uintE> make_vertex_buckets(size_t n, D& d, bucket_order
       order, size_t total_buckets = 128) {
   return buckets<D, uintE, uintE>(n, d, order, total_buckets);
+}
+
+// ident_t := uintE, bucket_t := size_t
+template <class D>
+inline buckets<D, uintE, size_t> make_vertex_large_buckets(size_t n, D& d, bucket_order order, size_t total_buckets = 128) {
+  return buckets<D, uintE, size_t>(n, d, order, total_buckets);
 }
