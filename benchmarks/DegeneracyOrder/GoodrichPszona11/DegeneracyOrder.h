@@ -1,3 +1,6 @@
+#ifndef _GOODRICH_PSZONA_DEGEN
+#define _GOODRICH_PSZONA_DEGEN
+
 #include "ligra/bucket.h"
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"
@@ -127,3 +130,5 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
 }
 
 }
+
+#endif
