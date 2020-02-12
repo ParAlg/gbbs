@@ -676,7 +676,7 @@ inline keyvalueLLU popminLLU(bheapLLU *heap){
 }
 
 //Building the heap structure with (key,value)=(node,k-clique degree) for each node
-bheapLLU* mkheapLLU(long* nck, char* still_active, size_t n){
+bheapLLU* mkheapLLU(size_t* nck, char* still_active, size_t n){
 	keyvalueLLU kv;
 	bheapLLU* heap=constructLLU(n);
 	for (size_t i=0;i<n;i++){
