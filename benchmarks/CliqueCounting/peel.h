@@ -301,7 +301,6 @@ sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE
 size_t k = 2;
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
-  size_t n = G.n;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<bucket_t>(G.n, [&](size_t i) { return cliques[i]; });
   auto D_filter = sequence<std::tuple<uintE, bucket_t>>(G.n);

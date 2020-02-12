@@ -114,18 +114,18 @@ inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_bas
 
   timer t; t.start();
   auto counts = sequence<size_t>(GA.n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { counts[i] = 0; });
+  par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) {
     auto base_f = [&](uintE a, uintE b, uintE ngh) {};
-    count = CountDirectedBalanced(DG, counts.begin(), f);
+    count = CountDirectedBalanced(DG, counts.begin(), base_f);
   } else {
     auto base_f = [&](uintE a, uintE b, uintE ngh) {
       per_vert[(a+worker_id()*DG.n)]++;
       per_vert[(b+worker_id()*DG.n)]++;
       per_vert[(ngh+worker_id()*DG.n)]++;
     };
-    count = CountDirectedBalanced(DG, counts.begin(), f);
+    count = CountDirectedBalanced(DG, counts.begin(), base_f);
   }
   double tt = t.stop();
   std::cout << "### Count Running Time: " << tt << std::endl;
