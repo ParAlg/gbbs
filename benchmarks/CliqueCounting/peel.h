@@ -399,7 +399,7 @@ timer t2; t2.start();
       auto map_f = [&](uintE u, uintE v, W wgh) {
         if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
       };
-      vtx.mapOutNgh(vtx, map_f, false);
+      vtx.mapOutNgh(active.vtx(i), map_f, false);
       // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
     }, granularity, false);
     updct_t.stop();
