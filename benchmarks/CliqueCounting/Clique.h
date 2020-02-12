@@ -405,8 +405,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   auto per_vert_seq = pbbslib::make_sequence<long>(GA.n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
 
-//  auto log_per_round = P.getOptionValue("-log_per_round");
   sequence<long> cores;
+  std::cout << "Max per-vertex count is: " << max_per_vert << std::endl;
   if (max_per_vert >= std::numeric_limits<uintE>::max()) {
     std::cout << "Calling peeling with bucket_t = size_t (8-byte bucket types)" << std::endl;
     Peel<size_t>(GA, DG, k-1, per_vert, label, rank, par_serial);
