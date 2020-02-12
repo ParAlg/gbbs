@@ -296,6 +296,8 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 
 template <typename bucket_t, class Graph, class Graph2>
 sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE> &rank, size_t num_buckets=16) {
+  using W = typename Graph::weight_type;
+  auto n = G.n;
 size_t k = 2;
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
