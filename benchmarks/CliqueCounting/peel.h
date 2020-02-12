@@ -296,6 +296,7 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 
 template <typename bucket_t, class Graph, class Graph2>
 sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE> &rank, size_t num_buckets=16) {
+size_t k = 2;
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
   size_t n = G.n;
@@ -354,7 +355,7 @@ timer t2; t2.start();
     };
     auto f = [&](uintE a, uintE b, uintE nbhr) {
       update_d(a, 1); update_d(b, 1); update_d(nbhr, 1);
-    }
+    };
 
     parallel_for (0, active.size(), [&](size_t i) {  // check LEQ
       auto vtx = G.get_vertex(active.vtx(i));

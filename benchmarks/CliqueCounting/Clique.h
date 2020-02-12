@@ -53,7 +53,7 @@
 #define SIMD_STATE 4
 
 template <class Graph>
-inline uintE* rankNodes(Graph& G, size_t n) {
+inline uintE* rankNodes2(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
   sequence<uintE> o(n);
 
@@ -85,7 +85,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
     pbbs::integer_sort_inplace(rank.slice(), get_core);
     return rank;
   }
-  else if (order_type == 3) return pbbslib::make_sequence(rankNodes(GA, GA.n), GA.n);
+  else if (order_type == 3) return pbbslib::make_sequence(rankNodes2(GA, GA.n), GA.n);
   else if (order_type == 4) {
     auto rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
     return rank;
@@ -94,7 +94,8 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 
 
 template <class Graph>
-inline size_t TriClique(Graph& GA, long order_type, bool use_base, bool par_serial) {
+inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_base, bool par_serial) {
+  using W = typename Graph::weight_type;
   size_t count = 0;
   size_t* per_vert = use_base ? (size_t*) calloc(GA.n*num_workers(), sizeof(size_t)) : nullptr;
 
@@ -112,7 +113,7 @@ inline size_t TriClique(Graph& GA, long order_type, bool use_base, bool par_seri
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
   timer t; t.start();
-  auto counts = sequence<size_t>(n);
+  auto counts = sequence<size_t>(GA.n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) {
@@ -167,7 +168,7 @@ inline size_t TriClique(Graph& GA, long order_type, bool use_base, bool par_seri
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
   long recursive_level, bool par_serial) {
-  if (k == 3) return TriClique(GA, order_type, use_base, par_serial);
+  if (k == 3) return TriClique(GA, order_type, epsilon, use_base, par_serial);
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   size_t* per_vert = use_base ? (size_t*) calloc(GA.n*num_workers(), sizeof(size_t)) : nullptr;
