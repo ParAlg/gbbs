@@ -133,7 +133,7 @@ timer t2; t2.start();
     size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
     size_t filter_size = 0;
 if (active.size() > 1) {
-    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
+    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) cur_bkt*k*active.size(), 
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
     updct_t.start();
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
@@ -346,7 +346,6 @@ timer t2; t2.start();
   auto b = make_vertex_custom_buckets<bucket_t>(G.n, D, increasing, num_buckets);
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
   char* still_active = (char*) calloc(G.n, sizeof(char));
-  size_t max_deg = induced_hybrid::get_max_deg(G);
 
   size_t rounds = 0;
   size_t finished = 0;
@@ -356,6 +355,8 @@ timer t2; t2.start();
   timer updct_t, bkt_t, filter_t;
   timer next_b; timer round_t;
   // Peel each bucket
+  std::cout << "starting peeling\n"; std::fflush(stdout);
+  std::cout << "flag1\n"; std::fflush(stdout);
   while (finished != G.n) {
     round_t.start();
     // Retrieve next bucket
@@ -376,9 +377,8 @@ timer t2; t2.start();
     size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
     size_t filter_size = 0;
 
-    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
+    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) cur_bkt*k*active.size(), 
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-    updct_t.start();
 
     auto ignore_f = [&](const uintE& u, const uintE& v) {
       auto status_u = still_active[u]; auto status_v = still_active[v];
@@ -394,14 +394,13 @@ timer t2; t2.start();
     };
 
     parallel_for (0, active.size(), [&](size_t i) {
-      auto vtx = G.get_vertex(active.vtx(i));
-      auto map_f = [&](uintE u, uintE v, W wgh) {
+      auto j = active.vtx(i);
+      auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
       };
-      vtx.mapOutNgh(active.vtx(i), map_f, false);
+      G.get_vertex(j).mapOutNgh(j, map_label_f, false);
       // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
     }, granularity, false);
-    updct_t.stop();
 
     /* extract the vertices that had their count changed */
     auto changed_vtxs = edge_table.entries();
@@ -418,7 +417,6 @@ timer t2; t2.start();
       }
     }, 128);
 
-    filter_t.start();
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       const uintE v = std::get<0>(changed_vtxs[i]);
       /* Update the clique count for v, and zero out first worker's count */
@@ -433,7 +431,6 @@ timer t2; t2.start();
         D_filter[i] = std::make_tuple(v, bkt);
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
     }, 2048);
-    filter_t.stop();
     filter_size = changed_vtxs.size();
 
     /* mark all as deleted */
@@ -534,7 +531,7 @@ timer t2; t2.start();
 
     parallel_for (0, active_size, [&] (size_t j) {still_active[sortD[start+j]] = 1;}, 2048);
   
-    size_t edge_table_size = std::min((size_t) rho*k*active_size, (size_t) (active_deg < G.n ? active_deg : G.n));
+    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) rho*k*active_size, 
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
