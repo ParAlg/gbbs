@@ -355,8 +355,6 @@ timer t2; t2.start();
   timer updct_t, bkt_t, filter_t;
   timer next_b; timer round_t;
   // Peel each bucket
-  std::cout << "starting peeling\n"; std::fflush(stdout);
-  std::cout << "flag1\n"; std::fflush(stdout);
   while (finished != G.n) {
     round_t.start();
     // Retrieve next bucket
