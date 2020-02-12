@@ -352,16 +352,14 @@ timer t2; t2.start();
   size_t finished = 0;
   bucket_t cur_bkt = 0;
   bucket_t max_bkt = 0;
-  timer updct_t, bkt_t, filter_t;
-  timer next_b;
-  bool log = false;
+  bool log = true;
+  timer round_t;
   // Peel each bucket
   while (finished != G.n) {
-    timer round_t; round_t.start();
+    round_t.start();
     // Retrieve next bucket
-    next_b.start();
     auto bkt = b.next_bucket();
-    next_b.stop();
+
     auto active = vertexSubset(G.n, bkt.identifiers);
     stats[rounds] = active.size();
     cur_bkt = bkt.id;
@@ -446,14 +444,15 @@ timer t2; t2.start();
       if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
       return Maybe<std::tuple<uintE, bucket_t> >();
     };
-    bkt_t.start();
     b.update_buckets(apply_f, filter_size);
-    bkt_t.stop();
 
     active.del();
 
     rounds++;
     round_t.stop();
+    if (log) {
+      round_t.reportTotal("round time");
+    }
   }
 
   double tt2 = t2.stop();
