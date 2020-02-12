@@ -328,7 +328,6 @@ void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
         if (v_iter.has_next()) v_iter.next();
       }
     }
-    f(vg, j);
     f(vdg, j);
 }
 
@@ -375,7 +374,7 @@ timer t2; t2.start();
     size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
     size_t filter_size = 0;
 
-    size_t edge_table_size = (size_t) G.n; //(active_deg < G.n ? active_deg : std::min((size_t) cur_bkt*k*active.size(), 
+    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
     auto ignore_f = [&](const uintE& u, const uintE& v) {
