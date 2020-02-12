@@ -290,3 +290,158 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 
   return D;
 }
+
+
+
+
+template <typename bucket_t, class Graph, class Graph2>
+sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE> &rank, size_t num_buckets=16) {
+auto stats = sequence<size_t>(G.n);
+timer t2; t2.start();
+  size_t n = G.n;
+  const size_t eltsPerCacheLine = 64/sizeof(long);
+  auto D = sequence<bucket_t>(G.n, [&](size_t i) { return cliques[i]; });
+  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(G.n);
+  auto b = make_vertex_custom_buckets<bucket_t>(G.n, D, increasing, num_buckets);
+  auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
+  char* still_active = (char*) calloc(G.n, sizeof(char));
+  size_t max_deg = induced_hybrid::get_max_deg(G);
+
+  size_t rounds = 0;
+  size_t finished = 0;
+  bucket_t cur_bkt = 0;
+  bucket_t max_bkt = 0;
+  timer updct_t, bkt_t, filter_t;
+  timer next_b;
+  bool log = false;
+  // Peel each bucket
+  while (finished != G.n) {
+    timer round_t; round_t.start();
+    // Retrieve next bucket
+    next_b.start();
+    auto bkt = b.next_bucket();
+    next_b.stop();
+    auto active = vertexSubset(G.n, bkt.identifiers);
+    stats[rounds] = active.size();
+    cur_bkt = bkt.id;
+    finished += active.size();
+    max_bkt = std::max(cur_bkt, max_bkt);
+
+    size_t active_deg = 0;
+    auto degree_map = pbbslib::make_sequence<size_t>(active.size(), [&] (size_t i) { return G.get_vertex(active.vtx(i)).getOutDegree(); });
+    active_deg += pbbslib::reduce_add(degree_map);
+
+    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;}, 2048);
+
+    size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
+    size_t filter_size = 0;
+
+    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
+    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+    updct_t.start();
+
+    auto ignore_f = [&](const uintE& u, const uintE& v) {
+      auto status_u = still_active[u]; auto status_v = still_active[v];
+      if (status_u == 2 || status_v == 2) return false; /* deleted edge */
+      if (status_v == 0) return true; /* higher edge */
+      return rank[u] < rank[v]; /* orient edge within bucket */
+    };
+    auto update_d = [&](uintE vtx, size_t count) {
+      size_t worker = worker_id();
+      size_t ct = per_processor_counts[worker*n + vtx];
+      per_processor_counts[worker*n + vtx] += count;
+      if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
+    };
+    auto f = [&](uintE a, uintE b, uintE nbhr) {
+      update_d(a, 1); update_d(b, 1); update_d(nbhr, 1);
+    }
+
+    parallel_for (0, active.size(), [&](size_t i) {  // check LEQ
+      auto vtx = G.get_vertex(active.vtx(i));
+      auto map_f = [&](uintE u, uintE v, W wgh) {
+        if (ignore_f(u, v)) {
+          auto v_vtx = DG.get_vertex(v);
+          vtx.intersect_f_par(&v_vtx, u, v, f);
+        }
+      };
+      vtx.mapOutNgh(i, map_f, false);
+    }, granularity, false);
+    updct_t.stop();
+
+    /* extract the vertices that had their count changed */
+    auto changed_vtxs = edge_table.entries();
+    edge_table.del();
+
+    /* Aggregate the updated counts across all worker's local arrays, into the
+     * first worker's array. Also zero out the other worker's updated counts. */
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      size_t nthreads = num_workers();
+      uintE v = std::get<0>(changed_vtxs[i]);
+      for (size_t i=1; i<nthreads; i++) {
+        per_processor_counts[v] += per_processor_counts[i*n + v];
+        per_processor_counts[i*n + v] = 0;
+      }
+    }, 128);
+
+    filter_t.start();
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      const uintE v = std::get<0>(changed_vtxs[i]);
+      /* Update the clique count for v, and zero out first worker's count */
+      cliques[v] -= per_processor_counts[v];
+      per_processor_counts[v] = 0;
+      bucket_t deg = D[v];
+      if (deg > cur_bkt) {
+        bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
+        D[v] = new_deg;
+        bucket_t bkt = b.get_bucket(deg, new_deg);
+        // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
+        D_filter[i] = std::make_tuple(v, bkt);
+      } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
+    }, 2048);
+    filter_t.stop();
+    filter_size = changed_vtxs.size();
+
+    /* mark all as deleted */
+    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;}, 2048);
+
+    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
+      uintE v = std::get<0>(D_filter[i]);
+      bucket_t bkt = std::get<1>(D_filter[i]);
+      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
+      return Maybe<std::tuple<uintE, bucket_t> >();
+    };
+    bkt_t.start();
+    b.update_buckets(apply_f, filter_size);
+    bkt_t.stop();
+
+    active.del();
+
+    rounds++;
+    round_t.stop();
+  }
+
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  std::cout << "rho: " << rounds << std::endl;
+  std::cout << "max_bkt: " << max_bkt << std::endl;
+
+  bkt_t.reportTotal("bkt time");
+  next_b.reportTotal("next bucket time");
+  filter_t.reportTotal("filter time");
+  updct_t.reportTotal("update count time");
+
+auto const Q1 = rounds / 4;
+auto const Q2 = rounds / 2;
+auto const Q3 = Q1 + Q2;
+pbbs::integer_sort_inplace(stats.slice(0, rounds), [&] (size_t x) {
+    return stats[x];
+  });
+std::cout << "Q1: " << stats[Q1] << std::endl;
+std::cout << "Q2: " << stats[Q2] << std::endl;
+std::cout << "Q3: " << stats[Q3] << std::endl;
+
+  b.del();
+  free(still_active);
+
+  return D;
+}

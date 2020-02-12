@@ -39,6 +39,8 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+#include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
+
 // Clique files
 #include "intersect.h"
 #include "induced_intersection.h"
@@ -91,6 +93,68 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 }
 
 
+template <class Graph>
+inline size_t TriClique(Graph& GA, long order_type, bool use_base, bool par_serial) {
+  size_t count = 0;
+  size_t* per_vert = use_base ? (size_t*) calloc(GA.n*num_workers(), sizeof(size_t)) : nullptr;
+
+  timer t_rank; t_rank.start();
+  sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
+  double tt_rank = t_rank.stop();
+  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
+
+  timer t_filter; t_filter.start();
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return (rank[u] < rank[v]);
+  };
+  auto DG = filter_graph(GA, pack_predicate);
+  double tt_filter = t_filter.stop();
+  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
+
+  timer t; t.start();
+  auto counts = sequence<size_t>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { counts[i] = 0; });
+
+  if (!use_base) {
+    auto base_f = [&](uintE a, uintE b, uintE ngh) {};
+    count = CountDirectedBalanced(DG, counts.begin(), f);
+  } else {
+    auto base_f = [&](uintE a, uintE b, uintE ngh) {
+      per_vert[(a+worker_id()*DG.n)]++;
+      per_vert[(b+worker_id()*DG.n)]++;
+      per_vert[(ngh+worker_id()*DG.n)]++;
+    };
+    count = CountDirectedBalanced(DG, counts.begin(), f);
+  }
+  double tt = t.stop();
+  std::cout << "### Count Running Time: " << tt << std::endl;
+  std::cout << "### Num 3 cliques = " << count << "\n";
+
+  if (!use_base) {DG.del(); return count;}
+
+  for (size_t j=1; j < num_workers(); j++) {
+    parallel_for(0,GA.n,[&](size_t l) {
+      per_vert[l] += per_vert[(l + j*GA.n)];
+    });
+  }
+
+  auto per_vert_seq = pbbslib::make_sequence<size_t>(GA.n, [&] (size_t i) { return per_vert[i]; });
+  auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
+
+  std::cout << "Max per-vertex count is: " << max_per_vert << std::endl;
+  if (max_per_vert >= std::numeric_limits<uintE>::max()) {
+    std::cout << "Calling peeling with bucket_t = size_t (8-byte bucket types)" << std::endl;
+    TriPeel<size_t>(GA, DG, per_vert, rank);
+  } else {
+    std::cout << "Calling peeling with bucket_t = uintE (4-byte bucket types)" << std::endl;
+    TriPeel<uintE>(GA, DG, per_vert, rank);
+  }
+
+  free(per_vert);
+  DG.del();
+  return count;
+  
+}
 
 
 // induced
@@ -103,6 +167,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
   long recursive_level, bool par_serial) {
+  if (k == 3) return TriClique(GA, order_type, use_base, par_serial);
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
   size_t* per_vert = use_base ? (size_t*) calloc(GA.n*num_workers(), sizeof(size_t)) : nullptr;
@@ -166,7 +231,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << k << " cliques = " << count << "\n";
 
-  if (!use_base) return count;
+  if (!use_base) {DG.del(); return count;}
 
   for (size_t j=1; j < num_workers(); j++) {
     parallel_for(0,GA.n,[&](size_t l) {
@@ -197,6 +262,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   }
 
   free(per_vert);
+  DG.del();
 
   return count;
 }
