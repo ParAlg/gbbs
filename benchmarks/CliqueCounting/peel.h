@@ -460,15 +460,15 @@ timer t2; t2.start();
   filter_t.reportTotal("filter time");
   updct_t.reportTotal("update count time");
 
-auto const Q1 = rounds / 4;
-auto const Q2 = rounds / 2;
-auto const Q3 = Q1 + Q2;
-pbbs::integer_sort_inplace(stats.slice(0, rounds), [&] (size_t x) {
-    return stats[x];
-  });
-std::cout << "Q1: " << stats[Q1] << std::endl;
-std::cout << "Q2: " << stats[Q2] << std::endl;
-std::cout << "Q3: " << stats[Q3] << std::endl;
+//auto const Q1 = rounds / 4;
+//auto const Q2 = rounds / 2;
+//auto const Q3 = Q1 + Q2;
+//pbbs::integer_sort_inplace(stats.slice(0, rounds), [&] (size_t x) {
+//    return stats[x];
+//  });
+//std::cout << "Q1: " << stats[Q1] << std::endl;
+//std::cout << "Q2: " << stats[Q2] << std::endl;
+//std::cout << "Q3: " << stats[Q3] << std::endl;
 
   b.del();
   free(still_active);
