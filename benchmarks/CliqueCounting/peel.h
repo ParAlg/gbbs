@@ -512,7 +512,7 @@ timer t2; t2.start();
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
     if (end == start) end++; //TODO step?
     // peel all vertices from start to end
-    size_t active_size  = start-end;
+    size_t active_size  = end-start;
     max_bkt = std::max(rho, max_bkt);
 
     // update counts in D here
