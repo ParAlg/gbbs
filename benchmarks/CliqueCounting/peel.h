@@ -9,6 +9,9 @@
 #include "induced_hybrid.h"
 #include "intersect.h"
 
+struct hashtup {
+inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
+};
 
 template <class bucket_t, class Graph, class Graph2>
 bucket_t _Peel_serial(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool label, sequence<uintE> &rank, char* still_active) {
@@ -69,9 +72,7 @@ bucket_t _Peel_serial(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool labe
 }
 
 
-struct hashtup {
-inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
-};
+
 template <typename bucket_t, class Graph, class Graph2>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
 auto stats = sequence<size_t>(G.n);
@@ -292,16 +293,48 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 }
 
 
-template <typename bucket_t>
+/*template <typename bucket_t>
 sequence<bucket_t> TriPeel(symmetric_graph<csv_bytepd_amortized, pbbs::empty>& G, symmetric_graph<csv_byte, pbbs::empty>& DG, size_t* cliques, sequence<uintE>& rank){
   assert(false);
   return sequence<bucket_t>(G.n);
+}*/
+
+
+
+template <class Graph, class Graph2, class F, class G>
+void vtx_intersect(Graph& G, Graph2& DG, F f, G ignore_f, uintE vg, uintE vdg) {
+    size_t v_deg = G.get_vertex(vg).getOutDegree();
+    size_t i_deg = DG.get_vertex(vdg).getOutDegree();
+    auto i_iter = DG.get_vertex(vdg).getOutIter(i);
+    auto v_iter = G.get_vertex(vg).getOutIter(l);
+    size_t i_iter_idx = 0;
+    size_t v_iter_idx = 0;
+    size_t j = 0;
+    while (i_iter_idx < i_deg && v_iter_idx < v_deg) {
+      if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
+        if (ignore_f(vg, std::get<0>(i_iter.cur())) && ignore_f(vdg, std::get<0>(i_iter.cur()))) {
+          f(std::get<0>(i_iter.cur()), 1);
+          j++;
+        }
+        i_iter_idx++; v_iter_idx++;
+        if (i_iter.has_next()) i_iter.next();
+        if (v_iter.has_next()) v_iter.next();
+      } else if (std::get<0>(i_iter.cur()) < std::get<0>(v_iter.cur())) {
+        i_iter_idx++;
+        if (i_iter.has_next()) i_iter.next();
+      }
+      else {
+        v_iter_idx++;
+        if (v_iter.has_next()) v_iter.next();
+      }
+    }
+    f(vg, j);
+    f(vdg, j);
 }
 
 
-
-template <typename bucket_t, class Graph>
-sequence<bucket_t> TriPeel(Graph& G, Graph& DG, size_t* cliques, sequence<uintE> &rank, size_t num_buckets=16) {
+template <typename bucket_t, class Graph, class Graph2>
+sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE> &rank, size_t num_buckets=16) {
   using W = typename Graph::weight_type;
   auto n = G.n;
 size_t k = 2;
@@ -360,19 +393,14 @@ timer t2; t2.start();
       per_processor_counts[worker*n + vtx] += count;
       if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
     };
-    auto f = [&](uintE a, uintE b, uintE nbhr) {
-      update_d(a, 1); update_d(b, 1); update_d(nbhr, 1);
-    };
 
     parallel_for (0, active.size(), [&](size_t i) {  // check LEQ
       auto vtx = G.get_vertex(active.vtx(i));
       auto map_f = [&](uintE u, uintE v, W wgh) {
-        if (ignore_f(u, v)) {
-          auto v_vtx = DG.get_vertex(v);
-          vtx.intersect_f_par(&v_vtx, u, v, f);
-        }
+        if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
       };
       vtx.mapOutNgh(i, map_f, false);
+      // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
     }, granularity, false);
     updct_t.stop();
 
@@ -449,6 +477,113 @@ std::cout << "Q2: " << stats[Q2] << std::endl;
 std::cout << "Q3: " << stats[Q3] << std::endl;
 
   b.del();
+  free(still_active);
+
+  return D;
+}
+
+
+
+
+
+template <typename bucket_t, class Graph, class Graph2>
+sequence<bucket_t> ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cliques,
+  bool label, sequence<uintE> &rank, double eps, size_t num_buckets=16) {
+timer t2; t2.start();
+  auto n = G.n;
+  auto sortD = sequence<uintE>(n, [&](size_t i) { return i; });
+  auto D = sequence<bucket_t>(n, [&](size_t i) { return cliques[i]; });
+  //auto D_filter = sequence<std::tuple<uintE, bucket_t>>(G.n);
+  //auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
+
+  char* still_active = (char*) calloc(G.n, sizeof(char));
+  size_t max_deg = induced_hybrid::get_max_deg(G);
+  //auto update_idxs = sequence<uintE>(max_deg);
+
+  size_t rounds = 0;
+  size_t start = 0;
+  double max_bkt = 0;
+  double max_rho = 0;
+  // Peel each bucket
+  while (start != n) {
+    double rho = ((double) num_cliques) / ((double) (n - start));
+    max_rho = std::max(max_rho, rho);
+    rho *= (k+1)*(1.+eps)
+    auto get_cutoff = [&](uintE& p) -> uintE { return D[p] < rho; };
+    // move all vert with deg < deg_cutoff in the front
+    integer_sort_inplace(sortD.slice(start, n), get_cutoff);
+    auto BS = pbbs::delayed_seq<size_t>(n - start, [&] (size_t i) -> size_t {
+      return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
+    size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
+    if (end == start) end++; //TODO step?
+    // peel all vertices from start to end
+    size_t active_size  = start-end;
+    max_bkt = std::max(rho, max_bkt);
+
+    // update counts in D here
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+
+    size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
+    size_t filter_size = 0;
+
+    size_t active_deg = 0;
+    auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(sortD[start+i]).getOutDegree(); });
+    active_deg += pbbslib::reduce_add(degree_map);
+
+    parallel_for (0, active_size, [&] (size_t j) {still_active[sortD[start+j]] = 1;}, 2048);
+  
+    size_t edge_table_size = std::min((size_t) rho*k*active_size, (size_t) (active_deg < G.n ? active_deg : G.n));
+    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+
+    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
+      if (G.get_vertex(sortD[start+i]).getOutDegree() != 0) {
+        auto ignore_f = [&](const uintE& u, const uintE& v) {
+          auto status_u = still_active[u]; auto status_v = still_active[v];
+          if (status_u == 2 || status_v == 2) return false; /* deleted edge */
+          if (status_v == 0) return true; /* higher edge */
+          return rank[u] < rank[v]; /* orient edge within bucket */
+        };
+        induced->setup(G, DG, k, sortD[start+i], ignore_f, still_active);
+        auto update_d = [&](uintE vtx, size_t count) {
+          size_t worker = worker_id();
+          size_t ct = per_processor_counts[worker*n + vtx];
+          per_processor_counts[worker*n + vtx] += count;
+          if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
+        };
+        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+      }
+    }, granularity, false);
+
+    /* extract the vertices that had their count changed */
+    auto changed_vtxs = edge_table.entries();
+    edge_table.del();
+
+    /* Aggregate the updated counts across all worker's local arrays, into the
+     * first worker's array. Also zero out the other worker's updated counts. */
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      size_t nthreads = num_workers();
+      uintE v = std::get<0>(changed_vtxs[i]);
+      for (size_t i=0; i<nthreads; i++) {
+        D[v] -= per_processor_counts[i*n + v];
+        per_processor_counts[i*n + v] = 0;
+      }
+    }, 128);
+
+    /* mark all as deleted */
+    parallel_for (0, active_size, [&] (size_t j) {still_active[sortD[start+j]] = 2;}, 2048);
+
+    rounds++;
+    start = end;
+  }
+
+
+double tt2 = t2.stop();
+std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  std::cout << "rounds: " << rounds << std::endl;
+  std::cout << "max_bkt: " << max_bkt << std::endl;
+  std::cout << "max_rho: " << max_rho << std::endl;
+
   free(still_active);
 
   return D;
