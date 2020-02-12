@@ -22,9 +22,9 @@ typedef long long uintC;
 #define UINT_C_MAX LLONG_MAX
 #else
 typedef long intC;
-typedef long uintC;
+typedef uintE uintC;
 #define INT_C_MAX LONG_MAX
-#define UINT_C_MAX LONG_MAX
+#define UINT_C_MAX UINT_E_MAX
 #endif
 
 #define INDUCED_STACK_THR 5000
