@@ -133,7 +133,7 @@ timer t2; t2.start();
     size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
     size_t filter_size = 0;
 if (active.size() > 1) {
-    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) cur_bkt*k*active.size(), 
+    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
     updct_t.start();
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
@@ -375,7 +375,7 @@ timer t2; t2.start();
     size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
     size_t filter_size = 0;
 
-    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) cur_bkt*k*active.size(), 
+    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) G.n); //(active_deg < G.n ? active_deg : std::min((size_t) cur_bkt*k*active.size(), 
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
     auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -529,7 +529,7 @@ timer t2; t2.start();
 
     parallel_for (0, active_size, [&] (size_t j) {still_active[sortD[start+j]] = 1;}, 2048);
   
-    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) rho*k*active_size, 
+    size_t edge_table_size = std::min((size_t) rho*k*active_size, (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
