@@ -770,7 +770,7 @@ struct asymmetric_vertex {
   }
 
   template <class F>
-  inline size_t intersect_f_par(csv_bytepd_amortized<W>* other, long our_id,
+  inline size_t intersect_f_par(csv_byte<W>* other, long our_id,
                             long other_id, const F& f) {
     assert(false);
     return 0;
