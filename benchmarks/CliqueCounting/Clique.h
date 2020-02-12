@@ -90,106 +90,10 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 }
 
 
-// induced
-// generated
-// -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (graph set inter)
-// -o 0 (goodrich), 1 (barnboimelkin approx), 2 (barenboimelkin exact)
-
-// todo approx work and do some kind of break in gen if too much
-// TODO get rid of duplicates in edge lists????
-template <class Graph>
-inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
-  long recursive_level, bool par_serial) {
-  std::cout << "### Starting clique counting" << std::endl;
-  const size_t eltsPerCacheLine = 64/sizeof(long);
-  long* per_vert = use_base ? (long*) calloc(GA.n*num_workers(), sizeof(long)) : nullptr;
-
-  using W = typename Graph::weight_type;
-  assert (k >= 3);
-  // TODO put in triangle counting here
-
-  timer t_rank; t_rank.start();
-  sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
-  double tt_rank = t_rank.stop();
-  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
-
-  timer t_filter; t_filter.start();
-  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
-  };
-  auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
-  double tt_filter = t_filter.stop();
-  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
-
-  // Done preprocessing
-  timer t; t.start();
-  size_t count = 0;
-  auto use_f = [&](const uintE& src, const uintE& u) { return true; };
-
-  if (!use_base) {
-    auto base_f = [&](uintE vtx, size_t count) {};
-  if (space_type == 2) {
-    count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
-  }
-  else if (space_type == 3) {
-    count = induced_neighborhood::CountCliques(DG, k-1);
-  }
-  else if (space_type == 5) {
-    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-  }
-  else if (space_type == 6) {
-    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-  }
-  } else {
-    auto base_f = [&](uintE vtx, size_t count) {
-      //pbbslib::xadd(&(per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)]), (long) count);
-      per_vert[(vtx+worker_id()*GA.n)] += count;
-    }; // TODO problem with relabel not being consistent; but if using filter should be ok
-  if (space_type == 2) {
-    count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
-  }
-  else if (space_type == 3) {
-    count = induced_neighborhood::CountCliques(DG, k-1);
-  }
-  else if (space_type == 5) {
-    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-  }
-  else if (space_type == 6) {
-    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-  }
-  }
-
-  double tt = t.stop();
-  std::cout << "### Count Running Time: " << tt << std::endl;
-  std::cout << "### Num " << k << " cliques = " << count << "\n";
-
-  if (!use_base) return count;
-
-  for (size_t j=1; j < num_workers(); j++) {
-    parallel_for(0,GA.n,[&](size_t l) {
-      per_vert[l] += per_vert[(l + j*GA.n)];
-    });
-  }
-
-
-  long* inverse_per_vert = use_base && !filter ? (long*) malloc(GA.n*sizeof(long)) : nullptr;
-  if (!filter) {
-    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[rank[i]]; });
-    free(per_vert);
-    per_vert = inverse_per_vert;
-  }
-//  auto log_per_round = P.getOptionValue("-log_per_round");
-  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
-
-  free(per_vert);
-
-  return count;
-}
-
 struct hashtup {
 inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
-template <class Graph, class Graph2>
+template <typename bucket_t, class Graph, class Graph2>
 sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
@@ -200,8 +104,7 @@ timer t2; t2.start();
   //parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
   auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
 
-  auto b = make_vertex_large_buckets(G.n, D, increasing, num_buckets); /* uses size_t as the bucket type */
-  auto null_bkt = b.null_bkt;
+  auto b = make_vertex_custom_buckets<bucket_t>(G.n, D, increasing, num_buckets);
 
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
@@ -408,6 +311,113 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 
   return D;
 }
+
+
+// induced
+// generated
+// -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (graph set inter)
+// -o 0 (goodrich), 1 (barnboimelkin approx), 2 (barenboimelkin exact)
+
+// todo approx work and do some kind of break in gen if too much
+// TODO get rid of duplicates in edge lists????
+template <class Graph>
+inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter, bool use_base,
+  long recursive_level, bool par_serial) {
+  std::cout << "### Starting clique counting" << std::endl;
+  const size_t eltsPerCacheLine = 64/sizeof(long);
+  long* per_vert = use_base ? (long*) calloc(GA.n*num_workers(), sizeof(long)) : nullptr;
+
+  using W = typename Graph::weight_type;
+  assert (k >= 3);
+  // TODO put in triangle counting here
+
+  timer t_rank; t_rank.start();
+  sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
+  double tt_rank = t_rank.stop();
+  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
+
+  timer t_filter; t_filter.start();
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
+  };
+  auto DG = filter ? filter_graph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
+  double tt_filter = t_filter.stop();
+  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
+
+  // Done preprocessing
+  timer t; t.start();
+  size_t count = 0;
+  auto use_f = [&](const uintE& src, const uintE& u) { return true; };
+
+  if (!use_base) {
+    auto base_f = [&](uintE vtx, size_t count) {};
+  if (space_type == 2) {
+    count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
+  }
+  else if (space_type == 3) {
+    count = induced_neighborhood::CountCliques(DG, k-1);
+  }
+  else if (space_type == 5) {
+    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+  }
+  else if (space_type == 6) {
+    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+  }
+  } else {
+    auto base_f = [&](uintE vtx, size_t count) {
+      //pbbslib::xadd(&(per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)]), (long) count);
+      per_vert[(vtx+worker_id()*GA.n)] += count;
+    }; // TODO problem with relabel not being consistent; but if using filter should be ok
+  if (space_type == 2) {
+    count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
+  }
+  else if (space_type == 3) {
+    count = induced_neighborhood::CountCliques(DG, k-1);
+  }
+  else if (space_type == 5) {
+    count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+  }
+  else if (space_type == 6) {
+    count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+  }
+  }
+
+  double tt = t.stop();
+  std::cout << "### Count Running Time: " << tt << std::endl;
+  std::cout << "### Num " << k << " cliques = " << count << "\n";
+
+  if (!use_base) return count;
+
+  for (size_t j=1; j < num_workers(); j++) {
+    parallel_for(0,GA.n,[&](size_t l) {
+      per_vert[l] += per_vert[(l + j*GA.n)];
+    });
+  }
+
+
+  long* inverse_per_vert = use_base && !filter ? (long*) malloc(GA.n*sizeof(long)) : nullptr;
+  if (!filter) {
+    parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[rank[i]]; });
+    free(per_vert);
+    per_vert = inverse_per_vert;
+  }
+
+  auto per_vert_seq = pbbslib::make_sequence<long>(GA.n, [&] (size_t i) { return per_vert[i]; });
+  auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
+
+//  auto log_per_round = P.getOptionValue("-log_per_round");
+  sequence<long> cores;
+  if (max_per_vert >= std::numeric_limits<uintE>::max()) {
+    Peel<size_t>(GA, DG, k-1, per_vert, label, rank, par_serial);
+  } else {
+    Peel<uintE>(GA, DG, k-1, per_vert, label, rank, par_serial);
+  }
+
+  free(per_vert);
+
+  return count;
+}
+
 
 template <class Graph, class Graph2>
 long _Peel_serial(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, char* still_active) {

@@ -436,8 +436,9 @@ inline buckets<D, uintE, uintE> make_vertex_buckets(size_t n, D& d, bucket_order
   return buckets<D, uintE, uintE>(n, d, order, total_buckets);
 }
 
-// ident_t := uintE, bucket_t := size_t
-template <class D>
-inline buckets<D, uintE, size_t> make_vertex_large_buckets(size_t n, D& d, bucket_order order, size_t total_buckets = 128) {
-  return buckets<D, uintE, size_t>(n, d, order, total_buckets);
+// ident_t := uintE, bucket_t := bucket_t
+template <class bucket_t, class D>
+inline buckets<D, uintE, bucket_t> make_vertex_custom_buckets(size_t n, D& d, bucket_order
+      order, size_t total_buckets = 128) {
+  return buckets<D, uintE, bucket_t>(n, d, order, total_buckets);
 }
