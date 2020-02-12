@@ -15,18 +15,6 @@
 #include "external/simdinter/include/intersection.h"
 #include "external/graphsetinter/src/set_operation.hpp"
 
-#if defined(CLONG)
-typedef long long intC;
-typedef unsigned long long uintC;
-#define INT_C_MAX LLONG_MAX
-#define UINT_C_MAX ULLONG_MAX
-#else
-typedef long intC;
-typedef unsignedlong uintC;
-#define INT_C_MAX LONG_MAX
-#define UINT_C_MAX ULONG_MAX
-#endif
-
 #define INDUCED_STACK_THR 5000
 
 // TODO retry using lambdas for intersects
@@ -688,7 +676,7 @@ inline keyvalueLLU popminLLU(bheapLLU *heap){
 }
 
 //Building the heap structure with (key,value)=(node,k-clique degree) for each node
-bheapLLU* mkheapLLU(uintC* nck, char* still_active, size_t n){
+bheapLLU* mkheapLLU(long* nck, char* still_active, size_t n){
 	keyvalueLLU kv;
 	bheapLLU* heap=constructLLU(n);
 	for (size_t i=0;i<n;i++){

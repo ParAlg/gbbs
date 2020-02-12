@@ -102,7 +102,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   long recursive_level, bool par_serial) {
   std::cout << "### Starting clique counting" << std::endl;
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  uintC* per_vert = use_base ? (uintC*) calloc(GA.n*num_workers(), sizeof(uintC)) : nullptr;
+  long* per_vert = use_base ? (long*) calloc(GA.n*num_workers(), sizeof(long)) : nullptr;
 
   using W = typename Graph::weight_type;
   assert (k >= 3);
@@ -172,14 +172,14 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   }
 
 
-  uintC* inverse_per_vert = use_base && !filter ? (uintC*) malloc(GA.n*sizeof(uintC)) : nullptr;
+  long* inverse_per_vert = use_base && !filter ? (long*) malloc(GA.n*sizeof(long)) : nullptr;
   if (!filter) {
     parallel_for(0, GA.n, [&] (size_t i) { inverse_per_vert[i] = per_vert[rank[i]]; });
     free(per_vert);
     per_vert = inverse_per_vert;
   }
 //  auto log_per_round = P.getOptionValue("-log_per_round");
-  sequence<uintC> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
+  sequence<long> cores = Peel(GA, DG, k-1, per_vert, label, rank, par_serial);
 
   free(per_vert);
 
@@ -190,27 +190,27 @@ struct hashtup {
 inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 template <class Graph, class Graph2>
-sequence<uintC> Peel(Graph& G, Graph2& DG, size_t k, uintC* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
+sequence<long> Peel(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, bool par_serial, size_t num_buckets=16) {
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
   size_t n = G.n;
   const size_t eltsPerCacheLine = 64/sizeof(long);
-  auto D = sequence<uintC>(G.n, [&](size_t i) { return cliques[i]; });
+  auto D = sequence<long>(G.n, [&](size_t i) { return cliques[i]; });
   //auto D_update = sequence<long>(eltsPerCacheLine*G.n);
   //parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
-  auto D_filter = sequence<std::tuple<uintE, uintC>>(G.n);
-  auto b = make_buckets<uintE, uintC>(G.n, D, increasing, num_buckets);
+  auto D_filter = sequence<std::tuple<uintE, long>>(G.n);
+  auto b = make_vertex_buckets(G.n, D, increasing, num_buckets);
 
-  auto per_processor_counts = sequence<uintC>(n*num_workers(), static_cast<uintC>(0));
+  auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
   char* still_active = (char*) calloc(G.n, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
-  auto update_idxs = sequence<uintE>(max_deg);
+  auto update_idxs = sequence<long>(max_deg);
 
   size_t rounds = 0;
   size_t finished = 0;
-  uintC cur_bkt = 0;
-  uintC max_bkt = 0;
+  long cur_bkt = 0;
+  long max_bkt = 0;
   timer updct_t, bkt_t, filter_t;
   timer next_b;
   // Peel each bucket
@@ -258,7 +258,7 @@ if (active.size() > 1) {
         induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
         auto update_d = [&](uintE vtx, size_t count) {
           size_t worker = worker_id();
-          uintC ct = per_processor_counts[worker*n + vtx];
+          size_t ct = per_processor_counts[worker*n + vtx];
           per_processor_counts[worker*n + vtx] += count;
           if (ct == 0) { /* only need bother trying hash table if our count is 0 */
             edge_table.insert(std::make_tuple(vtx, true));
@@ -290,14 +290,14 @@ if (active.size() > 1) {
       /* Update the clique count for v, and zero out first worker's count */
       cliques[v] -= per_processor_counts[v];
       per_processor_counts[v] = 0;
-      uintC deg = D[v];
+      uintE deg = D[v];
       if (deg > cur_bkt) {
-        uintC new_deg = std::max(cliques[v], (uintC) cur_bkt);
+        long new_deg = std::max(cliques[v], (long) cur_bkt);
         D[v] = new_deg;
-        uintC bkt = b.get_bucket(deg, new_deg);
+        long bkt = b.get_bucket(deg, new_deg);
         // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
         D_filter[i] = std::make_tuple(v, bkt);
-      } else D_filter[i] = std::make_tuple(UINT_E_MAX, UINT_C_MAX);
+      } else D_filter[i] = std::make_tuple(UINT_E_MAX, LONG_MAX);
     }, 2048);
     filter_t.stop();
     filter_size = changed_vtxs.size();
@@ -316,7 +316,7 @@ if (active.size() > 1) {
         };
         induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
         auto update_d = [&](uintE vtx, size_t count) {
-          uintC ct = per_processor_counts[vtx];
+          size_t ct = per_processor_counts[vtx];
           per_processor_counts[vtx] += count;
           if (ct == 0) { /* only need bother trying hash table if our count is 0 */
             update_idxs[num_updates] = vtx;
@@ -336,11 +336,11 @@ if (active.size() > 1) {
       /* Update the clique count for v, and zero out first worker's count */
       cliques[v] -= per_processor_counts[v];
       per_processor_counts[v] = 0;
-      uintC deg = D[v];
+      uintE deg = D[v];
       if (deg > cur_bkt) {
-        uintC new_deg = std::max(cliques[v], (uintC) cur_bkt);
+        long new_deg = std::max(cliques[v], (long) cur_bkt);
         D[v] = new_deg;
-        uintC bkt = b.get_bucket(deg, new_deg);
+        long bkt = b.get_bucket(deg, new_deg);
         D_filter[filter_size] = std::make_tuple(v, bkt);
         filter_size++;
       }
@@ -351,11 +351,11 @@ if (active.size() > 1) {
     /* mark all as deleted */
     parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;}, 2048);
 
-    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintC>> {
+    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       uintE v = std::get<0>(D_filter[i]);
-      uintC bkt = std::get<1>(D_filter[i]);
+      uintE bkt = std::get<1>(D_filter[i]);
       if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
-      return Maybe<std::tuple<uintE, uintC> >();
+      return Maybe<std::tuple<uintE, uintE> >();
     };
     bkt_t.start();
     b.update_buckets(apply_f, filter_size);
@@ -401,10 +401,10 @@ std::cout << "Q3: " << stats[Q3] << std::endl;
 }
 
 template <class Graph, class Graph2>
-uintC _Peel_serial(Graph& G, Graph2& DG, size_t k, uintC* cliques, bool label, sequence<uintE> &rank, char* still_active) {
+long _Peel_serial(Graph& G, Graph2& DG, size_t k, long* cliques, bool label, sequence<uintE> &rank, char* still_active) {
   bheapLLU* heap=mkheapLLU(cliques,still_active,G.n);
   auto heap_init_size = heap->n-1;
-  auto D_update = sequence<uintC>(G.n);
+  auto D_update = sequence<long>(G.n);
   size_t num_updates = 0;
   size_t finished=0;
   size_t max_deg = induced_hybrid::get_max_deg(G);
@@ -416,8 +416,8 @@ uintC _Peel_serial(Graph& G, Graph2& DG, size_t k, uintC* cliques, bool label, s
   });*/
   HybridSpace_lw* induced = new HybridSpace_lw();
   induced->alloc(max_deg, k, G.n, label, true);
-  auto update_idxs = sequence<uintE>(max_deg);
-  uintC c = 0;
+  auto update_idxs = sequence<long>(max_deg);
+  long c = 0;
   while (finished != heap_init_size) {
     num_updates = 0;
     auto kv=popminLLU(heap);
