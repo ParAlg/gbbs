@@ -530,7 +530,7 @@ timer t2; t2.start();
   
     size_t edge_table_size = std::min((size_t) rho*k*active_size, (size_t) (active_deg < G.n ? active_deg : G.n));
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-
+    sequence<size_t> tots = sequence<size_t>::no_init(active_size);
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
       if (G.get_vertex(sortD[start+i]).getOutDegree() != 0) {
         auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -546,9 +546,10 @@ timer t2; t2.start();
           per_processor_counts[worker*n + vtx] += count;
           if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
         };
-        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      }
+        tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+      } else tots[i] = 0;
     }, granularity, false);
+    num_cliques -= pbbslib::reduce_add(tots);
 
     /* extract the vertices that had their count changed */
     auto changed_vtxs = edge_table.entries();
