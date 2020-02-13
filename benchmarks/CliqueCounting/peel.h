@@ -505,6 +505,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     // Update density
     double current_density = ((double)edges_remaining) / ((double) (n));
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vertices_remaining.size());
+    auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
     auto keep_seq = pbbs::delayed_seq<bool>(n, [&] (size_t i) {
@@ -593,6 +594,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     // Update density
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vtxs_remaining.size());
+    auto rho = target_density;
     //debug(std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vtxs_remaining.size() << std::endl;
     //std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
     if (current_density > max_density) max_density = current_density;
@@ -683,7 +685,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
  
 double tt2 = t2.stop();
 std::cout << "### Peel Running Time: " << tt2 << std::endl;
-std::cout << "rho: " << rounds << std::endl;
+std::cout << "rho: " << round << std::endl;
  std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
 
   free(still_active);
