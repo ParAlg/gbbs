@@ -1,4 +1,16 @@
 cc_library(
+  name = "atomic_counter",
+  hdrs = [
+    "atomic_max_counter.h",
+    "atomic_sum_counter.h",
+  ],
+  deps = [
+    "//ligra:macros",
+    "//pbbslib:utilities",
+  ],
+)
+
+cc_library(
   name = "counting_sort_no_transpose",
   hdrs = ["counting_sort_no_transpose.h"],
   deps = ["//ligra:bridge"]

@@ -2,9 +2,6 @@
 
 #include "ligra/graph.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
-//#include "benchmarks/Connectivity/UnionFind/Connectivity.h"
-//#include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
-//#include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 
 #include "common.h"
 

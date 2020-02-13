@@ -89,7 +89,7 @@ namespace pbbslib {
     T empty;
     K empty_key;
     T* table;
-    KeyHash& key_hash;
+    KeyHash key_hash;
     bool alloc;
     size_t* cts;
 
