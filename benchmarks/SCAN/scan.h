@@ -30,7 +30,7 @@ struct CoreThreshold {
 
 class CoreOrder {
  public:
-  CoreOrder(const NeighborOrder& neighbor_order);
+  explicit CoreOrder(const NeighborOrder& neighbor_order);
 
   uint64_t MaxMu() const;
   pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
