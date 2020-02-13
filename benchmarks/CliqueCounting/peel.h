@@ -483,6 +483,7 @@ timer t2; t2.start();
 template <class Graph, class Graph2>
 double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cliques,
   bool label, sequence<uintE> &rank, double eps) {
+    std::cout << "eps: " << eps << "\n";
     timer t2; t2.start();
   const size_t n = G.n;
   auto D = sequence<size_t>(n, [&](size_t i) { return cliques[i]; });
