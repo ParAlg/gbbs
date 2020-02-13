@@ -265,10 +265,10 @@ if (!approx_peel) {
   std::cout << "Max per-vertex count is: " << max_per_vert << std::endl;
   if (max_per_vert >= std::numeric_limits<uintE>::max()) {
     std::cout << "Calling peeling with bucket_t = size_t (8-byte bucket types)" << std::endl;
-    ApproxPeel<size_t>(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+    ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
   } else {
     std::cout << "Calling peeling with bucket_t = uintE (4-byte bucket types)" << std::endl;
-    ApproxPeel<uintE>(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+    ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
   }
 }
 
