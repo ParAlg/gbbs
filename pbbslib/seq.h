@@ -169,6 +169,19 @@ namespace pbbs {
 
     value_type& operator[] (const size_t i) const {return s[i];}
 
+    bool operator==(const sequence<T>& other) const {
+      if (n != other.n) {
+        return false;
+      }
+      bool is_equal{true};
+      parallel_for(0, n, [&](const size_t i) {
+        if (!((*this)[i] == other[i]) && is_equal) {
+          is_equal = false;
+        }
+      });
+      return is_equal;
+    }
+
     range<value_type*> slice(size_t ss, size_t ee) const {
       return range<value_type*>(s + ss, s + ee);
     }
