@@ -34,7 +34,7 @@
 #include <math.h>
 #include <atomic>
 #include "concurrent_stack.h"
-#include "utilities.h"
+#include "maybe.h"
 #include "memory_size.h"
 
 struct block_allocator {

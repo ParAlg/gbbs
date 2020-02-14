@@ -29,6 +29,7 @@ cc_library(
   hdrs = ["alloc.h"],
   deps = [
   ":concurrent_stack",
+  ":maybe",
   ":memory_size",
   ],
 )
@@ -47,8 +48,8 @@ cc_library(
   hdrs = ["block_allocator.h"],
   deps = [
   ":concurrent_stack",
+  ":maybe",
   ":memory_size",
-  ":utilities"
   ],
 )
 
@@ -227,6 +228,7 @@ cc_library(
   ":utilities",
   ":concurrent_stack",
   ":random_shuffle",
+  ":maybe",
   ":memory_size"
   ]
 )

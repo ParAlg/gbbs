@@ -3,6 +3,7 @@
 #include <atomic>
 
 #include "concurrent_stack.h"
+#include "maybe.h"
 #include "memory_size.h"
 
 struct mem_pool {
