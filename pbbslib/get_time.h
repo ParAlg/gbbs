@@ -10,7 +10,7 @@ struct timer {
   std::string name;
   struct timezone tzp;
 
-  timer(const std::string& name = "# PBBS time", bool _start = true);
+  timer(std::string name = "# PBBS time", bool _start = true);
 
   double get_time();
 

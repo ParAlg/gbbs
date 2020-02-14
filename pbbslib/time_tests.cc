@@ -9,6 +9,7 @@
 #include "parallel.h"
 
 #include <iostream>
+#include <iomanip>
 #include <ctype.h>
 #include <math.h>
 #include <limits>
