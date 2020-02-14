@@ -27,10 +27,12 @@ cc_library(
 cc_library(
   name = "alloc",
   hdrs = ["alloc.h"],
+  srcs = ["alloc.cc"],
   deps = [
   ":concurrent_stack",
   ":maybe",
   ":memory_size",
+  ":parallel",
   ],
 )
 
