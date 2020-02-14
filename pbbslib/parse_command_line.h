@@ -22,10 +22,7 @@
 
 #pragma once
 
-#include <iostream>
-#include <fstream>
 #include <string>
-#include <cstring>
 
 struct commandLine {
   int argc;
@@ -58,6 +55,4 @@ struct commandLine {
   int getOptionIntValue(const std::string& option, int defaultValue);
 
   double getOptionDoubleValue(const std::string& option, double defaultValue);
-
 };
-

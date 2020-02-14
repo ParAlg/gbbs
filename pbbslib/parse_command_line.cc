@@ -1,5 +1,9 @@
 #include "parse_command_line.h"
 
+#include <cstring>
+#include <fstream>
+#include <iostream>
+
 commandLine::commandLine(int _c, char** _v, std::string _cl)
   : argc(_c), argv(_v), comLine(std::move(_cl)) {
     if (getOption("-h") || getOption("-help"))
