@@ -1,18 +1,40 @@
 #include "scheduler.h"
 
+namespace {
+
+int global_scheduler_counter; // Zero-initialized at load time.
+typename std::aligned_storage<
+  sizeof(fork_join_scheduler), alignof(fork_join_scheduler)>::type
+  global_scheduler_storage;
+
+}  // namespace
+
+namespace internal {
+
+SchedulerInitializer::SchedulerInitializer() {
+  if (global_scheduler_counter == 0) {
+    new(&global_scheduler) fork_join_scheduler{}; // placement new
+  }
+  global_scheduler_counter++;
+}
+
+SchedulerInitializer::~SchedulerInitializer() {
+  global_scheduler_counter--;
+  if (global_scheduler_counter == 0)  {
+    (&global_scheduler)->~fork_join_scheduler();
+  }
+}
+
+}  // namespace internal
+
+fork_join_scheduler& global_scheduler{
+  reinterpret_cast<fork_join_scheduler&>(global_scheduler_storage)};
+
 fork_join_scheduler::fork_join_scheduler() {
   sched = new scheduler<Job>;
 }
 
 fork_join_scheduler::~fork_join_scheduler() {
-  if (sched) {
-    delete sched;
-    sched = nullptr;
-  }
-}
-
-// Must be called using std::atexit(..) to free resources
-void fork_join_scheduler::destroy() {
   if (sched) {
     delete sched;
     sched = nullptr;

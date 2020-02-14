@@ -8,6 +8,7 @@ cc_library(
 cc_library(
   name = "parallel",
   hdrs = ["parallel.h"],
+  srcs = ["parallel.cc"],
   deps = [":scheduler"]
 )
 

@@ -365,3 +365,23 @@ private:
   }
 
 };
+
+// Global fork-join scheduler.
+extern fork_join_scheduler& global_scheduler;
+
+namespace internal {
+
+// Nifty Counter idiom for maintaining `global_scheduler` so that the scheduler
+// is initialized before first use and destroyed after last use.
+//
+// This is to avoid the "static initialization/de-initialization order fiasco";
+// the scheduler is liable to be used by the constructors and destructors of
+// global or static variable, so we need to be very careful about the
+// construction and destruction of the scheduler.
+struct SchedulerInitializer {
+  SchedulerInitializer();
+  ~SchedulerInitializer();
+};
+static SchedulerInitializer global_scheduler_initializer;
+
+}  // namespace internal
