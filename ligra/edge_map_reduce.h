@@ -202,7 +202,6 @@ struct EdgeMap {
     // Currently unimplemented: only using edgeMapReduce_dense. TODO: finish
     // implementation of this method (if needed).
     exit(0);
-    size_t n = G.n;
     vs.toSparse();
     auto degree_f = [&](size_t i) {
       return (fl & in_edges) ? G.get_vertex(vs.vtx(i)).getInVirtualDegree() : G.get_vertex(vs.vtx(i)).getOutVirtualDegree();

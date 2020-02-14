@@ -28,7 +28,9 @@ struct atomic_sum_counter {
   }
 
   ~atomic_sum_counter() {
-    pbbs::free_array(entries);
+    if (entries != nullptr) {
+      pbbs::free_array(entries);
+    }
   }
 
   void reset() {

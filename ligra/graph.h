@@ -369,9 +369,9 @@ template <class W, class EdgeSeq, class GetU, class GetV, class GetW>
 inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
     EdgeSeq& A,
     size_t n,
-    GetU& get_u,
-    GetV& get_v,
-    GetW& get_w,
+    GetU&& get_u,
+    GetV&& get_v,
+    GetW&& get_w,
     bool is_sorted = false) {
   using vertex = symmetric_vertex<W>;
   using edge_type = typename vertex::edge_type;
@@ -393,9 +393,8 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
   }
 
   if (!is_sorted) {
-    auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(A.slice(), first, bits);
+    pbbslib::integer_sort_inplace(A.slice(), std::forward<GetU>(get_u), bits);
   }
 
   auto starts = sequence<uintT>(n+1, (uintT) 0);

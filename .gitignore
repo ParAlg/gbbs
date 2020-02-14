@@ -1,3 +1,7 @@
+*~
+*.swo
+*.swp
+
 experimental
 cplib.sh
 
@@ -7,4 +11,3 @@ bazel-gbbs
 bazel-genfiles
 bazel-out
 bazel-testlogs
-
