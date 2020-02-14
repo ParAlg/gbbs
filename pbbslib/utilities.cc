@@ -1,5 +1,7 @@
 #include "utilities.h"
 
+#include <math.h>
+
 #ifdef USEMALLOC
 void* my_alloc(size_t i) {return malloc(i);}
 void my_free(void* p) {free(p);}

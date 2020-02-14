@@ -5,8 +5,6 @@
 #include <memory>
 #include <stdlib.h>
 #include <type_traits>
-#include <type_traits>
-#include <math.h>
 #include <atomic>
 #include <cstring>
 
