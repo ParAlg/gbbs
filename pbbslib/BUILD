@@ -15,6 +15,7 @@ cc_library(
 cc_library(
   name = "concurrent_stack",
   hdrs = ["concurrent_stack.h"],
+  deps = [":maybe"],
 )
 
 cc_library(
@@ -316,6 +317,11 @@ cc_library(
   ":range_min",
   ":utilities"
   ]
+)
+
+cc_library(
+  name = "maybe",
+  hdrs = ["maybe.h"],
 )
 
 cc_binary(

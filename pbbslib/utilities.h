@@ -41,32 +41,6 @@ namespace pbbs {
   size_t log2_up(T);
 }
 
-template <class T>
-struct maybe {
-	T value;
-	bool valid;
-
-	maybe(T v, bool u) : value(v) {
-		valid = u;
-	}
-	maybe(T v) : value(v) {
-		valid = true;
-	}
-	maybe() {
-		valid = false;
-	}
-
-	bool operator !() const {
-		return !valid;
-	}
-	operator bool() const {
-		return valid;
-	};
-	T& operator * () {
-		return value;
-	}
-};
-
 #if defined(__APPLE__)
 inline void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
 #else
