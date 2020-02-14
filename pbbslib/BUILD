@@ -39,6 +39,7 @@ cc_library(
 cc_library(
   name = "utilities",
   hdrs = ["utilities.h"],
+  srcs = ["utilities.cc"],
   deps = [
   ":parallel",
   ":alloc"
