@@ -20,6 +20,7 @@ cc_library(
 cc_library(
   name = "memory_size",
   hdrs = ["memory_size.h"],
+  srcs = ["memory_size.cc"],
 )
 
 cc_library(
