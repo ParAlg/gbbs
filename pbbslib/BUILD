@@ -1,6 +1,7 @@
 cc_library(
   name = "scheduler",
   hdrs = ["scheduler.h"],
+  srcs = ["scheduler.cc"],
   linkopts = ["-pthread"]
 )
 

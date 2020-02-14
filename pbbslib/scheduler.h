@@ -291,28 +291,16 @@ public:
 
   scheduler<Job>* sched;
 
-  fork_join_scheduler() {
-    sched = new scheduler<Job>;
-  }
+  fork_join_scheduler();
 
-  ~fork_join_scheduler() {
-    if (sched) {
-      delete sched;
-      sched = nullptr;
-    }
-  }
+  ~fork_join_scheduler();
 
   // Must be called using std::atexit(..) to free resources
-  void destroy() {
-    if (sched) {
-      delete sched;
-      sched = nullptr;
-    }
-  }
+  void destroy();
 
-  int num_workers() { return sched->num_workers(); }
-  int worker_id() { return sched->worker_id(); }
-  void set_num_workers(int n) { sched->set_num_workers(n); }
+  int num_workers();
+  int worker_id();
+  void set_num_workers(int n);
 
   // Fork two thunks and wait until they both finish.
   template <typename L, typename R>
