@@ -63,11 +63,11 @@ struct UFAlgorithm {
     if constexpr (provides_frequent_comp) {
       clusters = parents;
       granularity = 512;
-      std::cout << "provides frequent comp" << std::endl;
+      std::cout << "# provides frequent comp" << std::endl;
     } else {
       granularity = 1;
     }
-    std::cout << "frequent_comp = " << frequent_comp << " gran = " << granularity << std::endl;
+    std::cout << "# frequent_comp = " << frequent_comp << " gran = " << granularity << std::endl;
 
     timer ut; ut.start();
     parallel_for(0, n, [&] (size_t i) {
@@ -100,7 +100,6 @@ struct UFAlgorithm {
   template <bool reorder_batch, class Seq>
   void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
     if constexpr (reorder_batch == true) {
-      std::cout << "reordering batch" << std::endl;
       auto ret = reorder_updates(updates);
       auto reordered_updates = ret.first;
       size_t update_end = ret.second;
@@ -108,16 +107,12 @@ struct UFAlgorithm {
       auto queries = reordered_updates.slice(update_end, updates.size());
       /* run updates */
       parallel_for(0, insertions.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType optype;
-        std::tie(u,v,optype) = insertions[i];
+        auto [u,v,optype] = insertions[i];
         unite(u, v, parents);
       });
       /* run queries */
       parallel_for(0, queries.size(), [&] (size_t i) {
-        uintE u, v;
-        UpdateType optype;
-        std::tie(u,v,optype) = queries[i];
+        auto [u,v,optype] = queries[i];
         u = find(u, parents); /* force */
         v = find(v, parents); /* force */
       });
@@ -128,8 +123,8 @@ struct UFAlgorithm {
         UpdateType optype;
         std::tie(u,v,optype) = updates[i];
         if (optype == query_type) { /* query */
-          u = find(u, parents); /* force */
-          v = find(v, parents); /* force */
+          find(u, parents); /* force */
+          find(v, parents); /* force */
         } else { /* insert */
           unite(u, v, parents);
         }

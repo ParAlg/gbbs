@@ -122,6 +122,24 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
   void alter_edges(F f, bool parallel_inner_map = true) {
     abort(); /* unimplemented for CSR */
   }
+
+  pbbs::sequence<std::tuple<uintE, uintE, W>> edges() {
+    using g_edge = std::tuple<uintE, uintE, W>;
+    auto degs = pbbs::sequence<size_t>(n, [&] (size_t i) {
+      return get_vertex(i).getOutDegree();
+    });
+    size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
+    assert(sum_degs == m);
+    auto edges = pbbs::sequence<g_edge>(sum_degs);
+    parallel_for(0, n, [&](size_t i) {
+      size_t k = degs[i];
+      auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        edges[k++] = std::make_tuple(u, v, wgh);
+      };
+      get_vertex(i).mapOutNgh(i, map_f, false);
+    }, 1);
+    return edges;
+  }
 };
 
 /* Compressed Sparse Row (CSR) based representation for asymmetric
@@ -351,9 +369,9 @@ template <class W, class EdgeSeq, class GetU, class GetV, class GetW>
 inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
     EdgeSeq& A,
     size_t n,
-    GetU& get_u,
-    GetV& get_v,
-    GetW& get_w,
+    GetU&& get_u,
+    GetV&& get_v,
+    GetW&& get_w,
     bool is_sorted = false) {
   using vertex = symmetric_vertex<W>;
   using edge_type = typename vertex::edge_type;
@@ -375,9 +393,8 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
   }
 
   if (!is_sorted) {
-    auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(A.slice(), first, bits);
+    pbbslib::integer_sort_inplace(A.slice(), std::forward<GetU>(get_u), bits);
   }
 
   auto starts = sequence<uintT>(n+1, (uintT) 0);

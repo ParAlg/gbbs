@@ -23,7 +23,7 @@
 
 #include "SpanningForest.h"
 #include "ligra/ligra.h"
-#include "benchmarks/SpanningForest/common.h"
+#include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
 
 template <class Graph>
@@ -43,11 +43,13 @@ double SF_runner(Graph& G, commandLine P) {
   } else {
     edges = labelprop_sf::SpanningForest</*use_permutation=*/false>(G);
   }
+  std::cout << "sf has: " << edges.size() << " many edges" << std::endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
   if (P.getOptionValue("-check")) {
-    spanning_forest::sf_compute_and_check(G, edges);
+    auto bfs_edges = bfs_sf::SpanningForestDet(G);
+    spanning_forest::check_spanning_forest(G.n, bfs_edges, edges);
   }
 
   return tt;

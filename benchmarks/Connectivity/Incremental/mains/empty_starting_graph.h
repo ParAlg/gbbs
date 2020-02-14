@@ -2,6 +2,8 @@
 
 #ifdef EMPTY_STARTING_GRAPH
 
+bool print_batch_time = false;
+
 template <class Graph, bool provides_initial_graph>
 void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
@@ -45,12 +47,18 @@ int main(int argc, char* argv[]) {
     updates[i] = std::make_tuple(l, r);
   });
   n = n + 1; /* 0 indexed */
+//  auto sort_f = [&] (const std::tuple<uintE, uintE>& l, const std::tuple<uintE, uintE>& r) {
+//    return l < r;
+//  };
+//  pbbs::sample_sort_inplace(updates.slice(), sort_f);
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 
   /* fraction of insertions to queries: between [0, 1] */
   double insert_to_query = P.getOptionDoubleValue("-insert_to_query", 0.5);
-  auto annotated_updates = annotate_updates(updates, insert_to_query);
+
+  bool permute = P.getOptionValue("-permute");
+  auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
 
   auto FG = edge_array<pbbs::empty>();
   run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);

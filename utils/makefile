@@ -13,7 +13,7 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-INCLUDE_DIRS = -I../
+INCLUDE_DIRS = -I../ -I../ligra
 
 OPT = -O3 -g -DNDEBUG
 
@@ -43,7 +43,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL= add_weights converter gen_torus random_reorder to_edge_list
+ALL= add_weights converter compressor gen_torus random_reorder to_edge_list pure_isolated check_symmetric
 
 all: $(ALL)
 

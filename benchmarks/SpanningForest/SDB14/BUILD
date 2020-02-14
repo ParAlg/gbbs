@@ -24,7 +24,11 @@ cc_library(
 cc_binary(
   name = "SpanningForest_main",
   srcs = ["SpanningForest.cc"],
-  deps = [":SpanningForest"]
+  deps = [
+  ":SpanningForest",
+  "//benchmarks/SpanningForest:common",
+  "//benchmarks/SpanningForest/BFSSF:SpanningForest"
+  ]
 )
 
 package(

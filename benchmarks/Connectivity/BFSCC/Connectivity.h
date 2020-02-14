@@ -52,18 +52,23 @@ struct BFS_ComponentLabel_F {
 template <class Graph>
 void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
   using W = typename Graph::weight_type;
-  vertexSubset Frontier(G.n, src);
-  size_t reachable = 0; size_t rounds = 0;
-  parents[src] = src;
-  while (!Frontier.isEmpty()) {
-    reachable += Frontier.size();
-    vertexSubset output =
-        edgeMap(G, Frontier, BFS_ComponentLabel_F<W>(parents.begin(), src), -1, sparse_blocked | dense_parallel);
+  if (G.get_vertex(src).getOutDegree() > 0) {
+    vertexSubset Frontier(G.n, src);
+    size_t reachable = 0; size_t rounds = 0;
+    parents[src] = src;
+    while (!Frontier.isEmpty()) {
+      reachable += Frontier.size();
+      vertexSubset output =
+          edgeMap(G, Frontier, BFS_ComponentLabel_F<W>(parents.begin(), src), -1, sparse_blocked | dense_parallel);
+      if (output.size() > 0) {
+        std::cout << "output.size = " << output.size() << std::endl;
+      }
+      Frontier.del();
+      Frontier = output;
+      rounds++;
+    }
     Frontier.del();
-    Frontier = output;
-    rounds++;
   }
-  Frontier.del();
 }
 
 

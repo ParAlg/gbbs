@@ -50,7 +50,8 @@ bool run_multiple(Graph& G, size_t rounds,
   std::vector<double> t; /* total */
   std::vector<double> a;
   std::vector<double> tp;
-  std::tie(t, a, tp) = repeat(G, rounds, test, P);
+  size_t cc_before, cc_after;
+  std::tie(t, a, tp, cc_before, cc_after) = repeat(G, rounds, test, P);
 
   double mint = reduce(t, minf);
   double maxt = reduce(t, maxf);

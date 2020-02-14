@@ -769,7 +769,6 @@ struct asymmetric_vertex {
     return intersection::intersect_f_par(this, other, our_id, other_id, f);
   }
 
-
   template <class VS, class F, class G>
   inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {

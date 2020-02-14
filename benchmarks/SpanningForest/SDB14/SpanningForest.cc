@@ -33,6 +33,8 @@
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
 #include "SpanningForest.h"
+#include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
+#include "benchmarks/SpanningForest/check.h"
 
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
@@ -56,6 +58,11 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
 
   std::cout << "vtx 0 has degree: " << G.get_vertex(0).getOutDegree() << std::endl;
+
+  if (P.getOptionValue("-check")) {
+    auto bfs_edges = bfs_sf::SpanningForestDet(G);
+    spanning_forest::check_spanning_forest(G.n, bfs_edges, edges);
+  }
 
   if (pack) {
     // packing mutates the graph, packing out all intra-cluster edges, and can

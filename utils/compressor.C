@@ -1,9 +1,9 @@
 #include "ligra.h"
-#include "IO.h"
+#include "io.h"
 #include "parse_command_line.h"
 
-#include "lib/utilities.h"
-#include "lib/random.h"
+#include "pbbslib/utilities.h"
+#include "pbbslib/random.h"
 
 #include <iostream>
 #include <fstream>
@@ -18,9 +18,10 @@ using namespace std;
 namespace encodings {
 namespace bytepd_amortized {
 
-  template <template <class W> class vertex, class W>
-  void write_graph_bytepd_amortized_directed(graph<vertex<W>>& GA, ofstream& out) {
-    size_t n = GA.n; size_t m = GA.m;
+  template <class Graph>
+  void write_graph_bytepd_amortized_directed(Graph& GA, ofstream& out) {
+    using W = typename Graph::weight_type;
+    size_t n = GA.n;
 
     // out-edges
     // 1. Calculate total size
@@ -35,18 +36,18 @@ namespace bytepd_amortized {
         auto f = [&] (uintE u, uintE v, W w) {
           long bytes = 0;
           if ((deg % PARALLEL_DEGREE) == 0) {
-            bytes = compressFirstEdge(tmp, bytes, u, v);
-            bytes = compressWeight<W>(tmp, bytes, w);
+            bytes = byte::compressFirstEdge(tmp, bytes, u, v);
+            bytes = byte::compressWeight<W>(tmp, bytes, w);
           } else {
-            bytes = compressEdge(tmp, bytes, v - last_ngh);
-            bytes = compressWeight<W>(tmp, bytes, w);
+            bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
+            bytes = byte::compressWeight<W>(tmp, bytes, w);
           }
           last_ngh = v;
           total_bytes += bytes;
           deg++;
           return false;
         };
-        GA.V[i].mapOutNgh(i, f, false);
+        GA.get_vertex(i).mapOutNgh(i, f, false);
 
         if (deg > 0) {
           size_t n_chunks = 1+(deg-1)/PARALLEL_DEGREE;
@@ -70,8 +71,8 @@ namespace bytepd_amortized {
       par_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
-          auto it = GA.V[i].getOutIter(i);
-          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+          auto it = GA.get_vertex(i).getOutIter(i);
+          size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -104,18 +105,18 @@ namespace bytepd_amortized {
         auto f = [&] (uintE u, uintE v, W w) {
           long bytes = 0;
           if ((deg % PARALLEL_DEGREE) == 0) {
-            bytes = compressFirstEdge(tmp, bytes, u, v);
-            bytes = compressWeight<W>(tmp, bytes, w);
+            bytes = byte::compressFirstEdge(tmp, bytes, u, v);
+            bytes = byte::compressWeight<W>(tmp, bytes, w);
           } else {
-            bytes = compressEdge(tmp, bytes, v - last_ngh);
-            bytes = compressWeight<W>(tmp, bytes, w);
+            bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
+            bytes = byte::compressWeight<W>(tmp, bytes, w);
           }
           last_ngh = v;
           total_bytes += bytes;
           deg++;
           return false;
         };
-        GA.V[i].mapInNgh(i, f, false);
+        GA.get_vertex(i).mapInNgh(i, f, false);
 
         if (deg > 0) {
           size_t n_chunks = 1+(deg-1)/PARALLEL_DEGREE;
@@ -139,8 +140,8 @@ namespace bytepd_amortized {
       par_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
-          auto it = GA.V[i].getInIter(i);
-          long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+          auto it = GA.get_vertex(i).getInIter(i);
+          size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -158,13 +159,14 @@ namespace bytepd_amortized {
     }
   }
 
-  template <template <class W> class vertex, class W>
-  void write_graph_bytepd_amortized_format(graph<vertex<W>>& GA, ofstream& out, bool symmetric) {
+  template <class Graph>
+  void write_graph_bytepd_amortized_format(Graph& GA, ofstream& out, bool symmetric) {
+    using W = typename Graph::weight_type;
     if (!symmetric) {
       write_graph_bytepd_amortized_directed(GA, out);
       return;
     }
-    size_t n = GA.n; size_t m = GA.m;
+    size_t n = GA.n;
 
 //    auto xors = sequence<size_t>(n);
 //    parallel_for(size_t i=0; i<n; i++) {
@@ -250,17 +252,17 @@ namespace bytepd_amortized {
 //        }
         long bytes = 0;
         if ((deg % PARALLEL_DEGREE) == 0) {
-          bytes = compressFirstEdge(tmp, bytes, u, v);
-          bytes = compressWeight<W>(tmp, bytes, w);
+          bytes = byte::compressFirstEdge(tmp, bytes, u, v);
+          bytes = byte::compressWeight<W>(tmp, bytes, w);
         } else {
-          bytes = compressEdge(tmp, bytes, v - last_ngh);
-          bytes = compressWeight<W>(tmp, bytes, w);
+          bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
+          bytes = byte::compressWeight<W>(tmp, bytes, w);
         }
         last_ngh = v;
         total_bytes += bytes;
         deg++;
       };
-      GA.V[i].mapOutNgh(i, f, false);
+      GA.get_vertex(i).mapOutNgh(i, f, false);
 
       if (deg > 0) {
         size_t n_chunks = 1+(deg-1)/PARALLEL_DEGREE;
@@ -287,8 +289,8 @@ namespace bytepd_amortized {
     par_for(0, n, [&] (size_t i) {
       uintE deg = degrees[i];
       if (deg > 0) {
-        auto it = GA.V[i].getOutIter(i);
-        long nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+        auto it = GA.get_vertex(i).getOutIter(i);
+        size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
 
 //        uchar* edgeArray = edges.begin() + byte_offsets[i];
 //        size_t degree = deg;
@@ -401,8 +403,8 @@ namespace bytepd_amortized {
 }; // namespace bytepd_amortized
 }; // namespace encodings
 
-template <class vertex>
-void converter(graph<vertex>& GA, commandLine P) {
+template <class Graph>
+double converter(Graph& GA, commandLine P) {
   auto outfile = P.getOptionValue("-o", "");
   bool symmetric = P.getOptionValue("-s");
   std::cout << "Outfile: " << outfile << std::endl;
@@ -421,6 +423,7 @@ void converter(graph<vertex>& GA, commandLine P) {
   }
   std::cout << "Finished converting." << std::endl;
   exit(0);
+  return 0;
 }
 
 

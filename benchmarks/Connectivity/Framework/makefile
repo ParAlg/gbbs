@@ -18,15 +18,16 @@ FORMAT = -DCSR # (oneof {DCSR, DCOO})
 INCLUDE_DIRS = -I../../../
 
 OPT = -O3 -g -DNDEBUG
+#OPT = -O0 -g
 
-#INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
-#ifdef INTEL_PCM_HOME
-#	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
-#	EXT_OBJECTS=$(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o $(INTEL_PCM_HOME)/utils.o $(INTEL_PCM_HOME)/mmio.o
-#	PCM = -DUSE_PCM_LIB
-#endif
+INTEL_PCM_HOME = /usr0/home/ldhulipa/pcm/
+ifdef INTEL_PCM_HOME
+	INCLUDE_DIRS+=-I$(INTEL_PCM_HOME)
+	EXT_OBJECTS=$(INTEL_PCM_HOME)/msr.o $(INTEL_PCM_HOME)/cpucounters.o $(INTEL_PCM_HOME)/pci.o $(INTEL_PCM_HOME)/client_bw.o $(INTEL_PCM_HOME)/utils.o $(INTEL_PCM_HOME)/mmio.o
+	PCM = -DUSE_PCM_LIB
+endif
 
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC $(FORMAT) $(PCM) $(EXT_OBJECTS) -DREPORT_PATH_LENGTHS -DREPORT_MAX_TRIES
+CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC $(FORMAT) $(PCM) $(EXT_OBJECTS) #-DREPORT_PATH_LENGTHS -DREPORT_MAX_TRIES
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -52,7 +53,7 @@ CC = g++-7
 PFLAGS = $(HGFLAGS)
 endif
 
-ALL=benchmark_sampling
+ALL=benchmark_sampling benchmark_edge_gather
 
 all: $(ALL)
 

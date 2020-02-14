@@ -89,7 +89,7 @@ struct commandLine {
     return defaultValue;
   }
 
-  long getOptionLongValue(std::string option, long defaultValue) {
+  size_t getOptionLongValue(std::string option, size_t defaultValue) {
     for (int i = 1; i < argc - 1; i++)
       if ((std::string)argv[i] == option) {
         long r = atol(argv[i + 1]);

@@ -28,69 +28,54 @@
 #include "subsample_starting_graph.h"
 
 namespace connectit {
-//  template <class Graph, bool provides_initial_graph>
-//  void liutarjan_P(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-//    run_multiple_liu_tarjan_alg<Graph, parent_connect, simple_update, shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-//  }
-
   template <class Graph, bool provides_initial_graph>
   void liutarjan_R(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_liu_tarjan_alg<Graph, parent_connect, root_update, shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
-
-//  template <class Graph, bool provides_initial_graph>
-//  void liutarjan_E(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-//    run_multiple_liu_tarjan_alg<Graph, extended_connect, simple_update, shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-//  }
-//
-//  template <class Graph, bool provides_initial_graph>
-//  void liutarjan_PF(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-//    run_multiple_liu_tarjan_alg<Graph, parent_connect, simple_update, full_shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-//  }
 
   template <class Graph, bool provides_initial_graph>
   void liutarjan_RF(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_liu_tarjan_alg<Graph, parent_connect, root_update, full_shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
-//  template <class Graph, bool provides_initial_graph>
-//  void liutarjan_EF(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
-//    run_multiple_liu_tarjan_alg<Graph, extended_connect, simple_update, full_shortcut, no_alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
-//  }
+  // (5)
+  template <class Graph, bool provides_initial_graph>
+  void liutarjan_RA(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_liu_tarjan_alg<Graph, simple_connect, root_update, shortcut, alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  // (6)
+  template <class Graph, bool provides_initial_graph>
+  void liutarjan_RFA(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_liu_tarjan_alg<Graph, simple_connect, root_update, full_shortcut, alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  // (3)
+  template <class Graph, bool provides_initial_graph>
+  void liutarjan_PRA(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_liu_tarjan_alg<Graph, parent_connect, root_update, shortcut, alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
+
+  // (4)
+  template <class Graph, bool provides_initial_graph>
+  void liutarjan_PRFA(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+    run_multiple_liu_tarjan_alg<Graph, parent_connect, root_update, full_shortcut, alter, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
+  }
 
 } // namespace connectit
-
-template <class Graph, bool provides_initial_graph, class F>
-void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
-  for (auto test : tests) {
-#ifdef USE_PCM_LIB
-  auto before_state = get_pcm_state();
-  timer ot; ot.start();
-#endif
-
-  test(G, n, updates, batch_size, insert_to_query, rounds, P);
-
-#ifdef USE_PCM_LIB
-  double elapsed = ot.stop();
-  auto after_state = get_pcm_state();
-  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
-  print_cpu_stats(stats, P);
-#endif
-  }
-}
 
 
 template <class Graph, bool provides_initial_graph>
 void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
-      connectit::liutarjan_P<Graph, provides_initial_graph>,
+      connectit::liutarjan_R<Graph, provides_initial_graph>,
       {
-        connectit::liutarjan_P<Graph, provides_initial_graph>,
-        connectit::liutarjan_R<Graph, provides_initial_graph>,
-        connectit::liutarjan_E<Graph, provides_initial_graph>,
-        connectit::liutarjan_PF<Graph, provides_initial_graph>,
-        connectit::liutarjan_RF<Graph, provides_initial_graph>,
-        connectit::liutarjan_EF<Graph, provides_initial_graph>,
+//        connectit::liutarjan_R<Graph, provides_initial_graph>,
+//        connectit::liutarjan_RF<Graph, provides_initial_graph>,
+//        connectit::liutarjan_RA<Graph, provides_initial_graph>,
+//        connectit::liutarjan_PRA<Graph, provides_initial_graph>,
+//        connectit::liutarjan_RFA<Graph, provides_initial_graph>,
+        connectit::liutarjan_PRFA<Graph, provides_initial_graph>,
       });
 }
 

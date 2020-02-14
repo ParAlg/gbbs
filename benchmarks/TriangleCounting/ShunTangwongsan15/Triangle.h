@@ -231,5 +231,8 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
       return barenboimelkin_degen::DegeneracyOrder(G);
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
+  } else {
+    std::cerr << "Unexpected ordering: " << ordering << '\n';
+    exit(1);
   }
 }

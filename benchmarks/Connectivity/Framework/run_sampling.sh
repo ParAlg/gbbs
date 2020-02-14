@@ -11,6 +11,7 @@ mkdir -p ${output_dir}
 mkdir -p ${output_dir}/json
 mkdir -p ${output_dir}/raw
 
+make benchmark_sampling
 
 for graph in ${graphs[@]}
 do
@@ -37,15 +38,3 @@ do
     cat ${output_dir}/raw/${NAME}.data | grep "^[^#;]" > ${output_dir}/json/${NAME}.json
   done
 done
-
-#for graph in ${c_graphs[@]}
-#do
-#  NAME=$(basename $graph .adj)
-#  echo "sudo numactl -i all ./ConnectivityBenchmark -c -s -m -r 5 $graph > ${output_dir}/${NAME}.data"
-#  sync; echo 1 | sudo tee /proc/sys/vm/drop_caches
-#  for binary in ${binaries[@]}
-#  do
-#    echo "sudo numactl -i all ./${binary} -c -s -m -r ${rounds} $graph > ${output_dir}/${NAME}.data"
-#    sudo numactl -i all ./${binary} -c -s -m -r ${rounds} $graph > ${output_dir}/${NAME}.data
-#  done
-#done

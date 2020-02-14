@@ -54,7 +54,7 @@ inline void cc_check(S1& correct, S2& check) {
   bool is_correct = true;
   parent max_cor = 0;
   parent max_chk = 0;
-  for (size_t i=0; i<correct.size(); i++) {
+  parallel_for(0, correct.size(), [&] (size_t i) {
     if ((correct[i] != check[i])) {
       is_correct = false;
       std::cout << "# at i = " << i << " cor = " << correct[i] << " got: " << check[i] << std::endl;
@@ -68,7 +68,7 @@ inline void cc_check(S1& correct, S2& check) {
     if (check[i] > max_chk) {
       pbbs::write_max(&max_chk, check[i], std::less<parent>());
     }
-  }
+  });
   cout << "# correctness check: " << is_correct << endl;
   cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << endl;
 }
