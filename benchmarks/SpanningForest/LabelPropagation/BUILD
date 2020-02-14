@@ -1,17 +1,21 @@
 cc_library(
-  name = "Connectivity",
-  hdrs = ["Connectivity.h"],
+  name = "SpanningForest",
+  hdrs = ["SpanningForest.h"],
   deps = [
-  "//benchmarks/Connectivity:common",
+  "//benchmarks/SpanningForest:common",
   "//ligra:ligra",
   "//pbbslib:random_shuffle",
   ]
 )
 
 cc_binary(
-  name = "Connectivity_main",
-  srcs = ["Connectivity.cc"],
-  deps = [":Connectivity"]
+  name = "SpanningForest_main",
+  srcs = ["SpanningForest.cc"],
+  deps = [
+  ":SpanningForest",
+  "//benchmarks/SpanningForest:common",
+  "//benchmarks/SpanningForest/BFSSF:SpanningForest",
+  ]
 )
 
 package(

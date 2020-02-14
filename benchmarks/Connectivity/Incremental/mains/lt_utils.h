@@ -18,22 +18,24 @@ namespace connectit {
       commandLine& P) {
 
     auto test = [&] (Graph& G, commandLine& P) {
-      auto connect = lt::get_connect_function<connect_option>();
-      auto update = lt::get_update_function<update_option>();
-      auto shortcut = lt::get_shortcut_function<shortcut_option>();
-
-      static_assert(alter_option == no_alter);
+      auto alg_connect = lt::get_connect_function<connect_option>();
+      auto alg_update = lt::get_update_function<update_option>();
+      auto alg_shortcut = lt::get_shortcut_function<shortcut_option>();
+      auto alg_alter = lt::get_alter_function<alter_option>();
 
       using LT = lt::LiuTarjanAlgorithm<
-        decltype(connect),
+        decltype(alg_connect),
         connect_option,
-        decltype(update),
+        decltype(alg_update),
         update_option,
-        decltype(shortcut),
+        decltype(alg_shortcut),
         shortcut_option,
+        decltype(alg_alter),
+        alter_option,
         Graph>;
-      auto alg = LT(G, n, connect, update, shortcut);
-      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, alg);
+      auto alg = LT(G, n, alg_connect, alg_update, alg_shortcut, alg_alter);
+      bool check = P.getOptionValue("-check");
+      return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(G, n, updates, batch_size, insert_to_query, check, alg);
     };
 
     auto name = liu_tarjan_options_to_string<no_sampling,connect_option,update_option,shortcut_option,alter_option>();

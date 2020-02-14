@@ -77,7 +77,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
   size_t n = GA.n;
   size_t m = GA.m;
 
-  auto edges = pbbs::sequence<std::tuple<uintE, uintE, uintE>>(m);
+  auto edges = pbbs::sequence<std::tuple<uintE, uintE>>(m);
 
   auto offs = pbbs::sequence<size_t>(n);
   parallel_for(0, n, [&] (size_t i) {
@@ -95,7 +95,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
     size_t ctr = 0;
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
-        edges[off + ctr] = std::make_tuple(u, v, 1);
+        edges[off + ctr] = std::make_tuple(u, v);
         ctr++;
       }
     };

@@ -34,12 +34,12 @@
 
 constexpr size_t TOP_BIT = ((size_t)LONG_MAX) + 1;
 constexpr size_t VAL_MASK = LONG_MAX;
+using label_type = size_t;
 
 using K = uintE;
 using V = uintE;
 using T = std::tuple<K, V>;
 
-using label_type = size_t;
 
 // hash32 is sufficient
 struct hash_kv {
@@ -201,16 +201,14 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   auto ba = sequence<bool>(n, false);
   auto bits = ba.to_array();
 
-  auto v_im_f = [](size_t i) { return i; };
-  auto v_im = pbbslib::make_sequence<uintE>(n, v_im_f);
-  auto zero_pred = [&](size_t i) {
+  auto v_im = pbbslib::make_sequence<uintE>(n, [](size_t i) { return i; });
+  auto zero = pbbslib::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).getOutDegree() == 0) || (GA.get_vertex(i).getInDegree() == 0);
-  };
-  auto not_zero_pred = [&](size_t i) {
+  });
+  auto NZ = pbbslib::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).getOutDegree() > 0) && (GA.get_vertex(i).getInDegree() > 0);
-  };
-  auto zero = pbbslib::filter(v_im, zero_pred);
-  auto NZ = pbbslib::filter(v_im, not_zero_pred);
+  });
+
   auto P = pbbslib::random_shuffle(NZ);
   std::cout << "Filtered: " << zero.size()
             << " vertices. Num remaining = " << P.size() << "\n";
@@ -221,20 +219,20 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
   double step_multiplier = beta;
-  size_t label_offset = zero.size() + 1;
+  size_t label_offset = zero.size() + 1; // TODO(laxmand): zero.size()?
 
   initt.stop();
   initt.reportTotal("init");
 
+  // Run the first search (BFS)
   {
-    timer hd;
-    hd.start();
+    timer hd; hd.start();
     auto deg_im_f = [&](size_t i) {
       return std::make_tuple(i, GA.get_vertex(i).getOutDegree());
     };
     auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,
-                                const std::tuple<uintE, uintE>& r) {
+                    const std::tuple<uintE, uintE>& r) {
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
     };
     auto id = std::make_tuple<uintE, uintE>(0, 0);
@@ -242,6 +240,8 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     std::tuple<uintE, uintE> sAndD =
         pbbslib::reduce(deg_im, monoid);
     uintE start = std::get<0>(sAndD);
+
+
     if (!(labels[start] & TOP_BIT)) {
       auto in_visits = first_search(GA, labels, start, label_offset, in_edges);
       auto out_visits = first_search(GA, labels, start, label_offset);
@@ -250,9 +250,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
         bool inv = in_visits[i];
         bool outv = out_visits[i];
         if (inv && outv) {
-          labels[i] = label | TOP_BIT;
+          labels[i] = label | TOP_BIT; // In the Big SCC
         } else if (inv || outv) {
-          labels[i] = label;
+          labels[i] = label; // Reachabel from the Big SCC, but not in it.
         }
       });
       pbbslib::free_array(in_visits);

@@ -195,16 +195,16 @@ inline void vertexMap(VS& V, F f) {
 template <class VS, class F,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f) {
+inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThreshold) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, granularity, [&] (size_t i) {
       if (V.isIn(i)) {
         f(i);
       }
-    });
+    }, granularity);
   } else {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, granularity, [&] (size_t i)
                     { f(V.vtx(i)); });
   }
 }
@@ -318,13 +318,10 @@ inline EdgeMap_F<W, F> make_em_f(F f) {
   return EdgeMap_F<W, F>(f);
 }
 
-#ifdef USE_PCM_LIB
-
-#include "cpucounters.h"
 
 /* Aggregate metrics for a repeated experiment, repeated num_rounds times. */
 struct cpu_stats {
-  double ipc; /* instructions per clock */
+  double ipc;
   size_t total_cycles;
   double l2_hit_ratio;
   double l3_hit_ratio;
@@ -335,8 +332,22 @@ struct cpu_stats {
   size_t bytes_read;
   size_t bytes_written;
   double total_time;
-
   size_t num_rounds;
+
+  cpu_stats() {
+    ipc = 0;
+    total_cycles = 0;
+    l2_hit_ratio = 0;
+    l3_hit_ratio = 0;
+    l2_misses = 0;
+    l2_hits = 0;
+    l3_misses = 0;
+    l3_hits = 0;
+    bytes_read = 0;
+    bytes_written = 0;
+    total_time = 1.0;
+    num_rounds = 1;
+  }
 
   cpu_stats(
       double ipc,
@@ -395,6 +406,10 @@ struct cpu_stats {
       / GB); /* GB/sec */
   }
 };
+
+#ifdef USE_PCM_LIB
+
+#include "cpucounters.h"
 
 cpu_stats get_pcm_stats(
     SystemCounterState& before_state,

@@ -293,3 +293,148 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
 }
 
 }  // namespace bc
+
+
+namespace bc_bfs {
+
+using fType = double;
+
+template <class W>
+struct BFS_F {
+  pbbs::sequence<uint8_t>& Visited;
+  BFS_F(pbbs::sequence<uint8_t>& Visited) : Visited(Visited) {}
+  inline bool update(const uintE& s, const uintE& d, const W& w) {
+    Visited[d] = 1; /* first visit */
+    return 1;
+  }
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
+    return (pbbslib::atomic_compare_and_swap(&Visited[d], (uint8_t)0, (uint8_t)1)); /* first visit */
+  }
+  inline bool cond(const uintE& d) { return (Visited[d] == 0); }
+};
+
+template <class Graph>
+inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start) {
+  using W = typename Graph::weight_type;
+  size_t n = G.n;
+
+  auto NumPaths = sequence<fType>(n, static_cast<fType>(0));
+  auto Storage = sequence<fType>(n, static_cast<fType>(0));
+  NumPaths[start] = 1.0;
+
+  /* 0 = unvisited
+   * 1 = first visit
+   * 2 = finished */
+  auto Visited = sequence<uint8_t>(n, [](size_t i) { return 0; });
+  Visited[start] = 2;
+
+  vertexSubset Frontier(n, start);
+  std::vector<vertexSubset> Levels;
+
+  /* Forward pass */
+  timer fwd; fwd.start();
+  long round = 0;
+  {
+    auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) -> fType {
+      if (Visited[d] == 2) {
+        return NumPaths[d]; /* return values from finished vertices */
+      }
+      return (fType)0;
+    };
+    auto reduce_f = [&] (const fType& l, const fType& r) -> fType {
+      return l + r;
+    };
+    auto id = (fType)0;
+    auto monoid_f = pbbs::make_monoid(reduce_f, id);
+
+    auto reduce_incident_edges = [&] (vertexSubset& vs, flags fl) {
+      vertexMap(vs, [&] (const uintE& u) {
+        NumPaths[u] = (fl & in_edges) ?
+          G.get_vertex(u).template reduceInNgh<fType>(u, map_f, monoid_f):
+          G.get_vertex(u).template reduceOutNgh<fType>(u, map_f, monoid_f);
+      });
+    };
+    while (!Frontier.isEmpty()) {
+      debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
+      round++;
+
+      vertexSubset next_frontier = edgeMap(G, Frontier, BFS_F<W>(Visited), -1, sparse_blocked | dense_parallel);
+
+      reduce_incident_edges(next_frontier, in_edges);
+
+      vertexMap(next_frontier, [&] (const uintE u) {
+        Visited[u] = 2; /* finished */
+      });
+
+      Levels.push_back(next_frontier);                    // save frontier
+      Frontier = next_frontier;
+    }
+  }
+  Levels.push_back(Frontier);
+  fwd.stop(); fwd.reportTotal("forward time");
+
+
+
+
+  /* Backwards pass */
+  auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
+  // Invert numpaths
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                  { NumPaths[i] = 1 / NumPaths[i]; });
+
+  Levels[round].del(); /* ignore last vs, which is empty. */
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                  { Visited[i] = 0; });
+  Frontier = Levels[round - 1];
+  std::cout << "r-1 frontier: " << Frontier.s << " " << Frontier.m << std::endl;
+
+  timer bt;
+  bt.start();
+  {
+    auto finish_vertex_subset = [&] (vertexSubset& vs) {
+      vertexMap(Frontier, [&] (const uintE& u) {
+        Visited[u] = 2; /* finished */
+        Dependencies[u] += NumPaths[u];
+      });
+    };
+    finish_vertex_subset(Frontier);
+
+    auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) -> fType {
+      if (Visited[d] == 2) {
+        return Dependencies[d]; /* return values from finished vertices */
+      }
+      return (fType)0;
+    };
+    auto reduce_f = [&] (const fType& l, const fType& r) -> fType {
+      return l + r;
+    };
+    auto id = (fType)0;
+    auto monoid_f = pbbs::make_monoid(reduce_f, id);
+
+    auto reduce_dependencies = [&] (vertexSubset& vs) {
+      vertexMap(vs, [&] (const uintE& u) {
+        Dependencies[u] = G.get_vertex(u).template reduceOutNgh<fType>(u, map_f, monoid_f);
+      });
+    };
+    for (long r = round - 2; r >= 0; r--) {
+      Frontier.del();
+      Frontier = Levels[r];
+
+      reduce_dependencies(Frontier);
+
+      finish_vertex_subset(Frontier);
+    }
+  }
+  bt.stop();
+  debug(bt.reportTotal("back total time"););
+
+  Frontier.del();
+
+  // Update dependencies scores
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
+  });
+  return Dependencies;
+}
+
+} // namespace bc_bfs

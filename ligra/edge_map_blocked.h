@@ -427,25 +427,33 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
     return all_blocks[i]->block_size;
   });
   size_t output_size = pbbslib::scan_add_inplace(block_offsets.slice());
-  S* out = pbbslib::new_array_no_init<S>(output_size);
+  vertexSubsetData<data> ret(n);
+  if (output_size > 0) {
+    S* out = pbbslib::new_array_no_init<S>(output_size);
 
-  parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
-    em_data_block* block = all_blocks[block_id];
-    size_t block_size = block->block_size;
-    std::tuple<uintE, data>* block_data = (std::tuple<uintE, data>*)block->data;
-    size_t block_offset = block_offsets[block_id];
-    for (size_t i=0; i<block_size; i++) {
-      out[block_offset + i] = block_data[i];
-    }
-    // deallocate block to list_alloc
-    data_block_allocator::free(block);
-  }, 1);
+    parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
+      em_data_block* block = all_blocks[block_id];
+      size_t block_size = block->block_size;
+      std::tuple<uintE, data>* block_data = (std::tuple<uintE, data>*)block->data;
+      size_t block_offset = block_offsets[block_id];
+      for (size_t i=0; i<block_size; i++) {
+        out[block_offset + i] = block_data[i];
+      }
+      // deallocate block to list_alloc
+      data_block_allocator::free(block);
+    }, 1);
+    ret = vertexSubsetData<data>(n, output_size, out);
+  } else {
+    parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
+      em_data_block* block = all_blocks[block_id];
+      data_block_allocator::free(block);
+    });
+  }
 
   all_blocks.clear();
   block_offsets.clear();
   our_emhelper.del();
 
 //  our_em_block.reset(); (handled by get_all_blocks)
-
-  return vertexSubsetData<data>(n, output_size, out);
+  return std::move(ret);
 }

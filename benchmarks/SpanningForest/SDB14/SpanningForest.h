@@ -189,4 +189,4 @@ namespace workefficient_sf {
     return SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute).to_seq();
   }
 
-}  // namespace spanning_forest
+}  // namespace workefficient_sf

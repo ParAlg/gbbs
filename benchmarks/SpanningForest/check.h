@@ -2,9 +2,6 @@
 
 #include "ligra/graph.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
-#include "benchmarks/Connectivity/UnionFind/Connectivity.h"
-#include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
-//#include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 
 #include "common.h"
 
@@ -91,29 +88,18 @@ namespace spanning_forest {
     }
     /* convert to graphs, and check connectivity induced by edges */
 
-    auto correct_comps = union_find::find_compress_uf(n, correct);
-    auto check_comps = union_find::find_compress_uf(n, check);
+    auto double_correct = double_edges(correct);
+    auto G_double = sym_graph_from_edges(double_correct, n);
+    auto conn_correct = workefficient_cc::CC(G_double);
+    num_cc(conn_correct);
 
-    num_cc(correct_comps);
-    num_cc(check_comps);
+    auto double_check = double_edges(check);
+    auto G_check = sym_graph_from_edges(double_check, n);
+    auto conn_check = workefficient_cc::CC(G_check);
+    num_cc(conn_check);
 
-    cc_check(correct_comps, check_comps);
+    cc_check(conn_correct, conn_check);
   }
 
-  template <class Graph>
-  void sf_compute_and_check(Graph& G, pbbs::sequence<edge>& check) {
-    auto correct = workefficient_sf::SpanningForest(G);
-
-    std::cout << "correct.size = " << correct.size() << " check.size = " << check.size() << std::endl;
-    size_t cor_xor = 0; size_t check_xor = 0;
-    for (size_t i=0; i<correct.size(); i++) {
-      auto [u, v] = correct[i];
-      auto [up, vp] = check[i];
-      cor_xor ^= ((static_cast<size_t>(u) << 32L) + static_cast<size_t>(v));
-      check_xor ^= ((static_cast<size_t>(up) << 32L) + static_cast<size_t>(vp));
-    }
-    std::cout << "correct xor = " << cor_xor << " check_xor = " << check_xor << std::endl;
-    //auto correct = bfs_sf::SpanningForest(G);
-    check_spanning_forest(G.n, correct, check);
-  }
 }
+

@@ -48,12 +48,12 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   assert(P.getOption("-s"));
   timer t;
   t.start();
-  auto edges = P.getOption("-det") ? bfs_sf::SpanningForestDet(G) : bfs_sf::SpanningForest(G);
+  auto edges_nd = bfs_sf::SpanningForest(G);
   double tt = t.stop();
-  std::cout << "### Running Time: " << tt << std::endl;
 
   if (P.getOptionValue("-check")) {
-    spanning_forest::sf_compute_and_check(G, edges);
+    auto edges_det = bfs_sf::SpanningForestDet(G);
+    spanning_forest::check_spanning_forest(G.n, edges_nd, edges_det);
   }
 
   return tt;

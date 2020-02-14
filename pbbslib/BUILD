@@ -90,15 +90,6 @@ cc_library(
   ]
 )
 
-cc_test(
-  name = "sequence_test",
-  srcs = ["sequence_test.cpp"],
-  copts = ["-Iexternal/gtest/include"],
-  deps = [
-      "@googletest//:gtest_main",
-  ],
-)
-
 cc_library(
   name = "random",
   hdrs = ["random.h"],
@@ -323,7 +314,6 @@ cc_library(
   ":utilities"
   ]
 )
-
 
 cc_binary(
   name = "time_tests",

@@ -122,7 +122,6 @@ void BFS_SpanningForest_Det(Graph& G, uintE src, pbbs::sequence<parent>& parents
   size_t reachable = 0; size_t rounds = 0;
   while (!Frontier.isEmpty()) {
     reachable += Frontier.size();
-    vertexMap(Frontier, [&] (const uintE& u) { visited[u] = true; } );
     edgeMap(G, Frontier, BFS_SpanningForest_Det_F<W>(parents, visited), -1, sparse_blocked | dense_parallel);
     auto output = edgeMap(G, Frontier, BFS_SpanningForest_Det_F_2<W>(parents, visited), -1, sparse_blocked | dense_parallel);
     Frontier.del();
@@ -140,6 +139,7 @@ inline pbbs::sequence<edge> SpanningForestDet(Graph& G) {
   for (size_t i=0; i<n; i++) {
     if (parents[i] == UINT_E_MAX) {
       parents[i] = i;
+      visited[i] = true;
       BFS_SpanningForest_Det(G, i, parents, visited);
     }
   }

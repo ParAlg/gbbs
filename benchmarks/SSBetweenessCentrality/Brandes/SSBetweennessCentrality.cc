@@ -46,7 +46,23 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   std::cout << "### ------------------------------------" << endl;
 
   timer t; t.start();
-  auto scores = P.getOptionValue("-fa") ? bc::SSBetweennessCentrality(G, src) : bc::SSBetweennessCentrality_EM(G, src);
+  if (P.getOptionValue("-fa")) {
+    auto scores = bc::SSBetweennessCentrality_EM(G, src);
+    for (size_t i=0; i<100; i++) {
+      std::cout << scores[i] << std::endl;
+    }
+  } else if (P.getOptionValue("-nocontend")) {
+    auto scores = bc_bfs::SSBetweennessCentrality_BFS(G, src);
+    for (size_t i=0; i<100; i++) {
+      std::cout << scores[i] << std::endl;
+    }
+  } else {
+    auto scores = bc::SSBetweennessCentrality(G, src);
+    for (size_t i=0; i<100; i++) {
+      std::cout << scores[i] << std::endl;
+    }
+  }
+
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 

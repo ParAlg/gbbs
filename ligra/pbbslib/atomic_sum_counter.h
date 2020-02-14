@@ -12,14 +12,14 @@ struct atomic_sum_counter {
   size_t num_elms;
   size_t num_workers_;
   atomic_sum_counter() {
-    num_workers_ = 0;
+    initialize();
+//    num_workers_ = 0;
   }
 
   void initialize() {
     stride = 128/sizeof(T);
     stride = pbbs::log2_up(stride);
     num_workers_ = num_workers();
-    std::cout << "num_workers = " << num_workers_ << std::endl;
     num_elms = num_workers_ << stride;
     entries = pbbs::new_array_no_init<T>(num_elms);
     for (size_t i=0; i<num_workers_; i++) {
@@ -34,10 +34,10 @@ struct atomic_sum_counter {
   }
 
   void reset() {
-    /* bad hack; must call reset() before using. */
+    // bad hack; must call reset() before using.
     if (num_workers_ == 0) {
       initialize();
-    }
+    } // else already initialized
     for (size_t i=0; i<num_workers_; i++) {
       entries[i << stride] = (T)0;
     }

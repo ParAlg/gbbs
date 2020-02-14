@@ -29,26 +29,37 @@
 
 namespace labelprop_cc {
 
+  constexpr uint8_t unemitted = 0;
+  constexpr uint8_t need_emit = 1;
+  constexpr uint8_t emitted = 2;
+
+  bool lp_less(uintE u, uintE v) {
+    if (u == largest_comp) {
+      return (v != largest_comp);
+    } else if (v == largest_comp) {
+      return false;
+    }
+    return u < v;
+  }
+
   template <class W>
   struct LabelProp_F {
-    pbbs::sequence<parent>& components;
-    pbbs::sequence<bool>& changed;
-    LabelProp_F(pbbs::sequence<parent>& components, pbbs::sequence<bool>& changed) : components(components), changed(changed) {}
+    pbbs::sequence<parent>& Parents;
+    pbbs::sequence<uint8_t>& changed;
+    LabelProp_F(pbbs::sequence<parent>& Parents, pbbs::sequence<uint8_t>& changed) : Parents(Parents), changed(changed) {}
     inline bool update(const uintE& s, const uintE& d, const W& w) {
-      if (components[s] < components[d]) {
-        components[d] = components[s];
-        if (!changed[d]) {
-          changed[d] = true;
-          return 1;
-        }
-      }
-      return 0;
+      return updateAtomic(s, d, w);
     }
+
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-      if (components[s] < components[d]) {
-        pbbs::write_min<uintE>(&components[d], components[s], std::less<uintE>());
-        if (!changed[d]) {
-          return pbbs::atomic_compare_and_swap(&changed[d], false, true);
+      if (lp_less(Parents[s], Parents[d])) {
+        pbbs::write_min<uintE>(&Parents[d], Parents[s], lp_less);
+        return pbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
+      } else if (lp_less(Parents[d], Parents[s])) {
+        if (pbbs::write_min<uintE>(&Parents[s], Parents[d], lp_less)) {
+          if (changed[s] == unemitted) {
+            pbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
+          }
         }
       }
       return 0;
@@ -56,42 +67,6 @@ namespace labelprop_cc {
     inline bool cond(const uintE& d) { return true; }
   };
 
-  template <class Graph>
-  void CC_impl(Graph& G, pbbs::sequence<parent>& components) {
-    using W = typename Graph::weight_type;
-    size_t n = G.n;
-    auto all = pbbs::sequence<bool>(n, true);
-    auto vs = vertexSubset(n, n, all.to_array());
-    size_t rounds = 0;
-    auto changed = pbbs::sequence<bool>(n, false);
-    size_t vertices_processed = 0;
-    while (!vs.isEmpty()) {
-      // std::cout << vs.size() << std::endl;
-      vertices_processed += vs.size();
-      timer tt; tt.start();
-      auto next_vs = edgeMap(G, vs, LabelProp_F<W>(components, changed), -1, dense_forward);
-      tt.stop(); tt.reportTotal("edge map time");
-      vs.del();
-      vs = next_vs;
-      vertexMap(vs, [&] (const uintE u) { changed[u] = false; });
-      rounds++;
-    }
-    std::cout << "# LabelProp: ran " << rounds << " many rounds." << std::endl;
-    std::cout << "# processed " << vertices_processed << " many vertices" << std::endl;
-  }
-
-  template <bool use_permutation, class Graph>
-  inline sequence<parent> CC(Graph& G) {
-    size_t n = G.n;
-    pbbs::sequence<parent> components;
-    if constexpr (use_permutation) {
-      components = pbbs::random_permutation<uintE>(n);
-    } else {
-      components = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-    }
-    CC_impl(G, components);
-    return components;
-  }
 
   template <class Graph>
   struct LPAlgorithm {
@@ -101,31 +76,63 @@ namespace labelprop_cc {
     void initialize(pbbs::sequence<parent>& P) {}
 
     template <SamplingOption sampling_option>
-    void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
+    void compute_components(pbbs::sequence<parent>& Parents, uintE frequent_comp = UINT_E_MAX) {
       using W = typename Graph::weight_type;
       size_t n = GA.n;
 
-
       auto vs = vertexSubset(n);
-      auto all = pbbs::sequence<bool>(n, true);
-      vs = vertexSubset(n, n, all.to_array());
+      pbbs::sequence<bool> all;
+      if constexpr (sampling_option == no_sampling) {
+        all = pbbs::sequence<bool>(n, true);
+      } else { /* frequent_comp provided */
+        all = pbbs::sequence<bool>(n, [&] (size_t i) -> bool {
+          return Parents[i] != frequent_comp;
+        });
+      }
+      vs = vertexSubset(n, all.to_array());
+      std::cout << "### initial vs = " << vs.size() << std::endl;
 
       size_t rounds = 0;
-      auto changed = pbbs::sequence<bool>(n, false);
+      auto changed = pbbs::sequence<uint8_t>(n, (uint8_t)0);
       size_t vertices_processed = 0;
       while (!vs.isEmpty()) {
-        std::cout << "vs size = " << vs.size() << std::endl;
+        std::cout << "### vs size = " << vs.size() << std::endl;
         vertices_processed += vs.size();
-        auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(parents, changed), -1, dense_forward);
+
+        auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(Parents, changed), -1, dense_forward);
+
+        vs.toSparse();
+        auto this_vs = pbbs::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
+          return vs.vtx(i);
+        });
+        auto new_vtxs = pbbs::filter(this_vs, [&] (uintE v) {
+          return changed[v] == need_emit; /* emit those that need emitting */
+        });
+        std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;
+        add_to_vsubset(next_vs, new_vtxs.begin(), new_vtxs.size());
+
         vs.del();
         vs = next_vs;
-        vertexMap(vs, [&] (const uintE u) { changed[u] = false; });
+        vertexMap(vs, [&] (const uintE& u) { changed[u] = unemitted; });
         rounds++;
       }
       std::cout << "# LabelProp: ran " << rounds << " many rounds." << std::endl;
       std::cout << "# processed " << vertices_processed << " many vertices" << std::endl;
     }
-
   };
+
+  template <bool use_permutation, class Graph>
+  inline sequence<parent> CC(Graph& G) {
+    size_t n = G.n;
+    pbbs::sequence<parent> Parents;
+    if constexpr (use_permutation) {
+      Parents = pbbs::random_permutation<uintE>(n);
+    } else {
+      Parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+    }
+    auto alg = LPAlgorithm<Graph>(G);
+    alg.template compute_components<no_sampling>(Parents);
+    return Parents;
+  }
 
 }  // namespace labelprop_cc

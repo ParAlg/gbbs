@@ -42,31 +42,10 @@ void jayanti_find_simple(Graph& G, int rounds, commandLine& P, pbbs::sequence<pa
 
 }
 
-/* Not sure how to supply type of F w-out decltype or supplying one entry as an
- * argument like below... */
-template <class F, class Graph>
-void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct,
-    F test,
-    std::initializer_list<F> tests) {
-  for (auto test : tests) {
-#ifdef USE_PCM_LIB
-  auto before_state = get_pcm_state();
-  timer ot; ot.start();
-#endif
-    test(G, rounds, P, correct);
-#ifdef USE_PCM_LIB
-  double elapsed = ot.stop();
-  auto after_state = get_pcm_state();
-  cpu_stats stats = get_pcm_stats(before_state, after_state, elapsed, rounds);
-  print_cpu_stats(stats, P);
-#endif
-  }
-}
-
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
-  int rounds = 1; // P.getOptionIntValue("-r", 5);
+  int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();
   if (P.getOptionValue("-check")) {
