@@ -35,6 +35,7 @@
 #pragma once
 #include <cstdio>
 #include <cstdint>
+#include <atomic>
 #include <iostream>
 
 #include "maybe.h"

@@ -30,6 +30,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <atomic>
 
 #include "concurrent_stack.h"
 
