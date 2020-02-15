@@ -456,6 +456,8 @@ namespace pbbslib {
   int t_to_stringlen(char* a);
   void type_to_string(char* s, char* a);
 
+  void type_to_string(char* s, double a);
+
   template <class A, class B>
   inline int t_to_stringlen(std::pair<A, B> a) {
     return t_to_stringlen(a.first) + t_to_stringlen(a.second) + 1;
@@ -470,8 +472,6 @@ namespace pbbslib {
   inline int t_to_stringlen(std::tuple<A, B, C> a) {
     return t_to_stringlen(std::get<0>(a)) + t_to_stringlen(std::get<1>(a)) + t_to_stringlen(std::get<2>(a)) + 2;
   }
-
-  void type_to_string(char* s, double a);
 
   template <class A, class B>
   inline void type_to_string(char* s, std::pair<A, B> a) {

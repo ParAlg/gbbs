@@ -24,6 +24,7 @@
 #pragma once
 
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "ligra/bridge.h"
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
 #include "ligra/pbbslib/sparse_table.h"
