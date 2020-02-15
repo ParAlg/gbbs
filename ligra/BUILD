@@ -1,6 +1,7 @@
 cc_library(
   name = "bridge",
   hdrs = ["bridge.h"],
+  srcs = ["bridge.cc"],
   deps = [
   "//pbbslib:binary_search",
   "//pbbslib:counting_sort",

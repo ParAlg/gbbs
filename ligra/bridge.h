@@ -428,22 +428,22 @@ namespace pbbslib {
     return filter_iter<E, I, P>(_it, _pr);
   }
 
-  inline int t_to_stringlen(long a) { return 21; }
-  inline void type_to_string(char* s, long a) { sprintf(s, "%ld", a); }
+  int t_to_stringlen(long a);
+  void type_to_string(char* s, long a);
 
-  inline int t_to_stringlen(unsigned long a) { return 21; }
-  inline void type_to_string(char* s, unsigned long a) { sprintf(s, "%lu", a); }
+  int t_to_stringlen(unsigned long a);
+  void type_to_string(char* s, unsigned long a);
 
-  inline uint t_to_stringlen(uint a) { return 12; }
-  inline void type_to_string(char* s, uint a) { sprintf(s, "%u", a); }
+  uint t_to_stringlen(uint a);
+  void type_to_string(char* s, uint a);
 
-  inline int t_to_stringlen(int a) { return 12; }
-  inline void type_to_string(char* s, int a) { sprintf(s, "%d", a); }
+  int t_to_stringlen(int a);
+  void type_to_string(char* s, int a);
 
-  inline int t_to_stringlen(double a) { return 18; }
+  int t_to_stringlen(double a);
 
-  inline int t_to_stringlen(char* a) { return strlen(a) + 1; }
-  inline void type_to_string(char* s, char* a) { sprintf(s, "%s", a); }
+  int t_to_stringlen(char* a);
+  void type_to_string(char* s, char* a);
 
   template <class A, class B>
   inline int t_to_stringlen(std::pair<A, B> a) {
@@ -460,7 +460,7 @@ namespace pbbslib {
     return t_to_stringlen(std::get<0>(a)) + t_to_stringlen(std::get<1>(a)) + t_to_stringlen(std::get<2>(a)) + 2;
   }
 
-  inline void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
+  void type_to_string(char* s, double a);
 
   template <class A, class B>
   inline void type_to_string(char* s, std::pair<A, B> a) {
