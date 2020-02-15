@@ -48,6 +48,7 @@ static void par_do3_if(bool do_parallel, Lf&& left, Mf&& mid, Rf&& right) {
   }
 }
 
+<<<<<<< HEAD
 namespace pbbs {
   template <class T>
   size_t log2_up(T);
@@ -79,6 +80,8 @@ struct maybe {
 	}
 };
 
+=======
+>>>>>>> bacc07c... bridge: Copy functions from pbbslib using aliases when possible
 #if defined(__APPLE__)
 inline void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
 #else
