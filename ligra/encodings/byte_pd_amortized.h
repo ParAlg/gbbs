@@ -33,15 +33,11 @@
 #include <type_traits>
 
 #include "ligra/bridge.h"
+#include "ligra/macros.h"
 
 namespace bytepd_amortized {
 
-inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
-  if (d > 0) {
-    return *((uintE*)ngh_arr);
-  }
-  return 0;
-}
+size_t get_virtual_degree(uintE d, uchar* ngh_arr);
 
 // Read default weight (expects pbbslib::empty)
 template <class W,
@@ -81,79 +77,18 @@ __attribute__((always_inline)) inline W eatWeight(uchar*& start) {
   return (fb & 0x40) ? -edgeRead : edgeRead;
 }
 
-__attribute__((always_inline)) inline uintE eatFirstEdge(uchar*& start, const uintE source) {
-  uchar fb = *start++;
-  uintE edgeRead = (fb & 0x3f);
-  if (LAST_BIT_SET(fb)) {
-    int shiftAmount = 6;
-    while (1) {
-      uchar b = *start;
-      edgeRead |= ((b & 0x7f) << shiftAmount);
-      start++;
-      if (LAST_BIT_SET(b))
-        shiftAmount += EDGE_SIZE_PER_BYTE;
-      else
-        break;
-    }
-  }
-  return (fb & 0x40) ? source - edgeRead : source + edgeRead;
-}
+uintE eatFirstEdge(uchar*& start, const uintE source);
 
 /*
   Reads any edge of an out-edge list after the first edge.
 */
-__attribute__((always_inline)) inline uintE eatEdge(uchar*& start) {
-  uintE edgeRead = 0;
-  int shiftAmount = 0;
-
-  while (1) {
-    uchar b = *start;
-    edgeRead += ((b & 0x7f) << shiftAmount);
-    start++;
-    if (LAST_BIT_SET(b))
-      shiftAmount += EDGE_SIZE_PER_BYTE;
-    else
-      break;
-  }
-  return edgeRead;
-}
+uintE eatEdge(uchar*& start);
 
 /*
   Compresses the first edge, writing target-source and a sign bit.
 */
-inline long compressFirstEdge(uchar* start, long offset, long source,
-                              long target) {
-  long diff = target - source;
-  long preCompress = diff;
-  int bytesUsed = 0;
-  uchar firstByte = 0;
-  uintE toCompress = std::abs(preCompress);
-  firstByte = toCompress & 0x3f;  // 0011|1111
-  if (preCompress < 0) {
-    firstByte |= 0x40;
-  }
-  toCompress = toCompress >> 6;
-  if (toCompress > 0) {
-    firstByte |= 0x80;
-  }
-  start[offset] = firstByte;
-  offset++;
-
-  uchar curByte = toCompress & 0x7f;
-  while ((curByte > 0) || (toCompress > 0)) {
-    bytesUsed++;
-    uchar toWrite = curByte;
-    toCompress = toCompress >> 7;
-    // Check to see if there's any bits left to represent
-    curByte = toCompress & 0x7f;
-    if (toCompress > 0) {
-      toWrite |= 0x80;
-    }
-    start[offset] = toWrite;
-    offset++;
-  }
-  return offset;
-}
+long compressFirstEdge(uchar* start, long offset, long source,
+                              long target);
 
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
@@ -170,23 +105,7 @@ inline long compressWeight(uchar* start, long offset, W weight) {
 /*
   Should provide the difference between this edge and the previous edge
 */
-inline long compressEdge(uchar* start, long curOffset, uintE e) {
-  uchar curByte = e & 0x7f;
-  int bytesUsed = 0;
-  while ((curByte > 0) || (e > 0)) {
-    bytesUsed++;
-    uchar toWrite = curByte;
-    e = e >> 7;
-    // Check to see if there's any bits left to represent
-    curByte = e & 0x7f;
-    if (e > 0) {
-      toWrite |= 0x80;
-    }
-    start[curOffset] = toWrite;
-    curOffset++;
-  }
-  return curOffset;
-}
+long compressEdge(uchar* start, long curOffset, uintE e);
 
 template <class W>
 struct iter {
@@ -685,31 +604,9 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   return std::make_tuple(ngh, wgh);
 }
 
-inline uintE get_num_blocks(uchar* edge_start,  uintE degree) {
-  if (degree == 0) {
-    return 0;
-  }
-  uintE virtual_degree = *((uintE*)edge_start);
-  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-  return num_blocks;
-}
+uintE get_num_blocks(uchar* edge_start,  uintE degree);
 
-inline uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
-  if (degree == 0) { return 0; }
-  uintE virtual_degree = *((uintE*)edge_start);
-  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-  uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
-
-  auto block_ends = [&] (size_t j) {
-    uintE end = (j == (num_blocks - 1))
-                    ? degree
-                    : (*((uintE*)(edge_start + block_offsets[j])));
-    return end;
-  };
-  uintE block_start = (block_num == 0) ? 0 : block_ends(block_num - 1);
-  uintE block_end = block_ends(block_num);
-  return block_end - block_start; // TODO: check
-}
+uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num);
 
 //  #define SEQ_THRESH 10
 //  // Represents the sequence from

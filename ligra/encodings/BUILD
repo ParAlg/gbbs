@@ -20,8 +20,10 @@ cc_library(
 cc_library(
   name = "byte_pd_amortized",
   hdrs = ["byte_pd_amortized.h"],
+  srcs = ["byte_pd_amortized.cc"],
   deps = [
   "//ligra:bridge",
+  "//ligra:macros",
   ]
 )
 
