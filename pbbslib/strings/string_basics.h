@@ -31,7 +31,8 @@ namespace pbbs {
   // Reads a character sequence from a file
   //    if end is zero or larger than file, then returns full file
   //    if start past end of file then returns an empty string
-  sequence<char> char_seq_from_file(std::string filename, size_t start=0, size_t end=0);
+  sequence<char> 
+  char_seq_from_file(const std::string& filename, size_t start=0, size_t end=0);
 
   // Writes a character sequence to a file, returns 0 if successful
   template <class CharSeq>
