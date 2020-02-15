@@ -47,26 +47,6 @@ cc_library(
 )
 
 cc_library(
-  name = "block_allocator",
-  hdrs = ["block_allocator.h"],
-  srcs = ["block_allocator.cc"],
-  deps = [
-  ":concurrent_stack",
-  ":maybe",
-  ":memory_size",
-  ":parallel",
-  ],
-)
-
-cc_library(
-  name = "allocator",
-  hdrs = ["allocator.h"],
-  deps = [
-  ":block_allocator",
-  ],
-)
-
-cc_library(
   name = "get_time",
   hdrs = ["get_time.h"],
   srcs = ["get_time.cc"],
@@ -340,7 +320,6 @@ cc_binary(
   srcs = ["time_tests.cc"],
   deps = [
    ":alloc",
-   ":allocator",
    ":get_time",
    ":parse_command_line",
    ":sequence_ops",
