@@ -191,6 +191,7 @@ cc_library(
 cc_library(
   name = "union_find",
   hdrs = ["union_find.h"],
+  srcs = ["union_find.cc"],
   deps = [
   ":macros",
   ":speculative_for"
