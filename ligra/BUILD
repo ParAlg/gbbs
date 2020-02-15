@@ -129,6 +129,7 @@ cc_library(
 cc_library(
   name = "ligra",
   hdrs = ["ligra.h"],
+  srcs = ["ligra.cc"],
   deps = [
   ":bridge",
   ":compressed_vertex",
