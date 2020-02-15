@@ -95,10 +95,6 @@ namespace pbbslib {
   using pbbs::log2_up;
   using pbbs::granularity;
   using pbbs::assert_str;
-  template <typename ET>
-  constexpr auto CAS_GCC = pbbs::atomic_compare_and_swap<ET>;
-  template <typename ET>
-  constexpr auto CAS = pbbs::atomic_compare_and_swap<ET>;
 
   template<typename T>
   inline void assign_uninitialized(T& a, const T& b) {
@@ -116,6 +112,11 @@ namespace pbbslib {
   //   return __sync_bool_compare_and_swap_16((__int128*)a, *((__int128*)&b),
   //                                          *((__int128*)&c));
   // }
+
+  template <typename ET>
+  inline bool CAS(ET* ptr, const ET oldv, const ET newv) {
+    return atomic_compare_and_swap(ptr, oldv, newv);
+  }
 
   inline long xaddl(long* variable, long value) {
     asm volatile("lock; xaddl %%eax, %2;"
@@ -146,6 +147,16 @@ namespace pbbslib {
                 << "\n";
       abort();
     }
+  }
+
+  template <typename ET>
+  inline bool write_min(ET *a, ET b) {
+    return pbbs::write_min<ET>(a, b, std::less<ET>());
+  }
+
+  template <typename ET>
+  inline bool write_max(ET *a, ET b) {
+    return pbbs::write_max<ET>(a, b, std::less<ET>());
   }
 
   // ========================= monoid ==========================
