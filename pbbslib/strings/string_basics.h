@@ -75,16 +75,7 @@ namespace pbbs {
   }
 
   // standard definition of a space character
-  inline bool is_space(char c) {
-    switch (c)  {
-    case '\r':
-    case '\t':
-    case '\n':
-    case 0:
-    case ' ' : return true;
-    default : return false;
-    }
-  }
+  bool is_space(char c);
 
   template <class Seq, class UnaryPred>
   sequence<range<char*>> tokens(Seq const &S, UnaryPred const &is_space) {

@@ -21,4 +21,15 @@ sequence<char> char_seq_from_file(
   return sequence<char>(bytes,n);
 }
 
+bool is_space(char c) {
+  switch (c)  {
+  case '\r':
+  case '\t':
+  case '\n':
+  case 0:
+  case ' ' : return true;
+  default : return false;
+  }
+}
+
 }  // namespace pbbs
