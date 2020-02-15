@@ -30,10 +30,10 @@ namespace pbbslib {
   // TODO: see if striding by an entire page reduces times more.
   constexpr size_t kResizableTableCacheLineSz = 128;
 
-  static inline size_t hashToRange(const size_t& h, const size_t& mask) {
+  inline size_t hashToRange(const size_t& h, const size_t& mask) {
     return h & mask;
   }
-  static inline size_t incrementIndex(const size_t& h, const size_t& mask) {
+  inline size_t incrementIndex(const size_t& h, const size_t& mask) {
     return hashToRange(h + 1, mask);
   }
 
