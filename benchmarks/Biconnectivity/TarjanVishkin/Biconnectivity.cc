@@ -46,8 +46,8 @@ template <template <typename W> class vertex, class W>
 void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
-  auto S = pbbslib::char_seq_from_file(s);
-  auto tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  auto S = pbbs::char_seq_from_file(s);
+  auto tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
     labels[i] =
