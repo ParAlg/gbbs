@@ -53,13 +53,6 @@ cc_library(
 )
 
 cc_library(
-  name = "parse_command_line",
-  hdrs = ["parse_command_line.h"],
-  srcs = ["parse_command_line.cc"],
-)
-
-
-cc_library(
   name = "seq",
   hdrs = ["seq.h"],
   deps = [
@@ -319,9 +312,9 @@ cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cc"],
   deps = [
+   "//ligra:parse_command_line",
    ":alloc",
    ":get_time",
-   ":parse_command_line",
    ":sequence_ops",
    ":time_operations",
    ":utilities",
