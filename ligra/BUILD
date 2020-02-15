@@ -19,8 +19,9 @@ cc_library(
 cc_library(
   name = "io",
   hdrs = ["io.h"],
+  srcs = ["io.cc"],
   deps = [
-  ":bridge",
+  ":macros",
   ]
 )
 
@@ -29,7 +30,6 @@ cc_library(
   hdrs = ["graph_io.h"],
   srcs = ["graph_io.cc"],
   deps = [
-  ":bridge",
   ":graph",
   ":io",
   "//pbbslib/strings:string_basics",

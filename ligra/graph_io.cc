@@ -1,5 +1,7 @@
 #include "graph_io.h"
 
+#include <sys/mman.h>
+
 #include "pbbslib/strings/string_basics.h"
 
 namespace gbbs_io {
