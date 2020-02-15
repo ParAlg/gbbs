@@ -1,6 +1,7 @@
 cc_library(
   name = "byte",
   hdrs = ["byte.h"],
+  srcs = ["byte.cc"],
   deps = ["//ligra:macros"]
 )
 
