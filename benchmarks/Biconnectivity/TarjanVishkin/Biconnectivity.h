@@ -29,6 +29,7 @@
 #include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
+#include "pbbslib/strings/string_basics.h"
 #include "ligra/speculative_for.h"
 
 namespace bc {

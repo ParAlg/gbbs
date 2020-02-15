@@ -9,6 +9,7 @@ cc_library(
   "//ligra/pbbslib:sparse_table",
   "//pbbslib:random",
   "//pbbslib:sample_sort",
+  "//pbbslib/strings:string_basics",
   ]
 )
 
