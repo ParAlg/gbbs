@@ -39,7 +39,7 @@
 #include "maybe.h"
 #include "memory_size.h"
 
-constexpr const size_t default_alloc_size = 1000;
+constexpr const size_t default_alloc_size = 1000000;
 constexpr const size_t list_size = 1 << 8;
 constexpr const size_t pad_size = 4096;
 
