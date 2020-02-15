@@ -27,6 +27,7 @@ cc_library(
 cc_library(
   name = "graph_io",
   hdrs = ["graph_io.h"],
+  srcs = ["graph_io.cc"],
   deps = [
   ":bridge",
   ":graph",
