@@ -34,11 +34,6 @@ static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
   else {left(); mid(); right();}
 }
 
-namespace pbbs {
-  template <class T>
-  size_t log2_up(T);
-}
-
 #if defined(__APPLE__)
 inline void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
 #else
@@ -278,6 +273,6 @@ namespace pbbs {
 
   size_t granularity(size_t n);
 
-  void assert_str(int cond, std::string s);
+  void assert_str(int cond, const std::string& s);
 
 }
