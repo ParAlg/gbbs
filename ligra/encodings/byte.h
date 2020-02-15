@@ -37,7 +37,7 @@
 
 namespace byte {
 
-size_t get_virtual_degree(uintE d, uchar* nghArr);
+inline size_t get_virtual_degree(uintE d, uchar* nghArr) { return d; }
 
 // Read an empty weight (noop)
 template <class W, typename std::enable_if<std::is_same<W, pbbslib::empty>::value,

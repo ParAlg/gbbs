@@ -2,10 +2,6 @@
 
 namespace byte {
 
-size_t get_virtual_degree(uintE d, uchar* nghArr) { 
-  return d; 
-}
-
 intE eatFirstEdge(uchar*& start, uintE source) {
   uchar fb = *start++;
   intE edgeRead = (fb & 0x3f);

@@ -37,7 +37,12 @@
 
 namespace bytepd_amortized {
 
-size_t get_virtual_degree(uintE d, uchar* ngh_arr);
+inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
+  if (d > 0) {
+    return *((uintE*)ngh_arr);
+  }
+  return 0;
+}
 
 // Read default weight (expects pbbslib::empty)
 template <class W,
@@ -77,12 +82,42 @@ __attribute__((always_inline)) inline W eatWeight(uchar*& start) {
   return (fb & 0x40) ? -edgeRead : edgeRead;
 }
 
-uintE eatFirstEdge(uchar*& start, const uintE source);
+__attribute__((always_inline)) inline uintE eatFirstEdge(uchar*& start, const uintE source) {
+  uchar fb = *start++;
+  uintE edgeRead = (fb & 0x3f);
+  if (LAST_BIT_SET(fb)) {
+    int shiftAmount = 6;
+    while (1) {
+      uchar b = *start;
+      edgeRead |= ((b & 0x7f) << shiftAmount);
+      start++;
+      if (LAST_BIT_SET(b))
+        shiftAmount += EDGE_SIZE_PER_BYTE;
+      else
+        break;
+    }
+  }
+  return (fb & 0x40) ? source - edgeRead : source + edgeRead;
+}
 
 /*
   Reads any edge of an out-edge list after the first edge.
 */
-uintE eatEdge(uchar*& start);
+__attribute__((always_inline)) inline uintE eatEdge(uchar*& start) {
+  uintE edgeRead = 0;
+  int shiftAmount = 0;
+
+  while (1) {
+    uchar b = *start;
+    edgeRead += ((b & 0x7f) << shiftAmount);
+    start++;
+    if (LAST_BIT_SET(b))
+      shiftAmount += EDGE_SIZE_PER_BYTE;
+    else
+      break;
+  }
+  return edgeRead;
+}
 
 /*
   Compresses the first edge, writing target-source and a sign bit.

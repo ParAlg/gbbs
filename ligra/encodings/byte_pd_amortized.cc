@@ -2,47 +2,6 @@
 
 namespace bytepd_amortized {
 
-size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
-  if (d > 0) {
-    return *((uintE*)ngh_arr);
-  }
-  return 0;
-}
-
-uintE eatFirstEdge(uchar*& start, const uintE source) {
-  uchar fb = *start++;
-  uintE edgeRead = (fb & 0x3f);
-  if (LAST_BIT_SET(fb)) {
-    int shiftAmount = 6;
-    while (1) {
-      uchar b = *start;
-      edgeRead |= ((b & 0x7f) << shiftAmount);
-      start++;
-      if (LAST_BIT_SET(b))
-        shiftAmount += EDGE_SIZE_PER_BYTE;
-      else
-        break;
-    }
-  }
-  return (fb & 0x40) ? source - edgeRead : source + edgeRead;
-}
-
-uintE eatEdge(uchar*& start) {
-  uintE edgeRead = 0;
-  int shiftAmount = 0;
-
-  while (1) {
-    uchar b = *start;
-    edgeRead += ((b & 0x7f) << shiftAmount);
-    start++;
-    if (LAST_BIT_SET(b))
-      shiftAmount += EDGE_SIZE_PER_BYTE;
-    else
-      break;
-  }
-  return edgeRead;
-}
-
 long compressFirstEdge(uchar* start, long offset, long source,
                               long target) {
   long diff = target - source;
