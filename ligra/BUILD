@@ -99,6 +99,7 @@ cc_library(
 cc_library(
   name = "graph",
   hdrs = ["graph.h"],
+  srcs = ["graph.cc"],
   deps = [
   ":bridge",
   ":compressed_vertex",
