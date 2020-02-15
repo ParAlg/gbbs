@@ -22,8 +22,6 @@
 #error "Unable to define getMemorySize( ) for an unknown OS."
 #endif
 
-
-
 /**
  * Returns the size of physical memory (RAM) in bytes.
  */

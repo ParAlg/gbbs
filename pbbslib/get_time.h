@@ -13,23 +13,14 @@ struct timer {
   timer(std::string name = "# PBBS time", bool _start = true);
 
   double get_time();
-
   void start();
-
   double stop();
-
   void reset();
-
   double get_total();
-
   double get_next();
-
   void report(double time, const std::string& str);
-
   void total();
-
   void reportTotal(const std::string& str);
-
   void next(const std::string& str);
 };
 

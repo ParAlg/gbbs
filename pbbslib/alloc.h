@@ -17,13 +17,9 @@ struct mem_pool {
   mem_pool();
 
   void* add_header(void* a);
-
   void* sub_header(void* a);
-
   void* alloc(size_t s);
-
   void afree(void* a);
-
   void clear();
 };
 
