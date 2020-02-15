@@ -162,6 +162,7 @@ cc_library(
 cc_library(
   name = "parse_command_line",
   hdrs = ["parse_command_line.h"],
+  srcs = ["parse_command_line.cc"],
 )
 
 cc_library(
