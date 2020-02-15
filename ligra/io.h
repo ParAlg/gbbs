@@ -40,7 +40,6 @@
 #include <string>
 
 #include "bridge.h"
-#include "pbbs_strings.h"
 
 namespace gbbs_io {
 

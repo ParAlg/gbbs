@@ -24,10 +24,10 @@
 #pragma once
 
 
+#include "pbbslib/strings/string_basics.h"
 #include "bridge.h"
 #include "graph.h"
 #include "io.h"
-#include "pbbs_strings.h"
 
 namespace gbbs_io {
 
@@ -61,7 +61,7 @@ parse_weighted_graph(
       S = readStringFromFile(fname);
     }
   }
-  tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
   assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
 
   uint64_t len = tokens.size() - 1;
@@ -205,7 +205,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
       S = readStringFromFile(fname);
     }
   }
-  tokens = pbbslib::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
 
   assert(tokens[0] == (std::string) "AdjacencyGraph");
 

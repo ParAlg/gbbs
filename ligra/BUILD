@@ -21,7 +21,6 @@ cc_library(
   hdrs = ["io.h"],
   deps = [
   ":bridge",
-  ":pbbs_strings",
   ]
 )
 
@@ -32,7 +31,7 @@ cc_library(
   ":bridge",
   ":graph",
   ":io",
-  ":pbbs_strings",
+  "//pbbslib/strings:string_basics",
   ]
 )
 
@@ -163,12 +162,6 @@ cc_library(
 cc_library(
   name = "parse_command_line",
   hdrs = ["parse_command_line.h"],
-)
-
-cc_library(
-  name = "pbbs_strings",
-  hdrs = ["pbbs_strings.h"],
-  deps = ["//pbbslib/strings:string_basics"]
 )
 
 cc_library(
