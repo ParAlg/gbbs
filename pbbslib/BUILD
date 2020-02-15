@@ -307,6 +307,7 @@ cc_library(
 cc_library(
   name = "time_operations",
   hdrs = ["time_operations.h"],
+  srcs = ["time_operations.cc"],
   deps = [
   ":get_time",
   ":random",
