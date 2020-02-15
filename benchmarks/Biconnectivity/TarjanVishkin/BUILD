@@ -9,7 +9,6 @@ cc_library(
   "//ligra/pbbslib:sparse_table",
   "//pbbslib:random",
   "//pbbslib:sample_sort",
-  "//pbbslib/strings:string_basics",
   ]
 )
 
@@ -19,5 +18,6 @@ cc_binary(
   deps = [
   ":Biconnectivity",
   "//ligra/pbbslib:sparse_additive_map",
+  "//pbbslib/strings:string_basics",
   ]
 )
