@@ -49,10 +49,12 @@ cc_library(
 cc_library(
   name = "block_allocator",
   hdrs = ["block_allocator.h"],
+  srcs = ["block_allocator.cc"],
   deps = [
   ":concurrent_stack",
   ":maybe",
   ":memory_size",
+  ":parallel",
   ],
 )
 
