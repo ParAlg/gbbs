@@ -66,9 +66,9 @@ namespace pbbs {
   template <typename T, typename F>
   struct delayed_sequence {
     using value_type = T;
-    delayed_sequence(size_t n, F _f) : f(_f), s(0), e(n) {};
+    delayed_sequence(size_t n, F _f) : f(std::move(_f)), s(0), e(n) {};
     delayed_sequence(size_t n, value_type v) : f([&] (size_t i) {return v;}), s(0), e(n) {};
-    delayed_sequence(size_t s, size_t e, F _f) : f(_f), s(s), e(e) {};
+    delayed_sequence(size_t s, size_t e, F _f) : f(std::move(_f)), s(s), e(e) {};
     const value_type operator[] (size_t i) const {return (f)(i+s);}
     delayed_sequence<T,F> slice(size_t ss, size_t ee) const {
       return delayed_sequence<T,F>(s+ss,s+ee,f); }
@@ -83,7 +83,7 @@ namespace pbbs {
   // used so second template argument can be inferred
   template <class T, class F>
   delayed_sequence<T,F> delayed_seq (size_t n, F f) {
-    return delayed_sequence<T,F>(n,f);
+    return delayed_sequence<T,F>(n,std::move(f));
   }
 
   constexpr bool check_copy = false;
@@ -147,11 +147,11 @@ namespace pbbs {
     };
 
     template <typename Func>
-    sequence(const size_t n, Func f)
+    sequence(const size_t n, Func&& f)
       : s(pbbs::new_array_no_init<T>(n)), n(n) {
       //if (n > 1000000000) cout << "make func: " << s << endl;
       parallel_for(0, n, [&] (size_t i) {
-	  new ((void*) (s+i)) value_type(f(i));}, 1000);
+	  new ((void*) (s+i)) value_type(std::forward<Func>(f)(i));}, 1000);
     };
 
     template <typename Iter>
