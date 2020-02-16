@@ -1,3 +1,5 @@
+#pragma once
+
 #include "utilities.h"
 #include "get_time.h"
 #include "random.h"

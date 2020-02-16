@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ligra/bucket.h"
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"

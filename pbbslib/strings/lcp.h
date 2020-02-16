@@ -1,3 +1,5 @@
+#pragma once
+
 #include "sequence.h"
 #include "range_min.h"
 #include "get_time.h"
