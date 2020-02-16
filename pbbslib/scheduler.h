@@ -316,16 +316,16 @@ public:
 
   // Fork two thunks and wait until they both finish.
   template <typename L, typename R>
-  void pardo(L left, R right, bool conservative=false) {
+  void pardo(L&& left, R&& right, bool conservative=false) {
     bool right_done = false;
     Job right_job = [&] () {
       right(); right_done = true;};
     sched->spawn(&right_job);
-    left();
+    std::forward<L>(left)();
     if (sched->try_pop() != NULL) right();
     else {
       auto finished = [&] () {return right_done;};
-      sched->wait(finished, conservative);
+      sched->wait(std::move(finished), conservative);
     }
   }
 
