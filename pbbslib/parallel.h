@@ -31,7 +31,7 @@ static void parallel_for(long start, long end, F f,
 //    both left and write should map void to void
 //    conservative uses a safer scheduler
 template <typename Lf, typename Rf>
-static void par_do(Lf left, Rf right, bool conservative=false);
+static void par_do(Lf&& left, Rf&& right, bool conservative=false);
 
 template <typename A, typename Af, typename Df, typename F>
 static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity = 0, bool conservative=false);
@@ -83,9 +83,9 @@ inline void parallel_for_1(long start, long end, F f,
 }
 
 template <typename Lf, typename Rf>
-inline void par_do(Lf left, Rf right, bool conservative) {
-    cilk_spawn right();
-    left();
+inline void par_do(Lf&& left, Rf&& right, bool conservative) {
+    cilk_spawn std::forward<Rf>(right)();
+    std::forward<Lf>(left)();
     cilk_sync;
 }
 
@@ -143,22 +143,22 @@ inline void parallel_for_1(long start, long end, F f,
 bool in_par_do = false;
 
 template <typename Lf, typename Rf>
-inline void par_do(Lf left, Rf right, bool conservative) {
+inline void par_do(Lf&& left, Rf&& right, bool conservative) {
   if (!in_par_do) {
     in_par_do = true;  // at top level start up tasking
 #pragma omp parallel
 #pragma omp single
 #pragma omp task
-    left();
+    std::forward<Lf>(left)();
 #pragma omp task
-    right();
+    std::forward<Rf>(right)();
 #pragma omp taskwait
     in_par_do = false;
   } else {   // already started
 #pragma omp task
-    left();
+    std::forward<Lf>(left)();
 #pragma omp task
-    right();
+    std::forward<Rf>(right)();
   }
 }
 
@@ -221,8 +221,8 @@ inline void parallel_for(long start, long end, F f,
 }
 
 template <typename Lf, typename Rf>
-inline void par_do(Lf left, Rf right, bool conservative) {
-  return fj.pardo(left, right, conservative);
+inline void par_do(Lf&& left, Rf&& right, bool conservative) {
+  return fj.pardo(std::forward<Lf>(left), std::forward<Rf>(right), conservative);
 }
 
 template <typename Job>
@@ -232,7 +232,7 @@ inline void parallel_run(Job job, int num_threads=0) {
 
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
-  
+
   parallel_for(start, end, [&](long i)
   {
     static thread_local A* alloc = new A();
@@ -260,8 +260,9 @@ inline void parallel_for(long start, long end, F f,
 }
 
 template <typename Lf, typename Rf>
-inline void par_do(Lf left, Rf right, bool conservative) {
-  left(); right();
+inline void par_do(Lf&& left, Rf&& right, bool conservative) {
+  std::forward<Lf>(left)();
+  std::forward<Rf>(right)();
 }
 
 template <typename Job>
