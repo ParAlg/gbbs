@@ -19,21 +19,33 @@ void* my_alloc(size_t);
 void my_free(void*);
 
 template <typename Lf, typename Rf >
-static void par_do_if(bool do_parallel, Lf left, Rf right, bool cons=false) {
-  if (do_parallel) par_do(left, right, cons);
-  else {left(); right();}
+static void par_do_if(bool do_parallel, Lf&& left, Rf&& right, bool cons=false) {
+  if (do_parallel) {
+    par_do(std::forward<Lf>(left), std::forward<Rf>(right), cons);
+  } else {
+    std::forward<Lf>(left)();
+    std::forward<Rf>(right)();
+  }
 }
 
 template <typename Lf, typename Mf, typename Rf >
-inline void par_do3(Lf left, Mf mid, Rf right) {
+inline void par_do3(Lf&& left, Mf&& mid, Rf&& right) {
   auto left_mid = [&] () {par_do(left,mid);};
-  par_do(left_mid, right);
+  par_do(std::move(left_mid), std::forward<Rf>(right));
 }
 
 template <typename Lf, typename Mf, typename Rf >
-static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
-  if (do_parallel) par_do3(left, mid, right);
-  else {left(); mid(); right();}
+static void par_do3_if(bool do_parallel, Lf&& left, Mf&& mid, Rf&& right) {
+  if (do_parallel) {
+    par_do3(
+        std::forward<Lf>(left),
+        std::forward<Mf>(mid),
+        std::forward<Rf>(right));
+  } else {
+    std::forward<Lf>(left)();
+    std::forward<Mf>(mid)();
+    std::forward<Rf>(right)();
+  }
 }
 
 namespace pbbs {
