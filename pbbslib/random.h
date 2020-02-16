@@ -20,10 +20,16 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+// A concurrent allocator for any fixed type T
+// Keeps a local pool per processor
+// Grabs list_size elements from a global pool if empty, and
+// Returns list_size elements to the global pool when local pool=2*list_size
+// Keeps track of number of allocated elements.
+// Probably more efficient than a general purpose allocator
+
 #pragma once
 
-#include <stdint.h>
-#include <stdlib.h>
+#include "utilities.h"
 
 namespace pbbs {
 
@@ -31,13 +37,15 @@ namespace pbbs {
   // Allows forking a state into multiple states
   struct random {
   public:
-    random(size_t seed);
-    random();
-    random fork(uint64_t i) const;
-    random next() const;
-    size_t ith_rand(uint64_t i) const;
-    size_t operator[] (size_t i) const;
-    size_t rand();
+    random(size_t seed) : state(seed) {};
+    random() : state(0) {};
+    random fork(uint64_t i) const {
+      return random(hash64(hash64(i+state))); }
+    random next() const { return fork(0);}
+    size_t ith_rand(uint64_t i) const {
+      return hash64(i+state);}
+    size_t operator[] (size_t i) const {return ith_rand(i);}
+    size_t rand() { return ith_rand(0);}
   private:
     uint64_t state = 0;
   };

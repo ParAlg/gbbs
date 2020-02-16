@@ -78,7 +78,6 @@ cc_library(
 cc_library(
   name = "random",
   hdrs = ["random.h"],
-  srcs = ["random.cc"],
   deps = [
   ":utilities"
   ]
