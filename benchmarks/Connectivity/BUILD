@@ -10,5 +10,5 @@ cc_library(
 )
 
 package(
-    default_visibility = ["//visibility:public"],
+  default_visibility = ["//visibility:public"],
 )
