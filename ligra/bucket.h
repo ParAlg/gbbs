@@ -184,11 +184,11 @@ struct buckets {
   // Updates k identifiers in the bucket structure. The i'th identifier and
   // its bucket_dest are given by F(i).
   template <class F>
-  inline size_t update_buckets(F f, size_t k) {
+  inline size_t update_buckets(F&& f, size_t k) {
     size_t num_blocks = k / 4096;
     int num_threads = num_workers();
     if (k < 4096 || num_threads == 1) {
-      return update_buckets_seq(f, k);
+      return update_buckets_seq(std::forward<F>(f), k);
     }
 
     size_t ne_before = num_elms;
@@ -298,7 +298,7 @@ struct buckets {
   id_dyn_arr* bkts;
 
   template <class F>
-  inline size_t update_buckets_seq(F& f, size_t n) {
+  inline size_t update_buckets_seq(F&& f, size_t n) {
     size_t ne_before = num_elms;
     for (size_t i = 0; i < n; i++) {
       auto m = f(i);
