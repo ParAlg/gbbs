@@ -452,14 +452,14 @@ double t_remove_duplicates(size_t n, bool check) {
 }
 
 template <typename T, typename F>
-static T my_reduce(pbbs::sequence<T> const &s, size_t start, size_t end, F f) {
+static T my_reduce(pbbs::sequence<T> const &s, size_t start, size_t end, F&& f) {
   if (end - start == 1) return s[start];
   size_t h = (end + start)/2;
   T r, l;
   auto left = [&] () {r = my_reduce(s, h, end, f);};
   auto right = [&] () {l = my_reduce(s, start, h, f);};
   par_do_if(h > 100, left, right);
-  return f(l,r);
+  return std::forward<F>(f)(l,r);
 }
 
 template<typename T>
