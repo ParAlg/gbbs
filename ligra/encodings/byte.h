@@ -283,7 +283,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class P, class O>
-inline size_t filter(P& pred, uchar* edge_start, const uintE& source,
+inline size_t filter(P&& pred, uchar* edge_start, const uintE& source,
                      const uintE& degree, std::tuple<uintE, W>* tmp, O& out) {
   if (degree > 0) {
     uchar* finger = edge_start;  // read-finger

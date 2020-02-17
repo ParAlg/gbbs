@@ -298,7 +298,7 @@ struct buckets {
   id_dyn_arr* bkts;
 
   template <class F>
-  inline size_t update_buckets_seq(F&& f, size_t n) {
+  inline size_t update_buckets_seq(F& f, size_t n) {
     size_t ne_before = num_elms;
     for (size_t i = 0; i < n; i++) {
       auto m = f(i);
