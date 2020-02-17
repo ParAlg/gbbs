@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include "utilities.h"
 #include "sequence_ops.h"

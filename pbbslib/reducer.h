@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cilk/cilk.h>
 #include <cilk/reducer.h>
 
