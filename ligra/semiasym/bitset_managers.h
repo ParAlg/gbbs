@@ -111,7 +111,7 @@ struct sym_bitset_manager {
   }
 
   template <class F>
-  __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
+  __attribute__((always_inline)) inline void decode_block(uintE block_id, F&& f) {
     metadata* block_metadata = (metadata*)blocks_start;
     uintE offset = block_metadata[block_id].offset;
     uintE next_block_offset = (block_id == vtx_num_blocks - 1)
@@ -159,7 +159,7 @@ struct sym_bitset_manager {
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block_cond(uintE block_id,
-                                                               F f) {
+                                                               F&& f) {
     metadata* block_metadata = (metadata*)blocks_start;
     uintE offset = block_metadata[block_id].offset;
     uintE next_block_offset = (block_id == vtx_num_blocks - 1)
@@ -650,7 +650,7 @@ struct compressed_sym_bitset_manager {
   }
 
   template <class F>
-  __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
+  __attribute__((always_inline)) inline void decode_block(uintE block_id, F&& f) {
     metadata* block_metadata = (metadata*)blocks_start;
     uintE offset = block_metadata[block_id].offset;
     uintE orig_block_num = block_metadata[block_id].block_num;
@@ -701,7 +701,7 @@ struct compressed_sym_bitset_manager {
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block_cond(uintE block_id,
-                                                               F f) {
+                                                               F&& f) {
     metadata* block_metadata = (metadata*)blocks_start;
     uintE offset = block_metadata[block_id].offset;
     uintE orig_block_num = block_metadata[block_id].block_num;

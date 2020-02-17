@@ -373,7 +373,7 @@ struct packed_graph {
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map = true) {
+  void map_edges(F&& f, bool parallel_inner_map = true) {
     par_for(0, n, 1, [&](size_t v) {
       auto vert_v = get_vertex(v);
       vert_v.mapOutNgh(v, f, parallel_inner_map);
