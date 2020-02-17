@@ -215,7 +215,7 @@ inline auto get_emdense_forward_nooutput_gen() {
 template <class W, class F>
 struct Wrap_F {
   F f;
-  Wrap_F(F _f) : f(_f) {}
+  Wrap_F(F _f) : f(std::move(_f)) {}
   inline bool update(const uintE& s, const uintE& d, const W& e) {
     return f.update(s, d);
   }
@@ -229,7 +229,7 @@ template <class W, class D, class F>
 struct Wrap_Default_F {
   F f;
   D def;
-  Wrap_Default_F(F _f, D _def) : f(_f), def(_def) {}
+  Wrap_Default_F(F _f, D _def) : f(std::move(_f)), def(std::move(_def)) {}
   inline bool update(const uintE& s, const uintE& d, const W& e) {
     return f.update(s, d, def);
   }
@@ -241,13 +241,13 @@ struct Wrap_Default_F {
 
 template <class W, class F>
 inline auto wrap_em_f(F f) -> Wrap_F<W, F> {
-  return Wrap_F<W, F>(f);
+  return Wrap_F<W, F>(std::move(f));
 }
 
 template <class W, class D, class F,
           typename std::enable_if<!std::is_same<W, D>::value, int>::type = 0>
 inline auto wrap_with_default(F f, D def) -> Wrap_Default_F<W, D, F> {
-  return Wrap_Default_F<W, D, F>(f, def);
+  return Wrap_Default_F<W, D, F>(std::move(f), std::move(def));
 }
 
 template <class W, class D, class F,
