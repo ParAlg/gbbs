@@ -122,7 +122,7 @@ template <
     class Data /* data associated with vertices in the output vertex_subset */,
     class G /* graph type */, class VS /* vertex_subset type */,
     class F /* edgeMap struct */>
-inline vertexSubsetData<Data> edgeMapData(G& GA, VS& vs, F f,
+inline vertexSubsetData<Data> edgeMapData(G& GA, VS& vs, F&& f,
                                           intT threshold = -1,
                                           const flags& fl = 0) {
   size_t numVertices = GA.n, numEdges = GA.m, m = vs.numNonzeros();
@@ -132,8 +132,8 @@ inline vertexSubsetData<Data> edgeMapData(G& GA, VS& vs, F f,
 
   if (vs.isDense && vs.size() > numVertices / 10) {
     return (fl & dense_forward)
-               ? edgeMapDenseForward<Data, G, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<Data, G, VS, F>(GA, vs, f, fl);
+               ? edgeMapDenseForward<Data, G, VS, F>(GA, vs, std::forward<F>(f), fl)
+               : edgeMapDense<Data, G, VS, F>(GA, vs, std::forward<F>(f), fl);
   }
 
   size_t out_degrees = 0;
@@ -154,10 +154,10 @@ inline vertexSubsetData<Data> edgeMapData(G& GA, VS& vs, F f,
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
     return (fl & dense_forward)
-               ? edgeMapDenseForward<Data, G, VS, F>(GA, vs, f, fl)
-               : edgeMapDense<Data, G, VS, F>(GA, vs, f, fl);
+               ? edgeMapDenseForward<Data, G, VS, F>(GA, vs, std::forward<F>(f), fl)
+               : edgeMapDense<Data, G, VS, F>(GA, vs, std::forward<F>(f), fl);
   } else {
-    auto vs_out = edgeMapChunked<Data, G, VS, F>(GA, vs, f, fl);
+    auto vs_out = edgeMapChunked<Data, G, VS, F>(GA, vs, std::forward<F>(f), fl);
 //    auto vs_out = edgeMapBlocked<Data, G, VS, F>(GA, vs, f, fl);
 //    auto vs_out = edgeMapSparse<Data, G, VS, F>(GA, vs, f, fl);
     return vs_out;
@@ -167,9 +167,9 @@ inline vertexSubsetData<Data> edgeMapData(G& GA, VS& vs, F f,
 // Regular edgeMap, where no extra data is stored per vertex.
 template <class G /* graph type */, class VS /* vertex_subset type */,
           class F /* edgeMap struct */>
-inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
+inline vertexSubset edgeMap(G& GA, VS& vs, F&& f, intT threshold = -1,
                             const flags& fl = 0) {
-  return edgeMapData<pbbslib::empty>(GA, vs, f, threshold, fl);
+  return edgeMapData<pbbslib::empty>(GA, vs, std::forward<F>(f), threshold, fl);
 }
 
 
@@ -178,7 +178,7 @@ inline vertexSubset edgeMap(G& GA, VS& vs, F f, intT threshold = -1,
 template <class F, class VS,
           typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f) {
+inline void vertexMap(VS& V, F&& f) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -195,7 +195,7 @@ inline void vertexMap(VS& V, F f) {
 template <class VS, class F,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThreshold) {
+inline void vertexMap(VS& V, F&& f, size_t granularity=pbbslib::kSequentialForThreshold) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
     par_for(0, n, granularity, [&] (size_t i) {
@@ -212,7 +212,7 @@ inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThre
 // Note: this is the version of vertexMap in which only a subset of the
 // input vertexSubset is returned
 template <class F>
-inline vertexSubset vertexFilter(vertexSubset V, F filter) {
+inline vertexSubset vertexFilter(vertexSubset V, F&& filter) {
   size_t n = V.numRows();
   V.toDense();
   bool* d_out = pbbslib::new_array_no_init<bool>(n);
@@ -225,7 +225,7 @@ inline vertexSubset vertexFilter(vertexSubset V, F filter) {
 }
 
 template <class F>
-inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
+inline vertexSubset vertexFilter2(vertexSubset V, F&& filter) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (m == 0) {
     return vertexSubset(n);
@@ -245,7 +245,7 @@ inline vertexSubset vertexFilter2(vertexSubset V, F filter) {
 }
 
 template <class Data, class F>
-inline vertexSubset vertexFilter2(vertexSubsetData<Data> V, F filter) {
+inline vertexSubset vertexFilter2(vertexSubsetData<Data> V, F&& filter) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (m == 0) {
     return vertexSubset(n);
@@ -301,7 +301,7 @@ inline bool cond_true(intT d) { return 1; }
 template <class W, class F>
 struct EdgeMap_F {
   F f;
-  EdgeMap_F(F _f) : f(_f) {}
+  EdgeMap_F(F _f) : f(std::move(_f)) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
     return f(s, d, wgh);
   }
@@ -315,7 +315,7 @@ struct EdgeMap_F {
 
 template <class W, class F>
 inline EdgeMap_F<W, F> make_em_f(F f) {
-  return EdgeMap_F<W, F>(f);
+  return EdgeMap_F<W, F>(std::move(f));
 }
 
 
