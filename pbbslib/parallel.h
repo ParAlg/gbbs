@@ -23,7 +23,7 @@ static int worker_id();
 //      if 0 (default) then the scheduler will decide
 //    conservative uses a safer scheduler
 template <typename F>
-static void parallel_for(long start, long end, F f,
+static void parallel_for(long start, long end, F&& f,
 			 long granularity = 0,
 			 bool conservative = false);
 
@@ -34,7 +34,7 @@ template <typename Lf, typename Rf>
 static void par_do(Lf&& left, Rf&& right, bool conservative=false);
 
 template <typename A, typename Af, typename Df, typename F>
-static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity = 0, bool conservative=false);
+static void parallel_for_alloc(Af&& init_alloc, Df&& finish_alloc, long start, long end, F&& f, long granularity = 0, bool conservative=false);
 
 //***************************************
 
@@ -59,7 +59,7 @@ inline void set_num_workers(int n) {
 }
 
 template <typename F>
-inline void parallel_for(long start, long end, F f,
+inline void parallel_for(long start, long end, F&& f,
 			 long granularity,
 			 bool conservative) {
   if (granularity == 0)
@@ -76,7 +76,7 @@ inline void parallel_for(long start, long end, F f,
 }
 
 template <typename F>
-inline void parallel_for_1(long start, long end, F f,
+inline void parallel_for_1(long start, long end, F&& f,
 			 long granularity,
 			 bool conservative) {
   _Pragma("cilk grainsize = 1") cilk_for(long i=start; i<end; i++) f(i);
@@ -104,7 +104,7 @@ public:
 
 // TODO try parallel_for_1
 template <typename A, typename Af, typename Df, typename F>
-inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+inline void parallel_for_alloc(Af&& init_alloc, Df&& finish_alloc, long start, long end, F&& f, long granularity, bool conservative) {
   alloc_holder<A> alloc;
 
   parallel_for_1(start, end, [&](size_t i)
@@ -125,7 +125,7 @@ inline int worker_id() { return omp_get_thread_num(); }
 inline void set_num_workers(int n) { omp_set_num_threads(n); }
 
 template <class F>
-inline void parallel_for(long start, long end, F f,
+inline void parallel_for(long start, long end, F&& f,
 			 long granularity,
 			 bool conservative) {
   _Pragma("omp parallel for")
@@ -133,7 +133,7 @@ inline void parallel_for(long start, long end, F f,
 }
 
 template <typename F>
-inline void parallel_for_1(long start, long end, F f,
+inline void parallel_for_1(long start, long end, F&& f,
 			 long granularity,
 			 bool conservative) {
   #pragma omp for schedule(dynamic, 1) nowait
@@ -163,21 +163,21 @@ inline void par_do(Lf&& left, Rf&& right, bool conservative) {
 }
 
 template <typename Job>
-inline void parallel_run(Job job, int num_threads=0) {
-  job();
+inline void parallel_run(Job&& job, int num_threads=0) {
+  std::forward<Job>(job)();
 }
 
 template <typename A, typename Af, typename Df, typename F>
-inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+inline void parallel_for_alloc(Af&& init_alloc, Df&& finish_alloc, long start, long end, F&& f, long granularity, bool conservative) {
   A* alloc = nullptr;
   #pragma omp parallel private(alloc)
   {
     alloc = new A();
-    init_alloc(alloc);
+    std::forward<Af>(init_alloc)(alloc);
     parallel_for_1(start, end, [&](size_t i) { f(i, alloc); }, granularity, conservative);
     //#pragma omp for schedule(dynamic, 1) nowait
     //for(long i=start; i<end; i++) f(i, alloc);
-    finish_alloc(alloc);
+    std::forward<Df>(finish_alloc)(alloc);
   }
 }
 
@@ -214,10 +214,10 @@ inline void set_num_workers(int n) {
 }
 
 template <class F>
-inline void parallel_for(long start, long end, F f,
+inline void parallel_for(long start, long end, F&& f,
 			 long granularity,
 			 bool conservative) {
-  fj.parfor(start, end, f, granularity, conservative);
+  fj.parfor(start, end, std::forward<F>(f), granularity, conservative);
 }
 
 template <typename Lf, typename Rf>
@@ -226,12 +226,12 @@ inline void par_do(Lf&& left, Rf&& right, bool conservative) {
 }
 
 template <typename Job>
-inline void parallel_run(Job job, int num_threads=0) {
-  job();
+inline void parallel_run(Job&& job, int num_threads=0) {
+  std::forward<Job>(job)();
 }
 
 template <typename A, typename Af, typename Df, typename F>
-inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+inline void parallel_for_alloc(Af&& init_alloc, Df&& finish_alloc, long start, long end, F&& f, long granularity, bool conservative) {
 
   parallel_for(start, end, [&](long i)
   {
@@ -239,7 +239,7 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long 
     init_alloc(alloc);
     f(i, alloc);
   }, granularity, conservative);
-  //finish_alloc(alloc);
+  //std::forward<Df>(finish_alloc)(alloc);
 }
 
 // c++
@@ -251,7 +251,7 @@ inline void set_num_workers(int n) { ; }
 #define PAR_GRANULARITY 1000
 
 template <class F>
-inline void parallel_for(long start, long end, F f,
+inline void parallel_for(long start, long end, F&& f,
 			 long granularity,
 			 bool conservative) {
   for (long i=start; i<end; i++) {
@@ -266,16 +266,16 @@ inline void par_do(Lf&& left, Rf&& right, bool conservative) {
 }
 
 template <typename Job>
-inline void parallel_run(Job job, int num_threads=0) {
-  job();
+inline void parallel_run(Job&& job, int num_threads=0) {
+  std::forward<Job>(job)();
 }
 
 template <typename A, typename Af, typename Df, typename F>
-inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start, long end, F f, long granularity, bool conservative) {
+inline void parallel_for_alloc(Af&& init_alloc, Df&& finish_alloc, long start, long end, F f, long granularity, bool conservative) {
   A* alloc = new A();
-  init_alloc(alloc);
+  std::forward<Af>(init_alloc)(alloc);
   for (long i=start; i<end; i++) { f(i, alloc); }
-  finish_alloc(alloc);
+  std::forward<Df>(finish_alloc)(alloc);
 }
 
 #endif
