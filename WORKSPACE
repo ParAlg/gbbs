@@ -1,4 +1,4 @@
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
 load("@bazel_tools//tools/cpp:cc_configure.bzl", "cc_configure")
@@ -31,6 +31,7 @@ new_git_repository(
   name = "graphsetinter",
   remote = "https://github.com/jeshi96/GraphSetIntersection.git",
   commit = "ca7e88ae14b804f1ec6889b989544053d842b1c9",
+  shallow_since = "1571170990 -0400",
   build_file_content = GRAPHSETINTER_BUILD,
 )
 
@@ -61,11 +62,13 @@ new_git_repository(
   name = "simdinter",
   remote = "https://github.com/lemire/SIMDCompressionAndIntersection.git",
   commit = "f002db1d47f252dd17daa8206e3ebbbeee9e4d9b",
+  shallow_since = "1562290323 -0400",
   build_file_content = SIMDINTER_BUILD,
 )
 
-git_repository(
+http_archive(
   name = "googletest",
-  remote = "https://github.com/google/googletest",
-  tag = "release-1.8.1",
+  urls = ["https://github.com/google/googletest/archive/release-1.10.0.tar.gz"],
+  strip_prefix = "googletest-release-1.10.0",
+  sha256 = "9dc9157a9a1551ec7a7e43daea9a694a0bb5fb8bec81235d8a1e6ef64c716dcb",
 )
