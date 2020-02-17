@@ -86,9 +86,9 @@ class sparse_table {
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
   sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1)
-      : empty(_empty),
+      : empty(std::move(_empty)),
         empty_key(std::get<0>(empty)),
-        key_hash(_key_hash) {
+        key_hash(std::move(_key_hash)) {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;
     m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m));
@@ -104,9 +104,9 @@ class sparse_table {
       : m(_m),
         mask(m - 1),
         table(_tab),
-        empty(_empty),
+        empty(std::move(_empty)),
         empty_key(std::get<0>(empty)),
-        key_hash(_key_hash) {
+        key_hash(std::move(_key_hash)) {
     if (clear) {
       clearA(table, m, empty);
     }
@@ -260,7 +260,7 @@ inline sparse_table<K, V, KeyHash> make_sparse_table(size_t m,
                                                      std::tuple<K, V> empty,
                                                      KeyHash key_hash,
                                                      long space_mult=-1) {
-  return sparse_table<K, V, KeyHash>(m, empty, key_hash, space_mult);
+  return sparse_table<K, V, KeyHash>(m, std::move(empty), std::move(key_hash), space_mult);
 }
 
 template <class K, class V, class KeyHash>
@@ -268,5 +268,5 @@ inline sparse_table<K, V, KeyHash> make_sparse_table(std::tuple<K, V>* tab,
                                                      size_t m,
                                                      std::tuple<K, V> empty,
                                                      KeyHash key_hash, bool clear=true) {
-  return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab, clear);
+  return sparse_table<K, V, KeyHash>(m, std::move(empty), std::move(key_hash), tab, clear);
 }

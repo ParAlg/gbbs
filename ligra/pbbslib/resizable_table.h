@@ -46,7 +46,7 @@ namespace pbbslib {
     T* table;
     K empty_key;
     iter_kv(K _k, size_t _h, size_t _mask, T* _table, K _empty_key)
-        : k(_k), h(_h), mask(_mask), table(_table), empty_key(_empty_key) {}
+        : k(std::move(_k)), h(_h), mask(_mask), table(_table), empty_key(std::move(_empty_key)) {}
 
     // Finds the location of the first key
     bool init() {
@@ -135,10 +135,10 @@ namespace pbbslib {
         : m(_m),
           mask(m - 1),
           ne(0),
-          empty(_empty),
+          empty(std::move(_empty)),
           empty_key(std::get<0>(empty)),
           table(backing),
-          key_hash(_key_hash),
+          key_hash(std::move(_key_hash)),
           alloc(_alloc) {
       clearA(table, m, empty);
       init_counts();
@@ -148,9 +148,9 @@ namespace pbbslib {
         : m((size_t)1 << pbbslib::log2_up((size_t)(1.1 * _m))),
           mask(m - 1),
           ne(0),
-          empty(_empty),
+          empty(std::move(_empty)),
           empty_key(std::get<0>(empty)),
-          key_hash(_key_hash) {
+          key_hash(std::move(_key_hash)) {
       size_t line_size = 64;
       size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
       table = (T*)aligned_alloc(line_size, bytes);
@@ -294,6 +294,6 @@ namespace pbbslib {
   template <class K, class V, class KeyHash>
   inline resizable_table<K, V, KeyHash> make_resizable_table(
       size_t m, std::tuple<K, V> empty, KeyHash key_hash) {
-    return resizable_table<K, V, KeyHash>(m, empty, key_hash);
+    return resizable_table<K, V, KeyHash>(m, std::move(empty), std::move(key_hash));
   }
 }; // namespace pbbslib

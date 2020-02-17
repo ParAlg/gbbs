@@ -70,7 +70,7 @@ namespace pbbs {
     Table(size_t size, HASH hashF, float load = 1.5) :
       m(((size_t) 100.0 + load * size)),
       empty(hashF.empty()),
-      hashStruct(hashF),
+      hashStruct(std::move(hashF)),
       TA(new_array_no_init<eType>(m)) {
       clear(TA, m, empty); }
 
