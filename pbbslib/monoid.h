@@ -16,12 +16,12 @@ namespace pbbs {
     using T = TT;
     F f;
     TT identity;
-    monoid(F f, TT id) : f(f), identity(id) {}
+    monoid(F f, TT id) : f(std::move(f)), identity(std::move(id)) {}
   };
 
   template <class F, class T>
   monoid<F,T> make_monoid (F f, T id) {
-    return monoid<F,T>(f, id);
+    return monoid<F,T>(std::move(f), std::move(id));
   }
 
   template <class TT>

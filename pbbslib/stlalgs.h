@@ -35,7 +35,7 @@ size_t find_if_index(size_t n, IntegerPred p, size_t granularity=1000) {
 }
 
 template<class Seq, class UnaryFunction>
-void for_each(Seq const &S, UnaryFunction f) {
+void for_each(Seq const &S, UnaryFunction&& f) {
   parallel_for(S.size_t(), [&] (size_t i) {f(S[i]);});}
 
 template<class Seq, class UnaryPred>
