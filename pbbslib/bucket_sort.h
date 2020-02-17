@@ -41,7 +41,7 @@ namespace pbbs {
 
   // returns true if all equal
   template <class T, class binOp>
-  bool get_buckets(range<T*> A, uchar* buckets, binOp f, size_t rounds) {
+  bool get_buckets(range<T*> A, uchar* buckets, binOp&& f, size_t rounds) {
     size_t n = A.size();
     size_t num_buckets = (1 << rounds);
     size_t over_sample = 1 + n/(num_buckets * 400);
@@ -77,29 +77,29 @@ namespace pbbs {
   }
 
   template <class T, class binOp>
-  void base_sort(range<T*> in, range<T*> out, binOp f,
+  void base_sort(range<T*> in, range<T*> out, binOp&& f,
   	       bool stable, bool inplace) {
-    if (stable) merge_sort_(in, out, f, inplace);
+    if (stable) merge_sort_(in, out, std::forward<binOp>(f), inplace);
     else {
-      quicksort(in.begin(), in.size(), f);
+      quicksort(in.begin(), in.size(), std::forward<binOp>(f));
       if (!inplace) for (size_t i=0; i < in.size(); i++) out[i] = in[i];
     }
   }
 
   template <class T, class binOp>
-  void bucket_sort_r(range<T*> in, range<T*> out, binOp f,
+  void bucket_sort_r(range<T*> in, range<T*> out, binOp&& f,
   		   bool stable, bool inplace) {
     size_t n = in.size();
     size_t bits = 4;
     size_t num_buckets = 1 << bits;
     if (n < num_buckets*32) {
-      base_sort(in, out, f, stable, inplace);
+      base_sort(in, out, std::forward<binOp>(f), stable, inplace);
     } else {
       size_t counts[num_buckets];
       sequence<uchar> bucketsm(n);
       uchar* buckets = bucketsm.begin();
       if (get_buckets(in, buckets, f, bits)) {
-        base_sort(in, out, f, stable, inplace);
+        base_sort(in, out, std::forward<BinOp>(f), stable, inplace);
       } else {
         radix_step_(in.begin(), out.begin(), buckets, counts, n, num_buckets);
         parallel_for (0, num_buckets, [&] (size_t j) {
@@ -116,6 +116,6 @@ namespace pbbs {
   void bucket_sort(range<T*> in, binOp f, bool stable=false) {
     size_t n = in.size();
     sequence<T> tmp(n);
-    bucket_sort_r(in.slice(), tmp.slice(), f, stable, true);
+    bucket_sort_r(in.slice(), tmp.slice(), std::forward<binOp>(f), stable, true);
   }
 } // namespace pbbs
