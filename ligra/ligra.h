@@ -47,7 +47,7 @@ template <class Data  /* per-vertex data in the emitted vertex_subset */,
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
           class F     /* edgeMap struct */>
-inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
+inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F&& f,
                                            const flags fl) {
   using D = std::tuple<bool, Data>;
   size_t n = GA.n;
@@ -88,7 +88,7 @@ template <class Data  /* per-vertex data in the emitted vertex_subset */,
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
           class F     /* edgeMap struct */>
-inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F& f,
+inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F&& f,
                                                   const flags fl) {
   debug(std::cout << "# dense forward" << std::endl;);
   using D = std::tuple<bool, Data>;

@@ -176,7 +176,7 @@ inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r) {
 template <class W, class C, class P, class O>
 inline void filterNghs(uintE vtx_id, uintE d, uchar* nghArr, P& pred,
                        std::tuple<uintE, W>* tmp, O& out) {
-  C::template filter<W, P, O>(pred, nghArr, vtx_id, d, tmp, out);
+  C::template filter<W, P&, O>(pred, nghArr, vtx_id, d, tmp, out);
 }
 
 template <class W, class C, class P>

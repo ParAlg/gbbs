@@ -14,7 +14,7 @@ template <class data  /* data associated with vertices in the output vertex_subs
           class VS    /* vertex_subset type */,
           class F     /* edgeMap struct */>
 inline vertexSubsetData<data> edgeMapSparse(Graph& G,
-                                            VS& indices, F& f,
+                                            VS& indices, F&& f,
                                             const flags fl) {
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
@@ -63,7 +63,7 @@ template <class data  /* data associated with vertices in the output vertex_subs
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
           class F     /* edgeMap struct */>
-inline vertexSubsetData<data> edgeMapSparseNoOutput(Graph& G, VS& indices, F& f,
+inline vertexSubsetData<data> edgeMapSparseNoOutput(Graph& G, VS& indices, F&& f,
                                                     const flags fl) {
   size_t m = indices.numNonzeros();
 #ifdef NVM
@@ -96,10 +96,10 @@ template <class data  /* data associated with vertices in the output vertex_subs
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
           class F     /* edgeMap struct */>
-inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
+inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F&& f,
                                              const flags fl) {
   if (fl & no_output) {
-    return edgeMapSparseNoOutput<data, Graph, VS, F>(G, indices, f, fl);
+    return edgeMapSparseNoOutput<data, Graph, VS, F>(G, indices, std::forward<F>(f), fl);
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
@@ -326,10 +326,10 @@ template <class data  /* data associated with vertices in the output vertex_subs
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
           class F     /* edgeMap struct */>
-inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
+inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F&& f,
                                              const flags fl) {
   if (fl & no_output) {
-    return edgeMapSparseNoOutput<data, Graph, VS, F>(G, indices, f, fl);
+    return edgeMapSparseNoOutput<data, Graph, VS, F>(G, indices, std::forward<F>(f), fl);
   }
   using S = std::tuple<uintE, data>;
   size_t n = indices.n;
