@@ -18,7 +18,7 @@ cc_library(
 )
 
 cc_binary(
-    name = "run_scan",
+    name = "SCAN_main",
     srcs = ["run_scan.cc"],
     deps = [
         ":scan",
