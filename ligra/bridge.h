@@ -78,15 +78,23 @@ namespace pbbslib {
   const flags fl_inplace = pbbs::fl_inplace;
   const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
 
-  inline void free_array(void* a) {
-    return pbbs::free_array(a);
-  }
-
-  // Destructs in parallel
-  template<typename E>
-  void delete_array(E* A, size_t n) {
-    return pbbs::delete_array<E>(A, n);
-  }
+  using pbbs::free_array;
+  using pbbs::delete_array;
+  using pbbs::new_array_no_init;
+  using pbbs::new_array;
+  using pbbs::hash32;
+  using pbbs::hash32_2;
+  using pbbs::hash32_3;
+  using pbbs::hash64;
+  using pbbs::hash64_2;
+  using pbbs::atomic_compare_and_swap;
+  using pbbs::fetch_and_add;
+  using pbbs::write_add;
+  using pbbs::write_max;
+  using pbbs::write_min;
+  using pbbs::log2_up;
+  using pbbs::granularity;
+  using pbbs::assert_str;
 
   template<typename T>
   inline void assign_uninitialized(T& a, const T& b) {
@@ -98,50 +106,6 @@ namespace pbbslib {
     new (static_cast<void*>(std::addressof(a))) T(std::move(b));
   }
 
-  // Does not initialize the array
-  template<typename E>
-  E* new_array_no_init(size_t n, bool touch_pages=false) {
-    return pbbs::new_array_no_init<E>(n, touch_pages);
-  }
-
-  // Initializes in parallel
-  template<typename E>
-  E* new_array(size_t n) {
-    return pbbs::new_array<E>(n);
-  }
-
-  // a 32-bit hash function
-  inline uint32_t hash32(uint32_t a) {
-    return pbbs::hash32(a);
-  }
-
-  // cheaper, likely more sketchy versions
-  inline uint32_t hash32_2(uint32_t a) {
-    return pbbs::hash32_2(a);
-  }
-
-  // cheaper, likely more sketchy versions
-  inline uint32_t hash32_3(uint32_t a) {
-    return pbbs::hash32_3(a);
-  }
-
-  // from numerical recipes
-  inline uint64_t hash64(uint64_t u )
-  {
-    return pbbs::hash64(u);
-  }
-
-  // a slightly cheaper, but possibly not as good version
-  // based on splitmix64
-  inline uint64_t hash64_2(uint64_t x) {
-    return pbbs::hash64_2(x);
-  }
-
-  template <typename ET>
-  inline bool CAS_GCC(ET* ptr, const ET oldv, const ET newv) {
-    return pbbs::atomic_compare_and_swap(ptr, oldv, newv);
-  }
-
   // Currently unused; including commented out.
   // template <class ET>
   // inline bool CAS128(ET* a, ET b, ET c) {
@@ -150,26 +114,8 @@ namespace pbbslib {
   // }
 
   template <typename ET>
-  inline bool atomic_compare_and_swap(ET* ptr, ET oldv, ET newv) {
-    return pbbs::atomic_compare_and_swap(ptr, oldv, newv);
-  }
-
-  inline bool atomic_compare_and_swap(double* a, const double &oldval, const double &newval) {
-    return pbbs::atomic_compare_and_swap(a, oldval, newval);
-  };
-
-  inline bool atomic_compare_and_swap(float* a, float &oldval, float &newval) {
-    return pbbs::atomic_compare_and_swap(a, oldval, newval);
-  };
-
-  template <typename ET>
   inline bool CAS(ET* ptr, const ET oldv, const ET newv) {
     return atomic_compare_and_swap(ptr, oldv, newv);
-  }
-
-  template <typename E, typename EV>
-  inline E fetch_and_add(E *a, EV b) {
-    return pbbs::fetch_and_add<E, EV>(a, b);
   }
 
   inline long xaddl(long* variable, long value) {
@@ -203,24 +149,9 @@ namespace pbbslib {
     }
   }
 
-  template <typename E, typename EV>
-  inline void write_add(E *a, EV b) {
-    pbbs::write_add<E, EV>(a, b);
-  }
-
-  template <typename E, typename EV>
-  inline void write_add(std::atomic<E> *a, EV b) {
-    pbbs::write_add<E, EV>(a, b);
-  }
-
   template <typename ET>
   inline bool write_min(ET *a, ET b) {
     return pbbs::write_min<ET>(a, b, std::less<ET>());
-  }
-
-  template <typename ET, typename F>
-  inline bool write_min(ET *a, ET b, F less) {
-    return pbbs::write_min<ET, F>(a, b, less);
   }
 
   template <typename ET>
@@ -228,34 +159,9 @@ namespace pbbslib {
     return pbbs::write_max<ET>(a, b, std::less<ET>());
   }
 
-  template <typename ET, typename F>
-  inline bool write_max(ET *a, ET b, F less) {
-    return pbbs::write_max<ET, F>(a, b, less);
-  }
-
-  // returns the log base 2 rounded up (works on ints or longs or unsigned versions)
-  template <class T>
-  inline size_t log2_up(T i) {
-    size_t a=0;
-    T b=i-1;
-    while (b > 0) {b = b >> 1; a++;}
-    return a;
-  }
-
-  inline size_t granularity(size_t n) {
-    return (n > 100) ? ceil(pow(n,0.5)) : 100;
-  }
-
-  inline void assert_str(int cond, std::string s) {
-    return pbbs::assert_str(cond, s);
-  }
-
-
   // ========================= monoid ==========================
-  template <class F, class T>
-  pbbs::monoid<F,T> make_monoid (F f, T id) {
-    return pbbs::monoid<F,T>(f, id);
-  }
+
+  using pbbs::make_monoid;
 
   template <class T>
   using minm = pbbs::minm<T>;
@@ -268,6 +174,16 @@ namespace pbbslib {
 
 
   // ====================== sequence ops =======================
+
+  using pbbs::scan_inplace;
+  using pbbs::scan;
+  using pbbs::reduce;
+  using pbbs::pack;
+  using pbbs::pack_index;
+  using pbbs::pack_out;
+  using pbbs::filter;
+  using pbbs::filter_out;
+
   // used so second template argument can be inferred
   template <class T, class F>
   inline pbbs::delayed_sequence<T,F> make_sequence (size_t n, F f) {
@@ -278,26 +194,6 @@ namespace pbbslib {
   template <class T>
   inline pbbs::range<T*> make_sequence (T* A, size_t n) {
     return pbbs::range<T*>(A, A+n);
-  }
-
-  template <RANGE Range, class Monoid>
-  inline auto scan_inplace(Range In, Monoid m, flags fl = no_flag)
-    -> typename Range::value_type {
-    return pbbs::scan_inplace<Range, Monoid>(In, m, fl);
-  }
-
-  template <SEQ In_Seq, class Monoid>
-  inline auto scan(In_Seq const &In, Monoid m, flags fl = no_flag)
-    ->  std::pair<pbbs::sequence<typename In_Seq::value_type>, typename In_Seq::value_type>
-  {
-    return pbbs::scan<In_Seq, Monoid>(In, m, fl);
-  }
-
-  // do in place if rvalue reference to a sequence<T>
-  template <class T, class Monoid>
-  auto scan(pbbs::sequence<T> &&In, Monoid m, flags fl = no_flag)
-    ->  std::pair<pbbs::sequence<T>, T> {
-    return pbbs::scan(std::move(In), m, fl);
   }
 
   // Scans the input sequence using the addm monoid.
@@ -315,13 +211,6 @@ namespace pbbslib {
   template <class T>
   inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag) -> T {
     return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl);
-  }
-
-
-  template <SEQ Seq, class Monoid>
-  auto reduce(Seq const &A, Monoid m, flags fl = no_flag)
-    -> typename Seq::value_type {
-      return pbbs::reduce(A, m, fl);
   }
 
   template <class Seq>
@@ -348,19 +237,6 @@ namespace pbbslib {
     return pbbs::reduce(I, pbbs::xorm<T>(), fl);
   }
 
-  template <SEQ In_Seq, SEQ Bool_Seq>
-  auto pack(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
-      -> pbbs::sequence<typename In_Seq::value_type> {
-    return pbbs::pack(In, Fl, fl);
-  }
-
-  // Pack the output to the output range.
-  template <SEQ In_Seq, SEQ Bool_Seq, RANGE Out_Seq>
-  size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq Out,
-                flags fl = no_flag) {
-    return pbbs::pack_out(In, Fl, Out, fl);
-  }
-
   // Pack the output to the output range.
   template <SEQ Bool_Seq, RANGE Out_Seq>
   size_t pack_index_out(Bool_Seq const &Fl, Out_Seq Out,
@@ -370,97 +246,27 @@ namespace pbbslib {
     return pbbs::pack_out(pbbs::delayed_seq<Idx_Type>(Fl.size(),identity), Fl, Out, fl);
   }
 
-  template <SEQ In_Seq, class F>
-  auto filter(In_Seq const &In, F f, flags fl = no_flag)
-    -> pbbs::sequence<typename In_Seq::value_type> {
-      return pbbs::filter(In, f, fl);
-  }
-
-  template <SEQ In_Seq, RANGE Out_Seq, class F>
-  size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
-    return pbbs::filter_out(In, Out, f, fl);
-  }
-
-  template <class Idx_Type, SEQ Bool_Seq>
-  pbbs::sequence<Idx_Type> pack_index(Bool_Seq const &Fl, flags fl = no_flag) {
-    return pbbs::pack_index<Idx_Type>(Fl, fl);
-  }
-
-
   // ====================== binary search =======================
-  // return index to first key greater or equal to v
-  template <typename Seq, typename F>
-  inline size_t binary_search(Seq const &I, typename Seq::value_type v,
-           const F& less) {
-    return pbbs::binary_search<Seq, F>(I, v, less);
-  }
 
-  // return index to first key where less is false
-  template <typename Seq, typename F>
-  inline size_t binary_search(Seq const &I, const F& less) {
-    return pbbs::binary_search<Seq, F>(I, less);
-  }
-
+  using pbbs::binary_search;
 
   // ====================== sample sort =======================
-  template<class Seq, typename BinPred>
-  auto sample_sort (Seq const &A, const BinPred& f, bool stable = false)
-    -> pbbs::sequence<typename Seq::value_type> {
-      return pbbs::sample_sort(A, f, stable);
-  }
 
-  template<class Iter, typename BinPred>
-  void sample_sort_inplace (pbbs::range<Iter> A, const BinPred& f, bool stable = false) {
-    return pbbs::sample_sort_inplace(A, f, stable);
-  }
-
-  template<typename E, typename BinPred, typename s_size_t>
-  void sample_sort (E* A, s_size_t n, const BinPred& f, bool stable) {
-    return pbbs::sample_sort(A, n, f, stable);
-  }
-
+  using pbbs::sample_sort;
+  using pbbs::sample_sort_inplace;
 
   // ====================== integer sort =======================
-  template <typename T, typename Get_Key>
-  void integer_sort_inplace(pbbs::range<T*> In,
-          Get_Key const &g,
-          size_t key_bits=0) {
-    return pbbs::integer_sort_inplace(In, g, key_bits);
-  }
 
-  template <typename Seq, typename Get_Key>
-  pbbs::sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key
-      const &g, size_t key_bits=0) {
-    return pbbs::integer_sort(In, g, key_bits);
-  }
-
-  // Parallel version
-  template <typename InS, typename KeyS>
-  sequence<size_t> count_sort(InS const &In,
-			      range<typename InS::value_type*> Out,
-			      KeyS const &Keys,
-			      size_t num_buckets,
-			      float parallelism = 1.0,
-			      bool skip_if_in_one=false) {
-    return pbbs::count_sort(In, Out, Keys, num_buckets, parallelism, skip_if_in_one);
-  }
+  using pbbs::integer_sort_inplace;
+  using pbbs::integer_sort;
+  using pbbs::count_sort;
 
   // ====================== random shuffle =======================
   using random = pbbs::random;
-
-  template <class intT>
-  pbbs::sequence<intT> random_permutation(size_t n, pbbs::random r = pbbs::random()) {
-    return pbbs::random_permutation<intT>(n, r);
-  }
-
-  template <typename Seq>
-  sequence<typename Seq::value_type>
-  random_shuffle(Seq const &In, random r = random()) {
-    return pbbs::random_shuffle<Seq>(In, r);
-  }
+  using pbbs::random_permutation;
+  using pbbs::random_shuffle;
 
 }
-
 
 
 // Other extensions to pbbs used by the graph benchmarks.
@@ -637,22 +443,24 @@ namespace pbbslib {
     return filter_iter<E, I, P>(_it, _pr);
   }
 
-  inline int t_to_stringlen(long a) { return 21; }
-  inline void type_to_string(char* s, long a) { sprintf(s, "%ld", a); }
+  int t_to_stringlen(long a);
+  void type_to_string(char* s, long a);
 
-  inline int t_to_stringlen(unsigned long a) { return 21; }
-  inline void type_to_string(char* s, unsigned long a) { sprintf(s, "%lu", a); }
+  int t_to_stringlen(unsigned long a);
+  void type_to_string(char* s, unsigned long a);
 
-  inline uint t_to_stringlen(uint a) { return 12; }
-  inline void type_to_string(char* s, uint a) { sprintf(s, "%u", a); }
+  uint t_to_stringlen(uint a);
+  void type_to_string(char* s, uint a);
 
-  inline int t_to_stringlen(int a) { return 12; }
-  inline void type_to_string(char* s, int a) { sprintf(s, "%d", a); }
+  int t_to_stringlen(int a);
+  void type_to_string(char* s, int a);
 
-  inline int t_to_stringlen(double a) { return 18; }
+  int t_to_stringlen(double a);
 
-  inline int t_to_stringlen(char* a) { return strlen(a) + 1; }
-  inline void type_to_string(char* s, char* a) { sprintf(s, "%s", a); }
+  int t_to_stringlen(char* a);
+  void type_to_string(char* s, char* a);
+
+  void type_to_string(char* s, double a);
 
   template <class A, class B>
   inline int t_to_stringlen(std::pair<A, B> a) {
@@ -668,8 +476,6 @@ namespace pbbslib {
   inline int t_to_stringlen(std::tuple<A, B, C> a) {
     return t_to_stringlen(std::get<0>(a)) + t_to_stringlen(std::get<1>(a)) + t_to_stringlen(std::get<2>(a)) + 2;
   }
-
-  inline void type_to_string(char* s, double a) { sprintf(s, "%.11le", a); }
 
   template <class A, class B>
   inline void type_to_string(char* s, std::pair<A, B> a) {

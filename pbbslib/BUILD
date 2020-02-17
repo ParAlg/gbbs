@@ -1,37 +1,45 @@
 cc_library(
   name = "scheduler",
   hdrs = ["scheduler.h"],
+  srcs = ["scheduler.cc"],
   linkopts = ["-pthread"]
 )
 
 cc_library(
   name = "parallel",
   hdrs = ["parallel.h"],
+  srcs = ["parallel.cc"],
   deps = [":scheduler"]
 )
 
 cc_library(
   name = "concurrent_stack",
   hdrs = ["concurrent_stack.h"],
+  deps = [":maybe"],
 )
 
 cc_library(
   name = "memory_size",
   hdrs = ["memory_size.h"],
+  srcs = ["memory_size.cc"],
 )
 
 cc_library(
   name = "alloc",
   hdrs = ["alloc.h"],
+  srcs = ["alloc.cc"],
   deps = [
   ":concurrent_stack",
+  ":maybe",
   ":memory_size",
+  ":parallel",
   ],
 )
 
 cc_library(
   name = "utilities",
   hdrs = ["utilities.h"],
+  srcs = ["utilities.cc"],
   deps = [
   ":parallel",
   ":alloc"
@@ -39,33 +47,10 @@ cc_library(
 )
 
 cc_library(
-  name = "block_allocator",
-  hdrs = ["block_allocator.h"],
-  deps = [
-  ":concurrent_stack",
-  ":memory_size",
-  ":utilities"
-  ],
-)
-
-cc_library(
-  name = "allocator",
-  hdrs = ["allocator.h"],
-  deps = [
-  ":block_allocator",
-  ],
-)
-
-cc_library(
   name = "get_time",
   hdrs = ["get_time.h"],
+  srcs = ["get_time.cc"],
 )
-
-cc_library(
-  name = "parse_command_line",
-  hdrs = ["parse_command_line.h"],
-)
-
 
 cc_library(
   name = "seq",
@@ -223,6 +208,7 @@ cc_library(
   ":utilities",
   ":concurrent_stack",
   ":random_shuffle",
+  ":maybe",
   ":memory_size"
   ]
 )
@@ -294,6 +280,7 @@ cc_library(
 cc_library(
   name = "time_operations",
   hdrs = ["time_operations.h"],
+  srcs = ["time_operations.cc"],
   deps = [
   ":get_time",
   ":random",
@@ -315,14 +302,18 @@ cc_library(
   ]
 )
 
+cc_library(
+  name = "maybe",
+  hdrs = ["maybe.h"],
+)
+
 cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cc"],
   deps = [
+   "//ligra:parse_command_line",
    ":alloc",
-   ":allocator",
    ":get_time",
-   ":parse_command_line",
    ":sequence_ops",
    ":time_operations",
    ":utilities",

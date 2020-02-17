@@ -35,6 +35,7 @@
 
 //  template <typename indexT>
 //  pbbs::sequence<indexT> pbbs::suffixArray(pbbs::sequence<unsigned char> const &s);
+#pragma once
 
 #include "sequence.h"
 #include <math.h>

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ligra.h"
 
 #include <iostream>

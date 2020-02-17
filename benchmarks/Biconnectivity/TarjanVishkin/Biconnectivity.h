@@ -24,11 +24,13 @@
 #pragma once
 
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "ligra/bridge.h"
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
+#include "pbbslib/strings/string_basics.h"
 #include "ligra/speculative_for.h"
 
 namespace bc {
@@ -515,7 +517,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     auto C = pbbslib::sequence_to_string(tups);
-    pbbslib::char_seq_to_file(C, out_f);
+    pbbs::char_seq_to_file(C, out_f);
     // benchIO::writeArrayToStream(out, tups.begin(), n);
     // for (size_t i = 0; i < n; i++) {
     //   out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";

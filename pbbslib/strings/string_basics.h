@@ -31,7 +31,8 @@ namespace pbbs {
   // Reads a character sequence from a file
   //    if end is zero or larger than file, then returns full file
   //    if start past end of file then returns an empty string
-  inline sequence<char> char_seq_from_file(std::string filename, size_t start=0, size_t end=0);
+  sequence<char> 
+  char_seq_from_file(const std::string& filename, size_t start=0, size_t end=0);
 
   // Writes a character sequence to a file, returns 0 if successful
   template <class CharSeq>
@@ -59,24 +60,6 @@ namespace pbbs {
   // ********************************
   // Code Follows
   // ********************************
-  inline sequence<char> char_seq_from_file(std::string filename,
-					   size_t start, size_t end) {
-    std::ifstream file (filename, std::ios::in | std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-      std::cout << "Unable to open file: " << filename << std::endl;
-      exit(1);
-    }
-    size_t length = file.tellg();
-    start = std::min(start,length);
-    if (end == 0) end = length;
-    else end = std::min(end,length);
-    size_t n = end - start;
-    file.seekg (start, std::ios::beg);
-    char* bytes = new_array<char>(n+1);
-    file.read (bytes,n);
-    file.close();
-    return sequence<char>(bytes,n);
-  }
 
   template <class CharSeq>
   int char_seq_to_file(CharSeq const &S, char const *fileName) {
@@ -92,16 +75,7 @@ namespace pbbs {
   }
 
   // standard definition of a space character
-  inline bool is_space(char c) {
-    switch (c)  {
-    case '\r':
-    case '\t':
-    case '\n':
-    case 0:
-    case ' ' : return true;
-    default : return false;
-    }
-  }
+  bool is_space(char c);
 
   template <class Seq, class UnaryPred>
   sequence<range<char*>> tokens(Seq const &S, UnaryPred const &is_space) {
