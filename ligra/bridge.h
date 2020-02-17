@@ -102,7 +102,7 @@ namespace pbbslib {
   }
 
   template<typename T>
-  inline void move_uninitialized(T& a, T&& b) {
+  inline void move_uninitialized(T& a, const T& b) {
     new (static_cast<void*>(std::addressof(a))) T(std::move(b));
   }
 
