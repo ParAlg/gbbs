@@ -113,7 +113,7 @@ namespace pbbs {
   }
 
   template <class T, class binOp>
-  void bucket_sort(range<T*> in, binOp f, bool stable=false) {
+  void bucket_sort(range<T*> in, binOp&& f, bool stable=false) {
     size_t n = in.size();
     sequence<T> tmp(n);
     bucket_sort_r(in.slice(), tmp.slice(), std::forward<binOp>(f), stable, true);
