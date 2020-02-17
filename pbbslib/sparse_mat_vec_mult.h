@@ -8,8 +8,8 @@ namespace pbbs {
   		  Seq const &values,
   		  Seq const &in,
   		  range<typename Seq::value_type*> out,
-  		  Mult mult,
-  		  Add add) {
+  		  Mult&& mult,
+  		  Add&& add) {
     using E = typename Seq::value_type;
     size_t n = in.size();
     auto row_f = [&] (size_t i) {

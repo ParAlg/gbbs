@@ -7,7 +7,7 @@
 namespace pbbs {
 
 template<class IntegerPred>
-size_t count_if_index(size_t n, IntegerPred p) {
+size_t count_if_index(size_t n, IntegerPred&& p) {
   auto BS = pbbs::delayed_seq<size_t>(n, [&] (size_t i) -> size_t {
       return p(i);});
   size_t r = pbbs::reduce(BS, pbbs::addm<size_t>());
@@ -15,7 +15,7 @@ size_t count_if_index(size_t n, IntegerPred p) {
 }
 
 template<class IntegerPred>
-size_t find_if_index(size_t n, IntegerPred p, size_t granularity=1000) {
+size_t find_if_index(size_t n, IntegerPred&& p, size_t granularity=1000) {
   size_t i;
   for (i = 0; i < std::min(granularity, n); i++)
     if (p(i)) return i;
@@ -39,7 +39,7 @@ void for_each(Seq const &S, UnaryFunction&& f) {
   parallel_for(S.size_t(), [&] (size_t i) {f(S[i]);});}
 
 template<class Seq, class UnaryPred>
-size_t count_if(Seq const &S, UnaryPred p) {
+size_t count_if(Seq const &S, UnaryPred&& p) {
   return count_if_index(S.size(), [&] (size_t i) {return p(S[i]);});}
 
 template<class Seq, class T>
@@ -47,16 +47,22 @@ size_t count(Seq const &S, T const &value) {
   return count_if_index(S.size(), [&] (size_t i) {return S[i] == value;});}
 
 template<class Seq, class UnaryPred>
-bool all_of(Seq const &S, UnaryPred p) { return count_if(S, p) == S.size();}
+bool all_of(Seq const &S, UnaryPred&& p) { 
+  return count_if(S, std::forward<UnaryPred>(p)) == S.size();
+}
 
 template<class Seq, class UnaryPred>
-bool any_of(Seq const &S, UnaryPred p) { return count_if(S, p) > 1;}
+bool any_of(Seq const &S, UnaryPred&& p) { 
+  return count_if(S, std::forward<UnaryPred>(p)) > 0;
+}
 
 template<class Seq, class UnaryPred>
-bool none_of(Seq const &S, UnaryPred p) { return count_if(S, p) == 0;}
+bool none_of(Seq const &S, UnaryPred&& p) { 
+  return count_if(S, std::forward<UnaryPred>(p)) == 0;
+}
 
 template<class Seq, class UnaryPred>
-size_t find_if(Seq const &S, UnaryPred p) {
+size_t find_if(Seq const &S, UnaryPred&& p) {
   return find_if_index(S.size(), [&] (size_t i) {return p(S[i]);});}
 
 template<class Seq, class T>
@@ -64,11 +70,11 @@ size_t find(Seq const &S, T const &value) {
   return find_if(S, [&] (T x) {return x == value;});}
 
 template<class Seq, class UnaryPred>
-size_t find_if_not(Seq const &S, UnaryPred p) {
+size_t find_if_not(Seq const &S, UnaryPred&& p) {
   return find_if_index(S.size(), [&] (size_t i) {return !p(S[i]);});}
 
 template<class Seq1, class Seq2, class BinaryPred>
-size_t find_first_of(Seq1 const &S1, Seq2 const &S2, BinaryPred p) {
+size_t find_first_of(Seq1 const &S1, Seq2 const &S2, BinaryPred&& p) {
   auto f = [&] (size_t i) {
     size_t j;
     for (size_t j; j < S2.size(); j++)
@@ -78,17 +84,17 @@ size_t find_first_of(Seq1 const &S1, Seq2 const &S2, BinaryPred p) {
 }
 
 template<class Seq, class BinaryPred>
-size_t adjacent_find(Seq const &S, BinaryPred pred) {
+size_t adjacent_find(Seq const &S, BinaryPred&& pred) {
   return find_if_index(S.size()-1, [&] (size_t i) {
       return S[i] == S[i+1];});}
 
 template<class Seq, class BinaryPred>
-size_t mismatch(Seq const &S1, Seq const &S2, BinaryPred pred) {
+size_t mismatch(Seq const &S1, Seq const &S2, BinaryPred&& pred) {
   return find_if_index(std::min(S1.size(),S2.size()), [&] (size_t i) {
       return S1[i] != S2[i];});}
 
 template<class Seq, class BinaryPred>
-size_t search(Seq const &S1, Seq const &S2, BinaryPred pred) {
+size_t search(Seq const &S1, Seq const &S2, BinaryPred&& pred) {
   return find_if_index(S1.size()-S2.size()+1, [&] (size_t i) {
       size_t j;
       for (j=0; j < S2.size(); j++)
@@ -97,7 +103,7 @@ size_t search(Seq const &S1, Seq const &S2, BinaryPred pred) {
     });}
 
 template<class Seq, class BinaryPred>
-size_t find_end(Seq const &S1, Seq const &S2, BinaryPred pred) {
+size_t find_end(Seq const &S1, Seq const &S2, BinaryPred&& pred) {
     size_t n1 = S1.size();
     size_t n2 = S2.size();
     size_t idx = find_if_index(S1.size()-S2.size()+1, [&] (size_t i) {
@@ -108,17 +114,17 @@ size_t find_end(Seq const &S1, Seq const &S2, BinaryPred pred) {
     return n1 - idx - n2;}
 	 
 template <class Seq1, class Seq2, class BinaryPred>
-bool equal(Seq1 s1, Seq2 s2, BinaryPred p) {
+bool equal(Seq1 s1, Seq2 s2, BinaryPred&& p) {
   return count_if_index(s1.size(), [&] (size_t i) {
       return p(s1[i],s2[i]);});}
 
-template <class Seq1, class Seq2, class BinaryPred>
+template <class Seq1, class Seq2>
 bool equal(Seq1 s1, Seq2 s2) {
   return count_if_index(s1.size(), [&] (size_t i) {
       return s1[i] == s2[i];});}
   
 template <class Seq1, class Seq2, class Compare>
-bool lexicographical_compare(Seq1 s1, Seq2 s2, Compare less) {
+bool lexicographical_compare(Seq1 s1, Seq2 s2, Compare&& less) {
   auto s = delayed_seq(s1.size(), [&] (size_t i) {
       return less(s1[i], s2[i]) ? -1 : (less(s2[i], s1[i]) ? 1 : 0);});
   auto f = [&] (char a, char b) { return (a == 0) ? b : a;};
@@ -127,7 +133,7 @@ bool lexicographical_compare(Seq1 s1, Seq2 s2, Compare less) {
 
 template <class Seq, class Eql>
 sequence<typename Seq::value_type>
-unique (Seq const &s, Eql eq) {
+unique (Seq const &s, Eql&& eq) {
   sequence<bool> b(s.size(), [&] (size_t i) {
       return (i == 0) || !eq(s[i],s[i-1]);});
   return pack(s, b);
@@ -135,7 +141,7 @@ unique (Seq const &s, Eql eq) {
 
 // needs to return location, and take comparison
 template <class Seq, class Compare>
-size_t min_element(Seq const &S, Compare comp) {
+size_t min_element(Seq const &S, Compare&& comp) {
   auto SS = delayed_seq<size_t>(S.size(), [&] (size_t i) {
       return i;});
   auto f = [&] (size_t l, size_t r) {
@@ -144,14 +150,14 @@ size_t min_element(Seq const &S, Compare comp) {
 }
 
 template <class Seq, class Compare>
-size_t max_element(Seq const &S, Compare comp) {
+size_t max_element(Seq const &S, Compare&& comp) {
   using T = typename Seq::value_type;
   return min_element(S, [&] (T a, T b) {return comp(b, a);});
 }
 
 template <class Seq, class Compare>
 std::pair<size_t, size_t>
-minmax_element(Seq const &S, Compare comp) {
+minmax_element(Seq const &S, Compare&& comp) {
   size_t n = S.size();
   using P = std::pair<size_t, size_t>;
   auto SS = delayed_seq<P>(S.size(), [&] (size_t i) {return P(i,i);});
@@ -175,45 +181,45 @@ sequence<typename Seq::value_type> rotate(Seq const &S, size_t r) {
       return S[j];});}
 
 template <class Seq, class Compare>
-bool is_sorted(Seq const &S, Compare comp) {
+bool is_sorted(Seq const &S, Compare&& comp) {
   auto B = delayed_seq<bool> (S.size()-1, [&] (size_t i) -> size_t {
       return f(S[i+1],S[i]);});
   return (reduce(B, addm<size_t>()) != 0);}
 
 template <class Seq, class Compare>
-size_t is_sorted_until(Seq const &S, Compare comp) {
+size_t is_sorted_until(Seq const &S, Compare&& comp) {
   return find_if_index(S.size()-1, [&] (size_t i) {
       f(S[i+1],S[i]);}) + 1;}
 
 template <class Seq, class UnaryPred>
-size_t is_partitioned(Seq const &S, UnaryPred f) {
+size_t is_partitioned(Seq const &S, UnaryPred&& f) {
   auto B = delayed_seq<bool> (S.size()-1, [&] (size_t i) -> size_t {
       return !f(S[i+1]) && S[i];});
   return (reduce(B, addm<size_t>()) != 0);}
 
 template <class Seq, class UnaryPred>
-size_t remove_if(Seq const &S, UnaryPred f) {
+size_t remove_if(Seq const &S, UnaryPred&& f) {
   using T = typename Seq::value_type;
   return filter(S, [&] (T a) {return !f(a);});
 }
 
 template <class Seq, class Compare>
 sequence<typename Seq::value_type>
-sort(Seq const &S, Compare less) {
-  return sample_sort(S, less, false);}
+sort(Seq const &S, Compare&& less) {
+  return sample_sort(S, std::forward<Compare>(less), false);}
 
 template <class Iter, class Compare>
-void sort_inplace (range<Iter> A, const Compare& f) {
-  sample_sort_inplace(A, f); };
+void sort_inplace (range<Iter> A, Compare&& f) {
+  sample_sort_inplace(A, std::forward<Compare>(f)); };
 
 template <class Seq, class Compare>
 sequence<typename Seq::value_type>
-stable_sort(Seq const &S, Compare less) {
-  return sample_sort(S, less, true);}
+stable_sort(Seq const &S, Compare&& less) {
+  return sample_sort(S, std::forward<Compare>(less), true);}
 
 template <class Seq, class Compare>
 sequence<typename Seq::value_type>
-remove_duplicates_ordered (Seq const &s, Compare less) {
+remove_duplicates_ordered (Seq const &s, Compare&& less) {
   using T = typename Seq::value_type;
   return unique(stable_sort(s, less), [&] (T a, T b) {
       return !less(a,b) && !less(b,a);});

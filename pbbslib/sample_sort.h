@@ -49,7 +49,7 @@ namespace pbbs {
   // Sa and Sb must be sorted
   template<typename E, typename Compare, typename s_size_t>
   void merge_seq (E* sA, E* sB, s_size_t* sC,
-		  size_t lA, size_t lB, Compare f) {
+		  size_t lA, size_t lB, const Compare& f) {
     if (lA==0 || lB==0) return;
     E *eA = sA+lA;
     E *eB = sB+lB;

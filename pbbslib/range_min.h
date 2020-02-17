@@ -42,7 +42,7 @@ namespace pbbs {
 
   public:
     range_min(Seq &a, Compare less, long block_size=32)
-      :  a(a), less(less), n(a.size()), block_size(block_size) {
+      :  a(a), less(std::move(less)), n(a.size()), block_size(block_size) {
       m = 1 + (n-1)/block_size;
       precomputeQueries();
     }
@@ -125,6 +125,6 @@ namespace pbbs {
 
   template <class Seq, class Compare, class Uint=uint>
   range_min<Seq,Compare,Uint> make_range_min(Seq &a, Compare less, long block_size=32) {
-    return range_min<Seq,Compare,Uint>(a, less, block_size);
+    return range_min<Seq,Compare,Uint>(a, std::move(less), block_size);
   }
 }

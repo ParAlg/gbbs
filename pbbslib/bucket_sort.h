@@ -99,7 +99,7 @@ namespace pbbs {
       sequence<uchar> bucketsm(n);
       uchar* buckets = bucketsm.begin();
       if (get_buckets(in, buckets, f, bits)) {
-        base_sort(in, out, std::forward<BinOp>(f), stable, inplace);
+        base_sort(in, out, std::forward<binOp>(f), stable, inplace);
       } else {
         radix_step_(in.begin(), out.begin(), buckets, counts, n, num_buckets);
         parallel_for (0, num_buckets, [&] (size_t j) {
