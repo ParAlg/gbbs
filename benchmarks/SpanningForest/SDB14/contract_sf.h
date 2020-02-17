@@ -12,7 +12,7 @@ namespace contract_sf {
   constexpr size_t m_upper_bound = small_cluster_size*small_cluster_size; // clique on small clusters
 
   struct hash_pair {
-    inline size_t operator () (const std::tuple<uintE, uintE>& t) {
+    inline size_t operator () (const std::tuple<uintE, uintE>& t) const {
       size_t l = std::min(std::get<0>(t), std::get<1>(t));
       size_t r = std::max(std::get<0>(t), std::get<1>(t));
       size_t key = (l << 32) + r;

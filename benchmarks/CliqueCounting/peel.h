@@ -12,7 +12,7 @@
 #include "intersect.h"
 
 struct hashtup {
-inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
+inline size_t operator () (const uintE & a) const {return pbbs::hash64_2(a);}
 };
 
 template <class bucket_t, class Graph, class Graph2>
