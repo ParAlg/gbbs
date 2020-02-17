@@ -55,7 +55,7 @@
 
   // granularity is some constant.
   template <class intT, class S>
-  inline intT eff_for(S step, intT s, intT e, intT granularity, bool hasState = 1,
+  inline intT eff_for(S&& step, intT s, intT e, intT granularity, bool hasState = 1,
                       long maxTries = std::numeric_limits<long>::max()) {
     intT maxRoundSize = (e - s) / granularity + 1;
     intT currentRoundSize = maxRoundSize;
@@ -105,7 +105,7 @@
   }
 
   template <class intT, class S>
-  inline intT speculative_for(S step, intT s, intT e, intT granularity,
+  inline intT speculative_for(S&& step, intT s, intT e, intT granularity,
                               bool hasState = 1, long maxTries = -1) {
     if (maxTries < 0) {
       maxTries = 100 + 200 * granularity;
