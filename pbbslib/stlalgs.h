@@ -25,7 +25,7 @@ size_t find_if_index(size_t n, IntegerPred&& p, size_t granularity=1000) {
     size_t end = std::min(n,start+granularity);
     auto f = [&] (size_t i) -> size_t {
       return p(i+start) ? i+start : n;};
-    i = pbbs::reduce(delayed_seq<size_t>(end-start, f),
+    i = pbbs::reduce(delayed_seq<size_t>(end-start, std::move(f)),
 		     minm<size_t>());
     if (i < n) return i;
     start += granularity;
@@ -80,7 +80,7 @@ size_t find_first_of(Seq1 const &S1, Seq2 const &S2, BinaryPred&& p) {
     for (size_t j; j < S2.size(); j++)
       if (p(S1[i], S2[j])) break;
     return (j < S2.size());};
-  return find_if_index(S1.size(), f);
+  return find_if_index(S1.size(), std::move(f));
 }
 
 template<class Seq, class BinaryPred>
@@ -128,7 +128,7 @@ bool lexicographical_compare(Seq1 s1, Seq2 s2, Compare&& less) {
   auto s = delayed_seq(s1.size(), [&] (size_t i) {
       return less(s1[i], s2[i]) ? -1 : (less(s2[i], s1[i]) ? 1 : 0);});
   auto f = [&] (char a, char b) { return (a == 0) ? b : a;};
-  return reduce(s, make_monoid(f, (char) 0)) == -1; 
+  return reduce(std::move(s), make_monoid(std::move(f), (char) 0)) == -1; 
 }
 
 template <class Seq, class Eql>
@@ -146,7 +146,7 @@ size_t min_element(Seq const &S, Compare&& comp) {
       return i;});
   auto f = [&] (size_t l, size_t r) {
     return (!comp(S[r], S[l]) ? l : r);};
-  return pbbs::reduce(SS, make_monoid(f, (size_t) S.size()));
+  return pbbs::reduce(std::move(SS), make_monoid(std::move(f), (size_t) S.size()));
 }
 
 template <class Seq, class Compare>
@@ -164,7 +164,7 @@ minmax_element(Seq const &S, Compare&& comp) {
   auto f = [&] (P l, P r) -> P {
     return (P(!comp(S[r.first], S[l.first]) ? l.first : r.first,
 	      !comp(S[l.second], S[r.second]) ? l.second : r.second));};
-  return pbbs::reduce(SS, make_monoid(f, P(n,n)));
+  return pbbs::reduce(std::move(SS), make_monoid(std::move(f), P(n,n)));
 }
 
 template <class Seq>
@@ -195,7 +195,7 @@ template <class Seq, class UnaryPred>
 size_t is_partitioned(Seq const &S, UnaryPred&& f) {
   auto B = delayed_seq<bool> (S.size()-1, [&] (size_t i) -> size_t {
       return !f(S[i+1]) && S[i];});
-  return (reduce(B, addm<size_t>()) != 0);}
+  return (reduce(std::move(B), addm<size_t>()) != 0);}
 
 template <class Seq, class UnaryPred>
 size_t remove_if(Seq const &S, UnaryPred&& f) {

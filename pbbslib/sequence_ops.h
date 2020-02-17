@@ -44,7 +44,7 @@ namespace pbbs {
       size_t e = std::min(s + block_size, n);
       f(i, s, e);
     };
-    parallel_for(0, l, body, 1, 0 != (fl & fl_conservative));
+    parallel_for(0, l, std::move(body), 1, 0 != (fl & fl_conservative));
   }
 
   template <class OT, SEQ Seq, class UnaryFunc>
