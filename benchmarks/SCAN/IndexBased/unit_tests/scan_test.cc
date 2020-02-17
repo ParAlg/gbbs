@@ -1,5 +1,5 @@
-#include "benchmarks/SCAN/scan.h"
-#include "benchmarks/SCAN/scan_helpers.h"
+#include "benchmarks/SCAN/IndexBased/scan.h"
+#include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
 #include <cmath>
 #include <unordered_set>
@@ -15,7 +15,8 @@ using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
 
-namespace si = scan::internal;
+namespace i = indexed_scan;
+namespace ii = indexed_scan::internal;
 
 namespace {
 
@@ -36,12 +37,12 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeGraph(
   return sym_graph_from_edges(edge_sequence, num_vertices);
 }
 
-si::NeighborSimilarity
+ii::NeighborSimilarity
 MakeNeighborSimilarity(const uintE neighbor, const double similarity) {
   return {.neighbor = neighbor, .similarity = static_cast<float>(similarity)};
 }
 
-si::CoreThreshold
+ii::CoreThreshold
 MakeCoreThreshold(const uintE vertex_id, const double threshold) {
   return {.vertex_id = vertex_id, .threshold = static_cast<float>(threshold)};
 }
@@ -53,15 +54,15 @@ TEST(ScanSubroutines, NullGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
-  const si::StructuralSimilarities similarity_table{
-    si::ComputeStructuralSimilarities(&graph)};
+  const ii::StructuralSimilarities similarity_table{
+    ii::ComputeStructuralSimilarities(&graph)};
   EXPECT_THAT(similarity_table.entries(), IsEmpty());
 
-  const si::NeighborOrder neighbor_order{
-    si::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{
+    ii::ComputeNeighborOrder(&graph, similarity_table)};
   EXPECT_THAT(neighbor_order, IsEmpty());
 
-  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   EXPECT_THAT(core_order, IsEmpty());
 }
 
@@ -70,18 +71,18 @@ TEST(ScanSubroutines, EmptyGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
-  const si::StructuralSimilarities similarity_table{
-    si::ComputeStructuralSimilarities(&graph)};
+  const ii::StructuralSimilarities similarity_table{
+    ii::ComputeStructuralSimilarities(&graph)};
   EXPECT_THAT(similarity_table.entries(), IsEmpty());
 
-  const si::NeighborOrder neighbor_order{
-    si::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{
+    ii::ComputeNeighborOrder(&graph, similarity_table)};
   EXPECT_EQ(neighbor_order.size(), kNumVertices);
   for (const auto& vertex_order : neighbor_order) {
     EXPECT_THAT(vertex_order, IsEmpty());
   }
 
-  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   ASSERT_EQ(core_order.size(), 2);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -105,8 +106,8 @@ TEST(ScanSubroutines, BasicUsage) {
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
-  const si::StructuralSimilarities similarity_table{
-    si::ComputeStructuralSimilarities(&graph)};
+  const ii::StructuralSimilarities similarity_table{
+    ii::ComputeStructuralSimilarities(&graph)};
   const auto similarities{similarity_table.entries()};
   EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
         std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)   /* .71 */),
@@ -117,8 +118,8 @@ TEST(ScanSubroutines, BasicUsage) {
         std::make_tuple(UndirectedEdge{2, 5}, 2.0 / sqrt(10)  /* .63 */),
         std::make_tuple(UndirectedEdge{3, 4}, 3.0 / sqrt(12)  /* .87 */)));
 
-  const si::NeighborOrder neighbor_order{
-    si::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{
+    ii::ComputeNeighborOrder(&graph, similarity_table)};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
       neighbor_order[0].slice(),
@@ -152,7 +153,7 @@ TEST(ScanSubroutines, BasicUsage) {
       ElementsAre(
         MakeNeighborSimilarity(2, 2.0 / sqrt(10))));
 
-  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   EXPECT_EQ(core_order.size(), 6);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -203,16 +204,16 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
-  const si::StructuralSimilarities similarity_table{
-    si::ComputeStructuralSimilarities(&graph)};
+  const ii::StructuralSimilarities similarity_table{
+    ii::ComputeStructuralSimilarities(&graph)};
   const auto similarities{similarity_table.entries()};
   EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
         std::make_tuple(UndirectedEdge{0, 1}, 1.0),
         std::make_tuple(UndirectedEdge{3, 4}, 2.0 / sqrt(6)  /* .82 */),
         std::make_tuple(UndirectedEdge{4, 5}, 2.0 / sqrt(6)  /* .82 */)));
 
-  const si::NeighborOrder neighbor_order{
-    si::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{
+    ii::ComputeNeighborOrder(&graph, similarity_table)};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
       neighbor_order[0].slice(), ElementsAre(MakeNeighborSimilarity(1, 1.0)));
@@ -231,7 +232,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
       neighbor_order[5].slice(),
       ElementsAre(MakeNeighborSimilarity(4, 2.0 / sqrt(6))));
 
-  const auto core_order{si::ComputeCoreOrder(neighbor_order)};
+  const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   EXPECT_EQ(core_order.size(), 4);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -257,10 +258,10 @@ TEST(Cluster, NullGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
-  const scan::ScanIndex index{&graph};
+  const i::Index index{&graph};
   constexpr float kMu{2};
   constexpr float kEpsilon{0.5};
-  scan::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+  i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
 
   EXPECT_EQ(clustering.num_clusters, 0);
   EXPECT_THAT(clustering.clusters_by_vertex, IsEmpty());
@@ -271,15 +272,15 @@ TEST(Cluster, EmptyGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{MakeGraph(kNumVertices, kEdges)};
 
-  const scan::ScanIndex index{&graph};
+  const i::Index index{&graph};
   constexpr float kMu{2};
   constexpr float kEpsilon{0.5};
-  scan::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+  i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
 
   EXPECT_EQ(clustering.num_clusters, 0);
   ASSERT_THAT(clustering.clusters_by_vertex.size(), kNumVertices);
   for (const auto& vertex_type : clustering.clusters_by_vertex) {
-    EXPECT_TRUE(std::holds_alternative<scan::Outlier>(vertex_type));
+    EXPECT_TRUE(std::holds_alternative<i::Outlier>(vertex_type));
   }
 }
 
@@ -301,7 +302,7 @@ TEST(Cluster, BasicUsage) {
     {3, 4},
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
-  const scan::ScanIndex index{&graph};
+  const i::Index index{&graph};
 
   EXPECT_EQ("TODO", "DONE");
 }
@@ -317,12 +318,12 @@ TEST(Cluster, DisconnectedGraph) {
     {4, 5},
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
-  const scan::ScanIndex index{&graph};
+  const i::Index index{&graph};
 
   {
     constexpr uint64_t kMu{2};
     constexpr float kEpsilon{0.95};
-    const scan::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+    const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
     /*
     EXPECT_EQ(clustering.num_clusters, 1);
     ASSERT_EQ(clustering.clusters_by_vertex.size(), kNumVertices);

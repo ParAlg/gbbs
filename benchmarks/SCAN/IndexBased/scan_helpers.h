@@ -6,9 +6,9 @@
 
 #include "ligra/graph.h"
 #include "ligra/pbbslib/sparse_table.h"
-#include "benchmarks/SCAN/undirected_edge.h"
+#include "benchmarks/SCAN/IndexBased/undirected_edge.h"
 
-namespace scan {
+namespace indexed_scan {
 
 namespace internal {
 
@@ -224,4 +224,4 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
 
 }  // namespace internal
 
-}  // namespace scan
+}  // namespace indexed_scan

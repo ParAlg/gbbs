@@ -1,8 +1,8 @@
 #define NOTMAIN
 
-#include "benchmarks/SCAN/scan_helpers.h"
+#include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
-namespace scan {
+namespace indexed_scan {
 
 namespace {
 
@@ -143,4 +143,4 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 
 }  // namespace internal
 
-}  // namespace scan
+}  // namespace indexed_scan

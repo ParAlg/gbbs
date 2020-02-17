@@ -1,6 +1,6 @@
 #define NOTMAIN
 
-#include "benchmarks/SCAN/undirected_edge.h"
+#include "benchmarks/SCAN/IndexBased/undirected_edge.h"
 
 #include <algorithm>
 

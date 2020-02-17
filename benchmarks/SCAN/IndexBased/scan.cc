@@ -1,6 +1,6 @@
 #define NOTMAIN
 
-#include "benchmarks/SCAN/scan.h"
+#include "benchmarks/SCAN/IndexBased/scan.h"
 
 #include <algorithm>
 #include <tuple>
@@ -14,7 +14,7 @@
 #include "pbbslib/sample_sort.h"
 #include "utils/assert.h"
 
-namespace scan {
+namespace indexed_scan {
 
 namespace {
 
@@ -295,7 +295,7 @@ bool operator==(const Clustering& a, const Clustering& b) {
     == std::tie(b.num_clusters, b.clusters_by_vertex);
 }
 
-Clustering ScanIndex::Cluster(const uint64_t mu, const float epsilon) const {
+Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
   if (cores.empty()) {
     // Nothing is a core. There are no clusters, and every vertex is an outlier.
@@ -319,4 +319,4 @@ Clustering ScanIndex::Cluster(const uint64_t mu, const float epsilon) const {
   return clustering;
 }
 
-}  // namespace scan
+}  // namespace indexed_scan

@@ -11,7 +11,7 @@
 //     -rounds : the number of times to run the algorithm
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
-#include "benchmarks/SCAN/scan.h"
+#include "benchmarks/SCAN/IndexBased/scan.h"
 
 #include "ligra/ligra.h"
 #include "utils/assert.h"
@@ -23,11 +23,11 @@ double RunScan(Graph& graph, commandLine parameters) {
 
   timer timer{};
   timer.start();
-  const scan::ScanIndex scan_index{&graph};
+  const indexed_scan::Index scan_index{&graph};
 
   constexpr uint64_t kMu{5};
   constexpr float kEpsilon{0.6};
-  const scan::Clustering clustering{scan_index.Cluster(kMu, kEpsilon)};
+  const indexed_scan::Clustering clustering{scan_index.Cluster(kMu, kEpsilon)};
   const double running_time{timer.stop()};
   std::cout << "Running Time: " << running_time << std::endl;
   return running_time;

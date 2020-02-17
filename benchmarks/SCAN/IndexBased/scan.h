@@ -4,9 +4,9 @@
 
 #include "ligra/graph.h"
 #include "pbbslib/seq.h"
-#include "benchmarks/SCAN/scan_helpers.h"
+#include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
-namespace scan {
+namespace indexed_scan {
 
 // Represents a vertex that is in at least one SCAN cluster.
 struct ClusterMember {
@@ -44,10 +44,10 @@ bool operator==(const Clustering&, const Clustering&);
 //
 // Based off of SCAN index presented in "Efficient Structural Graph Clustering:
 // An Index-Based Approach" by Wen et al.
-class ScanIndex {
+class Index {
  public:
   template <template <typename WeightType> class VertexType>
-  explicit ScanIndex(
+  explicit Index(
       symmetric_graph<VertexType, pbbslib::empty>* graph)
     : num_vertices_{graph->n}
     , neighbor_order_{
@@ -78,4 +78,4 @@ class ScanIndex {
   const internal::CoreOrder core_order_;
 };
 
-}  // namespace scan
+}  // namespace indexed_scan
