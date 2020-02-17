@@ -187,7 +187,7 @@ namespace pbbslib {
   // used so second template argument can be inferred
   template <class T, class F>
   inline pbbs::delayed_sequence<T,F> make_sequence (size_t n, F f) {
-    return pbbs::delayed_sequence<T,F>(n,f);
+    return pbbs::delayed_sequence<T,F>(n,std::move(f));
   }
 
   // TODO: call this make_range. make_sequence is bogus.
