@@ -45,7 +45,7 @@ namespace cvertex {
 
 template <class W, class C, class F, class G, class VS>
 __attribute__((always_inline)) inline void decodeNghsBreakEarly(const uintE vtx_id, const uintE d, uchar* nghArr, const VS& vs,
-                                 F&& f, G&& g, bool parallel=false) {
+                                 F& f, const G& g, bool parallel=false) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) __attribute__((always_inline)) {
     if (vs.isIn(target)) {
@@ -54,11 +54,11 @@ __attribute__((always_inline)) inline void decodeNghsBreakEarly(const uintE vtx_
     }
     return f.cond(src);
   };
-  C::template decode<W>(std::move(T), nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
-inline void decodeNghs(uintE vtx_id, uintE d, uchar* nghArr, F&& f, G&& g,
+inline void decodeNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f, G& g,
                        bool parallel = true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
@@ -68,12 +68,12 @@ inline void decodeNghs(uintE vtx_id, uintE d, uchar* nghArr, F&& f, G&& g,
     }
     return true;
   };
-  C::template decode<W>(std::move(T), nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G, class H>
 inline void decodeNghsSparse(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
-                             F&& f, G&& g, H&& h, bool parallel = true) {
+                             F& f, G& g, H& h, bool parallel = true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     if (f.cond(target)) {
@@ -84,12 +84,12 @@ inline void decodeNghsSparse(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::template decode<W>(std::move(T), nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
 inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
-                                  F&& f, G&& g) {
+                                  F& f, G& g) {
   size_t k = 0;
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
@@ -101,14 +101,14 @@ inline size_t decodeNghsSparseSeq(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
     }
     return true;
   };
-  C::template decode<W>(std::move(T), nghArr, vtx_id, d, /* parallel = */ false);
+  C::template decode<W>(T, nghArr, vtx_id, d, /* parallel = */ false);
   return k;
 }
 
 template <class W, class C, class F, class G>
 inline size_t decodeNghsSparseBlock(uintE vtx_id, uintE d, uchar* nghArr,
                                     uintT o, uintE block_size, uintE block_num,
-                                    F&& f, G&& g) {
+                                    F& f, G& g) {
   size_t k = 0;
   auto T = [&](const uintE& src, const uintE& target, const W& weight) {
     if (f.cond(target)) {
@@ -118,13 +118,13 @@ inline size_t decodeNghsSparseBlock(uintE vtx_id, uintE d, uchar* nghArr,
       }
     }
   };
-  C::template decode_block_seq<W>(std::move(T), nghArr, vtx_id, d, block_size, block_num);
+  C::template decode_block_seq<W>(T, nghArr, vtx_id, d, block_size, block_num);
   return k;
 }
 
 template <class W, class C, class F, class G>
 inline size_t decode_block(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
-                           uintE block_num, F&& f, G&& g) {
+                           uintE block_num, F& f, G& g) {
   size_t k = 0;
   auto T = [&](const uintE& target, const W& weight, const size_t& edge_id) {
     if (f.cond(target)) {
@@ -134,55 +134,55 @@ inline size_t decode_block(uintE vtx_id, uintE d, uchar* nghArr, uintT o,
       }
     }
   };
-  C::template decode_block<W>(std::move(T), nghArr, vtx_id, d, block_num);
+  C::template decode_block<W>(T, nghArr, vtx_id, d, block_num);
   return k;
 }
 
 template <class W, class C, class F>
-inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F&& f,
+inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                     bool parallel = true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     f(src, target, weight);
     return true;
   };
-  C::template decode<W>(std::move(T), nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F, class G>
-inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F&& f,
-                     G&& g, bool parallel=true) {
+inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
+                     G& g, bool parallel=true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
     auto val = f(src, target, weight);
     g(target, o + edgeNumber, val);
     return true;
   };
-  C::template decode<W>(std::move(T), nghArr, vtx_id, d, parallel);
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
 template <class W, class C, class F>
-inline size_t countNghs(uintE vtx_id, uintE d, uchar* nghArr, F&& f,
+inline size_t countNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                         bool parallel = true) {
   auto monoid = pbbs::addm<size_t>();
-  return C::template map_reduce<W, size_t>(nghArr, vtx_id, d, std::forward<F>(f), std::move(monoid), parallel);
+  return C::template map_reduce<W, size_t>(nghArr, vtx_id, d, f, monoid, parallel);
 }
 
 template <class W, class C, class E, class M, class Monoid>
-inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M&& m, Monoid&& r) {
-  return C::template map_reduce<W, E>(nghArr, vtx_id, d, std::forward<M>(m), std::forward<Monoid>(r));
+inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r) {
+  return C::template map_reduce<W, E>(nghArr, vtx_id, d, m, r);
 }
 
 template <class W, class C, class P, class O>
-inline void filterNghs(uintE vtx_id, uintE d, uchar* nghArr, P&& pred,
+inline void filterNghs(uintE vtx_id, uintE d, uchar* nghArr, P& pred,
                        std::tuple<uintE, W>* tmp, O& out) {
-  C::template filter<W, P, O>(std::forward<P>(pred), nghArr, vtx_id, d, tmp, out);
+  C::template filter<W, P, O>(pred, nghArr, vtx_id, d, tmp, out);
 }
 
 template <class W, class C, class P>
-inline size_t packNghs(uintE vtx_id, uintE d, uchar* nghArr, P&& pred,
+inline size_t packNghs(uintE vtx_id, uintE d, uchar* nghArr, P& pred,
                        std::tuple<uintE, W>* tmp) {
-  return C::template pack<W>(std::forward<P>(pred), nghArr, vtx_id, d, tmp);
+  return C::template pack<W>(pred, nghArr, vtx_id, d, tmp);
 }
 
 inline size_t calculateTemporarySpace(uintE deg) {
@@ -254,106 +254,106 @@ struct compressed_symmetric_vertex {
   }
 
   template <class VS, class F, class G>
- __attribute__((always_inline)) inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F&& f, G&& g,
+ __attribute__((always_inline)) inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
-        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, std::forward<F>(f), std::forward<G>(g), parallel);
+        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class VS, class F, class G>
- __attribute__((always_inline)) inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F&& f, G&& g, bool parallel = 0) {
+ __attribute__((always_inline)) inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g, bool parallel = 0) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
-        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, std::forward<F>(f), std::forward<G>(g), parallel);
+        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void decodeInNgh(uintE vtx_id, F&& f, G&& g) {
-    cvertex::decodeNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), std::forward<F>(f),
-                                    std::forward<G>(g));
+  inline void decodeInNgh(uintE vtx_id, F& f, G& g) {
+    cvertex::decodeNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), f,
+                                    g);
   }
 
   template <class F, class G>
-  inline void decodeOutNgh(uintE vtx_id, F&& f, G&& g) {
+  inline void decodeOutNgh(uintE vtx_id, F& f, G& g) {
     cvertex::decodeNghs<W, C, F, G>(vtx_id, getOutDegree(), getOutNeighbors(),
-                                    std::forward<F>(f), std::forward<G>(g));
+                                    f, g);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F&& f, G&& g, H&& h, bool parallel=true) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getInDegree(),
-                                             getInNeighbors(), o, std::forward<F>(f), std::forward<G>(g), std::forward<H>(h), parallel);
+                                             getInNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F&& f, G&& g, H&& h, bool parallel=true) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getOutDegree(),
-                                             getOutNeighbors(), o, std::forward<F>(f), std::forward<G>(g), std::forward<H>(h), parallel);
+                                             getOutNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G>
-  inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F&& f, G&& g) {
+  inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getInDegree(),
-                                                    getInNeighbors(), o, std::forward<F>(f), std::forward<G>(g));
+                                                    getInNeighbors(), o, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F&& f, G&& g) {
+  inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getOutDegree(),
-                                                    getOutNeighbors(), o, std::forward<F>(f), std::forward<G>(g));
+                                                    getOutNeighbors(), o, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F&& f,
-                               G&& g) {
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
     return cvertex::decode_block<W, C, F, G>(
-        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, std::forward<F>(f), std::forward<G>(g));
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F&& f,
-                              G&& g) {
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
     return cvertex::decode_block<W, C, F, G>(
-        vtx_id, getInDegree(), getInNeighbors(), o, block_num, std::forward<F>(f), std::forward<G>(g));
+        vtx_id, getInDegree(), getInNeighbors(), o, block_num, f, g);
   }
 
 
   template <class F, class G>
   inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
-                                        uintE block_num, F&& f, G&& g) {
+                                        uintE block_num, F& f, G& g) {
     return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getOutDegree(), getOutNeighbors(), o, block_size, block_num, std::forward<F>(f),
-        std::forward<G>(g));
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_size, block_num, f,
+        g);
   }
 
   template <class F, class G>
   inline size_t decodeInNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
-                                       uintE block_num, F&& f, G&& g) {
+                                       uintE block_num, F& f, G& g) {
     return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getInDegree(), getInNeighbors(), o, block_size, block_num, std::forward<F>(f),
-        std::forward<G>(g));
+        vtx_id, getInDegree(), getInNeighbors(), o, block_size, block_num, f,
+        g);
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F&& f, G&& g) {
-    cvertex::copyNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), o, std::forward<F>(f),
-                                  std::forward<G>(g));
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
+    cvertex::copyNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), o, f,
+                                  g);
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F&& f, G&& g) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
     cvertex::copyNghs<W, C, F, G>(vtx_id, getOutDegree(), getOutNeighbors(), o,
-                                  std::forward<F>(f), std::forward<G>(g));
+                                  f, g);
   }
 
   template <class F>
-  inline void mapInNgh(uintE vtx_id, F&& f, bool parallel = 1) {  // TODO
-    cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), std::forward<F>(f),
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
+    cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), f,
                               parallel);
   }
 
   template <class F>
-  inline void mapOutNgh(uintE vtx_id, F&& f, bool parallel = 1) {  // TODO
-    cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), std::forward<F>(f),
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
+    cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
   }
 
@@ -366,56 +366,56 @@ struct compressed_symmetric_vertex {
   }
 
   template <class F>
-  inline size_t countInNgh(uintE vtx_id, F&& f, bool parallel = 1) {
+  inline size_t countInNgh(uintE vtx_id, F& f, bool parallel = 1) {
     return cvertex::countNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(),
-                                       std::forward<F>(f), parallel);
+                                       f, parallel);
   }
 
   template <class F>
-  inline size_t countOutNgh(uintE vtx_id, F&& f, bool parallel = 1) {
+  inline size_t countOutNgh(uintE vtx_id, F& f, bool parallel = 1) {
     return cvertex::countNghs<W, C, F>(vtx_id, getOutDegree(),
-                                       getOutNeighbors(), std::forward<F>(f), parallel);
+                                       getOutNeighbors(), f, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M&& m, Monoid&& r) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getInDegree(),
-                                              getInNeighbors(), std::forward<M>(m), std::forward<Monoid>(r));
+                                              getInNeighbors(), m, r);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M&& m, Monoid&& r) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getOutDegree(),
-                                              getOutNeighbors(), std::forward<M>(m), std::forward<Monoid>(r));
+                                              getOutNeighbors(), m, r);
   }
 
   template <class P>
-  inline size_t packInNgh(uintE vtx_id, P&& pred, std::tuple<uintE, W>* tmp) {
+  inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
-                                            getInNeighbors(), std::forward<P>(pred), tmp);
+                                            getInNeighbors(), pred, tmp);
     return deg;
   }
 
   template <class P, class O>
-  inline void filterOutNgh(uintE vtx_id, P&& p, O& out,
+  inline void filterOutNgh(uintE vtx_id, P& p, O& out,
                            std::tuple<uintE, W>* tmp) {
     cvertex::filterNghs<W, C, P, O>(vtx_id, getOutDegree(), getOutNeighbors(),
-                                    std::forward<P>(p), tmp, out);
+                                    p, tmp, out);
   }
 
   template <class P, class O>
-  inline void filterInNgh(uintE vtx_id, P&& p, O& out,
+  inline void filterInNgh(uintE vtx_id, P& p, O& out,
                           std::tuple<uintE, W>* tmp) {
-    cvertex::filterNghs<W, C, P, O>(vtx_id, getInDegree(), getInNeighbors(), std::forward<P>(p),
+    cvertex::filterNghs<W, C, P, O>(vtx_id, getInDegree(), getInNeighbors(), p,
                                     tmp, out);
   }
 
   template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P&& pred, std::tuple<uintE, W>* tmp) {
+  inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     uintE orig_degree = getOutDegree();
     if (orig_degree > 0) {
       size_t deg = cvertex::packNghs<W, C, P>(vtx_id, orig_degree,
-                                              getOutNeighbors(), std::forward<P>(pred), tmp);
+                                              getOutNeighbors(), pred, tmp);
       return deg;
     }
     return orig_degree;
@@ -516,82 +516,82 @@ struct compressed_asymmetric_vertex {
   }
 
   template <class VS, class F, class G>
- __attribute__((always_inline)) inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F&& f, G&& g,
+ __attribute__((always_inline)) inline void decodeInNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g,
                                     bool parallel = 0) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
-        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, std::forward<F>(f), std::forward<G>(g), parallel);
+        vtx_id, getInDegree(), getInNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class VS, class F, class G>
- __attribute__((always_inline)) inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F&& f, G&& g, bool parallel = 0) {
+ __attribute__((always_inline)) inline void decodeOutNghBreakEarly(uintE vtx_id, VS& vertexSubset, F& f, G& g, bool parallel = 0) {
     cvertex::decodeNghsBreakEarly<W, C, F, G, VS>(
-        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, std::forward<F>(f), std::forward<G>(g), parallel);
+        vtx_id, getOutDegree(), getOutNeighbors(), vertexSubset, f, g, parallel);
   }
 
   template <class F, class G>
-  inline void decodeInNgh(uintE vtx_id, F&& f, G&& g) {
-    cvertex::decodeNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), std::forward<F>(f),
-                                    std::forward<G>(g));
+  inline void decodeInNgh(uintE vtx_id, F& f, G& g) {
+    cvertex::decodeNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), f,
+                                    g);
   }
 
   template <class F, class G>
-  inline void decodeOutNgh(uintE vtx_id, F&& f, G&& g) {
+  inline void decodeOutNgh(uintE vtx_id, F& f, G& g) {
     cvertex::decodeNghs<W, C, F, G>(vtx_id, getOutDegree(), getOutNeighbors(),
-                                    std::forward<F>(f), std::forward<G>(g));
+                                    f, g);
   }
 
   template <class F, class G, class H>
-  inline void decodeInNghSparse(uintE vtx_id, uintT o, F&& f, G&& g, H&& h, bool parallel=true) {
+  inline void decodeInNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getInDegree(),
-                                             getInNeighbors(), o, std::forward<F>(f), std::forward<G>(g), std::forward<H>(h), parallel);
+                                             getInNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G, class H>
-  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F&& f, G&& g, H&& h, bool parallel=true) {
+  inline void decodeOutNghSparse(uintE vtx_id, uintT o, F& f, G& g, H& h, bool parallel=true) {
     cvertex::decodeNghsSparse<W, C, F, G, H>(vtx_id, getOutDegree(),
-                                             getOutNeighbors(), o, std::forward<F>(f), std::forward<G>(g), std::forward<H>(h), parallel);
+                                             getOutNeighbors(), o, f, g, h, parallel);
   }
 
   template <class F, class G>
-  inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F&& f, G&& g) {
+  inline size_t decodeInNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getInDegree(),
-                                                    getInNeighbors(), o, std::forward<F>(f), std::forward<G>(g));
+                                                    getInNeighbors(), o, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F&& f, G&& g) {
+  inline size_t decodeOutNghSparseSeq(uintE vtx_id, uintT o, F& f, G& g) {
     return cvertex::decodeNghsSparseSeq<W, C, F, G>(vtx_id, getOutDegree(),
-                                                    getOutNeighbors(), o, std::forward<F>(f), std::forward<G>(g));
+                                                    getOutNeighbors(), o, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F&& f,
-                               G&& g) {
+  inline size_t decodeOutBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                               G& g) {
     return cvertex::decode_block<W, C, F, G>(
-        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, std::forward<F>(f), std::forward<G>(g));
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>
-  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F&& f,
-                              G&& g) {
+  inline size_t decodeInBlock(uintE vtx_id, uintT o, uintE block_num, F& f,
+                              G& g) {
     return cvertex::decode_block<W, C, F, G>(
-        vtx_id, getInDegree(), getInNeighbors(), o, block_num, std::forward<F>(f), std::forward<G>(g));
+        vtx_id, getInDegree(), getInNeighbors(), o, block_num, f, g);
   }
 
   template <class F, class G>
   inline size_t decodeOutNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
-                                        uintE block_num, F&& f, G&& g) {
+                                        uintE block_num, F& f, G& g) {
     return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getOutDegree(), getOutNeighbors(), o, block_size, block_num, std::forward<F>(f),
-        std::forward<G>(g));
+        vtx_id, getOutDegree(), getOutNeighbors(), o, block_size, block_num, f,
+        g);
   }
 
   template <class F, class G>
   inline size_t decodeInNghSparseBlock(uintE vtx_id, uintT o, uintE block_size,
-                                       uintE block_num, F&& f, G&& g) {
+                                       uintE block_num, F& f, G& g) {
     return cvertex::decodeNghsSparseBlock<W, C, F, G>(
-        vtx_id, getInDegree(), getInNeighbors(), o, block_size, block_num, std::forward<F>(f),
-        std::forward<G>(g));
+        vtx_id, getInDegree(), getInNeighbors(), o, block_size, block_num, f,
+        g);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {
@@ -603,79 +603,79 @@ struct compressed_asymmetric_vertex {
   }
 
   template <class F, class G>
-  inline void copyInNgh(uintE vtx_id, uintT o, F&& f, G&& g) {
-    cvertex::copyNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), o, std::forward<F>(f),
-                                  std::forward<G>(g));
+  inline void copyInNgh(uintE vtx_id, uintT o, F& f, G& g) {
+    cvertex::copyNghs<W, C, F, G>(vtx_id, getInDegree(), getInNeighbors(), o, f,
+                                  g);
   }
 
   template <class F, class G>
-  inline void copyOutNgh(uintE vtx_id, uintT o, F&& f, G&& g) {
+  inline void copyOutNgh(uintE vtx_id, uintT o, F& f, G& g) {
     cvertex::copyNghs<W, C, F, G>(vtx_id, getOutDegree(), getOutNeighbors(), o,
-                                  std::forward<F>(f), std::forward<G>(g));
+                                  f, g);
   }
 
   template <class F>
-  inline void mapInNgh(uintE vtx_id, F&& f, bool parallel = 1) {
-    cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), std::forward<F>(f),
+  inline void mapInNgh(uintE vtx_id, F& f, bool parallel = 1) {
+    cvertex::mapNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(), f,
                               parallel);
   }
 
   template <class F>
   // TODO: parallel false?
-  inline void mapOutNgh(uintE vtx_id, F&& f, bool parallel = 1) {
-    cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), std::forward<F>(f),
+  inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {
+    cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
   }
 
   template <class F>
-  inline size_t countInNgh(uintE vtx_id, F&& f, bool parallel = 1) {
+  inline size_t countInNgh(uintE vtx_id, F& f, bool parallel = 1) {
     return cvertex::countNghs<W, C, F>(vtx_id, getInDegree(), getInNeighbors(),
-                                       std::forward<F>(f), parallel);
+                                       f, parallel);
   }
 
   template <class F>
-  inline size_t countOutNgh(uintE vtx_id, F&& f, bool parallel = 1) {
+  inline size_t countOutNgh(uintE vtx_id, F& f, bool parallel = 1) {
     return cvertex::countNghs<W, C, F>(vtx_id, getOutDegree(),
-                                       getOutNeighbors(), std::forward<F>(f), parallel);
+                                       getOutNeighbors(), f, parallel);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M&& m, Monoid&& r) {
+  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getInDegree(),
-                                              getInNeighbors(), std::forward<M>(m), std::forward<Monoid>(r));
+                                              getInNeighbors(), m, r);
   }
 
   template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M&& m, Monoid&& r) {
+  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
     return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getOutDegree(),
-                                              getOutNeighbors(), std::forward<M>(m), std::forward<Monoid>(r));
+                                              getOutNeighbors(), m, r);
   }
 
   template <class P, class O>
-  inline void filterOutNgh(uintE vtx_id, P&& p, O& out,
+  inline void filterOutNgh(uintE vtx_id, P& p, O& out,
                            std::tuple<uintE, W>* tmp) {
     cvertex::filterNghs<W, C, P, O>(vtx_id, getOutDegree(), getOutNeighbors(),
-                                    std::forward<P>(p), tmp, out);
+                                    p, tmp, out);
   }
 
   template <class P, class O>
-  inline void filterInNgh(uintE vtx_id, P&& p, O& out,
+  inline void filterInNgh(uintE vtx_id, P& p, O& out,
                           std::tuple<uintE, W>* tmp) {
-    cvertex::filterNghs<W, C, P, O>(vtx_id, getInDegree(), getInNeighbors(), std::forward<P>(p),
+    cvertex::filterNghs<W, C, P, O>(vtx_id, getInDegree(), getInNeighbors(), p,
                                     tmp, out);
   }
 
   template <class P>
-  inline size_t packInNgh(uintE vtx_id, P&& pred, std::tuple<uintE, W>* tmp) {
+  inline size_t packInNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getInDegree(),
-                                            getInNeighbors(), std::forward<P>(pred), tmp);
+                                            getInNeighbors(), pred, tmp);
     return deg;
   }
 
   template <class P>
-  inline size_t packOutNgh(uintE vtx_id, P&& pred, std::tuple<uintE, W>* tmp) {
+  inline size_t packOutNgh(uintE vtx_id, P& pred, std::tuple<uintE, W>* tmp) {
     size_t deg = cvertex::packNghs<W, C, P>(vtx_id, getOutDegree(),
-                                            getOutNeighbors(), std::forward<P>(pred), tmp);
+                                            getOutNeighbors(), pred, tmp);
     return deg;
   }
 

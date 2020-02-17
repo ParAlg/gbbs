@@ -328,7 +328,7 @@ struct simple_iter {
   // Decode unweighted edges
   template <class W, class T, typename std::enable_if<
       std::is_same<W, pbbs::empty>::value, int>::type=0>
-  void decode(T&& t, uchar* edge_start, const uintE &source,
+  void decode(T& t, uchar* edge_start, const uintE &source,
                      const uintT &degree, const bool parallel=true) {
     if (degree > 0) {
       uintE virtual_degree = *((uintE*)edge_start);
@@ -391,7 +391,7 @@ struct simple_iter {
 // Decode weighted edges
 template <class W, class T, typename std::enable_if<
     !std::is_same<W, pbbslib::empty>::value, int>::type = 0>
-inline void decode(T&& t, uchar* edge_start, const uintE& source,
+inline void decode(T& t, uchar* edge_start, const uintE& source,
     const uintT& degree, const bool par=true) {
   if (degree > 0) {
     uintE virtual_degree = *((uintE*)edge_start);
@@ -538,7 +538,7 @@ inline void decode_block_cond(T&& t, uchar* edge_start, const uintE& source,
 // r: E -> E -> E
 template <class W, class E, class M, class Monoid>
 inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    M&& m, Monoid&& reduce, const bool par = true) {
+                    M& m, Monoid& reduce, const bool par = true) {
   if (degree > 0) {
     uintE virtual_degree = *((uintE*)edge_start);
     size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
@@ -1054,7 +1054,7 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
 }
 
 template <class W, class P>
-inline size_t pack(P&& pred, uchar* edge_start, const uintE& source,
+inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
                    const uintE& degree, std::tuple<uintE, W>* tmp_space,
                    bool par = true) {
   using uintEW = std::tuple<uintE, W>;

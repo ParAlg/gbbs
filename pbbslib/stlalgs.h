@@ -209,8 +209,8 @@ sort(Seq const &S, Compare&& less) {
   return sample_sort(S, std::forward<Compare>(less), false);}
 
 template <class Iter, class Compare>
-void sort_inplace (range<Iter> A, Compare&& f) {
-  sample_sort_inplace(A, std::forward<Compare>(f)); };
+void sort_inplace (range<Iter> A, const Compare& f) {
+  sample_sort_inplace(A, f); };
 
 template <class Seq, class Compare>
 sequence<typename Seq::value_type>
