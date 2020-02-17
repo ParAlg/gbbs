@@ -1,6 +1,7 @@
 cc_library(
   name = "bridge",
   hdrs = ["bridge.h"],
+  srcs = ["bridge.cc"],
   deps = [
   "//pbbslib:binary_search",
   "//pbbslib:counting_sort",
@@ -19,20 +20,20 @@ cc_library(
 cc_library(
   name = "io",
   hdrs = ["io.h"],
+  srcs = ["io.cc"],
   deps = [
-  ":bridge",
-  ":pbbs_strings",
+  ":macros",
   ]
 )
 
 cc_library(
   name = "graph_io",
   hdrs = ["graph_io.h"],
+  srcs = ["graph_io.cc"],
   deps = [
-  ":bridge",
   ":graph",
   ":io",
-  ":pbbs_strings",
+  "//pbbslib/strings:string_basics",
   ]
 )
 
@@ -99,6 +100,7 @@ cc_library(
 cc_library(
   name = "graph",
   hdrs = ["graph.h"],
+  srcs = ["graph.cc"],
   deps = [
   ":bridge",
   ":compressed_vertex",
@@ -129,6 +131,7 @@ cc_library(
 cc_library(
   name = "ligra",
   hdrs = ["ligra.h"],
+  srcs = ["ligra.cc"],
   deps = [
   ":bridge",
   ":compressed_vertex",
@@ -163,12 +166,7 @@ cc_library(
 cc_library(
   name = "parse_command_line",
   hdrs = ["parse_command_line.h"],
-)
-
-cc_library(
-  name = "pbbs_strings",
-  hdrs = ["pbbs_strings.h"],
-  deps = ["//pbbslib/strings:string_basics"]
+  srcs = ["parse_command_line.cc"],
 )
 
 cc_library(
@@ -191,6 +189,7 @@ cc_library(
 cc_library(
   name = "union_find",
   hdrs = ["union_find.h"],
+  srcs = ["union_find.cc"],
   deps = [
   ":macros",
   ":speculative_for"

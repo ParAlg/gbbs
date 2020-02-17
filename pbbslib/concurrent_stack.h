@@ -35,9 +35,10 @@
 #pragma once
 #include <cstdio>
 #include <cstdint>
+#include <atomic>
 #include <iostream>
 
-#include "utilities.h"
+#include "maybe.h"
 
 template<typename T>
 class concurrent_stack {

@@ -3,8 +3,6 @@
 #include "utilities.h"
 #include <assert.h>
 
-#define hello foo
-
 #ifdef CONCEPTS
 template<typename T>
 concept bool Seq =

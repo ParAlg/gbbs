@@ -36,6 +36,7 @@
 #include "concurrent_stack.h"
 #include "utilities.h"
 #include "random_shuffle.h"
+#include "maybe.h"
 #include "memory_size.h"
 
 constexpr const size_t default_alloc_size = 1000000;

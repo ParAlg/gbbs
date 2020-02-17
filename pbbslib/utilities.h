@@ -5,8 +5,6 @@
 #include <memory>
 #include <stdlib.h>
 #include <type_traits>
-#include <type_traits>
-#include <math.h>
 #include <atomic>
 #include <cstring>
 
@@ -35,37 +33,6 @@ static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
   if (do_parallel) par_do3(left, mid, right);
   else {left(); mid(); right();}
 }
-
-namespace pbbs {
-  template <class T>
-  size_t log2_up(T);
-}
-
-template <class T>
-struct maybe {
-	T value;
-	bool valid;
-
-	maybe(T v, bool u) : value(v) {
-		valid = u;
-	}
-	maybe(T v) : value(v) {
-		valid = true;
-	}
-	maybe() {
-		valid = false;
-	}
-
-	bool operator !() const {
-		return !valid;
-	}
-	operator bool() const {
-		return valid;
-	};
-	T& operator * () {
-		return value;
-	}
-};
 
 #if defined(__APPLE__)
 inline void* aligned_alloc(size_t a, size_t n) {return malloc(n);}
@@ -186,9 +153,7 @@ namespace pbbs {
     return r;
   }
 
-  inline void free_array(void* a) {
-    my_free(a);
-  }
+  void free_array(void* a);
 
   // Destructs in parallel
   template<typename E>
@@ -344,23 +309,8 @@ namespace pbbs {
     return a;
   }
 
-  inline size_t granularity(size_t n) {
-    return (n > 100) ? ceil(pow(n,0.5)) : 100;
-  }
+  size_t granularity(size_t n);
 
-  inline void assert_str(int cond, std::string s) {
-    if (!cond) {std::cout << "PBBS assert error: " << s << std::endl;}
-  }
+  void assert_str(int cond, const std::string& s);
 
 }
-
-#ifdef USEMALLOC
-inline void* my_alloc(size_t i) {return malloc(i);}
-inline void my_free(void* p) {free(p);}
-#else
-#include "alloc.h"
-inline void* my_alloc(size_t i) {return my_mem_pool.alloc(i);}
-inline void my_free(void* p) {my_mem_pool.afree(p);}
-#endif
-
-

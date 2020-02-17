@@ -31,30 +31,13 @@
 struct UnionFind {
   size_t n;
   intT* parents;
-  UnionFind(size_t _n) : n(_n) {
-    parents = pbbslib::new_array_no_init<intT>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { parents[i] = -1; });
-  }
+  UnionFind(size_t _n);
 
-  intT find(int32_t i) {
-    if (parents[i] < 0) return i;
-    intT j = parents[i];
-    if (parents[j] < 0) return j;
-    do
-      j = parents[j];
-    while (parents[j] >= 0);
-    intT tmp;
-    while ((tmp = parents[i]) != j) {
-      parents[i] = j;
-      i = tmp;
-    }
-    return j;
-  }
+  intT find(int32_t i);
 
-  void link(intT u, intT v) { parents[u] = v; }
+  void link(intT u, intT v);
 
-  void clear() { pbbslib::free_array(parents); }
+  void clear();
 };
 
 // edges: <uintE, uintE, W>

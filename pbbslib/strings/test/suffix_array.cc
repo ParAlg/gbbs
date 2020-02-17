@@ -1,4 +1,3 @@
-#define NOTMAIN 1
 #include "../suffix_array.h"
 #include "../lcp.h"
 

@@ -31,6 +31,7 @@
 #include "lcp.h"
 #include "cartesian_tree.h"
 #include "histogram.h"
+#include "maybe.h"
 
 namespace pbbs {
 	
