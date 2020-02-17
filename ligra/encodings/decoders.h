@@ -94,9 +94,9 @@ struct byte_decode {
   }
 
   template <class W, class T>
- __attribute__((always_inline)) static inline void decode(T t, uchar* edge_start, const uintE& source,
+ __attribute__((always_inline)) static inline void decode(T&& t, uchar* edge_start, const uintE& source,
                             const uintT& degree, const bool& parallel) {
-    return byte::decode<W, T>(t, edge_start, source, degree);
+    return byte::decode<W, T>(std::forward<T>(t), edge_start, source, degree);
   }
 
   template <class W>
