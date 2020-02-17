@@ -186,7 +186,7 @@ public:
 
   // Wait for condition: finished().
   template <typename F>
-  void wait(F finished, bool conservative=false) {
+  void wait(F&& finished, bool conservative=false) {
     // Conservative avoids deadlock if scheduler is used in conjunction
     // with user locks enclosing a wait.
     if (conservative)
@@ -194,7 +194,7 @@ public:
     	std::this_thread::yield();
     // If not conservative, schedule within the wait.
     // Can deadlock if a stolen job uses same lock as encloses the wait.
-    else start(finished);
+    else start(std::forward<F>(finished));
   }
 
   // All scheduler threads quit after this is called.
@@ -237,7 +237,7 @@ private:
 
   // Start an individual scheduler task.  Runs until finished().
   template <typename F>
-  void start(F finished) {
+  void start(F&& finished) {
     while (1) {
       Job* job = get_job(finished);
       if (!job) return;
@@ -254,7 +254,7 @@ private:
 
   // Find a job, first trying local stack, then random steals.
   template <typename F>
-  Job* get_job(F finished) {
+  Job* get_job(F&& finished) {
     if (finished()) return NULL;
     Job* job = try_pop();
     if (job) return job;
@@ -330,7 +330,7 @@ public:
   }
 
   template <typename F>
-  int get_granularity(size_t start, size_t end, F f) {
+  int get_granularity(size_t start, size_t end, F&& f) {
     size_t done = 0;
     size_t size = 1;
     int ticks;
@@ -347,20 +347,20 @@ public:
   }
 
   template <typename F>
-  void parfor(size_t start, size_t end, F f,
+  void parfor(size_t start, size_t end, F&& f,
 	      size_t granularity = 0,
 	      bool conservative = false) {
     if (granularity == 0) {
       size_t done = get_granularity(start,end, f);
       granularity = std::max(done, (end-start)/(128*sched->num_threads));
-      parfor_(start+done, end, f, granularity, conservative);
-    } else parfor_(start, end, f, granularity, conservative);
+      parfor_(start+done, end, std::forward<F>(f), granularity, conservative);
+    } else parfor_(start, end, std::forward<F>(f), granularity, conservative);
   }
 
 private:
 
   template <typename F>
-  void parfor_(size_t start, size_t end, F f,
+  void parfor_(size_t start, size_t end, F&& f,
 	       size_t granularity,
 	       bool conservative) {
     if ((end - start) <= granularity)
