@@ -114,7 +114,7 @@ inline uintE eatEdge(uchar*& start) {
 }
 
 template <class W, class T>
-inline void decode(T t, uchar* edgeStart, const uintE& source,
+inline void decode(T&& t, uchar* edgeStart, const uintE& source,
                    const uintT& degree) {
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edgeStart, source);
@@ -148,7 +148,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 }
 
 template <class W, class T>
-inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
+inline void decode_block_seq(T&& t, uchar* edge_start, const uintE& source,
                              const uintT& degree, uintE block_size,
                              uintE block_num) {
   assert(false);  // Unimplemented
@@ -156,7 +156,7 @@ inline void decode_block_seq(T t, uchar* edge_start, const uintE& source,
 
 template <class W, class E, class M, class Monoid>
 inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
-                    M& m, Monoid& reduce, const bool par = true) {
+                    M&& m, Monoid&& reduce, const bool par = true) {
   if (degree > 0) {
     uintE ngh = eatFirstEdge(edge_start, source);
     W wgh = eatWeight<W>(edge_start);
@@ -247,7 +247,7 @@ inline long compressEdge(uchar* start, long curOffset, uintE diff) {
 }
 
 template <class W, class P>
-inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
+inline size_t pack(P&& pred, uchar* edge_start, const uintE& source,
                    const uintE& degree, std::tuple<uintE, W>* tmp) {
   size_t new_deg = 0;
   if (degree > 0) {
@@ -283,7 +283,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 }
 
 template <class W, class P, class O>
-inline size_t filter(P pred, uchar* edge_start, const uintE& source,
+inline size_t filter(P&& pred, uchar* edge_start, const uintE& source,
                      const uintE& degree, std::tuple<uintE, W>* tmp, O& out) {
   if (degree > 0) {
     uchar* finger = edge_start;  // read-finger
