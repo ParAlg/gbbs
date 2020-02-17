@@ -1,7 +1,8 @@
 // Runs SCAN to cluster a graph and times how long the computation takes.
 //
 // Usage example:
-// numactl -i all ./scan -rounds 3 -s -m twitter_SJ
+//     bazel run //benchmarks/SCAN/IndexBased:SCAN_main -- \
+//     -s <absolute path to graph>
 // flags:
 //   required:
 //     -s : indicates that the graph is symmetric
@@ -9,14 +10,12 @@
 //     -m : indicate that the graph should be mmap'd
 //     -c : indicate that the graph is compressed
 //     -rounds : the number of times to run the algorithm
-//     -stats : print the #ccs, and the #vertices in the largest cc
-
 #include "benchmarks/SCAN/IndexBased/scan.h"
 
 #include "ligra/ligra.h"
 #include "utils/assert.h"
 
-// Execute SCAN on the input graph and report stats on the execution.
+// Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
   ASSERT(parameters.getOption("-s"), "Input graph must be symmetric");
