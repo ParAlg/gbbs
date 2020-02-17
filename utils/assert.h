@@ -1,3 +1,7 @@
+// Assertion macros.
+//
+// These are implemented as macros instead of functions so that `__FILE__` and
+// `__LINE__` may be used to determine the location of a failing assertion.
 #pragma once
 
 #include <exception>
@@ -18,7 +22,7 @@
 //     An explanatory message to print out when the condition fails.
 #define ASSERT(...) BOOST_PP_OVERLOAD(_ASSERT, __VA_ARGS__)(__VA_ARGS__)
 
-// Prints out message and terminates the program.
+// Prints out message and terminates the program unconditionally.
 #define ABORT(message) \
   do { \
     std::cerr << __FILE__ << ":" << __LINE__ << ": Abort: "  \
