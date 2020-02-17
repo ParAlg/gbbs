@@ -111,7 +111,7 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map = true) {
+  void map_edges(F&& f, bool parallel_inner_map = true) {
     parallel_for(0, n, [&](size_t i) {
       get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
     }, 1);
@@ -119,7 +119,7 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
 
   // F : edge -> edge
   template <class F>
-  void alter_edges(F f, bool parallel_inner_map = true) {
+  void alter_edges(F&& f, bool parallel_inner_map = true) {
     abort(); /* unimplemented for CSR */
   }
 
@@ -220,7 +220,7 @@ struct asymmetric_graph {
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map = true) {
+  void map_edges(F&& f, bool parallel_inner_map = true) {
     parallel_for(0, n, [&](size_t i) {
       get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
     }, 1);
@@ -274,7 +274,7 @@ struct edge_array {
   }
 
   template <class F>
-  void map_edges(F f, bool parallel_inner_map = true) {
+  void map_edges(F&& f, bool parallel_inner_map = true) {
     parallel_for(0, m, [&](size_t i) {
       uintE u, v; W w;
       std::tie(u,v, w) = E[i];
@@ -284,7 +284,7 @@ struct edge_array {
 
   // F : edge -> edge
   template <class F>
-  void alter_edges(F f, bool parallel_inner_map = true) {
+  void alter_edges(F&& f, bool parallel_inner_map = true) {
     parallel_for(0, m, [&](size_t i) {
       uintE u, v; W w;
       std::tie(u, v, w) = E[i];
@@ -293,9 +293,9 @@ struct edge_array {
   }
 
   template <class P>
-  void filter_edges(P p) {
+  void filter_edges(P&& p) {
     auto in_seq = pbbslib::make_sequence<edge>(m, E);
-    auto q = pbbs::filter(in_seq, p);
+    auto q = pbbs::filter(in_seq, std::forward<P>(p));
     size_t q_s = q.size();
     pbbs::free_array(E);
     E = q.to_array(); m = q_s;
