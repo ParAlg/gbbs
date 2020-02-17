@@ -2,10 +2,12 @@ cc_library(
     name = "scan",
     srcs = [
         "scan.cc",
+        "scan_helpers.cc",
         "undirected_edge.cc",
     ],
     hdrs = [
         "scan.h",
+        "scan_helpers.h",
         "undirected_edge.h",
     ],
     deps = [

@@ -3,44 +3,10 @@
 #include <variant>
 
 #include "ligra/graph.h"
-#include "ligra/vertex.h"
-#include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/seq.h"
-#include "benchmarks/SCAN/undirected_edge.h"
+#include "benchmarks/SCAN/scan_helpers.h"
 
 namespace scan {
-
-namespace internal {
-
-struct NeighborSimilarity {
-  // Vertex ID.
-  uintE neighbor;
-  // Similarity of neighbor vertex to some original reference vertex.
-  float similarity;
-};
-
-using NeighborOrder = pbbs::sequence<pbbs::sequence<NeighborSimilarity>>;
-
-struct CoreThreshold {
-  uintE vertex_id;
-  // Maximum value of the SCAN parameter epsilon for which `vertex_id` is a core
-  // vertex (given some fixed reference value for SCAN parameter mu).
-  float threshold;
-};
-
-class CoreOrder {
- public:
-  explicit CoreOrder(const NeighborOrder& neighbor_order);
-
-  uint64_t MaxMu() const;
-  pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
-
- private:
-  const size_t num_vertices_;
-  pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
-};
-
-}  // namespace internal
 
 // Represents a vertex that is in at least one SCAN cluster.
 struct ClusterMember {
@@ -80,7 +46,15 @@ bool operator==(const Clustering&, const Clustering&);
 // An Index-Based Approach" by Wen et al.
 class ScanIndex {
  public:
-  explicit ScanIndex(symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
+  template <template <typename WeightType> class VertexType>
+  explicit ScanIndex(
+      symmetric_graph<VertexType, pbbslib::empty>* graph)
+    : num_vertices_{graph->n}
+    , neighbor_order_{
+        internal::ComputeNeighborOrder(
+            graph,
+            internal::ComputeStructuralSimilarities(graph))}
+    , core_order_{neighbor_order_} {}
 
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
   // mu and epsilon.
@@ -103,28 +77,5 @@ class ScanIndex {
   const internal::NeighborOrder neighbor_order_;
   const internal::CoreOrder core_order_;
 };
-
-namespace internal {
-
-using StructuralSimilarities =
-  sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
-
-bool operator==(const NeighborSimilarity&, const NeighborSimilarity&);
-std::ostream& operator<<(std::ostream& os, const NeighborSimilarity&);
-
-bool operator==(const CoreThreshold&, const CoreThreshold&);
-std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
-
-StructuralSimilarities ComputeStructuralSimilarities(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph);
-
-NeighborOrder ComputeNeighborOrder(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph,
-    const StructuralSimilarities& similarities);
-
-pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
-    const NeighborOrder& neighbor_order);
-
-}  // namespace internal
 
 }  // namespace scan

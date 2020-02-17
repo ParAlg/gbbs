@@ -23,11 +23,15 @@ double RunScan(Graph& graph, commandLine parameters) {
 
   timer timer{};
   timer.start();
-  ScanIndex scan_index{&graph};
+  const scan::ScanIndex scan_index{&graph};
+
+  constexpr uint64_t kMu{5};
+  constexpr float kEpsilon{0.6};
+  const scan::Clustering clustering{scan_index.Cluster(kMu, kEpsilon)};
   const double running_time{timer.stop()};
   std::cout << "Running Time: " << running_time << std::endl;
   return running_time;
 }
 
 static const bool kMutates{false};
-generate_main(RunScan, kMutates);
+generate_symmetric_main(RunScan, kMutates);

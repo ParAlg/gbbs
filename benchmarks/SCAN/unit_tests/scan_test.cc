@@ -1,4 +1,5 @@
 #include "benchmarks/SCAN/scan.h"
+#include "benchmarks/SCAN/scan_helpers.h"
 
 #include <cmath>
 #include <unordered_set>
@@ -317,6 +318,18 @@ TEST(Cluster, DisconnectedGraph) {
   };
   auto graph{MakeGraph(kNumVertices, kEdges)};
   const scan::ScanIndex index{&graph};
+
+  {
+    constexpr uint64_t kMu{2};
+    constexpr float kEpsilon{0.95};
+    const scan::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+    /*
+    EXPECT_EQ(clustering.num_clusters, 1);
+    ASSERT_EQ(clustering.clusters_by_vertex.size(), kNumVertices);
+    */
+
+    EXPECT_EQ("TODO", "DONE");
+  }
 
   EXPECT_EQ("TODO", "DONE");
 }
