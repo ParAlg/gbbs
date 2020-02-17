@@ -32,16 +32,14 @@ template <class vertexId>
 struct unionFind {
   pbbs::sequence<vertexId> parents;
 
-  bool is_root(vertexId u) {
-    return parents[u] < 0;}
+  bool is_root(vertexId u) { return parents[u] < 0; }
 
   // initialize n elements all as roots
-  unionFind(size_t n) {
-    parents = pbbs::sequence<vertexId>(n, -1);}
+  unionFind(size_t n) { parents = pbbs::sequence<vertexId>(n, -1); }
 
   vertexId find(vertexId i) {
     if (is_root(i)) return i;
-    vertexId p = parents[i];     
+    vertexId p = parents[i];
     if (is_root(p)) return p;
 
     // find root, shortcutting along the way
@@ -60,23 +58,22 @@ struct unionFind {
   // of the negative number is its rank.
   // Otherwise it is the vertexId of its parent.
   // cannot be called union since reserved in C
-  void union_roots(vertexId u, vertexId v) { 
-    if (parents[v] < parents[u]) std::swap(u,v);
+  void union_roots(vertexId u, vertexId v) {
+    if (parents[v] < parents[u]) std::swap(u, v);
     // now u has higher rank (higher negative number)
-    parents[u] += parents[v]; // update rank of root
-    parents[v] = u;   // update parent of other tree
+    parents[u] += parents[v];  // update rank of root
+    parents[v] = u;            // update parent of other tree
   }
 
   // Version of union that is safe for parallelism
   // when no cycles are created (e.g. only link from larger
   // to smaller vertexId).
   // Does not use ranks.
-  void link(vertexId u, vertexId v) { 
-    parents[u] = v;}
+  void link(vertexId u, vertexId v) { parents[u] = v; }
 
   // returns true if successful
   bool tryLink(vertexId u, vertexId v) {
     return (parents[u] == -1 &&
-	    pbbs::atomic_compare_and_swap(&parents[u], -1, v));
+            pbbs::atomic_compare_and_swap(&parents[u], -1, v));
   }
 };

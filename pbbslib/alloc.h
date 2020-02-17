@@ -24,4 +24,3 @@ struct mem_pool {
 };
 
 static mem_pool my_mem_pool;
-

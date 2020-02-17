@@ -10,10 +10,11 @@
 #if defined(_WIN32)
 #include <Windows.h>
 
-#elif defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
-#include <unistd.h>
-#include <sys/types.h>
+#elif defined(__unix__) || defined(__unix) || defined(unix) || \
+    (defined(__APPLE__) && defined(__MACH__))
 #include <sys/param.h>
+#include <sys/types.h>
+#include <unistd.h>
 #if defined(BSD)
 #include <sys/sysctl.h>
 #endif

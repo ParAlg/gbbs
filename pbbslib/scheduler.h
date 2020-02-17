@@ -1,10 +1,10 @@
 #pragma once
 
 #include <chrono>
-#include <thread>
 #include <cstdint>
-#include <iostream>
 #include <functional>
+#include <iostream>
+#include <thread>
 
 // EXAMPLE USE 1:
 //
@@ -32,7 +32,6 @@
 //
 // init(a, n);
 
-
 // Deque from Arora, Blumofe, and Plaxton (SPAA, 1998).
 template <typename Job>
 struct Deque {
@@ -49,7 +48,9 @@ struct Deque {
   };
 
   // align to avoid false sharing
-  struct alignas(64) padded_job { Job* job;  };
+  struct alignas(64) padded_job {
+    Job* job;
+  };
 
   static int const q_size = 200;
   age_t age;
@@ -60,9 +61,7 @@ struct Deque {
     return __sync_bool_compare_and_swap(ptr, oldv, newv);
   }
 
-  inline void fence() {
-    std::atomic_thread_fence(std::memory_order_seq_cst);
-  }
+  inline void fence() { std::atomic_thread_fence(std::memory_order_seq_cst); }
 
   Deque() : bot(0) {
     age.pair.tag = 0;
@@ -71,14 +70,14 @@ struct Deque {
 
   void push_bottom(Job* job) {
     qidx local_bot;
-    local_bot = bot; // atomic load
-    deq[local_bot].job = job; // shared store
+    local_bot = bot;           // atomic load
+    deq[local_bot].job = job;  // shared store
     local_bot += 1;
     if (local_bot == q_size) {
       std::cout << "internal error: scheduler queue overflow" << std::endl;
       abort();
     }
-    bot = local_bot; // shared store
+    bot = local_bot;  // shared store
     fence();
   }
 
@@ -86,19 +85,19 @@ struct Deque {
     age_t old_age, new_age;
     qidx local_bot;
     Job *job, *result;
-    old_age.unit = age.unit; // atomic load
+    old_age.unit = age.unit;  // atomic load
 
-    local_bot = bot; // atomic load
+    local_bot = bot;  // atomic load
     if (local_bot <= old_age.pair.top)
       result = NULL;
     else {
-      job = deq[old_age.pair.top].job; // atomic load
+      job = deq[old_age.pair.top].job;  // atomic load
       new_age.unit = old_age.unit;
       new_age.pair.top = new_age.pair.top + 1;
       if (cas(&(age.unit), old_age.unit, new_age.unit))  // cas
-	result = job;
+        result = job;
       else
-	result = NULL;
+        result = NULL;
     }
     return result;
   }
@@ -107,42 +106,40 @@ struct Deque {
     age_t old_age, new_age;
     qidx local_bot;
     Job *job, *result;
-    local_bot = bot; // atomic load
+    local_bot = bot;  // atomic load
     if (local_bot == 0)
       result = NULL;
     else {
       local_bot = local_bot - 1;
-      bot = local_bot; // shared store
+      bot = local_bot;  // shared store
       fence();
-      job = deq[local_bot].job; // atomic load
-      old_age.unit = age.unit; // atomic load
+      job = deq[local_bot].job;  // atomic load
+      old_age.unit = age.unit;   // atomic load
       if (local_bot > old_age.pair.top)
-	result = job;
+        result = job;
       else {
-	bot = 0; // shared store
-	new_age.pair.top = 0;
-	new_age.pair.tag = old_age.pair.tag + 1;
-	if ((local_bot == old_age.pair.top) &&
-	    cas(&(age.unit), old_age.unit, new_age.unit))
-	  result = job;
-	else {
-	  age.unit = new_age.unit; // shared store
-	  result = NULL;
-	}
-	fence();
+        bot = 0;  // shared store
+        new_age.pair.top = 0;
+        new_age.pair.tag = old_age.pair.tag + 1;
+        if ((local_bot == old_age.pair.top) &&
+            cas(&(age.unit), old_age.unit, new_age.unit))
+          result = job;
+        else {
+          age.unit = new_age.unit;  // shared store
+          result = NULL;
+        }
+        fence();
       }
     }
-  return result;
+    return result;
   }
-
 };
 
-//thread_local int thread_id;
+// thread_local int thread_id;
 
 template <typename Job>
 struct scheduler {
-
-public:
+ public:
   // see comments under wait(..)
   static bool const conservative = false;
   int num_threads;
@@ -151,18 +148,18 @@ public:
 
   scheduler() {
     init_num_workers();
-    num_deques = 2*num_threads;
+    num_deques = 2 * num_threads;
     deques = new Deque<Job>[num_deques];
     attempts = new attempt[num_deques];
     finished_flag = 0;
 
     // Spawn num_workers many threads on startup
-    spawned_threads = new std::thread[num_threads-1];
-    std::function<bool()> finished = [&] () {  return finished_flag == 1; };
-    thread_id = 0; // thread-local write
-    for (int i=1; i<num_threads; i++) {
-      spawned_threads[i-1] = std::thread([&, i, finished] () {
-        thread_id = i; // thread-local write
+    spawned_threads = new std::thread[num_threads - 1];
+    std::function<bool()> finished = [&]() { return finished_flag == 1; };
+    thread_id = 0;  // thread-local write
+    for (int i = 1; i < num_threads; i++) {
+      spawned_threads[i - 1] = std::thread([&, i, finished]() {
+        thread_id = i;  // thread-local write
         start(finished);
       });
     }
@@ -170,8 +167,8 @@ public:
 
   ~scheduler() {
     finished_flag = 1;
-    for (int i=1; i<num_threads; i++) {
-      spawned_threads[i-1].join();
+    for (int i = 1; i < num_threads; i++) {
+      spawned_threads[i - 1].join();
     }
     delete[] spawned_threads;
     delete[] deques;
@@ -186,19 +183,19 @@ public:
 
   // Wait for condition: finished().
   template <typename F>
-  void wait(F finished, bool conservative=false) {
+  void wait(F finished, bool conservative = false) {
     // Conservative avoids deadlock if scheduler is used in conjunction
     // with user locks enclosing a wait.
     if (conservative)
-      while (!finished())
-    	std::this_thread::yield();
+      while (!finished()) std::this_thread::yield();
     // If not conservative, schedule within the wait.
     // Can deadlock if a stolen job uses same lock as encloses the wait.
-    else start(finished);
+    else
+      start(finished);
   }
 
   // All scheduler threads quit after this is called.
-  void finish() {finished_flag = 1;}
+  void finish() { finished_flag = 1; }
 
   // Pop from local stack.
   Job* try_pop() {
@@ -214,20 +211,18 @@ public:
     }
   }
 
-  int num_workers() {
-    return num_threads;
-  }
-  int worker_id() {
-    return thread_id;
-  }
+  int num_workers() { return num_threads; }
+  int worker_id() { return thread_id; }
   void set_num_workers(int n) {
-    std::cout << "Unsupported" << std::endl; exit(-1);
+    std::cout << "Unsupported" << std::endl;
+    exit(-1);
   }
 
-private:
-
+ private:
   // Align to avoid false sharing.
-  struct alignas(128) attempt { size_t val; };
+  struct alignas(128) attempt {
+    size_t val;
+  };
 
   int num_deques;
   Deque<Job>* deques;
@@ -261,13 +256,13 @@ private:
     size_t id = worker_id();
     while (1) {
       // By coupon collector's problem, this should touch all.
-      for (int i=0; i <= num_deques * 100; i++) {
-	if (finished()) return NULL;
-	job = try_steal(id);
-	if (job) return job;
+      for (int i = 0; i <= num_deques * 100; i++) {
+        if (finished()) return NULL;
+        job = try_steal(id);
+        if (job) return job;
       }
       // If haven't found anything, take a breather.
-      std::this_thread::sleep_for(std::chrono::nanoseconds(num_deques*100));
+      std::this_thread::sleep_for(std::chrono::nanoseconds(num_deques * 100));
     }
   }
 
@@ -279,12 +274,11 @@ private:
   }
 };
 
-template<typename T>
+template <typename T>
 thread_local int scheduler<T>::thread_id = 0;
 
 struct fork_join_scheduler {
-
-public:
+ public:
   // Jobs are thunks -- i.e., functions that take no arguments
   // and return nothing.   Could be a lambda, e.g. [] () {}.
   using Job = std::function<void()>;
@@ -304,15 +298,18 @@ public:
 
   // Fork two thunks and wait until they both finish.
   template <typename L, typename R>
-  void pardo(L left, R right, bool conservative=false) {
+  void pardo(L left, R right, bool conservative = false) {
     bool right_done = false;
-    Job right_job = [&] () {
-      right(); right_done = true;};
+    Job right_job = [&]() {
+      right();
+      right_done = true;
+    };
     sched->spawn(&right_job);
     left();
-    if (sched->try_pop() != NULL) right();
+    if (sched->try_pop() != NULL)
+      right();
     else {
-      auto finished = [&] () {return right_done;};
+      auto finished = [&]() { return right_done; };
       sched->wait(finished, conservative);
     }
   }
@@ -323,47 +320,44 @@ public:
     size_t size = 1;
     int ticks;
     do {
-      size = std::min(size,end-(start+done));
+      size = std::min(size, end - (start + done));
       auto tstart = std::chrono::high_resolution_clock::now();
-      for (size_t i=0; i < size; i++) f(start+done+i);
+      for (size_t i = 0; i < size; i++) f(start + done + i);
       auto tstop = std::chrono::high_resolution_clock::now();
-      ticks = (tstop-tstart).count();
+      ticks = (tstop - tstart).count();
       done += size;
       size *= 2;
-    } while (ticks < 1000 && done < (end-start));
+    } while (ticks < 1000 && done < (end - start));
     return done;
   }
 
   template <typename F>
-  void parfor(size_t start, size_t end, F f,
-	      size_t granularity = 0,
-	      bool conservative = false) {
+  void parfor(size_t start, size_t end, F f, size_t granularity = 0,
+              bool conservative = false) {
     if (granularity == 0) {
-      size_t done = get_granularity(start,end, f);
-      granularity = std::max(done, (end-start)/(128*sched->num_threads));
-      parfor_(start+done, end, f, granularity, conservative);
-    } else parfor_(start, end, f, granularity, conservative);
+      size_t done = get_granularity(start, end, f);
+      granularity = std::max(done, (end - start) / (128 * sched->num_threads));
+      parfor_(start + done, end, f, granularity, conservative);
+    } else
+      parfor_(start, end, f, granularity, conservative);
   }
 
-private:
-
+ private:
   template <typename F>
-  void parfor_(size_t start, size_t end, F f,
-	       size_t granularity,
-	       bool conservative) {
+  void parfor_(size_t start, size_t end, F f, size_t granularity,
+               bool conservative) {
     if ((end - start) <= granularity)
-      for (size_t i=start; i < end; i++) f(i);
+      for (size_t i = start; i < end; i++) f(i);
     else {
-      size_t n = end-start;
+      size_t n = end - start;
       // Not in middle to avoid clashes on set-associative caches
       // on powers of 2.
-      size_t mid = (start + (9*(n+1))/16);
-      pardo([&] () {parfor_(start, mid, f, granularity, conservative);},
-	    [&] () {parfor_(mid, end, f, granularity, conservative);},
-	    conservative);
+      size_t mid = (start + (9 * (n + 1)) / 16);
+      pardo([&]() { parfor_(start, mid, f, granularity, conservative); },
+            [&]() { parfor_(mid, end, f, granularity, conservative); },
+            conservative);
     }
   }
-
 };
 
 // Global fork-join scheduler.

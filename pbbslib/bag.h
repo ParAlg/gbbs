@@ -29,9 +29,9 @@
 
 #pragma once
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <atomic>
 #include "list_allocator.h"
 
@@ -47,7 +47,7 @@ template <typename ET>
 struct bag {
   using T = ET;
   void* root;
-  static const size_t flag = ((size_t) 1) << 60;
+  static const size_t flag = ((size_t)1) << 60;
 
   struct node {
     size_t size;
@@ -68,10 +68,10 @@ struct bag {
   bag(T a) {
     T* x = leaf_alloc::alloc();
     *x = a;
-    root = (void*) x;
+    root = (void*)x;
   }
 
-  static void reserve (size_t n) {
+  static void reserve(size_t n) {
     node_alloc::reserve(n);
     leaf_alloc::reserve(n);
   }
@@ -79,7 +79,7 @@ struct bag {
   static bag append(bag a, bag b) {
     if (a.size() == 0) return b;
     if (b.size() == 0) return a;
-    node *o = node_alloc::alloc();
+    node* o = node_alloc::alloc();
     o->left = a;
     o->right = b;
     o->size = a.size() + b.size();
@@ -98,30 +98,24 @@ struct bag {
     return out;
   }
 
-private:
-
-  size_t is_node() {return ((size_t) root) & flag;}
-  node* get_node_ptr() {return (node*) (((size_t) root) & ~flag);}
-  bag(node* a) {
-    root = (void*) (((size_t) a) | flag);
-  }
+ private:
+  size_t is_node() { return ((size_t)root) & flag; }
+  node* get_node_ptr() { return (node*)(((size_t)root) & ~flag); }
+  bag(node* a) { root = (void*)(((size_t)a) | flag); }
 
   void flatten_rec(T* start) {
     size_t n = size();
     if (n == 1) {
-      T* leaf = ((T*) root);
+      T* leaf = ((T*)root);
       start[0] = std::move(*leaf);
       leaf_alloc::free(leaf);
-    }
-    else if (n > 1) {
+    } else if (n > 1) {
       node* x = get_node_ptr();
       size_t nl = x->left.size();
-      par_do_if(n > 100,
-           [&] () {(x->left).flatten_rec(start);},
-           [&] () {(x->right).flatten_rec(start + nl);});
+      par_do_if(n > 100, [&]() { (x->left).flatten_rec(start); },
+                [&]() { (x->right).flatten_rec(start + nl); });
       node_alloc::free(x);
     }
-  }	     
-
+  }
 };
 }
