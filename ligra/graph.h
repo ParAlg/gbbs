@@ -394,7 +394,7 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
 
   if (!is_sorted) {
     size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(A.slice(), std::forward<GetU>(get_u), bits);
+    pbbslib::integer_sort_inplace(A.slice(), get_u, bits);
   }
 
   auto starts = sequence<uintT>(n+1, (uintT) 0);
