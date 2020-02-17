@@ -54,9 +54,9 @@ namespace pbbs {
   template <SEQ Seq, RANGE Range>
   auto copy(Seq const &A, Range R, flags fl = no_flag) -> void {
     parallel_for(0, A.size(), [&] (size_t i) {R[i] = A[i];});}
-    
+
   template <SEQ Seq, class Monoid>
-  auto reduce_serial(Seq const &A, Monoid m) -> typename Seq::value_type {
+  auto reduce_serial(Seq const &A, Monoid&& m) -> typename Seq::value_type {
     using T = typename Seq::value_type;
     T r = A[0];
     for (size_t j=1; j < A.size(); j++) r = m.f(r,A[j]);
@@ -64,7 +64,7 @@ namespace pbbs {
   }
 
   template <SEQ Seq, class Monoid>
-  auto reduce(Seq const &A, Monoid m, flags fl = no_flag)
+  auto reduce(Seq const &A, Monoid&& m, flags fl = no_flag)
     -> typename Seq::value_type
   {
     using T = typename Seq::value_type;
@@ -78,7 +78,7 @@ namespace pbbs {
     sliced_for (n, block_size,
 		[&] (size_t i, size_t s, size_t e)
 		{ Sums[i] = reduce_serial(A.slice(s,e), m);});
-    T r = reduce(Sums, m);
+    T r = reduce(Sums, std::forward<Monoid>(m));
     return r;
   }
 
@@ -130,25 +130,27 @@ namespace pbbs {
   }
 
   template <RANGE Range, class Monoid>
-  auto scan_inplace(Range In, Monoid m, flags fl = no_flag)
+  auto scan_inplace(Range In, Monoid&& m, flags fl = no_flag)
     -> typename Range::value_type
-  { return scan_(In, In, m, fl); }
+  { return scan_(In, In, std::forward<Monoid>(m), fl); }
 
   template <SEQ In_Seq, class Monoid>
-  auto scan(In_Seq const &In, Monoid m, flags fl = no_flag)
+  auto scan(In_Seq const &In, Monoid&& m, flags fl = no_flag)
     ->  std::pair<sequence<typename In_Seq::value_type>, typename In_Seq::value_type>
   {
     using T = typename In_Seq::value_type;
     sequence<T> Out(In.size());
-    return std::make_pair(std::move(Out), scan_(In, Out.slice(), m, fl));
+    return std::make_pair(
+        std::move(Out),
+        scan_(In, Out.slice(), std::forward<Monoid>(m), fl));
   }
 
   // do in place if rvalue reference to a sequence<T>
   template <class T, class Monoid>
-  auto scan(sequence<T> &&In, Monoid m, flags fl = no_flag)
+  auto scan(sequence<T> &&In, Monoid&& m, flags fl = no_flag)
     ->  std::pair<sequence<T>, T> {
     sequence<T> Out = std::move(In);
-    T total = scan_(Out, Out.slice(), m, fl);
+    T total = scan_(Out, Out.slice(), std::forward<Monoid>(m), fl);
     return std::make_pair(std::move(Out), total);
   }
 
