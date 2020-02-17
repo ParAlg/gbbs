@@ -1,5 +1,3 @@
-#define NOTMAIN
-
 #include "benchmarks/SCAN/IndexBased/undirected_edge.h"
 
 #include <algorithm>

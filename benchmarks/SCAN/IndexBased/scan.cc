@@ -1,5 +1,3 @@
-#define NOTMAIN
-
 #include "benchmarks/SCAN/IndexBased/scan.h"
 
 #include <algorithm>
