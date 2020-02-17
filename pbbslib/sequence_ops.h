@@ -48,7 +48,7 @@ namespace pbbs {
   }
 
   template <class OT, SEQ Seq, class UnaryFunc>
-  auto map(Seq const &A, UnaryFunc f, flags fl = no_flag) -> sequence<OT> {
+  auto map(Seq const &A, UnaryFunc&& f, flags fl = no_flag) -> sequence<OT> {
     return sequence<OT>(A.size(), [&] (size_t i) {return f(A[i]);});}
 
   template <SEQ Seq, RANGE Range>
@@ -225,7 +225,7 @@ namespace pbbs {
   }
 
   template <SEQ In_Seq, class F>
-  auto filter(In_Seq const &In, F f, flags fl = no_flag)
+  auto filter(In_Seq const &In, F&& f, flags fl = no_flag)
     -> sequence<typename In_Seq::value_type>
   {
     using T = typename In_Seq::value_type;
@@ -251,7 +251,7 @@ namespace pbbs {
 
   // Filter and write the output to the output range.
   template <SEQ In_Seq, RANGE Out_Seq, class F>
-  size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
+  size_t filter_out(In_Seq const &In, Out_Seq Out, F&& f, flags fl = no_flag) {
     size_t n = In.size();
     size_t l = pbbs::num_blocks(n,_block_size);
     pbbs::sequence<size_t> Sums(l);
