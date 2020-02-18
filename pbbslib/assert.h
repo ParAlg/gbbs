@@ -1,7 +1,12 @@
 // Assertion macros.
 //
 // These are implemented as macros instead of functions so that `__FILE__` and
-// `__LINE__` may be used to determine the location of a failing assertion.
+// `__LINE__` may be used to print the location of a failing assertion.
+//
+// These  are more intended for debugging and validating internal programming
+// logic rather than for user errors (e.g., a user who has made an error in
+// specifying input flags to a binary doesn't care about the location of the
+// failing assertion but rather what kind of input flags the binary expects).
 #pragma once
 
 #include <exception>
