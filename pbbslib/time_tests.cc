@@ -16,11 +16,7 @@
 #include <limits>
 #include <vector>
 
-size_t str_to_int(char* str) { return strtol(str, NULL, 10); }
-
-void report_time(double t, std::string name) {
-  cout << name << " : " << t << endl;
-}
+namespace {
 
 template <typename F>
 std::vector<double> repeat(size_t n, size_t rounds, bool check, F test) {
@@ -45,7 +41,6 @@ double median(std::vector<double> V) {
     return (V[V.size() / 2] + V[V.size() / 2 - 1]) / 2.0;
 }
 
-double sumf(double a, double b) { return a + b; };
 double minf(double a, double b) { return (a < b) ? a : b; };
 double maxf(double a, double b) { return (a > b) ? a : b; };
 
@@ -204,6 +199,8 @@ double pick_test(size_t id, size_t n, size_t rounds, bool half_length) {
       return 0.0;
   }
 }
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
   commandLine P(argc, argv,
