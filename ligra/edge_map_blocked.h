@@ -124,11 +124,11 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   // 2. Write each block to blocks and scan degree array.
   par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
-    size_t num_blocks = vertex_offs[i + 1] - vtx_off;
+    size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
     auto vtx = G.get_vertex(vtx_id);
-    par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
+    par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
       size_t block_deg = (fl & in_edges)
                              ? vtx.in_block_degree(j)
                              : vtx.out_block_degree(j);
@@ -353,11 +353,11 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   // 2. Write each block to blocks and scan degree array.
   par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
-    size_t num_blocks = vertex_offs[i + 1] - vtx_off;
+    size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
     auto vtx = G.get_vertex(vtx_id);
-    par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
+    par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
       size_t block_deg = (fl & in_edges)
                              ? vtx.in_block_degree(j)
                              : vtx.out_block_degree(j);
@@ -433,10 +433,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
     parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
       em_data_block* block = all_blocks[block_id];
-      size_t block_size = block->block_size;
       std::tuple<uintE, data>* block_data = (std::tuple<uintE, data>*)block->data;
       size_t block_offset = block_offsets[block_id];
-      for (size_t i=0; i<block_size; i++) {
+      for (size_t i=0; i<block->block_size; i++) {
         out[block_offset + i] = block_data[i];
       }
       // deallocate block to list_alloc
