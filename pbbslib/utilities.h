@@ -350,3 +350,5 @@ size_t log2_up(T i) {
 }
 
 size_t granularity(size_t n);
+
+}  // namespace pbbs
