@@ -52,7 +52,7 @@
 //     ASSERT(0 == 1);
 // Moreover, to some extent, the input message can be treated like a stream:
 //     int x = 0;
-//     ABORT(x > 0, "x must be positive, was " << x << " instead")
+//     ABORT(x > 0, "x must be positive, was " << x << " instead");
 #define ASSERT(...) _GET_MACRO(__VA_ARGS__, _ASSERT2, _ASSERT1)(__VA_ARGS__)
 
 
