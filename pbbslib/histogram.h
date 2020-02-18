@@ -110,7 +110,7 @@ struct get_bucket_old {
   //    the top half [2^{bits-1},2^{bits})
   //    and light items shared into the bottom half [0,2^{bits-1})
   template <typename Seq>
-  get_bucket_old(Seq const &A, HashEq const &heq, size_t bits) : heq(heq) {
+  get_bucket_old(Seq const &A, HashEq const &_heq, size_t bits) : heq(_heq) {
     size_t n = A.size();
     size_t low_bits = bits - 1;   // for the bottom half
     num_buckets = 1 << low_bits;  // in bottom half

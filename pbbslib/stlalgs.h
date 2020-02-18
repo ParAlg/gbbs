@@ -16,15 +16,17 @@ size_t count_if_index(size_t n, IntegerPred p) {
 
 template <class IntegerPred>
 size_t find_if_index(size_t n, IntegerPred p, size_t granularity = 1000) {
-  size_t i;
-  for (i = 0; i < std::min(granularity, n); i++)
-    if (p(i)) return i;
-  if (i == n) return n;
+  {
+    size_t i;
+    for (i = 0; i < std::min(granularity, n); i++)
+      if (p(i)) return i;
+    if (i == n) return n;
+  }
   size_t start = granularity;
   while (start < n) {
     size_t end = std::min(n, start + granularity);
     auto f = [&](size_t i) -> size_t { return p(i + start) ? i + start : n; };
-    i = pbbs::reduce(delayed_seq<size_t>(end - start, f), minm<size_t>());
+    size_t i = pbbs::reduce(delayed_seq<size_t>(end - start, f), minm<size_t>());
     if (i < n) return i;
     start += granularity;
     granularity *= 2;
