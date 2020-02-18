@@ -98,9 +98,9 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
     exit(0);
     return get_remaining(G, k, uf, r);
   }
-  auto cmp_by_wgh = [](const std::tuple<uint32_t, uintE, intE>& l,
-                       const std::tuple<uintE, uintE, intE>& r) {
-    return std::get<2>(l) < std::get<2>(r);
+  auto cmp_by_wgh = [](const std::tuple<uint32_t, uintE, intE>& left,
+                       const std::tuple<uintE, uintE, intE>& right) {
+    return std::get<2>(left) < std::get<2>(right);
   };
   pbbslib::sample_sort(pbbslib::make_sequence(sampled_e.E, sampled_e.non_zeros), cmp_by_wgh);
 
@@ -147,9 +147,9 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
     get_t.stop();
     get_t.reportTotal("get time");
     size_t n_edges = edges.non_zeros;
-    auto cmp_by_wgh = [](const std::tuple<uint32_t, uintE, W>& l,
-                         const std::tuple<uintE, uintE, W>& r) {
-      return std::get<2>(l) < std::get<2>(r);
+    auto cmp_by_wgh = [](const std::tuple<uint32_t, uintE, W>& left,
+                         const std::tuple<uintE, uintE, W>& right) {
+      return std::get<2>(left) < std::get<2>(right);
     };
     pbbslib::sample_sort(pbbslib::make_sequence(edges.E, n_edges), cmp_by_wgh);
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
