@@ -141,7 +141,6 @@ template <typename Job>
 struct scheduler {
  public:
   // see comments under wait(..)
-  static bool const conservative = false;
   int num_threads;
 
   static thread_local int thread_id;
