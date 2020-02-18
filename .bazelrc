@@ -31,7 +31,6 @@ build --cxxopt=-march=native
 build --cxxopt=-Wall
 build --cxxopt=-Wextra
 build --cxxopt=-Wcast-qual
-build --cxxopt=-Wmissing-declarations
 build --cxxopt=-Wno-unused-parameter
 build --cxxopt=-Wpointer-arith
 # Turning on -Wshadow rather than just -Wshadow=global would be nice, but the
