@@ -8,6 +8,16 @@
 #include <iostream>
 
 // Prints out message and terminates the program unconditionally.
+//
+// Usage examples
+// --------------
+// If the program 'foo/bar.cc' hits
+//     ABORT("A bad thing happened");
+// on line 45, then the program will terminate at runtime with the message
+//     foo/bar.cc:45: Abort: A bad thing happened
+// Moreover, to some extent, the input message can be treated like a stream:
+//     int x = 0;
+//     ABORT("Unexpected value of x: " << x);
 #define ABORT(message) \
   do { \
     std::cerr << __FILE__ << ":" << __LINE__ << ": Abort: "  \
@@ -22,10 +32,22 @@
 //
 // Arguments
 // ---------
-//   condition: bool
-//     The condition on which to assert.
-//   (optional) message: string
-//     An explanatory message to print out when the condition fails.
+// condition: bool
+//   The condition on which to assert.
+// (optional) message: string
+//   An explanatory message to print out when the condition fails.
+//
+// Usage examples
+// --------------
+// If the program 'foo/bar.cc' hits
+//     ASSERT(0 == 1, "Expected zero to be equal to one");
+// on line 45, then the program will terminate at runtime with the message
+//     foo/bar.cc:45: Failed assertion `0 < 1`: Expected zero to be equal to one
+// The input message may also be omitted:
+//     ASSERT(0 == 1);
+// Moreover, to some extent, the input message can be treated like a stream:
+//     int x = 0;
+//     ABORT(x > 0, "x must be positive, was " << x << " instead")
 #define ASSERT(...) _GET_MACRO(__VA_ARGS__, _ASSERT2, _ASSERT1)(__VA_ARGS__)
 
 
