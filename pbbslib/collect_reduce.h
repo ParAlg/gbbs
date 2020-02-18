@@ -264,9 +264,9 @@ auto collect_reduce(Seq const &A, Key const &get_key, Value const &get_value,
 
                  // small blocks have indices in bottom half
                  if (i < cut)
-                   for (size_t i = start; i < end; i++) {
-                     size_t j = get_key(B[i]);
-                     sums[j] = monoid.f(sums[j], get_value(B[i]));
+                   for (size_t j = start; j < end; j++) {
+                     size_t k = get_key(B[j]);
+                     sums[k] = monoid.f(sums[k], get_value(B[j]));
                    }
 
                  // large blocks have indices in top half
@@ -400,8 +400,8 @@ sequence<typename Seq::value_type> collect_reduce_sparse(Seq const &A,
 
         // pack tables down to bottom
         size_t j = 0;
-        for (size_t i = 0; i < table_size; i++)
-          if (flags[i]) move_uninitialized(my_table[j++], my_table[i]);
+        for (size_t k = 0; k < table_size; k++)
+          if (flags[k]) move_uninitialized(my_table[j++], my_table[k]);
         sizes[i] = j;
 
       },
