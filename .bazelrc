@@ -34,7 +34,9 @@ build --cxxopt=-Wcast-qual
 build --cxxopt=-Wmissing-declarations
 build --cxxopt=-Wno-unused-parameter
 build --cxxopt=-Wpointer-arith
-build --cxxopt=-Wshadow
+# Turning on -Wshadow rather than just -Wshadow=global would be nice, but the
+# code currently contains lots of instances of global shadowing.
+build --cxxopt=-Wshadow=local
 build --cxxopt=-Wvla
 
 # Instruments the build with AddressSanitizer
