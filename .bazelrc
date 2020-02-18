@@ -27,6 +27,17 @@ build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compress
 build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
 
+# C++ warning flags.
+build --cxxopt=-Wall
+build --cxxopt=-Wextra
+build --cxxopt=-Wcast-qual
+build --cxxopt=-Wlogical-op
+build --cxxopt=-Wmissing-declarations
+build --cxxopt=-Wno-unused-parameter
+build --cxxopt=-Wpointer-arith
+build --cxxopt=-Wshadow
+build --cxxopt=-Wvla
+
 # Instruments the build with AddressSanitizer
 # (https://github.com/google/sanitizers/wiki/AddressSanitizer).
 # Invoke by adding the `--config=asan` flag, e.g.,
