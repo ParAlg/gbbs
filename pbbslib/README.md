@@ -35,7 +35,7 @@ template library.   However none of them mutate
 their arguments, but rather are copy based.
 
   - all_of, any_of, none_of, count, count_if
-  - find, find_if, find_if_not, find_first_of, find_end, search
+  - find, find_if, find_if_not, find_end, search
   - mismatch, adjacent_find
   - equal, lexicographical_compare,
   - unique, remove_if

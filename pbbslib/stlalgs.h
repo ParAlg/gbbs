@@ -77,17 +77,6 @@ size_t find_if_not(Seq const &S, UnaryPred p) {
   return find_if_index(S.size(), [&](size_t i) { return !p(S[i]); });
 }
 
-template <class Seq1, class Seq2, class BinaryPred>
-size_t find_first_of(Seq1 const &S1, Seq2 const &S2, BinaryPred p) {
-  auto f = [&](size_t i) {
-    size_t j;
-    for (size_t j; j < S2.size(); j++)
-      if (p(S1[i], S2[j])) break;
-    return (j < S2.size());
-  };
-  return find_if_index(S1.size(), f);
-}
-
 template <class Seq, class BinaryPred>
 size_t adjacent_find(Seq const &S, BinaryPred pred) {
   return find_if_index(S.size() - 1,
