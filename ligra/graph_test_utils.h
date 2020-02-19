@@ -4,11 +4,11 @@
 
 #include <unordered_set>
 
-#include "pbbslib/utilities.h"
 #include "ligra/graph.h"
 #include "ligra/macros.h"
 #include "ligra/undirected_edge.h"
 #include "ligra/vertex.h"
+#include "pbbslib/utilities.h"
 
 namespace graph_test {
 
