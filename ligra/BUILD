@@ -119,6 +119,19 @@ cc_library(
 )
 
 cc_library(
+  name = "graph_test_utils",
+  hdrs = ["graph_test_utils.h"],
+  srcs = ["graph_test_utils.cc"],
+  deps = [
+  ":graph",
+  ":macros",
+  ":undirected_edge",
+  ":vertex",
+  "//pbbslib:utilities",
+  ]
+)
+
+cc_library(
   name = "histogram",
   hdrs = ["histogram.h"],
   deps = [
