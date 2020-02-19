@@ -17,7 +17,7 @@ TEST(Sequence, ConstructSequenceByFunction) {
     [](const size_t i) {
       return i;
     }};
-  EXPECT_THAT(sequence, ElementsAre(0, 1, 2));
+  EXPECT_THAT(sequence, ElementsAre());
 }
 
 TEST(Sequence, Slice) {
