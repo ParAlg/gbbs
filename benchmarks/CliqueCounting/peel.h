@@ -37,7 +37,7 @@ bucket_t _Peel_serial(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool labe
     num_updates = 0;
     auto kv=popminLLU(heap);
     auto v = kv.key;
-    if (kv.value > c){
+    if (kv.value > static_cast<long>(c)){
 			c = kv.value;
 		}
     if (G.get_vertex(v).getOutDegree() != 0) {
@@ -80,7 +80,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
   size_t n = G.n;
-  const size_t eltsPerCacheLine = 64/sizeof(long);
+  //const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<bucket_t>(G.n, [&](size_t i) { return cliques[i]; });
   //auto D_update = sequence<long>(eltsPerCacheLine*G.n);
   //parallel_for(0, G.n, [&](size_t j){D_update[eltsPerCacheLine*j] = 0;});
@@ -169,9 +169,9 @@ if (active.size() > 1) {
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       size_t nthreads = num_workers();
       uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t i=1; i<nthreads; i++) {
-        per_processor_counts[v] += per_processor_counts[i*n + v];
-        per_processor_counts[i*n + v] = 0;
+      for (size_t j=1; j<nthreads; j++) {
+        per_processor_counts[v] += per_processor_counts[j*n + v];
+        per_processor_counts[j*n + v] = 0;
       }
     }, 128);
 
@@ -185,9 +185,8 @@ if (active.size() > 1) {
       if (deg > cur_bkt) {
         bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
         D[v] = new_deg;
-        bucket_t bkt = b.get_bucket(deg, new_deg);
         // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
-        D_filter[i] = std::make_tuple(v, bkt);
+        D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
     }, 2048);
     filter_t.stop();
@@ -231,8 +230,7 @@ if (active.size() > 1) {
       if (deg > cur_bkt) {
         bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
         D[v] = new_deg;
-        bucket_t bkt = b.get_bucket(deg, new_deg);
-        D_filter[filter_size] = std::make_tuple(v, bkt);
+        D_filter[filter_size] = std::make_tuple(v, b.get_bucket(deg, new_deg));
         filter_size++;
       }
     }
@@ -244,8 +242,8 @@ if (active.size() > 1) {
 
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
       uintE v = std::get<0>(D_filter[i]);
-      bucket_t bkt = std::get<1>(D_filter[i]);
-      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
+      bucket_t bucket = std::get<1>(D_filter[i]);
+      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bucket);
       return Maybe<std::tuple<uintE, bucket_t> >();
     };
     bkt_t.start();
@@ -338,10 +336,9 @@ template <typename bucket_t, class Graph, class Graph2>
 sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE> &rank, size_t num_buckets=16) {
   using W = typename Graph::weight_type;
   auto n = G.n;
-size_t k = 2;
+//size_t k = 2;
 auto stats = sequence<size_t>(G.n);
 timer t2; t2.start();
-  const size_t eltsPerCacheLine = 64/sizeof(long);
   auto D = sequence<bucket_t>(G.n, [&](size_t i) { return cliques[i]; });
   auto D_filter = sequence<std::tuple<uintE, bucket_t>>(G.n);
   auto b = make_vertex_custom_buckets<bucket_t>(G.n, D, increasing, num_buckets);
@@ -410,9 +407,9 @@ timer t2; t2.start();
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       size_t nthreads = num_workers();
       uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t i=1; i<nthreads; i++) {
-        per_processor_counts[v] += per_processor_counts[i*n + v];
-        per_processor_counts[i*n + v] = 0;
+      for (size_t j=1; j<nthreads; j++) {
+        per_processor_counts[v] += per_processor_counts[j*n + v];
+        per_processor_counts[j*n + v] = 0;
       }
     }, 128);
 
@@ -425,9 +422,8 @@ timer t2; t2.start();
       if (deg > cur_bkt) {
         bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
         D[v] = new_deg;
-        bucket_t bkt = b.get_bucket(deg, new_deg);
         // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
-        D_filter[i] = std::make_tuple(v, bkt);
+        D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
     }, 2048);
     filter_size = changed_vtxs.size();
@@ -437,8 +433,8 @@ timer t2; t2.start();
 
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
       uintE v = std::get<0>(D_filter[i]);
-      bucket_t bkt = std::get<1>(D_filter[i]);
-      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bkt);
+      bucket_t bucket = std::get<1>(D_filter[i]);
+      if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bucket);
       return Maybe<std::tuple<uintE, bucket_t> >();
     };
     b.update_buckets(apply_f, filter_size);
@@ -525,7 +521,6 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
     size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
-    size_t filter_size = 0;
 
     size_t active_deg = 0;
     auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(this_arr[i]).getOutDegree(); });
@@ -566,9 +561,9 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       size_t nthreads = num_workers();
       uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t i=0; i<nthreads; i++) {
-        D[v] -= per_processor_counts[i*n + v];
-        per_processor_counts[i*n + v] = 0;
+      for (size_t j=0; j<nthreads; j++) {
+        D[v] -= per_processor_counts[j*n + v];
+        per_processor_counts[j*n + v] = 0;
       }
     }, 128);
 
@@ -621,7 +616,6 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
     size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
-    size_t filter_size = 0;
 
     size_t active_deg = 0;
     auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(this_arr[i]).getOutDegree(); });
@@ -662,9 +656,9 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       size_t nthreads = num_workers();
       uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t i=0; i<nthreads; i++) {
-        D[v] -= per_processor_counts[i*n + v];
-        per_processor_counts[i*n + v] = 0;
+      for (size_t j=0; j<nthreads; j++) {
+        D[v] -= per_processor_counts[j*n + v];
+        per_processor_counts[j*n + v] = 0;
       }
     }, 128);
 

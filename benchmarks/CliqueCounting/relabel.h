@@ -108,7 +108,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
       }, true);
 
       auto iter = vertex_ops::get_iter(tmp_edges.begin(), deg);
-      size_t nbytes = byte::sequentialCompressEdgeSet<W>(
+      byte::sequentialCompressEdgeSet<W>(
           edges.begin() + byte_offsets[rank[i]], 0, deg, rank[i], iter);
     }
   }, 1);
@@ -170,12 +170,12 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
-      auto n_im_f = [&](size_t i) { return nghs[i]; };
+      auto n_im_f = [&](size_t j) { return nghs[j]; };
       auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
       pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
       parallel_for(0, true_deg, [&] (size_t j) { dir_nghs[j] = std::make_tuple(rank[std::get<0>(dir_nghs[j])], std::get<1>(dir_nghs[j])); });
-      pbbslib::sample_sort (dir_nghs, true_deg, [&](const edge u, const edge v) {
-        return std::get<0>(u) < std::get<0>(v);
+      pbbslib::sample_sort (dir_nghs, true_deg, [&](const edge left, const edge right) {
+        return std::get<0>(left) < std::get<0>(right);
       }, true);
     }
   }, 1);
@@ -200,7 +200,6 @@ template <class Graph>
 auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
-  double p = 1/denom;
   // Color vertices with denom colors
   uintE numColors = std::max((size_t) 1,denom);
   sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbs::hash64_2((uintE) seed+i) % numColors; });
