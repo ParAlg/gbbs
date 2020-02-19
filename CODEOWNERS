@@ -1,0 +1,4 @@
+# See the following webpage to learn about CODEOWNERS on GitHub:
+# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+
+/benchmarks/SCAN/IndexBased/ @tomtseng
