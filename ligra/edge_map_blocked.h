@@ -372,9 +372,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // 3. Compute the number of threads, binary search for offsets.
   // try to use 8*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
-  size_t block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
-  size_t block_size = std::max(kEMBlockSize, block_size_guess);
-  size_t n_groups = pbbs::num_blocks(outEdgeCount, block_size);
+  size_t edge_block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
+  size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
+  size_t n_groups = pbbs::num_blocks(outEdgeCount, edge_block_size);
 
 //  cout << "outEdgeCount = " << outEdgeCount << endl;
 //  cout << "n_blocks = " << num_blocks << endl;
@@ -385,11 +385,11 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   // Run each thread in parallel
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   parallel_for(0, n_groups, [&](size_t group_id) {
-    size_t start_off = group_id * block_size;
+    size_t start_off = group_id * edge_block_size;
     size_t our_start = pbbslib::binary_search(degrees, start_off, lt);
     size_t our_end;
     if (group_id < (n_groups - 1)) {
-      size_t next_start_off = (group_id+1) * block_size;
+      size_t next_start_off = (group_id+1) * edge_block_size;
       our_end = pbbslib::binary_search(degrees, next_start_off, lt);
     } else {
       our_end = num_blocks;
@@ -433,9 +433,10 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
     parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
       em_data_block* block = all_blocks[block_id];
+      size_t block_size = block->block_size;
       std::tuple<uintE, data>* block_data = (std::tuple<uintE, data>*)block->data;
       size_t block_offset = block_offsets[block_id];
-      for (size_t i=0; i<block->block_size; i++) {
+      for (size_t i=0; i<block_size; i++) {
         out[block_offset + i] = block_data[i];
       }
       // deallocate block to list_alloc
