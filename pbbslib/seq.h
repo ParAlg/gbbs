@@ -33,12 +33,14 @@ struct range {
  public:
   using value_type = typename std::iterator_traits<Iterator>::value_type;
   using iterator = Iterator;
+  using const_iterator = iterator;
   range(){};
   range(iterator s, iterator e) : s(s), e(e){};
   value_type& operator[](const size_t i) const { return s[i]; }
   range slice(size_t ss, size_t ee) const { return range(s + ss, s + ee); }
   range slice() const { return range(s, e); };
   size_t size() const { return e - s; }
+  bool empty() const { return size() == 0; }
   iterator begin() const { return s; }
   iterator end() const { return e; }
 
@@ -94,6 +96,7 @@ struct sequence {
  public:
   using value_type = T;
   // using iterator = T*;
+  using const_iterator = const T*;
 
   sequence() : s(NULL), n(0) {}
 
