@@ -1,7 +1,68 @@
 #include "benchmarks/BFS/NonDeterministicBFS/BFS.h"
 
-#include "gtest/gtest.h"
+#include <unordered_set>
 
-TEST(HelloTest, DummyTest) {
-  EXPECT_EQ("TODO", "DONE");
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "ligra/graph.h"
+#include "ligra/graph_test_utils.h"
+#include "ligra/macros.h"
+
+using ::testing::AnyOf;
+using ::testing::ElementsAre;
+
+TEST(NondeterministicBFS, EdgelessGraph) {
+  constexpr uintE kNumVertices{3};
+  const std::unordered_set<UndirectedEdge> kEdges{};
+  auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
+
+  constexpr uintE source_vertex{1};
+  const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+  EXPECT_THAT(bfsResult, ElementsAre(UINT_E_MAX, source_vertex, UINT_E_MAX));
+}
+
+TEST(NondeterministicBFS, BasicUsage) {
+  // Graph diagram:
+  //     0 - 1    2 - 3 - 4
+  //                    \ |
+  //                      5 -- 6
+  constexpr uintE kNumVertices{7};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {2, 3},
+    {3, 4},
+    {3, 5},
+    {4, 5},
+    {5, 6},
+  };
+  auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
+
+  {
+    constexpr uintE source_vertex{1};
+    const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+    EXPECT_THAT(
+        bfsResult,
+        ElementsAre(
+          source_vertex,
+          source_vertex,
+          UINT_E_MAX,
+          UINT_E_MAX,
+          UINT_E_MAX,
+          UINT_E_MAX,
+          UINT_E_MAX));
+  }
+  {
+    constexpr uintE source_vertex{2};
+    const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+    EXPECT_THAT(
+        bfsResult,
+        ElementsAre(
+          UINT_E_MAX,
+          UINT_E_MAX,
+          source_vertex,
+          source_vertex,
+          AnyOf(3, 5),
+          AnyOf(3, 4),
+          5));
+  }
 }
