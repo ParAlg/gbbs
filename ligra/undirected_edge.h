@@ -21,9 +21,6 @@ struct hash<UndirectedEdge> {
 // without worrying about the direction of the edge.
 class UndirectedEdge {
  public:
-  using first_type = uintE;
-  using second_type = uintE;
-
   UndirectedEdge(uintE u, uintE v);
   explicit UndirectedEdge(const std::pair<uintE, uintE>& edge);
 
