@@ -2,11 +2,6 @@
 //
 // These are implemented as macros instead of functions so that `__FILE__` and
 // `__LINE__` may be used to print the location of a failing assertion.
-//
-// These  are more intended for debugging and validating internal programming
-// logic rather than for user errors (e.g., a user who has made an error in
-// specifying input flags to a binary doesn't care about the location of the
-// failing assertion but rather what kind of input flags the binary expects).
 #pragma once
 
 #include <exception>
@@ -33,6 +28,10 @@
 // Asserts on a condition, printing an error and terminating if the condition is
 // false.
 //
+// This is more intended for debugging and validating internal programming logic
+// than for detecting user errors. We may choose to replace `ASSERT` with a
+// no-op in optimized builds.
+//
 // This is overloaded and can take either one or two arguments.
 //
 // Arguments
@@ -45,9 +44,9 @@
 // Usage examples
 // --------------
 // If the program 'foo/bar.cc' hits
-//     ASSERT(0 == 1, "Expected zero to be equal to one");
+//     ASSERT(0 == 1, "Zero should be equal to one");
 // on line 45, then the program will terminate at runtime with the message
-//     foo/bar.cc:45: Failed assertion `0 < 1`: Expected zero to be equal to one
+//     foo/bar.cc:45: Failed assertion `0 == 1`: Zero should be equal to one
 // The input message may also be omitted:
 //     ASSERT(0 == 1);
 // Moreover, to some extent, the input message can be treated like a stream:
