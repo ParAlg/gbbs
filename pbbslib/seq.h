@@ -34,7 +34,7 @@ struct range {
   using value_type = typename std::iterator_traits<Iterator>::value_type;
   using iterator = Iterator;
   range(){};
-  range(iterator s, iterator e) : s(s), e(e){};
+  range(iterator _s, iterator _e) : s(_s), e(_e){};
   value_type& operator[](const size_t i) const { return s[i]; }
   range slice(size_t ss, size_t ee) const { return range(s + ss, s + ee); }
   range slice() const { return range(s, e); };
@@ -66,7 +66,7 @@ struct delayed_sequence {
   delayed_sequence(size_t n, F _f) : f(_f), s(0), e(n){};
   delayed_sequence(size_t n, value_type v)
       : f([&](size_t i) { return v; }), s(0), e(n){};
-  delayed_sequence(size_t s, size_t e, F _f) : f(_f), s(s), e(e){};
+  delayed_sequence(size_t _s, size_t _e, F _f) : f(_f), s(_s), e(_e){};
   const value_type operator[](size_t i) const { return (f)(i + s); }
   delayed_sequence<T, F> slice(size_t ss, size_t ee) const {
     return delayed_sequence<T, F>(s + ss, s + ee, f);
@@ -135,15 +135,15 @@ struct sequence {
     return *this;
   }
 
-  sequence(const size_t n)
-      : s(pbbs::new_array<T>(n)),
-        n(n){
+  sequence(const size_t _n)
+      : s(pbbs::new_array<T>(_n)),
+        n(_n){
             // if (n > 1000000000) cout << "make empty: " << s << endl;
         };
 
-  sequence(value_type* a, const size_t n)
+  sequence(value_type* a, const size_t _n)
       : s(a),
-        n(n){
+        n(_n){
             // cout << "dangerous" << endl;
         };
 
@@ -155,15 +155,15 @@ struct sequence {
     return r;
   };
 
-  sequence(const size_t n, value_type v)
-      : s(pbbs::new_array_no_init<T>(n, true)), n(n) {
+  sequence(const size_t _n, value_type v)
+      : s(pbbs::new_array_no_init<T>(_n, true)), n(_n) {
     // if (n > 1000000000) cout << "make const: " << s << endl;
     auto f = [=](size_t i) { new ((void*)(s + i)) value_type(v); };
     parallel_for(0, n, f);
   };
 
   template <typename Func>
-  sequence(const size_t n, Func f) : s(pbbs::new_array_no_init<T>(n)), n(n) {
+  sequence(const size_t _n, Func f) : s(pbbs::new_array_no_init<T>(_n)), n(_n) {
     // if (n > 1000000000) cout << "make func: " << s << endl;
     parallel_for(0, n, [&](size_t i) { new ((void*)(s + i)) value_type(f(i)); },
                  1000);

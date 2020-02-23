@@ -97,10 +97,10 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   auto width = sequence<uintE>(n, [&](size_t i) { return (uintE)0; });
   width[src] = INT_E_MAX;
 
-  auto get_bkt = [&](const W& width) -> const uintE {
-    return max_weight - width + 1;
+  auto get_bkt = [&](const W& _width) -> uintE {
+    return max_weight - _width + 1;
   };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> const uintE {
+  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = width[v];
     if (d == 0) { return UINT_E_MAX; }
     if (d == INT_E_MAX) { return 0; }

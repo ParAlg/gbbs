@@ -84,10 +84,10 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
-  auto get_bkt = [&](const uintE& dist) -> const uintE {
+  auto get_bkt = [&](const uintE& dist) -> uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : dist;
   };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> const uintE {
+  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
   });

@@ -34,7 +34,7 @@
     intT r;
     reservation() : r(std::numeric_limits<intT>::max()) {}
     void reserve(intT i) {
-      pbbslib::write_min(&r, i, [](intT l, intT r) { return l < r; });
+      pbbslib::write_min(&r, i, [](intT left, intT right) { return left < right; });
     }
     bool reserved() { return (r < std::numeric_limits<intT>::max()); }
     void reset() { r = std::numeric_limits<intT>::max(); }

@@ -88,6 +88,7 @@ cc_library(
   "//ligra:edge_map_reduce",
   "//ligra:ligra",
   "//ligra/pbbslib:dyn_arr",
+  "//pbbslib:assert",
   "//pbbslib:list_allocator",
   "//pbbslib:integer_sort",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",

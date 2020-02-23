@@ -31,6 +31,7 @@
 #include "ligra/ligra.h"
 #include "ligra/pbbslib/dyn_arr.h"
 #include "ligra/pbbslib/sparse_table.h"
+#include "pbbslib/assert.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
 
@@ -89,6 +90,8 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
   else if (order_type == 4) {
     auto rank = sequence<uintE>(GA.n, [&](size_t i) { return i; });
     return rank;
+  } else {
+    ABORT("Unexpected order_type: " << order_type);
   }
 }
 
@@ -133,7 +136,7 @@ inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_bas
 
   if (!use_base) {DG.del(); return count;}
 
-  for (size_t j=1; j < num_workers(); j++) {
+  for (size_t j=1; j < static_cast<size_t>(num_workers()); j++) {
     parallel_for(0,GA.n,[&](size_t l) {
       per_vert[l] += per_vert[(l + j*GA.n)];
     });
@@ -170,7 +173,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   long recursive_level, bool par_serial, bool approx_peel, double approx_eps) {
   if (k == 3) return TriClique(GA, order_type, epsilon, use_base, par_serial);
   std::cout << "### Starting clique counting" << std::endl;
-  const size_t eltsPerCacheLine = 64/sizeof(long);
+  //const size_t eltsPerCacheLine = 64/sizeof(long);
   size_t* per_vert = use_base ? (size_t*) calloc(GA.n*num_workers(), sizeof(size_t)) : nullptr;
 
   using W = typename Graph::weight_type;
@@ -196,7 +199,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   auto use_f = [&](const uintE& src, const uintE& u) { return true; };
 
   if (!use_base) {
-    auto base_f = [&](uintE vtx, size_t count) {};
+    auto base_f = [&](uintE vtx, size_t _count) {};
   if (space_type == 2) {
     count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
   }
@@ -210,9 +213,9 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
   }
   } else {
-    auto base_f = [&](uintE vtx, size_t count) {
+    auto base_f = [&](uintE vtx, size_t _count) {
       //pbbslib::xadd(&(per_vert[eltsPerCacheLine*(vtx+worker_id()*GA.n)]), (long) count);
-      per_vert[(vtx+worker_id()*GA.n)] += count;
+      per_vert[(vtx+worker_id()*GA.n)] += _count;
     }; // TODO problem with relabel not being consistent; but if using filter should be ok
   if (space_type == 2) {
     count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
@@ -234,7 +237,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   if (!use_base) {DG.del(); return count;}
 
-  for (size_t j=1; j < num_workers(); j++) {
+  for (size_t j=1; j < static_cast<size_t>(num_workers()); j++) {
     parallel_for(0,GA.n,[&](size_t l) {
       per_vert[l] += per_vert[(l + j*GA.n)];
     });

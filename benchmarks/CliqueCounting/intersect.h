@@ -5,6 +5,8 @@
 
 #include <math.h>
 
+#include <limits>
+
 #include "ligra/bucket.h"
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"
@@ -372,8 +374,7 @@ struct HybridSpace_lw {
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
       if (!f(src, v)) { j++; return; }
-      size_t v_deg = DG.get_vertex(v).getOutDegree();
-      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
+      // intersect v_nbhrs from 0 to degree(v) with induced_g from 0 to num_induced[0]
       // store result in induced_edges[j*nn]
       // store size in induced_degs[j]
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
@@ -486,7 +487,6 @@ struct HybridSpace_lw {
     for (size_t j=0; j < nn; j++) {
       // intersect each vertex in induced against indced
       auto v = induced[j];
-      size_t v_deg = DG.get_vertex(v).getOutDegree();
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         if (!f(src_v, v_nbhr)) return;
         if (old_labels[v_nbhr] > 0) {
@@ -507,7 +507,6 @@ struct HybridSpace_lw {
 
 template <class Graph, class F>
   void setup_intersect_edge(Graph& DG, size_t k, size_t i, size_t l, F f) {
-    using W = typename Graph::weight_type;
     size_t j = 0;
     size_t v_deg = DG.get_vertex(l).getOutDegree();
     size_t i_deg = DG.get_vertex(i).getOutDegree();
@@ -611,7 +610,7 @@ bheapLLU *constructLLU(size_t n_max){
 	heap->n_max=n_max;
 	heap->n=0;
 	heap->pt=(size_t*)malloc(n_max*sizeof(size_t));
-	for (size_t i=0;i<n_max;i++) heap->pt[i]=-1;
+	for (size_t i=0;i<n_max;i++) heap->pt[i]=std::numeric_limits<size_t>::max();
 	heap->kv=(keyvalueLLU*)malloc(n_max*sizeof(keyvalueLLU));
 	return heap;
 }
@@ -660,7 +659,7 @@ inline void insertLLU(bheapLLU *heap,keyvalueLLU kv){
 
 inline void updateLLU(bheapLLU *heap,unsigned key,unsigned long long delta){
 	unsigned i=heap->pt[key];
-	if (i!=-1){
+	if (i!=std::numeric_limits<size_t>::max()){
 		((heap->kv[i]).value)-=delta;
 		bubble_upLLU(heap,i);
 	}
@@ -668,7 +667,7 @@ inline void updateLLU(bheapLLU *heap,unsigned key,unsigned long long delta){
 
 inline keyvalueLLU popminLLU(bheapLLU *heap){
 	keyvalueLLU min=heap->kv[0];
-	heap->pt[min.key]=-1;
+	heap->pt[min.key]=std::numeric_limits<size_t>::max();
 	heap->kv[0]=heap->kv[--(heap->n)];
 	heap->pt[heap->kv[0].key]=0;
 	bubble_downLLU(heap);

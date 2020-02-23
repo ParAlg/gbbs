@@ -97,12 +97,12 @@ void bucket_sort_r(range<T*> in, range<T*> out, binOp f, bool stable,
   if (n < num_buckets * 32) {
     base_sort(in, out, f, stable, inplace);
   } else {
-    size_t counts[num_buckets];
     sequence<uchar> bucketsm(n);
     uchar* buckets = bucketsm.begin();
     if (get_buckets(in, buckets, f, bits)) {
       base_sort(in, out, f, stable, inplace);
     } else {
+      size_t* counts = new_array_no_init<size_t>(num_buckets);
       radix_step_(in.begin(), out.begin(), buckets, counts, n, num_buckets);
       parallel_for(0, num_buckets,
                    [&](size_t j) {
@@ -112,6 +112,7 @@ void bucket_sort_r(range<T*> in, range<T*> out, binOp f, bool stable,
                                    f, stable, !inplace);
                    },
                    4);
+      free_array(counts);
     }
   }
 }

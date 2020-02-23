@@ -44,7 +44,7 @@ template <typename s_size_t, typename InSeq, typename KeySeq>
 void seq_count_(InSeq In, KeySeq Keys, s_size_t* counts, size_t num_buckets) {
   size_t n = In.size();
   // use local counts to avoid false sharing
-  size_t local_counts[num_buckets];
+  size_t* local_counts = new_array_no_init<size_t>(num_buckets);
   for (size_t i = 0; i < num_buckets; i++) local_counts[i] = 0;
   for (size_t j = 0; j < n; j++) {
     size_t k = Keys[j];
@@ -52,6 +52,7 @@ void seq_count_(InSeq In, KeySeq Keys, s_size_t* counts, size_t num_buckets) {
     local_counts[k]++;
   }
   for (size_t i = 0; i < num_buckets; i++) counts[i] = local_counts[i];
+  free_array(local_counts);
 }
 
 // write to destination, where offsets give start of each bucket
@@ -59,12 +60,13 @@ template <typename s_size_t, typename InSeq, typename KeySeq>
 void seq_write_(InSeq In, typename InSeq::value_type* Out, KeySeq Keys,
                 s_size_t* offsets, size_t num_buckets) {
   // copy to local offsets to avoid false sharing
-  size_t local_offsets[num_buckets];
+  size_t* local_offsets = new_array_no_init<size_t>(num_buckets);
   for (size_t i = 0; i < num_buckets; i++) local_offsets[i] = offsets[i];
   for (size_t j = 0; j < In.size(); j++) {
     size_t k = local_offsets[Keys[j]]++;
     move_uninitialized(Out[k], In[j]);
   }
+  free_array(local_offsets);
 }
 
 // write to destination, where offsets give end of each bucket

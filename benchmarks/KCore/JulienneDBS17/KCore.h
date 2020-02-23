@@ -57,8 +57,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
       if (deg > k) {
         uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
-        uintE bkt = b.get_bucket(new_deg);
-        return wrap(v, bkt);
+        return wrap(v, b.get_bucket(new_deg));
       }
       return Maybe<std::tuple<uintE, uintE> >();
     };
@@ -127,13 +126,13 @@ inline sequence<uintE> KCore_FA(Graph& G,
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
 
-    auto apply_f = [&](const uintE v, uintE& bkt) -> void {
+    auto apply_f = [&](const uintE v, uintE& bkt_to_modify) -> void {
       uintE deg = D[v];
       uintE edgesRemoved = ER[v];
       ER[v] = 0;
       uintE new_deg = std::max(deg - edgesRemoved, k);
       D[v] = new_deg;
-      bkt = b.get_bucket(deg, new_deg);
+      bkt_to_modify = b.get_bucket(deg, new_deg);
     };
 
     auto moved = edgeMapData<uintE>(
@@ -187,8 +186,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
       if (deg > k) {
         uintE new_deg = std::max(deg - edgesRemoved, k);
         D[v] = new_deg;
-        uintE bkt = b.get_bucket(new_deg);
-        return wrap(v, bkt);
+        return wrap(v, b.get_bucket(new_deg));
       }
       return Maybe<std::tuple<uintE, uintE> >();
     };

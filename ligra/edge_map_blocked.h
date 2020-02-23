@@ -124,11 +124,11 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   // 2. Write each block to blocks and scan degree array.
   par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
-    size_t num_blocks = vertex_offs[i + 1] - vtx_off;
+    size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
     auto vtx = G.get_vertex(vtx_id);
-    par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
+    par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
       size_t block_deg = (fl & in_edges)
                              ? vtx.in_block_degree(j)
                              : vtx.out_block_degree(j);
@@ -353,11 +353,11 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   // 2. Write each block to blocks and scan degree array.
   par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
-    size_t num_blocks = vertex_offs[i + 1] - vtx_off;
+    size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
     auto vtx = G.get_vertex(vtx_id);
-    par_for(0, num_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
+    par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
       size_t block_deg = (fl & in_edges)
                              ? vtx.in_block_degree(j)
                              : vtx.out_block_degree(j);
@@ -372,9 +372,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // 3. Compute the number of threads, binary search for offsets.
   // try to use 8*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
-  size_t block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
-  size_t block_size = std::max(kEMBlockSize, block_size_guess);
-  size_t n_groups = pbbs::num_blocks(outEdgeCount, block_size);
+  size_t edge_block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
+  size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
+  size_t n_groups = pbbs::num_blocks(outEdgeCount, edge_block_size);
 
 //  cout << "outEdgeCount = " << outEdgeCount << endl;
 //  cout << "n_blocks = " << num_blocks << endl;
@@ -385,11 +385,11 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   // Run each thread in parallel
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   parallel_for(0, n_groups, [&](size_t group_id) {
-    size_t start_off = group_id * block_size;
+    size_t start_off = group_id * edge_block_size;
     size_t our_start = pbbslib::binary_search(degrees, start_off, lt);
     size_t our_end;
     if (group_id < (n_groups - 1)) {
-      size_t next_start_off = (group_id+1) * block_size;
+      size_t next_start_off = (group_id+1) * edge_block_size;
       our_end = pbbslib::binary_search(degrees, next_start_off, lt);
     } else {
       our_end = num_blocks;

@@ -16,15 +16,17 @@ size_t count_if_index(size_t n, IntegerPred p) {
 
 template <class IntegerPred>
 size_t find_if_index(size_t n, IntegerPred p, size_t granularity = 1000) {
-  size_t i;
-  for (i = 0; i < std::min(granularity, n); i++)
-    if (p(i)) return i;
-  if (i == n) return n;
+  {
+    size_t i;
+    for (i = 0; i < std::min(granularity, n); i++)
+      if (p(i)) return i;
+    if (i == n) return n;
+  }
   size_t start = granularity;
   while (start < n) {
     size_t end = std::min(n, start + granularity);
     auto f = [&](size_t i) -> size_t { return p(i + start) ? i + start : n; };
-    i = pbbs::reduce(delayed_seq<size_t>(end - start, f), minm<size_t>());
+    size_t i = pbbs::reduce(delayed_seq<size_t>(end - start, f), minm<size_t>());
     if (i < n) return i;
     start += granularity;
     granularity *= 2;
@@ -75,17 +77,6 @@ size_t find(Seq const &S, T const &value) {
 template <class Seq, class UnaryPred>
 size_t find_if_not(Seq const &S, UnaryPred p) {
   return find_if_index(S.size(), [&](size_t i) { return !p(S[i]); });
-}
-
-template <class Seq1, class Seq2, class BinaryPred>
-size_t find_first_of(Seq1 const &S1, Seq2 const &S2, BinaryPred p) {
-  auto f = [&](size_t i) {
-    size_t j;
-    for (size_t j; j < S2.size(); j++)
-      if (p(S1[i], S2[j])) break;
-    return (j < S2.size());
-  };
-  return find_if_index(S1.size(), f);
 }
 
 template <class Seq, class BinaryPred>

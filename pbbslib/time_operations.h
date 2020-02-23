@@ -193,7 +193,7 @@ bool check_histogram(pbbs::sequence<T> const &in,
                      pbbs::sequence<T> const &out) {
   size_t m = out.size();
   auto a = sort(in, std::less<T>());
-  auto b = get_counts(a, [&](T a) { return a; }, m);
+  auto b = get_counts(a, [&](T x) { return x; }, m);
   size_t err_loc =
       pbbs::find_if_index(m, [&](size_t i) { return out[i] != b[i]; });
   if (err_loc != m) {

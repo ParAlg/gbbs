@@ -27,7 +27,7 @@ namespace induced_intersection {
 
     auto tmp = sequence<std::tuple<uintE, W>>(num_induced);
     auto pred = [&] (const uintE& src, const uintE& nbhr, const W& wgh) {
-      return (induced->intersect[nbhr] == k_idx);
+      return (static_cast<size_t>(induced->intersect[nbhr]) == k_idx);
     };
 
     if (k_idx + 1 == k) {

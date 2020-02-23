@@ -150,7 +150,7 @@ struct get_bucket {
   //    the top half [2^{bits-1},2^{bits})
   //    and light items shared into the bottom half [0,2^{bits-1})
   template <typename Seq>
-  get_bucket(Seq const &A, HashEq const &heq, size_t bits) : heq(heq) {
+  get_bucket(Seq const &A, HashEq const &_heq, size_t bits) : heq(_heq) {
     size_t n = A.size();
     size_t low_bits = bits - 1;   // for the bottom half
     num_buckets = 1 << low_bits;  // in bottom half
@@ -209,7 +209,7 @@ struct get_bucket {
 template <typename E, typename Key>
 struct hasheq_mask_low {
   Key get_key;
-  hasheq_mask_low(Key get_key) : get_key(get_key) {}
+  hasheq_mask_low(Key _get_key) : get_key(_get_key) {}
   inline size_t hash(E a) const { return hash64_2(get_key(a) & ~((size_t)15)); }
   inline bool eql(E a, E b) const { return get_key(a) == get_key(b); }
 };
@@ -264,15 +264,15 @@ auto collect_reduce(Seq const &A, Key const &get_key, Value const &get_value,
 
                  // small blocks have indices in bottom half
                  if (i < cut)
-                   for (size_t i = start; i < end; i++) {
-                     size_t j = get_key(B[i]);
-                     sums[j] = monoid.f(sums[j], get_value(B[i]));
+                   for (size_t j = start; j < end; j++) {
+                     size_t k = get_key(B[j]);
+                     sums[k] = monoid.f(sums[k], get_value(B[j]));
                    }
 
                  // large blocks have indices in top half
                  else if (end > start) {
-                   auto x = [&](size_t i) -> val_type {
-                     return get_value(B[i]);
+                   auto x = [&](size_t j) -> val_type {
+                     return get_value(B[j]);
                    };
                    auto vals = delayed_seq<val_type>(n, x);
                    sums[get_key(B[i])] = reduce(vals, monoid);
@@ -387,8 +387,8 @@ sequence<typename Seq::value_type> collect_reduce_sparse(Seq const &A,
           size_t start_l = bucket_offsets[num_tables + i];
           size_t len = bucket_offsets[num_tables + i + 1] - start_l;
           if (len > 0) {
-            auto f = [&](size_t i) -> val_type {
-              return B[i + start_l].second;
+            auto f = [&](size_t j) -> val_type {
+              return B[j + start_l].second;
             };
             auto s = delayed_seq<val_type>(len, f);
             val_type x = reduce(s, monoid);
@@ -400,8 +400,8 @@ sequence<typename Seq::value_type> collect_reduce_sparse(Seq const &A,
 
         // pack tables down to bottom
         size_t j = 0;
-        for (size_t i = 0; i < table_size; i++)
-          if (flags[i]) move_uninitialized(my_table[j++], my_table[i]);
+        for (size_t k = 0; k < table_size; k++)
+          if (flags[k]) move_uninitialized(my_table[j++], my_table[k]);
         sizes[i] = j;
 
       },
