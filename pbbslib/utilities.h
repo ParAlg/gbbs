@@ -351,5 +351,4 @@ size_t log2_up(T i) {
 
 size_t granularity(size_t n);
 
-void assert_str(int cond, const std::string& s);
-}
+}  // namespace pbbs

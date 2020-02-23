@@ -30,8 +30,8 @@ void set_num_workers(int n) { global_scheduler.set_num_workers(n); }
 
 #else
 
-inline int num_workers() { return 1; }
-inline int worker_id() { return 0; }
-inline void set_num_workers(int n) { ; }
+int num_workers() { return 1; }
+int worker_id() { return 0; }
+void set_num_workers(int n) { ; }
 
 #endif

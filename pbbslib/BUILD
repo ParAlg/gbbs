@@ -307,6 +307,11 @@ cc_library(
   hdrs = ["maybe.h"],
 )
 
+cc_library(
+  name = "assert",
+  hdrs = ["assert.h"],
+)
+
 cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cc"],
