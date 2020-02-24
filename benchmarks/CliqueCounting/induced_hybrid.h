@@ -34,7 +34,7 @@ namespace induced_hybrid {
         uintE* intersect = induced->induced_edges + vtx * induced->nn;
         size_t tmp_counts = 0;
         for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
-          if (induced->labels[intersect[j]] == k_idx) {
+          if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
             tmp_counts++;
             if (induced->use_base) base_f(induced->relabel[intersect[j]], 1);
           }
@@ -53,7 +53,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       uintE* out = induced->induced + induced->nn * k_idx;
       uintE count = 0;
       for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
-        if (induced->labels[intersect[j]] == k_idx) {
+        if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
           out[count] = intersect[j];
           count++;
         }
@@ -76,7 +76,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       uintE* out = induced2->induced;
       uintE count = 0;
       for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
-        if (induced->labels[intersect[j]] == k_idx) {
+        if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
           out[count] = intersect[j];
           count++;
         }
@@ -98,7 +98,6 @@ if (recursive_level < k_idx || num_induced < 2) {
   template <class Graph, class F>
   inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, long recursive_level=0) {
     timer t2; t2.start();
-    using W = typename Graph::weight_type;
 
     if (recursive_level != 1) {
       sequence<size_t> tots = sequence<size_t>::no_init(DG.n);

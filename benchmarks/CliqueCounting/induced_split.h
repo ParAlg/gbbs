@@ -6,16 +6,6 @@
 /* TODO: describe what this file does */
 
 namespace induced_split {
-  template<class Graph>
-  size_t get_max_deg(Graph& DG) {
-    size_t max_deg = 0;
-    parallel_for(0, DG.n, [&] (size_t i) {
-      size_t deg = DG.get_vertex(i).getOutDegree();
-      pbbs::write_min(&max_deg, deg, std::greater<size_t>());
-    });
-    return max_deg;
-  }
-
   template <class Graph, class F>
   inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, long recursive_level=0) {
     timer t; t.start();
@@ -41,7 +31,6 @@ namespace induced_split {
 
     timer t2; t2.start();
     sequence<size_t> tots = sequence<size_t>::no_init(n_blocks); //DG.n
-    size_t max_deg = get_max_deg(DG);
     parallel_for(0, n_blocks, [&](size_t j) {
       size_t start = j * work_per_block;
       size_t end = (j + 1) * work_per_block;

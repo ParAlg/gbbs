@@ -3,8 +3,8 @@
 #include <iomanip>
 #include <iostream>
 
-timer::timer(std::string name, bool _start)
-    : total_time(0.0), on(false), name(std::move(name)), tzp({0, 0}) {
+timer::timer(std::string _name, bool _start)
+    : total_time(0.0), on(false), name(std::move(_name)), tzp({0, 0}) {
   if (_start) start();
 }
 

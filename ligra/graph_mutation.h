@@ -50,7 +50,7 @@ inline symmetric_graph<symmetric_vertex, W> filter_graph(symmetric_graph<vertex,
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
-      auto n_im_f = [&](size_t i) { return nghs[i]; };
+      auto n_im_f = [&](size_t j) { return nghs[j]; };
       auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
       pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
     }

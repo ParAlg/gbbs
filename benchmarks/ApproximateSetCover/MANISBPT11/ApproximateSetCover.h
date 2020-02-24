@@ -173,10 +173,10 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
       const uintE v_bkt = D[v];
-      uintE bkt = UINT_E_MAX;
+      uintE bucket = UINT_E_MAX;
       if (!(v_bkt == UINT_E_MAX))
-        bkt = b.get_bucket(v_bkt);
-      return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
+        bucket = b.get_bucket(v_bkt);
+      return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
     };
     //std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());
