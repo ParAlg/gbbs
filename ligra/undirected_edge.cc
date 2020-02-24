@@ -7,9 +7,8 @@
 namespace std {
 
 size_t hash<UndirectedEdge>::operator()(const UndirectedEdge& edge) const {
-  const uint64_t hash{pbbslib::hash64_2(edge.edge_.first)};
-  return hash ^ (pbbslib::hash64_2(edge.edge_.second)
-      + 0x9e3779b97f4a7c15 + (hash << 6) + (hash >> 2));
+  return pbbs::hash_combine(
+      pbbs::hash64_2(edge.edge_.first), pbbs::hash64_2(edge.edge_.second));
 }
 
 }  // namespace std
