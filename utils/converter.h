@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra.h"
+#include "ligra/ligra.h"
 
 #include <iostream>
 #include <fstream>
@@ -374,18 +374,18 @@ namespace bytepd_amortized {
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
       uchar* edges = pbbs::new_array_no_init<uchar>(n_bytes);
-      parallel_for(start, end, [&] (size_t i) {
-        size_t our_offset = byte_offsets[i] - start_offset;
-        uintE deg = degrees[i];
+      parallel_for(start, end, [&] (size_t j) {
+        size_t our_offset = byte_offsets[j] - start_offset;
+        uintE deg = degrees[j];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getOutIter(i);
-          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+          auto it = GA.get_vertex(j).getOutIter(j);
+          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)j, it, PAR_DEGREE_TWO);
 
-          if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
-          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
+          if (nbytes != (byte_offsets[j+1] - byte_offsets[j])) {
+          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[j+1] - byte_offsets[j]) << " deg = " << deg << " j = " << j << std::endl;
             exit(0);
           }
-          assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+          assert(nbytes == (byte_offsets[j+1] - byte_offsets[j]));
         }
       });
       out.write((char*)edges,n_bytes); //write edges
@@ -519,9 +519,9 @@ namespace bytepd_amortized {
 
         uintE our_new_id = rank[i];
 
-        for (size_t i=0; i<new_ngh_seq.size(); i++) {
+        for (size_t j=0; j<new_ngh_seq.size(); j++) {
           long bytes = 0;
-          uintE ngh_id = new_ngh_seq[i];
+          uintE ngh_id = new_ngh_seq[j];
           if ((deg % PAR_DEGREE_TWO) == 0) {
             bytes = compressFirstEdge(tmp, bytes, our_new_id, ngh_id);
           } else {
@@ -577,18 +577,18 @@ namespace bytepd_amortized {
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
       uchar* edges = pbbs::new_array_no_init<uchar>(n_bytes);
-      parallel_for(start, end, [&] (size_t i) {
-        size_t our_offset = byte_offsets[i] - start_offset;
-        uintE deg = degrees[i];
+      parallel_for(start, end, [&] (size_t j) {
+        size_t our_offset = byte_offsets[j] - start_offset;
+        uintE deg = degrees[j];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getOutIter(i);
-          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+          auto it = GA.get_vertex(j).getOutIter(j);
+          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)j, it, PAR_DEGREE_TWO);
 
-          if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
-          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
+          if (nbytes != (byte_offsets[j+1] - byte_offsets[j])) {
+          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[j+1] - byte_offsets[j]) << " deg = " << deg << " j = " << j << std::endl;
             exit(0);
           }
-          assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+          assert(nbytes == (byte_offsets[j+1] - byte_offsets[j]));
         }
       });
       out.write((char*)edges,n_bytes); //write edges
