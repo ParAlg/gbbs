@@ -16,6 +16,8 @@ void set_num_workers(int n) {
 
 #elif defined(OPENMP)
 
+bool in_par_do = false;
+
 int num_workers() { return omp_get_max_threads(); }
 int worker_id() { return omp_get_thread_num(); }
 void set_num_workers(int n) { omp_set_num_threads(n); }
