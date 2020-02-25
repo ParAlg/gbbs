@@ -64,8 +64,12 @@ If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 Compilation
 --------
 
+Compiler:
 * g++ &gt;= 5.3.0 with support for Cilk Plus
 * g++ &gt;= 5.3.0 with pthread support (Homemade Scheduler)
+
+Build system:
+* [Bazel](https://docs.bazel.build/versions/master/install.html) 2.1.0
 
 The default compilation uses Cilk Plus. We also support a lightweight scheduler
 developed at CMU (Homemade), which results in comparable performance to Cilk.
@@ -93,12 +97,12 @@ should be set. If it is unset, the Cilk Plus scheduler is used by default.
 
 After setting the necessary environment variables:
 ```
-$ make -j  #compiles the benchmark with all threads
+$ bazel build --compilation_mode opt //...  #compiles the benchmark
 ```
 
 The following commands cleans the directory:
 ```
-$ make clean  #removes all executables
+$ bazel clean  #removes all executables
 ```
 
 Running code
