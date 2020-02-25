@@ -43,8 +43,9 @@ build --cxxopt=-Wvla
 # Invoke by adding the `--config=asan` flag, e.g.,
 #     bazel run --config=asan <build target>`
 build:asan --strip=never
-build:asan --copt -fsanitize=address
-build:asan --copt -O1
-build:asan --copt -g
-build:asan --copt -fno-omit-frame-pointer
-build:asan --linkopt -fsanitize=address
+build:asan --cxxopt=-fsanitize=address
+build:asan --cxxopt=-O1
+build:asan --cxxopt=-g
+build:asan --cxxopt=-fno-omit-frame-pointer
+build:asan --cxxopt=-Wno-macro-redefined
+build:asan --linkopt=-fsanitize=address
