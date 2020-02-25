@@ -77,8 +77,9 @@ The half-lengths for certain functions such as histogramming are lower using
 Homemade, which results in better performance for codes like KCore.
 
 Note: The Homemade scheduler was developed after our paper submission. For
-reproducibility purposes, the codes should be compiled with Cilk Plus, although
-in our experience the times are usually faster using Homemade.
+reproducibility purposes, the codes should be compiled with Cilk Plus by adding
+`--config=cilk`, although in our experience the times are usually faster using
+Homemade.
 
 The benchmark supports both uncompressed and compressed graphs. The uncompressed
 format is identical to the uncompressed format in Ligra. The compressed format,
@@ -96,12 +97,12 @@ To compile using the Homemade scheduler the `HOMEMADE` command-line parameter
 should be set. If it is unset, the Cilk Plus scheduler is used by default.
 
 After setting the necessary environment variables:
-```
+```sh
 $ bazel build --compilation_mode opt //...  #compiles the benchmark
 ```
 
 The following commands cleans the directory:
-```
+```sh
 $ bazel clean  #removes all executables
 ```
 
@@ -111,9 +112,9 @@ The applications take the input graph as input as well as an optional
 flag "-s" to indicate a symmetric graph.  Symmetric graphs should be
 called with the "-s" flag for better performance. For example:
 
-```
-$ ./BFS -s -src 10 ../inputs/rMatGraph_J_5_100
-$ ./wBFS -s -w -src 15 ../inputs/rMatGraph_WJ_5_100
+```sh
+$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
+$ bazel run //benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
 ```
 
 Note that the codes that compute single-source shortest paths (or centrality)
@@ -124,8 +125,8 @@ number of runs.
 On NUMA machines, adding the command "numactl -i all " when running
 the program may improve performance for large graphs. For example:
 
-```
-$ numactl -i all ./BFS -s <input file>
+```sh
+$ numactl -i all bazel run ...
 ```
 
 Running code on compressed graphs
@@ -136,18 +137,17 @@ parallelByte format of Ligra+, extended with additional functionality. We have
 provided a converter utility which takes as input an uncompressed graph and
 outputs a bytePDA graph. The converter can be used as follows:
 
-```
-./compressor -s -o ../inputs/rMatGraph_J_5_100.bytepda ../inputs/rMatGraph_J_5_100
-./compressor -s -w -o ../inputs/rMatGraph_WJ_5_100.bytepda ../inputs/rMatGraph_WJ_5_100
+```sh
+bazel run //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
+bazel run //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
 ```
 
 After an uncompressed graph has been converted to the bytepda format,
 applications can be run on it by passing in the usual command-line flags, with
 an additional `-c` flag.
 
-```
-$ ./BFS -s -c -src 10 ../inputs/rMatGraph_J_5_100.bytepda
-$ ./wBFS -s -w -c -src 15 ../inputs/rMatGraph_WJ_5_100.bytepda
+```sh
+$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
 ```
 
 When processing large compressed graphs, using the `-m` command-line flag can
