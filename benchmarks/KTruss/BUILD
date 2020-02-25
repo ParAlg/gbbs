@@ -6,10 +6,10 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//ligra",
         "//ligra:bridge",
         "//ligra:bucket",
         "//ligra:edge_map_reduce",
+        "//ligra:ligra",
         "//ligra/pbbslib:dyn_arr",
         "//ligra/pbbslib:sparse_table",
         "//pbbslib:sample_sort",
