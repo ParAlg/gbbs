@@ -44,7 +44,7 @@ namespace connectit {
       pbbs::sequence<parent>& correct,
       commandLine& P) {
     if constexpr (alter_option == no_alter) {
-      auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+      auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
         timer tt; tt.start();
         auto CC =
             run_liu_tarjan_alg<
@@ -53,23 +53,23 @@ namespace connectit {
               connect_option,
               simple_update_option,
               shortcut_option,
-              alter_option>(G, P);
+              alter_option>(graph, params);
         double t = tt.stop();
-        if (P.getOptionValue("-check")) {
-          cc_check(correct, CC);
+        if (params.getOptionValue("-check")) {
+          cc_check(correct_cc, CC);
         }
         return t;
       };
       auto name = liu_tarjan_options_to_string<sampling_option, connect_option, simple_update_option, shortcut_option, alter_option>();
       return run_multiple(G, rounds, correct, name, P, test);
     } else {
-      auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
-        if (G.m > 10000000000UL) {
+      auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
+        if (graph.m > 10000000000UL) {
           return 0.0; /* too large to run in COO */
         }
         // Convert graph to COO format:
-        auto mutable_edges_raw = G.edges();
-        using W = typename Graph::weight_type;
+        auto mutable_edges_raw = graph.edges();
+        //using W = typename Graph::weight_type;
         //if (sizeof(W) > 0) {
         //  std::cout << "Do not use with a weighted graph!" << std::endl; // (trivial to in fact use it with a weighted graph, but avoid for benchmarking as it adds orthogonal overheads)
         //  abort();
@@ -85,10 +85,10 @@ namespace connectit {
               connect_option,
               simple_update_option,
               shortcut_option,
-              alter_option>(G, std::move(mutable_edges), P);
+              alter_option>(graph, std::move(mutable_edges), params);
         double t = tt.stop();
-        if (P.getOptionValue("-check")) {
-          cc_check(correct, CC);
+        if (params.getOptionValue("-check")) {
+          cc_check(correct_cc, CC);
         }
         return t;
       };
@@ -182,7 +182,6 @@ namespace connectit {
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();

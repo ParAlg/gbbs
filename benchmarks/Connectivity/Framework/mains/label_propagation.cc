@@ -41,12 +41,12 @@ bool run_multiple_sample_only_alg(
     pbbs::sequence<parent>& correct,
     commandLine& P,
     std::string name) {
-  auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+  auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
     timer tt; tt.start();
-    auto CC = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(G, P);
+    auto CC = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(graph, params);
     double t = tt.stop();
-    if (P.getOptionValue("-check")) {
-      cc_check(correct, CC);
+    if (params.getOptionValue("-check")) {
+      cc_check(correct_cc, CC);
     }
     return t;
   };
@@ -79,7 +79,6 @@ void labelprop_ldd(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>&
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();
