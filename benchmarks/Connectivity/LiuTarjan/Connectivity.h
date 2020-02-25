@@ -175,6 +175,7 @@ struct LiuTarjanAlgorithm {
     using edge = std::pair<uintE, uintE>;
     auto inserts = pbbs::sequence<edge>(insertions.size(), [&] (size_t i) {
       auto [u, v, typ] = insertions[i];
+      (void)typ;
       return std::make_pair(u,v);
     });
 
@@ -285,6 +286,7 @@ struct LiuTarjanAlgorithm {
     // Process queries
     parallel_for(0, queries.size(), [&] (size_t i) {
       auto [u,v, utype] = updates[i];
+      (void)utype;
 
       while (P[u] != P[P[u]]) {
         P[u] = P[P[u]];

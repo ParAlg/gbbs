@@ -1,4 +1,7 @@
 #pragma once
+
+#include <iomanip>
+
 #include "benchmarks/Connectivity/Framework/framework.h"
 #include "benchmarks/Connectivity/Framework/mains/check.h"
 #include "ligra/ligra.h"
@@ -127,7 +130,7 @@ bool run_multiple(Graph& G, size_t rounds,
 }
 
 template <class Graph, bool provides_initial_graph, class F>
-void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test, std::initializer_list<F> tests) {
+void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test_type, std::initializer_list<F> tests) {
   for (auto test : tests) {
     test(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
@@ -218,9 +221,9 @@ namespace connectit {
       if (i % 10000 == 0) {
         std::cout << "# starting batch" << std::endl;
       }
-      timer tt; tt.start();
+      timer batch_tt; batch_tt.start();
       alg.template process_batch<reorder_batch>(parents, update);
-      double batch_time = tt.stop();
+      double batch_time = batch_tt.stop();
 //      std::cout << "# finished batch" << std::endl;
 //      if (i % 10000 == 0) {
 //        std::cout << "## Finished : " << i << " out of " << n_batches << " batches." << std::endl;
@@ -238,14 +241,13 @@ namespace connectit {
         /* 2. check that labels are consistent */
         auto parents_copy = parents;
         auto correct_parents_copy = correct_parents;
-        parallel_for(0, n, [&] (size_t i) {
-          check_shortcut(parents_copy, i);
-          check_shortcut(correct_parents_copy, i);
+        parallel_for(0, n, [&] (size_t j) {
+          check_shortcut(parents_copy, j);
+          check_shortcut(correct_parents_copy, j);
         });
 
         RelabelDet(correct_parents_copy);
         cc_check(correct_parents_copy, parents_copy);
-        size_t ncc_after = num_cc(parents_copy);
       }
     }
     double t = tt.stop();

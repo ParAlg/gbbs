@@ -134,6 +134,7 @@ struct SVAlgorithm {
       parallel_for(0, updates.size(), [&] (size_t i) {
         uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
+        (void)utype;
         if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           while (parents[u] != parents[parents[u]]) {
             parents[u] = parents[parents[u]];
@@ -155,8 +156,8 @@ struct SVAlgorithm {
 
       // reset flags
       parallel_for(0, updates.size(), [&] (size_t i) {
-        uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
+        (void)utype;
         if (flags[u]) {
           flags[u] = false;
         }

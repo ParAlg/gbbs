@@ -417,8 +417,16 @@ cc_library(
     name = "bench_utils",
     hdrs = [
         "bench_utils.h",
+    ],
+    deps = [":check"],
+)
+
+cc_library(
+    name = "check",
+    hdrs = [
         "check.h",
     ],
+    visibility = ["//visibility:public"],
 )
 
 cc_library(
