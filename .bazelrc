@@ -18,7 +18,7 @@ test --test_strategy=standalone
 # package path.
 
 
-# By default build in C++17 mode.
+# By default build in C++17 mode using the Homegrown scheduler for parallelism.
 build --cxxopt=-std=c++17
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
@@ -37,6 +37,21 @@ build --cxxopt=-Wpointer-arith
 # codebase currently contains lots of instances of global shadowing.
 build --cxxopt=-Wshadow=local
 build --cxxopt=-Wvla
+
+# Build without parallelism.
+build:serial --cxxopt=-UHOMEGROWN
+
+# Build using CilkPlus for parallelism.
+build:cilk --cxxopt=-UHOMEGROWN
+build:cilk --cxxopt=-DCILK
+build:cilk --cxxopt=-fcilkplus
+build:cilk --linkopt=-lcilkrts
+
+# Build using OpenMP for parallelism.
+build:openmp --cxxopt=-UHOMEGROWN
+build:openmp --cxxopt=-DOPENMP
+build:openmp --cxxopt=-fopenmp
+build:openmp --linkopt=-fopenmp
 
 # Instruments the build with AddressSanitizer
 # (https://github.com/google/sanitizers/wiki/AddressSanitizer).

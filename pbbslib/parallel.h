@@ -109,7 +109,10 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
 // openmp
 #elif defined(OPENMP)
 #include <omp.h>
+#include <stddef.h>
 #define PAR_GRANULARITY 200000
+
+extern bool in_par_do;
 
 template <class F>
 inline void parallel_for(long start, long end, F f, long granularity,
@@ -123,8 +126,6 @@ inline void parallel_for_1(long start, long end, F f, long granularity,
 #pragma omp for schedule(dynamic, 1) nowait
   for (long i = start; i < end; i++) f(i);
 }
-
-bool in_par_do = false;
 
 template <typename Lf, typename Rf>
 inline void par_do(Lf left, Rf right, bool conservative) {
