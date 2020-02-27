@@ -21,9 +21,31 @@ test --test_strategy=standalone
 # By default build in C++17 mode.
 build --cxxopt=-std=c++17
 build --cxxopt=-mcx16        # 16 byte CAS
-build --cxxopt=-ldl
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
 build --cxxopt=-DLONG        # use 8 byte vertex identifiers
 build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compressed graphs
 build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
+
+# C++ warning flags.
+build --cxxopt=-Wall
+build --cxxopt=-Wextra
+build --cxxopt=-Wcast-qual
+build --cxxopt=-Wno-unused-parameter
+build --cxxopt=-Wpointer-arith
+# Turning on -Wshadow rather than just -Wshadow=local would be nice, but the
+# codebase currently contains lots of instances of global shadowing.
+build --cxxopt=-Wshadow=local
+build --cxxopt=-Wvla
+
+# Instruments the build with AddressSanitizer
+# (https://github.com/google/sanitizers/wiki/AddressSanitizer).
+# Invoke by adding the `--config=asan` flag, e.g.,
+#     bazel run --config=asan <build target>`
+build:asan --strip=never
+build:asan --cxxopt=-fsanitize=address
+build:asan --cxxopt=-O1
+build:asan --cxxopt=-g
+build:asan --cxxopt=-fno-omit-frame-pointer
+build:asan --cxxopt=-Wno-macro-redefined
+build:asan --linkopt=-fsanitize=address

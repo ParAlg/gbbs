@@ -30,6 +30,7 @@
 // The root points to itself
 // If a parent points to the left, then it is a right child
 //    and if it points to the right it is a left child
+#pragma once
 
 namespace pbbs {
 

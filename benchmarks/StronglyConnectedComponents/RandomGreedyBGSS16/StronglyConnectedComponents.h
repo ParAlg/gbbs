@@ -63,9 +63,11 @@ struct Search_F {
       auto s_iter = tab.get_iter(s);
       // iterate through s's labels.
       if (s_iter.init()) {
-        auto table_entry = s_iter.next();
-        uintE s_label = std::get<1>(table_entry);
-        labels_changed |= tab.insert(std::make_tuple(d, s_label));
+        {
+          auto table_entry = s_iter.next();
+          uintE s_label = std::get<1>(table_entry);
+          labels_changed |= tab.insert(std::make_tuple(d, s_label));
+        }
 
         while (s_iter.has_next()) {
           auto table_entry = s_iter.next();

@@ -58,7 +58,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
                                  uintE*& next_vtxs, M& min_edges, P& parents,
                                  D& exhausted, size_t& n) {
   using ct = cas_type;
-  using edge = std::tuple<uintE, uintE, W>;
+  using Edge = std::tuple<uintE, uintE, W>;
   size_t m = E.non_zeros;
   auto edges = E.E;
   auto less = [](const ct& a, const ct& b) {
@@ -96,7 +96,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     min_t.start();
     par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       uintE e_id = edge_ids[i];
-      const edge& e = edges[e_id];
+      const Edge& e = edges[e_id];
       ct cas_e(e_id, std::get<2>(e));
       pbbslib::write_min(min_edges + std::get<0>(e), cas_e, less);
       pbbslib::write_min(min_edges + std::get<1>(e), cas_e, less);
@@ -173,7 +173,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     relab_t.start();
     par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
       size_t e_id = edge_ids[i];
-      edge& e = edges[e_id];
+      Edge& e = edges[e_id];
       uintE u = std::get<0>(e);
       uintE v = std::get<1>(e);
       uintE pu = parents[std::get<0>(e)];
@@ -247,7 +247,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
-  auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
+  auto lte = [&](const size_t& left, const size_t& right) { return left <= right; };
 
   par_for(0, sample_size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
         size_t sample_edge = r.ith_rand(i) % m;
@@ -259,8 +259,8 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
         sample_edges[i] = std::make_tuple(vtx, ngh, wgh);
       });
 
-  auto cmp_by_wgh = [](const edge& l, const edge& r) {
-    return std::get<2>(l) < std::get<2>(r);
+  auto cmp_by_wgh = [](const edge& left, const edge& right) {
+    return std::get<2>(left) < std::get<2>(right);
   };
   pbbslib::sample_sort_inplace(sample_edges.slice(), cmp_by_wgh);
 

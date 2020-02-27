@@ -1,3 +1,6 @@
+#ifndef _BARENBOIM_ELKIN_DEGEN
+#define _BARENBOIM_ELKIN_DEGEN
+
 #include "ligra/bucket.h"
 #include "ligra/edge_map_reduce.h"
 #include "ligra/ligra.h"
@@ -51,3 +54,5 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
   return ret;
 } 
 }
+
+#endif

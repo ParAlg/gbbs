@@ -40,6 +40,31 @@ cc_library(
 )
 
 cc_library(
+  name = "induced_split",
+  hdrs = ["induced_split.h"],
+  deps = [
+  ":intersect",
+  "//pbbslib:seq",
+  ]
+)
+
+cc_library(
+  name = "peel",
+  hdrs = ["peel.h"],
+  deps = [
+  ":induced_hybrid",
+  ":intersect",
+  "//ligra:bucket",
+  "//ligra:edge_map_reduce",
+  "//ligra:ligra",
+  "//ligra/pbbslib:dyn_arr",
+  "//ligra/pbbslib:sparse_table",
+  "//pbbslib:list_allocator",
+  "//pbbslib:integer_sort",
+  ]
+)
+
+cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [
@@ -57,15 +82,19 @@ cc_library(
   ":induced_neighborhood",
   ":induced_intersection",
   ":induced_hybrid",
+  ":induced_split",
+  ":peel",
   "//ligra:bucket",
   "//ligra:edge_map_reduce",
   "//ligra:ligra",
   "//ligra/pbbslib:dyn_arr",
+  "//pbbslib:assert",
   "//pbbslib:list_allocator",
   "//pbbslib:integer_sort",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore",
+  "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
   ":intersect",
   ]
 )

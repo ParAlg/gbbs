@@ -153,7 +153,7 @@ struct buckets {
 
   // Computes a bucket_dest for an identifier moving to bucket_id next.
   inline bucket_id get_bucket(const bucket_id& next) const {
-    uintE nb = to_range(next);
+    bucket_t nb = to_range(next);
     // Note that the interface currently only implements strictly_decreasing
     // priority, which is why the code below does not check pri_order.
     if (order == increasing) {
@@ -298,9 +298,9 @@ struct buckets {
   id_dyn_arr* bkts;
 
   template <class F>
-  inline size_t update_buckets_seq(F& f, size_t n) {
+  inline size_t update_buckets_seq(F& f, size_t k) {
     size_t ne_before = num_elms;
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < k; i++) {
       auto m = f(i);
       bucket_id bkt = std::get<1>(m.t);
       if (m.exists && bkt != null_bkt) {
@@ -348,7 +348,20 @@ struct buckets {
                 << "\n";
       assert(m == num_elms);  // corrruption in bucket structure.
     }
-    update_buckets(g, m);
+    size_t updated = update_buckets(g, m);
+    size_t num_in_range = updated - bkts[open_buckets].size;
+    //none in range
+    if(num_in_range == 0 && bkts[open_buckets].size > 0) {
+      auto imap = pbbslib::make_sequence<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
+      if(order == increasing) {
+        size_t minBkt = pbbs::reduce(imap, pbbs::minm<size_t>());
+        cur_range = minBkt/open_buckets-1; //will be incremented in next unpack() call
+      }
+      else if(order == decreasing) {
+        size_t minBkt = pbbs::reduce(imap, pbbs::maxm<size_t>());
+        cur_range = (open_buckets+minBkt)/open_buckets+1; //will be decremented in next unpack() call
+      }
+    }
     num_elms -= m;
   }
 
@@ -419,4 +432,11 @@ template <class D>
 inline buckets<D, uintE, uintE> make_vertex_buckets(size_t n, D& d, bucket_order
       order, size_t total_buckets = 128) {
   return buckets<D, uintE, uintE>(n, d, order, total_buckets);
+}
+
+// ident_t := uintE, bucket_t := bucket_t
+template <class bucket_t, class D>
+inline buckets<D, uintE, bucket_t> make_vertex_custom_buckets(size_t n, D& d, bucket_order
+      order, size_t total_buckets = 128) {
+  return buckets<D, uintE, bucket_t>(n, d, order, total_buckets);
 }

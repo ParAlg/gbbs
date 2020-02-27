@@ -39,6 +39,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 
 void print_stats(commandLine& P, size_t query_cutoff, size_t max_query_length, size_t total_work, double fraction_covered, double rt) {
   std::cout << "{" << std::endl;
@@ -69,6 +70,7 @@ double MaximalMatching_runner(Graph& G, commandLine P) {
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
   print_stats(P, query_cutoff, max_query_length, total_work, fraction_covered, tt);
+  return tt;
 }
 
 generate_symmetric_main(MaximalMatching_runner, false);

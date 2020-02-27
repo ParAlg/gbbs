@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
   }
 
   sequence<char> chars = pbbs::char_seq_from_file(in_file);
-  auto tokens = pbbslib::tokenize(chars, [] (const char c) { return pbbs::is_space(c); });
+  auto tokens = pbbs::tokenize(chars, [] (const char c) { return pbbs::is_space(c); });
   // parseback to ints
 
   assert(tokens.size() % 2 == 0); // m tuples, into two tokens each

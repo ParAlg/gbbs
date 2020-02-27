@@ -17,6 +17,7 @@ cc_binary(
   ":MaximalMatching",
   "//ligra:bridge",
   "//ligra:ligra",
+  "//pbbslib/strings:string_basics"
   ]
 )
 

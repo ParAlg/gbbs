@@ -33,6 +33,7 @@
 #include <type_traits>
 
 #include "ligra/bridge.h"
+#include "ligra/macros.h"
 
 namespace bytepd_amortized {
 
@@ -121,39 +122,8 @@ __attribute__((always_inline)) inline uintE eatEdge(uchar*& start) {
 /*
   Compresses the first edge, writing target-source and a sign bit.
 */
-inline long compressFirstEdge(uchar* start, long offset, long source,
-                              long target) {
-  long diff = target - source;
-  long preCompress = diff;
-  int bytesUsed = 0;
-  uchar firstByte = 0;
-  uintE toCompress = std::abs(preCompress);
-  firstByte = toCompress & 0x3f;  // 0011|1111
-  if (preCompress < 0) {
-    firstByte |= 0x40;
-  }
-  toCompress = toCompress >> 6;
-  if (toCompress > 0) {
-    firstByte |= 0x80;
-  }
-  start[offset] = firstByte;
-  offset++;
-
-  uchar curByte = toCompress & 0x7f;
-  while ((curByte > 0) || (toCompress > 0)) {
-    bytesUsed++;
-    uchar toWrite = curByte;
-    toCompress = toCompress >> 7;
-    // Check to see if there's any bits left to represent
-    curByte = toCompress & 0x7f;
-    if (toCompress > 0) {
-      toWrite |= 0x80;
-    }
-    start[offset] = toWrite;
-    offset++;
-  }
-  return offset;
-}
+long compressFirstEdge(uchar* start, long offset, long source,
+                              long target);
 
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
@@ -170,23 +140,7 @@ inline long compressWeight(uchar* start, long offset, W weight) {
 /*
   Should provide the difference between this edge and the previous edge
 */
-inline long compressEdge(uchar* start, long curOffset, uintE e) {
-  uchar curByte = e & 0x7f;
-  int bytesUsed = 0;
-  while ((curByte > 0) || (e > 0)) {
-    bytesUsed++;
-    uchar toWrite = curByte;
-    e = e >> 7;
-    // Check to see if there's any bits left to represent
-    curByte = e & 0x7f;
-    if (e > 0) {
-      toWrite |= 0x80;
-    }
-    start[curOffset] = toWrite;
-    curOffset++;
-  }
-  return curOffset;
-}
+long compressEdge(uchar* start, long curOffset, uintE e);
 
 template <class W>
 struct iter {
@@ -336,19 +290,20 @@ struct simple_iter {
       uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
       uchar* nghs_start = edge_start + (num_blocks-1)*sizeof(uintE) + sizeof(uintE); // block offs + virtual_degree
 
-      // do first chunk
-      uchar* finger = nghs_start;
-      uintE start_offset = *((uintE*)finger);
-      uintE end_offset = (0 == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[0])));
-      finger += sizeof(uintE);
-
       auto wgh = pbbs::empty();
-      if (start_offset < end_offset) { // at least one edge in this block
-        uintE ngh = eatFirstEdge(finger, source);
-        if (!t(source, ngh, wgh, start_offset)) return;
-        for (size_t edgeID = start_offset+1; edgeID < end_offset; edgeID++) {
-          ngh += eatEdge(finger);
-          if(!t(source, ngh, wgh, edgeID)) return;
+      {  // do first chunk
+        uchar* finger = nghs_start;
+        uintE start_offset = *((uintE*)finger);
+        uintE end_offset = (0 == (num_blocks-1)) ? degree : (*((uintE*)(edge_start+block_offsets[0])));
+        finger += sizeof(uintE);
+
+        if (start_offset < end_offset) { // at least one edge in this block
+          uintE ngh = eatFirstEdge(finger, source);
+          if (!t(source, ngh, wgh, start_offset)) return;
+          for (size_t edgeID = start_offset+1; edgeID < end_offset; edgeID++) {
+            ngh += eatEdge(finger);
+            if(!t(source, ngh, wgh, edgeID)) return;
+          }
         }
       }
       if ((num_blocks > 2) && parallel) {
@@ -474,13 +429,11 @@ inline void decode_block_cond(T t, uchar* edge_start, const uintE& source,
     if (start_offset < end_offset) {  // at least one edge in this block
       uintE ngh = eatFirstEdge(finger, source);
       W wgh = eatWeight<W>(finger);
-      bool ret = t(ngh, wgh, start_offset);
-      if (!ret) return;
+      if (!t(ngh, wgh, start_offset)) return;
       for (size_t edgeID = start_offset + 1; edgeID < end_offset; edgeID++) {
         ngh += eatEdge(finger);
         wgh = eatWeight<W>(finger);
-        bool ret = t(ngh, wgh, edgeID);
-        if (!ret) break;
+        if (!t(ngh, wgh, edgeID)) break;
       }
     }
   }
@@ -566,10 +519,11 @@ inline E map_reduce(uchar* edge_start, const uintE& source, const uintT& degree,
       finger += sizeof(uintE);
 
       if (start_offset < end_offset) {
-        // Eat first edge, which is compressed specially
         uintE ngh = eatFirstEdge(finger, source);
-        W wgh = eatWeight<W>(finger);
-        cur = reduce.f(cur, m(source, ngh, wgh));
+        {  // Eat first edge, which is compressed specially
+          W wgh = eatWeight<W>(finger);
+          cur = reduce.f(cur, m(source, ngh, wgh));
+        }
         for (size_t j = start_offset + 1; j < end_offset; j++) {
           ngh += eatEdge(finger);
           W wgh = eatWeight<W>(finger);
@@ -685,31 +639,9 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
   return std::make_tuple(ngh, wgh);
 }
 
-inline uintE get_num_blocks(uchar* edge_start,  uintE degree) {
-  if (degree == 0) {
-    return 0;
-  }
-  uintE virtual_degree = *((uintE*)edge_start);
-  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-  return num_blocks;
-}
+uintE get_num_blocks(uchar* edge_start,  uintE degree);
 
-inline uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
-  if (degree == 0) { return 0; }
-  uintE virtual_degree = *((uintE*)edge_start);
-  size_t num_blocks = 1 + (virtual_degree - 1) / PARALLEL_DEGREE;
-  uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
-
-  auto block_ends = [&] (size_t j) {
-    uintE end = (j == (num_blocks - 1))
-                    ? degree
-                    : (*((uintE*)(edge_start + block_offsets[j])));
-    return end;
-  };
-  uintE block_start = (block_num == 0) ? 0 : block_ends(block_num - 1);
-  uintE block_end = block_ends(block_num);
-  return block_end - block_start; // TODO: check
-}
+uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num);
 
 //  #define SEQ_THRESH 10
 //  // Represents the sequence from
@@ -1028,12 +960,12 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
       *block_offset = start;
       size_t current_offset = sizeof(uintE);
 
-      auto nw = U[start];
+      auto first_nw = U[start];
       current_offset =
-          compressFirstEdge(finger, current_offset, source, std::get<0>(nw));
+          compressFirstEdge(finger, current_offset, source, std::get<0>(first_nw));
       current_offset =
-          compressWeight<W>(finger, current_offset, std::get<1>(nw));
-      uintE last_ngh = std::get<0>(nw);
+          compressWeight<W>(finger, current_offset, std::get<1>(first_nw));
+      uintE last_ngh = std::get<0>(first_nw);
       for (size_t j = start + 1; j < end; j++) {
         auto nw = U[j];
         uintE difference = std::get<0>(nw) - last_ngh;
@@ -1092,7 +1024,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
       if (pred(source, ngh, wgh)) {
         tmp[ct++] = std::make_tuple(ngh, wgh);
       }
-      for (size_t i = 1; i < block_deg; i++) {
+      for (size_t j = 1; j < block_deg; j++) {
         ngh += eatEdge(finger);
         wgh = eatWeight<W>(finger);
         if (pred(source, ngh, wgh)) {
@@ -1108,15 +1040,15 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     // C) Recompress inside this block
     size_t offset = 0;
     if (ct > 0 && ct < block_deg) {
-      uchar* finger =
+      uchar* finger2 =
           (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
-      uchar* write_finger = finger + sizeof(uintE);
+      uchar* write_finger = finger2 + sizeof(uintE);
       offset =
           compressFirstEdge(write_finger, offset, source, std::get<0>(tmp[0]));
       offset = compressWeight<W>(write_finger, offset, std::get<1>(tmp[0]));
       uintE last_ngh = std::get<0>(tmp[0]);
-      for (size_t i = 1; i < ct; i++) {
-        const auto& e = tmp[i];
+      for (size_t j = 1; j < ct; j++) {
+        const auto& e = tmp[j];
         uintE difference = std::get<0>(e) - last_ngh;
         offset = compressEdge(write_finger, offset, difference);
         offset = compressWeight<W>(write_finger, offset, std::get<1>(e));
@@ -1156,8 +1088,10 @@ inline void decode_block(uchar* finger, std::tuple<uintE, W>* out, size_t start,
                          size_t end, const uintE& source) {
   if (end - start > 0) {
     uintE ngh = eatFirstEdge(finger, source);
-    W wgh = eatWeight<W>(finger);
-    out[start] = std::make_tuple(ngh, wgh);
+    {
+      W wgh = eatWeight<W>(finger);
+      out[start] = std::make_tuple(ngh, wgh);
+    }
     for (size_t i = start + 1; i < end; i++) {
       // Eat the next 'edge', which is a difference, and reconstruct edge.
       ngh += eatEdge(finger);

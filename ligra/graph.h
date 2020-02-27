@@ -35,6 +35,10 @@
 #include "flags.h"
 #include "vertex.h"
 
+std::function<void()> get_deletion_fn(void*, void*);
+std::function<void()> get_deletion_fn(void*, void*, void*);
+std::function<void()> get_deletion_fn(void*, void*, void*, void*);
+
 /* Compressed Sparse Row (CSR) based representation for symmetric graphs.
  * Takes two template parameters:
  * 1) vertex_type: vertex template, parametrized by the weight type associated with each edge
@@ -303,33 +307,6 @@ struct edge_array {
 
 };
 
-inline auto get_deletion_fn(void* a, void* b) -> std::function<void()> {
-  auto df = [&](void* a, void* b) {
-    pbbslib::free_array(a);
-    pbbslib::free_array(b);
-  };
-  return std::bind(df, a, b);
-}
-
-inline auto get_deletion_fn(void* a, void* b, void* c) -> std::function<void()> {
-  auto df = [&](void* a, void* b, void* c) {
-    pbbslib::free_array(a);
-    pbbslib::free_array(b);
-    pbbslib::free_array(c);
-  };
-  return std::bind(df, a, b, c);
-}
-
-inline auto get_deletion_fn(void* a, void* b, void* c, void* d) -> std::function<void()> {
-  auto df = [&](void* a, void* b, void* c, void* d) {
-    pbbslib::free_array(a);
-    pbbslib::free_array(b);
-    pbbslib::free_array(c);
-    pbbslib::free_array(d);
-  };
-  return std::bind(df, a, b, c, d);
-}
-
 template <class W, class Graph>
 inline edge_array<W> to_edge_array(Graph& G) {
   using edge = std::tuple<uintE, uintE, W>;
@@ -369,9 +346,9 @@ template <class W, class EdgeSeq, class GetU, class GetV, class GetW>
 inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
     EdgeSeq& A,
     size_t n,
-    GetU& get_u,
-    GetV& get_v,
-    GetW& get_w,
+    GetU&& get_u,
+    GetV&& get_v,
+    GetW&& get_w,
     bool is_sorted = false) {
   using vertex = symmetric_vertex<W>;
   using edge_type = typename vertex::edge_type;
@@ -393,9 +370,8 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
   }
 
   if (!is_sorted) {
-    auto first = [](std::tuple<uintE, uintE, W> a) { return std::get<0>(a); };
     size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(A.slice(), first, bits);
+    pbbslib::integer_sort_inplace(A.slice(), get_u, bits);
   }
 
   auto starts = sequence<uintT>(n+1, (uintT) 0);

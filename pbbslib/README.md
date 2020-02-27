@@ -35,14 +35,14 @@ template library.   However none of them mutate
 their arguments, but rather are copy based.
 
   - all_of, any_of, none_of, count, count_if
-  - find, find_if, find_if_not, find_first_of, find_end, search
+  - find, find_if, find_if_not, find_end, search
   - mismatch, adjacent_find
   - equal, lexicographical_compare,
   - unique, remove_if
   - min_element, max_element, min_max_element
   - reverse, rotate,
   - is_sorted, is_sorted_until, is_partitioned
-  
+
 ### Utilities
   - scheduler
   - parallel random number generator
@@ -50,10 +50,10 @@ their arguments, but rather are copy based.
   - monoid
   - timer
   - hashing
-  
+
 ### Concurrency
   - stack
-  
+
 ******************************************************
 
 ## Seqs and Ranges
@@ -95,7 +95,7 @@ first extracting a range.  It is designed so all its internal
 operations are parallel---including initialization of elements,
 destruction of elements, copy assignment and copy construction.  It
 supports the following functionality:
-    
+
     typename value_type (shorthand T below)
     sequence<T>(size_t n, IntegerFunc f) :
         applies f to i : [0,n) creating a sequence of length n
@@ -113,10 +113,10 @@ supports the following functionality:
     a.end() : shorthand for a.slice().end()
     a[size_t i] -> T& : reference to i-th value of a
     a.swap(sequence<T> b) -> void : swaps contents of a and b
-    a.clear() -> clears the contents setting length to zero.    
+    a.clear() -> clears the contents setting length to zero.
 
 If passed by rvalue reference it is moved clearing the rvalue.  If
-passed by value, it is copied.   
+passed by value, it is copied.
 
 A sequence is a Seq but not a Range.
 
@@ -125,21 +125,21 @@ A sequence is a Seq but not a Range.
 ### range<Iterator>
 
 A range<Iterator> suppors random access into range, and slicing into
-subranges.   
-    
+subranges.
+
     typename value_type (shorthand T below)
     typename iterator, where iterator::value_type = value_type
        it must be a random access iterator
     range<I>(I begin, I end) : the range from begin to end
     a.size() -> size_t : size of the range
-    a.slice() -> range<I> : returns a 
+    a.slice() -> range<I> : returns a
     a.slice(size_t s, size_t e) -> range<I> :
-        the subrange from a.begin()+s to a.begin()+e, 
+        the subrange from a.begin()+s to a.begin()+e,
     a.begin() -> I : an iterator to the begining of the range
     a.end() -> I : an iterator to the end of the range
     a[size_t i] -> value_type& : reference to i-th value of a
 
-A range<Iterator> is both a Seq and a Range.  
+A range<Iterator> is both a Seq and a Range.
 
 ******************************************************
 
@@ -162,4 +162,4 @@ notion of a reference to its elements.  It supports:
 
 A delayed_sequence is a Seq but not a Range
 
- 
+
