@@ -379,38 +379,4 @@ auto split_two(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
   return std::make_pair(std::move(Out), m);
 }
 
-// Given an n-length sequence<T> `In` and a predicate `pred` of type `T -> bool,
-// returns a reordering of `In` such that any element not satisfying `pred`
-// precedes any element satisfying `pred`. An integer is also returned that is
-// the number of elements not satisfying `pred`.
-template <SEQ In_Seq, class Func>
-auto split_two_with_predicate(In_Seq const &In, Func&& pred, flags fl = no_flag)
-    -> std::pair<sequence<typename In_Seq::value_type>, size_t> {
-  using T = typename In_Seq::value_type;
-  const size_t n = In.size();
-  const size_t l = num_blocks(n, _block_size);
-  sequence<size_t> Sums{l};
-  sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
-    size_t c = 0;
-    for (size_t j=s; j < e; j++) {
-      c += (pred(In[j]) == false);
-    }
-    Sums[i] = c;
-  }, fl);
-  const size_t m = scan_inplace(Sums.slice(), addm<size_t>());
-  sequence<T> Out = sequence<T>::no_init(n);
-  sliced_for(n, _block_size, [&] (size_t i, size_t s, size_t e) {
-    size_t c0 = Sums[i];
-    size_t c1 = s + (m - c0);
-    for (size_t j = s; j < e; j++) {
-      if (pred(In[j])) {
-        assign_uninitialized(Out[c1++], In[j]);
-      } else {
-        assign_uninitialized(Out[c0++], In[j]);
-      }
-    }
-  }, fl);
-  return std::make_pair(std::move(Out), m);
-}
-
 }

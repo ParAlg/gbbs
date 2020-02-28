@@ -2,9 +2,9 @@
 
 #include <variant>
 
+#include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 #include "ligra/graph.h"
 #include "pbbslib/seq.h"
-#include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
 namespace indexed_scan {
 

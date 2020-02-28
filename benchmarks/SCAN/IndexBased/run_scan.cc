@@ -13,13 +13,10 @@
 #include "benchmarks/SCAN/IndexBased/scan.h"
 
 #include "ligra/ligra.h"
-#include "utils/assert.h"
 
 // Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
-  ASSERT(parameters.getOption("-s"), "Input graph must be symmetric");
-
   timer timer{};
   timer.start();
   const indexed_scan::Index scan_index{&graph};
@@ -32,5 +29,5 @@ double RunScan(Graph& graph, commandLine parameters) {
   return running_time;
 }
 
-static const bool kMutates{false};
-generate_symmetric_main(RunScan, kMutates);
+static constexpr bool kMutatesGraph{false};
+generate_symmetric_main(RunScan, kMutatesGraph);

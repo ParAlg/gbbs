@@ -8,6 +8,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "ligra/graph.h"
+#include "ligra/graph_test_utils.h"
+#include "ligra/undirected_edge.h"
 #include "ligra/vertex.h"
 #include "pbbslib/seq.h"
 
@@ -15,27 +17,11 @@ using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
 
+namespace gt = graph_test;
 namespace i = indexed_scan;
 namespace ii = indexed_scan::internal;
 
 namespace {
-
-// Make an undirected graph from a list of edges.
-symmetric_graph<symmetric_vertex, pbbslib::empty> MakeGraph(
-    const uintE num_vertices,
-    const std::unordered_set<UndirectedEdge>& edges) {
-  pbbs::sequence<std::tuple<uintE, uintE, pbbslib::empty>> edge_sequence(
-      edges.size() * 2);
-  auto edges_it{edges.cbegin()};
-  for (size_t i = 0; i < edges.size(); i++) {
-    edge_sequence[2 * i] =
-      std::make_tuple(edges_it->from(), edges_it->to(), pbbs::empty{});
-    edge_sequence[2 * i + 1] =
-      std::make_tuple(edges_it->to(), edges_it->from(), pbbs::empty{});
-    ++edges_it;
-  }
-  return sym_graph_from_edges(edge_sequence, num_vertices);
-}
 
 ii::NeighborSimilarity
 MakeNeighborSimilarity(const uintE neighbor, const double similarity) {
@@ -52,7 +38,7 @@ MakeCoreThreshold(const uintE vertex_id, const double threshold) {
 TEST(ScanSubroutines, NullGraph) {
   const size_t kNumVertices{0};
   const std::unordered_set<UndirectedEdge> kEdges{};
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const ii::StructuralSimilarities similarity_table{
     ii::ComputeStructuralSimilarities(&graph)};
@@ -69,7 +55,7 @@ TEST(ScanSubroutines, NullGraph) {
 TEST(ScanSubroutines, EmptyGraph) {
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{};
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const ii::StructuralSimilarities similarity_table{
     ii::ComputeStructuralSimilarities(&graph)};
@@ -104,7 +90,7 @@ TEST(ScanSubroutines, BasicUsage) {
     {2, 5},
     {3, 4},
   };
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const ii::StructuralSimilarities similarity_table{
     ii::ComputeStructuralSimilarities(&graph)};
@@ -202,7 +188,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
     {3, 4},
     {4, 5},
   };
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const ii::StructuralSimilarities similarity_table{
     ii::ComputeStructuralSimilarities(&graph)};
@@ -256,7 +242,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
 TEST(Cluster, NullGraph) {
   const size_t kNumVertices{0};
   const std::unordered_set<UndirectedEdge> kEdges{};
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const i::Index index{&graph};
   constexpr float kMu{2};
@@ -270,7 +256,7 @@ TEST(Cluster, NullGraph) {
 TEST(Cluster, EmptyGraph) {
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{};
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   const i::Index index{&graph};
   constexpr float kMu{2};
@@ -301,7 +287,7 @@ TEST(Cluster, BasicUsage) {
     {2, 5},
     {3, 4},
   };
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   const i::Index index{&graph};
 
   EXPECT_EQ("TODO", "DONE");
@@ -317,7 +303,7 @@ TEST(Cluster, DisconnectedGraph) {
     {3, 4},
     {4, 5},
   };
-  auto graph{MakeGraph(kNumVertices, kEdges)};
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
   const i::Index index{&graph};
 
   {

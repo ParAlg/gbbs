@@ -3,19 +3,19 @@ cc_library(
     srcs = [
         "scan.cc",
         "scan_helpers.cc",
-        "undirected_edge.cc",
     ],
     hdrs = [
         "scan.h",
         "scan_helpers.h",
-        "undirected_edge.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
         "//ligra:graph",
+        "//ligra:graph_test_utils",
         "//ligra:macros",
+        "//ligra:undirected_edge",
         "//ligra/pbbslib:sparse_table",
-        "//utils:assert",
     ],
 )
 
@@ -25,15 +25,5 @@ cc_binary(
     deps = [
         ":scan",
         "//ligra",
-        "//utils:assert",
-    ],
-)
-
-cc_test(
-    name = "scan_test",
-    srcs = ["unit_tests/scan_test.cc"],
-    deps = [
-        ":scan",
-        "@googletest//:gtest_main",
     ],
 )

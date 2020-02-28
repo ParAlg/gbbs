@@ -10,7 +10,6 @@
 #include "pbbslib/binary_search.h"
 #include "pbbslib/parallel.h"
 #include "pbbslib/sample_sort.h"
-#include "utils/assert.h"
 
 namespace indexed_scan {
 
@@ -210,12 +209,14 @@ void GetClustersFromCores(
   pbbs::sequence<DirectedEdge> partitioned_edges{};
   size_t num_core_to_core_edges{0};
   std::tie(partitioned_edges, num_core_to_core_edges) =
-    pbbs::split_two_with_predicate(
+    pbbs::split_two(
         core_similar_incident_edges,
-        [&cores_set](const DirectedEdge& edge) {
-          // Only need to check second endpoint. First endpoint is a core.
-          return !cores_set.contains(edge.second);
-        });
+        pbbs::delayed_seq<bool>(
+          core_similar_incident_edges.size(),
+          [&](const size_t i) {
+            // Only need to check second endpoint. First endpoint is a core.
+            return !cores_set.contains(core_similar_incident_edges[i].second);
+          }));
 
   pbbs::range<DirectedEdge*> core_to_core_edges{
     partitioned_edges.slice(0, num_core_to_core_edges)};

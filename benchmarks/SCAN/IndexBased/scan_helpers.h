@@ -4,9 +4,11 @@
 // main SCAN header file.
 #pragma once
 
+#include <utility>
+
 #include "ligra/graph.h"
 #include "ligra/pbbslib/sparse_table.h"
-#include "benchmarks/SCAN/IndexBased/undirected_edge.h"
+#include "ligra/undirected_edge.h"
 
 namespace indexed_scan {
 
