@@ -658,7 +658,7 @@ inline void insertLLU(bheapLLU *heap,keyvalueLLU kv){
 }
 
 inline void updateLLU(bheapLLU *heap,unsigned key,unsigned long long delta){
-	unsigned i=heap->pt[key];
+	const size_t i=heap->pt[key];
 	if (i!=std::numeric_limits<size_t>::max()){
 		((heap->kv[i]).value)-=delta;
 		bubble_upLLU(heap,i);
