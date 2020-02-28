@@ -58,30 +58,30 @@ struct get_bucket {
     std::sort(sample, sample + count);
 
     // only keep those with at least three copies
-    int k = 0;
+    int j = 0;
     int c = 0;
     for (size_t i = 1; i < count; i++) {
       if (sample[i] == sample[i - 1]) {
         if (c++ == 1) {
-          sample[k++] = sample[i];
+          sample[j++] = sample[i];
         }
       } else {
         c = 0;
       }
     }
-    return std::make_tuple(sample, k);
+    return std::make_tuple(sample, j);
   }
 
   std::tuple<E, int>* make_hash_table(E* entries, size_t n, size_t table_size,
-                                      size_t table_mask) {
+                                      size_t _table_mask) {
     using ttype = std::tuple<E, int>;
     auto table = pbbslib::new_array_no_init<ttype>(table_size);
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
-      size_t h = hash32(entries[i]) & table_mask;
+      size_t h = hash32(entries[i]) & _table_mask;
       while (std::get<1>(table[h]) != -1) {
-        h = (h + 1) & table_mask;
+        h = (h + 1) & _table_mask;
       }
       table[h] = std::make_pair(entries[i], n_distinct++);
     }
@@ -263,8 +263,8 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
             ct = counts[j * num_buckets + i + 1] - off;
           }
           off += start;
-          for (size_t k = 0; k < ct; k++) {
-            K a = elms[off + k];
+          for (size_t l = 0; l < ct; l++) {
+            K a = elms[off + l];
             S.insertAdd(a);
           }
         }
@@ -464,8 +464,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
               ct = counts[j * num_total_buckets + i + 1] - off;
             }
             off += start;
-            for (size_t k = 0; k < ct; k++) {
-              K a = elms[off + k];
+            for (size_t l = 0; l < ct; l++) {
+              K a = elms[off + l];
               S.insertAdd(a);
             }
           }
@@ -693,8 +693,8 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
             ct = counts[j * num_buckets + i + 1] - off;
           }
           off += start;
-          for (size_t k = 0; k < ct; k++) {
-            E a = elms[off + k];
+          for (size_t l = 0; l < ct; l++) {
+            E a = elms[off + l];
             reduce_f(S, a);
           }
         }

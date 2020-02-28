@@ -16,6 +16,8 @@ void set_num_workers(int n) {
 
 #elif defined(OPENMP)
 
+bool in_par_do = false;
+
 int num_workers() { return omp_get_max_threads(); }
 int worker_id() { return omp_get_thread_num(); }
 void set_num_workers(int n) { omp_set_num_threads(n); }
@@ -30,8 +32,8 @@ void set_num_workers(int n) { global_scheduler.set_num_workers(n); }
 
 #else
 
-inline int num_workers() { return 1; }
-inline int worker_id() { return 0; }
-inline void set_num_workers(int n) { ; }
+int num_workers() { return 1; }
+int worker_id() { return 0; }
+void set_num_workers(int n) { ; }
 
 #endif

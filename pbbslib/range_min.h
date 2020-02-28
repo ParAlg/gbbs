@@ -40,8 +40,8 @@ namespace pbbs {
 template <class Seq, class Compare, class Uint = uint>
 class range_min {
  public:
-  range_min(Seq &a, Compare less, long block_size = 32)
-      : a(a), less(less), n(a.size()), block_size(block_size) {
+  range_min(Seq &_a, Compare _less, long work_block_size = 32)
+      : a(_a), less(_less), n(a.size()), block_size(work_block_size) {
     m = 1 + (n - 1) / block_size;
     precomputeQueries();
   }

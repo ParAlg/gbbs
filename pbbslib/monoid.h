@@ -16,7 +16,7 @@ struct monoid {
   using T = TT;
   F f;
   TT identity;
-  monoid(F f, TT id) : f(f), identity(id) {}
+  monoid(F _f, TT id) : f(_f), identity(id) {}
 };
 
 template <class F, class T>

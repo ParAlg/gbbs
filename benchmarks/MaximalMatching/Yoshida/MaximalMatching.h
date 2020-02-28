@@ -25,10 +25,8 @@
 
 #include "ligra/bridge.h"
 #include "ligra/ligra.h"
-#include "ligra/speculative_for.h"
-#include "ligra/pbbslib/dyn_arr.h"
 #include "reorder.h"
-#include "utils.h"
+#include "yoshida_matching_utils.h"
 
 enum mm_status {
   in,
@@ -49,7 +47,7 @@ std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so
   auto it = sorted_it(nghs_u, nghs_v, deg_u, deg_v, u, v);
 
   size_t work = work_so_far;
-  size_t last_pri = 0;
+  [[maybe_unused]] size_t last_pri = 0;
   while (it.has_next()) {
     if (work == query_cutoff) {
       return std::make_pair(unknown, query_cutoff);
@@ -90,7 +88,6 @@ std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so
 template <class Graph>
 auto MaximalMatching(Graph& G, size_t query_cutoff) {
   using W = typename Graph::weight_type;
-  using edge = std::tuple<uintE, uintE, W>;
 
   size_t m = G.m;
   size_t n = G.n;

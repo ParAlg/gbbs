@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./MaximalMatching -s -c -m clueweb_sym.bytepda
+// numactl -i all ./MaximalIndependentSet -s -c -m clueweb_sym.bytepda
 // flags:
 //   required:
 //     -s : indicates that the graph is symmetric
@@ -31,11 +31,10 @@
 //     -c : indicate that the graph is compressed
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
-#include "MaximalMatching.h"
+#include "MaximalIndependentSet.h"
 
 #include "ligra/bridge.h"
 #include "ligra/ligra.h"
-
 
 #include <fstream>
 #include <iostream>
@@ -45,8 +44,8 @@ void print_stats(commandLine& P, size_t query_cutoff, size_t max_query_length, s
   std::cout << "{" << std::endl;
   std::cout << "  \"test_type\": \"Yoshida matching result\"," << std::endl;
   std::cout << "  \"graph\" : \"" << P.getArgument(0) << "\"," << std::endl;
-  std::cout << "  \"query_cutoff\" : " << query_cutoff << "," << std::endl;
   std::cout << "  \"time\" : " << std::setprecision(10) << rt << "," << std::endl;
+  std::cout << "  \"query_cutoff\" : " << query_cutoff << "," << std::endl;
   std::cout << "  \"max_query_length\" : " << max_query_length << "," << std::endl;
   std::cout << "  \"total_work\" : " << total_work << "," << std::endl;
   std::cout << "  \"fraction_covered\" : " << fraction_covered << std::endl;
@@ -54,7 +53,7 @@ void print_stats(commandLine& P, size_t query_cutoff, size_t max_query_length, s
 }
 
 template <class Graph>
-double MaximalMatching_runner(Graph& G, commandLine P) {
+double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   size_t query_cutoff = P.getOptionLongValue("-query_cutoff", std::numeric_limits<size_t>::max());
   std::cout << "### Application: Maximal Matching (Yoshida). Status=Experimental" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -66,11 +65,11 @@ double MaximalMatching_runner(Graph& G, commandLine P) {
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   timer t; t.start();
-  auto [max_query_length, total_work, fraction_covered] = MaximalMatching(G, query_cutoff);
+  auto [max_query_length, total_work, fraction_covered] = MaximalIndependentSet(G, query_cutoff);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
   print_stats(P, query_cutoff, max_query_length, total_work, fraction_covered, tt);
   return tt;
 }
 
-generate_symmetric_main(MaximalMatching_runner, false);
+generate_symmetric_main(MaximalIndependentSet_runner, false);

@@ -72,9 +72,9 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
   auto dists = pbbs::sequence<uintE>(n, [&] (size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
-  auto get_bkt = [&] (const uintE& dist) -> const uintE {
+  auto get_bkt = [&] (const uintE& dist) -> uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : (dist / delta); };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&] (const size_t& v) -> const uintE {
+  auto get_ring = pbbslib::make_sequence<uintE>(n, [&] (const size_t& v) -> uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : (d / delta); });
   auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);

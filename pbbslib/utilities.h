@@ -131,6 +131,15 @@ inline uint64_t hash64_2(uint64_t x) {
   return x;
 }
 
+// Combines two hash values.
+inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
+  // This is the same as boost's 32-bit `hash_combine` implementation, but with
+  // 2 ^ 64 / (golden ratio) chosen as an arbitrary 64-bit additive magic number
+  // rather than 2 ^ 32 / (golden ratio).
+  return hash_value_1 ^ (hash_value_2 + 0x9e3779b97f4a7c15 + (hash_value_1 << 6)
+      + (hash_value_1 >> 2));
+}
+
 // Does not initialize the array
 template <typename E>
 E* new_array_no_init(size_t n, bool touch_pages = false) {  // true) {
@@ -351,5 +360,4 @@ size_t log2_up(T i) {
 
 size_t granularity(size_t n);
 
-void assert_str(int cond, const std::string& s);
-}
+}  // namespace pbbs

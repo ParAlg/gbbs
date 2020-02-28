@@ -94,7 +94,6 @@ namespace pbbslib {
   using pbbs::write_min;
   using pbbs::log2_up;
   using pbbs::granularity;
-  using pbbs::assert_str;
 
   template<typename T>
   inline void assign_uninitialized(T& a, const T& b) {
