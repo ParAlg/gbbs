@@ -18,7 +18,7 @@ test --test_strategy=standalone
 # package path.
 
 
-# By default build in C++17 mode.
+# By default build in C++17 mode using the Homegrown scheduler for parallelism.
 build --cxxopt=-std=c++17
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
@@ -38,13 +38,29 @@ build --cxxopt=-Wpointer-arith
 build --cxxopt=-Wshadow=local
 build --cxxopt=-Wvla
 
+# Build without parallelism.
+build:serial --cxxopt=-UHOMEGROWN
+
+# Build using CilkPlus for parallelism.
+build:cilk --cxxopt=-UHOMEGROWN
+build:cilk --cxxopt=-DCILK
+build:cilk --cxxopt=-fcilkplus
+build:cilk --linkopt=-lcilkrts
+
+# Build using OpenMP for parallelism.
+build:openmp --cxxopt=-UHOMEGROWN
+build:openmp --cxxopt=-DOPENMP
+build:openmp --cxxopt=-fopenmp
+build:openmp --linkopt=-fopenmp
+
 # Instruments the build with AddressSanitizer
 # (https://github.com/google/sanitizers/wiki/AddressSanitizer).
 # Invoke by adding the `--config=asan` flag, e.g.,
 #     bazel run --config=asan <build target>`
 build:asan --strip=never
-build:asan --copt -fsanitize=address
-build:asan --copt -O1
-build:asan --copt -g
-build:asan --copt -fno-omit-frame-pointer
-build:asan --linkopt -fsanitize=address
+build:asan --cxxopt=-fsanitize=address
+build:asan --cxxopt=-O1
+build:asan --cxxopt=-g
+build:asan --cxxopt=-fno-omit-frame-pointer
+build:asan --cxxopt=-Wno-macro-redefined
+build:asan --linkopt=-fsanitize=address
