@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <atomic>
+#include "alloc.h"
 #include "concurrent_stack.h"
 #include "maybe.h"
 #include "memory_size.h"

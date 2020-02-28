@@ -43,22 +43,6 @@ static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
   }
 }
 
-#if defined(__APPLE__)
-inline void* aligned_alloc(size_t a, size_t n) { return malloc(n); }
-#else
-#ifdef USEMALLOC
-#include <malloc.h>
-struct __mallopt {
-  __mallopt() {
-    mallopt(M_MMAP_MAX, 0);
-    mallopt(M_TRIM_THRESHOLD, -1);
-  }
-};
-
-__mallopt __mallopt_var;
-#endif
-#endif
-
 namespace pbbs {
 
 struct empty {};
