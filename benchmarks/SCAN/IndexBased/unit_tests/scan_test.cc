@@ -95,7 +95,7 @@ TEST(ScanSubroutines, BasicUsage) {
   const ii::StructuralSimilarities similarity_table{
     ii::ComputeStructuralSimilarities(&graph)};
   const auto similarities{similarity_table.entries()};
-  EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
+  EXPECT_THAT(similarities, UnorderedElementsAre(
         std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)   /* .71 */),
         std::make_tuple(UndirectedEdge{1, 2}, 3.0 / sqrt(20)  /* .67 */),
         std::make_tuple(UndirectedEdge{1, 3}, 3.0 / sqrt(16)  /* .75 */),
@@ -108,34 +108,34 @@ TEST(ScanSubroutines, BasicUsage) {
     ii::ComputeNeighborOrder(&graph, similarity_table)};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
-      neighbor_order[0].slice(),
+      neighbor_order[0],
       ElementsAre(MakeNeighborSimilarity(1, 2.0 / sqrt(8))));
   EXPECT_THAT(
-      neighbor_order[1].slice(),
+      neighbor_order[1],
       ElementsAre(
         MakeNeighborSimilarity(3, 3.0 / sqrt(16)),
         MakeNeighborSimilarity(0, 2.0 / sqrt(8)),
         MakeNeighborSimilarity(2, 3.0 / sqrt(20))));
   EXPECT_THAT(
-      neighbor_order[2].slice(),
+      neighbor_order[2],
       ElementsAre(
         MakeNeighborSimilarity(3, 4.0 / sqrt(20)),
         MakeNeighborSimilarity(4, 3.0 / sqrt(15)),
         MakeNeighborSimilarity(1, 3.0 / sqrt(20)),
         MakeNeighborSimilarity(5, 2.0 / sqrt(10))));
   EXPECT_THAT(
-      neighbor_order[3].slice(),
+      neighbor_order[3],
       ElementsAre(
         MakeNeighborSimilarity(2, 4.0 / sqrt(20)),
         MakeNeighborSimilarity(4, 3.0 / sqrt(12)),
         MakeNeighborSimilarity(1, 3.0 / sqrt(16))));
   EXPECT_THAT(
-      neighbor_order[4].slice(),
+      neighbor_order[4],
       ElementsAre(
         MakeNeighborSimilarity(3, 3.0 / sqrt(12)),
         MakeNeighborSimilarity(2, 3.0 / sqrt(15))));
   EXPECT_THAT(
-      neighbor_order[5].slice(),
+      neighbor_order[5],
       ElementsAre(
         MakeNeighborSimilarity(2, 2.0 / sqrt(10))));
 
@@ -173,9 +173,7 @@ TEST(ScanSubroutines, BasicUsage) {
       UnorderedElementsAre(
         MakeCoreThreshold(1, 3.0 / sqrt(20)),
         MakeCoreThreshold(2, 3.0 / sqrt(20))));
-  EXPECT_THAT(
-      core_order[5].slice(),
-      ElementsAre(MakeCoreThreshold(2, 2.0 / sqrt(10))));
+  EXPECT_THAT(core_order[5], ElementsAre(MakeCoreThreshold(2, 2.0 / sqrt(10))));
 }
 
 TEST(ScanSubroutines, DisconnectedGraph) {
@@ -193,7 +191,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   const ii::StructuralSimilarities similarity_table{
     ii::ComputeStructuralSimilarities(&graph)};
   const auto similarities{similarity_table.entries()};
-  EXPECT_THAT(similarities.slice(), UnorderedElementsAre(
+  EXPECT_THAT(similarities, UnorderedElementsAre(
         std::make_tuple(UndirectedEdge{0, 1}, 1.0),
         std::make_tuple(UndirectedEdge{3, 4}, 2.0 / sqrt(6)  /* .82 */),
         std::make_tuple(UndirectedEdge{4, 5}, 2.0 / sqrt(6)  /* .82 */)));
@@ -201,21 +199,19 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   const ii::NeighborOrder neighbor_order{
     ii::ComputeNeighborOrder(&graph, similarity_table)};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
-  EXPECT_THAT(
-      neighbor_order[0].slice(), ElementsAre(MakeNeighborSimilarity(1, 1.0)));
-  EXPECT_THAT(
-      neighbor_order[1].slice(), ElementsAre(MakeNeighborSimilarity(0, 1.0)));
+  EXPECT_THAT(neighbor_order[0], ElementsAre(MakeNeighborSimilarity(1, 1.0)));
+  EXPECT_THAT(neighbor_order[1], ElementsAre(MakeNeighborSimilarity(0, 1.0)));
   EXPECT_THAT(neighbor_order[2], IsEmpty());
   EXPECT_THAT(
-      neighbor_order[3].slice(),
+      neighbor_order[3],
       ElementsAre(MakeNeighborSimilarity(4, 2.0 / sqrt(6))));
   EXPECT_THAT(
-      neighbor_order[4].slice(),
+      neighbor_order[4],
       UnorderedElementsAre(
         MakeNeighborSimilarity(3, 2.0 / sqrt(6)),
         MakeNeighborSimilarity(5, 2.0 / sqrt(6))));
   EXPECT_THAT(
-      neighbor_order[5].slice(),
+      neighbor_order[5],
       ElementsAre(MakeNeighborSimilarity(4, 2.0 / sqrt(6))));
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -234,9 +230,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
         MakeCoreThreshold(3, 2.0 / sqrt(6)),
         MakeCoreThreshold(4, 2.0 / sqrt(6)),
         MakeCoreThreshold(5, 2.0 / sqrt(6))));
-  EXPECT_THAT(
-      core_order[3].slice(),
-      ElementsAre(MakeCoreThreshold(4, 2.0 / sqrt(6))));
+  EXPECT_THAT(core_order[3], ElementsAre(MakeCoreThreshold(4, 2.0 / sqrt(6))));
 }
 
 TEST(Cluster, NullGraph) {
@@ -310,10 +304,8 @@ TEST(Cluster, DisconnectedGraph) {
     constexpr uint64_t kMu{2};
     constexpr float kEpsilon{0.95};
     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
-    /*
     EXPECT_EQ(clustering.num_clusters, 1);
     ASSERT_EQ(clustering.clusters_by_vertex.size(), kNumVertices);
-    */
 
     EXPECT_EQ("TODO", "DONE");
   }
