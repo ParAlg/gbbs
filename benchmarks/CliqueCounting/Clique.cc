@@ -44,7 +44,7 @@ long strToDirectType(std::string order_str) {
   else if (order_str == "KCORE") return 2;
   else if (order_str == "DEGREE") return 3;
   else if (order_str == "ORIGINAL") return 4;
-  ABORT("Unexpected order (str): " << order_str);
+  ABORT("Unexpected directed type (str): " << order_str);
 }
 
 long strToParallelType (std::string rec_str) {
@@ -113,6 +113,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
     std::cout << "sparse count: " << count << std::endl;
     count = count * pow(sparsify_denom,k-1);
   } else {
+    // k-clique counting
     count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, approx_peel,
                    approx_eps);
   }
