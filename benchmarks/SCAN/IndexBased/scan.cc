@@ -269,8 +269,8 @@ void DetermineOutliersAndHubs(
             }
           }
         }
-        *vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
       });
+      *vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
     }
   });
 }
