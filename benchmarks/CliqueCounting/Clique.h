@@ -88,7 +88,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
 
 
 template <class Graph>
-inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_base, bool par_serial) {
+inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_base) {
   using W = typename Graph::weight_type;
   size_t count = 0;
   size_t* per_vert = use_base ? (size_t*) calloc(GA.n*num_workers(), sizeof(size_t)) : nullptr;
@@ -149,11 +149,11 @@ inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_bas
 
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter,
-  bool use_base, long recursive_level, bool par_serial, bool approx_peel, double approx_eps) {
+  bool use_base, long recursive_level, bool approx_peel, double approx_eps) {
   if (k < 3) ABORT("k must be >= 3: " <<  k);
 
   // Triangle counting
-  if (k == 3) return TriClique(GA, order_type, epsilon, use_base, par_serial);
+  if (k == 3) return TriClique(GA, order_type, epsilon, use_base);
 
   using W = typename Graph::weight_type;
 
@@ -231,8 +231,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
   if (!approx_peel) {
   // Exact vertex peeling
-    if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank, par_serial);
-    else Peel<uintE>(GA, DG, k-1, per_vert, label, rank, par_serial);
+    if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank);
+    else Peel<uintE>(GA, DG, k-1, per_vert, label, rank);
   } else {
   // Approximate vertex peeling
     if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);

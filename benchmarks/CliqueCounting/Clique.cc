@@ -81,7 +81,6 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   bool filter = P.getOptionValue("-f"); // filter graph only -- required for vertex peeling
 
   long space = P.getOptionLongValue("-space", 5);
-  bool par_serial = P.getOptionValue("-p"); // if set, switch to serial peeling after small active subset
 
   std::cout << "### Application: Clique Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -108,13 +107,13 @@ double AppKCore_runner(Graph& GA, commandLine P) {
     auto GA_sparse = clr_sparsify_graph(GA, sparsify_denom, 7398234);
   
     // k-clique counting
-    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial,
+    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, 
                    approx_peel, approx_eps);
     std::cout << "sparse count: " << count << std::endl;
     count = count * pow(sparsify_denom,k-1);
   } else {
     // k-clique counting
-    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, approx_peel,
+    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, approx_peel,
                    approx_eps);
   }
 
