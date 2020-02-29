@@ -597,13 +597,63 @@ std::cout << "rho: " << round << std::endl;
 }
 
 
+template <class Graph, class Graph2, class F, class H>
+inline void triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, size_t granularity, char* still_active, 
+  sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update) {
+  using W = typename Graph::weight_type;
+  auto n = G.n;
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
+
+  auto edge_table = sparse_table<uintE, bool, hashtup>(G.n, std::make_tuple(UINT_E_MAX, false), hashtup());
+
+  auto ignore_f = [&](const uintE& u, const uintE& v) {
+    auto status_u = still_active[u]; auto status_v = still_active[v];
+    if (status_u == 2 || status_v == 2) return false; /* deleted edge */
+    if (status_v == 0) return true; /* higher edge */
+    return rank[u] < rank[v]; /* orient edge within bucket */
+  };
+  auto update_d = [&](uintE vtx, size_t count) {
+    size_t worker = worker_id();
+    size_t ct = per_processor_counts[worker*n + vtx];
+    per_processor_counts[worker*n + vtx] += count;
+    if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
+  };
+
+  parallel_for (0, active_size, [&](size_t i) {
+    auto j = get_active(i);
+    auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
+    };
+    G.get_vertex(j).mapOutNgh(j, map_label_f, false);
+    // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
+  }, granularity, false);
+
+  /* extract the vertices that had their count changed */
+  auto changed_vtxs = edge_table.entries();
+  edge_table.del();
+
+  /* Aggregate the updated counts across all worker's local arrays, into the
+   * first worker's array. Also zero out the other worker's updated counts. */
+  parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+    size_t nthreads = num_workers();
+    uintE v = std::get<0>(changed_vtxs[i]);
+    for (size_t j=0; j<nthreads; j++) {
+      update(per_processor_counts, j, v);
+      //D[v] -= per_processor_counts[j*n + v];
+      //per_processor_counts[j*n + v] = 0;
+    }
+  }, 128);
+
+  /* mark all as deleted */
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
+}
 
 
 
 template <class Graph, class Graph2>
 double ApproxTriPeel(Graph& G, Graph2& DG, size_t* cliques, size_t num_cliques,
   bool label, sequence<uintE> &rank, double eps) {
-  using W = typename Graph::weight_type;
+  //using W = typename Graph::weight_type;
   timer t2; t2.start();
   const size_t n = G.n;
   auto D = sequence<size_t>(n, [&](size_t i) { return cliques[i]; });
@@ -619,6 +669,10 @@ double ApproxTriPeel(Graph& G, Graph2& DG, size_t* cliques, size_t num_cliques,
   char* still_active = (char*) calloc(G.n, sizeof(char));
   //size_t max_deg = induced_hybrid::get_max_deg(G);
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
+  auto update_tri = [&](sequence<size_t>& ppc, size_t j, uintE v) {
+    D[v] -= ppc[j*n + v];
+    ppc[j*n + v] = 0;
+  };
 
   // First round
   {
@@ -635,65 +689,21 @@ double ApproxTriPeel(Graph& G, Graph2& DG, size_t* cliques, size_t num_cliques,
 
     auto split_vtxs_m = pbbs::split_two(vertices_remaining, keep_seq);
     uintE* this_arr = split_vtxs_m.first.to_array();
-    size_t num_removed = split_vtxs_m.second;
-    size_t active_size = num_removed;
+    size_t active_size = split_vtxs_m.second;
 
 // remove this_arr vertices ************************************************
     size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
-    //size_t active_deg = 0;
-    //auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(this_arr[i]).getOutDegree(); });
-    //active_deg += pbbslib::reduce_add(degree_map);
-
-    parallel_for (0, active_size, [&] (size_t j) {still_active[this_arr[j]] = 1;}, 2048);
-
-    size_t edge_table_size = G.n;
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-
-    auto ignore_f = [&](const uintE& u, const uintE& v) {
-      auto status_u = still_active[u]; auto status_v = still_active[v];
-      if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-      if (status_v == 0) return true; /* higher edge */
-      return rank[u] < rank[v]; /* orient edge within bucket */
-    };
-    auto update_d = [&](uintE vtx, size_t count) {
-      size_t worker = worker_id();
-      size_t ct = per_processor_counts[worker*n + vtx];
-      per_processor_counts[worker*n + vtx] += count;
-      if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
-    };
-
-    parallel_for (0, active_size, [&](size_t i) {
-      auto j = this_arr[i];
-      auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
-      };
-      G.get_vertex(j).mapOutNgh(j, map_label_f, false);
-      // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
-    }, granularity, false);
-
-    /* extract the vertices that had their count changed */
-    auto changed_vtxs = edge_table.entries();
-    edge_table.del();
-
-    /* Aggregate the updated counts across all worker's local arrays, into the
-     * first worker's array. Also zero out the other worker's updated counts. */
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      size_t nthreads = num_workers();
-      uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t j=0; j<nthreads; j++) {
-        D[v] -= per_processor_counts[j*n + v];
-        per_processor_counts[j*n + v] = 0;
-      }
-    }, 128);
+    auto get_active = [&](size_t j) { return this_arr[j]; };
+    triUpdate(G, DG, get_active, active_size, granularity, still_active, rank, per_processor_counts, update_tri);
 
     /* mark all as deleted */
-    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0; still_active[this_arr[j]] = 2;}, 2048);
+    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0;}, 2048);
   //***************
 
     round++;
     last_arr = this_arr;
-    remaining_offset = num_removed;
-    num_vertices_remaining -= num_removed;
+    remaining_offset = active_size;
+    num_vertices_remaining -= active_size;
   }
 
   while (num_vertices_remaining > 0) {
@@ -722,71 +732,24 @@ double ApproxTriPeel(Graph& G, Graph2& DG, size_t* cliques, size_t num_cliques,
 
     auto split_vtxs_m = pbbs::split_two(vtxs_remaining, keep_seq);
     uintE* this_arr = split_vtxs_m.first.to_array();
-    size_t num_removed = split_vtxs_m.second;
-    //auto vs = vertexSubset(n, num_removed, this_arr);
-    //debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
-
-    num_vertices_remaining -= num_removed;
+    size_t active_size = split_vtxs_m.second;
+    num_vertices_remaining -= active_size;
     if (num_vertices_remaining > 0) {
-    size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
     size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
-    //size_t active_deg = 0;
-    //auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(this_arr[i]).getOutDegree(); });
-    //active_deg += pbbslib::reduce_add(degree_map);
-
-    parallel_for (0, active_size, [&] (size_t j) {still_active[this_arr[j]] = 1;}, 2048);
-
-    size_t edge_table_size = G.n;
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-
-    auto ignore_f = [&](const uintE& u, const uintE& v) {
-      auto status_u = still_active[u]; auto status_v = still_active[v];
-      if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-      if (status_v == 0) return true; /* higher edge */
-      return rank[u] < rank[v]; /* orient edge within bucket */
-    };
-    auto update_d = [&](uintE vtx, size_t count) {
-      size_t worker = worker_id();
-      size_t ct = per_processor_counts[worker*n + vtx];
-      per_processor_counts[worker*n + vtx] += count;
-      if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
-    };
-
-    parallel_for (0, active_size, [&](size_t i) {
-      auto j = this_arr[i];
-      auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
-      };
-      G.get_vertex(j).mapOutNgh(j, map_label_f, false);
-      // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
-    }, granularity, false);
-
-    /* extract the vertices that had their count changed */
-    auto changed_vtxs = edge_table.entries();
-    edge_table.del();
-
-    /* Aggregate the updated counts across all worker's local arrays, into the
-     * first worker's array. Also zero out the other worker's updated counts. */
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      size_t nthreads = num_workers();
-      uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t j=0; j<nthreads; j++) {
-        D[v] -= per_processor_counts[j*n + v];
-        per_processor_counts[j*n + v] = 0;
-      }
-    }, 128);
+    auto get_active = [&](size_t j) { return this_arr[j]; };
+    triUpdate(G, DG, get_active, active_size, granularity, still_active, rank, per_processor_counts, update_tri);
 
     /* mark all as deleted */
-    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0; still_active[this_arr[j]] = 2;}, 2048);
+    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0;}, 2048);
   //***************
     }
 
     round++;
     pbbs::free_array(last_arr);
     last_arr = this_arr;
-    remaining_offset = num_removed;
+    remaining_offset = active_size;
   }
 
   if (last_arr) {
