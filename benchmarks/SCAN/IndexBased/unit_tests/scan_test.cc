@@ -249,41 +249,71 @@ TEST(ScanSubroutines, BasicUsage) {
       ElementsAre(
         MakeNeighborSimilarity(2, 2.0 / sqrt(10))));
 
-  const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
-  EXPECT_EQ(core_order.size(), 6);
-  EXPECT_THAT(core_order[0], IsEmpty());
-  EXPECT_THAT(core_order[1], IsEmpty());
-  ASSERT_EQ(core_order[2].size(), 6);
-  EXPECT_THAT(
-      core_order[2].slice(0, 2),
-      UnorderedElementsAre(
-        MakeCoreThreshold(2, 4.0 / sqrt(20)),
-        MakeCoreThreshold(3, 4.0 / sqrt(20))));
-  EXPECT_THAT(
-      core_order[2].slice(2, core_order[2].size()),
-      ElementsAre(
-        MakeCoreThreshold(4, 3.0 / sqrt(12)),
-        MakeCoreThreshold(1, 3.0 / sqrt(16)),
-        MakeCoreThreshold(0, 2.0 / sqrt(8)),
-        MakeCoreThreshold(5, 2.0 / sqrt(10))));
-  ASSERT_EQ(core_order[3].size(), 4);
-  EXPECT_EQ(core_order[3][0], MakeCoreThreshold(3, 3.0 / sqrt(12)));
-  EXPECT_THAT(
-      core_order[3].slice(1, 3),
-      UnorderedElementsAre(
-        MakeCoreThreshold(2, 3.0 / sqrt(15)),
-        MakeCoreThreshold(4, 3.0 / sqrt(15))));
-  EXPECT_THAT(
-      core_order[3].slice(3, core_order[3].size()),
-      ElementsAre(MakeCoreThreshold(1, 2.0 / sqrt(8))));
-  ASSERT_EQ(core_order[4].size(), 3);
-  EXPECT_EQ(core_order[4][0], MakeCoreThreshold(3, 3.0 / sqrt(16)));
-  EXPECT_THAT(
-      core_order[4].slice(1, core_order[4].size()),
-      UnorderedElementsAre(
-        MakeCoreThreshold(1, 3.0 / sqrt(20)),
-        MakeCoreThreshold(2, 3.0 / sqrt(20))));
-  EXPECT_THAT(core_order[5], ElementsAre(MakeCoreThreshold(2, 2.0 / sqrt(10))));
+  {
+    const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
+    EXPECT_EQ(core_order.size(), 6);
+    EXPECT_THAT(core_order[0], IsEmpty());
+    EXPECT_THAT(core_order[1], IsEmpty());
+    ASSERT_EQ(core_order[2].size(), 6);
+    EXPECT_THAT(
+        core_order[2].slice(0, 2),
+        UnorderedElementsAre(
+          MakeCoreThreshold(2, 4.0 / sqrt(20)),
+          MakeCoreThreshold(3, 4.0 / sqrt(20))));
+    EXPECT_THAT(
+        core_order[2].slice(2, core_order[2].size()),
+        ElementsAre(
+          MakeCoreThreshold(4, 3.0 / sqrt(12)),
+          MakeCoreThreshold(1, 3.0 / sqrt(16)),
+          MakeCoreThreshold(0, 2.0 / sqrt(8)),
+          MakeCoreThreshold(5, 2.0 / sqrt(10))));
+    ASSERT_EQ(core_order[3].size(), 4);
+    EXPECT_EQ(core_order[3][0], MakeCoreThreshold(3, 3.0 / sqrt(12)));
+    EXPECT_THAT(
+        core_order[3].slice(1, 3),
+        UnorderedElementsAre(
+          MakeCoreThreshold(2, 3.0 / sqrt(15)),
+          MakeCoreThreshold(4, 3.0 / sqrt(15))));
+    EXPECT_THAT(
+        core_order[3].slice(3, core_order[3].size()),
+        ElementsAre(MakeCoreThreshold(1, 2.0 / sqrt(8))));
+    ASSERT_EQ(core_order[4].size(), 3);
+    EXPECT_EQ(core_order[4][0], MakeCoreThreshold(3, 3.0 / sqrt(16)));
+    EXPECT_THAT(
+        core_order[4].slice(1, core_order[4].size()),
+        UnorderedElementsAre(
+          MakeCoreThreshold(1, 3.0 / sqrt(20)),
+          MakeCoreThreshold(2, 3.0 / sqrt(20))));
+    EXPECT_THAT(core_order[5], ElementsAre(MakeCoreThreshold(2, 2.0 / sqrt(10))));
+  }
+
+  {
+    const ii::CoreOrder core_order{neighbor_order};
+    {
+      const uint64_t kMu{2};
+      const float kEpsilon{0.5};
+      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      EXPECT_THAT(cores, UnorderedElementsAre(0, 1, 2, 3, 4, 5));
+    }
+    {
+      const uint64_t kMu{2};
+      const float kEpsilon{0.8};
+      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      EXPECT_THAT(cores, UnorderedElementsAre(2, 3, 4));
+    }
+    {
+      const uint64_t kMu{2};
+      const float kEpsilon{0.88};
+      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      EXPECT_THAT(cores, UnorderedElementsAre(2, 3));
+    }
+    {
+      const uint64_t kMu{2};
+      const float kEpsilon{0.9};
+      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      EXPECT_THAT(cores, IsEmpty());
+    }
+  }
 }
 
 TEST(ScanSubroutines, DisconnectedGraph) {

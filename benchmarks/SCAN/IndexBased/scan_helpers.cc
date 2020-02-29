@@ -38,6 +38,12 @@ operator<<(std::ostream& os, const CoreThreshold& core_threshold) {
   return os;
 }
 
+VertexSet MakeVertexSet(const size_t capacity) {
+  return make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
+      // Adding 1 avoids having small tables completely full.
+      capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
+}
+
 pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
     const NeighborOrder& neighbor_order) {
   if (neighbor_order.empty()) {

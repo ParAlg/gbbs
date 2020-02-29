@@ -54,12 +54,7 @@ class CoreOrder {
 };
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
-inline VertexSet MakeVertexSet(const size_t capacity) {
-  return
-    make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
-      // Adding 1 avoids having small tables completely full.
-      capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
-}
+VertexSet MakeVertexSet(const size_t capacity);
 
 // Finds the least `i` such that `predicate(sequence[i])` is false. If
 // `predicate(sequence[i])` is true for all `i`, then this returns
@@ -88,7 +83,8 @@ size_t BinarySearch(
     hi = sequence.size();
   }
 
-  return pbbs::binary_search(sequence.slice(lo, hi), predicate);
+  return lo +
+    pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
 }
 
 // Compute structural similarities (as defined by SCAN) between each pair of

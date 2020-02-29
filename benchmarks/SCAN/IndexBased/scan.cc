@@ -86,7 +86,7 @@ void ClusterCores(
         num_vertices,
         [](const DirectedEdge& edge) { return edge.first; },
         [](const DirectedEdge& edge) { return edge.second; },
-        [](const DirectedEdge& edge) { return pbbslib::empty{}; })};
+        [](const DirectedEdge&) { return pbbslib::empty{}; })};
 
   // Get connected components in the resulting core graph. Relabel the resulting
   // component IDs to be contiguous and to ignore the non-core vertices. This
