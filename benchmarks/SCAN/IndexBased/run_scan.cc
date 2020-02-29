@@ -1,8 +1,7 @@
 // Runs SCAN to cluster a graph and times how long the computation takes.
 //
 // Usage example:
-//     bazel run //benchmarks/SCAN/IndexBased:SCAN_main -- \
-//     -s <absolute path to graph>
+//     bazel run //benchmarks/SCAN/IndexBased:SCAN_main -- -s <path to graph>
 // flags:
 //   required:
 //     -s : indicates that the graph is symmetric
