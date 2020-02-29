@@ -92,7 +92,7 @@ void ClusterCores(
   // component IDs to be contiguous and to ignore the non-core vertices. This
   // identifies the clusters for all the core vertices.
   pbbs::sequence<parent> connected_components{workefficient_cc::CC(core_graph)};
-  pbbs::sequence<uintE> component_relabel_map{num_vertices, 0U};
+  pbbs::sequence<uintE> component_relabel_map(num_vertices, 0U);
   par_for(0, cores.size(), [&](const size_t i) {
     const uintE cluster{connected_components[cores[i]]};
     if (component_relabel_map[cluster] == 0) {
@@ -105,7 +105,7 @@ void ClusterCores(
     clustering->clusters_by_vertex[core] =
       ClusterMember{
         .clusters =
-          pbbs::sequence{1, component_relabel_map[connected_components[core]]}
+          pbbs::sequence(1, component_relabel_map[connected_components[core]])
       };
   });
 }
@@ -294,6 +294,41 @@ bool operator==(const Clustering& a, const Clustering& b) {
     == std::tie(b.num_clusters, b.clusters_by_vertex);
 }
 
+std::ostream& operator<<(std::ostream& os, const ClusterMember& member) {
+  os << "ClusterMember{";
+  for (const uintE cluster : member.clusters) {
+    os << ' ' << cluster;
+  }
+  os << " }";
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Hub&) {
+  os << "Hub";
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Outlier&) {
+  os << "Outlier";
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const VertexType& vertex_type) {
+  std::visit([&os](const auto& type) { os << type; }, vertex_type);
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Clustering& clustering) {
+  os << "{num_clusters=" << clustering.num_clusters;
+  os  << ", clusters_by_vertex={";
+  for (size_t i = 0; i < clustering.clusters_by_vertex.size(); i++) {
+    os << ' ' << i << '=' << clustering.clusters_by_vertex[i];
+  }
+  os << " }";
+  os << "}";
+  return os;
+}
+
 Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
   if (cores.empty()) {
@@ -301,7 +336,7 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
     return Clustering {
         .num_clusters = 0,
         .clusters_by_vertex =
-          pbbs::sequence<VertexType>{num_vertices_, VertexType{Outlier{}}}
+          pbbs::sequence<VertexType>(num_vertices_, VertexType{Outlier{}})
     };
   }
   const pbbs::sequence<DirectedEdge> core_similar_incident_edges{
@@ -310,7 +345,7 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
     .num_clusters = 0,
     // Mark everything as an outlier for now.
     .clusters_by_vertex =
-      pbbs::sequence<VertexType>{num_vertices_, VertexType{Outlier{}}}
+      pbbs::sequence<VertexType>(num_vertices_, VertexType{Outlier{}})
   };
   GetClustersFromCores(
       num_vertices_, cores, core_similar_incident_edges, &clustering);

@@ -15,19 +15,23 @@ struct ClusterMember {
   pbbs::sequence<uintE> clusters;
 };
 bool operator==(const ClusterMember&, const ClusterMember&);
+std::ostream& operator<<(std::ostream&, const ClusterMember&);
 
 // Represents a vertex that is not in a cluster but is adjacent to at least two
 // clusters.
 struct Hub{};
 bool operator==(const Hub&, const Hub&);
+std::ostream& operator<<(std::ostream&, const Hub&);
 
 // Represents a vertex that is not in a cluster and is adjacent to at most one
 // cluster.
 struct Outlier{};
 bool operator==(const Outlier&, const Outlier&);
+std::ostream& operator<<(std::ostream&, const Outlier&);
 
 // Possible results for a vertex in a SCAN clustering.
 using VertexType = std::variant<ClusterMember, Hub, Outlier>;
+std::ostream& operator<<(std::ostream&, const VertexType&);
 
 // Clustering resulting from running SCAN.
 struct Clustering {
@@ -38,6 +42,7 @@ struct Clustering {
   pbbs::sequence<VertexType> clusters_by_vertex;
 };
 bool operator==(const Clustering&, const Clustering&);
+std::ostream& operator<<(std::ostream&, const Clustering&);
 
 // Index for an undirected graph from which clustering the graph with SCAN is
 // quick.

@@ -119,13 +119,13 @@ pbbs::sequence<uintE>
 CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
   if (mu <= 1) {  // All vertices are cores.
     return
-      pbbs::sequence<uintE>(num_vertices_, [](const size_t i) { return i; });
+      pbbs::sequence<uintE>{num_vertices_, [](const size_t i) { return i; }};
   }
   if (mu >= order_.size()) {  // No vertices are cores.
-    return pbbs::sequence<uintE>{};
+    return {};
   }
 
-  const pbbs::sequence<CoreThreshold>& possible_cores{order_[mu]};
+  const pbbs::sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
     BinarySearch<internal::CoreThreshold>(
         possible_cores,
