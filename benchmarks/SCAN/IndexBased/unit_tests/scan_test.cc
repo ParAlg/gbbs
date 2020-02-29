@@ -1,9 +1,14 @@
 #include "benchmarks/SCAN/IndexBased/scan.h"
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
-#include <cmath>
+#include <math.h>
+#include <set>
+#include <sstream>
+#include <string>
 #include <unordered_set>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -16,6 +21,9 @@
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
+
+using ClusterList = std::set<std::set<uintE>>;
+using VertexList = std::vector<uintE>;
 
 namespace gt = graph_test;
 namespace i = indexed_scan;
@@ -31,6 +39,108 @@ MakeNeighborSimilarity(const uintE neighbor, const double similarity) {
 ii::CoreThreshold
 MakeCoreThreshold(const uintE vertex_id, const double threshold) {
   return {.vertex_id = vertex_id, .threshold = static_cast<float>(threshold)};
+}
+
+// Checks that the `clustering` has the expected clusters. If an error is found,
+// the function returns an error message as a string. If the clustering is
+// matches what is expected, then `std::nullopt` is returned.
+//
+// The implementation may be inefficient, so don't expect this function to work
+// well on large graphs.
+//
+// This function exists because checking the equivalence of two clusterings
+// takes some work --- clusterings are equivalent under permutation of cluster
+// IDs.
+// An alternative interface would be to have this function take
+// `(const Clustering& actual_clustering,
+//   const Clustering& expected_clustering)`
+// as input, but the existing interface is more concise invoke since
+// constructing a `Clustering` is verbose.
+//
+// Arguments
+// ---------
+// clustering
+//   Clustering to check.
+// expected_clusters
+//   List of distinct clusters that we expect to see, where each cluster is
+//   given as a list of vertex IDs.
+// expected_hubs
+//   List of vertices that we expect to be hubs.
+// expected_outliers
+//   List of vertices that we expect to be outliers.
+std::optional<std::string> CheckClusteringForErrors(
+    const i::Clustering& clustering,
+    const ClusterList& expected_clusters,
+    const VertexList& expected_hubs,
+    const VertexList& expected_outliers) {
+  std::ostringstream error_msg;
+
+  const size_t num_clusters{expected_clusters.size()};
+  if (clustering.num_clusters != num_clusters) {
+    error_msg << "Expected " << num_clusters << " clusters "
+      << "but found " << clustering.num_clusters << " instead";
+    return error_msg.str();
+  }
+
+  for (const uintE v : expected_hubs) {
+    if (!std::holds_alternative<i::Hub>(clustering.clusters_by_vertex[v])) {
+      error_msg << "Expected vertex " << v << " to be a hub, "
+        << "but is " << clustering.clusters_by_vertex[v] << " instead";
+      return error_msg.str();
+    }
+  }
+  for (const uintE v : expected_outliers) {
+    if (!std::holds_alternative<i::Outlier>(clustering.clusters_by_vertex[v])) {
+      error_msg << "Expected vertex " << v << " to be an outlier, "
+        << "but is " << clustering.clusters_by_vertex[v] << " instead";
+      return error_msg.str();
+    }
+  }
+
+  std::vector<std::set<uintE>> actual_clusters_vector(num_clusters);
+  for (size_t v = 0; v < clustering.clusters_by_vertex.size(); v++) {
+    const i::VertexType& vertex_type{clustering.clusters_by_vertex[v]};
+    const i::ClusterMember* const cluster_member{
+      std::get_if<i::ClusterMember>(&vertex_type)};
+    if (cluster_member != nullptr) {
+      for (const uintE cluster_id : cluster_member->clusters) {
+        if (cluster_id >= num_clusters) {
+          error_msg << "Invalid cluster ID " << cluster_id << " out of "
+            << num_clusters << " clusters";
+          return error_msg.str();
+        }
+        actual_clusters_vector[cluster_id].insert(v);
+      }
+    }
+  }
+  ClusterList actual_clusters{
+    std::make_move_iterator(actual_clusters_vector.begin()),
+    std::make_move_iterator(actual_clusters_vector.end())};
+  if (actual_clusters != expected_clusters) {
+    error_msg << "Clusters don't match";
+    return error_msg.str();
+  }
+
+  return {};
+}
+
+// Wrapper for `CheckClusteringForErrors` that prints out the error message and
+// the clustering if there's an error.
+bool CheckClustering(
+    const i::Clustering& clustering,
+    const ClusterList& expected_clusters,
+    const VertexList& expected_hubs,
+    const VertexList& expected_outliers) {
+  const std::optional<std::string> error_msg{
+    CheckClusteringForErrors(
+        clustering, expected_clusters, expected_hubs, expected_outliers)};
+  if (error_msg.has_value()) {
+    std::cerr << "Clustering error: " << *error_msg << '\n';
+    std::cerr << "Actual clustering: " << clustering << '\n';
+    return false;
+  } else {
+    return true;
+  }
 }
 
 }  // namespace
@@ -266,7 +376,6 @@ TEST(Cluster, EmptyGraph) {
 
 TEST(Cluster, BasicUsage) {
   // Graph diagram:
-  //
   //     0 --- 1 -- 2 -- 5
   //           |   /|
   //           | /  |
@@ -304,11 +413,44 @@ TEST(Cluster, DisconnectedGraph) {
     constexpr uint64_t kMu{2};
     constexpr float kEpsilon{0.95};
     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
-    EXPECT_EQ(clustering.num_clusters, 1);
-    ASSERT_EQ(clustering.clusters_by_vertex.size(), kNumVertices);
 
-    EXPECT_EQ("TODO", "DONE");
+    const ClusterList kExpectedClusters{{0, 1}};
+    const VertexList kExpectedHubs{};
+    const VertexList kExpectedOutliers{2, 3, 4, 5};
+    EXPECT_TRUE(CheckClustering(
+        clustering, kExpectedClusters, kExpectedHubs, kExpectedOutliers));
   }
+  {
+    constexpr uint64_t kMu{2};
+    constexpr float kEpsilon{0.8};
+    const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
 
-  EXPECT_EQ("TODO", "DONE");
+    const ClusterList kExpectedClusters{{0, 1}, {3, 4, 5}};
+    const VertexList kExpectedHubs{};
+    const VertexList kExpectedOutliers{2};
+    EXPECT_TRUE(CheckClustering(
+        clustering, kExpectedClusters, kExpectedHubs, kExpectedOutliers));
+  }
+  {
+    constexpr uint64_t kMu{3};
+    constexpr float kEpsilon{0.8};
+    const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+
+    const ClusterList kExpectedClusters{{3, 4, 5}};
+    const VertexList kExpectedHubs{};
+    const VertexList kExpectedOutliers{0, 1, 2};
+    EXPECT_TRUE(CheckClustering(
+        clustering, kExpectedClusters, kExpectedHubs, kExpectedOutliers));
+  }
+  {
+    constexpr uint64_t kMu{4};
+    constexpr float kEpsilon{0.8};
+    const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+
+    const ClusterList kExpectedClusters{};
+    const VertexList kExpectedHubs{};
+    const VertexList kExpectedOutliers{0, 1, 2, 3, 4, 5};
+    EXPECT_TRUE(CheckClustering(
+        clustering, kExpectedClusters, kExpectedHubs, kExpectedOutliers));
+  }
 }
