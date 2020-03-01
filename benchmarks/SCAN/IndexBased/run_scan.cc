@@ -16,15 +16,22 @@
 // Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
-  timer timer{};
-  timer.start();
+  timer index_construction_timer{};
+  index_construction_timer.start();
   const indexed_scan::Index scan_index{&graph};
+  const double index_construction_time{index_construction_timer.stop()};
 
   constexpr uint64_t kMu{5};
   constexpr float kEpsilon{0.6};
+  timer cluster_timer{};
+  cluster_timer.start();
   const indexed_scan::Clustering clustering{scan_index.Cluster(kMu, kEpsilon)};
-  const double running_time{timer.stop()};
-  std::cout << "Running Time: " << running_time << std::endl;
+  const double cluster_time{cluster_timer.stop()};
+
+  std::cout << "Index construction time: " << index_construction_time << '\n';;
+  std::cout << "Clustering time: " << cluster_time << '\n';;
+  const double running_time{index_construction_time + cluster_time};
+  std::cout << "Total running time: " << running_time << '\n';
   return running_time;
 }
 
