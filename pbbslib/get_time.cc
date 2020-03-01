@@ -1,16 +1,17 @@
 #include "get_time.h"
 
+#include <sys/time.h>
 #include <iomanip>
 #include <iostream>
 
 timer::timer(std::string _name, bool _start)
-    : total_time(0.0), on(false), name(std::move(_name)), tzp({0, 0}) {
+    : total_time(0.0), on(false), name(std::move(_name)) {
   if (_start) start();
 }
 
-double timer::get_time() {
+double timer::get_time() const {
   timeval now;
-  gettimeofday(&now, &tzp);
+  gettimeofday(&now, nullptr);
   return ((double)now.tv_sec) + ((double)now.tv_usec) / 1000000.;
 }
 
@@ -31,7 +32,7 @@ void timer::reset() {
   on = 0;
 }
 
-double timer::get_total() {
+double timer::get_total() const {
   if (on)
     return total_time + get_time() - last_time;
   else
@@ -47,7 +48,7 @@ double timer::get_next() {
   return td;
 }
 
-void timer::report(double time, const std::string& str) {
+void timer::report(double time, const std::string& str) const {
   std::ios::fmtflags cout_settings = std::cout.flags();
   std::cout.precision(4);
   std::cout << std::fixed;
@@ -62,7 +63,7 @@ void timer::total() {
   total_time = 0.0;
 }
 
-void timer::reportTotal(const std::string& str) { report(get_total(), str); }
+void timer::reportTotal(const std::string& str) const { report(get_total(), str); }
 
 void timer::next(const std::string& str) {
   if (on) report(get_next(), str);
