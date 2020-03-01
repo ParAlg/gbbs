@@ -38,6 +38,12 @@ operator<<(std::ostream& os, const CoreThreshold& core_threshold) {
   return os;
 }
 
+void ReportTime([[maybe_unused]] const timer& t) {
+#ifdef SCAN_DETAILED_TIMES
+  t.reportTotal("");
+#endif
+}
+
 VertexSet MakeVertexSet(const size_t capacity) {
   return make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
       // Adding 1 avoids having small tables completely full.
@@ -49,6 +55,8 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
   if (neighbor_order.empty()) {
     return {};
   }
+
+  timer function_timer{"Compute core order time"};
 
   pbbs::sequence<VertexDegree> vertex_degrees{
     pbbs::map_with_index<VertexDegree>(
@@ -112,6 +120,7 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
     return core_thresholds;
   }};
 
+  internal::ReportTime(function_timer);
   return pbbs::sequence<pbbs::sequence<CoreThreshold>>{
       max_degree + 2,
       get_core_order};

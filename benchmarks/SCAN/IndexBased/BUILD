@@ -16,6 +16,7 @@ cc_library(
         "//ligra:macros",
         "//ligra:undirected_edge",
         "//ligra/pbbslib:sparse_table",
+        "//pbbslib:get_time",
     ],
 )
 

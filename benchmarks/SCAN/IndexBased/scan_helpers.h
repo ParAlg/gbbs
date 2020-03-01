@@ -9,6 +9,7 @@
 #include "ligra/graph.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "ligra/undirected_edge.h"
+#include "pbbslib/get_time.h"
 
 namespace indexed_scan {
 
@@ -52,6 +53,10 @@ class CoreOrder {
   const size_t num_vertices_;
   pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
 };
+
+// Prints the total time captured by `timer` to stderr if macro
+// SCAN_DETAILED_TIMES is defined, otherwise does nothing.
+void ReportTime(const timer&);
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity);
@@ -99,6 +104,8 @@ template <template <typename WeightType> class VertexType>
 StructuralSimilarities ComputeStructuralSimilarities(
     symmetric_graph<VertexType, Weight>* graph) {
   using Vertex = VertexType<Weight>;
+
+  timer function_timer{"Compute structural similarities time"};
 
   StructuralSimilarities similarities{
     graph->m,
@@ -158,6 +165,8 @@ StructuralSimilarities ComputeStructuralSimilarities(
       }
   });
 
+  function_timer.stop();
+  internal::ReportTime(function_timer);
   return similarities;
 }
 
@@ -177,6 +186,8 @@ NeighborOrder ComputeNeighborOrder(
     symmetric_graph<VertexType, Weight>* graph,
     const StructuralSimilarities& similarities) {
   using Vertex = VertexType<Weight>;
+
+  timer function_timer{"Compute neighbor order time"};
 
   NeighborOrder neighbor_order{
     graph->n,
@@ -207,6 +218,8 @@ NeighborOrder ComputeNeighborOrder(
         v_order->slice(),
         compare_similarities_descending);
   });
+
+  internal::ReportTime(function_timer);
   return neighbor_order;
 }
 

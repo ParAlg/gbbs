@@ -28,6 +28,8 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
     const internal::NeighborOrder& neighbor_order,
     const pbbs::sequence<uintE>& vertices,
     const float epsilon) {
+  timer function_timer{"Get similar incident edges time"};
+
   pbbs::sequence<size_t> epsilon_neighborhood_offsets{
       pbbs::map<size_t>(
           vertices,
@@ -57,6 +59,8 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
         std::make_pair(vertex, neighbors[j].neighbor);
     });
   });
+
+  internal::ReportTime(function_timer);
   return incident_edges;
 }
 
@@ -77,6 +81,8 @@ void ClusterCores(
     const pbbs::sequence<uintE>& cores,
     pbbs::range<DirectedEdge*>* core_to_core_edges,
     Clustering* clustering) {
+  timer function_timer{"Cluster cores time"};
+
   // Create graph consisting of edges between cores. The vertex ids of the
   // cores are kept the same for simplicity, so actually all the non-core
   // vertices are also in the graph as singletons.
@@ -108,6 +114,8 @@ void ClusterCores(
           pbbs::sequence(1, component_relabel_map[connected_components[core]])
       };
   });
+
+  internal::ReportTime(function_timer);
 }
 
 // Given `clustering` where `clustering.clusters_by_vertex` is correct for all
@@ -127,6 +135,8 @@ void AttachNoncoresToClusters(
     const uintE num_vertices,
     pbbs::range<DirectedEdge*>* core_to_noncore_edges,
     Clustering* clustering) {
+  timer function_timer{"Attach non-cores to clusters time"};
+
   par_for(0, core_to_noncore_edges->size(), [&](const size_t i) {
     // Replace core vertex ID with its cluster ID.
     (*core_to_noncore_edges)[i].first =
@@ -179,6 +189,8 @@ void AttachNoncoresToClusters(
         };
     }
   });
+
+  internal::ReportTime(function_timer);
 }
 
 // Gets the SCAN clusters, populating `clustering`, but does not determine hubs
@@ -198,6 +210,8 @@ void GetClustersFromCores(
     const pbbs::sequence<uintE>& cores,
     const pbbs::sequence<DirectedEdge>& core_similar_incident_edges,
     Clustering* clustering) {
+  timer preprocessing_timer{"Get clusters from cores - preprocessing time"};
+
   internal::VertexSet cores_set{internal::MakeVertexSet(cores.size())};
   par_for(0, cores.size(), [&](const size_t i) {
     cores_set.insert(std::make_pair(cores[i], pbbslib::empty{}));
@@ -218,6 +232,8 @@ void GetClustersFromCores(
             return !cores_set.contains(core_similar_incident_edges[i].second);
           }));
 
+  internal::ReportTime(preprocessing_timer);
+
   pbbs::range<DirectedEdge*> core_to_core_edges{
     partitioned_edges.slice(0, num_core_to_core_edges)};
   ClusterCores(num_vertices, cores, &core_to_core_edges, clustering);
@@ -232,9 +248,11 @@ void GetClustersFromCores(
 //
 // All cluster members in `clusters_by_vertex` must be marked correctly as a
 // `ClusterMember` prior to calling this function.
-void DetermineOutliersAndHubs(
+void DetermineHubsAndOutliers(
     const internal::NeighborOrder& adjacency_list,
     pbbs::sequence<VertexType>* clusters_by_vertex) {
+  timer function_timer{"Determine hubs and outliers time"};
+
   par_for(0, clusters_by_vertex->size(), [&](const size_t i) {
     VertexType* const vertex_type{&(*clusters_by_vertex)[i]};
     if (!std::holds_alternative<ClusterMember>(*vertex_type)) {
@@ -273,6 +291,8 @@ void DetermineOutliersAndHubs(
       *vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
     }
   });
+
+  internal::ReportTime(function_timer);
 }
 
 }  // namespace
@@ -349,7 +369,7 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   };
   GetClustersFromCores(
       num_vertices_, cores, core_similar_incident_edges, &clustering);
-  DetermineOutliersAndHubs(neighbor_order_, &clustering.clusters_by_vertex);
+  DetermineHubsAndOutliers(neighbor_order_, &clustering.clusters_by_vertex);
   return clustering;
 }
 
