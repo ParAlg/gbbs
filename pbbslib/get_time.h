@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sys/time.h>
 #include <string>
 
 struct timer {
@@ -8,19 +7,18 @@ struct timer {
   double last_time;
   bool on;
   std::string name;
-  struct timezone tzp;
 
   timer(std::string name = "# PBBS time", bool _start = true);
 
-  double get_time();
+  double get_time() const;
   void start();
   double stop();
   void reset();
-  double get_total();
+  double get_total() const;
   double get_next();
-  void report(double time, const std::string& str);
+  void report(double time, const std::string& str) const;
   void total();
-  void reportTotal(const std::string& str);
+  void reportTotal(const std::string& str) const;
   void next(const std::string& str);
 };
 
