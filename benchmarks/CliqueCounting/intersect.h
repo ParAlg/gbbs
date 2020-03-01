@@ -13,109 +13,7 @@
 #include "ligra/pbbslib/dyn_arr.h"
 #include "ligra/pbbslib/sparse_table.h"
 
-#include "external/simdinter/include/common.h"
-#include "external/simdinter/include/intersection.h"
-#include "external/graphsetinter/src/set_operation.hpp"
-
 #define INDUCED_STACK_THR 5000
-
-// TODO retry using lambdas for intersects
-// TODO make intersects more modularized -- have some kind of wrapper that generates the vtx_seq and everything, and just have the intersects
-// actually do the intersect, with the save and out_ptr options
-
-// have a wrapper where -- if you insert a pointer, then you take responsibility for that pointer and all you get out
-// is the size (and an empty sequence)
-// otherwise, if you have no pointer, the sequence gets allocated for you
-
-
-inline size_t lstintersect_simple(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
-  // auto seq_b = pbbslib::make_sequence(b, size_b);
-  size_t out_idx = 0;
-  for (size_t i=0; i < size_a; i++) {
-    size_t j=0;
-    for (j=0; j < size_b; j++) {
-      if (a[i] == b[j]) break;
-    }
-    //size_t j = pbbslib::binary_search(seq_b, a[i], std::less<uintE>());
-    if (j < size_b) {
-      out[out_idx] = b[j];
-      out_idx++;
-    }
-  }
-  return out_idx;
-}
-struct lstintersect_simple_struct {
-  bool count_space_flag = true;
-  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
-    return lstintersect_simple(a, size_a, b, size_b, save, out);
-  }
-};
-
-inline size_t lstintersect_par(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
-  auto seq_a = pbbslib::make_sequence<uintE>(a, size_a);
-  auto seq_b = pbbslib::make_sequence<uintE>(b, size_b);
-
-  if (!save) {
-    auto merge_f = [&] (uintE ngh) {};
-    return intersection::seq_merge_full(seq_a, seq_b, merge_f);
-  }
-
-  size_t index = 0;
-  auto merge_f = [&] (uintE ngh) {
-    out[index] = ngh;
-    index++;
-  };
-  return intersection::seq_merge_full(seq_a, seq_b, merge_f);
-}
-
-struct lstintersect_par_struct {
-  bool count_space_flag = false;
-  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
-    return lstintersect_par(a, size_a, b, size_b, save, out);
-  }
-};
-
-// TODO radix sort in place
-inline size_t lstintersect_vec(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
-  SIMDCompressionLib::intersectionfunction inter = SIMDCompressionLib::IntersectionFactory::getFromName("simd");
-  size_t out_size = inter(a, size_a, b, size_b, out);
-  return out_size;
-}
-
-struct lstintersect_vec_struct {
-  bool count_space_flag = true;
-  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
-    return lstintersect_vec(a, size_a, b, size_b, save, out);
-  }
-};
-
-inline size_t lstintersect_set(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) {
-  if (!save) {
-#if SIMD_STATE == 2
-    return (size_t) intersect_scalar2x_count((int*) a, (int) size_a, (int*) b, (int) size_b);
-#elif SIMD_STATE == 4
-    return (size_t) intersect_simd4x_count((int*) a, (int) size_a, (int*) b, (int) size_b);
-#else
-    return (size_t) intersect_count((int*) a, (int) size_a, (int*) b, (int) size_b);
-#endif
-  }
-#if SIMD_STATE == 2
-  int out_size = intersect_scalar2x((int*) a, (int) size_a, (int*) b, (int) size_b, (int*) out);
-#elif SIMD_STATE == 4
-  int out_size = intersect_simd4x((int*) a, (int) size_a, (int*) b, (int) size_b, (int*) out);
-#else
-  int out_size = intersect((int*) a, (int) size_a, (int*) b, (int) size_b, (int*) out);
-#endif
-  return (size_t) out_size;
-}
-
-struct lstintersect_set_struct {
-  bool count_space_flag = false;
-  size_t operator()(uintE* a, size_t size_a, uintE* b, size_t size_b, bool save, uintE* out) const {
-    return lstintersect_set(a, size_a, b, size_b, save, out);
-  }
-};
-
 
 
 struct InducedSpace_lw {
@@ -192,14 +90,7 @@ struct FullSpace_orig_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-    //for (size_t j=0; j < nn; j++) {
-      //uintE v = std::get<0>(induced_g[j]);
-      //auto v_nbhrs = DG.get_vertex(v).getOutNeighbors();
-      //size_t v_deg = DG.get_vertex(v).getOutDegree();
-      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
-      // store result in induced_edges[j*nn]
-      // store size in induced_degs[j]
-      //for (size_t l=0; l < v_deg; l++) {
+
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
         if (old_labels[v_nbhr] > 0) { //std::get<0>(v_nbhrs[l])
           induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; //std::get<0>(v_nbhrs[l])
@@ -207,8 +98,7 @@ struct FullSpace_orig_lw {
         }
       };
       DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      //}
-    //}
+
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
@@ -585,115 +475,5 @@ template <class Graph, class F>
   ~HybridSpace_lw() { del(); }
 
 };
-
-
-
-
-
-
-
-typedef struct {
-	uintE key;
-	long value;
-} keyvalueLLU;
-
-typedef struct {
-	size_t n_max;// max number of nodes.
-	size_t n;// number of nodes.
-	size_t *pt;// pointers to nodes.
-	keyvalueLLU *kv;// (node,nck)
-} bheapLLU;
-
-bheapLLU *constructLLU(size_t n_max){
-	bheapLLU *heap=(bheapLLU*)malloc(sizeof(bheapLLU));
-
-	heap->n_max=n_max;
-	heap->n=0;
-	heap->pt=(size_t*)malloc(n_max*sizeof(size_t));
-	for (size_t i=0;i<n_max;i++) heap->pt[i]=std::numeric_limits<size_t>::max();
-	heap->kv=(keyvalueLLU*)malloc(n_max*sizeof(keyvalueLLU));
-	return heap;
-}
-
-inline void swapLLU(bheapLLU *heap,unsigned i, unsigned j) {
-	keyvalueLLU kv_tmp=heap->kv[i];
-	auto pt_tmp=heap->pt[kv_tmp.key];
-	heap->pt[heap->kv[i].key]=heap->pt[heap->kv[j].key];
-	heap->kv[i]=heap->kv[j];
-	heap->pt[heap->kv[j].key]=pt_tmp;
-	heap->kv[j]=kv_tmp;
-}
-
-inline void bubble_upLLU(bheapLLU *heap,unsigned i) {
-	unsigned j=(i-1)/2;
-	while (i>0) {
-		if (heap->kv[j].value>heap->kv[i].value) {
-			swapLLU(heap,i,j);
-			i=j;
-			j=(i-1)/2;
-		}
-		else break;
-	}
-}
-
-inline void bubble_downLLU(bheapLLU *heap) {
-	unsigned i=0,j1=1,j2=2,j;
-	while (j1<heap->n) {
-		j=( (j2<heap->n) && (heap->kv[j2].value<heap->kv[j1].value) ) ? j2 : j1 ;
-		if (heap->kv[j].value < heap->kv[i].value) {
-			swapLLU(heap,i,j);
-			i=j;
-			j1=2*i+1;
-			j2=j1+1;
-			continue;
-		}
-		break;
-	}
-}
-
-inline void insertLLU(bheapLLU *heap,keyvalueLLU kv){
-	heap->pt[kv.key]=(heap->n)++;
-	heap->kv[heap->n-1]=kv;
-	bubble_upLLU(heap,heap->n-1);
-}
-
-inline void updateLLU(bheapLLU *heap,unsigned key,unsigned long long delta){
-	const size_t i=heap->pt[key];
-	if (i!=std::numeric_limits<size_t>::max()){
-		((heap->kv[i]).value)-=delta;
-		bubble_upLLU(heap,i);
-	}
-}
-
-inline keyvalueLLU popminLLU(bheapLLU *heap){
-	keyvalueLLU min=heap->kv[0];
-	heap->pt[min.key]=std::numeric_limits<size_t>::max();
-	heap->kv[0]=heap->kv[--(heap->n)];
-	heap->pt[heap->kv[0].key]=0;
-	bubble_downLLU(heap);
-	return min;
-}
-
-//Building the heap structure with (key,value)=(node,k-clique degree) for each node
-bheapLLU* mkheapLLU(size_t* nck, char* still_active, size_t n){
-	keyvalueLLU kv;
-	bheapLLU* heap=constructLLU(n);
-	for (size_t i=0;i<n;i++){
-    if (still_active[i] != 2) {
-		  kv.key=i;
-		  kv.value=nck[i];
-		  insertLLU(heap,kv);
-    }
-	}
-	return heap;
-}
-
-void freeheapLLU(bheapLLU *heap){
-	free(heap->pt);
-	free(heap->kv);
-	free(heap);
-}
-
-
 
 #endif
