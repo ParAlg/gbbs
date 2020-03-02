@@ -16,13 +16,48 @@ struct hashtup {
   inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 
+// For triangle peeling
+template <class Graph, class Graph2, class F, class H>
+void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
+  // Intersect the neighbors of vg (vertex in G) with the neighbros of vdg (vertex in DG)
+  size_t v_deg = G.get_vertex(vg).getOutDegree();
+  size_t i_deg = DG.get_vertex(vdg).getOutDegree();
+  auto i_iter = DG.get_vertex(vdg).getOutIter(vdg);
+  auto v_iter = G.get_vertex(vg).getOutIter(vg);
+  size_t i_iter_idx = 0;
+  size_t v_iter_idx = 0;
+  // Count of number of neighbors in the intersection
+  size_t j = 0;
+  while (i_iter_idx < i_deg && v_iter_idx < v_deg) {
+    if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
+      if (ignore_f(vg, std::get<0>(i_iter.cur())) && ignore_f(vdg, std::get<0>(i_iter.cur()))) {
+        // If the neighbor is valid (ignore_f), one triangle is added to the neighbor
+        f(std::get<0>(i_iter.cur()), 1);
+        j++;
+      }
+      i_iter_idx++; v_iter_idx++;
+      if (i_iter.has_next()) i_iter.next();
+      if (v_iter.has_next()) v_iter.next();
+    } else if (std::get<0>(i_iter.cur()) < std::get<0>(v_iter.cur())) {
+      i_iter_idx++;
+      if (i_iter.has_next()) i_iter.next();
+    }
+    else {
+      v_iter_idx++;
+      if (v_iter.has_next()) v_iter.next();
+    }
+  }
+  // j triangles are added to the neighbor vdg
+  f(vdg, j);
+}
+
 
 template <class Graph, class Graph2, class F, class H, class I>
 inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   size_t granularity, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update,
   bool do_update_changed, I update_changed) {
   const size_t n = G.n;
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
   size_t active_deg = 0;
@@ -31,7 +66,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
   
-  size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); 
+  size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n); 
   auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
@@ -78,39 +113,50 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
   return changed_vtxs.size();
 }
 
-// For triangle peeling
-template <class Graph, class Graph2, class F, class H>
-void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
-  // Intersect the neighbors of vg (vertex in G) with the neighbros of vdg (vertex in DG)
-  size_t v_deg = G.get_vertex(vg).getOutDegree();
-  size_t i_deg = DG.get_vertex(vdg).getOutDegree();
-  auto i_iter = DG.get_vertex(vdg).getOutIter(vdg);
-  auto v_iter = G.get_vertex(vg).getOutIter(vg);
-  size_t i_iter_idx = 0;
-  size_t v_iter_idx = 0;
-  // Count of number of neighbors in the intersection
-  size_t j = 0;
-  while (i_iter_idx < i_deg && v_iter_idx < v_deg) {
-    if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
-      if (ignore_f(vg, std::get<0>(i_iter.cur())) && ignore_f(vdg, std::get<0>(i_iter.cur()))) {
-        // If the neighbor is valid (ignore_f), one triangle is added to the neighbor
-        f(std::get<0>(i_iter.cur()), 1);
-        j++;
-      }
-      i_iter_idx++; v_iter_idx++;
-      if (i_iter.has_next()) i_iter.next();
-      if (v_iter.has_next()) v_iter.next();
-    } else if (std::get<0>(i_iter.cur()) < std::get<0>(v_iter.cur())) {
-      i_iter_idx++;
-      if (i_iter.has_next()) i_iter.next();
-    }
-    else {
-      v_iter_idx++;
-      if (v_iter.has_next()) v_iter.next();
+template <class Graph, class Graph2, class F, class I>
+inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
+  char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, 
+  bool do_update_changed, I update_changed, sequence<uintE>& update_idxs) {
+  const size_t n = G.n;
+
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
+
+  size_t num_updates = 0;
+  HybridSpace_lw* induced = new HybridSpace_lw();
+  induced->alloc(max_deg, k, n, label, true);
+  for (size_t i=0; i < active_size; i++) {
+    auto vtx = get_active(i);
+    if (G.get_vertex(vtx).getOutDegree() != 0) {
+      auto ignore_f = [&](const uintE& u, const uintE& v) {
+        auto status_u = still_active[u]; auto status_v = still_active[v];
+        if (status_u == 2 || status_v == 2) return false; /* deleted edge */
+        if (status_v == 0) return true; /* higher edge */
+        return rank[u] < rank[v]; /* orient edge within bucket */
+      };
+      induced->setup(G, DG, k, vtx, ignore_f, still_active);
+      auto update_d = [&](uintE vtx, size_t count) {
+        size_t ct = per_processor_counts[vtx];
+        per_processor_counts[vtx] += count;
+        if (ct == 0) { /* only need bother trying hash table if our count is 0 */
+          update_idxs[num_updates] = vtx;
+          num_updates++;
+        }
+      };
+      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }
   }
-  // j triangles are added to the neighbor vdg
-  f(vdg, j);
+  if (induced != nullptr) { delete induced; }
+
+  if (do_update_changed) {
+    for (size_t i=0; i < num_updates; i++) {
+      update_changed(per_processor_counts, i, update_idxs[i]);
+    }
+  }
+
+  /* mark all as deleted */
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
+
+  return num_updates;
 }
 
 template <typename bucket_t, class Graph, class Graph2>
@@ -141,13 +187,13 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     ppc[v] += ppc[j*n + v];
     ppc[j*n + v] = 0;
   };
-  while (finished != G.n) {
+  while (finished != n) {
     timer round_t; round_t.start();
     // Retrieve next bucket
     next_b.start();
     auto bkt = b.next_bucket();
     next_b.stop();
-    auto active = vertexSubset(G.n, bkt.identifiers);
+    auto active = vertexSubset(n, bkt.identifiers);
     cur_bkt = bkt.id;
     
     finished += active.size();
@@ -155,7 +201,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
 
     auto get_active = [&](size_t j){ return active.vtx(j); };
 
-    auto update_changed = [&](sequence<size_t>& ppc, size_t i, uintE v){
+    size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
+
+    size_t filter_size = 0;
+
+  if (active.size() > 1) {
+      auto update_changed = [&](sequence<size_t>& ppc, size_t i, uintE v){
       /* Update the clique count for v, and zero out first worker's count */
       cliques[v] -= ppc[v];
       ppc[v] = 0;
@@ -167,58 +218,25 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
         D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
     };
-
-    size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
-
-    size_t filter_size = 0;
-
-if (active.size() > 1)
     filter_size = cliqueUpdate(G, DG, k, max_deg, label, get_active, active.size(), granularity, still_active, rank, per_processor_counts, update_clique, true, update_changed);
-else {
-    updct_t.start();
-    size_t num_updates = 0;
-    HybridSpace_lw* induced = new HybridSpace_lw();
-    induced->alloc(max_deg, k, G.n, label, true);
-    for (size_t i=0; i < active.size(); i++) {
-      if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-        auto ignore_f = [&](const uintE& u, const uintE& v) {
-          auto status_u = still_active[u]; auto status_v = still_active[v];
-          if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-          if (status_v == 0) return true; /* higher edge */
-          return rank[u] < rank[v]; /* orient edge within bucket */
-        };
-        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
-        auto update_d = [&](uintE vtx, size_t count) {
-          size_t ct = per_processor_counts[vtx];
-          per_processor_counts[vtx] += count;
-          if (ct == 0) { /* only need bother trying hash table if our count is 0 */
-            update_idxs[num_updates] = vtx;
-            num_updates++;
-          }
-        };
-        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      }
-    }
-    if (induced != nullptr) { delete induced; }
-    updct_t.stop();
-
-    filter_t.start();
-    filter_size = 0;
-    for (size_t i=0; i < num_updates; i++) {
-      const uintE v = update_idxs[i];
+  }
+  else {
+    size_t filter_size_serial = 0;
+    auto update_changed_serial = [&](sequence<size_t>& ppc, size_t i, uintE v) {
       /* Update the clique count for v, and zero out first worker's count */
-      cliques[v] -= per_processor_counts[v];
-      per_processor_counts[v] = 0;
+      cliques[v] -= ppc[v];
+      ppc[v] = 0;
       bucket_t deg = D[v];
       if (deg > cur_bkt) {
         bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
         D[v] = new_deg;
-        D_filter[filter_size] = std::make_tuple(v, b.get_bucket(deg, new_deg));
-        filter_size++;
+        D_filter[filter_size_serial] = std::make_tuple(v, b.get_bucket(deg, new_deg));
+        filter_size_serial++;
       }
-    }
-    filter_t.stop();
-}
+    };
+    cliqueUpdate_serial(G, DG, k, max_deg, label, get_active, active.size(), still_active, rank, per_processor_counts, true, update_changed_serial, update_idxs);
+    filter_size = filter_size_serial;
+  }
 
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
       uintE v = std::get<0>(D_filter[i]);
@@ -273,7 +291,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   double density_multiplier = (k+1)*(1.+eps);
 
   double max_density = 0.0;
-  char* still_active = (char*) calloc(G.n, sizeof(char));
+  char* still_active = (char*) calloc(n, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G);
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
@@ -307,7 +325,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
 
     parallel_for (0, active_size, [&] (size_t j) {still_active[this_arr[j]] = 1;}, 2048);
   
-    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) rho*k*active_size, 
+    size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n); //std::min((size_t) rho*k*active_size, 
     auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
     //sequence<size_t> tots = sequence<size_t>(n, [&](size_t i) { return 0; });
 
