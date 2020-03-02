@@ -179,8 +179,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   size_t finished = 0;
   bucket_t cur_bkt = 0;
   bucket_t max_bkt = 0;
-  timer updct_t, bkt_t, filter_t;
-  timer next_b;
   // Peel each bucket
   auto update_clique = [&](sequence<size_t>& ppc, size_t j, uintE v) {
     if (j == 0) return;
@@ -188,11 +186,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     ppc[j*n + v] = 0;
   };
   while (finished != n) {
-    timer round_t; round_t.start();
     // Retrieve next bucket
-    next_b.start();
     auto bkt = b.next_bucket();
-    next_b.stop();
     auto active = vertexSubset(n, bkt.identifiers);
     cur_bkt = bkt.id;
     
@@ -205,38 +200,38 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
 
     size_t filter_size = 0;
 
-  if (active.size() > 1) {
+    if (active.size() > 1) {
       auto update_changed = [&](sequence<size_t>& ppc, size_t i, uintE v){
-      /* Update the clique count for v, and zero out first worker's count */
-      cliques[v] -= ppc[v];
-      ppc[v] = 0;
-      bucket_t deg = D[v];
-      if (deg > cur_bkt) {
-        bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
-        D[v] = new_deg;
-        // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
-        D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
-      } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
-    };
-    filter_size = cliqueUpdate(G, DG, k, max_deg, label, get_active, active.size(), granularity, still_active, rank, per_processor_counts, update_clique, true, update_changed);
-  }
-  else {
-    size_t filter_size_serial = 0;
-    auto update_changed_serial = [&](sequence<size_t>& ppc, size_t i, uintE v) {
-      /* Update the clique count for v, and zero out first worker's count */
-      cliques[v] -= ppc[v];
-      ppc[v] = 0;
-      bucket_t deg = D[v];
-      if (deg > cur_bkt) {
-        bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
-        D[v] = new_deg;
-        D_filter[filter_size_serial] = std::make_tuple(v, b.get_bucket(deg, new_deg));
-        filter_size_serial++;
-      }
-    };
-    cliqueUpdate_serial(G, DG, k, max_deg, label, get_active, active.size(), still_active, rank, per_processor_counts, true, update_changed_serial, update_idxs);
-    filter_size = filter_size_serial;
-  }
+        /* Update the clique count for v, and zero out first worker's count */
+        cliques[v] -= ppc[v];
+        ppc[v] = 0;
+        bucket_t deg = D[v];
+        if (deg > cur_bkt) {
+          bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
+          D[v] = new_deg;
+          // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
+          D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
+        } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
+      };
+      filter_size = cliqueUpdate(G, DG, k, max_deg, label, get_active, active.size(), granularity, still_active, rank, per_processor_counts, update_clique, true, update_changed);
+    }
+    else {
+      size_t filter_size_serial = 0;
+      auto update_changed_serial = [&](sequence<size_t>& ppc, size_t i, uintE v) {
+        /* Update the clique count for v, and zero out first worker's count */
+        cliques[v] -= ppc[v];
+        ppc[v] = 0;
+        bucket_t deg = D[v];
+        if (deg > cur_bkt) {
+          bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
+          D[v] = new_deg;
+          D_filter[filter_size_serial] = std::make_tuple(v, b.get_bucket(deg, new_deg));
+          filter_size_serial++;
+        }
+      };
+      cliqueUpdate_serial(G, DG, k, max_deg, label, get_active, active.size(), still_active, rank, per_processor_counts, true, update_changed_serial, update_idxs);
+      filter_size = filter_size_serial;
+    }
 
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
       uintE v = std::get<0>(D_filter[i]);
@@ -244,26 +239,19 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
       if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bucket);
       return Maybe<std::tuple<uintE, bucket_t> >();
     };
-    bkt_t.start();
+  
     b.update_buckets(apply_f, filter_size);
-    bkt_t.stop();
 
     active.del();
 
     rounds++;
-    round_t.stop();
   }
 
-double tt2 = t2.stop();
-std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
 
   std::cout << "rho: " << rounds << std::endl;
   std::cout << "max_bkt: " << max_bkt << std::endl;
-
-  bkt_t.reportTotal("bkt time");
-  next_b.reportTotal("next bucket time");
-  filter_t.reportTotal("filter time");
-  updct_t.reportTotal("update count time");
 
   b.del();
   free(still_active);
@@ -295,6 +283,12 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   size_t max_deg = induced_hybrid::get_max_deg(G);
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
+  auto update_clique = [&](sequence<size_t>& ppc, size_t j, uintE v) {
+    D[v] -= ppc[j*n + v];
+    ppc[j*n + v] = 0;
+  };
+  auto nop = [&](sequence<size_t>& ppc, size_t i, uintE v) { return; };
+
   // First round
   {
     size_t edges_remaining = num_cliques;
@@ -314,58 +308,10 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-
     size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
-
-    size_t active_deg = 0;
-    auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(this_arr[i]).getOutDegree(); });
-    active_deg += pbbslib::reduce_add(degree_map);
-
-    parallel_for (0, active_size, [&] (size_t j) {still_active[this_arr[j]] = 1;}, 2048);
-  
-    size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n); //std::min((size_t) rho*k*active_size, 
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-    //sequence<size_t> tots = sequence<size_t>(n, [&](size_t i) { return 0; });
-
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
-      if (G.get_vertex(this_arr[i]).getOutDegree() != 0) {
-        auto ignore_f = [&](const uintE& u, const uintE& v) {
-          auto status_u = still_active[u]; auto status_v = still_active[v];
-          if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-          if (status_v == 0) return true; /* higher edge */
-          return rank[u] < rank[v]; /* orient edge within bucket */
-        };
-        induced->setup(G, DG, k, this_arr[i], ignore_f, still_active);
-        auto update_d = [&](uintE vtx, size_t count) {
-          size_t worker = worker_id();
-          size_t ct = per_processor_counts[worker*n + vtx];
-          per_processor_counts[worker*n + vtx] += count;
-          if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
-        };
-        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      }
-    }, granularity, false);
-    //edges_remaining -= pbbslib::reduce_add(tots);
-
-    /* extract the vertices that had their count changed */
-    auto changed_vtxs = edge_table.entries();
-    edge_table.del();
-
-    /* Aggregate the updated counts across all worker's local arrays, into the
-     * first worker's array. Also zero out the other worker's updated counts. */
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      size_t nthreads = num_workers();
-      uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t j=0; j<nthreads; j++) {
-        D[v] -= per_processor_counts[j*n + v];
-        per_processor_counts[j*n + v] = 0;
-      }
-    }, 128);
-
-    /* mark all as deleted */
-    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0; still_active[this_arr[j]] = 2;}, 2048);
+    auto get_active = [&](size_t j) { return this_arr[j]; };
+    cliqueUpdate(G, DG, k, max_deg, label, get_active, active_size, granularity, still_active, rank, per_processor_counts, update_clique, false, nop);
+    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0;}, 2048);
   //***************
 
     round++;
@@ -390,8 +336,6 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     double current_density = ((double)edges_remaining) / ((double)vtxs_remaining.size());
     double target_density = (density_multiplier*((double)edges_remaining)) / ((double)vtxs_remaining.size());
     auto rho = target_density;
-    //debug(std::cout << "Target density on round " << round << " is " << target_density << " erm = " << edges_remaining << " vrm = " << vtxs_remaining.size() << std::endl;
-    //std::cout << "Current density on round " << round << " is " << current_density << std::endl;);
     if (current_density > max_density) max_density = current_density;
 
     auto keep_seq = pbbs::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
@@ -401,66 +345,16 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto split_vtxs_m = pbbs::split_two(vtxs_remaining, keep_seq);
     uintE* this_arr = split_vtxs_m.first.to_array();
     size_t num_removed = split_vtxs_m.second;
-    //auto vs = vertexSubset(n, num_removed, this_arr);
-    //debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
     size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-
     size_t granularity = (rho * active_size < 10000) ? 1024 : 1;
-
-    size_t active_deg = 0;
-    auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(this_arr[i]).getOutDegree(); });
-    active_deg += pbbslib::reduce_add(degree_map);
-
-    parallel_for (0, active_size, [&] (size_t j) {still_active[this_arr[j]] = 1;}, 2048);
-  
-    size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); //std::min((size_t) rho*k*active_size, 
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-    //sequence<size_t> tots = sequence<size_t>(n, [&](size_t i) { return 0; });
-
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
-      if (G.get_vertex(this_arr[i]).getOutDegree() != 0) {
-        auto ignore_f = [&](const uintE& u, const uintE& v) {
-          auto status_u = still_active[u]; auto status_v = still_active[v];
-          if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-          if (status_v == 0) return true; /* higher edge */
-          return rank[u] < rank[v]; /* orient edge within bucket */
-        };
-        induced->setup(G, DG, k, this_arr[i], ignore_f, still_active);
-        auto update_d = [&](uintE vtx, size_t count) {
-          size_t worker = worker_id();
-          size_t ct = per_processor_counts[worker*n + vtx];
-          per_processor_counts[worker*n + vtx] += count;
-          if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
-        };
-        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      }
-    }, granularity, false);
-    //edges_remaining -= pbbslib::reduce_add(tots);
-
-    /* extract the vertices that had their count changed */
-    auto changed_vtxs = edge_table.entries();
-    edge_table.del();
-
-    /* Aggregate the updated counts across all worker's local arrays, into the
-     * first worker's array. Also zero out the other worker's updated counts. */
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      size_t nthreads = num_workers();
-      uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t j=0; j<nthreads; j++) {
-        D[v] -= per_processor_counts[j*n + v];
-        per_processor_counts[j*n + v] = 0;
-      }
-    }, 128);
-
-    /* mark all as deleted */
-    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0; still_active[this_arr[j]] = 2;}, 2048);
+    auto get_active = [&](size_t j) { return this_arr[j]; };
+    cliqueUpdate(G, DG, k, max_deg, label, get_active, active_size, granularity, still_active, rank, per_processor_counts, update_clique, false, nop);
+    parallel_for (0, active_size, [&] (size_t j) {D[this_arr[j]] = 0;}, 2048);
   //***************
     }
 
