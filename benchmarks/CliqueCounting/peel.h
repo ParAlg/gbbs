@@ -516,7 +516,7 @@ sequence<bucket_t> TriPeel(Graph& G, Graph2& DG, size_t* cliques, sequence<uintE
 
 template <class Graph, class Graph2>
 double ApproxTriPeel(Graph& G, Graph2& DG, size_t* cliques, size_t num_cliques,
-  bool label, sequence<uintE> &rank, double eps) {
+  sequence<uintE> &rank, double eps) {
   //using W = typename Graph::weight_type;
   timer t2; t2.start();
   const size_t n = G.n;
