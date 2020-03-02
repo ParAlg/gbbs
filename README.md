@@ -64,8 +64,8 @@ If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 Compilation
 --------
 
-* g++ &gt;= 5.3.0 with support for Cilk Plus
-* g++ &gt;= 5.3.0 with pthread support (Homemade Scheduler)
+* g++ &gt;= 7.4.0 with support for Cilk Plus
+* g++ &gt;= 7.4.0 with pthread support (Homemade Scheduler)
 
 The default compilation uses a lightweight scheduler developed at CMU (Homemade)
 for parallelism, which results in comparable performance to Cilk Plus. The
