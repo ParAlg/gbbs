@@ -87,32 +87,12 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
   } else ABORT("Unexpected directed type: " << order_type);
 }
 
-
 template <class Graph>
-inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_base, bool approx_peel,
-  double approx_eps) {
-  using W = typename Graph::weight_type;
-  const size_t n = GA.n;
+inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
+  const size_t n = DG.n;
   size_t count = 0;
-  size_t* per_vert = use_base ? (size_t*) calloc(n*num_workers(), sizeof(size_t)) : nullptr;
-
-  timer t_rank; t_rank.start();
-  sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
-  double tt_rank = t_rank.stop();
-  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
-
-  timer t_filter; t_filter.start();
-  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]);
-  };
-  auto DG = filter_graph(GA, pack_predicate);
-  double tt_filter = t_filter.stop();
-  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
-
-  timer t; t.start();
   auto counts = sequence<size_t>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold,
-          [&] (size_t i) { counts[i] = 0; });
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) {
     auto base_f = [&](uintE a, uintE b, uintE ngh) {};
@@ -125,34 +105,32 @@ inline size_t TriClique(Graph& GA, long order_type, double epsilon, bool use_bas
     };
     count = CountDirectedBalanced(DG, counts.begin(), base_f);
   }
-  double tt = t.stop();
-  std::cout << "### Count Running Time: " << tt << std::endl;
-  std::cout << "### Num 3 cliques = " << count << "\n";
-
-  if (!use_base) {DG.del(); return count;}
-
-  for (size_t j=1; j < static_cast<size_t>(num_workers()); j++) {
-    parallel_for(0, n, [&](size_t l) {
-      per_vert[l] += per_vert[(l + j*n)];
-    });
-  }
-
-  auto per_vert_seq = pbbslib::make_sequence<size_t>(n, [&] (size_t i) { return per_vert[i]; });
-  auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
-
-  if (!approx_peel) {
-    // Exact vertex peeling
-    if (max_per_vert >= std::numeric_limits<uintE>::max()) TriPeel<size_t>(GA, DG, per_vert, rank);
-    else TriPeel<uintE>(GA, DG, per_vert, rank);
-  } else {
-    // Approximate vertex peeling
-    if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxTriPeel(GA, DG, per_vert, count, rank, approx_eps);
-    else ApproxTriPeel(GA, DG, per_vert, count, rank, approx_eps);
-  }
-  free(per_vert);
-  DG.del();
   return count;
-  
+}
+
+template <class Graph>
+inline size_t Clique_count(Graph& DG, size_t k, long space_type, bool label, bool use_base, long recursive_level, size_t* per_vert) {
+  const size_t n = DG.n;
+  size_t count = 0;
+  // All vertices should be allowed in cliques
+  auto use_f = [&](const uintE& src, const uintE& u) { return true; };
+
+  if (!use_base) { // if counting in total
+    auto base_f = [&](uintE vtx, size_t _count) {};
+    // Everything except space_type = 5 should not be used -- for testing on larger graphs
+    if (space_type == 2) count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
+    else if (space_type == 3) count = induced_neighborhood::CountCliques(DG, k-1);
+    else if (space_type == 5) count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+    else if (space_type == 6) count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+  } else { // if counting per vertex
+    auto base_f = [&](uintE vtx, size_t _count) { per_vert[(vtx+worker_id()*n)] += _count; };
+    // Everything except space_type = 5 should not be used -- for testing on larger graphs
+    if (space_type == 2) count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
+    else if (space_type == 3) count = induced_neighborhood::CountCliques(DG, k-1);
+    else if (space_type == 5) count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+    else if (space_type == 6) count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
+  }
+  return count;
 }
 
 
@@ -160,9 +138,6 @@ template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter,
   bool use_base, long recursive_level, bool approx_peel, double approx_eps) {
   if (k < 3) ABORT("k must be >= 3: " <<  k);
-
-  // Triangle counting
-  if (k == 3) return TriClique(GA, order_type, epsilon, use_base, approx_peel, approx_eps);
 
   using W = typename Graph::weight_type;
   const size_t n = GA.n;
@@ -188,24 +163,9 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   timer t; t.start();
   size_t count = 0;
-  // All vertices should be allowed in cliques
-  auto use_f = [&](const uintE& src, const uintE& u) { return true; };
-
-  if (!use_base) { // if counting in total
-    auto base_f = [&](uintE vtx, size_t _count) {};
-    // Everything except space_type = 5 should not be used -- for testing on larger graphs
-    if (space_type == 2) count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
-    else if (space_type == 3) count = induced_neighborhood::CountCliques(DG, k-1);
-    else if (space_type == 5) count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-    else if (space_type == 6) count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-  } else { // if counting per vertex
-    auto base_f = [&](uintE vtx, size_t _count) { per_vert[(vtx+worker_id()*n)] += _count; };
-    // Everything except space_type = 5 should not be used -- for testing on larger graphs
-    if (space_type == 2) count = induced_intersection::CountCliques(DG, k-1, use_f, base_f, use_base);
-    else if (space_type == 3) count = induced_neighborhood::CountCliques(DG, k-1);
-    else if (space_type == 5) count = induced_hybrid::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-    else if (space_type == 6) count = induced_split::CountCliques(DG, k-1, base_f, use_base, label, recursive_level);
-  }
+  // Clique counting
+  if (k == 3) count = TriClique_count(DG, use_base, per_vert);
+  else count = Clique_count(DG, k, space_type, label, use_base, recursive_level, per_vert);
 
   double tt = t.stop();
   std::cout << "### Count Running Time: " << tt << std::endl;
@@ -239,14 +199,27 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   auto per_vert_seq = pbbslib::make_sequence<size_t>(n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
-  if (!approx_peel) {
-  // Exact vertex peeling
-    if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank);
-    else Peel<uintE>(GA, DG, k-1, per_vert, label, rank);
-  } else {
-  // Approximate vertex peeling
-    if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
-    else ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+  if (k == 3) {
+    if (!approx_peel) {
+      // Exact vertex peeling
+      if (max_per_vert >= std::numeric_limits<uintE>::max()) TriPeel<size_t>(GA, DG, per_vert, rank);
+      else TriPeel<uintE>(GA, DG, per_vert, rank);
+    } else {
+      // Approximate vertex peeling
+      if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxTriPeel(GA, DG, per_vert, count, rank, approx_eps);
+      else ApproxTriPeel(GA, DG, per_vert, count, rank, approx_eps);
+    }
+  }
+  else {
+    if (!approx_peel) {
+    // Exact vertex peeling
+      if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank);
+      else Peel<uintE>(GA, DG, k-1, per_vert, label, rank);
+    } else {
+    // Approximate vertex peeling
+      if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+      else ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+    }
   }
 
   // Cleanup
