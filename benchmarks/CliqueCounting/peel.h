@@ -16,6 +16,68 @@ struct hashtup {
   inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
 };
 
+
+template <class Graph, class Graph2, class F, class H, class I>
+inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
+  size_t granularity, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update,
+  bool do_update_changed, I update_changed) {
+  const size_t n = G.n;
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
+  auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+
+  size_t active_deg = 0;
+  auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(get_active(i)).getOutDegree(); });
+  active_deg += pbbslib::reduce_add(degree_map);
+
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
+  
+  size_t edge_table_size = (size_t) (active_deg < G.n ? active_deg : G.n); 
+  auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+
+  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
+    auto vert = get_active(i);
+    if (G.get_vertex(vert).getOutDegree() != 0) {
+      auto ignore_f = [&](const uintE& u, const uintE& v) {
+        auto status_u = still_active[u]; auto status_v = still_active[v];
+        if (status_u == 2 || status_v == 2) return false; /* deleted edge */
+        if (status_v == 0) return true; /* higher edge */
+        return rank[u] < rank[v]; /* orient edge within bucket */
+      };
+      induced->setup(G, DG, k, vert, ignore_f, still_active);
+      auto update_d = [&](uintE vtx, size_t count) {
+        size_t worker = worker_id();
+        size_t ct = per_processor_counts[worker*n + vtx];
+        per_processor_counts[worker*n + vtx] += count;
+        if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
+      };
+      induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
+    }
+  }, granularity, false);
+
+  /* extract the vertices that had their count changed */
+  auto changed_vtxs = edge_table.entries();
+  edge_table.del();
+
+  /* Aggregate the updated counts across all worker's local arrays, into the
+   * first worker's array. Also zero out the other worker's updated counts. */
+  parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+    size_t nthreads = num_workers();
+    uintE v = std::get<0>(changed_vtxs[i]);
+    for (size_t j=0; j<nthreads; j++) {
+      update(per_processor_counts, j, v);
+    }
+  }, 128);
+
+  if (do_update_changed) {
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) { update_changed(per_processor_counts, i, std::get<0>(changed_vtxs[i])); });
+  }
+
+  /* mark all as deleted */
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
+
+  return changed_vtxs.size();
+}
+
 // For triangle peeling
 template <class Graph, class Graph2, class F, class H>
 void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
@@ -55,15 +117,15 @@ template <typename bucket_t, class Graph, class Graph2>
 sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool label, sequence<uintE> &rank,
   size_t num_buckets=16) {
   timer t2; t2.start();
-  size_t n = G.n;
-  auto D = sequence<bucket_t>(G.n, [&](size_t i) { return cliques[i]; });
-  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(G.n);
+  const size_t n = G.n;
+  auto D = sequence<bucket_t>(n, [&](size_t i) { return cliques[i]; });
+  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(n);
 
-  auto b = make_vertex_custom_buckets<bucket_t>(G.n, D, increasing, num_buckets);
+  auto b = make_vertex_custom_buckets<bucket_t>(n, D, increasing, num_buckets);
 
   auto per_processor_counts = sequence<size_t>(n*num_workers(), static_cast<size_t>(0));
 
-  char* still_active = (char*) calloc(G.n, sizeof(char));
+  char* still_active = (char*) calloc(n, sizeof(char));
   size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
   auto update_idxs = sequence<uintE>(max_deg);
 
@@ -73,8 +135,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   bucket_t max_bkt = 0;
   timer updct_t, bkt_t, filter_t;
   timer next_b;
-  bool log = false;
   // Peel each bucket
+  auto update_clique = [&](sequence<size_t>& ppc, size_t j, uintE v) {
+    if (j == 0) return;
+    ppc[v] += ppc[j*n + v];
+    ppc[j*n + v] = 0;
+  };
   while (finished != G.n) {
     timer round_t; round_t.start();
     // Retrieve next bucket
@@ -83,74 +149,16 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     next_b.stop();
     auto active = vertexSubset(G.n, bkt.identifiers);
     cur_bkt = bkt.id;
-    if (log) {
-      std::cout << "bkt = " << cur_bkt << " size = " << active.size() << std::endl;
-    }
     
     finished += active.size();
     max_bkt = std::max(cur_bkt, max_bkt);
 
-    size_t active_deg = 0;
-    auto degree_map = pbbslib::make_sequence<size_t>(active.size(), [&] (size_t i) { return G.get_vertex(active.vtx(i)).getOutDegree(); });
-    active_deg += pbbslib::reduce_add(degree_map);
+    auto get_active = [&](size_t j){ return active.vtx(j); };
 
-    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 1;}, 2048);
-    // here, update D[i] if necessary
-    // for each vert in active, just do the same kickoff, but we drop neighbors if they're earlier in the active set
-    // also drop if already peeled -- check using D
-
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, G.n, label, true); };
-    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-
-    size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
-    size_t filter_size = 0;
-if (active.size() > 1) {
-    size_t edge_table_size = std::min((size_t) cur_bkt*k*active.size(), (size_t) (active_deg < G.n ? active_deg : G.n));
-    auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
-    updct_t.start();
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active.size(), [&](size_t i, HybridSpace_lw* induced) {
-      if (G.get_vertex(active.vtx(i)).getOutDegree() != 0) {
-        auto ignore_f = [&](const uintE& u, const uintE& v) {
-          auto status_u = still_active[u]; auto status_v = still_active[v];
-          if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-          if (status_v == 0) return true; /* higher edge */
-          return rank[u] < rank[v]; /* orient edge within bucket */
-        };
-        induced->setup(G, DG, k, active.vtx(i), ignore_f, still_active);
-        auto update_d = [&](uintE vtx, size_t count) {
-          size_t worker = worker_id();
-          size_t ct = per_processor_counts[worker*n + vtx];
-          per_processor_counts[worker*n + vtx] += count;
-          if (ct == 0) { /* only need bother trying hash table if our count is 0 */
-            edge_table.insert(std::make_tuple(vtx, true));
-          }
-        };
-        induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
-      }
-    }, granularity, false);
-    updct_t.stop();
-
-    /* extract the vertices that had their count changed */
-    auto changed_vtxs = edge_table.entries();
-    edge_table.del();
-
-    /* Aggregate the updated counts across all worker's local arrays, into the
-     * first worker's array. Also zero out the other worker's updated counts. */
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      size_t nthreads = num_workers();
-      uintE v = std::get<0>(changed_vtxs[i]);
-      for (size_t j=1; j<nthreads; j++) {
-        per_processor_counts[v] += per_processor_counts[j*n + v];
-        per_processor_counts[j*n + v] = 0;
-      }
-    }, 128);
-
-    filter_t.start();
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
-      const uintE v = std::get<0>(changed_vtxs[i]);
+    auto update_changed = [&](sequence<size_t>& ppc, size_t i, uintE v){
       /* Update the clique count for v, and zero out first worker's count */
-      cliques[v] -= per_processor_counts[v];
-      per_processor_counts[v] = 0;
+      cliques[v] -= ppc[v];
+      ppc[v] = 0;
       bucket_t deg = D[v];
       if (deg > cur_bkt) {
         bucket_t new_deg = std::max((bucket_t) cliques[v], (bucket_t) cur_bkt);
@@ -158,10 +166,15 @@ if (active.size() > 1) {
         // store (v, bkt) in an array now, pass it to apply_f below instead of what's there right now -- maybe just store it in D_filter?
         D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
       } else D_filter[i] = std::make_tuple(UINT_E_MAX, 0);
-    }, 2048);
-    filter_t.stop();
-    filter_size = changed_vtxs.size();
-} else {
+    };
+
+    size_t granularity = (cur_bkt * active.size() < 10000) ? 1024 : 1;
+
+    size_t filter_size = 0;
+
+if (active.size() > 1)
+    filter_size = cliqueUpdate(G, DG, k, max_deg, label, get_active, active.size(), granularity, still_active, rank, per_processor_counts, update_clique, true, update_changed);
+else {
     updct_t.start();
     size_t num_updates = 0;
     HybridSpace_lw* induced = new HybridSpace_lw();
@@ -207,9 +220,6 @@ if (active.size() > 1) {
     filter_t.stop();
 }
 
-    /* mark all as deleted */
-    parallel_for (0, active.size(), [&] (size_t j) {still_active[active.vtx(j)] = 2;}, 2048);
-
     auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
       uintE v = std::get<0>(D_filter[i]);
       bucket_t bucket = std::get<1>(D_filter[i]);
@@ -224,9 +234,6 @@ if (active.size() > 1) {
 
     rounds++;
     round_t.stop();
-    if (log) {
-      round_t.reportTotal("round time");
-    }
   }
 
 double tt2 = t2.stop();
@@ -458,6 +465,7 @@ std::cout << "rho: " << round << std::endl;
 
   return max_density;
 }
+
 
 
 template <class Graph, class Graph2, class F, class H, class I>
