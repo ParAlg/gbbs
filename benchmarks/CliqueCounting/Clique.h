@@ -199,27 +199,14 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   auto per_vert_seq = pbbslib::make_sequence<size_t>(n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
-  if (k == 3) {
-    if (!approx_peel) {
-      // Exact vertex peeling
-      if (max_per_vert >= std::numeric_limits<uintE>::max()) TriPeel<size_t>(GA, DG, per_vert, rank);
-      else TriPeel<uintE>(GA, DG, per_vert, rank);
-    } else {
-      // Approximate vertex peeling
-      if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxTriPeel(GA, DG, per_vert, count, rank, approx_eps);
-      else ApproxTriPeel(GA, DG, per_vert, count, rank, approx_eps);
-    }
-  }
-  else {
-    if (!approx_peel) {
-    // Exact vertex peeling
-      if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank);
-      else Peel<uintE>(GA, DG, k-1, per_vert, label, rank);
-    } else {
-    // Approximate vertex peeling
-      if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
-      else ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
-    }
+  if (!approx_peel) {
+  // Exact vertex peeling
+    if (max_per_vert >= std::numeric_limits<uintE>::max()) Peel<size_t>(GA, DG, k-1, per_vert, label, rank);
+    else Peel<uintE>(GA, DG, k-1, per_vert, label, rank);
+  } else {
+  // Approximate vertex peeling
+    if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+    else ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
   }
 
   // Cleanup
