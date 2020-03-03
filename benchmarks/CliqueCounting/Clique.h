@@ -54,9 +54,9 @@
 
 template <class Graph>
 inline uintE* degreeOrderNodes(Graph& G, size_t n) {
-  uintE* r = pbbslib::new_array_no_init<uintE>(n);
-  sequence<uintE> o(n);
+  uintE* r = pbbslib::new_array_no_init<uintE>(n); // to hold degree rank per vertex id
 
+  sequence<uintE> o(n); // to hold vertex ids in degree order
   par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i){ o[i] = i; });
 
   pbbs::integer_sort_inplace(o.slice(), [&] (size_t p) {
@@ -94,11 +94,12 @@ inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
   auto counts = sequence<size_t>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { counts[i] = 0; });
 
-  if (!use_base) {
+  if (!use_base) { // if counting in total
     auto base_f = [&](uintE a, uintE b, uintE ngh) {};
     count = CountDirectedBalanced(DG, counts.begin(), base_f);
-  } else {
+  } else { // if counting per vertex
     auto base_f = [&](uintE a, uintE b, uintE ngh) {
+      // Add triangle count to each vertex in triangle
       per_vert[(a+worker_id()*DG.n)]++;
       per_vert[(b+worker_id()*DG.n)]++;
       per_vert[(ngh+worker_id()*DG.n)]++;

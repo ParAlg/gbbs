@@ -57,16 +57,22 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
   sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update, bool do_update_changed, I update_changed) {
   using W = typename Graph::weight_type;
   auto n = G.n;
+
+  // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
 
+  // Hash table to contain triangle count updates
   auto edge_table = sparse_table<uintE, bool, hashtup>(G.n, std::make_tuple(UINT_E_MAX, false), hashtup());
 
+  // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
     auto status_u = still_active[u]; auto status_v = still_active[v];
-    if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-    if (status_v == 0) return true; /* higher edge */
-    return rank[u] < rank[v]; /* orient edge within bucket */
+    if (status_u == 2 || status_v == 2) return false; // deleted edge
+    if (status_v == 0) return true; // non-deleted, non-active edge
+    return rank[u] < rank[v]; // orient edges if in active set
   };
+
+  // Collate triangle counts by processor
   auto update_d = [&](uintE vtx, size_t count) {
     size_t worker = worker_id();
     size_t ct = per_processor_counts[worker*n + vtx];
@@ -74,21 +80,21 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
     if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
   };
 
+  // Triangle count updates
   parallel_for (0, active_size, [&](size_t i) {
     auto j = get_active(i);
+    // For each neighbor v of active vertex j = u, intersect N(v) with N(j)
     auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
     };
     G.get_vertex(j).mapOutNgh(j, map_label_f, false);
-    // we want to intersect vtx's neighbors minus !ignore_f with v's out neighbors // TODO TODO TODO
   }, granularity, false);
 
-  /* extract the vertices that had their count changed */
+  // Extract all vertices with changed triangle counts
   auto changed_vtxs = edge_table.entries();
   edge_table.del();
 
-  /* Aggregate the updated counts across all worker's local arrays, into the
-   * first worker's array. Also zero out the other worker's updated counts. */
+  // Aggregate the updated counts across all worker's local arrays, as specified by update
   parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
     size_t nthreads = num_workers();
     uintE v = std::get<0>(changed_vtxs[i]);
@@ -97,11 +103,14 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
     }
   }, 128);
 
+  // Perform update_changed on each vertex with changed triangle counts
   if (do_update_changed) {
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) { update_changed(per_processor_counts, i, std::get<0>(changed_vtxs[i])); });
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      update_changed(per_processor_counts, i, std::get<0>(changed_vtxs[i]));
+    });
   }
 
-  /* mark all as deleted */
+  // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
 
   return changed_vtxs.size();
@@ -113,44 +122,56 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
   size_t granularity, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update,
   bool do_update_changed, I update_changed) {
   const size_t n = G.n;
+
+  // Set up space for clique counting
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, n, label, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
+  // Sum of all out-degrees in active set
   size_t active_deg = 0;
-  auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) { return G.get_vertex(get_active(i)).getOutDegree(); });
+  auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) {
+    return G.get_vertex(get_active(i)).getOutDegree();
+  });
   active_deg += pbbslib::reduce_add(degree_map);
 
+  // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
   
+  // Hash table to contain clique count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n); 
   auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size, [&](size_t i, HybridSpace_lw* induced) {
+  // Function that dictates which edges to consider in first level of recursion
+  auto ignore_f = [&](const uintE& u, const uintE& v) {
+    auto status_u = still_active[u]; auto status_v = still_active[v];
+    if (status_u == 2 || status_v == 2) return false; // deleted edge
+    if (status_v == 0) return true; // non-deleted, non-active edge
+    return rank[u] < rank[v]; // orient edges if in active set
+  };
+
+  // Collate clique counts by processor
+  auto update_d = [&](uintE vtx, size_t count) {
+    size_t worker = worker_id();
+    size_t ct = per_processor_counts[worker*n + vtx];
+    per_processor_counts[worker*n + vtx] += count;
+    if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
+  };
+
+  // Clique count updates
+  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+                                     [&](size_t i, HybridSpace_lw* induced) {
     auto vert = get_active(i);
     if (G.get_vertex(vert).getOutDegree() != 0) {
-      auto ignore_f = [&](const uintE& u, const uintE& v) {
-        auto status_u = still_active[u]; auto status_v = still_active[v];
-        if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-        if (status_v == 0) return true; /* higher edge */
-        return rank[u] < rank[v]; /* orient edge within bucket */
-      };
       induced->setup(G, DG, k, vert, ignore_f, still_active);
-      auto update_d = [&](uintE vtx, size_t count) {
-        size_t worker = worker_id();
-        size_t ct = per_processor_counts[worker*n + vtx];
-        per_processor_counts[worker*n + vtx] += count;
-        if (ct == 0) edge_table.insert(std::make_tuple(vtx, true));
-      };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }
   }, granularity, false);
 
-  /* extract the vertices that had their count changed */
+  // Extract all vertices with changed clique counts
   auto changed_vtxs = edge_table.entries();
   edge_table.del();
 
-  /* Aggregate the updated counts across all worker's local arrays, into the
-   * first worker's array. Also zero out the other worker's updated counts. */
+  // Aggregate the updated counts across all worker's local arrays, as specified by update
   parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
     size_t nthreads = num_workers();
     uintE v = std::get<0>(changed_vtxs[i]);
@@ -159,57 +180,72 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
     }
   }, 128);
 
+  // Perform update_changed on each vertex with changed clique counts
   if (do_update_changed) {
-    parallel_for(0, changed_vtxs.size(), [&] (size_t i) { update_changed(per_processor_counts, i, std::get<0>(changed_vtxs[i])); });
+    parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
+      update_changed(per_processor_counts, i, std::get<0>(changed_vtxs[i]));
+    });
   }
 
-  /* mark all as deleted */
+  // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
 
   return changed_vtxs.size();
 }
 
 template <class Graph, class Graph2, class F, class I>
-inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
-  char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, 
+inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool label, F get_active,
+  size_t active_size, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, 
   bool do_update_changed, I update_changed, sequence<uintE>& update_idxs) {
   const size_t n = G.n;
 
+  // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
 
   size_t num_updates = 0;
+
+  // Set up space for clique counting
   HybridSpace_lw* induced = new HybridSpace_lw();
   induced->alloc(max_deg, k, n, label, true);
+
+  // Function that dictates which edges to consider in first level of recursion
+  auto ignore_f = [&](const uintE& u, const uintE& v) {
+    auto status_u = still_active[u]; auto status_v = still_active[v];
+    if (status_u == 2 || status_v == 2) return false; // deleted edge
+    if (status_v == 0) return true; // non-deleted, non-active edge
+    return rank[u] < rank[v]; // orient edges if in active set
+  };
+
+  // Collate clique counts by processor
+  auto update_d = [&](uintE vtx, size_t count) {
+    size_t ct = per_processor_counts[vtx];
+    per_processor_counts[vtx] += count;
+    if (ct == 0) {
+      update_idxs[num_updates] = vtx;
+      num_updates++;
+    }
+  };
+
+  // Clique count updates
   for (size_t i=0; i < active_size; i++) {
     auto vtx = get_active(i);
     if (G.get_vertex(vtx).getOutDegree() != 0) {
-      auto ignore_f = [&](const uintE& u, const uintE& v) {
-        auto status_u = still_active[u]; auto status_v = still_active[v];
-        if (status_u == 2 || status_v == 2) return false; /* deleted edge */
-        if (status_v == 0) return true; /* higher edge */
-        return rank[u] < rank[v]; /* orient edge within bucket */
-      };
       induced->setup(G, DG, k, vtx, ignore_f, still_active);
-      auto update_d = [&](uintE vtx, size_t count) {
-        size_t ct = per_processor_counts[vtx];
-        per_processor_counts[vtx] += count;
-        if (ct == 0) { /* only need bother trying hash table if our count is 0 */
-          update_idxs[num_updates] = vtx;
-          num_updates++;
-        }
-      };
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }
   }
+
+  // Clean up space for clique counting
   if (induced != nullptr) { delete induced; }
 
+  // Perform update_changed on each vertex with changed clique counts
   if (do_update_changed) {
     for (size_t i=0; i < num_updates; i++) {
       update_changed(per_processor_counts, i, update_idxs[i]);
     }
   }
 
-  /* mark all as deleted */
+  // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
 
   return num_updates;
@@ -315,10 +351,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
 
   return D;
 }
-
-
-
-
 
 template <class Graph, class Graph2>
 double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cliques,
