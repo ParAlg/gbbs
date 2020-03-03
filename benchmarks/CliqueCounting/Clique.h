@@ -110,7 +110,8 @@ inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
 }
 
 template <class Graph>
-inline size_t Clique_count(Graph& DG, size_t k, long space_type, bool label, bool use_base, long recursive_level, size_t* per_vert) {
+inline size_t Clique_count(Graph& DG, size_t k, long space_type, bool label, bool use_base, long recursive_level,
+  size_t* per_vert) {
   const size_t n = DG.n;
   size_t count = 0;
   // All vertices should be allowed in cliques
@@ -206,7 +207,8 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     else Peel<uintE>(GA, DG, k-1, per_vert, label, rank);
   } else {
   // Approximate vertex peeling
-    if (max_per_vert >= std::numeric_limits<uintE>::max()) ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
+    if (max_per_vert >= std::numeric_limits<uintE>::max())
+      ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
     else ApproxPeel(GA, DG, k-1, per_vert, count, label, rank, approx_eps);
   }
 

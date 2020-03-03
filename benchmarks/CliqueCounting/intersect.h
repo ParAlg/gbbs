@@ -59,7 +59,6 @@ struct HybridSpace_lw {
     nn = space->nn;
   }
 
-
   template <class Graph, class F>
   void setup(Graph& DG, size_t k, size_t i, F f) {
     if (use_old_labels) setup_labels(DG, DG, k, i, f);
@@ -165,7 +164,6 @@ struct HybridSpace_lw {
       o++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
-  
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -203,54 +201,8 @@ struct HybridSpace_lw {
   }
 
 
-/*
-  // Perform first level recursion for k-clique peeling, using linear space to intersect
-  template <class Graph, class Graph2, class F>
-  void setup_labels(Graph& G, Graph2& DG, size_t k, size_t i, F f) {
-    using W = typename Graph::weight_type;
-    nn = G.get_vertex(i).getOutDegree();
-    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
-    num_induced[0] = nn;
-    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
-    size_t o = 0;
-    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      if (!f(src, ngh)) {o++; return;}
-      old_labels[ngh] = o + 1;
-      if (use_base) { relabel[o] = ngh; }
-      o++;
-    };
-    G.get_vertex(i).mapOutNgh(i, map_label_f, false);
-  
-    size_t j = 0;
-    auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-      if (!f(src, v)) { j++; return; }
-      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (old_labels[v_nbhr] > 0) { //still_active[v_nbhr] != 2 && 
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
-          induced_degs[j]++;
-        }
-      };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-      j++;
-    };
-    G.get_vertex(i).mapOutNgh(i, map_f, false);
-
-    auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      old_labels[ngh] = 0;
-    };
-    G.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
-
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
-    num_edges = pbbslib::reduce_add(deg_seq);
-  }
-*/
-
-
-
-
   template <class Graph, class F>
   void setup_edge(Graph& DG, size_t k, size_t i, size_t l, F f) {
-    //if (use_base) base[0] = i;
     if (use_old_labels) setup_labels_edge(DG, k, i, l, f);
     else setup_intersect_edge(DG, k, i, l, f);
   }
@@ -456,8 +408,7 @@ struct FullSpace_orig_lw {
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
     for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
   
-    //auto induced_g = DG.get_vertex(i).getOutNeighbors();
-    //for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
+
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = o + 1;
@@ -469,8 +420,8 @@ struct FullSpace_orig_lw {
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
 
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (old_labels[v_nbhr] > 0) { //std::get<0>(v_nbhrs[l])
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; //std::get<0>(v_nbhrs[l])
+        if (old_labels[v_nbhr] > 0) { 
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; 
           induced_degs[j]++;
         }
       };
@@ -480,7 +431,6 @@ struct FullSpace_orig_lw {
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
 
-    //for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
     };
