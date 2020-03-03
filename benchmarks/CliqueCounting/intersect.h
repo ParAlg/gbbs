@@ -15,136 +15,27 @@
 
 #define INDUCED_STACK_THR 5000
 
-
-struct InducedSpace_lw {
-  // Array storing size of induced neighbor list, for each level of recursion.
-  uintE* num_induced = nullptr;
-  // Array storing induced neighbor list, for all levels of recursion. Levels go
-  // from i=0 ... k-1. For each i, the induced neighbor list at level i is
-  // induced + num_induced[0]*i (num_induced[0] is an upper-bound on the maximum
-  // number of induced neighbors at any level).
-  uintE* induced = nullptr;
-
-  int* intersect = nullptr;
-  InducedSpace_lw() {}
-
-  void alloc(size_t max_deg, size_t k, size_t n) {
-    if (!induced) induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
-    if (!num_induced) num_induced = (uintE*) malloc(k*sizeof(uintE));
-    if (!intersect) {
-      intersect = (int*) malloc(n*sizeof(int));
-      for (size_t  i=0; i < n; i++) {
-        intersect[i] = 0;
-      }
-    }
-  }
-  void del() {
-    if (induced) { free(induced); induced = nullptr; }
-    if (num_induced) { free(num_induced); num_induced = nullptr; }
-    if (intersect) { free(intersect); intersect = nullptr; }
-  }
-
-  ~InducedSpace_lw() { del(); }
-};
-
-struct FullSpace_orig_lw {
-  uintE* num_induced = nullptr;
-  uintE* induced = nullptr;
-  uintE* num_edges = 0;
-  uintE* induced_edges = nullptr;
-  uintE* induced_degs = nullptr;
-  uintE* labels = nullptr;
-  uintE* old_labels = nullptr;
-  size_t nn = 0;
-
-  FullSpace_orig_lw() {}
-
-  void alloc(size_t max_induced, size_t k, size_t n) {
-    induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
-    induced_degs = (uintE*) malloc(sizeof(uintE)*k*max_induced);
-    labels = (uintE*) malloc(sizeof(uintE)*max_induced);
-    induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
-    num_induced = (uintE*) malloc(sizeof(uintE)*k);
-    num_edges = (uintE*) malloc(sizeof(uintE)*k);
-    if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
-  }
-
-  template <class Graph>
-  void setup(Graph& DG, size_t k, size_t i) {
-    using W = typename Graph::weight_type;
-    num_induced[0] = DG.get_vertex(i).getOutDegree();
-    nn = num_induced[0];
-    
-    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
-    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
-    for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
-  
-    //auto induced_g = DG.get_vertex(i).getOutNeighbors();
-    //for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
-    size_t o = 0;
-    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      old_labels[ngh] = o + 1;
-      o++;
-    };
-    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
-
-    size_t j = 0;
-    auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
-
-      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (old_labels[v_nbhr] > 0) { //std::get<0>(v_nbhrs[l])
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; //std::get<0>(v_nbhrs[l])
-          induced_degs[j]++;
-        }
-      };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
-
-      j++;
-    };
-    DG.get_vertex(i).mapOutNgh(i, map_f, false);
-
-    //for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
-    auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
-      old_labels[ngh] = 0;
-    };
-    DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
-
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
-    num_edges[0] = pbbslib::reduce_add(deg_seq);
-  }
-
-  static void init(){}
-  static void finish(){}
-
-  void del() {
-    if (labels) { free(labels); labels = nullptr; }
-    if (induced) { free(induced); induced = nullptr; }
-    if (induced_edges) { free(induced_edges); induced_edges = nullptr; }
-    if (induced_degs) { free(induced_degs); induced_degs = nullptr; }
-    if (num_edges) { free(num_edges); num_edges = nullptr; }
-    if (num_induced) { free(num_induced); num_induced = nullptr; }
-    if (old_labels) { free(old_labels); old_labels=nullptr; }
-  }
-
-  ~FullSpace_orig_lw() { del(); }
-
-};
-
-
-
 struct HybridSpace_lw {
+  // Number of induced neighbors, per recursive level
   uintE* num_induced = nullptr;
+  // Induced neighbors, per recurisve level
   uintE* induced = nullptr;
+  // Number of edges in induced subgraph on induced neighbors, from first recursive level
   uintE num_edges = 0;
+  // Edges in induced subgraph on induced neighbors, from first recursive level
   uintE* induced_edges = nullptr;
+  // Degrees of each induced neighbor in induced subgrpah, from first recursive level
   uintE* induced_degs = nullptr;
+  // Label each induced neighbor with latest recursive level it was included in
   char* labels = nullptr;
+  // Label each vertex for fast intersect for first recursive level
   uintE* old_labels = nullptr;
+  // Number of vertices
   size_t nn = 0;
-  bool use_old_labels = true;
-  bool free_relabel = true;
-  uintE* relabel = nullptr;
-  bool use_base = false;
+  bool use_old_labels = true; // use label intersect for first recursive level
+  bool free_relabel = true; // if true, take ownership of induced_edges, induced_degs, and relabel
+  uintE* relabel = nullptr; // if counting per vertex, must undo local relabeling for 0 to alpha indices
+  bool use_base = false; // if true, counting per vertex
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
@@ -161,6 +52,7 @@ struct HybridSpace_lw {
   }
   
   void copy(HybridSpace_lw* space) {
+    // Shallow copy
     if (use_base) relabel = space->relabel;
     induced_edges = space->induced_edges;
     induced_degs = space->induced_degs;
@@ -168,58 +60,68 @@ struct HybridSpace_lw {
   }
 
 
-  // f should denote if a vert is active or not
   template <class Graph, class F>
   void setup(Graph& DG, size_t k, size_t i, F f) {
-    //if (use_base) base[0] = i;
-    if (use_old_labels) setup_labels(DG, k, i, f);
-    else setup_intersect(DG, k, i, f);
+    if (use_old_labels) setup_labels(DG, DG, k, i, f);
+    else setup_intersect(DG, DG, k, i, f);
   }
 
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
-    //if (use_base) base[0] = i;
     auto f = [&](const uintE& src, const uintE& u) { return true; };
-    if (use_old_labels) setup_labels(DG, k, i, f);
-    else setup_intersect(DG, k, i, f);
+    if (use_old_labels) setup_labels(DG, DG, k, i, f);
+    else setup_intersect(DG, DG, k, i, f);
   }
 
-  template <class Graph, class F>
-  void setup_intersect(Graph& DG, size_t k, size_t i, F f) {
+  template <class Graph, class Graph2, class F>
+  void setup(Graph& G, Graph2& DG, size_t k, size_t i, F f) {
+    if (use_old_labels) setup_labels(G, DG, k, i, f);
+    else setup_intersect(G, DG, k, i, f);
+  }
+
+  // Perform first level recursion, using space-efficient intersection
+  template <class Graph, class Graph2, class F>
+  void setup_intersect(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
+  
+    // Set up relabeling if counting per vertex
     if (use_base) {
       size_t j = 0;
       auto map_base_f = [&] (const uintE& src, const uintE& v, const W& wgh) { relabel[j] = v; j++;};
       DG.get_vertex(i).mapOutNgh(i, map_base_f, false);
     }
 
+    // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     nn = DG.get_vertex(i).getOutDegree();
-
-    //for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
-  
     num_induced[0] = nn;
-    //for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+      // Return if neighbor v is invalid
       if (!f(src, v)) { j++; return; }
-      size_t v_deg = DG.get_vertex(v).getOutDegree();
-      // intersect v_nbhrs from 0 to v_deg with induced_g from 0 to num_induced[0]
-      // store result in induced_edges[j*nn]
-      // store size in induced_degs[j]
+      // For a neighbor v of i, intersect N(v) with N(i)
+      // These are the edges adjacent to v in the induced neighborhood of i
+      // Note that v is relabeled to j under the relabeling from 0 to degree of i
+      // Store these edges in induced_edges[j*nn]
+      // Store the number of edge (degree) in induced_degs[j]
+      size_t v_deg = DG2.get_vertex(v).getOutDegree();
       auto i_iter = DG.get_vertex(i).getOutIter(i);
-      auto v_iter = DG.get_vertex(v).getOutIter(v);
+      auto v_iter = DG2.get_vertex(v).getOutIter(v);
       size_t i_iter_idx = 0;
       size_t v_iter_idx = 0;
 
       while (i_iter_idx < nn && v_iter_idx < v_deg) {
+        // Check if the neighbors of v and i match
         if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
+          // Check if the edges (i, i_iter.cur()) and (v, v_iter.cur()) are valid
           if (f(i, std::get<0>(i_iter.cur())) && f(v, std::get<0>(i_iter.cur()))) {
+            // Save the neighbor and increment the induced degree on j
             induced_edges[j*nn + induced_degs[j]] = i_iter_idx;
             induced_degs[j]++;
           }
+          // Move to next neighbors
           i_iter_idx++; v_iter_idx++;
           if (i_iter.has_next()) i_iter.next();
           if (v_iter.has_next()) v_iter.next();
@@ -236,25 +138,29 @@ struct HybridSpace_lw {
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
 
+    // Count total number of edges in induced neighborhood
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
-  template <class Graph, class F>
-  void setup_labels(Graph& DG, size_t k, size_t i, F f) {
+  // Perform first level recursion, using linear space to intersect
+  template <class Graph, class Graph2, class F>
+  void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
-    nn = DG.get_vertex(i).getOutDegree();
-    //for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
-    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
   
+    // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
+    nn = DG.get_vertex(i).getOutDegree();
+    parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
-    //for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      // Return if edge is invalid
       if (!f(src, ngh)) {o++; return;}
+      // Set up label for intersection
       old_labels[ngh] = o + 1;
+      // Set up relabeling if counting per vertex
       if (use_base) { relabel[o] = ngh; }
       o++;
     };
@@ -263,38 +169,44 @@ struct HybridSpace_lw {
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+      // Return if neighbor v is invalid
       if (!f(src, v)) { j++; return; }
-      // intersect v_nbhrs from 0 to degree(v) with induced_g from 0 to num_induced[0]
-      // store result in induced_edges[j*nn]
-      // store size in induced_degs[j]
+      // For a neighbor v of i, intersect N(v) with N(i)
+      // These are the edges adjacent to v in the induced neighborhood of i
+      // Note that v is relabeled to j under the relabeling from 0 to degree of i
+      // Store these edges in induced_edges[j*nn]
+      // Store the number of edge (degree) in induced_degs[j]
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        // Check if the two-hop edge (v, v_nbhr) is valid
         if (!f(src_v, v_nbhr)) return;
+        // Check if the neighbor of v is also a valid neighbor of i
         if (old_labels[v_nbhr] > 0) {
+          // Save the neighbor and increment the induced degree on j
           induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
         }
       };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
 
+    // Reset the array used for intersecting
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
     };
     DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
 
+    // Count total number of edges in induced neighborhood
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
-  template <class Graph, class Graph2, class F>
-  void setup(Graph& G, Graph2& DG, size_t k, size_t i, F f, char* still_active) {
-    setup_labels(G, DG, k, i, f, still_active);
-  }
 
+/*
+  // Perform first level recursion for k-clique peeling, using linear space to intersect
   template <class Graph, class Graph2, class F>
-  void setup_labels(Graph& G, Graph2& DG, size_t k, size_t i, F f, char* still_active) {
+  void setup_labels(Graph& G, Graph2& DG, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
     nn = G.get_vertex(i).getOutDegree();
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
@@ -331,7 +243,7 @@ struct HybridSpace_lw {
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
-
+*/
 
 
 
@@ -473,6 +385,125 @@ template <class Graph, class F>
   }
 
   ~HybridSpace_lw() { del(); }
+
+};
+
+
+// The other space types are deprecated
+/****************************************************************************/
+/****************************************************************************/
+
+struct InducedSpace_lw {
+  // Array storing size of induced neighbor list, for each level of recursion.
+  uintE* num_induced = nullptr;
+  // Array storing induced neighbor list, for all levels of recursion. Levels go
+  // from i=0 ... k-1. For each i, the induced neighbor list at level i is
+  // induced + num_induced[0]*i (num_induced[0] is an upper-bound on the maximum
+  // number of induced neighbors at any level).
+  uintE* induced = nullptr;
+
+  int* intersect = nullptr;
+  InducedSpace_lw() {}
+
+  void alloc(size_t max_deg, size_t k, size_t n) {
+    if (!induced) induced = (uintE*) malloc(k*max_deg*sizeof(uintE));
+    if (!num_induced) num_induced = (uintE*) malloc(k*sizeof(uintE));
+    if (!intersect) {
+      intersect = (int*) malloc(n*sizeof(int));
+      for (size_t  i=0; i < n; i++) {
+        intersect[i] = 0;
+      }
+    }
+  }
+  void del() {
+    if (induced) { free(induced); induced = nullptr; }
+    if (num_induced) { free(num_induced); num_induced = nullptr; }
+    if (intersect) { free(intersect); intersect = nullptr; }
+  }
+
+  ~InducedSpace_lw() { del(); }
+};
+
+struct FullSpace_orig_lw {
+  uintE* num_induced = nullptr;
+  uintE* induced = nullptr;
+  uintE* num_edges = 0;
+  uintE* induced_edges = nullptr;
+  uintE* induced_degs = nullptr;
+  uintE* labels = nullptr;
+  uintE* old_labels = nullptr;
+  size_t nn = 0;
+
+  FullSpace_orig_lw() {}
+
+  void alloc(size_t max_induced, size_t k, size_t n) {
+    induced = (uintE*) malloc(sizeof(uintE)*k*max_induced);
+    induced_degs = (uintE*) malloc(sizeof(uintE)*k*max_induced);
+    labels = (uintE*) malloc(sizeof(uintE)*max_induced);
+    induced_edges = (uintE*) malloc(sizeof(uintE)*max_induced*max_induced);
+    num_induced = (uintE*) malloc(sizeof(uintE)*k);
+    num_edges = (uintE*) malloc(sizeof(uintE)*k);
+    if (old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
+  }
+
+  template <class Graph>
+  void setup(Graph& DG, size_t k, size_t i) {
+    using W = typename Graph::weight_type;
+    num_induced[0] = DG.get_vertex(i).getOutDegree();
+    nn = num_induced[0];
+    
+    for (size_t  j=0; j < nn; j++) { induced[j] = j; }
+    for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
+    for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
+  
+    //auto induced_g = DG.get_vertex(i).getOutNeighbors();
+    //for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = o + 1; }
+    size_t o = 0;
+    auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      old_labels[ngh] = o + 1;
+      o++;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
+
+    size_t j = 0;
+    auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
+
+      auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
+        if (old_labels[v_nbhr] > 0) { //std::get<0>(v_nbhrs[l])
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; //std::get<0>(v_nbhrs[l])
+          induced_degs[j]++;
+        }
+      };
+      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+
+      j++;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_f, false);
+
+    //for (size_t o=0; o < num_induced[0]; o++) { old_labels[std::get<0>(induced_g[o])] = 0; }
+    auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      old_labels[ngh] = 0;
+    };
+    DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
+
+    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    num_edges[0] = pbbslib::reduce_add(deg_seq);
+  }
+
+  static void init(){}
+  static void finish(){}
+
+  void del() {
+    if (labels) { free(labels); labels = nullptr; }
+    if (induced) { free(induced); induced = nullptr; }
+    if (induced_edges) { free(induced_edges); induced_edges = nullptr; }
+    if (induced_degs) { free(induced_degs); induced_degs = nullptr; }
+    if (num_edges) { free(num_edges); num_edges = nullptr; }
+    if (num_induced) { free(num_induced); num_induced = nullptr; }
+    if (old_labels) { free(old_labels); old_labels=nullptr; }
+  }
+
+  ~FullSpace_orig_lw() { del(); }
 
 };
 

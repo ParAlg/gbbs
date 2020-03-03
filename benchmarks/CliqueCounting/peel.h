@@ -162,7 +162,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
                                      [&](size_t i, HybridSpace_lw* induced) {
     auto vert = get_active(i);
     if (G.get_vertex(vert).getOutDegree() != 0) {
-      induced->setup(G, DG, k, vert, ignore_f, still_active);
+      induced->setup(G, DG, k, vert, ignore_f);
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }
   }, granularity, false);
@@ -230,7 +230,7 @@ inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k, size_t max_deg
   for (size_t i=0; i < active_size; i++) {
     auto vtx = get_active(i);
     if (G.get_vertex(vtx).getOutDegree() != 0) {
-      induced->setup(G, DG, k, vtx, ignore_f, still_active);
+      induced->setup(G, DG, k, vtx, ignore_f);
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }
   }
