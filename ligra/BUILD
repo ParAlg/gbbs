@@ -127,6 +127,7 @@ cc_library(
   ":macros",
   ":undirected_edge",
   ":vertex",
+  "//pbbslib:sample_sort",
   "//pbbslib:utilities",
   ]
 )
