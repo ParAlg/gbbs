@@ -26,6 +26,7 @@
 #include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
+// This `intersection` namespace is intended for internal use only.
 namespace intersection {
 
 template <template <typename W> class vertex, class W>
@@ -487,17 +488,37 @@ struct symmetric_vertex {
     return vertex_ops::get_iter(getOutNeighbors(), getOutDegree());
   }
 
+  // Computes the number of neighbors that this vertex and vertex `other`
+  // shares.
+  //
+  // This function will only return correct results if the neighbor lists of
+  // `this` and `other` are both sorted in ascending order. This condition does
+  // not necessarily hold for all graphs.
+  //
+  // `our_id` must be the ID of `this`.
+  // `other` is the vertex to intersect with, and `other_id` must be its ID.
   inline size_t intersect(symmetric_vertex<W>* other, long our_id,
                           long other_id) {
     return intersection::intersect(this, other, our_id, other_id);
   }
 
+  // Same as `intersect`, but runs `f(our_id, other_id, shared_neighbor_id)` for
+  // each shared neighbor between the two vertices.
+  //
+  // This function will only return correct results if the neighbor lists of
+  // `this` and `other` are both sorted in ascending order. This condition does
+  // not necessarily hold for all graphs.
   template <class F>
   inline size_t intersect_f(symmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
     return intersection::intersect_f(this, other, our_id, other_id, f);
   }
 
+  // Parallel version of `intersect_f`.
+  //
+  // This function will only return correct results if the neighbor lists of
+  // `this` and `other` are both sorted in ascending order. This condition does
+  // not necessarily hold for all graphs.
   template <class F>
   inline size_t intersect_f_par(symmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
@@ -752,17 +773,20 @@ struct asymmetric_vertex {
     return vertex_ops::get_iter(getOutNeighbors(), getOutDegree());
   }
 
+  // See comment for `symmetric_vertex::intersect`.
   inline size_t intersect(asymmetric_vertex<W>* other, long our_id,
                           long other_id) {
     return intersection::intersect(this, other, our_id, other_id);
   }
 
+  // See comment for `symmetric_vertex::intersect_f`.
   template <class F>
   inline size_t intersect_f(asymmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
     return intersection::intersect_f(this, other, our_id, other_id, f);
   }
 
+  // See comment for `symmetric_vertex::intersect_f_par`.
   template <class F>
   inline size_t intersect_f_par(asymmetric_vertex<W>* other, long our_id,
                             long other_id, const F& f) {
