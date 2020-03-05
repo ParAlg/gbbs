@@ -28,7 +28,8 @@
 // Prints out enum value and terminates the program.
 //
 // This is intended for use after a switch statement on an enum that handles all
-// possible enum cases by returning. Annoyingly, GCC can complain about this.
+// possible enum cases by returning. Using this macro will stop GCC's
+// -Wreturn-type flag from issuing a warning about this situation.
 // Example:
 //     enum class OneOrTwo { kOne, kTwo };
 //
@@ -41,6 +42,8 @@
 //       }
 //       // If we didn't put this ABORT statement below, GCC would complain:
 //       //   warning: control reaches end of non-void function [-Wreturn-type]
+//       // We shouldn't reach this point unless someone makes a weird function
+//       // call like `ReturnOneOrTwo(static_cast<OneOrTwo>(3))`.
 //       ABORT_INVALID_ENUM(OneOrTwo, one_or_two)
 //     }
 #define ABORT_INVALID_ENUM(EnumType, enum_value) \
