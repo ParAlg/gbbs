@@ -25,6 +25,28 @@
     std::terminate(); \
   } while (false)
 
+// Prints out enum value and terminates the program.
+//
+// This is intended for use after a switch statement on an enum that handles all
+// possible enum cases by returning. Annoyingly, GCC can complain about this.
+// Example:
+//     enum class OneOrTwo { kOne, kTwo };
+//
+//     int ReturnOneOrTwo(OneOrTwo one_or_two) {
+//       switch (one_or_two) {
+//         case OneOrTwo::kOne:
+//           return 1;
+//         case OneOrTwo::kTwo:
+//           return 2;
+//       }
+//       // If we didn't put this ABORT statement below, GCC would complain:
+//       //   warning: control reaches end of non-void function [-Wreturn-type]
+//       ABORT_INVALID_ENUM(OneOrTwo, one_or_two)
+//     }
+#define ABORT_INVALID_ENUM(EnumType, enum_value) \
+  ABORT("Unexpected " #EnumType " value: " << \
+      static_cast<typename std::underlying_type<EnumType>::type>(enum_value));
+
 // Asserts on a condition, printing an error and terminating if the condition is
 // false.
 //
