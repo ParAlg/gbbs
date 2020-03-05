@@ -2,6 +2,7 @@
 
 #include <tuple>
 
+#include "pbbslib/assert.h"
 #include "pbbslib/sample_sort.h"
 
 namespace graph_test {
@@ -44,6 +45,7 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
       return sym_graph_from_edges(edge_sequence, num_vertices);
     }
   }
+  ABORT_INVALID_ENUM(ShouldSortNeighbors, should_sort_neighbors);
 }
 
 }  // namespace graph_test
