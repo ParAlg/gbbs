@@ -100,7 +100,7 @@ Bazel configuration `--config=serial`.
 
 After setting the necessary environment variables:
 ```sh
-$ bazel build --compilation_mode opt //...  #compiles the benchmark
+$ bazel build --compilation_mode opt //...  # compiles all benchmarks
 ```
 
 The following commands cleans the directory:
@@ -115,8 +115,8 @@ flag "-s" to indicate a symmetric graph.  Symmetric graphs should be
 called with the "-s" flag for better performance. For example:
 
 ```sh
-$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
-$ bazel run //benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
+$ bazel run --compilation_mode opt ///benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
+$ bazel run --compilation_mode opt ///benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
 ```
 
 Note that the codes that compute single-source shortest paths (or centrality)
@@ -140,8 +140,8 @@ provided a converter utility which takes as input an uncompressed graph and
 outputs a bytePDA graph. The converter can be used as follows:
 
 ```sh
-bazel run //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
-bazel run //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
+bazel run --compilation_mode opt //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
+bazel run --compilation_mode opt //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
 ```
 
 After an uncompressed graph has been converted to the bytepda format,
@@ -149,7 +149,7 @@ applications can be run on it by passing in the usual command-line flags, with
 an additional `-c` flag.
 
 ```sh
-$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
+$ bazel run --compilation_mode opt //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
 ```
 
 When processing large compressed graphs, using the `-m` command-line flag can
