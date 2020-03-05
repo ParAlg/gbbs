@@ -3,6 +3,7 @@ cc_test(
     srcs = ["graph_test.cc"],
     deps = [
         "//ligra:graph",
+        "//ligra:graph_test_utils",
         "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
