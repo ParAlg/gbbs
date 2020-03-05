@@ -30,3 +30,9 @@ bool UndirectedEdge::operator!=(const UndirectedEdge& other) const {
 const std::pair<uintE, uintE>& UndirectedEdge::endpoints() const {
   return edge_;
 }
+
+std::ostream& operator<<(std::ostream& os, const UndirectedEdge& edge) {
+  const std::pair<uintE, uintE>& endpoints{edge.endpoints()};
+  os<< "{" << endpoints.first << ", " << endpoints.second << "}";
+  return os;
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <utility>
 
 #include "ligra/macros.h"
@@ -37,3 +38,5 @@ class UndirectedEdge {
 
   std::pair<uintE, uintE> edge_;
 };
+
+std::ostream& operator<<(std::ostream& os, const UndirectedEdge&);
