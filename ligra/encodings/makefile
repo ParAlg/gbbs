@@ -6,12 +6,10 @@ ALL= byte.o byte_pd_amortized.o
 
 all: $(ALL)
 
-LIGRA_OBJS = $(wildcard ../*.o)
-
-byte.o : byte.cc $(LIGRA_OBJS)
+byte.o : byte.cc
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
-byte_pd_amortized.o : byte_pd_amortized.cc $(LIGRA_OBJS)
+byte_pd_amortized.o : byte_pd_amortized.cc
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
 .PHONY : clean
