@@ -61,6 +61,7 @@ cc_library(
 cc_library(
   name = "edge_map_blocked",
   hdrs = ["edge_map_blocked.h"],
+  srcs = ["edge_map_blocked.cc"],
   deps = [
   ":bridge",
   ":edge_map_utils",

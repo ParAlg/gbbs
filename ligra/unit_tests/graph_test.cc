@@ -36,6 +36,23 @@ TEST(TestSymGraphFromEdges, TestBrokenPath) {
   ASSERT_EQ(G.get_vertex(10).getOutDegree(), 3);
 }
 
+TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
+  // Graph diagram:
+  // 0 -- 1    2    3
+  using edge = std::tuple<uintE, uintE, int>;
+  const uintE n = 4;
+  pbbs::sequence<edge> edges(2);
+  edges[0] = std::make_tuple(0, 1, 1);
+  edges[1] = std::make_tuple(1, 0, 1);
+  auto graph = sym_graph_from_edges(edges, n);
+
+  ASSERT_EQ(graph.n, n);
+  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+}
+
 TEST(symmetric_vertex, Intersect) {
   using Vertex = symmetric_vertex<pbbs::empty>;
 
