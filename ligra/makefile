@@ -1,25 +1,25 @@
 include ../makefile.variables
 
-ALL= bridge.o graph.o graph_io.o io.o ligra.o parse_command_line.o undirected_edge.o union_find.o
+INCLUDE_DIRS = -I../
+
+ALL= bridge.o edge_map_blocked.o graph.o graph_io.o io.o ligra.o parse_command_line.o undirected_edge.o union_find.o
 
 all: $(ALL)
 
-.PHONY : clean pbbslib
+edge_map_blocked.o : edge_map_blocked.cc bridge.o graph.o
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
-pbbslib:
-	make -C ../pbbslib/
+graph_io.o : graph_io.cc graph.o io.o
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
-graph_io.o : graph_io.cc graph.o io.o pbbslib
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+graph.o : graph.cc bridge.o
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
-graph.o : graph.cc bridge.o pbbslib
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+ligra.o : ligra.cc bridge.o graph.o graph_io.o parse_command_line.o
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
-ligra.o : ligra.cc bridge.o graph.o graph_io.o parse_command_line.o pbbslib
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
-
-%.o : %.cc pbbslib
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+%.o : %.cc
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
 
 .PHONY : clean
 

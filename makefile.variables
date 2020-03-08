@@ -13,11 +13,9 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-INCLUDE_DIRS = -I../
-
 OPT = -O3 -g -DNDEBUG
 
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
+CFLAGS = -mcx16 -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
