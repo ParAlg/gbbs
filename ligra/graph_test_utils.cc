@@ -38,8 +38,8 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
             return std::tie(std::get<0>(left), std::get<1>(left))
               < std::tie(std::get<0>(right), std::get<1>(right));
           });
-      const bool edges_are_sorted{true};
-      return sym_graph_from_edges(edge_sequence, num_vertices, edges_are_sorted);
+      constexpr bool kEdgesAreSorted{true};
+      return sym_graph_from_edges(edge_sequence, num_vertices, kEdgesAreSorted);
     }
     case ShouldSortNeighbors::kNo: {
       return sym_graph_from_edges(edge_sequence, num_vertices);
