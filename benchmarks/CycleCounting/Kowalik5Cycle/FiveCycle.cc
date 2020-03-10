@@ -21,4 +21,4 @@ double Count5Cycle_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(Count5Cycle_runner, false);
+generate_symmetric_main(Count5Cycle_runner, false);

@@ -3,8 +3,11 @@ cc_library(
   hdrs = ["FiveCycle.h"],
   deps = [
   "//ligra:ligra",
-  "//pbbslib:random_shuffle"
+  "//pbbslib:random_shuffle",
   "//pbbslib:sample_sort",
+  "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
+  "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
+  "//benchmarks/KCore/JulienneDBS17:KCore"
   ]
 )
 
