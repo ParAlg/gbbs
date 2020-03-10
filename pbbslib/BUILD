@@ -205,6 +205,7 @@ cc_library(
   name = "list_allocator",
   hdrs = ["list_allocator.h"],
   deps = [
+  ":alloc",
   ":utilities",
   ":concurrent_stack",
   ":random_shuffle",

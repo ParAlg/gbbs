@@ -13,11 +13,9 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-INCLUDE_DIRS = -I../../../
-
 OPT = -O3 -g -DNDEBUG
 
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+CFLAGS = -mcx16 -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -33,24 +31,12 @@ else ifdef OPENMP
 CC = g++
 PFLAGS = $(OMPFLAGS)
 else ifdef HOMEGROWN
-CC = g++-7
+CC = g++
 PFLAGS = $(HGFLAGS)
 else ifdef SERIAL
 CC = g++
 PFLAGS =
 else # default is homegrown
-CC = g++-7
+CC = g++
 PFLAGS = $(HGFLAGS)
 endif
-
-ALL= Clique
-
-all: $(ALL)
-
-% : %.cc
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
-
-.PHONY : clean
-
-clean :
-	rm -f *.o $(ALL)

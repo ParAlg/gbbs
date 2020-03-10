@@ -64,12 +64,12 @@ If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 Compilation
 --------
 
-* g++ &gt;= 5.3.0 with support for Cilk Plus
-* g++ &gt;= 5.3.0 with pthread support (Homemade Scheduler)
+* g++ &gt;= 7.4.0 with support for Cilk Plus
+* g++ &gt;= 7.4.0 with pthread support (Homemade Scheduler)
 
-The default compilation uses Cilk Plus. We also support a lightweight scheduler
-developed at CMU (Homemade), which results in comparable performance to Cilk.
-The half-lengths for certain functions such as histogramming are lower using
+The default compilation uses a lightweight scheduler developed at CMU (Homemade)
+for parallelism, which results in comparable performance to Cilk Plus. The
+half-lengths for certain functions such as histogramming are lower using
 Homemade, which results in better performance for codes like KCore.
 
 Note: The Homemade scheduler was developed after our paper submission. For
@@ -88,8 +88,10 @@ parameter should be set. If the graph has more than 2^32 vertices, the
 been tested with more than 2^32 vertices, so if any issues arise please contact
 [Laxman Dhulipala](mailto:ldhulipa@cs.cmu.edu).
 
-To compile using the Homemade scheduler the `HOMEMADE` command-line parameter
-should be set. If it is unset, the Cilk Plus scheduler is used by default.
+To compile with the Cilk Plus scheduler instead of the Homegrown scheduler, use
+the Bazel configuration `--config=cilk`. To compile using OpenMP instead, use
+the Bazel configuration `--config=openmp`. To compile serially instead, use the
+Bazel configuration `--config=serial`.
 
 After setting the necessary environment variables:
 ```
