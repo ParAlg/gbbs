@@ -52,6 +52,60 @@ void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
 }
 
 
+
+template <class Graph, class Graph2, class F, class I>
+inline size_t triUpdate_serial(Graph& G, Graph2& DG, F get_active,
+  size_t active_size, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, 
+  bool do_update_changed, I update_changed, sequence<uintE>& update_idxs) {
+  using W = typename Graph::weight_type;
+
+  // Mark every vertex in the active set
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
+
+  size_t num_updates = 0;
+
+  // Function that dictates which edges to consider in first level of recursion
+  auto ignore_f = [&](const uintE& u, const uintE& v) {
+    auto status_u = still_active[u]; auto status_v = still_active[v];
+    if (status_u == 2 || status_v == 2) return false; // deleted edge
+    if (status_v == 0) return true; // non-deleted, non-active edge
+    return rank[u] < rank[v]; // orient edges if in active set
+  };
+
+  // Collate triangle counts by processor
+  auto update_d = [&](uintE vtx, size_t count) {
+    size_t ct = per_processor_counts[vtx];
+    per_processor_counts[vtx] += count;
+    if (ct == 0) {
+      update_idxs[num_updates] = vtx;
+      num_updates++;
+    }
+  };
+
+  // Triangle count updates
+  for (size_t i=0; i < active_size; i++) {
+    auto j = get_active(i);
+    // For each neighbor v of active vertex j = u, intersect N(v) with N(j)
+    auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
+    };
+    G.get_vertex(j).mapOutNgh(j, map_label_f, false);
+  };
+
+  // Perform update_changed on each vertex with changed triangle counts
+  if (do_update_changed) {
+    for (size_t i=0; i < num_updates; i++) {
+      update_changed(per_processor_counts, i, update_idxs[i]);
+    }
+  }
+
+  // Mark every vertex in the active set as deleted
+  parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 2;}, 2048);
+
+  return num_updates;
+}
+
+
 template <class Graph, class Graph2, class F, class H, class I>
 inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, size_t granularity, char* still_active, 
   sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update, bool do_update_changed, I update_changed) {
@@ -292,7 +346,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
 
     size_t filter_size = 0;
 
-    if (active.size() > 1 || k == 2) {
+    if (active.size() > 1) {
       auto update_changed = [&](sequence<size_t>& ppc, size_t i, uintE v){
         /* Update the clique count for v, and zero out first worker's count */
         cliques[v] -= ppc[v];
@@ -322,7 +376,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
           filter_size_serial++;
         }
       };
-      cliqueUpdate_serial(G, DG, k, max_deg, label, get_active, active.size(), still_active, rank, per_processor_counts, true, update_changed_serial, update_idxs);
+      if (k == 2) triUpdate_serial(G, DG, get_active, active.size(), still_active, rank, per_processor_counts, true, update_changed_serial, update_idxs);
+      else cliqueUpdate_serial(G, DG, k, max_deg, label, get_active, active.size(), still_active, rank, per_processor_counts, true, update_changed_serial, update_idxs);
       filter_size = filter_size_serial;
     }
 
