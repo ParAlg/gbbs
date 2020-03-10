@@ -322,6 +322,9 @@ void alloc_init(Graph& G) {
   data_block_allocator::print_stats();
 }
 
+// Call this to clean up at the end of a program that invokes `alloc_init`.
+void alloc_finish();
+
 template <class data  /* data associated with vertices in the output vertex_subset */,
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,

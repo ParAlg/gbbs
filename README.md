@@ -65,8 +65,8 @@ Compilation
 --------
 
 Compiler:
-* g++ &gt;= 5.3.0 with support for Cilk Plus
-* g++ &gt;= 5.3.0 with pthread support (Homemade Scheduler)
+* g++ &gt;= 7.4.0 with support for Cilk Plus
+* g++ &gt;= 7.4.0 with pthread support (Homemade Scheduler)
 
 Build system:
 * [Bazel](https://docs.bazel.build/versions/master/install.html) 2.1.0

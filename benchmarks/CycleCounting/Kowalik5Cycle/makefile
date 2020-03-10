@@ -13,28 +13,42 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-INCLUDE_DIRS = -I../../
+INCLUDE_DIRS = -I../../../
 
 OPT = -O3 -g -DNDEBUG
 
-GOOGLE_TEST = -lgtest -lgtest_main
-
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -Wall -I -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
+CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++1z -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
 HGFLAGS = -DHOMEGROWN -pthread
 
-# compile serially for tests
-CC = g++-7
+ifdef CLANG
+CC = clang++
+PFLAGS = $(CILKFLAGS)
+else ifdef CILK
+CC = g++
+PFLAGS = $(CILKFLAGS)
+else ifdef OPENMP
+CC = g++
+PFLAGS = $(OMPFLAGS)
+else ifdef HOMEGROWN
+CC = g++
+PFLAGS = $(HGFLAGS)
+else ifdef SERIAL
+CC = g++
 PFLAGS =
+else # default is homegrown
+CC = g++
+PFLAGS = $(HGFLAGS)
+endif
 
-ALL=graph_test
+ALL=FiveCycle
 
 all: $(ALL)
 
 % : %.cc
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $< $(GOOGLE_TEST)
+	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
 
 .PHONY : clean
 

@@ -405,6 +405,7 @@ inline auto get_pcm_state() { return (size_t)1; }
         run_app(G_coo, APP, rounds)                                            \
       }                                                                        \
     }                                                                          \
+    alloc_finish();                                                            \
   }
 
 /* Macro to generate binary for graph applications that read a graph (either
@@ -451,6 +452,7 @@ inline auto get_pcm_state() { return (size_t)1; }
         run_app(G_coo, APP, 1)                                                 \
       }                                                                        \
     }                                                                          \
+    alloc_finish();                                                            \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest only
@@ -491,6 +493,7 @@ inline auto get_pcm_state() { return (size_t)1; }
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     }                                                                          \
+    alloc_finish();                                                            \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest only
@@ -520,6 +523,7 @@ inline auto get_pcm_state() { return (size_t)1; }
         alloc_init(G);                                                         \
         run_app(G, APP, rounds)                                                \
     }                                                                          \
+    alloc_finish();                                                            \
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest only
@@ -548,6 +552,7 @@ inline auto get_pcm_state() { return (size_t)1; }
         alloc_init(G);                                                         \
         run_app(G, APP, 1)                                                     \
     }                                                                          \
+    alloc_finish();                                                            \
   }
 
 /* Macro to generate binary for weighted graph applications that can ingest
@@ -588,6 +593,7 @@ inline auto get_pcm_state() { return (size_t)1; }
         run_app(G, APP, rounds)                                                \
       }                                                                        \
     }                                                                          \
+    alloc_finish();                                                            \
   }
 
 /* Macro to generate binary for weighted graph applications that can ingest
@@ -615,4 +621,5 @@ inline auto get_pcm_state() { return (size_t)1; }
       alloc_init(G);                                                           \
       run_app(G, APP, rounds)                                                  \
     }                                                                          \
+    alloc_finish();                                                            \
   }

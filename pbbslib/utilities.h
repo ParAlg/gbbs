@@ -43,22 +43,6 @@ static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
   }
 }
 
-#if defined(__APPLE__)
-inline void* aligned_alloc(size_t a, size_t n) { return malloc(n); }
-#else
-#ifdef USEMALLOC
-#include <malloc.h>
-struct __mallopt {
-  __mallopt() {
-    mallopt(M_MMAP_MAX, 0);
-    mallopt(M_TRIM_THRESHOLD, -1);
-  }
-};
-
-__mallopt __mallopt_var;
-#endif
-#endif
-
 namespace pbbs {
 
 struct empty {};
@@ -129,6 +113,15 @@ inline uint64_t hash64_2(uint64_t x) {
   x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
   x = x ^ (x >> 31);
   return x;
+}
+
+// Combines two hash values.
+inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
+  // This is the same as boost's 32-bit `hash_combine` implementation, but with
+  // 2 ^ 64 / (golden ratio) chosen as an arbitrary 64-bit additive magic number
+  // rather than 2 ^ 32 / (golden ratio).
+  return hash_value_1 ^ (hash_value_2 + 0x9e3779b97f4a7c15 + (hash_value_1 << 6)
+      + (hash_value_1 >> 2));
 }
 
 // Does not initialize the array

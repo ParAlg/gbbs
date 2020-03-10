@@ -63,7 +63,7 @@
 // overloading macros by number of arguments.
 // If we need to do this kind of overloading more often, consider
 // importing Boost and replacing this macro with BOOST_PP_OVERLOAD.
-#define _GET_MACRO(_1,_2,NAME,...) NAME
+#define _GET_MACRO(_1, _2, NAME, ...) NAME
 
 // Implementation of ASSERT with one argument.
 #define _ASSERT1(condition) \

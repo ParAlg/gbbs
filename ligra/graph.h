@@ -392,7 +392,9 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
       }
     }
     if (i == (m-1)) { /* last edge */
-      starts[get_u(A[i]) + 1] = m;
+      par_for(get_u(A[i]) + 1, starts.size(), [&](size_t j) {
+        starts[j] = m;
+      });
     }
     return std::make_tuple(get_v(A[i]), get_w(A[i]));
   });
