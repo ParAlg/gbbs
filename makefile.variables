@@ -40,3 +40,6 @@ else # default is homegrown
 CC = g++
 PFLAGS = $(HGFLAGS)
 endif
+
+# git root directory
+ROOTDIR = $(strip $(shell git rev-parse --show-cdup))

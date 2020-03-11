@@ -1,0 +1,28 @@
+INCLUDE_DIRS = -I$(ROOTDIR)
+
+all: $(ALL)
+
+LIGRA_OBJS = $(wildcard $(ROOTDIR)bin/ligra/*.o)
+LIGRA_ENCODING_OBJS = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.o)
+PBBSLIB_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/*.o)
+PBBSLIB_STRINGS_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.o)
+
+ligra : 
+	make -C $(ROOTDIR)ligra/
+
+pbbslib : 
+	make -C $(ROOTDIR)pbbslib/
+
+ligra_encodings : 
+	make -C $(ROOTDIR)ligra/encodings/
+
+pbbslib_strings :
+	make -C $(ROOTDIR)pbbslib/strings/
+
+% : %.cc pbbslib ligra ligra_encodings pbbslib_strings
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS)
+
+.PHONY : clean
+
+clean :
+	rm -f *.o $(ALL) $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS)
