@@ -23,7 +23,7 @@ ligra_encodings :
 pbbslib_strings :
 	make -C ../../pbbslib/strings/
 
-% : %.cc ligra pbbslib ligra_encodings pbbslib_strings
+% : %.cc pbbslib ligra ligra_encodings pbbslib_strings
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS)
 
 .PHONY : clean
