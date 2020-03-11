@@ -10,4 +10,4 @@ experimental
 cplib.sh
 
 # bazel generated files
-bazel-*
+/bazel-*
