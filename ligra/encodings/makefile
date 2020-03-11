@@ -2,15 +2,17 @@ include ../../makefile.variables
 
 INCLUDE_DIRS = -I../../
 
-ALL= byte.o byte_pd_amortized.o
+OBJDIR = ../../bin/ligra/encodings
+
+ALL= $(addprefix $(OBJDIR)/, byte.o byte_pd_amortized.o)
 
 all: $(ALL)
 
-byte.o : byte.cc
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/byte.o : byte.cc
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-byte_pd_amortized.o : byte_pd_amortized.cc
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/byte_pd_amortized.o : byte_pd_amortized.cc
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 .PHONY : clean
 

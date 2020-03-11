@@ -2,24 +2,26 @@ include ../makefile.variables
 
 INCLUDE_DIRS = -I../
 
-ALL= bridge.o edge_map_blocked.o graph.o graph_io.o io.o ligra.o parse_command_line.o undirected_edge.o union_find.o
+OBJDIR = ../bin/ligra
+
+ALL= $(addprefix $(OBJDIR)/, bridge.o edge_map_blocked.o graph.o graph_io.o io.o ligra.o parse_command_line.o undirected_edge.o union_find.o)
 
 all: $(ALL)
 
-edge_map_blocked.o : edge_map_blocked.cc bridge.o graph.o
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/edge_map_blocked.o : edge_map_blocked.cc $(addprefix $(OBJDIR)/, bridge.o graph.o)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-graph_io.o : graph_io.cc graph.o io.o
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/graph_io.o : graph_io.cc $(addprefix $(OBJDIR)/, graph.o io.o)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-graph.o : graph.cc bridge.o
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/graph.o : graph.cc $(addprefix $(OBJDIR)/, bridge.o)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-ligra.o : ligra.cc bridge.o graph.o graph_io.o parse_command_line.o
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/ligra.o : ligra.cc $(addprefix $(OBJDIR)/, bridge.o graph.o graph_io.o parse_command_line.o)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-%.o : %.cc
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/%.o : %.cc
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 .PHONY : clean
 

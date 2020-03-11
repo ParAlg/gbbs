@@ -1,11 +1,11 @@
 include ../../makefile.variables
 
-ALL= string_basics.o
+ALL= ../../bin/pbbslib/strings/string_basics.o
 
 all: $(ALL)
 
-string_basics.o : string_basics.cc
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+../../bin/pbbslib/strings/string_basics.o : string_basics.cc
+	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 .PHONY : clean
 

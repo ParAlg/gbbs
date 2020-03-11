@@ -1,20 +1,22 @@
 include ../makefile.variables
 
-ALL= alloc.o get_time.o memory_size.o parallel.o scheduler.o time_operations.o utilities.o
+OBJDIR = ../bin/pbbslib
+
+ALL= $(addprefix $(OBJDIR)/, alloc.o get_time.o memory_size.o parallel.o scheduler.o time_operations.o utilities.o)
 
 all: $(ALL)
 
-time_operations.o : time_operations.cc get_time.o utilities.o
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/time_operations.o : time_operations.cc $(addprefix $(OBJDIR)/, get_time.o utilities.o)
+	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-utilities.o : utilities.cc parallel.o
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/utilities.o : utilities.cc $(addprefix $(OBJDIR)/, parallel.o)
+	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-alloc.o : alloc.cc memory_size.o parallel.o
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/alloc.o : alloc.cc $(addprefix $(OBJDIR)/, memory_size.o parallel.o)
+	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-%.o : %.cc
-	$(CC) $(CFLAGS) $(PFLAGS) -c $<
+$(OBJDIR)/%.o : %.cc
+	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 .PHONY : clean
 
