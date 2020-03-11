@@ -9,8 +9,6 @@
 #include <stdlib.h>
 #include <cmath>
 
-using namespace std;
-
 // Provides utilities for converting between different compressed
 // representations.
 
@@ -18,7 +16,7 @@ namespace encodings {
 namespace bytepd_amortized {
 
   template <class Graph>
-  void write_graph_bytepd_amortized_directed(Graph& GA, ofstream& out) {
+  void write_graph_bytepd_amortized_directed(Graph& GA, std::ofstream& out) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -159,7 +157,7 @@ namespace bytepd_amortized {
   }
 
   template <class Graph>
-  void write_graph_bytepd_amortized_format(Graph& GA, ofstream& out, bool symmetric) {
+  void write_graph_bytepd_amortized_format(Graph& GA, std::ofstream& out, bool symmetric) {
     using W = typename Graph::weight_type;
     if (!symmetric) {
       write_graph_bytepd_amortized_directed(GA, out);
@@ -411,7 +409,7 @@ double converter(Graph& GA, commandLine P) {
     std::cout << "Please specify an output file" << std::endl;
     exit(0);
   }
-  ofstream out(outfile.c_str(), ofstream::out | ios::binary);
+  std::ofstream out(outfile.c_str(), std::ofstream::out | std::ios::binary);
   auto encoding = P.getOptionValue("-enc", "bytepd-amortized");
 
   if (encoding == "bytepd-amortized") {

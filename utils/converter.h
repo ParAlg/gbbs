@@ -9,8 +9,6 @@
 
 #include "to_char_arr.h"
 
-using namespace std;
-
 // Provides utilities for converting between different compressed
 // representations.
 constexpr int max_weight = 32;
@@ -18,7 +16,7 @@ size_t PAR_DEGREE_TWO = 1000;
 
 namespace byte {
   template <class Graph>
-  void write_graph_byte_format(Graph& GA, ofstream& out, bool symmetric) {
+  void write_graph_byte_format(Graph& GA, std::ofstream& out, bool symmetric) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -85,7 +83,7 @@ namespace byte {
 namespace bytepd_amortized {
 
   template <class Graph>
-  void write_graph_bytepd_amortized_directed(Graph& GA, ofstream& out) {
+  void write_graph_bytepd_amortized_directed(Graph& GA, std::ofstream& out) {
     size_t n = GA.n;
     using W = typename Graph::weight_type;
 
@@ -226,7 +224,7 @@ namespace bytepd_amortized {
   }
 
   template <class Graph>
-  void write_graph_bytepd_amortized_format(Graph& GA, ofstream& out, bool symmetric, size_t n_batches = 6) {
+  void write_graph_bytepd_amortized_format(Graph& GA, std::ofstream& out, bool symmetric, size_t n_batches = 6) {
     if (!symmetric) {
       write_graph_bytepd_amortized_directed(GA, out);
       return;
@@ -474,7 +472,7 @@ namespace bytepd_amortized {
   }
 
   template <class Graph>
-  void degree_reorder(Graph& GA, ofstream& out, bool symmetric, size_t n_batches = 6) {
+  void degree_reorder(Graph& GA, std::ofstream& out, bool symmetric, size_t n_batches = 6) {
     if (!symmetric) {
       assert(false);
       exit(0);
@@ -663,7 +661,7 @@ namespace bytepd_amortized {
 namespace binary_format {
 
   template <class Graph>
-  void write_graph_binary_format(Graph& GA, ofstream& out, size_t n_batches=4) {
+  void write_graph_binary_format(Graph& GA, std::ofstream& out, size_t n_batches=4) {
     size_t n = GA.n; size_t m = GA.m;
     using W = typename Graph::weight_type;
     using edge_type = std::tuple<uintE, W>;
@@ -729,7 +727,7 @@ namespace binary_format {
 }; // namespace binary_format
 
 template <class Graph>
-void edgearray(Graph& GA, ofstream& out) {
+void edgearray(Graph& GA, std::ofstream& out) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
   size_t m = GA.m;
@@ -764,7 +762,7 @@ auto converter(Graph& GA, commandLine P) {
     std::cout << "# specify a valid outfile" << std::endl;
     exit(0);
   }
-  ofstream out(outfile.c_str(), ofstream::out | ios::binary);
+  std::ofstream out(outfile.c_str(), std::ofstream::out | std::ios::binary);
   auto encoding = P.getOptionValue("-enc", "byte");
 
   PAR_DEGREE_TWO = P.getOptionLongValue("-bs", 256);
