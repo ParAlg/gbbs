@@ -1,5 +1,7 @@
 #pragma once
 
+#include "benchmarks/Connectivity/connectit.h"
+
 namespace connectit {
   template<
     class Graph,

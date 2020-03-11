@@ -211,4 +211,7 @@ cc_library(
 cc_library(
     name = "uf_utils",
     hdrs = ["uf_utils.h"],
+    deps = [
+        "//benchmarks/Connectivity:common",
+    ]
 )
