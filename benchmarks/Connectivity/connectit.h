@@ -58,141 +58,28 @@ enum UpdateType {
 
 namespace connectit {
 
+  // Converts enum to string.
   std::string find_to_string(FindOption);
+  std::string splice_to_string(SpliceOption);
+  std::string unite_to_string(UniteOption);
+  std::string sampling_to_string(SamplingOption);
+  std::string jayanti_find_to_string(JayantiFindOption);
+  std::string connect_to_string(LiuTarjanConnectOption);
+  std::string update_to_string(LiuTarjanUpdateOption);
+  std::string shortcut_to_string(LiuTarjanShortcutOption);
+  std::string alter_to_string(LiuTarjanAlterOption);
 
-  template <SpliceOption splice_option>
-  auto splice_to_string() {
-    if constexpr (splice_option == split_atomic_one) {
-      return "split_atomic_one";
-    } else if constexpr (splice_option == halve_atomic_one) {
-      return "halve_atomic_one";
-    } else {
-      return "splice_atomic";
-    }
-  };
-
-  template <UniteOption unite_option>
-  std::string unite_to_string() {
-    if constexpr (unite_option == unite) {
-      return "unite";
-    } else if constexpr (unite_option == unite_early) {
-      return "unite_early";
-    } else if constexpr (unite_option == unite_nd) {
-      return "unite_nd";
-    } else if constexpr (unite_option == unite_rem_lock) {
-      return "unite_rem_lock";
-    } else if constexpr (unite_option == unite_rem_cas) {
-      return "unite_rem_cas";
-    } else {
-      abort();
-    }
-    return "";
-  }
-
-  template <SamplingOption sampling_option>
-  std::string sampling_to_string() {
-    if constexpr (sampling_option == sample_kout) {
-      return "kout";
-    } else if constexpr (sampling_option == sample_bfs) {
-      return "bfs";
-    } else if constexpr (sampling_option == sample_ldd) {
-      return "ldd";
-    } else {
-      return "no_sampling";
-    }
-  }
-
-  template <SamplingOption sampling_option, FindOption find_option, UniteOption unite_option>
-  std::string uf_options_to_string() {
-    return "uf; sample="
-      + sampling_to_string<sampling_option>()
-      + "; unite=" + unite_to_string<unite_option>()
-      + "; find=" + find_to_string(find_option);
-  };
-
-  template <SamplingOption sampling_option, FindOption find_option, UniteOption unite_option, SpliceOption splice_option>
-  std::string uf_options_to_string() {
-    return "uf; sample="
-      + sampling_to_string<sampling_option>()
-      + "; unite=" + unite_to_string<unite_option>()
-      + "; find=" + find_to_string(find_option) +
-      + "; splice=" + splice_to_string<splice_option>();
-  };
-
-  template <JayantiFindOption find_option>
-  auto jayanti_find_to_string() {
-    if constexpr (find_option == find_twotrysplit) {
-      return "find_twotrysplitting";
-    } else {
-      return "find_simple";
-    }
-  }
-
-  template <SamplingOption sampling_option, JayantiFindOption find_option>
-  std::string jayanti_options_to_string() {
-    return "jayanti; sample="
-      + sampling_to_string<sampling_option>()
-      + "; find=" + jayanti_find_to_string<find_option>();
-  }
-
-  template <LiuTarjanConnectOption connect_option>
-  auto connect_to_string() {
-    if constexpr (connect_option == simple_connect) {
-      return "connect";
-    } else if constexpr (connect_option == parent_connect) {
-      return "parent_connect";
-    } else if constexpr (connect_option == extended_connect) {
-      return "extended_connect";
-    } else {
-      abort();
-    }
-  }
-
-  template <LiuTarjanUpdateOption update_option>
-  auto update_to_string() {
-    if constexpr (update_option == simple_update) {
-      return "simple_update";
-    } else if constexpr (update_option == root_update) {
-      return "root_update";
-    } else {
-      abort();
-    }
-  }
-
-  template <LiuTarjanShortcutOption shortcut_option>
-  auto shortcut_to_string() {
-    if constexpr (shortcut_option == shortcut) {
-      return "shortcut";
-    } else if constexpr (shortcut_option == full_shortcut) {
-      return "full_shortcut";
-    } else {
-      abort();
-    }
-  }
-
-  template <LiuTarjanAlterOption alter_option>
-  auto alter_to_string() {
-    if constexpr (alter_option == alter) {
-      return "alter";
-    } else {
-      return "no_alter";
-    }
-  }
-
-  template <
-    SamplingOption sampling_option,
-    LiuTarjanConnectOption connect_option,
-    LiuTarjanUpdateOption update_option,
-    LiuTarjanShortcutOption shortcut_option,
-    LiuTarjanAlterOption alter_option>
-  std::string liu_tarjan_options_to_string() {
-    return "liu_tarjan; sample=" + sampling_to_string<sampling_option>()
-      + "; connect=" + connect_to_string<connect_option>()
-      + "; update=" + update_to_string<update_option>()
-      + "; shortcut=" + shortcut_to_string<shortcut_option>()
-      + "; alter=" + alter_to_string<alter_option>();
-  }
-
+  std::string uf_options_to_string(SamplingOption, FindOption, UniteOption);
+  std::string uf_options_to_string(
+      SamplingOption, FindOption, UniteOption, SpliceOption);
+  std::string jayanti_options_to_string(
+      SamplingOption sampling_option, JayantiFindOption find_option);
+  std::string liu_tarjan_options_to_string(
+      SamplingOption,
+      LiuTarjanConnectOption,
+      LiuTarjanUpdateOption,
+      LiuTarjanShortcutOption,
+      LiuTarjanAlterOption);
 
   // From gapbs/cc.c, Thanks to S. Beamer + M. Sutton for the original code this
   // snippet is based on.

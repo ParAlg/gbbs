@@ -50,7 +50,7 @@ bool run_multiple_sample_only_alg(
     }
     return t;
   };
-  auto test_name = name + "; " + sampling_to_string<sampling_option>();
+  auto test_name = name + "; " + sampling_to_string(sampling_option);
   return run_multiple(G, rounds, correct, test_name, P, test);
 }
 

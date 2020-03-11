@@ -60,7 +60,7 @@ namespace connectit {
         }
         return t;
       };
-      auto name = liu_tarjan_options_to_string<sampling_option, connect_option, simple_update_option, shortcut_option, alter_option>();
+      auto name = liu_tarjan_options_to_string(sampling_option, connect_option, simple_update_option, shortcut_option, alter_option);
       return run_multiple(G, rounds, correct, name, P, test);
     } else {
       auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
@@ -92,7 +92,7 @@ namespace connectit {
         }
         return t;
       };
-      auto name = liu_tarjan_options_to_string<sampling_option, connect_option, simple_update_option, shortcut_option, alter_option>();
+      auto name = liu_tarjan_options_to_string(sampling_option, connect_option, simple_update_option, shortcut_option, alter_option);
       return run_multiple(G, rounds, correct, name, P, test);
     }
   }

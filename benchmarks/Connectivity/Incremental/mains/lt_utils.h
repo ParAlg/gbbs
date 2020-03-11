@@ -38,7 +38,7 @@ namespace connectit {
       return run_abstract_alg<Graph, decltype(alg), provides_initial_graph, /* reorder_batch = */true>(graph, n, updates, batch_size, insert_to_query, check, alg);
     };
 
-    auto name = liu_tarjan_options_to_string<no_sampling,connect_option,update_option,shortcut_option,alter_option>();
+    auto name = liu_tarjan_options_to_string(no_sampling,connect_option,update_option,shortcut_option,alter_option);
     return run_multiple(G, rounds, name, P, test);
   }
 } // connectit
