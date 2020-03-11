@@ -123,6 +123,7 @@ std::string jayanti_options_to_string(
     + sampling_to_string(sampling_option)
     + "; find=" + jayanti_find_to_string(find_option);
 }
+
 std::string liu_tarjan_options_to_string(
     const SamplingOption sampling_option,
     const LiuTarjanConnectOption connect_option,
