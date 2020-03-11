@@ -30,9 +30,10 @@ void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
   size_t j = 0;
   while (i_iter_idx < i_deg && v_iter_idx < v_deg) {
     if (std::get<0>(i_iter.cur()) == std::get<0>(v_iter.cur())) {
-      if (ignore_f(vg, std::get<0>(i_iter.cur())) && ignore_f(vdg, std::get<0>(i_iter.cur()))) {
+      auto nbhr = std::get<0>(i_iter.cur());
+      if (ignore_f(vg, nbhr) && ignore_f(vdg, nbhr)) {
         // If the neighbor is valid (ignore_f), one triangle is added to the neighbor
-        f(std::get<0>(i_iter.cur()), 1);
+        f(nbhr, 1);
         j++;
       }
       i_iter_idx++; v_iter_idx++;
@@ -115,8 +116,16 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
 
+  // Sum of all out-degrees in active set
+  size_t active_deg = 0;
+  auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) {
+    return G.get_vertex(get_active(i)).getOutDegree();
+  });
+  active_deg += pbbslib::reduce_add(degree_map);
+
   // Hash table to contain triangle count updates
-  auto edge_table = sparse_table<uintE, bool, hashtup>(G.n, std::make_tuple(UINT_E_MAX, false), hashtup());
+  size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
+  auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
