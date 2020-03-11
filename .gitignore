@@ -3,9 +3,11 @@
 *.swp
 
 *.o
+*.dSYM
+*.DS_Store
 
 experimental
 cplib.sh
 
 # bazel generated files
-/bazel-*
+bazel-*
