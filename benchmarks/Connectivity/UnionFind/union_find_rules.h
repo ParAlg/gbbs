@@ -181,7 +181,6 @@ namespace unite_variants {
     inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
       parent rx = u_orig;
       parent ry = v_orig;
-      parent z;
       uintE pathlen = 1;
       uintE lock_attempts = 0;
       while (parents[rx] != parents[ry]) {
@@ -255,7 +254,7 @@ namespace unite_variants {
     Find& find;
     UniteEarly(Find& find) : find(find) {}
     inline void operator()(uintE u, uintE v, pbbs::sequence<parent>& parents) {
-      uintE u_orig = u, v_orig = v;
+      [[maybe_unused]] uintE u_orig = u, v_orig = v;
       int pathlen = 0;
       while(u != v) {
         /* link high -> low */

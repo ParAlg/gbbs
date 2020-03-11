@@ -157,6 +157,7 @@ struct KOutSamplingTemplate {
             uintE deg = u_vtx.getOutDegree() - 1;
             uintE ngh_idx = 1 + (u_rnd.rand() % deg);
             auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            (void)wgh;
             link(u, ngh, parents);
           }
         }, granularity);
@@ -189,19 +190,20 @@ struct KOutSamplingTemplate {
           auto u_vtx = GA.get_vertex(u);
           if (u_vtx.getOutDegree() > 0) {
             // compute max degree neighbor
-            auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+            auto map_f = [&] (const uintE& _u, const uintE& v, const W& wgh) {
               return std::make_pair(v, GA.get_vertex(v).getOutDegree());
             };
             using int_pair = std::pair<uintE, uintE>;
-            auto reduce_f = [&] (const int_pair& l, const int_pair& r) {
-              if (l.second < r.second) {
-                return r;
+            auto reduce_f = [&] (const int_pair& left, const int_pair& right) {
+              if (left.second < right.second) {
+                return right;
               } else {
-                return l;
+                return left;
               }
             };
             auto reduce_m = pbbs::make_monoid(reduce_f, std::make_pair(0, 0));
             auto [ngh, degree] = u_vtx.template reduceOutNgh<int_pair>(u, map_f, reduce_m);
+            (void)degree;
             link(u, ngh, parents);
           }
         }, granularity);
@@ -213,6 +215,7 @@ struct KOutSamplingTemplate {
             uintE deg = u_vtx.getOutDegree();
             uintE ngh_idx = u_rnd.rand() % deg;
             auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            (void)wgh;
             link(u, ngh, parents);
           }
         }, granularity);
@@ -229,7 +232,6 @@ struct KOutSamplingTemplate {
    }
 
   pbbs::sequence<parent> initial_components_pure() {
-    using W = typename G::weight_type;
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
@@ -248,6 +250,7 @@ struct KOutSamplingTemplate {
         if (out_degree > 0) {
           uintE ngh_idx = u_rnd.rand() % out_degree;
           auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+          (void)wgh;
           link(u, ngh, parents);
         }
       }, granularity);
@@ -263,7 +266,6 @@ struct KOutSamplingTemplate {
    }
 
   pbbs::sequence<parent> initial_components_afforest() {
-    using W = typename G::weight_type;
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
@@ -279,6 +281,7 @@ struct KOutSamplingTemplate {
         auto out_degree = u_vtx.getOutDegree();
         if (out_degree > r) {
           auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, r);
+          (void)wgh;
           link(u, ngh, parents);
         }
       }, granularity);

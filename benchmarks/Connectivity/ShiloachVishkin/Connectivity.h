@@ -73,9 +73,9 @@ struct SVAlgorithm {
       std::cout << "# round = " << rounds << std::endl;
       parallel_for(0, candidates.size(), [&] (uintE i) {
         uintE u = candidates[i];
-        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-          parent p_u = prev_parents[u];
-          parent p_v = prev_parents[v];
+        auto map_f = [&] (const uintE& _u, const uintE& _v, const W& wgh) {
+          parent p_u = prev_parents[_u];
+          parent p_v = prev_parents[_v];
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
@@ -134,6 +134,7 @@ struct SVAlgorithm {
       parallel_for(0, updates.size(), [&] (size_t i) {
         uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
+        (void)utype;
         if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
           while (parents[u] != parents[parents[u]]) {
             parents[u] = parents[parents[u]];
@@ -155,8 +156,8 @@ struct SVAlgorithm {
 
       // reset flags
       parallel_for(0, updates.size(), [&] (size_t i) {
-        uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
+        (void)utype;
         if (flags[u]) {
           flags[u] = false;
         }
