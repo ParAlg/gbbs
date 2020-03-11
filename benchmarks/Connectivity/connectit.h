@@ -58,25 +58,7 @@ enum UpdateType {
 
 namespace connectit {
 
-  template <FindOption find_option>
-  std::string find_to_string() {
-    if constexpr (find_option == find_compress) {
-      return "find_compress";
-    } else if constexpr (find_option == find_naive) {
-      return "find_naive";
-    } else if constexpr (find_option == find_split) {
-      return "find_split";
-    } else if constexpr (find_option == find_halve) {
-      return "find_halve";
-    } else if constexpr (find_option == find_atomic_split) {
-      return "find_atomic_split";
-    } else if constexpr (find_option == find_atomic_halve) {
-      return "find_atomic_halve";
-    } else {
-      abort();
-      return "";
-    }
-  }
+  std::string find_to_string(FindOption);
 
   template <SpliceOption splice_option>
   auto splice_to_string() {
@@ -125,7 +107,7 @@ namespace connectit {
     return "uf; sample="
       + sampling_to_string<sampling_option>()
       + "; unite=" + unite_to_string<unite_option>()
-      + "; find=" + find_to_string<find_option>();
+      + "; find=" + find_to_string(find_option);
   };
 
   template <SamplingOption sampling_option, FindOption find_option, UniteOption unite_option, SpliceOption splice_option>
@@ -133,7 +115,7 @@ namespace connectit {
     return "uf; sample="
       + sampling_to_string<sampling_option>()
       + "; unite=" + unite_to_string<unite_option>()
-      + "; find=" + find_to_string<find_option>() +
+      + "; find=" + find_to_string(find_option) +
       + "; splice=" + splice_to_string<splice_option>();
   };
 
