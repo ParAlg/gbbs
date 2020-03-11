@@ -1,5 +1,7 @@
 #pragma once
 
+#include "benchmarks/Connectivity/common.h"
+
 namespace connectit {
   template<
     class Graph,
@@ -28,7 +30,7 @@ namespace connectit {
       }
       return t;
     };
-    auto name = uf_options_to_string<sampling_option, find_option, unite_option>();
+    auto name = uf_options_to_string(sampling_option, find_option, unite_option);
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
@@ -61,7 +63,7 @@ namespace connectit {
       }
       return t;
     };
-    auto name = uf_options_to_string<sampling_option, find_option, unite_option, splice_option>();
+    auto name = uf_options_to_string(sampling_option, find_option, unite_option, splice_option);
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
@@ -90,7 +92,7 @@ namespace connectit {
       }
       return t;
     };
-    auto name = jayanti_options_to_string<sampling_option, find_option>();
+    auto name = jayanti_options_to_string(sampling_option, find_option);
     return run_multiple(G, rounds, correct, name, P, test);
   }
  } // namespace connectit
