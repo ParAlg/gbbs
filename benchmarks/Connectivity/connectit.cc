@@ -6,7 +6,7 @@
 // case.
 #define RETURN_CASE_LABEL(case_label) \
   case case_label: \
-    return "case_label";
+    return #case_label;
 
 namespace connectit {
 
