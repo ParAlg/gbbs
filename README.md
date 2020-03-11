@@ -147,7 +147,7 @@ On NUMA machines, adding the command "numactl -i all " when running
 the program may improve performance for large graphs. For example:
 
 ```sh
-$ numactl -i all bazel run ...
+$ numactl -i all bazel run [...]
 ```
 
 Running code on compressed graphs
