@@ -6,10 +6,10 @@ ALL= Clique
 
 all: $(ALL)
 
-LIGRA_OBJS = $(wildcard ../../ligra/*.o)
-LIGRA_ENCODING_OBJS = $(wildcard ../../ligra/encodings/*.o)
-PBBSLIB_OBJS = $(wildcard ../../pbbslib/*.o)
-PBBSLIB_STRINGS_OBJS = $(wildcard ../../pbbslib/strings/*.o)
+LIGRA_OBJS = $(wildcard ../../bin/ligra/*.o)
+LIGRA_ENCODING_OBJS = $(wildcard ../../bin/ligra/encodings/*.o)
+PBBSLIB_OBJS = $(wildcard ../../bin/pbbslib/*.o)
+PBBSLIB_STRINGS_OBJS = $(wildcard ../../bin/pbbslib/strings/*.o)
 
 ligra : 
 	make -C ../../ligra/
@@ -29,4 +29,4 @@ pbbslib_strings :
 .PHONY : clean
 
 clean :
-	rm -f *.o $(ALL)
+	rm -f *.o $(ALL) $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS)
