@@ -36,7 +36,7 @@ namespace connectit {
   };
 
   template <UniteOption unite_option, class Find, FindOption find_option>
-  auto get_unite_function(size_t n, Find& find) {
+  auto get_unite_function([[maybe_unused]] size_t n, Find& find) {
     if constexpr (unite_option == unite) {
       return unite_variants::Unite<Find>(find);
     } else if constexpr (unite_option == unite_early) {
@@ -50,7 +50,7 @@ namespace connectit {
   };
 
   template <UniteOption unite_option, class Find, class Splice, FindOption find_option>
-  auto get_unite_function(size_t n, Find& find, Splice& splice) {
+  auto get_unite_function([[maybe_unused]] size_t n, Find& find, Splice& splice) {
     if constexpr (unite_option == unite_rem_lock) {
       return unite_variants::UniteRemLock<decltype(splice), decltype(find), find_option>(find, splice, n);
     } else if constexpr (unite_option == unite_rem_cas) {

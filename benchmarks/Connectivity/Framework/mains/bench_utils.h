@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iomanip>
+
 #include "check.h"
 
 /* ************************* Benchmark Utils *************************** */
@@ -96,7 +98,7 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<parent>& correct,
 
 template <class F, class Graph>
 void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct,
-    F test,
+    F test_type,
     std::initializer_list<F> tests) {
   for (auto test : tests) {
     test(G, rounds, P, correct);

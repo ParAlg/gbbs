@@ -34,7 +34,6 @@
 template <class Graph, class MT>
 void initialize_trussness_values(Graph& GA, MT& multi_table) {
   using W = typename Graph::weight_type;
-  std::tuple<uintE, uintE> empty_tup = std::make_tuple<uintE, uintE>(UINT_E_MAX, 0);
 
   timer it; it.start();
   GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -106,9 +105,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     auto d_i = GA.get_vertex(i).getOutDegree();
     bool d_i_lt = d_i <= (1 << 15);
     auto count_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-      if (u < v) {
-        return d_i_lt;
-      }
+      return u < v ? d_i_lt : 0;
     };
     counts[i] = GA.get_vertex(i).countOutNgh(i, count_f);
   });
@@ -120,7 +117,6 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
 
   // Store the initial trussness of each edge in the trussness table.
-  auto multi_hash = [&] (uintE k) { return pbbslib::hash32(k); };
   auto get_size = [&] (size_t vtx) {
     auto count_f = [&] (uintE u, uintE v, W& wgh) {
       return vtx < v;
@@ -167,7 +163,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   };
 
   timer em_t, decrement_t, bt, peeling_t; peeling_t.start();
-  size_t finished = 0, rho = 0, k_max = 0;
+  size_t finished = 0, k_max = 0;
   size_t iter = 0;
   while (finished != n_edges) {
     bt.start();
@@ -218,8 +214,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       assert(current_deg > k);
       uintE new_deg = std::max(current_deg - triangles_removed, k);
       std::get<1>(trussness_multi.big_table[id]) = new_deg; // update
-      bucket_t bkt = b.get_bucket(current_deg, new_deg);
-      std::get<1>(decr_edges[i]) = bkt;
+      std::get<1>(decr_edges[i]) = b.get_bucket(current_deg, new_deg);
     });
 
     auto rebucket_edges = pbbs::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
@@ -297,9 +292,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
         -> const Maybe<std::tuple<edge_t, uintE> > {
         uintE id = std::get<0>(p);
         uintE degree_lost = std::get<1>(p);
-        uintE prev_degree = actual_degree[id];
         actual_degree[id] -= degree_lost;
-        uintE new_degree = prev_degree - degree_lost;
         // compare with GA.V[id]. this is the current space used for this vtx.
         return Maybe<std::tuple<edge_t, uintE>>();
       };

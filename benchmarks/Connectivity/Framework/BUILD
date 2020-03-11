@@ -14,13 +14,6 @@ cc_library(
 cc_library(
   name = "sampling",
   hdrs = ["sampling.h"],
-  deps = [":utils"]
-)
-
-
-cc_library(
-  name = "utils",
-  hdrs = ["utils.h"],
   deps = []
 )
 
