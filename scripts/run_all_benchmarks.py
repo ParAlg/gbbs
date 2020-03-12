@@ -203,6 +203,8 @@ def run_all_benchmarks(
                 unweighted_graph_file,
             ],
         )
+        if benchmark_run.returncode:
+            failed_benchmarks.append(benchmark)
     for benchmark in weighted_graph_benchmarks:
         subprocess.run(
             [
@@ -217,6 +219,8 @@ def run_all_benchmarks(
                 weighted_graph_file,
             ],
         )
+        if benchmark_run.returncode:
+            failed_benchmarks.append(benchmark)
     return failed_benchmarks
 
 
