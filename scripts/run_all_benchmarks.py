@@ -18,13 +18,13 @@ other Bazel commands, invoking it with `bazel run` won't work.
 """
 from typing import List, Set
 import argparse
+import fnmatch
 import os
 import sys
 import subprocess
 
 # The script will invoke these benchmark on an unweighted graph.
-UNWEIGHTED_GRAPH_BENCHMARKS = set(
-    [
+UNWEIGHTED_GRAPH_BENCHMARKS = [
         "//benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12:DensestSubgraph_main",
         "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph_main",
         "//benchmarks/ApproximateSetCover/MANISBPT11:ApproximateSetCover_main",
@@ -32,54 +32,6 @@ UNWEIGHTED_GRAPH_BENCHMARKS = set(
         "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity_main",
         "//benchmarks/CliqueCounting:Clique_main",
         "//benchmarks/Connectivity/BFSCC:Connectivity_main",
-        "//benchmarks/Connectivity/Framework/mains:bfscc",
-        "//benchmarks/Connectivity/Framework/mains:gbbscc",
-        "//benchmarks/Connectivity/Framework/mains:jayanti_bfs",
-        "//benchmarks/Connectivity/Framework/mains:jayanti_kout",
-        "//benchmarks/Connectivity/Framework/mains:jayanti_ldd",
-        "//benchmarks/Connectivity/Framework/mains:jayanti_nosample",
-        "//benchmarks/Connectivity/Framework/mains:label_propagation",
-        "//benchmarks/Connectivity/Framework/mains:liutarjan_bfs",
-        "//benchmarks/Connectivity/Framework/mains:liutarjan_kout",
-        "//benchmarks/Connectivity/Framework/mains:liutarjan_ldd",
-        "//benchmarks/Connectivity/Framework/mains:liutarjan_nosample",
-        "//benchmarks/Connectivity/Framework/mains:shiloach_vishkin",
-        "//benchmarks/Connectivity/Framework/mains:unite_bfs",
-        "//benchmarks/Connectivity/Framework/mains:unite_early_bfs",
-        "//benchmarks/Connectivity/Framework/mains:unite_early_kout",
-        "//benchmarks/Connectivity/Framework/mains:unite_early_ldd",
-        "//benchmarks/Connectivity/Framework/mains:unite_early_nosample",
-        "//benchmarks/Connectivity/Framework/mains:unite_kout",
-        "//benchmarks/Connectivity/Framework/mains:unite_ldd",
-        "//benchmarks/Connectivity/Framework/mains:unite_nd_bfs",
-        "//benchmarks/Connectivity/Framework/mains:unite_nd_kout",
-        "//benchmarks/Connectivity/Framework/mains:unite_nd_ldd",
-        "//benchmarks/Connectivity/Framework/mains:unite_nd_nosample",
-        "//benchmarks/Connectivity/Framework/mains:unite_nosample",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_bfs",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_kout",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_ldd",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_nosample",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_bfs",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_kout",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_ldd",
-        "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_nosample",
-        "//benchmarks/Connectivity/Incremental/mains:jayanti_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:jayanti_starting",
-        "//benchmarks/Connectivity/Incremental/mains:liutarjan_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:liutarjan_starting",
-        "//benchmarks/Connectivity/Incremental/mains:shiloachvishkin_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:shiloachvishkin_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_early_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_early_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_nd_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_nd_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_rem_cas_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_rem_cas_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_rem_lock_no_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_rem_lock_starting",
-        "//benchmarks/Connectivity/Incremental/mains:unite_starting",
         "//benchmarks/Connectivity/LabelPropagation:Connectivity_main",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity_main",
         "//benchmarks/CycleCounting/Kowalik5Cycle:FiveCycle_main",
@@ -100,38 +52,39 @@ UNWEIGHTED_GRAPH_BENCHMARKS = set(
         "//benchmarks/SpanningForest/SDB14:SpanningForest_main",
         "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents_main",
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
-    ]
-)
+]
 
 # The script will invoke these benchmarks on a weighted graph.
-WEIGHTED_GRAPH_BENCHMARKS = set(
-    [
+WEIGHTED_GRAPH_BENCHMARKS = [
         "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord_main",
         "//benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main",
         "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest_main",
         "//benchmarks/MinimumSpanningForest/PBBSMST:MinimumSpanningForest_main",
         "//benchmarks/PositiveWeightSSSP/DeltaStepping:DeltaStepping_main",
         "//benchmarks/SSWidestPath/JulienneDBS17:SSWidestPath_main",
-    ]
-)
+]
 
-# The script will not invoke these binaries.
-IGNORED_BINARIES = set([])
+# The script will not invoke these binaries. Shell-style globbing is allowed in
+# this list.
+IGNORED_BINARIES = [
+    "//benchmarks/Connectivity/Framework/*",
+    "//benchmarks/Connectivity/Incremental/*",
+]
 
 
-def get_all_benchmark_binaries() -> Set[str]:
+def get_all_benchmark_binaries() -> List[str]:
     """Returns a list of all binaries under `benchmarks/`."""
-    return set(
-        subprocess.run(
-            ["bazel", "query", "kind(cc_binary, //benchmarks/...)"],
-            check=True,
-            stdout=subprocess.PIPE,
-            text=True,
-        ).stdout.splitlines()
-    )
+    return subprocess.run(
+        ["bazel", "query", "kind(cc_binary, //benchmarks/...)"],
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    ).stdout.splitlines()
 
 
-def check_listed_binaries(valid_binaries: Set[str], ignored_binaries: Set[str]) -> None:
+def check_listed_binaries(
+    valid_binaries: List[str], ignored_binaries: List[str]
+) -> None:
     """Checks listed binaries for consistency.
 
     Args:
@@ -145,23 +98,32 @@ def check_listed_binaries(valid_binaries: Set[str], ignored_binaries: Set[str]) 
             the set of all benchmark-related binaries as determined by
             `get_all_benchmark_binaries()`.
     """
-    conflicting_binaries = valid_binaries & ignored_binaries
-    if conflicting_binaries:
-        raise ValueError(
-            "Benchmarks listed as both valid and ignored: {}".format(
-                conflicting_binaries
+    remaining_binaries = set(get_all_benchmark_binaries())
+    for ignored_binaries_pattern in ignored_binaries:
+        conflicting_binaries = fnmatch.filter(valid_binaries, ignored_binaries_pattern)
+        if conflicting_binaries:
+            raise ValueError(
+                "Benchmarks listed as both valid and ignored: {}".format(
+                    conflicting_binaries
+                )
             )
+        binaries_to_ignore = fnmatch.filter(
+            remaining_binaries, ignored_binaries_pattern
         )
+        if not binaries_to_ignore:
+            print(
+                "Warning: ignore rule {} has no effect".format(ignored_binaries_pattern)
+            )
+        remaining_binaries -= set(binaries_to_ignore)
 
-    all_binaries = get_all_benchmark_binaries()
-    listed_binaries = valid_binaries | ignored_binaries
-    if all_binaries != listed_binaries:
-        extra_listed_binaries = listed_binaries - all_binaries
+    valid_binaries = set(valid_binaries)
+    if remaining_binaries != valid_binaries:
+        extra_listed_binaries = valid_binaries - remaining_binaries
         if extra_listed_binaries:
             raise ValueError(
-                "Listed binaries do not exist: {}".format(extra_listed_binaries)
+                "Listed benchmarks do not exist: {}".format(extra_listed_binaries)
             )
-        missing_listed_binaries = all_binaries - listed_binaries
+        missing_listed_binaries = remaining_binaries - valid_binaries
         if missing_listed_binaries:
             raise ValueError(
                 "Please update {} to include binaries {}".format(
@@ -171,8 +133,8 @@ def check_listed_binaries(valid_binaries: Set[str], ignored_binaries: Set[str]) 
 
 
 def run_all_benchmarks(
-    unweighted_graph_benchmarks: Set[str],
-    weighted_graph_benchmarks: Set[str],
+    unweighted_graph_benchmarks: List[str],
+    weighted_graph_benchmarks: List[str],
     unweighted_graph_file: str,
     weighted_graph_file: str,
 ) -> List[str]:
@@ -226,7 +188,7 @@ def run_all_benchmarks(
 
 if __name__ == "__main__":
     check_listed_binaries(
-        valid_binaries=UNWEIGHTED_GRAPH_BENCHMARKS | WEIGHTED_GRAPH_BENCHMARKS,
+        valid_binaries=UNWEIGHTED_GRAPH_BENCHMARKS + WEIGHTED_GRAPH_BENCHMARKS,
         ignored_binaries=IGNORED_BINARIES,
     )
 
