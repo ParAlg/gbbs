@@ -16,7 +16,7 @@ be symmetric so that all benchmarks can run on them.
 This script should be invoked directly via Python 3. Because this script calls
 other Bazel commands, invoking it with `bazel run` won't work.
 """
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 import argparse
 import fnmatch
 import os
@@ -179,7 +179,7 @@ def run_all_benchmarks(
     unweighted_graph_file: str,
     weighted_graph_file: str,
     timeout: Optional[int],
-) -> List[str]:
+) -> List[Tuple[str, str]]:
     """Runs all benchmarks, returning a list of failing benchmarks.
 
     Args:
@@ -194,7 +194,7 @@ def run_all_benchmarks(
             have no time limit.
 
     Returns:
-        A list of names of benchmarks that exit with a non-zero error code.
+        A list of names of benchmarks that fail along with a failure reason.
     """
 
     def compile_benchmark(benchmark: str):
@@ -206,7 +206,7 @@ def run_all_benchmarks(
     for benchmark in unweighted_graph_benchmarks:
         benchmark_compile = compile_benchmark(benchmark)
         if benchmark_compile.returncode:
-            failed_benchmarks.append(benchmark)
+            failed_benchmarks.append((benchmark, "Does not compile"))
             continue
         try:
             benchmark_run = subprocess.run(
@@ -225,19 +225,18 @@ def run_all_benchmarks(
                 timeout=timeout,
             )
             if benchmark_run.returncode:
-                print(
-                    "Failure: {} exited with error code {}".format(
-                        benchmark, benchmark_run.returncode
+                failed_benchmarks.append(
+                    (
+                        benchmark,
+                        "Exited with error code {}".format(benchmark_run.returncode),
                     )
                 )
-                failed_benchmarks.append(benchmark)
         except subprocess.TimeoutExpired:
-            print("Failure: {} timed out".format(benchmark))
-            failed_benchmarks.append(benchmark)
+            failed_benchmarks.append((benchmark, "Timeout"))
     for benchmark in weighted_graph_benchmarks:
         benchmark_compile = compile_benchmark(benchmark)
         if benchmark_compile.returncode:
-            failed_benchmarks.append(benchmark)
+            failed_benchmarks.append((benchmark, "Does not compile"))
             continue
         try:
             benchmark_run = subprocess.run(
@@ -257,15 +256,14 @@ def run_all_benchmarks(
                 timeout=timeout,
             )
             if benchmark_run.returncode:
-                print(
-                    "Failure: {} exited with error code {}".format(
-                        benchmark, benchmark_run.returncode
+                failed_benchmarks.append(
+                    (
+                        benchmark,
+                        "Exited with error code {}".format(benchmark_run.returncode),
                     )
                 )
-                failed_benchmarks.append(benchmark)
         except subprocess.TimeoutExpired:
-            print("Failure: {} timed out".format(benchmark))
-            failed_benchmarks.append(benchmark)
+            failed_benchmarks.append((benchmark, "Timeout"))
     return failed_benchmarks
 
 
