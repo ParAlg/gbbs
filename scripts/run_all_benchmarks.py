@@ -13,8 +13,8 @@ This script could be extended to further split benchmarks into ones that process
 symmetric graphs versus asymmetric graphs, but currently the input graphs must
 be symmetric so that all benchmarks can run on them.
 
-This script should be invoked directly via Python 3. Because this script calls
-other Bazel commands, invoking it with `bazel run` won't work.
+This script should be invoked directly via Python >=3.7. Because this script
+calls other Bazel commands, invoking it with `bazel run` won't work.
 """
 from typing import List, Optional, Set, Tuple
 import argparse
