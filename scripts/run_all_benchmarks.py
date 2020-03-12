@@ -208,45 +208,63 @@ def run_all_benchmarks(
         if benchmark_compile.returncode:
             failed_benchmarks.append(benchmark)
             continue
-        benchmark_run = subprocess.run(
-            [
-                "bazel",
-                "run",
-                "--compilation_mode",
-                "opt",
-                benchmark,
-                "--",
-                "-s",
-                "-rounds",
-                "1",
-                unweighted_graph_file,
-            ],
-            timeout=timeout,
-        )
-        if benchmark_run.returncode:
+        try:
+            benchmark_run = subprocess.run(
+                [
+                    "bazel",
+                    "run",
+                    "--compilation_mode",
+                    "opt",
+                    benchmark,
+                    "--",
+                    "-s",
+                    "-rounds",
+                    "1",
+                    unweighted_graph_file,
+                ],
+                timeout=timeout,
+            )
+            if benchmark_run.returncode:
+                print(
+                    "Failure: {} exited with error code {}".format(
+                        benchmark, benchmark_run.returncode
+                    )
+                )
+                failed_benchmarks.append(benchmark)
+        except subprocess.TimeoutExpired:
+            print("Failure: {} timed out".format(benchmark))
             failed_benchmarks.append(benchmark)
     for benchmark in weighted_graph_benchmarks:
         benchmark_compile = compile_benchmark(benchmark)
         if benchmark_compile.returncode:
             failed_benchmarks.append(benchmark)
             continue
-        subprocess.run(
-            [
-                "bazel",
-                "run",
-                "--compilation_mode",
-                "opt",
-                benchmark,
-                "--",
-                "-s",
-                "-w",
-                "-rounds",
-                "1",
-                weighted_graph_file,
-            ],
-            timeout=timeout,
-        )
-        if benchmark_run.returncode:
+        try:
+            benchmark_run = subprocess.run(
+                [
+                    "bazel",
+                    "run",
+                    "--compilation_mode",
+                    "opt",
+                    benchmark,
+                    "--",
+                    "-s",
+                    "-w",
+                    "-rounds",
+                    "1",
+                    weighted_graph_file,
+                ],
+                timeout=timeout,
+            )
+            if benchmark_run.returncode:
+                print(
+                    "Failure: {} exited with error code {}".format(
+                        benchmark, benchmark_run.returncode
+                    )
+                )
+                failed_benchmarks.append(benchmark)
+        except subprocess.TimeoutExpired:
+            print("Failure: {} timed out".format(benchmark))
             failed_benchmarks.append(benchmark)
     return failed_benchmarks
 
