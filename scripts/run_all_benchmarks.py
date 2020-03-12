@@ -16,7 +16,7 @@ be symmetric so that all benchmarks can run on them.
 This script should be invoked directly via Python 3. Because this script calls
 other Bazel commands, invoking it with `bazel run` won't work.
 """
-from typing import List, Set
+from typing import List, Optional, Set
 import argparse
 import fnmatch
 import os
@@ -25,50 +25,91 @@ import subprocess
 
 # The script will invoke these benchmark on an unweighted graph.
 UNWEIGHTED_GRAPH_BENCHMARKS = [
-        "//benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12:DensestSubgraph_main",
-        "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph_main",
-        "//benchmarks/ApproximateSetCover/MANISBPT11:ApproximateSetCover_main",
-        "//benchmarks/BFS/NonDeterministicBFS:BFS_main",
-        "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity_main",
-        "//benchmarks/CliqueCounting:Clique_main",
-        "//benchmarks/Connectivity/BFSCC:Connectivity_main",
-        "//benchmarks/Connectivity/LabelPropagation:Connectivity_main",
-        "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity_main",
-        "//benchmarks/CycleCounting/Kowalik5Cycle:FiveCycle_main",
-        "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder_main",
-        "//benchmarks/GraphColoring/Hasenplaugh14:GraphColoring_main",
-        "//benchmarks/KCore/JulienneDBS17:KCore_main",
-        "//benchmarks/KTruss:KTruss_main",
-        "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition_main",
-        "//benchmarks/MaximalIndependentSet/RandomGreedy:MaximalIndependentSet_main",
-        "//benchmarks/MaximalIndependentSet/Yoshida:MaximalIndependentSet_main",
-        "//benchmarks/MaximalMatching/RandomGreedy:MaximalMatching_main",
-        "//benchmarks/MaximalMatching/Yoshida:MaximalMatching_main",
-        "//benchmarks/PageRank:PageRank_main",
-        "//benchmarks/SSBetweenessCentrality/Brandes:SSBetweennessCentrality_main",
-        "//benchmarks/Spanner/MPXV15:Spanner_main",
-        "//benchmarks/SpanningForest/BFSSF:SpanningForest_main",
-        "//benchmarks/SpanningForest/LabelPropagation:SpanningForest_main",
-        "//benchmarks/SpanningForest/SDB14:SpanningForest_main",
-        "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents_main",
-        "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
+    "//benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12:DensestSubgraph_main",
+    "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph_main",
+    "//benchmarks/ApproximateSetCover/MANISBPT11:ApproximateSetCover_main",
+    "//benchmarks/BFS/NonDeterministicBFS:BFS_main",
+    "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity_main",
+    "//benchmarks/CliqueCounting:Clique_main",
+    "//benchmarks/Connectivity/BFSCC:Connectivity_main",
+    "//benchmarks/Connectivity/Framework/mains:bfscc",
+    "//benchmarks/Connectivity/Framework/mains:gbbscc",
+    "//benchmarks/Connectivity/Framework/mains:jayanti_bfs",
+    "//benchmarks/Connectivity/Framework/mains:jayanti_kout",
+    "//benchmarks/Connectivity/Framework/mains:jayanti_ldd",
+    "//benchmarks/Connectivity/Framework/mains:jayanti_nosample",
+    "//benchmarks/Connectivity/Framework/mains:label_propagation",
+    "//benchmarks/Connectivity/Framework/mains:liutarjan_bfs",
+    "//benchmarks/Connectivity/Framework/mains:liutarjan_kout",
+    "//benchmarks/Connectivity/Framework/mains:liutarjan_ldd",
+    "//benchmarks/Connectivity/Framework/mains:liutarjan_nosample",
+    "//benchmarks/Connectivity/Framework/mains:shiloach_vishkin",
+    "//benchmarks/Connectivity/Framework/mains:unite_bfs",
+    "//benchmarks/Connectivity/Framework/mains:unite_early_bfs",
+    "//benchmarks/Connectivity/Framework/mains:unite_early_kout",
+    "//benchmarks/Connectivity/Framework/mains:unite_early_ldd",
+    "//benchmarks/Connectivity/Framework/mains:unite_early_nosample",
+    "//benchmarks/Connectivity/Framework/mains:unite_kout",
+    "//benchmarks/Connectivity/Framework/mains:unite_ldd",
+    "//benchmarks/Connectivity/Framework/mains:unite_nd_bfs",
+    "//benchmarks/Connectivity/Framework/mains:unite_nd_kout",
+    "//benchmarks/Connectivity/Framework/mains:unite_nd_ldd",
+    "//benchmarks/Connectivity/Framework/mains:unite_nd_nosample",
+    "//benchmarks/Connectivity/Framework/mains:unite_nosample",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_bfs",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_kout",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_ldd",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_cas_nosample",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_bfs",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_kout",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_ldd",
+    "//benchmarks/Connectivity/Framework/mains:unite_rem_lock_nosample",
+    "//benchmarks/Connectivity/Incremental/mains:jayanti_starting",
+    "//benchmarks/Connectivity/Incremental/mains:liutarjan_starting",
+    "//benchmarks/Connectivity/Incremental/mains:shiloachvishkin_starting",
+    "//benchmarks/Connectivity/Incremental/mains:unite_early_starting",
+    "//benchmarks/Connectivity/Incremental/mains:unite_nd_starting",
+    "//benchmarks/Connectivity/Incremental/mains:unite_rem_cas_starting",
+    "//benchmarks/Connectivity/Incremental/mains:unite_rem_lock_starting",
+    "//benchmarks/Connectivity/Incremental/mains:unite_starting",
+    "//benchmarks/Connectivity/LabelPropagation:Connectivity_main",
+    "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity_main",
+    "//benchmarks/CycleCounting/Kowalik5Cycle:FiveCycle_main",
+    "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder_main",
+    "//benchmarks/GraphColoring/Hasenplaugh14:GraphColoring_main",
+    "//benchmarks/KCore/JulienneDBS17:KCore_main",
+    "//benchmarks/KTruss:KTruss_main",
+    "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition_main",
+    "//benchmarks/MaximalIndependentSet/RandomGreedy:MaximalIndependentSet_main",
+    "//benchmarks/MaximalIndependentSet/Yoshida:MaximalIndependentSet_main",
+    "//benchmarks/MaximalMatching/RandomGreedy:MaximalMatching_main",
+    "//benchmarks/MaximalMatching/Yoshida:MaximalMatching_main",
+    "//benchmarks/PageRank:PageRank_main",
+    "//benchmarks/SSBetweenessCentrality/Brandes:SSBetweennessCentrality_main",
+    "//benchmarks/Spanner/MPXV15:Spanner_main",
+    "//benchmarks/SpanningForest/BFSSF:SpanningForest_main",
+    "//benchmarks/SpanningForest/LabelPropagation:SpanningForest_main",
+    "//benchmarks/SpanningForest/SDB14:SpanningForest_main",
+    "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents_main",
+    "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
 ]
 
 # The script will invoke these benchmarks on a weighted graph.
 WEIGHTED_GRAPH_BENCHMARKS = [
-        "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord_main",
-        "//benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main",
-        "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest_main",
-        "//benchmarks/MinimumSpanningForest/PBBSMST:MinimumSpanningForest_main",
-        "//benchmarks/PositiveWeightSSSP/DeltaStepping:DeltaStepping_main",
-        "//benchmarks/SSWidestPath/JulienneDBS17:SSWidestPath_main",
+    "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord_main",
+    "//benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main",
+    "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest_main",
+    "//benchmarks/MinimumSpanningForest/PBBSMST:MinimumSpanningForest_main",
+    "//benchmarks/PositiveWeightSSSP/DeltaStepping:DeltaStepping_main",
+    "//benchmarks/SSWidestPath/JulienneDBS17:SSWidestPath_main",
 ]
 
 # The script will not invoke these binaries. Shell-style globbing is allowed in
 # this list.
 IGNORED_BINARIES = [
-    "//benchmarks/Connectivity/Framework/*",
-    "//benchmarks/Connectivity/Incremental/*",
+    # These files take input in a format that's different than that of other
+    # benchmarks.
+    "//benchmarks/Connectivity/Incremental/mains:*_no_starting",
 ]
 
 
@@ -137,6 +178,7 @@ def run_all_benchmarks(
     weighted_graph_benchmarks: List[str],
     unweighted_graph_file: str,
     weighted_graph_file: str,
+    timeout: Optional[int],
 ) -> List[str]:
     """Runs all benchmarks, returning a list of failing benchmarks.
 
@@ -147,12 +189,25 @@ def run_all_benchmarks(
             weighted graph.
         unweighted_graph_file: File path to the unweighted graph.
         weighted_graph_file: File path to the weighted graph.
+        timeout: Benchmarks that run longer than this timeout period in seconds
+            are considered to have failed. If this is `None` then the benchmarks
+            have no time limit.
 
     Returns:
         A list of names of benchmarks that exit with a non-zero error code.
     """
+
+    def compile_benchmark(benchmark: str):
+        return subprocess.run(
+            ["bazel", "build", "--compilation_mode", "opt", benchmark]
+        )
+
     failed_benchmarks = []
     for benchmark in unweighted_graph_benchmarks:
+        benchmark_compile = compile_benchmark(benchmark)
+        if benchmark_compile.returncode:
+            failed_benchmarks.append(benchmark)
+            continue
         benchmark_run = subprocess.run(
             [
                 "bazel",
@@ -162,12 +217,19 @@ def run_all_benchmarks(
                 benchmark,
                 "--",
                 "-s",
+                "-rounds",
+                "1",
                 unweighted_graph_file,
             ],
+            timeout=timeout,
         )
         if benchmark_run.returncode:
             failed_benchmarks.append(benchmark)
     for benchmark in weighted_graph_benchmarks:
+        benchmark_compile = compile_benchmark(benchmark)
+        if benchmark_compile.returncode:
+            failed_benchmarks.append(benchmark)
+            continue
         subprocess.run(
             [
                 "bazel",
@@ -178,8 +240,11 @@ def run_all_benchmarks(
                 "--",
                 "-s",
                 "-w",
+                "-rounds",
+                "1",
                 weighted_graph_file,
             ],
+            timeout=timeout,
         )
         if benchmark_run.returncode:
             failed_benchmarks.append(benchmark)
@@ -216,13 +281,21 @@ if __name__ == "__main__":
             "weighted graph benchmarks"
         ),
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        help=(
+            "(seconds) - Fail benchmarks that run longer than this timeout " "period"
+        ),
+    )
     parsed_args = parser.parse_args()
 
     failed_benchmarks = run_all_benchmarks(
         unweighted_graph_benchmarks=UNWEIGHTED_GRAPH_BENCHMARKS,
         weighted_graph_benchmarks=WEIGHTED_GRAPH_BENCHMARKS,
-        unweighted_graph_file=parsed_args.unweighted_graph,
-        weighted_graph_file=parsed_args.weighted_graph,
+        unweighted_graph_file=os.path.expanduser(parsed_args.unweighted_graph),
+        weighted_graph_file=os.path.expanduser(parsed_args.weighted_graph),
+        timeout=parsed_args.timeout,
     )
     if failed_benchmarks:
         print("Benchmarks failed: {}".format(failed_benchmarks))
