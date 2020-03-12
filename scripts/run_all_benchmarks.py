@@ -300,9 +300,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--timeout",
         type=float,
-        help=(
-            "(seconds) - Fail benchmarks that run longer than this timeout " "period"
-        ),
+        required=True,
+        help="(seconds) - Fail benchmarks that run longer than this timeout period",
     )
     parsed_args = parser.parse_args()
 
