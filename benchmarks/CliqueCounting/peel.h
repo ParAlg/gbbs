@@ -334,6 +334,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   size_t finished = 0;
   bucket_t cur_bkt = 0;
   bucket_t max_bkt = 0;
+  double max_density = 0;
+  bool use_max_density = false;
   // Peel each bucket
   auto update_clique = [&](sequence<size_t>& ppc, size_t j, uintE v) {
     if (j == 0) return;
@@ -341,6 +343,16 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     ppc[j*n + v] = 0;
   };
   while (finished != n) {
+    // for max_density
+    if (use_max_density) {
+      auto degree_f = [&] (size_t i) { return cliques[i]; };
+      auto degree_seq = pbbslib::make_sequence<size_t>(n, degree_f);
+      auto edges_remaining = pbbslib::reduce_add(degree_seq);
+      auto vtxs_remaining = n - finished;
+      double current_density = ((double)edges_remaining) / ((double)vtxs_remaining);
+      if (current_density > max_density) max_density = current_density;
+    }
+
     // Retrieve next bucket
     auto bkt = b.next_bucket();
     auto active = vertexSubset(n, bkt.identifiers);
@@ -399,6 +411,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   
     b.update_buckets(apply_f, filter_size);
 
+    parallel_for (0, active.size(), [&] (size_t j) {cliques[active.vtx(j)] = 0;}, 2048);
+
     active.del();
 
     rounds++;
@@ -407,8 +421,10 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   double tt2 = t2.stop();
   std::cout << "### Peel Running Time: " << tt2 << std::endl;
 
+  std::cout.precision(17);
   std::cout << "rho: " << rounds << std::endl;
-  std::cout << "max_bkt: " << max_bkt << std::endl;
+  std::cout << "clique core: " << max_bkt << std::endl;
+  if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
   b.del();
   free(still_active);
