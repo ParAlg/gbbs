@@ -75,6 +75,7 @@ UNWEIGHTED_GRAPH_BENCHMARKS = [
     "//benchmarks/Connectivity/LabelPropagation:Connectivity_main",
     "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity_main",
     "//benchmarks/CycleCounting/Kowalik5Cycle:FiveCycle_main",
+    "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder_main",
     "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder_main",
     "//benchmarks/GraphColoring/Hasenplaugh14:GraphColoring_main",
     "//benchmarks/KCore/JulienneDBS17:KCore_main",
