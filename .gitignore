@@ -9,5 +9,5 @@
 experimental
 cplib.sh
 
-# bazel generated files
 /bazel-*
+.pytype
