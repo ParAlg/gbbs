@@ -77,12 +77,41 @@ inline float eatWeight(uchar*& start) {
   return *float_start;
 }
 
-intE eatFirstEdge(uchar*& start, uintE source);
+//  Reads the first (specially-encoded) edge. Note that these functions should
+//  be inlined for performance.
+inline intE eatFirstEdge(uchar*& start, uintE source) {
+  uchar fb = *start++;
+  intE edgeRead = (fb & 0x3f);
+  if (LAST_BIT_SET(fb)) {
+    int shiftAmount = 6;
+    while (1) {
+      uchar b = *start;
+      edgeRead |= ((b & 0x7f) << shiftAmount);
+      start++;
+      if (LAST_BIT_SET(b))
+        shiftAmount += EDGE_SIZE_PER_BYTE;
+      else
+        break;
+    }
+  }
+  return (fb & 0x40) ? source - edgeRead : source + edgeRead;
+}
 
-/*
-  Reads any edge of an out-edge list after the first edge.
-*/
-uintE eatEdge(uchar*& start);
+// Reads any edge of an out-edge list after the first edge. Note that this
+// function should be inlined for performance.
+inline uintE eatEdge(uchar*& start) {
+  uintE edgeRead = 0;
+  int shiftAmount = 0;
+  while (1) {
+    uchar b = *start++;
+    edgeRead += ((b & 0x7f) << shiftAmount);
+    if (LAST_BIT_SET(b))
+      shiftAmount += EDGE_SIZE_PER_BYTE;
+    else
+      break;
+  }
+  return edgeRead;
+}
 
 template <class W, class T>
 inline void decode(T t, uchar* edgeStart, const uintE& source,
