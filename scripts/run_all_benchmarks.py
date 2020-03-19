@@ -274,7 +274,8 @@ if __name__ == "__main__":
         description=(
             "Runs all benchmarks on the specified input graphs to check "
             "whether the benchmarks run and exit without errors."
-        )
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-u",
