@@ -106,8 +106,8 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                  granularity, conservative);
 }
 
-int num_workers() { return __cilkrts_get_nworkers(); }
-int worker_id() { return __cilkrts_get_worker_number(); }
+inline int num_workers() { return __cilkrts_get_nworkers(); }
+inline int worker_id() { return __cilkrts_get_worker_number(); }
 
 // openmp
 #elif defined(OPENMP)
