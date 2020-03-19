@@ -176,8 +176,9 @@ def check_listed_binaries(
 def run_all_benchmarks(
     unweighted_graph_benchmarks: List[str],
     weighted_graph_benchmarks: List[str],
-    unweighted_graph_file: str,
-    weighted_graph_file: str,
+    unweighted_graph_file: Optional[str],
+    weighted_graph_file: Optional[str],
+    are_graphs_compressed: bool,
     timeout: Optional[int],
 ) -> List[Tuple[str, str]]:
     """Runs all benchmarks, returning a list of failing benchmarks.
@@ -189,6 +190,8 @@ def run_all_benchmarks(
             weighted graph.
         unweighted_graph_file: File path to the unweighted graph.
         weighted_graph_file: File path to the weighted graph.
+        are_compressed_compressed: Whether the graph files hold compressed
+            graphs.
         timeout: Benchmarks that run longer than this timeout period in seconds
             are considered to have failed. If this is `None` then the benchmarks
             have no time limit.
@@ -197,73 +200,67 @@ def run_all_benchmarks(
         A list of names of benchmarks that fail along with a failure reason.
     """
 
+    BAZEL_COMPILE_FLAGS = ["--compilation_mode", "opt"]
+    gbbs_flags = ["-s", "-rounds", "1"]
+    if are_graphs_compressed:
+        gbbs_flags += ["-c"]
+
     def compile_benchmark(benchmark: str):
-        return subprocess.run(
-            ["bazel", "build", "--compilation_mode", "opt", benchmark]
-        )
+        return subprocess.run(["bazel", "build"] + BAZEL_COMPILE_FLAGS + [benchmark])
 
     failed_benchmarks = []
-    for benchmark in unweighted_graph_benchmarks:
-        benchmark_compile = compile_benchmark(benchmark)
-        if benchmark_compile.returncode:
-            failed_benchmarks.append((benchmark, "Does not compile"))
-            continue
-        try:
-            benchmark_run = subprocess.run(
-                [
-                    "bazel",
-                    "run",
-                    "--compilation_mode",
-                    "opt",
-                    benchmark,
-                    "--",
-                    "-s",
-                    "-rounds",
-                    "1",
-                    unweighted_graph_file,
-                ],
-                timeout=timeout,
-            )
-            if benchmark_run.returncode:
-                failed_benchmarks.append(
-                    (
-                        benchmark,
-                        "Exited with error code {}".format(benchmark_run.returncode),
-                    )
+    if unweighted_graph_file:
+        for benchmark in unweighted_graph_benchmarks:
+            benchmark_compile = compile_benchmark(benchmark)
+            if benchmark_compile.returncode:
+                failed_benchmarks.append((benchmark, "Does not compile"))
+                continue
+            try:
+                benchmark_run = subprocess.run(
+                    ["bazel", "run"]
+                    + BAZEL_COMPILE_FLAGS
+                    + [benchmark, "--"]
+                    + gbbs_flags
+                    + [unweighted_graph_file],
+                    timeout=timeout,
                 )
-        except subprocess.TimeoutExpired:
-            failed_benchmarks.append((benchmark, "Timeout"))
-    for benchmark in weighted_graph_benchmarks:
-        benchmark_compile = compile_benchmark(benchmark)
-        if benchmark_compile.returncode:
-            failed_benchmarks.append((benchmark, "Does not compile"))
-            continue
-        try:
-            benchmark_run = subprocess.run(
-                [
-                    "bazel",
-                    "run",
-                    "--compilation_mode",
-                    "opt",
-                    benchmark,
-                    "--",
-                    "-s",
-                    "-w",
-                    "-rounds",
-                    "1",
-                    weighted_graph_file,
-                ],
-                timeout=timeout,
-            )
-            if benchmark_run.returncode:
-                failed_benchmarks.append(
-                    (
-                        benchmark,
-                        "Exited with error code {}".format(benchmark_run.returncode),
+                if benchmark_run.returncode:
+                    failed_benchmarks.append(
+                        (
+                            benchmark,
+                            "Exited with error code {}".format(
+                                benchmark_run.returncode
+                            ),
+                        )
                     )
+            except subprocess.TimeoutExpired:
+                failed_benchmarks.append((benchmark, "Timeout"))
+    if weighted_graph_file:
+        for benchmark in weighted_graph_benchmarks:
+            benchmark_compile = compile_benchmark(benchmark)
+            if benchmark_compile.returncode:
+                failed_benchmarks.append((benchmark, "Does not compile"))
+                continue
+            try:
+                benchmark_run = subprocess.run(
+                    ["bazel", "run"]
+                    + BAZEL_COMPILE_FLAGS
+                    + [benchmark, "--"]
+                    + gbbs_flags
+                    + ["-w", weighted_graph_file],
+                    timeout=timeout,
                 )
-        except subprocess.TimeoutExpired:
-            failed_benchmarks.append((benchmark, "Timeout"))
+                if benchmark_run.returncode:
+                    failed_benchmarks.append(
+                        (
+                            benchmark,
+                            "Exited with error code {}".format(
+                                benchmark_run.returncode
+                            ),
+                        )
+                    )
+            except subprocess.TimeoutExpired:
+                failed_benchmarks.append((benchmark, "Timeout"))
     return failed_benchmarks
 
 
@@ -282,34 +279,55 @@ if __name__ == "__main__":
     parser.add_argument(
         "--unweighted_graph",
         type=str,
-        required=True,
         help=(
             "Absolute path to an unweighted graph on which to run all "
-            "unweighted graph benchmarks"
+            "unweighted graph benchmarks. If not provided, those benchmarks "
+            "will not be run."
         ),
     )
     parser.add_argument(
         "--weighted_graph",
         type=str,
-        required=True,
         help=(
             "Absolute path to a weighted graph on which to run all "
-            "weighted graph benchmarks"
+            "weighted graph benchmarks. If not provided, those benchmarks will "
+            "not be run."
         ),
+    )
+    parser.add_argument(
+        "--compressed",
+        action="store_true",
+        help="Add this flag if input graphs are compressed graphs.",
     )
     parser.add_argument(
         "--timeout",
         type=float,
-        required=True,
-        help="(seconds) - Fail benchmarks that run longer than this timeout period",
+        default=60,
+        help="(seconds) - Halt benchmarks that run longer than this time.",
     )
     parsed_args = parser.parse_args()
+    if not parsed_args.unweighted_graph and not parsed_args.weighted_graph:
+        parser.error(
+            "At least one of --unweighted_graph and --weighted_graph is required."
+        )
+
+    unweighted_graph_file = (
+        os.path.expanduser(parsed_args.unweighted_graph)
+        if parsed_args.unweighted_graph
+        else None
+    )
+    weighted_graph_file = (
+        os.path.expanduser(parsed_args.weighted_graph)
+        if parsed_args.weighted_graph
+        else None
+    )
 
     failed_benchmarks = run_all_benchmarks(
         unweighted_graph_benchmarks=UNWEIGHTED_GRAPH_BENCHMARKS,
         weighted_graph_benchmarks=WEIGHTED_GRAPH_BENCHMARKS,
-        unweighted_graph_file=os.path.expanduser(parsed_args.unweighted_graph),
-        weighted_graph_file=os.path.expanduser(parsed_args.weighted_graph),
+        unweighted_graph_file=unweighted_graph_file,
+        weighted_graph_file=weighted_graph_file,
+        are_graphs_compressed=parsed_args.compressed,
         timeout=parsed_args.timeout,
     )
     if failed_benchmarks:
