@@ -277,6 +277,7 @@ if __name__ == "__main__":
         )
     )
     parser.add_argument(
+        "-u",
         "--unweighted_graph",
         type=str,
         help=(
@@ -286,6 +287,7 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "-w",
         "--weighted_graph",
         type=str,
         help=(
@@ -295,11 +297,13 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "-c",
         "--compressed",
         action="store_true",
         help="Add this flag if input graphs are compressed graphs.",
     )
     parser.add_argument(
+        "-t",
         "--timeout",
         type=float,
         default=60,
