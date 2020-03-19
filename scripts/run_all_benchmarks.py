@@ -278,8 +278,8 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-u",
         "--unweighted_graph",
+        "-u",
         type=str,
         help=(
             "Absolute path to an unweighted graph on which to run all "
@@ -288,8 +288,8 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
-        "-w",
         "--weighted_graph",
+        "-w",
         type=str,
         help=(
             "Absolute path to a weighted graph on which to run all "
@@ -298,14 +298,14 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
-        "-c",
         "--compressed",
+        "-c",
         action="store_true",
         help="Add this flag if input graphs are compressed graphs.",
     )
     parser.add_argument(
-        "-t",
         "--timeout",
+        "-t",
         type=float,
         default=60,
         help="(seconds) - Halt benchmarks that run longer than this time.",
