@@ -13,8 +13,14 @@
 using std::cout;
 using std::endl;
 
-void* my_alloc(size_t);
-void my_free(void*);
+#ifdef USEMALLOC
+inline void* my_alloc(size_t i) { return malloc(i); }
+inline void my_free(void* p) { free(p); }
+#else
+#include "alloc.h"
+inline void* my_alloc(size_t i) { return my_mem_pool.alloc(i); }
+inline void my_free(void* p) { my_mem_pool.afree(p); }
+#endif
 
 template <typename Lf, typename Rf>
 static void par_do_if(bool do_parallel, Lf left, Rf right, bool cons = false) {
@@ -156,7 +162,7 @@ E* new_array(size_t n) {
   return r;
 }
 
-void free_array(void* a);
+inline void free_array(void* a) { my_free(a); }
 
 // Destructs in parallel
 template <typename E>
