@@ -201,67 +201,60 @@ def run_all_benchmarks(
         A list of names of benchmarks that fail along with a failure reason.
     """
 
-    BAZEL_COMPILE_FLAGS = ["--compilation_mode", "opt"]
+    BAZEL_FLAGS = ["--compilation_mode", "opt"]
     gbbs_flags = ["-s", "-rounds", "1"]
     if are_graphs_compressed:
         gbbs_flags += ["-c"]
 
-    def compile_benchmark(benchmark: str):
-        return subprocess.run(["bazel", "build"] + BAZEL_COMPILE_FLAGS + [benchmark])
+    benchmarks = []
+    if unweighted_graph_file:
+        benchmarks += unweighted_graph_benchmarks
+    if weighted_graph_file:
+        benchmarks += weighted_graph_benchmarks
+    # Compile all the benchmarks up front --- it's faster than compiling
+    # them individually since Bazel can compile several files in parallel.
+    subprocess.run(["bazel", "build"] + BAZEL_FLAGS + ["--keep_going"] + benchmarks)
 
     failed_benchmarks = []
+
+    def test_benchmark(
+        benchmark: str, graph_file: str, additional_gbbs_flags: List[str]
+    ) -> None:
+        try:
+            benchmark_run = subprocess.run(
+                ["bazel", "run"]
+                + BAZEL_FLAGS
+                + [benchmark, "--"]
+                + gbbs_flags
+                + additional_gbbs_flags
+                + [graph_file],
+                timeout=timeout,
+            )
+            if benchmark_run.returncode:
+                failed_benchmarks.append(
+                    (
+                        benchmark,
+                        "Exited with error code {}".format(benchmark_run.returncode),
+                    )
+                )
+        except subprocess.TimeoutExpired:
+            failed_benchmarks.append((benchmark, "Timeout"))
+
     if unweighted_graph_file:
         for benchmark in unweighted_graph_benchmarks:
-            benchmark_compile = compile_benchmark(benchmark)
-            if benchmark_compile.returncode:
-                failed_benchmarks.append((benchmark, "Does not compile"))
-                continue
-            try:
-                benchmark_run = subprocess.run(
-                    ["bazel", "run"]
-                    + BAZEL_COMPILE_FLAGS
-                    + [benchmark, "--"]
-                    + gbbs_flags
-                    + [unweighted_graph_file],
-                    timeout=timeout,
-                )
-                if benchmark_run.returncode:
-                    failed_benchmarks.append(
-                        (
-                            benchmark,
-                            "Exited with error code {}".format(
-                                benchmark_run.returncode
-                            ),
-                        )
-                    )
-            except subprocess.TimeoutExpired:
-                failed_benchmarks.append((benchmark, "Timeout"))
+            test_benchmark(
+                benchmark=benchmark,
+                graph_file=unweighted_graph_file,
+                additional_gbbs_flags=[],
+            )
     if weighted_graph_file:
         for benchmark in weighted_graph_benchmarks:
-            benchmark_compile = compile_benchmark(benchmark)
-            if benchmark_compile.returncode:
-                failed_benchmarks.append((benchmark, "Does not compile"))
-                continue
-            try:
-                benchmark_run = subprocess.run(
-                    ["bazel", "run"]
-                    + BAZEL_COMPILE_FLAGS
-                    + [benchmark, "--"]
-                    + gbbs_flags
-                    + ["-w", weighted_graph_file],
-                    timeout=timeout,
-                )
-                if benchmark_run.returncode:
-                    failed_benchmarks.append(
-                        (
-                            benchmark,
-                            "Exited with error code {}".format(
-                                benchmark_run.returncode
-                            ),
-                        )
-                    )
-            except subprocess.TimeoutExpired:
-                failed_benchmarks.append((benchmark, "Timeout"))
+            test_benchmark(
+                benchmark=benchmark,
+                graph_file=weighted_graph_file,
+                additional_gbbs_flags=["-w"],
+            )
+
     return failed_benchmarks
 
 
