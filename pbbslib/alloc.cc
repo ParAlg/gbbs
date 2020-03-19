@@ -4,6 +4,13 @@
 #include "memory_size.h"
 #include "parallel.h"
 
+#if defined(__APPLE__)
+#else
+#ifdef USEMALLOC
+__mallopt __mallopt_var = __mallopt();
+#endif
+#endif
+
 namespace {
 
 // returns the log base 2 rounded up (works on ints or longs or unsigned
