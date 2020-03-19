@@ -8,14 +8,13 @@
 inline void* aligned_alloc(size_t a, size_t n) { return malloc(n); }
 #else
 #ifdef USEMALLOC
-#include <malloc.h>
 struct __mallopt {
-  __mallopt() {
-    mallopt(M_MMAP_MAX, 0);
-    mallopt(M_TRIM_THRESHOLD, -1);
-  }
+  __mallopt();
 };
 
+// This global variable invokes the constructor of `__mallopt` at program
+// initialization. The constructor adjusts the behavior of memory-allocation
+// functions like `malloc` for performance.
 extern __mallopt __mallopt_var;
 #endif
 #endif
