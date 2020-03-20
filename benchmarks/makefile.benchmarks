@@ -9,6 +9,10 @@ LIGRA_ENCODING_OBJS = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.o)
 PBBSLIB_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/*.o)
 PBBSLIB_STRINGS_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.o)
 
+comma = ,
+ALL_OBJS = $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS) $(OTHER_OBJS)
+ALL_OBJS_SUBST = $(subst |, ,$(addprefix -Wl$(comma)--start-lib|, $(addsuffix |-Wl$(comma)--end-lib, $(ALL_OBJS))))
+
 other : $(OTHER)
 
 ligra : 
@@ -24,7 +28,7 @@ pbbslib_strings :
 	make -C $(ROOTDIR)pbbslib/strings/
 
 % : %.cc pbbslib ligra ligra_encodings pbbslib_strings other
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -pass-exit-codes -lstdc++ -fuse-ld=gold $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS) $(OTHER_OBJS) -pthread $(LFLAGS)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -pass-exit-codes -lstdc++ -fuse-ld=gold $(ALL_OBJS_SUBST) -pthread $(LFLAGS)
 
 .PHONY : clean
 
