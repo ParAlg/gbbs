@@ -13,9 +13,9 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-OPT = -O3 -g -DNDEBUG
+OPT = -O3 -DNDEBUG
 
-CFLAGS = -mcx16 -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
+CFLAGS = -pthread -static -U_FORTIFY_SOURCE -fstack-protector -Wall -Wvla -Wunused-but-set-parameter -fno-canonical-system-headers -Wno-builtin-macro-redefined '-D__DATE__="redacted"' '-D__TIMESTAMP__="redacted"' '-D__TIME__="redacted"' -Wno-free-nonheap-object -fno-omit-frame-pointer '-std=c++0x' -fPIC -Wall -Wextra -Wcast-qual -Wno-unused-parameter -Wpointer-arith -mcx16 -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
@@ -27,9 +27,11 @@ PFLAGS = $(CILKFLAGS)
 else ifdef CILK
 CC = g++
 PFLAGS = $(CILKFLAGS)
+LFLAGS = -lcilkrts
 else ifdef OPENMP
 CC = g++
 PFLAGS = $(OMPFLAGS)
+LFLAGS = -fopenmp
 else ifdef HOMEGROWN
 CC = g++
 PFLAGS = $(HGFLAGS)

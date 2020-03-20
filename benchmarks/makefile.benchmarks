@@ -24,7 +24,7 @@ pbbslib_strings :
 	make -C $(ROOTDIR)pbbslib/strings/
 
 % : %.cc pbbslib ligra ligra_encodings pbbslib_strings other
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS) $(OTHER_OBJS)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -pass-exit-codes -lstdc++ -fuse-ld=gold $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS) $(OTHER_OBJS) -pthread $(LFLAGS)
 
 .PHONY : clean
 
