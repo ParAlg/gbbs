@@ -16,7 +16,7 @@ $(OBJDIR)byte_pd_amortized.o : byte_pd_amortized.cc
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 $(OBJDIR)%.a : $(OBJDIR)%.o
-	libtool -static -s -o $@ $<
+	ar -rcs $@ $<
 
 .PHONY : clean
 

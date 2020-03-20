@@ -8,7 +8,7 @@ all: $(ALL)
 	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 ../../bin/pbbslib/strings/string_basics.a : ../../bin/pbbslib/strings/string_basics.o
-	libtool -static -s -o $@ $<
+	ar -rcs $@ $<
 
 .PHONY : clean
 

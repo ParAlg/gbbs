@@ -42,4 +42,4 @@ pbbslib_strings :
 .PHONY : clean
 
 clean :
-	rm -f *.o $(ALL) $(ALL_OBJS)
+	rm -f *.o $(ALL) $(ALL_OBJS) $(ALL_OBJS_CLEAN)

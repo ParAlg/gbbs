@@ -20,7 +20,7 @@ $(OBJDIR)%.o : %.cc
 	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 $(OBJDIR)%.a : $(OBJDIR)%.o
-	libtool -static -s -o $@ $<
+	ar -rcs $@ $<
 
 .PHONY : clean
 
