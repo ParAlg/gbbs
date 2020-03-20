@@ -4,14 +4,22 @@ INCLUDE_DIRS = -I$(ROOTDIR)
 
 all: $(ALL)
 
-LIGRA_OBJS = $(wildcard $(ROOTDIR)bin/ligra/*.o)
-LIGRA_ENCODING_OBJS = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.o)
-PBBSLIB_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/*.o)
-PBBSLIB_STRINGS_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.o)
+LIGRA_OBJS = $(wildcard $(ROOTDIR)bin/ligra/*.a)
+LIGRA_ENCODING_OBJS = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.a)
+PBBSLIB_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/*.a)
+PBBSLIB_STRINGS_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.a)
 
-comma = ,
 ALL_OBJS = $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS) $(OTHER_OBJS)
-ALL_OBJS_SUBST = $(subst |, ,$(addprefix -Wl$(comma)--start-lib|, $(addsuffix |-Wl$(comma)--end-lib, $(ALL_OBJS))))
+
+LIGRA_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/ligra/*.o)
+LIGRA_ENCODING_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.o)
+PBBSLIB_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/pbbslib/*.o)
+PBBSLIB_STRINGS_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.o)
+
+ALL_OBJS_CLEAN = $(LIGRA_OBJS_CLEAN) $(LIGRA_ENCODING_OBJS_CLEAN) $(PBBSLIB_OBJS_CLEAN) $(PBBSLIB_STRINGS_OBJS_CLEAN) $(OTHER_OBJS_CLEAN)
+
+#comma = ,
+#ALL_OBJS_SUBST = $(subst |, ,$(addprefix -Wl$(comma)--start-lib|, $(addsuffix |-Wl$(comma)--end-lib, $(ALL_OBJS))))
 
 other : $(OTHER)
 
@@ -28,9 +36,10 @@ pbbslib_strings :
 	make -C $(ROOTDIR)pbbslib/strings/
 
 % : %.cc pbbslib ligra ligra_encodings pbbslib_strings other
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -pass-exit-codes -lstdc++ -fuse-ld=gold $(ALL_OBJS_SUBST) -pthread $(LFLAGS)
+	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(ALL_OBJS) -pthread $(LFLAGS)
+#-Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -lstdc++ -fuse-ld=gold 
 
 .PHONY : clean
 
 clean :
-	rm -f *.o $(ALL) $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS)
+	rm -f *.o $(ALL) $(ALL_OBJS)

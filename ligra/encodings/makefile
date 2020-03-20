@@ -4,7 +4,8 @@ INCLUDE_DIRS = -I../../
 
 OBJDIR = ../../bin/ligra/encodings/
 
-ALL= $(addprefix $(OBJDIR), byte.o byte_pd_amortized.o)
+ALL_PRE = byte byte_pd_amortized
+ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))
 
 all: $(ALL)
 
@@ -13,6 +14,9 @@ $(OBJDIR)byte.o : byte.cc
 
 $(OBJDIR)byte_pd_amortized.o : byte_pd_amortized.cc
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
+
+$(OBJDIR)%.a : $(OBJDIR)%.o
+	libtool -static -s -o $@ $<
 
 .PHONY : clean
 

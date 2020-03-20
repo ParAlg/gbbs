@@ -4,7 +4,8 @@ INCLUDE_DIRS = -I../
 
 OBJDIR = ../bin/ligra/
 
-ALL= $(addprefix $(OBJDIR), bridge.o edge_map_blocked.o graph.o graph_io.o io.o ligra.o parse_command_line.o undirected_edge.o union_find.o)
+ALL_PRE = bridge edge_map_blocked graph graph_io io ligra parse_command_line undirected_edge union_find
+ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))
 
 all: $(ALL)
 
@@ -22,6 +23,9 @@ $(OBJDIR)ligra.o : ligra.cc $(addprefix $(OBJDIR), bridge.o graph.o graph_io.o p
 
 $(OBJDIR)%.o : %.cc
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
+
+$(OBJDIR)%.a : $(OBJDIR)%.o
+	libtool -static -s -o $@ $<
 
 .PHONY : clean
 
