@@ -558,7 +558,7 @@ TEST(Cluster, TwoClusterGraph) {
   // Graph diagram with similarity scores labeled:
   //           2                   6
   //     .87 /   \ .87       .87 /   \ .87
-  //        /     \             /     \
+  //        /     \             /     \.
   // 0 --- 1 ----- 3 --- 4 --- 5 ----- 7 --- 8
   //   .71    .75    .58   .58    .75   .71
   const size_t kNumVertices{9};
