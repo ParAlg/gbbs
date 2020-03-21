@@ -111,49 +111,15 @@ StructuralSimilarities ComputeStructuralSimilarities(
     graph->m,
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
     std::hash<UndirectedEdge>{}};
-
-  pbbs::sequence<VertexSet> adjacency_list{
-    pbbs::sequence<VertexSet>::no_init(graph->n)};
-  parallel_for(0, graph->n, [&graph, &adjacency_list](const size_t vertex_id) {
-    Vertex vertex{graph->get_vertex(vertex_id)};
-    auto* const neighbors{&adjacency_list[vertex_id]};
-    *neighbors = MakeVertexSet(vertex.getOutDegree());
-
-    const auto update_adjacency_list{[&neighbors](
-        const uintE source_vertex,
-        const uintE neighbor_vertex,
-        const Weight weight) {
-      neighbors->insert({neighbor_vertex, pbbslib::empty{}});
-    }};
-    vertex.mapOutNgh(vertex_id, update_adjacency_list);
-  });
-
-  graph->map_edges([&graph, &adjacency_list, &similarities](
+  graph->map_edges([&graph, &similarities](
         const uintE u_id, const uintE v_id, const Weight) {
       // Only perform this computation once for each undirected edge
       if (u_id < v_id) {
         Vertex u{graph->get_vertex(u_id)};
         Vertex v{graph->get_vertex(v_id)};
-        const auto& u_neighbors{adjacency_list[u_id]};
-        const auto& v_neighbors{adjacency_list[v_id]};
-
-        const bool u_degree_is_smaller{u.getOutDegree() < v.getOutDegree()};
-        const uintE smaller_degree_vertex_id{u_degree_is_smaller ? u_id : v_id};
-        Vertex* smaller_degree_vertex{u_degree_is_smaller ? &u : &v};
-        const auto& larger_degree_vertex_neighbors{
-          u_degree_is_smaller ? v_neighbors : u_neighbors
-        };
-
-        const auto is_shared_neighbor{
-          [&](const uintE, const uintE neighbor, const Weight) {
-            return larger_degree_vertex_neighbors.contains(neighbor);
-          }};
-        const auto add_monoid{pbbslib::addm<size_t>()};
+        const auto no_op{[](uintE, uintE, uintE) {}};
         const size_t num_shared_neighbors{
-          smaller_degree_vertex->template reduceOutNgh<size_t>(
-              smaller_degree_vertex_id,
-              is_shared_neighbor,
-              add_monoid)};
+          u.intersect_f_par(&v, u_id, v_id, no_op)};
 
         // The neighborhoods we've computed are open neighborhoods -- since
         // structural similarity uses closed neighborhoods, we need to adjust
