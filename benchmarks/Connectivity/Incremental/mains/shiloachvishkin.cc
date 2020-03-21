@@ -37,12 +37,12 @@ namespace connectit {
       size_t insert_to_query,
       size_t rounds,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine& P) {
-      auto alg = shiloachvishkin_cc::SVAlgorithm<Graph>(G);
-      bool check = P.getOptionValue("-check");
+    auto test = [&] (Graph& graph, commandLine& params) {
+      auto alg = shiloachvishkin_cc::SVAlgorithm<Graph>(graph);
+      bool check = params.getOptionValue("-check");
       return run_abstract_alg<
         Graph, decltype(alg), provides_initial_graph,
-        /* reorder_batch = */false>(G, n, updates, batch_size, insert_to_query, check, alg);
+        /* reorder_batch = */false>(graph, n, updates, batch_size, insert_to_query, check, alg);
     };
 
     auto name = "shiloach_vishkin";

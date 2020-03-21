@@ -1,56 +1,14 @@
-ifeq (, $(shell which jemalloc-config))
-JEMALLOC =
-else
-JEMALLOCLD = $(shell jemalloc-config --libdir)
-JEMALLOC = -L$(JEMALLOCLD) -ljemalloc
-endif
+# git root directory
+ROOTDIR = $(strip $(shell git rev-parse --show-cdup))
 
-# Always compile with LONG (note that timings on small graphs with less than
-# 2^{32} edges may be slightly faster without this flag)
-INTT = -DLONG
+include $(ROOTDIR)makefile.variables
 
-ifdef EDGELONG
-INTE = -DEDGELONG
-endif
+ALL= Connectivity
+OTHER = connectivity_objs
 
-INCLUDE_DIRS = -I../../../
+OTHER_OBJS = $(wildcard $(ROOTDIR)bin/benchmarks/Connectivity/*.o)
 
-OPT = -O3 -g
+connectivity_objs : 
+	make -C $(ROOTDIR)benchmarks/Connectivity/
 
-CFLAGS = $(INCLUDE_DIRS) -mcx16 -ldl -std=c++17 -march=native $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC
-
-OMPFLAGS = -DOPENMP -fopenmp
-CILKFLAGS = -DCILK -fcilkplus
-HGFLAGS = -DHOMEGROWN -pthread
-
-ifdef CLANG
-CC = clang++
-PFLAGS = $(CILKFLAGS)
-else ifdef CILK
-CC = g++
-PFLAGS = $(CILKFLAGS)
-else ifdef OPENMP
-CC = g++
-PFLAGS = $(OMPFLAGS)
-else ifdef HOMEGROWN
-CC = g++
-PFLAGS = $(HGFLAGS)
-else ifdef SERIAL
-CC = g++
-PFLAGS =
-else # default is homegrown
-CC = g++
-PFLAGS = $(HGFLAGS)
-endif
-
-ALL=Connectivity
-
-all: $(ALL)
-
-% : %.cc
-	$(CC) $(CFLAGS) $(PFLAGS) -o $@ $<
-
-.PHONY : clean
-
-clean :
-	rm -f *.o $(ALL)
+include $(ROOTDIR)benchmarks/makefile.benchmarks

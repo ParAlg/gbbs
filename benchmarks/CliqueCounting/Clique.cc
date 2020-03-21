@@ -37,56 +37,88 @@
 #include <math.h>
 #include <fstream>
 
-//#include "kClistNodeParallel.c"
 
-// -i 0 (simple gbbs intersect), -i 2 (simd intersect), -i 1 (set intersect)
-// -space 0 = induced
-// -subspace 0 = dyn, 1 = alloc, 2 = stack
-// -gen
-// -k clique size
-// -o 0 (approx goodrich), 1 (densest using work efficient densest subgraph, exact), 2 (densest using approx densest subgraph)
+long strToDirectType(std::string order_str) {
+  if (order_str == "GOODRICHPSZONA") return 0;
+  else if (order_str == "BARENBOIMELKIN") return 1;
+  else if (order_str == "KCORE") return 2;
+  else if (order_str == "DEGREE") return 3;
+  else if (order_str == "ORIGINAL") return 4;
+  ABORT("Unexpected directed type (str): " << order_str);
+}
 
-// count in total, count per vert
-// if count per vert, peel or no
-
-// right now, -b = count per vert and peel; no -b means count in total
-// if -b, then -f (did not do per vert relabeling for relabeled graph
+long strToParallelType (std::string rec_str) {
+  if (rec_str == "VERT") return 0;
+  else if (rec_str == "EDGE") return 1;
+  ABORT("Unexpected parallel type (str): " << rec_str);
+}
 
 template <class Graph>
 double AppKCore_runner(Graph& GA, commandLine P) {
-  double epsilon = P.getOptionDoubleValue("-e", 0.1); // epsilon for rank 0, 1
-  long space = P.getOptionLongValue("-space", 5); // just use -space 5 forget about everything else
-  long k = P.getOptionLongValue("-k", 3); // k-cliques
-  long order = P.getOptionLongValue("-o", 0); //  ranking 0--4
-  long recursive_level = P.getOptionLongValue("-r", 0); // -r 1 means kick off by edge, -r 2 and up is basically ineffective but same idea
-  bool label = P.getOptionValue("-l"); // for -space 5, use a label intersect O(n) when setting up graph
-  bool filter = P.getOptionValue("-f"); // filter only -- needed for peeeling
-  bool use_base = P.getOptionValue("-b"); // this flag means count per vert + peel
-  bool par_serial = P.getOptionValue("-p"); // this flag means switch to serial peeling after 200 in active
-  bool sparsify = P.getOptionValue("--sparse");
-  long sparsify_denom = P.getOptionLongValue("--colors", 0);
-  bool approx_peel = P.getOptionValue("--approxpeel");
-  double approx_eps = P.getOptionDoubleValue("--approxeps", 0.1);
-  std::cout << "### Application: AppKCore" << std::endl;
+  // These are user-facing options
+  long k = P.getOptionLongValue("-k", 3); // k as in k-cliques
+  double epsilon = P.getOptionDoubleValue("-e", 0.1); // epsilon, for Goodrich-Pszona or Barenboim-Elkin directing
+
+  // Options to direct graph: GOODRICHPSZONA, BARENBOIMELKIN, KCORE, DEGREE, or ORIGINAL
+  auto order_str = P.getOptionValue("--directType", "");
+  auto recursive_level_str = P.getOptionValue("--parallelType", ""); // parallelism per vert (VERT) or per edge (EDGE)
+
+  // If set, do not use linear space to kick off the first level of recursion (uses O(alpha^2) space)
+  bool label_str = P.getOptionValue("--saveSpace"); 
+  bool use_base_str = P.getOptionValue("--peel"); // run vertex peeling
+  
+  bool sparsify = P.getOptionValue("--sparse"); // if set, use colorful sparsification for approx counting
+  long sparsify_denom = P.getOptionLongValue("--colors", 0); // number of colors for colorful sparsification
+
+  bool approx_peel = P.getOptionValue("--approxpeel"); // if set, use approximate vertex peeling
+  double approx_eps = P.getOptionDoubleValue("--approxeps", 0.1); // epsilon for approximate vertex peeling
+
+
+  // These are debugging options (set to correct defaults for client)
+  long order = P.getOptionLongValue("-o", 0); // directing type; values are 0 - 4, reflecting the above order
+  long recursive_level = P.getOptionLongValue("-r", 0); // parallelism over recursive levels
+  bool use_base = P.getOptionValue("-b"); // same as use_base_str
+  bool filter = P.getOptionValue("-f"); // filter graph only -- required for vertex peeling
+
+  long space = P.getOptionLongValue("-space", 5);
+
+  std::cout << "### Application: Clique Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << std::endl;
   std::cout << "### ------------------------------------" << endl;
+
   assert(P.getOption("-s"));
 
+  // Set user-facing options to match backend
+  if (!order_str.empty()) order = strToDirectType(order_str);
+  if (!recursive_level_str.empty()) recursive_level = strToParallelType(recursive_level_str);
+  bool label = !label_str;
+  use_base = use_base || use_base_str;
+  if (use_base) filter = true;
+
   timer t; t.start();
+
   size_t count = 0;
   if (sparsify) {
+    // Sparsify graph, with random seed
     auto GA_sparse = clr_sparsify_graph(GA, sparsify_denom, 7398234);
-    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, approx_peel, approx_eps);
+  
+    // k-clique counting
+    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, 
+                   approx_peel, approx_eps);
     std::cout << "sparse count: " << count << std::endl;
     count = count * pow(sparsify_denom,k-1);
   } else {
-    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, par_serial, approx_peel, approx_eps);
+    // k-clique counting
+    count = Clique(GA, k, order, epsilon, space, label, filter, use_base, recursive_level, approx_peel,
+                   approx_eps);
   }
+
   double tt = t.stop();
+
   std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
 

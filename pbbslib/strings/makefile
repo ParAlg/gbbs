@@ -1,38 +1,16 @@
-ifeq (, $(shell which jemalloc-config))
-JEMALLOC =
-else
-JEMALLOCLD = $(shell jemalloc-config --libdir)
-JEMALLOC = -L$(JEMALLOCLD) -ljemalloc 
-endif
+include ../../makefile.variables
 
-CONCEPTS = -fconcepts -DCONCEPTS
-CFLAGS = -mcx16 -O3 -ldl -std=c++17 -march=native -Wall 
+ALL= ../../bin/pbbslib/strings/string_basics.o ../../bin/pbbslib/strings/string_basics.a
 
-OMPFLAGS = -DOPENMP -fopenmp
-CILKFLAGS = -DCILK -fcilkplus
-HGFLAGS = -DHOMEGROWN -pthread
+all: $(ALL)
 
-ifdef CLANG
-CC = clang++
-PFLAGS = $(CILKFLAGS)
-else ifdef CILK
-CC = g++
-PFLAGS = $(CILKFLAGS)
-else ifdef OPENMP
-CC = g++
-PFLAGS = $(OMPFLAGS)
-else ifdef HOMEGROWN
-CC = g++
-PFLAGS = $(HGFLAGS)
-else ifdef SERIAL
-CC = g++
-PFLAGS =
-else # default is homegrown
-CC = g++
-PFLAGS = $(HGFLAGS)
-endif
+../../bin/pbbslib/strings/string_basics.o : string_basics.cc
+	$(CC) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
-INCLUDE = -I../
+../../bin/pbbslib/strings/string_basics.a : ../../bin/pbbslib/strings/string_basics.o
+	ar -rcs $@ $<
 
-test_suffix_tree: suffix_tree.h suffix_array.h lcp.h test_suffix_tree.cpp
-	$(CC) $(CFLAGS) $(PFLAGS) $(INCLUDE) test_suffix_tree.cpp -o test_suffix_tree $(JEMALLOC)
+.PHONY : clean
+
+clean :
+	rm -f *.o $(ALL)

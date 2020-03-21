@@ -2,6 +2,8 @@
 
 #ifdef EMPTY_STARTING_GRAPH
 
+#include "pbbslib/strings/string_basics.h"
+
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
@@ -10,7 +12,6 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
 /* run synthetic coo */
 int main(int argc, char* argv[]) {
   auto P = commandLine(argc, argv, "");
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
   auto in_file = P.getOptionValue("-in_file", "");

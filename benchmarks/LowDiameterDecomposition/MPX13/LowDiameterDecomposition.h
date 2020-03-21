@@ -179,6 +179,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
 
     round++;
   }
+  frontier.del();
   debug(
   add_t.reportTotal("add vertices time");
   vt.reportTotal("edge map time"););

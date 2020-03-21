@@ -91,7 +91,6 @@ void unite_rem_lock_find_compress_halve_atomic_one(Graph& G, int rounds, command
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();

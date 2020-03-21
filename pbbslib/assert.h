@@ -25,6 +25,31 @@
     std::terminate(); \
   } while (false)
 
+// Prints out enum value and terminates the program.
+//
+// This is intended for use after a switch statement on an enum that handles all
+// possible enum cases by returning. Using this macro will stop GCC's
+// -Wreturn-type flag from issuing a warning about this situation.
+// Example:
+//     enum class OneOrTwo { kOne, kTwo };
+//
+//     int ReturnOneOrTwo(OneOrTwo one_or_two) {
+//       switch (one_or_two) {
+//         case OneOrTwo::kOne:
+//           return 1;
+//         case OneOrTwo::kTwo:
+//           return 2;
+//       }
+//       // If we didn't put this ABORT statement below, GCC would complain:
+//       //   warning: control reaches end of non-void function [-Wreturn-type]
+//       // We shouldn't reach this point unless someone makes a weird function
+//       // call like `ReturnOneOrTwo(static_cast<OneOrTwo>(3))`.
+//       ABORT_INVALID_ENUM(OneOrTwo, one_or_two)
+//     }
+#define ABORT_INVALID_ENUM(EnumType, enum_value) \
+  ABORT("Unexpected " #EnumType " value: " << \
+      static_cast<typename std::underlying_type<EnumType>::type>(enum_value));
+
 // Asserts on a condition, printing an error and terminating if the condition is
 // false.
 //
@@ -63,7 +88,7 @@
 // overloading macros by number of arguments.
 // If we need to do this kind of overloading more often, consider
 // importing Boost and replacing this macro with BOOST_PP_OVERLOAD.
-#define _GET_MACRO(_1,_2,NAME,...) NAME
+#define _GET_MACRO(_1, _2, NAME, ...) NAME
 
 // Implementation of ASSERT with one argument.
 #define _ASSERT1(condition) \

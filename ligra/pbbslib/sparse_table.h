@@ -103,9 +103,9 @@ class sparse_table {
   sparse_table(size_t _m, T _empty, KeyHash _key_hash, T* _tab, bool clear=true)
       : m(_m),
         mask(m - 1),
-        table(_tab),
         empty(_empty),
         empty_key(std::get<0>(empty)),
+        table(_tab),
         key_hash(_key_hash) {
     if (clear) {
       clearA(table, m, empty);

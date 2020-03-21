@@ -24,6 +24,7 @@ build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
 build --cxxopt=-DLONG        # use 8 byte vertex identifiers
 build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compressed graphs
+build --cxxopt=-DUSEMALLOC
 build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
 

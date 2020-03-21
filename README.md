@@ -64,8 +64,14 @@ If you use our work, please cite our [paper](https://arxiv.org/abs/1805.05208):
 Compilation
 --------
 
-* g++ &gt;= 5.3.0 with support for Cilk Plus
-* g++ &gt;= 5.3.0 with pthread support (Homemade Scheduler)
+Compiler:
+* g++ &gt;= 7.4.0 with support for Cilk Plus
+* g++ &gt;= 7.4.0 with pthread support (Homemade Scheduler)
+
+Build system:
+* [Bazel](https://docs.bazel.build/versions/master/install.html) 2.1.0
+* Make --- though our primary build system is Bazel, we also maintain Makefiles
+  for those who wish to run benchmarks without installing Bazel.
 
 The default compilation uses a lightweight scheduler developed at CMU (Homemade)
 for parallelism, which results in comparable performance to Cilk Plus. The
@@ -91,16 +97,29 @@ been tested with more than 2^32 vertices, so if any issues arise please contact
 To compile with the Cilk Plus scheduler instead of the Homegrown scheduler, use
 the Bazel configuration `--config=cilk`. To compile using OpenMP instead, use
 the Bazel configuration `--config=openmp`. To compile serially instead, use the
-Bazel configuration `--config=serial`.
+Bazel configuration `--config=serial`. (For the Makefiles, instead set the
+environment variables `CILK`, `OPENMP`, or `SERIAL` respectively.)
 
-After setting the necessary environment variables:
-```
-$ make -j  #compiles the benchmark with all threads
+To build:
+```sh
+# For Bazel:
+$ bazel build --compilation_mode opt //...  # compiles all benchmarks
+
+# For Make:
+# First set the appropriate environment variables, e.g., first run
+# `export CILK=1` to compile with Cilk Plus.
+# After that, build using `make`.
+$ cd benchmarks/BFS/NonDeterministicBFS  # go to a benchmark
+$ make -j  # build the benchmark with all threads
 ```
 
 The following commands cleans the directory:
-```
-$ make clean  #removes all executables
+```sh
+# For Bazel:
+$ bazel clean  # removes all executables
+
+# For Make:
+$ make clean  # removes executables for the current directory
 ```
 
 Running code
@@ -109,9 +128,14 @@ The applications take the input graph as input as well as an optional
 flag "-s" to indicate a symmetric graph.  Symmetric graphs should be
 called with the "-s" flag for better performance. For example:
 
-```
-$ ./BFS -s -src 10 ../inputs/rMatGraph_J_5_100
-$ ./wBFS -s -w -src 15 ../inputs/rMatGraph_WJ_5_100
+```sh
+# For Bazel:
+$ bazel run --compilation_mode opt ///benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
+$ bazel run --compilation_mode opt ///benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
+
+# For Make:
+$ ./BFS -s -src 10 ../../../inputs/rMatGraph_J_5_100
+$ ./wBFS -s -w -src 15 ../../../inputs/rMatGraph_WJ_5_100
 ```
 
 Note that the codes that compute single-source shortest paths (or centrality)
@@ -122,8 +146,8 @@ number of runs.
 On NUMA machines, adding the command "numactl -i all " when running
 the program may improve performance for large graphs. For example:
 
-```
-$ numactl -i all ./BFS -s <input file>
+```sh
+$ numactl -i all bazel run [...]
 ```
 
 Running code on compressed graphs
@@ -134,7 +158,12 @@ parallelByte format of Ligra+, extended with additional functionality. We have
 provided a converter utility which takes as input an uncompressed graph and
 outputs a bytePDA graph. The converter can be used as follows:
 
-```
+```sh
+# For Bazel:
+bazel run --compilation_mode opt //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
+bazel run --compilation_mode opt //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
+
+# For Make:
 ./compressor -s -o ../inputs/rMatGraph_J_5_100.bytepda ../inputs/rMatGraph_J_5_100
 ./compressor -s -w -o ../inputs/rMatGraph_WJ_5_100.bytepda ../inputs/rMatGraph_WJ_5_100
 ```
@@ -143,9 +172,13 @@ After an uncompressed graph has been converted to the bytepda format,
 applications can be run on it by passing in the usual command-line flags, with
 an additional `-c` flag.
 
-```
-$ ./BFS -s -c -src 10 ../inputs/rMatGraph_J_5_100.bytepda
-$ ./wBFS -s -w -c -src 15 ../inputs/rMatGraph_WJ_5_100.bytepda
+```sh
+# For Bazel:
+$ bazel run --compilation_mode opt //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
+
+# For Make:
+$ ./BFS -s -c -src 10 ../../../inputs/rMatGraph_J_5_100.bytepda
+$ ./wBFS -s -w -c -src 15 ../../../inputs/rMatGraph_WJ_5_100.bytepda
 ```
 
 When processing large compressed graphs, using the `-m` command-line flag can
@@ -186,6 +219,6 @@ AdjacencyGraph
 
 This file is represented as plain text.
 
-Weighted graphsare represented in the weighted adjacnecy graph format. The file
-should start with the string "WeightedAdjacencyGraph". The m edges weights
+Weighted graphs are represented in the weighted adjacency graph format. The file
+should start with the string "WeightedAdjacencyGraph". The m edge weights
 should be stored after all of the edge targets in the .adj file.

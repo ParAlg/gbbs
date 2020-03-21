@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra.h"
+#include "ligra/ligra.h"
 
 #include <iostream>
 #include <fstream>
@@ -9,8 +9,6 @@
 
 #include "to_char_arr.h"
 
-using namespace std;
-
 // Provides utilities for converting between different compressed
 // representations.
 constexpr int max_weight = 32;
@@ -18,7 +16,7 @@ size_t PAR_DEGREE_TWO = 1000;
 
 namespace byte {
   template <class Graph>
-  void write_graph_byte_format(Graph& GA, ofstream& out, bool symmetric) {
+  void write_graph_byte_format(Graph& GA, std::ofstream& out, bool symmetric) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -85,7 +83,7 @@ namespace byte {
 namespace bytepd_amortized {
 
   template <class Graph>
-  void write_graph_bytepd_amortized_directed(Graph& GA, ofstream& out) {
+  void write_graph_bytepd_amortized_directed(Graph& GA, std::ofstream& out) {
     size_t n = GA.n;
     using W = typename Graph::weight_type;
 
@@ -226,7 +224,7 @@ namespace bytepd_amortized {
   }
 
   template <class Graph>
-  void write_graph_bytepd_amortized_format(Graph& GA, ofstream& out, bool symmetric, size_t n_batches = 6) {
+  void write_graph_bytepd_amortized_format(Graph& GA, std::ofstream& out, bool symmetric, size_t n_batches = 6) {
     if (!symmetric) {
       write_graph_bytepd_amortized_directed(GA, out);
       return;
@@ -374,18 +372,18 @@ namespace bytepd_amortized {
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
       uchar* edges = pbbs::new_array_no_init<uchar>(n_bytes);
-      parallel_for(start, end, [&] (size_t i) {
-        size_t our_offset = byte_offsets[i] - start_offset;
-        uintE deg = degrees[i];
+      parallel_for(start, end, [&] (size_t j) {
+        size_t our_offset = byte_offsets[j] - start_offset;
+        uintE deg = degrees[j];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getOutIter(i);
-          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+          auto it = GA.get_vertex(j).getOutIter(j);
+          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)j, it, PAR_DEGREE_TWO);
 
-          if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
-          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
+          if (nbytes != (byte_offsets[j+1] - byte_offsets[j])) {
+          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[j+1] - byte_offsets[j]) << " deg = " << deg << " j = " << j << std::endl;
             exit(0);
           }
-          assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+          assert(nbytes == (byte_offsets[j+1] - byte_offsets[j]));
         }
       });
       out.write((char*)edges,n_bytes); //write edges
@@ -474,7 +472,7 @@ namespace bytepd_amortized {
   }
 
   template <class Graph>
-  void degree_reorder(Graph& GA, ofstream& out, bool symmetric, size_t n_batches = 6) {
+  void degree_reorder(Graph& GA, std::ofstream& out, bool symmetric, size_t n_batches = 6) {
     if (!symmetric) {
       assert(false);
       exit(0);
@@ -519,9 +517,9 @@ namespace bytepd_amortized {
 
         uintE our_new_id = rank[i];
 
-        for (size_t i=0; i<new_ngh_seq.size(); i++) {
+        for (size_t j=0; j<new_ngh_seq.size(); j++) {
           long bytes = 0;
-          uintE ngh_id = new_ngh_seq[i];
+          uintE ngh_id = new_ngh_seq[j];
           if ((deg % PAR_DEGREE_TWO) == 0) {
             bytes = compressFirstEdge(tmp, bytes, our_new_id, ngh_id);
           } else {
@@ -577,18 +575,18 @@ namespace bytepd_amortized {
       size_t end_offset = byte_offsets[end];
       size_t n_bytes = end_offset - start_offset;
       uchar* edges = pbbs::new_array_no_init<uchar>(n_bytes);
-      parallel_for(start, end, [&] (size_t i) {
-        size_t our_offset = byte_offsets[i] - start_offset;
-        uintE deg = degrees[i];
+      parallel_for(start, end, [&] (size_t j) {
+        size_t our_offset = byte_offsets[j] - start_offset;
+        uintE deg = degrees[j];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getOutIter(i);
-          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
+          auto it = GA.get_vertex(j).getOutIter(j);
+          size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)j, it, PAR_DEGREE_TWO);
 
-          if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
-          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
+          if (nbytes != (byte_offsets[j+1] - byte_offsets[j])) {
+          std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[j+1] - byte_offsets[j]) << " deg = " << deg << " j = " << j << std::endl;
             exit(0);
           }
-          assert(nbytes == (byte_offsets[i+1] - byte_offsets[i]));
+          assert(nbytes == (byte_offsets[j+1] - byte_offsets[j]));
         }
       });
       out.write((char*)edges,n_bytes); //write edges
@@ -663,7 +661,7 @@ namespace bytepd_amortized {
 namespace binary_format {
 
   template <class Graph>
-  void write_graph_binary_format(Graph& GA, ofstream& out, size_t n_batches=4) {
+  void write_graph_binary_format(Graph& GA, std::ofstream& out, size_t n_batches=4) {
     size_t n = GA.n; size_t m = GA.m;
     using W = typename Graph::weight_type;
     using edge_type = std::tuple<uintE, W>;
@@ -729,7 +727,7 @@ namespace binary_format {
 }; // namespace binary_format
 
 template <class Graph>
-void edgearray(Graph& GA, ofstream& out) {
+void edgearray(Graph& GA, std::ofstream& out) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
   size_t m = GA.m;
@@ -764,7 +762,7 @@ auto converter(Graph& GA, commandLine P) {
     std::cout << "# specify a valid outfile" << std::endl;
     exit(0);
   }
-  ofstream out(outfile.c_str(), ofstream::out | ios::binary);
+  std::ofstream out(outfile.c_str(), std::ofstream::out | std::ios::binary);
   auto encoding = P.getOptionValue("-enc", "byte");
 
   PAR_DEGREE_TWO = P.getOptionLongValue("-bs", 256);

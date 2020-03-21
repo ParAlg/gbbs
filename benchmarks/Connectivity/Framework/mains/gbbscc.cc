@@ -52,7 +52,6 @@ void gbbscc_nosample(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();

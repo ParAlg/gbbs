@@ -95,7 +95,6 @@ void unite_rem_cas_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P
 
 template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
   auto correct = pbbs::sequence<parent>();

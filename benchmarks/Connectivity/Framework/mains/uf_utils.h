@@ -1,5 +1,7 @@
 #pragma once
 
+#include "benchmarks/Connectivity/common.h"
+
 namespace connectit {
   template<
     class Graph,
@@ -11,21 +13,24 @@ namespace connectit {
       size_t rounds,
       pbbs::sequence<parent>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+    auto test = [&] (
+        Graph& graph, 
+        commandLine params, 
+        pbbs::sequence<parent>& correct_cc) {
       timer tt; tt.start();
       auto CC =
           run_uf_alg<
             Graph,
             sampling_option,
             find_option,
-            unite_option>(G, P);
+            unite_option>(graph, params);
       double t = tt.stop();
-      if (P.getOptionValue("-check")) {
-        cc_check(correct, CC);
+      if (params.getOptionValue("-check")) {
+        cc_check(correct_cc, CC);
       }
       return t;
     };
-    auto name = uf_options_to_string<sampling_option, find_option, unite_option>();
+    auto name = uf_options_to_string(sampling_option, find_option, unite_option);
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
@@ -40,7 +45,10 @@ namespace connectit {
       size_t rounds,
       pbbs::sequence<parent>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+    auto test = [&] (
+        Graph& graph, 
+        commandLine params, 
+        pbbs::sequence<parent>& correct_cc) {
       timer tt; tt.start();
       auto CC =
           run_uf_alg<
@@ -48,14 +56,14 @@ namespace connectit {
             sampling_option,
             find_option,
             unite_option,
-            splice_option>(G, P);
+            splice_option>(graph, params);
       double t = tt.stop();
-      if (P.getOptionValue("-check")) {
-        cc_check(correct, CC);
+      if (params.getOptionValue("-check")) {
+        cc_check(correct_cc, CC);
       }
       return t;
     };
-    auto name = uf_options_to_string<sampling_option, find_option, unite_option, splice_option>();
+    auto name = uf_options_to_string(sampling_option, find_option, unite_option, splice_option);
     return run_multiple(G, rounds, correct, name, P, test);
   }
 
@@ -68,20 +76,23 @@ namespace connectit {
       size_t rounds,
       pbbs::sequence<parent>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+    auto test = [&] (
+        Graph& graph, 
+        commandLine params, 
+        pbbs::sequence<parent>& correct_cc) {
       timer tt; tt.start();
       auto CC =
           run_jayanti_alg<
             Graph,
             sampling_option,
-            find_option>(G, P);
+            find_option>(graph, params);
       double t = tt.stop();
-      if (P.getOptionValue("-check")) {
-        cc_check(correct, CC);
+      if (params.getOptionValue("-check")) {
+        cc_check(correct_cc, CC);
       }
       return t;
     };
-    auto name = jayanti_options_to_string<sampling_option, find_option>();
+    auto name = jayanti_options_to_string(sampling_option, find_option);
     return run_multiple(G, rounds, correct, name, P, test);
   }
  } // namespace connectit

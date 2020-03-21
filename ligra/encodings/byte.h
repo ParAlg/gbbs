@@ -77,12 +77,44 @@ inline float eatWeight(uchar*& start) {
   return *float_start;
 }
 
-intE eatFirstEdge(uchar*& start, uintE source);
+// Eats the first (specially) encoded edge, which stores a sign bit. Should
+// ideally be inlined, but let the compiler figure it out.
+inline intE eatFirstEdge(uchar*& start, uintE source) {
+  uchar fb = *start++;
+  intE edgeRead = (fb & 0x3f);
+  if (LAST_BIT_SET(fb)) {
+    int shiftAmount = 6;
+    while (1) {
+      uchar b = *start;
+      edgeRead |= ((b & 0x7f) << shiftAmount);
+      start++;
+      if (LAST_BIT_SET(b))
+        shiftAmount += EDGE_SIZE_PER_BYTE;
+      else
+        break;
+    }
+  }
+  return (fb & 0x40) ? source - edgeRead : source + edgeRead;
+}
 
-/*
-  Reads any edge of an out-edge list after the first edge.
-*/
-uintE eatEdge(uchar*& start);
+// Reads positive edges after the first one.
+inline uintE eatEdge(uchar*& start) {
+  uintE edgeRead = 0;
+  int shiftAmount = 0;
+
+  while (1) {
+    uchar b = *start++;
+    edgeRead += ((b & 0x7f) << shiftAmount);
+    if (LAST_BIT_SET(b))
+      shiftAmount += EDGE_SIZE_PER_BYTE;
+    else
+      break;
+  }
+  return edgeRead;
+}
+
+
+
 
 template <class W, class T>
 inline void decode(T t, uchar* edgeStart, const uintE& source,
@@ -168,7 +200,24 @@ inline long compressWeight(uchar* start, long offset, W weight) {
   return offset + sizeof(float);
 }
 
-long compressEdge(uchar* start, long curOffset, uintE diff);
+inline long compressEdge(uchar* start, long curOffset, uintE diff) {
+  uchar curByte = diff & 0x7f;
+  int bytesUsed = 0;
+  while ((curByte > 0) || (diff > 0)) {
+    bytesUsed++;
+    uchar toWrite = curByte;
+    diff = diff >> 7;
+    // Check to see if there's any bits left to represent
+    curByte = diff & 0x7f;
+    if (diff > 0) {
+      toWrite |= 0x80;
+    }
+    start[curOffset] = toWrite;
+    curOffset++;
+  }
+  return curOffset;
+}
+
 
 template <class W, class P>
 inline size_t pack(P& pred, uchar* edge_start, const uintE& source,

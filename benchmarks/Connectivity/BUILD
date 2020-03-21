@@ -4,8 +4,13 @@ cc_library(
   "common.h",
   "connectit.h",
   ],
+  srcs = [
+  "common.cc",
+  "connectit.cc",
+  ],
   deps = [
   "//ligra/pbbslib:atomic_counter",
+  "//pbbslib:assert",
   ],
 )
 

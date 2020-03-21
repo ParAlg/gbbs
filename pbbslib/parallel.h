@@ -106,6 +106,9 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                  granularity, conservative);
 }
 
+inline int num_workers() { return __cilkrts_get_nworkers(); }
+inline int worker_id() { return __cilkrts_get_worker_number(); }
+
 // openmp
 #elif defined(OPENMP)
 #include <omp.h>
@@ -169,6 +172,9 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   }
 }
 
+inline int num_workers() { return omp_get_max_threads(); }
+inline int worker_id() { return omp_get_thread_num(); }
+
 // Guy's scheduler (ABP)
 #elif defined(HOMEGROWN)
 #include "scheduler.h"
@@ -205,6 +211,10 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   // finish_alloc(alloc);
 }
 
+inline int num_workers() { return global_scheduler.num_workers(); }
+
+inline int worker_id() { return global_scheduler.worker_id(); }
+
 // c++
 #else
 
@@ -240,5 +250,8 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   }
   finish_alloc(alloc);
 }
+
+inline int num_workers() { return 1; }
+inline int worker_id() { return 0; }
 
 #endif

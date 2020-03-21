@@ -10,17 +10,14 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
 template <class Graph>
 double Run(Graph& G, commandLine P) {
   using W = typename Graph::weight_type;
-  int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
   bool permute = P.getOptionValue("-permute");
 
   double update_pct = P.getOptionDoubleValue("-update_pct", 0.1); /* percentage of edges to sample for updates */
-  double deletion_pct = P.getOptionDoubleValue("-deletion_pct", 0.6) + update_pct; /* percentage of edges to delete */
+  //double deletion_pct = P.getOptionDoubleValue("-deletion_pct", 0.6) + update_pct; /* percentage of edges to delete */
 
   /* fraction of updates that are insertions */
   double insert_to_query = P.getOptionDoubleValue("-insert_to_query", 0.5);
-
-  bool stats = P.getOptionValue("-stats");
 
   /* idea: hash every edge to a double in (0, 1). */
 
