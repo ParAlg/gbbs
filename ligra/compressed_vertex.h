@@ -149,6 +149,17 @@ inline void mapNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
   C::template decode<W>(T, nghArr, vtx_id, d, parallel);
 }
 
+template <class W, class C, class F>
+inline void mapNghsWithIndex(uintE vtx_id, uintE d, uchar* nghArr, F& f,
+                             bool parallel = true) {
+  auto T = [&](const uintE& src, const uintE& target, const W& weight,
+               const uintT& edgeNumber) {
+    f(src, target, edgeNumber, weight);
+    return true;
+  };
+  C::template decode<W>(T, nghArr, vtx_id, d, parallel);
+}
+
 template <class W, class C, class F, class G>
 inline void copyNghs(uintE vtx_id, uintE d, uchar* nghArr, uintT o, F& f,
                      G& g, bool parallel=true) {
@@ -355,6 +366,12 @@ struct compressed_symmetric_vertex {
   inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
     cvertex::mapNghs<W, C, F>(vtx_id, getOutDegree(), getOutNeighbors(), f,
                               parallel);
+  }
+
+  template <class F>
+  inline void mapOutNghWithIndex(uintE vtx_id, F& f, bool parallel = 1) {  // TODO
+    cvertex::mapNghsWithIndex<W, C, F>(
+        vtx_id, getOutDegree(), getOutNeighbors(), f, parallel);
   }
 
   inline std::tuple<uintE, W> get_ith_out_neighbor(uintE vtx_id, size_t i) {

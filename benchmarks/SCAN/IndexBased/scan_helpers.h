@@ -162,18 +162,22 @@ NeighborOrder ComputeNeighborOrder(
         graph->get_vertex(i).getOutDegree());
     }
   };
-  par_for(0, graph->n, [&](const uintE v) {
-    Vertex vertex{graph->get_vertex(v)};
-    auto* const v_order{&neighbor_order[v]};
-
-    par_for(0, vertex.getOutDegree(), [&](const size_t i) {
-      const uintE neighbor{vertex.getOutNeighbor(i)};
+  par_for(0, graph->n, [&](const uintE v_id) {
+    Vertex v{graph->get_vertex(v_id)};
+    auto* const v_order{&neighbor_order[v_id]};
+    const auto update_v_order{[&](
+        const uintE source_vertex_id,
+        const uintE neighbor_vertex_id,
+        const uintE neighbor_index,
+        NoWeight) {
       constexpr float kNotFound{-1.0};
-      const float similarity{
-        similarities.find(UndirectedEdge{v, neighbor}, kNotFound)};
-      (*v_order)[i] = NeighborSimilarity{
-          .neighbor = neighbor, .similarity = similarity};
-    });
+      (*v_order)[neighbor_index] = NeighborSimilarity{
+          .neighbor = neighbor_vertex_id,
+          .similarity = similarities.find(
+              UndirectedEdge{source_vertex_id, neighbor_vertex_id}, kNotFound)
+      };
+    }};
+    v.mapOutNghWithIndex(v_id, update_v_order);
 
     // Sort by descending structural similarity.
     const auto compare_similarities_descending{
