@@ -107,8 +107,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
 
   size_t block_size = 50000;
   size_t n_blocks = total_work/block_size + 1;
-  size_t work_per_block = total_work / n_blocks;
-  n_blocks = (total_work/work_per_block) + 1;
+  size_t work_per_block = (total_work + n_blocks - 1) / n_blocks;
   std::cout << "Total work = " << total_work << " nblocks = " << n_blocks
             << " work per block = " << work_per_block << "\n";
 
