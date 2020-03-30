@@ -99,7 +99,7 @@ environment variables `CILK`, `OPENMP`, or `SERIAL` respectively.)
 To build:
 ```sh
 # For Bazel:
-$ bazel build --compilation_mode opt //...  # compiles all benchmarks
+$ bazel build  //...  # compiles all benchmarks
 
 # For Make:
 # First set the appropriate environment variables, e.g., first run
@@ -108,6 +108,9 @@ $ bazel build --compilation_mode opt //...  # compiles all benchmarks
 $ cd benchmarks/BFS/NonDeterministicBFS  # go to a benchmark
 $ make -j  # build the benchmark with all threads
 ```
+Note that the default compilation mode in bazel is to build optimized binaries
+(stripped of debug symbols). You can compile debug binaries by supplying `-c
+dbg` to the bazel build command.
 
 The following commands cleans the directory:
 ```sh
