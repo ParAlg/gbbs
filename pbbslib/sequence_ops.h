@@ -59,19 +59,17 @@ auto map(Seq const &A, UnaryFunc f, flags fl = no_flag) -> sequence<OT> {
 // Transforms input sequence `[a_0, a_1, ..., a_{n-1}]` to sequence `[f(1, a_1),
 // f(2, a_2), ..., f(n-1, a_{n-1})]` using input function `f`.
 //
-// Arguments
-// ---------
-// A: array-like object (provides `operator[](size_t)` and `size()` functions)
-//    containing elements of type `T`
-//   Input array.
-// f: (size_t, T) -> OT
-//   Function to apply to input array.
+// Arguments:
+//   A: array-like object (provides `operator[](size_t)` and `size()` functions)
+//      containing elements of type `T`
+//     Input array.
+//   f: (size_t, T) -> OT
+//     Function to apply to input array.
 //
-// Returns
-// -------
-// sequence<OT>
-//   Result of applying `f` to each element of `A` along with the index of that
-//   element in `A`.
+// Returns:
+//   sequence<OT>
+//     Result of applying `f` to each element of `A` along with the index of
+//     that element in `A`.
 template <class OT, SEQ Seq, class Func>
 auto map_with_index(Seq const &A, Func&& f, flags fl = no_flag)
     -> sequence<OT> {
