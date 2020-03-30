@@ -51,9 +51,9 @@ std::ostream& operator<<(std::ostream&, const Clustering&);
 // An Index-Based Approach" by Wen et al.
 class Index {
  public:
-  template <template <typename WeightType> class VertexType>
+  template <template <typename> class VertexTemplate>
   explicit Index(
-      symmetric_graph<VertexType, pbbslib::empty>* graph)
+      symmetric_graph<VertexTemplate, pbbslib::empty>* graph)
     : num_vertices_{graph->n}
     , neighbor_order_{
         internal::ComputeNeighborOrder(

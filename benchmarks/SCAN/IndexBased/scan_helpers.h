@@ -19,7 +19,7 @@ using StructuralSimilarities =
   sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 using VertexSet =
   sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
-using Weight = pbbslib::empty;
+using NoWeight = pbbslib::empty;
 
 struct NeighborSimilarity {
   // Vertex ID.
@@ -100,10 +100,10 @@ size_t BinarySearch(
 //   (geometric mean of size of closed neighborhoods of u and of v)
 // where the closed neighborhood of a vertex x consists of all neighbors of x
 // along with x itself.
-template <template <typename WeightType> class VertexType>
+template <template <typename> class VertexTemplate>
 StructuralSimilarities ComputeStructuralSimilarities(
-    symmetric_graph<VertexType, Weight>* graph) {
-  using Vertex = VertexType<Weight>;
+    symmetric_graph<VertexTemplate, NoWeight>* graph) {
+  using Vertex = VertexTemplate<NoWeight>;
 
   timer function_timer{"Compute structural similarities time"};
 
@@ -112,7 +112,7 @@ StructuralSimilarities ComputeStructuralSimilarities(
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
     std::hash<UndirectedEdge>{}};
   graph->map_edges([&graph, &similarities](
-        const uintE u_id, const uintE v_id, const Weight) {
+        const uintE u_id, const uintE v_id, const NoWeight) {
       // Only perform this computation once for each undirected edge
       if (u_id < v_id) {
         Vertex u{graph->get_vertex(u_id)};
@@ -147,11 +147,11 @@ StructuralSimilarities ComputeStructuralSimilarities(
 // Unlike the presentation in "Efficient Structural Graph Clustering:  An
 // Index-Based Approach", the neighbor list for a vertex `v` will not contain
 // `v` itself, unless `(v, v)` is explicitly given as an edge in `graph`.
-template <template <typename WeightType> class VertexType>
+template <template <typename> class VertexTemplate>
 NeighborOrder ComputeNeighborOrder(
-    symmetric_graph<VertexType, Weight>* graph,
+    symmetric_graph<VertexTemplate, NoWeight>* graph,
     const StructuralSimilarities& similarities) {
-  using Vertex = VertexType<Weight>;
+  using Vertex = VertexTemplate<NoWeight>;
 
   timer function_timer{"Compute neighbor order time"};
 
