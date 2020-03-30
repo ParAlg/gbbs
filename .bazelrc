@@ -27,6 +27,7 @@ build --cxxopt=-DAMORTIZEDPD # use amortized_bytepd encoding scheme for compress
 build --cxxopt=-DUSEMALLOC
 build --cxxopt=-pthread      # necessary for homegrown scheduler
 build --cxxopt=-march=native
+build -c opt
 
 # C++ warning flags.
 build --cxxopt=-Wall
