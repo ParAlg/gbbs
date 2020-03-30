@@ -284,7 +284,8 @@ TEST(ScanSubroutines, BasicUsage) {
         UnorderedElementsAre(
           MakeCoreThreshold(1, 3.0 / sqrt(20)),
           MakeCoreThreshold(2, 3.0 / sqrt(20))));
-    EXPECT_THAT(core_order[5], ElementsAre(MakeCoreThreshold(2, 2.0 / sqrt(10))));
+    EXPECT_THAT(
+        core_order[5], ElementsAre(MakeCoreThreshold(2, 2.0 / sqrt(10))));
   }
 
   {

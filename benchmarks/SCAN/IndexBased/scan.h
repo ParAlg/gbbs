@@ -1,3 +1,4 @@
+// `Index` is the main class of interest in this file.
 #pragma once
 
 #include <variant>
@@ -45,10 +46,7 @@ bool operator==(const Clustering&, const Clustering&);
 std::ostream& operator<<(std::ostream&, const Clustering&);
 
 // Index for an undirected graph from which clustering the graph with SCAN is
-// quick.
-//
-// Based off of SCAN index presented in "Efficient Structural Graph Clustering:
-// An Index-Based Approach" by Wen et al.
+// quick, though index construction may be expensive.
 class Index {
  public:
   template <template <typename> class VertexTemplate>
