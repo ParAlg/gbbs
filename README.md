@@ -78,10 +78,6 @@ for parallelism, which results in comparable performance to Cilk Plus. The
 half-lengths for certain functions such as histogramming are lower using
 Homemade, which results in better performance for codes like KCore.
 
-Note: The Homemade scheduler was developed after our paper submission. For
-reproducibility purposes, the codes should be compiled with Cilk Plus, although
-in our experience the times are usually faster using Homemade.
-
 The benchmark supports both uncompressed and compressed graphs. The uncompressed
 format is identical to the uncompressed format in Ligra. The compressed format,
 called bytepd_amortized (bytepda) is similar to the parallelByte format used in
