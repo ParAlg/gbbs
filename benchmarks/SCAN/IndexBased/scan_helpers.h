@@ -123,7 +123,8 @@ NeighborOrder ComputeNeighborOrder(
     symmetric_graph<VertexTemplate, NoWeight>* graph) {
   using Vertex = VertexTemplate<NoWeight>;
 
-  timer shared_neighbors_timer{"Compute shared neighbors time"};
+  timer shared_neighbors_timer{
+    "Compute neighbor order - count shared neighbors time"};
 
   pbbs::sequence<std::atomic<uintE>> counters(
       graph->m, [](size_t) { return std::atomic<uintE>{0}; });
@@ -185,7 +186,7 @@ NeighborOrder ComputeNeighborOrder(
       *graph, update_counters_per_triangle, update_counter_per_edge);
 
   internal::ReportTime(shared_neighbors_timer);
-  timer neighbor_order_timer{"Construct neighbor order time"};
+  timer neighbor_order_timer{"Compute neighbor order - construct order time"};
 
   NeighborOrder neighbor_order{
     graph->n,
