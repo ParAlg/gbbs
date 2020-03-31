@@ -1,5 +1,7 @@
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 
+#include <limits>
+
 namespace indexed_scan {
 
 namespace {
@@ -15,8 +17,9 @@ struct VertexDegree {
 namespace internal {
 
 bool operator==(const NeighborSimilarity& a, const NeighborSimilarity& b) {
-  return
-    std::tie(a.neighbor, a.similarity) == std::tie(b.neighbor, b.similarity);
+  constexpr float kEpsilon{1e-6};
+  return a.neighbor == b.neighbor &&
+    std::abs(a.similarity - b.similarity) < kEpsilon;
 }
 
 std::ostream&
@@ -27,8 +30,9 @@ operator<<(std::ostream& os, const NeighborSimilarity& neighbor_similarity) {
 }
 
 bool operator==(const CoreThreshold& a, const CoreThreshold& b) {
-  return
-    std::tie(a.vertex_id, a.threshold) == std::tie(b.vertex_id, b.threshold);
+  constexpr float kEpsilon{1e-6};
+  return a.vertex_id == b.vertex_id &&
+    std::abs(a.threshold - b.threshold) < kEpsilon;
 }
 
 std::ostream&

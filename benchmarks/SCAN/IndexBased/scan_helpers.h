@@ -4,8 +4,11 @@
 // main SCAN header file.
 #pragma once
 
+#include <array>
+#include <atomic>
 #include <utility>
 
+#include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 #include "ligra/graph.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "ligra/undirected_edge.h"
@@ -27,6 +30,9 @@ struct NeighborSimilarity {
   // Similarity of neighbor vertex to some original reference vertex.
   float similarity;
 };
+// Beware that this equality operator compares the floating-point field
+// approximately. This is convenient for unit tests but might not be appropriate
+// for other uses.
 bool operator==(const NeighborSimilarity&, const NeighborSimilarity&);
 std::ostream& operator<<(std::ostream& os, const NeighborSimilarity&);
 
@@ -38,6 +44,9 @@ struct CoreThreshold {
   // vertex (given some fixed reference value for SCAN parameter mu).
   float threshold;
 };
+// Beware that this equality operator compares the floating-point field
+// approximately. This is convenient for unit tests but might not be appropriate
+// for other uses.
 bool operator==(const CoreThreshold&, const CoreThreshold&);
 std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
 
@@ -92,50 +101,6 @@ size_t BinarySearch(
     pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
 }
 
-// Compute structural similarities (as defined by SCAN) between each pair of
-// adjacent vertices.
-//
-// The structural similarity between two vertices u and v is
-//   (size of intersection of closed neighborhoods of u and v) /
-//   (geometric mean of size of closed neighborhoods of u and of v)
-// where the closed neighborhood of a vertex x consists of all neighbors of x
-// along with x itself.
-template <template <typename> class VertexTemplate>
-StructuralSimilarities ComputeStructuralSimilarities(
-    symmetric_graph<VertexTemplate, NoWeight>* graph) {
-  using Vertex = VertexTemplate<NoWeight>;
-
-  timer function_timer{"Compute structural similarities time"};
-
-  StructuralSimilarities similarities{
-    graph->m,
-    std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
-    std::hash<UndirectedEdge>{}};
-  graph->map_edges([&graph, &similarities](
-        const uintE u_id, const uintE v_id, const NoWeight) {
-      // Only perform this computation once for each undirected edge
-      if (u_id < v_id) {
-        Vertex u{graph->get_vertex(u_id)};
-        Vertex v{graph->get_vertex(v_id)};
-        const auto no_op{[](uintE, uintE, uintE) {}};
-        const size_t num_shared_neighbors{
-          u.intersect_f_par(&v, u_id, v_id, no_op)};
-
-        // The neighborhoods we've computed are open neighborhoods -- since
-        // structural similarity uses closed neighborhoods, we need to adjust
-        // the number and denominator a little.
-        similarities.insert(
-            {UndirectedEdge{u_id, v_id},
-            (num_shared_neighbors + 2) /
-                (sqrt(u.getOutDegree() + 1) * sqrt(v.getOutDegree() + 1))});
-      }
-  });
-
-  function_timer.stop();
-  internal::ReportTime(function_timer);
-  return similarities;
-}
-
 // Computes an adjacency list for the graph in which each neighbor list is
 // sorted by descending structural similarity with the source vertex.
 //
@@ -144,16 +109,69 @@ StructuralSimilarities ComputeStructuralSimilarities(
 // is the neighbor of `v` with the (zero-indexed) `i`-th  highest structural
 // similarity with `v`.
 //
+// The structural similarity between two vertices u and v is
+//   (size of intersection of closed neighborhoods of u and v) /
+//   (geometric mean of size of closed neighborhoods of u and of v)
+// where the closed neighborhood of a vertex x consists of all neighbors of x
+// along with x itself.
+//
 // Unlike the presentation in "Efficient Structural Graph Clustering:  An
 // Index-Based Approach", the neighbor list for a vertex `v` will not contain
 // `v` itself, unless `(v, v)` is explicitly given as an edge in `graph`.
 template <template <typename> class VertexTemplate>
 NeighborOrder ComputeNeighborOrder(
-    symmetric_graph<VertexTemplate, NoWeight>* graph,
-    const StructuralSimilarities& similarities) {
+    symmetric_graph<VertexTemplate, NoWeight>* graph) {
   using Vertex = VertexTemplate<NoWeight>;
 
-  timer function_timer{"Compute neighbor order time"};
+  timer shared_neighbors_timer{"Compute shared neighbors time"};
+
+  pbbs::sequence<std::atomic<uintE>> counters(
+      graph->m, [](size_t) { return std::atomic<uintE>{0}; });
+  pbbs::sequence<uintT> offsets(
+      graph->n,
+      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); });
+  pbbslib::scan_add_inplace(offsets);
+  // Maps an edge {u, v} to an index into `counters`. The counter will hold the
+  // number of shared neighbors between u and v, i.e. the number of triangles
+  // involving edge {u, v}.
+  sparse_table<UndirectedEdge, uintT, std::hash<UndirectedEdge>>
+    shared_neighbor_counters{
+      graph->m / 2,
+      std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, UINT_T_MAX),
+      std::hash<UndirectedEdge>{}};
+  par_for(0, graph->n, [&](const size_t v_id) {
+    Vertex v{graph->get_vertex(v_id)};
+    const auto initialize_counter{[&](
+        const uintE source_vertex_id,
+        const uintE neighbor_vertex_id,
+        const uintE neighbor_index,
+        NoWeight) {
+      if (source_vertex_id < neighbor_vertex_id) {
+        const uintT counter_index{offsets[source_vertex_id] + neighbor_index};
+        shared_neighbor_counters.insert(
+          {UndirectedEdge{source_vertex_id, neighbor_vertex_id},
+           counter_index});
+      }
+    }};
+    v.mapOutNghWithIndex(v_id, initialize_counter);
+  });
+
+  const auto update_shared_neighbor_counts{[&](
+      const uintE vertex_1,
+      const uintE vertex_2,
+      const uintE vertex_3) {
+    constexpr uintT kNotFound{UINT_T_MAX};
+    const std::array<UndirectedEdge, 3> triangle_edges{{
+       {vertex_1, vertex_2}, {vertex_1, vertex_3}, {vertex_2, vertex_3}}};
+    for (const auto& edge : triangle_edges) {
+      const uintT counter_index{shared_neighbor_counters.find(edge, kNotFound)};
+      counters[counter_index]++;
+    }
+  }};
+  Triangle_degree_ordering(*graph, update_shared_neighbor_counts);
+
+  internal::ReportTime(shared_neighbors_timer);
+  timer neighbor_order_timer{"Construct neighbor order time"};
 
   NeighborOrder neighbor_order{
     graph->n,
@@ -164,17 +182,28 @@ NeighborOrder ComputeNeighborOrder(
   };
   par_for(0, graph->n, [&](const uintE v_id) {
     Vertex v{graph->get_vertex(v_id)};
+    const float v_neighborhood_sqrt{sqrtf(v.getOutDegree() + 1)};
     auto* const v_order{&neighbor_order[v_id]};
     const auto update_v_order{[&](
         const uintE source_vertex_id,
-        const uintE neighbor_vertex_id,
-        const uintE neighbor_index,
+        const uintE u_vertex_id,
+        const uintE u_index,
         NoWeight) {
-      constexpr float kNotFound{-1.0};
-      (*v_order)[neighbor_index] = NeighborSimilarity{
-          .neighbor = neighbor_vertex_id,
-          .similarity = similarities.find(
-              UndirectedEdge{source_vertex_id, neighbor_vertex_id}, kNotFound)
+      // The shared neighbor counts we've computed use open neighborhoods --
+      // since structural similarity uses closed neighborhoods, we need to
+      // adjust the number and denominator a little.
+      constexpr uintT kNotFound{UINT_T_MAX};
+      const uintT counter_index{shared_neighbor_counters.find(
+          UndirectedEdge{source_vertex_id, u_vertex_id}, kNotFound)};
+      // SCAN structural similarities are defined using _closed_ neighborhoods,
+      // hence the need to to adjust these values by `+ 1` and `+ 2`.
+      const uintE num_shared_neighbors{counters[counter_index] + 2};
+      const float u_neighborhood_sqrt{
+        sqrtf(graph->get_vertex(u_vertex_id).getOutDegree() + 1)};
+      (*v_order)[u_index] = NeighborSimilarity{
+          .neighbor = u_vertex_id,
+          .similarity =
+            num_shared_neighbors / (u_neighborhood_sqrt * v_neighborhood_sqrt)
       };
     }};
     v.mapOutNghWithIndex(v_id, update_v_order);
@@ -188,8 +217,7 @@ NeighborOrder ComputeNeighborOrder(
         v_order->slice(),
         compare_similarities_descending);
   });
-
-  internal::ReportTime(function_timer);
+  internal::ReportTime(neighbor_order_timer);
   return neighbor_order;
 }
 

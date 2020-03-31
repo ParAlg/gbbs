@@ -150,12 +150,7 @@ TEST(ScanSubroutines, NullGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::StructuralSimilarities similarity_table{
-    ii::ComputeStructuralSimilarities(&graph)};
-  EXPECT_THAT(similarity_table.entries(), IsEmpty());
-
-  const ii::NeighborOrder neighbor_order{
-    ii::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
   EXPECT_THAT(neighbor_order, IsEmpty());
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -167,12 +162,7 @@ TEST(ScanSubroutines, EmptyGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::StructuralSimilarities similarity_table{
-    ii::ComputeStructuralSimilarities(&graph)};
-  EXPECT_THAT(similarity_table.entries(), IsEmpty());
-
-  const ii::NeighborOrder neighbor_order{
-    ii::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
   EXPECT_EQ(neighbor_order.size(), kNumVertices);
   for (const auto& vertex_order : neighbor_order) {
     EXPECT_THAT(vertex_order, IsEmpty());
@@ -202,20 +192,7 @@ TEST(ScanSubroutines, BasicUsage) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::StructuralSimilarities similarity_table{
-    ii::ComputeStructuralSimilarities(&graph)};
-  const auto similarities{similarity_table.entries()};
-  EXPECT_THAT(similarities, UnorderedElementsAre(
-        std::make_tuple(UndirectedEdge{0, 1}, 2.0 / sqrt(8)   /* .71 */),
-        std::make_tuple(UndirectedEdge{1, 2}, 3.0 / sqrt(20)  /* .67 */),
-        std::make_tuple(UndirectedEdge{1, 3}, 3.0 / sqrt(16)  /* .75 */),
-        std::make_tuple(UndirectedEdge{2, 3}, 4.0 / sqrt(20)  /* .89 */),
-        std::make_tuple(UndirectedEdge{2, 4}, 3.0 / sqrt(15)  /* .77 */),
-        std::make_tuple(UndirectedEdge{2, 5}, 2.0 / sqrt(10)  /* .63 */),
-        std::make_tuple(UndirectedEdge{3, 4}, 3.0 / sqrt(12)  /* .87 */)));
-
-  const ii::NeighborOrder neighbor_order{
-    ii::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
       neighbor_order[0],
@@ -329,16 +306,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::StructuralSimilarities similarity_table{
-    ii::ComputeStructuralSimilarities(&graph)};
-  const auto similarities{similarity_table.entries()};
-  EXPECT_THAT(similarities, UnorderedElementsAre(
-        std::make_tuple(UndirectedEdge{0, 1}, 1.0),
-        std::make_tuple(UndirectedEdge{3, 4}, 2.0 / sqrt(6)  /* .82 */),
-        std::make_tuple(UndirectedEdge{4, 5}, 2.0 / sqrt(6)  /* .82 */)));
-
-  const ii::NeighborOrder neighbor_order{
-    ii::ComputeNeighborOrder(&graph, similarity_table)};
+  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(neighbor_order[0], ElementsAre(MakeNeighborSimilarity(1, 1.0)));
   EXPECT_THAT(neighbor_order[1], ElementsAre(MakeNeighborSimilarity(0, 1.0)));
@@ -406,7 +374,7 @@ TEST(Cluster, EmptyGraph) {
 }
 
 TEST(Cluster, BasicUsage) {
-  // Graph diagram with similarity scores labeled:
+  // Graph diagram with structural similarity scores labeled:
   //       .71    .67  .63
   //     0 --- 1 ---- 2 -- 5
   //           |    / |
@@ -496,7 +464,7 @@ TEST(Cluster, BasicUsage) {
 }
 
 TEST(Cluster, DisconnectedGraph) {
-  // Graph diagram with similarity scores labeled:
+  // Graph diagram with structural similarity scores labeled:
   //       1.0            .82  .82
   //     0 -- 1    2    3 -- 4 -- 5
 
@@ -556,7 +524,7 @@ TEST(Cluster, DisconnectedGraph) {
 }
 
 TEST(Cluster, TwoClusterGraph) {
-  // Graph diagram with similarity scores labeled:
+  // Graph diagram with structural similarity scores labeled:
   //           2                   6
   //     .87 /   \ .87       .87 /   \ .87
   //        /     \             /     \.

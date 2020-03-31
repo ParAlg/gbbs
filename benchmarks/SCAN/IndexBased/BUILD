@@ -11,6 +11,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+        "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
         "//ligra:graph",
         "//ligra:graph_test_utils",
         "//ligra:macros",
