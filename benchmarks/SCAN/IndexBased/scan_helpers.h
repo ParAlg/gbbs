@@ -156,19 +156,33 @@ NeighborOrder ComputeNeighborOrder(
     v.mapOutNghWithIndex(v_id, initialize_counter);
   });
 
-  const auto update_shared_neighbor_counts{[&](
-      const uintE vertex_1,
-      const uintE vertex_2,
-      const uintE vertex_3) {
+  const auto update_counters_per_triangle{[&](
+      const uintE vertex_1, const uintE vertex_2, const uintE vertex_3) {
     constexpr uintT kNotFound{UINT_T_MAX};
-    const std::array<UndirectedEdge, 3> triangle_edges{{
-       {vertex_1, vertex_2}, {vertex_1, vertex_3}, {vertex_2, vertex_3}}};
-    for (const auto& edge : triangle_edges) {
-      const uintT counter_index{shared_neighbor_counters.find(edge, kNotFound)};
+    {
+      const uintT counter_index{shared_neighbor_counters.find(
+          UndirectedEdge{vertex_1, vertex_3}, kNotFound)};
       counters[counter_index]++;
     }
+    {
+      const uintT counter_index{shared_neighbor_counters.find(
+          UndirectedEdge{vertex_2, vertex_3}, kNotFound)};
+      counters[counter_index]++;
+    }
+    // We skip incrementing the counter for edge {vertex_1, vertex_2} --- we'll
+    // do that in `update_counter_per_edge`.
   }};
-  Triangle_degree_ordering(*graph, update_shared_neighbor_counts);
+  const auto update_counter_per_edge{[&](
+      const uintE vertex_1,
+      const uintE vertex_2,
+      const size_t intersection_count) {
+    constexpr uintT kNotFound{UINT_T_MAX};
+    const uintT counter_index{shared_neighbor_counters.find(
+        UndirectedEdge{vertex_1, vertex_2}, kNotFound)};
+    counters[counter_index] += intersection_count;
+  }};
+  Triangle_degree_ordering(
+      *graph, update_counters_per_triangle, update_counter_per_edge);
 
   internal::ReportTime(shared_neighbors_timer);
   timer neighbor_order_timer{"Construct neighbor order time"};

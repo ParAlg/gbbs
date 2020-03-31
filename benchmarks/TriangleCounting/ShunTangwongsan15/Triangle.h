@@ -23,6 +23,8 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
+
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
 #include "ligra/ligra.h"
@@ -85,9 +87,39 @@ inline size_t CountDirected(Graph& DG, size_t* counts,
   return count;
 }
 
-template <class Graph, class F>
+// Returns the number of directed triangles in input graph of the following
+// orientation:
+//        w
+//       ^ ^
+//      /   \.
+//     u --> v
+//
+//
+// Arguments:
+//   DG
+//     Graph on which we'll count triangles.
+//   each_triangle_f: (uintE, uintE, uintE) -> void
+//     Function that's run each triangle. On a directed triangle like the one
+//     pictured above, we run `each_triangle_f(u, v, w)`.
+//   each_edge_f: (uintE, uintE, size_t) -> void
+//     Function that's run on each edge. On an edge {u, v}, we run `each_edge(u,
+//     v, f_count)` where `f_count` is the number of times we call
+//     `each_triangle_f(u, v, *)`.
+//
+// The intended (and perhaps only) use case of `each_edge_f` is as follows: Let
+// `G` be the undirected version of `DG`. Say we want to count the number of
+// triangles that each edge {a, b} appears in, so initialize an atomic counter
+// for each edge {a, b}. We can get the result we want by having
+// `each_triangle_f(u, v, w)` increment counters for {u, v}, {u, w}, and {v, w}.
+// But if we inspect the implementation, we find that all calls of the form
+// `each_triangle_f(u, v, *)` appear in one place. Therefore, to reduce
+// contention on the atomic counters, we can remove the increment for {u, v} in
+// `each_triangle_f(u, v, *)` and instead increment the counter for {u, v} in
+// bulk in `intersect_count_f`.
+template <class Graph, class F, class F2>
 inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
-                                    const F& f) {
+                                    const F& each_triangle_f,
+                                    const F2& intersect_count_f) {
   using W = typename Graph::weight_type;
   debug(std::cout << "Starting counting"
             << "\n";);
@@ -117,7 +149,11 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
         auto v_vtx = DG.get_vertex(v);
-        total_ct += vtx.intersect_f_par(&v_vtx, u, v, f);
+        size_t intersection_count =
+          vtx.intersect_f_par(&v_vtx, u, v, each_triangle_f);
+        intersect_count_f(u, v, intersection_count);
+        total_ct += intersection_count;
+
       };
       vtx.mapOutNgh(i, map_f, false);  // run map sequentially
       counts[i] = total_ct;
@@ -139,8 +175,29 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
   return count;
 }
 
+// More commonly used overload that doesn't use `each_edge_f`.
 template <class Graph, class F>
-inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
+inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
+                                    const F& each_triangle_f) {
+  return CountDirectedBalanced(
+      DG, counts, each_triangle_f, [](uintE, uintE, size_t) {});
+}
+
+// Returns the number of triangles in input graph.
+//
+// Arguments:
+//   G
+//     Graph on which we'll count triangles.
+//   each_triangle_f: (uintE, uintE, uintE) -> void
+//     Function that's run each triangle. On a triangle with vertices {u, v, w},
+//     we run `each_triangle_f(u, v, w)`.
+//   each_edge_f: (uintE, uintE, size_t) -> void
+//     Function that's run on each edge. On an edge {u, v}, we run `each_edge(u,
+//     v, f_count)` where `f_count` is the number of times we call
+//     `each_triangle_f(u, v, *)`.
+template <class Graph, class F, class F2>
+inline size_t Triangle_degree_ordering(
+    Graph& G, const F& each_triangle_f, const F2& each_edge_f) {
   using W = typename Graph::weight_type;
   timer gt;
   gt.start();
@@ -166,13 +223,21 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   timer ct;
   ct.start();
 
-  size_t count = CountDirectedBalanced(DG, counts.begin(), f);
+  size_t count =
+    CountDirectedBalanced(DG, counts.begin(), each_triangle_f, each_edge_f);
   std::cout << "### Num triangles = " << count << "\n";
   DG.del();
   ct.stop();
   ct.reportTotal("count time");
   pbbslib::free_array(rank);
   return count;
+}
+
+// More commonly used overload that doesn't use `each_edge_f`.
+template <class Graph, class F>
+inline size_t Triangle_degree_ordering(Graph& G, const F& each_triangle_f) {
+  return Triangle_degree_ordering(
+      G, each_triangle_f, [](uintE, uintE, size_t) {});
 }
 
 template <class Graph, class F, class O>
