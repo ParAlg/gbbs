@@ -13,11 +13,12 @@ cc_library(
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
         "//ligra:graph",
-        "//ligra:graph_test_utils",
         "//ligra:macros",
         "//ligra:undirected_edge",
         "//ligra/pbbslib:sparse_table",
         "//pbbslib:get_time",
+        "//pbbslib:parallel",
+        "//pbbslib:utilities",
     ],
 )
 

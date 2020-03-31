@@ -6,10 +6,7 @@
 
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "ligra/bridge.h"
-#include "ligra/macros.h"
-#include "pbbslib/binary_search.h"
 #include "pbbslib/parallel.h"
-#include "pbbslib/sample_sort.h"
 
 namespace indexed_scan {
 
@@ -65,17 +62,16 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
 }
 
 // Given a list of edges of sufficient similarity between core vertices,
-// identifies the clusters for the core vertices and populates
-// `clustering->num_clusters` and `clustering->clusters_by_vertex` accordingly.
-// Non-core vertices in `clustering.clusters_by_vertex` are left unchanged.
+// identifies the clusters for the core vertices and populates `clustering`
+// accordingly. Non-core vertices in `clustering` are left unchanged.
 //
 // Arguments:
 //   num_vertices: Number of vertices in the whole graph.
 //   cores: List of IDs of vertices that are SCAN cores.
 //   core_to_core_edges: Directed edges between cores of at least epsilon
 //     similarity. This list may be modified by this function.
-//   clustering: Output clustering, to be updated with the number of clusters as
-//     well as the clustering for only the core vertices.
+//   clustering: Output. Will be updated with the cluster IDs only for the core
+//   vertices.
 void ClusterCores(
     const uintE num_vertices,
     const pbbs::sequence<uintE>& cores,
@@ -94,108 +90,48 @@ void ClusterCores(
         [](const DirectedEdge& edge) { return edge.second; },
         [](const DirectedEdge&) { return pbbslib::empty{}; })};
 
-  // Get connected components in the resulting core graph. Relabel the resulting
-  // component IDs to be contiguous and to ignore the non-core vertices. This
-  // identifies the clusters for all the core vertices.
   pbbs::sequence<parent> connected_components{workefficient_cc::CC(core_graph)};
-  pbbs::sequence<uintE> component_relabel_map(num_vertices, 0U);
   par_for(0, cores.size(), [&](const size_t i) {
-    const uintE cluster{connected_components[cores[i]]};
-    if (component_relabel_map[cluster] == 0) {
-      component_relabel_map[cluster] = 1;
-    }
-  });
-  clustering->num_clusters = pbbslib::scan_add_inplace(component_relabel_map);
-  par_for(0, cores.size(), [&](const size_t i) {
-    const uintE core{cores[i]};
-    clustering->clusters_by_vertex[core] =
-      ClusterMember{
-        .clusters =
-          pbbs::sequence(1, component_relabel_map[connected_components[core]])
-      };
+    (*clustering)[cores[i]] = connected_components[cores[i]];
   });
 
   internal::ReportTime(function_timer);
 }
 
-// Given `clustering` where `clustering.clusters_by_vertex` is correct for all
-// core vertices and a list of [core -> non-core] edges of sufficient
-// similarity, populate `clustering.clusters_by_vertex` for all non-core
-// vertices listed in `core_to_noncore_edges`.
+// Given `clustering` that's populated for all core vertices and a list of
+// [core -> non-core] edges of sufficient similarity, populate `clustering` for
+// all non-core vertices.
 //
 // Arguments:
-// - num_vertices: Number of vertices in the whole graph.
-// - core_to_noncore_edges: Directed edges of at least epsilon similarityfrom
-//   core to noncore vertices of at least epsilon similarity. This list may be
-//   modified by this function.
-// - clustering: Output. When function is called, core vertices must be already
-//   be marked as ClusterMembers. After function is called, non-core vertices
-//   that are ClusterMembers will be identified and marked accordingly.
+//   num_vertices: Number of vertices in the whole graph.
+//   core_to_noncore_edges: Directed edges of at least epsilon similarity from
+//   core to noncore vertices.
+//   clustering: Output. When function is called, core vertices must be already
+//     be assigned a cluster ID. After function is called, non-core vertices
+//     that belong to a cluster will be marked accordingly.
 void AttachNoncoresToClusters(
     const uintE num_vertices,
-    pbbs::range<DirectedEdge*>* core_to_noncore_edges,
+    const pbbs::range<DirectedEdge*>& core_to_noncore_edges,
     Clustering* clustering) {
   timer function_timer{"Attach non-cores to clusters time"};
-
-  par_for(0, core_to_noncore_edges->size(), [&](const size_t i) {
-    // Replace core vertex ID with its cluster ID.
-    (*core_to_noncore_edges)[i].first =
-      std::get<ClusterMember>(
-          clustering->clusters_by_vertex[(*core_to_noncore_edges)[i].first])
-      .clusters[0];
-  });
-  pbbs::sample_sort_inplace(
-      *core_to_noncore_edges,
-      // Sort first by non-core endpoint.
-      [](const DirectedEdge& a, const DirectedEdge& b) {
-        return std::tie(a.second, a.first) < std::tie(b.second, b.first);
-      });
-  // Table storing the last index at which a non-core vertex in
-  // (*core_to_noncore_edges)[...].second appears in core_to_noncore_edges.
-  auto noncore_ends{
-    make_sparse_table<uintE, uintT, decltype(&pbbslib::hash64_2)>(
-      std::min<size_t>(num_vertices, core_to_noncore_edges->size()) + 1,
-      {UINT_E_MAX, UINT_T_MAX},
-      pbbslib::hash64_2)};
-  par_for(0, core_to_noncore_edges->size(), [&](const size_t i) {
-    const uintE noncore{(*core_to_noncore_edges)[i].second};
-    if (i == core_to_noncore_edges->size() - 1 ||
-        noncore != (*core_to_noncore_edges)[i + 1].second) {
-      noncore_ends.insert({noncore, i + 1});
+  // Attach each non-core to the same cluster as an arbitrary adjacent core.
+  //
+  // We could do something smarter like attach each non-core to its most
+  // structurally similar adjacent core, but let's keep things simple for now.
+  par_for(0, core_to_noncore_edges.size(), [&](const size_t i) {
+    uintE core, noncore;
+    std::tie(core, noncore) = core_to_noncore_edges[i];
+    auto* noncore_cluster_address{&(*clustering)[noncore]};
+    if (*noncore_cluster_address == kUnclustered) {
+      const uintE cluster{(*clustering)[core]};
+      pbbs::atomic_compare_and_swap(
+          noncore_cluster_address, kUnclustered, cluster);
     }
   });
-  par_for(0, core_to_noncore_edges->size(), [&](const size_t i) {
-    const uintE noncore{(*core_to_noncore_edges)[i].second};
-    if (i == 0 || noncore != (*core_to_noncore_edges)[i - 1].second) {
-      constexpr uintT kDefaultEnd{UINT_T_MAX};
-      const uintT noncore_end{noncore_ends.find(noncore, kDefaultEnd)};
-      internal::VertexSet clusters{
-      internal::MakeVertexSet(
-            std::min<size_t>(noncore_end - i, clustering->num_clusters))};
-      par_for(i, noncore_end, [&](const size_t j) {
-        const uintE cluster{(*core_to_noncore_edges)[i].first};
-        if (j == i || cluster != (*core_to_noncore_edges)[i - 1].first) {
-          clusters.insert({cluster, pbbslib::empty{}});
-        }
-      });
-      clustering->clusters_by_vertex[noncore] =
-        ClusterMember{
-          .clusters =
-            pbbs::map<uintE>(
-                clusters.entries(),
-                [](const std::tuple<uintE, pbbslib::empty> kv) {
-                  return std::get<0>(kv);
-                })
-        };
-    }
-  });
-
   internal::ReportTime(function_timer);
 }
 
-// Gets the SCAN clusters, populating `clustering`, but does not determine hubs
-// or outliers. Hubs and outliers in `clustering->clusters_by_vertex` are left
-// unchanged.
+// Given core vertices, computes the SCAN clusters.
 //
 // Arguments:
 // - num_vertices: Number of vertices in the graph.
@@ -203,13 +139,10 @@ void AttachNoncoresToClusters(
 // - core_similar_incident_edges: List of directed edges incident on cores with
 //   similarity at least epsilon, where the first endpoint of each edge is a
 //   core.
-// - clustering: Output. `clustering->clusters_by_vertex` for vertices that are
-//   not members of clusters will be unchanged.
-void GetClustersFromCores(
+Clustering GetClustersFromCores(
     const uintE num_vertices,
     const pbbs::sequence<uintE>& cores,
-    const pbbs::sequence<DirectedEdge>& core_similar_incident_edges,
-    Clustering* clustering) {
+    const pbbs::sequence<DirectedEdge>& core_similar_incident_edges) {
   timer preprocessing_timer{"Get clusters from cores - preprocessing time"};
 
   internal::VertexSet cores_set{internal::MakeVertexSet(cores.size())};
@@ -234,118 +167,30 @@ void GetClustersFromCores(
 
   internal::ReportTime(preprocessing_timer);
 
+  Clustering clustering(num_vertices, kUnclustered);
+
   pbbs::range<DirectedEdge*> core_to_core_edges{
     partitioned_edges.slice(0, num_core_to_core_edges)};
-  ClusterCores(num_vertices, cores, &core_to_core_edges, clustering);
+  ClusterCores(num_vertices, cores, &core_to_core_edges, &clustering);
 
   pbbs::range<DirectedEdge*> core_to_noncore_edges{
     partitioned_edges.slice(num_core_to_core_edges, partitioned_edges.size())};
-  AttachNoncoresToClusters(num_vertices, &core_to_noncore_edges, clustering);
-}
+  AttachNoncoresToClusters(num_vertices, core_to_noncore_edges, &clustering);
 
-// For every vertex in `clusters_by_vertex` that is not marked as a
-// `ClusterMember`, mark it as either a hub or an outlier.
-//
-// All cluster members in `clusters_by_vertex` must be marked correctly as a
-// `ClusterMember` prior to calling this function.
-void DetermineHubsAndOutliers(
-    const internal::NeighborOrder& adjacency_list,
-    pbbs::sequence<VertexType>* clusters_by_vertex) {
-  timer function_timer{"Determine hubs and outliers time"};
-
-  par_for(0, clusters_by_vertex->size(), [&](const size_t i) {
-    VertexType* const vertex_type{&(*clusters_by_vertex)[i]};
-    if (!std::holds_alternative<ClusterMember>(*vertex_type)) {
-      // Determine whether remaining vertex i is a hub or outlier.
-
-      const auto& neighbors{adjacency_list[i]};
-      bool is_hub{false};
-      // `candidate_cluster` holds a cluster ID that vertex i is adjacent to, or
-      // UINT_E_MAX before such a cluster is found.
-      uintE candidate_cluster{UINT_E_MAX};
-      par_for(0, neighbors.size(), [&](const size_t j) {
-        const ClusterMember* const neighbor_clusters{
-          std::get_if<ClusterMember>(
-              &(*clusters_by_vertex)[neighbors[j].neighbor])};
-        if (neighbor_clusters != nullptr) {
-          if (neighbor_clusters->clusters.size() > 1) {
-            if (!is_hub) {
-              is_hub = true;
-            }
-          } else {
-            const uintE neighbor_cluster{neighbor_clusters->clusters[0]};
-            // If `candidate_cluster` is at its default value of UINT_E_MAX,
-            // assign `neighbor_cluster` to it. Otherwise, if it has a value
-            // differing from `neighbor_cluster`, then we know vertex i is
-            // adjacent to multiple clusters and is a hub.
-            if (!(candidate_cluster == UINT_E_MAX
-                  && pbbs::atomic_compare_and_swap(
-                        &candidate_cluster, UINT_E_MAX, neighbor_cluster))
-                && candidate_cluster != neighbor_cluster
-                && !is_hub) {
-              is_hub = true;
-            }
-          }
-        }
-      });
-      *vertex_type = is_hub? VertexType{Hub{}} : VertexType{Outlier{}};
-    }
-  });
-
-  internal::ReportTime(function_timer);
+  return clustering;
 }
 
 }  // namespace
 
-bool operator==(const ClusterMember& a, const ClusterMember& b) {
-  return a.clusters == b.clusters;
-}
-
-bool operator==(const Hub&, const Hub&) {
-  return true;
-}
-
-bool operator==(const Outlier&, const Outlier&) {
-  return true;
-}
-
-bool operator==(const Clustering& a, const Clustering& b) {
-  return std::tie(a.num_clusters, a.clusters_by_vertex)
-    == std::tie(b.num_clusters, b.clusters_by_vertex);
-}
-
-std::ostream& operator<<(std::ostream& os, const ClusterMember& member) {
-  os << "ClusterMember{";
-  for (const uintE cluster : member.clusters) {
-    os << ' ' << cluster;
+std::ostream& operator<<(std::ostream& os, UnclusteredType unclustered_type) {
+  switch (unclustered_type) {
+    case UnclusteredType::kHub:
+      os << "hub";
+      break;
+    case UnclusteredType::kOutlier:
+      os << "outlier";
+      break;
   }
-  os << " }";
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Hub&) {
-  os << "Hub";
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Outlier&) {
-  os << "Outlier";
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const VertexType& vertex_type) {
-  std::visit([&os](const auto& type) { os << type; }, vertex_type);
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Clustering& clustering) {
-  os << "{num_clusters=" << clustering.num_clusters;
-  os  << ", clusters_by_vertex={";
-  for (size_t i = 0; i < clustering.clusters_by_vertex.size(); i++) {
-    os << ' ' << i << '=' << clustering.clusters_by_vertex[i];
-  }
-  os << " }";
-  os << "}";
   return os;
 }
 
@@ -353,24 +198,31 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
   if (cores.empty()) {
     // Nothing is a core. There are no clusters, and every vertex is an outlier.
-    return Clustering {
-        .num_clusters = 0,
-        .clusters_by_vertex =
-          pbbs::sequence<VertexType>(num_vertices_, VertexType{Outlier{}})
-    };
+    return Clustering(num_vertices_, kUnclustered);
   }
   const pbbs::sequence<DirectedEdge> core_similar_incident_edges{
     GetSimilarIncidentEdges(neighbor_order_, cores, epsilon)};
-  Clustering clustering{
-    .num_clusters = 0,
-    // Mark everything as an outlier for now.
-    .clusters_by_vertex =
-      pbbs::sequence<VertexType>(num_vertices_, VertexType{Outlier{}})
-  };
-  GetClustersFromCores(
-      num_vertices_, cores, core_similar_incident_edges, &clustering);
-  DetermineHubsAndOutliers(neighbor_order_, &clustering.clusters_by_vertex);
-  return clustering;
+  return GetClustersFromCores(
+      num_vertices_, cores, core_similar_incident_edges);
+}
+
+size_t CleanClustering(Clustering* clustering) {
+  const size_t num_vertices{clustering->size()};
+  pbbs::sequence<uintE> cluster_relabel_map(num_vertices, 0U);
+  par_for(0, num_vertices, [&](const size_t i) {
+    const uintE cluster_id{(*clustering)[i]};
+    if (cluster_id != kUnclustered && cluster_relabel_map[cluster_id] == 0) {
+      cluster_relabel_map[cluster_id] = 1;
+    }
+  });
+  const size_t num_clusters{pbbslib::scan_add_inplace(cluster_relabel_map)};
+  par_for(0, num_vertices, [&](const size_t i) {
+    const uintE cluster_id{(*clustering)[i]};
+    if (cluster_id != kUnclustered) {
+      (*clustering)[i] = cluster_relabel_map[cluster_id];
+    }
+  });
+  return num_clusters;
 }
 
 }  // namespace indexed_scan
