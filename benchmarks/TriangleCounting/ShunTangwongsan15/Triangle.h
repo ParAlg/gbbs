@@ -113,9 +113,9 @@ inline size_t CountDirected(Graph& DG, size_t* counts,
 // `each_triangle_f(u, v, w)` increment counters for {u, v}, {u, w}, and {v, w}.
 // But if we inspect the implementation, we find that all calls of the form
 // `each_triangle_f(u, v, *)` appear in one place. Therefore, to reduce
-// contention on the atomic counters, we can remove the increment for {u, v} in
-// `each_triangle_f(u, v, *)` and instead increment the counter for {u, v} in
-// bulk in `intersect_count_f`.
+// contention + lookup cost on the atomic counters, we can remove the increment
+// for {u, v} in `each_triangle_f(u, v, *)` and instead increment the counter
+// for {u, v} in bulk in `intersect_count_f`.
 template <class Graph, class F, class F2>
 inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
                                     const F& each_triangle_f,
