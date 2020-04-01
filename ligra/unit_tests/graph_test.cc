@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include "ligra/graph.h"
+#include "ligra/graph_test_utils.h"
 #include "pbbslib/seq.h"
+
+namespace gt = graph_test;
 
 TEST(TestSymGraphFromEdges, TestBrokenPath) {
   using edge = std::tuple<uintE, uintE, int>;
@@ -48,4 +51,51 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
   ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
   ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+}
+
+TEST(symmetric_vertex, Intersect) {
+  using Vertex = symmetric_vertex<pbbs::empty>;
+
+  // Graph diagram:
+  //   0 - 1 - 2
+  //    \ / \ /
+  //     3 - 4 -- 5
+  constexpr uintE kNumVertices{6};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {0, 3},
+    {1, 2},
+    {1, 3},
+    {1, 4},
+    {2, 4},
+    {3, 4},
+    {4, 5},
+  };
+  auto graph{gt::MakeUnweightedSymmetricGraph(
+      kNumVertices, kEdges, gt::ShouldSortNeighbors::kYes)};
+
+  {
+    const uintE u_id{0};
+    const uintE v_id{5};
+    Vertex u{graph.get_vertex(u_id)};
+    Vertex v{graph.get_vertex(v_id)};
+    EXPECT_EQ((u.intersect(&v, u_id, v_id)), 0);
+    EXPECT_EQ((v.intersect(&u, v_id, u_id)), 0);
+  }
+  {
+    const uintE u_id{0};
+    const uintE v_id{1};
+    Vertex u{graph.get_vertex(u_id)};
+    Vertex v{graph.get_vertex(v_id)};
+    EXPECT_EQ((u.intersect(&v, u_id, v_id)), 1);
+    EXPECT_EQ((v.intersect(&u, v_id, u_id)), 1);
+  }
+  {
+    const uintE u_id{1};
+    const uintE v_id{3};
+    Vertex u{graph.get_vertex(u_id)};
+    Vertex v{graph.get_vertex(v_id)};
+    EXPECT_EQ((u.intersect(&v, u_id, v_id)), 2);
+    EXPECT_EQ((v.intersect(&u, v_id, u_id)), 2);
+  }
 }
