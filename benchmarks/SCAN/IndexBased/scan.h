@@ -34,7 +34,7 @@ class Index {
   explicit Index(
       symmetric_graph<VertexTemplate, pbbslib::empty>* graph)
     : num_vertices_{graph->n}
-    , neighbor_order_{internal::ComputeNeighborOrder(graph)}
+    , neighbor_order_{graph}
     , core_order_{neighbor_order_} {}
 
   // Compute a SCAN clustering of the indexed graph using SCAN parameters

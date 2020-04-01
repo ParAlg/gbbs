@@ -34,10 +34,10 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
             // `epsilon` structural similarity with the core.
-            return internal::BinarySearch<internal::NeighborSimilarity>(
+            return internal::BinarySearch(
                 neighbor_order[vertex],
-                [epsilon](const internal::NeighborSimilarity& ns) {
-                  return ns.similarity >= epsilon;
+                [epsilon](const internal::EdgeSimilarity& es) {
+                  return es.similarity >= epsilon;
                 });
           })};
   const size_t num_incident_edges{

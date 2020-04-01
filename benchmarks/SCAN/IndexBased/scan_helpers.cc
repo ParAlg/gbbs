@@ -16,16 +16,16 @@ struct VertexDegree {
 
 namespace internal {
 
-bool operator==(const NeighborSimilarity& a, const NeighborSimilarity& b) {
+bool operator==(const EdgeSimilarity& a, const EdgeSimilarity& b) {
   constexpr float kEpsilon{1e-6};
-  return a.neighbor == b.neighbor &&
+  return std::tie(a.source, a.neighbor) == std::tie(b.source, b.neighbor) &&
     std::abs(a.similarity - b.similarity) < kEpsilon;
 }
 
 std::ostream&
-operator<<(std::ostream& os, const NeighborSimilarity& neighbor_similarity) {
-  os << "{neighbor=" << neighbor_similarity.neighbor
-     << ", similarity=" << neighbor_similarity.similarity << '}';
+operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
+  os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
+     << "), similarity=" << edge_similarity.similarity << '}';
   return os;
 }
 
@@ -54,6 +54,27 @@ VertexSet MakeVertexSet(const size_t capacity) {
       capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
 }
 
+const pbbs::range<EdgeSimilarity*>&
+NeighborOrder::operator[](size_t source) const {
+  return similarities_by_source_[source];
+}
+
+bool NeighborOrder::empty() const {
+  return size() == 0;
+}
+
+size_t NeighborOrder::size() const {
+  return similarities_by_source_.size();
+}
+
+pbbs::range<EdgeSimilarity*>* NeighborOrder::begin() const {
+  return similarities_by_source_.begin();
+}
+
+pbbs::range<EdgeSimilarity*>* NeighborOrder::end() const {
+  return similarities_by_source_.end();
+}
+
 pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
     const NeighborOrder& neighbor_order) {
   if (neighbor_order.empty()) {
@@ -66,7 +87,7 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
     pbbs::map_with_index<VertexDegree>(
         neighbor_order,
         [](const size_t v,
-           const pbbs::sequence<NeighborSimilarity>& neighbors) {
+           const pbbs::range<EdgeSimilarity*>& neighbors) {
           return VertexDegree{
             .vertex_id = static_cast<uintE>(v),
             .degree = static_cast<uintE>(neighbors.size())};
@@ -146,7 +167,7 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 
   const pbbs::sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
-    BinarySearch<internal::CoreThreshold>(
+    BinarySearch(
         possible_cores,
         [epsilon](const internal::CoreThreshold& core_threshold) {
           return core_threshold.threshold >= epsilon;

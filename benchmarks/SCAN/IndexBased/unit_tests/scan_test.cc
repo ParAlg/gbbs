@@ -30,9 +30,15 @@ namespace ii = indexed_scan::internal;
 
 namespace {
 
-ii::NeighborSimilarity
-MakeNeighborSimilarity(const uintE neighbor, const double similarity) {
-  return {.neighbor = neighbor, .similarity = static_cast<float>(similarity)};
+ii::EdgeSimilarity MakeEdgeSimilarity(
+    const uintE source,
+    uintE neighbor,
+    const double similarity) {
+  return {
+    .source = source,
+    .neighbor = neighbor,
+    .similarity = static_cast<float>(similarity)
+  };
 }
 
 ii::CoreThreshold
@@ -115,7 +121,7 @@ TEST(ScanSubroutines, NullGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
+  const ii::NeighborOrder neighbor_order{&graph};
   EXPECT_THAT(neighbor_order, IsEmpty());
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -127,7 +133,7 @@ TEST(ScanSubroutines, EmptyGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
+  const ii::NeighborOrder neighbor_order{&graph};
   EXPECT_EQ(neighbor_order.size(), kNumVertices);
   for (const auto& vertex_order : neighbor_order) {
     EXPECT_THAT(vertex_order, IsEmpty());
@@ -157,39 +163,39 @@ TEST(ScanSubroutines, BasicUsage) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
+  const ii::NeighborOrder neighbor_order{&graph};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
       neighbor_order[0],
-      ElementsAre(MakeNeighborSimilarity(1, 2.0 / sqrt(8))));
+      ElementsAre(MakeEdgeSimilarity(0, 1, 2.0 / sqrt(8))));
   EXPECT_THAT(
       neighbor_order[1],
       ElementsAre(
-        MakeNeighborSimilarity(3, 3.0 / sqrt(16)),
-        MakeNeighborSimilarity(0, 2.0 / sqrt(8)),
-        MakeNeighborSimilarity(2, 3.0 / sqrt(20))));
+        MakeEdgeSimilarity(1, 3, 3.0 / sqrt(16)),
+        MakeEdgeSimilarity(1, 0, 2.0 / sqrt(8)),
+        MakeEdgeSimilarity(1, 2, 3.0 / sqrt(20))));
   EXPECT_THAT(
       neighbor_order[2],
       ElementsAre(
-        MakeNeighborSimilarity(3, 4.0 / sqrt(20)),
-        MakeNeighborSimilarity(4, 3.0 / sqrt(15)),
-        MakeNeighborSimilarity(1, 3.0 / sqrt(20)),
-        MakeNeighborSimilarity(5, 2.0 / sqrt(10))));
+        MakeEdgeSimilarity(2, 3, 4.0 / sqrt(20)),
+        MakeEdgeSimilarity(2, 4, 3.0 / sqrt(15)),
+        MakeEdgeSimilarity(2, 1, 3.0 / sqrt(20)),
+        MakeEdgeSimilarity(2, 5, 2.0 / sqrt(10))));
   EXPECT_THAT(
       neighbor_order[3],
       ElementsAre(
-        MakeNeighborSimilarity(2, 4.0 / sqrt(20)),
-        MakeNeighborSimilarity(4, 3.0 / sqrt(12)),
-        MakeNeighborSimilarity(1, 3.0 / sqrt(16))));
+        MakeEdgeSimilarity(3, 2, 4.0 / sqrt(20)),
+        MakeEdgeSimilarity(3, 4, 3.0 / sqrt(12)),
+        MakeEdgeSimilarity(3, 1, 3.0 / sqrt(16))));
   EXPECT_THAT(
       neighbor_order[4],
       ElementsAre(
-        MakeNeighborSimilarity(3, 3.0 / sqrt(12)),
-        MakeNeighborSimilarity(2, 3.0 / sqrt(15))));
+        MakeEdgeSimilarity(4, 3, 3.0 / sqrt(12)),
+        MakeEdgeSimilarity(4, 2, 3.0 / sqrt(15))));
   EXPECT_THAT(
       neighbor_order[5],
       ElementsAre(
-        MakeNeighborSimilarity(2, 2.0 / sqrt(10))));
+        MakeEdgeSimilarity(5, 2, 2.0 / sqrt(10))));
 
   {
     const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -271,22 +277,22 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{ii::ComputeNeighborOrder(&graph)};
+  const ii::NeighborOrder neighbor_order{&graph};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
-  EXPECT_THAT(neighbor_order[0], ElementsAre(MakeNeighborSimilarity(1, 1.0)));
-  EXPECT_THAT(neighbor_order[1], ElementsAre(MakeNeighborSimilarity(0, 1.0)));
+  EXPECT_THAT(neighbor_order[0], ElementsAre(MakeEdgeSimilarity(0, 1, 1.0)));
+  EXPECT_THAT(neighbor_order[1], ElementsAre(MakeEdgeSimilarity(1, 0, 1.0)));
   EXPECT_THAT(neighbor_order[2], IsEmpty());
   EXPECT_THAT(
       neighbor_order[3],
-      ElementsAre(MakeNeighborSimilarity(4, 2.0 / sqrt(6))));
+      ElementsAre(MakeEdgeSimilarity(3, 4, 2.0 / sqrt(6))));
   EXPECT_THAT(
       neighbor_order[4],
       UnorderedElementsAre(
-        MakeNeighborSimilarity(3, 2.0 / sqrt(6)),
-        MakeNeighborSimilarity(5, 2.0 / sqrt(6))));
+        MakeEdgeSimilarity(4, 3, 2.0 / sqrt(6)),
+        MakeEdgeSimilarity(4, 5, 2.0 / sqrt(6))));
   EXPECT_THAT(
       neighbor_order[5],
-      ElementsAre(MakeNeighborSimilarity(4, 2.0 / sqrt(6))));
+      ElementsAre(MakeEdgeSimilarity(5, 4, 2.0 / sqrt(6))));
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   EXPECT_EQ(core_order.size(), 4);
