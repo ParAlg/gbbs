@@ -24,8 +24,8 @@ size_t seq_merge_full(const SeqA& A, const SeqB& B, const F& f) {
   size_t i = 0, j = 0;
   size_t ct = 0;
   while (i < nA && j < nB) {
-    T& a = A[i];
-    T& b = B[j];
+    const T& a = A[i];
+    const T& b = B[j];
     if (a == b) {
       f(a, i, j);
       i++;

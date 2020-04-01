@@ -42,7 +42,7 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
           })};
   const size_t num_incident_edges{
     pbbslib::scan_add_inplace(epsilon_neighborhood_offsets)};
-  const pbbs::sequence<DirectedEdge> incident_edges{
+  pbbs::sequence<DirectedEdge> incident_edges{
     pbbs::sequence<DirectedEdge>::no_init(num_incident_edges)};
   par_for(0, vertices.size(), [&](const size_t i) {
     const uintE vertex{vertices[i]};
