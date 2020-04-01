@@ -3,7 +3,6 @@
 
 #include <math.h>
 #include <set>
-#include <sstream>
 #include <string>
 #include <unordered_set>
 #include <optional>
@@ -41,18 +40,6 @@ MakeCoreThreshold(const uintE vertex_id, const double threshold) {
   return {.vertex_id = vertex_id, .threshold = static_cast<float>(threshold)};
 }
 
-std::string ClusteringToString(const i::Clustering& clustering) {
-  std::ostringstream str;
-  str << "{";
-  for (size_t i = 0; i < clustering.size(); i++) {
-    str << ' ' << i << ':';
-    str << (clustering[i] == i::kUnclustered
-            ? "n/a" : std::to_string(clustering[i]));
-  }
-  str << "}";
-  return str.str();
-}
-
 // Checks that `clustering` has the expected clusters and returns true if the
 // check passes.
 //
@@ -83,7 +70,7 @@ bool CheckClustering(
 
   if (actual_clusters != expected_clusters) {
     std::cerr << "Clusters don't match. Actual clustering:\n" <<
-      ClusteringToString(clustering) << '\n';
+      i::ClusteringToString(clustering) << '\n';
     return false;
   } else {
     return true;

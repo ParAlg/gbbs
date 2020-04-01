@@ -1,10 +1,11 @@
 #include "benchmarks/SCAN/IndexBased/scan.h"
 
 #include <algorithm>
+#include <sstream>
 #include <tuple>
 #include <utility>
 
-#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 #include "ligra/bridge.h"
 #include "pbbslib/parallel.h"
 
@@ -66,35 +67,32 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
 // accordingly. Non-core vertices in `clustering` are left unchanged.
 //
 // Arguments:
-//   num_vertices: Number of vertices in the whole graph.
 //   cores: List of IDs of vertices that are SCAN cores.
 //   core_to_core_edges: Directed edges between cores of at least epsilon
-//     similarity. This list may be modified by this function.
+//     similarity.
 //   clustering: Output. Will be updated with the cluster IDs only for the core
 //   vertices.
 void ClusterCores(
-    const uintE num_vertices,
     const pbbs::sequence<uintE>& cores,
-    pbbs::range<DirectedEdge*>* core_to_core_edges,
+    const pbbs::range<DirectedEdge*>& core_to_core_edges,
     Clustering* clustering) {
   timer function_timer{"Cluster cores time"};
-
-  // Create graph consisting of edges between cores. The vertex ids of the
-  // cores are kept the same for simplicity, so actually all the non-core
-  // vertices are also in the graph as singletons.
-  symmetric_graph<symmetric_vertex, pbbslib::empty> core_graph{
-    sym_graph_from_edges<pbbslib::empty>(
-        *core_to_core_edges,
-        num_vertices,
-        [](const DirectedEdge& edge) { return edge.first; },
-        [](const DirectedEdge& edge) { return edge.second; },
-        [](const DirectedEdge&) { return pbbslib::empty{}; })};
-
-  pbbs::sequence<parent> connected_components{workefficient_cc::CC(core_graph)};
   par_for(0, cores.size(), [&](const size_t i) {
-    (*clustering)[cores[i]] = connected_components[cores[i]];
+      const uintE core{cores[i]};
+      (*clustering)[core] = core;
   });
-
+  constexpr auto find{find_variants::find_compress};
+  auto unite{unite_variants::Unite<decltype(find)>{find}};
+  par_for(0, core_to_core_edges.size(), [&](const size_t i) {
+      const auto [u, v] = core_to_core_edges[i];
+      if (u > v) {
+        unite(u, v, *clustering);
+      }
+  });
+  par_for(0, cores.size(), [&](const size_t i) {
+      const uintE core{cores[i]};
+      (*clustering)[core] = find(core, *clustering);
+  });
   internal::ReportTime(function_timer);
 }
 
@@ -171,7 +169,7 @@ Clustering GetClustersFromCores(
 
   pbbs::range<DirectedEdge*> core_to_core_edges{
     partitioned_edges.slice(0, num_core_to_core_edges)};
-  ClusterCores(num_vertices, cores, &core_to_core_edges, &clustering);
+  ClusterCores(cores, core_to_core_edges, &clustering);
 
   pbbs::range<DirectedEdge*> core_to_noncore_edges{
     partitioned_edges.slice(num_core_to_core_edges, partitioned_edges.size())};
@@ -223,6 +221,18 @@ size_t CleanClustering(Clustering* clustering) {
     }
   });
   return num_clusters;
+}
+
+std::string ClusteringToString(const Clustering& clustering) {
+  std::ostringstream str;
+  str << "{";
+  for (size_t i = 0; i < clustering.size(); i++) {
+    str << ' ' << i << ':';
+    str << (clustering[i] == kUnclustered
+            ? "n/a" : std::to_string(clustering[i]));
+  }
+  str << " }";
+  return str.str();
 }
 
 }  // namespace indexed_scan

@@ -10,7 +10,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+        "//benchmarks/Connectivity/UnionFind:union_find_rules",
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
         "//ligra:graph",
         "//ligra:macros",

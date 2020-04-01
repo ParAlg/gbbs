@@ -70,6 +70,12 @@ class Index {
 // [0, <number_of_clusters>) and returns the number of clusters.
 size_t CleanClustering(Clustering* clustering);
 
+// Converts clustering to a readable string.
+//
+// We don't write a `operator<<` overload because `Clustering` is an alias for a
+// more general type that isn't necessarily printed in the same way.
+std::string ClusteringToString(const Clustering& clustering);
+
 // Determines what type of unclustered vertex the input vertex is.
 //
 // Arguments:
