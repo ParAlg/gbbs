@@ -36,7 +36,8 @@ struct range {
   using const_iterator = iterator;
   range(){};
   range(iterator _s, iterator _e) : s(_s), e(_e){};
-  value_type& operator[](const size_t i) const { return s[i]; }
+  value_type& operator[](const size_t i) { return s[i]; }
+  const value_type& operator[](const size_t i) const { return s[i]; }
   range slice(size_t ss, size_t ee) const { return range(s + ss, s + ee); }
   range slice() const { return range(s, e); };
   size_t size() const { return e - s; }
@@ -184,7 +185,8 @@ struct sequence {
 
   ~sequence() { clear(); }
 
-  value_type& operator[](const size_t i) const { return s[i]; }
+  const value_type& operator[](const size_t i) const { return s[i]; }
+  value_type& operator[](const size_t i) { return s[i]; }
 
   bool operator==(const sequence<T>& other) const {
     if (n != other.n) {

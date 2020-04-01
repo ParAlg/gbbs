@@ -76,7 +76,7 @@ pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 
   else if (order_type == 2) {
     auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
     auto kcore = KCore(GA);
-    auto get_core = [&](uintE& p) -> uintE { return kcore[p]; };
+    auto get_core = [&](uintE p) -> uintE { return kcore[p]; };
     pbbs::integer_sort_inplace(rank.slice(), get_core);
     return rank;
   }
