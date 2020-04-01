@@ -100,7 +100,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
   auto get_deg =
-      [&](uintE& p) -> uintE { return D[p]; };
+      [&](uintE p) -> uintE { return D[p]; };
   for (size_t start = 0; start < n; start += ns) {
     // sort vertices in GA by degree, from start to n
     integer_sort_inplace(sortD.slice(start, n), get_deg);

@@ -275,7 +275,7 @@ struct LiuTarjanAlgorithm {
           }
         });
 
-        auto new_inserts = pbbs::filter(inserts, [&] (edge& e) {
+        auto new_inserts = pbbs::filter(inserts, [&] (const edge& e) {
           return e != nullary_edge;
         });
         inserts = new_inserts;

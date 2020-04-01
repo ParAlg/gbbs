@@ -24,7 +24,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
   auto get_deg =
-      [&](uintE& p) -> uintE { return D[p] < deg_cutoff; };
+      [&](uintE p) -> uintE { return D[p] < deg_cutoff; };
   size_t start = 0;
   while (start < n) {
     // move all vert with deg < deg_cutoff in the front
