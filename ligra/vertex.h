@@ -351,7 +351,6 @@ inline void mapNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
 //     `neighbor_index` is the index of the neighbor in `nghs`.
 //   parallel
 //     Whether to run this function in parallel.
-//
 template <template <typename W> class vertex, class W, class F>
 inline void mapNghsWithIndex(vertex<W>* v, uintE vtx_id, 
                              std::tuple<uintE, W>* nghs, uintE d, F& f, 

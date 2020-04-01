@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
 #include "ligra/graph.h"
 #include "ligra/macros.h"
@@ -24,6 +26,10 @@ std::ostream& operator<<(std::ostream&, UnclusteredType);
 // quick, though index construction may be expensive.
 class Index {
  public:
+  // Constructor.
+  //
+  // The neighbor lists for each vertex in the graph must be sorted by ascending
+  // neighbor ID.
   template <template <typename> class VertexTemplate>
   explicit Index(
       symmetric_graph<VertexTemplate, pbbslib::empty>* graph)
