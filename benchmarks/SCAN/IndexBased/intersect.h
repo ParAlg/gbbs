@@ -101,7 +101,7 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
 //     ID of vertex 1.
 //   b
 //     ID of vertex 2.
-//   f: (uintE, uintE, uintE, uintE, uintE, uintE) -> void
+//   f: (uintE, uintE, uintE) -> void
 //     Function to run for each shared neighbor between A and B. It will be run
 //     as `f(c, a_to_c_index, b_to_c_index)` where c is the ID of the shared
 //     neighbor, `A->getOutNeighbor(a_to_c_index) == c`, and
