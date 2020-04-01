@@ -145,10 +145,10 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
     return core_thresholds;
   }};
 
+  pbbs::sequence<pbbs::sequence<CoreThreshold>> core_order(
+      max_degree + 2, get_core_order);
   internal::ReportTime(function_timer);
-  return pbbs::sequence<pbbs::sequence<CoreThreshold>>{
-      max_degree + 2,
-      get_core_order};
+  return core_order;
 }
 
 CoreOrder::CoreOrder(const NeighborOrder& neighbor_order)
