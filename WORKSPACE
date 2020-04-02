@@ -74,34 +74,23 @@ http_archive(
 )
 
 
-# Creates a repository rule for the system python headers.
-# pybind11.BUILD depends on this repository rule to detect your python configuration
-load("//third_party/pybind11_bazel:python_configure.bzl", "python_configure")
+# pybind bazel bindings
+PYBIND11_BAZEL_COMMIT = "7f397b5d2cc2434bbd651e096548f7b40c128044"
+http_archive(
+  name = "pybind11_bazel",
+  strip_prefix = "pybind11_bazel-%s" % PYBIND11_BAZEL_COMMIT,
+  sha256 = "e4a9536f49d4a88e3c5a09954de49c4a18d6b1632c457a62d6ec4878c27f1b5b",
+  urls = ["https://github.com/pybind/pybind11_bazel/archive/%s.zip" % PYBIND11_BAZEL_COMMIT],
+)
+# pybind.
+PYBIND11_COMMIT = "fe755dce12766820a99eefbde32d6ceb0a828ca8"
+http_archive(
+  name = "pybind11",
+  build_file = "@pybind11_bazel//:pybind11.BUILD",
+  strip_prefix = "pybind11-%s" % PYBIND11_COMMIT,
+  sha256 = "5702350060e965043609a5115576c598ef3262a7367f063aebfeaa7961f2cbfd",
+  urls = ["https://github.com/pybind/pybind11/archive/%s.tar.gz" % PYBIND11_COMMIT],
+)
+
+load("@pybind11_bazel//:python_configure.bzl", "python_configure")
 python_configure(name = "local_config_python")
-
-# Create pybind11 external repository
-# If using another pybind11 version:
-# Use tar URL of desired version, change strip_prefix to your version "pybind11-x.x.x",
-# Supply correct sha256 for your version.
-http_archive(
-    name = "pybind11",
-    build_file = "@//third_party/pybind11_bazel:pybind11.BUILD",
-    sha256 = "1eed57bc6863190e35637290f97a20c81cfe4d9090ac0a24f3bbf08f265eb71d",
-    strip_prefix = "pybind11-2.4.3",
-    url = "https://github.com/pybind/pybind11/archive/v2.4.3.tar.gz",
-)
-
-# @rules_python repository, used to create python build targets
-http_archive(
-    name = "rules_python",
-    sha256 = "aa96a691d3a8177f3215b14b0edc9641787abaaa30363a080165d06ab65e1161",
-    url = "https://github.com/bazelbuild/rules_python/releases/download/0.0.1/rules_python-0.0.1.tar.gz",
-)
-
-# Currently does nothing, futureproofs your core Python rule dependencies.
-load("@rules_python//python:repositories.bzl", "py_repositories")
-py_repositories()
-
-# Pulls in dependencies needed to use the python packaging rules.
-load("@rules_python//python:pip.bzl", "pip_repositories")
-pip_repositories()
