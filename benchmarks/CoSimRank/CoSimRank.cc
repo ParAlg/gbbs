@@ -49,7 +49,8 @@ double CoSimRank_runner(Graph& G, commandLine P) {
   double c = P.getOptionDoubleValue("-cons", 0.6);
   uintE u = P.getOptionLongValue("-u", 0);
   uintE v = P.getOptionLongValue("-v", 1);
-  CoSimRank(G, u, v, eps, c, iters);
+  if (P.getOptionValue("-em")) CoSimRank_edgeMap(G, u, v, eps, c, iters);
+  else CoSimRank(G, u, v, eps, c, iters);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;

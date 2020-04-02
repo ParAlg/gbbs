@@ -2,6 +2,7 @@
 #include "ligra/ligra.h"
 
 #include <math.h>
+#include <numeric>
 
 
 template <class Graph>
@@ -104,7 +105,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
     debug(t.stop(); t.reportTotal("iteration time"););
   }
-  Frontier.del();
+  Frontier_u.del(); Frontier_v.del();
 
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
@@ -116,8 +117,6 @@ template <class Graph>
 void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6, size_t max_iters = 100) {
   using W = typename Graph::weight_type;
   const uintE n = G.n;
-
-  double one_over_n = 1/(double)n;
 
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
@@ -207,7 +206,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
     std::swap(p_curr_u,p_next_u);
     t.stop(); t.reportTotal("iteration time");
   }
-  Frontier.del();
+  Frontier_u.del(); Frontier_v.del();
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
   cout << "max_pr = " << max_pr_v << ", " << max_pr_u << endl;
