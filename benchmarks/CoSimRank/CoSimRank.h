@@ -29,7 +29,6 @@ struct PR_Vertex_F {
   PR_Vertex_F(double* _p_curr, double* _p_next, intE n) :
     p_curr(_p_curr), p_next(_p_next) {}
   inline bool operator () (uintE i) {
-    p_next[i] = p_next[i];
     return 1;
   }
 };
@@ -53,33 +52,33 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
   auto p_next_v = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_v = pbbs::sequence<bool>(n, true);
+  auto frontier = pbbs::sequence<bool>(n, true);
   //frontier_v[v] = true;
 
   auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_u = pbbs::sequence<bool>(n, true);
+  //auto frontier_u = pbbs::sequence<bool>(n, true);
   //frontier_u[u] = true;
 
   // read from special array of just degrees
 
   auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
 
-  vertexSubset Frontier_v(n,n,frontier_v.to_array());
+  vertexSubset Frontier(n,n,frontier.to_array());
 
-  vertexSubset Frontier_u(n,n,frontier_u.to_array());
+  //vertexSubset Frontier_u(n,n,frontier.to_array());
 
   size_t iter = 0;
   double sim = u == v ? 1 : 0;
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
-    edgeMap(G,Frontier_v,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0, no_output);
-    vertexMap(Frontier_v,PR_Vertex_F(p_curr_v.begin(),p_next_v.begin(),n));
+    edgeMap(G,Frontier,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0, no_output);
+    //vertexMap(Frontier_v,PR_Vertex_F(p_curr_v.begin(),p_next_v.begin(),n));
 
-    edgeMap(G,Frontier_u,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0, no_output);
-    vertexMap(Frontier_u,PR_Vertex_F(p_curr_u.begin(),p_next_u.begin(),n));
+    edgeMap(G,Frontier,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0, no_output);
+    //vertexMap(Frontier_u,PR_Vertex_F(p_curr_u.begin(),p_next_u.begin(),n));
 
     sim += ((double) pow(c, iter) * std::inner_product(p_next_u.begin(), p_next_u.end(), p_next_v.begin(), 0));
 
@@ -111,6 +110,13 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
   cout << "max_pr = " << max_pr_v << ", " << max_pr_u << endl;
   cout << "sim = " << sim << endl;
+
+  for (size_t i=0; i<100; i++) {
+    std::cout << p_next_u[i] << endl;
+  }
+  for (size_t i=0; i<100; i++) {
+    std::cout << p_next_v[i] << endl;
+  }
 }
 
 template <class Graph>
