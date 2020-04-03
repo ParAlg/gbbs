@@ -209,8 +209,8 @@ NeighborOrder::NeighborOrder(
       const auto intersect{[&](
           const uintE v_id,
           const uintE neighbor_id,
-          const uintE v_to_neighbor_index,
-          NoWeight) {
+          NoWeight,
+          const uintE v_to_neighbor_index) {
         auto neighbor{directed_graph.get_vertex(neighbor_id)};
         const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
         const auto update_counters{[&](
@@ -249,8 +249,8 @@ NeighborOrder::NeighborOrder(
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
-        const uintE v_to_u_index,
-        NoWeight) {
+        NoWeight,
+        const uintE v_to_u_index) {
       // SCAN structural similarities are defined using _closed_ neighborhoods,
       // hence the need to to adjust these values by `+ 1` and `+ 2`.
       const float u_neighborhood_sqrt{

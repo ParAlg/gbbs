@@ -154,7 +154,7 @@ inline void mapNghsWithIndex(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                              bool parallel = true) {
   auto T = [&](const uintE& src, const uintE& target, const W& weight,
                const uintT& edgeNumber) {
-    f(src, target, edgeNumber, weight);
+    f(src, target, weight, edgeNumber);
     return true;
   };
   C::template decode<W>(T, nghArr, vtx_id, d, parallel);
