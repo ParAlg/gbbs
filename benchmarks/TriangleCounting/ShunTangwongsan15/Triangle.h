@@ -23,6 +23,7 @@
 #pragma once
 
 #include <algorithm>
+
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
 #include "ligra/ligra.h"
@@ -85,6 +86,19 @@ inline size_t CountDirected(Graph& DG, size_t* counts,
   return count;
 }
 
+// Returns the number of directed triangles in the input graph of the following
+// orientation:
+//        w
+//       ^ ^
+//      /   \.
+//     u --> v
+//
+// Arguments:
+//   DG
+//     Graph on which we'll count triangles.
+//   f: (uintE, uintE, uintE) -> void
+//     Function that's run each triangle. On a directed triangle like the one
+//     pictured above, we run `f(u, v, w)`.
 template <class Graph, class F>
 inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
                                     const F& f) {
@@ -139,6 +153,21 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
   return count;
 }
 
+// Counts the number of triangles in the input graph.
+//
+// Implementation note: this converts the input graph to a directed graph in
+// which we point edges from lower-degree vertices to higher-degree vertices,
+// hence the function name.
+//
+// Arguments:
+//   G
+//     Graph on which we'll count triangles.
+//   f: (uintE, uintE, uintE) -> void
+//     Function that's run each triangle. On a triangle with vertices {u, v, w},
+//     we run `f(u, v, w)`.
+//
+// Returns:
+//   The number of triangles in `G`.
 template <class Graph, class F>
 inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   using W = typename Graph::weight_type;
