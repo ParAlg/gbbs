@@ -48,12 +48,6 @@ void ReportTime([[maybe_unused]] const timer& t) {
 #endif
 }
 
-VertexSet MakeVertexSet(const size_t capacity) {
-  return make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
-      // Adding 1 avoids having small tables completely full.
-      capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
-}
-
 const pbbs::range<EdgeSimilarity*>&
 NeighborOrder::operator[](size_t source) const {
   return similarities_by_source_[source];

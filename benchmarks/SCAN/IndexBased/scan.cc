@@ -14,6 +14,15 @@ namespace indexed_scan {
 namespace {
 
 using DirectedEdge = std::pair<uintE, uintE>;
+using VertexSet =
+  sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
+
+// Creates a `VertexSet` for holding up to `capacity` elements.
+VertexSet MakeVertexSet(const size_t capacity) {
+  return make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
+      // Adding 1 avoids having small tables completely full.
+      capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
+}
 
 // Get edges with structural similarity at least `epsilon` that are incident on
 // a vertex in `vertices`.
@@ -143,7 +152,7 @@ Clustering GetClustersFromCores(
     const pbbs::sequence<DirectedEdge>& core_similar_incident_edges) {
   timer preprocessing_timer{"Get clusters from cores - preprocessing time"};
 
-  internal::VertexSet cores_set{internal::MakeVertexSet(cores.size())};
+  VertexSet cores_set{MakeVertexSet(cores.size())};
   par_for(0, cores.size(), [&](const size_t i) {
     cores_set.insert(std::make_pair(cores[i], pbbslib::empty{}));
   });

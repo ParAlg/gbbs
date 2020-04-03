@@ -21,10 +21,6 @@ namespace indexed_scan {
 
 namespace internal {
 
-using StructuralSimilarities =
-  sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
-using VertexSet =
-  sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
 using NoWeight = pbbslib::empty;
 
 struct EdgeSimilarity {
@@ -108,9 +104,6 @@ class CoreOrder {
 // Prints the total time captured by `timer` to stderr if macro
 // SCAN_DETAILED_TIMES is defined, otherwise does nothing.
 void ReportTime(const timer&);
-
-// Creates a `VertexSet` for holding up to `capacity` elements.
-VertexSet MakeVertexSet(const size_t capacity);
 
 // Finds the least `i` such that `predicate(sequence[i])` is false. If
 // `predicate(sequence[i])` is true for all `i`, then this returns
