@@ -104,7 +104,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
     debug(t.stop(); t.reportTotal("iteration time"););
   }
-  Frontier_u.del(); Frontier_v.del();
+  Frontier.del();
 
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
