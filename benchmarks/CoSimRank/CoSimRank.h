@@ -159,7 +159,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
 
   auto cond_f = [&] (const uintE& x) { return true; };
   auto map_f_v = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
-    return p_cur_v[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
+    return p_curr_v[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
   };
   auto reduce_f = [&] (double l, double r) { return l + r; };
   auto apply_f_v = [&] (std::tuple<uintE, double> k) {
@@ -170,7 +170,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   };
 
   auto map_f_u = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
-    return p_cur_u[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
+    return p_curr_u[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
   };
   auto apply_f_u = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
