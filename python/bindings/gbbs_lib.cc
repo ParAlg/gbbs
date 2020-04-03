@@ -10,6 +10,7 @@
 namespace gbbs_lib {
 namespace py = ::pybind11;
 
+/* Defines symmetric vertex functions */
 template <template <class W> class vertex_type, class W>
 void SymVertexRegister(py::module& m, std::string vertex_name) {
   using vertex = vertex_type<W>;
@@ -17,12 +18,15 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
   py::class_<vertex>(m, vertex_name.c_str());
 }
 
+/* Defines symmetric graph functions */
 template <template <class W> class vertex_type, class W>
 void SymGraphRegister(py::module& m, std::string graph_name) {
   /* register graph */
   using graph = symmetric_graph<vertex_type, W>;
   py::class_<graph>(m, graph_name.c_str());
 }
+
+
 
 PYBIND11_MODULE(gbbs_lib, m) {
   m.doc() = "Python module exporting core gbbs types and core data structures.";
