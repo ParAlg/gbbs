@@ -183,26 +183,28 @@ namespace contract {
   }
 
   // Given a graph and a vertex partitioning of the graph, returns a contracted
-  // graph where each vertex subset in the partition is contracted into a single
-  // vertex. Self-loop edges and duplicate edges are removed, and singleton
-  // vertices in the contracted graph also removed.
+  // graph where each vertex grouping/cluster in the partition is contracted
+  // into a single vertex. Self-loop edges and duplicate edges are removed, and
+  // singleton vertices (vertices with degree zero) in the contracted graph also
+  // removed.
   //
-  // If graph `GA` has `n` vertices, `clusters` should be an `n`-length sequence
-  // where `clusters[i]` represents the subset ID of the `i`-th vertex.
-  // `num_clusters` should be greater than any value in `clusters`.
+  // Arguments:
+  //   GA
+  //     The graph to contract.
+  //   clusters
+  //     A `GA.n`-length sequence where `clusters[i]` is the cluster ID of the
+  //     i-th vertex. Each cluster ID must be in the range [0, `num_clusters`).
+  //   num_clusters
+  //     The number of clusters.
   //
   // Returns:
   // (0) The contracted graph.
   // (1) A sequence `S` of length `num_clusters + 1` such that
-  //   - if the `i`-th vertex subset does not contract into a singleton vertex,
-  //   then it is the `S[i]`-th vertex subset after removing all subsets that
-  //   contract into singleton vertices.
-  //   - `S[i] == S[i + 1]` iff the `i`-th vertex subset contracts into a
-  //   singleton vertex.
-  // (2) This sequence `T` is the inverse to (1). If we have a vertex subset
-  //   that is the `i`-th subset after removing all subsets that contract to a
-  //   singleton, then it is the `T[i]`-th subset before removing those
-  //   singleton subsets.
+  //   - if cluster i does not contract into a singleton, then it is vertex
+  //   `S[i]` in the contracted graph.
+  //   - `S[i] == S[i + 1]` iff the cluster `i` contracts into a singleton.
+  // (2) A sequence `T` that is the inverse to (1). Vertex i in the contracted
+  //   graph is the contraction of cluster `T[i]`.
   template <class Graph>
   inline std::tuple<symmetric_graph<symmetric_vertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
   contract(Graph& GA, sequence<parent>& clusters, size_t num_clusters) {

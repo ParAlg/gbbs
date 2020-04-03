@@ -114,7 +114,7 @@ class sparse_table {
   }
 
   // Pre-condition: k must be present in T.
-  inline size_t idx(K k) {
+  inline size_t idx(K k) const {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == k) {

@@ -120,10 +120,10 @@ struct LDD_F {
 template <class Graph, class EO>
 inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
                                   double beta, bool permute = true) {
-  // Implementation based on "Parallel Graph Decompositions Using Random Shifts"
-  // by Miller, Peng, and Xu and "A Simple and Practical Linear-Work Parallel
-  // Algorithm for Connectivity" by Shun, Dhulipala, and Blelloch.
-
+  // Implementation based on "A Simple and Practical Linear-Work Parallel
+  // Algorithm for Connectivity" by Shun, Dhulipala, and Blelloch, which is in
+  // turn based on "Parallel Graph Decompositions Using Random Shifts" by
+  // Miller, Peng, and Xu.
   timer gs; gs.start();
   using W = typename Graph::weight_type;
   size_t n = G.n;
@@ -186,11 +186,13 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
   return cluster_ids;
 }
 
-// Partitions vertices of an n-vertex, m-edge graph into subsets where each subset has
-// O((log n) / beta) diameter and at most O(beta * m) edges exiting the subset.
+// Partitions vertices of an n-vertex, m-edge graph into subsets where each
+// subset has O((log n) / beta) diameter and at most O(beta * m) edges exiting
+// the subset.
 //
-// The returned sequence S has length n, and S[i] is the subset ID of vertex i.
-// The partition IDs are in the range [0, n) but are not necessarily contiguous.
+// Returns:
+//   Length n-length sequence `S` such that `S[i]` is the subset ID of vertex i.
+//   The IDs are in the range [0, n) but are not necessarily contiguous.
 template <class Graph>
 sequence<uintE> LDD(Graph& G, double beta, bool permute = true) {
   using W = typename Graph::weight_type;
