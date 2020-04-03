@@ -10,7 +10,7 @@ typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
 
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, intE>*>
-parse_weighted_graph(char* fname, bool mmap, char* bytes, size_t bytes_size) {
+parse_weighted_graph(const char* fname, bool mmap, char* bytes, size_t bytes_size) {
   sequence<char*> tokens;
   sequence<char> S;
   if (bytes == nullptr) {
@@ -59,7 +59,7 @@ parse_weighted_graph(char* fname, bool mmap, char* bytes, size_t bytes_size) {
 }
 
 symmetric_graph<symmetric_vertex, intE> read_weighted_symmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes,
     size_t bytes_size) {
@@ -79,7 +79,7 @@ symmetric_graph<symmetric_vertex, intE> read_weighted_symmetric_graph(
 }
 
 asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes,
     size_t bytes_size) {
@@ -146,7 +146,7 @@ asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
 }
 
 std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes,
     size_t bytes_size) {
@@ -194,7 +194,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
 }
 
 symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes,
     size_t bytes_size) {
@@ -215,7 +215,7 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_grap
 }
 
 asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes,
     size_t bytes_size) {
@@ -278,7 +278,7 @@ asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_g
 }
 
 std::tuple<char*, size_t> parse_compressed_graph(
-    char* fname, bool mmap, bool mmapcopy) {
+    const char* fname, bool mmap, bool mmapcopy) {
   char* bytes;
   size_t bytes_size;
 

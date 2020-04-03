@@ -42,10 +42,10 @@ struct getFirst {
 // returns a pointer and a length
 std::pair<char*, size_t> mmapStringFromFile(const char* filename);
 
-void unmmap(char* bytes, size_t bytes_size);
+void unmmap(const char* bytes, size_t bytes_size);
 
-sequence<char> readStringFromFile(char* fileName);
+sequence<char> readStringFromFile(const char* fileName);
 
-std::tuple<char*, size_t> read_o_direct(char* fname);
+std::tuple<char*, size_t> read_o_direct(const char* fname);
 
 } // namespace gbbs_io
