@@ -141,11 +141,11 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
 
   auto p_div_v = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return p_curr_v[i] / static_cast<double>(G.get_vertex(i).getOutDegree());
+    return i == v ? (double) 1 / static_cast<double>(G.get_vertex(i).getOutDegree()) : 0;
   });
 
   auto p_div_u = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return p_curr_u[i] / static_cast<double>(G.get_vertex(i).getOutDegree());
+    return i == u ? (double) 1 / static_cast<double>(G.get_vertex(i).getOutDegree()) : 0;
   });
 
   // read from special array of just degrees
