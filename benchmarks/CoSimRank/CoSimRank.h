@@ -159,24 +159,22 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
 
   auto cond_f = [&] (const uintE& x) { return true; };
   auto map_f_v = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
-    return p_div_v[s];
+    return p_cur_v[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
   };
   auto reduce_f = [&] (double l, double r) { return l + r; };
   auto apply_f_v = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
-    const double& contribution = std::get<1>(k);
-    p_next_v[w] = contribution;
+    p_next_v[w] = std::get<1>(k);
     p_div_v[w] = p_next_v[w]/static_cast<double>(degrees[w]);
     return Maybe<std::tuple<uintE, double>>();
   };
 
   auto map_f_u = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
-    return p_div_u[s];
+    return p_cur_u[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
   };
   auto apply_f_u = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
-    const double& contribution = std::get<1>(k);
-    p_next_u[w] = contribution;
+    p_next_u[w] = std::get<1>(k);
     p_div_u[w] = p_next_u[w]/static_cast<double>(degrees[w]);
     return Maybe<std::tuple<uintE, double>>();
   };
