@@ -19,9 +19,11 @@ cc_library(
         "//ligra:macros",
         "//ligra:undirected_edge",
         "//ligra/pbbslib:sparse_table",
+        "//pbbslib:binary_search",
         "//pbbslib:get_time",
         "//pbbslib:parallel",
         "//pbbslib:sample_sort",
+        "//pbbslib:seq",
         "//pbbslib:utilities",
     ],
 )
