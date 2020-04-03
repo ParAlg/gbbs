@@ -20,28 +20,7 @@ struct PR_F {
     pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).getOutDegree());
     return 1;
   }
-  inline bool cond (intT d) { return cond_true(d); }};
-
-//vertex map function to update its p value according to PageRank equation
-struct PR_Vertex_F {
-  double* p_curr;
-  double* p_next;
-  PR_Vertex_F(double* _p_curr, double* _p_next, intE n) :
-    p_curr(_p_curr), p_next(_p_next) {}
-  inline bool operator () (uintE i) {
-    return 1;
-  }
-};
-
-//resets p
-struct PR_Vertex_Reset {
-  double* p_curr;
-  PR_Vertex_Reset(double* _p_curr) :
-    p_curr(_p_curr) {}
-  inline bool operator () (uintE i) {
-    p_curr[i] = 0.0;
-    return 1;
-  }
+  inline bool cond (intT d) { return cond_true(d); }
 };
 
 template<class T>
@@ -66,13 +45,10 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   p_curr_v[v] = static_cast<double>(1);
   auto p_next_v = pbbs::sequence<double>(n, static_cast<double>(0));
   auto frontier = pbbs::sequence<bool>(n, true);
-  //frontier_v[v] = true;
 
   auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  //auto frontier_u = pbbs::sequence<bool>(n, true);
-  //frontier_u[u] = true;
 
   // read from special array of just degrees
 
@@ -80,18 +56,13 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
   vertexSubset Frontier(n,n,frontier.to_array());
 
-  //vertexSubset Frontier_u(n,n,frontier.to_array());
-
   size_t iter = 0;
   double sim = u == v ? 1 : 0;
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
     edgeMap(G,Frontier,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0, no_output);
-    //vertexMap(Frontier_v,PR_Vertex_F(p_curr_v.begin(),p_next_v.begin(),n));
-
     edgeMap(G,Frontier,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0, no_output);
-    //vertexMap(Frontier_u,PR_Vertex_F(p_curr_u.begin(),p_next_u.begin(),n));
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
 
