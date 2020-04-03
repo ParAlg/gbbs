@@ -195,20 +195,19 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
-      auto d = p_curr_v[i];
+      auto x = p_curr_v[i];
       p_curr_v[i] = 0;
-      return fabs(d-p_next_v[i]);
+      return fabs(x-p_next_v[i]);
     });
     double L1_norm_v = pbbs::reduce(differences_v, pbbs::addm<double>());
 
     auto differences_u = pbbs::delayed_seq<double>(n, [&] (size_t i) {
-      auto d = p_curr_u[i];
+      auto x = p_curr_u[i];
       p_curr_u[i] = 0;
-      return fabs(d-p_next_u[i]);
+      return fabs(x-p_next_u[i]);
     });
     double L1_norm_u = pbbs::reduce(differences_u, pbbs::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
-    debug(cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u << endl;);
 
     // Reset p_curr
     std::swap(p_curr_v,p_next_v);
