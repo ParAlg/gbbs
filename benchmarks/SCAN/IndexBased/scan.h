@@ -40,13 +40,9 @@ class Index {
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
   // mu and epsilon.
   //
-  // Returns an <number of vertices in graph>-length sequence S in which S[i] is
-  // the clustering status of vertex i.
-  //
   // Those who are familiar with SCAN may know that some "border" vertices of
-  // clusters can belong to multiple clusters at once. This implementation makes
-  // picks an arbitrary choice of a single cluster assignment for those
-  // vertices.
+  // clusters can belong to multiple clusters at once. This implementation picks
+  // an arbitrary choice of a single cluster assignment for those vertices.
   //
   // Arguments:
   //   epsilon
@@ -60,10 +56,10 @@ class Index {
   //     large clusters less likely to appear.
   //
   // Returns:
-  //   Sequence where i-th entry is the cluster ID of vertex i or is
-  //   `kUnclustered` if vertex i does not belong to any cluster.
-  //   The component IDs will be in the range `[0, graph->n)` but will not
-  //   necessarily be contiguous.
+  //   `graph->n`-length sequence S where S[i] is the cluster ID of vertex i or
+  //   is `kUnclustered` if vertex i does not belong to any cluster. The cluster
+  //   IDs will be in the range `[0, graph->n)` but will not necessarily be
+  //   contiguous.
   Clustering Cluster(uint64_t mu, float epsilon) const;
 
  private:
