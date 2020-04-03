@@ -57,7 +57,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   frontier_v[v] = true;
 
   auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  p_curr_v[u] = static_cast<double>(1);
+  p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
   auto frontier_u = pbbs::sequence<bool>(n, false);
   frontier_u[u] = true;
@@ -71,7 +71,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   vertexSubset Frontier_u(n,n,frontier_u.to_array());
 
   size_t iter = 0;
-  double sim = 0;
+  double sim = u == v ? 1 : 0;
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
@@ -125,7 +125,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   frontier_v[v] = true;
 
   auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  p_curr_v[u] = static_cast<double>(1);
+  p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
   auto frontier_u = pbbs::sequence<bool>(n, false);
   frontier_u[u] = true;
@@ -173,7 +173,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   };
 
   size_t iter = 0;
-  double sim = 0;
+  double sim = u == v ? 1 : 0;
   while (iter++ < max_iters) {
     timer t; t.start();
     // SpMV
