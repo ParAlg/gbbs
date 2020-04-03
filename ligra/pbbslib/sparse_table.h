@@ -40,7 +40,7 @@ class sparse_table {
   bool alloc;
   KeyHash key_hash;
 
-  size_t size() {
+  size_t size() const {
     return m;
   }
 
@@ -49,9 +49,9 @@ class sparse_table {
                     { A[i] = kv; });
   }
 
-  inline size_t hashToRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K& k) { return hashToRange(key_hash(k)); }
-  inline size_t incrementIndex(size_t h) { return hashToRange(h + 1); }
+  inline size_t hashToRange(size_t h) const { return h & mask; }
+  inline size_t firstIndex(K& k) const { return hashToRange(key_hash(k)); }
+  inline size_t incrementIndex(size_t h) const { return hashToRange(h + 1); }
 
   void del() {
     if (alloc) {
@@ -114,7 +114,7 @@ class sparse_table {
   }
 
   // Pre-condition: k must be present in T.
-  inline size_t idx(K k) {
+  inline size_t idx(K k) const {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == k) {
@@ -218,7 +218,7 @@ class sparse_table {
     }
   }
 
-  bool contains(K k) {
+  bool contains(K k) const {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == k) {
@@ -231,7 +231,7 @@ class sparse_table {
     return false;
   }
 
-  V find(K k, V default_value) {
+  V find(K k, V default_value) const {
     size_t h = firstIndex(k);
     while (true) {
       if (std::get<0>(table[h]) == k) {
@@ -244,7 +244,7 @@ class sparse_table {
     return default_value;
   }
 
-  sequence<T> entries() {
+  sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = pbbslib::make_sequence<T>(table, m);
     return pbbslib::filter(table_seq, pred);

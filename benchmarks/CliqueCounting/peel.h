@@ -13,7 +13,7 @@
 
 // Wrapper for a hash function
 struct hashtup {
-  inline size_t operator () (const uintE & a) {return pbbs::hash64_2(a);}
+  inline size_t operator () (const uintE & a) const {return pbbs::hash64_2(a);}
 };
 
 // For triangle peeling
