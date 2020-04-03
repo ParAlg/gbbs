@@ -153,8 +153,8 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
-  auto EM_v = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
 
+  auto EM_v = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
   auto EM_u = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
 
   auto cond_f = [&] (const uintE& x) { return true; };
