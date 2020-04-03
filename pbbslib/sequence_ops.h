@@ -56,12 +56,11 @@ auto map(Seq const &A, UnaryFunc f, flags fl = no_flag) -> sequence<OT> {
   return sequence<OT>(A.size(), [&](size_t i) { return f(A[i]); });
 }
 
-// Transforms input sequence `[a_0, a_1, ..., a_{n-1}]` to sequence `[f(1, a_1),
-// f(2, a_2), ..., f(n-1, a_{n-1})]` using input function `f`.
+// Transforms input sequence `[a_0, a_1, ..., a_{n-1}]` to sequence `[f(0, a_0),
+// f(1, a_1), ..., f(n-1, a_{n-1})]` using input function `f`.
 //
 // Arguments:
-//   A: array-like object (provides `operator[](size_t)` and `size()` functions)
-//      containing elements of type `T`
+//   A: sequence-like object with elements of type `T`
 //     Input array.
 //   f: (size_t, T) -> OT
 //     Function to apply to input array.
