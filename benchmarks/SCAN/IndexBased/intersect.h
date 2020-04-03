@@ -1,5 +1,7 @@
-// This function copies `intersection::intersect_f_par` from `ligra/vertex.h`
-// and modifies it to get `intersect_f_with_index_par`.
+// This file copies `intersection::intersect_f_par` from `ligra/vertex.h` and
+// modifies it to get `intersect_f_with_index_par`. We copy the function here
+// instead of modifying `ligra/vertex.h` because it's probably not broadly
+// useful.
 #pragma once
 
 #include <functional>
@@ -107,7 +109,7 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
 //     neighbor, `A->getOutNeighbor(a_to_c_index) == c`, and
 //     `B->getOutNeighbor(b_to_c_index) == c`. (We could include `a`, `b`, and
 //     `a_to_b_index` as arguments, but instead we leave it to the user to
-//     capture them into `f`.)
+//     capture them into `f` if so desired.)
 template <template <typename> class vertex, class F>
 inline size_t intersect_f_with_index_par(
     vertex<pbbslib::empty>* A,
