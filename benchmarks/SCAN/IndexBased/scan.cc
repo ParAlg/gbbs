@@ -33,7 +33,7 @@ pbbs::sequence<DirectedEdge> GetSimilarIncidentEdges(
           vertices,
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
-            // `epsilon` structural similarity with the core.
+            // `epsilon` structural similarity with the vertex.
             return internal::BinarySearch(
                 neighbor_order[vertex],
                 [epsilon](const internal::EdgeSimilarity& es) {
@@ -103,7 +103,7 @@ void ClusterCores(
 // Arguments:
 //   num_vertices: Number of vertices in the whole graph.
 //   core_to_noncore_edges: Directed edges of at least epsilon similarity from
-//   core to noncore vertices.
+//     core to non-core vertices.
 //   clustering: Output. When function is called, core vertices must be already
 //     be assigned a cluster ID. After function is called, non-core vertices
 //     that belong to a cluster will be marked accordingly.
@@ -132,11 +132,11 @@ void AttachNoncoresToClusters(
 // Given core vertices, computes the SCAN clusters.
 //
 // Arguments:
-// - num_vertices: Number of vertices in the graph.
-// - cores: List of IDs for SCAN core vertices.
-// - core_similar_incident_edges: List of directed edges incident on cores with
-//   similarity at least epsilon, where the first endpoint of each edge is a
-//   core.
+//   num_vertices: Number of vertices in the graph.
+//   cores: List of IDs for SCAN core vertices.
+//   core_similar_incident_edges: List of directed edges incident on cores with
+//     similarity at least epsilon, where the first endpoint of each edge is a
+//     core.
 Clustering GetClustersFromCores(
     const uintE num_vertices,
     const pbbs::sequence<uintE>& cores,
