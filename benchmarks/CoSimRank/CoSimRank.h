@@ -53,14 +53,14 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
   auto p_next_v = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_v = pbbs::sequence<bool>(n, false);
-  frontier_v[v] = true;
+  auto frontier_v = pbbs::sequence<bool>(n, true);
+  //frontier_v[v] = true;
 
   auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_u = pbbs::sequence<bool>(n, false);
-  frontier_u[u] = true;
+  auto frontier_u = pbbs::sequence<bool>(n, true);
+  //frontier_u[u] = true;
 
   // read from special array of just degrees
 
@@ -81,7 +81,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     edgeMap(G,Frontier_u,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0, no_output);
     vertexMap(Frontier_u,PR_Vertex_F(p_curr_u.begin(),p_next_u.begin(),n));
 
-    sim += (pow(c, iter) * std::inner_product(p_next_u.begin(), p_next_u.end(), p_next_v.begin(), 0));
+    sim += ((double) pow(c, iter) * std::inner_product(p_next_u.begin(), p_next_u.end(), p_next_v.begin(), 0));
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
@@ -121,14 +121,14 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
   auto p_next_v = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_v = pbbs::sequence<bool>(n, false);
-  frontier_v[v] = true;
+  auto frontier_v = pbbs::sequence<bool>(n, true);
+  //frontier_v[v] = true;
 
   auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_u = pbbs::sequence<bool>(n, false);
-  frontier_u[u] = true;
+  auto frontier_u = pbbs::sequence<bool>(n, true);
+  //frontier_u[u] = true;
 
   auto p_div_v = pbbs::sequence<double>(n, [&] (size_t i) -> double {
     return p_curr_v[i] / static_cast<double>(G.get_vertex(i).getOutDegree());
@@ -148,7 +148,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   vertexSubset Frontier_u(n,n,frontier_u.to_array());
   auto EM_u = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
 
-  auto cond_f = [&] (const uintE& v) { return true; };
+  auto cond_f = [&] (const uintE& x) { return true; };
   auto map_f_v = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
     return p_div_v[s];
   };
@@ -182,7 +182,13 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
     EM_u.template edgeMapReduce_dense<double, double>(Frontier_u, cond_f, map_f_u, reduce_f, apply_f_u, 0.0, no_output);
     tt.stop(); tt.reportTotal("em time");
 
-    sim += (pow(c, iter) * std::inner_product(p_next_u.begin(), p_next_u.end(), p_next_v.begin(), 0));
+    double dot = 0;
+    for (size_t o = 0; o < n; o++) {
+    dot += p_next_u[o] * p_next_v[o];
+    }
+    sim += ((double) pow(c, iter)) * dot;
+
+    sim += ((double) pow(c, iter) * std::inner_product(p_next_u.begin(), p_next_u.end(), p_next_v.begin(), 0));
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
