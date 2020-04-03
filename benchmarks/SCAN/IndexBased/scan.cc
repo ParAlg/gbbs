@@ -175,6 +175,7 @@ Clustering GetClustersFromCores(
     partitioned_edges.slice(num_core_to_core_edges, partitioned_edges.size())};
   AttachNoncoresToClusters(num_vertices, core_to_noncore_edges, &clustering);
 
+  cores_set.del();
   return clustering;
 }
 
