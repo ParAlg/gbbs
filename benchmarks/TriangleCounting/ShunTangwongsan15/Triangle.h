@@ -166,7 +166,6 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
 //     Function that's run each triangle. On a triangle with vertices {u, v, w},
 //     we run `f(u, v, w)`.
 //
-//
 // Returns:
 //   The number of triangles in `G`.
 template <class Graph, class F>
