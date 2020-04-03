@@ -50,7 +50,7 @@ T inner_product(T* arr1, T* arr2, size_t len, T* tmp=nullptr) {
   if (tmp == nullptr) prod = pbbs::sequence<T>(len, static_cast<T>(0));
   else prod = pbbs::sequence<T>(tmp, len);
 
-  parallel_for(0, len, [&] (size_t i) { tmp[i] = arr1[i] * arr2[i]; });
+  parallel_for(0, len, [&] (size_t i) { prod[i] = arr1[i] * arr2[i]; });
   auto sum = pbbslib::reduce_add(prod);
 
   if (tmp != nullptr) prod.to_array();
