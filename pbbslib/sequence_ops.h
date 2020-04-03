@@ -322,6 +322,10 @@ std::pair<size_t, size_t> split_three(In_Seq const &In,
   return std::make_pair(m0, m1);
 }
 
+// Given an n-length sequence `In` and an n-length boolean sequence `Fl`,
+// returns a reordering of `In` such that any element corresponding to a false
+// entry in `Fl` precedes any element corresponding to a true entry `Fl`. An
+// integer is also returned that is the number of false entries in `Fl`.
 template <SEQ In_Seq, SEQ Bool_Seq>
 auto split_two(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
     -> std::pair<sequence<typename In_Seq::value_type>, size_t> {
@@ -352,4 +356,5 @@ auto split_two(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
              fl);
   return std::make_pair(std::move(Out), m);
 }
+
 }
