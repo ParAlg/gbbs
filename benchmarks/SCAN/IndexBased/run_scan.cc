@@ -8,22 +8,36 @@
 //   optional:
 //     -m : indicate that the graph should be mmap'd
 //     -c : indicate that the graph is compressed
-//     -rounds : the number of times to run the algorithm
-#include "benchmarks/SCAN/IndexBased/scan.h"
+//     -rounds : the number of times to run the index construction + clustering
+//     -cluster-rounds : the number of times to cluster the graph per index
+//       construction
+//     -mu : SCAN parameter mu
+//     -epsilon : SCAN parameter epsilon
+#include <string>
 
+#include "benchmarks/SCAN/IndexBased/scan.h"
 #include "ligra/ligra.h"
 
 // Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
+  const size_t cluster_rounds{
+    parameters.getOptionLongValue("-cluster-rounds", 1)};
+  const uint64_t mu{parameters.getOptionLongValue("-mu", 5)};
+  const float epsilon{
+    static_cast<float>(parameters.getOptionDoubleValue("-epsilon", 0.6))};
+  std::cout << "Scan parameters: mu = " << mu << ", epsilon = " << epsilon
+    << '\n';
+
   timer index_construction_timer{"Index construction time"};
   const indexed_scan::Index scan_index{&graph};
   index_construction_timer.stop();
 
-  constexpr uint64_t kMu{5};
-  constexpr float kEpsilon{0.6};
-  timer cluster_timer{"Clustering time"};
-  const indexed_scan::Clustering clustering{scan_index.Cluster(kMu, kEpsilon)};
+  timer cluster_timer{
+    "Clustering time over " + std::to_string(cluster_rounds) + " rounds"};
+  for (size_t i = 0; i < cluster_rounds; i++) {
+    const indexed_scan::Clustering clustering{scan_index.Cluster(mu, epsilon)};
+  }
   cluster_timer.stop();
 
   index_construction_timer.reportTotal("");
