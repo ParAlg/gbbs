@@ -140,14 +140,6 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
 
-  auto p_div_v = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return i == v ? (double) 1 / static_cast<double>(G.get_vertex(i).getOutDegree()) : 0;
-  });
-
-  auto p_div_u = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return i == u ? (double) 1 / static_cast<double>(G.get_vertex(i).getOutDegree()) : 0;
-  });
-
   // read from special array of just degrees
 
   auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
@@ -165,7 +157,6 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   auto apply_f_v = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
     p_next_v[w] = std::get<1>(k);
-    p_div_v[w] = p_next_v[w]/static_cast<double>(degrees[w]);
     return Maybe<std::tuple<uintE, double>>();
   };
 
@@ -175,7 +166,6 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.6
   auto apply_f_u = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
     p_next_u[w] = std::get<1>(k);
-    p_div_u[w] = p_next_u[w]/static_cast<double>(degrees[w]);
     return Maybe<std::tuple<uintE, double>>();
   };
 
