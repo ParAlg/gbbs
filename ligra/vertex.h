@@ -346,14 +346,14 @@ inline void mapNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
 //   d
 //     Length of `nghs`, i.e., the degree of `v`.
 //   f: (uintE, uintE, uintE, W) -> void
-//     Function to apply to each neighbor. The function will be called as 
+//     Function to apply to each neighbor. The function will be called as
 //     `f(v_id, neighbor_vertex_id, neighbor_index, weight)` where
 //     `neighbor_index` is the index of the neighbor in `nghs`.
 //   parallel
 //     Whether to run this function in parallel.
 template <template <typename W> class vertex, class W, class F>
-inline void mapNghsWithIndex(vertex<W>* v, uintE vtx_id, 
-                             std::tuple<uintE, W>* nghs, uintE d, F& f, 
+inline void mapNghsWithIndex(vertex<W>* v, uintE vtx_id,
+                             std::tuple<uintE, W>* nghs, uintE d, F& f,
                              bool parallel) {
   par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
     uintE ngh = v->getOutNeighbor(j);
