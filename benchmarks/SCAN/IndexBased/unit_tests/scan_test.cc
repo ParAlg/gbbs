@@ -66,7 +66,7 @@ bool CheckClustering(
   for (size_t v = 0; v < clustering.size(); v++) {
     const uintE cluster_id{clustering[v]};
     if (cluster_id != i::kUnclustered) {
-      actual_clusters_map[cluster_id].insert(v);
+      actual_clusters_map[cluster_id].emplace(v);
     }
   }
   ClusterList actual_clusters;
@@ -194,8 +194,7 @@ TEST(ScanSubroutines, BasicUsage) {
         MakeEdgeSimilarity(4, 2, 3.0 / sqrt(15))));
   EXPECT_THAT(
       neighbor_order[5],
-      ElementsAre(
-        MakeEdgeSimilarity(5, 2, 2.0 / sqrt(10))));
+      ElementsAre(MakeEdgeSimilarity(5, 2, 2.0 / sqrt(10))));
 
   {
     const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -268,7 +267,6 @@ TEST(ScanSubroutines, BasicUsage) {
 TEST(ScanSubroutines, DisconnectedGraph) {
   // Graph diagram:
   //     0 -- 1    2    3 -- 4 -- 5
-
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
     {0, 1},
@@ -443,7 +441,6 @@ TEST(Cluster, DisconnectedGraph) {
   // Graph diagram with structural similarity scores labeled:
   //       1.0            .82  .82
   //     0 -- 1    2    3 -- 4 -- 5
-
   const size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
     {0, 1},
