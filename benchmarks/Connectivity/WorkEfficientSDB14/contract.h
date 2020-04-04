@@ -182,6 +182,29 @@ namespace contract {
     return std::make_pair(edge_ret, edge_size);
   }
 
+  // Given a graph and a vertex partitioning of the graph, returns a contracted
+  // graph where each vertex grouping/cluster in the partition is contracted
+  // into a single vertex. Self-loop edges and duplicate edges are removed, and
+  // singleton vertices (vertices with degree zero) in the contracted graph also
+  // removed.
+  //
+  // Arguments:
+  //   GA
+  //     The graph to contract.
+  //   clusters
+  //     A `GA.n`-length sequence where `clusters[i]` is the cluster ID of the
+  //     i-th vertex. Each cluster ID must be in the range [0, `num_clusters`).
+  //   num_clusters
+  //     The number of clusters.
+  //
+  // Returns:
+  // (0) The contracted graph.
+  // (1) A sequence `S` of length `num_clusters + 1` such that
+  //   - if cluster i does not contract into a singleton, then it is vertex
+  //   `S[i]` in the contracted graph.
+  //   - `S[i] == S[i + 1]` iff the cluster `i` contracts into a singleton.
+  // (2) A sequence `T` that is the inverse to (1). Vertex i in the contracted
+  //   graph is the contraction of cluster `T[i]`.
   template <class Graph>
   inline std::tuple<symmetric_graph<symmetric_vertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
   contract(Graph& GA, sequence<parent>& clusters, size_t num_clusters) {

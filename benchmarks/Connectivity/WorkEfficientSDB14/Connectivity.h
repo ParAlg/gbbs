@@ -108,6 +108,9 @@ inline size_t largest_cc(Seq& labels) {
   return sz;
 }
 
+// Outputs a sequence `S` of length `G.n` such that the `i`-th vertex is in
+// connected component `S[i]`. The component IDs will be in the range `[0, G.n)`
+// but are not necessarily contiguous.
 template <class Graph>
 inline sequence<parent> CC(Graph& G, double beta = 0.2, bool pack = false, bool permute = false) {
   return CC_impl(G, beta, 0, pack, permute);

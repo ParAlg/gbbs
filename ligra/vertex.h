@@ -75,8 +75,8 @@ size_t seq_merge_full(SeqA& A, SeqB& B, F& f) {
   size_t i = 0, j = 0;
   size_t ct = 0;
   while (i < nA && j < nB) {
-    T& a = A[i];
-    T& b = B[j];
+    const T& a = A[i];
+    const T& b = B[j];
     if (a == b) {
       f(a);
       i++;
@@ -327,8 +327,37 @@ template <template <typename W> class vertex, class W, class F>
 inline void mapNghs(vertex<W>* v, uintE vtx_id, std::tuple<uintE, W>* nghs,
                     uintE d, F& f, bool parallel) {
   par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
-    uintE ngh = v->getOutNeighbor(j);
-    f(vtx_id, ngh, v->getOutWeight(j));
+    const std::tuple<uintE, W>& neighbor = nghs[j];
+    f(vtx_id, std::get<0>(neighbor), std::get<1>(neighbor));
+  }, parallel);
+}
+
+// Applies `f` to neighbors of vertex `v`. The difference between this and
+// `mapNghs` is that `f` takes an additional argument: the index of the neighbor
+// in `v`'s neighbor list.
+//
+// Arguments:
+//   v
+//     Vertex whose neighbors we want to map over.
+//   v_id
+//     ID of `v`.
+//   nghs
+//     Neighbors of `v`, either in-neighbors or out-neighbors.
+//   d
+//     Length of `nghs`, i.e., the degree of `v`.
+//   f: (uintE, uintE, W, uintE) -> void
+//     Function to apply to each neighbor. The function will be called as
+//     `f(v_id, neighbor_vertex_id, weight, neighbor_index)` where
+//     `nghs[neighbor_index] == (neighbor_vertex_id, weight)`.
+//   parallel
+//     Whether to run this function with parallelism.
+template <template <typename W> class vertex, class W, class F>
+inline void mapNghsWithIndex(vertex<W>* v, uintE vtx_id,
+                             std::tuple<uintE, W>* nghs, uintE d, F& f,
+                             bool parallel) {
+  par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t j) {
+    const std::tuple<uintE, W>& neighbor = nghs[j];
+    f(vtx_id, std::get<0>(neighbor), std::get<1>(neighbor), j);
   }, parallel);
 }
 
@@ -639,6 +668,12 @@ struct symmetric_vertex {
   inline void mapOutNgh(uintE vtx_id, F& f, bool parallel = true) {
     vertex_ops::mapNghs<symmetric_vertex, W, F>(this, vtx_id, getOutNeighbors(),
                                                getOutDegree(), f, parallel);
+  }
+
+  template <class F>
+  inline void mapOutNghWithIndex(uintE vtx_id, F& f, bool parallel = true) {
+    vertex_ops::mapNghsWithIndex<symmetric_vertex, W, F>(
+        this, vtx_id, getOutNeighbors(), getOutDegree(), f, parallel);
   }
 
   template <class F>
