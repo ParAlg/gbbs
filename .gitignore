@@ -11,3 +11,4 @@ cplib.sh
 
 /bazel-*
 .pytype
+.ycm_extra_conf.py
