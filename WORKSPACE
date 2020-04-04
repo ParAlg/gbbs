@@ -75,11 +75,11 @@ http_archive(
 
 
 # pybind bazel bindings
-PYBIND11_BAZEL_COMMIT = "1bd0aee9afef1776a3b51fdc0defaf21ed85117f"
+PYBIND11_BAZEL_COMMIT = "656fd69e83e80ccef8a3e3935d1ff4f604332e81"
 http_archive(
   name = "pybind11_bazel",
   strip_prefix = "pybind11_bazel-%s" % PYBIND11_BAZEL_COMMIT,
-  sha256 = "25cb415489537653e9b48e15c7b834c28f790ebe939a983c403aa62ba5b5b5ac",
+  sha256 = "b17dbbb648001996d06cce7e058174687c933bb16d87b74b340565d5311bb286",
   urls = ["https://github.com/ldhulipala/pybind11_bazel/archive/%s.zip" % PYBIND11_BAZEL_COMMIT],
 )
 # pybind.
