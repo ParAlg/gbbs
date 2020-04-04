@@ -136,12 +136,12 @@ def program_parser(G, program_str):
     CliqueCounting(G)
   elif program_str == "TriangleCounting":
     TriangleCounting(G)
-  elif program_str = "GeneralWeightSSSP":
+  elif program_str == "GeneralWeightSSSP":
     if argv_len > 4:
       GeneralWeightSSSP(G, int(sys.argv[4]))
     else:
       GeneralWeightSSSP(G)
-  elif program_str = "GraphColoring":
+  elif program_str == "GraphColoring":
     if argv_len > 4:
       GraphColoring(G, sys.argv[4])
     else:
