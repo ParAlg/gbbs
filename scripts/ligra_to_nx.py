@@ -155,6 +155,7 @@ def main():
   # use read edge list for snap format (TODO)
   G = read_ligra_symmetric_graph(input_file) if symmetric else read_ligra_directed_graph(input_file)
   program_str = sys.argv[3] # Third arg should be name of benchmark
+  program_parser(G, program_str)
 
 
 if __name__ == "__main__":
