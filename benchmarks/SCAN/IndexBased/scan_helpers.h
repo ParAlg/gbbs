@@ -33,7 +33,7 @@ struct EdgeSimilarity {
 };
 // Beware that this equality operator compares the floating-point field
 // approximately. This is convenient for unit tests but might not be appropriate
-// for other uses.
+// for other uses (e.g., this operator is not transitive).
 bool operator==(const EdgeSimilarity&, const EdgeSimilarity&);
 std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
@@ -84,7 +84,7 @@ struct CoreThreshold {
 };
 // Beware that this equality operator compares the floating-point field
 // approximately. This is convenient for unit tests but might not be appropriate
-// for other uses.
+// for other uses (e.g., this operator is not transitive)
 bool operator==(const CoreThreshold&, const CoreThreshold&);
 std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
 
@@ -141,17 +141,18 @@ NeighborOrder::NeighborOrder(
 
   // To compute structural similarities, we need to count shared neighbors
   // between two vertices. Counting the neighbors shared between adjacent
-  // vertices u and v is the same as counting the number of triangles that edge
-  // {u, v} appears in.
+  // vertices u and v is the same as counting the number of triangles that the
+  // edge {u, v} appears in.
   //
   // The triangle counting logic here is borrowed from
   // `Triangle_degree_ordering()` in
-  // `benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h`.
+  // `benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h`. We modify it to
+  // maintain triangle counts for each edge.
 
   // Create a directed version of `graph`, pointing edges from lower degree
   // vertices to higher degree vertices in order to bound the maximum degree of
   // each vertex.
-  uintE* vertex_degree_ranking = rankNodes(*graph, graph->n);
+  uintE* vertex_degree_ranking{rankNodes(*graph, graph->n)};
   const auto filter_predicate{[&](const uintE u, const uintE v, NoWeight) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};

@@ -93,8 +93,8 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
       [](const VertexDegree& vertex_degree) { return vertex_degree.degree; });
   const size_t max_degree{vertex_degrees[vertex_degrees.size() - 1].degree};
 
-  // `bucket_offsets[i]` is the first index `j` at which
-  // `vertex_degrees[j].degree >= i`.
+  // `degree_offsets[j]` is the first index `i` at which
+  // `vertex_degrees[i].degree >= j`.
   pbbs::sequence<uintE> degree_offsets{
     pbbs::sequence<uintE>::no_init(max_degree + 1)};
   const size_t min_degree{vertex_degrees[0].degree};
@@ -103,7 +103,7 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
   });
   par_for(1, vertex_degrees.size(), [&](const size_t i) {
     const size_t degree{vertex_degrees[i].degree};
-    const size_t prev_degree{vertex_degrees[i-1].degree};
+    const size_t prev_degree{vertex_degrees[i - 1].degree};
     if (degree != prev_degree) {
       par_for(prev_degree + 1, degree + 1, [&](const size_t j) {
         degree_offsets[j] = i;
