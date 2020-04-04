@@ -12,5 +12,17 @@ pybind_extension(
       "//ligra:ligra",
       "//ligra:vertex",
       "//ligra:vertex_subset",
+      "//benchmarks/BFS/NonDeterministicBFS:BFS",
+  ],
+)
+
+pybind_extension(
+  name = "gbbs_bfs",
+  srcs = ["gbbs_bfs.cc"],
+  deps = [
+      "//ligra:vertex",
+      "//ligra:compressed_vertex",
+      "//ligra:graph",
+      "//benchmarks/BFS/NonDeterministicBFS:BFS",
   ],
 )

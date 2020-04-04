@@ -5,6 +5,8 @@
 #include "ligra/graph_io.h"
 #include "ligra/ligra.h"
 
+#include "benchmarks/BFS/NonDeterministicBFS/BFS.h"
+
 #include "pybind11/pybind11.h"
 
 namespace gbbs_lib {
@@ -23,10 +25,45 @@ template <template <class W> class vertex_type, class W>
 void SymGraphRegister(py::module& m, std::string graph_name) {
   /* register graph */
   using graph = symmetric_graph<vertex_type, W>;
-  py::class_<graph>(m, graph_name.c_str());
+  py::class_<graph>(m, graph_name.c_str())
+    .def("numVertices", [](const graph& G) -> size_t {
+      return G.n;
+    })
+    .def("numEdges", [](const graph& G) -> size_t {
+      return G.m;
+    })
+    .def("BFS", [&] (graph& G, const size_t src) {
+      auto parents = BFS(G, src);
+      return 1.0;
+    });
 }
 
+/* Defines asymmetric vertex functions */
+template <template <class W> class vertex_type, class W>
+void AsymVertexRegister(py::module& m, std::string vertex_name) {
+  using vertex = vertex_type<W>;
+  using graph = asymmetric_graph<vertex_type, W>;
+  /* register vertex */
+  py::class_<vertex>(m, vertex_name.c_str())
+    .def("numVertices", [](const graph& G) -> size_t {
+      return G.n;
+    })
+    .def("numEdges", [](const graph& G) -> size_t {
+      return G.m;
+    })
+    .def("BFS", [&] (graph& G, const size_t src) {
+      auto parents = BFS(G, src);
+      return 1.0;
+    });
+}
 
+/* Defines asymmetric graph functions */
+template <template <class W> class vertex_type, class W>
+void AsymGraphRegister(py::module& m, std::string graph_name) {
+  /* register graph */
+  using graph = asymmetric_graph<vertex_type, W>;
+  py::class_<graph>(m, graph_name.c_str());
+}
 
 PYBIND11_MODULE(gbbs_lib, m) {
   m.doc() = "Python module exporting core gbbs types and core data structures.";
@@ -46,10 +83,14 @@ PYBIND11_MODULE(gbbs_lib, m) {
   SymVertexRegister<symmetric_vertex, pbbs::empty>(m, "SymmetricVertexEmpty");
   SymVertexRegister<csv_bytepd_amortized, pbbs::empty>(m, "CompressedSymmetricVertexEmpty");
   SymGraphRegister<symmetric_vertex, pbbs::empty>(m, "SymmetricGraph");
-//  SymGraphRegister<csv_bytepd_amortized, pbbs::empty>(m, "SymmetricVertexEmpty", "SymmetricGraph");
+  SymGraphRegister<csv_bytepd_amortized, pbbs::empty>(m, "CompressedSymmetricGraph");
 
-  m.def("GetSum", [&] () { return 1; });
+  AsymVertexRegister<asymmetric_vertex, pbbs::empty>(m, "AsymmetricVertexEmpty");
+  AsymVertexRegister<cav_bytepd_amortized, pbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
+  AsymGraphRegister<asymmetric_vertex, pbbs::empty>(m, "AsymmetricGraph");
+  AsymGraphRegister<cav_bytepd_amortized, pbbs::empty>(m, "CompressedAsymmetricGraph");
 
+  /* ============================== Graph IO ============================= */
   m.def("readSymmetricUnweightedGraph", [&] (std::string& path) {
     auto G = gbbs_io::read_unweighted_symmetric_graph(
         path.c_str(),
