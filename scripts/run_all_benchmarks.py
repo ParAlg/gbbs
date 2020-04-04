@@ -86,6 +86,7 @@ UNWEIGHTED_GRAPH_BENCHMARKS = [
     "//benchmarks/MaximalMatching/RandomGreedy:MaximalMatching_main",
     "//benchmarks/MaximalMatching/Yoshida:MaximalMatching_main",
     "//benchmarks/PageRank:PageRank_main",
+    "//benchmarks/SCAN/IndexBased:SCAN_main",
     "//benchmarks/SSBetweenessCentrality/Brandes:SSBetweennessCentrality_main",
     "//benchmarks/Spanner/MPXV15:Spanner_main",
     "//benchmarks/SpanningForest/BFSSF:SpanningForest_main",

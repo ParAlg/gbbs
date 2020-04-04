@@ -56,6 +56,25 @@ auto map(Seq const &A, UnaryFunc f, flags fl = no_flag) -> sequence<OT> {
   return sequence<OT>(A.size(), [&](size_t i) { return f(A[i]); });
 }
 
+// Transforms input sequence `[a_0, a_1, ..., a_{n-1}]` to sequence `[f(0, a_0),
+// f(1, a_1), ..., f(n-1, a_{n-1})]` using input function `f`.
+//
+// Arguments:
+//   A: sequence-like object with elements of type `T`
+//     Input array.
+//   f: (size_t, T) -> OT
+//     Function to apply to input array.
+//
+// Returns:
+//   sequence<OT>
+//     Result of applying `f` to each element of `A` along with the index of
+//     that element in `A`.
+template <class OT, SEQ Seq, class Func>
+auto map_with_index(Seq const &A, Func&& f, flags fl = no_flag)
+    -> sequence<OT> {
+  return sequence<OT>(A.size(), [&](size_t i) { return f(i, A[i]); });
+}
+
 template <SEQ Seq, RANGE Range>
 auto copy(Seq const &A, Range R, flags fl = no_flag) -> void {
   parallel_for(0, A.size(), [&](size_t i) { R[i] = A[i]; });
