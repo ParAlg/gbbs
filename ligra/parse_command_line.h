@@ -36,22 +36,24 @@ struct commandLine {
   commandLine(int _c, char** _v, std::string _cl);
   commandLine(int _c, char** _v);
 
-  void badArgument();
+  void badArgument() const;
 
   // get an argument
   // i is indexed from the last argument = 0, second to last indexed 1, ..
-  char* getArgument(int i);
+  char* getArgument(int i) const;
 
   // looks for two filenames
-  std::pair<char*, char*> IOFileNames();
+  std::pair<char*, char*> IOFileNames() const;
 
-  std::pair<int, char*> sizeAndFileName();
+  std::pair<int, char*> sizeAndFileName() const;
 
-  bool getOption(const std::string& option);
-  char* getOptionValue(const std::string& option);
+  bool getOption(const std::string& option) const;
+  char* getOptionValue(const std::string& option) const;
   std::string getOptionValue(
-      const std::string& option, const std::string& defaultValue);
-  int getOptionIntValue(const std::string& option, int defaultValue);
-  size_t getOptionLongValue(const std::string& option, size_t defaultValue);
-  double getOptionDoubleValue(const std::string& option, double defaultValue);
+      const std::string& option, const std::string& defaultValue) const;
+  int getOptionIntValue(const std::string& option, int defaultValue) const;
+  size_t
+  getOptionLongValue(const std::string& option, size_t defaultValue) const;
+  double
+  getOptionDoubleValue(const std::string& option, double defaultValue) const;
 };
