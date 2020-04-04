@@ -60,7 +60,7 @@ void ClusterCores(
   par_for(0, cores.size(), [&](const size_t i) {
     const uintE core{cores[i]};
     const auto& neighbors{neighbor_order[core]};
-    const bool kParallelizeInnerLoop{false};
+    constexpr bool kParallelizeInnerLoop{false};
     par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       if (core > neighbor && cores_set.contains(neighbor)) {
@@ -105,7 +105,7 @@ void AttachNoncoresToClusters(
     const uintE core{cores[i]};
     const uintE core_cluster{(*clustering)[core]};
     const auto& neighbors{neighbor_order[core]};
-    const bool kParallelizeInnerLoop{false};
+    constexpr bool kParallelizeInnerLoop{false};
     par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
       const uintE neighbor{neighbors[j].neighbor};
       auto* neighbor_cluster_address{&(*clustering)[neighbor]};
