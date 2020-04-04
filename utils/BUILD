@@ -40,6 +40,14 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "snap_converter",
+    srcs = ["snap_converter.cc"],
+    deps = [
+        "//ligra:parse_command_line",
+    ],
+)
+
 cc_library(
     name = "converter_library",
     hdrs = [
