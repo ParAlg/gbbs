@@ -33,6 +33,7 @@ cc_library(
   deps = [
   ":graph",
   ":io",
+  "//pbbslib:seq",
   "//pbbslib/strings:string_basics",
   ]
 )

@@ -23,10 +23,18 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 
-#include "graph.h"
-#include "io.h"
+#include "ligra/graph.h"
+#include "ligra/io.h"
+#include "pbbslib/seq.h"
 
 namespace gbbs_io {
+
+template <class weight_type>
+struct edge {
+  uintE from;
+  uintE to;
+  weight_type weight;
+};
 
 /* Returns a tuple containing (n, m, offsets, edges) --- the number of
  * vertices, edges, the vertex offsets, and the edge values, after
@@ -168,5 +176,42 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
   asymmetric_graph<cav_bytepd_amortized, weight_type> G(v_data, v_in_data, n, m, deletion_fn, edges, inEdges);
   return G;
 }
+
+// Read weighted edges from a file that has the following format:
+//   <edge 1 first endpoint> <edge 1 second endpoint> <edge 1 weight>
+//   <edge 2 first endpoint> <edge 2 second endpoint> <edge 2 weight>
+//   <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>
+//   ...
+//   <edge m first endpoint> <edge m second endpoint> <edge m weight>
+pbbs::sequence<edge<intT>> read_weighted_edge_list(const char* filename);
+
+// Read edges from a file that has the following format:
+//   <edge 1 first endpoint> <edge 1 second endpoint>
+//   <edge 2 first endpoint> <edge 2 second endpoint>
+//   <edge 3 first endpoint> <edge 3 second endpoint>
+//   ...
+//   <edge m first endpoint> <edge m second endpoint>
+pbbs::sequence<edge<pbbslib::empty>>
+read_unweighted_edge_list(const char* filename);
+
+// Converts edge list into an asymmetric graph.
+//
+// Adjacency lists of the output graph are sorted by increasing neighbor vertex
+// ID. Duplicate edges are removed.
+template <class weight_type>
+asymmetric_graph<symmetric_vertex, weight_type> edge_list_to_asymmetric_graph(
+    const pbbs::sequence<edge<weight_type>>& edge_list);
+
+// Converts a list of undirected edges into a symmetric graph.
+//
+// Adjacency lists of the output graph are sorted by increasing neighbor vertex
+// ID. Duplicate edges are removed.
+template <class weight_type>
+symmetric_graph<symmetric_vertex, weight_type> edge_list_to_symmetric_graph(
+    const pbbs::sequence<edge<weight_type>>& edge_list);
+
+// Write graph in adjacency graph format to file.
+template <class Graph>
+void write_graph_to_file(const char* filename, Graph* graph);
 
 } // namespace gbbs_io
