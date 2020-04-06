@@ -146,7 +146,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.9
   auto apply_f_v = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
     p_next_v[w] = std::get<1>(k);
-    return Maybe<std::tuple<uintE, double>>();
+    return Maybe<std::tuple<uintE, double>>(k);
   };
 
   auto map_f_u = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
@@ -155,7 +155,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.9
   auto apply_f_u = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);
     p_next_u[w] = std::get<1>(k);
-    return Maybe<std::tuple<uintE, double>>();
+    return Maybe<std::tuple<uintE, double>>(k);
   };
 
   size_t iter = 0;
