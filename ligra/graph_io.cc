@@ -9,6 +9,27 @@ namespace gbbs_io {
 typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
 
+namespace {
+
+// Starting from the current position, skips all consecutive lines in the stream
+// that start with '#' or are empty.
+//
+// The intent here is that lines starting with '#' are interpreted to be
+// comments that should be ignored.
+void skip_ifstream_comments(std::ifstream* stream) {
+  std::string line;
+  while (*stream) {
+    std::streampos current_position{stream->tellg()};
+    std::getline(*stream, line);
+    if (!(line.empty() || line[0] == '#')) {
+      stream->seekg(current_position);
+      return;
+    }
+  }
+}
+
+}  // namespace
+
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, intE>*>
 parse_weighted_graph(char* fname, bool mmap, char* bytes, size_t bytes_size) {
   sequence<char*> tokens;
@@ -308,6 +329,7 @@ std::vector<Edge<intT>> read_weighted_edge_list(const char* filename) {
     std::cout << "ERROR: Unable to open file: " << filename << '\n';
     std::terminate();
   }
+  skip_ifstream_comments(&file);
 
   std::vector<Edge<intT>> edge_list;
   uintE from;
@@ -329,6 +351,7 @@ read_unweighted_edge_list(const char* filename) {
     std::cout << "ERROR: Unable to open file: " << filename << '\n';
     std::terminate();
   }
+  skip_ifstream_comments(&file);
 
   std::vector<Edge<pbbslib::empty>> edge_list;
   uintE from;

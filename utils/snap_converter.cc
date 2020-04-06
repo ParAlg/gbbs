@@ -6,6 +6,8 @@
 // Pass the `--help` flag to see usage directions.
 //
 // The contents of an unweighted edge-list file should be as follows:
+//     # There can be comments at the top of the file as long as each line of
+//     # the comment starts with '#'.
 //     <edge 1 first endpoint> <edge 1 second endpoint>
 //     <edge 2 first endpoint> <edge 2 second endpoint>
 //     <edge 3 first endpoint> <edge 3 second endpoint>
@@ -13,6 +15,8 @@
 //     <edge m first endpoint> <edge m second endpoint>
 //
 // The contents of a weighted edge-list file should be as follows:
+//     # There can be comments at the top of the file as long as each line of
+//     # the comment starts with '#'.
 //     <edge 1 first endpoint> <edge 1 second endpoint> <edge 1 weight>
 //     <edge 2 first endpoint> <edge 2 second endpoint> <edge 2 weight>
 //     <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <exception>
 #include <fstream>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -203,6 +204,8 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
 }
 
 // Read weighted edges from a file that has the following format:
+//     # There can be comments at the top of the file as long as each line of
+//     # the comment starts with '#'.
 //     <edge 1 first endpoint> <edge 1 second endpoint> <edge 1 weight>
 //     <edge 2 first endpoint> <edge 2 second endpoint> <edge 2 weight>
 //     <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>
@@ -211,6 +214,8 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
 std::vector<Edge<intT>> read_weighted_edge_list(const char* filename);
 
 // Read edges from a file that has the following format:
+//     # There can be comments at the top of the file as long as each line of
+//     # the comment starts with '#'.
 //     <edge 1 first endpoint> <edge 1 second endpoint>
 //     <edge 2 first endpoint> <edge 2 second endpoint>
 //     <edge 3 first endpoint> <edge 3 second endpoint>
