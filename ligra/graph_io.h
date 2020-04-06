@@ -203,19 +203,19 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
 }
 
 // Read weighted edges from a file that has the following format:
-//   <edge 1 first endpoint> <edge 1 second endpoint> <edge 1 weight>
-//   <edge 2 first endpoint> <edge 2 second endpoint> <edge 2 weight>
-//   <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>
-//   ...
-//   <edge m first endpoint> <edge m second endpoint> <edge m weight>
+//     <edge 1 first endpoint> <edge 1 second endpoint> <edge 1 weight>
+//     <edge 2 first endpoint> <edge 2 second endpoint> <edge 2 weight>
+//     <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>
+//     ...
+//     <edge m first endpoint> <edge m second endpoint> <edge m weight>
 std::vector<Edge<intT>> read_weighted_edge_list(const char* filename);
 
 // Read edges from a file that has the following format:
-//   <edge 1 first endpoint> <edge 1 second endpoint>
-//   <edge 2 first endpoint> <edge 2 second endpoint>
-//   <edge 3 first endpoint> <edge 3 second endpoint>
-//   ...
-//   <edge m first endpoint> <edge m second endpoint>
+//     <edge 1 first endpoint> <edge 1 second endpoint>
+//     <edge 2 first endpoint> <edge 2 second endpoint>
+//     <edge 3 first endpoint> <edge 3 second endpoint>
+//     ...
+//     <edge m first endpoint> <edge m second endpoint>
 std::vector<Edge<pbbslib::empty>>
 read_unweighted_edge_list(const char* filename);
 
