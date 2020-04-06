@@ -4,6 +4,7 @@
 // flag. For undirected graphs on SNAP, the "-s" flag must be passed
 // since each edge appears in only one direction
 #include <exception>
+#include <vector>
 
 #include "ligra/graph_io.h"
 #include "ligra/parse_command_line.h"
@@ -14,14 +15,14 @@ namespace {
 template <typename Weight>
 void WriteEdgeListAsGraph(
     const char* output_file,
-    const pbbs::sequence<gbbs_io::edge<Weight>>& edge_list,
+    const std::vector<gbbs_io::Edge<Weight>>& edge_list,
     bool is_symmetric_graph) {
   if (is_symmetric_graph) {
     auto graph{gbbs_io::edge_list_to_symmetric_graph(edge_list)};
-    gbbs_io::write_graph_to_file(output_file, &graph);
+    gbbs_io::write_graph_to_file(output_file, graph);
   } else {
     auto graph{gbbs_io::edge_list_to_asymmetric_graph(edge_list)};
-    gbbs_io::write_graph_to_file(output_file, &graph);
+    gbbs_io::write_graph_to_file(output_file, graph);
   }
 }
 

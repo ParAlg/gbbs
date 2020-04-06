@@ -222,6 +222,10 @@ sequence<typename Seq::value_type> stable_sort(Seq const &S, Compare less) {
   return sample_sort(S, less, true);
 }
 
+// Return a copy of `s` that's sorted and has no duplicate elements.
+//
+// Two elements are considered duplicates if neither compares less than the other
+// according to `less`. The first such element is kept.
 template <class Seq, class Compare>
 sequence<typename Seq::value_type> remove_duplicates_ordered(Seq const &s,
                                                              Compare less) {

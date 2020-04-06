@@ -29,7 +29,7 @@ parse_weighted_graph(char* fname, bool mmap, char* bytes, size_t bytes_size) {
     }
   }
   tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-  assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
+  assert(tokens[0] == internal::kWeightedAdjGraphHeader);
 
   uint64_t len = tokens.size() - 1;
   uint64_t n = atol(tokens[1]);
@@ -170,7 +170,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
   }
   tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
 
-  assert(tokens[0] == (std::string) "AdjacencyGraph");
+  assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
 
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
@@ -300,6 +300,45 @@ std::tuple<char*, size_t> parse_compressed_graph(
     std::tie(bytes, bytes_size) = read_o_direct(fname);
   }
   return std::make_tuple(bytes, bytes_size);
+}
+
+std::vector<Edge<intT>> read_weighted_edge_list(const char* filename) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+
+  std::vector<Edge<intT>> edge_list;
+  uintE from;
+  uintE to;
+  intT weight;
+  while (file >> from >> to >> weight) {
+    edge_list.emplace_back(Edge<intT>{
+        .from = from,
+        .to = to,
+        .weight = weight});
+  }
+  return edge_list;
+}
+
+std::vector<Edge<pbbslib::empty>>
+read_unweighted_edge_list(const char* filename) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+
+  std::vector<Edge<pbbslib::empty>> edge_list;
+  uintE from;
+  uintE to;
+  while (file >> from >> to) {
+    edge_list.emplace_back(Edge<pbbslib::empty>{
+        .from = from,
+        .to = to});
+  }
+  return edge_list;
 }
 
 }  // namespace gbbs_io

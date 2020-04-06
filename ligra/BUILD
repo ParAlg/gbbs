@@ -33,7 +33,10 @@ cc_library(
   deps = [
   ":graph",
   ":io",
-  "//pbbslib:seq",
+  ":macros",
+  ":vertex",
+  "//pbbslib:sample_sort",
+  "//pbbslib:stlalgs",
   "//pbbslib/strings:string_basics",
   ]
 )
