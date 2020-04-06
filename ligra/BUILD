@@ -133,6 +133,7 @@ cc_library(
   ":undirected_edge",
   ":vertex",
   "//pbbslib:utilities",
+  "@googletest//:gtest_main",
   ]
 )
 
