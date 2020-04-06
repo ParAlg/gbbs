@@ -45,7 +45,7 @@ void WriteEdgeListAsGraph(
   }
 }
 
-}
+}  // namespace
 
 int main(int argc, char* argv[]) {
   // TODO(tomtseng) write a more detailed help string
