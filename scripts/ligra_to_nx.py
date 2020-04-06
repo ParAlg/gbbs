@@ -11,6 +11,7 @@ from numpy import array
 def cosimrank(G, u, v, alpha=0.9, 
              max_iter=100, tol=1.0e-6, weight='weight'):
   c = alpha
+  alpha = 0
   if len(G) == 0:
     return {}
 
