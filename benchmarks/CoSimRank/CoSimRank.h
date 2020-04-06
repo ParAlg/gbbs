@@ -67,8 +67,8 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
-    auto Frontier_v_new = edgeMap(G,Frontier_v,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0, no_output);
-    auto Frontier_u_new = edgeMap(G,Frontier_u,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0, no_output);
+    auto Frontier_v_new = edgeMap(G,Frontier_v,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0);
+    auto Frontier_u_new = edgeMap(G,Frontier_u,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0); //, no_output
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
 
@@ -164,8 +164,8 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.9
     timer t; t.start();
     // SpMV
     timer tt; tt.start();
-    auto Frontier_v_new = EM_v.template edgeMapReduce_dense<double, double>(Frontier_v, cond_f, map_f_v, reduce_f, apply_f_v, 0.0, no_output);
-    auto Frontier_u_new = EM_u.template edgeMapReduce_dense<double, double>(Frontier_u, cond_f, map_f_u, reduce_f, apply_f_u, 0.0, no_output);
+    auto Frontier_v_new = EM_v.template edgeMapReduce_dense<double, double>(Frontier_v, cond_f, map_f_v, reduce_f, apply_f_v, 0.0);
+    auto Frontier_u_new = EM_u.template edgeMapReduce_dense<double, double>(Frontier_u, cond_f, map_f_u, reduce_f, apply_f_u, 0.0);v //, no_output
     tt.stop(); tt.reportTotal("em time");
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
