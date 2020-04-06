@@ -30,7 +30,7 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
     const uintE num_vertices,
     const std::unordered_set<UndirectedEdge>& edges);
 
-// Check that vertex has `expected_neighbors` as its out neighbors. Does not
+// Check that vertex has `expected_neighbors` as its out-neighbors. Does not
 // check edge weights. Ordering matters.
 template <class Vertex>
 void CheckUnweightedOutNeighbors(
@@ -40,7 +40,7 @@ void CheckUnweightedOutNeighbors(
       vertex.getOutDegree(), vertex.getOutNeighbors(), expected_neighbors);
 }
 
-// Check that vertex has `expected_neighbors` as its in neighbors. Does not
+// Check that vertex has `expected_neighbors` as its in-neighbors. Does not
 // check edge weights. Ordering matters.
 template <class Vertex>
 void CheckUnweightedInNeighbors(

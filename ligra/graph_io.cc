@@ -19,7 +19,7 @@ namespace {
 void skip_ifstream_comments(std::ifstream* stream) {
   std::string line;
   while (*stream) {
-    std::streampos current_position{stream->tellg()};
+    std::streampos current_position = stream->tellg();
     std::getline(*stream, line);
     if (!(line.empty() || line[0] == '#')) {
       stream->seekg(current_position);

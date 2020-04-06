@@ -1,6 +1,6 @@
 // Converts a graph in edge-list format to the adjacency graph format that
 // GBBS uses. In particular, graph files downloaded from the SNAP dataset
-// collection (http://snap.stanford.edu/data/index.html) are in edge-list
+// collection (http://snap.stanford.edu/data/index.html) are often in edge-list
 // format and may be converted using this tool.
 //
 // Pass the `--help` flag to see usage directions.
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]) {
     "\n"
     "Converts a graph in edge-list format to the adjacency graph format that\n"
     "GBBS uses. In particular, graph files downloaded from the SNAP dataset\n"
-    "collection (http://snap.stanford.edu/data/index.html) are in edge-list\n"
-    "format and may be converted using this tool.\n"
+    "collection (http://snap.stanford.edu/data/index.html) are often in\n"
+    "edge-list format and may be converted using this tool.\n"
     "\n"
     "Arguments:\n"
     "  -i <filename>: Path to the input edge-list file.\n"
