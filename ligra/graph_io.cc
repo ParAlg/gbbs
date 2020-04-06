@@ -30,6 +30,11 @@ void skip_ifstream_comments(std::ifstream* stream) {
 
 }  // namespace
 
+template <>
+Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
+  : from(_from)
+  , to(_to) {}
+
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, intE>*>
 parse_weighted_graph(char* fname, bool mmap, char* bytes, size_t bytes_size) {
   sequence<char*> tokens;

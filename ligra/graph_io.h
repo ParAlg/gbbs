@@ -60,9 +60,7 @@ Edge<weight_type>::Edge(const uintE _from, const uintE _to)
   , weight(0) {}
 
 template <>
-Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
-  : from(_from)
-  , to(_to) {}
+Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to);
 
 namespace internal {  // Internal declarations
 
