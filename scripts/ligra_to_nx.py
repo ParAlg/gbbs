@@ -248,12 +248,17 @@ def program_parser(G, program_str):
       CoSimRank(G, src=int(sys.argv[4]), ngh=int(sys.argv[5]))
     else:
       CoSimRank(G)
+  elif program_str == "ActualCoSimRank":
+    if argv_len > 4:
+      ActualCoSimRank(G, u=int(sys.argv[4]), v=int(sys.argv[5]))
+    else:
+      CoSimRank(G)
 
 def main():
   argv_len = len(sys.argv)
   input_file = sys.argv[1] # First arg should be file name (ligra)
   symmetric = (sys.argv[2] == "s") # Second arg should be s or w/e for symmetric or not
-  all_programs = ["CoSimRank","CoSimRankNumpy","BFS", "MaximalMatching", "KCore", "PageRank", "CliqueCounting", "TriangleCounting", "GeneralWeightSSSP", "GraphColoring"]
+  all_programs = ["ActualCoSimRank","CoSimRank","CoSimRankNumpy","BFS", "MaximalMatching", "KCore", "PageRank", "CliqueCounting", "TriangleCounting", "GeneralWeightSSSP", "GraphColoring"]
   # use read edge list for snap format (TODO)
   G = read_ligra_symmetric_graph(input_file) if symmetric else read_ligra_directed_graph(input_file)
   program_str = sys.argv[3] # Third arg should be name of benchmark
