@@ -72,7 +72,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
 
-    Frontier_u.clear(); Frontier_v.clear();
+    Frontier_u.del(); Frontier_v.del();
     Frontier_v = Frontier_v_new;
     Frontier_u = Frontier_u_new;
 
