@@ -119,17 +119,6 @@ def GraphColoring(G, strategy='largest_first'):
 
 def CoSimRank(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.000001):
   print("Start CoSimRank")
-  src_max = 0
-  ngh_max = 0
-  if src == 0 and ngh == 1:
-    for i in range(len(G)):
-      if G.degree[i] > src_max:
-        src_max = G.degree[i]
-        src = i
-      elif G.degree[i] > ngh_max:
-        ngh_max = G.degree[i]
-        ngh = i
-  print("src: ", src, "ngh: ", ngh)
   t0 = time.time()
   similarity = nx.algorithms.similarity.simrank_similarity(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
   t1 = time.time()
@@ -137,18 +126,7 @@ def CoSimRank(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolera
   print("Similarity: ", similarity)
 
 def CoSimRankNumpy(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.0001):
-  print("Start CoSimRank")
-  src_max = 0
-  ngh_max = 0
-  if src == 0 and ngh == 1:
-    for i in range(len(G)):
-      if G.degree[i] > src_max:
-        src_max = G.degree[i]
-        src = i
-      elif G.degree[i] > ngh_max:
-        ngh_max = G.degree[i]
-        ngh = i
-  print("src: ", src, "ngh: ", ngh)
+  print("Start CoSimRankNumpy")
   t0 = time.time()
   similarity = nx.simrank_similarity_numpy(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
   t1 = time.time()
