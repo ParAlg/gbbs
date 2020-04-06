@@ -5,6 +5,73 @@ import time
 import networkx as nx
 from numpy import array
 
+
+
+
+def cosimrank(G, u, v, alpha=0.9, 
+             max_iter=100, tol=1.0e-6, weight='weight'):
+  if len(G) == 0:
+    return {}
+
+  if not G.is_directed():
+    D = G.to_directed()
+  else:
+    D = G
+
+  # Create a copy in (right) stochastic form
+  W = nx.stochastic_graph(D, weight=weight)
+  N = W.number_of_nodes()
+
+  W_v = nx.stochastic_graph(D, weight=weight)
+  N_v = W.number_of_nodes()
+
+  x = dict.fromkeys(W, 0)
+  x[u] = 1
+  x_v = dict.fromkeys(W, 0)
+  x_v[v] = 1
+
+  p = dict.fromkeys(W, 1.0 / N)
+
+  p_v = dict.fromkeys(W, 1.0 / N)
+
+  dangling_weights = p
+  dangling_weights_v = p_v
+  dangling_nodes = [n for n in W if W.out_degree(n, weight=weight) == 0.0]
+  dangling_nodes_v = [n for n in W if W.out_degree(n, weight=weight) == 0.0]
+
+  sim = 0
+
+  # power iteration: make up to max_iter iterations
+  for iter in range(max_iter):
+    xlast = x
+    x = dict.fromkeys(xlast.keys(), 0)
+    danglesum = alpha * sum(xlast[n] for n in dangling_nodes)
+    for n in x:
+      for nbr in W[n]:
+        x[nbr] += alpha * xlast[n] * W[n][nbr][weight]
+      x[n] += danglesum * dangling_weights.get(n, 0) + (1.0 - alpha) * p.get(n, 0)
+    # check convergence, l1 norm
+    err = sum([abs(x[n] - xlast[n]) for n in x])
+    xlast_v = x_v
+    x_v = dict.fromkeys(xlast_v.keys(), 0)
+    danglesum_v = alpha * sum(xlast_v[n] for n in dangling_nodes_v)
+    for n in x_v:
+      # this matrix multiply looks odd because it is
+      # doing a left multiply x^T=xlast^T*W
+      for nbr in W_v[n]:
+        x_v[nbr] += alpha * xlast_v[n] * W_v[n][nbr][weight]
+      x_v[n] += danglesum_v * dangling_weights_v.get(n, 0) + (1.0 - alpha) * p_v.get(n, 0)
+    # check convergence, l1 norm
+    err_v = sum([abs(x_v[n] - xlast_v[n]) for n in x_v])
+    sim += (c ** (iter+1)) * sum(x_v[key]*x.get(key, 0) for key in x_v)
+    if err < N * tol and err_v < N_v * tol:
+      return sim
+  return sim
+
+
+
+
+
 def read_ligra_symmetric_graph(input_file):
   G = nx.Graph()
   with open(input_file, 'r') as reader:
@@ -117,16 +184,24 @@ def GraphColoring(G, strategy='largest_first'):
   t1 = time.time()
   print("Time: ", t1-t0)
 
-def CoSimRank(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.000001):
-  print("Start CoSimRank")
+def ActualCoSimRank(G, u=0, v=1, importance_factor=0.85, max_iterations=100, tolerance=0.000001):
+  t0 = time.time()
+  personalization_u = 
+  sim = cosimrank(G, u, v,alpha=importance_factor, max_iter=max_iterations, tol=tolerance):
+  t1 = time.time()
+  print("Time: ", t1-t0)
+  print("Similarity: ", similarity)
+
+def CoSimRank(G, src=0, ngh=1, importance_factor=0.85, max_iterations=100, tolerance=0.000001):
+  print("Start SimRank")
   t0 = time.time()
   similarity = nx.simrank_similarity(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
   t1 = time.time()
   print("Time: ", t1-t0)
   print("Similarity: ", similarity)
 
-def CoSimRankNumpy(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.0001):
-  print("Start CoSimRankNumpy")
+def CoSimRankNumpy(G, src=0, ngh=1, importance_factor=0.85, max_iterations=100, tolerance=0.0001):
+  print("Start SimRankNumpy")
   t0 = time.time()
   similarity = nx.simrank_similarity_numpy(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
   t1 = time.time()
