@@ -46,7 +46,7 @@ double CoSimRank_runner(Graph& G, commandLine P) {
   timer t; t.start();
   double eps = P.getOptionDoubleValue("-eps", 0.000001);
   size_t iters = P.getOptionLongValue("-iters", 100);
-  double c = P.getOptionDoubleValue("-cons", 0.9);
+  double c = P.getOptionDoubleValue("-cons", 0.85);
   uintE u = P.getOptionLongValue("-u", 0);
   uintE v = P.getOptionLongValue("-v", 1);
   if (P.getOptionValue("-em")) CoSimRank_edgeMap(G, u, v, eps, c, iters);

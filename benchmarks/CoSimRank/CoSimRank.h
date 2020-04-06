@@ -38,7 +38,7 @@ T inner_product(T* arr1, T* arr2, size_t len, T* tmp=nullptr) {
 
 
 template <class Graph>
-void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.9, size_t max_iters = 100) {
+void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.85, size_t max_iters = 100) {
   const uintE n = G.n;
 
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
@@ -108,8 +108,8 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 }
 
 template <class Graph>
-void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.9, size_t max_iters = 100) {
-  using W = typename Graph::weight_type;
+void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.85, size_t max_iters = 100) {
+  using W = typename Graph::weight_type
   const uintE n = G.n;
 
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
