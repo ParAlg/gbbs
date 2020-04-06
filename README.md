@@ -129,8 +129,8 @@ called with the "-s" flag for better performance. For example:
 
 ```sh
 # For Bazel:
-$ bazel run --compilation_mode opt ///benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
-$ bazel run --compilation_mode opt ///benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
+$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
+$ bazel run //benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
 
 # For Make:
 $ ./BFS -s -src 10 ../../../inputs/rMatGraph_J_5_100
@@ -159,8 +159,8 @@ outputs a bytePDA graph. The converter can be used as follows:
 
 ```sh
 # For Bazel:
-bazel run --compilation_mode opt //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
-bazel run --compilation_mode opt //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
+bazel run //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
+bazel run //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
 
 # For Make:
 ./compressor -s -o ../inputs/rMatGraph_J_5_100.bytepda ../inputs/rMatGraph_J_5_100
@@ -173,7 +173,7 @@ an additional `-c` flag.
 
 ```sh
 # For Bazel:
-$ bazel run --compilation_mode opt //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
+$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
 
 # For Make:
 $ ./BFS -s -c -src 10 ../../../inputs/rMatGraph_J_5_100.bytepda
