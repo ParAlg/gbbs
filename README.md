@@ -221,3 +221,17 @@ This file is represented as plain text.
 Weighted graphs are represented in the weighted adjacency graph format. The file
 should start with the string "WeightedAdjacencyGraph". The m edge weights
 should be stored after all of the edge targets in the .adj file.
+
+**Using SNAP graphs**
+
+Graphs from the [SNAP dataset
+collection](https://snap.stanford.edu/data/index.html) are commonly used for
+graph algorithm benchmarks. We provide a tool that converts the most common SNAP
+graph format to the adjacency graph format that GBBS accepts. Usage example:
+```sh
+# Download a graph from the SNAP collection.
+wget https://snap.stanford.edu/data/wiki-Vote.txt.gz
+gzip --decompress ${PWD}/wiki-Vote.txt.gz
+# Run the SNAP-to-adjacency-graph converter.
+bazel run //utils:snap_converter -- -s -i ${PWD}/wiki-Vote.txt -o <output file>
+```
