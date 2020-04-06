@@ -1,3 +1,7 @@
+# TODO(tomtseng): update this file to include the snap converter and to use
+# makefile.variables
+# see BUILD file to see the binaries that actually build
+
 ifeq (, $(shell which jemalloc-config))
 JEMALLOC =
 else

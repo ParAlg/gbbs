@@ -33,6 +33,10 @@ cc_library(
   deps = [
   ":graph",
   ":io",
+  ":macros",
+  ":vertex",
+  "//pbbslib:sample_sort",
+  "//pbbslib:stlalgs",
   "//pbbslib/strings:string_basics",
   ]
 )
@@ -129,6 +133,7 @@ cc_library(
   ":undirected_edge",
   ":vertex",
   "//pbbslib:utilities",
+  "@googletest//:gtest_main",
   ]
 )
 

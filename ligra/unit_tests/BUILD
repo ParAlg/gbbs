@@ -1,4 +1,14 @@
 cc_test(
+    name = "graph_io_test",
+    srcs = ["graph_io_test.cc"],
+    deps = [
+        "//ligra:graph_io",
+        "//ligra:graph_test_utils",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "graph_test",
     srcs = ["graph_test.cc"],
     deps = [
