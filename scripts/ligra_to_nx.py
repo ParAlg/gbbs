@@ -3,6 +3,7 @@ import functools
 import itertools
 import time
 import networkx as nx
+from numpy import array
 
 def read_ligra_symmetric_graph(input_file):
   G = nx.Graph()
@@ -116,6 +117,44 @@ def GraphColoring(G, strategy='largest_first'):
   t1 = time.time()
   print("Time: ", t1-t0)
 
+def CoSimRank(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.000001):
+  print("Start CoSimRank")
+  src_max = 0
+  ngh_max = 0
+  if src == 0 and ngh == 1:
+    for i in range(len(G)):
+      if G.degree[i] > src_max:
+        src_max = G.degree[i]
+        src = i
+      elif G.degree[i] > ngh_max:
+        ngh_max = G.degree[i]
+        ngh = i
+  print("src: ", src, "ngh: ", ngh)
+  t0 = time.time()
+  similarity = nx.algorithms.similarity.simrank_similarity(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
+  t1 = time.time()
+  print("Time: ", t1-t0)
+  print("Similarity: ", similarity)
+
+def CoSimRankNumpy(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.0001):
+  print("Start CoSimRank")
+  src_max = 0
+  ngh_max = 0
+  if src == 0 and ngh == 1:
+    for i in range(len(G)):
+      if G.degree[i] > src_max:
+        src_max = G.degree[i]
+        src = i
+      elif G.degree[i] > ngh_max:
+        ngh_max = G.degree[i]
+        ngh = i
+  print("src: ", src, "ngh: ", ngh)
+  t0 = time.time()
+  similarity = nx.simrank_similarity_numpy(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
+  t1 = time.time()
+  print("Time: ", t1-t0)
+  print("Similarity: ", similarity)
+
 def program_parser(G, program_str):
   argv_len = len(sys.argv)
   if program_str == "BFS":
@@ -146,12 +185,22 @@ def program_parser(G, program_str):
       GraphColoring(G, sys.argv[4])
     else:
       GraphColoring(G)
+  elif program_str == "CoSimRank":
+    if argv_len > 4:
+      CoSimRank(G, src=int(sys.argv[4]), ngh=int(sys.argv[5]))
+    else:
+      CoSimRank(G)
+    elif program_str == "CoSimRankNumpy":
+    if argv_len > 4:
+      CoSimRank(G, src=int(sys.argv[4]), ngh=int(sys.argv[5]))
+    else:
+      CoSimRank(G)
 
 def main():
   argv_len = len(sys.argv)
   input_file = sys.argv[1] # First arg should be file name (ligra)
   symmetric = (sys.argv[2] == "s") # Second arg should be s or w/e for symmetric or not
-  all_programs = ["BFS", "MaximalMatching", "KCore", "PageRank", "CliqueCounting", "TriangleCounting", "GeneralWeightSSSP", "GraphColoring"]
+  all_programs = ["CoSimRank","CoSimRankNumpy","BFS", "MaximalMatching", "KCore", "PageRank", "CliqueCounting", "TriangleCounting", "GeneralWeightSSSP", "GraphColoring"]
   # use read edge list for snap format (TODO)
   G = read_ligra_symmetric_graph(input_file) if symmetric else read_ligra_directed_graph(input_file)
   program_str = sys.argv[3] # Third arg should be name of benchmark
