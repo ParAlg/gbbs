@@ -48,7 +48,6 @@ void WriteEdgeListAsGraph(
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  // TODO(tomtseng) write a more detailed help string
   const std::string kCommandLineHelpString{
     "Usage: ./snap_converter [-s] [-w] -i <input file> -o <output file>\n"
     "\n"
