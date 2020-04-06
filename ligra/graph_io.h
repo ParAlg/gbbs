@@ -44,7 +44,25 @@ struct Edge {
   uintE from;
   uintE to;
   weight_type weight;
+
+  Edge() {}
+  Edge(uintE _from, uintE _to);
+  Edge(const uintE _from, const uintE _to, const weight_type _weight)
+    : from(_from)
+    , to(_to)
+    , weight(_weight) {}
 };
+
+template <class weight_type>
+Edge<weight_type>::Edge(const uintE _from, const uintE _to)
+  : from(_from)
+  , to(_to)
+  , weight(0) {}
+
+template <>
+Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
+  : from(_from)
+  , to(_to) {}
 
 namespace internal {  // Internal declarations
 

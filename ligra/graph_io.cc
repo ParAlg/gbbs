@@ -336,10 +336,7 @@ std::vector<Edge<intT>> read_weighted_edge_list(const char* filename) {
   uintE to;
   intT weight;
   while (file >> from >> to >> weight) {
-    edge_list.emplace_back(Edge<intT>{
-        .from = from,
-        .to = to,
-        .weight = weight});
+    edge_list.emplace_back(from, to, weight);
   }
   return edge_list;
 }
@@ -357,9 +354,7 @@ read_unweighted_edge_list(const char* filename) {
   uintE from;
   uintE to;
   while (file >> from >> to) {
-    edge_list.emplace_back(Edge<pbbslib::empty>{
-        .from = from,
-        .to = to});
+    edge_list.emplace_back(from, to);
   }
   return edge_list;
 }
