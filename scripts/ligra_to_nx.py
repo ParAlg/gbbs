@@ -168,7 +168,7 @@ def program_parser(G, program_str):
       CoSimRank(G, src=int(sys.argv[4]), ngh=int(sys.argv[5]))
     else:
       CoSimRank(G)
-    elif program_str == "CoSimRankNumpy":
+  elif program_str == "CoSimRankNumpy":
     if argv_len > 4:
       CoSimRank(G, src=int(sys.argv[4]), ngh=int(sys.argv[5]))
     else:
