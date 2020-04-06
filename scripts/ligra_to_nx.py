@@ -186,7 +186,6 @@ def GraphColoring(G, strategy='largest_first'):
 
 def ActualCoSimRank(G, u=0, v=1, importance_factor=0.85, max_iterations=100, tolerance=0.000001):
   t0 = time.time()
-  personalization_u = 
   sim = cosimrank(G, u, v,alpha=importance_factor, max_iter=max_iterations, tol=tolerance):
   t1 = time.time()
   print("Time: ", t1-t0)
