@@ -9,9 +9,12 @@
 #include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
 #include "benchmarks/CliqueCounting/Clique.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 #include "benchmarks/CoSimRank/CoSimRank.h"
 
 #include "pybind11/pybind11.h"
+#include "pybind11/numpy.h"
+
 
 namespace gbbs_lib {
 namespace py = ::pybind11;
@@ -25,6 +28,22 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
     .def("getDegree", [&] (vertex& v) {
       return v.getOutDegree();
     });
+}
+
+template <class E>
+auto wrap_array(E* arr, size_t n) {
+  // Create a Python object that will free the allocated
+  // memory when destroyed:
+  py::capsule free_when_done(arr, [](void *f) {
+      E* foo = reinterpret_cast<E*>(f);
+      pbbs::free_array(foo);
+  });
+
+  return py::array_t<E>(
+      {n}, // shape
+      {sizeof(E)}, // C-style contiguous strides for double
+      arr, // the data pointer
+      free_when_done); // numpy array references this parent
 }
 
 /* Defines symmetric graph functions */
@@ -42,6 +61,16 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = BFS(G, src);
       return 1.0;
+    })
+    .def("Components", [&] (graph& G, const size_t src) {
+      auto ccs = workefficient_cc::CC(G);
+      uintE* arr = ccs.to_array();
+      return wrap_array(arr, G.n);
+    })
+    .def("KCore", [&] (graph& G, const size_t src) {
+      auto cores = KCore(G);
+      uintE* arr = cores.to_array();
+      return wrap_array(arr, G.n);
     })
     .def("CoSimRank", [&] (graph& G, const size_t u, const size_t v) {
       CoSimRank(G, u, v);

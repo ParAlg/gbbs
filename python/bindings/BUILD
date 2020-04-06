@@ -17,5 +17,6 @@ pybind_extension(
       "//benchmarks/CliqueCounting:Clique",
       "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
       "//benchmarks/CoSimRank:CoSimRank",
+      "//benchmarks/KCore/JulienneDBS17:KCore",
   ],
 )
