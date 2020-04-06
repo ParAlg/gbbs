@@ -120,7 +120,7 @@ def GraphColoring(G, strategy='largest_first'):
 def CoSimRank(G, src=0, ngh=1, importance_factor=0.9, max_iterations=100, tolerance=0.000001):
   print("Start CoSimRank")
   t0 = time.time()
-  similarity = nx.algorithms.similarity.simrank_similarity(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
+  similarity = nx.simrank_similarity(G, source=src, target=ngh, importance_factor=importance_factor, max_iterations=max_iterations, tolerance=tolerance)
   t1 = time.time()
   print("Time: ", t1-t0)
   print("Similarity: ", similarity)
