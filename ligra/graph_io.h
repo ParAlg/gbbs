@@ -397,7 +397,7 @@ get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>& edges) {
     [&](const size_t i) {
       return std::max(edges[i].from, edges[i].to);
     });
-    return pbbslib::reduce_max(max_endpoints);
+    return pbbslib::reduce_max(max_endpoints) + 1;
 }
 
 // Given a list of edges sorted by their first endpoint, return a corresponding
