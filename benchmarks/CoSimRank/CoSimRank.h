@@ -109,7 +109,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
 template <class Graph>
 void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.85, size_t max_iters = 100) {
-  using W = typename Graph::weight_type
+  using W = typename Graph::weight_type;
   const uintE n = G.n;
 
   auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
