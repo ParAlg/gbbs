@@ -2,6 +2,7 @@
 *.swo
 *.swp
 
+*.a
 *.o
 *.dSYM
 *.DS_Store
