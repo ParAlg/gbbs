@@ -1,3 +1,5 @@
+compressor
 converter
-purge_isolated
+random_reorder
+snap_converter
 to_edge_list
