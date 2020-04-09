@@ -1,3 +1,10 @@
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+  OS := linux
+else ifeq ($(UNAME), Darwin)
+  OS := mac
+endif
+
 ifeq (, $(shell which jemalloc-config))
 JEMALLOC =
 else
@@ -41,4 +48,13 @@ PFLAGS =
 else # default is homegrown
 CC = g++
 PFLAGS = $(HGFLAGS)
+endif
+
+ifeq ($(OS), linux)
+  LINKER_START_GROUP := -Wl,--start-group
+  LINKER_END_GROUP := -Wl,--end-group
+else ifeq ($(OS), mac)
+  # macOS's linker doesn't use --start-group and --end-group
+  LINKER_START_GROUP :=
+  LINKER_END_GROUP :=
 endif
