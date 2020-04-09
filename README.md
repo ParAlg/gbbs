@@ -233,5 +233,10 @@ graph format to the adjacency graph format that GBBS accepts. Usage example:
 wget https://snap.stanford.edu/data/wiki-Vote.txt.gz
 gzip --decompress ${PWD}/wiki-Vote.txt.gz
 # Run the SNAP-to-adjacency-graph converter.
+# Run with Bazel:
 bazel run //utils:snap_converter -- -s -i ${PWD}/wiki-Vote.txt -o <output file>
+# Or run with Make:
+#   cd utils
+#   make snap_converter
+#   ./snap_converter -s -i <input file> -o <output_file>
 ```
