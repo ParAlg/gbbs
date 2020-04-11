@@ -46,18 +46,15 @@ struct Edge {
   weight_type weight;
 
   Edge() {}
-  Edge(uintE _from, uintE _to);
+  Edge(uintE _from, uintE _to)
+    : from(_from)
+    , to(_to)
+    , weight(0) {}
   Edge(const uintE _from, const uintE _to, const weight_type _weight)
     : from(_from)
     , to(_to)
     , weight(_weight) {}
 };
-
-template <class weight_type>
-Edge<weight_type>::Edge(const uintE _from, const uintE _to)
-  : from(_from)
-  , to(_to)
-  , weight(0) {}
 
 template <>
 Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to);
@@ -272,10 +269,7 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
 
   pbbs::sequence<Edge<weight_type>> in_edges =
     pbbs::map<Edge<weight_type>>(out_edges, [&](const Edge<weight_type>& edge) {
-      return Edge<weight_type>{
-        .from = edge.to,
-        .to = edge.from,
-        .weight = edge.weight};
+      return Edge<weight_type>{edge.to, edge.from, edge.weight};
     });
   pbbs::sample_sort_inplace(in_edges.slice(), compare_endpoints);
   pbbs::sequence<vertex_data> vertex_in_data =
@@ -326,10 +320,8 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
   par_for(0, edge_list.size(), [&](const size_t i) {
       const Edge<weight_type>& edge = edge_list[i];
       edges_both_directions[2 * i] = edge;
-      edges_both_directions[2 * i + 1] = Edge<weight_type>{
-        .from = edge.to,
-        .to = edge.from,
-        .weight = edge.weight};
+      edges_both_directions[2 * i + 1] =
+        Edge<weight_type>{edge.to, edge.from, edge.weight};
   });
   constexpr auto compare_endpoints = [](
       const Edge<weight_type>& left,
