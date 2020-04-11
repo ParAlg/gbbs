@@ -106,7 +106,7 @@ $ bazel build  //...  # compiles all benchmarks
 # `export CILK=1` to compile with Cilk Plus.
 # After that, build using `make`.
 $ cd benchmarks/BFS/NonDeterministicBFS  # go to a benchmark
-$ make -j  # build the benchmark with all threads
+$ make
 ```
 Note that the default compilation mode in bazel is to build optimized binaries
 (stripped of debug symbols). You can compile debug binaries by supplying `-c
