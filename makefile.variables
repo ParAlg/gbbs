@@ -22,7 +22,40 @@ endif
 
 OPT = -O3 -DNDEBUG
 
-CFLAGS = -pthread -U_FORTIFY_SOURCE -fstack-protector -Wall -Wvla -Wunused-but-set-parameter -Wno-builtin-macro-redefined '-D__DATE__="redacted"' '-D__TIMESTAMP__="redacted"' '-D__TIME__="redacted"' -Wno-free-nonheap-object -fno-omit-frame-pointer '-std=c++0x' -fPIC -Wall -Wextra -Wcast-qual -Wno-unused-parameter -Wpointer-arith -mcx16 -std=c++17 -march=native -Wall $(OPT) $(INTT) $(INTE) -DAMORTIZEDPD $(CONCEPTS) -DUSEMALLOC -DNDEBUG
+CFLAGS = \
+	-U_FORTIFY_SOURCE \
+	'-D__DATE__="redacted"' \
+	'-D__TIMESTAMP__="redacted"' \
+	'-D__TIME__="redacted"' \
+	-fno-omit-frame-pointer \
+	-fstack-protector \
+	-fPIC \
+	-Wall \
+	-Wextra \
+	-Wcast-qual \
+	-Wno-builtin-macro-redefined \
+	-Wno-unused-parameter \
+	-Wpointer-arith \
+	-Wvla \
+	-std=c++17 \
+	-march=native \
+	-mcx16 \
+	$(OPT) \
+	$(INTT) \
+	$(INTE) \
+	$(CONCEPTS) \
+	-DAMORTIZEDPD \
+	-DUSEMALLOC
+# Add GCC-specific and Clang-specific flags
+ifeq ($(OS), linux)
+  CFLAGS += \
+	-Wno-free-nonheap-object \
+	-Wunused-but-set-parameter
+else ifeq ($(OS), mac)
+  CFLAGS += \
+	-Wself-assign \
+	-Wthread-safety
+endif
 
 OMPFLAGS = -DOPENMP -fopenmp
 CILKFLAGS = -DCILK -fcilkplus
