@@ -37,9 +37,9 @@ CFLAGS = \
 	-Wno-unused-parameter \
 	-Wpointer-arith \
 	-Wvla \
-	-mcx16 \
 	-std=c++17 \
 	-march=native \
+	-mcx16 \
 	$(OPT) \
 	$(INTT) \
 	$(INTE) \
