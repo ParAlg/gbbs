@@ -21,10 +21,7 @@ connectivity_objs:
 $(SCAN_OBJDIR):
 	mkdir -p $@
 
-$(SCAN_OBJDIR)scan_helpers.o: scan_helpers.cc scan_helpers.h | $(SCAN_OBJDIR)
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
-
-$(SCAN_OBJDIR)scan.o: scan.cc scan.h | $(SCAN_OBJDIR)
+$(SCAN_OBJDIR)%.o: %.cc %.h | $(SCAN_OBJDIR)
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -c $< -o $@
 
 include $(ROOTDIR)benchmarks/makefile.benchmarks
