@@ -238,5 +238,5 @@ bazel run //utils:snap_converter -- -s -i ${PWD}/wiki-Vote.txt -o <output file>
 # Or run with Make:
 #   cd utils
 #   make snap_converter
-#   ./snap_converter -s -i <input file> -o <output_file>
+#   ./snap_converter -s -i <input file> -o <output file>
 ```

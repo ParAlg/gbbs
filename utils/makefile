@@ -12,5 +12,5 @@ ALL = \
 	to_edge_list \
 	snap_converter
 
-# These aren't benchmarks but they can't be built in the same fashion.
+# These aren't benchmarks, but they can be built in the same fashion.
 include $(ROOTDIR)benchmarks/makefile.benchmarks
