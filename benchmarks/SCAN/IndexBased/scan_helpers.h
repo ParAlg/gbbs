@@ -12,7 +12,6 @@
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 #include "ligra/graph.h"
 #include "ligra/graph_mutation.h"
-#include "ligra/pbbslib/sparse_table.h"
 #include "ligra/undirected_edge.h"
 #include "pbbslib/get_time.h"
 #include "pbbslib/sample_sort.h"

@@ -7,6 +7,7 @@
 
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 #include "ligra/bridge.h"
+#include "ligra/pbbslib/sparse_table.h"
 #include "pbbslib/parallel.h"
 
 namespace indexed_scan {
@@ -20,8 +21,7 @@ using VertexSet =
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
   return make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
-      // Adding 1 avoids having small tables completely full.
-      capacity + 1, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
+      capacity, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
 }
 
 // Identifies the clusters for the core vertices and populates `clustering`
