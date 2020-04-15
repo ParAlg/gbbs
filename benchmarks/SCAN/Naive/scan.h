@@ -36,7 +36,7 @@ Clustering Cluster(
 
   internal::StructuralSimilarities
     similarities{internal::ComputeStructuralSimilarities(graph)};
-  const auto neighbor_has_epsilon_similarity{
+  const auto neighbor_is_epsilon_similar{
     [&](const uintE u, const uintE v, internal::NoWeight) {
       constexpr float defaultSimilarity{-1.0};
       return similarities.find({u, v}, defaultSimilarity) >= epsilon;
@@ -44,9 +44,10 @@ Clustering Cluster(
   const pbbs::sequence<bool> core_bitmap(
       num_vertices,
       [&](const size_t i) {
+        // `+ 1` to account for open vs. closed neighborhood
         return
           graph->get_vertex(i)
-            .countOutNgh(i, neighbor_has_epsilon_similarity) >= mu;
+            .countOutNgh(i, neighbor_is_epsilon_similar) + 1 >= mu;
       });
   const auto is_core{[&](const uintE v) { return core_bitmap[v]; }};
   // Cluster all the cores by running BFS on the more-than-epsilon-similar edges
@@ -79,17 +80,13 @@ Clustering Cluster(
     frontier.del();
   }
 
-  const auto is_core_neighbor{
-    [&](const std::tuple<uintE, internal::NoWeight> neighbor) {
-      return core_bitmap[std::get<0>(neighbor)];
-    }};
   const auto get_core_cluster{
     [&](const std::tuple<uintE, internal::NoWeight> neighbor) {
       return clustering[std::get<0>(neighbor)][0];
     }};
-  // Cluster all the non-cores by attaching them to the clusters of neighboring
-  // cores.
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
+  // Cluster all the non-cores by attaching them to the clusters of
+  // epsilon-neighbor cores.
+  par_for(0, num_vertices, [&](const uintE vertex_id) {
     if (clustering[vertex_id].empty()) {
       auto vertex{graph->get_vertex(vertex_id)};
       const uintE degree{vertex.getOutDegree()};
@@ -99,7 +96,13 @@ Clustering Cluster(
         filter(
             pbbs::range<std::tuple<uintE, internal::NoWeight>*>{
               neighbors, neighbors + degree},
-            is_core_neighbor)};
+            [&](const std::tuple<uintE, internal::NoWeight> neighbor) {
+              const uintE neighbor_id{std::get<0>(neighbor)};
+              constexpr float kDefaultSimilarity{-1.0};
+              return core_bitmap[neighbor_id] &&
+                similarities.find({vertex_id, neighbor_id}, kDefaultSimilarity)
+                  >= epsilon;
+            })};
       const sequence<uintE> neighboring_clusters{
         pbbs::map<uintE>(core_neighbors, get_core_cluster)};
       clustering[vertex_id] = pbbs::remove_duplicates_ordered(
