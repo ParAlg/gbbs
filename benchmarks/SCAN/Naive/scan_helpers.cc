@@ -6,11 +6,11 @@ namespace internal {
 
 CoreBFSEdgeMapFunctions::CoreBFSEdgeMapFunctions(
     const StructuralSimilarities& similarities,
-    const Clustering& current_clustering) 
+    const Clustering& current_clustering)
   : similarities_{similarities}
   , current_clustering_{current_clustering} {}
 
-bool 
+bool
 CoreBFSEdgeMapFunctions::update(const uintE u, const uintE v, NoWeight) const {
   return current_clustering_[v].empty();
 }

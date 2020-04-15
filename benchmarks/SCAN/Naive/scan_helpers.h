@@ -1,5 +1,6 @@
 // Helper functions for SCAN logic that shouldn't clutter the main SCAN
 // header file.
+#pragma once
 
 #include <utility>
 
@@ -62,8 +63,8 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     auto* const neighbors{&adjacency_list[vertex_id]};
     *neighbors = VertexSet{
-      vertex.getOutDegree(), 
-      {UINT_E_MAX, internal::NoWeight{}}, 
+      vertex.getOutDegree(),
+      {UINT_E_MAX, internal::NoWeight{}},
       pbbslib::hash64_2};
     const auto update_adjacency_list{[&neighbors](
         uintE, const uintE neighbor, NoWeight) {

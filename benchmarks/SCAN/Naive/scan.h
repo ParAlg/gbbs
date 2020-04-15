@@ -5,6 +5,8 @@
 #pragma once
 
 #include <functional>
+#include <tuple>
+#include <utility>
 
 #include "benchmarks/SCAN/Naive/scan_helpers.h"
 #include "ligra/graph.h"
@@ -101,8 +103,8 @@ Clustering Cluster(
             is_core_neighbor)};
       const sequence<uintE> neighboring_clusters{
         pbbs::map<uintE>(core_neighbors, get_core_cluster)};
-      clustering[vertex_id] =
-        pbbs::remove_duplicates_ordered(neighboring_clusters, std::less<uintE>{});
+      clustering[vertex_id] = pbbs::remove_duplicates_ordered(
+          neighboring_clusters, std::less<uintE>{});
     }
   });
 
