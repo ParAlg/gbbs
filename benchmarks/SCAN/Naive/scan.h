@@ -5,6 +5,7 @@
 #pragma once
 
 #include <functional>
+#include <limits>
 #include <tuple>
 #include <utility>
 
@@ -38,7 +39,8 @@ Clustering Cluster(
     similarities{internal::ComputeStructuralSimilarities(graph)};
   const auto neighbor_is_epsilon_similar{
     [&](const uintE u, const uintE v, internal::NoWeight) {
-      constexpr float defaultSimilarity{-1.0};
+      constexpr float
+        defaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
       return similarities.find({u, v}, defaultSimilarity) >= epsilon;
     }};
   const pbbs::sequence<bool> core_bitmap(
@@ -80,33 +82,29 @@ Clustering Cluster(
     frontier.del();
   }
 
-  const auto get_core_cluster{
-    [&](const std::tuple<uintE, internal::NoWeight> neighbor) {
-      return clustering[std::get<0>(neighbor)][0];
-    }};
   // Cluster all the non-cores by attaching them to the clusters of
   // epsilon-neighbor cores.
   par_for(0, num_vertices, [&](const uintE vertex_id) {
     if (clustering[vertex_id].empty()) {
       auto vertex{graph->get_vertex(vertex_id)};
       const uintE degree{vertex.getOutDegree()};
-      std::tuple<uintE, internal::NoWeight>*
-        neighbors{vertex.getOutNeighbors()};
-      const sequence<std::tuple<uintE, internal::NoWeight>> core_neighbors{
-        filter(
-            pbbs::range<std::tuple<uintE, internal::NoWeight>*>{
-              neighbors, neighbors + degree},
-            [&](const std::tuple<uintE, internal::NoWeight> neighbor) {
-              const uintE neighbor_id{std::get<0>(neighbor)};
-              constexpr float kDefaultSimilarity{-1.0};
-              return core_bitmap[neighbor_id] &&
-                similarities.find({vertex_id, neighbor_id}, kDefaultSimilarity)
-                  >= epsilon;
-            })};
-      const sequence<uintE> neighboring_clusters{
-        pbbs::map<uintE>(core_neighbors, get_core_cluster)};
+
+      sequence<uintE> neighboring_clusters(degree);
+      size_t index{0};
+      const auto get_neighboring_clusters{
+        [&](const uintE v_id, const uintE ngh_id, internal::NoWeight) {
+          constexpr float
+            kDefaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
+          if (core_bitmap[ngh_id] &&
+              similarities.find({v_id, ngh_id}, kDefaultSimilarity)
+                >= epsilon) {
+            neighboring_clusters[index++] = clustering[ngh_id][0];
+          }
+        }};
+      constexpr bool kParallel{false};
+      vertex.mapOutNgh(vertex_id, get_neighboring_clusters, kParallel);
       clustering[vertex_id] = pbbs::remove_duplicates_ordered(
-          neighboring_clusters, std::less<uintE>{});
+          neighboring_clusters.slice(0, index), std::less<uintE>{});
     }
   });
 

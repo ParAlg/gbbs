@@ -1,5 +1,7 @@
 #include "benchmarks/SCAN/Naive/scan_helpers.h"
 
+#include <limits>
+
 namespace naive_scan {
 
 namespace internal {
@@ -14,7 +16,8 @@ CoreBFSEdgeMapFunctions::CoreBFSEdgeMapFunctions(
 
 bool
 CoreBFSEdgeMapFunctions::update(const uintE u, const uintE v, NoWeight) const {
-  constexpr float kDefaultSimilarity{-1.0};
+  constexpr float
+    kDefaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
   return current_clustering_[v].empty()
     && similarities_.find({u, v}, kDefaultSimilarity) >= epsilon_;
 }
