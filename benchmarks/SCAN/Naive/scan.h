@@ -1,7 +1,12 @@
 // A simple implementation of SCAN.
 //
 // This implementation doesn't attempt to be fast but is useful for checking
-// correctness of other SCAN implementations.
+// correctness of other SCAN implementations. However, when comparing outputs of
+// different SCAN implementations, be wary of floating point rounding
+// differences if there are pairs of vertices whose structural similarity falls
+// very close to the SCAN epsilon value. For this kind of comparison, it's
+// better to set epsilon to a non-round number like 0.603 rather than 0.6 to
+// reduce the chance of encountering these issues.
 #pragma once
 
 #include <functional>
@@ -27,6 +32,9 @@ namespace naive_scan {
 using Clustering = pbbs::sequence<pbbs::sequence<uintE>>;
 
 // Compute a SCAN clustering of a graph using SCAN parameters mu and epsilon.
+//
+// The neighbor lists for each vertex in the graph must be sorted by ascending
+// neighbor ID.
 template <template <typename> class VertexTemplate>
 Clustering Cluster(
     symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
@@ -40,13 +48,13 @@ Clustering Cluster(
   const auto neighbor_is_epsilon_similar{
     [&](const uintE u, const uintE v, internal::NoWeight) {
       constexpr float
-        defaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
-      return similarities.find({u, v}, defaultSimilarity) >= epsilon;
+        kDefaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
+      return similarities.find({u, v}, kDefaultSimilarity) >= epsilon;
     }};
   const pbbs::sequence<bool> core_bitmap(
       num_vertices,
       [&](const size_t i) {
-        // `+ 1` to account for open vs. closed neighborhood
+        // `+ 1` accounts for open vs. closed neighborhood
         return
           graph->get_vertex(i)
             .countOutNgh(i, neighbor_is_epsilon_similar) + 1 >= mu;
@@ -84,7 +92,7 @@ Clustering Cluster(
   }
 
   // Cluster all the non-cores by attaching them to the clusters of
-  // epsilon-neighbor cores.
+  // epsilon-similar neighboring cores.
   par_for(0, num_vertices, [&](const uintE vertex_id) {
     if (clustering[vertex_id].empty()) {
       auto vertex{graph->get_vertex(vertex_id)};

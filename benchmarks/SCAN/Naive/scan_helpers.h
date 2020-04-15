@@ -47,6 +47,9 @@ class CoreBFSEdgeMapFunctions {
 //   (geometric mean of size of closed neighborhoods of u and of v)
 // where the closed neighborhood of a vertex x consists of all neighbors of x
 // along with x itself.
+//
+// The neighbor lists for each vertex in the graph must be sorted by ascending
+// neighbor ID.
 template <template <typename WeightType> class VertexType>
 StructuralSimilarities
 ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
@@ -58,7 +61,6 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     graph->m,
     std::make_pair(UndirectedEdge{UINT_E_MAX, UINT_E_MAX}, 0.0),
     std::hash<UndirectedEdge>{}};
-
   pbbs::sequence<VertexSet> adjacency_list{
     pbbs::sequence<VertexSet>::no_init(graph->n)};
 
