@@ -14,7 +14,7 @@
 namespace gt = graph_test;
 namespace n = naive_scan;
 
-// Like naive_scan::Clustering, but using `std::vector` instead of
+// Like naive_scan::Clustering, but uses `std::vector` instead of
 // `pbbs::sequence` for convenience.
 using ClusteringArray = std::vector<std::vector<uintE>>;
 
@@ -43,8 +43,7 @@ std::string ClusteringToString(const Clustering& clustering) {
   return str.str();
 }
 
-// Checks that `clustering` has the expected clusters and returns true if the
-// check passes.
+// Checks that `actual_clustering` has the expected clusters.
 void CheckClustering(
     const n::Clustering& actual_clustering,
     const ClusteringArray& expected_clustering) {
