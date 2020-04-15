@@ -8,6 +8,7 @@
 #include "ligra/macros.h"
 #include "ligra/pbbslib/sparse_table.h"
 #include "ligra/undirected_edge.h"
+#include "ligra/vertex_subset.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/utilities.h"
 
@@ -112,6 +113,9 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
   });
   return similarities;
 }
+
+// Remove duplicate vertices from a vertex subset.
+void RemoveDuplicates(vertexSubset* vertex_subset);
 
 }  // namespace internal
 

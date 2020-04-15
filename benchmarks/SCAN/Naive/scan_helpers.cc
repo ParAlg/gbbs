@@ -1,6 +1,9 @@
 #include "benchmarks/SCAN/Naive/scan_helpers.h"
 
+#include <functional>
 #include <limits>
+
+#include "pbbslib/stlalgs.h"
 
 namespace naive_scan {
 
@@ -30,6 +33,22 @@ bool CoreBFSEdgeMapFunctions::updateAtomic(
 bool CoreBFSEdgeMapFunctions::cond(const uintE v) const {
   return current_clustering_[v].empty();
 }
+
+void RemoveDuplicates(vertexSubset* vertex_subset) {
+  if (vertex_subset->isDense) {
+    return;
+  }
+  pbbs::sequence<uintE> vertices(
+      vertex_subset->size(),
+      [&](const size_t i) { return vertex_subset->vtx(i); });
+  pbbs::sequence<uintE> deduped_vertices{
+    pbbs::remove_duplicates_ordered(vertices, std::less<uintE>{})};
+  vertexSubset deduped_vertex_subset{
+    vertex_subset->n, std::move(deduped_vertices)};
+  vertex_subset->del();
+  *vertex_subset = deduped_vertex_subset;
+}
+
 
 }  // namespace internal
 
