@@ -1,0 +1,21 @@
+cc_library(
+    name = "scan",
+    srcs = [
+    ],
+    hdrs = [
+        "scan.h",
+        "scan_helpers.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ligra",
+        "//ligra:graph",
+        "//ligra:macros",
+        "//ligra:undirected_edge",
+        "//ligra:vertex_subset",
+        "//ligra/pbbslib:sparse_table",
+        "//pbbslib:seq",
+        "//pbbslib:stlalgs",
+        "//pbbslib:utilities",
+    ],
+)
