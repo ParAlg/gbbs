@@ -183,25 +183,25 @@ void delete_array(E* A, size_t n) {
 
 template <typename ET>
 inline bool atomic_compare_and_swap(ET* a, ET oldval, ET newval) {
-  if (sizeof(ET) == 1) {
+  if constexpr (sizeof(ET) == 1) {
     uint8_t r_oval, r_nval;
     std::memcpy(&r_oval, &oldval, sizeof(ET));
     std::memcpy(&r_nval, &newval, sizeof(ET));
     return __sync_bool_compare_and_swap(reinterpret_cast<uint8_t*>(a), r_oval,
                                         r_nval);
-  } else if (sizeof(ET) == 4) {
+  } else if constexpr (sizeof(ET) == 4) {
     uint32_t r_oval, r_nval;
     std::memcpy(&r_oval, &oldval, sizeof(ET));
     std::memcpy(&r_nval, &newval, sizeof(ET));
     return __sync_bool_compare_and_swap(reinterpret_cast<uint32_t*>(a), r_oval,
                                         r_nval);
-  } else if (sizeof(ET) == 8) {
+  } else if constexpr (sizeof(ET) == 8) {
     uint64_t r_oval, r_nval;
     std::memcpy(&r_oval, &oldval, sizeof(ET));
     std::memcpy(&r_nval, &newval, sizeof(ET));
     return __sync_bool_compare_and_swap(reinterpret_cast<uint64_t*>(a), r_oval,
                                         r_nval);
-  } else if (sizeof(ET) == 16) {
+  } else if constexpr (sizeof(ET) == 16) {
     __int128 r_oval, r_nval;
     std::memcpy(&r_oval, &oldval, sizeof(ET));
     std::memcpy(&r_nval, &newval, sizeof(ET));
