@@ -259,12 +259,22 @@ TEST(Cluster, TwoClusterGraph) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
+  {
+    constexpr uint64_t kMu{2};
+    constexpr float kEpsilon{0.73};
+    const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-  constexpr uint64_t kMu{2};
-  constexpr float kEpsilon{0.73};
-  const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
+    const ClusteringArray kExpectedClustering{
+      {}, {0}, {0}, {0}, {}, {1}, {1}, {1}, {}};
+    CheckClustering(clustering, kExpectedClustering);
+  }
+  {
+    constexpr uint64_t kMu{4};
+    constexpr float kEpsilon{0.5};
+    const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-  const ClusteringArray kExpectedClustering{
-    {}, {0}, {0}, {0}, {}, {1}, {1}, {1}, {}};
-  CheckClustering(clustering, kExpectedClustering);
+    const ClusteringArray kExpectedClustering{
+      {0}, {0}, {0}, {0}, {0, 1}, {1}, {1}, {1}, {1}};
+    CheckClustering(clustering, kExpectedClustering);
+  }
 }
