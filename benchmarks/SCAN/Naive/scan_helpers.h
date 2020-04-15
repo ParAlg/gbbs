@@ -25,7 +25,8 @@ class CoreBFSEdgeMapFunctions {
  public:
   CoreBFSEdgeMapFunctions(
       const StructuralSimilarities& similarities,
-      const Clustering& current_clustering);
+      const Clustering& current_clustering,
+      float epsilon);
 
   bool update(uintE, uintE, NoWeight) const;
   bool updateAtomic(uintE, uintE, NoWeight) const;
@@ -34,6 +35,7 @@ class CoreBFSEdgeMapFunctions {
  private:
   const StructuralSimilarities& similarities_;
   const Clustering& current_clustering_;
+  float epsilon_;
 };
 
 // Compute structural similarities (as defined by SCAN) between each pair of

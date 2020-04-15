@@ -1,6 +1,7 @@
 cc_library(
     name = "scan",
     srcs = [
+        "scan_helpers.cc",
     ],
     hdrs = [
         "scan.h",

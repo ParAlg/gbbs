@@ -38,10 +38,8 @@ Clustering Cluster(
     similarities{internal::ComputeStructuralSimilarities(graph)};
   const auto neighbor_has_epsilon_similarity{
     [&](const uintE u, const uintE v, internal::NoWeight) {
-        constexpr float defaultSimilarity{-1};
-      return
-        similarities.find(UndirectedEdge{u, v}, defaultSimilarity)
-        >= epsilon;
+      constexpr float defaultSimilarity{-1.0};
+      return similarities.find({u, v}, defaultSimilarity) >= epsilon;
     }};
   const pbbs::sequence<bool> core_bitmap(
       num_vertices,
@@ -72,7 +70,8 @@ Clustering Cluster(
       vertexSubset next_frontier{edgeMap(
           *graph,
           core_frontier,
-          internal::CoreBFSEdgeMapFunctions{similarities, clustering})};
+          internal::CoreBFSEdgeMapFunctions{
+            similarities, clustering, epsilon})};
       frontier.del();
       core_frontier.del();
       frontier = std::move(next_frontier);
