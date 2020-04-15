@@ -64,8 +64,8 @@ void CheckClustering(
       if (it == cluster_map.end()) {
         cluster_map.emplace(actual_cluster_id, expected_cluster_id);
       } else {
-        // If mapping for this cluster ID already exists, it must be consistent
-        // with e
+        // If a mapping for this cluster ID already exists, it must be
+        // consistent with `expected_clustering`.
         EXPECT_EQ(it->second, expected_cluster_id);
       }
     }

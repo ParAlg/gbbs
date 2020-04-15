@@ -68,6 +68,7 @@ Clustering Cluster(
         frontier.isDense
         ? vertexFilter(frontier, is_core)
         : vertexFilter2(frontier, is_core);
+      internal::RemoveDuplicates(&core_frontier);
       vertexMap(core_frontier, update_clustering_for_cores);
 
       vertexSubset next_frontier{edgeMap(
