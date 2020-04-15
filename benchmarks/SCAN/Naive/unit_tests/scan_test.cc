@@ -187,101 +187,84 @@ TEST(Cluster, BasicUsage) {
   }
 }
 
-// TEST(Cluster, DisconnectedGraph) {
-//   // Graph diagram with structural similarity scores labeled:
-//   //       1.0            .82  .82
-//   //     0 -- 1    2    3 -- 4 -- 5
-//   const size_t kNumVertices{6};
-//   const std::unordered_set<UndirectedEdge> kEdges{
-//     {0, 1},
-//     {3, 4},
-//     {4, 5},
-//   };
-//   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
-//   const i::Index index{&graph};
+TEST(Cluster, DisconnectedGraph) {
+  // Graph diagram with structural similarity scores labeled:
+  //       1.0            .82  .82
+  //     0 -- 1    2    3 -- 4 -- 5
+  const size_t kNumVertices{6};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {3, 4},
+    {4, 5},
+  };
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-//   {
-//     constexpr uint64_t kMu{2};
-//     constexpr float kEpsilon{0.95};
-//     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+  {
+    constexpr uint64_t kMu{2};
+    constexpr float kEpsilon{0.95};
+    const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-//     const ClusterList kExpectedClustering{{0, 1}};
-//     const VertexList kExpectedHubs{};
-//     const VertexList kExpectedOutliers{2, 3, 4, 5};
-//     EXPECT_TRUE(CheckClustering(clustering, kExpectedClustering));
-//     CheckUnclusteredVertices(
-//         &graph, clustering, kExpectedHubs, kExpectedOutliers);
-//   }
-//   {
-//     constexpr uint64_t kMu{2};
-//     constexpr float kEpsilon{0.8};
-//     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+    const ClusteringArray kExpectedClustering{
+      {0}, {0}, {}, {}, {}, {}};
+    CheckClustering(clustering, kExpectedClustering);
+  }
+  {
+    constexpr uint64_t kMu{2};
+    constexpr float kEpsilon{0.8};
+    const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-//     const ClusterList kExpectedClustering{{0, 1}, {3, 4, 5}};
-//     const VertexList kExpectedHubs{};
-//     const VertexList kExpectedOutliers{2};
-//     EXPECT_TRUE(CheckClustering(clustering, kExpectedClustering));
-//     CheckUnclusteredVertices(
-//         &graph, clustering, kExpectedHubs, kExpectedOutliers);
-//   }
-//   {
-//     constexpr uint64_t kMu{3};
-//     constexpr float kEpsilon{0.8};
-//     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+    const ClusteringArray kExpectedClustering{
+      {0}, {0}, {}, {1}, {1}, {1}};
+    CheckClustering(clustering, kExpectedClustering);
+  }
+  {
+    constexpr uint64_t kMu{3};
+    constexpr float kEpsilon{0.8};
+    const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-//     const ClusterList kExpectedClustering{{3, 4, 5}};
-//     const VertexList kExpectedHubs{};
-//     const VertexList kExpectedOutliers{0, 1, 2};
-//     EXPECT_TRUE(CheckClustering(clustering, kExpectedClustering));
-//     CheckUnclusteredVertices(
-//         &graph, clustering, kExpectedHubs, kExpectedOutliers);
-//   }
-//   {
-//     constexpr uint64_t kMu{4};
-//     constexpr float kEpsilon{0.8};
-//     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+    const ClusteringArray kExpectedClustering{
+      {}, {}, {}, {0}, {0}, {0}};
+    CheckClustering(clustering, kExpectedClustering);
+  }
+  {
+    constexpr uint64_t kMu{4};
+    constexpr float kEpsilon{0.8};
+    const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
 
-//     const ClusterList kExpectedClustering{};
-//     const VertexList kExpectedHubs{};
-//     const VertexList kExpectedOutliers{0, 1, 2, 3, 4, 5};
-//     EXPECT_TRUE(CheckClustering(clustering, kExpectedClustering));
-//     CheckUnclusteredVertices(
-//         &graph, clustering, kExpectedHubs, kExpectedOutliers);
-//   }
-// }
+    const ClusteringArray kExpectedClustering(
+      kNumVertices, std::vector<uintE>{});
+    CheckClustering(clustering, kExpectedClustering);
+  }
+}
 
-// TEST(Cluster, TwoClusterGraph) {
-//   // Graph diagram with structural similarity scores labeled:
-//   //           2                   6
-//   //     .87 /   \ .87       .87 /   \ .87
-//   //        /     \             /     \.
-//   // 0 --- 1 ----- 3 --- 4 --- 5 ----- 7 --- 8
-//   //   .71    .75    .58   .58    .75   .71
-//   const size_t kNumVertices{9};
-//   const std::unordered_set<UndirectedEdge> kEdges{
-//     {0, 1},
-//     {1, 2},
-//     {1, 3},
-//     {2, 3},
-//     {3, 4},
-//     {4, 5},
-//     {5, 6},
-//     {5, 7},
-//     {6, 7},
-//     {7, 8},
-//   };
-//   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
-//   const i::Index index{&graph};
-//   {
-//     constexpr uint64_t kMu{2};
-//     constexpr float kEpsilon{0.73};
-//     const i::Clustering clustering{index.Cluster(kMu, kEpsilon)};
+TEST(Cluster, TwoClusterGraph) {
+  // Graph diagram with structural similarity scores labeled:
+  //           2                   6
+  //     .87 /   \ .87       .87 /   \ .87
+  //        /     \             /     \.
+  // 0 --- 1 ----- 3 --- 4 --- 5 ----- 7 --- 8
+  //   .71    .75    .58   .58    .75   .71
+  const size_t kNumVertices{9};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {1, 2},
+    {1, 3},
+    {2, 3},
+    {3, 4},
+    {4, 5},
+    {5, 6},
+    {5, 7},
+    {6, 7},
+    {7, 8},
+  };
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-//     const ClusterList kExpectedClustering{{1, 2, 3}, {5, 6, 7}};
-//     const VertexList kExpectedHubs{4};
-//     const VertexList kExpectedOutliers{0, 8};
-//     EXPECT_TRUE(CheckClustering(clustering, kExpectedClustering));
-//     CheckUnclusteredVertices(
-//         &graph, clustering, kExpectedHubs, kExpectedOutliers);
-//   }
-// }
+
+  constexpr uint64_t kMu{2};
+  constexpr float kEpsilon{0.73};
+  const n::Clustering clustering{n::Cluster(&graph, kMu, kEpsilon)};
+
+  const ClusteringArray kExpectedClustering{
+    {}, {0}, {0}, {0}, {}, {1}, {1}, {1}, {}};
+  CheckClustering(clustering, kExpectedClustering);
+}
