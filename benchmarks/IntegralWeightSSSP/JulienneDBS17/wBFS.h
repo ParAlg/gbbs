@@ -35,20 +35,20 @@ struct Visit_F {
   sequence<uintE>& dists;
   Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
 
-  inline Maybe<uintE> update(const uintE& s, const uintE& d, const intE& w) {
+  inline std::optional<uintE> update(const uintE& s, const uintE& d, const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + w;
     if (n_dist < dist) {
       if (!(oval & TOP_BIT)) {  // First visitor
         dists[d] = n_dist;
-        return Maybe<uintE>(oval);
+        return std::optional<uintE>(oval);
       }
       dists[d] = n_dist;
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
 
-  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
+  inline std::optionaln<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT;
@@ -56,11 +56,11 @@ struct Visit_F {
     if (n_dist < dist) {
       if (!(oval & TOP_BIT) &&
           pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
-        return Maybe<uintE>(oval);
+        return std::optional<uintE>(oval);
       }
       pbbslib::write_min(&(dists[d]), n_dist);
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
 
   inline bool cond(const uintE& d) const { return true; }

@@ -191,9 +191,9 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
       const double& contribution = std::get<1>(k);
       if (contribution > 0) {
         Storage[u] = contribution;
-        return Maybe<std::tuple<uintE, pbbs::empty>>(std::make_tuple(u, pbbs::empty()));
+        return std::optional<std::tuple<uintE, pbbs::empty>>(std::make_tuple(u, pbbs::empty()));
       }
-      return Maybe<std::tuple<uintE, pbbs::empty>>();
+      return std::nullopt;
     };
     double id = 0.0;
 

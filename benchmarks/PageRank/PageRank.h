@@ -144,12 +144,12 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
 //    return p_curr[s] / degrees[s];
   };
   auto reduce_f = [&] (double l, double r) { return l + r; };
-  auto apply_f = [&] (std::tuple<uintE, double> k) {
+  auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, double>> {
     const uintE& u = std::get<0>(k);
     const double& contribution = std::get<1>(k);
     p_next[u] = damping*contribution + addedConstant;
     p_div[u] = p_next[u]/static_cast<double>(degrees[u]);
-    return Maybe<std::tuple<uintE, double>>();
+    return std::nullopt;
   };
 
   size_t iter = 0;
@@ -230,11 +230,11 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* 
       }
     };
     auto reduce_f = [&] (double l, double r) { return l + r; };
-    auto apply_f = [&] (std::tuple<uintE, double> k) {
+    auto apply_f = [&] (std::tuple<uintE, double> k) std::optional<std::tuple<uintE, pbbs::empty>> {
       const uintE& u = std::get<0>(k);
       const double& contribution = std::get<1>(k);
       nghSum[u] = contribution;
-      return Maybe<std::tuple<uintE, pbbs::empty>>();
+      return std::nullopt;
     };
     double id = 0.0;
 
