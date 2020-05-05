@@ -114,17 +114,6 @@ cc_library(
 )
 
 cc_library(
-  name = "graph_filter",
-  hdrs = ["graph_filter.h"],
-  deps = [
-  ":bridge",
-  ":compressed_vertex",
-  ":flags",
-  ":vertex",
-  ]
-)
-
-cc_library(
   name = "graph_mutation",
   hdrs = ["graph_mutation.h"],
   deps = [

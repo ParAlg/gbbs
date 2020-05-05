@@ -51,21 +51,6 @@ struct symmetric_graph {
   using weight_type = W;
   using edge_type = typename vertex::edge_type;
 
-  vertex_data* v_data;
-
-  /* Pointer to edges */
-  edge_type* e0;
-  /* Pointer to second copy of edges--relevant if using 2-socket NVM */
-  edge_type* e1;
-
-  /* number of vertices in G */
-  size_t n;
-  /* number of edges in G */
-  size_t m;
-
-  /* called to delete the graph */
-  std::function<void()> deletion_fn;
-
   symmetric_graph() :
     v_data(nullptr),
     e0(nullptr),
@@ -87,6 +72,14 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     }
   }
 
+  size_t num_vertices() {
+    return n;
+  }
+
+  size_t num_edges() {
+    return m;
+  }
+
   void del() {
     deletion_fn();
   }
@@ -105,6 +98,17 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
   }
 #endif
 
+  template <class F>
+  void map_edges(F f, bool parallel_inner_map = true) {
+    parallel_for(0, n, [&](size_t i) {
+      get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
+    }, 1);
+  }
+
+  /* ===================== Filtering =================== */
+
+
+  /* ===================== Mutation ==================== */
   template <class P>
   uintE pack_neighbors(uintE id, P& p, std::tuple<uintE, W>* tmp) {
     uintE new_degree = get_vertex(id).packOutNgh(id, p, tmp);
@@ -122,18 +126,6 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     decrease_vertex_degree(id, 0);
   }
 
-  template <class F>
-  void map_edges(F f, bool parallel_inner_map = true) {
-    parallel_for(0, n, [&](size_t i) {
-      get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
-    }, 1);
-  }
-
-  // F : edge -> edge
-  template <class F>
-  void alter_edges(F f, bool parallel_inner_map = true) {
-    abort(); /* unimplemented for CSR */
-  }
 
   pbbs::sequence<std::tuple<uintE, uintE, W>> edges() {
     using g_edge = std::tuple<uintE, uintE, W>;
@@ -152,6 +144,21 @@ symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     }, 1);
     return edges;
   }
+
+  // Graph Data
+  vertex_data* v_data;
+  // Pointer to edges
+  edge_type* e0;
+  // Pointer to second copy of edges--relevant if using 2-socket NVM
+  edge_type* e1;
+
+  // number of vertices in G
+  size_t n;
+  // number of edges in G
+  size_t m;
+
+  // called to delete the graph
+  std::function<void()> deletion_fn;
 };
 
 /* Compressed Sparse Row (CSR) based representation for asymmetric
@@ -302,16 +309,6 @@ struct edge_array {
       uintE u, v; W w;
       std::tie(u,v, w) = E[i];
       f(u, v, w);
-    }, 512);
-  }
-
-  // F : edge -> edge
-  template <class F>
-  void alter_edges(F f, bool parallel_inner_map = true) {
-    parallel_for(0, m, [&](size_t i) {
-      uintE u, v; W w;
-      std::tie(u, v, w) = E[i];
-      E[i] = f(u, v, w);
     }, 512);
   }
 
