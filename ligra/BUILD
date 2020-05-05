@@ -141,6 +141,7 @@ cc_library(
   hdrs = ["histogram.h"],
   deps = [
   ":bridge",
+  ":macros",
   ":sequential_ht",
   "//ligra/pbbslib:counting_sort_no_transpose",
   ]
@@ -183,6 +184,7 @@ cc_library(
   name = "sequential_ht",
   hdrs = ["sequential_ht.h"],
   deps = [
+  ":macros",
   "//pbbslib:utilities"
   ]
 )

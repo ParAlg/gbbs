@@ -23,9 +23,10 @@
 // SOFTWARE.
 #pragma once
 
-#include "pbbslib/utilities.h"
-
 #include <optional>
+
+#include "pbbslib/utilities.h"
+#include "macros.h"
 
 template <class K, class V>
 class sequentialHT {

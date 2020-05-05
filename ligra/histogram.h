@@ -30,8 +30,9 @@
 #include <tuple>
 #include <assert.h>
 
-#include "bridge.h"
 #include "pbbslib/counting_sort_no_transpose.h"
+#include "bridge.h"
+#include "macros.h"
 #include "sequential_ht.h"
 
 namespace pbbslib {
