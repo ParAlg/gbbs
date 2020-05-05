@@ -68,7 +68,7 @@ cc_library(
   deps = [
   ":bridge",
   ":edge_map_utils",
-  ":graph",
+  ":flags",
   ":vertex_subset",
   "//pbbslib:binary_search",
   "//pbbslib:list_allocator",
@@ -102,14 +102,29 @@ cc_library(
 )
 
 cc_library(
+  name = "edge_array",
+  hdrs = ["edge_array.h"],
+  deps = [
+  ":bridge",
+  ":macros",
+  ":vertex",
+  ":vertex_subset",
+  ]
+)
+
+cc_library(
   name = "graph",
   hdrs = ["graph.h"],
   srcs = ["graph.cc"],
   deps = [
   ":bridge",
   ":compressed_vertex",
+  ":edge_array",
   ":flags",
+  ":ligra",
+  ":macros",
   ":vertex",
+  ":vertex_subset",
   ]
 )
 
@@ -157,12 +172,31 @@ cc_library(
   ":edge_map_utils",
   ":edge_map_blocked",
   ":flags",
-  ":graph",
-  ":graph_io",
-  ":graph_mutation",
-  ":parse_command_line",
   ":vertex",
   ":vertex_subset",
+  ]
+)
+
+# main header
+cc_library(
+  name = "gbbs",
+  hdrs = ["gbbs.h"],
+  deps = [
+  ":benchmark",
+  ":bridge",
+  ":graph",
+  ":macros",
+  ":vertex_subset",
+  ]
+)
+
+cc_library(
+  name = "benchmark",
+  hdrs = ["benchmark.h"],
+  srcs = ["benchmark.cc"],
+  deps = [
+  ":graph_io",
+  ":parse_command_line",
   ]
 )
 

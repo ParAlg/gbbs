@@ -2,7 +2,7 @@
 
 #include "bridge.h"
 #include "edge_map_utils.h"
-#include "graph.h"
+#include "flags.h"
 #include "vertex_subset.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/binary_search.h"
