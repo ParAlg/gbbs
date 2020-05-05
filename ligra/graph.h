@@ -90,6 +90,31 @@ struct symmetric_graph {
   }
 #endif
 
+  /* ===================== Mapping =================== */
+  // Applies the edgeMap operator on the input vertex_subset, aggregating results
+  // at the neighbors of this vset. This is the specialized version of the
+  // general nghMap function where the output is a plain vertex_subset.
+  // F must provide:
+  // update : (uintE * uintE * W) -> bool
+  // updateAtomic : (uintE * uintE * W) -> bool
+  // cond : uintE -> bool
+  template <
+    class VS, /* input vertex_subset type */
+    class F /* edgeMap function type */>
+  inline vertexSubsetData<pbbs::empty> nghMap(G& GA, VS& vs, F f, intT threshold = -1, flags fl = 0) {
+    return edgeMapData(GA, vs, f, threshold, fl);
+  }
+
+  // The generalized version of edgeMap. Takes an input vertex_subset and
+  // aggregates results at the neighbors of the vset.
+  template <
+    class Data, /* data associated with vertices in the output vertex_subset */
+    class VS, /* input vertex_subset type */
+    class F /* edgeMap function type */>
+  inline vertexSubsetData<Data> nghMap(G& GA, VS& vs, F f, intT threshold = -1, flags fl = 0) {
+    return edgeMapData(GA, vs, f, threshold, fl);
+  }
+
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
     parallel_for(
@@ -99,6 +124,24 @@ struct symmetric_graph {
   }
 
   /* ===================== Filtering =================== */
+  // Filters the symmetric graph, G, with a predicate function pred.  Note
+  // that the predicate does not have to be symmetric, i.e. f(u,v) is
+  // not necesssarily equal to f(v,u), but we only represent the out-edges of this
+  // (possibly) directed graph. For convenience in cases where the graph needed is
+  // symmetric, we coerce this to a symmetric_graph.
+  template <class P>
+  symmetric_graph<vertex, W> filterGraph(P& pred) {
+    return filter_graph(*this, pred);
+  }
+
+  // Used by MST and MaximalMatching
+  // Predicate returns three values:
+  // 0 : keep in graph, do not return in edge array
+  // 1 : remove from graph, do not return in edge array
+  // 2 : remove from graph, return in edge array
+  // Cost: O(n+m) work
+  edge_array<W> filterEdges(P& pred, flags fl) {
+  }
 
   /* ===================== Mutation ==================== */
   template <class P>
@@ -303,16 +346,6 @@ struct edge_array {
                    f(u, v, w);
                  },
                  512);
-  }
-
-  template <class P>
-  void filter_edges(P p) {
-    auto in_seq = pbbslib::make_sequence<edge>(m, E);
-    auto q = pbbs::filter(in_seq, p);
-    size_t q_s = q.size();
-    pbbs::free_array(E);
-    E = q.to_array();
-    m = q_s;
   }
 };
 
