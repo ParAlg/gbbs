@@ -23,11 +23,12 @@
 
 #pragma once
 
+#include "bridge.h"
+#include "macros.h"
+
 #include <functional>
 #include <limits>
-
-#include "bridge.h"
-#include "maybe.h"
+#include <optional>
 
 template <class data>
 struct vertexSubsetData {
@@ -95,20 +96,22 @@ struct vertexSubsetData {
   }
   inline data& ithData(const uintE& v) const { return std::get<1>(d[v]); }
 
-  // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
+  // Returns (uintE) -> std::optional<std::tuple<vertex, vertex-data>>.
   auto get_fn_repr() const
-      -> std::function<Maybe<std::tuple<uintE, data>>(uintE)> {
-    std::function<Maybe<std::tuple<uintE, data>>(const uintE&)> fn;
+      -> std::function<std::optional<std::tuple<uintE, data>>(uintE)> {
+    std::function<std::optional<std::tuple<uintE, data>>(const uintE&)> fn;
     if (isDense) {
-      fn = [&](const uintE& v) -> Maybe<std::tuple<uintE, data>> {
-        auto ret = Maybe<std::tuple<uintE, data>>(
-            std::make_tuple(v, std::get<1>(d[v])));
-        ret.exists = std::get<0>(d[v]);
-        return ret;
+      fn = [&](const uintE& v) -> std::optional<std::tuple<uintE, data>> {
+        const auto& dv = d[v];
+        if (std::get<0>(dv)) {
+          return std::optional<std::tuple<uintE, data>>(std::make_tuple(v, std::get<1>(d[v])));
+        } else {
+          return std::nullopt;
+        }
       };
     } else {
-      fn = [&](const uintE& i) -> Maybe<std::tuple<uintE, data>> {
-        return Maybe<std::tuple<uintE, data>>(s[i]);
+      fn = [&](const uintE& i) -> std::optional<std::tuple<uintE, data>> {
+        return std::optional<std::tuple<uintE, data>>(s[i]);
       };
     }
     return fn;
@@ -261,20 +264,21 @@ struct vertexSubsetData<pbbslib::empty> {
     return pbbslib::empty();
   }
 
-  // Returns (uintE) -> Maybe<std::tuple<vertex, vertex-data>>.
+  // Returns (uintE) -> std::optional<std::tuple<vertex, vertex-data>>.
   auto get_fn_repr() const
-      -> std::function<Maybe<std::tuple<uintE, pbbslib::empty>>(uintE)> {
-    std::function<Maybe<std::tuple<uintE, pbbslib::empty>>(const uintE&)> fn;
+      -> std::function<std::optional<std::tuple<uintE, pbbslib::empty>>(uintE)> {
+    std::function<std::optional<std::tuple<uintE, pbbslib::empty>>(const uintE&)> fn;
     if (isDense) {
-      fn = [&](const uintE& v) -> Maybe<std::tuple<uintE, pbbslib::empty>> {
-        auto ret = Maybe<std::tuple<uintE, pbbslib::empty>>(
-            std::make_tuple(v, pbbslib::empty()));
-        ret.exists = d[v];
-        return ret;
+      fn = [&](const uintE& v) -> std::optional<std::tuple<uintE, pbbslib::empty>> {
+        if (d[v]) {
+          return std::optional<std::tuple<uintE, pbbslib::empty>>(std::make_tuple(v, pbbslib::empty()));
+        } else {
+          return std::nullopt;
+        }
       };
     } else {
-      fn = [&](const uintE& i) -> Maybe<std::tuple<uintE, pbbslib::empty>> {
-        return Maybe<std::tuple<uintE, pbbslib::empty>>(
+      fn = [&](const uintE& i) -> std::optional<std::tuple<uintE, pbbslib::empty>> {
+        return std::optional<std::tuple<uintE, pbbslib::empty>>(
             std::make_tuple(s[i], pbbslib::empty()));
       };
     }

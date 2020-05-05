@@ -24,7 +24,8 @@
 #pragma once
 
 #include "pbbslib/utilities.h"
-#include "maybe.h"
+
+#include <optional>
 
 template <class K, class V>
 class sequentialHT {
@@ -137,16 +138,16 @@ class sequentialHT {
       auto key = std::get<0>(kv);
       if (key != max_key) {
         table[i] = empty;
-        Maybe<E> value = f(kv);
-        if (isSome(value)) {
-          Out[k++] = getT(value);
+        std::optional<E> value = f(kv);
+        if (value.has_value()) {
+          Out[k++] = *value;
         }
       }
     }
     return k;
   }
 
-  // F : KV -> Maybe<std::tuple<uintE,?>>
+  // F : KV -> std::optional<std::tuple<uintE,?>>
   template <class F>
   inline size_t compactIntoSelf(F& f) {
     size_t k = 0;
@@ -156,8 +157,8 @@ class sequentialHT {
       if (key != max_key) {
         table[i] = empty;
         auto value = f(kv);
-        if (isSome(value)) {
-          table[k++] = getT(value);
+        if (value.has_value()) {
+          table[k++] = *value;
         }
       }
     }

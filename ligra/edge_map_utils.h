@@ -31,9 +31,9 @@
 #include <tuple>
 #include <type_traits>
 
+#include "macros.h"
 #include "pbbslib/binary_search.h"
 #include "pbbslib/utilities.h"
-#include "maybe.h"
 
 // Standard version of edgeMapDense.
 template <typename data,
@@ -49,8 +49,8 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emdense_gen(std::tuple<bool, data>* next) {
-  return [next](uintE ngh, Maybe<data> m = Maybe<data>()) __attribute__((always_inline)) {
-    if (m.exists) next[ngh] = std::make_tuple(1, m.t);
+  return [next](uintE ngh, std::optional<data> m = std::nullopt) __attribute__((always_inline)) {
+    if (m.has_value()) next[ngh] = std::make_tuple(1, *m);
   };
 }
 
@@ -68,8 +68,8 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emdense_forward_gen(std::tuple<bool, data>* next) {
-  return [next](uintE ngh, Maybe<data> m = Maybe<data>()) __attribute__((always_inline)) {
-    if (m.exists) next[ngh] = std::make_tuple(1, m.t);
+  return [next](uintE ngh, std::optional<data> m = std::nullopt) __attribute__((always_inline)) {
+    if (m.has_value()) next[ngh] = std::make_tuple(1, *m);
   };
 }
 
@@ -91,9 +91,9 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emsparse_gen_full(std::tuple<uintE, data>* outEdges) {
-  return [outEdges](uintE ngh, uintT offset, Maybe<data> m = Maybe<data>()) __attribute__((always_inline)) {
-    if (m.exists) {
-      outEdges[offset] = std::make_tuple(ngh, m.t);
+  return [outEdges](uintE ngh, uintT offset, std::optional<data> m = std::nullopt) __attribute__((always_inline)) {
+    if (m.has_value()) {
+      outEdges[offset] = std::make_tuple(ngh, *m);
     } else {
       std::get<0>(outEdges[offset]) = UINT_E_MAX;
     }
@@ -127,9 +127,9 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emsparse_blocked_gen(std::tuple<uintE, data>* outEdges) {
-  return [outEdges](uintE ngh, uintT offset, Maybe<data> m = Maybe<data>()) __attribute__((always_inline)) {
-    if (m.exists) {
-      outEdges[offset] = std::make_tuple(ngh, m.t);
+  return [outEdges](uintE ngh, uintT offset, std::optional<data> m = std::nullopt) __attribute__((always_inline)) {
+    if (m.has_value()) {
+      outEdges[offset] = std::make_tuple(ngh, *m);
       return true;
     }
     return false;
@@ -154,10 +154,10 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emblock_gen(std::tuple<uintE, data>* outEdges) {
-  return [outEdges](uintE ngh, uintT offset, Maybe<data> m = Maybe<data>())
+  return [outEdges](uintE ngh, uintT offset, std::optional<data> m = std::nullopt)
       __attribute__((always_inline)) {
-    if (m.exists) {
-      outEdges[offset] = std::make_tuple(ngh, m.t);
+    if (m.has_value()) {
+      outEdges[offset] = std::make_tuple(ngh, *m);
       return true;
     }
     return false;
@@ -176,7 +176,7 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emsparse_nooutput_gen() {
-  return [&](uintE ngh, uintE offset, Maybe<data> m = Maybe<data>()) {};
+  return [&](uintE ngh, uintE offset, std::optional<data> m = std::nullopt) {};
 }
 
 template <typename data>
@@ -195,7 +195,7 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emdense_nooutput_gen() {
-  return [&](uintE ngh, Maybe<data> m = Maybe<data>()) {};
+  return [&](uintE ngh, std::optional<data> m = std::nullopt) {};
 }
 
 template <typename data,
@@ -209,7 +209,7 @@ template <typename data,
           typename std::enable_if<!std::is_same<data, pbbslib::empty>::value,
                                   int>::type = 0>
 inline auto get_emdense_forward_nooutput_gen() {
-  return [&](uintE ngh, Maybe<data> m = Maybe<data>()) {};
+  return [&](uintE ngh, std::optional<data> m = std::nullopt) {};
 }
 
 template <class W, class F>

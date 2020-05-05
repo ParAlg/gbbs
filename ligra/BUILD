@@ -45,7 +45,6 @@ cc_library(
   name = "bucket",
   hdrs = ["bucket.h"],
   deps = [
-  ":maybe",
   ":vertex_subset",
   ":bridge",
   "//ligra/pbbslib:dyn_arr"
@@ -91,7 +90,7 @@ cc_library(
   name = "edge_map_utils",
   hdrs = ["edge_map_utils.h"],
   deps = [
-  ":maybe",
+  ":macros",
   "//pbbslib:binary_search",
   "//pbbslib:utilities",
   ]
@@ -175,14 +174,6 @@ cc_library(
 )
 
 cc_library(
-  name = "maybe",
-  hdrs = ["maybe.h"],
-  deps = [
-  ":macros",
-  ]
-)
-
-cc_library(
   name = "parse_command_line",
   hdrs = ["parse_command_line.h"],
   srcs = ["parse_command_line.cc"],
@@ -192,7 +183,6 @@ cc_library(
   name = "sequential_ht",
   hdrs = ["sequential_ht.h"],
   deps = [
-  ":maybe",
   "//pbbslib:utilities"
   ]
 )
@@ -229,7 +219,7 @@ cc_library(
   hdrs = ["vertex_subset.h"],
   deps = [
   ":bridge",
-  ":maybe"
+  ":macros",
   ]
 )
 
