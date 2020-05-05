@@ -48,7 +48,7 @@ struct Visit_F {
     return std::nullopt;
   }
 
-  inline std::optionaln<uintE> updateAtomic(const uintE& s, const uintE& d,
+  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const intE& w) {
     uintE oval = dists[d];
     uintE dist = oval | TOP_BIT;

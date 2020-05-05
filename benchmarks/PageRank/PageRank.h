@@ -230,7 +230,7 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* 
       }
     };
     auto reduce_f = [&] (double l, double r) { return l + r; };
-    auto apply_f = [&] (std::tuple<uintE, double> k) std::optional<std::tuple<uintE, pbbs::empty>> {
+    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, pbbs::empty>> {
       const uintE& u = std::get<0>(k);
       const double& contribution = std::get<1>(k);
       nghSum[u] = contribution;
