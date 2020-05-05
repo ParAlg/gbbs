@@ -1,3 +1,7 @@
+package(
+  default_visibility = ["//visibility:public"],
+)
+
 cc_test(
     name = "graph_io_test",
     srcs = ["graph_io_test.cc"],

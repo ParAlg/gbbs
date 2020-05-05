@@ -1,3 +1,7 @@
+package(
+  default_visibility = ["//visibility:public"],
+)
+
 cc_library(
   name = "graph_filter",
   hdrs = ["graph_filter.h"],
@@ -35,8 +39,4 @@ cc_library(
   deps = [
     "//ligra:macros"
   ]
-)
-
-package(
-  default_visibility = ["//visibility:public"],
 )

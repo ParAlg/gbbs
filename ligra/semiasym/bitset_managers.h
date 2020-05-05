@@ -51,7 +51,7 @@ indirect_value_sequence<T,F> indirect_value_seq (size_t n, F f) {
 template <template <class W> class vertex, class W>
 struct sym_bitset_manager {
   using WV = vertex<W>;
-  using E = typename WV::E;
+  using E = typename WV::edge_type;
   using metadata = bitsets::metadata;
 
   uintE vtx_id;

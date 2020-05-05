@@ -133,14 +133,21 @@ auto scan_serial(In_Seq const &In, Out_Seq Out, Monoid const &m,
 }
 
 template <SEQ In_Seq, RANGE Out_Range, class Monoid>
-auto scan_(In_Seq const &In, Out_Range Out, Monoid const &m, flags fl = no_flag)
+auto scan_(In_Seq const &In, Out_Range Out, Monoid const &m, flags fl = no_flag,
+           typename In_Seq::value_type* tmp = nullptr)
     -> typename In_Seq::value_type {
   using T = typename In_Seq::value_type;
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
   if (l <= 2 || fl & fl_sequential)
     return scan_serial(In, Out, m, m.identity, fl);
-  sequence<T> Sums(l);
+  //sequence<T> Sums(l);
+  bool alloc = false;
+  if (tmp == nullptr) {
+    tmp = pbbs::new_array_no_init<T>(l);
+    alloc = true;
+  }
+  auto Sums = pbbs::make_range(tmp, tmp+l);
   sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
     Sums[i] = reduce_serial(In.slice(s, e), m);
   });
@@ -149,30 +156,33 @@ auto scan_(In_Seq const &In, Out_Range Out, Monoid const &m, flags fl = no_flag)
     auto O = Out.slice(s, e);
     scan_serial(In.slice(s, e), O, m, Sums[i], fl);
   });
+  if (alloc) {
+    pbbs::free_array(tmp);
+  }
   return total;
 }
 
 template <RANGE Range, class Monoid>
-auto scan_inplace(Range In, Monoid m, flags fl = no_flag) ->
+auto scan_inplace(Range In, Monoid m, flags fl = no_flag, typename Range::value_type* tmp = nullptr) ->
     typename Range::value_type {
-  return scan_(In, In, m, fl);
+  return scan_(In, In, m, fl, tmp);
 }
 
 template <SEQ In_Seq, class Monoid>
-auto scan(In_Seq const &In, Monoid m, flags fl = no_flag)
+auto scan(In_Seq const &In, Monoid m, flags fl = no_flag, typename In_Seq::value_type* tmp = nullptr)
     -> std::pair<sequence<typename In_Seq::value_type>,
                  typename In_Seq::value_type> {
   using T = typename In_Seq::value_type;
   sequence<T> Out(In.size());
-  return std::make_pair(std::move(Out), scan_(In, Out.slice(), m, fl));
+  return std::make_pair(std::move(Out), scan_(In, Out.slice(), m, fl, tmp));
 }
 
 // do in place if rvalue reference to a sequence<T>
 template <class T, class Monoid>
-auto scan(sequence<T> &&In, Monoid m, flags fl = no_flag)
+auto scan(sequence<T> &&In, Monoid m, flags fl = no_flag, T* tmp = nullptr)
     -> std::pair<sequence<T>, T> {
   sequence<T> Out = std::move(In);
-  T total = scan_(Out, Out.slice(), m, fl);
+  T total = scan_(Out, Out.slice(), m, fl, tmp);
   return std::make_pair(std::move(Out), total);
 }
 

@@ -201,15 +201,15 @@ namespace pbbslib {
   //   Out[i] = In[0] + In[1] + ... + In[i - 1].
   // The return value is the sum over the whole input sequence.
   template <RANGE In_Seq>
-  inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag) -> typename In_Seq::value_type {
+  inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag, typename In_Seq::value_type* tmp = nullptr) -> typename In_Seq::value_type {
     using T = typename In_Seq::value_type;
-    return pbbs::scan_inplace(In, pbbs::addm<T>(), fl);
+    return pbbs::scan_inplace(In, pbbs::addm<T>(), fl, nullptr);
   }
 
   // Scans the input sequence using the addm monoid.
   template <class T>
-  inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag) -> T {
-    return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl);
+  inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag, T* tmp = nullptr) -> T {
+    return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl, tmp);
   }
 
   template <class Seq>

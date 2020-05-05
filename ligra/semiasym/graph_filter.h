@@ -1,7 +1,6 @@
-// This code is part of the project "Theoretically Efficient Parallel Graph
-// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
-// in Algorithms and Architectures, 2018.
-// Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
+// This code is part of the project "Sage: Parallel Semi-Asymmetric Graph
+// Algorithms for NVRAMs" presented at VLDB 2020.
+// Copyright (c) 2020 Laxman Dhulipala and the GBBS Team
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,11 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-/*
- * This file contains an implementation of a bit-packed graph, which is a
- * decremental graph structure that supports edge-deletions using a bit-packed
- * vector.
- */
+// This file contains an implementation of a bit-packed graph, which is a
+// decremental graph structure that supports edge-deletions using a bit-packed
+// vector.
 
 #pragma once
 
@@ -37,6 +34,7 @@
 #include "block_vertex.h"
 #include "ligra/graph.h"
 
+namespace sage {
 /*
  * block_manager supplies:
  *  - num_blocks
@@ -342,7 +340,7 @@ struct packed_graph {
           int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = sym_bitset_manager<vertex_type, W>;
-    auto vtx_data = GA.V[v];
+    auto vtx_data = GA.v_data[v];
     uintE original_degree = vtx_data.degree;
     uintE offset = vtx_data.offset;
 #ifndef NVM
@@ -431,5 +429,7 @@ void filter_graph(packed_graph<vertex_type, W>& GA, P& pred_f) {
   auto new_m = pbbslib::reduce_add(degree_seq);
   GA.m = new_m;
   std::cout << "# Packing packed graph: new m = " << new_m << std::endl;
+}
+
 }
 
