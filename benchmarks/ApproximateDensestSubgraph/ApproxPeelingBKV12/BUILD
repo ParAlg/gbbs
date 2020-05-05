@@ -3,7 +3,7 @@ cc_library(
   hdrs = ["DensestSubgraph.h"],
   deps = [
   "//ligra:edge_map_reduce",
-  "//ligra:ligra"
+  "//ligra:gbbs"
   ]
 )
 

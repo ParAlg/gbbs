@@ -4,7 +4,7 @@ INCLUDE_DIRS = -I../
 
 OBJDIR = ../bin/ligra/
 
-ALL_PRE = bridge edge_map_blocked graph graph_io io ligra parse_command_line undirected_edge union_find
+ALL_PRE = benchmark bridge edge_map_blocked graph graph_io io ligra parse_command_line undirected_edge union_find
 ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))
 
 all: $(ALL)
