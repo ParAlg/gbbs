@@ -24,8 +24,7 @@
 #pragma once
 
 #include "bitset_managers.h"
-#include "macros.h"
-#include "noop_managers.h"
+#include "ligra/macros.h"
 #include "pbbslib/sequence_ops.h"
 
 namespace block_vertex_ops {

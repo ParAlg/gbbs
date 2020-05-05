@@ -10,4 +10,5 @@ const flags remove_duplicates = 32;
 const flags no_dense = 64;
 const flags in_edges = 128;  // map over in edges instead of out edges
 const flags fine_parallel = 256; // split to a node-size of 1
+const flags compact_blocks = 512; // used in //ligra/semiasym/...
 inline bool should_output(const flags& fl) { return !(fl & no_output); }

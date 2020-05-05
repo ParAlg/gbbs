@@ -35,7 +35,7 @@
 
 #include "bitset_managers.h"
 #include "block_vertex.h"
-#include "graph.h"
+#include "ligra/graph.h"
 
 /*
  * block_manager supplies:
@@ -232,10 +232,10 @@ template <template <class W> class vertex_type, class W>
 struct packed_graph {
   size_t n; /* number of vertices */
   size_t m; /* number of edges; updated by decremental updates  */
-  symmetric_graph<vertex, W>& GA;
+  symmetric_graph<vertex_type, W>& GA;
   using vertex = vertex_type<W>;
-  using E = typename vertex::edge_type;
   using weight_type = W;
+  using E = typename vertex::edge_type;
 
   vtx_info* VI;
   uint8_t* blocks;
@@ -298,10 +298,10 @@ struct packed_graph {
   template <
       bool bool_enable = true,
       typename std::enable_if<
-          std::is_same<vertex<W>, symmetric_vertex<W>>::value && bool_enable,
+          std::is_same<vertex, symmetric_vertex<W>>::value && bool_enable,
           int>::type = 0>
   void init_block_size_and_metadata() {
-    using block_manager = sym_bitset_manager<vertex, W>;
+    using block_manager = sym_bitset_manager<vertex_type, W>;
     using metadata = typename block_manager::metadata;
     bs = block_manager::edges_per_block;
     bs_in_bytes = bitsets::bitset_bs_bytes(bs);
@@ -310,18 +310,18 @@ struct packed_graph {
 
   template <bool bool_enable = true,
             typename std::enable_if<
-                std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value &&
+                std::is_same<vertex, csv_bytepd_amortized<W>>::value &&
                     bool_enable,
                 int>::type = 0>
   void init_block_size_and_metadata() {
-    using block_manager = compressed_sym_bitset_manager<vertex, W>;
+    using block_manager = compressed_sym_bitset_manager<vertex_type, W>;
     using metadata = typename block_manager::metadata;
     bs = block_manager::edges_per_block;
     bs_in_bytes = bitsets::bitset_bs_bytes(bs);
     metadata_size = sizeof(metadata);
   }
 
-  packed_graph(symmetric_graph<vertex, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
+  packed_graph(symmetric_graph<vertex_type, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
     init_block_size_and_metadata();  // conditioned on vertex type
     init_block_memory();
   }
@@ -338,10 +338,10 @@ struct packed_graph {
   template <
       bool bool_enable = true,
       typename std::enable_if<
-          std::is_same<vertex<W>, symmetric_vertex<W>>::value && bool_enable,
+          std::is_same<vertex, symmetric_vertex<W>>::value && bool_enable,
           int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-    using block_manager = sym_bitset_manager<vertex, W>;
+    using block_manager = sym_bitset_manager<vertex_type, W>;
     auto vtx_data = GA.V[v];
     uintE original_degree = vtx_data.degree;
     uintE offset = vtx_data.offset;
@@ -356,11 +356,11 @@ struct packed_graph {
   // Compressed Symmetric: get_vertex
   template <bool bool_enable = true,
             typename std::enable_if<
-                std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value &&
+                std::is_same<vertex, csv_bytepd_amortized<W>>::value &&
                     bool_enable,
                 int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
-    using block_manager = compressed_sym_bitset_manager<vertex, W>;
+    using block_manager = compressed_sym_bitset_manager<vertex_type, W>;
     auto vtx_data = GA.V[v];
     uintE original_degree = vtx_data.degree;
     size_t offset = vtx_data.offset;
@@ -388,15 +388,15 @@ struct packed_graph {
 };
 
 // Used to infer template arguments
-template <template <class W> class vertex, class W>
-auto build_packed_graph(symmetric_graph<vertex, W>& GA) {
-  return packed_graph<vertex, W>(GA);
+template <template <class W> class vertex_type, class W>
+auto build_packed_graph(symmetric_graph<vertex_type, W>& GA) {
+  return packed_graph<vertex_type, W>(GA);
 }
 
-template <template <class W> class vertex, class W, class P>
-packed_graph<vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred_f) {
+template <template <class W> class vertex_type, class W, class P>
+packed_graph<vertex_type, W> filter_graph(symmetric_graph<vertex_type, W>& G, P& pred_f) {
   // TODO: do allocations, but in a (medium) constant number of allocations.
-  auto GA = packed_graph<vertex, W>(G);
+  auto GA = packed_graph<vertex_type, W>(G);
   {
     parallel_for(0, G.n, [&] (size_t v) {
       auto vtx = GA.get_vertex(v);
@@ -414,8 +414,8 @@ packed_graph<vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred_f) {
   return GA;
 }
 
-template <template <class W> class vertex, class W, class P>
-void filter_graph(packed_graph<vertex, W>& GA, P& pred_f) {
+template <template <class W> class vertex_type, class W, class P>
+void filter_graph(packed_graph<vertex_type, W>& GA, P& pred_f) {
   // TODO: do allocations, but in a (medium) constant number of allocations.
   {
     parallel_for(0, GA.n, [&] (size_t v) {
