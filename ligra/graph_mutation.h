@@ -2,22 +2,18 @@
 
 #include "bridge.h"
 #include "compressed_vertex.h"
-#include "graph.h"
 #include "vertex.h"
-
-// TODO: gate by namespace.
 
 /* Filters a symmetric graph, G, with a predicate function pred.  Note
  * that the predicate does not have to be symmetric, i.e. f(u,v) is
  * not necesssarily equal to f(v,u), but we only represent the out-edges of this
- * (possibly) directed graph. For convenience in cases where the graph needed is
- * symmetric, we coerce this to a symmetric_graph. */
-template <template <class W> class vertex, class W, typename P,
+ * (possibly) directed graph. */
+template <template <class W> class vertex, class W, class Graph, typename P,
     typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
-inline symmetric_graph<symmetric_vertex, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
+inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::edge_type*> filter_graph(Graph& G, P& pred) {
   using w_vertex = vertex<W>;
-  size_t n = G.n;
+  size_t n = G.num_vertices();
   auto outOffsets = sequence<uintT>(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
@@ -66,19 +62,16 @@ inline symmetric_graph<symmetric_vertex, W> filter_graph(symmetric_graph<vertex,
   outOffsets.clear();
 
   auto out_edge_arr = out_edges.to_array();
-  return symmetric_graph<symmetric_vertex, W>(
-      out_vdata, G.n, outEdgeCount,
-      get_deletion_fn(out_vdata, out_edge_arr),
-      out_edge_arr);
+  return std::make_tuple(G.num_vertices(), outEdgeCount, out_vdata, out_edge_arr);
 }
 
 // byte version
-template <template <class W> class vertex, class W, typename P,
+template <template <class W> class vertex, class W, class Graph, typename P,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
-inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, P& pred) {
-  size_t n = G.n;
+inline auto filter_graph(Graph& G, P& pred) {
+  size_t n = G.num_vertices();
 
   debug(std::cout << "# Filtering" << "\n");
 
@@ -148,28 +141,27 @@ inline symmetric_graph<csv_byte, W> filter_graph(symmetric_graph<vertex, W>& G, 
   auto deg_f = [&](size_t i) { return degrees[i]; };
   auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
+  size_t newM = edges.size();
   auto edge_arr = edges.to_array();
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
-  return symmetric_graph<csv_byte, W>(out_vdata, G.n, total_deg,
-                            get_deletion_fn(out_vdata, edge_arr),
-                            edge_arr, edge_arr);
+  return std::make_tuple(G.num_vertices(), newM, out_vdata, edge_arr);
 }
 
 template <
-    template <class W> class vertex, class W, typename P,
+    template <class W> class vertex, class W, class Graph, typename P,
     typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
                             int>::type = 0>
-inline auto filter_graph(asymmetric_graph<vertex, W>& G, P& pred) -> decltype(G) {
+inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
   std::cout << "# Filter graph not implemented for directed graphs" << std::endl;
-  assert(false);  // Not implemented for directed graphs
+  assert(false); // Not implemented for directed graphs
   return G;
 }
 
 template <
-    template <class W> class vertex, class W, typename P,
+    template <class W> class vertex, class W, class Graph, typename P,
     typename std::enable_if<
         std::is_same<vertex<W>, cav_bytepd_amortized<W>>::value, int>::type = 0>
-inline auto filter_graph(asymmetric_graph<vertex, W>& G, P& pred) -> decltype(G) {
+inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
   std::cout << "# Filter graph not implemented for directed graphs" << std::endl;
   assert(false);  // Not implemented for directed graphs
   return G;
@@ -181,11 +173,11 @@ inline auto filter_graph(asymmetric_graph<vertex, W>& G, P& pred) -> decltype(G)
 // 1 : remove from graph, do not return in edge array
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
-template <template <class W> class vertex, class W, class P>
-inline edge_array<W> filter_edges(symmetric_graph<vertex, W>& G, P& pred, const flags fl = 0) {
+template <template <class W> class vertex, class W, class Graph, class P>
+inline edge_array<W> filter_edges(Graph& G, P& pred, const flags fl = 0) {
   using edge = std::tuple<uintE, uintE, W>;
   using T = std::tuple<uintT, uintT>;
-  size_t n = G.n;
+  size_t n = G.num_vertices();
   auto vtx_offs = sequence<std::tuple<size_t, size_t, size_t>>(n + 1);
 
   // 1. map and write the # filtered edges for each vtx into vtx_offs
@@ -256,9 +248,9 @@ inline edge_array<W> filter_edges(symmetric_graph<vertex, W>& G, P& pred, const 
       }
       // Pack out non-zero edges. This method updates the degree in G.
       if (n_to_pack < deg) {
-        G.pack_neighbors(i, pred_zero, tmp_v);
+        G.packNeighbors(i, pred_zero, tmp_v);
       } else {
-        G.zero_vertex_degree(i);
+        G.zeroVertexDegree(i);
       }
     }
   }, 1);
@@ -272,8 +264,8 @@ inline edge_array<W> filter_edges(symmetric_graph<vertex, W>& G, P& pred, const 
 }
 
 // Used by MaximalMatching.
-template <template <class W> class vertex, class W, class P>
-inline edge_array<W> filter_all_edges(symmetric_graph<vertex, W>& G, P& p) {
+template <template <class W> class vertex, class W, class Graph, class P>
+inline edge_array<W> filter_all_edges(Graph& G, P& p) {
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
   auto offs = sequence<std::tuple<uintT, uintT>>(n + 1);
@@ -304,7 +296,7 @@ inline edge_array<W> filter_all_edges(symmetric_graph<vertex, W>& G, P& p) {
         arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));
       };
       G.get_vertex(i).filterOutNgh(i, p, out_f, tmp_v);
-      G.zero_vertex_degree(i);
+      G.zeroVertexDegree(i);
     }
   }, 1);
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
@@ -314,10 +306,10 @@ inline edge_array<W> filter_all_edges(symmetric_graph<vertex, W>& G, P& p) {
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
 // pred(src, ngh, wgh) == 1 is returned in the output edge array.
-template <template <class W> class vertex, class W, class P>
-edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
+template <template <class W> class vertex, class W, class Graph, class P>
+edge_array<W> sample_edges(Graph& G, P& pred) {
   using edge = std::tuple<uintE, uintE, W>;
-  size_t n = G.n;
+  size_t n = G.num_vertices();
   auto vtx_offs = sequence<std::tuple<size_t, size_t>>(n + 1);
 
   // 1. Compute the # filtered edges and tmp-space required for each vtx.
@@ -371,9 +363,9 @@ edge_array<W> sample_edges(symmetric_graph<vertex, W>& G, P& pred) {
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
-template <template <class W> class vertex_type, class W, class P>
-inline void packAllEdges(symmetric_graph<vertex_type, W>& G, P& p, const flags& fl = 0) {
-  size_t n = G.n;
+template <template <class W> class vertex_type, class W, class Graph, class P>
+inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
+  size_t n = G.num_vertices();
   auto space = sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) {
     space[i] = G.get_vertex(i).calculateOutTemporarySpace();
@@ -383,7 +375,7 @@ inline void packAllEdges(symmetric_graph<vertex_type, W>& G, P& p, const flags& 
 
   auto for_inner = [&](size_t i) {
     std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-    G.pack_neighbors(i, p, tmp_v);
+    G.packNeighbors(i, p, tmp_v);
   };
   paralle_for(0, n, [&] (size_t i) { for_inner(i); }, 1);
 }
@@ -391,8 +383,8 @@ inline void packAllEdges(symmetric_graph<vertex_type, W>& G, P& p, const flags& 
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept
 // in the new adjacency list if p(ngh) is true.
-template <template <class W> class vertex_type, class W, class P>
-inline vertexSubsetData<uintE> packEdges(symmetric_graph<vertex_type, W>& G,
+template <template <class W> class vertex_type, class W, class Graph, class P>
+inline vertexSubsetData<uintE> packEdges(Graph& G,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
   using S = std::tuple<uintE, uintE>;
@@ -418,7 +410,7 @@ inline vertexSubsetData<uintE> packEdges(symmetric_graph<vertex_type, W>& G,
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
       std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-      uintE new_degree = G.pack_neighbors(v, p, tmp_v);
+      uintE new_degree = G.packNeighbors(v, p, tmp_v);
       outV[i] = std::make_tuple(v, new_degree);
     }, 1);
     return vertexSubsetData<uintE>(n, m, outV);
@@ -426,7 +418,7 @@ inline vertexSubsetData<uintE> packEdges(symmetric_graph<vertex_type, W>& G,
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
       std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-      G.pack_neighbors(v, p, tmp_v);
+      G.packNeighbors(v, p, tmp_v);
     }, 1);
     return vertexSubsetData<uintE>(n);
   }

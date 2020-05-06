@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#include "ligra/gbbs.h"
+#include "ligra/julienne.h"
+#include "ligra/graph_mutation.h"
 
 #include "pbbslib/random.h"
 #include "pbbslib/random_shuffle.h"

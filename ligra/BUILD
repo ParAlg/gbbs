@@ -112,6 +112,17 @@ cc_library(
   ]
 )
 
+
+cc_library(
+  name = "graph_mutation",
+  hdrs = ["graph_mutation.h"],
+  deps = [
+  ":bridge",
+  ":compressed_vertex",
+  ":vertex",
+  ]
+)
+
 cc_library(
   name = "graph",
   hdrs = ["graph.h"],
@@ -122,19 +133,11 @@ cc_library(
   ":edge_array",
   ":edge_map_reduce",
   ":flags",
+  ":graph_mutation",
   ":ligra",
   ":macros",
   ":vertex",
   ":vertex_subset",
-  ]
-)
-
-cc_library(
-  name = "graph_mutation",
-  hdrs = ["graph_mutation.h"],
-  deps = [
-  ":bridge",
-  ":graph",
   ]
 )
 

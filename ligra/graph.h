@@ -35,10 +35,15 @@
 #include "edge_array.h"
 #include "edge_map_reduce.h"
 #include "flags.h"
+#include "graph_mutation.h"
 #include "ligra.h"
 #include "macros.h"
 #include "vertex.h"
 #include "vertex_subset.h"
+
+std::function<void()> get_deletion_fn(void*, void*);
+std::function<void()> get_deletion_fn(void*, void*, void*);
+std::function<void()> get_deletion_fn(void*, void*, void*, void*);
 
 /* Compressed Sparse Row (CSR) based representation for symmetric graphs.
  * Takes two template parameters:
@@ -158,7 +163,10 @@ struct symmetric_graph {
   // symmetric, we coerce this to a symmetric_graph.
   template <class P>
   symmetric_graph<vertex_type, W> filterGraph(P& pred) {
-    return filter_graph(*this, pred);
+    auto [newN, newM, newVData, newEdges] = filter_graph<vertex_type, W>(*this, pred);
+    assert(newN == n);
+    return symmetric_graph<vertex_type, W>(newVData, newN, newM,
+        get_deletion_fn(newVData, newEdges), newEdges);
   }
 
   // Used by MST and MaximalMatching
@@ -347,10 +355,6 @@ struct asymmetric_graph {
         1);
   }
 };
-
-std::function<void()> get_deletion_fn(void*, void*);
-std::function<void()> get_deletion_fn(void*, void*, void*);
-std::function<void()> get_deletion_fn(void*, void*, void*, void*);
 
 // Mutates (sorts) the underlying array A containing a black-box description of
 // an edge of typename A::value_type. The caller provides functions GetU, GetV,
