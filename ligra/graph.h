@@ -58,47 +58,10 @@ struct symmetric_graph {
   using weight_type = W;
   using edge_type = typename vertex::edge_type;
 
-  symmetric_graph()
-      : v_data(nullptr),
-        e0(nullptr),
-        e1(nullptr),
-        n(0),
-        m(0),
-        deletion_fn([]() {}) {}
-
-  symmetric_graph(vertex_data* v_data, size_t n, size_t m,
-                  std::function<void()> _deletion_fn, edge_type* _e0,
-                  edge_type* _e1 = nullptr)
-      : v_data(v_data),
-        e0(_e0),
-        e1(_e1),
-        n(n),
-        m(m),
-        deletion_fn(_deletion_fn) {
-    if (_e1 == nullptr) {
-      e1 = e0;  // handles NVM case when graph is stored in symmetric memory
-    }
-  }
-
-  void del() { deletion_fn(); }
-
   size_t num_vertices() { return n; }
-
   size_t num_edges() { return m; }
 
-#ifndef TWOSOCKETNVM
-  vertex get_vertex(uintE i) { return vertex(e0, v_data[i]); }
-#else
-  vertex get_vertex(uintE i) {
-    if (numanode() == 0) {
-      return vertex(e0, v_data[i]);
-    } else {
-      return vertex(e1, v_data[i]);
-    }
-  }
-#endif
-
-  /* ===================== Mapping =================== */
+  /* ================== Mapping (edgeMap) =================== */
   // Applies the edgeMap operator on the input vertex_subset, aggregating
   // results
   // at the neighbors of this vset. This is the specialized version of the
@@ -125,21 +88,21 @@ struct symmetric_graph {
     return edgeMapData(*this, vs, f, threshold, fl);
   }
 
+  // TODO: srcMap (currently not used in any benchmarks)
+
+
   /* ===================== Counting =================== */
   template <
-      class Data,  /* data associated with vertices in the output vertex_subset
-                      */
+      class Data,  /* data associated with vertices in the output vertex_subset */
       class Apply, /* function from std::tuple<uintE, uintE> ->
-                      Maybe<std::tuple<uintE, Data>> */
+                    * Maybe<std::tuple<uintE, Data>> */
       class VS>
   inline vertexSubsetData<Data> nghCount(VS& vs, pbbslib::hist_table<uintE, Data>& ht,
       Apply apply_f, flags fl = 0) {
-    // Note that we can generalize the histogram implementation if needed
-    // (currently no such use-case).
     static_assert(std::is_same<Data, uintE>::value,
                   "Histogram code used in the implementation is specialized "
                   "for Data == counting_type (in this case uintE) for "
-                  "performance reasons.");
+                  "performance.");
     return edgeMapCount<Data, Apply, VS>(vs, ht, apply_f, fl);
   }
 
@@ -151,7 +114,29 @@ struct symmetric_graph {
     return edgeMapCount<uintE, decltype(apply_f), VS>(vs, apply_f, fl);
   }
 
+  template <class P, class VS>
+  inline vertexSubsetData<uintE> srcCount(VS& vs, P p, flags fl = 0) {
+    return edgeMapFilter(*this, vs, p, fl);
+  }
 
+  /* ===================== Reduction =================== */
+
+
+
+
+  /* ===================== Packing =================== */
+  template <class P>
+  vertexSubsetData<uintE> srcPack(vertexSubset& vs, P p, flags fl = 0) {
+    // TODO: check if this method correctly updates m.
+    return packEdges(*this, vs, p, fl);
+  }
+
+  // Similar to srcPack, but returns the nghs as a vs.
+  template <class P>
+  vertexSubsetData<uintE> nghPack(vertexSubset& vs, P p, flags fl = 0) {
+    assert(false); // not implemented as this primitive is not yet used.
+    return vertexSubsetData<uintE>();
+  }
 
   /* ===================== Filtering =================== */
   // Filters the symmetric graph, G, with a predicate function pred.  Note
@@ -222,6 +207,41 @@ struct symmetric_graph {
         [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
         1);
   }
+
+  symmetric_graph()
+      : v_data(nullptr),
+        e0(nullptr),
+        e1(nullptr),
+        n(0),
+        m(0),
+        deletion_fn([]() {}) {}
+
+  symmetric_graph(vertex_data* v_data, size_t n, size_t m,
+                  std::function<void()> _deletion_fn, edge_type* _e0,
+                  edge_type* _e1 = nullptr)
+      : v_data(v_data),
+        e0(_e0),
+        e1(_e1),
+        n(n),
+        m(m),
+        deletion_fn(_deletion_fn) {
+    if (_e1 == nullptr) {
+      e1 = e0;  // handles NVM case when graph is stored in symmetric memory
+    }
+  }
+  void del() { deletion_fn(); }
+
+#ifndef TWOSOCKETNVM
+  vertex get_vertex(uintE i) { return vertex(e0, v_data[i]); }
+#else
+  vertex get_vertex(uintE i) {
+    if (numanode() == 0) {
+      return vertex(e0, v_data[i]);
+    } else {
+      return vertex(e1, v_data[i]);
+    }
+  }
+#endif
 
   // Graph Data
   vertex_data* v_data;
