@@ -3,9 +3,7 @@ cc_library(
   hdrs = ["Biconnectivity.h"],
   deps = [
   "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
-  "//ligra:bridge",
-  "//ligra:ligra",
-  "//ligra:speculative_for",
+  "//ligra:gbbs",
   "//ligra/pbbslib:dyn_arr",
   "//ligra/pbbslib:sparse_table",
   "//pbbslib:random",

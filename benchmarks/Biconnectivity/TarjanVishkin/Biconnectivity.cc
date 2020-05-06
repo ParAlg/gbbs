@@ -40,7 +40,6 @@
 
 #include "Biconnectivity.h"
 #include "ligra/pbbslib/sparse_additive_map.h"
-#include "ligra/ligra.h"
 #include "pbbslib/strings/string_basics.h"
 
 template <template <typename W> class vertex, class W>

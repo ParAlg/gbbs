@@ -161,7 +161,9 @@ struct symmetric_graph {
   // 2 : remove from graph, return in edge array
   // Cost: O(n+m) work
   template <class P>
-  edge_array<W> filterEdges(P& pred, flags fl) {}
+  edge_array<W> filterEdges(P& pred, flags fl = 0) {
+    return filter_edges(*this, pred, fl);
+  }
 
   /* ===================== Mutation ==================== */
   template <class P>
@@ -258,6 +260,8 @@ struct symmetric_graph {
   // called to delete the graph
   std::function<void()> deletion_fn;
 };
+
+
 
 /* Compressed Sparse Row (CSR) based representation for asymmetric
  * graphs.  Note that the symmetric/asymmetric structures are pretty

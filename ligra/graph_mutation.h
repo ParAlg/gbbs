@@ -173,8 +173,9 @@ inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
 // 1 : remove from graph, do not return in edge array
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
-template <template <class W> class vertex, class W, class Graph, class P>
-inline edge_array<W> filter_edges(Graph& G, P& pred, const flags fl = 0) {
+template <class Graph, class P>
+inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const flags fl = 0) {
+  using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   using T = std::tuple<uintT, uintT>;
   size_t n = G.num_vertices();
