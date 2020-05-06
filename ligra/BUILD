@@ -120,6 +120,7 @@ cc_library(
   ":bridge",
   ":compressed_vertex",
   ":edge_array",
+  ":edge_map_reduce",
   ":flags",
   ":ligra",
   ":macros",
@@ -189,6 +190,21 @@ cc_library(
   ":vertex_subset",
   ]
 )
+
+
+
+# main header
+cc_library(
+  name = "julienne",
+  hdrs = ["julienne.h"],
+  deps = [
+  ":gbbs",
+  ":bucket",
+  "//ligra/pbbslib:dyn_arr",
+  ]
+)
+
+
 
 cc_library(
   name = "benchmark",
