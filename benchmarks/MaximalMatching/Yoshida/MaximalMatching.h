@@ -116,7 +116,7 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
       }
     }
   };
-  RG.map_edges(map_f);
+  RG.mapEdges(map_f);
   size_t tot_work = pbbslib::reduce_add(total_work.slice());
   double fraction_covered = (static_cast<double>(pbbslib::reduce_add(got_answer.slice())) / (static_cast<double>(m)/2));
   std::cout << "# Max query length = " << max_query_length << std::endl;
@@ -136,7 +136,7 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
     auto verify_f = [&] (const uintE u, const uintE& v, const W& wgh) {
       assert(!(matching_cts[u] == 0 && matching_cts[v] == 0)); // !(we could add this edge to the matching)
     };
-    G.map_edges(verify_f);
+    G.mapEdges(verify_f);
   }
 
   return std::make_tuple(max_query_length, tot_work, fraction_covered);

@@ -120,6 +120,28 @@ struct symmetric_graph {
   }
 
   /* ===================== Reduction =================== */
+  template <
+      class Data,
+      class Apply,
+      class Map,
+      class Reduce,
+      class VS>
+  inline vertexSubsetData<Data> nghReduce(VS& vs, pbbslib::hist_table<uintE, Data>& ht,
+      Apply apply_f, Map map_f, Reduce reduce_f, flags fl = 0) {
+    static_assert(std::is_same<Data, uintE>::value,
+                  "Histogram code used in the implementation is specialized "
+                  "for Data == counting_type (in this case uintE) for "
+                  "performance.");
+    return edgeMapCount<Data, Apply, VS>(vs, ht, apply_f, fl);
+  }
+
+  template <class VS, class Map, class Reduce>
+  inline vertexSubsetData<uintE> nghReduce(VS& vs, Map map_f, Reduce reduce_f, flags fl = 0) {
+    auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
+      return Maybe<std::tuple<uintE, uintE>>(ct);
+    };
+    return edgeMapCount<uintE, decltype(apply_f), VS>(vs, apply_f, fl);
+  }
 
 
 
@@ -163,6 +185,11 @@ struct symmetric_graph {
   template <class P>
   edge_array<W> filterEdges(P& pred, flags fl = 0) {
     return filter_edges(*this, pred, fl);
+  }
+
+  template <class P>
+  edge_array<W> filterAllEdges(P& pred, flags fl = 0) {
+    return filter_all_edges(*this, pred, fl);
   }
 
   /* ===================== Mutation ==================== */

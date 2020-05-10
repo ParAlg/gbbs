@@ -23,9 +23,8 @@
 
 #pragma once
 
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
 #include "reorder.h"
+#include "ligra/gbbs.h"
 
 enum mis_status {
   in,

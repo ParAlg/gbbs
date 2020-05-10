@@ -33,13 +33,11 @@
 
 #include "MaximalMatching.h"
 
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
-
-
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+
+#include "ligra/gbbs.h"
 
 void print_stats(commandLine& P, size_t query_cutoff, size_t max_query_length, size_t total_work, double fraction_covered, double rt) {
   std::cout << "{" << std::endl;

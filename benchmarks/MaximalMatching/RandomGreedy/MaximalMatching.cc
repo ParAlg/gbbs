@@ -33,8 +33,7 @@
 
 #include "MaximalMatching.h"
 
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
+#include "ligra/gbbs.h"
 #include "pbbslib/strings/string_basics.h"
 
 #include <fstream>

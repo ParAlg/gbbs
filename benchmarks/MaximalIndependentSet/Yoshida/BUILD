@@ -2,8 +2,7 @@ cc_library(
   name = "reorder",
   hdrs = ["reorder.h"],
   deps = [
-  "//ligra:bridge",
-  "//ligra:ligra",
+  "//ligra:gbbs",
   ]
 )
 
@@ -12,8 +11,7 @@ cc_library(
   hdrs = ["MaximalIndependentSet.h"],
   deps = [
   ":reorder",
-  "//ligra:bridge",
-  "//ligra:ligra",
+  "//ligra:gbbs",
   ]
 )
 

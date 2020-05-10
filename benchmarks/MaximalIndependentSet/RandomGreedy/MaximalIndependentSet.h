@@ -25,8 +25,8 @@
 
 #include "pbbslib/random_shuffle.h"
 
+#include "ligra/gbbs.h"
 #include "ligra/speculative_for.h"
-#include "ligra/ligra.h"
 #include "ligra/pbbslib/sparse_table.h"
 
 namespace MaximalIndependentSet_rootset {

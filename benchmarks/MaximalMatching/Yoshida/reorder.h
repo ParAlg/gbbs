@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ligra/gbbs.h"
+
 template <class Graph, class F>
 auto reorder_graph(Graph& G, F& edge_pri) {
   using W = typename Graph::weight_type;

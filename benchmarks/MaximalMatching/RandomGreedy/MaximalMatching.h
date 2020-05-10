@@ -23,8 +23,7 @@
 
 #pragma once
 
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
+#include "ligra/gbbs.h"
 #include "ligra/speculative_for.h"
 #include "ligra/pbbslib/dyn_arr.h"
 
@@ -85,7 +84,7 @@ namespace mm {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
-    auto E = filter_all_edges(G, pred);
+    auto E = G.filterAllEdges(pred);
 
     timer perm_t;
     perm_t.start();
@@ -128,7 +127,7 @@ namespace mm {
     };
     timer fet;
     fet.start();
-    auto E = filter_edges(G, pred);
+    auto E = G.filterEdges(pred);
     fet.stop();
     fet.reportTotal("Filter edges time");
 
@@ -198,8 +197,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
                       uintE deg_u = G.get_vertex(u).getOutDegree();
                       uintE deg_v = G.get_vertex(v).getOutDegree();
-                      G.zero_vertex_degree(u);
-                      G.zero_vertex_degree(v);
+                      G.zeroVertexDegree(u);
+                      G.zeroVertexDegree(v);
                       sizes[i] = deg_u + deg_v;
                     });
     size_t total_size = pbbslib::reduce_add(sizes);

@@ -2,8 +2,7 @@ cc_library(
   name = "reorder",
   hdrs = ["reorder.h"],
   deps = [
-  "//ligra:bridge",
-  "//ligra:ligra",
+    "//ligra:gbbs",
   ]
 )
 

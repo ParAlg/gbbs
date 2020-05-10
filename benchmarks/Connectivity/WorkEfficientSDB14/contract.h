@@ -1,10 +1,10 @@
 #pragma once
 
-#include "pbbslib/sequence_ops.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/macros.h"
-#include "ligra/graph.h"
 #include <tuple>
+
+#include "pbbslib/sequence_ops.h"
+#include "ligra/gbbs.h"
+#include "ligra/pbbslib/sparse_table.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace contract {

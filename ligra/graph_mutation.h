@@ -265,8 +265,9 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
 }
 
 // Used by MaximalMatching.
-template <template <class W> class vertex, class W, class Graph, class P>
-inline edge_array<W> filter_all_edges(Graph& G, P& p) {
+template <class Graph, class P>
+inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, flags fl = 0) {
+  using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
   auto offs = sequence<std::tuple<uintT, uintT>>(n + 1);
