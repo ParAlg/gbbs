@@ -32,7 +32,7 @@
 
 #include "bitset_managers.h"
 #include "block_vertex.h"
-#include "ligra/graph.h"
+#include "gbbs/graph.h"
 
 namespace sage {
 /*

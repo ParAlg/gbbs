@@ -1,7 +1,7 @@
 //#include <jemalloc/jemalloc.h>
 #include "alloc.h"
 #include "get_time.h"
-#include "ligra/parse_command_line.h"
+#include "gbbs/parse_command_line.h"
 #include "parallel.h"
 #include "sequence_ops.h"
 #include "time_operations.h"

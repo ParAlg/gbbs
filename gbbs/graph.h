@@ -34,6 +34,7 @@
 #include "compressed_vertex.h"
 #include "edge_array.h"
 #include "edge_map_reduce.h"
+#include "edge_map_data.h"
 #include "flags.h"
 #include "graph_mutation.h"
 #include "ligra.h"

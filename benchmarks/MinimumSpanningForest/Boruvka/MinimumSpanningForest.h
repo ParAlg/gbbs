@@ -24,9 +24,9 @@
 #pragma once
 
 #include <cassert>
-#include "ligra/ligra.h"
-#include "ligra/union_find.h"
-#include "ligra/pbbslib/dyn_arr.h"
+#include "gbbs/ligra.h"
+#include "gbbs/union_find.h"
+#include "gbbs/pbbslib/dyn_arr.h"
 
 #include "pbbslib/binary_search.h"
 #include "pbbslib/random.h"

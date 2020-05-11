@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace shiloachvishkin_cc {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/SpanningForest/common.h"
 
 namespace jayanti_rank {

@@ -2,7 +2,7 @@ include ../makefile.variables
 
 INCLUDE_DIRS = -I../
 
-OBJDIR = ../bin/ligra/
+OBJDIR = ../bin/gbbs/
 
 ALL_PRE = benchmark bridge edge_map_blocked graph_io io ligra parse_command_line undirected_edge union_find
 ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))

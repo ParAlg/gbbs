@@ -1,4 +1,4 @@
-#include "ligra.h"
+#include "gbbs.h"
 
 void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
   if (vs.isDense) {

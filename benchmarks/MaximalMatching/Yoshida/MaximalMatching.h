@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
+#include "gbbs/bridge.h"
+#include "gbbs/ligra.h"
 #include "reorder.h"
 #include "yoshida_matching_utils.h"
 

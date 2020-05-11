@@ -25,8 +25,8 @@
 #include <exception>
 #include <vector>
 
-#include "ligra/graph_io.h"
-#include "ligra/parse_command_line.h"
+#include "gbbs/graph_io.h"
+#include "gbbs/parse_command_line.h"
 
 namespace {
 

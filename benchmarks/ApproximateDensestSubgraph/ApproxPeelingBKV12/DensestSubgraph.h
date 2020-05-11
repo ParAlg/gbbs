@@ -20,8 +20,8 @@
 
 #pragma once
 
-#include "ligra/edge_map_reduce.h"
-#include "ligra/gbbs.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
 
 template <class Graph>
 double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {

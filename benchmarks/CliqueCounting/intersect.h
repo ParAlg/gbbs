@@ -7,11 +7,11 @@
 
 #include <limits>
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/pbbslib/sparse_table.h"
+#include "gbbs/bucket.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/ligra.h"
+#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/pbbslib/sparse_table.h"
 
 #define INDUCED_STACK_THR 5000
 

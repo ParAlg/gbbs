@@ -4,11 +4,11 @@
 
 #include <utility>
 
-#include "ligra/graph.h"
-#include "ligra/macros.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/undirected_edge.h"
-#include "ligra/vertex_subset.h"
+#include "gbbs/graph.h"
+#include "gbbs/macros.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/undirected_edge.h"
+#include "gbbs/vertex_subset.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/utilities.h"
 

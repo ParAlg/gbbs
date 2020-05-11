@@ -24,9 +24,9 @@
 #pragma once
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/pbbslib/sparse_table.h"
+#include "gbbs/ligra.h"
+#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/pbbslib/sparse_table.h"
 
 namespace spanner {
 

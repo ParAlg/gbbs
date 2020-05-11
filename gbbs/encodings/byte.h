@@ -33,7 +33,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include "ligra/macros.h"
+#include "gbbs/macros.h"
 
 namespace byte {
 

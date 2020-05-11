@@ -25,7 +25,7 @@
 #include <tuple>
 #include <cassert>
 
-#include "ligra/bridge.h"
+#include "gbbs/bridge.h"
 
 template <class K, class V, class KeyHash>
 class sparse_table {

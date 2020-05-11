@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "ligra/bridge.h"
-#include "ligra/macros.h"
+#include "gbbs/bridge.h"
+#include "gbbs/macros.h"
 
 namespace rmat {
   double hashDouble(uintE i) {

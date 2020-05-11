@@ -25,8 +25,8 @@
 
 #include "contract.h"
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/ligra.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace workefficient_cc {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace jayanti_rank {

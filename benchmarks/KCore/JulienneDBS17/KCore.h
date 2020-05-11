@@ -23,11 +23,11 @@
 
 #pragma once
 
-//#include "ligra/bucket.h"
-//#include "ligra/edge_map_reduce.h"
-//#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/gbbs.h"
-#include "ligra/julienne.h"
+//#include "gbbs/bucket.h"
+//#include "gbbs/edge_map_reduce.h"
+//#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/julienne.h"
 
 template <class Graph>
 inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {

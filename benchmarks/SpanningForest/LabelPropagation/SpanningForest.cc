@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 #include "SpanningForest.h"
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
 

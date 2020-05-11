@@ -22,8 +22,8 @@
 // SOFTWARE.
 #pragma once
 
-#include "ligra/edge_map_reduce.h"
-#include "ligra/gbbs.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
 
 #include <math.h>
 

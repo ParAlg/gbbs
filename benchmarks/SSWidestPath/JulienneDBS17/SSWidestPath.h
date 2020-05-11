@@ -24,8 +24,8 @@
 #pragma once
 
 #include <cmath>
-#include "ligra/bucket.h"
-#include "ligra/ligra.h"
+#include "gbbs/bucket.h"
+#include "gbbs/ligra.h"
 
 namespace widestpath {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;

@@ -31,7 +31,7 @@
 // out-degree vertices.
 #pragma once
 
-#include "ligra.h"
+#include "gbbs.h"
 
 template <class W, class L, class B>
 struct Decr {

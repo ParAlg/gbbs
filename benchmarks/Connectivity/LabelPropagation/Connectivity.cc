@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 #include "Connectivity.h"
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 
 template <class Graph>
 double CC_runner(Graph& G, commandLine P) {

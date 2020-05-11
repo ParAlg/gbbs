@@ -34,7 +34,7 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "LowDiameterDecomposition.h"
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 
 template <class Graph>
 double LDD_runner(Graph& G, commandLine P) {

@@ -2,7 +2,7 @@ include ../../makefile.variables
 
 INCLUDE_DIRS = -I../../
 
-OBJDIR = ../../bin/ligra/encodings/
+OBJDIR = ../../bin/gbbs/encodings/
 
 ALL_PRE = byte byte_pd_amortized
 ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))

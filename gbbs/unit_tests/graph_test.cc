@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ligra/graph.h"
+#include "gbbs/graph.h"
 #include "pbbslib/seq.h"
 
 TEST(TestSymGraphFromEdges, TestBrokenPath) {

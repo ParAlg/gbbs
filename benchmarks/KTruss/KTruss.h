@@ -22,12 +22,12 @@
 
 #include <cassert>
 
-#include "ligra/bridge.h"
-#include "ligra/bucket.h"
-#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#include "gbbs/bridge.h"
+#include "gbbs/bucket.h"
+#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/ligra.h"
 
 #include "truss_utils.h"
 

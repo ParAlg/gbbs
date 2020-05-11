@@ -7,8 +7,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "ligra/graph_test_utils.h"
-#include "ligra/undirected_edge.h"
+#include "gbbs/graph_test_utils.h"
+#include "gbbs/undirected_edge.h"
 #include "pbbslib/seq.h"
 
 namespace gt = graph_test;

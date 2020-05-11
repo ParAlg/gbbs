@@ -3,7 +3,7 @@
 #include <math.h>
 #include <numeric>
 
-#include "ligra/gbbs.h"
+#include "gbbs/gbbs.h"
 
 template <class Graph>
 struct PR_F {

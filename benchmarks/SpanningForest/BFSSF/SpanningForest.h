@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/SpanningForest/common.h"
 
 namespace bfs_sf {

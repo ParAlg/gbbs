@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ligra/ligra.h"
-#include "ligra/graph.h"
+#include "gbbs/ligra.h"
+#include "gbbs/graph.h"
 #include "pbbslib/seq.h"
 
 template <

@@ -1,9 +1,9 @@
-#include "ligra/graph_io.h"
+#include "gbbs/graph_io.h"
 
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "ligra/graph_test_utils.h"
+#include "gbbs/graph_test_utils.h"
 
 namespace gi = gbbs_io;
 namespace gt = graph_test;

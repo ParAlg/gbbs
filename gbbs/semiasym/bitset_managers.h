@@ -2,9 +2,9 @@
 
 #include "bitset.h"
 
-#include "ligra/macros.h"
-#include "ligra/flags.h"
-#include "ligra/encodings/byte_pd_amortized.h"
+#include "gbbs/macros.h"
+#include "gbbs/flags.h"
+#include "gbbs/encodings/byte_pd_amortized.h"
 
 /* Note that the block degree computable by differencing two starts. */
 struct vtx_info {

@@ -1,4 +1,4 @@
-#include "ligra/undirected_edge.h"
+#include "gbbs/undirected_edge.h"
 
 #include <algorithm>
 

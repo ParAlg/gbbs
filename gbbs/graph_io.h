@@ -30,10 +30,10 @@
 #include <type_traits>
 #include <vector>
 
-#include "ligra/graph.h"
-#include "ligra/io.h"
-#include "ligra/macros.h"
-#include "ligra/vertex.h"
+#include "gbbs/graph.h"
+#include "gbbs/io.h"
+#include "gbbs/macros.h"
+#include "gbbs/vertex.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/stlalgs.h"
 

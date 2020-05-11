@@ -19,7 +19,7 @@
 #include <algorithm>
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 

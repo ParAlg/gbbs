@@ -25,9 +25,9 @@
 
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
-#include "ligra/gbbs.h"
-#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/pbbslib/sparse_table.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/strings/string_basics.h"

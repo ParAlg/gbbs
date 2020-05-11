@@ -4,15 +4,15 @@ INCLUDE_DIRS = -I$(ROOTDIR)
 
 all: $(ALL)
 
-LIGRA_OBJS = $(wildcard $(ROOTDIR)bin/ligra/*.a)
-LIGRA_ENCODING_OBJS = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.a)
+LIGRA_OBJS = $(wildcard $(ROOTDIR)bin/gbbs/*.a)
+LIGRA_ENCODING_OBJS = $(wildcard $(ROOTDIR)bin/gbbs/encodings/*.a)
 PBBSLIB_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/*.a)
 PBBSLIB_STRINGS_OBJS = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.a)
 
 ALL_OBJS = $(LIGRA_OBJS) $(LIGRA_ENCODING_OBJS) $(PBBSLIB_OBJS) $(PBBSLIB_STRINGS_OBJS) $(OTHER_OBJS)
 
-LIGRA_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/ligra/*.o)
-LIGRA_ENCODING_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/ligra/encodings/*.o)
+LIGRA_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/gbbs/*.o)
+LIGRA_ENCODING_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/gbbs/encodings/*.o)
 PBBSLIB_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/pbbslib/*.o)
 PBBSLIB_STRINGS_OBJS_CLEAN = $(wildcard $(ROOTDIR)bin/pbbslib/strings/*.o)
 
@@ -23,19 +23,19 @@ ALL_OBJS_CLEAN = $(LIGRA_OBJS_CLEAN) $(LIGRA_ENCODING_OBJS_CLEAN) $(PBBSLIB_OBJS
 
 other : $(OTHER)
 
-ligra : 
-	make -C $(ROOTDIR)ligra/
+gbbs : 
+	make -C $(ROOTDIR)gbbs/
 
 pbbslib : 
 	make -C $(ROOTDIR)pbbslib/
 
-ligra_encodings : 
-	make -C $(ROOTDIR)ligra/encodings/
+gbbs_encodings : 
+	make -C $(ROOTDIR)gbbs/encodings/
 
 pbbslib_strings :
 	make -C $(ROOTDIR)pbbslib/strings/
 
-% : %.cc pbbslib ligra ligra_encodings pbbslib_strings other
+% : %.cc pbbslib gbbs gbbs_encodings pbbslib_strings other
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LINKER_START_GROUP) $(ALL_OBJS) $(LINKER_END_GROUP) -pthread $(LFLAGS)
 #-Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -lstdc++ -fuse-ld=gold 
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 
 #include <iostream>
 #include <fstream>

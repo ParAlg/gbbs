@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "ligra/gbbs.h" /* includes core gbbs libraries (graphs, graph operators, etc) */
-#include "ligra/julienne.h" /* includes bucketing data structure */
+#include "gbbs/gbbs.h" /* includes core gbbs libraries (graphs, graph operators, etc) */
+#include "gbbs/julienne.h" /* includes bucketing data structure */
 
 #include "pbbslib/random.h"
 #include "pbbslib/random_shuffle.h"

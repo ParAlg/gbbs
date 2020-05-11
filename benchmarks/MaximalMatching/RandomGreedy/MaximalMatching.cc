@@ -33,7 +33,7 @@
 
 #include "MaximalMatching.h"
 
-#include "ligra/gbbs.h"
+#include "gbbs/gbbs.h"
 #include "pbbslib/strings/string_basics.h"
 
 #include <fstream>

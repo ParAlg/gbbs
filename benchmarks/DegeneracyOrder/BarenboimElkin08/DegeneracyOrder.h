@@ -1,10 +1,10 @@
 #ifndef _BARENBOIM_ELKIN_DEGEN
 #define _BARENBOIM_ELKIN_DEGEN
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
+#include "gbbs/bucket.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/ligra.h"
+#include "gbbs/pbbslib/dyn_arr.h"
 #include "pbbslib/integer_sort.h"
 
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"

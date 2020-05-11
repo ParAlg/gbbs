@@ -24,9 +24,9 @@
 #pragma once
 
 #include <vector>
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
-#include "ligra/edge_map_reduce.h"
+#include "gbbs/bridge.h"
+#include "gbbs/ligra.h"
+#include "gbbs/edge_map_reduce.h"
 
 namespace bc {
 

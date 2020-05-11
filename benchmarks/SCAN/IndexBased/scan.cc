@@ -6,8 +6,8 @@
 #include <utility>
 
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
-#include "ligra/bridge.h"
-#include "ligra/pbbslib/sparse_table.h"
+#include "gbbs/bridge.h"
+#include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/parallel.h"
 
 namespace indexed_scan {

@@ -26,7 +26,7 @@
 
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
-#include "ligra/gbbs.h"
+#include "gbbs/gbbs.h"
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"

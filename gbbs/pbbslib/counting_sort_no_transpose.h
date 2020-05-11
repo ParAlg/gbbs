@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <tuple>
 
-#include "ligra/bridge.h"
+#include "gbbs/bridge.h"
 
 namespace pbbslib {
 

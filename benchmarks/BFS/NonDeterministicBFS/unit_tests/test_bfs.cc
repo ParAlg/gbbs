@@ -4,9 +4,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "ligra/graph.h"
-#include "ligra/graph_test_utils.h"
-#include "ligra/macros.h"
+#include "gbbs/graph.h"
+#include "gbbs/graph_test_utils.h"
+#include "gbbs/macros.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;

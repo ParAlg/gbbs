@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra/gbbs.h"
+#include "gbbs/gbbs.h"
 
 template <class Graph, class F>
 auto reorder_graph(Graph& G, F& vertex_pri) {

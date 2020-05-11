@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <cmath>
 
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 #include "pbbslib/random_shuffle.h"
-#include "ligra/bridge.h"
+#include "gbbs/bridge.h"
 #include "pbbslib/strings/string_basics.h"
 
 template <class Graph>

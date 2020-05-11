@@ -15,10 +15,10 @@
 #include <utility>
 
 #include "benchmarks/SCAN/Naive/scan_helpers.h"
-#include "ligra/graph.h"
-#include "ligra/ligra.h"
-#include "ligra/macros.h"
-#include "ligra/vertex_subset.h"
+#include "gbbs/graph.h"
+#include "gbbs/ligra.h"
+#include "gbbs/macros.h"
+#include "gbbs/vertex_subset.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/stlalgs.h"
 #include "pbbslib/utilities.h"

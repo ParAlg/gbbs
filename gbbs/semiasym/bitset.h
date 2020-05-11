@@ -1,7 +1,7 @@
 #pragma once
 
 #include <x86intrin.h>
-#include "ligra/macros.h"
+#include "gbbs/macros.h"
 // see bitmagic
 // precondition: rank > 0
 unsigned select64_tz(uint64_t w, unsigned rank)

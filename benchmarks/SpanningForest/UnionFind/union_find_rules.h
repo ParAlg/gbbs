@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra/bridge.h"
+#include "gbbs/bridge.h"
 #include "pbbslib/seq.h"
 #include "jayanti.h"
 #include "benchmarks/Connectivity/common.h"

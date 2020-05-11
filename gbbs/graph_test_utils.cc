@@ -1,4 +1,4 @@
-#include "ligra/graph_test_utils.h"
+#include "gbbs/graph_test_utils.h"
 
 #include <tuple>
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "pbbslib/random.h"
-#include "ligra/bridge.h"
-#include "ligra/macros.h"
+#include "gbbs/bridge.h"
+#include "gbbs/macros.h"
 
 namespace barabasi_albert {
 auto generate_updates(

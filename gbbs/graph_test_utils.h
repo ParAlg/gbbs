@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "ligra/graph.h"
-#include "ligra/macros.h"
-#include "ligra/undirected_edge.h"
-#include "ligra/vertex.h"
+#include "gbbs/graph.h"
+#include "gbbs/macros.h"
+#include "gbbs/undirected_edge.h"
+#include "gbbs/vertex.h"
 #include "pbbslib/utilities.h"
 
 namespace graph_test {

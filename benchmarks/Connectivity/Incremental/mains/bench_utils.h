@@ -4,7 +4,7 @@
 
 #include "benchmarks/Connectivity/Framework/framework.h"
 #include "benchmarks/Connectivity/Framework/mains/check.h"
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 
 /* ************************* Benchmark Utils *************************** */
 

@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "ligra/gbbs.h"
-#include "ligra/speculative_for.h"
-#include "ligra/pbbslib/dyn_arr.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/speculative_for.h"
+#include "gbbs/pbbslib/dyn_arr.h"
 
 namespace mm {
 

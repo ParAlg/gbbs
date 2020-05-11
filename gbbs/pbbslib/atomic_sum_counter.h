@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pbbslib/utilities.h"
-#include "ligra/macros.h"
+#include "gbbs/macros.h"
 
 /* atomic max object for numeric type T */
 /* Note the temporary bad hack around usage---see note on reset() */

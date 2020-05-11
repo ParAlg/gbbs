@@ -24,7 +24,7 @@
 #pragma once
 
 #include "pbbslib/random_shuffle.h"
-#include "ligra/ligra.h"
+#include "gbbs/ligra.h"
 
 #include <cmath>
 

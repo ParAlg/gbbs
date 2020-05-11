@@ -24,7 +24,7 @@
 
 #include <tuple>
 
-#include "ligra/bridge.h"
+#include "gbbs/bridge.h"
 
 namespace pbbslib {
   // TODO: see if striding by an entire page reduces times more.

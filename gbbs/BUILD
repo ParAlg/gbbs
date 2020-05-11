@@ -1,3 +1,32 @@
+package(
+  default_visibility = ["//visibility:public"],
+)
+
+# main header for GBBS
+cc_library(
+  name = "gbbs",
+  hdrs = ["gbbs.h"],
+  deps = [
+  ":benchmark",
+  ":bridge",
+  ":flags",
+  ":graph",
+  ":macros",
+  ":vertex_subset",
+  ]
+)
+
+# main header for Julienne
+cc_library(
+  name = "julienne",
+  hdrs = ["julienne.h"],
+  deps = [
+  ":gbbs",
+  ":bucket",
+  "//gbbs/pbbslib:dyn_arr",
+  ]
+)
+
 cc_library(
   name = "bridge",
   hdrs = ["bridge.h"],
@@ -14,30 +43,6 @@ cc_library(
   "//pbbslib:seq",
   "//pbbslib:sequence_ops",
   "//pbbslib:utilities",
-  ]
-)
-
-cc_library(
-  name = "io",
-  hdrs = ["io.h"],
-  srcs = ["io.cc"],
-  deps = [
-  ":macros",
-  ]
-)
-
-cc_library(
-  name = "graph_io",
-  hdrs = ["graph_io.h"],
-  srcs = ["graph_io.cc"],
-  deps = [
-  ":graph",
-  ":io",
-  ":macros",
-  ":vertex",
-  "//pbbslib:sample_sort",
-  "//pbbslib:stlalgs",
-  "//pbbslib/strings:string_basics",
   ]
 )
 
@@ -81,7 +86,6 @@ cc_library(
   deps = [
   ":bridge",
   ":histogram",
-  ":ligra",
   ":flags",
   ]
 )
@@ -97,11 +101,6 @@ cc_library(
 )
 
 cc_library(
-  name = "flags",
-  hdrs = ["flags.h"],
-)
-
-cc_library(
   name = "edge_array",
   hdrs = ["edge_array.h"],
   deps = [
@@ -112,6 +111,10 @@ cc_library(
   ]
 )
 
+cc_library(
+  name = "flags",
+  hdrs = ["flags.h"],
+)
 
 cc_library(
   name = "graph_mutation",
@@ -124,6 +127,20 @@ cc_library(
 )
 
 cc_library(
+  name = "edge_map_data",
+  hdrs = ["edge_map_data.h"],
+  deps = [
+  ":bridge",
+  ":compressed_vertex",
+  ":edge_map_utils",
+  ":edge_map_blocked",
+  ":flags",
+  ":vertex",
+  ":vertex_subset",
+  ]
+)
+
+cc_library(
   name = "graph",
   hdrs = ["graph.h"],
   deps = [
@@ -131,12 +148,28 @@ cc_library(
   ":compressed_vertex",
   ":edge_array",
   ":edge_map_reduce",
+  ":edge_map_data",
   ":flags",
   ":graph_mutation",
   ":ligra",
   ":macros",
   ":vertex",
   ":vertex_subset",
+  ]
+)
+
+cc_library(
+  name = "graph_io",
+  hdrs = ["graph_io.h"],
+  srcs = ["graph_io.cc"],
+  deps = [
+  ":graph",
+  ":io",
+  ":macros",
+  ":vertex",
+  "//pbbslib:sample_sort",
+  "//pbbslib:stlalgs",
+  "//pbbslib/strings:string_basics",
   ]
 )
 
@@ -166,47 +199,13 @@ cc_library(
 )
 
 cc_library(
-  name = "ligra",
-  hdrs = ["ligra.h"],
-  srcs = ["ligra.cc"],
+  name = "io",
+  hdrs = ["io.h"],
+  srcs = ["io.cc"],
   deps = [
-  ":bridge",
-  ":compressed_vertex",
-  ":edge_map_utils",
-  ":edge_map_blocked",
-  ":flags",
-  ":vertex",
-  ":vertex_subset",
-  ]
-)
-
-# main header
-cc_library(
-  name = "gbbs",
-  hdrs = ["gbbs.h"],
-  deps = [
-  ":benchmark",
-  ":bridge",
-  ":graph",
   ":macros",
-  ":vertex_subset",
   ]
 )
-
-
-
-# main header
-cc_library(
-  name = "julienne",
-  hdrs = ["julienne.h"],
-  deps = [
-  ":gbbs",
-  ":bucket",
-  "//gbbs/pbbslib:dyn_arr",
-  ]
-)
-
-
 
 cc_library(
   name = "benchmark",
@@ -287,6 +286,3 @@ cc_library(
   ]
 )
 
-package(
-  default_visibility = ["//visibility:public"],
-)

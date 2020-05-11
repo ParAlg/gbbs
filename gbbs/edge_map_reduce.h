@@ -26,7 +26,6 @@
 #include "bridge.h"
 #include "flags.h"
 #include "histogram.h"
-#include "ligra.h"
 
 #include <type_traits>
 

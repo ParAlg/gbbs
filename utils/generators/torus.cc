@@ -15,7 +15,7 @@
 #include <math.h>
 #include "../src/oldlib/benchIO.h"
 #include "../src/oldlib/parse_command_line.h"
-#include "ligra.h"
+#include "gbbs.h"
 #include "utils.h"
 
 #include <algorithm>

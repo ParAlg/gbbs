@@ -24,7 +24,7 @@
 #pragma once
 
 #include "reorder.h"
-#include "ligra/gbbs.h"
+#include "gbbs/gbbs.h"
 
 enum mis_status {
   in,

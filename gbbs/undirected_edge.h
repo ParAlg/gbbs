@@ -3,7 +3,7 @@
 #include <ostream>
 #include <utility>
 
-#include "ligra/macros.h"
+#include "gbbs/macros.h"
 
 class UndirectedEdge;
 

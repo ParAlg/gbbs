@@ -39,7 +39,7 @@
 // -s -m com-orkut.ungraph.txt_SJ
 
 #include "Biconnectivity.h"
-#include "ligra/pbbslib/sparse_additive_map.h"
+#include "gbbs/pbbslib/sparse_additive_map.h"
 #include "pbbslib/strings/string_basics.h"
 
 template <template <typename W> class vertex, class W>

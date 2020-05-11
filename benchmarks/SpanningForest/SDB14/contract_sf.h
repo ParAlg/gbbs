@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/graph.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/graph.h"
 #include <tuple>
 
 namespace contract_sf {

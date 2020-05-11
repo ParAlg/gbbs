@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "ligra/graph.h"
-#include "ligra/ligra.h"
-#include "ligra/graph_test_utils.h"
-#include "ligra/semiasym/graph_filter.h"
+#include "gbbs/graph.h"
+#include "gbbs/ligra.h"
+#include "gbbs/graph_test_utils.h"
+#include "gbbs/semiasym/graph_filter.h"
 #include "pbbslib/seq.h"
 
 symmetric_graph<symmetric_vertex, pbbs::empty> CreateStar(size_t n) {

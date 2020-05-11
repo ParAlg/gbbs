@@ -12,10 +12,10 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "ligra/graph.h"
-#include "ligra/graph_test_utils.h"
-#include "ligra/undirected_edge.h"
-#include "ligra/vertex.h"
+#include "gbbs/graph.h"
+#include "gbbs/graph_test_utils.h"
+#include "gbbs/undirected_edge.h"
+#include "gbbs/vertex.h"
 #include "pbbslib/seq.h"
 
 using ::testing::ElementsAre;
