@@ -170,13 +170,13 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     bktt.start();
     // Rebucket the active sets. Ignore those that joined the cover.
     active.toSparse();
-    auto f = [&](size_t i) -> Maybe<std::tuple<uintE, uintE>> {
+    auto f = [&](size_t i) -> std::optional<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
       const uintE v_bkt = D[v];
       uintE bucket = UINT_E_MAX;
       if (!(v_bkt == UINT_E_MAX))
         bucket = b.get_bucket(v_bkt);
-      return Maybe<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
+      return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
     };
     //std::cout << "cover.size = " << cover.size << "\n";
     b.update_buckets(f, active.size());

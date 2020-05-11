@@ -66,6 +66,14 @@ struct symmetric_graph {
   /* called to delete the graph */
   std::function<void()> deletion_fn;
 
+  symmetric_graph() :
+    v_data(nullptr),
+    e0(nullptr),
+    e1(nullptr),
+    n(0),
+    m(0),
+    deletion_fn([](){}) {}
+
 symmetric_graph(vertex_data* v_data, size_t n, size_t m,
     std::function<void()> _deletion_fn, edge_type* _e0, edge_type* _e1=nullptr)
       : v_data(v_data),
@@ -199,6 +207,17 @@ struct asymmetric_graph {
     }
   }
 #endif
+
+  asymmetric_graph() :
+    n(0),
+    m(0),
+    deletion_fn([](){}),
+    v_out_data(nullptr),
+    v_in_data(nullptr),
+    out_edges_0(nullptr),
+    out_edges_1(nullptr),
+    in_edges_0(nullptr),
+    in_edges_1(nullptr) {}
 
   asymmetric_graph(vertex_data* v_out_data,
       vertex_data* v_in_data,

@@ -15,7 +15,6 @@ cc_library(
 cc_library(
   name = "concurrent_stack",
   hdrs = ["concurrent_stack.h"],
-  deps = [":maybe"],
 )
 
 cc_library(
@@ -30,7 +29,6 @@ cc_library(
   srcs = ["alloc.cc"],
   deps = [
   ":concurrent_stack",
-  ":maybe",
   ":memory_size",
   ":parallel",
   ],
@@ -209,7 +207,6 @@ cc_library(
   ":utilities",
   ":concurrent_stack",
   ":random_shuffle",
-  ":maybe",
   ":memory_size"
   ]
 )
@@ -301,11 +298,6 @@ cc_library(
   ":range_min",
   ":utilities"
   ]
-)
-
-cc_library(
-  name = "maybe",
-  hdrs = ["maybe.h"],
 )
 
 cc_library(

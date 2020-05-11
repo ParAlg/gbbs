@@ -3,7 +3,6 @@ cc_library(
     srcs = ["string_basics.cc"],
     hdrs = ["string_basics.h"],
     deps = [
-        "//pbbslib:maybe",
         "//pbbslib:sequence",
     ],
 )

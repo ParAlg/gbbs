@@ -9,6 +9,32 @@ namespace gbbs_io {
 typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
 
+namespace {
+
+// Starting from the current position, skips all consecutive lines in the stream
+// that start with '#' or are empty.
+//
+// The intent here is that lines starting with '#' are interpreted to be
+// comments that should be ignored.
+void skip_ifstream_comments(std::ifstream* stream) {
+  std::string line;
+  while (*stream) {
+    std::streampos current_position = stream->tellg();
+    std::getline(*stream, line);
+    if (!(line.empty() || line[0] == '#')) {
+      stream->seekg(current_position);
+      return;
+    }
+  }
+}
+
+}  // namespace
+
+template <>
+Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
+  : from(_from)
+  , to(_to) {}
+
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, intE>*>
 parse_weighted_graph(const char* fname, bool mmap, char* bytes, size_t bytes_size) {
   sequence<char*> tokens;
@@ -29,7 +55,7 @@ parse_weighted_graph(const char* fname, bool mmap, char* bytes, size_t bytes_siz
     }
   }
   tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-  assert(tokens[0] == (std::string) "WeightedAdjacencyGraph");
+  assert(tokens[0] == internal::kWeightedAdjGraphHeader);
 
   uint64_t len = tokens.size() - 1;
   uint64_t n = atol(tokens[1]);
@@ -170,7 +196,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
   }
   tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
 
-  assert(tokens[0] == (std::string) "AdjacencyGraph");
+  assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
 
   uint64_t n = atol(tokens[1]);
   uint64_t m = atol(tokens[2]);
@@ -300,6 +326,42 @@ std::tuple<char*, size_t> parse_compressed_graph(
     std::tie(bytes, bytes_size) = read_o_direct(fname);
   }
   return std::make_tuple(bytes, bytes_size);
+}
+
+std::vector<Edge<intT>> read_weighted_edge_list(const char* filename) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+  skip_ifstream_comments(&file);
+
+  std::vector<Edge<intT>> edge_list;
+  uintE from;
+  uintE to;
+  intT weight;
+  while (file >> from >> to >> weight) {
+    edge_list.emplace_back(from, to, weight);
+  }
+  return edge_list;
+}
+
+std::vector<Edge<pbbslib::empty>>
+read_unweighted_edge_list(const char* filename) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+  skip_ifstream_comments(&file);
+
+  std::vector<Edge<pbbslib::empty>> edge_list;
+  uintE from;
+  uintE to;
+  while (file >> from >> to) {
+    edge_list.emplace_back(from, to);
+  }
+  return edge_list;
 }
 
 }  // namespace gbbs_io

@@ -30,8 +30,9 @@
 #include <tuple>
 #include <assert.h>
 
-#include "bridge.h"
 #include "pbbslib/counting_sort_no_transpose.h"
+#include "bridge.h"
+#include "macros.h"
 #include "sequential_ht.h"
 
 namespace pbbslib {
@@ -393,7 +394,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   sequence<size_t> out_offs = sequence<size_t>(num_buckets + 1);
   sequence<size_t> ht_offs = sequence<size_t>(num_buckets + 1);
 
-  using MO = Maybe<O>;
+  using MO = std::optional<O>;
   MO heavy_cts_stk[128];
   MO* heavy_cts;
   if (heavy) {
@@ -403,7 +404,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
       heavy_cts = heavy_cts_stk;
     }
     //      for (size_t i=0; i<num_heavy; i++) {
-    //        heavy_cts[i] = Maybe<O>();
+    //        heavy_cts[i] = std::nullopt;
     //        std::cout << "cnt i = " << i << " = " <<
     //        bkt_counts[(num_buckets+i)*S_STRIDE] << "\n";
     //      }
@@ -500,7 +501,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
         }
         assert(is_set);
 
-        Maybe<O> value = apply_f(std::make_tuple(key, total_ct));
+        std::optional<O> value = apply_f(std::make_tuple(key, total_ct));
         heavy_cts[bkt_id] = value;
       }
     };
@@ -521,7 +522,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
 
   if (heavy) {
     for (size_t i = 0; i < num_heavy; i++) {
-      if (isSome(heavy_cts[i])) {
+      if (heavy_cts[i].has_value()) {
         ct++;
       }
     }
@@ -552,8 +553,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     size_t heavy_off = 0;
     for (size_t i = 0; i < num_heavy; i++) {
       auto& value = heavy_cts[i];
-      if (isSome(value)) {
-        res[heavy_start + heavy_off++] = getT(value);
+      if (value.has_value()) {
+        res[heavy_start + heavy_off++] = *value;
       }
     }
   }
@@ -592,7 +593,7 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
 // B : inmap<keys> (numeric so that we can hash)
 // E : type of intermediate elements (what we count sort)
 // Q : reduction (seqHT<uintE, E>&, E&) -> void
-// F : std::tuple<K, Elm> -> Maybe<uintE>
+// F : std::tuple<K, Elm> -> std::optional<uintE>
 template <class E, class O, class K, class V, class A, class B, class Reduce,
           class Apply>
 inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,

@@ -64,10 +64,10 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       D[v] -= edgesRemoved;
-      return Maybe<std::tuple<uintE,uintE>>();
+      return std::nullopt;
     };
 
     auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
@@ -116,10 +116,10 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
       auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-          -> const Maybe<std::tuple<uintE, uintE> > {
+          -> const std::optional<std::tuple<uintE, uintE> > {
         uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
         D[v] -= edgesRemoved;
-        return Maybe<std::tuple<uintE,uintE>>();
+        return std::nullopt;
       };
 
       auto moved = em.template edgeMapCount<uintE>(vs, apply_f, no_output);

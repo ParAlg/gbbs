@@ -56,7 +56,7 @@ void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
 
 template <class Graph, class Graph2, class F, class I>
 inline size_t triUpdate_serial(Graph& G, Graph2& DG, F get_active,
-  size_t active_size, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, 
+  size_t active_size, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts,
   bool do_update_changed, I update_changed, sequence<uintE>& update_idxs) {
   using W = typename Graph::weight_type;
 
@@ -108,7 +108,7 @@ inline size_t triUpdate_serial(Graph& G, Graph2& DG, F get_active,
 
 
 template <class Graph, class Graph2, class F, class H, class I>
-inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, size_t granularity, char* still_active, 
+inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, size_t granularity, char* still_active,
   sequence<uintE> &rank, sequence<size_t>& per_processor_counts, H update, bool do_update_changed, I update_changed) {
   using W = typename Graph::weight_type;
   auto n = G.n;
@@ -199,9 +199,9 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Mark every vertex in the active set
   parallel_for (0, active_size, [&] (size_t j) {still_active[get_active(j)] = 1;}, 2048);
-  
+
   // Hash table to contain clique count updates
-  size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n); 
+  size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
   auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
@@ -258,7 +258,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
 template <class Graph, class Graph2, class F, class I>
 inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool label, F get_active,
-  size_t active_size, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts, 
+  size_t active_size, char* still_active, sequence<uintE> &rank, sequence<size_t>& per_processor_counts,
   bool do_update_changed, I update_changed, sequence<uintE>& update_idxs) {
   const size_t n = G.n;
 
@@ -357,7 +357,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     auto bkt = b.next_bucket();
     auto active = vertexSubset(n, bkt.identifiers);
     cur_bkt = bkt.id;
-    
+
     finished += active.size();
     max_bkt = std::max(cur_bkt, max_bkt);
 
@@ -402,13 +402,13 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
       filter_size = filter_size_serial;
     }
 
-    auto apply_f = [&](size_t i) -> Maybe<std::tuple<uintE, bucket_t>> {
+    auto apply_f = [&](size_t i) -> std::optional<std::tuple<uintE, bucket_t>> {
       uintE v = std::get<0>(D_filter[i]);
       bucket_t bucket = std::get<1>(D_filter[i]);
       if (v != UINT_E_MAX && still_active[v] != 2) return wrap(v, bucket);
-      return Maybe<std::tuple<uintE, bucket_t> >();
+      return std::nullopt;
     };
-  
+
     b.update_buckets(apply_f, filter_size);
 
     parallel_for (0, active.size(), [&] (size_t j) {cliques[active.vtx(j)] = 0;}, 2048);
@@ -538,7 +538,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   if (last_arr) {
     pbbs::free_array(last_arr);
   }
- 
+
 double tt2 = t2.stop();
 std::cout << "### Peel Running Time: " << tt2 << std::endl;
 std::cout << "rho: " << round << std::endl;

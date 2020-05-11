@@ -37,10 +37,10 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
         D[v] -= edgesRemoved;
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
     auto active =
         vertexSubset(n, end - start, sortD.begin() + start);

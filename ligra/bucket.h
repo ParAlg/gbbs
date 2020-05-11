@@ -40,8 +40,8 @@
 #include <limits>
 #include <tuple>
 #include <cassert>
+#include <optional>
 
-#include "maybe.h"
 #include "vertex_subset.h"
 #include "bridge.h"
 
@@ -115,12 +115,12 @@ struct buckets {
 
     // Update buckets with all (id, bucket) pairs. Identifiers with bkt =
     // null_bkt are ignored by update_buckets.
-    auto get_id_and_bkt = [&](ident_t i) -> Maybe<std::tuple<ident_t, bucket_id> > {
+    auto get_id_and_bkt = [&](ident_t i) -> std::optional<std::tuple<ident_t, bucket_id> > {
       bucket_id bkt = _d[i];
       if (bkt != null_bkt) {
         bkt = to_range(bkt);
       }
-      return Maybe<std::tuple<ident_t, bucket_id> >(std::make_tuple(i, bkt));
+      return std::optional<std::tuple<ident_t, bucket_id> >(std::make_tuple(i, bkt));
     };
     update_buckets(get_id_and_bkt, n);
   }
@@ -213,8 +213,8 @@ struct buckets {
       }
       for (size_t j = s; j < e; j++) {
         auto m = f(j);
-        bucket_id b = std::get<1>(m.t);
-        if (m.exists && b != null_bkt) {
+        bucket_id b = std::get<1>(*m);
+        if (m.has_value() && b != null_bkt) {
           hist[b]++;
         }
       }
@@ -261,9 +261,9 @@ struct buckets {
       // our buckets are now spread out, across outs
       for (size_t j = s; j < e; j++) {
         auto m = f(j);
-        ident_t v = std::get<0>(m.t);
-        bucket_id b = std::get<1>(m.t);
-        if (m.exists && b != null_bkt) {
+        ident_t v = std::get<0>(*m);
+        bucket_id b = std::get<1>(*m);
+        if (m.has_value() && b != null_bkt) {
           size_t ind = hists[(b * num_blocks + i) * CACHE_LINE_S];
           bkts[b].insert(v, ind);
           hists[(b * num_blocks + i) * CACHE_LINE_S]++;
@@ -302,10 +302,10 @@ struct buckets {
     size_t ne_before = num_elms;
     for (size_t i = 0; i < k; i++) {
       auto m = f(i);
-      bucket_id bkt = std::get<1>(m.t);
-      if (m.exists && bkt != null_bkt) {
+      bucket_id bkt = std::get<1>(*m);
+      if (m.has_value() && bkt != null_bkt) {
         bkts[bkt].resize(1);
-        insert_in_bucket(bkt, std::get<0>(m.t));
+        insert_in_bucket(bkt, std::get<0>(*m));
         num_elms++;
       }
     }
@@ -334,10 +334,10 @@ struct buckets {
     }
     bkts[open_buckets].size = 0;  // reset size
 
-    auto g = [&](ident_t i) -> Maybe<std::tuple<ident_t, bucket_id> > {
+    auto g = [&](ident_t i) -> std::optional<std::tuple<ident_t, bucket_id> > {
       ident_t v = tmp[i];
       bucket_id bkt = to_range(d[v]);
-      return Maybe<std::tuple<ident_t, bucket_id> >(std::make_tuple(v, bkt));
+      return std::optional<std::tuple<ident_t, bucket_id> >(std::make_tuple(v, bkt));
     };
 
     if (m != num_elms) {
@@ -420,6 +420,15 @@ struct buckets {
     return std::move(ret);
   }
 };
+
+inline const std::optional<std::tuple<uintE, uintE> > wrap(const uintE& l,
+                                                           const uintE& r) {
+  if ((l != UINT_E_MAX) && (r != UINT_E_MAX)) {
+    return {std::make_tuple(l, r)};
+  } else {
+    return std::nullopt;
+  }
+}
 
 template <class ident_t, class bucket_t, class D>
 inline buckets<D, ident_t, bucket_t> make_buckets(size_t n, D d, bucket_order order,

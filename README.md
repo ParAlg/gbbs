@@ -106,7 +106,7 @@ $ bazel build  //...  # compiles all benchmarks
 # `export CILK=1` to compile with Cilk Plus.
 # After that, build using `make`.
 $ cd benchmarks/BFS/NonDeterministicBFS  # go to a benchmark
-$ make -j  # build the benchmark with all threads
+$ make
 ```
 Note that the default compilation mode in bazel is to build optimized binaries
 (stripped of debug symbols). You can compile debug binaries by supplying `-c
@@ -129,8 +129,8 @@ called with the "-s" flag for better performance. For example:
 
 ```sh
 # For Bazel:
-$ bazel run --compilation_mode opt ///benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
-$ bazel run --compilation_mode opt ///benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
+$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -src 10 ~/gbbs/inputs/rMatGraph_J_5_100
+$ bazel run //benchmarks/IntegralWeightSSSP/JulienneDBS17:wBFS_main -- -s -w -src 15 ~/gbbs/inputs/rMatGraph_WJ_5_100
 
 # For Make:
 $ ./BFS -s -src 10 ../../../inputs/rMatGraph_J_5_100
@@ -159,8 +159,8 @@ outputs a bytePDA graph. The converter can be used as follows:
 
 ```sh
 # For Bazel:
-bazel run --compilation_mode opt //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
-bazel run --compilation_mode opt //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
+bazel run //utils:compressor -- -s -o ~/gbbs/inputs/rMatGraph_J_5_100.bytepda ~/gbbs/inputs/rMatGraph_J_5_100
+bazel run //utils:compressor -- -s -w -o ~/gbbs/inputs/rMatGraph_WJ_5_100.bytepda ~/gbbs/inputs/rMatGraph_WJ_5_100
 
 # For Make:
 ./compressor -s -o ../inputs/rMatGraph_J_5_100.bytepda ../inputs/rMatGraph_J_5_100
@@ -173,7 +173,7 @@ an additional `-c` flag.
 
 ```sh
 # For Bazel:
-$ bazel run --compilation_mode opt //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
+$ bazel run //benchmarks/BFS/NonDeterministicBFS:BFS_main -- -s -c -src 10 ~/gbbs/inputs/rMatGraph_J_5_100.bytepda
 
 # For Make:
 $ ./BFS -s -c -src 10 ../../../inputs/rMatGraph_J_5_100.bytepda
@@ -221,3 +221,22 @@ This file is represented as plain text.
 Weighted graphs are represented in the weighted adjacency graph format. The file
 should start with the string "WeightedAdjacencyGraph". The m edge weights
 should be stored after all of the edge targets in the .adj file.
+
+**Using SNAP graphs**
+
+Graphs from the [SNAP dataset
+collection](https://snap.stanford.edu/data/index.html) are commonly used for
+graph algorithm benchmarks. We provide a tool that converts the most common SNAP
+graph format to the adjacency graph format that GBBS accepts. Usage example:
+```sh
+# Download a graph from the SNAP collection.
+wget https://snap.stanford.edu/data/wiki-Vote.txt.gz
+gzip --decompress ${PWD}/wiki-Vote.txt.gz
+# Run the SNAP-to-adjacency-graph converter.
+# Run with Bazel:
+bazel run //utils:snap_converter -- -s -i ${PWD}/wiki-Vote.txt -o <output file>
+# Or run with Make:
+#   cd utils
+#   make snap_converter
+#   ./snap_converter -s -i <input file> -o <output file>
+```
