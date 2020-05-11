@@ -423,3 +423,40 @@ inline vertexSubset vertexFilter(VS& vs, F filter, flags fl) {
   }
   return vertexFilter_sparse(vs, filter);
 }
+
+template <class VS,
+          typename std::enable_if<std::is_same<VS, vertexSubset>::value,
+                                  int>::type = 0>
+void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts) {
+  if (vs.isDense) {
+    par_for(0, num_new_verts, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                    { vs.d[new_verts[i]] = true; });
+    vs.m += num_new_verts;
+  } else {
+    const size_t vs_size = vs.numNonzeros();
+    const size_t new_size = num_new_verts + vs_size;
+    uintE* all_verts = pbbslib::new_array_no_init<uintE>(new_size);
+    par_for(0, new_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                    {
+                      if (i < vs_size) {
+                        all_verts[i] = vs.s[i];
+                      } else {
+                        all_verts[i] = new_verts[i - vs_size];
+                      }
+                    });
+    uintE* old_s = vs.s;
+    vs.s = all_verts;
+    vs.m = new_size;
+    if (old_s) {
+      pbbslib::free_array(old_s);
+    }
+  }
+}
+
+template <class VS,
+          typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
+                                  int>::type = 0>
+void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts) {
+  std::cout << "Currently unimplemented" << std::endl;
+  exit(-1);
+}

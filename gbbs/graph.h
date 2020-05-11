@@ -24,11 +24,11 @@
 #pragma once
 
 #include <string>
-
 #include <stdlib.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <optional>
 
 #include "bridge.h"
 #include "compressed_vertex.h"
@@ -37,7 +37,6 @@
 #include "edge_map_data.h"
 #include "flags.h"
 #include "graph_mutation.h"
-#include "ligra.h"
 #include "macros.h"
 #include "vertex.h"
 #include "vertex_subset.h"
@@ -110,7 +109,7 @@ struct symmetric_graph {
   template <
       class Data,  /* data associated with vertices in the output vertex_subset */
       class Apply, /* function from std::tuple<uintE, uintE> ->
-                    * Maybe<std::tuple<uintE, Data>> */
+                    * std::optional<std::tuple<uintE, Data>> */
       class VS>
   inline vertexSubsetData<Data> nghCount(VS& vs, pbbslib::hist_table<uintE, Data>& ht,
       Apply apply_f, flags fl = 0) {
@@ -124,7 +123,7 @@ struct symmetric_graph {
   template <class VS>
   inline vertexSubsetData<uintE> nghCount(VS& vs, flags fl = 0) {
     auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
-      return Maybe<std::tuple<uintE, uintE>>(ct);
+      return std::optional<std::tuple<uintE, uintE>>(ct);
     };
     return edgeMapCount<uintE, decltype(apply_f), VS>(vs, apply_f, fl);
   }
@@ -153,7 +152,7 @@ struct symmetric_graph {
   template <class VS, class Map, class Reduce>
   inline vertexSubsetData<uintE> nghReduce(VS& vs, Map map_f, Reduce reduce_f, flags fl = 0) {
     auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
-      return Maybe<std::tuple<uintE, uintE>>(ct);
+      return std::optional<std::tuple<uintE, uintE>>(ct);
     };
     return edgeMapCount<uintE, decltype(apply_f), VS>(vs, apply_f, fl);
   }

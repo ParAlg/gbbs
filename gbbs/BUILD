@@ -87,6 +87,7 @@ cc_library(
   ":bridge",
   ":histogram",
   ":flags",
+  ":vertex_subset",
   ]
 )
 
@@ -151,7 +152,6 @@ cc_library(
   ":edge_map_data",
   ":flags",
   ":graph_mutation",
-  ":ligra",
   ":macros",
   ":vertex",
   ":vertex_subset",

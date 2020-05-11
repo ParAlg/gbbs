@@ -23,13 +23,13 @@ ALL_OBJS_CLEAN = $(LIGRA_OBJS_CLEAN) $(LIGRA_ENCODING_OBJS_CLEAN) $(PBBSLIB_OBJS
 
 other : $(OTHER)
 
-gbbs : 
+gbbs :
 	make -C $(ROOTDIR)gbbs/
 
-pbbslib : 
+pbbslib :
 	make -C $(ROOTDIR)pbbslib/
 
-gbbs_encodings : 
+gbbs_encodings :
 	make -C $(ROOTDIR)gbbs/encodings/
 
 pbbslib_strings :
@@ -37,7 +37,7 @@ pbbslib_strings :
 
 % : %.cc pbbslib gbbs gbbs_encodings pbbslib_strings other
 	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LINKER_START_GROUP) $(ALL_OBJS) $(LINKER_END_GROUP) -pthread $(LFLAGS)
-#-Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -lstdc++ -fuse-ld=gold 
+#-Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -lstdc++ -fuse-ld=gold
 
 .PHONY : clean
 
