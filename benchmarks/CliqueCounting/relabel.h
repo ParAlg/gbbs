@@ -126,7 +126,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   auto edge_arr = edges.to_array();
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
-                            get_deletion_fn(out_vdata, edge_arr),
+                            [=]() {pbbslib::free_arrays(out_vdata, edge_arr); },
                             edge_arr, edge_arr);
 }
 
@@ -190,7 +190,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   auto out_edge_arr = out_edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, GA.n, outEdgeCount,
-      get_deletion_fn(out_vdata, out_edge_arr),
+      [=]() {pbbslib::free_arrays(out_vdata, out_edge_arr); },
       out_edge_arr);
 }
 

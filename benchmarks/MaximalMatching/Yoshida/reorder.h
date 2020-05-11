@@ -48,5 +48,5 @@ auto reorder_graph(Graph& G, F& edge_pri) {
     v_data[i].degree = offs[i+1] - o;
   });
 
-  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, get_deletion_fn(v_data, edges), edges);
+  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {pbbslib::free_arrays(v_data, edges);}, edges);
 }
