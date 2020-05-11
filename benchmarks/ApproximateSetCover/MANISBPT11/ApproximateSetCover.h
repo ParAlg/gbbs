@@ -107,7 +107,8 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto above_threshold = [&](const uintE& v, const uintE& deg) {
       return deg >= threshold;
     };
-    auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
+    //auto still_active = vertexFilter_sparse(packed_vtxs, above_threshold);
+    auto still_active = vertexFilter(packed_vtxs, above_threshold, no_dense);
     packed_vtxs.del();
 
     permt.start();
@@ -143,9 +144,10 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto activeAndCts = G.srcCount(still_active, won_ngh_f);
     vertexMap(activeAndCts, threshold_f);
     auto inCover =
-        vertexFilter2(activeAndCts, [&](const uintE& v, const uintE& numWon) {
+        vertexFilter(activeAndCts, [&](const uintE& v, const uintE& numWon) {
+        //vertexFilter_sparse(activeAndCts, [&](const uintE& v, const uintE& numWon) {
           return numWon >= low_threshold;
-        });
+        }, no_dense);
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
     inCover.del();
     activeAndCts.del();

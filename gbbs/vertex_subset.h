@@ -331,8 +331,6 @@ struct vertexSubsetData<pbbslib::empty> {
 };
 using vertexSubset = vertexSubsetData<pbbslib::empty>;
 
-
-
 /* ======================== Functions on VertexSubsets ====================== */
 
 // Takes a vertexSubsetData (with some non-trivial Data) and applies a map
@@ -374,31 +372,38 @@ inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThre
   }
 }
 
-template <class F, class VS>
-inline vertexSubset vertexFilter_dense(VS& V, F filter) {
+template <class F, class Data>
+inline vertexSubset vertexFilter_dense(vertexSubsetData<Data>& V, F filter, size_t granularity=pbbslib::kSequentialForThreshold) {
   size_t n = V.numRows();
   V.toDense();
   bool* d_out = pbbslib::new_array_no_init<bool>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { d_out[i] = 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    if (V.d[i]) d_out[i] = filter(i);
-  });
+  parallel_for(0, n, [&] (size_t i) { d_out[i] = 0; }, granularity);
+  parallel_for(0, n, [&] (size_t i) {
+    if constexpr (std::is_same<Data, pbbs::empty>::value) {
+      if (V.isIn(i)) d_out[i] = filter(i);
+    } else {
+      if (V.isIn(i)) d_out[i] = filter(i, V.ithData(i));
+    }
+  }, granularity);
   return vertexSubset(n, d_out);
 }
 
-template <class F, class VS>
-inline vertexSubset vertexFilter_sparse(VS& V, F filter) {
+template <class F, class Data>
+inline vertexSubset vertexFilter_sparse(vertexSubsetData<Data>& V, F filter, size_t granularity=pbbslib::kSequentialForThreshold) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (m == 0) {
     return vertexSubset(n);
   }
   bool* bits = pbbslib::new_array_no_init<bool>(m);
   V.toSparse();
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  parallel_for(0, m, [&] (size_t i) {
     uintE v = V.vtx(i);
-    bits[i] = filter(v);
-  });
+    if constexpr (std::is_same<Data, pbbs::empty>::value) {
+      bits[i] = filter(v);
+    } else {
+      bits[i] = filter(v, V.vtxData(i));
+    }
+  }, granularity);
   auto v_imap = pbbslib::make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
   auto bits_m = pbbslib::make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbslib::pack(v_imap, bits_m);
@@ -411,14 +416,14 @@ inline vertexSubset vertexFilter_sparse(VS& V, F filter) {
 // the intended use-case in all current uses). Should refactor at some point to
 // make keeping/removing the data a choice.
 template <class F, class VS>
-inline vertexSubset vertexFilter(VS& vs, F filter, flags fl) {
-  if (dense_only) {
+inline vertexSubset vertexFilter(VS& vs, F filter, flags fl = 0) {
+  if (fl == dense_only) {
     return vertexFilter_dense(vs, filter);
-  } else if (no_dense) {
+  } else if (fl == no_dense) {
     return vertexFilter_sparse(vs, filter);
   }
   // TODO: can measure selectivity and call sparse/dense based on a sample.
-  if (vs.dense) {
+  if (vs.dense()) {
     return vertexFilter_dense(vs, filter);
   }
   return vertexFilter_sparse(vs, filter);
@@ -427,10 +432,10 @@ inline vertexSubset vertexFilter(VS& vs, F filter, flags fl) {
 template <class VS,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts) {
+void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts, size_t granularity=pbbslib::kSequentialForThreshold) {
   if (vs.isDense) {
-    par_for(0, num_new_verts, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { vs.d[new_verts[i]] = true; });
+    parallel_for(0, num_new_verts, [&] (size_t i)
+                    { vs.d[new_verts[i]] = true; }, granularity);
     vs.m += num_new_verts;
   } else {
     const size_t vs_size = vs.numNonzeros();
@@ -456,7 +461,7 @@ void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts) {
 template <class VS,
           typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
-void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts) {
+void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts, size_t granulairty=pbbslib::kSequentialForThreshold) {
   std::cout << "Currently unimplemented" << std::endl;
   exit(-1);
 }

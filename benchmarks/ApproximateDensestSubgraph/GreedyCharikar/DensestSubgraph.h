@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/edge_map_reduce.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
