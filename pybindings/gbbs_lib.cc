@@ -61,21 +61,21 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = BFS(G, src);
       return 1.0;
-    })
-    .def("Components", [&] (graph& G, const size_t src) {
+    }, py::arg("src"))
+    .def("Connectivity", [&] (graph& G) {
       auto ccs = workefficient_cc::CC(G);
       uintE* arr = ccs.to_array();
       return wrap_array(arr, G.n);
     })
-    .def("KCore", [&] (graph& G, const size_t src) {
+    .def("KCore", [&] (graph& G) {
       auto cores = KCore(G);
       uintE* arr = cores.to_array();
       return wrap_array(arr, G.n);
     })
-    .def("CoSimRank", [&] (graph& G, const size_t u, const size_t v) {
-      CoSimRank(G, u, v);
+    .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
+      CoSimRank(G, src, dest);
       return 1.0;
-    });
+    }, py::arg("src"), py::arg("dest"));
 }
 
 /* Defines asymmetric vertex functions */
