@@ -1,8 +1,9 @@
 #include "alloc.h"
 
-#include "maybe.h"
 #include "memory_size.h"
 #include "parallel.h"
+
+#include <optional>
 
 #if defined(__APPLE__)
 #else
@@ -52,10 +53,10 @@ void* mem_pool::alloc(size_t s) {
     return add_header(a);
   }
   size_t bucket = log_size - log_base;
-  maybe<void*> r = buckets[bucket].pop();
+  std::optional<void*> r = buckets[bucket].pop();
   size_t n = ((size_t)1) << log_size;
   used += n;
-  if (r) {
+  if (r.has_value()) {
     // if (n > 10000000) cout << "alloc: " << add_header(*r) << ", " << n <<
     // endl;
     return add_header(*r);
@@ -100,8 +101,8 @@ void mem_pool::afree(void* a) {
 void mem_pool::clear() {
   for (size_t i = 0; i < num_buckets; i++) {
     size_t n = ((size_t)1) << (i + log_base);
-    maybe<void*> r = buckets[i].pop();
-    while (r) {
+    std::optional<void*> r = buckets[i].pop();
+    while (r.has_value()) {
       allocated -= n;
       free(*r);
       r = buckets[i].pop();

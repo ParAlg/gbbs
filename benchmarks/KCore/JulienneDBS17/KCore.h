@@ -51,7 +51,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     k_max = std::max(k_max, bkt.id);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
       if (deg > k) {
@@ -59,7 +59,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
         D[v] = new_deg;
         return wrap(v, b.get_bucket(new_deg));
       }
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
 
     vertexSubsetData<uintE> moved =
@@ -88,19 +88,19 @@ struct kcore_fetch_add {
   uintE* D;
   uintE k;
   kcore_fetch_add(uintE* _er, uintE* _D, uintE _k) : er(_er), D(_D), k(_k) {}
-  inline Maybe<uintE> update(const uintE& s, const uintE& d, const W& w) {
+  inline std::optional<uintE> update(const uintE& s, const uintE& d, const W& w) {
     er[d]++;
     if (er[d] == 1) {
-      return Maybe<uintE>((uintE)0);
+      return std::optional<uintE>((uintE)0);
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
-  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
+  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& wgh) {
     if (pbbslib::fetch_and_add(&er[d], (uintE)1) == 1) {
-      return Maybe<uintE>((uintE)0);
+      return std::optional<uintE>((uintE)0);
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
   inline bool cond(uintE d) { return D[d] > k; }
 };
@@ -180,7 +180,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     degeneracy_order.copyIn(active_seq, active.size());
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
       if (deg > k) {
@@ -188,7 +188,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
         D[v] = new_deg;
         return wrap(v, b.get_bucket(new_deg));
       }
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
 
     vertexSubsetData<uintE> moved =

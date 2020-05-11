@@ -35,21 +35,21 @@ struct Visit_F {
   sequence<uintE>& width;
   Visit_F(sequence<uintE>& _width) : width(_width) {}
 
-  inline Maybe<uintE> update(const uintE& s, const uintE& d, const intE& w) {
+  inline std::optional<uintE> update(const uintE& s, const uintE& d, const intE& w) {
     uintE oval = width[d];
     uintE bottleneck = oval | TOP_BIT;
     uintE n_width = std::min((width[s] | TOP_BIT), (w | TOP_BIT));
     if (n_width > bottleneck) {
       if (!(oval & TOP_BIT)) {  // First visitor
         width[d] = n_width;
-        return Maybe<uintE>(oval);
+        return std::optional<uintE>(oval);
       }
       width[d] = n_width;
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
 
-  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
+  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const intE& w) {
     uintE oval = width[d];
     uintE bottleneck = oval | TOP_BIT;
@@ -57,11 +57,11 @@ struct Visit_F {
     if (n_width > bottleneck) {
       if (!(oval & TOP_BIT) &&
           pbbslib::atomic_compare_and_swap(&(width[d]), oval, n_width)) {  // First visitor
-        return Maybe<uintE>(oval);
+        return std::optional<uintE>(oval);
       }
       pbbslib::write_max(&(width[d]), n_width);
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
 
   inline bool cond(const uintE& d) const { return true; }

@@ -51,8 +51,8 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, F& f, const flags fl)
   VE* edges = pbbslib::new_array_no_init<VE>(edgeCount);
 
   auto gen = [&](const uintE& ngh, const uintE& offset,
-                 const Maybe<E>& val = Maybe<E>()) {
-    edges[offset] = std::make_tuple(ngh, val.t);
+                 const std::optional<E>& val = std::nullopt) {
+    edges[offset] = std::make_tuple(ngh, *val);
   };
 
   if (fl & in_edges) {
@@ -113,7 +113,7 @@ struct EdgeMap {
   // id: M
   // map_f: (uintE v, uintE ngh) -> M
   // reduce_f: (M, tuple(uintE ngh, M ngh_val)) -> M
-  // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
+  // apply_f: (uintE ngh, M reduced_val) -> std::optional<O>
   template <class O, class M, class Map, class Reduce, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapReduce_sparse(VS& vs, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, const flags fl) {
     size_t m = vs.size();
@@ -149,7 +149,7 @@ struct EdgeMap {
   // id: M
   // map_f: (uintE v, uintE ngh) -> M
   // reduce_f: M * M -> M
-  // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
+  // apply_f: (uintE ngh, M reduced_val) -> std::optional<O>
   template <class O, class M, class Cond, class Map, class Reduce, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapReduce_dense(VS& vs, Cond& cond_f, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, const flags fl) {
     size_t n = G.n;
@@ -181,9 +181,9 @@ struct EdgeMap {
                            G.get_vertex(i).template reduceOutNgh<M>(i, map_f, red_monoid);
           auto tup = std::make_tuple(i, reduced_val);
           auto applied_val = apply_f(tup);
-          if (applied_val.exists) {
+          if (applied_val.has_value()) {
             std::get<0>(out[i]) = true;
-            std::get<1>(out[i]) = std::get<1>(applied_val.t);
+            std::get<1>(out[i]) = std::get<1>(*applied_val);
           }
         }
       }, 1);
@@ -195,7 +195,7 @@ struct EdgeMap {
   // cond_f: uintE -> bool
   // map_f: (uintE v, uintE ngh) -> M
   // reduce_f: M * M -> M
-  // apply_f: (uintE ngh, M reduced_val) -> Maybe<O>
+  // apply_f: (uintE ngh, M reduced_val) -> std::optional<O>
   template <class O, class M, class Cond, class Map, class Reduce, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapReduce(VS& vs, Cond& cond_f, Map& map_f, Reduce& reduce_f, Apply& apply_f, M id, intT threshold = -1, const flags fl = 0) {
     assert(false);
@@ -282,9 +282,9 @@ struct EdgeMap {
         auto tup = std::make_tuple(i, count);
         if (count > 0) {
           auto applied_val = apply_f(tup);
-          if (applied_val.exists) {
+          if (applied_val.has_value()) {
             std::get<0>(out[i]) = true;
-            std::get<1>(out[i]) = std::get<1>(applied_val.t);
+            std::get<1>(out[i]) = std::get<1>(*applied_val);
           } else {
             std::get<0>(out[i]) = false;
           }

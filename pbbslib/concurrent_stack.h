@@ -37,8 +37,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
-
-#include "maybe.h"
+#include <optional>
 
 template <typename T>
 class concurrent_stack {
@@ -114,12 +113,12 @@ class concurrent_stack {
     a.push(x);
   }
 
-  maybe<T> pop() {
+  std::optional<T> pop() {
     Node* x = a.pop();
-    if (!x) return maybe<T>();
+    if (!x) return std::nullopt;
     T r = x->value;
     b.push(x);
-    return maybe<T>(r);
+    return std::optional<T>(r);
   }
 
   // assumes no push or pop in progress

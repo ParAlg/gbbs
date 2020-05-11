@@ -221,7 +221,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       return std::get<1>(eb) != UINT_E_MAX;
     });
     auto edges_moved_f = [&] (size_t i) {
-      return Maybe<std::tuple<edge_t, bucket_t>>(rebucket_edges[i]); };
+      return std::optional<std::tuple<edge_t, bucket_t>>(rebucket_edges[i]); };
 
     bt.start();
     b.update_buckets(edges_moved_f, rebucket_edges.size());
@@ -289,12 +289,12 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       // returns only those vertices that have enough degree lost to warrant
       // packing them out. Again note that edge_t >= uintE
       auto apply_vtx_f = [&](const std::tuple<edge_t, uintE>& p)
-        -> const Maybe<std::tuple<edge_t, uintE> > {
+        -> const std::optional<std::tuple<edge_t, uintE> > {
         uintE id = std::get<0>(p);
         uintE degree_lost = std::get<1>(p);
         actual_degree[id] -= degree_lost;
         // compare with GA.V[id]. this is the current space used for this vtx.
-        return Maybe<std::tuple<edge_t, uintE>>();
+        return std::nullopt;
       };
 
       em_t.start();
