@@ -162,6 +162,8 @@ struct hist_table {
   }
 };
 
+
+
 // Parallelizes across buckets, but does not use light/heavy buckets
 template <class O, class K, class V, class A, class Apply>
 inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,

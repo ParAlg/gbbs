@@ -16,7 +16,7 @@ cc_library(
   deps = [
   ":contract_sf",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:sparse_table"
   ]
 )

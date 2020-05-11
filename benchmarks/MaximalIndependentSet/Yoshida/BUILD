@@ -21,7 +21,7 @@ cc_binary(
   deps = [
   ":MaximalIndependentSet",
   "//gbbs:bridge",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   ]
 )
 

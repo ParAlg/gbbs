@@ -308,8 +308,9 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
 // pred(src, ngh, wgh) == 1 is returned in the output edge array.
-template <template <class W> class vertex, class W, class Graph, class P>
-edge_array<W> sample_edges(Graph& G, P& pred) {
+template <class Graph, class P>
+edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
+  using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.num_vertices();
   auto vtx_offs = sequence<std::tuple<size_t, size_t>>(n + 1);

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "contract_sf.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 

@@ -25,7 +25,7 @@
 
 #include <cmath>
 #include "gbbs/bucket.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;

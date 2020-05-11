@@ -2,7 +2,7 @@ cc_library(
   name = "wBFS",
   hdrs = ["wBFS.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs:bucket",
   ]
 )

@@ -5,7 +5,7 @@ cc_library(
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//pbbslib:sample_sort",
   "//pbbslib:monoid",
   ]

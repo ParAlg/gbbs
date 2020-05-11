@@ -2,7 +2,7 @@ cc_library(
   name = "DeltaStepping",
   hdrs = ["DeltaStepping.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs:bucket",
   ]
 )

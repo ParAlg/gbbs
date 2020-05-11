@@ -4,7 +4,7 @@ cc_library(
   deps = [
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//pbbslib:integer_sort",
   "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph",

@@ -16,7 +16,7 @@
 #include <string>
 
 #include "benchmarks/SCAN/IndexBased/scan.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 // Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>

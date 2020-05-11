@@ -22,7 +22,7 @@
 // SOFTWARE.
 #pragma once
 
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 struct BF_F {
   intE* SP;

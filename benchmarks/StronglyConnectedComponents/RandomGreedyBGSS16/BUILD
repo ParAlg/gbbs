@@ -2,7 +2,7 @@ cc_library(
   name = "StronglyConnectedComponents",
   hdrs = ["StronglyConnectedComponents.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:resizable_table",
   "//pbbslib:random_shuffle"
   ]

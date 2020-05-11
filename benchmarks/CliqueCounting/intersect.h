@@ -9,7 +9,7 @@
 
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 #include "gbbs/pbbslib/sparse_table.h"
 

@@ -24,7 +24,7 @@
 #pragma once
 
 #include <cassert>
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/union_find.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 

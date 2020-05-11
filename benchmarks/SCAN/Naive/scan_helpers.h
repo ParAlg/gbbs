@@ -78,7 +78,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
 
-  graph->map_edges([&graph, &adjacency_list, &similarities](
+  graph->mapEdges([&graph, &adjacency_list, &similarities](
         const uintE u_id, const uintE v_id, NoWeight) {
       if (u_id < v_id) {
         Vertex u{graph->get_vertex(u_id)};

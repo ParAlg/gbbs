@@ -270,8 +270,10 @@ cc_library(
 cc_library(
   name = "vertex_subset",
   hdrs = ["vertex_subset.h"],
+  srcs = ["vertex_subset.cc"],
   deps = [
   ":bridge",
+  ":flags",
   ":macros",
   ]
 )

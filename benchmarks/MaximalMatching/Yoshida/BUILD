@@ -19,7 +19,7 @@ cc_library(
   ":reorder",
   ":yoshida_matching_utils",
   "//gbbs:bridge",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   ]
 )
 
@@ -29,7 +29,7 @@ cc_binary(
   deps = [
   ":MaximalMatching",
   "//gbbs:bridge",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   ]
 )
 

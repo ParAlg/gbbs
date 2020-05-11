@@ -2,7 +2,7 @@ cc_library(
   name = "MaximalIndependentSet",
   hdrs = ["MaximalIndependentSet.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:sparse_table"
   ]
 )

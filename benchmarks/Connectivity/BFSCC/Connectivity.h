@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace bfs_cc {

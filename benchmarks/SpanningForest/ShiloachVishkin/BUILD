@@ -2,7 +2,7 @@ cc_library(
   name = "SpanningForest",
   hdrs = ["SpanningForest.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//benchmarks/SpanningForest:common",
   ]
 )

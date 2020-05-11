@@ -111,21 +111,21 @@ struct symmetric_graph {
       class Apply, /* function from std::tuple<uintE, uintE> ->
                     * std::optional<std::tuple<uintE, Data>> */
       class VS>
-  inline vertexSubsetData<Data> nghCount(VS& vs, pbbslib::hist_table<uintE, Data>& ht,
-      Apply apply_f, flags fl = 0) {
+  inline vertexSubsetData<Data> nghCount(VS& vs, Apply apply_f,
+      pbbslib::hist_table<uintE, Data>& ht, flags fl = 0) {
     static_assert(std::is_same<Data, uintE>::value,
                   "Histogram code used in the implementation is specialized "
                   "for Data == counting_type (in this case uintE) for "
                   "performance.");
-    return edgeMapCount<Data, Apply, VS>(vs, ht, apply_f, fl);
+    return edgeMapCount<Data, Apply, VS>(*this, vs, apply_f, ht, fl);
   }
 
   template <class VS>
-  inline vertexSubsetData<uintE> nghCount(VS& vs, flags fl = 0) {
+  inline vertexSubsetData<uintE> nghCount(VS& vs, pbbslib::hist_table<uintE, uintE>& ht, flags fl = 0) {
     auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
       return std::optional<std::tuple<uintE, uintE>>(ct);
     };
-    return edgeMapCount<uintE, decltype(apply_f), VS>(vs, apply_f, fl);
+    return edgeMapCount<uintE, decltype(apply_f), VS>(*this, vs, apply_f, ht, fl);
   }
 
   template <class P, class VS>
@@ -204,6 +204,11 @@ struct symmetric_graph {
   template <class P>
   edge_array<W> filterAllEdges(P& pred, flags fl = 0) {
     return filter_all_edges(*this, pred, fl);
+  }
+
+  template <class P>
+  edge_array<W> sampleEdges(P& pred) {
+    return sample_edges(*this, pred);
   }
 
   /* ===================== Mutation ==================== */

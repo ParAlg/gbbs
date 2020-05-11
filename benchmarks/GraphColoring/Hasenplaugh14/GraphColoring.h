@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 #include "pbbslib/random_shuffle.h"
 

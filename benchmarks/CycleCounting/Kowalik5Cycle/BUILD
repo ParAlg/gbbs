@@ -2,7 +2,7 @@ cc_library(
   name = "FiveCycle",
   hdrs = ["FiveCycle.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//pbbslib:random_shuffle",
   "//pbbslib:sample_sort",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",

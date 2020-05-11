@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/graph.h"
 #include "pbbslib/seq.h"
 

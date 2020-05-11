@@ -2,7 +2,7 @@ cc_library(
   name = "MinimumSpanningForest",
   hdrs = ["MinimumSpanningForest.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs:union_find",
   "//gbbs/pbbslib:sparse_table",
   "//gbbs/pbbslib:dyn_arr",

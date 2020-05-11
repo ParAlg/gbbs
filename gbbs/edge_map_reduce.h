@@ -149,12 +149,8 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Apply& apply_f,
       auto tup = std::make_tuple(i, count);
       if (count > 0) {
         auto applied_val = apply_f(tup);
-        if (applied_val.exists) {
-          std::get<0>(out[i]) = true;
-          std::get<1>(out[i]) = std::get<1>(applied_val.t);
-        } else {
-          std::get<0>(out[i]) = false;
-        }
+        std::get<0>(out[i]) = applied_val.has_value();
+        std::get<1>(out[i]) = std::get<1>(*applied_val);
       } else {
         std::get<0>(out[i]) = false;
       }

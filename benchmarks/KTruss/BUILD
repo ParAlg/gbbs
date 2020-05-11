@@ -9,7 +9,7 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:bucket",
         "//gbbs:edge_map_reduce",
-        "//gbbs:ligra",
+        "//gbbs:gbbs",
         "//gbbs/pbbslib:dyn_arr",
         "//gbbs/pbbslib:sparse_table",
         "//pbbslib:sample_sort",

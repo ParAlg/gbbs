@@ -24,7 +24,7 @@
 #pragma once
 
 #include "gbbs/bridge.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "reorder.h"
 #include "yoshida_matching_utils.h"
 

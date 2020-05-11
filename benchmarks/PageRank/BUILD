@@ -2,7 +2,7 @@ cc_library(
   name = "PageRank",
   hdrs = ["PageRank.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs:edge_map_reduce",
   "//gbbs/pbbslib:sparse_table",
   ]

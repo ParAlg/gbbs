@@ -4,7 +4,7 @@ cc_library(
   deps = [
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//gbbs/pbbslib:sparse_table",
   ]
@@ -54,7 +54,7 @@ cc_library(
   ":intersect",
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//gbbs/pbbslib:sparse_table",
   "//pbbslib:list_allocator",
@@ -66,7 +66,7 @@ cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs:graph",
   "//pbbslib:seq",
   ]
@@ -84,7 +84,7 @@ cc_library(
   ":peel",
   "//gbbs:bucket",
   "//gbbs:edge_map_reduce",
-  "//gbbs:ligra",
+  "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//pbbslib:assert",
   "//pbbslib:list_allocator",

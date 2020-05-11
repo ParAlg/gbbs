@@ -17,7 +17,6 @@ cc_binary(
   srcs = ["Biconnectivity.cc"],
   deps = [
   ":Biconnectivity",
-  "//gbbs:ligra",
   "//gbbs/pbbslib:sparse_additive_map",
   "//pbbslib/strings:string_basics",
   ]

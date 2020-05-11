@@ -24,7 +24,7 @@
 #pragma once
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 #include "gbbs/pbbslib/sparse_table.h"
 

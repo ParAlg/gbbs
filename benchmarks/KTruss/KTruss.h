@@ -27,7 +27,7 @@
 #include "gbbs/pbbslib/dyn_arr.h"
 #include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/edge_map_reduce.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 #include "truss_utils.h"
 
@@ -36,7 +36,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   using W = typename Graph::weight_type;
 
   timer it; it.start();
-  GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
+  GA.mapEdges([&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
       multi_table.insert(u, std::make_tuple(v,0));
     }
@@ -50,7 +50,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   // 2.(b) Direct edges to point from lower to higher rank vertices.
   auto pack_predicate =
       [&](const uintE& u, const uintE& v, const W& wgh) { return rank[u] < rank[v]; };
-  auto DG = filter_graph(GA, pack_predicate);
+  auto DG = GA.filterGraph(pack_predicate);
   std::cout << "Filtered graph to construct dirgraph: n = " << DG.n << " m = " << DG.m << std::endl;
 
   // Each triangle only found once---increment all three edges
@@ -114,7 +114,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
 
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
-  auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
+  auto em = pbbslib::hist_table<edge_t, bucket_t>(histogram_empty, GA.m/50);
 
   // Store the initial trussness of each edge in the trussness table.
   auto get_size = [&] (size_t vtx) {
@@ -298,7 +298,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       };
 
       em_t.start();
-      em.template edgeMapCount(decr_seq, apply_vtx_f);
+      GA.nghCount(decr_seq, em, apply_vtx_f);
       em_t.stop();
 
       auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });

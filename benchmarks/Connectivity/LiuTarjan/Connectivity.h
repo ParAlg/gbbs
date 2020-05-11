@@ -23,8 +23,7 @@
 
 #pragma once
 
-#include "gbbs/bridge.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "pbbslib/random.h"
 #include "liu_tarjan_rules.h"
 #include "benchmarks/Connectivity/common.h"

@@ -25,7 +25,7 @@
 
 #include <cmath>
 #include "gbbs/bucket.h"
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 namespace widestpath {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
