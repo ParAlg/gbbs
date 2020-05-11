@@ -41,10 +41,6 @@
 #include "vertex.h"
 #include "vertex_subset.h"
 
-std::function<void()> get_deletion_fn(void*, void*);
-std::function<void()> get_deletion_fn(void*, void*, void*);
-std::function<void()> get_deletion_fn(void*, void*, void*, void*);
-
 /* Compressed Sparse Row (CSR) based representation for symmetric graphs.
  * Takes two template parameters:
  * 1) vertex_type: vertex template, parametrized by the weight type associated
@@ -94,16 +90,18 @@ struct symmetric_graph {
                            vertex_subset */
             class VS,   /* input vertex_subset type */
             class F /* edgeMap function type */>
-  inline vertexSubsetData<Data> nghMap(VS& vs, F f, intT threshold = -1,
+  inline vertexSubsetData<Data> srcMap(VS& vs, F f, intT threshold = -1,
                                        flags fl = 0) {
-    static_assert(false); /* currently unused by any benchmark */
+    std::cout << "srcMap currently not implemented" << std::endl;
+    exit(-1); /* currently unused by any benchmark */
   }
 
   template <class VS, /* input vertex_subset type */
             class F /* edgeMap function type */>
   inline vertexSubsetData<pbbs::empty> srcMap(VS& vs, F f, intT threshold = -1,
                                               flags fl = 0) {
-    static_assert(false); /* currently unused by any benchmark */
+    std::cout << "srcMap currently not implemented" << std::endl;
+    exit(-1); /* currently unused by any benchmark */
   }
 
 
@@ -189,7 +187,7 @@ struct symmetric_graph {
     auto [newN, newM, newVData, newEdges] = filter_graph<vertex_type, W>(*this, pred);
     assert(newN == n);
     return symmetric_graph<vertex_type, W>(newVData, newN, newM,
-        get_deletion_fn(newVData, newEdges), newEdges);
+        [=] () { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
   }
 
   // Used by MST and MaximalMatching
@@ -453,8 +451,7 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
         v_data[i].offset = 0;
         v_data[i].degree = 0;
       });
-      std::function<void()> del = get_deletion_fn(v_data, nullptr);
-      return symmetric_graph<symmetric_vertex, W>(v_data, n, 0, del, nullptr);
+      return symmetric_graph<symmetric_vertex, W>(v_data, n, 0, [=] () { pbbs::free_array(v_data); }, nullptr);
     }
   }
 
@@ -508,7 +505,7 @@ inline symmetric_graph<symmetric_vertex, W> sym_graph_from_edges(
   });
   auto new_edge_arr = edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
-      v_data, n, m, get_deletion_fn(v_data, new_edge_arr),
+      v_data, n, m, [=]() { pbbslib::free_arrays(v_data, new_edge_arr); },
       (edge_type*)new_edge_arr);
 }
 

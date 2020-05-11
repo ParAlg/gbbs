@@ -147,7 +147,7 @@ read_compressed_symmetric_graph(char* fname, bool mmap, bool mmapcopy) {
     v_data[i].degree = Degrees[i];
   });
 
-  auto deletion_fn = get_deletion_fn(v_data, bytes);
+  std::function<void()> deletion_fn = [=] () { pbbslib::free_arrays(v_data, bytes); };
   if (mmap && !mmapcopy) {
     deletion_fn = [v_data, bytes, bytes_size] () {
       pbbslib::free_array(v_data);
@@ -203,7 +203,7 @@ read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
     v_in_data[i].degree = inDegrees[i];
   });
 
-  auto deletion_fn = get_deletion_fn(v_data, v_in_data, bytes);
+  std::function<void()> deletion_fn = [=] () { pbbslib::free_arrays(v_data, v_in_data, bytes); };
   if (mmap && !mmapcopy) {
     deletion_fn = [v_data, v_in_data, bytes, bytes_size] () {
       pbbslib::free_array(v_data);
@@ -291,11 +291,7 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     vertex_in_data_array,
     num_vertices,
     num_edges,
-    get_deletion_fn(
-        vertex_out_data_array,
-        vertex_in_data_array,
-        out_edges_array,
-        in_edges_array),
+    [=] () { pbbslib::free_arrays(vertex_out_data_array, vertex_in_data_array, out_edges_array, in_edges_array); },
     out_edges_array,
     in_edges_array};
 }
@@ -346,7 +342,7 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     vertex_data_array,
     num_vertices,
     num_edges,
-    get_deletion_fn(vertex_data_array, edges_array),
+    [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
     edges_array};
 }
 

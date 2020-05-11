@@ -273,6 +273,17 @@ namespace pbbslib {
 
   constexpr size_t _F_BSIZE = 2000;
 
+  template <class T>
+  void free_arrays(T* first) {
+    pbbs::free_array(first);
+  }
+
+  template <class T, typename... Args>
+  void free_arrays(T* first, Args... args) {
+    pbbs::free_array(first);
+    free_arrays(args...);
+  }
+
   template <class Idx_Type, class D, class F>
   inline pbbs::sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {

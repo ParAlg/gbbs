@@ -101,7 +101,7 @@ symmetric_graph<symmetric_vertex, intE> read_weighted_symmetric_graph(
   });
   pbbs::free_array(offsets);
 
-  return symmetric_graph<symmetric_vertex, intE>(v_data, n, m, get_deletion_fn(v_data, edges), edges);
+  return symmetric_graph<symmetric_vertex, intE>(v_data, n, m, [=]() { pbbslib::free_arrays(v_data, edges); }, edges);
 }
 
 asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
@@ -168,7 +168,7 @@ asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
   });
   pbbs::free_array(tOffsets);
 
-  return asymmetric_graph<asymmetric_vertex, intE>(v_data, v_in_data, n, m, get_deletion_fn(v_data, v_in_data, edges, inEdges), edges, inEdges);
+  return asymmetric_graph<asymmetric_vertex, intE>(v_data, v_in_data, n, m, [=]() { pbbslib::free_arrays(v_data, v_in_data, edges, inEdges); }, edges, inEdges);
 }
 
 std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
@@ -237,7 +237,7 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_grap
   pbbs::free_array(offsets);
 
   return symmetric_graph<symmetric_vertex, pbbs::empty>(
-      v_data, n, m, get_deletion_fn(v_data, edges), (std::tuple<uintE, pbbs::empty>*)edges);
+      v_data, n, m, [=](){ pbbslib::free_arrays(v_data, edges); }, (std::tuple<uintE, pbbs::empty>*)edges);
 }
 
 asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
@@ -300,7 +300,7 @@ asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_g
   pbbs::free_array(tOffsets);
 
   return asymmetric_graph<asymmetric_vertex, pbbs::empty>(
-      v_data, v_in_data, n, m, get_deletion_fn(v_data, v_in_data, inEdges, edges),(std::tuple<uintE, pbbs::empty>*)edges, (std::tuple<uintE, pbbs::empty>*)inEdges);
+      v_data, v_in_data, n, m, [=]() {pbbslib::free_arrays(v_data, v_in_data, inEdges, edges);},(std::tuple<uintE, pbbs::empty>*)edges, (std::tuple<uintE, pbbs::empty>*)inEdges);
 }
 
 std::tuple<char*, size_t> parse_compressed_graph(

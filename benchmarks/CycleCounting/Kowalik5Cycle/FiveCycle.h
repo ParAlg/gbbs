@@ -84,7 +84,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   auto out_edge_arr = out_edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, G.n, outEdgeCount,
-      get_deletion_fn(out_vdata, out_edge_arr),
+      [=] { pbbslib::free_arrays(out_vdata, out_edge_arr); },
       out_edge_arr);
 }
 
