@@ -88,7 +88,23 @@ struct symmetric_graph {
     return edgeMapData(*this, vs, f, threshold, fl);
   }
 
-  // TODO: srcMap (currently not used in any benchmarks)
+  // The generalized version of edgeMap. Takes an input vertex_subset and
+  // aggregates results at the neighbors of the vset.
+  template <class Data, /* data associated with vertices in the output
+                           vertex_subset */
+            class VS,   /* input vertex_subset type */
+            class F /* edgeMap function type */>
+  inline vertexSubsetData<Data> nghMap(VS& vs, F f, intT threshold = -1,
+                                       flags fl = 0) {
+    static_assert(false); /* currently unused by any benchmark */
+  }
+
+  template <class VS, /* input vertex_subset type */
+            class F /* edgeMap function type */>
+  inline vertexSubsetData<pbbs::empty> srcMap(VS& vs, F f, intT threshold = -1,
+                                              flags fl = 0) {
+    static_assert(false); /* currently unused by any benchmark */
+  }
 
 
   /* ===================== Counting =================== */
