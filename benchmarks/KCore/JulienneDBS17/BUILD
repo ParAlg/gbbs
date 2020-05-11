@@ -2,8 +2,8 @@ cc_library(
   name = "KCore",
   hdrs = ["KCore.h"],
   deps = [
-  "//ligra:gbbs",
-  "//ligra:julienne",
+  "//gbbs:gbbs",
+  "//gbbs:julienne",
   ]
 )
 

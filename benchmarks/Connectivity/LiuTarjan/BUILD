@@ -11,8 +11,8 @@ cc_library(
   hdrs = ["Connectivity.h"],
   deps = [
   ":liu_tarjan_rules",
-  "//ligra:ligra",
-  "//ligra:bridge",
+  "//gbbs:ligra",
+  "//gbbs:bridge",
   "//pbbslib:random",
   "//benchmarks/Connectivity:common",
   ]

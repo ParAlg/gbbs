@@ -2,10 +2,10 @@ cc_library(
   name = "contract_sf",
   hdrs = ["contract_sf.h"],
   deps = [
-  "//ligra:graph",
-  "//ligra:macros",
-  "//ligra/pbbslib:sparse_table",
-  "//ligra/pbbslib:dyn_arr",
+  "//gbbs:graph",
+  "//gbbs:macros",
+  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/pbbslib:dyn_arr",
   "//pbbslib:sequence_ops"
   ]
 )
@@ -16,8 +16,8 @@ cc_library(
   deps = [
   ":contract_sf",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
-  "//ligra:ligra",
-  "//ligra/pbbslib:sparse_table"
+  "//gbbs:ligra",
+  "//gbbs/pbbslib:sparse_table"
   ]
 )
 

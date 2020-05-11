@@ -3,8 +3,8 @@ cc_test(
     srcs = ["scan_test.cc"],
     deps = [
         "//benchmarks/SCAN/Naive:scan",
-        "//ligra:graph_test_utils",
-        "//ligra:undirected_edge",
+        "//gbbs:graph_test_utils",
+        "//gbbs:undirected_edge",
         "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],

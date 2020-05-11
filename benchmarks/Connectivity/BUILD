@@ -9,7 +9,7 @@ cc_library(
   "connectit.cc",
   ],
   deps = [
-  "//ligra/pbbslib:atomic_counter",
+  "//gbbs/pbbslib:atomic_counter",
   "//pbbslib:assert",
   ],
 )

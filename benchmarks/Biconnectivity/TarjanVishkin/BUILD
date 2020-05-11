@@ -3,9 +3,9 @@ cc_library(
   hdrs = ["Biconnectivity.h"],
   deps = [
   "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
-  "//ligra:gbbs",
-  "//ligra/pbbslib:dyn_arr",
-  "//ligra/pbbslib:sparse_table",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_table",
   "//pbbslib:random",
   "//pbbslib:sample_sort",
   "//pbbslib/strings:string_basics",
@@ -17,8 +17,8 @@ cc_binary(
   srcs = ["Biconnectivity.cc"],
   deps = [
   ":Biconnectivity",
-  "//ligra:ligra",
-  "//ligra/pbbslib:sparse_additive_map",
+  "//gbbs:ligra",
+  "//gbbs/pbbslib:sparse_additive_map",
   "//pbbslib/strings:string_basics",
   ]
 )

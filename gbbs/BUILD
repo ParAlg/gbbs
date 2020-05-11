@@ -47,7 +47,7 @@ cc_library(
   deps = [
   ":vertex_subset",
   ":bridge",
-  "//ligra/pbbslib:dyn_arr"
+  "//gbbs/pbbslib:dyn_arr"
   ]
 )
 
@@ -57,7 +57,7 @@ cc_library(
   deps = [
   ":macros",
   "//pbbslib:monoid",
-  "//ligra/encodings:decoders"
+  "//gbbs/encodings:decoders"
   ]
 )
 
@@ -161,7 +161,7 @@ cc_library(
   ":bridge",
   ":macros",
   ":sequential_ht",
-  "//ligra/pbbslib:counting_sort_no_transpose",
+  "//gbbs/pbbslib:counting_sort_no_transpose",
   ]
 )
 
@@ -202,7 +202,7 @@ cc_library(
   deps = [
   ":gbbs",
   ":bucket",
-  "//ligra/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:dyn_arr",
   ]
 )
 

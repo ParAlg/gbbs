@@ -309,7 +309,7 @@ cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cc"],
   deps = [
-   "//ligra:parse_command_line",
+   "//gbbs:parse_command_line",
    ":alloc",
    ":get_time",
    ":sequence_ops",

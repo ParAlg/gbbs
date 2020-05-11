@@ -2,8 +2,8 @@ cc_library(
   name = "ApproximateSetCover",
   hdrs = ["ApproximateSetCover.h"],
   deps = [
-  "//ligra:gbbs",
-  "//ligra:julienne",
+  "//gbbs:gbbs",
+  "//gbbs:julienne",
   "//pbbslib:random",
   "//pbbslib:random_shuffle",
   ]

@@ -8,7 +8,7 @@ cc_library(
   deps = [
   ":bitset_managers",
   ":block_vertex",
-  "//ligra:graph",
+  "//gbbs:graph",
   ]
 )
 
@@ -17,9 +17,9 @@ cc_library(
   hdrs = ["bitset_managers.h"],
   deps = [
   ":bitset",
-  "//ligra:flags",
-  "//ligra:macros",
-  "//ligra/encodings:byte_pd_amortized",
+  "//gbbs:flags",
+  "//gbbs:macros",
+  "//gbbs/encodings:byte_pd_amortized",
   ]
 )
 
@@ -28,7 +28,7 @@ cc_library(
   hdrs = ["block_vertex.h"],
   deps = [
   ":bitset_managers",
-  "//ligra:macros",
+  "//gbbs:macros",
   "//pbbslib:sequence_ops",
   ]
 )
@@ -37,6 +37,6 @@ cc_library(
   name = "bitset",
   hdrs = ["bitset.h"],
   deps = [
-    "//ligra:macros"
+    "//gbbs:macros"
   ]
 )

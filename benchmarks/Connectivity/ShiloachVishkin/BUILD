@@ -2,7 +2,7 @@ cc_library(
   name = "Connectivity",
   hdrs = ["Connectivity.h"],
   deps = [
-  "//ligra:ligra",
+  "//gbbs:ligra",
   "//benchmarks/Connectivity:common",
   ]
 )

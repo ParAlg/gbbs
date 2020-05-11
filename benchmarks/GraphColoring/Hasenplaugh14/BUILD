@@ -2,7 +2,7 @@ cc_library(
   name = "GraphColoring",
   hdrs = ["GraphColoring.h"],
   deps = [
-  "//ligra:ligra",
+  "//gbbs:ligra",
   "//pbbslib:random_shuffle"
   ]
 )

@@ -1,7 +1,7 @@
 cc_library(
   name = "BFS",
   hdrs = ["BFS.h"],
-  deps = ["//ligra:gbbs"]
+  deps = ["//gbbs:gbbs"]
 )
 
 cc_binary(

@@ -13,12 +13,12 @@ cc_library(
     deps = [
         "//benchmarks/Connectivity/UnionFind:union_find_rules",
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
-        "//ligra:bridge",
-        "//ligra:graph",
-        "//ligra:graph_mutation",
-        "//ligra:macros",
-        "//ligra:undirected_edge",
-        "//ligra/pbbslib:sparse_table",
+        "//gbbs:bridge",
+        "//gbbs:graph",
+        "//gbbs:graph_mutation",
+        "//gbbs:macros",
+        "//gbbs:undirected_edge",
+        "//gbbs/pbbslib:sparse_table",
         "//pbbslib:binary_search",
         "//pbbslib:get_time",
         "//pbbslib:parallel",
@@ -33,6 +33,6 @@ cc_binary(
     srcs = ["run_scan.cc"],
     deps = [
         ":scan",
-        "//ligra",
+        "//gbbs",
     ],
 )

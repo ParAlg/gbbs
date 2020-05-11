@@ -2,11 +2,11 @@ cc_library(
   name = "intersect",
   hdrs = ["intersect.h"],
   deps = [
-  "//ligra:bucket",
-  "//ligra:edge_map_reduce",
-  "//ligra:ligra",
-  "//ligra/pbbslib:dyn_arr",
-  "//ligra/pbbslib:sparse_table",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:ligra",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_table",
   ]
 )
 
@@ -52,11 +52,11 @@ cc_library(
   deps = [
   ":induced_hybrid",
   ":intersect",
-  "//ligra:bucket",
-  "//ligra:edge_map_reduce",
-  "//ligra:ligra",
-  "//ligra/pbbslib:dyn_arr",
-  "//ligra/pbbslib:sparse_table",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:ligra",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_table",
   "//pbbslib:list_allocator",
   "//pbbslib:integer_sort",
   ]
@@ -66,8 +66,8 @@ cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [
-  "//ligra:ligra",
-  "//ligra:graph",
+  "//gbbs:ligra",
+  "//gbbs:graph",
   "//pbbslib:seq",
   ]
 )
@@ -82,10 +82,10 @@ cc_library(
   ":induced_hybrid",
   ":induced_split",
   ":peel",
-  "//ligra:bucket",
-  "//ligra:edge_map_reduce",
-  "//ligra:ligra",
-  "//ligra/pbbslib:dyn_arr",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:ligra",
+  "//gbbs/pbbslib:dyn_arr",
   "//pbbslib:assert",
   "//pbbslib:list_allocator",
   "//pbbslib:integer_sort",

@@ -3,8 +3,8 @@ cc_binary(
     srcs = ["BarabasiAlbert.cc"],
     deps = [
         "BarabasiAlbert_library",
-        "//ligra",
-        "//ligra:bridge",
+        "//gbbs",
+        "//gbbs:bridge",
         "//pbbslib/strings:string_basics",
     ],
 )
@@ -14,8 +14,8 @@ cc_binary(
     srcs = ["RMAT.cc"],
     deps = [
         "RMAT_library",
-        "//ligra",
-        "//ligra:bridge",
+        "//gbbs",
+        "//gbbs:bridge",
         "//pbbslib/strings:string_basics",
     ],
 )
@@ -24,8 +24,8 @@ cc_library(
     name = "BarabasiAlbert_library",
     hdrs = ["barabasi_albert.h"],
     deps = [
-        "//ligra",
-        "//ligra:macros",
+        "//gbbs",
+        "//gbbs:macros",
         "//pbbslib:random",
     ],
 )
@@ -34,7 +34,7 @@ cc_library(
     name = "RMAT_library",
     hdrs = ["rmat.h"],
     deps = [
-        "//ligra",
-        "//ligra:macros",
+        "//gbbs",
+        "//gbbs:macros",
     ],
 )

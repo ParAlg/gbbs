@@ -3,7 +3,7 @@ cc_library(
   hdrs = ["union_find_rules.h"],
   deps = [
   ":jayanti",
-  "//ligra:bridge",
+  "//gbbs:bridge",
   "//pbbslib:seq",
   "//benchmarks/Connectivity:common",
   ]
@@ -13,7 +13,7 @@ cc_library(
   name = "jayanti",
   hdrs = ["jayanti.h"],
   deps = [
-  "//ligra:ligra",
+  "//gbbs:ligra",
   "//pbbslib:seq",
   "//benchmarks/Connectivity:common",
   ]
@@ -24,9 +24,9 @@ cc_library(
   hdrs = ["Connectivity.h"],
   deps = [
   ":union_find_rules",
-  "//ligra:bridge",
-  "//ligra:ligra",
-  "//ligra/pbbslib:sparse_table"
+  "//gbbs:bridge",
+  "//gbbs:ligra",
+  "//gbbs/pbbslib:sparse_table"
   ]
 )
 

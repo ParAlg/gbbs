@@ -329,5 +329,97 @@ struct vertexSubsetData<pbbslib::empty> {
   bool isDense;
   size_t sum_out_degrees;
 };
-
 using vertexSubset = vertexSubsetData<pbbslib::empty>;
+
+
+
+/* ======================== Functions on VertexSubsets ====================== */
+
+// Takes a vertexSubsetData (with some non-trivial Data) and applies a map
+// function f : (uintE x Data) -> void over each vertex in the vertexSubset, in
+// parallel.
+template <class F, class VS,
+          typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
+                                  int>::type = 0>
+inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThreshold) {
+  size_t n = V.numRows(), m = V.numNonzeros();
+  if (V.dense()) {
+    parallel_for(0, n, [&] (size_t i) {
+      if (V.isIn(i)) {
+        f(i, V.ithData(i));
+      }
+    }, granularity);
+  } else {
+    parallel_for(0, m, [&] (size_t i) { f(V.vtx(i), V.vtxData(i)); }, granularity);
+  }
+}
+
+// Takes a vertexSubset (with no extra data per-vertex) and applies a map
+// function f : uintE -> void over each vertex in the vertexSubset, in
+// parallel.
+template <class VS, class F,
+          typename std::enable_if<std::is_same<VS, vertexSubset>::value,
+                                  int>::type = 0>
+inline void vertexMap(VS& V, F f, size_t granularity=pbbslib::kSequentialForThreshold) {
+  size_t n = V.numRows(), m = V.numNonzeros();
+  if (V.dense()) {
+    parallel_for(0, n, [&] (size_t i) {
+      if (V.isIn(i)) {
+        f(i);
+      }
+    }, granularity);
+  } else {
+    parallel_for(0, m, [&] (size_t i)
+                    { f(V.vtx(i)); }, granularity);
+  }
+}
+
+template <class F, class VS>
+inline vertexSubset vertexFilter_dense(VS& V, F filter) {
+  size_t n = V.numRows();
+  V.toDense();
+  bool* d_out = pbbslib::new_array_no_init<bool>(n);
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                  { d_out[i] = 0; });
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    if (V.d[i]) d_out[i] = filter(i);
+  });
+  return vertexSubset(n, d_out);
+}
+
+template <class F, class VS>
+inline vertexSubset vertexFilter_sparse(VS& V, F filter) {
+  size_t n = V.numRows(), m = V.numNonzeros();
+  if (m == 0) {
+    return vertexSubset(n);
+  }
+  bool* bits = pbbslib::new_array_no_init<bool>(m);
+  V.toSparse();
+  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    uintE v = V.vtx(i);
+    bits[i] = filter(v);
+  });
+  auto v_imap = pbbslib::make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
+  auto bits_m = pbbslib::make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
+  auto out = pbbslib::pack(v_imap, bits_m);
+  pbbslib::free_array(bits);
+  size_t out_size = out.size();
+  return vertexSubset(n, out_size, out.to_array());
+}
+
+// Note that this currently strips vertices of their associated data (which is
+// the intended use-case in all current uses). Should refactor at some point to
+// make keeping/removing the data a choice.
+template <class F, class VS>
+inline vertexSubset vertexFilter(VS& vs, F filter, flags fl) {
+  if (dense_only) {
+    return vertexFilter_dense(vs, filter);
+  } else if (no_dense) {
+    return vertexFilter_sparse(vs, filter);
+  }
+  // TODO: can measure selectivity and call sparse/dense based on a sample.
+  if (vs.dense) {
+    return vertexFilter_dense(vs, filter);
+  }
+  return vertexFilter_sparse(vs, filter);
+}

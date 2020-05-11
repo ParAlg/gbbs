@@ -3,7 +3,7 @@ cc_library(
   hdrs = ["SpanningForest.h"],
   deps = [
   "//benchmarks/SpanningForest:common",
-  "//ligra:ligra",
+  "//gbbs:ligra",
   "//pbbslib:random_shuffle",
   ]
 )

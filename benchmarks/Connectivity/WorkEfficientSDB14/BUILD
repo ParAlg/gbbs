@@ -2,8 +2,8 @@ cc_library(
   name = "contract",
   hdrs = ["contract.h"],
   deps = [
-  "//ligra:gbbs",
-  "//ligra/pbbslib:sparse_table",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:sparse_table",
   "//pbbslib:sequence_ops"
   ]
 )
@@ -15,8 +15,8 @@ cc_library(
   ":contract",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
   "//benchmarks/Connectivity:common",
-  "//ligra:gbbs",
-  "//ligra/pbbslib:sparse_table"
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:sparse_table"
   ]
 )
 

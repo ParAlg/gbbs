@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "ligra/gbbs.h"
+#include "gbbs/gbbs.h"
 
 template <class W>
 struct BFS_F {
