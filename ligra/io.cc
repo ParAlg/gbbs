@@ -44,16 +44,17 @@ std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   return std::make_pair(p, n);
 }
 
-void unmmap(char* bytes, size_t bytes_size) {
+void unmmap(const char* bytes, size_t bytes_size) {
   if (bytes) {
-    if (munmap(bytes, bytes_size) == -1) {
+    const void* b = bytes;
+    if (munmap(const_cast<void*>(b), bytes_size) == -1) {
       perror("munmap");
       exit(-1);
     }
   }
 }
 
-sequence<char> readStringFromFile(char* fileName) {
+sequence<char> readStringFromFile(const char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
     debug(std::cout << "# Unable to open file: " << fileName << "\n";);
@@ -68,7 +69,7 @@ sequence<char> readStringFromFile(char* fileName) {
   return bytes;
 }
 
-std::tuple<char*, size_t> read_o_direct(char* fname) {
+std::tuple<char*, size_t> read_o_direct(const char* fname) {
   /* read using O_DIRECT, which bypasses caches. */
   int fd;
 #if defined(__APPLE__)
