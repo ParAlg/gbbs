@@ -470,6 +470,9 @@ struct symmetric_vertex {
   edge_type* neighbors;
   uintE degree;
 
+//  symmetric_vertex() {
+//  }
+
   symmetric_vertex(edge_type* n, vertex_data& vdata) {
     neighbors = (n + vdata.offset);
     degree = vdata.degree;

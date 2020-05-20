@@ -118,14 +118,14 @@ struct vertexSubsetData {
     return fn;
   }
 
-  size_t size() { return m; }
-  size_t numVertices() { return n; }
+  size_t size() const { return m; }
+  size_t numVertices() const { return n; }
 
-  size_t numRows() { return n; }
-  size_t numNonzeros() { return m; }
+  size_t numRows() const { return n; }
+  size_t numNonzeros() const { return m; }
 
-  bool isEmpty() { return m == 0; }
-  bool dense() { return isDense; }
+  bool isEmpty() const { return m == 0; }
+  bool dense() const { return isDense; }
 
   void toSparse() {
     if (s == NULL && m > 0) {
@@ -286,14 +286,14 @@ struct vertexSubsetData<pbbslib::empty> {
     return fn;
   }
 
-  size_t size() { return m; }
-  size_t numVertices() { return n; }
+  size_t size() const { return m; }
+  size_t numVertices() const { return n; }
 
-  size_t numRows() { return n; }
-  size_t numNonzeros() { return m; }
+  size_t numRows() const { return n; }
+  size_t numNonzeros() const { return m; }
 
-  bool isEmpty() { return m == 0; }
-  bool dense() { return isDense; }
+  bool isEmpty() const { return m == 0; }
+  bool dense() const { return isDense; }
 
   void toSparse() {
     if (s == NULL && m > 0) {

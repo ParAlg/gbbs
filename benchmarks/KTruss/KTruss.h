@@ -162,7 +162,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     return std::make_tuple(truss, id);
   };
 
-  timer em_t, decrement_t, bt, peeling_t; peeling_t.start();
+  timer em_t, decrement_t, bt, ct, peeling_t; peeling_t.start();
   size_t finished = 0, k_max = 0;
   size_t iter = 0;
   while (finished != n_edges) {
@@ -271,6 +271,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     del_edges.copyIn(rem_edges, rem_edges.size());
 
     if (del_edges.size > 2*GA.n) {
+      ct.start();
       // compact
       cout << "compacting, " << del_edges.size << endl;
       // map over both endpoints, update counts using histogram
@@ -318,10 +319,12 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       edgeMapFilter(GA, to_pack, pack_predicate, pack_edges | no_output);
 
       del_edges.size = 0; // reset dyn_arr
+      ct.stop();
     }
   }
 
   peeling_t.stop(); peeling_t.reportTotal("peeling time");
+  ct.reportTotal("Compaction time");
   bt.reportTotal("Bucketing time");
   em_t.reportTotal("EdgeMap time");
   decrement_t.reportTotal("Decrement trussness time");

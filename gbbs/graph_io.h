@@ -80,19 +80,19 @@ pbbs::sequence<vertex_data> sorted_edges_to_vertex_data_array(
  * parsing the input (weighted) graph file */
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, intE>*>
 parse_weighted_graph(
-  char* fname,
+  const char* fname,
   bool mmap,
   char* bytes = nullptr,
   size_t bytes_size = std::numeric_limits<size_t>::max());
 
 symmetric_graph<symmetric_vertex, intE> read_weighted_symmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
 asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
@@ -101,29 +101,29 @@ asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
  * vertices, edges, the vertex offsets, and the edge values, after
  * parsing the input graph file */
 std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
 symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
 asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
-    char* fname,
+    const char* fname,
     bool mmap,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
 std::tuple<char*, size_t> parse_compressed_graph(
-    char* fname, bool mmap, bool mmapcopy);
+    const char* fname, bool mmap, bool mmapcopy);
 
 template <class weight_type>
 symmetric_graph<csv_bytepd_amortized, weight_type>
-read_compressed_symmetric_graph(char* fname, bool mmap, bool mmapcopy) {
+read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   char* bytes;
   size_t bytes_size;
   std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap, mmapcopy);
@@ -160,7 +160,7 @@ read_compressed_symmetric_graph(char* fname, bool mmap, bool mmapcopy) {
 
 template <class weight_type>
 asymmetric_graph<cav_bytepd_amortized, weight_type>
-read_compressed_asymmetric_graph(char* fname, bool mmap, bool mmapcopy) {
+read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   char* bytes;
   size_t bytes_size;
   std::tie(bytes, bytes_size) = parse_compressed_graph(fname, mmap, mmapcopy);

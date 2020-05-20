@@ -21,3 +21,7 @@ cc_binary(
   "//pbbslib/strings:string_basics",
   ]
 )
+
+package(
+  default_visibility = ["//visibility:public"],
+)
