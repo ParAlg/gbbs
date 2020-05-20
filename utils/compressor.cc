@@ -1,4 +1,4 @@
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 #include "gbbs/io.h"
 #include "gbbs/parse_command_line.h"
 #include "pbbslib/utilities.h"

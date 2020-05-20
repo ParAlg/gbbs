@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gbbs/ligra.h"
+#include "gbbs/gbbs.h"
 
 #include <iostream>
 #include <fstream>
@@ -781,5 +781,7 @@ auto converter(Graph& GA, commandLine P) {
     std::cout << "# Unknown encoding: " << encoding << std::endl;
     exit(0);
   }
+  std::cout << "Finished convertering graph" << std::endl;
+  exit(0);
   return static_cast<double>(0);
 }

@@ -1,7 +1,6 @@
 #include "barabasi_albert.h"
 
-#include "gbbs/ligra.h"
-#include "gbbs/bridge.h"
+#include "gbbs/gbbs.h"
 #include "pbbslib/strings/string_basics.h"
 
 #include <iostream>

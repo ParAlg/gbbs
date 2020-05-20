@@ -374,7 +374,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  // try to use 8*p threads, less only if guess'd blocksize is smaller than kEMBlockSize
+  // try to use 8*p threads, fewer only if the blocksize guess is smaller than kEMBlockSize
   size_t edge_block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
   size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
   size_t n_groups = pbbs::num_blocks(outEdgeCount, edge_block_size);

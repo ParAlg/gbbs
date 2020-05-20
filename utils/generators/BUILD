@@ -4,7 +4,6 @@ cc_binary(
     deps = [
         "BarabasiAlbert_library",
         "//gbbs",
-        "//gbbs:bridge",
         "//pbbslib/strings:string_basics",
     ],
 )
@@ -15,7 +14,6 @@ cc_binary(
     deps = [
         "RMAT_library",
         "//gbbs",
-        "//gbbs:bridge",
         "//pbbslib/strings:string_basics",
     ],
 )

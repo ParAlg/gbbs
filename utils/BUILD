@@ -23,7 +23,6 @@ cc_binary(
     srcs = ["random_reorder.cc"],
     deps = [
         "//gbbs",
-        "//gbbs:bridge",
         "//pbbslib:random_shuffle",
         "//pbbslib/strings:string_basics",
     ],
@@ -34,7 +33,6 @@ cc_binary(
     srcs = ["to_edge_list.cc"],
     deps = [
         "//gbbs",
-        "//gbbs:bridge",
         "//pbbslib:random_shuffle",
         "//pbbslib/strings:string_basics",
     ],
