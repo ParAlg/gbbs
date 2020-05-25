@@ -1,0 +1,39 @@
+{
+  "name": "gbbs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^2.0.0-alpha.48",
+    "@docusaurus/preset-classic": "^2.0.0-alpha.48",
+    "classnames": "^2.2.6",
+    "katex": "^0.11.1",
+    "react": "^16.8.4",
+    "react-dom": "^16.8.4",
+    "rehype-katex": "^3.0.0",
+    "rehype-stringify": "^6.0.1",
+    "remark-math": "^2.0.1",
+    "remark-parse": "^7.0.2",
+    "remark-rehype": "^6.0.0",
+    "remark-stringify": "^7.0.4",
+    "to-vfile": "^6.1.0",
+    "unified": "^8.4.2"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
