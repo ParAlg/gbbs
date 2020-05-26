@@ -1,6 +1,6 @@
 ---
-id: breadth_first_search
-title: BFS
+id: triangle_counting
+title: Triangle Counting
 ---
 
 ## Problem Specification
@@ -14,8 +14,8 @@ of $v$ in the output BFS-tree rooted at $s$, and $P[s] = s$.
 
 ## Algorithm Implementations
 
-We provide a single implementation of BFS in GAB. The implementation
-is based on the non-deterministic BFS implementation in GAB. We
+We provide a single implementation of BFS in GBBS. The implementation
+is based on the non-deterministic BFS implementation in GBBS. We
 provide a tutorial on how to implement this BFS example in [our
 tutorial](tutorial/bfs_tutorial).
 

@@ -1,4 +1,0 @@
----
-id: pagerank
-title: PageRank
----

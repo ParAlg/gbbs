@@ -1,4 +1,0 @@
----
-id: kcore
-title: KCore
----

@@ -37,7 +37,7 @@ page](/test_website/docs/benchmark/overview). Links to the benchmarks
 can also be found below:
 
 ### Shortest Path Problems
-* [Breadth-First Search](sssp/breadth_first_search)
+* [Breadth-First Search](benchmarks/sssp/breadth_first_search)
 * [Integral-Weight SSSP](sssp/integral_weight_sssp)
 * [Positive-Weight SSSP](sssp/positive_weight_sssp)
 * [General-Weight SSSP](sssp/general_weight_sssp)

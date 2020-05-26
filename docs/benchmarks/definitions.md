@@ -9,9 +9,10 @@ Here we specify the definitions of objects used in our benchmark
 specifications.
 
 #### Unweighted Graphs
-We consider both undirected and directed graphs in GBBS, which we
-refer to as $G=(V,E)$, where $V$ is a set of vertices, and $E$ is a set
-of edges. Each edge consists of a pair of vertices $(u,v)$.
+We consider both undirected (symmetric) and directed (asymmetric)
+graphs in GBBS. We refer to graphs as $G=(V,E)$, where $V$ is a set of
+vertices, and $E$ is a set of edges. Each edge consists of a pair of
+vertices $(u,v)$.
 
 When not specified, we assume that the underlying graph is *directed*.
 The concrete formats supported by GBBS for unweighted graphs can be
@@ -20,8 +21,9 @@ found in the [formats page](formats)
 #### Weighted Graphs
 We also consider weighted graphs in GBBS, which we refer to as
 $G=(V,E,w)$ where $w$ is a weighted function $w : E \mapsto
-\mathcal{R}$. The benchmarks always specify the range, $\mathcal{R}$
-of the weight function, unless the algorithm is oblivious to it.
+\mathcal{R}$. We refer to the weight of a $(u,v)$ edge as $w_{uv}$ The
+benchmarks always specify the range, $\mathcal{R}$ of the weight
+function, unless the algorithm is oblivious to it.
 
 
 #### Mapping

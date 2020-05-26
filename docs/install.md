@@ -5,7 +5,7 @@ title: Install and Compile
 
 ## Requirements
 #### System and Compiler Requirements
-GAB should work on Linux, Mac, and Windows machines, although primary
+GBBS should work on Linux, Mac, and Windows machines, although primary
 development and testing is done on Linux. The only requirement is a
 relatively recent C++ compiler with C++17 support. Specifically, we
 recommend:
@@ -14,7 +14,7 @@ recommend:
 If you would like to use Cilk for scheduling, you need:
 * g++ >= 7.4.0 with support for Cilk Plus
 
-You should also be able to use GAB in conjunction with a version of
+You should also be able to use GBBS in conjunction with a version of
 LLVM supporting C++17 that has support for Cilk linguistic features,
 which can be found [here](http://cilk.mit.edu/).
 
@@ -24,7 +24,7 @@ We support two methods for building our code:
 * Make. 
 
 Note that Make is a secondary method for building and tinkering with
-GAB that we support for users who do not wish to install Bazel.
+GBBS that we support for users who do not wish to install Bazel.
 However, all of our performance numbers are collected through binaries
 built by Bazel, and so Bazel should be used if using the benchmarks in
 a performance-critical setting.

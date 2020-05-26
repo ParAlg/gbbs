@@ -16,7 +16,7 @@ if and only if $u$ and $v$ are in the same connected component in $G$.
 
 
 ## Algorithm Implementations
-We provide multiple implementations of connectivity in GAB. The
+We provide multiple implementations of connectivity in GBBS. The
 primary implementation is based on the low-diameter decomposition
 based algorithm from [Shun et
 al.](https://dl.acm.org/doi/10.1145/2612669.2612692).
