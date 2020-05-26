@@ -27,6 +27,12 @@ module.exports = {
           position: 'left',
         },
         {
+          to: 'docs/library/overview',
+          activeBasePath: 'docs',
+          label: 'Library',
+          position: 'left',
+        },
+        {
           to: 'docs/benchmarks/overview',
           activeBasePath: 'docs/',
           label: 'Benchmark Implementations',
@@ -52,6 +58,10 @@ module.exports = {
             {
               label: 'Documentation',
               to: 'docs/introduction',
+            },
+            {
+              label: 'Library',
+              to: 'docs/library/overview',
             },
             {
               label: 'Benchmark Specifications',
