@@ -14,9 +14,11 @@ of $v$ in the output BFS-tree rooted at $s$, and $P[s] = s$.
 
 ## Algorithm Implementations
 
-We provide a single implementation of BFS in GBBS. The implementation
-is based on the non-deterministic BFS implementation in GBBS. We
-provide a tutorial on how to implement this BFS example in [our
+We implement a non-deterministic parallel breadth-first search as our
+BFS implementation in GBBS. The implementation is based on the one
+from Ligra.
+
+We provide a tutorial on how to implement this BFS example in [our
 tutorial](tutorial/bfs_tutorial).
 
 The code for our implemenation is available

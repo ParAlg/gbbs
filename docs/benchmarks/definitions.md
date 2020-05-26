@@ -5,8 +5,8 @@ description: Definitions used in specifying GBBS Benchmarks
 permalink: /docs/benchmarks/definitions
 ---
 
-Here we specify the definitions of objects used in our benchmark
-specifications.
+Here we specify the definitions of objects and terms used in our
+benchmark specifications.
 
 #### Unweighted Graphs
 We consider both undirected (symmetric) and directed (asymmetric)
@@ -24,6 +24,14 @@ $G=(V,E,w)$ where $w$ is a weighted function $w : E \mapsto
 \mathcal{R}$. We refer to the weight of a $(u,v)$ edge as $w_{uv}$ The
 benchmarks always specify the range, $\mathcal{R}$ of the weight
 function, unless the algorithm is oblivious to it.
+
+#### Distances
+We use $\mathsf{dist}_{G}(u,v)$ to refer to the shortest path distance
+between $u$ and $v$ in the graph $G$.
+
+We use $\mathsf{diam}(G)$ to refer to the diameter of the graph, or the
+longest shortest path distance in $G$ between any vertex $s$ and any
+vertex $v$ reachable from $s$.
 
 
 #### Mapping
