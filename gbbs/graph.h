@@ -107,9 +107,8 @@ struct symmetric_graph {
 
   // =================== VertexSubset Operators: Counting =====================
   template <
-      class Data,  /* data associated with vertices in the output vertex_subset */
-      class Apply, /* function from std::tuple<uintE, uintE> ->
-                    * std::optional<std::tuple<uintE, Data>> */
+      class Data,  // data associated with vertices in the output vertex_subset
+      class Apply, // function from std::tuple<uintE, uintE> -> std::optional<std::tuple<uintE, Data>>
       class VS>
   inline vertexSubsetData<Data> nghCount(VS& vs, Apply apply_f,
       pbbslib::hist_table<uintE, Data>& ht, flags fl = 0) {
