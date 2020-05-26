@@ -295,6 +295,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
 }  // namespace bc
 
 
+
 namespace bc_bfs {
 
 using fType = double;
@@ -319,7 +320,6 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   size_t n = G.n;
 
   auto NumPaths = sequence<fType>(n, static_cast<fType>(0));
-  auto Storage = sequence<fType>(n, static_cast<fType>(0));
   NumPaths[start] = 1.0;
 
   /* 0 = unvisited

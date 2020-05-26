@@ -54,6 +54,8 @@ struct symmetric_graph {
   using weight_type = W;
   using edge_type = typename vertex::edge_type;
 
+  using graph = symmetric_graph<vertex_type, W>;
+
   size_t num_vertices() { return n; }
   size_t num_edges() { return m; }
 
@@ -182,13 +184,28 @@ struct symmetric_graph {
   // (possibly) directed graph. For convenience in cases where the graph needed
   // is
   // symmetric, we coerce this to a symmetric_graph.
-  template <class P>
-  symmetric_graph<vertex_type, W> filterGraph(P& pred) {
-    auto [newN, newM, newVData, newEdges] = filter_graph<vertex_type, W>(*this, pred);
+  template <template <class inner_wgh> class vtx_type, class wgh_type, typename P,
+            typename std::enable_if<
+                std::is_same<vtx_type<wgh_type>, symmetric_vertex<W>>::value,
+                int>::type = 0>
+  static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
+    auto [newN, newM, newVData, newEdges] = filter_graph<vtx_type, W>(G, pred);
     assert(newN == n);
-    return symmetric_graph<vertex_type, W>(newVData, newN, newM,
+    return symmetric_graph<symmetric_vertex, W>(newVData, newN, newM,
         [=] () { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
   }
+
+  template <template <class inner_wgh> class vtx_type, class wgh_type, typename P,
+            typename std::enable_if<
+                std::is_same<vtx_type<wgh_type>, csv_bytepd_amortized<W>>::value,
+                int>::type = 0>
+  static inline symmetric_graph<csv_byte, wgh_type> filterGraph(symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
+    auto [newN, newM, newVData, newEdges] = filter_graph<vtx_type, W>(G, pred);
+    assert(newN == n);
+    return symmetric_graph<csv_byte, W>(newVData, newN, newM,
+        [=] () { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
+  }
+
 
   // Used by MST and MaximalMatching
   // Predicate returns three values:
