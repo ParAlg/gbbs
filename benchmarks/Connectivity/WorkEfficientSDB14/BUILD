@@ -2,10 +2,10 @@ cc_library(
   name = "Connectivity",
   hdrs = ["Connectivity.h"],
   deps = [
-  ":contract",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
   "//benchmarks/Connectivity:common",
   "//gbbs:gbbs",
+  "//gbbs:contract",
   "//gbbs/pbbslib:sparse_table"
   ]
 )

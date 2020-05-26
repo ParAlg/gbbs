@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "contract.h"
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 #include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/gbbs.h"
+#include "gbbs/contract.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace workefficient_cc {
@@ -58,7 +58,7 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
   contract_t.stop();
   debug(contract_t.reportTotal("contract time"););
   // flags maps from clusters -> no-singleton-clusters
-  auto GC = std::get<0>(c_out);
+  auto& GC = std::get<0>(c_out);
   auto& flags = std::get<1>(c_out);
   auto& mapping = std::get<2>(c_out);
 

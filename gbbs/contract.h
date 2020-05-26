@@ -2,10 +2,9 @@
 
 #include <tuple>
 
-#include "pbbslib/sequence_ops.h"
-#include "gbbs/gbbs.h"
+#include "gbbs/graph.h"
 #include "gbbs/pbbslib/sparse_table.h"
-#include "benchmarks/Connectivity/common.h"
+#include "pbbslib/sequence_ops.h"
 
 namespace contract {
 
@@ -207,7 +206,7 @@ namespace contract {
   //   graph is the contraction of cluster `T[i]`.
   template <class Graph>
   inline std::tuple<symmetric_graph<symmetric_vertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
-  contract(Graph& GA, sequence<parent>& clusters, size_t num_clusters) {
+  contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
     using K = std::tuple<uintE, uintE, pbbs::empty>;
 

@@ -64,4 +64,4 @@ double CC_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(CC_runner, false);
+generate_symmetric_main(CC_runner, false);

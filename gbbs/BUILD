@@ -127,15 +127,6 @@ cc_library(
   ]
 )
 
-cc_library(
-  name = "contract",
-  hdrs = ["contract.h"],
-  deps = [
-  ":bridge",
-  "//gbbs/pbbslib:sparse_table",
-  "//pbbslib:sequence_ops"
-  ]
-)
 
 cc_library(
   name = "edge_map_data",
@@ -165,6 +156,18 @@ cc_library(
   ":macros",
   ":vertex",
   ":vertex_subset",
+  ]
+)
+
+cc_library(
+  name = "contract",
+  hdrs = ["contract.h"],
+  deps = [
+  ":bridge",
+  ":vertex",
+  ":graph",
+  "//gbbs/pbbslib:sparse_table",
+  "//pbbslib:sequence_ops"
   ]
 )
 
