@@ -128,6 +128,16 @@ cc_library(
 )
 
 cc_library(
+  name = "contract",
+  hdrs = ["contract.h"],
+  deps = [
+  ":bridge",
+  "//gbbs/pbbslib:sparse_table",
+  "//pbbslib:sequence_ops"
+  ]
+)
+
+cc_library(
   name = "edge_map_data",
   hdrs = ["edge_map_data.h"],
   deps = [

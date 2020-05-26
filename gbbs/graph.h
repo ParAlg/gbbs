@@ -41,13 +41,13 @@
 #include "vertex.h"
 #include "vertex_subset.h"
 
-/* Compressed Sparse Row (CSR) based representation for symmetric graphs.
- * Takes two template parameters:
- * 1) vertex_type: vertex template, parametrized by the weight type associated
- * with each edge
- * 2) W: the weight template
- * The graph is represented as an array of edges of type vertex_type::edge_type.
- * For uncompressed vertices, this type is equal to tuple<uintE, W>.*/
+//  Compressed Sparse Row (CSR) based representation for symmetric graphs.
+//  Takes two template parameters:
+//  1) vertex_type: vertex template, parametrized by the weight type associated
+//  with each edge
+//  2) W: the weight template
+//  The graph is represented as an array of edges of type vertex_type::edge_type.
+//  For uncompressed vertices, this type is equal to tuple<uintE, W>.
 template <template <class W> class vertex_type, class W>
 struct symmetric_graph {
   using vertex = vertex_type<W>;
@@ -59,55 +59,53 @@ struct symmetric_graph {
   size_t num_vertices() { return n; }
   size_t num_edges() { return m; }
 
-  /* ================== Mapping (edgeMap) =================== */
-  // Applies the edgeMap operator on the input vertex_subset, aggregating
-  // results
-  // at the neighbors of this vset. This is the specialized version of the
-  // general nghMap function where the output is a plain vertex_subset.
-  // F must provide:
-  // update : (uintE * uintE * W) -> bool
-  // updateAtomic : (uintE * uintE * W) -> bool
-  // cond : uintE -> bool
-  template <class VS, /* input vertex_subset type */
-            class F /* edgeMap function type */>
+  // =================== VertexSubset Operators: Mapping =====================
+  // Applies the the supplied (update, cond) operators on edges incident to the
+  // input vertex_subset, aggregating results at the neighbors of this vset.
+  // This is the specialized version of the general nghMap function where the
+  // output is a plain vertex_subset.
+  // F is a struct providing the following functions:
+  //   update : (uintE * uintE * W) -> bool
+  //   updateAtomic : (uintE * uintE * W) -> bool
+  //   cond : uintE -> bool
+  template <class VS, class F>
   inline vertexSubsetData<pbbs::empty> nghMap(VS& vs, F f, intT threshold = -1,
                                               flags fl = 0) {
     return edgeMapData<pbbs::empty>(*this, vs, f, threshold, fl);
   }
 
   // The generalized version of edgeMap. Takes an input vertex_subset and
-  // aggregates results at the neighbors of the vset.
-  template <class Data, /* data associated with vertices in the output
-                           vertex_subset */
-            class VS,   /* input vertex_subset type */
-            class F /* edgeMap function type */>
-  inline vertexSubsetData<Data> nghMap(VS& vs, F f, intT threshold = -1,
+  // aggregates results at the neighbors of the vset. See above for the
+  // requirements on F.
+  template <class Data,  // data associated with vertices in the output
+            class VS,    // input vertex_subset type
+            class F>     // map function type
+  inline vertexSubsetData<Data> nghMapData(VS& vs, F f, intT threshold = -1,
                                        flags fl = 0) {
-    return edgeMapData(*this, vs, f, threshold, fl);
+    return edgeMapData<Data>(*this, vs, f, threshold, fl);
   }
 
-  // The generalized version of edgeMap. Takes an input vertex_subset and
-  // aggregates results at the neighbors of the vset.
-  template <class Data, /* data associated with vertices in the output
-                           vertex_subset */
-            class VS,   /* input vertex_subset type */
-            class F /* edgeMap function type */>
-  inline vertexSubsetData<Data> srcMap(VS& vs, F f, intT threshold = -1,
-                                       flags fl = 0) {
-    std::cout << "srcMap currently not implemented" << std::endl;
-    exit(-1); /* currently unused by any benchmark */
-  }
-
-  template <class VS, /* input vertex_subset type */
-            class F /* edgeMap function type */>
+  // srcMap. Applies
+  template <class VS, // input vertex_subset type
+            class F   // map function type
   inline vertexSubsetData<pbbs::empty> srcMap(VS& vs, F f, intT threshold = -1,
                                               flags fl = 0) {
     std::cout << "srcMap currently not implemented" << std::endl;
-    exit(-1); /* currently unused by any benchmark */
+    exit(-1); // currently unused by any benchmark
   }
 
+  // The generalized version of srcMap. Takes an input vertex_subset and
+  // aggregates results at the neighbors of the vset.
+  template <class Data, // data associated with vertices in the output
+            class VS,   // input vertex_subset type
+            class F>    // map function type
+  inline vertexSubsetData<Data> srcMap(VS& vs, F f, intT threshold = -1,
+                                       flags fl = 0) {
+    std::cout << "srcMap currently not implemented" << std::endl;
+    exit(-1); // currently unused by any benchmark
+  }
 
-  /* ===================== Counting =================== */
+  // =================== VertexSubset Operators: Counting =====================
   template <
       class Data,  /* data associated with vertices in the output vertex_subset */
       class Apply, /* function from std::tuple<uintE, uintE> ->
@@ -135,7 +133,7 @@ struct symmetric_graph {
     return edgeMapFilter(*this, vs, p, fl);
   }
 
-  /* ===================== Reduction =================== */
+  // =================== VertexSubset Operators: Reduction =====================
   template <
       class Data,
       class Apply,
@@ -144,39 +142,34 @@ struct symmetric_graph {
       class VS>
   inline vertexSubsetData<Data> nghReduce(VS& vs, pbbslib::hist_table<uintE, Data>& ht,
       Apply apply_f, Map map_f, Reduce reduce_f, flags fl = 0) {
-    static_assert(std::is_same<Data, uintE>::value,
-                  "Histogram code used in the implementation is specialized "
-                  "for Data == counting_type (in this case uintE) for "
-                  "performance.");
-    return edgeMapCount<Data, Apply, VS>(vs, ht, apply_f, fl);
+    std::cout << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h" << std::endl;
+    exit(-1);
+    return vertexSubset(n);
   }
 
   template <class VS, class Map, class Reduce>
   inline vertexSubsetData<uintE> nghReduce(VS& vs, Map map_f, Reduce reduce_f, flags fl = 0) {
-    auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
-      return std::optional<std::tuple<uintE, uintE>>(ct);
-    };
-    return edgeMapCount<uintE, decltype(apply_f), VS>(vs, apply_f, fl);
+    std::cout << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h" << std::endl;
+    exit(-1);
+    return vertexSubset(n);
   }
 
 
-
-
-  /* ===================== Packing =================== */
+  // =================== VertexSubset Operators: Packing =====================
   template <class P>
   vertexSubsetData<uintE> srcPack(vertexSubset& vs, P p, flags fl = 0) {
-    // TODO: check if this method correctly updates m.
     return packEdges(*this, vs, p, fl);
   }
 
   // Similar to srcPack, but returns the nghs as a vs.
   template <class P>
   vertexSubsetData<uintE> nghPack(vertexSubset& vs, P p, flags fl = 0) {
-    assert(false); // not implemented as this primitive is not yet used.
+    assert(false); // not implemented as this primitive is unused in the benchmark.
+    exit(-1);
     return vertexSubsetData<uintE>();
   }
 
-  /* ===================== Filtering =================== */
+  // ======================= Graph Operators: Filtering ========================
   // Filters the symmetric graph, G, with a predicate function pred.  Note
   // that the predicate does not have to be symmetric, i.e. f(u,v) is
   // not necesssarily equal to f(v,u), but we only represent the out-edges of
@@ -228,11 +221,11 @@ struct symmetric_graph {
     return sample_edges(*this, pred);
   }
 
-  /* ===================== Mutation ==================== */
+  // ======================= Graph Operators: Packing ========================
   template <class P>
   uintE packNeighbors(uintE id, P& p, std::tuple<uintE, W>* tmp) {
     uintE new_degree = get_vertex(id).packOutNgh(id, p, tmp);
-    v_data[id].degree = new_degree; /* updates the degree */
+    v_data[id].degree = new_degree; // updates the degree
     return new_degree;
   }
 
@@ -264,15 +257,14 @@ struct symmetric_graph {
     return edges;
   }
 
-  /* =============== Vertex Operators ============== */
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) {
-    parallel_for(
-        0, n,
-        [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
-        1);
+    parallel_for(0, n, [&](size_t i) {
+      get_vertex(i).mapOutNgh(i, f, parallel_inner_map); }, 1);
   }
 
+
+  // ======================= Constructors and fields  ========================
   symmetric_graph()
       : v_data(nullptr),
         e0(nullptr),
@@ -296,7 +288,7 @@ struct symmetric_graph {
   }
   void del() { deletion_fn(); }
 
-#ifndef TWOSOCKETNVM
+#ifndef SAGE
   vertex get_vertex(uintE i) { return vertex(e0, v_data[i]); }
 #else
   vertex get_vertex(uintE i) {
@@ -366,7 +358,7 @@ struct asymmetric_graph {
   /* Pointer to second copy of in-edges--relevant if using 2-socket NVM */
   edge_type* in_edges_1;
 
-#ifndef TWOSOCKETNVM
+#ifndef SAGE
   vertex get_vertex(size_t i) {
     return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
   }

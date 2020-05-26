@@ -1,14 +1,4 @@
 cc_library(
-  name = "contract",
-  hdrs = ["contract.h"],
-  deps = [
-  "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table",
-  "//pbbslib:sequence_ops"
-  ]
-)
-
-cc_library(
   name = "Connectivity",
   hdrs = ["Connectivity.h"],
   deps = [
