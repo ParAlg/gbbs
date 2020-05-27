@@ -219,12 +219,9 @@ sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key const &g,
   return Out;
 }
 
-// Given a sorted sequence of integers in the range [0,..,num_buckets)
-// returns a sequence of length num_buckets+1 with the offset for the
-// start of each integer.   If an integer does not appear, its offset
-// will be the same as the next (i.e. offset[i+1]-offset[i] specifies
-// how many i there are.
-// The last element contains the size of the input.
+// Given a sorted input sequence with integer keys in the range
+// `[0,..,num_buckets)`, returns a sequence of length `num_buckets` in which the
+// i-th element is the number of times key i appears in the input.
 template <typename Tint = size_t, typename Seq, typename Get_Key>
 sequence<Tint> get_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
   size_t n = In.size();
