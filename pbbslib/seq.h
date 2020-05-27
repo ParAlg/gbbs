@@ -186,7 +186,7 @@ struct sequence {
     copy_here(a, a.size());
   }
 
-  sequence(std::initializer_list<T> list) __attribute__((deprecated)) {
+  sequence(std::initializer_list<T> list) {
     n = list.size();
     s = pbbs::new_array_no_init<T>(n);
     size_t i{0};
