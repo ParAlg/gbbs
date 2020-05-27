@@ -6,6 +6,12 @@
 #include <iostream>
 #include <thread>
 
+#ifdef SAGE
+#include <pthread.h>
+#include <utmpx.h>
+#include <numa.h>
+#endif
+
 // EXAMPLE USE 1:
 //
 // fork_join_scheduler fj;
@@ -144,6 +150,39 @@ struct scheduler {
 
   static thread_local int thread_id;
 
+#ifdef SAGE
+    static thread_local int numa_node;
+    scheduler() {
+      init_num_workers();
+      num_deques = 2*num_threads;
+      deques = new Deque<Job>[num_deques];
+      attempts = new attempt[num_deques];
+      finished_flag = 0;
+
+      // Spawn num_workers many threads on startup
+      spawned_threads = new std::thread[num_threads-1];
+      std::function<bool()> finished = [&] () {  return finished_flag == 1; };
+      thread_id = 0; // thread-local write
+      numa_node = numa_node_of_cpu(0);
+      for (int i=1; i<num_threads; i++) {
+        spawned_threads[i-1] = std::thread([&, i, finished] () {
+          thread_id = i; // thread-local write
+          numa_node = numa_node_of_cpu(i);
+          start(finished);
+        });
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(i, &cpuset);
+        pthread_setaffinity_np(spawned_threads[i-1].native_handle(), sizeof(cpu_set_t), &cpuset);
+      }
+      {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(0, &cpuset);
+        pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+      }
+    }
+#else
   scheduler() {
     init_num_workers();
     num_deques = 2 * num_threads;
@@ -162,6 +201,7 @@ struct scheduler {
       });
     }
   }
+#endif
 
   ~scheduler() {
     finished_flag = 1;
@@ -215,6 +255,11 @@ struct scheduler {
     std::cout << "Unsupported" << std::endl;
     exit(-1);
   }
+#ifdef SAGE
+  int numanode() {
+    return numa_node;
+  }
+#endif
 
  private:
   // Align to avoid false sharing.
@@ -275,6 +320,11 @@ struct scheduler {
 template <typename T>
 thread_local int scheduler<T>::thread_id = 0;
 
+#ifdef SAGE
+template<typename T>
+thread_local int scheduler<T>::numa_node = 0;
+#endif
+
 struct fork_join_scheduler {
  public:
   // Jobs are thunks -- i.e., functions that take no arguments
@@ -293,6 +343,9 @@ struct fork_join_scheduler {
   int num_workers();
   int worker_id();
   void set_num_workers(int n);
+#ifdef SAGE
+  int numanode() { return sched->numanode(); }
+#endif
 
   // Fork two thunks and wait until they both finish.
   template <typename L, typename R>

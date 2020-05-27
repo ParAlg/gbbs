@@ -33,8 +33,8 @@
 // edgeMapInduced
 // Version of edgeMapSparse that maps over the one-hop frontier and returns it
 // as a sparse array, without filtering.
-template <class E, class Graph, class VS, class F>
-inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, F& f,
+template <class E, class Graph, class VS, class Map, class Cond>
+inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f, Cond& cond_f,
                                           const flags fl) {
   uintT m = V.size();
   V.toSparse();
@@ -53,36 +53,43 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, F& f,
 
   auto gen = [&](const uintE& ngh, const uintE& offset,
                  const std::optional<E>& val = std::nullopt) {
-    edges[offset] = std::make_tuple(ngh, *val);
+    if (cond_f(ngh)) {
+      edges[offset] = std::make_tuple(ngh, *val);
+    } else {
+      edges[offset] = std::make_tuple(UINT_E_MAX, *val);
+    }
   };
 
   if (fl & in_edges) {
     par_for(0, m, 1, [&](size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
-      G.get_vertex(v).template copyInNgh(v, o, f, gen);
+      G.get_vertex(v).template copyInNgh(v, o, map_f, gen);
     });
   } else {
     par_for(0, m, 1, [&](size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
-      G.get_vertex(v).template copyOutNgh(v, o, f, gen);
+      G.get_vertex(v).template copyOutNgh(v, o, map_f, gen);
     });
   }
   auto vs = vertexSubsetData<E>(G.n, edgeCount, edges);
   return vs;
 }
 
-// ============================= Edge Map Count ===============================
 
+
+// ============================= Edge Map Count ===============================
 // sparse [write out neighbors]
 template <class O,
          class Apply,
+//         class Cond,
          class VS,
          class Graph>
 inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA,
                                                VS& vs,
                                                pbbslib::hist_table<uintE, O>& ht,
+//                                               Cond& cond_f,
                                                Apply& apply_f,
                                                const flags fl = 0) {
   static_assert(
@@ -96,7 +103,8 @@ inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA,
   if (m == 0) {
     return vertexSubsetData<O>(vs.numNonzeros());
   }
-  auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, fl);
+  auto cond_f = [&] (const uintE& u) { return true; };
+  auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, cond_f, fl);
   oneHop.toSparse();
 
   auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
@@ -287,7 +295,8 @@ struct EdgeMap {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
 
-    auto oneHop = edgeMapInduced<M, Graph, VS>(G, vs, map_f, fl);
+    auto cond_f = [&] (const uintE& u) { return true; };
+    auto oneHop = edgeMapInduced<M, Graph, VS>(G, vs, map_f, cond_f, fl);
     oneHop.toSparse();
 
     auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
@@ -407,7 +416,8 @@ struct EdgeMap {
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
-    auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(G, vs, map_f, fl);
+    auto cond_f = [&] (const uintE& u) { return true; };
+    auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(G, vs, map_f, cond_f, fl);
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };

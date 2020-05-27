@@ -404,9 +404,16 @@ struct asymmetric_graph {
         v_out_data(v_out_data),
         v_in_data(v_in_data),
         out_edges_0(_out_edges_0),
-        out_edges_1(_out_edges_1),
+        out_edges_1(_out_edges_0),
         in_edges_0(_in_edges_0),
-        in_edges_1(_in_edges_1) {}
+        in_edges_1(_in_edges_0) {
+    if (_out_edges_1) {
+      out_edges_1 = _out_edges_1;
+    }
+    if (_in_edges_1) {
+      in_edges_1 = _in_edges_1;
+    }
+  }
 
   void del() { deletion_fn(); }
 

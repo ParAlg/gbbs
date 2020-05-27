@@ -2,7 +2,10 @@ cc_library(
   name = "scheduler",
   hdrs = ["scheduler.h"],
   srcs = ["scheduler.cc"],
-  linkopts = ["-pthread"]
+  linkopts = [
+      "-pthread",
+      "-lnuma",
+      ]
 )
 
 cc_library(
