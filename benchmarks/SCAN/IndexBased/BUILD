@@ -37,9 +37,12 @@ cc_library(
     hdrs = [
         "utils.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
+        "//ligra:bridge",
         "//ligra:graph",
         "//ligra:macros",
+        "//pbbslib:integer_sort",
         "//pbbslib:seq",
     ],
 )

@@ -4,11 +4,15 @@
 // Here, a SCAN clustering is a partition of the vertices of a graph.
 #pragma once
 
+#include <cmath>
 #include <iostream>
 #include <string>
+#include <utility>
 
+#include "ligra/bridge.h"
 #include "ligra/graph.h"
 #include "ligra/macros.h"
+#include "pbbslib/integer_sort.h"
 #include "pbbslib/seq.h"
 
 namespace scan {
@@ -71,6 +75,77 @@ UnclusteredType DetermineUnclusteredType(
   }};
   vertex.mapOutNgh(vertex_id, check_neighbor);
   return is_hub ? UnclusteredType::kHub : UnclusteredType::kOutlier;
+}
+
+// Quality measure of clustering based on the difference of the edge density of
+// each cluster compared to the expected edge density of the cluster given a
+// random graph with the same degree distribution. The modularity falls in the
+// range [-1/2, 1].
+//
+// Further reading:
+// - Wikipedia page on "Modularity (networks)"
+// - Section 3.3.2 of "Community detection in graphs" by Santo Fortunato (2009).
+template <template <typename> class VertexTemplate>
+double Modularity(
+    symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+    const Clustering& clustering,
+    const uintE max_cluster_id) {
+  const size_t num_edges{graph->m};  // two times the number of undirected edges
+  if (num_edges == 0) {
+    return 0.0;
+  }
+  const size_t num_vertices{graph->n};
+  const size_t num_clusters{max_cluster_id + 1};
+
+  // Fraction of edges that fall within a cluster.
+  const double intracluster_edge_proportion{
+    static_cast<double>(pbbslib::reduce_add(pbbs::delayed_seq<uintT>(
+      num_vertices,
+      [&](const size_t vertex_id) {
+        const uintE cluster_id{clustering[vertex_id]};
+        const auto is_same_cluster{
+          [&](const uintE v_id, const uintE ngh_id, pbbslib::empty) {
+            return clustering[ngh_id] == cluster_id;
+          }};
+        return graph->get_vertex(vertex_id)
+          .countOutNgh(vertex_id, is_same_cluster);
+      }))) / num_edges};
+
+  constexpr auto get_first{
+    [](const std::pair<uintE, uintE> p) { return p.first; }};
+  // <cluster ID, vertex id> pairs, bucketed by cluster ID
+  const pbbs::sequence<std::pair<uintE, uintE>> vertices_by_cluster{
+    pbbs::integer_sort(
+      pbbs::delayed_seq<std::pair<uintE, uintE>>(
+        num_vertices,
+        [&](const size_t i) {
+          return std::make_pair(clustering[i], i);
+        }),
+      get_first)};
+  const pbbs::sequence<uintE> cluster_offsets{
+    pbbs::get_counts<uintE>(vertices_by_cluster, get_first, num_clusters)
+  };
+  // Fraction of edges that fall within a cluster for a random graph with the
+  // same degree distribution.
+  const double null_intracluster_proportion{
+    pbbslib::reduce_add(pbbs::delayed_seq<double>(
+      num_clusters,
+      [&](const size_t cluster_id) {
+        const uintE cluster_start{cluster_offsets[cluster_id]};
+        const uintT cluster_degree{pbbslib::reduce_add(pbbs::delayed_seq<uintT>(
+          cluster_offsets[cluster_id + 1] - cluster_start,
+          [&](const size_t i) {
+            return graph->get_vertex(
+              vertices_by_cluster[cluster_start + i].second).degree;
+          }))};
+        return std::pow(static_cast<double>(cluster_degree) / num_edges, 2.0);
+      }))};
+
+  // TODO(tomtseng): deal with kUnclustered, document in comment.
+  // either remove unclustered vertices, or put them in a separate cluster.
+  // see how DBScan comparison papers deal with this
+
+  return intracluster_edge_proportion - null_intracluster_proportion;
 }
 
 }  // namespace scan
