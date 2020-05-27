@@ -300,7 +300,8 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
       em_t.start();
       auto vs = vertexSubset(GA.n, decr_seq.size(), decr_seq.begin());
-      GA.template nghCount<uintE>(vs, apply_vtx_f, em);
+      auto cond_f = [&] (const uintE& u) { return true; };
+      GA.nghCount(vs, cond_f, apply_vtx_f, em);
       em_t.stop();
 
       auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });

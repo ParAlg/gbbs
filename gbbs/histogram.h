@@ -322,6 +322,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   using KV = std::tuple<K, V>;
   int nworkers = num_workers();
 
+  // sequential elision
   if (n < _hist_seq_threshold || nworkers == 1) {
     size_t pn = pbbslib::log2_up((intT)(n + 1));
     size_t rs = 1L << pn;

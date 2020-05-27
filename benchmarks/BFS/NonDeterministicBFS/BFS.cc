@@ -55,8 +55,4 @@ double BFS_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-#ifndef SAGE
-generate_sage_main(BFS_runner, false);
-#else
 generate_main(BFS_runner, false);
-#endif
