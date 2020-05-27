@@ -1,6 +1,9 @@
 #pragma once
 
 #include <assert.h>
+
+#include <initializer_list>
+
 #include "utilities.h"
 
 #ifdef CONCEPTS
@@ -181,6 +184,16 @@ struct sequence {
   template <class F>
   sequence(delayed_sequence<T, F> a) {
     copy_here(a, a.size());
+  }
+
+  sequence(std::initializer_list<T> list) __attribute__((deprecated)) {
+    n = list.size();
+    s = pbbs::new_array_no_init<T>(n);
+    size_t i{0};
+    for (const auto& element : list) {
+      s[i] = element;
+      ++i;
+    }
   }
 
   ~sequence() { clear(); }
