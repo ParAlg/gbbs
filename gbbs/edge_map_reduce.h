@@ -82,14 +82,14 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f, Cond& con
 // ============================= Edge Map Count ===============================
 // sparse [write out neighbors]
 template <class O,
+         class Cond,
          class Apply,
-//         class Cond,
          class VS,
          class Graph>
 inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA,
                                                VS& vs,
                                                pbbslib::hist_table<uintE, O>& ht,
-//                                               Cond& cond_f,
+                                               Cond& cond_f,
                                                Apply& apply_f,
                                                const flags fl = 0) {
   static_assert(
@@ -103,7 +103,6 @@ inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA,
   if (m == 0) {
     return vertexSubsetData<O>(vs.numNonzeros());
   }
-  auto cond_f = [&] (const uintE& u) { return true; };
   auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, cond_f, fl);
   oneHop.toSparse();
 
@@ -117,10 +116,11 @@ inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA,
 
 // dense [read all neighbors]
 template <class O,
+         class Cond,
          class Apply,
          class VS,
          class Graph>
-inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Apply& apply_f,
+inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f, Apply& apply_f,
                                               const flags fl = 0) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
@@ -139,28 +139,32 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Apply& apply_f,
 
   if (fl & no_output) {
     parallel_for(0, n, [&](size_t i) {
-      size_t count = (fl & in_edges)
-                         ? GA.get_vertex(i).countInNgh(i, count_f)
-                         : GA.get_vertex(i).countOutNgh(i, count_f);
-      auto tup = std::make_tuple(i, count);
-      if (count > 0) {
-        apply_f(tup);
+      if (cond_f(i)) {
+        size_t count = (fl & in_edges)
+                           ? GA.get_vertex(i).countInNgh(i, count_f)
+                           : GA.get_vertex(i).countOutNgh(i, count_f);
+        auto tup = std::make_tuple(i, count);
+        if (count > 0) {
+          apply_f(tup);
+        }
       }
     }, 1);
     return vertexSubsetData<O>(n);
   } else {
     auto out = pbbslib::new_array<OT>(n);
     parallel_for(0, n, [&](size_t i) {
-      size_t count = (fl & in_edges)
-                         ? GA.get_vertex(i).countInNgh(i, count_f)
-                         : GA.get_vertex(i).countOutNgh(i, count_f);
-      auto tup = std::make_tuple(i, count);
-      if (count > 0) {
-        auto applied_val = apply_f(tup);
-        std::get<0>(out[i]) = applied_val.has_value();
-        std::get<1>(out[i]) = std::get<1>(*applied_val);
-      } else {
-        std::get<0>(out[i]) = false;
+      if (cond_f(i)) {
+        size_t count = (fl & in_edges)
+                           ? GA.get_vertex(i).countInNgh(i, count_f)
+                           : GA.get_vertex(i).countOutNgh(i, count_f);
+        auto tup = std::make_tuple(i, count);
+        if (count > 0) {
+          auto applied_val = apply_f(tup);
+          std::get<0>(out[i]) = applied_val.has_value();
+          std::get<1>(out[i]) = std::get<1>(*applied_val);
+        } else {
+          std::get<0>(out[i]) = false;
+        }
       }
     }, 1);
     return vertexSubsetData<O>(n, out);
@@ -168,17 +172,18 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Apply& apply_f,
 }
 
 template <class O,
+         class Cond,
          class Apply,
          class VS,
          class Graph>
-inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Apply& apply_f,
+inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Cond& cond_f, Apply& apply_f,
                                         pbbslib::hist_table<uintE, O>& ht,
                                         const flags fl = 0,
                                         long threshold = -1) {
   if (fl & no_dense) {
-    return edgeMapCount_sparse<O>(GA, vs, ht, apply_f, fl);
+    return edgeMapCount_sparse<O>(GA, vs, ht, cond_f, apply_f, fl);
   } else if (fl & dense_only) {
-    return edgeMapCount_dense<O>(GA, vs, apply_f, fl);
+    return edgeMapCount_dense<O>(GA, vs, cond_f, apply_f, fl);
   }
   vs.toSparse();
   auto degree_f = [&](size_t i) -> size_t {
@@ -191,11 +196,23 @@ inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Apply& apply_f,
   if (threshold == -1) degree_threshold = GA.m / 20;
   if (vs.size() + out_degrees > degree_threshold) {
     // dense
-    return edgeMapCount_dense<O>(GA, vs, apply_f, fl);
+    return edgeMapCount_dense<O>(GA, vs, cond_f, apply_f, fl);
   } else {
     // sparse
-    return edgeMapCount_sparse<O>(GA, vs, ht, apply_f, fl);
+    return edgeMapCount_sparse<O>(GA, vs, ht, cond_f, apply_f, fl);
   }
+}
+
+template <class O,
+         class Apply,
+         class VS,
+         class Graph>
+inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Apply& apply_f,
+                                        pbbslib::hist_table<uintE, O>& ht,
+                                        const flags fl = 0,
+                                        long threshold = -1) {
+  auto cond_true = [&] (const uintE& u) { return true; };
+  return edgeMapCount(GA, vs, cond_true, apply_f, ht, fl, threshold);
 }
 
 template <class O,

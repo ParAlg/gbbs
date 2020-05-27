@@ -107,29 +107,30 @@ struct symmetric_graph {
 
   // =================== VertexSubset Operators: Counting =====================
   template <
-      class Data,   // data associated with vertices in the output vertex_subset
+      class Data,  // data associated with vertices in the output vertex_subset
+      class Cond,
       class Apply,  // function from std::tuple<uintE, uintE> ->
                     // std::optional<std::tuple<uintE, Data>>
       class VS>
-  inline vertexSubsetData<Data> nghCount(VS& vs, Apply apply_f,
+  inline vertexSubsetData<Data> nghCount(VS& vs, Cond cond_f, Apply apply_f,
                                          pbbslib::hist_table<uintE, Data>& ht,
                                          flags fl = 0) {
     static_assert(std::is_same<Data, uintE>::value,
                   "Histogram code used in the implementation is specialized "
                   "for Data == counting_type (in this case uintE) for "
                   "performance.");
-    return edgeMapCount<Data, Apply, VS>(*this, vs, apply_f, ht, fl);
+    return edgeMapCount<Data, Cond, Apply, VS>(*this, vs, cond_f, apply_f, ht, fl);
   }
 
-  template <class VS>
-  inline vertexSubsetData<uintE> nghCount(VS& vs,
+  template <class Cond, class VS>
+  inline vertexSubsetData<uintE> nghCount(VS& vs, Cond cond_f,
                                           pbbslib::hist_table<uintE, uintE>& ht,
                                           flags fl = 0) {
     auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
       return std::optional<std::tuple<uintE, uintE>>(ct);
     };
-    return edgeMapCount<uintE, decltype(apply_f), VS>(*this, vs, apply_f, ht,
-                                                      fl);
+    return edgeMapCount<uintE, Cond, decltype(apply_f), VS>(*this, vs, cond_f,
+                                                            apply_f, ht, fl);
   }
 
   template <class P, class VS>
