@@ -39,3 +39,26 @@
     }                                                                          \
     alloc_finish();                                                            \
   }
+
+/* Macro to generate binary for unweighted graph applications that can ingest
+ * either symmetric or asymmetric graph inputs */
+#define generate_symmetric_sage_main(APP)                                    \
+  int main(int argc, char* argv[]) {                                         \
+    commandLine P(argc, argv, " [-s] <inFile>");                             \
+    char* f1 = P.getOptionValue("-f1");                                      \
+    char* f2 = P.getOptionValue("-f2");                                      \
+    bool compressed = P.getOptionValue("-c");                                \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                      \
+    pcm_init();                                                              \
+    if (compressed) {                                                        \
+      auto G =                                                               \
+          sage_io::read_compressed_symmetric_graph<pbbslib::empty>(f1, f2);  \
+      alloc_init(G);                                                         \
+      run_app(G, APP, rounds)                                                \
+    } else {                                                                 \
+      auto G = sage_io::read_symmetric_binary_graph<pbbslib::empty>(f1, f2); \
+      alloc_init(G);                                                         \
+      run_app(G, APP, rounds)                                                \
+    }                                                                        \
+    alloc_finish();                                                          \
+  }

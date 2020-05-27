@@ -96,8 +96,8 @@ inline vertexSubsetData<O> edgeMapCount_sparse(
     return vertexSubsetData<O>(vs.numNonzeros());
   }
   uintE empty_key = std::get<0>(ht.empty);
-  auto oneHop =
-      edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, cond_f, empty_key, fl);
+  auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, cond_f,
+                                                          empty_key, fl);
   oneHop.toSparse();
 
   auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
@@ -206,17 +206,19 @@ inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Apply& apply_f,
   return edgeMapCount(GA, vs, cond_true, apply_f, ht, fl, threshold);
 }
 
-template <class O, class Apply, class VS, class Graph>
-inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Apply& apply_f,
-                                    const flags fl = 0) {
+template <class O, class Cond, class Apply, class VS, class Graph>
+inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
+                                    Apply apply_f, const flags fl = 0) {
   size_t n = GA.n;
   if (vs.dense()) {
     using OT = std::tuple<bool, O>;
     auto out = pbbslib::new_array_no_init<OT>(n);
     parallel_for(0, n, [&](size_t i) {
       if (vs.isIn(i)) {
-        auto tup = {true, GA.get_vertex(i).getOutDegree()};
-        out[i] = apply_f(tup);
+        if (cond_f(i)) {
+          auto tup = {true, GA.get_vertex(i).getOutDegree()};
+          out[i] = apply_f(tup);
+        }
       } else {
         std::get<0>(out[i]) = false;
       }
@@ -296,7 +298,8 @@ struct EdgeMap {
     auto cond_f = [&](const uintE& u) { return true; };
 
     uintE empty_key = std::get<0>(ht.empty);
-    auto oneHop = edgeMapInduced<M, Graph, VS>(G, vs, map_f, cond_f, empty_key, fl);
+    auto oneHop =
+        edgeMapInduced<M, Graph, VS>(G, vs, map_f, cond_f, empty_key, fl);
     oneHop.toSparse();
 
     auto elm_f = [&](size_t i) { return oneHop.vtxAndData(i); };
@@ -431,8 +434,8 @@ struct EdgeMap {
     }
     auto cond_f = [&](const uintE& u) { return true; };
     uintE empty_key = std::get<0>(ht.empty);
-    auto oneHop =
-        edgeMapInduced<pbbslib::empty, Graph, VS>(G, vs, map_f, cond_f, empty_key, fl);
+    auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(
+        G, vs, map_f, cond_f, empty_key, fl);
     oneHop.toSparse();
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };

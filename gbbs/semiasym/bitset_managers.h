@@ -330,11 +330,11 @@ struct sym_bitset_manager {
             std::min(block_start + edges_per_block, vtx_original_degree);
 
         size_t this_block_size = block_end - block_start;
-        size_t bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
-        assert(bytes_to_copy <= bytes_per_block);
+        size_t num_bytes_to_copy = bitsets::get_bitset_block_size_in_bytes(this_block_size);
+        assert(num_bytes_to_copy <= bytes_per_block);
 
         // (b) copy bitset data
-        for (size_t i = 0; i < bytes_to_copy; i++) {
+        for (size_t i = 0; i < num_bytes_to_copy; i++) {
           real_block_bits[i] = tmp_block_bits[i];
         }
       }
@@ -457,8 +457,8 @@ struct sym_bitset_manager {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t i) {
-      return block_metadata[i].offset;
+    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t ind) {
+      return block_metadata[ind].offset;
     });
 
     auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
@@ -596,7 +596,7 @@ struct sym_bitset_manager {
 template <template <class W> class vertex, class W>
 struct compressed_sym_bitset_manager {
   using WV = vertex<W>;
-  using E = typename WV::E;
+  using E = typename WV::edge_type;
   using metadata = bitsets::metadata;
 
   uintE vtx_id;
@@ -1015,8 +1015,8 @@ struct compressed_sym_bitset_manager {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t i) {
-      return block_metadata[i].offset;
+    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t ind) {
+      return block_metadata[ind].offset;
     });
 
     auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
@@ -1119,7 +1119,7 @@ struct compressed_sym_bitset_manager {
 
       // decode current compressed block into block_decode
       size_t k = 0;
-      auto map_f = [&] (const uintE& v, const W& wgh, size_t offset) {
+      auto map_f = [&] (const uintE& v, const W& wgh, size_t off) {
         block_decode[k++] = v;
       };
       bytepd_amortized::template decode_block<W>(map_f, edges, vtx_id, vtx_original_degree, orig_block_num);
