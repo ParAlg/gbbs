@@ -1,9 +1,7 @@
 """Custom Bazel build rules."""
 
 
-def gbbs_cc_test(
-    name, copts=[], features=[], tags=[], deps=[], linkstatic=True, **kwargs
-):
+def gbbs_cc_test(name, linkstatic=True, **kwargs):
     """Builds a C++ test. Analogous to the default `cc_test` Bazel rule."""
     # We set `linkstatic` to `True` by default (versus `cc_test` which sets it to
     # `False` by default). Rationale: the `-fvisibility=hidden` GCC flag makes
@@ -13,12 +11,4 @@ def gbbs_cc_test(
     # e.g., Python bindings that we purposely expose --- it would make sense to
     # set `linkstatic = False` for unit tests on these symbols.)
 
-    native.cc_test(
-        name=name,
-        copts=copts,
-        features=features,
-        tags=tags,
-        deps=deps,
-        linkstatic=linkstatic,
-        **kwargs
-    )
+    native.cc_test(name=name, linkstatic=linkstatic, **kwargs)
