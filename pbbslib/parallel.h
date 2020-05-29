@@ -219,7 +219,6 @@ inline int worker_id() { return global_scheduler.worker_id(); }
 #else
 
 #define PAR_GRANULARITY 1000
-asdgkjl
 
 template <class F>
 inline void parallel_for(long start, long end, F f, long granularity,
