@@ -12,7 +12,8 @@
 #include "ligra/bridge.h"
 #include "ligra/graph.h"
 #include "ligra/macros.h"
-#include "pbbslib/integer_sort.h"
+#include "pbbslib/collect_reduce.h"
+#include "pbbslib/monoid.h"
 #include "pbbslib/seq.h"
 
 namespace scan {
@@ -77,10 +78,21 @@ UnclusteredType DetermineUnclusteredType(
   return is_hub ? UnclusteredType::kHub : UnclusteredType::kOutlier;
 }
 
+// How an algorithm should treat unclustered vertices.
+enum class UnclusteredBehavior {
+  kDiscard,  // Remove unclustered vertices.
+  kSeparateClusters,  // Treat unclustered vertices as a separ
+};
+
 // Quality measure of clustering based on the difference of the edge density of
 // each cluster compared to the expected edge density of the cluster given a
-// random graph with the same degree distribution. The modularity falls in the
-// range [-1/2, 1].
+// random graph with the same degree distribution.
+//
+// The modularity is at most 1. It may be negative if a clustering is "worse
+// than random."
+//
+// This implementation treats each unclustered vertex as if it is in its own
+// cluster.
 //
 // Further reading:
 // - Wikipedia page on "Modularity (networks)"
@@ -88,21 +100,30 @@ UnclusteredType DetermineUnclusteredType(
 template <template <typename> class VertexTemplate>
 double Modularity(
     symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
-    const Clustering& clustering,
-    const uintE max_cluster_id) {
+    const Clustering& clustering) {
   const size_t num_edges{graph->m};  // two times the number of undirected edges
   if (num_edges == 0) {
     return 0.0;
   }
   const size_t num_vertices{graph->n};
-  const size_t num_clusters{max_cluster_id + 1};
+  const size_t num_clusters{
+    1 +
+    pbbslib::reduce_max(pbbs::delayed_seq<uintE>(
+      num_vertices,
+      [&](const size_t vertex_id) {
+        const uintE cluster_id{clustering[vertex_id]};
+        return cluster_id == kUnclustered ? 0 : cluster_id;
+      }))};
 
   // Fraction of edges that fall within a cluster.
   const double intracluster_edge_proportion{
     static_cast<double>(pbbslib::reduce_add(pbbs::delayed_seq<uintT>(
       num_vertices,
-      [&](const size_t vertex_id) {
+      [&](const size_t vertex_id) -> uintT {
         const uintE cluster_id{clustering[vertex_id]};
+        if (cluster_id == kUnclustered) {
+          return 0;
+        }
         const auto is_same_cluster{
           [&](const uintE v_id, const uintE ngh_id, pbbslib::empty) {
             return clustering[ngh_id] == cluster_id;
@@ -111,39 +132,47 @@ double Modularity(
           .countOutNgh(vertex_id, is_same_cluster);
       }))) / num_edges};
 
-  constexpr auto get_first{
-    [](const std::pair<uintE, uintE> p) { return p.first; }};
-  // <cluster ID, vertex id> pairs, bucketed by cluster ID
-  const pbbs::sequence<std::pair<uintE, uintE>> vertices_by_cluster{
-    pbbs::integer_sort(
-      pbbs::delayed_seq<std::pair<uintE, uintE>>(
+  const auto degrees_split_result{
+    pbbs::split_two(
+      pbbs::delayed_seq<std::pair<uintE, uintT>>(
         num_vertices,
         [&](const size_t i) {
-          return std::make_pair(clustering[i], i);
+          return std::make_pair(clustering[i], graph->get_vertex(i).degree);
         }),
-      get_first)};
-  const pbbs::sequence<uintE> cluster_offsets{
-    pbbs::get_counts<uintE>(vertices_by_cluster, get_first, num_clusters)
-  };
-  // Fraction of edges that fall within a cluster for a random graph with the
-  // same degree distribution.
+      pbbs::delayed_seq<bool>(
+        num_vertices,
+        [&](const size_t i) { return clustering[i] != kUnclustered; }))};
+  // <cluster id, degree> of each vertex, with unclustered vertices at the start
+  // of the list
+  const auto& degrees{degrees_split_result.first};
+  const auto& num_unclustered_vertices{degrees_split_result.second};
+  // degrees_by_cluster[i] == sum of degrees over vertices in cluster i
+  const pbbs::sequence<uintT> degrees_by_cluster{
+    pbbs::collect_reduce(
+      degrees.slice(num_unclustered_vertices, degrees.size()),
+      [&](const std::pair<uintE, uintT> p) { return p.first; },
+      [&](const std::pair<uintE, uintT> p) { return p.second; },
+      pbbs::addm<uintT>{},
+      num_clusters)};
+  // Approximately the fraction of edges that fall within a cluster for a random
+  // graph with the same degree distribution:
+  //   sum((sum(degree) for each vertex in cluster) / (2 * <number of edges>)
+  //       for each cluster in graph)
   const double null_intracluster_proportion{
-    pbbslib::reduce_add(pbbs::delayed_seq<double>(
-      num_clusters,
-      [&](const size_t cluster_id) {
-        const uintE cluster_start{cluster_offsets[cluster_id]};
-        const uintT cluster_degree{pbbslib::reduce_add(pbbs::delayed_seq<uintT>(
-          cluster_offsets[cluster_id + 1] - cluster_start,
-          [&](const size_t i) {
-            return graph->get_vertex(
-              vertices_by_cluster[cluster_start + i].second).degree;
-          }))};
-        return std::pow(static_cast<double>(cluster_degree) / num_edges, 2.0);
-      }))};
-
-  // TODO(tomtseng): deal with kUnclustered, document in comment.
-  // either remove unclustered vertices, or put them in a separate cluster.
-  // see how DBScan comparison papers deal with this
+     pbbslib::reduce_add(pbbs::delayed_seq<double>(
+       num_clusters,
+       [&](const size_t cluster_id) {
+         return std::pow(
+             static_cast<double>(degrees_by_cluster[cluster_id]) / num_edges,
+             2.0);
+       })) +
+     // special case for unclustered vertices
+     pbbslib::reduce_add(pbbs::delayed_seq<double>(
+       num_unclustered_vertices,
+       [&](const size_t i) {
+         return std::pow(
+             static_cast<double>(degrees[i].second) / num_edges, 2.0);
+       }))};
 
   return intracluster_edge_proportion - null_intracluster_proportion;
 }

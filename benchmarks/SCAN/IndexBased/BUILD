@@ -42,7 +42,8 @@ cc_library(
         "//ligra:bridge",
         "//ligra:graph",
         "//ligra:macros",
-        "//pbbslib:integer_sort",
+        "//pbbslib:collect_reduce",
+        "//pbbslib:monoid",
         "//pbbslib:seq",
     ],
 )
