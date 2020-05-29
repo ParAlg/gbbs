@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "framework",
   hdrs = ["framework.h"],
   deps = [":sampling",
@@ -11,7 +13,7 @@ cc_library(
           "//benchmarks/Connectivity:common"]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "sampling",
   hdrs = ["sampling.h"],
   deps = []

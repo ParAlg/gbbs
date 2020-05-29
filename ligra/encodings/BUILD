@@ -1,11 +1,13 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "byte",
   hdrs = ["byte.h"],
   srcs = ["byte.cc"],
   deps = ["//ligra:macros"]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "byte_pd",
   hdrs = ["byte_pd.h"],
   deps = [
@@ -17,7 +19,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "byte_pd_amortized",
   hdrs = ["byte_pd_amortized.h"],
   srcs = ["byte_pd_amortized.cc"],
@@ -28,7 +30,7 @@ cc_library(
 )
 
 
-cc_library(
+gbbs_cc_library(
   name = "decoders",
   hdrs = ["decoders.h"],
   deps = [

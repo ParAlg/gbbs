@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
     name = "KTruss",
     hdrs = [
         "KTruss.h",
@@ -17,7 +19,7 @@ cc_library(
     ],
 )
 
-cc_binary(
+gbbs_cc_binary(
     name = "KTruss_main",
     srcs = ["KTruss.cc"],
     deps = [":KTruss"],

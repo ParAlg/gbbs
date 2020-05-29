@@ -1,29 +1,31 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "scheduler",
   hdrs = ["scheduler.h"],
   srcs = ["scheduler.cc"],
   linkopts = ["-pthread"]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "parallel",
   hdrs = ["parallel.h"],
   srcs = ["parallel.cc"],
   deps = [":scheduler"]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "concurrent_stack",
   hdrs = ["concurrent_stack.h"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "memory_size",
   hdrs = ["memory_size.h"],
   srcs = ["memory_size.cc"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "alloc",
   hdrs = ["alloc.h"],
   srcs = ["alloc.cc"],
@@ -34,7 +36,7 @@ cc_library(
   ],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "utilities",
   hdrs = ["utilities.h"],
   srcs = ["utilities.cc"],
@@ -44,13 +46,13 @@ cc_library(
   ],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "get_time",
   hdrs = ["get_time.h"],
   srcs = ["get_time.cc"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "seq",
   hdrs = ["seq.h"],
   deps = [
@@ -58,12 +60,12 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "monoid",
   hdrs = ["monoid.h"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "sequence_ops",
   hdrs = ["sequence_ops.h"],
   deps = [
@@ -73,7 +75,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "random",
   hdrs = ["random.h"],
   deps = [
@@ -81,7 +83,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "transpose",
   hdrs = ["transpose.h"],
   deps = [
@@ -90,7 +92,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "counting_sort",
   hdrs = ["counting_sort.h"],
   deps = [
@@ -100,7 +102,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "histogram",
   hdrs = ["histogram.h"],
   deps = [
@@ -109,7 +111,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "collect_reduce",
   hdrs = ["collect_reduce.h"],
   deps = [
@@ -120,7 +122,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "quicksort",
   hdrs = ["quicksort.h"],
   deps = [
@@ -129,7 +131,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "integer_sort",
   hdrs = ["integer_sort.h"],
   deps = [
@@ -139,12 +141,12 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "binary_search",
   hdrs = ["binary_search.h"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "merge",
   hdrs = ["merge.h"],
   deps = [
@@ -154,7 +156,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "merge_sort",
   hdrs = ["merge_sort.h"],
   deps = [
@@ -164,7 +166,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "bucket_sort",
   hdrs = ["bucket_sort.h"],
   deps = [
@@ -175,7 +177,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "sample_sort",
   hdrs = ["sample_sort.h"],
   deps = [
@@ -189,7 +191,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "random_shuffle",
   hdrs = ["random_shuffle.h"],
   deps = [
@@ -199,7 +201,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "list_allocator",
   hdrs = ["list_allocator.h"],
   deps = [
@@ -211,7 +213,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "bag",
   hdrs = ["bag.h"],
   deps = [
@@ -219,7 +221,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "hash_table",
   hdrs = ["hash_table.h"],
   deps = [
@@ -228,7 +230,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "sparse_mat_vec_mult",
   hdrs = ["sparse_mat_vec_mult.h"],
   deps = [
@@ -236,7 +238,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "kth_smallest",
   hdrs = ["kth_smallest.h"],
   deps = [
@@ -245,7 +247,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "stlalgs",
   hdrs = ["stlalgs.h"],
   deps = [
@@ -255,7 +257,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "sequence",
   hdrs = ["sequence.h"],
   deps = [
@@ -265,7 +267,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "range_min",
   hdrs = ["range_min.h"],
   deps = [
@@ -275,7 +277,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "time_operations",
   hdrs = ["time_operations.h"],
   srcs = ["time_operations.cc"],
@@ -300,12 +302,12 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "assert",
   hdrs = ["assert.h"],
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cc"],
   deps = [

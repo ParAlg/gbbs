@@ -1,4 +1,6 @@
-cc_binary(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_binary(
     name = "BarabasiAlbert",
     srcs = ["BarabasiAlbert.cc"],
     deps = [
@@ -9,7 +11,7 @@ cc_binary(
     ],
 )
 
-cc_binary(
+gbbs_cc_binary(
     name = "RMAT",
     srcs = ["RMAT.cc"],
     deps = [
@@ -20,7 +22,7 @@ cc_binary(
     ],
 )
 
-cc_library(
+gbbs_cc_library(
     name = "BarabasiAlbert_library",
     hdrs = ["barabasi_albert.h"],
     deps = [
@@ -30,7 +32,7 @@ cc_library(
     ],
 )
 
-cc_library(
+gbbs_cc_library(
     name = "RMAT_library",
     hdrs = ["rmat.h"],
     deps = [

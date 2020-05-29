@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "Biconnectivity",
   hdrs = ["Biconnectivity.h"],
   deps = [
@@ -14,7 +16,7 @@ cc_library(
   ]
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "Biconnectivity_main",
   srcs = ["Biconnectivity.cc"],
   deps = [

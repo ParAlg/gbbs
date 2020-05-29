@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "Triangle",
   hdrs = ["Triangle.h"],
   deps = [
@@ -11,7 +13,7 @@ cc_library(
   ]
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "Triangle_main",
   srcs = ["Triangle.cc"],
   deps = [":Triangle"]

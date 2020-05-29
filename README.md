@@ -90,10 +90,10 @@ parameter should be set. If the graph has more than 2^32 vertices, the
 been tested with more than 2^32 vertices, so if any issues arise please contact
 [Laxman Dhulipala](mailto:ldhulipa@cs.cmu.edu).
 
-To compile with the Cilk Plus scheduler instead of the Homegrown scheduler, use
-the Bazel configuration `--config=cilk`. To compile using OpenMP instead, use
-the Bazel configuration `--config=openmp`. To compile serially instead, use the
-Bazel configuration `--config=serial`. (For the Makefiles, instead set the
+To compile with the Cilk Plus scheduler instead of the Homegrown scheduler, add
+the Bazel flag `--define parallel=cilk`. To compile using OpenMP instead, add
+the Bazel flag `--define parallel=openmp`. To compile serially instead, add the
+Bazel flag `--define parallel=no`. (For the Makefiles, instead set the
 environment variables `CILK`, `OPENMP`, or `SERIAL` respectively.)
 
 To build:

@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "reorder",
   hdrs = ["reorder.h"],
   deps = [
@@ -7,13 +9,13 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "yoshida_matching_utils",
   hdrs = ["yoshida_matching_utils.h"],
   deps = []
 )
 
-cc_library(
+gbbs_cc_library(
   name = "MaximalMatching",
   hdrs = ["MaximalMatching.h"],
   deps = [
@@ -24,7 +26,7 @@ cc_library(
   ]
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "MaximalMatching_main",
   srcs = ["MaximalMatching.cc"],
   deps = [

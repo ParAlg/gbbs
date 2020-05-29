@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "KCore",
   hdrs = ["KCore.h"],
   deps = [
@@ -9,7 +11,7 @@ cc_library(
   ]
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "KCore_main",
   srcs = ["KCore.cc"],
   deps = [":KCore"]

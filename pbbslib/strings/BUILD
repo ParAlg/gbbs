@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_library")
+
+gbbs_cc_library(
     name = "string_basics",
     srcs = ["string_basics.cc"],
     hdrs = ["string_basics.h"],

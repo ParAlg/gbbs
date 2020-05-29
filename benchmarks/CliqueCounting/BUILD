@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "intersect",
   hdrs = ["intersect.h"],
   deps = [
@@ -10,7 +12,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "induced_intersection",
   hdrs = ["induced_intersection.h"],
   deps = [
@@ -19,7 +21,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "induced_neighborhood",
   hdrs = ["induced_neighborhood.h"],
   deps = [
@@ -28,7 +30,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "induced_hybrid",
   hdrs = ["induced_hybrid.h"],
   deps = [
@@ -37,7 +39,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "induced_split",
   hdrs = ["induced_split.h"],
   deps = [
@@ -46,7 +48,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "peel",
   hdrs = ["peel.h"],
   deps = [
@@ -62,7 +64,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "relabel",
   hdrs = ["relabel.h"],
   deps = [
@@ -72,7 +74,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "Clique",
   hdrs = ["Clique.h"],
   deps = [
@@ -97,7 +99,7 @@ cc_library(
   ]
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "Clique_main",
   srcs = ["Clique.cc"],
   deps = [

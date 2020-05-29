@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "bridge",
   hdrs = ["bridge.h"],
   srcs = ["bridge.cc"],
@@ -17,7 +19,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "io",
   hdrs = ["io.h"],
   srcs = ["io.cc"],
@@ -26,7 +28,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "graph_io",
   hdrs = ["graph_io.h"],
   srcs = ["graph_io.cc"],
@@ -41,7 +43,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "bucket",
   hdrs = ["bucket.h"],
   deps = [
@@ -51,7 +53,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "compressed_vertex",
   hdrs = ["compressed_vertex.h"],
   deps = [
@@ -61,7 +63,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "edge_map_blocked",
   hdrs = ["edge_map_blocked.h"],
   srcs = ["edge_map_blocked.cc"],
@@ -75,7 +77,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "edge_map_reduce",
   hdrs = ["edge_map_reduce.h"],
   deps = [
@@ -86,7 +88,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "edge_map_utils",
   hdrs = ["edge_map_utils.h"],
   deps = [
@@ -96,12 +98,12 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "flags",
   hdrs = ["flags.h"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "graph",
   hdrs = ["graph.h"],
   srcs = ["graph.cc"],
@@ -113,7 +115,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "graph_mutation",
   hdrs = ["graph_mutation.h"],
   deps = [
@@ -122,7 +124,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "graph_test_utils",
   hdrs = ["graph_test_utils.h"],
   srcs = ["graph_test_utils.cc"],
@@ -136,7 +138,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "histogram",
   hdrs = ["histogram.h"],
   deps = [
@@ -147,7 +149,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "ligra",
   hdrs = ["ligra.h"],
   srcs = ["ligra.cc"],
@@ -166,7 +168,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "macros",
   hdrs = ["macros.h"],
   deps = [
@@ -174,13 +176,13 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "parse_command_line",
   hdrs = ["parse_command_line.h"],
   srcs = ["parse_command_line.cc"],
 )
 
-cc_library(
+gbbs_cc_library(
   name = "sequential_ht",
   hdrs = ["sequential_ht.h"],
   deps = [
@@ -189,7 +191,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "speculative_for",
   hdrs = ["speculative_for.h"],
   deps = [
@@ -197,7 +199,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "union_find",
   hdrs = ["union_find.h"],
   srcs = ["union_find.cc"],
@@ -207,7 +209,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "vertex",
   hdrs = ["vertex.h"],
   deps = [
@@ -216,7 +218,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "vertex_subset",
   hdrs = ["vertex_subset.h"],
   deps = [
@@ -225,7 +227,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "undirected_edge",
   hdrs = ["undirected_edge.h"],
   srcs = ["undirected_edge.cc"],

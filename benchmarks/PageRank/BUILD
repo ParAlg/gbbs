@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "PageRank",
   hdrs = ["PageRank.h"],
   deps = [
@@ -8,7 +10,7 @@ cc_library(
   ]
 )
 
-cc_binary(
+gbbs_cc_binary(
   name = "PageRank_main",
   srcs = ["PageRank.cc"],
   deps = [":PageRank"]

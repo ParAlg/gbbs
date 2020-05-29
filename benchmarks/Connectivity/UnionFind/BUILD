@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_library")
+
+gbbs_cc_library(
   name = "union_find_rules",
   hdrs = ["union_find_rules.h"],
   deps = [
@@ -9,7 +11,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "jayanti",
   hdrs = ["jayanti.h"],
   deps = [
@@ -19,7 +21,7 @@ cc_library(
   ]
 )
 
-cc_library(
+gbbs_cc_library(
   name = "Connectivity",
   hdrs = ["Connectivity.h"],
   deps = [

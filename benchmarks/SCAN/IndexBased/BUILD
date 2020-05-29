@@ -1,4 +1,6 @@
-cc_library(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_binary", "gbbs_cc_library")
+
+gbbs_cc_library(
     name = "scan",
     srcs = [
         "scan.cc",
@@ -29,7 +31,7 @@ cc_library(
     ],
 )
 
-cc_library(
+gbbs_cc_library(
     name = "utils",
     srcs = [
         "utils.cc",
@@ -48,7 +50,7 @@ cc_library(
     ],
 )
 
-cc_binary(
+gbbs_cc_binary(
     name = "SCAN_main",
     srcs = ["run_scan.cc"],
     deps = [
