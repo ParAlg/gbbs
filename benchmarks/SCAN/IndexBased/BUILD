@@ -11,6 +11,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        ":utils",
         "//benchmarks/Connectivity/UnionFind:union_find_rules",
         "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
         "//ligra:bridge",
@@ -25,6 +26,25 @@ cc_library(
         "//pbbslib:sample_sort",
         "//pbbslib:seq",
         "//pbbslib:utilities",
+    ],
+)
+
+cc_library(
+    name = "utils",
+    srcs = [
+        "utils.cc",
+    ],
+    hdrs = [
+        "utils.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ligra:bridge",
+        "//ligra:graph",
+        "//ligra:macros",
+        "//pbbslib:collect_reduce",
+        "//pbbslib:monoid",
+        "//pbbslib:seq",
     ],
 )
 

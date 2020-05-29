@@ -11,3 +11,14 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "utils_test",
+    srcs = ["utils_test.cc"],
+    deps = [
+        "//benchmarks/SCAN/IndexBased:utils",
+        "//ligra:graph_test_utils",
+        "//pbbslib:seq",
+        "@googletest//:gtest_main",
+    ],
+)
