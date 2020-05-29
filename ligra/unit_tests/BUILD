@@ -1,4 +1,6 @@
-cc_test(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
+
+gbbs_cc_test(
     name = "graph_io_test",
     srcs = ["graph_io_test.cc"],
     deps = [
@@ -8,7 +10,7 @@ cc_test(
     ],
 )
 
-cc_test(
+gbbs_cc_test(
     name = "graph_test",
     srcs = ["graph_test.cc"],
     deps = [
@@ -18,7 +20,7 @@ cc_test(
     ],
 )
 
-cc_test(
+gbbs_cc_test(
     name = "undirected_edge_test",
     srcs = ["undirected_edge_test.cc"],
     deps = [
