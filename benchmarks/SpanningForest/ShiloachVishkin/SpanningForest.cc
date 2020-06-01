@@ -33,7 +33,7 @@
 //     -stats : print the #ccs, and the #vertices in the largest cc
 
 #include "SpanningForest.h"
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h"
 #include "benchmarks/SpanningForest/check.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 

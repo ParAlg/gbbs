@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
-
+//#include "gbbs/bucket.h"
+//#include "gbbs/edge_map_reduce.h"
+//#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/julienne.h"
 
 template <class Graph>
 inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
@@ -35,8 +35,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
   auto D =
       sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
 
-  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)G.m / 50);
+  auto em = pbbslib::hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
@@ -62,8 +61,8 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
       return std::nullopt;
     };
 
-    vertexSubsetData<uintE> moved =
-        em.template edgeMapCount_sparse<uintE>(active, apply_f);
+    auto cond_f = [] (const uintE& u) { return true; };
+    vertexSubsetData<uintE> moved = G.nghCount(active, cond_f, apply_f, em, no_dense);
     bt.start();
     if (moved.dense()) {
       b.update_buckets(moved.get_fn_repr(), n);

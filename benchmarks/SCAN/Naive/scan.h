@@ -15,10 +15,10 @@
 #include <utility>
 
 #include "benchmarks/SCAN/Naive/scan_helpers.h"
-#include "ligra/graph.h"
-#include "ligra/ligra.h"
-#include "ligra/macros.h"
-#include "ligra/vertex_subset.h"
+#include "gbbs/graph.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/macros.h"
+#include "gbbs/vertex_subset.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/stlalgs.h"
 #include "pbbslib/utilities.h"
@@ -72,10 +72,7 @@ Clustering Cluster(
 
     vertexSubset frontier(num_vertices, root);
     while (!frontier.isEmpty()) {
-      vertexSubset core_frontier =
-        frontier.isDense
-        ? vertexFilter(frontier, is_core)
-        : vertexFilter2(frontier, is_core);
+      vertexSubset core_frontier = vertexFilter(frontier, is_core);
       internal::RemoveDuplicates(&core_frontier);
       vertexMap(core_frontier, update_clustering_for_cores);
 

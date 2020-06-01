@@ -31,6 +31,11 @@ build --cxxopt=-fvisibility=hidden
 build --cxxopt=-fvisibility-inlines-hidden
 build -c opt
 
+# Build with NVRAM support.
+build:sage --cxxopt=-DSAGE
+build:sage --cxxopt=-lnuma
+build:sage --cxxopt=-lpmem
+
 # C++ warning flags.
 build --cxxopt=-Wall
 build --cxxopt=-Wextra

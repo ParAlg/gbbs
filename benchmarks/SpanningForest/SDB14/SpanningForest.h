@@ -24,9 +24,9 @@
 #pragma once
 
 #include "contract_sf.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/pbbslib/dyn_arr.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/pbbslib/dyn_arr.h"
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 

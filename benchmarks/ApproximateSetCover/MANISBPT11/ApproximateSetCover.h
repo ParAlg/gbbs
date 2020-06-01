@@ -23,9 +23,8 @@
 
 #pragma once
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h" /* includes core gbbs libraries (graphs, graph operators, etc) */
+#include "gbbs/julienne.h" /* includes bucketing data structure */
 
 #include "pbbslib/random.h"
 #include "pbbslib/random_shuffle.h"
@@ -99,7 +98,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
       return Elms[ngh] != sc::COVERED;
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = get_bucket_clamped(ct); };
-    auto packed_vtxs = edgeMapFilter(G, active, pack_predicate, pack_edges);
+    auto packed_vtxs = G.srcPack(active, pack_predicate, pack_edges);
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
@@ -108,7 +107,8 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto above_threshold = [&](const uintE& v, const uintE& deg) {
       return deg >= threshold;
     };
-    auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
+    //auto still_active = vertexFilter_sparse(packed_vtxs, above_threshold);
+    auto still_active = vertexFilter(packed_vtxs, above_threshold, no_dense);
     packed_vtxs.del();
 
     permt.start();
@@ -141,12 +141,13 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto threshold_f = [&](const uintE& v, const uintE& numWon) {
       if (numWon >= low_threshold) D[v] = UINT_E_MAX;
     };
-    auto activeAndCts = edgeMapFilter(G, still_active, won_ngh_f);
+    auto activeAndCts = G.srcCount(still_active, won_ngh_f);
     vertexMap(activeAndCts, threshold_f);
     auto inCover =
-        vertexFilter2(activeAndCts, [&](const uintE& v, const uintE& numWon) {
+        vertexFilter(activeAndCts, [&](const uintE& v, const uintE& numWon) {
+        //vertexFilter_sparse(activeAndCts, [&](const uintE& v, const uintE& numWon) {
           return numWon >= low_threshold;
-        });
+        }, no_dense);
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
     inCover.del();
     activeAndCts.del();
@@ -178,7 +179,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
         bucket = b.get_bucket(v_bkt);
       return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
     };
-    //std::cout << "cover.size = " << cover.size << "\n";
+    debug(std::cout << "cover.size = " << cover.size << "\n");
     b.update_buckets(f, active.size());
     active.del();
     still_active.del();

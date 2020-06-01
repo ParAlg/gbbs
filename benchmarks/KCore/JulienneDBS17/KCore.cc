@@ -63,4 +63,4 @@ double KCore_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(KCore_runner, false);
+generate_symmetric_main(KCore_runner, false);

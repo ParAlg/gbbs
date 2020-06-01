@@ -2,9 +2,9 @@ cc_library(
   name = "Spanner",
   hdrs = ["Spanner.h"],
   deps = [
-  "//ligra:ligra",
-  "//ligra/pbbslib:sparse_table",
-  "//ligra/pbbslib:dyn_arr",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/pbbslib:dyn_arr",
   "//benchmarks/LowDiameterDecomposition/MPX13:LowDiameterDecomposition",
   ]
 )

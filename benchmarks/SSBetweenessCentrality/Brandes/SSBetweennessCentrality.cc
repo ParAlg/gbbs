@@ -51,13 +51,14 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
     for (size_t i=0; i<100; i++) {
       std::cout << scores[i] << std::endl;
     }
-  } else if (P.getOptionValue("-nocontend")) {
-    auto scores = bc_bfs::SSBetweennessCentrality_BFS(G, src);
+  } else if (P.getOptionValue("-ligra")) {
+    auto scores = bc::SSBetweennessCentrality(G, src);
     for (size_t i=0; i<100; i++) {
       std::cout << scores[i] << std::endl;
     }
   } else {
-    auto scores = bc::SSBetweennessCentrality(G, src);
+    /* no contention --- reduceNgh technique */
+    auto scores = bc_bfs::SSBetweennessCentrality_BFS(G, src);
     for (size_t i=0; i<100; i++) {
       std::cout << scores[i] << std::endl;
     }

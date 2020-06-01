@@ -7,8 +7,8 @@
 #include <functional>
 #include <tuple>
 
-#include "ligra/bridge.h"
-#include "ligra/macros.h"
+#include "gbbs/bridge.h"
+#include "gbbs/macros.h"
 #include "pbbslib/binary_search.h"
 #include "pbbslib/seq.h"
 

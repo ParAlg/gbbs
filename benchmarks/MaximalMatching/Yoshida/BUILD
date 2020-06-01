@@ -2,8 +2,7 @@ cc_library(
   name = "reorder",
   hdrs = ["reorder.h"],
   deps = [
-  "//ligra:bridge",
-  "//ligra:ligra",
+    "//gbbs:gbbs",
   ]
 )
 
@@ -19,8 +18,8 @@ cc_library(
   deps = [
   ":reorder",
   ":yoshida_matching_utils",
-  "//ligra:bridge",
-  "//ligra:ligra",
+  "//gbbs:bridge",
+  "//gbbs:gbbs",
   ]
 )
 
@@ -29,8 +28,8 @@ cc_binary(
   srcs = ["MaximalMatching.cc"],
   deps = [
   ":MaximalMatching",
-  "//ligra:bridge",
-  "//ligra:ligra",
+  "//gbbs:bridge",
+  "//gbbs:gbbs",
   ]
 )
 

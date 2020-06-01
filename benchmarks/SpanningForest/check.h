@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra/graph.h"
+#include "gbbs/graph.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
 #include "common.h"

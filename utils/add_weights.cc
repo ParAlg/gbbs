@@ -17,7 +17,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h"
 
 #include "pbbslib/random.h"
 using namespace std;

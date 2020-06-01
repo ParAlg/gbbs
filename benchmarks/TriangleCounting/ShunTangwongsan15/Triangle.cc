@@ -64,4 +64,4 @@ double Triangle_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(Triangle_runner, false);
+generate_symmetric_main(Triangle_runner, false);

@@ -34,7 +34,6 @@
 //     -specfor : run the speculative_for based algorithm from pbbs
 
 #include "MaximalIndependentSet.h"
-#include "ligra/ligra.h"
 
 template <class Graph>
 double MaximalIndependentSet_runner(Graph& G, commandLine P) {

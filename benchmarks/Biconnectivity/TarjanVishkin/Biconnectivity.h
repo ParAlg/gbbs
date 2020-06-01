@@ -24,14 +24,13 @@
 #pragma once
 
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/pbbslib/sparse_table.h"
+
+#include "gbbs/gbbs.h"
+#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/strings/string_basics.h"
-#include "ligra/speculative_for.h"
 
 namespace bc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -479,7 +478,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     return !not_critical_edge(src, ngh);
   };
   timer ft; ft.start();
-  filter_edges(GA, pack_predicate);
+  GA.filterEdges(pack_predicate);
 //  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
   ft.stop(); debug(ft.reportTotal("filter edges time"););
 //  vs_active.del();

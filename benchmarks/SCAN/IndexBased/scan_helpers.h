@@ -10,9 +10,9 @@
 
 #include "benchmarks/SCAN/IndexBased/intersect.h"
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
-#include "ligra/graph.h"
-#include "ligra/graph_mutation.h"
-#include "ligra/undirected_edge.h"
+#include "gbbs/graph.h"
+#include "gbbs/graph_mutation.h"
+#include "gbbs/undirected_edge.h"
 #include "pbbslib/get_time.h"
 #include "pbbslib/sample_sort.h"
 
@@ -155,7 +155,7 @@ NeighborOrder::NeighborOrder(
   const auto filter_predicate{[&](const uintE u, const uintE v, NoWeight) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
-  auto directed_graph{filter_graph(*graph, filter_predicate)};
+  auto directed_graph{graph->filterGraph(*graph, filter_predicate)};
 
   // Estimate the amount of work for each vertex for better load balancing.
   auto parallel_work{sequence<size_t>(directed_graph.n)};

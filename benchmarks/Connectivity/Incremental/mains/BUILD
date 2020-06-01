@@ -186,7 +186,7 @@ cc_library(
     deps = [
         "//benchmarks/Connectivity/Framework:framework",
         "//benchmarks/Connectivity/Framework/mains:check",
-        "//ligra",
+        "//gbbs",
     ],
 )
 

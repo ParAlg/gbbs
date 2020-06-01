@@ -14,6 +14,10 @@ int worker_id();
 
 void set_num_workers(int n);
 
+#ifdef SAGE
+static int numanode();
+#endif
+
 // the granularity of a simple loop (e.g. adding one to each element
 // of an array) to reasonably hide cost of scheduler
 // #define PAR_GRANULARITY 2000
@@ -108,6 +112,13 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
 
 inline int num_workers() { return __cilkrts_get_nworkers(); }
 inline int worker_id() { return __cilkrts_get_worker_number(); }
+#ifdef SAGE
+inline int numanode() {
+  std::cout << "numanode() only supported with homegrown scheduler" << std::endl;
+  exit(-1);
+  return 1;
+}
+#endif
 
 // openmp
 #elif defined(OPENMP)
@@ -174,6 +185,14 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
 
 inline int num_workers() { return omp_get_max_threads(); }
 inline int worker_id() { return omp_get_thread_num(); }
+#ifdef SAGE
+inline int numanode() {
+  std::cout << "numanode() only supported with homegrown scheduler" << std::endl;
+  exit(-1);
+  return 1;
+}
+#endif
+
 
 // Guy's scheduler (ABP)
 #elif defined(HOMEGROWN)
@@ -214,6 +233,10 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
 inline int num_workers() { return global_scheduler.num_workers(); }
 
 inline int worker_id() { return global_scheduler.worker_id(); }
+
+#ifdef SAGE
+inline int numanode() { return global_scheduler.numanode(); }
+#endif
 
 // c++
 #else

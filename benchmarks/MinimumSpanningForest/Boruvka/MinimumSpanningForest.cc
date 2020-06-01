@@ -37,7 +37,6 @@
 // hyperlink2012 graph.
 
 #include "MinimumSpanningForest.h"
-#include "ligra/ligra.h"
 
 template <template <class W> class vertex, class W>
 double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine P) {

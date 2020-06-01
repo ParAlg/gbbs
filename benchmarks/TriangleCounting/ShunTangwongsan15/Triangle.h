@@ -26,7 +26,7 @@
 
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h"
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
@@ -187,7 +187,8 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DG = filter_graph(G, pack_predicate);
+  auto DG = G.filterGraph(G, pack_predicate);
+  //auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
 
@@ -221,7 +222,8 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
     return (ordering[u] < ordering[v]);
   };
 
-  auto DG = filter_graph(G, pack_predicate);
+  auto DG = G.filterGraph(G, pack_predicate);
+ // auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
 

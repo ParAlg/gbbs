@@ -3,7 +3,7 @@ cc_library(
   hdrs = ["Connectivity.h"],
   deps = [
   "//benchmarks/Connectivity:common",
-  "//ligra:ligra",
+  "//gbbs:gbbs",
   "//pbbslib:random_shuffle",
   ]
 )

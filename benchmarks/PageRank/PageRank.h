@@ -22,8 +22,8 @@
 // SOFTWARE.
 #pragma once
 
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
 
 #include <math.h>
 
@@ -344,8 +344,8 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     sparse_or_dense(G, EM, Frontier, Delta.begin(), nghSum.begin(), no_output);
     vertexSubset active
       = (round == 1) ?
-      vertexFilter2(All,delta::make_PR_Vertex_F_FirstRound(p.begin(),Delta.begin(),nghSum.begin(),damping,one_over_n,local_eps,get_degree)) :
-      vertexFilter2(All,delta::make_PR_Vertex_F(p.begin(),Delta.begin(),nghSum.begin(),damping,local_eps,get_degree));
+      vertexFilter(All,delta::make_PR_Vertex_F_FirstRound(p.begin(),Delta.begin(),nghSum.begin(),damping,one_over_n,local_eps,get_degree)) :
+      vertexFilter(All,delta::make_PR_Vertex_F(p.begin(),Delta.begin(),nghSum.begin(),damping,local_eps,get_degree));
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences = pbbs::delayed_seq<double>(n, [&] (size_t i) {

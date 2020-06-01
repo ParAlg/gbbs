@@ -1,8 +1,11 @@
 #pragma once
 
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
+#include "gbbs/graph.h"
+#include "gbbs/macros.h"
+#include "pbbslib/seq.h"
+#include "pbbslib/utilities.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
-#include "ligra/graph.h"
 
 namespace indexed_scan {
 

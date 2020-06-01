@@ -31,7 +31,6 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "ApproximateSetCover.h"
-#include "ligra/ligra.h"
 
 template <class Graph>
 double SetCover_runner(Graph& G, commandLine P) {

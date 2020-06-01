@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ligra/pbbslib/atomic_max_counter.h"
-#include "ligra/pbbslib/atomic_sum_counter.h"
+#include "gbbs/pbbslib/atomic_max_counter.h"
+#include "gbbs/pbbslib/atomic_sum_counter.h"
 
 #include <iostream>
 #include <limits.h>

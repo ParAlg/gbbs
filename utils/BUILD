@@ -2,9 +2,9 @@ cc_binary(
     name = "compressor",
     srcs = ["compressor.cc"],
     deps = [
-        "//ligra",
-        "//ligra:io",
-        "//ligra:parse_command_line",
+        "//gbbs",
+        "//gbbs:io",
+        "//gbbs:parse_command_line",
         "//pbbslib:random",
         "//pbbslib:utilities",
     ],
@@ -22,8 +22,7 @@ cc_binary(
     name = "random_reorder",
     srcs = ["random_reorder.cc"],
     deps = [
-        "//ligra",
-        "//ligra:bridge",
+        "//gbbs",
         "//pbbslib:random_shuffle",
         "//pbbslib/strings:string_basics",
     ],
@@ -33,8 +32,7 @@ cc_binary(
     name = "to_edge_list",
     srcs = ["to_edge_list.cc"],
     deps = [
-        "//ligra",
-        "//ligra:bridge",
+        "//gbbs",
         "//pbbslib:random_shuffle",
         "//pbbslib/strings:string_basics",
     ],
@@ -44,8 +42,8 @@ cc_binary(
     name = "snap_converter",
     srcs = ["snap_converter.cc"],
     deps = [
-        "//ligra:graph_io",
-        "//ligra:parse_command_line",
+        "//gbbs:graph_io",
+        "//gbbs:parse_command_line",
     ],
 )
 
@@ -55,5 +53,5 @@ cc_library(
         "converter.h",
         "to_char_arr.h",
     ],
-    deps = ["//ligra"],
+    deps = ["//gbbs"],
 )

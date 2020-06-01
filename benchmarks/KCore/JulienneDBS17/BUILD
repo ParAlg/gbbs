@@ -2,10 +2,8 @@ cc_library(
   name = "KCore",
   hdrs = ["KCore.h"],
   deps = [
-  "//ligra:ligra",
-  "//ligra:bucket",
-  "//ligra:edge_map_reduce",
-  "//ligra/pbbslib:dyn_arr",
+  "//gbbs:gbbs",
+  "//gbbs:julienne",
   ]
 )
 

@@ -1,9 +1,9 @@
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#pragma once
 
 #include <math.h>
 #include <numeric>
 
+#include "gbbs/gbbs.h"
 
 template <class Graph>
 struct PR_F {

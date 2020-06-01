@@ -5,10 +5,10 @@ gbbs_cc_test(
     srcs = ["scan_test.cc"],
     deps = [
         "//benchmarks/SCAN/IndexBased:scan",
-        "//ligra:graph",
-        "//ligra:graph_test_utils",
-        "//ligra:undirected_edge",
-        "//ligra:vertex",
+        "//gbbs:graph",
+        "//gbbs:graph_test_utils",
+        "//gbbs:undirected_edge",
+        "//gbbs:vertex",
         "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
@@ -19,7 +19,7 @@ gbbs_cc_test(
     srcs = ["utils_test.cc"],
     deps = [
         "//benchmarks/SCAN/IndexBased:utils",
-        "//ligra:graph_test_utils",
+        "//gbbs:graph_test_utils",
         "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],

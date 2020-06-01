@@ -2,8 +2,8 @@ cc_library(
   name = "SSWidestPath",
   hdrs = ["SSWidestPath.h"],
   deps = [
-  "//ligra:ligra",
-  "//ligra:bucket"
+  "//gbbs:gbbs",
+  "//gbbs:bucket"
   ]
 )
 

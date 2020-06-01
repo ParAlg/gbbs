@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h"
 
 template <class W>
 struct BFS_F {
@@ -56,7 +56,7 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
-        edgeMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
+        G.nghMap(Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
   }

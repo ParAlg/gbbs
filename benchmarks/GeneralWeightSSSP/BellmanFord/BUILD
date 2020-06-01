@@ -2,7 +2,7 @@ cc_library(
   name = "BellmanFord",
   hdrs = ["BellmanFord.h"],
   deps = [
-  "//ligra:ligra",
+  "//gbbs:gbbs",
   ]
 )
 
