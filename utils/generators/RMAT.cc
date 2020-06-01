@@ -1,7 +1,6 @@
 #include "rmat.h"
 
-#include "ligra/ligra.h"
-#include "ligra/bridge.h"
+#include "gbbs/gbbs.h"
 #include "pbbslib/strings/string_basics.h"
 
 #include <iostream>

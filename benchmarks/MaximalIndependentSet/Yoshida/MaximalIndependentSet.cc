@@ -33,9 +33,6 @@
 
 #include "MaximalIndependentSet.h"
 
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
-
 #include <fstream>
 #include <iostream>
 #include <iomanip>

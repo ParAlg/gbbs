@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
-
+//#include "gbbs/bucket.h"
+//#include "gbbs/edge_map_reduce.h"
+//#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/julienne.h"
 
 template <class Graph>
 inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
@@ -35,8 +35,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
   auto D =
       sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
 
-  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0),
-                                      (size_t)G.m / 50);
+  auto em = pbbslib::hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
   timer bt;
 
@@ -51,7 +50,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     k_max = std::max(k_max, bkt.id);
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
       if (deg > k) {
@@ -59,11 +58,11 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
         D[v] = new_deg;
         return wrap(v, b.get_bucket(new_deg));
       }
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
 
-    vertexSubsetData<uintE> moved =
-        em.template edgeMapCount_sparse<uintE>(active, apply_f);
+    auto cond_f = [] (const uintE& u) { return true; };
+    vertexSubsetData<uintE> moved = G.nghCount(active, cond_f, apply_f, em, no_dense);
     bt.start();
     if (moved.dense()) {
       b.update_buckets(moved.get_fn_repr(), n);
@@ -88,19 +87,19 @@ struct kcore_fetch_add {
   uintE* D;
   uintE k;
   kcore_fetch_add(uintE* _er, uintE* _D, uintE _k) : er(_er), D(_D), k(_k) {}
-  inline Maybe<uintE> update(const uintE& s, const uintE& d, const W& w) {
+  inline std::optional<uintE> update(const uintE& s, const uintE& d, const W& w) {
     er[d]++;
     if (er[d] == 1) {
-      return Maybe<uintE>((uintE)0);
+      return std::optional<uintE>((uintE)0);
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
-  inline Maybe<uintE> updateAtomic(const uintE& s, const uintE& d,
+  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
                                    const W& wgh) {
     if (pbbslib::fetch_and_add(&er[d], (uintE)1) == 1) {
-      return Maybe<uintE>((uintE)0);
+      return std::optional<uintE>((uintE)0);
     }
-    return Maybe<uintE>();
+    return std::nullopt;
   }
   inline bool cond(uintE d) { return D[d] > k; }
 };
@@ -180,7 +179,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     degeneracy_order.copyIn(active_seq, active.size());
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       uintE deg = D[v];
       if (deg > k) {
@@ -188,7 +187,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
         D[v] = new_deg;
         return wrap(v, b.get_bucket(new_deg));
       }
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
 
     vertexSubsetData<uintE> moved =

@@ -3,9 +3,8 @@
 #include <stdlib.h>
 #include <cmath>
 
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h"
 #include "pbbslib/random_shuffle.h"
-#include "ligra/bridge.h"
 #include "pbbslib/strings/string_basics.h"
 
 /* Format:

@@ -1,10 +1,10 @@
 #ifndef _BARENBOIM_ELKIN_DEGEN
 #define _BARENBOIM_ELKIN_DEGEN
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
+#include "gbbs/bucket.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/pbbslib/dyn_arr.h"
 #include "pbbslib/integer_sort.h"
 
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
@@ -37,10 +37,10 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
         D[v] -= edgesRemoved;
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
     auto active =
         vertexSubset(n, end - start, sortD.begin() + start);

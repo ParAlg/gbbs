@@ -19,7 +19,7 @@
 #include <algorithm>
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
-#include "ligra/ligra.h"
+#include "gbbs/gbbs.h"
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 
@@ -56,31 +56,31 @@ struct U_FastReset {
 };
 
 // arg order_to_vertex[i] = vertex in original graph G that will be vertex i in the new graph.
-// new_order[i] = the newe label for vertex i 
+// new_order[i] = the newe label for vertex i
 /* Filters a symmetric graph, G, with a predicate function pred.  Note
  * that the predicate does not have to be symmetric, i.e. f(u,v) is
  * not necesssarily equal to f(v,u), but we only represent the out-edges of this
  * (possibly) directed graph. For convenience in cases where the graph needed is
  * symmetric, we coerce this to a symmetric_graph. */
-template <template <class W> class vertex, class W, 
+template <template <class W> class vertex, class W,
     typename std::enable_if<std::is_same<vertex<W>, symmetric_vertex<W>>::value,
                             int>::type = 0>
 inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& G, sequence<uintT>& order_to_vertex) {
   using w_vertex = vertex<W>;
   size_t n = G.n;
 
-  // vertex_to_order[i] = the newe label (order) for vertex i 
+  // vertex_to_order[i] = the newe label (order) for vertex i
   sequence<uintE> vertex_to_order = sequence<uintE>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
-    vertex_to_order[order_to_vertex[i]] = i; 
-  }); 
+    vertex_to_order[order_to_vertex[i]] = i;
+  });
 
   auto outOffsets = sequence<uintT>(n + 1);
   outOffsets[n] = 0;
-  for (size_t i = 0; i < n; i++) { // for vertex of rank/order i. 
+  for (size_t i = 0; i < n; i++) { // for vertex of rank/order i.
     outOffsets[i] = G.get_vertex(order_to_vertex[i]).getOutDegree();
   }
-  // 
+  //
   uintE outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
 
   using edge = std::tuple<uintE, W>;
@@ -94,7 +94,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     size_t out_offset = outOffsets[i];
     uintE d = u.getOutDegree();
     if (d > 0) {
-      edge* nghs = u.getOutNeighbors(); 
+      edge* nghs = u.getOutNeighbors();
       edge* new_nghs = out_edges.begin() + out_offset;
       for (uintE j= 0; j < d; j++) {
         new_nghs[j] = std::make_tuple(vertex_to_order[std::get<0>(nghs[j])], std::get<1>(nghs[j]));
@@ -115,7 +115,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   auto out_edge_arr = out_edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, G.n, outEdgeCount,
-      get_deletion_fn(out_vdata, out_edge_arr),
+      [=] { pbbslib::free_arrays(out_vdata, out_edge_arr); },
       out_edge_arr);
 }
 
@@ -294,7 +294,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = filter_graph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
   cout << "Filter done\n"; fflush(stdout);
 
 
@@ -371,11 +371,11 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
 
   ulong total = pbbslib::reduce_add(cycleCounts);
   // ulong total = 0;
-  // ulong temp; 
+  // ulong temp;
   // std::cout << "### Number of neighbors of vertex, " << std::endl;
-  
+
   // for (size_t i = 0; i < GA.n; i++) {
-  //   std::cout << GDO.get_vertex(i).getOutDegree() << ", "; 
+  //   std::cout << GDO.get_vertex(i).getOutDegree() << ", ";
   //   // temp = total + cycleCounts[i];
   //   // assert(ULONG_MAX - cycleCounts[i] >= total);
   //   // total = total + cycleCounts[i];
@@ -391,7 +391,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
 
 
 // ****************************************************************************************
-// This is a PURE SERIAL version of the five-cycle counting algorithm. 
+// This is a PURE SERIAL version of the five-cycle counting algorithm.
 // ****************************************************************************************
 template <class Graph>
 inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon = 0.1) {
@@ -418,7 +418,7 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = filter_graph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
   cout << "Filter done\n"; fflush(stdout);
 
   timer t; t.start();
@@ -442,7 +442,7 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
 
 // ****************************************************************************************
 // This is a PARALLEL WITHOUT WORK SCHEDULING version of the five-cycle counting algorithm.
-// **************************************************************************************** 
+// ****************************************************************************************
 template <class Graph>
 inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   using W = typename Graph::weight_type;
@@ -455,12 +455,13 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = filter_graph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
   cout << "Filter done\n"; fflush(stdout);
 
   timer t2; t2.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
   sequence<ulong> cycleCounts = sequence<ulong>(GA.n * eltsPerCacheLine, [&](size_t s) { return 0; });
+
 
   auto init_V = [&](U_FastReset* V){ V->alloc(GA.n); };
   auto finish_V = [&](U_FastReset* V){  if (V != nullptr) { delete V; } };
@@ -485,25 +486,25 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
 
 // ****************************************************************************************
 // This is a EXPERIMENTAL version of the five-cycle counting algorithm.
-// **************************************************************************************** 
+// ****************************************************************************************
 template <class Graph>
 inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   using W = typename Graph::weight_type;
   sequence<uintE> rank ;
   // relabel the graph first. then do degeneracyorder
-  sequence<uintT> order_to_vertex; 
+  sequence<uintT> order_to_vertex;
 
   if (order_type == 0) {
-    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon); 
+    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-                { order_to_vertex[rank[v]] = v; }); 
+                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-               { order_to_vertex[rank[v]] = v; }); 
-  } else if (order_type == 2) { 
+               { order_to_vertex[rank[v]] = v; });
+  } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
     rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -519,11 +520,11 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto DGDO = filter_graph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
 
   cout << "Filter done\n"; fflush(stdout);
 
-  timer t; t.start();  
+  timer t; t.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
   sequence<ulong> cycleCounts = sequence<ulong>(72 * eltsPerCacheLine, [&](size_t s) { return 0; });
 
@@ -532,9 +533,9 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
     auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
     auto vi = GDO.get_vertex(i);
     uintE degree = vi.getOutDegree();
-    // uintE* nghs = (uintE*) vi.getOutNeighbors(); 
-    
-    if (degree == 0) return; 
+    // uintE* nghs = (uintE*) vi.getOutNeighbors();
+
+    if (degree == 0) return;
 
     uintE viOutDegree  = DGDO.get_vertex(i).getOutDegree();
     uintE* outnghs_vi = (uintE*) DGDO.get_vertex(i).getOutNeighbors();
@@ -550,7 +551,7 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
       for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
         U[w] += 1;
       }
-    } 
+    }
     //for (uintE j = 0; (j < degree) /*&& ((u = nghs[j]) > i) */; j++) {
     for (uintE j = 0; j < viOutDegree; j++) {
       u = outnghs_vi[j];  //nghs[j];
@@ -568,16 +569,16 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
         uintE* outnghs_w = (uintE*) vw.getOutNeighbors();
         wOutDegree = vw.getOutDegree();
         int w_vi_neighbors = 0;
-        
+
         // for (uintE l = 0; (l < wOutDegree) /* && ((x = outnghs_w[l]) >= i) */ ; l++)  {
         //   if (x == i) {w_vi_neighbors = 1; break;}
         // }
         for (uintE l = 0; (l < viOutDegree) && ((x = outnghs_vi[l]) >= w); l++)  {
-          if (x == w) w_vi_neighbors = 1; 
+          if (x == w) w_vi_neighbors = 1;
         }
 
         for (uintE l = 0; (l < wOutDegree) /*&& ((x = outnghs_w[l]) > i)*/; l++) {
-          // x has to be greater than i.  
+          // x has to be greater than i.
           if ((x = outnghs_w[l]) != u) {
               cycleCounts[worker_id()] += U[x] - w_vi_neighbors;
           }
@@ -605,7 +606,7 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
 
 // ****************************************************************************************
 // This is the ESCAPE five-cycle counting algorithm.
-// **************************************************************************************** 
+// ****************************************************************************************
 template <class Graph>
 inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon = 0.1) {
 
@@ -617,19 +618,19 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
   sequence<uintE> rank ;
   //auto rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
   // relabel the graph first. then do degeneracyorder
-  sequence<uintT> order_to_vertex; 
+  sequence<uintT> order_to_vertex;
 
   if (order_type == 0) {
-    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon); 
+    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-                { order_to_vertex[rank[v]] = v; }); 
+                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-               { order_to_vertex[rank[v]] = v; }); 
-  } else if (order_type == 2) { 
+               { order_to_vertex[rank[v]] = v; });
+  } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
     rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -645,29 +646,29 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto OUTG = filter_graph(GDO, out_direction); // only keeps track of out edges
+  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
 
   auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u > v;
   };
-  auto ING = filter_graph(GDO, in_direction); // only keeps track of in edges
+  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
 
   cout << "Filter done\n"; fflush(stdout);
 
-  timer t; t.start();  
+  timer t; t.start();
   ulong cycleCount = 0;
   auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-  //par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i) { 
+  //par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
   for (uintE i = 0; i < GA.n; i++) {
     ulong tmp = 0;
     //auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
     auto vi = GDO.get_vertex(i);
     uintE degree = vi.getOutDegree();
-    uintE* nghs = (uintE*) vi.getOutNeighbors(); 
-    
+    uintE* nghs = (uintE*) vi.getOutNeighbors();
 
-    if (degree == 0) continue; //return; 
+
+    if (degree == 0) continue; //return;
     auto nghs_seq = sequence<uintE>(nghs, degree);
 
 
@@ -676,11 +677,11 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
     uintE viInDegree  = ING.get_vertex(i).getOutDegree();
     uintE* innghs_vi = (uintE*) ING.get_vertex(i).getOutNeighbors();
 
-    uintE vj, vk, vl; 
+    uintE vj, vk, vl;
     // i -> j -> k
     for (uintE j = 0; j < viOutDegree; j++){
       vj = outnghs_vi[j];
-      uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors(); 
+      uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
       uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
 
       for (uintE k = 0; k < vjOutDegree;  k++) {
@@ -700,12 +701,12 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
       }
     }
 
-    U[i] = 0; 
+    U[i] = 0;
 
 
     for (uintE j = 0; j < viInDegree; j++) {
       vj = innghs_vi[j];
-      uintE* innghs_vj = (uintE*) ING.get_vertex(vj).getOutNeighbors(); 
+      uintE* innghs_vj = (uintE*) ING.get_vertex(vj).getOutNeighbors();
       uintE vjInDegree = ING.get_vertex(vj).getOutDegree();
       uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
       uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
@@ -716,38 +717,38 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
       for (uintE k = 0; k < vjInDegree; k++) {
         vk = innghs_vj[k];
-        uintE* outnghs_vk = (uintE*) OUTG.get_vertex(vk).getOutNeighbors(); 
+        uintE* outnghs_vk = (uintE*) OUTG.get_vertex(vk).getOutNeighbors();
         uintE vkOutDegree = OUTG.get_vertex(vk).getOutDegree();
         auto custom_less_k = [&](uintE arg) { return vk < arg; };
         for (uintE ell = 0; ell < vkOutDegree; ell++) {
-          vl = outnghs_vk[ell]; 
+          vl = outnghs_vk[ell];
           if (vl == i || vl == vj) continue;
           tmp += U[vl];
 
           auto custom_less_l = [&](uintE arg) { return vl < arg; };
 
-          uintE index_leq_vk, index_leq_vl; 
+          uintE index_leq_vk, index_leq_vl;
           if ( ((index_leq_vk = pbbslib::binary_search(nghs_seq, custom_less_k)) < degree )
               && (nghs_seq[index_leq_vk] == vk))  tmp--;
-          
+
           if (((index_leq_vl = pbbslib::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
             && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
         }
-    
+
       }
 
       nghs_vj = nghs_vj_seq.to_array();
-      
+
     }
-    
+
     // cycleCounts[worker_id()] += tmp;
     cycleCount += tmp;
 
 
-    // U = sequence<uintE>(GA.n, [&](size_t s) { return 0; }); 
+    // U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
     for (uintE j = 0; j < viOutDegree; j++){
       vj = outnghs_vi[j];
-      uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors(); 
+      uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
       uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
 
       for (uintE k = 0; k < vjOutDegree;  k++) {
@@ -785,7 +786,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 // TODO: Make this parallel with work-scheduling
 // ****************************************************************************************
 // This is the ESCAPE five-cycle counting algorithm.
-// **************************************************************************************** 
+// ****************************************************************************************
 template <class Graph>
 inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsilon = 0.1) {
 
@@ -797,19 +798,19 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
   sequence<uintE> rank ;
   //auto rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
   // relabel the graph first. then do degeneracyorder
-  sequence<uintT> order_to_vertex; 
+  sequence<uintT> order_to_vertex;
 
   if (order_type == 0) {
-    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon); 
+    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-                { order_to_vertex[rank[v]] = v; }); 
+                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-               { order_to_vertex[rank[v]] = v; }); 
-  } else if (order_type == 2) { 
+               { order_to_vertex[rank[v]] = v; });
+  } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
     rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -825,17 +826,17 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto OUTG = filter_graph(GDO, out_direction); // only keeps track of out edges
+  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
 
   auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u > v;
   };
-  auto ING = filter_graph(GDO, in_direction); // only keeps track of in edges
+  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
 
   cout << "Filter done\n"; fflush(stdout);
 
-  
+
   timer t; t.start();
   auto parallel_work = sequence<size_t>(GA.n);
   {
@@ -870,10 +871,10 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
       //auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
       auto vi = GDO.get_vertex(i);
       uintE degree = vi.getOutDegree();
-      uintE* nghs = (uintE*) vi.getOutNeighbors(); 
-      
+      uintE* nghs = (uintE*) vi.getOutNeighbors();
 
-      if (degree == 0) continue; //return; 
+
+      if (degree == 0) continue; //return;
       auto nghs_seq = sequence<uintE>(nghs, degree);
 
 
@@ -882,11 +883,11 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
       uintE viInDegree  = ING.get_vertex(i).getOutDegree();
       uintE* innghs_vi = (uintE*) ING.get_vertex(i).getOutNeighbors();
 
-      uintE vj, vk, vl; 
+      uintE vj, vk, vl;
       // i -> j -> k
       for (uintE j = 0; j < viOutDegree; j++){
         vj = outnghs_vi[j];
-        uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors(); 
+        uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
         uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
 
         for (uintE k = 0; k < vjOutDegree;  k++) {
@@ -903,11 +904,11 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
           U[nghs_vj[k]] += 1;
         }
       }
-      U[i] = 0; 
+      U[i] = 0;
 
       for (uintE j = 0; j < viInDegree; j++) {
         vj = innghs_vi[j];
-        uintE* innghs_vj = (uintE*) ING.get_vertex(vj).getOutNeighbors(); 
+        uintE* innghs_vj = (uintE*) ING.get_vertex(vj).getOutNeighbors();
         uintE vjInDegree = ING.get_vertex(vj).getOutDegree();
         uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
         uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
@@ -917,34 +918,34 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
 
         for (uintE k = 0; k < vjInDegree; k++) {
           vk = innghs_vj[k];
-          uintE* outnghs_vk = (uintE*) OUTG.get_vertex(vk).getOutNeighbors(); 
+          uintE* outnghs_vk = (uintE*) OUTG.get_vertex(vk).getOutNeighbors();
           uintE vkOutDegree = OUTG.get_vertex(vk).getOutDegree();
           auto custom_less_k = [&](uintE arg) { return vk < arg; };
           for (uintE ell = 0; ell < vkOutDegree; ell++) {
-            vl = outnghs_vk[ell]; 
+            vl = outnghs_vk[ell];
             if (vl == i || vl == vj) continue;
             tmp += U[vl];
 
             auto custom_less_l = [&](uintE arg) { return vl < arg; };
 
-            uintE index_leq_vk, index_leq_vl; 
+            uintE index_leq_vk, index_leq_vl;
             if ( ((index_leq_vk = pbbslib::binary_search(nghs_seq, custom_less_k)) < degree )
                 && (nghs_seq[index_leq_vk] == vk))  tmp--;
-            
+
             if (((index_leq_vl = pbbslib::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
               && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
           }
         }
         nghs_vj = nghs_vj_seq.to_array();
-      }      
+      }
       // cycleCounts[worker_id()] += tmp;
       cycleCounts[block_index * eltsPerCacheLine] += tmp;
 
 
-      // U = sequence<uintE>(GA.n, [&](size_t s) { return 0; }); 
+      // U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
       for (uintE j = 0; j < viOutDegree; j++){
         vj = outnghs_vi[j];
-        uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors(); 
+        uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
         uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
 
         for (uintE k = 0; k < vjOutDegree;  k++) {
@@ -966,7 +967,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
 
       nghs = nghs_seq.to_array();
     }
-  }; 
+  };
 
 
   par_for(0, n_blocks, 1, [&] (size_t i) {

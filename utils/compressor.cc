@@ -1,6 +1,6 @@
-#include "ligra/ligra.h"
-#include "ligra/io.h"
-#include "ligra/parse_command_line.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/io.h"
+#include "gbbs/parse_command_line.h"
 #include "pbbslib/utilities.h"
 #include "pbbslib/random.h"
 

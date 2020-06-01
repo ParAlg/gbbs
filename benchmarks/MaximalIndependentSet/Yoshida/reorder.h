@@ -1,7 +1,6 @@
 #pragma once
 
-#include "ligra/ligra.h"
-#include "ligra/bridge.h"
+#include "gbbs/gbbs.h"
 
 template <class Graph, class F>
 auto reorder_graph(Graph& G, F& vertex_pri) {
@@ -49,5 +48,5 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
     v_data[i].degree = offs[i+1] - o;
   });
 
-  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, get_deletion_fn(v_data, edges), edges);
+  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {pbbslib::free_arrays(v_data, edges);}, edges);
 }

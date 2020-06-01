@@ -4,11 +4,11 @@
 
 #include <utility>
 
-#include "ligra/graph.h"
-#include "ligra/macros.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/undirected_edge.h"
-#include "ligra/vertex_subset.h"
+#include "gbbs/graph.h"
+#include "gbbs/macros.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/undirected_edge.h"
+#include "gbbs/vertex_subset.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/utilities.h"
 
@@ -78,7 +78,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     vertex.mapOutNgh(vertex_id, update_adjacency_list);
   });
 
-  graph->map_edges([&graph, &adjacency_list, &similarities](
+  graph->mapEdges([&graph, &adjacency_list, &similarities](
         const uintE u_id, const uintE v_id, NoWeight) {
       if (u_id < v_id) {
         Vertex u{graph->get_vertex(u_id)};

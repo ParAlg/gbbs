@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ligra/graph.h"
+#include "gbbs/graph.h"
 
 using edge = std::pair<uintE, uintE>;
 using parent = uintE;

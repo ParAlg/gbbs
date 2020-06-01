@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ligra/maybe.h"
 #include "benchmarks/SpanningForest/common.h"
 
 namespace lt {

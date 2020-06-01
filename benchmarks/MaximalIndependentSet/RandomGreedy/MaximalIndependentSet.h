@@ -25,9 +25,9 @@
 
 #include "pbbslib/random_shuffle.h"
 
-#include "ligra/speculative_for.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/sparse_table.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/speculative_for.h"
+#include "gbbs/pbbslib/sparse_table.h"
 
 namespace MaximalIndependentSet_rootset {
 
@@ -157,12 +157,11 @@ struct mis_f_2 {
 template <class Graph>
 inline sequence<bool> MaximalIndependentSet(Graph& G) {
   using W = typename Graph::weight_type;
-  timer init_t;
-  init_t.start();
+  timer init_t; init_t.start();
   size_t n = G.n;
 
   // compute the priority DAG
-  auto priorities = sequence<intE>(n);
+  auto priorities = sequence<intE>(n);  // why intE?
   auto perm = pbbslib::random_permutation<uintE>(n);
   par_for(0, n, 1, [&] (size_t i) {
     uintE our_pri = perm[i];

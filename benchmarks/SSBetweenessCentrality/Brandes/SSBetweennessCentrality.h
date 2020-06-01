@@ -24,9 +24,9 @@
 #pragma once
 
 #include <vector>
-#include "ligra/bridge.h"
-#include "ligra/ligra.h"
-#include "ligra/edge_map_reduce.h"
+#include "gbbs/bridge.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/edge_map_reduce.h"
 
 namespace bc {
 
@@ -186,14 +186,14 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
       return NumPaths[d];
     };
     auto reduce_f = [&] (double l, double r) { return l + r; };
-    auto apply_f = [&] (std::tuple<uintE, double> k) {
+    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, pbbs::empty>> {
       const uintE& u = std::get<0>(k);
       const double& contribution = std::get<1>(k);
       if (contribution > 0) {
         Storage[u] = contribution;
-        return Maybe<std::tuple<uintE, pbbs::empty>>(std::make_tuple(u, pbbs::empty()));
+        return std::optional<std::tuple<uintE, pbbs::empty>>({u, pbbs::empty()});
       }
-      return Maybe<std::tuple<uintE, pbbs::empty>>();
+      return std::nullopt;
     };
     double id = 0.0;
 
@@ -295,6 +295,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
 }  // namespace bc
 
 
+
 namespace bc_bfs {
 
 using fType = double;
@@ -319,7 +320,6 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   size_t n = G.n;
 
   auto NumPaths = sequence<fType>(n, static_cast<fType>(0));
-  auto Storage = sequence<fType>(n, static_cast<fType>(0));
   NumPaths[start] = 1.0;
 
   /* 0 = unvisited

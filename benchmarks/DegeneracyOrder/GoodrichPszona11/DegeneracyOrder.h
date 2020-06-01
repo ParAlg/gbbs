@@ -1,10 +1,10 @@
 #ifndef _GOODRICH_PSZONA_DEGEN
 #define _GOODRICH_PSZONA_DEGEN
 
-#include "ligra/bucket.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
-#include "ligra/pbbslib/dyn_arr.h"
+#include "gbbs/bucket.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
+#include "gbbs/pbbslib/dyn_arr.h"
 #include "pbbslib/integer_sort.h"
 #include "pbbslib/kth_smallest.h"
 #include "pbbslib/random.h"
@@ -65,10 +65,10 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       D[v] -= edgesRemoved;
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
     size_t this_round_size = this_round.size();
     auto this_round_vs = vertexSubset(n, this_round_size, this_round.to_array());
@@ -110,13 +110,13 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
-        -> const Maybe<std::tuple<uintE, uintE> > {
+        -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
       //if (D[v] >= deg_max) {
         D[v] -= edgesRemoved;
       //  return wrap(v, D[v]);
       //}
-      return Maybe<std::tuple<uintE, uintE> >();
+      return std::nullopt;
     };
     auto active =
         vertexSubset(n, std::min(ns + start, n) - start, sortD.begin() + start);

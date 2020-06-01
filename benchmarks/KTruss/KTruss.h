@@ -22,12 +22,12 @@
 
 #include <cassert>
 
-#include "ligra/bridge.h"
-#include "ligra/bucket.h"
-#include "ligra/pbbslib/dyn_arr.h"
-#include "ligra/pbbslib/sparse_table.h"
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#include "gbbs/bridge.h"
+#include "gbbs/bucket.h"
+#include "gbbs/pbbslib/dyn_arr.h"
+#include "gbbs/pbbslib/sparse_table.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
 
 #include "truss_utils.h"
 
@@ -36,7 +36,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   using W = typename Graph::weight_type;
 
   timer it; it.start();
-  GA.map_edges([&] (const uintE& u, const uintE& v, const W& wgh) {
+  GA.mapEdges([&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
       multi_table.insert(u, std::make_tuple(v,0));
     }
@@ -50,7 +50,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   // 2.(b) Direct edges to point from lower to higher rank vertices.
   auto pack_predicate =
       [&](const uintE& u, const uintE& v, const W& wgh) { return rank[u] < rank[v]; };
-  auto DG = filter_graph(GA, pack_predicate);
+  auto DG = GA.filterGraph(GA, pack_predicate);
   std::cout << "Filtered graph to construct dirgraph: n = " << DG.n << " m = " << DG.m << std::endl;
 
   // Each triangle only found once---increment all three edges
@@ -114,7 +114,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
 
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
-  auto em = HistogramWrapper<edge_t, bucket_t>(GA.m/50, histogram_empty);
+  auto em = pbbslib::hist_table<edge_t, bucket_t>(histogram_empty, GA.m/50);
 
   // Store the initial trussness of each edge in the trussness table.
   auto get_size = [&] (size_t vtx) {
@@ -162,7 +162,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     return std::make_tuple(truss, id);
   };
 
-  timer em_t, decrement_t, bt, peeling_t; peeling_t.start();
+  timer em_t, decrement_t, bt, ct, peeling_t; peeling_t.start();
   size_t finished = 0, k_max = 0;
   size_t iter = 0;
   while (finished != n_edges) {
@@ -221,7 +221,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       return std::get<1>(eb) != UINT_E_MAX;
     });
     auto edges_moved_f = [&] (size_t i) {
-      return Maybe<std::tuple<edge_t, bucket_t>>(rebucket_edges[i]); };
+      return std::optional<std::tuple<edge_t, bucket_t>>(rebucket_edges[i]); };
 
     bt.start();
     b.update_buckets(edges_moved_f, rebucket_edges.size());
@@ -271,6 +271,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     del_edges.copyIn(rem_edges, rem_edges.size());
 
     if (del_edges.size > 2*GA.n) {
+      ct.start();
       // compact
       cout << "compacting, " << del_edges.size << endl;
       // map over both endpoints, update counts using histogram
@@ -289,16 +290,18 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       // returns only those vertices that have enough degree lost to warrant
       // packing them out. Again note that edge_t >= uintE
       auto apply_vtx_f = [&](const std::tuple<edge_t, uintE>& p)
-        -> const Maybe<std::tuple<edge_t, uintE> > {
+        -> const std::optional<std::tuple<edge_t, uintE> > {
         uintE id = std::get<0>(p);
         uintE degree_lost = std::get<1>(p);
         actual_degree[id] -= degree_lost;
         // compare with GA.V[id]. this is the current space used for this vtx.
-        return Maybe<std::tuple<edge_t, uintE>>();
+        return std::nullopt;
       };
 
       em_t.start();
-      em.template edgeMapCount(decr_seq, apply_vtx_f);
+      auto vs = vertexSubset(GA.n, decr_seq.size(), decr_seq.begin());
+      auto cond_f = [&] (const uintE& u) { return true; };
+      GA.nghCount(vs, cond_f, apply_vtx_f, em);
       em_t.stop();
 
       auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
@@ -317,10 +320,12 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       edgeMapFilter(GA, to_pack, pack_predicate, pack_edges | no_output);
 
       del_edges.size = 0; // reset dyn_arr
+      ct.stop();
     }
   }
 
   peeling_t.stop(); peeling_t.reportTotal("peeling time");
+  ct.reportTotal("Compaction time");
   bt.reportTotal("Bucketing time");
   em_t.reportTotal("EdgeMap time");
   decrement_t.reportTotal("Decrement trussness time");

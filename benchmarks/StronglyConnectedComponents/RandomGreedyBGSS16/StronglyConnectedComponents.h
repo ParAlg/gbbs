@@ -24,8 +24,8 @@
 #pragma once
 
 #include "pbbslib/random_shuffle.h"
-#include "ligra/pbbslib/resizable_table.h"
-#include "ligra/ligra.h"
+#include "gbbs/pbbslib/resizable_table.h"
+#include "gbbs/gbbs.h"
 
 // The include below is currently not useful, as the majority of out/in-degree
 // one vertices are removed in a single round of peeling (so multiple rounds are

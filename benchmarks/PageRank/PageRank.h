@@ -22,8 +22,8 @@
 // SOFTWARE.
 #pragma once
 
-#include "ligra/edge_map_reduce.h"
-#include "ligra/ligra.h"
+#include "gbbs/edge_map_reduce.h"
+#include "gbbs/gbbs.h"
 
 #include <math.h>
 
@@ -144,12 +144,12 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
 //    return p_curr[s] / degrees[s];
   };
   auto reduce_f = [&] (double l, double r) { return l + r; };
-  auto apply_f = [&] (std::tuple<uintE, double> k) {
+  auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, double>> {
     const uintE& u = std::get<0>(k);
     const double& contribution = std::get<1>(k);
     p_next[u] = damping*contribution + addedConstant;
     p_div[u] = p_next[u]/static_cast<double>(degrees[u]);
-    return Maybe<std::tuple<uintE, double>>();
+    return std::nullopt;
   };
 
   size_t iter = 0;
@@ -230,11 +230,11 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* 
       }
     };
     auto reduce_f = [&] (double l, double r) { return l + r; };
-    auto apply_f = [&] (std::tuple<uintE, double> k) {
+    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, pbbs::empty>> {
       const uintE& u = std::get<0>(k);
       const double& contribution = std::get<1>(k);
       nghSum[u] = contribution;
-      return Maybe<std::tuple<uintE, pbbs::empty>>();
+      return std::nullopt;
     };
     double id = 0.0;
 
@@ -344,8 +344,8 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     sparse_or_dense(G, EM, Frontier, Delta.begin(), nghSum.begin(), no_output);
     vertexSubset active
       = (round == 1) ?
-      vertexFilter2(All,delta::make_PR_Vertex_F_FirstRound(p.begin(),Delta.begin(),nghSum.begin(),damping,one_over_n,local_eps,get_degree)) :
-      vertexFilter2(All,delta::make_PR_Vertex_F(p.begin(),Delta.begin(),nghSum.begin(),damping,local_eps,get_degree));
+      vertexFilter(All,delta::make_PR_Vertex_F_FirstRound(p.begin(),Delta.begin(),nghSum.begin(),damping,one_over_n,local_eps,get_degree)) :
+      vertexFilter(All,delta::make_PR_Vertex_F(p.begin(),Delta.begin(),nghSum.begin(),damping,local_eps,get_degree));
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences = pbbs::delayed_seq<double>(n, [&] (size_t i) {

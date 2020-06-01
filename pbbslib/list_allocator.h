@@ -35,12 +35,11 @@
 #include <atomic>
 #include "alloc.h"
 #include "concurrent_stack.h"
-#include "maybe.h"
 #include "memory_size.h"
 #include "random_shuffle.h"
 #include "utilities.h"
 
-constexpr const size_t default_alloc_size = 1000000;
+constexpr const size_t default_alloc_size = 5000;
 constexpr const size_t list_size = 1 << 8;
 constexpr const size_t pad_size = 4096;
 
@@ -184,8 +183,8 @@ auto list_allocator<T>::allocate_blocks(size_t num_blocks) -> block_p {
 // then allocate a new list
 template <typename T>
 auto list_allocator<T>::get_list() -> block_p {
-  maybe<block_p> rem = global_stack.pop();
-  if (rem) return *rem;
+  std::optional<block_p> rem = global_stack.pop();
+  if (rem.has_value()) return *rem;
   block_p start = allocate_blocks(list_length);
   return initialize_list(start);
 }
@@ -251,7 +250,7 @@ void list_allocator<T>::finish() {
 
   delete[] local_lists;
 
-  maybe<block_p> x;
+  std::optional<block_p> x;
   while ((x = pool_roots.pop())) std::free(*x);
   pool_roots.clear();
   global_stack.clear();

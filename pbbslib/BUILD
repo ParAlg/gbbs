@@ -2,7 +2,10 @@ cc_library(
   name = "scheduler",
   hdrs = ["scheduler.h"],
   srcs = ["scheduler.cc"],
-  linkopts = ["-pthread"]
+  linkopts = [
+      "-pthread",
+      "-lnuma",
+      ]
 )
 
 cc_library(
@@ -15,7 +18,6 @@ cc_library(
 cc_library(
   name = "concurrent_stack",
   hdrs = ["concurrent_stack.h"],
-  deps = [":maybe"],
 )
 
 cc_library(
@@ -30,7 +32,6 @@ cc_library(
   srcs = ["alloc.cc"],
   deps = [
   ":concurrent_stack",
-  ":maybe",
   ":memory_size",
   ":parallel",
   ],
@@ -209,7 +210,6 @@ cc_library(
   ":utilities",
   ":concurrent_stack",
   ":random_shuffle",
-  ":maybe",
   ":memory_size"
   ]
 )
@@ -304,11 +304,6 @@ cc_library(
 )
 
 cc_library(
-  name = "maybe",
-  hdrs = ["maybe.h"],
-)
-
-cc_library(
   name = "assert",
   hdrs = ["assert.h"],
 )
@@ -317,7 +312,7 @@ cc_binary(
   name = "time_tests",
   srcs = ["time_tests.cc"],
   deps = [
-   "//ligra:parse_command_line",
+   "//gbbs:parse_command_line",
    ":alloc",
    ":get_time",
    ":sequence_ops",

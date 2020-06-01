@@ -1,7 +1,7 @@
 // This code is part of the project "A Simple Parallel Cartesian Tree
 // Algorithm and its Application to Parallel Suffix Tree
 // Construction", ACM Transactions on Parallel Computing, 2014
-// (earlier version appears in ALENEX 2011).  
+// (earlier version appears in ALENEX 2011).
 // Copyright (c) 2014-2019 Julian Shun and Guy Blelloch
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -31,10 +31,9 @@
 #include "lcp.h"
 #include "cartesian_tree.h"
 #include "histogram.h"
-#include "maybe.h"
 
 namespace pbbs {
-	
+
   template <class Uint>
   struct suffix_tree {
     static constexpr bool verbose = false;
@@ -78,13 +77,13 @@ namespace pbbs {
       LCPs.clear();
       t.next("LCP");
       suffix_tree_from_SA_LCP();
-    }      
+    }
 
     void suffix_tree_from_SA_LCP() {
       n = SA.size();
       sequence<Uint> Parents = cartesian_tree(LCP);
       t.next("Cartesian Tree");
-      
+
       // A cluster is a set of connected nodes in the CT with the same LCP
       // Each cluster needs to be converted into a single node.
       // The following marks the roots of each cluster and has Roots point to self
@@ -108,7 +107,7 @@ namespace pbbs {
       Uint num_internal;
       std::tie(new_labels, num_internal) = enumerate<Uint>(is_root);
       t.next("Relabel roots");
-      
+
       // interleave potential internal nodes and leaves
       auto edges = delayed_seq<Pair>(2*n, [&] (size_t j) {
 	  if (j & 1) { // is leaf (odd)
@@ -133,7 +132,7 @@ namespace pbbs {
       flags.clear();
       Roots.clear();
       new_labels.clear();
-      
+
       auto get_first = [&] (Pair p) {return p.first;};
 
       sequence<Pair> sorted_edges =
@@ -145,13 +144,13 @@ namespace pbbs {
       //int i = 2;
       //int total = 0;
       //while (h[i] > 0) cout << i  << " : " << h[i] << ", " << (total += h[i++]) << endl;
-      
+
       scan_inplace(offsets.slice(), addm<Uint>());
       t.next("Get Counts");
 
       if (verbose)
 	cout << "leaves = " << n << " internal nodes = " << num_internal << endl;
-      
+
       // tag edges with character from s
       sequence<Uint> root_indices = pack_index<Uint>(is_root);
       Edges = map<edge>(sorted_edges, [&] (Pair p) {
@@ -182,23 +181,23 @@ namespace pbbs {
     }
 
     range<edge*> get_children(size_t i) {
-      if (i == Nodes.size()-1) 
+      if (i == Nodes.size()-1)
 	return Edges.slice(Nodes[i].offset, Edges.size());
       else return Edges.slice(Nodes[i].offset, Nodes[i+1].offset);
     }
-    
+
     edge find_child(Uint i, uchar c) {
       for (edge e : get_children(i))
     	if (e.c == c) return e;
       return empty_edge;
     }
-    
-    maybe<Uint> find(char const *s) {
+
+    std::optional<Uint> find(char const *s) {
       Uint node = 0;
       Uint j = 0;
-      maybe<Uint> None;
+      std::optional<Uint> None;
       while (true) {
-	if (s[j] == 0) return maybe<Uint>(Nodes[node].location);
+	if (s[j] == 0) return std::optional<Uint>(Nodes[node].location);
 	//cout << "j = " << j << " node = " << node << endl;
 	edge e = find_child(node, s[j++]);
 	switch (e.type) {
@@ -207,7 +206,7 @@ namespace pbbs {
 	case leaf :
 	  //cout << "leaf" << endl;
 	  while (true) {
-	    if (s[j] == 0) return maybe<Uint>(SA[e.child]);
+	    if (s[j] == 0) return std::optional<Uint>(SA[e.child]);
 	    if (s[j] != S[SA[e.child] + j]) return None;
 	    j++;
 	  }
@@ -216,7 +215,7 @@ namespace pbbs {
 	  node = e.child;
 	  size_t l = Nodes[node].lcp;
 	  while (j < l) {
-	    if (s[j] == 0) return maybe<Uint>(Nodes[node].location);
+	    if (s[j] == 0) return std::optional<Uint>(Nodes[node].location);
 	    if (s[j] != S[Nodes[node].location + j]) return None;
 	    j++;
 	  }

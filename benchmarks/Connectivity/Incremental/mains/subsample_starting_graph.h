@@ -44,9 +44,9 @@ double Run(Graph& G, commandLine P) {
     return hash_to_double(u,v) < update_pct; /* return in sample */
   };
   timer tt; tt.start();
-  auto updates_arr = sample_edges(G, update_pred);
+  auto updates_arr = G.sampleEdges(update_pred);
   tt.stop(); tt.reportTotal("# sample edges time");
-  auto updates = pbbs::sequence((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
+  auto updates = pbbs::sequence<std::tuple<uintE, uintE>>((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
   updates_arr.E = nullptr; /* relinquish memory */
 
 //  /* 2) call filter_graph to delete all deletions + updates from G */

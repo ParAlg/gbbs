@@ -1,10 +1,12 @@
-cc_test(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
+
+gbbs_cc_test(
     name = "scan_test",
     srcs = ["scan_test.cc"],
     deps = [
         "//benchmarks/SCAN/Naive:scan",
-        "//ligra:graph_test_utils",
-        "//ligra:undirected_edge",
+        "//gbbs:graph_test_utils",
+        "//gbbs:undirected_edge",
         "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],

@@ -29,7 +29,6 @@
 //     -rounds : the number of times to run the algorithm
 
 #include "DensestSubgraph.h"
-#include "ligra/ligra.h"
 
 template <class Graph>
 double DensestSubgraph_runner(Graph& G, commandLine P) {

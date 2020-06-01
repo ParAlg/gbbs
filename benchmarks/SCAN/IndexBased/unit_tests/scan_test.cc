@@ -10,12 +10,13 @@
 #include <utility>
 #include <vector>
 
+#include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "ligra/graph.h"
-#include "ligra/graph_test_utils.h"
-#include "ligra/undirected_edge.h"
-#include "ligra/vertex.h"
+#include "gbbs/graph.h"
+#include "gbbs/graph_test_utils.h"
+#include "gbbs/undirected_edge.h"
+#include "gbbs/vertex.h"
 #include "pbbslib/seq.h"
 
 using ::testing::ElementsAre;
@@ -77,7 +78,7 @@ bool CheckClustering(
 
   if (actual_clusters != expected_clusters) {
     std::cerr << "Clusters don't match. Actual clustering:\n" <<
-      i::ClusteringToString(clustering) << '\n';
+      scan::ClusteringToString(clustering) << '\n';
     return false;
   } else {
     return true;
@@ -86,6 +87,9 @@ bool CheckClustering(
 
 // Checks that `DetermineUnclusteredType` identifies hubs and outliers as
 // expected.
+//
+// TODO(tomtseng): It would be cleaner to have a unit test that tests
+// `scan::DetermineUnclusteredType` separately instead of having this function.
 //
 // Arguments:
 //   graph
@@ -102,16 +106,16 @@ void CheckUnclusteredVertices(
     const VertexList& expected_hubs,
     const VertexList& expected_outliers) {
   for (const auto v : expected_hubs) {
-    EXPECT_EQ(clustering[v], i::kUnclustered);
+    EXPECT_EQ(clustering[v], scan::kUnclustered);
     EXPECT_EQ(
-        i::DetermineUnclusteredType(clustering, graph->get_vertex(v), v),
-        i::UnclusteredType::kHub);
+        scan::DetermineUnclusteredType(clustering, graph->get_vertex(v), v),
+        scan::UnclusteredType::kHub);
   }
   for (const auto v : expected_outliers) {
-    EXPECT_EQ(clustering[v], i::kUnclustered);
+    EXPECT_EQ(clustering[v], scan::kUnclustered);
     EXPECT_EQ(
-        i::DetermineUnclusteredType(clustering, graph->get_vertex(v), v),
-        i::UnclusteredType::kOutlier);
+        scan::DetermineUnclusteredType(clustering, graph->get_vertex(v), v),
+        scan::UnclusteredType::kOutlier);
   }
 }
 
