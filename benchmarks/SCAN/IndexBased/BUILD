@@ -39,9 +39,9 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//ligra:bridge",
-        "//ligra:graph",
-        "//ligra:macros",
+        "//gbbs:bridge",
+        "//gbbs:graph",
+        "//gbbs:macros",
         "//pbbslib:collect_reduce",
         "//pbbslib:monoid",
         "//pbbslib:seq",

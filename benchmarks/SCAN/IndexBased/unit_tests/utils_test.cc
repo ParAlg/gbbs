@@ -1,7 +1,7 @@
 #include "benchmarks/SCAN/IndexBased/utils.h"
 
 #include "gtest/gtest.h"
-#include "ligra/graph_test_utils.h"
+#include "gbbs/graph_test_utils.h"
 #include "pbbslib/seq.h"
 
 namespace gt = graph_test;

@@ -1,4 +1,6 @@
-cc_test(
+load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
+
+gbbs_cc_test(
     name = "graph_filter_test",
     srcs = ["graph_filter_test.cc"],
     deps = [

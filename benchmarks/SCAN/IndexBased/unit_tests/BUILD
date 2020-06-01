@@ -19,7 +19,7 @@ gbbs_cc_test(
     srcs = ["utils_test.cc"],
     deps = [
         "//benchmarks/SCAN/IndexBased:utils",
-        "//ligra:graph_test_utils",
+        "//gbbs:graph_test_utils",
         "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],

@@ -9,9 +9,9 @@
 #include <string>
 #include <utility>
 
-#include "ligra/bridge.h"
-#include "ligra/graph.h"
-#include "ligra/macros.h"
+#include "gbbs/bridge.h"
+#include "gbbs/graph.h"
+#include "gbbs/macros.h"
 #include "pbbslib/collect_reduce.h"
 #include "pbbslib/monoid.h"
 #include "pbbslib/seq.h"
