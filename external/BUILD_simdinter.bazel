@@ -1,0 +1,20 @@
+genrule(
+  name = "intersection_genrule",
+  srcs = glob(["src/intersection.cpp", "include/intersection.h"]),
+  outs = ["intersection.o"],
+  cmd = "cd external/simdinter; make intersection.o; cd ../..; cp external/simdinter/intersection.o $(location intersection.o)",
+)
+
+cc_library(
+  name = "intersectiondeps",
+  hdrs = glob(["include/*.h"]),
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "intersection",
+  srcs = ["intersection.o"],
+  hdrs = ["include/intersection.h"],
+  deps = ["//:intersectiondeps"],
+  visibility = ["//visibility:public"],
+)

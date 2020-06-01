@@ -4,66 +4,12 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/cpp:cc_configure.bzl", "cc_configure")
 cc_configure()
 
-GRAPHSETINTER_BUILD = """
-genrule(
-  name = "intersection_genrule",
-  srcs = glob(["src/set_operation.cpp", "src/set_operation.hpp"]),
-  outs = ["set_operation.o"],
-  cmd = "cd external/graphsetinter/src; make set_operation.o; cd ../../..; cp external/graphsetinter/src/set_operation.o $(location set_operation.o)",
-)
-
-cc_library(
-  name = "intersectiondeps",
-  hdrs = glob(["src/*.hpp"]),
-  visibility = ["//visibility:public"],
-)
-
-cc_library(
-  name = "intersection",
-  srcs = ["set_operation.o"],
-  hdrs = ["src/set_operation.hpp"],
-  deps = ["//:intersectiondeps"],
-  visibility = ["//visibility:public"],
-)
-"""
-
-new_git_repository(
-  name = "graphsetinter",
-  remote = "https://github.com/jeshi96/GraphSetIntersection.git",
-  commit = "ca7e88ae14b804f1ec6889b989544053d842b1c9",
-  shallow_since = "1571170990 -0400",
-  build_file_content = GRAPHSETINTER_BUILD,
-)
-
-SIMDINTER_BUILD = """
-genrule(
-  name = "intersection_genrule",
-  srcs = glob(["src/intersection.cpp", "include/intersection.h"]),
-  outs = ["intersection.o"],
-  cmd = "cd external/simdinter; make intersection.o; cd ../..; cp external/simdinter/intersection.o $(location intersection.o)",
-)
-
-cc_library(
-  name = "intersectiondeps",
-  hdrs = glob(["include/*.h"]),
-  visibility = ["//visibility:public"],
-)
-
-cc_library(
-  name = "intersection",
-  srcs = ["intersection.o"],
-  hdrs = ["include/intersection.h"],
-  deps = ["//:intersectiondeps"],
-  visibility = ["//visibility:public"],
-)
-"""
-
 new_git_repository(
   name = "simdinter",
   remote = "https://github.com/lemire/SIMDCompressionAndIntersection.git",
   commit = "f002db1d47f252dd17daa8206e3ebbbeee9e4d9b",
   shallow_since = "1562290323 -0400",
-  build_file_content = SIMDINTER_BUILD,
+  build_file = "BUILD_simdinter.bazel",
 )
 
 http_archive(
@@ -72,7 +18,6 @@ http_archive(
   strip_prefix = "googletest-release-1.10.0",
   sha256 = "9dc9157a9a1551ec7a7e43daea9a694a0bb5fb8bec81235d8a1e6ef64c716dcb",
 )
-
 
 # pybind bazel bindings
 PYBIND11_BAZEL_COMMIT = "656fd69e83e80ccef8a3e3935d1ff4f604332e81"
