@@ -173,11 +173,11 @@ inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t nu
     active.toSparse();
     auto f = [&](size_t i) -> std::optional<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
-      const uintE bkt = b.get_bucket(D[v]);
+      const uintE v_bkt = b.get_bucket(D[v]);
 //      uintE bkt = UINT_E_MAX;
 //      if (!(v_bkt == UINT_E_MAX))
 //        bkt = b.get_bucket(v_bkt);
-      return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
+      return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, v_bkt));
     };
     debug(std::cout << "cover.size = " << cover.size << "\n");
     b.update_buckets(f, active.size());

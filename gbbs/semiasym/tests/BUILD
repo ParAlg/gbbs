@@ -2,7 +2,7 @@ cc_test(
     name = "graph_filter_test",
     srcs = ["graph_filter_test.cc"],
     deps = [
-      "//gbbs:ligra",
+      "//gbbs:gbbs",
       "//gbbs:graph",
       "//gbbs/semiasym:graph_filter",
       "//gbbs:graph_test_utils",

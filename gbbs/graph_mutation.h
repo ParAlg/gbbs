@@ -249,7 +249,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
       }
       // Pack out non-zero edges. This method updates the degree in G.
       if (n_to_pack < deg) {
-        G.packNeighbors(i, pred_zero, tmp_v);
+        G.packNeighbors(i, pred_zero, (uint8_t*)tmp_v);
       } else {
         G.zeroVertexDegree(i);
       }
@@ -379,7 +379,7 @@ inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
 
   auto for_inner = [&](size_t i) {
     std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
-    G.packNeighbors(i, p, tmp_v);
+    G.packNeighbors(i, p, (uint8_t*)tmp_v);
   };
   paralle_for(0, n, [&] (size_t i) { for_inner(i); }, 1);
 }
