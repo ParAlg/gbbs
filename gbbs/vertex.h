@@ -710,6 +710,10 @@ struct symmetric_vertex {
     return k;
   }
 
+  inline size_t calculateOutTemporarySpaceBytes() {
+    return vertex_ops::calculateTemporarySpace(getOutDegree()) * sizeof(std::tuple<uintE, W>);
+  }
+
   inline size_t calculateOutTemporarySpace() {
     return vertex_ops::calculateTemporarySpace(getOutDegree());
   }
@@ -717,6 +721,7 @@ struct symmetric_vertex {
   inline size_t calculateInTemporarySpace() {
     return vertex_ops::calculateTemporarySpace(getInDegree());
   }
+
 };
 
 template <class W>

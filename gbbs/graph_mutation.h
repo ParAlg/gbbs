@@ -391,7 +391,6 @@ template <class Graph, class P>
 inline vertexSubsetData<uintE> packEdges(Graph& G,
                                          vertexSubset& vs, P& p,
                                          const flags& fl = 0) {
-  using W = typename Graph::weight_type;
   using S = std::tuple<uintE, uintE>;
 
   vs.toSparse();
@@ -403,18 +402,17 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
   auto space = sequence<uintT>(m);
   parallel_for(0, m, [&] (size_t i) {
     uintE v = vs.vtx(i);
-    space[i] = G.get_vertex(v).calculateOutTemporarySpace();
+    space[i] = G.get_vertex(v).calculateOutTemporarySpaceBytes();
   });
   size_t total_space = pbbslib::scan_add_inplace(space);
   //std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  auto tmp = sequence<std::tuple<uintE, W>>(
-      total_space);  // careful when total_space == 0
+  auto tmp = sequence<uint8_t>(total_space);
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
-      std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
+      uint8_t* tmp_v = tmp.begin() + space[i];
       uintE new_degree = G.packNeighbors(v, p, tmp_v);
       outV[i] = std::make_tuple(v, new_degree);
     }, 1);
@@ -422,7 +420,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
   } else {
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
-      std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
+      uint8_t* tmp_v = tmp.begin() + space[i];
       G.packNeighbors(v, p, tmp_v);
     }, 1);
     return vertexSubsetData<uintE>(n);

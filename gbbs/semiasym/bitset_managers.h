@@ -914,9 +914,6 @@ struct compressed_sym_bitset_manager {
     // 1. pack each block
     par_for(0, vtx_num_blocks, 1, [&](size_t block_id) {
         uintE orig_block_num = block_metadata[block_id].block_num;
-        uint8_t* block_bits =
-            block_data_start + bitset_bytes_per_block * block_id;
-
         E* e = get_edges();
 
 //        // (i) decode the block

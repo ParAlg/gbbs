@@ -235,7 +235,7 @@ struct symmetric_graph {
 
   // ======================= Graph Operators: Packing ========================
   template <class P>
-  uintE packNeighbors(uintE id, P& p, std::tuple<uintE, W>* tmp) {
+  uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
     uintE new_degree = get_vertex(id).packOutNgh(id, p, tmp);
     v_data[id].degree = new_degree;  // updates the degree
     return new_degree;

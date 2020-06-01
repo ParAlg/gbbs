@@ -35,6 +35,7 @@ cc_library(
     ":sage_io",
     ":benchmark",
     "//gbbs:gbbs",
+    "//gbbs/semiasym:graph_filter",
   ]
 )
 

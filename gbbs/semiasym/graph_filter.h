@@ -343,7 +343,7 @@ struct packed_graph {
     auto vtx_data = GA.v_data[v];
     uintE original_degree = vtx_data.degree;
     uintE offset = vtx_data.offset;
-#ifndef NVM
+#ifndef SAGE
     auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset);
 #else
     auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset, GA.e1 + offset);
@@ -359,16 +359,23 @@ struct packed_graph {
                 int>::type = 0>
   __attribute__((always_inline)) inline auto get_vertex(uintE v) {
     using block_manager = compressed_sym_bitset_manager<vertex_type, W>;
-    auto vtx_data = GA.V[v];
+    auto vtx_data = GA.v_data[v];
     uintE original_degree = vtx_data.degree;
     size_t offset = vtx_data.offset;
-#ifndef NVM
+#ifndef SAGE
     auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset);
 #else
     auto sym_blocks = block_manager(v, blocks, original_degree, VI, GA.e0 + offset, GA.e1 + offset);
 #endif
     return packed_symmetric_vertex<W, block_manager>(std::move(sym_blocks));
   }
+
+  template <class P>
+  uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
+    auto vtx = get_vertex(id);
+    return vtx.packOutNgh(id, p, tmp);
+  }
+
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
