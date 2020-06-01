@@ -179,7 +179,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
         bucket = b.get_bucket(v_bkt);
       return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
     };
-    //std::cout << "cover.size = " << cover.size << "\n";
+    debug(std::cout << "cover.size = " << cover.size << "\n");
     b.update_buckets(f, active.size());
     active.del();
     still_active.del();

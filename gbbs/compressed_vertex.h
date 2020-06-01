@@ -465,6 +465,10 @@ struct compressed_symmetric_vertex {
     return cvertex::calculateTemporarySpace(getOutDegree());
   }
 
+  inline size_t calculateOutTemporarySpaceBytes() {
+    return cvertex::calculateTemporarySpace(getOutDegree()) * sizeof(std::tuple<uintE, W>);
+  }
+
   inline size_t calculateInTemporarySpace() {
     return cvertex::calculateTemporarySpace(getInDegree());
   }
@@ -721,6 +725,10 @@ struct compressed_asymmetric_vertex {
 
   inline size_t calculateOutTemporarySpace() {
     return cvertex::calculateTemporarySpace(getOutDegree());
+  }
+
+  inline size_t calculateOutTemporarySpaceBytes() {
+    return cvertex::calculateTemporarySpace(getOutDegree()) * sizeof(std::tuple<uintE, W>);
   }
 
   inline size_t calculateInTemporarySpace() {

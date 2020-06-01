@@ -29,9 +29,11 @@
 //     -m : indicate that the graph should be mmap'd
 //     -c : indicate that the graph is compressed
 //     -nb : the number of buckets to use in the bucketing implementation
+#define SAGE=1
 
 #include "sage/sage.h"
 #include "ApproximateSetCover.h"
+
 
 template <class Graph>
 double SetCover_runner(Graph& G, commandLine P) {

@@ -373,7 +373,7 @@ struct packed_graph {
   template <class P>
   uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
     auto vtx = get_vertex(id);
-    return vtx.packOutNgh(id, p, tmp);
+    return vtx.packOutNgh(id, p, tmp, false);
   }
 
 

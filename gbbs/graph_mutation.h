@@ -399,30 +399,41 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  auto space = sequence<uintT>(m);
+  auto space = sequence<uintT>(m+1);
   parallel_for(0, m, [&] (size_t i) {
     uintE v = vs.vtx(i);
     space[i] = G.get_vertex(v).calculateOutTemporarySpaceBytes();
   });
+  space[m] = 0;
   size_t total_space = pbbslib::scan_add_inplace(space);
-  //std::cout << "packNghs: total space allocated = " << total_space << "\n";
-  auto tmp = sequence<uint8_t>(total_space);
+  uint8_t* tmp = nullptr;
+  if (total_space > 0) {
+    tmp = pbbs::new_array_no_init<uint8_t>(total_space);
+  }
   S* outV;
   if (should_output(fl)) {
     outV = pbbslib::new_array_no_init<S>(vs.size());
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
-      uint8_t* tmp_v = tmp.begin() + space[i];
+      uint8_t* tmp_v = nullptr;
+      if (space[i+1] > space[i]) {
+        tmp_v = tmp + space[i];
+      }
       uintE new_degree = G.packNeighbors(v, p, tmp_v);
       outV[i] = std::make_tuple(v, new_degree);
     }, 1);
+    if (tmp) { pbbs::free_array(tmp); }
     return vertexSubsetData<uintE>(n, m, outV);
   } else {
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
-      uint8_t* tmp_v = tmp.begin() + space[i];
+      uint8_t* tmp_v = nullptr;
+      if (space[i+1] > space[i]) {
+        tmp_v = tmp + space[i];
+      }
       G.packNeighbors(v, p, tmp_v);
     }, 1);
+    if (tmp) { pbbs::free_array(tmp); }
     return vertexSubsetData<uintE>(n);
   }
 }

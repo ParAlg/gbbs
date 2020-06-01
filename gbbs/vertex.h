@@ -403,6 +403,8 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     }
     return k;
   } else {
+    std::cout << "vtxid = " << vtx_id << " Using tmp = " << tmp << std::endl;
+
     // copy to tmp
     par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] = nghs[i]; });
     auto pc = [&](const std::tuple<uintE, W>& nw) {

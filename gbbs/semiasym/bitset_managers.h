@@ -72,13 +72,13 @@ struct sym_bitset_manager {
   static constexpr uintE kBlockAllocThreshold = 20;
 
   E* e0;
-#ifdef NVM
+#ifdef SAGE
   E* e1;
 #endif
 
   sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
                      uintE vtx_original_degree, vtx_info* v_infos,
-#ifndef NVM
+#ifndef SAGE
                      E* e0
 #else
                      E* e0, E* e1
@@ -87,7 +87,7 @@ struct sym_bitset_manager {
       : vtx_id(vtx_id),
         vtx_original_degree(vtx_original_degree),
         v_infos(v_infos),
-#ifndef NVM
+#ifndef SAGE
         e0(e0)
 #else
         e0(e0), e1(e1)
@@ -102,7 +102,7 @@ struct sym_bitset_manager {
   }
 
   __attribute__((always_inline)) inline E* get_edges() {
-#ifndef NVM
+#ifndef SAGE
     return e0;
 #else
     if (numanode() == 0) {
@@ -616,13 +616,13 @@ struct compressed_sym_bitset_manager {
       bytes_per_block - sizeof(metadata);
 
   E* e0;
-#ifdef NVM
+#ifdef SAGE
   E* e1;
 #endif
 
   compressed_sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
                                 uintE vtx_original_degree, vtx_info* v_infos,
-#ifndef NVM
+#ifndef SAGE
                      E* e0
 #else
                      E* e0, E* e1
@@ -631,7 +631,7 @@ struct compressed_sym_bitset_manager {
       : vtx_id(vtx_id),
       vtx_original_degree(vtx_original_degree),
       v_infos(v_infos),
-#ifndef NVM
+#ifndef SAGE
         e0(e0)
 #else
         e0(e0), e1(e1)
@@ -646,7 +646,7 @@ struct compressed_sym_bitset_manager {
   }
 
   __attribute__((always_inline)) inline E* get_edges() {
-#ifndef NVM
+#ifndef SAGE
     return e0;
 #else
     if (numanode() == 0) {

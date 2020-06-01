@@ -139,8 +139,7 @@ read_compressed_asymmetric_graph(const char* f1, const char* f2) {
   long* sizes = (long*)s0;
   uint64_t n = sizes[0], m = sizes[1], totalSpace = sizes[2];
 
-  debug(uint64_t totalSpace = sizes[2];
-  std::cout << "# n = " << n << " m = " << m << " totalSpace = " << totalSpace
+  debug(std::cout << "# n = " << n << " m = " << m << " totalSpace = " << totalSpace
             << "\n");
 
   uintT* offsets = (uintT*)(s0 + 3 * sizeof(long));

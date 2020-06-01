@@ -192,7 +192,7 @@ struct symmetric_graph {
   static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
       symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
     auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, W>(G, pred);
-    assert(newN == n);
+    assert(newN == G.num_vertices());
     return symmetric_graph<symmetric_vertex, W>(
         newVData, newN, newM,
         [=]() { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
@@ -206,7 +206,7 @@ struct symmetric_graph {
   static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
       symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
     auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, W>(G, pred);
-    assert(newN == n);
+    assert(newN == G.num_vertices());
     return symmetric_graph<csv_byte, W>(
         newVData, newN, newM,
         [=]() { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
@@ -236,7 +236,7 @@ struct symmetric_graph {
   // ======================= Graph Operators: Packing ========================
   template <class P>
   uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
-    uintE new_degree = get_vertex(id).packOutNgh(id, p, tmp);
+    uintE new_degree = get_vertex(id).packOutNgh(id, p, (std::tuple<uintE, W>*)tmp);
     v_data[id].degree = new_degree;  // updates the degree
     return new_degree;
   }

@@ -63,11 +63,10 @@ struct Visit_Elms {
 // reductions are handled by atomic reduction operators; external to bucketing
 // interface.
 
-template <class Graph>
-inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
+template <template <class W> class vertex, class W>
+inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t num_buckets = 512) {
   auto GA = sage::build_packed_graph(G);
   std::cout << "GA.n = " << GA.n << " GA.m = " << GA.m << std::endl;
-  using W = typename Graph::weight_type;
   timer it; it.start();
   auto Elms = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
@@ -78,7 +77,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   auto b = make_vertex_buckets(GA.n, d_slice, decreasing, num_buckets);
 
   auto perm = sequence<uintE>(GA.n);
-  timer bktt, packt, permt, emt;
+  timer bktt, filtert, packt, permt, emt;
 
   timer nbt;
   size_t rounds = 0;
@@ -105,14 +104,16 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
+    filtert.start();
     // Find sets which still have sufficient degree (degree >= threshold)
     size_t threshold = ceil(pow(1.0 + sc::epsilon, cur_bkt));
     auto above_threshold = [&](const uintE& v, const uintE& deg) {
       return deg >= threshold;
     };
-    //auto still_active = vertexFilter_sparse(packed_vtxs, above_threshold);
+    //auto still_active = vertexFilter2<uintE>(packed_vtxs, above_threshold);
     auto still_active = vertexFilter(packed_vtxs, above_threshold, no_dense);
     packed_vtxs.del();
+    filtert.stop();
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
@@ -120,8 +121,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto P = pbbslib::random_permutation<uintE>(still_active.size(), r);
     par_for(0, still_active.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
                       uintE v = still_active.vtx(i);
-                      uintE pv = P[i];
-                      perm[v] = pv;
+                      perm[v] = P[i];
                     });
     P.clear();
     permt.stop();
@@ -148,7 +148,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     vertexMap(activeAndCts, threshold_f);
     auto inCover =
         vertexFilter(activeAndCts, [&](const uintE& v, const uintE& numWon) {
-        //vertexFilter_sparse(activeAndCts, [&](const uintE& v, const uintE& numWon) {
           return numWon >= low_threshold;
         }, no_dense);
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
@@ -159,10 +158,8 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     // elements as covered. Sets that didn't reset any acquired elements)
     auto reset_f = [&](const uintE& u, const uintE& v, const W& w) -> bool {
       if (Elms[v] == perm[u]) {
-        if (D[u] == UINT_E_MAX)
-          Elms[v] = sc::COVERED;
-        else
-          Elms[v] = UINT_E_MAX;
+        if (D[u] == UINT_E_MAX) Elms[v] = sc::COVERED;
+        else Elms[v] = UINT_E_MAX;
       }
       return false;
     };
@@ -176,13 +173,13 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     active.toSparse();
     auto f = [&](size_t i) -> std::optional<std::tuple<uintE, uintE>> {
       const uintE v = active.vtx(i);
-      const uintE v_bkt = D[v];
-      uintE bucket = UINT_E_MAX;
-      if (!(v_bkt == UINT_E_MAX))
-        bucket = b.get_bucket(v_bkt);
-      return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bucket));
+      const uintE bkt = b.get_bucket(D[v]);
+//      uintE bkt = UINT_E_MAX;
+//      if (!(v_bkt == UINT_E_MAX))
+//        bkt = b.get_bucket(v_bkt);
+      return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bkt));
     };
-    //std::cout << "cover.size = " << cover.size << "\n";
+    debug(std::cout << "cover.size = " << cover.size << "\n");
     b.update_buckets(f, active.size());
     active.del();
     still_active.del();
@@ -195,14 +192,16 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   bktt.reportTotal("bucket");
   nbt.reportTotal("next bucket time");
   packt.reportTotal("pack");
+  filtert.reportTotal("vtx filter");
   permt.reportTotal("perm");
   emt.reportTotal("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
   auto elm_cov = pbbslib::make_sequence<uintE>(GA.n, elm_cov_f);
   size_t elms_cov = pbbslib::reduce_add(elm_cov);
-  std::cout << "|V| = " << GA.n << " |E| = " << GA.m << "\n";
+  std::cout << "|V| = " << GA.n << " |E| (initially) = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";
   std::cout << "Rounds: " << rounds << "\n";
   std::cout << "Num_uncovered = " << (GA.n - elms_cov) << "\n";
+  GA.del();
   return cover;
 }

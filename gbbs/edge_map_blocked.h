@@ -66,7 +66,7 @@ template <class data  /* data associated with vertices in the output vertex_subs
 inline vertexSubsetData<data> edgeMapSparseNoOutput(Graph& G, VS& indices, F& f,
                                                     const flags fl) {
   size_t m = indices.numNonzeros();
-#ifdef NVM
+#ifdef SAGE
   bool inner_parallel = false;
 #else
   bool inner_parallel = true;
