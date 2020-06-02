@@ -148,7 +148,7 @@ struct symmetric_graph {
         << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"
         << std::endl;
     exit(-1);
-    return vertexSubset(n);
+    return vertexSubsetData<Data>(n);
   }
 
   template <class VS, class Map, class Reduce>
@@ -158,7 +158,7 @@ struct symmetric_graph {
         << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"
         << std::endl;
     exit(-1);
-    return vertexSubset(n);
+    return vertexSubsetData<uintE>(n);
   }
 
   // =================== VertexSubset Operators: Packing =====================
@@ -195,7 +195,9 @@ struct symmetric_graph {
     assert(newN == G.num_vertices());
     return symmetric_graph<symmetric_vertex, W>(
         newVData, newN, newM,
-        [=]() { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
+        [newVData = newVData, newEdges = newEdges]() {
+          pbbslib::free_arrays(newVData, newEdges);
+        }, newEdges);
   }
 
   template <
@@ -209,7 +211,9 @@ struct symmetric_graph {
     assert(newN == G.num_vertices());
     return symmetric_graph<csv_byte, W>(
         newVData, newN, newM,
-        [=]() { pbbslib::free_arrays(newVData, newEdges); }, newEdges);
+        [newVData = newVData, newEdges = newEdges]() {
+          pbbslib::free_arrays(newVData, newEdges);
+        }, newEdges);
   }
 
   // Used by MST and MaximalMatching
