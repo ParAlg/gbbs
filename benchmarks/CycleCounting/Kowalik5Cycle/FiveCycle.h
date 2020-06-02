@@ -20,6 +20,7 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
 #include "gbbs/gbbs.h"
+#include "gbbs/graph.h"
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 
@@ -54,6 +55,31 @@ struct U_FastReset {
 
   ~U_FastReset() { del(); }
 };
+
+constexpr const size_t binary_search_base = 16;
+
+template <typename T, typename F>
+inline size_t _linear_search(T* I, const F& less, size_t n) {
+  for (size_t i = 0; i < n; i++)
+    if (!less(I[i])) return i;
+  return n;
+}
+
+// return index to first key where less is false
+template <typename T, typename F>
+inline size_t _binary_search(T* I, const F& less, size_t n) {
+  size_t start = 0;
+  size_t end = n; 
+  while (end - start > binary_search_base) {
+    size_t mid = start + (end - start) / 2;
+    if (!less(I[mid]))
+      end = mid;
+    else
+      start = mid + 1;
+  }
+  return start + _linear_search(I + start, less, end - start);
+}
+
 
 // arg order_to_vertex[i] = vertex in original graph G that will be vertex i in the new graph.
 // new_order[i] = the newe label for vertex i
@@ -178,7 +204,6 @@ inline auto Preprocess(Graph& GA, sequence<uintE>& rank, long order_type = 0, do
   //using W = typename Graph::weight_type;
   // sequence<uintE> rank;
   // relabel the graph first. then do degeneracyorder
-
   auto order_to_vertex = orderNodesByDegree(GA, GA.n);
   cout << "Order done\n"; fflush(stdout);
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
@@ -204,10 +229,10 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
   
   if (degree == 0) return 0; 
 
-  uintE viOutDegree = DGDO.get_vertex(i).getOutDegree();
-  uintE* outnghs_vi = (uintE*) DGDO.get_vertex(i).getOutNeighbors();
-  //auto outnghs_vi_seq =  sequence<uintE>(outnghs_vi, viOutDegree);
-  //auto custom_less_i = [&](uintE arg) { return i < arg; }; // for binary searching.
+  // uintE viOutDegree = DGDO.get_vertex(i).getOutDegree();
+  // uintE* outnghs_vi = (uintE*) DGDO.get_vertex(i).getOutNeighbors();
+  // auto outnghs_vi_seq =  sequence<uintE>(outnghs_vi, viOutDegree);
+  // auto custom_less_i = [&](uintE arg) { return i < arg; }; // for binary searching.
 
   uintE u, uDegree, w, wOutDegree, x;
 
@@ -241,30 +266,39 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
 
       // stuff for binary search
       // auto outnghs_w_seq =  sequence<uintE>(outnghs_w, wOutDegree);
-      // auto custom_less_w = [&](uintE arg) { return w < arg; };
-      // uintE index_leq_i, index_leq_w; 
+      auto custom_less_w = [&](uintE arg) { return w < arg; };
+      //uintE index_leq_i, index_leq_w; 
       // // auto less_fn = std::less<size_t>();
       // if (wOutDegree > 0
-      //       && (index_leq_i = pbbslib::binary_search(outnghs_w_seq, custom_less_i)) < wOutDegree 
+      //       && (index_leq_i = _binary_search(outnghs_w, custom_less_i, wOutDegree)) < wOutDegree 
       //        && outnghs_w[index_leq_i] == i) {
       //   w_vi_neighbors = 1;
-      // } else if ((index_leq_w = pbbslib::binary_search(outnghs_vi_seq, custom_less_w)) < wOutDegree   
+      // } else if ((index_leq_w = _binary_search(outnghs_vi, custom_less_w, viOutDegree)) < viOutDegree   
       //        && outnghs_vi[index_leq_w] == w) {
       //   w_vi_neighbors = 1;
       // }
-      
+      uintE index_leq_w;
+      if ((index_leq_w = _binary_search(nghs, custom_less_w, degree)) < degree 
+             && nghs[index_leq_w] == w) {
+        w_vi_neighbors = 1;
+      }
 
-      for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) >= i); l++)  {
-        if (x == i) {w_vi_neighbors = 1; break;}
-      }
-      for (uintE l = 0; (l < viOutDegree) && ((x = outnghs_vi[l]) >= w); l++)  {
-        if (x == w) w_vi_neighbors = 1; 
-      }
+
+
+      // for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) >= i); l++)  {
+      //   if (x == i) {w_vi_neighbors = 1; break;}
+      // }
+      // for (uintE l = 0; (l < viOutDegree) && ((x = outnghs_vi[l]) >= w); l++)  {
+      //   if (x == w) w_vi_neighbors = 1; 
+      // }
+      
       for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) > i); l++) {
         if (x != u) {
             temp += U[x] - w_vi_neighbors;
         }
       }
+
+      // auto wnghs = outnghs_w_seq.to_array();
     }
 
     for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
@@ -272,6 +306,9 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
     }
 
   }
+
+  // auto inghs = outnghs_vi_seq.to_array();
+
   V->reset();
   return temp;
 }

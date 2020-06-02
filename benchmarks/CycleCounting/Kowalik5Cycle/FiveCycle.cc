@@ -18,7 +18,7 @@ double Count5Cycle_runner(Graph& G, commandLine P) {
   if (order_type == 0){
     std::cout << "Goodrich-Pszona" << std::endl;
   } else if (order_type == 1) {
-    std::cout << "Baren Boimelkin" << std::endl;
+    std::cout << "Barenboim-Elkin" << std::endl;
   } else if (order_type == 2) {
     std::cout << "Degree ordering" << std::endl;
   }
