@@ -377,8 +377,7 @@ void NeighborOrder::load(CerealArchive& archive) {
 
 template<class CerealArchive>
 void CoreOrder::save(CerealArchive& archive) const {
-  archive(num_vertices_);
-  archive(order_.size());
+  archive(num_vertices_, order_.size());
   for (const auto& cores : order_) {
     archive(cores.size());
     for (const auto& core : cores) {
