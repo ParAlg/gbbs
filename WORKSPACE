@@ -19,6 +19,14 @@ http_archive(
   sha256 = "9dc9157a9a1551ec7a7e43daea9a694a0bb5fb8bec81235d8a1e6ef64c716dcb",
 )
 
+http_archive(
+  name = "cereal",
+  urls = ["https://github.com/USCiLab/cereal/archive/v1.3.0.tar.gz"],
+  strip_prefix = "cereal-1.3.0",
+  sha256 = "329ea3e3130b026c03a4acc50e168e7daff4e6e661bc6a7dfec0d77b570851d5",
+  build_file = "BUILD_cereal.bazel",
+)
+
 # pybind bazel bindings
 PYBIND11_BAZEL_COMMIT = "656fd69e83e80ccef8a3e3935d1ff4f604332e81"
 http_archive(
