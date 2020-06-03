@@ -550,6 +550,7 @@ TEST(Cluster, TwoClusterGraph) {
 }
 
 TEST(Serialization, BasicUsage) {
+  // Check that serialization and deserialization of the index works.
   // Graph diagram:
   //     0 --- 1 -- 2 -- 5
   //           |   /|
@@ -579,11 +580,12 @@ TEST(Serialization, BasicUsage) {
     archive(deserialized_index);
   }
   EXPECT_EQ(index, deserialized_index);
-  {
-    constexpr uint64_t kMu{2};
-    constexpr float kEpsilon{0.73};
-    const i::Clustering clustering_1{index.Cluster(kMu, kEpsilon)};
-    const i::Clustering clustering_2{deserialized_index.Cluster(kMu, kEpsilon)};
-    EXPECT_EQ(clustering_1, clustering_2);
-  }
+
+  // Check that the deserialized index doesn't seg-fault or do anything weird
+  // when used.
+  constexpr uint64_t kMu{2};
+  constexpr float kEpsilon{0.73};
+  const i::Clustering clustering_1{index.Cluster(kMu, kEpsilon)};
+  const i::Clustering clustering_2{deserialized_index.Cluster(kMu, kEpsilon)};
+  EXPECT_EQ(clustering_1, clustering_2);
 }
