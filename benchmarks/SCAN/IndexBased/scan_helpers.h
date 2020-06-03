@@ -391,7 +391,7 @@ template<class CerealArchive>
 void CoreOrder::load(CerealArchive& archive) {
   size_t max_mu;
   archive(num_vertices_, max_mu);
-  order_ = sequence<pbbs::sequence<CoreThreshold>>::no_init(max_mu);
+  order_ = sequence<pbbs::sequence<CoreThreshold>>{max_mu};
   for (auto& cores : order_) {
     size_t num_cores;
     archive(num_cores);
