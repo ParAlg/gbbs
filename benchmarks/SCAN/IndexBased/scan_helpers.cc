@@ -48,6 +48,8 @@ void ReportTime([[maybe_unused]] const timer& t) {
 #endif
 }
 
+NeighborOrder::NeighborOrder() : similarities_{}, similarities_by_source_{} {}
+
 const pbbs::range<EdgeSimilarity*>&
 NeighborOrder::operator[](size_t source) const {
   return similarities_by_source_[source];
@@ -67,6 +69,13 @@ pbbs::range<EdgeSimilarity*>* NeighborOrder::begin() const {
 
 pbbs::range<EdgeSimilarity*>* NeighborOrder::end() const {
   return similarities_by_source_.end();
+}
+
+bool operator==(const NeighborOrder& order_1, const NeighborOrder& order_2) {
+  // In well-formed neighbor orders, `similarities_by_source_` is fully
+  // determined by `similarities_`. Therefore, the equality operator does not
+  // need to check `similarities_by_source`.
+  return order_1.similarities_ == order_2.similarities_;
 }
 
 pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
@@ -145,6 +154,8 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
   return core_order;
 }
 
+CoreOrder::CoreOrder() : num_vertices_{0} , order_{} {}
+
 CoreOrder::CoreOrder(const NeighborOrder& neighbor_order)
     : num_vertices_{neighbor_order.size()}
     , order_{ComputeCoreOrder(neighbor_order)} {}
@@ -171,6 +182,11 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
       [](const internal::CoreThreshold& core_threshold) {
         return core_threshold.vertex_id;
       });
+}
+
+bool operator==(const CoreOrder& order_1, const CoreOrder& order_2) {
+  return std::tie(order_1.num_vertices_, order_1.order_)
+    == std::tie(order_2.num_vertices_, order_2.order_);
 }
 
 }  // namespace internal

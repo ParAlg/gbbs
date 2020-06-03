@@ -119,6 +119,8 @@ void AttachNoncoresToClusters(
 
 }  // namespace
 
+Index::Index() : num_vertices_{0}, neighbor_order_{}, core_order_{} {}
+
 Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
   if (cores.empty()) {
@@ -146,6 +148,14 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   AttachNoncoresToClusters(
       neighbor_order_, cores, core_similar_edge_counts, &clustering);
   return clustering;
+}
+
+bool operator==(const Index& index_1, const Index& index_2) {
+  return
+    std::tie(
+        index_1.num_vertices_, index_1.neighbor_order_, index_1.core_order_)
+    == std::tie(
+        index_2.num_vertices_, index_2.neighbor_order_, index_2.core_order_);
 }
 
 }  // namespace indexed_scan

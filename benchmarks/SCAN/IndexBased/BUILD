@@ -26,6 +26,7 @@ cc_library(
         "//pbbslib:sample_sort",
         "//pbbslib:seq",
         "//pbbslib:utilities",
+        "@cereal",
     ],
 )
 

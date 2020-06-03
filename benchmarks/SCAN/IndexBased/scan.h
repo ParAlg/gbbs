@@ -1,6 +1,7 @@
 #pragma once
 
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
+#include "cereal/access.hpp"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
 #include "pbbslib/seq.h"
@@ -14,6 +15,9 @@ using scan::kUnclustered;
 
 // Index for an undirected graph from which clustering the graph with SCAN is
 // quick, though index construction may be expensive.
+//
+// The Index may be serialized and deserialized as a cereal
+// (https://uscilab.github.io/cereal/) archive.
 class Index {
  public:
   // Constructor.
@@ -26,6 +30,9 @@ class Index {
     : num_vertices_{graph->n}
     , neighbor_order_{graph}
     , core_order_{neighbor_order_} {}
+
+  // Empty index constructor.
+  Index();
 
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
   // mu and epsilon.
@@ -53,9 +60,18 @@ class Index {
   Clustering Cluster(uint64_t mu, float epsilon) const;
 
  private:
-  const size_t num_vertices_;
-  const internal::NeighborOrder neighbor_order_;
-  const internal::CoreOrder core_order_;
+  friend class cereal::access;
+  friend bool operator==(const Index&, const Index&);
+
+  // For cereal serialization.
+  template<class CerealArchive>
+  void serialize(CerealArchive& archive) {
+    archive(num_vertices_, neighbor_order_, core_order_);
+  }
+
+  size_t num_vertices_;
+  internal::NeighborOrder neighbor_order_;
+  internal::CoreOrder core_order_;
 };
 
 }  // namespace indexed_scan

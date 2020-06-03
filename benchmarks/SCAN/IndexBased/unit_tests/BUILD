@@ -10,6 +10,7 @@ gbbs_cc_test(
         "//gbbs:undirected_edge",
         "//gbbs:vertex",
         "//pbbslib:seq",
+        "@cereal",
         "@googletest//:gtest_main",
     ],
 )

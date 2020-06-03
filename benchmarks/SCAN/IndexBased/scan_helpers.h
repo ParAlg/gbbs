@@ -10,6 +10,7 @@
 
 #include "benchmarks/SCAN/IndexBased/intersect.h"
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
+#include "cereal/access.hpp"
 #include "gbbs/graph.h"
 #include "gbbs/graph_mutation.h"
 #include "gbbs/undirected_edge.h"
@@ -57,6 +58,8 @@ class NeighborOrder {
   template <template <typename> class VertexTemplate>
   explicit NeighborOrder(symmetric_graph<VertexTemplate, NoWeight>* graph);
 
+  NeighborOrder();
+
   // Get all structural similarity scores from vertex `source` to its neighbors,
   // sorted by descending similarity.
   const pbbs::range<EdgeSimilarity*>& operator[](size_t source) const;
@@ -69,6 +72,15 @@ class NeighborOrder {
   pbbs::range<EdgeSimilarity*>* end() const;
 
  private:
+  friend class cereal::access;
+  friend bool operator==(const NeighborOrder&, const NeighborOrder&);
+
+  // For cereal serialization.
+  template<class CerealArchive>
+  void save(CerealArchive& archive) const;
+  template<class CerealArchive>
+  void load(CerealArchive& archive);
+
   // Holds similarity scores for all edges, sorted by source and then by
   // similarity.
   pbbs::sequence<EdgeSimilarity> similarities_;
@@ -80,6 +92,15 @@ struct CoreThreshold {
   // Maximum value of the SCAN parameter epsilon for which `vertex_id` is a core
   // vertex (given some fixed reference value for SCAN parameter mu).
   float threshold;
+
+ private:
+  friend class cereal::access;
+
+  // For cereal serialization.
+  template<class CerealArchive>
+  void serialize(CerealArchive& archive) {
+    archive(vertex_id, threshold);
+  }
 };
 // Beware that this equality operator compares the floating-point field
 // approximately. This is convenient for unit tests but might not be appropriate
@@ -91,12 +112,23 @@ class CoreOrder {
  public:
   explicit CoreOrder(const NeighborOrder& neighbor_order);
 
+  CoreOrder();
+
   // Return all vertices that are cores under SCAN parameters `mu` and
   // `epsilon`.
   pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
 
  private:
-  const size_t num_vertices_;
+  friend class cereal::access;
+  friend bool operator==(const CoreOrder&, const CoreOrder&);
+
+  // For cereal serialization.
+  template<class CerealArchive>
+  void save(CerealArchive& archive) const;
+  template<class CerealArchive>
+  void load(CerealArchive& archive);
+
+  size_t num_vertices_;
   pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
 };
 
@@ -132,6 +164,16 @@ size_t BinarySearch(const Seq& sequence, Func&& predicate) {
   return lo +
     pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
 }
+
+// Returns a sequence CO where CO[i] for i >= 2 is a list of vertices that
+// can be a core when the SCAN parameter mu is set to i. The vertices in
+// CO[i] are sorted by their core threshold values, the maximum value of SCAN
+// parameter epsilon such that the vertex is a core when mu == i.
+//
+// CO[0] and CO[1] are left empty --- when mu is less than 2, all vertices are
+// always cores and have a core threshold of 1.
+pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
+    const NeighborOrder& neighbor_order);
 
 template <template <typename> class VertexTemplate>
 NeighborOrder::NeighborOrder(
@@ -285,15 +327,86 @@ NeighborOrder::NeighborOrder(
   internal::ReportTime(function_timer);
 }
 
-// Returns a sequence CO where CO[i] for i >= 2 is a list of vertices that
-// can be a core when the SCAN parameter mu is set to i. The vertices in
-// CO[i] are sorted by their core threshold values, the maximum value of SCAN
-// parameter epsilon such that the vertex is a core when mu == i.
-//
-// CO[0] and CO[1] are left empty --- when mu is less than 2, all vertices are
-// always cores and have a core threshold of 1.
-pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
-    const NeighborOrder& neighbor_order);
+template<class CerealArchive>
+void NeighborOrder::save(CerealArchive& archive) const {
+  // Store a neighbor order compactly by storing the offset at which each source
+  // vertex first appears in `similarities_` and storing {neighbor, similarity}
+  // for each edge in `similarities_`.
+
+  const size_t num_vertices{similarities_by_source_.size()};
+  const size_t num_edges{similarities_.size()};
+  archive(num_vertices, num_edges);
+  for (const auto& range : similarities_by_source_) {
+    archive(std::distance(similarities_.begin(), range.begin()));
+  }
+  for (const auto& edge : similarities_) {
+    archive(edge.neighbor, edge.similarity);
+  }
+}
+
+template<class CerealArchive>
+void NeighborOrder::load(CerealArchive& archive) {
+  size_t num_vertices;
+  size_t num_edges;
+  archive(num_vertices, num_edges);
+  similarities_ = pbbs::sequence<EdgeSimilarity>::no_init(num_edges);
+  similarities_by_source_ =
+    pbbs::sequence<pbbs::range<EdgeSimilarity*>>::no_init(num_vertices);
+  if (num_vertices > 0) {
+    size_t prev_offset;
+    archive(prev_offset);
+    for (size_t i{1}; i < num_vertices; i++) {
+      size_t offset;
+      archive(offset);
+      similarities_by_source_[i - 1] = similarities_.slice(prev_offset, offset);
+      prev_offset = offset;
+    }
+    similarities_by_source_[num_vertices - 1] =
+      similarities_.slice(prev_offset, num_edges);
+  }
+  uintE source{0};
+  for (size_t i{0}; i < num_edges; i++) {
+    while (static_cast<size_t>(std::distance(
+          similarities_.begin(),
+          similarities_by_source_[source].end())) <= i) {
+      ++source;
+    }
+    uintE neighbor;
+    float similarity;
+    archive(neighbor, similarity);
+    similarities_[i] = EdgeSimilarity{
+      .source = source,
+      .neighbor = neighbor,
+      .similarity = similarity};
+  }
+}
+
+template<class CerealArchive>
+void CoreOrder::save(CerealArchive& archive) const {
+  archive(num_vertices_);
+  archive(order_.size());
+  for (const auto& cores : order_) {
+    archive(cores.size());
+    for (const auto& core : cores) {
+      archive(core);
+    }
+  }
+}
+
+template<class CerealArchive>
+void CoreOrder::load(CerealArchive& archive) {
+  size_t max_mu;
+  archive(num_vertices_, max_mu);
+  order_ = sequence<pbbs::sequence<CoreThreshold>>::no_init(max_mu);
+  for (auto& cores : order_) {
+    size_t num_cores;
+    archive(num_cores);
+    cores = pbbs::sequence<CoreThreshold>::no_init(num_cores);
+    for (auto& core : cores) {
+      archive(core);
+    }
+  }
+}
 
 }  // namespace internal
 

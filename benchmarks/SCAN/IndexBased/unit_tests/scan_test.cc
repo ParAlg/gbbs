@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <set>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -11,6 +12,7 @@
 #include <vector>
 
 #include "benchmarks/SCAN/IndexBased/utils.h"
+#include "cereal/archives/binary.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "gbbs/graph.h"
@@ -539,4 +541,36 @@ TEST(Cluster, TwoClusterGraph) {
     CheckUnclusteredVertices(
         &graph, clustering, kExpectedHubs, kExpectedOutliers);
   }
+}
+
+TEST(Serialization, BasicUsage) {
+  // Graph diagram:
+  //     0 --- 1 -- 2 -- 5
+  //           |   /|
+  //           | /  |
+  //           3 -- 4
+  const size_t kNumVertices{6};
+  const std::unordered_set<UndirectedEdge> kEdges{
+    {0, 1},
+    {1, 2},
+    {1, 3},
+    {2, 3},
+    {2, 4},
+    {2, 5},
+    {3, 4},
+  };
+  auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
+  const i::Index index{&graph};
+
+  i::Index deserialized_index;
+  std::stringstream stream;
+  {
+    cereal::BinaryOutputArchive archive(stream);
+    archive(index);
+  }
+  {
+    cereal::BinaryInputArchive archive(stream);
+    archive(deserialized_index);
+  }
+  EXPECT_EQ(index, deserialized_index);
 }
