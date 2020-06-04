@@ -126,7 +126,8 @@ TEST(ScanSubroutines, NullGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{&graph};
+  const ii::NeighborOrder neighbor_order{
+    &graph, i::CosineSimilaritiesFunctor{}};
   EXPECT_THAT(neighbor_order, IsEmpty());
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -138,7 +139,8 @@ TEST(ScanSubroutines, EmptyGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{&graph};
+  const ii::NeighborOrder neighbor_order{
+    &graph, i::CosineSimilaritiesFunctor{}};
   EXPECT_EQ(neighbor_order.size(), kNumVertices);
   for (const auto& vertex_order : neighbor_order) {
     EXPECT_THAT(vertex_order, IsEmpty());
@@ -168,7 +170,8 @@ TEST(ScanSubroutines, BasicUsage) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{&graph};
+  const ii::NeighborOrder neighbor_order{
+    &graph, i::CosineSimilaritiesFunctor{}};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
       neighbor_order[0],
@@ -280,7 +283,8 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{&graph};
+  const ii::NeighborOrder neighbor_order{
+    &graph, i::CosineSimilaritiesFunctor{}};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(neighbor_order[0], ElementsAre(MakeEdgeSimilarity(0, 1, 1.0)));
   EXPECT_THAT(neighbor_order[1], ElementsAre(MakeEdgeSimilarity(1, 0, 1.0)));
@@ -314,6 +318,10 @@ TEST(ScanSubroutines, DisconnectedGraph) {
         MakeCoreThreshold(4, 2.0 / sqrt(6)),
         MakeCoreThreshold(5, 2.0 / sqrt(6))));
   EXPECT_THAT(core_order[3], ElementsAre(MakeCoreThreshold(4, 2.0 / sqrt(6))));
+}
+
+TEST(ApproximateCosineSimilarities, BasicUsage) {
+  EXPECT_EQ("TODO", "DONE");
 }
 
 TEST(Cluster, NullGraph) {

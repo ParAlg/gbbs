@@ -54,8 +54,12 @@ class NeighborOrder {
   //
   // The neighbor lists for each vertex in the graph must be sorted by ascending
   // neighbor ID.
-  template <template <typename> class VertexTemplate>
-  explicit NeighborOrder(symmetric_graph<VertexTemplate, NoWeight>* graph);
+  //
+  // TODO add comment
+  template <template <typename> class VertexTemplate, class SimilaritiesFunc>
+  NeighborOrder(
+      symmetric_graph<VertexTemplate, NoWeight>* graph,
+      SimilaritiesFunc&& similarities_func);
 
   // Get all structural similarity scores from vertex `source` to its neighbors,
   // sorted by descending similarity.
@@ -133,15 +137,14 @@ size_t BinarySearch(const Seq& sequence, Func&& predicate) {
     pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
 }
 
+// Implementation of `CosineSimilaritiesFunctor::operator()`.
 template <template <typename> class VertexTemplate>
-NeighborOrder::NeighborOrder(
-    symmetric_graph<VertexTemplate, NoWeight>* graph) {
-  timer function_timer{"Construct neighbor order"};
-
-  // To compute structural similarities, we need to count shared neighbors
-  // between two vertices. Counting the neighbors shared between adjacent
-  // vertices u and v is the same as counting the number of triangles that the
-  // edge {u, v} appears in.
+pbbs::sequence<internal::EdgeSimilarity>
+CosineSimilaritiesImpl(symmetric_graph<VertexTemplate, pbbslib::empty>* graph) {
+  // To compute cosine similarities, we need to count shared neighbors between
+  // two vertices. Counting the neighbors shared between adjacent vertices u and
+  // v is the same as counting the number of triangles that the edge {u, v}
+  // appears in.
   //
   // The triangle counting logic here is borrowed from
   // `Triangle_degree_ordering()` in
@@ -233,8 +236,8 @@ NeighborOrder::NeighborOrder(
     run_intersection_on_block(block_start, block_end);
   });
 
+  pbbs::sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into structural similarities for each edge.
-  similarities_ = pbbs::sequence<EdgeSimilarity>(graph->m);
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const float v_neighborhood_sqrt{
@@ -252,15 +255,38 @@ NeighborOrder::NeighborOrder(
       const uintE num_shared_neighbors{counters[counter_index] + 2};
       const float structural_similarity{
         num_shared_neighbors / (v_neighborhood_sqrt * u_neighborhood_sqrt)};
-      similarities_[2 * counter_index] =
+      similarities[2 * counter_index] =
         {.source = v_id, .neighbor = u_id, .similarity = structural_similarity};
-      similarities_[2 * counter_index + 1] =
+      similarities[2 * counter_index + 1] =
         {.source = u_id, .neighbor = v_id, .similarity = structural_similarity};
     }};
     directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
         vertex_id, compute_similarity);
   });
 
+  directed_graph.del();
+  pbbs::free_array(vertex_degree_ranking);
+  return similarities;
+}
+
+// Implementation of `ApproxCosineSimilaritiesFunctor::operator()`.
+template <template <typename> class VertexTemplate>
+pbbs::sequence<internal::EdgeSimilarity> ApproxCosineSimilaritiesImpl(
+    symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+    const size_t num_samples,
+    const size_t random_seed_) {
+  // TODO
+}
+
+template <template <typename> class VertexTemplate, class SimilaritiesFunc>
+NeighborOrder::NeighborOrder(
+    symmetric_graph<VertexTemplate, NoWeight>* graph,
+    SimilaritiesFunc&& similarities_func) {
+  timer similarities_timer{"Compute similarities"};
+  similarities_ = similarities_func(graph);
+  internal::ReportTime(similarities_timer);
+
+  timer function_timer{"Construct neighbor order"};
   pbbs::sample_sort_inplace(
       similarities_.slice(),
       [](const EdgeSimilarity& left, const EdgeSimilarity& right) {
@@ -279,9 +305,6 @@ NeighborOrder::NeighborOrder(
           source_offsets[i],
           i + 1 == graph->n ? similarities_.size() : source_offsets[i + 1]);
       });
-
-  directed_graph.del();
-  pbbs::free_array(vertex_degree_ranking);
   internal::ReportTime(function_timer);
 }
 
