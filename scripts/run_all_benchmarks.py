@@ -313,12 +313,12 @@ if __name__ == "__main__":
         )
 
     unweighted_graph_file = (
-        os.path.expanduser(parsed_args.unweighted_graph)
+        os.path.abspath(parsed_args.unweighted_graph)
         if parsed_args.unweighted_graph
         else None
     )
     weighted_graph_file = (
-        os.path.expanduser(parsed_args.weighted_graph)
+        os.path.abspath(parsed_args.weighted_graph)
         if parsed_args.weighted_graph
         else None
     )
