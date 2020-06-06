@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include <type_traits>
+#include <utility>
+
 #include "pbbslib/binary_search.h"
 #include "pbbslib/counting_sort.h"
 #include "pbbslib/integer_sort.h"

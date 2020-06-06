@@ -24,6 +24,7 @@
 
 #include <math.h>
 #include <iostream>
+#include <utility>
 #include <type_traits>
 
 #include "monoid.h"
