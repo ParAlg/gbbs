@@ -31,6 +31,7 @@ UNWEIGHTED_GRAPH_BENCHMARKS = [
     "//benchmarks/BFS/NonDeterministicBFS:BFS_main",
     "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity_main",
     "//benchmarks/CliqueCounting:Clique_main",
+    "//benchmarks/CoSimRank:CoSimRank_main",
     "//benchmarks/Connectivity/BFSCC:Connectivity_main",
     "//benchmarks/Connectivity/Framework/mains:bfscc",
     "//benchmarks/Connectivity/Framework/mains:gbbscc",
