@@ -13,6 +13,7 @@ gbbs_cc_test(
     name = "sequence_ops_test",
     srcs = ["sequence_ops_test.cc"],
     deps = [
+        "//pbbslib:monoid",
         "//pbbslib:seq",
         "//pbbslib:sequence_ops",
         "@googletest//:gtest_main",
