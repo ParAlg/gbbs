@@ -204,9 +204,14 @@ namespace pbbslib {
   //   Out[i] = In[0] + In[1] + ... + In[i - 1].
   // The return value is the sum over the whole input sequence.
   template <RANGE In_Seq>
-  inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag, typename In_Seq::value_type* tmp = nullptr) -> typename In_Seq::value_type {
-    using T = typename In_Seq::value_type;
-    return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl, tmp);
+  inline auto scan_add_inplace(
+      In_Seq&& In,
+      flags fl = no_flag,
+      typename std::remove_reference<In_Seq>::type::value_type* tmp = nullptr)
+    -> typename std::remove_reference<In_Seq>::type::value_type {
+    using T = typename std::remove_reference<In_Seq>::type::value_type;
+    return pbbs::scan_inplace(
+        std::forward<In_Seq>(In), pbbs::addm<T>(), fl, tmp);
   }
 
   template <class Seq>

@@ -24,8 +24,8 @@
 
 #include <math.h>
 #include <iostream>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 #include "monoid.h"
 #include "seq.h"
