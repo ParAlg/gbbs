@@ -207,7 +207,7 @@ auto pack_serial(In_Seq const &In, Bool_Seq const &Fl)
 }
 
 template <class Slice, class Slice2, RANGE Out_Seq>
-size_t pack_serial_at(Slice In, Slice2 Fl, Out_Seq Out) {
+size_t pack_serial_at(Slice In, Slice2 Fl, Out_Seq&& Out) {
   size_t k = 0;
   for (size_t i = 0; i < In.size(); i++)
     if (Fl[i]) assign_uninitialized(Out[k++], In[i]);
@@ -238,7 +238,7 @@ auto pack(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
 
 // Pack the output to the output range.
 template <SEQ In_Seq, SEQ Bool_Seq, RANGE Out_Seq>
-size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq Out,
+size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq&& Out,
                 flags fl = no_flag) {
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
@@ -281,7 +281,7 @@ auto filter(In_Seq const &In, F f, flags fl = no_flag)
 
 // Filter and write the output to the output range.
 template <SEQ In_Seq, RANGE Out_Seq, class F>
-size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
+size_t filter_out(In_Seq const &In, Out_Seq&& Out, F f, flags fl = no_flag) {
   size_t n = In.size();
   size_t l = pbbs::num_blocks(n, _block_size);
   pbbs::sequence<size_t> Sums(l);

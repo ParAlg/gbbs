@@ -8,3 +8,13 @@ gbbs_cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+gbbs_cc_test(
+    name = "sequence_ops_test",
+    srcs = ["sequence_ops_test.cc"],
+    deps = [
+        "//pbbslib:seq",
+        "//pbbslib:sequence_ops",
+        "@googletest//:gtest_main",
+    ],
+)
