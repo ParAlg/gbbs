@@ -238,7 +238,7 @@ namespace pbbslib {
     return pbbs::reduce(I, pbbs::xorm<T>(), fl);
   }
 
-  // Pack the output to the output range.
+  // Writes the list of indices `i` where `Fl[i] == true` to range `Out`.
   template <SEQ Bool_Seq, RANGE Out_Seq>
   size_t pack_index_out(Bool_Seq const &Fl, Out_Seq&& Out,
                 flags fl = no_flag) {
