@@ -204,6 +204,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
   // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
   // Techniques from Rounding Algorithms" by Moses Charikar).
 
+  // TODO more comments explaining what's happening here
+
   const size_t num_vertices{graph->n};
   const pbbs::sequence<float> normals{internal::RandomNormalNumbers(
       num_vertices * num_samples_, pbbs::random{random_seed_})};
@@ -222,8 +224,9 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
             [&](uintE, const uintE neighbor, pbbs::empty) {
               return normals[offset + neighbor];
             }};
-          return vertex.template reduceOutNgh<float>(
-              vertex_id, neighbor_to_normal, addition_monoid) >= 0;
+          return (normals[offset + vertex_id] +
+              vertex.template reduceOutNgh<float>(
+              vertex_id, neighbor_to_normal, addition_monoid)) >= 0;
         }};
     }};
 
