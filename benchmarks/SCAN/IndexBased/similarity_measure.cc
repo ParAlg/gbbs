@@ -22,7 +22,7 @@ RandomNormalNumbers(const size_t num_numbers, const pbbs::random rng) {
   par_for(0, (num_numbers + 1) / 2, [&](const size_t i) {
     const float uniform_1{rng.ith_rand(2 * i) / max_rng_val};
     const float uniform_2{rng.ith_rand(2 * i + 1) / max_rng_val};
-    const float radius{-2.0f * std::log(uniform_1)};
+    const float radius{std::sqrt(-2.0f * std::log(uniform_1))};
     const float angle{static_cast<float>(2.0 * M_PI * uniform_2)};
     normals[2 * i] = radius * std::cos(angle);
     if (2 * i + 1 < num_numbers) {
