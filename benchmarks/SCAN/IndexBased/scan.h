@@ -1,6 +1,7 @@
 #pragma once
 
 #include "benchmarks/SCAN/IndexBased/scan_helpers.h"
+#include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
 #include "pbbslib/seq.h"
@@ -12,36 +13,6 @@ namespace indexed_scan {
 using scan::Clustering;
 using scan::kUnclustered;
 
-// TODO add comment
-class CosineSimilaritiesFunctor {
- public:
-  CosineSimilaritiesFunctor() = default;
-
-  template <template <typename> class VertexTemplate>
-  pbbs::sequence<internal::EdgeSimilarity>
-  operator()(symmetric_graph<VertexTemplate, pbbslib::empty>* graph) const {
-    return internal::CosineSimilaritiesImpl(graph);
-  }
-};
-
-// TODO add comment
-class ApproxCosineSimilaritiesFunctor {
- public:
-  ApproxCosineSimilaritiesFunctor(size_t num_samples, size_t random_seed)
-    : num_samples_(num_samples), random_seed_(random_seed) {}
-
-  template <template <typename> class VertexTemplate>
-  pbbs::sequence<internal::EdgeSimilarity>
-  operator()(symmetric_graph<VertexTemplate, pbbslib::empty>* graph) const {
-    return
-      internal::ApproxCosineSimilaritiesImpl(graph, num_samples_, random_seed_);
-  }
-
- private:
-  const size_t num_samples_;
-  const size_t random_seed_;
-};
-
 // Index for an undirected graph from which clustering the graph with SCAN is
 // quick, though index construction may be expensive.
 class Index {
@@ -52,21 +23,16 @@ class Index {
   //   graph
   //     The graph on which to construct the index. The neighbor lists for each
   //     vertex in the graph must be sorted by ascending neighbor ID.
-  //   similarities_func
-  //     Determines what similarity function is used when determining the
-  //     similarity between pairs of adjacent vertices. Can be
-  //     `CosineSimilaritiesFunctor` or `ApproximateCosineSimilaritiesFunctor`.
-  //     (More generally, this needs to be a functor taking a graph and
-  //     outputting a `pbbs::sequence<internal::EdgeSimilarity>` of every
-  //     directed edge in the graph along with a similarity score on each edge.)
+  //
+  // TODO update comment
   template <
     template <typename> class VertexTemplate,
-    class SimilaritiesFunc = CosineSimilaritiesFunctor>
+    class SimilarityMeasure = scan::CosineSimilarity>
   explicit Index(
       symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
-      SimilaritiesFunc&& similarities_func = CosineSimilaritiesFunctor{})
+      const SimilarityMeasure& similarity_measure = scan::CosineSimilarity{})
     : num_vertices_{graph->n}
-    , neighbor_order_{graph, std::forward<SimilaritiesFunc>(similarities_func)}
+    , neighbor_order_{graph, similarity_measure}
     , core_order_{neighbor_order_} {}
 
   // Compute a SCAN clustering of the indexed graph using SCAN parameters

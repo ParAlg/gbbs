@@ -7,7 +7,6 @@
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 #include "gbbs/bridge.h"
 #include "gbbs/pbbslib/sparse_table.h"
-#include "pbbslib/parallel.h"
 
 namespace indexed_scan {
 

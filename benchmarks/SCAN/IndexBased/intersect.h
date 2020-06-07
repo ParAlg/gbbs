@@ -12,7 +12,7 @@
 #include "pbbslib/binary_search.h"
 #include "pbbslib/seq.h"
 
-namespace indexed_scan {
+namespace scan {
 
 namespace internal {
 
@@ -68,7 +68,7 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
   if (nR < _seq_merge_thresh) {  // handles (small, small) using linear-merge
     return seq_merge_full(A, B, f);
   } else if (nB < nA) {
-    return indexed_scan::internal::merge(B, A, f);
+    return scan::internal::merge(B, A, f);
   } else if (nA < _bs_merge_base) {
     return seq_merge(A, B, f);
   } else {
@@ -78,12 +78,10 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
     size_t m_right = 0;
     par_do(
         [&]() {
-          m_left =
-            indexed_scan::internal::merge(A.slice(0, mA), B.slice(0, mB), f);
+          m_left = scan::internal::merge(A.slice(0, mA), B.slice(0, mB), f);
         },
         [&]() {
-          m_right =
-            indexed_scan::internal::merge(A.slice(mA, nA), B.slice(mB, nB), f);
+          m_right = scan::internal::merge(A.slice(mA, nA), B.slice(mB, nB), f);
         });
     return m_left + m_right;
   }
@@ -111,7 +109,7 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
 //     `a_to_b_index` as arguments, but instead we leave it to the user to
 //     capture them into `f` if so desired.)
 template <template <typename> class vertex, class F>
-inline size_t intersect_f_with_index_par(
+size_t intersect_f_with_index_par(
     vertex<pbbslib::empty>* A,
     vertex<pbbslib::empty>* B,
     uintE a,
@@ -122,9 +120,9 @@ inline size_t intersect_f_with_index_par(
   uintE* nghB = reinterpret_cast<uintE*>(B->getOutNeighbors());
   auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
   auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
-  return indexed_scan::internal::merge(seqA, seqB, f);
+  return scan::internal::merge(seqA, seqB, f);
 }
 
 }  // namespace internal
 
-}  // namespace indexed_scan
+}  // namespace scan
