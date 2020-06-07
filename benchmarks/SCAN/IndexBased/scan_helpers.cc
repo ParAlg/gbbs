@@ -16,19 +16,6 @@ struct VertexDegree {
 
 namespace internal {
 
-bool operator==(const EdgeSimilarity& a, const EdgeSimilarity& b) {
-  constexpr float kEpsilon{1e-6};
-  return std::tie(a.source, a.neighbor) == std::tie(b.source, b.neighbor) &&
-    std::abs(a.similarity - b.similarity) < kEpsilon;
-}
-
-std::ostream&
-operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
-  os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
-     << "), similarity=" << edge_similarity.similarity << '}';
-  return os;
-}
-
 bool operator==(const CoreThreshold& a, const CoreThreshold& b) {
   constexpr float kEpsilon{1e-6};
   return a.vertex_id == b.vertex_id &&

@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -29,10 +30,11 @@ using VertexList = std::vector<uintE>;
 namespace gt = graph_test;
 namespace i = indexed_scan;
 namespace ii = indexed_scan::internal;
+namespace s = scan;
 
 namespace {
 
-ii::EdgeSimilarity MakeEdgeSimilarity(
+s::EdgeSimilarity MakeEdgeSimilarity(
     const uintE source,
     uintE neighbor,
     const double similarity) {
@@ -126,8 +128,7 @@ TEST(ScanSubroutines, NullGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{
-    &graph, i::CosineSimilaritiesFunctor{}};
+  const ii::NeighborOrder neighbor_order{&graph, s::CosineSimilarity{}};
   EXPECT_THAT(neighbor_order, IsEmpty());
 
   const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
@@ -139,8 +140,7 @@ TEST(ScanSubroutines, EmptyGraph) {
   const std::unordered_set<UndirectedEdge> kEdges{};
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{
-    &graph, i::CosineSimilaritiesFunctor{}};
+  const ii::NeighborOrder neighbor_order{&graph, s::CosineSimilarity{}};
   EXPECT_EQ(neighbor_order.size(), kNumVertices);
   for (const auto& vertex_order : neighbor_order) {
     EXPECT_THAT(vertex_order, IsEmpty());
@@ -170,8 +170,7 @@ TEST(ScanSubroutines, BasicUsage) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{
-    &graph, i::CosineSimilaritiesFunctor{}};
+  const ii::NeighborOrder neighbor_order{&graph, s::CosineSimilarity{}};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(
       neighbor_order[0],
@@ -283,8 +282,7 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   };
   auto graph{gt::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
-  const ii::NeighborOrder neighbor_order{
-    &graph, i::CosineSimilaritiesFunctor{}};
+  const ii::NeighborOrder neighbor_order{&graph, s::CosineSimilarity{}};
   ASSERT_EQ(neighbor_order.size(), kNumVertices);
   EXPECT_THAT(neighbor_order[0], ElementsAre(MakeEdgeSimilarity(0, 1, 1.0)));
   EXPECT_THAT(neighbor_order[1], ElementsAre(MakeEdgeSimilarity(1, 0, 1.0)));

@@ -5,6 +5,7 @@ gbbs_cc_test(
     srcs = ["scan_test.cc"],
     deps = [
         "//benchmarks/SCAN/IndexBased:scan",
+        "//benchmarks/SCAN/IndexBased:similarity_measure",
         "//gbbs:graph",
         "//gbbs:graph_test_utils",
         "//gbbs:undirected_edge",
