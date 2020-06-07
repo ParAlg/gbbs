@@ -117,26 +117,6 @@ struct mis_f {
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
 
-template <class W>
-struct mis_f_2 {
-  intE* p;
-  mis_f_2(intE* _p) : p(_p) {}
-  inline bool update(const uintE& s, const uintE& d, const W& w) {
-    if (hash_lt(s, d)) {
-      p[d]--;
-      return p[d] == 0;
-    }
-    return false;
-  }
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (hash_lt(s, d)) {
-      return (pbbslib::fetch_and_add(&p[d], -1) == 0);
-    }
-    return false;
-  }
-  inline bool cond(uintE d) { return (p[d] > 0); }  // still live
-};
-
 template <class Graph>
 inline sequence<bool> MaximalIndependentSet(Graph& G) {
   using W = typename Graph::weight_type;
@@ -157,7 +137,6 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   init_t.stop();
   debug(init_t.reportTotal("init"););
 
-
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
@@ -171,7 +150,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   size_t rounds = 0;
   while (finished != n) {
     assert(roots.size() > 0);
-    std::cout << "round = " << rounds << " size = " << roots.size()
+    std::cout << "## round = " << rounds << " size = " << roots.size()
               << " remaining = " << (n - finished) << "\n";
 
     // set the roots in the MaximalIndependentSet
@@ -180,7 +159,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     // compute neighbors of roots that are still live using nghMap
     auto removed = get_nghs(G, roots, priorities);
     vertexMap(removed, [&](uintE v) { priorities[v] = 0; });
-    std::cout << "removed: " << removed.size() << " many vertices" << std::endl;
+    std::cout << "## removed: " << removed.size() << " many vertices" << std::endl;
 
     // compute the new roots: neighbors of removed that have their priorities
     // set to 0 after eliminating all nodes in removed
@@ -190,7 +169,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     auto new_roots =
         edgeMap(G, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
     nr.stop();
-    nr.reportTotal("new roots time");
+    nr.reportTotal("## new roots time");
 
     // update finished with roots and removed. update roots.
     finished += roots.size();
