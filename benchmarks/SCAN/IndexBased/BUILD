@@ -71,6 +71,8 @@ cc_binary(
     srcs = ["run_scan.cc"],
     deps = [
         ":scan",
+        ":similarity_measure",
+        ":utils",
         "//gbbs",
     ],
 )

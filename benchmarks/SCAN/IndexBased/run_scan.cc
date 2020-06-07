@@ -16,6 +16,8 @@
 #include <string>
 
 #include "benchmarks/SCAN/IndexBased/scan.h"
+#include "benchmarks/SCAN/IndexBased/similarity_measure.h"
+#include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gbbs/gbbs.h"
 
 // Executes SCAN on the input graph and reports stats on the execution.
@@ -30,15 +32,17 @@ double RunScan(Graph& graph, commandLine parameters) {
     << '\n';
 
   timer index_construction_timer{"Index construction time"};
-  const indexed_scan::Index scan_index{&graph};
+  const indexed_scan::Index scan_index{&graph, scan::CosineSimilarity{}};
   index_construction_timer.stop();
 
   timer cluster_timer{
     "Clustering time over " + std::to_string(cluster_rounds) + " rounds"};
   for (size_t i = 0; i < cluster_rounds; i++) {
+    cluster_timer.start();
     const indexed_scan::Clustering clustering{scan_index.Cluster(mu, epsilon)};
+    cluster_timer.stop();
+    std::cout << "Modularity: " << scan::Modularity(&graph, clustering) << '\n';
   }
-  cluster_timer.stop();
 
   index_construction_timer.reportTotal("");
   cluster_timer.reportTotal("");
