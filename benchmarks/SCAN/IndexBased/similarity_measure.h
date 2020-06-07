@@ -62,7 +62,14 @@ struct ApproxCosineSimilarity {
 namespace internal {
 
 pbbs::sequence<float>
-RandomNormalNumbers(const size_t num_numbers, const pbbs::random rng);
+RandomNormalNumbers(size_t num_numbers, pbbs::random rng);
+
+// Compute (numerator / denominator), rounding up if there's any remainder.
+// Numerator must be positive.
+constexpr uint64_t
+DivideRoundingUp(const size_t numerator, const size_t denominator) {
+  return (numerator - 1) / denominator + 1;
+}
 
 }  // namespace internal
 
@@ -200,42 +207,52 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  using Vertex = VertexTemplate<pbbs::empty>;
   // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
   // Techniques from Rounding Algorithms" by Moses Charikar).
 
+  using Vertex = VertexTemplate<pbbs::empty>;
   // TODO more comments explaining what's happening here
+  // chunking bools, etc.
+  // maybe better var names ("hyperplane_dot_product" is poor)
+  using BitArray = uint64_t;
+  constexpr size_t kBitArraySize{sizeof(BitArray) * 8};
 
   const size_t num_vertices{graph->n};
+  // <number of vertices>-by-<number of samples> array of normal numbers
   const pbbs::sequence<float> normals{internal::RandomNormalNumbers(
       num_vertices * num_samples_, pbbs::random{random_seed_})};
   const auto addition_monoid{pbbs::addm<float>{}};
-  // TODO performance optimization: chunking bools into fixed size bitsets or
-  // `uint64_t`s
-  const pbbs::sequence<pbbs::sequence<bool>> vertex_fingerprints{
+  const size_t num_bit_arrays{
+    internal::DivideRoundingUp(num_samples_, kBitArraySize)};
+  const pbbs::sequence<pbbs::sequence<BitArray>> vertex_fingerprints{
     num_vertices,
     [&](const size_t vertex_id) {
       Vertex vertex{graph->get_vertex(vertex_id)};
-      return pbbs::sequence<bool>{
-        num_samples_,
-        [&](const size_t sample_id) {
-          const size_t offset{num_vertices * sample_id};
-          const auto neighbor_to_normal{
-            [&](uintE, const uintE neighbor, pbbs::empty) {
-              return normals[offset + neighbor];
+      return pbbs::sequence<BitArray>{
+        num_bit_arrays,
+        [&](const size_t bit_array_id) {
+          BitArray bits{0};
+          const size_t max_bit_id{
+            bit_array_id == num_bit_arrays - 1
+            ? kBitArraySize - (num_bit_arrays * kBitArraySize - num_samples_)
+            : kBitArraySize};
+          const size_t bits_offset{bit_array_id * kBitArraySize};
+          for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
+            const auto neighbor_to_normal_sample{
+              [&](uintE, const uintE neighbor, pbbs::empty) {
+                return normals[num_samples_ * neighbor + bits_offset + bit_id];
             }};
-          return (normals[offset + vertex_id] +
-              vertex.template reduceOutNgh<float>(
-              vertex_id, neighbor_to_normal, addition_monoid)) >= 0;
+            const float hyperplane_dot_product{
+              normals[num_samples_ * vertex_id + bits_offset + bit_id] +
+                vertex.template reduceOutNgh<float>(
+                vertex_id, neighbor_to_normal_sample, addition_monoid)};
+            if (hyperplane_dot_product >= 0) {
+              bits |= (1LL << bit_id);
+            }
+          }
+          return bits;
         }};
     }};
-
-  // TODO(tomtseng): this work is duplicated in
-  // indexed_scan::internal::NeighborOrder::NeighborOrder
-  pbbs::sequence<uintT> vertex_offsets{
-      graph->n,
-      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
-  pbbslib::scan_add_inplace(vertex_offsets);
 
   pbbs::sequence<EdgeSimilarity> undirected_similarities{
     pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
@@ -243,6 +260,10 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     undirected_similarities[i].similarity =
       std::numeric_limits<float>::quiet_NaN();
   });
+  pbbs::sequence<uintT> vertex_offsets{
+      graph->n,
+      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
+  pbbslib::scan_add_inplace(vertex_offsets);
   // Get similarities for all edges (u, v) where u < v.
   const auto compute_similarity{[&](
       const uintE vertex_id,
@@ -250,15 +271,16 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
       pbbs::empty,
       const uintE neighbor_index) {
     if (vertex_id < neighbor_id) {
-      const pbbs::sequence<bool>& vertex_fingerprint{
+      const pbbs::sequence<BitArray>& vertex_fingerprint{
         vertex_fingerprints[vertex_id]};
-      const pbbs::sequence<bool>& neighbor_fingerprint{
+      const pbbs::sequence<BitArray>& neighbor_fingerprint{
         vertex_fingerprints[neighbor_id]};
       const auto fingerprint_xor{
         pbbs::delayed_seq<std::remove_const<decltype(num_samples_)>::type>(
-          num_samples_,
+          vertex_fingerprint.size(),
           [&](const size_t i) {
-            return vertex_fingerprint[i] != neighbor_fingerprint[i];
+            return __builtin_popcountll(
+                vertex_fingerprint[i] ^ neighbor_fingerprint[i]);
           })};
       const float angle_estimate{static_cast<float>(
           pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples_)};
