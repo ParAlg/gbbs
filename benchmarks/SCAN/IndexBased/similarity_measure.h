@@ -200,10 +200,9 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
+  using Vertex = VertexTemplate<pbbs::empty>;
   // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
   // Techniques from Rounding Algorithms" by Moses Charikar).
-
-  using Vertex = VertexTemplate<pbbs::empty>;
 
   const size_t num_vertices{graph->n};
   const pbbs::sequence<float> normals{internal::RandomNormalNumbers(
@@ -271,19 +270,16 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     graph->get_vertex(vertex_id).mapOutNghWithIndex(
         vertex_id, compute_similarity);
   });
-
   // Copy similarities for edges (u, v) where u > v.
   const size_t half_num_edges{graph->m / 2};
   pbbs::sequence<EdgeSimilarity> similarities{
     pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
   const auto is_valid_similarity{
-    [](const EdgeSimilarity& edge) {
-      return edge.similarity == std::numeric_limits<float>::quiet_NaN();
-    }};
+    [](const EdgeSimilarity& edge) { return !std::isnan(edge.similarity); }};
   pbbs::filter_out(
       undirected_similarities, similarities.slice(), is_valid_similarity);
   par_for(0, half_num_edges, [&](const size_t i) {
-      const EdgeSimilarity& edge{undirected_similarities[i]};
+      const EdgeSimilarity& edge{similarities[i]};
       similarities[i + half_num_edges] = {
         .source = edge.neighbor,
         .neighbor = edge.source,
