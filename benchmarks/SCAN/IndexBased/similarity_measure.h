@@ -42,6 +42,16 @@ class CosineSimilarity {
 };
 
 // TODO add comment
+class JaccardSimilarity {
+ public:
+  JaccardSimilarity() = default;
+
+  template <template <typename> class VertexTemplate>
+  pbbs::sequence<EdgeSimilarity>
+  AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
+};
+
+// TODO add comment
 struct ApproxCosineSimilarity {
  public:
   ApproxCosineSimilarity(uint32_t num_samples, size_t random_seed);
@@ -99,15 +109,13 @@ pbbs::sequence<uintT> VertexOutOffsets(Graph* graph) {
   return vertex_offsets;
 }
 
-}  // namespace internal
-
-template <template <typename> class VertexTemplate>
-pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
-    symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  // To compute cosine similarities, we need to count shared neighbors between
-  // two vertices. Counting the neighbors shared between adjacent vertices u and
-  // v is the same as counting the number of triangles that the edge {u, v}
-  // appears in.
+// TODO comment
+template <template <typename> class VertexTemplate, class F>
+pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
+    symmetric_graph<VertexTemplate, pbbs::empty>* graph,
+    F&& neighborhood_sizes_to_similarity) {
+  // Counting the neighbors shared between adjacent vertices u and v is the same
+  // as counting the number of triangles that the edge {u, v} appears in.
   //
   // The triangle counting logic here is borrowed from
   // `Triangle_degree_ordering()` in
@@ -195,28 +203,24 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
   });
 
   pbbs::sequence<EdgeSimilarity> similarities(graph->m);
-  // Convert shared neighbor counts into structural similarities for each edge.
+  // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const float v_neighborhood_sqrt{
-      sqrtf(graph->get_vertex(vertex_id).getOutDegree() + 1)};
+    const uintE v_neighborhood{graph->get_vertex(vertex_id).getOutDegree()};
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
         pbbs::empty,
         const uintE v_to_u_index) {
-      // SCAN structural similarities are defined using _closed_ neighborhoods,
-      // hence the need to to adjust these values by `+ 1` and `+ 2`.
-      const float u_neighborhood_sqrt{
-        sqrtf(graph->get_vertex(u_id).getOutDegree() + 1)};
       const uintT counter_index{v_counter_offset + v_to_u_index};
-      const uintE num_shared_neighbors{counters[counter_index] + 2};
-      const float structural_similarity{
-        num_shared_neighbors / (v_neighborhood_sqrt * u_neighborhood_sqrt)};
+      const uintE num_shared_neighbors{counters[counter_index]};
+      const uintE u_neighborhood{graph->get_vertex(u_id).getOutDegree()};
+      const float similarity{neighborhood_sizes_to_similarity(
+          v_neighborhood, u_neighborhood, num_shared_neighbors)};
       similarities[2 * counter_index] =
-        {.source = v_id, .neighbor = u_id, .similarity = structural_similarity};
+        {.source = v_id, .neighbor = u_id, .similarity = similarity};
       similarities[2 * counter_index + 1] =
-        {.source = u_id, .neighbor = v_id, .similarity = structural_similarity};
+        {.source = u_id, .neighbor = v_id, .similarity = similarity};
     }};
     directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
         vertex_id, compute_similarity);
@@ -225,6 +229,40 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
   directed_graph.del();
   pbbs::free_array(vertex_degree_ranking);
   return similarities;
+}
+
+}  // namespace internal
+
+template <template <typename> class VertexTemplate>
+pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
+    symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
+  constexpr auto similarity_func{
+    [](const uintE neighborhood_size_1,
+       const uintE neighborhood_size_2,
+       const uintE num_shared_neighbors) {
+    // SCAN structural/cosine similarities are defined using _closed_
+    // neighborhoods, hence the need to to adjust these values by `+ 1` and
+    // `+ 2`.
+    return (num_shared_neighbors + 2) /
+      (sqrtf(neighborhood_size_1 + 1) * sqrtf(neighborhood_size_2 + 1));
+  }};
+  return internal::AllEdgeNeighborhoodSimilarities(graph, similarity_func);
+}
+
+template <template <typename> class VertexTemplate>
+pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
+    symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
+  constexpr auto similarity_func{
+    [](const uintE neighborhood_size_1,
+       const uintE neighborhood_size_2,
+       const uintE num_shared_neighbors) {
+    const uintE neighborhood_union{neighborhood_size_1 + neighborhood_size_2 -
+      num_shared_neighbors};
+    // The `+ 2` accounts for the Jaccard similarity being computed with respect
+    // to closed neighborhoods.
+    return static_cast<float>((num_shared_neighbors + 2)) / neighborhood_union;
+  }};
+  return internal::AllEdgeNeighborhoodSimilarities(graph, similarity_func);
 }
 
 template <template <typename> class VertexTemplate>
