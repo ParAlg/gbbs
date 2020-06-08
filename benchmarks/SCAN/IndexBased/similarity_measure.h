@@ -55,6 +55,20 @@ struct ApproxCosineSimilarity {
   const size_t random_seed_;
 };
 
+// TODO add comment
+struct ApproxJaccardSimilarity {
+ public:
+  ApproxJaccardSimilarity(uint32_t num_samples, size_t random_seed);
+
+  template <template <typename> class VertexTemplate>
+  pbbs::sequence<EdgeSimilarity>
+  AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
+
+ private:
+  const uint32_t num_samples_;
+  const size_t random_seed_;
+};
+
 //////////////
 // Internal //
 //////////////
@@ -70,6 +84,21 @@ constexpr uint64_t
 DivideRoundingUp(const size_t numerator, const size_t denominator) {
   return (numerator - 1) / denominator + 1;
 }
+
+// TODO comment
+template <template <typename> class VertexTemplate>
+pbbs::sequence<uintT>
+VertexOffsets(symmetric_graph<VertexTemplate, pbbs::empty>* graph) {
+  pbbs::sequence<uintT> vertex_offsets{
+      graph->n,
+      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
+  pbbslib::scan_add_inplace(vertex_offsets);
+  return vertex_offsets;
+}
+
+pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
+    const size_t num_directed_edges,
+    const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities);
 
 }  // namespace internal
 
@@ -245,7 +274,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
             const float hyperplane_dot_product{
               normals[num_samples_ * vertex_id + bits_offset + bit_id] +
                 vertex.template reduceOutNgh<float>(
-                vertex_id, neighbor_to_normal_sample, addition_monoid)};
+                  vertex_id, neighbor_to_normal_sample, addition_monoid)};
             if (hyperplane_dot_product >= 0) {
               bits |= (1LL << bit_id);
             }
@@ -260,11 +289,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     undirected_similarities[i].similarity =
       std::numeric_limits<float>::quiet_NaN();
   });
-  pbbs::sequence<uintT> vertex_offsets{
-      graph->n,
-      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
-  pbbslib::scan_add_inplace(vertex_offsets);
-  // Get similarities for all edges (u, v) where u < v.
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOffsets(graph)};
+  // Get approximate similarities for all edges (u, v) where u < v.
   const auto compute_similarity{[&](
       const uintE vertex_id,
       const uintE neighbor_id,
@@ -295,22 +321,76 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     graph->get_vertex(vertex_id).mapOutNghWithIndex(
         vertex_id, compute_similarity);
   });
-  // Copy similarities for edges (u, v) where u > v.
-  const size_t half_num_edges{graph->m / 2};
-  pbbs::sequence<EdgeSimilarity> similarities{
+  return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
+}
+
+template <template <typename> class VertexTemplate>
+pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
+    symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
+  using Vertex = VertexTemplate<pbbs::empty>;
+  // TODO explain what's happening here, cite minhash paper
+
+  const size_t num_vertices{graph->n};
+  const auto min_monoid{pbbs::minm<uint64_t>{}};
+  const uint64_t random_offset{pbbs::hash64(random_seed_)};
+  const pbbs::sequence<pbbs::sequence<uint64_t>> vertex_fingerprints{
+    num_vertices,
+    [&](const size_t vertex_id) {
+      Vertex vertex{graph->get_vertex(vertex_id)};
+      return pbbs::sequence<uint64_t>{
+        num_samples_,
+        [&](const size_t sample_id) {
+          const auto hash_neighbor{
+            [&](uintE, const uintE neighbor, pbbs::empty) {
+              return pbbs::hash64_2(
+                  random_offset + num_samples_ * neighbor + sample_id);
+          }};
+          return std::min(
+              pbbs::hash64_2(
+                random_offset + num_samples_ * vertex_id + sample_id),
+              vertex.template reduceOutNgh<uint64_t>(
+                vertex_id, hash_neighbor, min_monoid));
+        }};
+    }};
+
+  pbbs::sequence<EdgeSimilarity> undirected_similarities{
     pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
-  const auto is_valid_similarity{
-    [](const EdgeSimilarity& edge) { return !std::isnan(edge.similarity); }};
-  pbbs::filter_out(
-      undirected_similarities, similarities.slice(), is_valid_similarity);
-  par_for(0, half_num_edges, [&](const size_t i) {
-      const EdgeSimilarity& edge{similarities[i]};
-      similarities[i + half_num_edges] = {
-        .source = edge.neighbor,
-        .neighbor = edge.source,
-        .similarity = edge.similarity};
+  par_for(0, undirected_similarities.size(), [&](const size_t i) {
+    undirected_similarities[i].similarity =
+      std::numeric_limits<float>::quiet_NaN();
   });
-  return similarities;
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOffsets(graph)};
+  // Get approximate similarities for all edges (u, v) where u < v.
+  const auto compute_similarity{[&](
+      const uintE vertex_id,
+      const uintE neighbor_id,
+      pbbs::empty,
+      const uintE neighbor_index) {
+    if (vertex_id < neighbor_id) {
+      const pbbs::sequence<uint64_t>& vertex_fingerprint{
+        vertex_fingerprints[vertex_id]};
+      const pbbs::sequence<uint64_t>& neighbor_fingerprint{
+        vertex_fingerprints[neighbor_id]};
+      const auto fingerprint_matches{
+        pbbs::delayed_seq<std::remove_const<decltype(num_samples_)>::type>(
+          vertex_fingerprint.size(),
+          [&](const size_t i) {
+            return vertex_fingerprint[i] == neighbor_fingerprint[i];
+          })};
+      const float similarity_estimate{
+          pbbslib::reduce_add(fingerprint_matches) /
+            static_cast<float>(num_samples_)};
+      undirected_similarities[vertex_offsets[vertex_id] + neighbor_index] = {
+        .source = vertex_id,
+        .neighbor = neighbor_id,
+        .similarity = similarity_estimate};
+    }
+  }};
+  par_for(0, num_vertices, [&](const size_t vertex_id) {
+    graph->get_vertex(vertex_id).mapOutNghWithIndex(
+        vertex_id, compute_similarity);
+  });
+  return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
 }
 
 }  // namespace scan

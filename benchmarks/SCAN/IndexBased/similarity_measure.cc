@@ -32,9 +32,37 @@ RandomNormalNumbers(const size_t num_numbers, const pbbs::random rng) {
   return normals;
 }
 
+// TODO comment
+pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
+    const size_t num_directed_edges,
+    const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities) {
+  // Copy similarities for edges (u, v) where u > v.
+  const size_t half_num_edges{num_directed_edges / 2};
+  pbbs::sequence<EdgeSimilarity> similarities{
+    pbbs::sequence<EdgeSimilarity>::no_init(num_directed_edges)};
+  constexpr auto is_valid_similarity{
+    [](const EdgeSimilarity& edge) { return !std::isnan(edge.similarity); }};
+  pbbs::filter_out(
+      unidirectional_similarities, similarities.slice(), is_valid_similarity);
+  par_for(0, half_num_edges, [&](const size_t i) {
+      const EdgeSimilarity& edge{similarities[i]};
+      similarities[i + half_num_edges] = {
+        .source = edge.neighbor,
+        .neighbor = edge.source,
+        .similarity = edge.similarity};
+  });
+  return similarities;
+}
+
 }  // namespace internal
 
 ApproxCosineSimilarity::ApproxCosineSimilarity(
+    const uint32_t num_samples,
+    const size_t random_seed)
+  : num_samples_{num_samples}
+  , random_seed_{random_seed} {}
+
+ApproxJaccardSimilarity::ApproxJaccardSimilarity(
     const uint32_t num_samples,
     const size_t random_seed)
   : num_samples_{num_samples}
