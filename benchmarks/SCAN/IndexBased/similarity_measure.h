@@ -85,20 +85,19 @@ DivideRoundingUp(const size_t numerator, const size_t denominator) {
   return (numerator - 1) / denominator + 1;
 }
 
+pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
+    const size_t num_directed_edges,
+    const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities);
+
 // TODO comment
-template <template <typename> class VertexTemplate>
-pbbs::sequence<uintT>
-VertexOffsets(symmetric_graph<VertexTemplate, pbbs::empty>* graph) {
+template <class Graph>
+pbbs::sequence<uintT> VertexOutOffsets(Graph* graph) {
   pbbs::sequence<uintT> vertex_offsets{
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
   pbbslib::scan_add_inplace(vertex_offsets);
   return vertex_offsets;
 }
-
-pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
-    const size_t num_directed_edges,
-    const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities);
 
 }  // namespace internal
 
@@ -147,13 +146,8 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
   pbbs::sequence<std::atomic<uintE>> counters(
       directed_graph.m, [](size_t) { return std::atomic<uintE>{0}; });
   // We use `counter_offsets` to be able to index into `counters` for each edge.
-  pbbs::sequence<uintT> counter_offsets(
-      directed_graph.n,
-      [&](const size_t i) {
-        return directed_graph.get_vertex(i).getOutDegree();
-      });
-  pbbslib::scan_add_inplace(counter_offsets);
-
+  const pbbs::sequence<uintT> counter_offsets{
+    internal::VertexOutOffsets(&directed_graph)};
   // Find triangles of the following form:
   //        w
   //       ^ ^
@@ -289,7 +283,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     undirected_similarities[i].similarity =
       std::numeric_limits<float>::quiet_NaN();
   });
-  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOffsets(graph)};
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
   // Get approximate similarities for all edges (u, v) where u < v.
   const auto compute_similarity{[&](
       const uintE vertex_id,
@@ -359,7 +353,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     undirected_similarities[i].similarity =
       std::numeric_limits<float>::quiet_NaN();
   });
-  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOffsets(graph)};
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
   // Get approximate similarities for all edges (u, v) where u < v.
   const auto compute_similarity{[&](
       const uintE vertex_id,
