@@ -16,12 +16,6 @@ struct VertexDegree {
 
 namespace internal {
 
-bool operator==(const CoreThreshold& a, const CoreThreshold& b) {
-  constexpr float kEpsilon{1e-6};
-  return a.vertex_id == b.vertex_id &&
-    std::abs(a.threshold - b.threshold) < kEpsilon;
-}
-
 std::ostream&
 operator<<(std::ostream& os, const CoreThreshold& core_threshold) {
   os << "{vertex=" << core_threshold.vertex_id

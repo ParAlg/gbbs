@@ -25,10 +25,6 @@ struct EdgeSimilarity {
   // Similarity of source vertex to neighbor vertex.
   float similarity;
 };
-// Beware that this equality operator compares the floating-point field
-// approximately. This is convenient for unit tests but might not be appropriate
-// for other uses (e.g., this operator is not transitive).
-bool operator==(const EdgeSimilarity&, const EdgeSimilarity&);
 std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
 // TODO add comment

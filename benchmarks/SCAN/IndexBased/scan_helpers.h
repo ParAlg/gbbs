@@ -68,10 +68,6 @@ struct CoreThreshold {
   // vertex (given some fixed reference value for SCAN parameter mu).
   float threshold;
 };
-// Beware that this equality operator compares the floating-point field
-// approximately. This is convenient for unit tests but might not be appropriate
-// for other uses (e.g., this operator is not transitive)
-bool operator==(const CoreThreshold&, const CoreThreshold&);
 std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
 
 class CoreOrder {

@@ -68,12 +68,6 @@ ApproxJaccardSimilarity::ApproxJaccardSimilarity(
   : num_samples_{num_samples}
   , random_seed_{random_seed} {}
 
-bool operator==(const EdgeSimilarity& a, const EdgeSimilarity& b) {
-  constexpr float kEpsilon{1e-6};
-  return std::tie(a.source, a.neighbor) == std::tie(b.source, b.neighbor) &&
-    std::abs(a.similarity - b.similarity) < kEpsilon;
-}
-
 std::ostream&
 operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
   os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
