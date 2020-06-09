@@ -36,7 +36,6 @@ TEST(TestGraphFilter, TestCreation) {
 
 TEST(TestGraphFilter, TestFilter) {
   using W = pbbs::empty;
-  using edge = std::tuple<uintE, uintE, W>;
   uintE n = 4;
   auto G = CreateStar(n);
   auto predicate = [&] (const uintE& u, const uintE& v, const W& wgh) -> bool {
