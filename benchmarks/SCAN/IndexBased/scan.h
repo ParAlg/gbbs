@@ -23,8 +23,9 @@ class Index {
   //   graph
   //     The graph on which to construct the index. The neighbor lists for each
   //     vertex in the graph must be sorted by ascending neighbor ID.
-  //
-  // TODO update comment
+  //   similarity_measure: similarity measure from `similarity_measure.h`
+  //     Determines how to compute the similarity between two adjacency
+  //     vertices. The traditional choice for SCAN is `scan::CosineSimilarity`.
   template <
     template <typename> class VertexTemplate,
     class SimilarityMeasure = scan::CosineSimilarity>

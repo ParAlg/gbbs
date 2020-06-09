@@ -93,8 +93,10 @@ TEST(CosineSimilarity, AllEdges) {
 
 TEST(ApproxCosineSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
-
-  // TODO comment about this test being pseudo-random
+  // This tests `scan::ApproxCosineSimilarity::AllEdges`, which has a
+  // pseudorandom output. Test failures might just be unlucky and fixable by
+  // changing the random seed. At the time of writing this comment, the test
+  // passes on all random seeds in the range [0, 99).
   const uintE kNumSamples{400};
   const uintE kRandomSeed{0};
   const s::ApproxCosineSimilarity similarity_measure{kNumSamples, kRandomSeed};
@@ -144,8 +146,10 @@ TEST(JaccardSimilarity, AllEdges) {
 
 TEST(ApproxJaccardSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
-
-  // TODO comment about this test being pseudo-random
+  // This tests `scan::ApproxJaccardSimilarity::AllEdges`, which has a
+  // pseudorandom output. Test failures might just be unlucky and fixable by
+  // changing the random seed. At the time of writing this comment, the test
+  // passes on all random seeds in the range [0, 99).
   const uintE kNumSamples{300};
   const uintE kRandomSeed{0};
   const s::ApproxJaccardSimilarity similarity_measure{kNumSamples, kRandomSeed};

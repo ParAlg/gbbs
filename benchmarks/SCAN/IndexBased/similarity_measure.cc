@@ -32,7 +32,19 @@ RandomNormalNumbers(const size_t num_numbers, const pbbs::random rng) {
   return normals;
 }
 
-// TODO comment
+// Given a sequence of similarities for each undirected edge, construct a
+// sequence of similarities for each directed edge, assuming that
+// similarity(u, v) = similarity(v, u) = similarity({u, v}) for every pair of
+// adjacent vertices u and v.
+//
+// Arguments:
+//   num_directed_edges
+//     The number of directed edges in the graph. (Should be `graph->m` for a
+//     graph `graph`.)
+//   undirectional_similarities
+//     A sequence of similarities for each undirected edge {u, v}. Entries with
+//     NaN as their `.similarity` field are skipped.
+// Given `undirectional_similarities` filled with edge similarities
 pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
     const size_t num_directed_edges,
     const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities) {

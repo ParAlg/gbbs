@@ -1,4 +1,5 @@
-// TODO add comment
+// Similarity measures for determining the similarity of adjacent pairs of
+// vertices.
 #pragma once
 
 #include <atomic>
@@ -27,11 +28,16 @@ struct EdgeSimilarity {
 };
 std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
-// TODO add comment
+// The cosine similarity between two vertices u and v is
+//   (size of intersection of closed neighborhoods of u and v) /
+//   (geometric mean of size of closed neighborhoods of u and of v)
+// where the closed neighborhood of a vertex x consists of all neighbors of x
+// along with x itself.
 class CosineSimilarity {
  public:
   CosineSimilarity() = default;
 
+  // TODO add comment
   template <template <typename> class VertexTemplate>
   pbbs::sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;

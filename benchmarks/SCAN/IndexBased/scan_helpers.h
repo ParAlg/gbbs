@@ -20,32 +20,22 @@ using EdgeSimilarity = scan::EdgeSimilarity;
 using NoWeight = pbbslib::empty;
 
 // An adjacency list for the graph in which each vertex's neighbor list is
-// sorted by descending structural similarity.
-//
-// The structural similarity between two vertices u and v is
-//   (size of intersection of closed neighborhoods of u and v) /
-//   (geometric mean of size of closed neighborhoods of u and of v)
-// where the closed neighborhood of a vertex x consists of all neighbors of x
-// along with x itself.
-//
-// Unlike the presentation in "Efficient Structural Graph Clustering:  An
-// Index-Based Approach", the neighbor list for a vertex `v` will not contain
-// `v` itself.
+// sorted by descending similarity.
 class NeighborOrder {
  public:
-  // Constructor.
+  // Constructor where the similarity between two adjacent vertices is
+  // determined using a particular similarity measure (see
+  // `similarity_measure.h` for options).
   //
   // The neighbor lists for each vertex in the graph must be sorted by ascending
   // neighbor ID.
-  //
-  // TODO add comment
   template <template <typename> class VertexTemplate, class SimilarityMeasure>
   NeighborOrder(
       symmetric_graph<VertexTemplate, NoWeight>* graph,
       const SimilarityMeasure& similarity_measure);
 
-  // Get all structural similarity scores from vertex `source` to its neighbors,
-  // sorted by descending similarity.
+  // Get all similarity scores from vertex `source` to its neighbors (not
+  // including `source` itself), sorted by descending similarity.
   const pbbs::range<EdgeSimilarity*>& operator[](size_t source) const;
 
   bool empty() const;
