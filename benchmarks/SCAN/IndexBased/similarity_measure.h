@@ -28,22 +28,31 @@ struct EdgeSimilarity {
 };
 std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
-// The cosine similarity between two vertices u and v is
-//   (size of intersection of closed neighborhoods of u and v) /
-//   (geometric mean of size of closed neighborhoods of u and of v)
+// The similarity measure classes implement the following functions:
+//   // Returns a `graph->m`-length sequence containing the similarity score
+//   // between every adjacent pair of edges in the graph.
+//   template <class Graph>
+//   pbbs::sequence<EdgeSimilarity> AllEdges(Graph* graph) const;
+
+// The cosine similarity between two adjacent vertices u and v is
+//   (size of intersection of the closed neighborhoods of u and v) /
+//   (geometric mean of size of the closed neighborhoods of u and of v)
 // where the closed neighborhood of a vertex x consists of all neighbors of x
 // along with x itself.
 class CosineSimilarity {
  public:
   CosineSimilarity() = default;
 
-  // TODO add comment
   template <template <typename> class VertexTemplate>
   pbbs::sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
 };
 
-// TODO add comment
+// The Jaccard similarity between two adjacent vertices u and v is
+//   (size of intersection of the closed neighborhoods of u and v) /
+//   (size of union of the closed neighborhoods of u and of v)
+// where the closed neighborhood of a vertex x consists of all neighbors of x
+// along with x itself.
 class JaccardSimilarity {
  public:
   JaccardSimilarity() = default;
@@ -53,11 +62,20 @@ class JaccardSimilarity {
   AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
 };
 
-// TODO add comment
+// This is an approximate version of `CosineSimilarity`. Increasing
+// `num_samples` increases the approximation accuracy.
+//
+// Let `m` be the number of undirected edges in the graph, and let `a` and `b`
+// be in the range (0, 1). Then, if we replace the random number generator used
+// within the code with perfectly random number generator, then picking
+//   num_samples = 1.5 * pi ^ 2 * ln(2 * m / a) / b ^ 2
+// gives that with probability at least `1 - a`, each edge receives the correct
+// cosine similarity with absolute error up to `b`.
 struct ApproxCosineSimilarity {
  public:
   ApproxCosineSimilarity(uint32_t num_samples, size_t random_seed);
 
+  // When `random_seed` is fixed, the output of `AllEdges` is deterministic.
   template <template <typename> class VertexTemplate>
   pbbs::sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
@@ -67,11 +85,20 @@ struct ApproxCosineSimilarity {
   const size_t random_seed_;
 };
 
-// TODO add comment
+// This is an approximate version of `JaccardSimilarity`. Increasing
+// `num_samples` increases the approximation accuracy.
+//
+// Let `m` be the number of undirected edges in the graph, and let `a` and `b`
+// be in the range (0, 1). Then, if we replace the random number generator used
+// within the code with perfectly random number generator, then picking
+//   num_samples = 3 * ln(2 * m / a) / b ^ 2
+// gives that with probability at least `1 - a`, each edge receives the correct
+// Jaccard similarity with absolute error up to `b`.
 struct ApproxJaccardSimilarity {
  public:
   ApproxJaccardSimilarity(uint32_t num_samples, size_t random_seed);
 
+  // When `random_seed` is fixed, the output of `AllEdges` is deterministic.
   template <template <typename> class VertexTemplate>
   pbbs::sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
