@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
 // The similarity measure classes implement the following functions:
 //   // Returns a `graph->m`-length sequence containing the similarity score
-//   // between every adjacent pair of edges in the graph.
+//   // between every adjacent pair of vertices in the graph.
 //   template <class Graph>
 //   pbbs::sequence<EdgeSimilarity> AllEdges(Graph* graph) const;
 
@@ -128,7 +128,9 @@ pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
     const size_t num_directed_edges,
     const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities);
 
-// TODO comment
+// Returns an sequence `vertex_offsets` such that if there is another sequence
+// `edges` consisting of the out-edges of `*graph` sorted by source vertex, then
+// `vertex_offsets[i]` is the first appearance of vertex i as a source vertex.
 template <class Graph>
 pbbs::sequence<uintT> VertexOutOffsets(Graph* graph) {
   pbbs::sequence<uintT> vertex_offsets{
@@ -138,7 +140,20 @@ pbbs::sequence<uintT> VertexOutOffsets(Graph* graph) {
   return vertex_offsets;
 }
 
-// TODO comment
+// Returns a `graph->m`-length sequence containing the similarity score
+// between every adjacent pair of vertices u and v. The similarity score is
+// provided by `neighborhood_sizes_to_similarity` and must be a function of the
+// sizes of the neighborhoods of u and v and the size of the intersection of the
+// neighborhoods.
+//
+// Arguments:
+//   graph
+//     Graph on which to compute similarities.
+//   neighborhood_sizes_to_similarity: (uintE, uintE, uintE) -> float
+//     Function that computes the similarity between adjacent vertices u and v,
+//     taking (size of u's neighborhood, size of v's neighborhood, size of the
+//     the intersection of the two negibhorhoods) as arguments. The function
+//     should be symmetric, i.e., give the same output when u and v are swapped.
 template <template <typename> class VertexTemplate, class F>
 pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph,
