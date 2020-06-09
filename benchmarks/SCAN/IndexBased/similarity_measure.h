@@ -39,6 +39,12 @@ std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 //   (geometric mean of size of the closed neighborhoods of u and of v)
 // where the closed neighborhood of a vertex x consists of all neighbors of x
 // along with x itself.
+//
+// How is this a cosine similarity? We can treat the neighborhood of a vertex
+// v as an n-dimensional vector where the i-th entry of the vector is 1 if
+// vertex i is in vertex v's neighborhood and is 0 otherwise. Then the cosine
+// similarity between the vectors corresponding to the neighborhoods of two
+// vertices u and v is the equation above.
 class CosineSimilarity {
  public:
   CosineSimilarity() = default;
@@ -71,6 +77,8 @@ class JaccardSimilarity {
 //   num_samples = 1.5 * pi ^ 2 * ln(2 * m / a) / b ^ 2
 // gives that with probability at least `1 - a`, each edge receives the correct
 // cosine similarity with absolute error up to `b`.
+//
+// This is a biased estimate of the cosine similarity.
 struct ApproxCosineSimilarity {
  public:
   ApproxCosineSimilarity(uint32_t num_samples, size_t random_seed);
@@ -89,8 +97,9 @@ struct ApproxCosineSimilarity {
 // `num_samples` increases the approximation accuracy.
 //
 // Let `m` be the number of undirected edges in the graph, and let `a` and `b`
-// be in the range (0, 1). Then, if we replace the random number generator used
-// within the code with perfectly random number generator, then picking
+// be in the range (0, 1). Then, if we replace the pseudorandom number generator
+// used within the code with perfectly random number generator and replace the
+// hash function with a random hash function with no collisions, then picking
 //   num_samples = 3 * ln(2 * m / a) / b ^ 2
 // gives that with probability at least `1 - a`, each edge receives the correct
 // Jaccard similarity with absolute error up to `b`.
@@ -314,11 +323,20 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
   // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
   // Techniques from Rounding Algorithms" by Moses Charikar).
+  //
+  // The idea is that we can estimate the angle between two n-dimensional
+  // vectors by taking a random n-dimensional hyperplane and computing the dot
+  // product of the vectors with the hyperplane. The larger the angle between
+  // the two vectors, the more likely that the two vectors will have oppositely
+  // signed dot products with the hyperplane. Repeat this for several random
+  // hyperplanes. A hyperplane may be represented by drawing i.i.d. normal
+  // variables for each dimension.
 
   using Vertex = VertexTemplate<pbbs::empty>;
-  // TODO more comments explaining what's happening here
-  // chunking bools, etc.
-  // maybe better var names ("hyperplane_dot_product" is poor)
+  // We compute `num_samples_` hyperplanes and, for each vertex's vector, we
+  // compute `num_samples_` bits representing the sign of the vector's dot
+  // product with each hyperplane. For efficiency, we store the bits in chunks
+  // of `kBitArraySize` rather than one-by-one.
   using BitArray = uint64_t;
   constexpr size_t kBitArraySize{sizeof(BitArray) * 8};
 
@@ -404,7 +422,7 @@ template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
   using Vertex = VertexTemplate<pbbs::empty>;
-  // TODO explain what's happening here, cite minhash paper
+  // Estimate the Jaccard similarity with MinHash.
 
   const size_t num_vertices{graph->n};
   const auto min_monoid{pbbs::minm<uint64_t>{}};
