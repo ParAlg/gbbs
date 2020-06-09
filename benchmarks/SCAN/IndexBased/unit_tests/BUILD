@@ -17,6 +17,18 @@ gbbs_cc_test(
 )
 
 gbbs_cc_test(
+    name = "similarity_measure_test",
+    srcs = ["similarity_measure_test.cc"],
+    deps = [
+        ":similarity_measure_test_utils",
+        "//benchmarks/SCAN/IndexBased:similarity_measure",
+        "//gbbs:graph_test_utils",
+        "//gbbs:macros",
+        "@googletest//:gtest_main",
+    ],
+)
+
+gbbs_cc_test(
     name = "utils_test",
     srcs = ["utils_test.cc"],
     deps = [

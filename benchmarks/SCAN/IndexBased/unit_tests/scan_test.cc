@@ -39,13 +39,13 @@ namespace s = scan;
 
 namespace {
 
-// Googletest-like matcher for indexed_scan::internal::CoreThreshold.
+// Googletest-like equality matcher for `indexed_scan::internal::CoreThreshold`.
 auto CoreThresholdEq(
     const uintE expected_vertex,
     const float expected_threshold) {
- return AllOf(
-   Field(&ii::CoreThreshold::vertex_id, Eq(expected_vertex)),
-   Field(&ii::CoreThreshold::threshold, FloatEq(expected_threshold)));
+  return AllOf(
+    Field(&ii::CoreThreshold::vertex_id, Eq(expected_vertex)),
+    Field(&ii::CoreThreshold::threshold, FloatEq(expected_threshold)));
 }
 
 // Checks that `clustering` has the expected clusters and returns true if the
