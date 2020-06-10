@@ -1,5 +1,6 @@
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 
+#include <limits>
 #include <unordered_set>
 
 #include "benchmarks/SCAN/IndexBased/unit_tests/similarity_measure_test_utils.h"
@@ -10,12 +11,14 @@
 
 namespace gt = graph_test;
 namespace s = scan;
+namespace si = scan::internal;
 
 using ::testing::AllOf;
 using ::testing::Field;
 using ::testing::Eq;
 using ::testing::FloatNear;
 using ::testing::UnorderedElementsAre;
+using ::testing::UnorderedElementsAreArray;
 
 namespace {
 
@@ -52,7 +55,7 @@ auto EdgeSimilarityApproxEq(
 //           3 ---- 4
 //             .75
 auto MakeBasicGraph() {
-  const size_t kNumVertices{6};
+  constexpr size_t kNumVertices{6};
   const std::unordered_set<UndirectedEdge> kEdges{
     {0, 1},
     {1, 2},
@@ -71,6 +74,7 @@ auto MakeBasicGraph() {
 TEST(CosineSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
   const s::CosineSimilarity similarity_measure{};
+  // Check `CosineSimilarity::AllEdges` output.
   const pbbs::sequence<s::EdgeSimilarity> similarities{
     similarity_measure.AllEdges(&graph)};
   EXPECT_THAT(similarities,
@@ -89,6 +93,16 @@ TEST(CosineSimilarity, AllEdges) {
         EdgeSimilarityEq(5, 2, 2.0 / sqrt(10)),
         EdgeSimilarityEq(3, 4, 3.0 / sqrt(12)),
         EdgeSimilarityEq(4, 3, 3.0 / sqrt(12))));
+
+  // Also check that `ApproxCosine::AllEdges` with its threshold tuned so that
+  // it always outputs exact similarities also gives the same output.
+  constexpr uint32_t kNumSamples{10};
+  constexpr size_t kRandomSeed{0};
+  constexpr size_t kExactThreshold{std::numeric_limits<size_t>::max()};
+  const pbbs::sequence<s::EdgeSimilarity> approx_similarities{
+    si::ApproxCosineEdgeSimilarities(
+        &graph, kNumSamples, kExactThreshold, kRandomSeed)};
+  EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
 }
 
 TEST(ApproxCosineSimilarity, AllEdges) {
@@ -97,12 +111,13 @@ TEST(ApproxCosineSimilarity, AllEdges) {
   // pseudorandom output. Test failures might just be unlucky and fixable by
   // changing the random seed. At the time of writing this comment, the test
   // passes on all random seeds in the range [0, 99).
-  const uintE kNumSamples{400};
-  const uintE kRandomSeed{0};
-  const s::ApproxCosineSimilarity similarity_measure{kNumSamples, kRandomSeed};
+  constexpr uint32_t kNumSamples{400};
+  constexpr size_t kRandomSeed{0};
+  constexpr size_t kExactThreshold{0};  // Approximate all similarities
   const pbbs::sequence<s::EdgeSimilarity> similarities{
-    similarity_measure.AllEdges(&graph)};
-  const float kTolerance{0.1};
+    si::ApproxCosineEdgeSimilarities(
+        &graph, kNumSamples, kExactThreshold, kRandomSeed)};
+  constexpr float kTolerance{0.1};
   EXPECT_THAT(similarities,
       UnorderedElementsAre(
         EdgeSimilarityApproxEq(0, 1, 2.0 / sqrt(8), kTolerance),
@@ -123,7 +138,7 @@ TEST(ApproxCosineSimilarity, AllEdges) {
 
 TEST(JaccardSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
-  const s::JaccardSimilarity similarity_measure{};
+  constexpr s::JaccardSimilarity similarity_measure{};
   const pbbs::sequence<s::EdgeSimilarity> similarities{
     similarity_measure.AllEdges(&graph)};
   EXPECT_THAT(similarities,
@@ -150,12 +165,12 @@ TEST(ApproxJaccardSimilarity, AllEdges) {
   // pseudorandom output. Test failures might just be unlucky and fixable by
   // changing the random seed. At the time of writing this comment, the test
   // passes on all random seeds in the range [0, 99).
-  const uintE kNumSamples{300};
-  const uintE kRandomSeed{0};
+  constexpr uint32_t kNumSamples{300};
+  constexpr size_t kRandomSeed{0};
   const s::ApproxJaccardSimilarity similarity_measure{kNumSamples, kRandomSeed};
   const pbbs::sequence<s::EdgeSimilarity> similarities{
     similarity_measure.AllEdges(&graph)};
-  const float kTolerance{0.1};
+  constexpr float kTolerance{0.1};
   EXPECT_THAT(similarities,
       UnorderedElementsAre(
         EdgeSimilarityApproxEq(0, 1, 0.5, kTolerance),

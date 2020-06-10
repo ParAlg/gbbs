@@ -3,6 +3,7 @@
 #pragma once
 
 #include <atomic>
+#include <cmath>
 #include <functional>
 #include <limits>
 
@@ -26,6 +27,7 @@ struct EdgeSimilarity {
   // Similarity of source vertex to neighbor vertex.
   float similarity;
 };
+bool operator==(const EdgeSimilarity&, const EdgeSimilarity&);
 std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
 /////////////////////////
@@ -289,6 +291,148 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   return similarities;
 }
 
+// Implementation of ApproxCosineSimilarities::AllEdges.
+//
+// `exact_threshold` is a threshold where if the sum of neighborhood sizes of
+// adjacent vertices u and v is below `exact_threshold`, then we compute
+// similarity score between u and v exactly.
+// (The cost to computing the similarity score between vertices u and v exactly
+// is O(<size of neighborhood of u> + <size of neighborhood of v>), whereas the
+// cost to computing the similarity score approximately is O(num_samples_).)
+template <template <typename> class VertexTemplate>
+pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
+    symmetric_graph<VertexTemplate, pbbs::empty>* graph,
+    const uint32_t num_samples,
+    const size_t exact_threshold,
+    const size_t random_seed) {
+  // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
+  // Techniques from Rounding Algorithms" by Moses Charikar).
+  //
+  // The idea is that we can estimate the angle between two n-dimensional
+  // vectors by drawing a random n-dimensional hyperplane and determining which
+  // side of the hyperplane the vectors fall on. The larger the angle between
+  // the two vectors, the more likely that the two vectors will fall on
+  // opposite sides of the hyperplane. Repeat this for several random
+  // hyperplanes.
+  // Represent a hyperplane by a vector orthogonal to that hyperplane. Generate
+  // that uniformly random orthogonal vector by drawing i.i.d. normal variables
+  // for each dimension. Determine which side of the hyperplane vectors fall on
+  // by taking the dot product with the orthogonal vector.
+
+  using Weight = pbbs::empty;
+  using Vertex = VertexTemplate<Weight>;
+  // We compute `num_samples_` hyperplanes and, to sketch a vertex's
+  // neighborhood vector, we compute `num_samples_` bits representing the sign
+  // of the vector's dot product with each hyperplane. For efficiency, we store
+  // the bits in chunks of `kBitArraySize` rather than one-by-one.
+  using BitArray = uint64_t;
+  constexpr size_t kBitArraySize{sizeof(BitArray) * 8};
+
+  const size_t num_vertices{graph->n};
+  // <number of vertices>-by-<number of samples> array of normal numbers
+  const pbbs::sequence<float> normals{internal::RandomNormalNumbers(
+      num_vertices * num_samples, pbbs::random{random_seed})};
+  const auto addition_monoid{pbbs::addm<float>{}};
+  const size_t num_bit_arrays{
+    internal::DivideRoundingUp(num_samples, kBitArraySize)};
+  const pbbs::sequence<pbbs::sequence<BitArray>> vertex_fingerprints{
+    num_vertices,
+    [&](const size_t vertex_id) {
+      Vertex vertex{graph->get_vertex(vertex_id)};
+      const uintE degree{vertex.getOutDegree()};
+      bool skip_fingerprint{true};
+      const auto check_exact_threshold{
+        [&](uintE, const uintE neighbor_id, Weight) {
+          if (skip_fingerprint &&
+              (degree + graph->get_vertex(neighbor_id).getOutDegree() >=
+               exact_threshold)) {
+            skip_fingerprint = false;
+          }
+        }};
+      vertex.mapOutNgh(vertex_id, check_exact_threshold);
+      if (skip_fingerprint) {
+        return pbbs::sequence<BitArray>{};
+      }
+      return pbbs::sequence<BitArray>{
+        num_bit_arrays,
+        [&](const size_t bit_array_id) {
+          BitArray bits{0};
+          const size_t max_bit_id{
+            bit_array_id == num_bit_arrays - 1
+            ? kBitArraySize - (num_bit_arrays * kBitArraySize - num_samples)
+            : kBitArraySize};
+          const size_t bits_offset{bit_array_id * kBitArraySize};
+          for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
+            const auto neighbor_to_normal_sample{
+              [&](uintE, const uintE neighbor, pbbs::empty) {
+                return normals[num_samples * neighbor + bits_offset + bit_id];
+            }};
+            const float hyperplane_dot_product{
+              normals[num_samples * vertex_id + bits_offset + bit_id] +
+                vertex.template reduceOutNgh<float>(
+                  vertex_id, neighbor_to_normal_sample, addition_monoid)};
+            if (hyperplane_dot_product >= 0) {
+              bits |= (1LL << bit_id);
+            }
+          }
+          return bits;
+        }};
+    }};
+
+  pbbs::sequence<EdgeSimilarity> undirected_similarities{
+    pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
+  par_for(0, undirected_similarities.size(), [&](const size_t i) {
+    undirected_similarities[i].similarity =
+      std::numeric_limits<float>::quiet_NaN();
+  });
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
+  // Get similarities for all edges (u, v) where u < v.
+  const auto compute_similarity{[&](
+      const uintE vertex_id,
+      const uintE neighbor_id,
+      pbbs::empty,
+      const uintE neighbor_index) {
+    float similarity_estimate{0};
+    if (vertex_id < neighbor_id) {
+      Vertex vertex{graph->get_vertex(vertex_id)};
+      Vertex neighbor{graph->get_vertex(neighbor_id)};
+      const size_t vertex_degree{vertex.getOutDegree()};
+      const size_t neighbor_degree{neighbor.getOutDegree()};
+      if (vertex_degree + neighbor_degree < exact_threshold) {
+        // compute exact similarity
+        const size_t num_shared_neighbors{
+          vertex.intersect(&neighbor, vertex_id, neighbor_id)};
+        similarity_estimate = (num_shared_neighbors + 2) /
+          (std::sqrtf(vertex_degree + 1) * std::sqrtf(neighbor_degree + 1));
+      } else {  // compute approximate similarity
+        const pbbs::sequence<BitArray>& vertex_fingerprint{
+          vertex_fingerprints[vertex_id]};
+        const pbbs::sequence<BitArray>& neighbor_fingerprint{
+          vertex_fingerprints[neighbor_id]};
+        const auto fingerprint_xor{
+          pbbs::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
+            vertex_fingerprint.size(),
+            [&](const size_t i) {
+              return __builtin_popcountll(
+                  vertex_fingerprint[i] ^ neighbor_fingerprint[i]);
+            })};
+        const float angle_estimate{static_cast<float>(
+            pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
+        similarity_estimate = std::cos(angle_estimate);
+      }
+      undirected_similarities[vertex_offsets[vertex_id] + neighbor_index] = {
+        .source = vertex_id,
+        .neighbor = neighbor_id,
+        .similarity = similarity_estimate};
+    }
+  }};
+  par_for(0, num_vertices, [&](const size_t vertex_id) {
+    graph->get_vertex(vertex_id).mapOutNghWithIndex(
+        vertex_id, compute_similarity);
+  });
+  return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
+}
+
 }  // namespace internal
 
 template <template <typename> class VertexTemplate>
@@ -302,7 +446,8 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     // neighborhoods, hence the need to to adjust these values by `+ 1` and
     // `+ 2`.
     return (num_shared_neighbors + 2) /
-      (sqrtf(neighborhood_size_1 + 1) * sqrtf(neighborhood_size_2 + 1));
+      (std::sqrtf(neighborhood_size_1 + 1) *
+       std::sqrtf(neighborhood_size_2 + 1));
   }};
   return internal::AllEdgeNeighborhoodSimilarities(graph, similarity_func);
 }
@@ -326,104 +471,9 @@ pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
-  // Techniques from Rounding Algorithms" by Moses Charikar).
-  //
-  // The idea is that we can estimate the angle between two n-dimensional
-  // vectors by drawing a random n-dimensional hyperplane and determining which
-  // side of the hyperplane the vectors fall on. The larger the angle between
-  // the two vectors, the more likely that the two vectors will fall on
-  // opposite sides of the hyperplane. Repeat this for several random
-  // hyperplanes.
-  // Represent a hyperplane by a vector orthogonal to that hyperplane. Generate
-  // that uniformly random orthogonal vector by drawing i.i.d. normal variables
-  // for each dimension. Determine which side of the hyperplane vectors fall on
-  // by taking the dot product with the orthogonal vector.
-
-  using Vertex = VertexTemplate<pbbs::empty>;
-  // We compute `num_samples_` hyperplanes and, for each vertex's vector, we
-  // compute `num_samples_` bits representing the sign of the vector's dot
-  // product with each hyperplane. For efficiency, we store the bits in chunks
-  // of `kBitArraySize` rather than one-by-one.
-  using BitArray = uint64_t;
-  constexpr size_t kBitArraySize{sizeof(BitArray) * 8};
-
-  const size_t num_vertices{graph->n};
-  // <number of vertices>-by-<number of samples> array of normal numbers
-  const pbbs::sequence<float> normals{internal::RandomNormalNumbers(
-      num_vertices * num_samples_, pbbs::random{random_seed_})};
-  const auto addition_monoid{pbbs::addm<float>{}};
-  const size_t num_bit_arrays{
-    internal::DivideRoundingUp(num_samples_, kBitArraySize)};
-  const pbbs::sequence<pbbs::sequence<BitArray>> vertex_fingerprints{
-    num_vertices,
-    [&](const size_t vertex_id) {
-      Vertex vertex{graph->get_vertex(vertex_id)};
-      return pbbs::sequence<BitArray>{
-        num_bit_arrays,
-        [&](const size_t bit_array_id) {
-          BitArray bits{0};
-          const size_t max_bit_id{
-            bit_array_id == num_bit_arrays - 1
-            ? kBitArraySize - (num_bit_arrays * kBitArraySize - num_samples_)
-            : kBitArraySize};
-          const size_t bits_offset{bit_array_id * kBitArraySize};
-          for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
-            const auto neighbor_to_normal_sample{
-              [&](uintE, const uintE neighbor, pbbs::empty) {
-                return normals[num_samples_ * neighbor + bits_offset + bit_id];
-            }};
-            const float hyperplane_dot_product{
-              normals[num_samples_ * vertex_id + bits_offset + bit_id] +
-                vertex.template reduceOutNgh<float>(
-                  vertex_id, neighbor_to_normal_sample, addition_monoid)};
-            if (hyperplane_dot_product >= 0) {
-              bits |= (1LL << bit_id);
-            }
-          }
-          return bits;
-        }};
-    }};
-
-  pbbs::sequence<EdgeSimilarity> undirected_similarities{
-    pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
-  par_for(0, undirected_similarities.size(), [&](const size_t i) {
-    undirected_similarities[i].similarity =
-      std::numeric_limits<float>::quiet_NaN();
-  });
-  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
-  // Get approximate similarities for all edges (u, v) where u < v.
-  const auto compute_similarity{[&](
-      const uintE vertex_id,
-      const uintE neighbor_id,
-      pbbs::empty,
-      const uintE neighbor_index) {
-    if (vertex_id < neighbor_id) {
-      const pbbs::sequence<BitArray>& vertex_fingerprint{
-        vertex_fingerprints[vertex_id]};
-      const pbbs::sequence<BitArray>& neighbor_fingerprint{
-        vertex_fingerprints[neighbor_id]};
-      const auto fingerprint_xor{
-        pbbs::delayed_seq<std::remove_const<decltype(num_samples_)>::type>(
-          vertex_fingerprint.size(),
-          [&](const size_t i) {
-            return __builtin_popcountll(
-                vertex_fingerprint[i] ^ neighbor_fingerprint[i]);
-          })};
-      const float angle_estimate{static_cast<float>(
-          pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples_)};
-      const float cosine_similarity_estimate{std::cos(angle_estimate)};
-      undirected_similarities[vertex_offsets[vertex_id] + neighbor_index] = {
-        .source = vertex_id,
-        .neighbor = neighbor_id,
-        .similarity = cosine_similarity_estimate};
-    }
-  }};
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
-    graph->get_vertex(vertex_id).mapOutNghWithIndex(
-        vertex_id, compute_similarity);
-  });
-  return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
+  const size_t exact_threshold{static_cast<size_t>(1.5 * num_samples_)};
+  return internal::ApproxCosineEdgeSimilarities(
+      graph, num_samples_, exact_threshold, random_seed_);
 }
 
 template <template <typename> class VertexTemplate>

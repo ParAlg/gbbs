@@ -68,6 +68,18 @@ pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
 
 }  // namespace internal
 
+bool operator==(const EdgeSimilarity& a, const EdgeSimilarity& b) {
+  return std::tie(a.source, a.neighbor, a.similarity) ==
+    std::tie(b.source, b.neighbor, b.similarity);
+}
+
+std::ostream&
+operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
+  os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
+     << "), similarity=" << edge_similarity.similarity << '}';
+  return os;
+}
+
 ApproxCosineSimilarity::ApproxCosineSimilarity(
     const uint32_t num_samples,
     const size_t random_seed)
@@ -79,12 +91,5 @@ ApproxJaccardSimilarity::ApproxJaccardSimilarity(
     const size_t random_seed)
   : num_samples_{num_samples}
   , random_seed_{random_seed} {}
-
-std::ostream&
-operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
-  os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
-     << "), similarity=" << edge_similarity.similarity << '}';
-  return os;
-}
 
 }  // namespace scan
