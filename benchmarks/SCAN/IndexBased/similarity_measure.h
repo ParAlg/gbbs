@@ -28,11 +28,16 @@ struct EdgeSimilarity {
 };
 std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 
+/////////////////////////
+// Similarity measures //
+/////////////////////////
 // The similarity measure classes implement the following functions:
 //   // Returns a `graph->m`-length sequence containing the similarity score
-//   // between every adjacent pair of vertices in the graph.
+//   // between every adjacent pair of vertices in the graph. The neighbor lists
+//   // for each vertex of the graph must be sorted by ascending neighbor ID.
 //   template <class Graph>
 //   pbbs::sequence<EdgeSimilarity> AllEdges(Graph* graph) const;
+
 
 // The cosine similarity between two adjacent vertices u and v is
 //   (size of intersection of the closed neighborhoods of u and v) /
