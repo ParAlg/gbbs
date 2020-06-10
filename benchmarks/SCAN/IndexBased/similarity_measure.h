@@ -403,7 +403,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         const size_t num_shared_neighbors{
           vertex.intersect(&neighbor, vertex_id, neighbor_id)};
         similarity_estimate = (num_shared_neighbors + 2) /
-          (std::sqrtf(vertex_degree + 1) * std::sqrtf(neighbor_degree + 1));
+          (sqrtf(vertex_degree + 1) * sqrtf(neighbor_degree + 1));
       } else {  // compute approximate similarity
         const pbbs::sequence<BitArray>& vertex_fingerprint{
           vertex_fingerprints[vertex_id]};
@@ -557,8 +557,8 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     // neighborhoods, hence the need to to adjust these values by `+ 1` and
     // `+ 2`.
     return (num_shared_neighbors + 2) /
-      (std::sqrtf(neighborhood_size_1 + 1) *
-       std::sqrtf(neighborhood_size_2 + 1));
+      (sqrtf(neighborhood_size_1 + 1) *
+       sqrtf(neighborhood_size_2 + 1));
   }};
   return internal::AllEdgeNeighborhoodSimilarities(graph, similarity_func);
 }
