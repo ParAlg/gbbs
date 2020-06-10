@@ -325,12 +325,15 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
   // Techniques from Rounding Algorithms" by Moses Charikar).
   //
   // The idea is that we can estimate the angle between two n-dimensional
-  // vectors by taking a random n-dimensional hyperplane and computing the dot
-  // product of the vectors with the hyperplane. The larger the angle between
-  // the two vectors, the more likely that the two vectors will have oppositely
-  // signed dot products with the hyperplane. Repeat this for several random
-  // hyperplanes. A hyperplane may be represented by drawing i.i.d. normal
-  // variables for each dimension.
+  // vectors by drawing a random n-dimensional hyperplane and determining which
+  // side of the hyperplane the vectors fall on. The larger the angle between
+  // the two vectors, the more likely that the two vectors will fall on
+  // opposite sides of the hyperplane. Repeat this for several random
+  // hyperplanes.
+  // Represent a hyperplane by a vector orthogonal to that hyperplane. Generate
+  // that uniformly random orthogonal vector by drawing i.i.d. normal variables
+  // for each dimension. Determine which side of the hyperplane vectors fall on
+  // by taking the dot product with the orthogonal vector.
 
   using Vertex = VertexTemplate<pbbs::empty>;
   // We compute `num_samples_` hyperplanes and, for each vertex's vector, we
