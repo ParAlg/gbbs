@@ -392,8 +392,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       const uintE neighbor_id,
       pbbs::empty,
       const uintE neighbor_index) {
-    float similarity_estimate{0};
     if (vertex_id < neighbor_id) {
+      float similarity_estimate{0};
       Vertex vertex{graph->get_vertex(vertex_id)};
       Vertex neighbor{graph->get_vertex(neighbor_id)};
       const size_t vertex_degree{vertex.getOutDegree()};
@@ -419,6 +419,117 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         const float angle_estimate{static_cast<float>(
             pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
         similarity_estimate = std::cos(angle_estimate);
+      }
+      undirected_similarities[vertex_offsets[vertex_id] + neighbor_index] = {
+        .source = vertex_id,
+        .neighbor = neighbor_id,
+        .similarity = similarity_estimate};
+    }
+  }};
+  par_for(0, num_vertices, [&](const size_t vertex_id) {
+    graph->get_vertex(vertex_id).mapOutNghWithIndex(
+        vertex_id, compute_similarity);
+  });
+  return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
+}
+
+// Implementation of ApproxJaccardSimilarities::AllEdges.
+//
+// `exact_threshold` is a threshold where if the sum of neighborhood sizes of
+// adjacent vertices u and v is below `exact_threshold`, then we compute
+// similarity score between u and v exactly.
+// (The cost to computing the similarity score between vertices u and v exactly
+// is O(<size of neighborhood of u> + <size of neighborhood of v>), whereas the
+// cost to computing the similarity score approximately is O(num_samples_).)
+template <template <typename> class VertexTemplate>
+pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
+    symmetric_graph<VertexTemplate, pbbs::empty>* graph,
+    const uint32_t num_samples,
+    const size_t exact_threshold,
+    const size_t random_seed) {
+  using Weight = pbbs::empty;
+  using Vertex = VertexTemplate<Weight>;
+  // Estimate the Jaccard similarity with MinHash.
+
+  const size_t num_vertices{graph->n};
+  const auto min_monoid{pbbs::minm<uint64_t>{}};
+  const uint64_t random_offset{pbbs::hash64(random_seed)};
+  const pbbs::sequence<pbbs::sequence<uint64_t>> vertex_fingerprints{
+    num_vertices,
+    [&](const size_t vertex_id) {
+      Vertex vertex{graph->get_vertex(vertex_id)};
+      const uintE degree{vertex.getOutDegree()};
+      bool skip_fingerprint{true};
+      const auto check_exact_threshold{
+        [&](uintE, const uintE neighbor_id, Weight) {
+          if (skip_fingerprint &&
+              (degree + graph->get_vertex(neighbor_id).getOutDegree() >=
+               exact_threshold)) {
+            skip_fingerprint = false;
+          }
+        }};
+      vertex.mapOutNgh(vertex_id, check_exact_threshold);
+      if (skip_fingerprint) {
+        return pbbs::sequence<uint64_t>{};
+      }
+      return pbbs::sequence<uint64_t>{
+        num_samples,
+        [&](const size_t sample_id) {
+          const auto hash_neighbor{
+            [&](uintE, const uintE neighbor, pbbs::empty) {
+              return pbbs::hash64_2(
+                  random_offset + num_samples * neighbor + sample_id);
+          }};
+          return std::min(
+              pbbs::hash64_2(
+                random_offset + num_samples * vertex_id + sample_id),
+              vertex.template reduceOutNgh<uint64_t>(
+                vertex_id, hash_neighbor, min_monoid));
+        }};
+    }};
+
+  pbbs::sequence<EdgeSimilarity> undirected_similarities{
+    pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
+  par_for(0, undirected_similarities.size(), [&](const size_t i) {
+    undirected_similarities[i].similarity =
+      std::numeric_limits<float>::quiet_NaN();
+  });
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
+  // Get similarities for all edges (u, v) where u < v.
+  const auto compute_similarity{[&](
+      const uintE vertex_id,
+      const uintE neighbor_id,
+      pbbs::empty,
+      const uintE neighbor_index) {
+    if (vertex_id < neighbor_id) {
+      float similarity_estimate{0};
+      Vertex vertex{graph->get_vertex(vertex_id)};
+      Vertex neighbor{graph->get_vertex(neighbor_id)};
+      const size_t vertex_degree{vertex.getOutDegree()};
+      const size_t neighbor_degree{neighbor.getOutDegree()};
+      if (vertex_degree + neighbor_degree < exact_threshold) {
+        // compute exact similarity
+        const size_t num_shared_neighbors{
+          vertex.intersect(&neighbor, vertex_id, neighbor_id)};
+        const size_t union_of_neighbors{
+          vertex_degree + neighbor_degree - num_shared_neighbors};
+        similarity_estimate =
+          static_cast<float>(num_shared_neighbors + 2) /
+            union_of_neighbors;
+      } else {
+        const pbbs::sequence<uint64_t>& vertex_fingerprint{
+          vertex_fingerprints[vertex_id]};
+        const pbbs::sequence<uint64_t>& neighbor_fingerprint{
+          vertex_fingerprints[neighbor_id]};
+        const auto fingerprint_matches{
+          pbbs::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
+            vertex_fingerprint.size(),
+            [&](const size_t i) {
+              return vertex_fingerprint[i] == neighbor_fingerprint[i];
+            })};
+        similarity_estimate =
+            pbbslib::reduce_add(fingerprint_matches) /
+              static_cast<float>(num_samples);
       }
       undirected_similarities[vertex_offsets[vertex_id] + neighbor_index] = {
         .source = vertex_id,
@@ -479,70 +590,9 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  using Vertex = VertexTemplate<pbbs::empty>;
-  // Estimate the Jaccard similarity with MinHash.
-
-  const size_t num_vertices{graph->n};
-  const auto min_monoid{pbbs::minm<uint64_t>{}};
-  const uint64_t random_offset{pbbs::hash64(random_seed_)};
-  const pbbs::sequence<pbbs::sequence<uint64_t>> vertex_fingerprints{
-    num_vertices,
-    [&](const size_t vertex_id) {
-      Vertex vertex{graph->get_vertex(vertex_id)};
-      return pbbs::sequence<uint64_t>{
-        num_samples_,
-        [&](const size_t sample_id) {
-          const auto hash_neighbor{
-            [&](uintE, const uintE neighbor, pbbs::empty) {
-              return pbbs::hash64_2(
-                  random_offset + num_samples_ * neighbor + sample_id);
-          }};
-          return std::min(
-              pbbs::hash64_2(
-                random_offset + num_samples_ * vertex_id + sample_id),
-              vertex.template reduceOutNgh<uint64_t>(
-                vertex_id, hash_neighbor, min_monoid));
-        }};
-    }};
-
-  pbbs::sequence<EdgeSimilarity> undirected_similarities{
-    pbbs::sequence<EdgeSimilarity>::no_init(graph->m)};
-  par_for(0, undirected_similarities.size(), [&](const size_t i) {
-    undirected_similarities[i].similarity =
-      std::numeric_limits<float>::quiet_NaN();
-  });
-  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
-  // Get approximate similarities for all edges (u, v) where u < v.
-  const auto compute_similarity{[&](
-      const uintE vertex_id,
-      const uintE neighbor_id,
-      pbbs::empty,
-      const uintE neighbor_index) {
-    if (vertex_id < neighbor_id) {
-      const pbbs::sequence<uint64_t>& vertex_fingerprint{
-        vertex_fingerprints[vertex_id]};
-      const pbbs::sequence<uint64_t>& neighbor_fingerprint{
-        vertex_fingerprints[neighbor_id]};
-      const auto fingerprint_matches{
-        pbbs::delayed_seq<std::remove_const<decltype(num_samples_)>::type>(
-          vertex_fingerprint.size(),
-          [&](const size_t i) {
-            return vertex_fingerprint[i] == neighbor_fingerprint[i];
-          })};
-      const float similarity_estimate{
-          pbbslib::reduce_add(fingerprint_matches) /
-            static_cast<float>(num_samples_)};
-      undirected_similarities[vertex_offsets[vertex_id] + neighbor_index] = {
-        .source = vertex_id,
-        .neighbor = neighbor_id,
-        .similarity = similarity_estimate};
-    }
-  }};
-  par_for(0, num_vertices, [&](const size_t vertex_id) {
-    graph->get_vertex(vertex_id).mapOutNghWithIndex(
-        vertex_id, compute_similarity);
-  });
-  return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
+  const size_t exact_threshold{static_cast<size_t>(1.5 * num_samples_)};
+  return internal::ApproxJaccardEdgeSimilarities(
+      graph, num_samples_, exact_threshold, random_seed_);
 }
 
 }  // namespace scan
