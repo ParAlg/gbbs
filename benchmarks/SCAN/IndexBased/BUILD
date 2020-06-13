@@ -13,7 +13,7 @@ cc_library(
     deps = [
         ":utils",
         "//benchmarks/Connectivity/UnionFind:union_find_rules",
-        "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle_main",
+        "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:graph_mutation",
