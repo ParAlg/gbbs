@@ -11,10 +11,12 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 #include "benchmarks/CoSimRank/CoSimRank.h"
+#include "benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16/StronglyConnectedComponents.h"
 
 #include "pybind11/pybind11.h"
 #include "pybind11/numpy.h"
 
+#include <sys/stat.h>
 
 namespace gbbs_lib {
 namespace py = ::pybind11;
@@ -106,7 +108,22 @@ template <template <class W> class vertex_type, class W>
 void AsymGraphRegister(py::module& m, std::string graph_name) {
   /* register graph */
   using graph = asymmetric_graph<vertex_type, W>;
-  py::class_<graph>(m, graph_name.c_str());
+  py::class_<graph>(m, graph_name.c_str())
+    .def("numVertices", [](const graph& G) -> size_t {
+      return G.n;
+    })
+    .def("numEdges", [](const graph& G) -> size_t {
+      return G.m;
+    })
+    .def("BFS", [&] (graph& G, const size_t src) {
+      auto parents = BFS(G, src);
+      return 1.0;
+    }, py::arg("src"))
+    .def("StronglyConnectedComponents", [&] (graph& G) {
+      auto sccs = StronglyConnectedComponents(G);
+      size_t* arr = sccs.to_array();
+      return wrap_array(arr, G.n);
+    });
 }
 
 PYBIND11_MODULE(gbbs_lib, m) {
@@ -165,6 +182,38 @@ PYBIND11_MODULE(gbbs_lib, m) {
         path.c_str(),
         /* mmap = */true,
         /* mmap_copy = */false);
+    alloc_init(G);
+    return G;
+  });
+
+  m.def("loadSymmetricEdgeListAsGraph", [&] (std::string& inpath, std::string& outpath) {
+    struct stat buffer;
+    bool exists = (stat (outpath.c_str(), &buffer) == 0);
+    if (!exists) {
+      const auto edge_list{gbbs_io::read_unweighted_edge_list(inpath.c_str())};
+      auto graph{gbbs_io::edge_list_to_symmetric_graph(edge_list)};
+      gbbs_io::write_graph_to_file(outpath.c_str(), graph);
+      return graph;
+    }
+    auto G = gbbs_io::read_unweighted_symmetric_graph(
+        outpath.c_str(),
+        /* mmap = */true);
+    alloc_init(G);
+    return G;
+  });
+
+  m.def("loadAsymmetricEdgeListAsGraph", [&] (std::string& inpath, std::string& outpath) {
+    struct stat buffer;
+    bool exists = (stat (outpath.c_str(), &buffer) == 0);
+    if (!exists) {
+      const auto edge_list{gbbs_io::read_unweighted_edge_list(inpath.c_str())};
+      auto graph{gbbs_io::edge_list_to_asymmetric_graph(edge_list)};
+      gbbs_io::write_graph_to_file(outpath.c_str(), graph);
+      return graph;
+    }
+    auto G = gbbs_io::read_unweighted_asymmetric_graph(
+        outpath.c_str(),
+        /* mmap = */true);
     alloc_init(G);
     return G;
   });
