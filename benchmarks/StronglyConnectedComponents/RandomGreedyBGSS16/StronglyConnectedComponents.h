@@ -194,7 +194,7 @@ inline bool* first_search(Graph& GA, L& labels, uintE start,
 }
 
 template <class Graph>
-inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta = 1.1) {
+inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta = 1.5) {
   timer initt;
   initt.start();
   size_t n = GA.n;
@@ -375,6 +375,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     rt.reportTotal("Round time");
   }
 
+  parallel_for(0, labels.size(), [&] (size_t i) {
+    labels[i] = labels[i] & VAL_MASK;
+  });
   return labels;
 }
 

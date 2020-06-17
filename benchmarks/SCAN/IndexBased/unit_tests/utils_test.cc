@@ -29,7 +29,7 @@ TEST(Modularity, BasicGraph) {
   //   |  2 -- 3 -- 4  |
   //   | /     |     \ |
   //   1       7       6
-  //         /   \
+  //         /   \.
   //        8 --- 9
   constexpr size_t kNumVertices{10};
   const std::unordered_set<UndirectedEdge> kEdges{

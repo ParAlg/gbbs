@@ -63,48 +63,31 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
             << "\n";
 }
 
-template <class Graph, class VS, class P>
-inline vertexSubset get_nghs(Graph& G, VS& vs, P p) {
-  using W = typename Graph::weight_type;
-  vs.toSparse();
-  assert(!vs.isDense);
-  auto deg_f =  [&](size_t i) { return G.get_vertex(vs.vtx(i)).getOutDegree(); };
-  auto deg_im = pbbslib::make_sequence<size_t>(
-      vs.size(), deg_f);
-  size_t sum_d = pbbslib::reduce_add(deg_im);
-
-  if (sum_d > G.m / 100) {  // dense forward case
-    auto dense = sequence<bool>(G.n, false);
-    auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-      if (p(ngh) && !dense[ngh]) {
-        dense[ngh] = 1;
-      }
-    };
-    par_for(0, vs.size(), [&] (size_t i) {
-      uintE v = vs.vtx(i);
-      G.get_vertex(v).mapOutNgh(v, map_f);
-    });
-    return vertexSubset(G.n, dense.to_array());
-  } else {  // sparse --- iterate, and add nghs satisfying P to a hashtable
-    debug(std::cout << "sum_d = " << sum_d << std::endl;);
-    auto ht = make_sparse_table<uintE, pbbslib::empty>(
-        sum_d, std::make_tuple(UINT_E_MAX, pbbslib::empty()),
-        [&](const uintE& k) { return pbbslib::hash64(k); });
-    vs.toSparse();
-    par_for(0, vs.size(), [&] (size_t i) {
-      auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-        if (p(ngh)) {
-          ht.insert(std::make_tuple(ngh, pbbslib::empty()));
-        }
-      };
-      uintE v = vs.vtx(i);
-      G.get_vertex(v).mapOutNgh(v, map_f);
-    });
-    auto nghs = ht.entries();
-    ht.del();
-    size_t nghs_size = nghs.size();
-    return vertexSubset(G.n, nghs_size, (uintE*)nghs.to_array());
+template <class P, class W>
+struct GetNghs {
+  P& p;
+  GetNghs(P& p) : p(p) {}
+  inline bool update(const uintE& s, const uintE& d, const W& w) {
+    if (p[d] > 0) {
+      p[d] = 0;
+      return true;
+    }
+    return false;
   }
+  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
+    auto p_d = p[d];
+    if (p_d > 0 && pbbslib::atomic_compare_and_swap(&p[d], p_d, 0)) {
+      return true;
+    }
+    return false;
+  }
+  inline bool cond(uintE d) { return (p[d] > 0); }
+};
+
+template <class Graph, class VS, class P>
+inline vertexSubset get_nghs(Graph& G, VS& vs, P& p) {
+  using W = typename Graph::weight_type;
+  return G.nghMap(vs, GetNghs<P, W>(p));
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
@@ -134,26 +117,6 @@ struct mis_f {
   inline bool cond(uintE d) { return (p[d] > 0); }
 };
 
-template <class W>
-struct mis_f_2 {
-  intE* p;
-  mis_f_2(intE* _p) : p(_p) {}
-  inline bool update(const uintE& s, const uintE& d, const W& w) {
-    if (hash_lt(s, d)) {
-      p[d]--;
-      return p[d] == 0;
-    }
-    return false;
-  }
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-    if (hash_lt(s, d)) {
-      return (pbbslib::fetch_and_add(&p[d], -1) == 0);
-    }
-    return false;
-  }
-  inline bool cond(uintE d) { return (p[d] > 0); }  // still live
-};
-
 template <class Graph>
 inline sequence<bool> MaximalIndependentSet(Graph& G) {
   using W = typename Graph::weight_type;
@@ -174,7 +137,6 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   init_t.stop();
   debug(init_t.reportTotal("init"););
 
-
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
@@ -188,16 +150,16 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   size_t rounds = 0;
   while (finished != n) {
     assert(roots.size() > 0);
-    debug(std::cout << "round = " << rounds << " size = " << roots.size()
-              << " remaining = " << (n - finished) << "\n";);
+    std::cout << "## round = " << rounds << " size = " << roots.size()
+              << " remaining = " << (n - finished) << "\n";
 
     // set the roots in the MaximalIndependentSet
     vertexMap(roots, [&](uintE v) { in_mis[v] = true; });
 
-    // compute neighbors of roots that are still live
-    auto removed = get_nghs(
-        G, roots, [&](const uintE& ngh) { return priorities[ngh] > 0; });
+    // compute neighbors of roots that are still live using nghMap
+    auto removed = get_nghs(G, roots, priorities);
     vertexMap(removed, [&](uintE v) { priorities[v] = 0; });
+    std::cout << "## removed: " << removed.size() << " many vertices" << std::endl;
 
     // compute the new roots: neighbors of removed that have their priorities
     // set to 0 after eliminating all nodes in removed
@@ -207,7 +169,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     auto new_roots =
         edgeMap(G, removed, mis_f<W>(pri, perm.begin()), -1, sparse_blocked);
     nr.stop();
-    nr.reportTotal("new roots time");
+    nr.reportTotal("## new roots time");
 
     // update finished with roots and removed. update roots.
     finished += roots.size();
