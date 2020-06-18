@@ -472,8 +472,7 @@ struct symmetric_vertex {
   edge_type* neighbors;
   uintE degree;
 
-//  symmetric_vertex() {
-//  }
+  symmetric_vertex() {}
 
   symmetric_vertex(edge_type* n, vertex_data& vdata) {
     neighbors = (n + vdata.offset);
@@ -736,6 +735,8 @@ struct asymmetric_vertex {
 
   uintE inDegree;
   uintE outDegree;
+
+  asymmetric_vertex() {}
 
   asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data,
                     edge_type* in_neighbors, vertex_data& in_data) {
