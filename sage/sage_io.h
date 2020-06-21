@@ -49,6 +49,7 @@
 #include <cmath>
 
 
+namespace gbbs {
 namespace sage_io {
 
 std::pair<char*, size_t> mmap_pmem(const char* filename) {
@@ -277,3 +278,4 @@ read_asymmetric_binary_graph(const char* f1, const char* f2) {
 }
 
 }
+}  // namespace gbbs

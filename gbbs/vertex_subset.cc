@@ -1,5 +1,6 @@
 #include "vertex_subset.h"
 
+namespace gbbs {
 void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
   if (vs.isDense) {
     parallel_for(0, num_new_verts, [&] (size_t i)
@@ -25,4 +26,4 @@ void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
     }
   }
 }
-
+}  // namespace gbbs

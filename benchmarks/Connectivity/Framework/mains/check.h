@@ -2,6 +2,7 @@
 
 /* ************************* Utils *************************** */
 
+namespace gbbs {
 template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
@@ -72,3 +73,4 @@ inline void cc_check(S1& correct, S2& check) {
   cout << "# correctness check: " << is_correct << endl;
   cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << endl;
 }
+}  // namespace gbbs

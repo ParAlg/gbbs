@@ -32,6 +32,7 @@
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
 
+namespace gbbs {
 namespace MinimumSpanningForest_boruvka {
 
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -450,4 +451,6 @@ inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
             << "\n";
   exit(0);
 }
+
 }  // namespace MinimumSpanningForest_boruvka
+}  // namespace gbbs

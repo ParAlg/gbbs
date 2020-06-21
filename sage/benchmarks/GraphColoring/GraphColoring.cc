@@ -43,6 +43,8 @@
 #include <fstream>
 #include <iostream>
 
+namespace gbbs {
+
 template <class Graph>
 double Coloring_runner(Graph& G, commandLine P) {
   bool runLF = P.getOption("-lf");
@@ -68,4 +70,6 @@ double Coloring_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(Coloring_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::Coloring_runner);

@@ -26,6 +26,8 @@
 
 using namespace std;
 
+namespace gbbs {
+
 constexpr int max_weight = 32;
 
 // rotate/flip a quadrant appropriately
@@ -303,7 +305,7 @@ void graph3DTorus27(uintE n, char* fname) {
   free(degs);
 }
 
-int main(int argc, char* argv[]) {
+void BuildTorus(int argc, char* argv[]) {
   commandLine P(argc, argv, "[-w] n <outFile>");
   pair<int, char*> in = P.sizeAndFileName();
   long n = in.first;
@@ -316,3 +318,10 @@ int main(int argc, char* argv[]) {
     graph3DTorus(n, fname);
   }
 }
+
+}  // namespace gbbs
+
+int main(int argc, char* argv[]) {
+  BuildTorus(argc, argv);
+}
+

@@ -5,6 +5,7 @@
 
 #include "utils/benchmark.h"
 
+namespace gbbs {
 void print_result(commandLine& P, std::string sampling_method, size_t rounds, double sampling_time, double pct_covered, double pct_ic_edges, size_t k=0) {
   std::cout << "{" << std::endl;
   std::cout << "  \"test_type\": \"sampling_result\"," << std::endl;
@@ -329,5 +330,6 @@ double Sampler(Graph& G, commandLine& P) {
 
   std::cout << "]" << std::endl;
 }
+}  // namespace gbbs
 
-generate_symmetric_once_main(Sampler, false);
+generate_symmetric_once_main(gbbs::Sampler, false);

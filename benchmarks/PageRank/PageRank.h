@@ -27,6 +27,8 @@
 
 #include <math.h>
 
+namespace gbbs {
+
 template <class Graph>
 struct PR_F {
   using W = typename Graph::weight_type;
@@ -368,5 +370,6 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
   cout << "Num rounds = " << round << endl;
   Frontier.del(); All.del();
 }
+}  // namespace delta
 
-}
+}  // namespace gbbs

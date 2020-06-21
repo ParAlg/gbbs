@@ -27,6 +27,8 @@
 #include "gbbs/bucket.h"
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
+
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
 
@@ -132,3 +134,5 @@ void Compute(Graph& G, commandLine P) {
   cout << "### delta = " << delta << endl;
   DeltaStepping(G, src, delta, num_buckets);
 }
+
+}  // namespace gbbs

@@ -33,6 +33,8 @@
 
 #include "PageRank.h"
 
+namespace gbbs {
+
 template <class Graph>
 double PageRank_runner(Graph& G, commandLine P) {
   std::cout << "### Application: PageRank" << std::endl;
@@ -60,4 +62,6 @@ double PageRank_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(PageRank_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::PageRank_runner, false);

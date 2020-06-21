@@ -34,6 +34,8 @@
 
 #include "SSBetweennessCentrality.h"
 
+namespace gbbs {
+
 template <class Graph>
 double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
@@ -70,4 +72,6 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(SSBetweennessCentrality_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::SSBetweennessCentrality_runner, false);

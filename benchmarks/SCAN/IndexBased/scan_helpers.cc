@@ -2,6 +2,7 @@
 
 #include <limits>
 
+namespace gbbs {
 namespace indexed_scan {
 
 namespace {
@@ -176,3 +177,4 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 }  // namespace internal
 
 }  // namespace indexed_scan
+}  // namespace gbbs

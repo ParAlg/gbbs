@@ -33,6 +33,8 @@
 
 #include "Triangle.h"
 
+namespace gbbs {
+
 template <class Graph>
 double Triangle_runner(Graph& G, commandLine P) {
   auto ordering = P.getOptionValue("-ordering", "degree");
@@ -64,4 +66,6 @@ double Triangle_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(Triangle_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::Triangle_runner, false);

@@ -27,6 +27,7 @@
 #include "gbbs/bucket.h"
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 namespace widestpath {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
@@ -224,3 +225,4 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
   std::cout << "n rounds = " << round << "\n";
   return width;
 }
+}  // namespace gbbs

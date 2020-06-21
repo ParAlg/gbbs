@@ -9,6 +9,8 @@
 
 #include <vector>
 
+namespace gbbs {
+
 template <class data  /* data associated with vertices in the output vertex_subset */,
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
@@ -460,3 +462,4 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 //  our_em_block.reset(); (handled by get_all_blocks)
   return std::move(ret);
 }
+}  // namespace gbbs

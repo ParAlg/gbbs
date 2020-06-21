@@ -32,6 +32,8 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+namespace gbbs {
+
 template <class Graph>
 struct countF {
   Graph& G;
@@ -267,3 +269,5 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
     exit(1);
   }
 }
+
+}  // namespace gbbs

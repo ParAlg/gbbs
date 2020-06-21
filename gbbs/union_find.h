@@ -28,6 +28,8 @@
 #include "speculative_for.h"
 #include "macros.h"
 
+namespace gbbs {
+
 struct UnionFind {
   size_t n;
   intT* parents;
@@ -106,3 +108,5 @@ inline UnionFindStep<intT, Edges, ST, UF> make_uf_step(Edges& e, R r, ST& ist,
                                                        UF& uf) {
   return UnionFindStep<intT, Edges, ST, UF>(e, r, ist, uf);
 }
+
+}  // namespace gbbs

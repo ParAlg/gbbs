@@ -38,6 +38,8 @@
 #include "sage/sage.h"
 #include "benchmarks/IntegralWeightSSSP/JulienneDBS17/wBFS.h"
 
+namespace gbbs {
+
 template <class Graph>
 double wBFS_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
@@ -66,4 +68,6 @@ double wBFS_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_weighted_sage_main(wBFS_runner);
+}  // namespace gbbs
+
+generate_weighted_sage_main(gbbs::wBFS_runner);

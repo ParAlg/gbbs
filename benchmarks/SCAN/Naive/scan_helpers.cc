@@ -5,6 +5,7 @@
 
 #include "pbbslib/stlalgs.h"
 
+namespace gbbs {
 namespace naive_scan {
 
 namespace internal {
@@ -53,3 +54,4 @@ void RemoveDuplicates(vertexSubset* vertex_subset) {
 }  // namespace internal
 
 }  // namespace naive_scan
+}  // namespace gbbs

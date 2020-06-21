@@ -12,6 +12,7 @@
 #include "pbbslib/binary_search.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace indexed_scan {
 
 namespace internal {
@@ -128,3 +129,4 @@ inline size_t intersect_f_with_index_par(
 }  // namespace internal
 
 }  // namespace indexed_scan
+}  // namespace gbbs

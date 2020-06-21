@@ -36,6 +36,8 @@
 #include "sage/sage.h"
 #include "benchmarks/MaximalIndependentSet/RandomGreedy/MaximalIndependentSet.h"
 
+namespace gbbs {
+
 template <class Graph>
 double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   bool spec_for = P.getOption("-specfor");
@@ -85,4 +87,6 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(MaximalIndependentSet_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::MaximalIndependentSet_runner);

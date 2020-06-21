@@ -19,6 +19,8 @@
 #include "gbbs/vertex.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
+
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
@@ -540,3 +542,4 @@ TEST(Cluster, TwoClusterGraph) {
         &graph, clustering, kExpectedHubs, kExpectedOutliers);
   }
 }
+}  // namespace gbbs

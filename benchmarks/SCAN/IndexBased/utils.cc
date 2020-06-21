@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+namespace gbbs {
 namespace scan {
 
 std::ostream& operator<<(std::ostream& os, UnclusteredType unclustered_type) {
@@ -48,3 +49,4 @@ size_t CompactClustering(Clustering* clustering) {
 }
 
 }  // namespace scan
+}  // namespace gbbs

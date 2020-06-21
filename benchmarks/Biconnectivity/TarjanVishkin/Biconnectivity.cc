@@ -78,7 +78,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
 
   size_t mask = (1 << 12) - 1;
   auto empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
-  auto ST = sparse_additive_map<uintE, uintE>(n, empty);
+  auto ST = pbbslib::sparse_additive_map<uintE, uintE>(n, empty);
 
   auto map_bc_label = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     auto label = bicc_label(src, ngh);

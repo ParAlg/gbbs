@@ -40,6 +40,7 @@
 #include <random>
 
 
+namespace gbbs {
 namespace lt {
 
 template <LiuTarjanConnectOption connect_option>
@@ -143,3 +144,4 @@ struct LiuTarjanAlgorithm {
 };
 
 }  // namespace lt
+}  // namespace gbbs

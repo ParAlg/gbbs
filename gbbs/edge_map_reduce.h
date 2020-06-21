@@ -30,6 +30,8 @@
 
 #include <type_traits>
 
+namespace gbbs {
+
 // edgeMapInduced
 // Version of edgeMapSparse that maps over the one-hop frontier and returns it
 // as a sparse array, without filtering.
@@ -82,7 +84,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
 // sparse [write out neighbors]
 template <class O, class Cond, class Apply, class VS, class Graph>
 inline vertexSubsetData<O> edgeMapCount_sparse(
-    Graph& GA, VS& vs, pbbslib::hist_table<uintE, O>& ht, Cond& cond_f,
+    Graph& GA, VS& vs, hist_table<uintE, O>& ht, Cond& cond_f,
     Apply& apply_f, const flags fl = 0) {
   static_assert(
       std::is_same<O, uintE>::value,
@@ -102,7 +104,7 @@ inline vertexSubsetData<O> edgeMapCount_sparse(
 
   auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
   auto get_key = pbbslib::make_sequence<uintE>(oneHop.size(), key_f);
-  auto res = pbbslib::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
+  auto res = histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                        apply_f, ht);
   oneHop.del();
   return vertexSubsetData<O>(vs.n, res.first, res.second);
@@ -171,7 +173,7 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
 template <class O, class Cond, class Apply, class VS, class Graph>
 inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Cond& cond_f,
                                         Apply& apply_f,
-                                        pbbslib::hist_table<uintE, O>& ht,
+                                        hist_table<uintE, O>& ht,
                                         const flags fl = 0,
                                         long threshold = -1) {
   if (fl & no_dense) {
@@ -199,7 +201,7 @@ inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Cond& cond_f,
 
 template <class O, class Apply, class VS, class Graph>
 inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Apply& apply_f,
-                                        pbbslib::hist_table<uintE, O>& ht,
+                                        hist_table<uintE, O>& ht,
                                         const flags fl = 0,
                                         long threshold = -1) {
   auto cond_true = [&](const uintE& u) { return true; };
@@ -268,7 +270,7 @@ struct EdgeMap {
   using KV = std::tuple<K, V>;
   using W = typename Graph::weight_type;
   Graph& G;
-  pbbslib::hist_table<K, V> ht;
+  hist_table<K, V> ht;
 
   EdgeMap(Graph& _G, KV _empty,
           size_t ht_size = std::numeric_limits<size_t>::max())
@@ -276,7 +278,7 @@ struct EdgeMap {
     if (ht_size == std::numeric_limits<size_t>::max()) {
       ht_size = G.m / 20;
     }
-    ht = pbbslib::hist_table<K, V>(_empty, ht_size);
+    ht = hist_table<K, V>(_empty, ht_size);
   }
 
   // sparse [write out neighbors]
@@ -311,7 +313,7 @@ struct EdgeMap {
     auto q = [&](sequentialHT<K, V>& S, std::tuple<K, M> v) -> void {
       S.template insertF<M>(v, reduce_f);
     };
-    auto res = pbbslib::histogram_reduce<std::tuple<K, M>, std::tuple<K, O> >(
+    auto res = histogram_reduce<std::tuple<K, M>, std::tuple<K, O> >(
         get_elm, get_key, oneHop.size(), q, apply_f, ht);
     oneHop.del();
     auto ret = vertexSubsetData<O>(vs.n, res.first, res.second);
@@ -440,7 +442,7 @@ struct EdgeMap {
 
     auto key_f = [&](size_t i) -> uintE { return oneHop.vtx(i); };
     auto get_key = pbbslib::make_sequence<uintE>(oneHop.size(), key_f);
-    auto res = pbbslib::histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
+    auto res = histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                          apply_f, ht);
     oneHop.del();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
@@ -528,3 +530,5 @@ struct EdgeMap {
 
   ~EdgeMap() { ht.del(); }
 };
+
+}  // namespace gbbs

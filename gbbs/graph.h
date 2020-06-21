@@ -41,6 +41,8 @@
 #include "vertex.h"
 #include "vertex_subset.h"
 
+namespace gbbs {
+
 //  Compressed Sparse Row (CSR) based representation for symmetric graphs.
 //  Takes two template parameters:
 //  1) vertex_type: vertex template, parametrized by the weight type associated
@@ -93,14 +95,14 @@ struct symmetric_graph {
                     // std::optional<std::tuple<uintE, Data>>
       class VS>
   inline vertexSubsetData<uintE> nghCount(VS& vs, Cond cond_f, Apply apply_f,
-                                         pbbslib::hist_table<uintE, uintE>& ht,
+                                         hist_table<uintE, uintE>& ht,
                                          flags fl = 0) {
     return edgeMapCount<uintE, Cond, Apply, VS>(*this, vs, cond_f, apply_f, ht, fl);
   }
 
   template <class Cond, class VS>
   inline vertexSubsetData<uintE> nghCount(VS& vs, Cond cond_f,
-                                          pbbslib::hist_table<uintE, uintE>& ht,
+                                          hist_table<uintE, uintE>& ht,
                                           flags fl = 0) {
     auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
       return std::optional<std::tuple<uintE, uintE>>(ct);
@@ -489,3 +491,4 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   auto get_w = [&](const edge& e) { return std::get<2>(e); };
   return sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
 }
+}  // namespace gbbs

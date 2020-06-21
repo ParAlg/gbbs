@@ -1,3 +1,3 @@
 #include "converter.h"
 
-generate_main(converter, false);
+generate_main(gbbs::converter, false);

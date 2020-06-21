@@ -36,6 +36,7 @@
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
 
+namespace gbbs {
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -71,5 +72,6 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   }
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(SpanningForest_runner, false);
+generate_main(gbbs::SpanningForest_runner, false);

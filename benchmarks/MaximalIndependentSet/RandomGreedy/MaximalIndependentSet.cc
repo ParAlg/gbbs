@@ -35,6 +35,8 @@
 
 #include "MaximalIndependentSet.h"
 
+namespace gbbs {
+
 template <class Graph>
 double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   bool spec_for = P.getOption("-specfor");
@@ -84,4 +86,6 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(MaximalIndependentSet_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::MaximalIndependentSet_runner, false);

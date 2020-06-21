@@ -2,6 +2,8 @@
 
 #include "pbbslib/utilities.h"
 
+namespace pbbslib {
+
 /* atomic max object for numeric type T */
 template <class T>
 struct atomic_max_counter {
@@ -23,3 +25,4 @@ struct atomic_max_counter {
   }
 };
 
+}  // namespace pbbslib

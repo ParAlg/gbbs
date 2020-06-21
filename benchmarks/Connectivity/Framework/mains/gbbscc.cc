@@ -29,6 +29,7 @@
 
 #include "bench_utils.h"
 
+namespace gbbs {
 namespace connectit {
 
 template <class Graph>
@@ -65,5 +66,6 @@ double Benchmark_runner(Graph& G, commandLine P) {
     });
   return 1.0;
 }
+}  // namespace gbbs
 
-generate_symmetric_once_main(Benchmark_runner, false);
+generate_symmetric_once_main(gbbs::Benchmark_runner, false);

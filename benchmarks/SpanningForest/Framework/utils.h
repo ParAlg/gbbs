@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <random>
 
+namespace gbbs {
 // From gapbs/cc.c, Thanks to S. Beamer + M. Sutton for the original code this
 // snippet is based on.
 template <class Seq>
@@ -34,3 +35,4 @@ sample_frequent_element(Seq& S, uint64_t num_samples=1024) {
 //    << "% of the graph)" << std::endl;
   return std::make_pair(most_frequent->first, frac_of_graph);
 }
+}  // namespace gbbs

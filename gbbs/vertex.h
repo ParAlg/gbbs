@@ -26,6 +26,7 @@
 #include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
+namespace gbbs {
 namespace intersection {
 
 template <template <typename W> class vertex, class W>
@@ -991,3 +992,5 @@ struct asymmetric_vertex {
     return vertex_ops::calculateTemporarySpace(getInDegree());
   }
 };
+
+}  // namespace gbbs

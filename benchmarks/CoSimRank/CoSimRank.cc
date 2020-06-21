@@ -33,6 +33,7 @@
 
 #include "CoSimRank.h"
 
+namespace gbbs {
 template <class Graph>
 double CoSimRank_runner(Graph& G, commandLine P) {
   std::cout << "### Application: CoSimRank" << std::endl;
@@ -56,5 +57,6 @@ double CoSimRank_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(CoSimRank_runner, false);
+generate_main(gbbs::CoSimRank_runner, false);

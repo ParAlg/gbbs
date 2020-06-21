@@ -8,6 +8,7 @@
 
 #include "sampling.h"
 
+namespace gbbs {
 namespace connectit {
 
   /* Union-Find Strategies */
@@ -263,4 +264,5 @@ namespace connectit {
   }
 
 
-} // namesapce connectit
+}  // namesapce connectit
+}  // namespace gbbs

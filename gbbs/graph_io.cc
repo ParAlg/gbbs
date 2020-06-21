@@ -4,6 +4,7 @@
 
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 namespace gbbs_io {
 
 typedef std::pair<uintE, uintE> intPair;
@@ -365,3 +366,4 @@ read_unweighted_edge_list(const char* filename) {
 }
 
 }  // namespace gbbs_io
+}  // namespace gbbs

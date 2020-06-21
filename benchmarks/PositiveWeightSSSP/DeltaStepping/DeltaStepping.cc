@@ -37,6 +37,8 @@
 
 #include "DeltaStepping.h"
 
+namespace gbbs {
+
 template <class Graph>
 double DeltaStepping_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
@@ -64,4 +66,6 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_weighted_main(DeltaStepping_runner, false);
+}  // namespace gbbs
+
+generate_weighted_main(gbbs::DeltaStepping_runner, false);

@@ -31,6 +31,8 @@
 
 #include "truss_utils.h"
 
+namespace gbbs {
+
 template <class Graph, class MT>
 void initialize_trussness_values(Graph& GA, MT& multi_table) {
   using W = typename Graph::weight_type;
@@ -114,7 +116,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
 
   std::tuple<edge_t, bucket_t> histogram_empty = std::make_tuple(std::numeric_limits<edge_t>::max(), 0);
-  auto em = pbbslib::hist_table<edge_t, bucket_t>(histogram_empty, GA.m/50);
+  auto em = hist_table<edge_t, bucket_t>(histogram_empty, GA.m/50);
 
   // Store the initial trussness of each edge in the trussness table.
   auto get_size = [&] (size_t vtx) {
@@ -148,7 +150,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
   auto hash_edge_id = [&] (const edge_t& e) { return pbbs::hash32(e); };
-  auto decr_source_table = make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
+  auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
   auto actual_degree = pbbs::sequence<uintE>(GA.n, [&] (size_t i) {
@@ -192,7 +194,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
     // Resize the table that stores edge updates if necessary.
     decr_source_table.resize_no_copy(e_space_required);
-    auto decr_tab = make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
+    auto decr_tab = pbbslib::make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
 
 //    cout << "starting decrements" << endl;
     decrement_t.start();
@@ -335,3 +337,4 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   cout << "iters = " << iter << endl;
 }
 
+}  // namespace gbbs

@@ -30,6 +30,7 @@
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
+namespace gbbs {
 namespace workefficient_sf {
 
   template <class W>
@@ -190,3 +191,4 @@ namespace workefficient_sf {
   }
 
 }  // namespace workefficient_sf
+}  // namespace gbbs

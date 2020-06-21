@@ -2,6 +2,7 @@
 
 /* ************************* Benchmark Utils *************************** */
 
+namespace gbbs {
 template<typename F>
 double reduce(std::vector<double> V, F f) {
   double x = V[0];
@@ -100,3 +101,4 @@ void print_cpu_stats(Stats& stats, commandLine& P) {
     + " ,\"total_uf_tries\":" + std::to_string(total_uf_tries.get_value())
     + "}" << std::endl;
 }
+}  // namespace gbbs

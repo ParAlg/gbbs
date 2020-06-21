@@ -5,6 +5,7 @@
 
 #include "common.h"
 
+namespace gbbs {
 namespace spanning_forest {
 
   template <class Seq>
@@ -101,5 +102,6 @@ namespace spanning_forest {
     cc_check(conn_correct, conn_check);
   }
 
-}
+}  // namespace spanning_forest
+}  // namespace gbbs
 

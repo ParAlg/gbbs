@@ -26,6 +26,7 @@
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
 
+namespace gbbs {
 template <class Graph>
 double SF_runner(Graph& G, commandLine P) {
   std::cout << "### Application: SpanningForest (LiuTarjan-based)" << std::endl;
@@ -73,5 +74,6 @@ double SF_runner(Graph& G, commandLine P) {
 
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(SF_runner, false);
+generate_main(gbbs::SF_runner, false);

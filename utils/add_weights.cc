@@ -22,6 +22,7 @@
 #include "pbbslib/random.h"
 using namespace std;
 
+namespace gbbs {
 int max_weight = 32;
 int* Choices;
 
@@ -366,5 +367,6 @@ void Reencoder(graph<vertex>& GA, commandLine P) {
   // prevent running multiple times if -rounds 1 is not specified
   exit(0);
 }
+}  // namespace gbbs
 
-generate_main(Reencoder, false);
+generate_main(gbbs::Reencoder, false);

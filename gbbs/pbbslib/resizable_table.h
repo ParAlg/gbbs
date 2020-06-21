@@ -27,7 +27,7 @@
 #include "gbbs/bridge.h"
 
 namespace pbbslib {
-  // TODO: see if striding by an entire page reduces times more.
+  // TODO: see if striding by an entire page improves times further.
   constexpr size_t kResizableTableCacheLineSz = 128;
 
   inline size_t hashToRange(const size_t& h, const size_t& mask) {
@@ -94,8 +94,7 @@ namespace pbbslib {
     size_t* cts;
 
     static void clearA(T* A, long n, T kv) {
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { A[i] = kv; });
+      parallel_for(0, n, [&] (size_t i) { A[i] = kv; });
     }
 
     inline size_t firstIndex(K& k) { return hashToRange(key_hash(k), mask); }
@@ -166,7 +165,6 @@ namespace pbbslib {
         auto old_t = table;
         m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
         if (m == old_m) {
-          // should investigate
           return;
         }
         mask = m - 1;
@@ -175,7 +173,7 @@ namespace pbbslib {
         size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
         table = (T*)aligned_alloc(line_size, bytes);
         clearA(table, m, empty);
-        par_for(0, old_m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        parallel_for(0, old_m, [&] (size_t i) {
           if (std::get<0>(old_t[i]) != empty_key) {
             insert(old_t[i]);
           }
@@ -268,7 +266,7 @@ namespace pbbslib {
 
     template <class F>
     void map(F& f) {
-      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      parallel_for(0, m, [&] (size_t i) {
         if (std::get<0>(table[i]) != empty_key) {
           f(table[i]);
         }
@@ -276,18 +274,13 @@ namespace pbbslib {
     }
 
     sequence<T> entries() {
-//      T* out = pbbslib::new_array_no_init<T>(m);
-//      auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-//      size_t new_m = pbbslib::filterf(table, out, m, pred);
-//      return pbbslib::make_sequence<T>(out, new_m);
       auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
       auto table_seq = pbbslib::make_sequence<T>(table, m);
       return pbbslib::filter(table_seq, pred);
     }
 
     void clear() {
-      par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { table[i] = empty; });
+      parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
     }
   };
 
@@ -296,4 +289,5 @@ namespace pbbslib {
       size_t m, std::tuple<K, V> empty, KeyHash key_hash) {
     return resizable_table<K, V, KeyHash>(m, empty, key_hash);
   }
-}; // namespace pbbslib
+
+}  // namespace pbbslib

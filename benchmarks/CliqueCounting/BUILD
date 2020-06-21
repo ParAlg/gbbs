@@ -6,7 +6,6 @@ cc_library(
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_table",
   ]
 )
 

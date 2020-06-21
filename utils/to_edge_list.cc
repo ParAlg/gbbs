@@ -7,6 +7,7 @@
 #include "pbbslib/random_shuffle.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 /* Format:
  * Emits a lexicographically sorted list of edges. The format takes (u,v)
  * and writes:
@@ -128,5 +129,6 @@ double Reorderer(Graph& GA, commandLine P) {
   exit(0);
   return 1.0;
 }
+}  // namespace gbbs
 
-generate_main(Reorderer, false);
+generate_main(gbbs::Reorderer, false);

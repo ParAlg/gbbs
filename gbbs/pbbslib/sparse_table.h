@@ -27,6 +27,8 @@
 
 #include "gbbs/bridge.h"
 
+namespace pbbslib {
+
 template <class K, class V, class KeyHash>
 class sparse_table {
  public:
@@ -45,8 +47,7 @@ class sparse_table {
   }
 
   static void clearA(T* A, long n, T kv) {
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { A[i] = kv; });
+    parallel_for(0, n, [&] (size_t i) { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) const { return h & mask; }
@@ -251,7 +252,7 @@ class sparse_table {
   }
 
   void clear() {
-    par_for(0, m, 2048, [&] (size_t i) { table[i] = empty; });
+    parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
   }
 };
 
@@ -270,3 +271,5 @@ inline sparse_table<K, V, KeyHash> make_sparse_table(std::tuple<K, V>* tab,
                                                      KeyHash key_hash, bool clear=true) {
   return sparse_table<K, V, KeyHash>(m, empty, key_hash, tab, clear);
 }
+
+}  // namespace pbbslib

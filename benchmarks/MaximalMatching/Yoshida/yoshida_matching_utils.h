@@ -1,5 +1,6 @@
 #pragma once
 
+namespace gbbs {
 size_t get_edge_pri(uintE u, uintE v) {
   uintE min_u = std::min(u, v);
   uintE max_u = std::max(u, v);
@@ -75,3 +76,4 @@ struct sorted_it {
 };
 
 
+}  // namespace gbbs

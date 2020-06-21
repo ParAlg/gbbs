@@ -26,6 +26,8 @@
 #include "byte.h"
 #include "byte_pd_amortized.h"
 
+namespace gbbs {
+
 struct byte_decode {
 
   template <class W, class T>
@@ -201,3 +203,5 @@ struct bytepd_amortized_decode {
     return bytepd_amortized::get_block_degree(edge_start, degree, block_num);
   }
 };
+
+}  // namespace gbbs

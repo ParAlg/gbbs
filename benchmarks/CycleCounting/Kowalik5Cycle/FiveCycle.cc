@@ -1,5 +1,6 @@
 #include "FiveCycle.h"
 
+namespace gbbs {
 template <class Graph>
 double Count5Cycle_runner(Graph& G, commandLine P) {
   std::cout << "ULONG_MAX: " << ULONG_MAX << std::endl;
@@ -56,5 +57,6 @@ double Count5Cycle_runner(Graph& G, commandLine P) {
 
   return tt;
 }
+}  // namespace gbbs
 
-generate_symmetric_main(Count5Cycle_runner, false);
+generate_symmetric_main(gbbs::Count5Cycle_runner, false);

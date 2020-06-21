@@ -35,6 +35,7 @@
 #include "sage/sage.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 
+namespace gbbs {
 template <class Graph>
 double CC_runner(Graph& G, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -62,5 +63,6 @@ double CC_runner(Graph& G, commandLine P) {
   }
   return tt;
 }
+}  // namespace gbbs
 
-generate_symmetric_sage_main(CC_runner);
+generate_symmetric_sage_main(gbbs::CC_runner);

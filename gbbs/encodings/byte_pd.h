@@ -38,6 +38,7 @@
 
 #include "gbbs/macros.h"
 
+namespace gbbs {
 namespace bytepd {
 
 template <class W>
@@ -1023,4 +1024,5 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   return edges_c;
 }
 
-};  // namespace bytepd
+}  // namespace bytepd
+}  // namespace gbbs

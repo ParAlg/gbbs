@@ -28,6 +28,7 @@
 #include "gbbs/gbbs.h"
 #include "gbbs/edge_map_reduce.h"
 
+namespace gbbs {
 namespace bc {
 
 using fType = double;
@@ -438,3 +439,4 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
 }
 
 } // namespace bc_bfs
+}  // namespace gbbs

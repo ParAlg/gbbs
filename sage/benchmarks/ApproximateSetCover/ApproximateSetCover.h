@@ -30,6 +30,8 @@
 #include "pbbslib/random.h"
 #include "pbbslib/random_shuffle.h"
 
+namespace gbbs {
+
 namespace sc {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE COVERED = ((uintE)INT_E_MAX) - 1;
@@ -205,3 +207,5 @@ inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t nu
   GA.del();
   return cover;
 }
+
+}  // namespace gbbs

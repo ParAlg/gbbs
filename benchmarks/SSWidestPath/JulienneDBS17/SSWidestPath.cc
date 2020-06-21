@@ -37,6 +37,7 @@
 
 #include "SSWidestPath.h"
 
+namespace gbbs {
 template <class Graph>
 double SSWidestPath_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
@@ -68,5 +69,6 @@ double SSWidestPath_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_weighted_main(SSWidestPath_runner, false);
+generate_weighted_main(gbbs::SSWidestPath_runner, false);

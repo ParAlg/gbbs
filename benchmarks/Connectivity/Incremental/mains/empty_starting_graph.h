@@ -4,13 +4,14 @@
 
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
 void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
 /* run synthetic coo */
-int main(int argc, char* argv[]) {
+int RunEmptyStartingGraph(int argc, char* argv[]) {
   auto P = commandLine(argc, argv, "");
   int rounds = P.getOptionIntValue("-r", 5);
 
@@ -63,5 +64,14 @@ int main(int argc, char* argv[]) {
 
   auto FG = edge_array<pbbs::empty>();
   run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
+  return 1;
 }
+
+}  // namespace gbbs
+
+int main(int argc, char* argv[]) {
+  gbbs::RunEmptyStartingGraph(argc, argv);
+  return 1;
+}
+
 #endif

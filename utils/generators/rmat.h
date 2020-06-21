@@ -26,6 +26,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 
+namespace gbbs {
 namespace rmat {
   double hashDouble(uintE i) {
     return ((double) (pbbs::hash32(i))/((double) UINT_E_MAX));}
@@ -71,4 +72,5 @@ namespace rmat {
     });
     return E;
   }
-} // namespace
+}  // namespace rmat
+}  // namespace gbbs

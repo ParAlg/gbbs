@@ -2,6 +2,7 @@
 
 #include "benchmarks/Connectivity/connectit.h"
 
+namespace gbbs {
 // returns a component labeling
 // Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
 // for the well documented reference implementation of afforest.
@@ -79,5 +80,5 @@ struct KOutSamplingTemplate {
     }
     return std::make_pair(Parents, Edges);
    }
-
 };
+}  // namespace gbbs

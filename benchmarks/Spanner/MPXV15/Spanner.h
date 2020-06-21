@@ -28,6 +28,7 @@
 #include "gbbs/pbbslib/dyn_arr.h"
 #include "gbbs/pbbslib/sparse_table.h"
 
+namespace gbbs {
 namespace spanner {
 
 using edge = std::pair<uintE, uintE>;
@@ -75,7 +76,7 @@ pbbs::sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clu
     size_t key = (l << 32) + r;
     return pbbslib::hash64_2(key);
   };
-  auto edge_table = make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
+  auto edge_table = pbbslib::make_sparse_table<K, V>(deg_map[n], empty, hash_pair);
   debug(cout << "sizeof table = " << edge_table.m << endl;);
   deg_map.clear();
 
@@ -122,7 +123,7 @@ pbbs::sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_cluste
     return pbbslib::hash64_2(key);
   };
 
-  auto edge_table = make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
+  auto edge_table = pbbslib::make_sparse_table<K, V>(estimated_edges, empty, hash_pair);
   debug(cout << "sizeof table = " << edge_table.m << endl;);
 
   bool abort = false;
@@ -290,3 +291,4 @@ inline pbbs::sequence<edge> Spanner(Graph& G, double beta) {
 }
 
 }  // namespace cc
+}  // namespace gbbs

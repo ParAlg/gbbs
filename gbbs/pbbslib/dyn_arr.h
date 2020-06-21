@@ -66,7 +66,7 @@ namespace pbbslib {
       if (n + size > capacity) {
         size_t new_capacity = std::max(2 * (n + size), (size_t)kDynArrMinBktSize);
         E* nA = pbbslib::new_array_no_init<E>(new_capacity);
-        par_for(0, size, 2000, [&] (size_t i) { nA[i] = A[i]; });
+        parallel_for(0, size, [&] (size_t i) { nA[i] = A[i]; });
         if (alloc) {
           pbbslib::free_array(A);
         }
@@ -85,20 +85,20 @@ namespace pbbslib {
 
     template <class F>
     void map(F f) {
-      par_for(0, size, 2000, [&] (size_t i) { f(A[i]); });
+      parallel_for(0, size, [&] (size_t i) { f(A[i]); });
     }
 
     template <class F>
     inline void copyIn(F& f, size_t n) {
       resize(n);
-      par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f[i]; });
+      parallel_for(0, n, [&] (size_t i) { A[size + i] = f[i]; });
       size += n;
     }
 
     template <class F>
     inline void copyInF(F f, size_t n) {
       resize(n);
-      par_for(0, n, 2000, [&] (size_t i) { A[size + i] = f(i); });
+      parallel_for(0, n, [&] (size_t i) { A[size + i] = f(i); });
       size += n;
     }
   };

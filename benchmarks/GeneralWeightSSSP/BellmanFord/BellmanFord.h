@@ -24,6 +24,7 @@
 
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 struct BF_F {
   intE* SP;
   intE* Visited;
@@ -90,3 +91,4 @@ inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
   std::cout << "n rounds = " << round << "\n";
   return SP;
 }
+}  // namespace gbbs

@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <random>
 
+namespace gbbs {
+
 /**************************** Framework options ****************************/
 enum SamplingOption {
   sample_kout, sample_bfs, sample_ldd, no_sampling
@@ -112,3 +114,4 @@ namespace connectit {
   }
 
 } // namespace connectit
+} // namespace gbbs

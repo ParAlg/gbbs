@@ -34,6 +34,8 @@
 #include "sage/sage.h"
 #include "benchmarks/PageRank/PageRank.h"
 
+namespace gbbs {
+
 template <class Graph>
 double PageRank_runner(Graph& G, commandLine P) {
   std::cout << "### Application: PageRank" << std::endl;
@@ -61,4 +63,6 @@ double PageRank_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_sage_main(PageRank_runner);
+}  // namespace gbbs
+
+generate_sage_main(gbbs::PageRank_runner);

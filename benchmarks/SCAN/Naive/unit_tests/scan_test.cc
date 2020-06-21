@@ -11,6 +11,7 @@
 #include "gbbs/undirected_edge.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace gt = graph_test;
 namespace n = naive_scan;
 
@@ -277,3 +278,4 @@ TEST(Cluster, TwoClusterGraph) {
     CheckClustering(clustering, kExpectedClustering);
   }
 }
+}  // namespace gbbs

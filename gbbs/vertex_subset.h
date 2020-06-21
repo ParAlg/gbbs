@@ -31,6 +31,8 @@
 #include <limits>
 #include <optional>
 
+namespace gbbs {
+
 template <class data>
 struct vertexSubsetData {
   using S = std::tuple<uintE, data>;
@@ -439,3 +441,5 @@ void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts);
 //  std::cout << "Currently unimplemented" << std::endl;
 //  exit(-1);
 //}
+
+}  // namespace gbbs

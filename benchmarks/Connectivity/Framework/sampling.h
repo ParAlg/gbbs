@@ -5,6 +5,7 @@
 
 /* ****************************** Sampling ******************************/
 
+namespace gbbs {
 template <
     class Graph,
     class Sampler,
@@ -399,3 +400,4 @@ struct LDDSamplingTemplate {
   }
 };
 
+}  // namespace gbbs

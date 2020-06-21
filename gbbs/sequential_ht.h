@@ -28,6 +28,8 @@
 #include "pbbslib/utilities.h"
 #include "macros.h"
 
+namespace gbbs {
+
 template <class K, class V>
 class sequentialHT {
   // Note that if compiling without compiler-llvm-libcxx, std::tuple<..> must be
@@ -166,3 +168,5 @@ class sequentialHT {
     return k;
   }
 };
+
+}  // namespace gbbs

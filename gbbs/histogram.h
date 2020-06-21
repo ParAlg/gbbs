@@ -35,7 +35,7 @@
 #include "macros.h"
 #include "sequential_ht.h"
 
-namespace pbbslib {
+namespace gbbs {
 
 // Tunable parameters
 constexpr const size_t _hist_max_buckets = 1024;
@@ -54,7 +54,7 @@ struct get_bucket {
   std::tuple<E*, int> heavy_hitters(size_t n, size_t count) {
     E* sample = pbbslib::new_array_no_init<E>(count);
     for (size_t i = 0; i < count; i++) {
-      sample[i] = I[hash32(i) % n];
+      sample[i] = I[pbbslib::hash32(i) % n];
     }
     std::sort(sample, sample + count);
 
@@ -80,7 +80,7 @@ struct get_bucket {
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
-      size_t h = hash32(entries[i]) & _table_mask;
+      size_t h = pbbslib::hash32(entries[i]) & _table_mask;
       while (std::get<1>(table[h]) != -1) {
         h = (h + 1) & _table_mask;
       }
@@ -173,7 +173,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
-  num_buckets = std::max(1 << log2_up(num_buckets), 1);
+  num_buckets = std::max(1 << pbbslib::log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   // (1) count-sort based on bucket
@@ -196,7 +196,7 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
 #define S_STRIDE 64
-  size_t* bkt_counts = new_array_no_init<size_t>(num_buckets * S_STRIDE);
+  size_t* bkt_counts = pbbslib::new_array_no_init<size_t>(num_buckets * S_STRIDE);
   par_for(0, num_buckets, 1, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_buckets - 1)) {
@@ -345,9 +345,9 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
-  num_buckets = std::max(1 << log2_up(num_buckets), 1);
+  num_buckets = std::max(1 << pbbslib::log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
-  size_t bits = log2_up(num_buckets);
+  size_t bits = pbbslib::log2_up(num_buckets);
 
   auto gb = get_bucket<K, A>(get_key, n, bits);
   size_t num_heavy = gb.k;
@@ -373,7 +373,7 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
 #define S_STRIDE 64
-  size_t* bkt_counts = new_array_no_init<size_t>(num_total_buckets * S_STRIDE);
+  size_t* bkt_counts = pbbslib::new_array_no_init<size_t>(num_total_buckets * S_STRIDE);
   par_for(0, num_actual_buckets, 1, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_total_buckets - 1)) {
@@ -614,7 +614,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   size_t sqrt = (size_t)ceil(pow(n, 0.5));
   size_t num_buckets = (size_t)(n < 20000000) ? (sqrt / 5) : sqrt;
 
-  num_buckets = std::max(1 << log2_up(num_buckets), 1);
+  num_buckets = std::max(1 << pbbslib::log2_up(num_buckets), 1);
   num_buckets = std::min(num_buckets, _hist_max_buckets);
 
   // (1) count-sort based on bucket
@@ -633,7 +633,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
 #define S_STRIDE 64
-  size_t* bkt_counts = new_array_no_init<size_t>(num_buckets * S_STRIDE);
+  size_t* bkt_counts = pbbslib::new_array_no_init<size_t>(num_buckets * S_STRIDE);
   par_for(0, num_buckets, 1, [&] (size_t i) {
     bkt_counts[i * S_STRIDE] = 0;
     if (i == (num_buckets - 1)) {
@@ -746,4 +746,4 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   return std::make_pair(num_distinct, res);
 }
 
-}  // namespace pbbslib
+}  // namespace gbbs

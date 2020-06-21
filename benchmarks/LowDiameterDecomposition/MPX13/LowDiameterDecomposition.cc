@@ -35,6 +35,8 @@
 
 #include "LowDiameterDecomposition.h"
 
+namespace gbbs {
+
 template <class Graph>
 double LDD_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -60,4 +62,6 @@ double LDD_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(LDD_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::LDD_runner, false);

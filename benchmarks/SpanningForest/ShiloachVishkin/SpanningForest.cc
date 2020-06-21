@@ -37,6 +37,7 @@
 #include "benchmarks/SpanningForest/check.h"
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 
+namespace gbbs {
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
   std::cout << "### Application: SpanningForest (Shiloach-Vishkin)" << std::endl;
@@ -59,5 +60,6 @@ double SpanningForest_runner(Graph& G, commandLine P) {
 
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(SpanningForest_runner, false);
+generate_main(gbbs::SpanningForest_runner, false);

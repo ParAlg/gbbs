@@ -8,7 +8,6 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
 
 #define INDUCED_STACK_THR 5000
 

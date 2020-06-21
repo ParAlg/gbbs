@@ -35,6 +35,7 @@
 
 #include "BellmanFord.h"
 
+namespace gbbs {
 template <class Graph>
 double BellmanFord_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
@@ -53,5 +54,6 @@ double BellmanFord_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_weighted_main(BellmanFord_runner, false);
+generate_weighted_main(gbbs::BellmanFord_runner, false);

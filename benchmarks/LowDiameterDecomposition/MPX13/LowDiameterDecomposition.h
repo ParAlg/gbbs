@@ -28,7 +28,9 @@
 
 #include <cmath>
 
+namespace gbbs {
 namespace ldd_utils {
+
 inline size_t total_rounds(size_t n, double beta) {
   return std::min<uintE>(n + 1, 2 + ceil(log(n) / beta));
 }
@@ -209,3 +211,4 @@ sequence<uintE> LDD_oracle(Graph& G, EO& oracle, double beta,
   return LDD_impl(G, oracle, beta, permute);
 }
 
+}  // namespace gbbs

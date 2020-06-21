@@ -4,6 +4,7 @@
 #include "gbbs/gbbs.h"
 #include "benchmarks/SpanningForest/common.h"
 
+namespace gbbs {
 namespace jayanti_rank {
   static constexpr uintE RANK_MASK = (uintE)INT_E_MAX;
   static constexpr uintE TOP_BIT_SHIFT = sizeof(uintE)*8 - 1;
@@ -211,4 +212,5 @@ namespace jayanti_rank {
     }
 
   };
-} // namespace jayanti_rank
+}  // namespace jayanti_rank
+}  // namespace gbbs

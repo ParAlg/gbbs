@@ -2,6 +2,7 @@
 
 #ifndef EMPTY_STARTING_GRAPH
 
+namespace gbbs {
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
@@ -61,18 +62,19 @@ double Run(Graph& G, commandLine P) {
 
 //  if (insert_to_query != 1 && !permute) {
     auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
-    auto FG = edge_array<pbbs::empty>();
+    auto FG = gbbs::edge_array<pbbs::empty>();
     run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
 //  } else {
 //    auto annotated_updates = annotate_updates_insert(updates, insert_to_query, n, permute);
-//    auto FG = edge_array<pbbs::empty>();
+//    auto FG = gbbs::edge_array<pbbs::empty>();
 //    run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
   //}
 
   return 1.0;
 }
+}  // namespace gbbs
 
 //mmapcopy
-generate_symmetric_once_main(Run, false);
+generate_symmetric_once_main(gbbs::Run, false);
 
 #endif

@@ -35,6 +35,8 @@
 #include "ApproximateSetCover.h"
 
 
+namespace gbbs {
+
 template <class Graph>
 double SetCover_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
@@ -61,4 +63,6 @@ double SetCover_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(SetCover_runner)
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::SetCover_runner)

@@ -4,6 +4,8 @@
 #include "compressed_vertex.h"
 #include "vertex.h"
 
+namespace gbbs {
+
 /* Filters a symmetric graph, G, with a predicate function pred.  Note
  * that the predicate does not have to be symmetric, i.e. f(u,v) is
  * not necesssarily equal to f(v,u), but we only represent the out-edges of this
@@ -474,3 +476,5 @@ inline vertexSubsetData<uintE> edgeMapFilter(Graph& G,
     return vertexSubsetData<uintE>(n);
   }
 }
+
+}  // namespace gbbs

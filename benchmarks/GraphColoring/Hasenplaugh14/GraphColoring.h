@@ -27,6 +27,7 @@
 
 #include "pbbslib/random_shuffle.h"
 
+namespace gbbs {
 namespace coloring {
 template <class Graph, class Seq>
 inline uintE color(Graph& G, uintE v, Seq& colors) {
@@ -189,3 +190,4 @@ inline void verify_coloring(Graph& G, Seq& colors) {
               << "\n";
   }
 }
+}  // namespace gbbs

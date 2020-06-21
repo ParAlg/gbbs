@@ -27,6 +27,7 @@
 #include "gbbs/speculative_for.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
+namespace gbbs {
 namespace mm {
 
   constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -260,3 +261,5 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
               << "\n";
   }
 }
+
+}  // namespace gbbs

@@ -9,17 +9,18 @@
 #include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/parallel.h"
 
+namespace gbbs {
 namespace indexed_scan {
 
 namespace {
 
 using DirectedEdge = std::pair<uintE, uintE>;
 using VertexSet =
-  sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
+  pbbslib::sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
-  return make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
+  return pbbslib::make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
       capacity, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
 }
 
@@ -149,3 +150,4 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
 }
 
 }  // namespace indexed_scan
+}  // namespace gbbs

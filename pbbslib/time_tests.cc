@@ -203,7 +203,7 @@ double pick_test(size_t id, size_t n, size_t rounds, bool half_length) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
-  commandLine P(argc, argv,
+  gbbs::commandLine P(argc, argv,
                 "[-n <size>] [-r <rounds>] [-halflen] [-t <testid>]");
   size_t n = P.getOptionLongValue("-n", 100000000);
   int rounds = P.getOptionIntValue("-r", 5);

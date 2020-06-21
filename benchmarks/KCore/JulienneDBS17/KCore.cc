@@ -35,6 +35,7 @@
 
 #include "KCore.h"
 
+namespace gbbs {
 template <class Graph>
 double KCore_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
@@ -62,5 +63,6 @@ double KCore_runner(Graph& G, commandLine P) {
 
   return tt;
 }
+}  // namespace gbbs
 
-generate_symmetric_main(KCore_runner, false);
+generate_symmetric_main(gbbs::KCore_runner, false);

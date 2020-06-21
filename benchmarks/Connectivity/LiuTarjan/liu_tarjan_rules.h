@@ -2,6 +2,7 @@
 
 #include "benchmarks/Connectivity/common.h"
 
+namespace gbbs {
 namespace lt {
 
   bool lt_less(uintE u, uintE v) {
@@ -123,4 +124,5 @@ namespace lt {
 
   } // namespace primitives
 
-} // namespace lt
+}  // namespace lt
+}  // namespace gbbs

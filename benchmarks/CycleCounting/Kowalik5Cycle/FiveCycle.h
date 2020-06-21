@@ -25,6 +25,7 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 
 
+namespace gbbs {
 struct U_FastReset {
   uintE* U = nullptr;
   uintE* distinct = nullptr;
@@ -1025,3 +1026,4 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
   OUTG.del();
   return cycleCount;
 }
+}  // namespace gbbs

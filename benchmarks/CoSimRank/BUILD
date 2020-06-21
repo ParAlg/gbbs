@@ -3,7 +3,6 @@ cc_library(
   hdrs = ["CoSimRank.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs:edge_map_reduce",
   ]
 )
 

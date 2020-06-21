@@ -12,6 +12,7 @@
 #include "pbbslib/seq.h"
 #include "pbbslib/utilities.h"
 
+namespace gbbs {
 namespace naive_scan {
 
 using Clustering = pbbs::sequence<pbbs::sequence<uintE>>;
@@ -19,7 +20,7 @@ using Clustering = pbbs::sequence<pbbs::sequence<uintE>>;
 namespace internal {  // internal declarations
 
 using StructuralSimilarities =
-  sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
+  pbbslib::sparse_table<UndirectedEdge, float, std::hash<UndirectedEdge>>;
 using NoWeight = pbbslib::empty;
 
 class CoreBFSEdgeMapFunctions {
@@ -55,7 +56,7 @@ StructuralSimilarities
 ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
   using Vertex = VertexType<NoWeight>;
   using VertexSet =
-    sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
+    pbbslib::sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
 
   StructuralSimilarities similarities{
     graph->m,
@@ -122,3 +123,4 @@ void RemoveDuplicates(vertexSubset* vertex_subset);
 }  // namespace internal
 
 }  // namespace naive_scan
+}  // namespace gbbs

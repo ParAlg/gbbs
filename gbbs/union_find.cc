@@ -1,5 +1,6 @@
 #include "union_find.h"
 
+namespace gbbs {
 UnionFind::UnionFind(size_t _n) : n(_n) {
   parents = pbbslib::new_array_no_init<intT>(n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
@@ -25,3 +26,4 @@ void UnionFind::link(intT u, intT v) { parents[u] = v; }
 
 void UnionFind::clear() { pbbslib::free_array(parents); }
 
+}  // namespace gbbs

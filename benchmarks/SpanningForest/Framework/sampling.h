@@ -12,6 +12,7 @@
 
 /* ************************ Sampling Template ***************************/
 
+namespace gbbs {
 template <
     class Graph,
     class Sampler,
@@ -68,3 +69,4 @@ template <
     }
   };
 
+}  // namespace gbbs

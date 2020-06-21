@@ -40,6 +40,7 @@
 #include <random>
 
 
+namespace gbbs {
 namespace union_find_sf {
 
 /* ================================== CSR templates ================================== */
@@ -99,3 +100,4 @@ struct UFAlgorithm {
 };
 
 }  // namespace union_find_sf
+}  // namespace gbbs

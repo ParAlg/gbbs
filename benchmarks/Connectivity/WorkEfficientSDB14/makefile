@@ -8,7 +8,7 @@ OTHER = connectivity_objs
 
 OTHER_OBJS = $(wildcard $(ROOTDIR)bin/benchmarks/Connectivity/*.o)
 
-connectivity_objs : 
+connectivity_objs :
 	make -C $(ROOTDIR)benchmarks/Connectivity/
 
 include $(ROOTDIR)benchmarks/makefile.benchmarks

@@ -12,6 +12,7 @@
 // Provides utilities for converting between different compressed
 // representations.
 
+namespace gbbs {
 namespace encodings {
 namespace bytepd_amortized {
 
@@ -422,6 +423,7 @@ double converter(Graph& GA, commandLine P) {
   exit(0);
   return 0;
 }
+}  // namespace gbbs
 
 
-generate_main(converter, false);
+generate_main(gbbs::converter, false);

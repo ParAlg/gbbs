@@ -4,6 +4,7 @@
 #include "gbbs/graph.h"
 #include <tuple>
 
+namespace gbbs {
 namespace contract_sf {
 
   using edge = std::tuple<uintE, uintE>;
@@ -56,7 +57,7 @@ namespace contract_sf {
     KV empty =
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
-    auto edge_table = sparse_table<K, V, hash_pair>(small_cluster_size, empty, hash_pair());
+    auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(small_cluster_size, empty, hash_pair());
 
     timer ins_t; ins_t.start();
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -105,7 +106,7 @@ namespace contract_sf {
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
 
-    auto edge_table = sparse_table<K, V, hash_pair>(deg_map[n], empty, hash_pair());
+    auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(deg_map[n], empty, hash_pair());
     debug(cout << "sizeof table = " << edge_table.m << endl;);
     deg_map.clear();
 
@@ -137,7 +138,7 @@ namespace contract_sf {
     KV empty =
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
-    auto edge_table = sparse_table<K, V, hash_pair>(estimated_edges, empty, hash_pair());
+    auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(estimated_edges, empty, hash_pair());
     debug(cout << "sizeof table = " << edge_table.m << endl;);
 
     bool abort = false;
@@ -204,7 +205,7 @@ namespace contract_sf {
     auto GC = sym_graph_from_edges<pbbslib::empty>(sym_edges, num_ns_clusters);
 
     debug(cout << "table.size = " << table.m << endl;);
-    auto ret_table = sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
+    auto ret_table = pbbslib::sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
     // Go through the edge table and map edges to their new ids
     parallel_for(0, table.m, [&] (size_t i) {
       auto& e = table.table[i];
@@ -224,4 +225,5 @@ namespace contract_sf {
     return std::make_pair(GC, ret_table);
   }
 
-} //namespace contract
+}  // namespace contract
+}  // namespace gbbs

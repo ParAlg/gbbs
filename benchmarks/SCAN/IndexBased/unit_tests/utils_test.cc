@@ -4,6 +4,7 @@
 #include "gbbs/graph_test_utils.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace gt = graph_test;
 
 TEST(Modularity, NullGraph) {
@@ -59,3 +60,4 @@ TEST(Modularity, BasicGraph) {
     EXPECT_FLOAT_EQ(scan::Modularity(&graph, clusters), 0.28472222);
   }
 }
+}  // namespace gbbs

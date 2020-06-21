@@ -39,6 +39,9 @@
 #include "MinimumSpanningForest.h"
 #include "gbbs/gbbs.h"
 
+
+namespace gbbs {
+
 template <template <class W> class vertex, class W>
 double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   bool spec_for = P.getOption("-specfor");
@@ -65,4 +68,6 @@ double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine 
   return tt;
 }
 
-generate_symmetric_weighted_main(MinimumSpanningForest_runner, true);
+}  // namespace gbbs
+
+generate_symmetric_weighted_main(gbbs::MinimumSpanningForest_runner, true);

@@ -9,6 +9,7 @@
 
 #include "to_char_arr.h"
 
+namespace gbbs {
 // Provides utilities for converting between different compressed
 // representations.
 constexpr int max_weight = 32;
@@ -594,3 +595,4 @@ auto converter(Graph& GA, commandLine P) {
   exit(0);
   return static_cast<double>(0);
 }
+}  // namespace gbbs

@@ -42,6 +42,7 @@
 #include <fstream>
 #include <iostream>
 
+namespace gbbs {
 template <class Graph>
 double Coloring_runner(Graph& G, commandLine P) {
   bool runLF = P.getOption("-lf");
@@ -66,5 +67,6 @@ double Coloring_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(Coloring_runner, false);
+generate_main(gbbs::Coloring_runner, false);

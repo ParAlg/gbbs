@@ -7,6 +7,7 @@
 #include "pbbslib/utilities.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
 
+namespace gbbs {
 namespace indexed_scan {
 
 using scan::Clustering;
@@ -59,3 +60,4 @@ class Index {
 };
 
 }  // namespace indexed_scan
+}  // namespace gbbs

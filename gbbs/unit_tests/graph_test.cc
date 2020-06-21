@@ -2,6 +2,8 @@
 #include "gbbs/graph.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
+
 TEST(TestSymGraphFromEdges, TestBrokenPath) {
   using edge = std::tuple<uintE, uintE, int>;
   uintE n = 11;
@@ -49,3 +51,5 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
   ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
 }
+
+}  // namespace gbbs

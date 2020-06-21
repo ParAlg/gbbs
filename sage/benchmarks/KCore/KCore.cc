@@ -36,6 +36,8 @@
 #include "sage/sage.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+namespace gbbs {
+
 template <class Graph>
 double KCore_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
@@ -64,4 +66,6 @@ double KCore_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(KCore_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::KCore_runner);

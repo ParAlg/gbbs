@@ -1,6 +1,7 @@
 #include "benchmark.h"
 #include  "parse_command_line.h"
 
+namespace gbbs {
 cpu_stats::cpu_stats() {
   ipc = 0;
   total_cycles = 0;
@@ -156,3 +157,4 @@ void print_pcm_stats(
 void pcm_init() {}
 
 #endif
+}  // namespace gbbs

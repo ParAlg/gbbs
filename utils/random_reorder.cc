@@ -7,6 +7,7 @@
 #include "gbbs/gbbs.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 template <class Graph>
 void randomReorder(Graph& GA, std::string& outfile) {
   using W = typename Graph::weight_type;
@@ -57,5 +58,6 @@ double Reorderer(Graph& GA, commandLine P) {
   exit(0);
   return 1.0;
 }
+}  // namespace gbbs
 
-generate_main(Reorderer, false);
+generate_main(gbbs::Reorderer, false);

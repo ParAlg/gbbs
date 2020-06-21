@@ -37,6 +37,7 @@
 
 #include "wBFS.h"
 
+namespace gbbs {
 template <class Graph>
 double wBFS_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
@@ -64,5 +65,6 @@ double wBFS_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_weighted_main(wBFS_runner, false);
+generate_weighted_main(gbbs::wBFS_runner, false);

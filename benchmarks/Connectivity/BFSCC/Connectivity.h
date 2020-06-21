@@ -26,6 +26,7 @@
 #include "gbbs/gbbs.h"
 #include "benchmarks/Connectivity/common.h"
 
+namespace gbbs {
 namespace bfs_cc {
 
 template <class W>
@@ -85,3 +86,4 @@ inline sequence<parent> CC(Graph& G) {
 }
 
 }  // namespace bfs_cc
+}  // namespace gbbs

@@ -36,6 +36,8 @@
 #include "sage/sage.h"
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
+namespace gbbs {
+
 template <class Graph>
 double LDD_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -61,4 +63,6 @@ double LDD_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(LDD_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::LDD_runner);

@@ -27,7 +27,6 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/strings/string_basics.h"

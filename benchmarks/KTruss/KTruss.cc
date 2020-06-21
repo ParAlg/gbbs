@@ -33,6 +33,8 @@
 
 #include "KTruss.h"
 
+namespace gbbs {
+
 template <class Graph>
 double KTruss_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
@@ -63,4 +65,6 @@ double KTruss_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(KTruss_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::KTruss_runner, false);

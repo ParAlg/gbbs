@@ -6,6 +6,8 @@
 #include "gbbs/semiasym/graph_filter.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
+
 symmetric_graph<symmetric_vertex, pbbs::empty> CreateStar(size_t n) {
   using edge = std::tuple<uintE, uintE, pbbs::empty>;
   auto edges = pbbs::sequence<edge>(2*(n-1));
@@ -64,3 +66,4 @@ TEST(TestGraphFilter, TestFilter) {
 //  EXPECT_EQ(PG.get_vertex(0).getOutDegree(), n/2 - 1);
 //}
 
+}  // namespace gbbs

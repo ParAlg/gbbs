@@ -5,6 +5,7 @@
 
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 template <class Graph>
 struct PR_F {
   using W = typename Graph::weight_type;
@@ -202,3 +203,4 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
   cout << "max_pr = " << max_pr_v << ", " << max_pr_u << endl;
   cout << "sim = " << sim << endl;
 }
+}  // namespace gbbs

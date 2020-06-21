@@ -27,8 +27,8 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/speculative_for.h"
-#include "gbbs/pbbslib/sparse_table.h"
 
+namespace gbbs {
 namespace MaximalIndependentSet_rootset {
 
 template <class Graph, class Fl>
@@ -266,3 +266,4 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
               << "\n";
   }
 }
+}  // namespace gbbs

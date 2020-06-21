@@ -35,6 +35,8 @@
 #include "sage/sage.h"
 #include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
 
+namespace gbbs {
+
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -55,4 +57,6 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(SpanningForest_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::SpanningForest_runner);

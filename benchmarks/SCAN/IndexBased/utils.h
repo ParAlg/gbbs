@@ -16,6 +16,7 @@
 #include "pbbslib/monoid.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace scan {
 
 // A clustering is given by assigning each vertex a cluster ID.
@@ -178,3 +179,4 @@ double Modularity(
 }
 
 }  // namespace scan
+}  // namespace gbbs

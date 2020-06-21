@@ -2,6 +2,8 @@
 
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
+
 template <class Graph, class F>
 auto reorder_graph(Graph& G, F& edge_pri) {
   using W = typename Graph::weight_type;
@@ -50,3 +52,5 @@ auto reorder_graph(Graph& G, F& edge_pri) {
 
   return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {pbbslib::free_arrays(v_data, edges);}, edges);
 }
+
+}  // namespace gbbs

@@ -2,6 +2,7 @@
 
 #include <tuple>
 
+namespace gbbs {
 namespace graph_test {
 
 symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
@@ -40,3 +41,4 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
 }
 
 }  // namespace graph_test
+}  // namespace gbbs

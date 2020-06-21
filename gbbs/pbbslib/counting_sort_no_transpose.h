@@ -98,12 +98,12 @@ inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
   s_size_t* counts = new_array_no_init<s_size_t>(m, 1);
 
   // sort each block
-  par_for(0, num_blocks, 1, [&] (size_t i) {
+  parallel_for(0, num_blocks, [&] (size_t i) {
     s_size_t start = std::min(i * block_size, n);
     s_size_t end = std::min(start + block_size, n);
     _seq_count_sort<b_size_t>(A, B, get_key, start, end,
                               counts + i * num_buckets, num_buckets);
-  });
+  }, 1);
 
   return std::make_tuple(B, counts, num_blocks);
 }
