@@ -25,6 +25,8 @@
 
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
+
 template <class W>
 struct BFS_F {
   uintE* Parents;
@@ -64,3 +66,5 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }
+
+}  // namespace gbbs

@@ -5,6 +5,7 @@
 
 /* TODO: describe what this file does */
 
+namespace gbbs {
 namespace induced_intersection {
   template<class Graph>
   size_t get_max_deg(Graph& DG) {
@@ -107,4 +108,5 @@ namespace induced_intersection {
 
     return pbbslib::reduce_add(tots);
   }
-} // induced_intersection
+}  // induced_intersection
+}  // namespace gbbs

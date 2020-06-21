@@ -4,6 +4,8 @@
 #include "gbbs/graph.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
+
 template <
     template <class W> class vertex, class W, typename P,
     typename std::enable_if<std::is_same<vertex<W>, asymmetric_vertex<W>>::value,
@@ -25,13 +27,11 @@ inline auto relabel_graph(asymmetric_graph<vertex, W>& G,uintE* rank, P& pred) -
 }
 
 
-
-
 template <template <class W> class vertex, class W, typename P,
           typename std::enable_if<
               std::is_same<vertex<W>, csv_bytepd_amortized<W>>::value,
               int>::type = 0>
-inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) { // -> decltype(GA) 
+inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) { // -> decltype(GA)
   size_t n = GA.n;
   using edge = std::tuple<uintE, W>;
 
@@ -43,7 +43,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     uintE last_ngh = 0;
     size_t deg = 0;
     uchar tmp[16];
-  
+
     size_t prev_deg = GA.get_vertex(i).getOutDegree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
     auto tmp_edges = sequence<edge>(prev_deg);
@@ -207,8 +207,10 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
     if (colors[u] == colors[v]) return 0;
     return 1;
   };
-  filter_edges(GA, pack_predicate); //auto edges = 
+  filter_edges(GA, pack_predicate); //auto edges =
   //auto edges_seq = edges.to_seq();
   //return filter_graph(GA, pack_predicate);
   return GA; //sym_graph_from_edges(edges_seq, edges_seq.size());
 }
+
+}  // namespace gbbs

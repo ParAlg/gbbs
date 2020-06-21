@@ -52,6 +52,8 @@
 
 #define SIMD_STATE 4
 
+namespace gbbs {
+
 template <class Graph>
 inline uintE* degreeOrderNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n); // to hold degree rank per vertex id
@@ -218,3 +220,5 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   return count;
 }
+
+}  // namespace gbbs

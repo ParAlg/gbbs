@@ -32,9 +32,12 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 namespace bc {
+
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
+
 };  // namespace bc
 
 using labels = std::tuple<uintE, uintE>;
@@ -574,3 +577,5 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
   return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
                                out_f);
 }
+
+}  // namespace gbbs

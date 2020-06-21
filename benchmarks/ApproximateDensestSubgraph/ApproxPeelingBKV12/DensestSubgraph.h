@@ -1,3 +1,6 @@
+// This code is part of the project "Theoretically Efficient Parallel Graph
+// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
+// in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,8 +23,9 @@
 
 #pragma once
 
-#include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
+
+namespace gbbs {
 
 template <class Graph>
 double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
@@ -141,3 +145,5 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
   return max_density;
 }
+
+}  // namespace gbbs

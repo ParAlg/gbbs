@@ -37,6 +37,7 @@
 #include <math.h>
 #include <fstream>
 
+namespace gbbs {
 
 long strToDirectType(std::string order_str) {
   if (order_str == "GOODRICHPSZONA") return 0;
@@ -64,9 +65,9 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   auto recursive_level_str = P.getOptionValue("--parallelType", ""); // parallelism per vert (VERT) or per edge (EDGE)
 
   // If set, do not use linear space to kick off the first level of recursion (uses O(alpha^2) space)
-  bool label_str = P.getOptionValue("--saveSpace"); 
+  bool label_str = P.getOptionValue("--saveSpace");
   bool use_base_str = P.getOptionValue("--peel"); // run vertex peeling
-  
+
   bool sparsify = P.getOptionValue("--sparse"); // if set, use colorful sparsification for approx counting
   long sparsify_denom = P.getOptionLongValue("--colors", 0); // number of colors for colorful sparsification
 
@@ -105,9 +106,9 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   if (sparsify) {
     // Sparsify graph, with random seed
     auto GA_sparse = clr_sparsify_graph(GA, sparsify_denom, 7398234);
-  
+
     // k-clique counting
-    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level, 
+    count = Clique(GA_sparse, k, order, epsilon, space, label, filter, use_base, recursive_level,
                    approx_peel, approx_eps);
     std::cout << "sparse count: " << count << std::endl;
     count = count * pow(sparsify_denom,k-1);
@@ -125,4 +126,6 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(AppKCore_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::AppKCore_runner, false);

@@ -11,6 +11,8 @@
 #include "induced_hybrid.h"
 #include "intersect.h"
 
+namespace gbbs {
+
 // Wrapper for a hash function
 struct hashtup {
   inline size_t operator () (const uintE & a) const {return pbbs::hash64_2(a);}
@@ -548,3 +550,5 @@ std::cout << "rho: " << round << std::endl;
 
   return max_density;
 }
+
+}  // namespace gbbs

@@ -29,7 +29,10 @@
 #include "pbbslib/random.h"
 #include "pbbslib/random_shuffle.h"
 
+namespace gbbs {
+
 namespace sc {
+
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE COVERED = ((uintE)INT_E_MAX) - 1;
 constexpr double epsilon = 0.01;
@@ -50,6 +53,7 @@ struct Visit_Elms {
   }
   inline bool cond(const uintE& d) const { return elms[d] != sc::COVERED; }
 };
+
 }  // namespace sc
 
 
@@ -203,3 +207,5 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   std::cout << "Num_uncovered = " << (G.n - elms_cov) << "\n";
   return cover;
 }
+
+}  // namespace gbbs

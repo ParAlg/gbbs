@@ -34,6 +34,8 @@
 
 #include "BFS.h"
 
+namespace gbbs {
+
 template <class Graph>
 double BFS_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
@@ -54,4 +56,6 @@ double BFS_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(BFS_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::BFS_runner, false);

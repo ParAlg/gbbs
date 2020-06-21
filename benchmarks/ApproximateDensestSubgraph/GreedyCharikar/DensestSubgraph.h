@@ -1,3 +1,6 @@
+// This code is part of the project "Theoretically Efficient Parallel Graph
+// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
+// in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +24,9 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/edge_map_reduce.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
+
+namespace gbbs {
 
 // Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
 // expected work and O(\rho\log n) depth w.h.p.
@@ -75,3 +79,5 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
   cout << "### Density of 2-Densest Subgraph is: " << max_density << endl;
   return max_density;
 }
+
+}  // namespace gbbs

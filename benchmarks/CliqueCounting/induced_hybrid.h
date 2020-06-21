@@ -5,6 +5,7 @@
 #include "intersect.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace induced_hybrid {
 
   template<class Graph>
@@ -143,4 +144,5 @@ if (recursive_level < k_idx || num_induced < 2) {
     return pbbslib::reduce_add(tots);
   }
 
-} // namespace induced_neighborhood
+}  // namespace induced_neighborhood
+}  // namespace gbbs

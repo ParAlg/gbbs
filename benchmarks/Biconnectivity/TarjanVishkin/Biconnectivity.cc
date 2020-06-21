@@ -42,6 +42,8 @@
 #include "gbbs/pbbslib/sparse_additive_map.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
+
 template <template <typename W> class vertex, class W>
 void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
@@ -153,4 +155,6 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   exit(0);
 }
 
-generate_symmetric_main(Biconnectivity_runner, true);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::Biconnectivity_runner, true);

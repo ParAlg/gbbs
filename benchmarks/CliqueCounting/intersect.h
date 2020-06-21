@@ -1,6 +1,3 @@
-#ifndef _KINTERSECT_
-#define _KINTERSECT_
-
 #pragma once
 
 #include <math.h>
@@ -14,6 +11,8 @@
 #include "gbbs/pbbslib/sparse_table.h"
 
 #define INDUCED_STACK_THR 5000
+
+namespace gbbs {
 
 struct HybridSpace_lw {
   // Number of induced neighbors, per recursive level
@@ -51,7 +50,7 @@ struct HybridSpace_lw {
     if (free_relabel && use_old_labels && old_labels == nullptr) old_labels = (uintE*) calloc(n, sizeof(uintE));
     if (free_relabel && use_base && relabel == nullptr) relabel = (uintE*) malloc(sizeof(uintE)*max_induced);
   }
-  
+
   void copy(HybridSpace_lw* space) {
     // Shallow copy
     if (use_base) relabel = space->relabel;
@@ -83,7 +82,7 @@ struct HybridSpace_lw {
   template <class Graph, class Graph2, class F>
   void setup_intersect(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
-  
+
     // Set up relabeling if counting per vertex
     if (use_base) {
       size_t j = 0;
@@ -147,7 +146,7 @@ struct HybridSpace_lw {
   template <class Graph, class Graph2, class F>
   void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
     using W = typename Graph::weight_type;
-  
+
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     nn = DG.get_vertex(i).getOutDegree();
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
@@ -243,7 +242,7 @@ struct HybridSpace_lw {
       }
     };
     DG.get_vertex(l).mapOutNgh(l, lmap_label_f, false);
-  
+
     // Reset induced neighbors from the first recursive level but not the second
     auto remap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       if (old_labels[ngh] == UINT_E_MAX) old_labels[ngh] = 0;
@@ -254,7 +253,7 @@ struct HybridSpace_lw {
     nn = o;
     num_induced[0] = o;
     parallel_for (0, nn, [&] (size_t p) { induced_degs[p] = 0; });
-  
+
     for (size_t j=0; j < nn; j++) {
       auto v = induced[j];
       // For a neighbor v in the second level induced neighborhood, intersect
@@ -324,7 +323,7 @@ struct HybridSpace_lw {
       parallel_for(0, nn, [&] (size_t p) { relabel[p] = induced[p]; });
     }
     parallel_for (0, nn, [&] (size_t p) { induced_degs[p] = 0; });
-  
+
     for (size_t p=0; p < nn; p++) {
       // For a neighbor v = induced[p] in the second level induced neighborhood,
       // intersect N(v) with the second level induced neighborhood
@@ -467,11 +466,11 @@ struct FullSpace_orig_lw {
     using W = typename Graph::weight_type;
     num_induced[0] = DG.get_vertex(i).getOutDegree();
     nn = num_induced[0];
-    
+
     for (size_t  j=0; j < nn; j++) { induced[j] = j; }
     for (size_t j=0; j < nn; j++) { induced_degs[j] = 0; }
     for (size_t j=0; j < nn; j++)  { labels[j] = 0; }
-  
+
 
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -484,8 +483,8 @@ struct FullSpace_orig_lw {
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
 
       auto map_nbhrs_f = [&] (const uintE& src_v, const uintE& v_nbhr, const W& wgh_v) {
-        if (old_labels[v_nbhr] > 0) { 
-          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1; 
+        if (old_labels[v_nbhr] > 0) {
+          induced_edges[j*nn + induced_degs[j]] = old_labels[v_nbhr] - 1;
           induced_degs[j]++;
         }
       };
@@ -521,4 +520,4 @@ struct FullSpace_orig_lw {
 
 };
 
-#endif
+}  // namespace gbbs

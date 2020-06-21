@@ -11,6 +11,8 @@
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
 
+namespace gbbs {
+
 TEST(NondeterministicBFS, EdgelessGraph) {
   constexpr uintE kNumVertices{3};
   const std::unordered_set<UndirectedEdge> kEdges{};
@@ -66,3 +68,5 @@ TEST(NondeterministicBFS, BasicUsage) {
           5));
   }
 }
+
+}  // namespace gbbs

@@ -2,7 +2,6 @@ cc_library(
   name = "DensestSubgraph",
   hdrs = ["DensestSubgraph.h"],
   deps = [
-  "//gbbs:edge_map_reduce",
   "//gbbs:gbbs"
   ]
 )
