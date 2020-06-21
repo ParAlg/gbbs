@@ -74,7 +74,7 @@ struct symmetric_graph {
     return edgeMapData<pbbs::empty>(*this, vs, f, threshold, fl);
   }
 
-  // The generalized version of edgeMap. Takes an input vertex_subset and
+  // Generalized version of edgeMap. Takes an input vertex_subset and
   // aggregates results at the neighbors of the vset. See above for the
   // requirements on F.
   template <class Data,  // data associated with vertices in the output
@@ -85,41 +85,17 @@ struct symmetric_graph {
     return edgeMapData<Data>(*this, vs, f, threshold, fl);
   }
 
-  // srcMap. Applies
-  template <class VS,  // input vertex_subset type
-            class F>   // map function type
-  inline vertexSubsetData<pbbs::empty>
-  srcMap(VS& vs, F f, intT threshold = -1, flags fl = 0) {
-    std::cout << "srcMap currently not implemented" << std::endl;
-    exit(-1);  // currently unused by any benchmark
-  }
-
-  // The generalized version of srcMap. Takes an input vertex_subset and
-  // aggregates results at the neighbors of the vset.
-  template <class Data,  // data associated with vertices in the output
-            class VS,    // input vertex_subset type
-            class F>     // map function type
-  inline vertexSubsetData<Data>
-  srcMap(VS& vs, F f, intT threshold = -1, flags fl = 0) {
-    std::cout << "srcMap currently not implemented" << std::endl;
-    exit(-1);  // currently unused by any benchmark
-  }
 
   // =================== VertexSubset Operators: Counting =====================
   template <
-      class Data,  // data associated with vertices in the output vertex_subset
-      class Cond,
+      class Cond,   // function from uintE -> bool
       class Apply,  // function from std::tuple<uintE, uintE> ->
                     // std::optional<std::tuple<uintE, Data>>
       class VS>
-  inline vertexSubsetData<Data> nghCount(VS& vs, Cond cond_f, Apply apply_f,
-                                         pbbslib::hist_table<uintE, Data>& ht,
+  inline vertexSubsetData<uintE> nghCount(VS& vs, Cond cond_f, Apply apply_f,
+                                         pbbslib::hist_table<uintE, uintE>& ht,
                                          flags fl = 0) {
-    static_assert(std::is_same<Data, uintE>::value,
-                  "Histogram code used in the implementation is specialized "
-                  "for Data == counting_type (in this case uintE) for "
-                  "performance.");
-    return edgeMapCount<Data, Cond, Apply, VS>(*this, vs, cond_f, apply_f, ht, fl);
+    return edgeMapCount<uintE, Cond, Apply, VS>(*this, vs, cond_f, apply_f, ht, fl);
   }
 
   template <class Cond, class VS>
@@ -138,43 +114,12 @@ struct symmetric_graph {
     return edgeMapFilter(*this, vs, p, fl);
   }
 
-  // =================== VertexSubset Operators: Reduction =====================
-  template <class Data, class Apply, class Map, class Reduce, class VS>
-  inline vertexSubsetData<Data> nghReduce(VS& vs,
-                                          pbbslib::hist_table<uintE, Data>& ht,
-                                          Apply apply_f, Map map_f,
-                                          Reduce reduce_f, flags fl = 0) {
-    std::cout
-        << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"
-        << std::endl;
-    exit(-1);
-    return vertexSubsetData<Data>(n);
-  }
-
-  template <class VS, class Map, class Reduce>
-  inline vertexSubsetData<uintE> nghReduce(VS& vs, Map map_f, Reduce reduce_f,
-                                           flags fl = 0) {
-    std::cout
-        << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"
-        << std::endl;
-    exit(-1);
-    return vertexSubsetData<uintE>(n);
-  }
-
   // =================== VertexSubset Operators: Packing =====================
   template <class P>
   vertexSubsetData<uintE> srcPack(vertexSubset& vs, P p, flags fl = 0) {
     return packEdges(*this, vs, p, fl);
   }
 
-  // Similar to srcPack, but returns the nghs as a vs.
-  template <class P>
-  vertexSubsetData<uintE> nghPack(vertexSubset& vs, P p, flags fl = 0) {
-    assert(false);  // not implemented as this primitive is unused in the
-                    // benchmark.
-    exit(-1);
-    return vertexSubsetData<uintE>();
-  }
 
   // ======================= Graph Operators: Filtering ========================
   // Filters the symmetric graph, G, with a predicate function pred.  Note
