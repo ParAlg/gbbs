@@ -23,6 +23,7 @@
 #pragma once
 #include "get_time.h"
 #include "utilities.h"
+#include "sequence_ops.h"
 
 namespace pbbs {
 

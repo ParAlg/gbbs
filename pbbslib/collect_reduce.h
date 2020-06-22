@@ -366,8 +366,10 @@ sequence<typename Seq::value_type> collect_reduce_sparse(Seq const &A,
         // insert small bucket (ones with multiple different items)
         size_t start = bucket_offsets[i];
         size_t end = bucket_offsets[i + 1];
-        if ((end - start) > table_size)
-          throw std::runtime_error("hash table overflow in collect_reduce");
+        if ((end - start) > table_size) {
+          std::cout << "hash table overflow in collect_reduce" << std::endl;
+          exit(-1);
+        }
         for (size_t j = start; j < end; j++) {
           size_t idx = B[j].first;
           size_t k = ((uint)hasheq.hash(B[j])) % table_size;

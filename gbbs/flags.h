@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace gbbs {
 
 typedef uint32_t flags;

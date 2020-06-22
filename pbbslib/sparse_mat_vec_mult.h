@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utilities.h"
+#include "sequence_ops.h"
 
 namespace pbbs {
 // multiply a compresses sparse row matrix

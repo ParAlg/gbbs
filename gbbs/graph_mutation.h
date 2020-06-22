@@ -2,7 +2,9 @@
 
 #include "bridge.h"
 #include "compressed_vertex.h"
+#include "edge_array.h"
 #include "vertex.h"
+#include "vertex_subset.h"
 
 namespace gbbs {
 

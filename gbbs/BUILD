@@ -123,7 +123,9 @@ cc_library(
   deps = [
   ":bridge",
   ":compressed_vertex",
+  ":edge_array",
   ":vertex",
+  ":vertex_subset",
   ]
 )
 

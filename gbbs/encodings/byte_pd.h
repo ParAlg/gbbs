@@ -31,6 +31,7 @@
 #include <iostream>
 #include <tuple>
 
+#include "pbbslib/bridge.h"
 #include "pbbslib/binary_search.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
