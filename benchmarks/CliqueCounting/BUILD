@@ -100,9 +100,8 @@ cc_binary(
   name = "Clique_main",
   srcs = ["Clique.cc"],
   deps = [
-  ":Clique",
-  "@simdinter//:intersectiondeps",],
-  copts = ["-Iexternal/simdinter/include"],
+  ":Clique"
+  ]
 )
 
 package(
