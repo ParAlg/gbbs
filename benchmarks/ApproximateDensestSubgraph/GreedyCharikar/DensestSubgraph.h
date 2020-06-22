@@ -65,8 +65,8 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
   size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),
       pbbslib::fl_inplace);
   if (total_edges != GA.m) {
-    cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
-      total_edges << endl;
+    std::cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
+      total_edges << std::endl;
     exit(0);
   }
 
@@ -76,7 +76,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     return static_cast<double>(dens) / static_cast<double>(rem);
   });
   double max_density = pbbslib::reduce_max(density_seq);
-  cout << "### Density of 2-Densest Subgraph is: " << max_density << endl;
+  std::cout << "### Density of 2-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }
 

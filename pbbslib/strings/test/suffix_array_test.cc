@@ -9,7 +9,7 @@ indexT* LCP(unsigned char *s, indexT* SA, size_t n);
 
 int main (int argc, char *argv[]) {
   if (argv[1] == NULL) {
-    cout << "requires a filename" << endl;
+    std::cout << "requires a filename" << std::endl;
     return 1;
   }
 
@@ -23,7 +23,7 @@ int main (int argc, char *argv[]) {
   uchar *s = (uchar*) str.begin();
   indexT *SA, *lcp;
 
-  cout << "Testing length = " << n << endl;
+  std::cout << "Testing length = " << n << std::endl;
   timer t("SA", true);
   for (int i=0; i < 3; i++) {
     t.start();

@@ -103,7 +103,7 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
     double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
     if(L1_norm < eps) break;
 
-    debug(cout << "L1_norm = " << L1_norm << endl;);
+    debug(cout << "L1_norm = " << L1_norm << std::endl;);
     // Reset p_curr
     parallel_for(0, n, [&] (size_t i) { p_curr[i] = static_cast<double>(0); });
     std::swap(p_curr,p_next);
@@ -112,9 +112,9 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   }
   Frontier.del();
   auto max_pr = pbbslib::reduce_max(p_next);
-  cout << "max_pr = " << max_pr << endl;
+  std::cout << "max_pr = " << max_pr << std::endl;
   for (size_t i=0; i<100; i++) {
-    cout << p_next[i] << endl;
+    std::cout << p_next[i] << std::endl;
   }
 }
 
@@ -170,7 +170,7 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
     });
     double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
     if(L1_norm < eps) break;
-    debug(cout << "L1_norm = " << L1_norm << endl;);
+    debug(cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset p_curr
     std::swap(p_curr,p_next);
@@ -178,9 +178,9 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   }
   Frontier.del();
   auto max_pr = pbbslib::reduce_max(p_next);
-  cout << "max_pr = " << max_pr << endl;
+  std::cout << "max_pr = " << max_pr << std::endl;
   for (size_t i=0; i<100; i++) {
-    cout << p_next[i] << endl;
+    std::cout << p_next[i] << std::endl;
   }
 }
 
@@ -355,7 +355,7 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     });
     double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
     if(L1_norm < eps) break;
-    debug(cout << "L1_norm = " << L1_norm << endl;);
+    debug(cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset
     parallel_for(0, n, [&] (size_t i) { nghSum[i] = static_cast<double>(0); });
@@ -365,9 +365,9 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     debug(t.stop(); t.reportTotal("iteration time"););
   }
   auto max_pr = pbbslib::reduce_max(p);
-  cout << "max_pr = " << max_pr << endl;
+  std::cout << "max_pr = " << max_pr << std::endl;
 
-  cout << "Num rounds = " << round << endl;
+  std::cout << "Num rounds = " << round << std::endl;
   Frontier.del(); All.del();
 }
 }  // namespace delta

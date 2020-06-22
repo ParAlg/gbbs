@@ -66,7 +66,7 @@ bool run_multiple(Graph& G, size_t rounds,
   double maxtp = reduce(tp, maxf);
   double medtp = median(tp);
 
-  cout << "Test = {"
+  std::cout << "Test = {"
        << "\"name\": \"" << name << "\"" << std::setprecision(5)
        << ", \"rounds\":" << rounds
        << ", \"med_time\":" << medt
@@ -79,7 +79,7 @@ bool run_multiple(Graph& G, size_t rounds,
        << ", \"min_throughput\":" << mintp
        << ", \"max_throughput\":" << maxtp
        << "}"
-       << endl;
+       << std::endl;
   return 1;
 }
 

@@ -51,7 +51,7 @@ double MinimumSpanningForest_runner(symmetric_graph<vertex, W>& GA, commandLine 
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << " -largemem (use settings for huge graphs) = " << largemem << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer mst_t;
   mst_t.start();

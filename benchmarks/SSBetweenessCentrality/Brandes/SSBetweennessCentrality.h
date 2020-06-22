@@ -109,7 +109,7 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
 
   long round = 0;
   while (!Frontier.isEmpty()) {
-    debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
+    debug(cout << "round = " << round << " fsize = " << Frontier.size() << std::endl;);
     round++;
     //      vertexSubset output = edgeMap(G, Frontier,
     //      make_bc_f<W>(NumPaths,Visited), -1, sparse_blocked | dense_forward);
@@ -178,7 +178,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
   }
 
   if (out_degrees > G.m/20) {
-    debug(cout << "dense, out_degrees = " << out_degrees << endl;);
+    debug(cout << "dense, out_degrees = " << out_degrees << std::endl;);
 
     auto cond_f = [&] (size_t i) {
       return (Visited[i] == false);
@@ -238,7 +238,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
   timer fwd; fwd.start();
   long round = 0;
   while (!Frontier.isEmpty()) {
-    debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
+    debug(cout << "round = " << round << " fsize = " << Frontier.size() << std::endl;);
     round++;
 
     vertexSubset output = sparse_fa_dense_em(G, EM, Frontier, NumPaths, Storage, Visited, 0);
@@ -251,9 +251,9 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
   fwd.stop(); debug(fwd.reportTotal("forward time"));
 
   for (size_t i=0; i<100; i++) {
-    cout << NumPaths[i] << endl;
+    std::cout << NumPaths[i] << std::endl;
   }
-  cout << "printed numpaths" << endl;
+  std::cout << "printed numpaths" << std::endl;
 
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
@@ -356,7 +356,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
       });
     };
     while (!Frontier.isEmpty()) {
-      debug(cout << "round = " << round << " fsize = " << Frontier.size() << endl;);
+      debug(cout << "round = " << round << " fsize = " << Frontier.size() << std::endl;);
       round++;
 
       vertexSubset next_frontier = edgeMap(G, Frontier, BFS_F<W>(Visited), -1, sparse_blocked | dense_parallel);

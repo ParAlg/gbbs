@@ -108,8 +108,8 @@ struct sequence {
   sequence(const sequence& a) : n(a.n) {
     copy_here(a.s, a.n);
     if (check_copy)
-      cout << "copy constructor: len: " << a.n << " sizeof: " << sizeof(T)
-           << endl;
+      std::cout << "copy constructor: len: " << a.n << " sizeof: " << sizeof(T)
+           << std::endl;
   }
 
   // move constructor
@@ -125,8 +125,8 @@ struct sequence {
       copy_here(a.s, a.n);
     }
     if (check_copy)
-      cout << "copy assignment: len: " << a.n << " sizeof: " << sizeof(T)
-           << endl;
+      std::cout << "copy assignment: len: " << a.n << " sizeof: " << sizeof(T)
+           << std::endl;
     return *this;
   }
 
@@ -145,33 +145,33 @@ struct sequence {
   sequence(const size_t _n)
       : s(pbbs::new_array<T>(_n)),
         n(_n){
-            // if (n > 1000000000) cout << "make empty: " << s << endl;
+            // if (n > 1000000000) std::cout << "make empty: " << s << std::endl;
         };
 
   sequence(value_type* a, const size_t _n)
       : s(a),
         n(_n){
-            // cout << "dangerous" << endl;
+            // std::cout << "dangerous" << std::endl;
         };
 
   static sequence<T> no_init(const size_t n) {
     sequence<T> r;
     r.s = pbbs::new_array_no_init<T>(n);
-    // if (n > 1000000000) cout << "make no init: " << r.s << endl;
+    // if (n > 1000000000) std::cout << "make no init: " << r.s << std::endl;
     r.n = n;
     return r;
   };
 
   sequence(const size_t _n, value_type v)
       : s(pbbs::new_array_no_init<T>(_n, true)), n(_n) {
-    // if (n > 1000000000) cout << "make const: " << s << endl;
+    // if (n > 1000000000) std::cout << "make const: " << s << std::endl;
     auto f = [=](size_t i) { new ((void*)(s + i)) value_type(v); };
     parallel_for(0, n, f);
   };
 
   template <typename Func>
   sequence(const size_t _n, Func f) : s(pbbs::new_array_no_init<T>(_n)), n(_n) {
-    // if (n > 1000000000) cout << "make func: " << s << endl;
+    // if (n > 1000000000) std::cout << "make func: " << s << std::endl;
     parallel_for(0, n, [&](size_t i) { new ((void*)(s + i)) value_type(f(i)); },
                  1000);
   };
@@ -255,7 +255,7 @@ struct sequence {
 
   void clear() {
     if (s != NULL) {
-      // if (n > 1000000000) cout << "delete: " << s << endl;
+      // if (n > 1000000000) std::cout << "delete: " << s << std::endl;
       pbbs::delete_array<T>(s, n);
       s = NULL;
       n = 0;
@@ -267,8 +267,8 @@ struct sequence {
   void copy_here(Seq const& a, size_t an) {
     n = an;
     s = pbbs::new_array_no_init<T>(n, true);
-    // cout << "s = " << s << " n = " << n << endl;
-    // if (n > 0) { cout << "Yikes, copy: " << s << endl;}
+    // std::cout << "s = " << s << " n = " << n << std::endl;
+    // if (n > 0) { std::cout << "Yikes, copy: " << s << std::endl;}
     parallel_for(0, n,
                  [&](size_t i) { pbbs::assign_uninitialized(s[i], a[i]); });
   }
@@ -286,4 +286,5 @@ template <class SeqA, class SeqB>
 bool slice_eq(SeqA a, SeqB b) {
   return false;
 }
-}
+
+}  // namespace pbbs

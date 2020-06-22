@@ -89,7 +89,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     double L1_norm_u = pbbs::reduce(differences_u, pbbs::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
-    debug(cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u << endl;);
+    debug(cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u << std::endl;);
     // Reset p_curr
     parallel_for(0, n, [&] (size_t i) { p_curr_v[i] = static_cast<double>(0); });
     std::swap(p_curr_v,p_next_v);
@@ -104,8 +104,8 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
 
-  cout << "max_pr = " << max_pr_v << ", " << max_pr_u << endl;
-  cout << "sim = " << sim << endl;
+  std::cout << "max_pr = " << max_pr_v << ", " << max_pr_u << std::endl;
+  std::cout << "sim = " << sim << std::endl;
 }
 
 template <class Graph>
@@ -200,7 +200,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
 
-  cout << "max_pr = " << max_pr_v << ", " << max_pr_u << endl;
-  cout << "sim = " << sim << endl;
+  std::cout << "max_pr = " << max_pr_v << ", " << max_pr_u << std::endl;
+  std::cout << "sim = " << sim << std::endl;
 }
 }  // namespace gbbs

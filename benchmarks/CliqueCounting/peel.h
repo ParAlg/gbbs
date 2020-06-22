@@ -544,7 +544,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
 double tt2 = t2.stop();
 std::cout << "### Peel Running Time: " << tt2 << std::endl;
 std::cout << "rho: " << round << std::endl;
- std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+ std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
 
   free(still_active);
 

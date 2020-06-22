@@ -46,12 +46,12 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
   timer t;
   t.start();
   auto edges = workefficient_sf::SpanningForest(G, beta, false, P.getOptionValue("-permute"));
-  cout << "n = " << G.n << " #edges = " << edges.size() << endl;
+  std::cout << "n = " << G.n << " #edges = " << edges.size() << std::endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;

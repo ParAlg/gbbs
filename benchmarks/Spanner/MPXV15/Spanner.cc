@@ -49,7 +49,7 @@ double Spanner_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));
   timer t;
@@ -57,7 +57,7 @@ double Spanner_runner(Graph& G, commandLine P) {
   auto spanner = spanner::Spanner(G, beta);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   return tt;
 }
 }  // namespace gbbs

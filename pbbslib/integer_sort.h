@@ -245,4 +245,5 @@ integer_sort_with_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
   auto R = integer_sort(In, g, bits);
   return std::make_pair(std::move(R), get_counts<Tint>(R, g, num_buckets));
 }
-}
+
+}  // namespace pbbs

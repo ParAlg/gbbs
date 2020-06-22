@@ -108,7 +108,7 @@ void writeArrayToStream(ofstream& os, T* A, long n) {
   while (offset < n) {
     // Generates a string for a sequence of size at most BSIZE
     // and then wrties it to the output stream
-    cout << "Writing offset = " << offset << endl;
+    std::cout << "Writing offset = " << offset << std::endl;
     _seq<char> S = benchIO::arrayToString(A + offset, min(BSIZE, n - offset));
     os.write(S.A, S.n);
     S.del();
@@ -121,7 +121,7 @@ void graph2DTorus(uintE n, char* fname) {
   uintE nn = dn * dn;
   size_t deg = 4;
   size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+  std::cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << std::endl;
   uintE* edges = newA(uintE, nonZeros);
   parallel_for(size_t i = 0; i < dn; i++) {
     parallel_for(size_t j = 0; j < dn; j++) {
@@ -146,13 +146,13 @@ void graph2DTorus(uintE n, char* fname) {
     std::cout << "Unable to open file: " << fname << std::endl;
     exit(0);
   }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
+  file << "AdjacencyGraph" << std::endl;
+  file << nn << std::endl;
+  file << nonZeros << std::endl;
   writeArrayToStream(file, degs, nn);
   writeArrayToStream(file, edges, nonZeros);
   file.close();
-  cout << "Wrote file." << endl;
+  std::cout << "Wrote file." << std::endl;
   free(edges);
   free(degs);
 }
@@ -162,7 +162,7 @@ void graph3DTorus(uintE n, char* fname) {
   uintE nn = dn * dn * dn;
   size_t deg = 6;
   size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+  std::cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << std::endl;
   uintE* edges = newA(uintE, nonZeros);
   parallel_for(size_t i = 0; i < dn; i++) {
     parallel_for(size_t j = 0; j < dn; j++) {
@@ -191,13 +191,13 @@ void graph3DTorus(uintE n, char* fname) {
     std::cout << "Unable to open file: " << fname << std::endl;
     exit(0);
   }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
+  file << "AdjacencyGraph" << std::endl;
+  file << nn << std::endl;
+  file << nonZeros << std::endl;
   writeArrayToStream(file, degs, nn);
   writeArrayToStream(file, edges, nonZeros);
   file.close();
-  cout << "Wrote file." << endl;
+  std::cout << "Wrote file." << std::endl;
   free(edges);
   free(degs);
 }
@@ -207,7 +207,7 @@ void graph3DTorusWgh(uintE n, char* fname) {
   uintE nn = dn * dn * dn;
   size_t deg = 6;
   size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+  std::cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << std::endl;
   uintE* edges = newA(uintE, nonZeros);
   parallel_for(size_t i = 0; i < dn; i++) {
     parallel_for(size_t j = 0; j < dn; j++) {
@@ -236,13 +236,13 @@ void graph3DTorusWgh(uintE n, char* fname) {
     std::cout << "Unable to open file: " << fname << std::endl;
     exit(0);
   }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
+  file << "AdjacencyGraph" << std::endl;
+  file << nn << std::endl;
+  file << nonZeros << std::endl;
   writeArrayToStream(file, degs, nn);
   writeArrayToStream(file, edges, nonZeros);
   file.close();
-  cout << "Wrote file." << endl;
+  std::cout << "Wrote file." << std::endl;
   free(edges);
   free(degs);
 }
@@ -252,7 +252,7 @@ void graph3DTorus27(uintE n, char* fname) {
   uintE nn = dn * dn * dn;
   size_t deg = 26;
   size_t nonZeros = deg * nn;
-  cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << endl;
+  std::cout << "nn = " << nn << " nz = " << nonZeros << " dn = " << dn << std::endl;
   uintE* edges = newA(uintE, nonZeros);
   parallel_for(size_t i = 0; i < dn; i++) {
     parallel_for(size_t j = 0; j < dn; j++) {
@@ -293,14 +293,14 @@ void graph3DTorus27(uintE n, char* fname) {
     std::cout << "Unable to open file: " << fname << std::endl;
     exit(0);
   }
-  file << "AdjacencyGraph" << endl;
-  file << nn << endl;
-  file << nonZeros << endl;
-  cout << "writing m = " << nonZeros << endl;
+  file << "AdjacencyGraph" << std::endl;
+  file << nn << std::endl;
+  file << nonZeros << std::endl;
+  std::cout << "writing m = " << nonZeros << std::endl;
   writeArrayToStream(file, degs, nn);
   writeArrayToStream(file, edges, nonZeros);
   file.close();
-  cout << "Wrote file." << endl;
+  std::cout << "Wrote file." << std::endl;
   free(edges);
   free(degs);
 }
@@ -311,7 +311,7 @@ void BuildTorus(int argc, char* argv[]) {
   long n = in.first;
   char* fname = in.second;
   bool weighted = P.getOptionValue("-w");
-  cout << "Generating 3D torus" << endl;
+  std::cout << "Generating 3D torus" << std::endl;
   if (weighted) {
     graph3DTorusWgh(n, fname);
   } else {

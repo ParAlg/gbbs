@@ -137,7 +137,7 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: n/a" << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   auto in_f = P.getOptionValue("-if");
   auto out_f = P.getOptionValue("-of");

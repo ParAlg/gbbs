@@ -6,10 +6,11 @@
 #include "sequence_ops.h"
 #include "utilities.h"
 
+namespace pbbs {
+
 using uchar = unsigned char;
 using uint = unsigned int;
 
-namespace pbbs {
 template <class T, class KT>
 void radix_step_(T* A, T* B, KT* keys, size_t* counts, size_t n, size_t m) {
   for (size_t i = 0; i < m; i++) counts[i] = 0;
@@ -123,4 +124,5 @@ void bucket_sort(range<T*> in, binOp f, bool stable = false) {
   sequence<T> tmp(n);
   bucket_sort_r(in.slice(), tmp.slice(), f, stable, true);
 }
+
 }  // namespace pbbs

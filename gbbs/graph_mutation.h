@@ -196,7 +196,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
                            std::get<1>(l) + std::get<1>(r));
   };
   auto red_monoid = pbbslib::make_monoid(red_f, id);
-  timer reduce_t; reduce_t.start();
+  pbbs::timer reduce_t; reduce_t.start();
   parallel_for(0, n, [&] (size_t i) {
     auto res = G.get_vertex(i).template reduceOutNgh<T>(i, map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {

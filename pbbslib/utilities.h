@@ -10,44 +10,18 @@
 
 #include "parallel.h"
 
-using std::cout;
-using std::endl;
-
 #ifdef USEMALLOC
+namespace pbbs {
 inline void* my_alloc(size_t i) { return malloc(i); }
 inline void my_free(void* p) { free(p); }
+}  // namespace pbbs
 #else
 #include "alloc.h"
+namespace pbbs {
 inline void* my_alloc(size_t i) { return my_mem_pool.alloc(i); }
 inline void my_free(void* p) { my_mem_pool.afree(p); }
+}  // namespace pbbs
 #endif
-
-template <typename Lf, typename Rf>
-static void par_do_if(bool do_parallel, Lf left, Rf right, bool cons = false) {
-  if (do_parallel)
-    par_do(left, right, cons);
-  else {
-    left();
-    right();
-  }
-}
-
-template <typename Lf, typename Mf, typename Rf>
-inline void par_do3(Lf left, Mf mid, Rf right) {
-  auto left_mid = [&]() { par_do(left, mid); };
-  par_do(left_mid, right);
-}
-
-template <typename Lf, typename Mf, typename Rf>
-static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
-  if (do_parallel)
-    par_do3(left, mid, right);
-  else {
-    left();
-    mid();
-    right();
-  }
-}
 
 namespace pbbs {
 
@@ -349,5 +323,32 @@ size_t log2_up(T i) {
 }
 
 size_t granularity(size_t n);
+
+template <typename Lf, typename Rf>
+static void par_do_if(bool do_parallel, Lf left, Rf right, bool cons = false) {
+  if (do_parallel)
+    par_do(left, right, cons);
+  else {
+    left();
+    right();
+  }
+}
+
+template <typename Lf, typename Mf, typename Rf>
+inline void par_do3(Lf left, Mf mid, Rf right) {
+  auto left_mid = [&]() { par_do(left, mid); };
+  par_do(left_mid, right);
+}
+
+template <typename Lf, typename Mf, typename Rf>
+static void par_do3_if(bool do_parallel, Lf left, Mf mid, Rf right) {
+  if (do_parallel)
+    par_do3(left, mid, right);
+  else {
+    left();
+    mid();
+    right();
+  }
+}
 
 }  // namespace pbbs

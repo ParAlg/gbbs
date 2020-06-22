@@ -3,6 +3,8 @@
 #include <cilk/cilk.h>
 #include <cilk/reducer.h>
 
+namespace pbbs {
+
 template <class T, int n>
 struct histogram_view {
   using value_type = std::array<T, n>;
@@ -29,3 +31,5 @@ using histogram_reducer = cilk::reducer<histogram_monoid<T, n>>;
 // use "histogram_reducer<int,n> r;" to define reducer with n int buckets
 // use "r->add_value(i)" to increment bucket i
 // use "r.get_value()[i]" to get bucket i
+
+}  // namespace pbbs

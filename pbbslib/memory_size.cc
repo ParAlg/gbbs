@@ -1,5 +1,6 @@
 #include "memory_size.h"
 
+namespace pbbs {
 size_t getMemorySize() {
 #if defined(_WIN32) && (defined(__CYGWIN__) || defined(__CYGWIN32__))
   /* Cygwin under Windows. ------------------------------------ */
@@ -66,3 +67,4 @@ size_t getMemorySize() {
   return 0L; /* Unknown OS. */
 #endif
 }
+}  // namespace pbbs

@@ -37,7 +37,7 @@ int BuildRMAT(int argc, char* argv[]) {
 
   auto C = pbbslib::sequence_to_string(updates);
   for (size_t i=0; i<100; i++) {
-    cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i]) << std::endl;
+    std::cout << std::get<0>(updates[i]) << " " << std::get<1>(updates[i]) << std::endl;
   }
 
   size_t nn = C.size();

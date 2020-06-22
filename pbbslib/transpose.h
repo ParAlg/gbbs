@@ -143,14 +143,14 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
   size_t m = num_buckets * num_blocks;
   sequence<s_size_t> dest_offsets;  //(m);
   auto add = addm<s_size_t>();
-  // cout << "ss 8" << endl;
+  // std::cout << "ss 8" << std::endl;
 
   // for smaller input do non-cache oblivious version
   if (n < (1 << 22) || num_buckets <= 512 || num_blocks <= 512) {
     size_t block_bits = log2_up(num_blocks);
     size_t block_mask = num_blocks - 1;
     if ((size_t)1 << block_bits != num_blocks) {
-      cout << "in transpose_buckets: num_blocks must be a power or 2" << endl;
+      std::cout << "in transpose_buckets: num_blocks must be a power or 2" << std::endl;
       abort();
     }
 
@@ -186,7 +186,7 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
         .trans(num_blocks, num_buckets);
     t.next("trans 1");
 
-    // cout << "ss 9" << endl;
+    // std::cout << "ss 9" << std::endl;
     // do both scans inplace
     total = scan_inplace(dest_offsets.slice(), add);
     if (total != n) abort();
@@ -199,7 +199,7 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
                             dest_offsets.begin())
         .trans(num_blocks, num_buckets);
     t.next("trans 2");
-    // cout << "ss 10" << endl;
+    // std::cout << "ss 10" << std::endl;
   }
 
   size_t *bucket_offsets = new_array_no_init<size_t>(num_buckets + 1);
@@ -209,4 +209,5 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
   bucket_offsets[num_buckets] = n;
   return bucket_offsets;
 }
-}
+
+}  // namespace pbbs

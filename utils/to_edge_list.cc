@@ -64,7 +64,7 @@ void print_edge_list(Graph& GA, std::string& outfile, bool direct_sym, bool mult
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();
-  cout << "Done" << endl;
+  std::cout << "Done" << std::endl;
 }
 
 /* Format:
@@ -112,7 +112,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();
-  cout << "Done" << endl;
+  std::cout << "Done" << std::endl;
 }
 
 template <class Graph>

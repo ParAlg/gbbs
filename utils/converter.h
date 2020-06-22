@@ -326,7 +326,7 @@ namespace bytepd_amortized {
     uintE* r = pbbslib::new_array_no_init<uintE>(n);
     sequence<uintE> o(n);
 
-    timer t;
+    pbbs::timer t;
     t.start();
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {

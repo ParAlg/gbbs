@@ -44,7 +44,7 @@ double PageRank_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001) << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
   double eps = P.getOptionDoubleValue("-eps", 0.000001);

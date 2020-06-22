@@ -24,7 +24,7 @@
 #include <math.h>
 #include <iostream>
 
-static timer bt;
+static pbbs::timer bt;
 using uchar = unsigned char;
 
 #define time(_var, _body) \
@@ -144,7 +144,7 @@ double t_scatter(size_t n, bool check) {
     //__builtin_prefetch (&out[idx[i+4]], 1, 1);
     out[idx[i]] = i;
   };
-  time(t, parallel_for(0, n - 4, f););
+  time(t, pbbs::parallel_for(0, n - 4, f););
   return t;
 }
 
@@ -153,7 +153,7 @@ double t_write_add(size_t n, bool check) {
   pbbs::random r(0);
   // pbbs::sequence<T> out(n, (T) 0);
   pbbs::sequence<std::atomic<T>> out(n);
-  parallel_for(0, n, [&](size_t i) { std::atomic_init(&out[i], (T)0); });
+  pbbs::parallel_for(0, n, [&](size_t i) { std::atomic_init(&out[i], (T)0); });
   pbbs::sequence<T> idx(n, [&](size_t i) { return r.ith_rand(i) % n; });
   auto f = [&](size_t i) {
     // putting write prefetch in slows it down
@@ -161,7 +161,7 @@ double t_write_add(size_t n, bool check) {
     //__sync_fetch_and_add(&out[idx[i]],1);};
     pbbs::write_add(&out[idx[i]], 1);
   };
-  time(t, parallel_for(0, n - 4, f););
+  time(t, pbbs::parallel_for(0, n - 4, f););
   return t;
 }
 
@@ -169,7 +169,7 @@ template <typename T>
 double t_write_min(size_t n, bool check) {
   pbbs::random r(0);
   pbbs::sequence<std::atomic<T>> out(n);
-  parallel_for(0, n, [&](size_t i) { std::atomic_init(&out[i], (T)n); });
+  pbbs::parallel_for(0, n, [&](size_t i) { std::atomic_init(&out[i], (T)n); });
   // pbbs::sequence<T> out(n, (T) n);
   pbbs::sequence<T> idx(n, [&](size_t i) { return r.ith_rand(i) % n; });
   auto f = [&](size_t i) {
@@ -177,7 +177,7 @@ double t_write_min(size_t n, bool check) {
     //__builtin_prefetch (&out[idx[i+4]], 1, 1);
     pbbs::write_min(&out[idx[i]], (T)i, std::less<T>());
   };
-  time(t, parallel_for(0, n - 4, f););
+  time(t, pbbs::parallel_for(0, n - 4, f););
   return t;
 }
 
@@ -197,8 +197,8 @@ bool check_histogram(pbbs::sequence<T> const &in,
   size_t err_loc =
       pbbs::find_if_index(m, [&](size_t i) { return out[i] != b[i]; });
   if (err_loc != m) {
-    cout << "ERROR in histogram at location " << err_loc << ", got "
-         << out[err_loc] << ", expected " << b[err_loc] << endl;
+    std::cout << "ERROR in histogram at location " << err_loc << ", got "
+         << out[err_loc] << ", expected " << b[err_loc] << std::endl;
     return false;
   }
   return true;
@@ -242,7 +242,7 @@ bool check_sort(pbbs::sequence<T> const &in, pbbs::sequence<T> const &out,
   size_t err_loc = pbbs::find_if_index(
       n, [&](size_t i) { return less(a[i], out[i]) || less(out[i], a[i]); });
   if (err_loc != n) {
-    cout << "ERROR in " << sort_name << " at location " << err_loc << endl;
+    std::cout << "ERROR in " << sort_name << " at location " << err_loc << std::endl;
     return false;
   }
   return true;
@@ -292,7 +292,7 @@ double t_count_sort_bits(size_t n, size_t bits) {
   time(t, pbbs::count_sort(in, out.slice(), keys, num_buckets););
   for (size_t i = 1; i < n; i++) {
     if ((out[i - 1] & mask) > (out[i] & mask)) {
-      cout << "ERROR in count sort at: " << i << endl;
+      std::cout << "ERROR in count sort at: " << i << std::endl;
       abort();
     }
   }
@@ -433,7 +433,7 @@ static T my_reduce(pbbs::sequence<T> const &s, size_t start, size_t end, F f) {
   T r, l;
   auto left = [&]() { r = my_reduce(s, h, end, f); };
   auto right = [&]() { l = my_reduce(s, start, h, f); };
-  par_do_if(h > 100, left, right);
+  pbbs::par_do_if(h > 100, left, right);
   return f(l, r);
 }
 
@@ -469,11 +469,11 @@ double t_range_min(size_t n, bool check) {
   pbbs::sequence<T> In(n, [&](size_t i) { return 5; });
   In[n / 2] = 0;
   time(t, auto foo = pbbs::make_range_min(In, std::less<T>());
-       parallel_for(0, n - 1, [&](size_t i) { foo.query(0, i); }););
+       pbbs::parallel_for(0, n - 1, [&](size_t i) { foo.query(0, i); }););
   if (foo.query(0, n - 1) != n / 2 || foo.query(0, n / 2 - 1) != 0 ||
       foo.query(0, n / 2) != n / 2 ||
       foo.query(n / 2 + 1, n - 1) != n / 2 + 1) {
-    cout << "error in range min query " << endl;
+    std::cout << "error in range min query " << std::endl;
     abort();
   }
   return t;

@@ -43,7 +43,7 @@ double CC_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
   timer t;
   t.start();

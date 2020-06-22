@@ -4,6 +4,8 @@
 #include <iomanip>
 #include <iostream>
 
+namespace pbbs {
+
 timer::timer(std::string _name, bool _start)
     : total_time(0.0), on(false), name(std::move(_name)) {
   if (_start) start();
@@ -68,3 +70,5 @@ void timer::reportTotal(const std::string& str) const { report(get_total(), str)
 void timer::next(const std::string& str) {
   if (on) report(get_next(), str);
 }
+
+}  // namespace pbbs

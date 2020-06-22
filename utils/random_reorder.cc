@@ -21,7 +21,7 @@ void randomReorder(Graph& GA, std::string& outfile) {
     offs[perm[i]] = GA.get_vertex(i).getOutDegree();
   });
   size_t tot = pbbslib::scan_add_inplace(offs.slice());
-  cout << "m = " << m << " tot = " << tot << endl;
+  std::cout << "m = " << m << " tot = " << tot << std::endl;
 
   parallel_for(0, n, [&] (size_t i) {
     size_t off = offs[perm[i]];
@@ -39,16 +39,16 @@ void randomReorder(Graph& GA, std::string& outfile) {
     std::cout << "Unable to open file: " << outfile << std::endl;
     exit(0);
   }
-  file << "AdjacencyGraph" << endl;
-  file << n << endl;
-  file << m << endl;
+  file << "AdjacencyGraph" << std::endl;
+  file << n << std::endl;
+  file << m << std::endl;
   auto off_chars = pbbslib::sequence_to_string(offs);
   auto edges_chars = pbbslib::sequence_to_string(edges);
   file.write(off_chars.begin(), off_chars.size());
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();
-  cout << "Done" << endl;
+  std::cout << "Done" << std::endl;
 }
 
 template <class Graph>

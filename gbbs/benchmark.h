@@ -54,7 +54,7 @@ inline auto get_pcm_state() { return (size_t)1; }
 
 #define run_app(G, APP, rounds)                                            \
   auto before_state = gbbs::get_pcm_state();                               \
-  timer st;                                                                \
+  pbbs::timer st;                                                                \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
     total_time += APP(G, P);                                               \
@@ -213,10 +213,10 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     if (!symmetric) {                                                          \
-      cout << "# The application expects the input graph to be symmetric (-s " \
+      std::cout << "# The application expects the input graph to be symmetric (-s " \
               "flag)."                                                         \
-           << endl;                                                            \
-      cout << "# Please run on a symmetric input." << endl;                    \
+           << std::endl;                                                            \
+      std::cout << "# Please run on a symmetric input." << std::endl;                    \
     }                                                                          \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     gbbs::pcm_init();                                                          \
@@ -245,10 +245,10 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     if (!symmetric) {                                                          \
-      cout << "# The application expects the input graph to be symmetric (-s " \
+      std::cout << "# The application expects the input graph to be symmetric (-s " \
               "flag)."                                                         \
-           << endl;                                                            \
-      cout << "# Please run on a symmetric input." << endl;                    \
+           << std::endl;                                                            \
+      std::cout << "# Please run on a symmetric input." << std::endl;                    \
     }                                                                          \
     gbbs::pcm_init();                                                          \
     if (compressed) {                                                          \

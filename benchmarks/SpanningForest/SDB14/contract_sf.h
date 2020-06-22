@@ -45,7 +45,7 @@ namespace contract_sf {
   // Fetch edges when the numbers of clusters is < small_cluster_size
   template <class Graph, class C, class E>
   auto fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
-    debug(cout << "Running fetch edges small" << endl;);
+    debug(cout << "Running fetch edges small" << std::endl;);
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
@@ -76,7 +76,7 @@ namespace contract_sf {
 
   template <class Graph, class C, class E>
   auto fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters, E& edge_mapping) {
-    debug(cout << "Running fetch edges te" << endl;);
+    debug(cout << "Running fetch edges te" << std::endl;);
     using K = std::pair<uintE, uintE>;
     using V = std::pair<uintE, uintE>;
     using KV = std::tuple<K, V>;
@@ -84,7 +84,7 @@ namespace contract_sf {
 
     size_t n = GA.n;
 
-    debug(cout << "num_clusters = " << num_clusters << endl;);
+    debug(cout << "num_clusters = " << num_clusters << std::endl;);
     timer count_t;
     count_t.start();
     auto deg_map = sequence<uintE>(n + 1);
@@ -107,7 +107,7 @@ namespace contract_sf {
 
 
     auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(deg_map[n], empty, hash_pair());
-    debug(cout << "sizeof table = " << edge_table.m << endl;);
+    debug(cout << "sizeof table = " << edge_table.m << std::endl;);
     deg_map.clear();
 
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -130,7 +130,7 @@ namespace contract_sf {
     using KV = std::tuple<K, V>;
     using W = typename Graph::weight_type;
     size_t n = GA.n;
-    debug(cout << "num_clusters = " << num_clusters << endl;);
+    debug(cout << "num_clusters = " << num_clusters << std::endl;);
     size_t estimated_edges = num_clusters*5;
 
     timer ins_t;
@@ -139,7 +139,7 @@ namespace contract_sf {
         std::make_tuple(std::make_pair(UINT_E_MAX, UINT_E_MAX), std::make_pair(UINT_E_MAX, UINT_E_MAX));
 
     auto edge_table = pbbslib::sparse_table<K, V, hash_pair>(estimated_edges, empty, hash_pair());
-    debug(cout << "sizeof table = " << edge_table.m << endl;);
+    debug(cout << "sizeof table = " << edge_table.m << std::endl;);
 
     bool abort = false;
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -153,7 +153,7 @@ namespace contract_sf {
     };
     parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
     if (abort) {
-      debug(cout << "calling fetch_intercluster_te" << endl;);
+      debug(cout << "calling fetch_intercluster_te" << std::endl;);
       return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);
     }
     return edge_table;
@@ -204,7 +204,7 @@ namespace contract_sf {
 
     auto GC = sym_graph_from_edges<pbbslib::empty>(sym_edges, num_ns_clusters);
 
-    debug(cout << "table.size = " << table.m << endl;);
+    debug(cout << "table.size = " << table.m << std::endl;);
     auto ret_table = pbbslib::sparse_table<K, V, hash_pair>(table.m, table.empty, hash_pair());
     // Go through the edge table and map edges to their new ids
     parallel_for(0, table.m, [&] (size_t i) {

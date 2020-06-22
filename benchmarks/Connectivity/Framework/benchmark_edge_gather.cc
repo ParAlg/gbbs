@@ -110,7 +110,7 @@ template <class Graph>
 double Sampler(Graph& G, commandLine& P) {
   std::cout << "[" << std::endl;
   TestEdgeGather<Graph>(G, P);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestEdgeMap<Graph>(G, P);
 
   std::cout << "]" << std::endl;

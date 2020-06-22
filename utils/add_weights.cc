@@ -100,7 +100,7 @@ void writeWeightedAdj(graph<vertex<W>>& GA, string& outfile) {
   par_for(0, n, [&] (size_t i) { degs[i] = GA.V[i].getOutDegree(); });
   degs[n] = 0;
   size_t total_offs = pbbs::scan_inplace(degs.slice(), pbbs::addm<uintT>());
-  cout << "total offs = " << total_offs << " m = " << m << endl;
+  std::cout << "total offs = " << total_offs << " m = " << m << std::endl;
 
   auto edges = pbbs::sequence<uintT>(2 * m);
   uintT* wghs = edges.start() + m;
@@ -125,7 +125,7 @@ void writeWeightedAdj(graph<vertex<W>>& GA, string& outfile) {
     }
 
     if (k != GA.V[i].getOutDegree()) {
-      cout << "k = " << k << " deg = " << GA.V[i].getOutDegree() << endl;
+      std::cout << "k = " << k << " deg = " << GA.V[i].getOutDegree() << std::endl;
     }
     assert(k == GA.V[i].getOutDegree());
   }, 1);
@@ -135,13 +135,13 @@ void writeWeightedAdj(graph<vertex<W>>& GA, string& outfile) {
     std::cout << "Unable to open file: " << outfile << std::endl;
     exit(0);
   }
-  file << "WeightedAdjacencyGraph" << endl;
-  file << n << endl;
-  file << m << endl;
+  file << "WeightedAdjacencyGraph" << std::endl;
+  file << n << std::endl;
+  file << m << std::endl;
   benchIO::writeArrayToStream(file, degs.start(), n);
   benchIO::writeArrayToStream(file, edges.start(), 2 * m);
   file.close();
-  cout << "Wrote file." << endl;
+  std::cout << "Wrote file." << std::endl;
   free(Choices);
 }
 
@@ -159,8 +159,8 @@ void writeWeightedBytePDADirected(graph<vertex<W>>& GA, string& outfile) {
     auto degrees = pbbs::sequence<uintE>(n);
     auto byte_offsets = pbbs::sequence<uintT>(n + 1);
     auto r = pbbs::random();
-    cout << "Calculating total size" << endl;
-    timer calc_t;
+    std::cout << "Calculating total size" << std::endl;
+    pbbs::timer calc_t;
     calc_t.start();
     parallel_for(0, n, [&] (size_t i) {
       size_t total_bytes = 0;
@@ -206,9 +206,9 @@ void writeWeightedBytePDADirected(graph<vertex<W>>& GA, string& outfile) {
 
     byte_offsets[n] = 0;
     size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
-    cout << "total space is: " << total_space << endl;
+    std::cout << "total space is: " << total_space << std::endl;
     auto edges = pbbs::sequence<uchar>(total_space);
-    cout << "Allocated, compressing!" << endl;
+    std::cout << "Allocated, compressing!" << std::endl;
 
     parallel_for(0, n, [&] (size_t i) {
       uintE deg = degrees[i];
@@ -218,14 +218,14 @@ void writeWeightedBytePDADirected(graph<vertex<W>>& GA, string& outfile) {
         long nbytes = sequentialCompressEdgeSet<int32_t>(
             edges.start() + byte_offsets[i], 0, deg, (uintE)i, it);
         if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
-          cout << "nbytes = " << nbytes
+          std::cout << "nbytes = " << nbytes
                << " but offs = " << (byte_offsets[i + 1] - byte_offsets[i])
-               << " deg = " << deg << " i = " << i << endl;
+               << " deg = " << deg << " i = " << i << std::endl;
         }
         assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
       }
     }, 1);
-    cout << "Compressed" << endl;
+    std::cout << "Compressed" << std::endl;
 
     long* sizes = pbbs::new_array_no_init<long>(3);
     sizes[0] = GA.n;
@@ -254,8 +254,8 @@ void writeWeightedBytePDA(graph<vertex<W>>& GA, string& outfile,
   auto degrees = pbbs::sequence<uintE>(n);
   auto byte_offsets = pbbs::sequence<uintT>(n + 1);
   auto r = pbbs::random();
-  cout << "Calculating total size" << endl;
-  timer calc_t;
+  std::cout << "Calculating total size" << std::endl;
+  pbbs::timer calc_t;
   calc_t.start();
   parallel_for(0, n, [&] (size_t i) {
     size_t total_bytes = 0;
@@ -301,7 +301,7 @@ void writeWeightedBytePDA(graph<vertex<W>>& GA, string& outfile,
 
   byte_offsets[n] = 0;
   size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
-  cout << "total space is: " << total_space << endl;
+  std::cout << "total space is: " << total_space << std::endl;
   auto edges = pbbs::sequence<uchar>(total_space);
 
   parallel_for(0, n, [&] (size_t i) {
@@ -312,14 +312,14 @@ void writeWeightedBytePDA(graph<vertex<W>>& GA, string& outfile,
       long nbytes = sequentialCompressEdgeSet<int32_t>(
           edges.start() + byte_offsets[i], 0, deg, (uintE)i, it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
-        cout << "nbytes = " << nbytes
+        std::cout << "nbytes = " << nbytes
              << " but offs = " << (byte_offsets[i + 1] - byte_offsets[i])
-             << " deg = " << deg << " i = " << i << endl;
+             << " deg = " << deg << " i = " << i << std::endl;
       }
       assert(nbytes == (byte_offsets[i + 1] - byte_offsets[i]));
     }
   }, 1);
-  cout << "Compressed" << endl;
+  std::cout << "Compressed" << std::endl;
 
   long* sizes = pbbs::new_array_no_init<long>(3);
   sizes[0] = GA.n;
@@ -351,7 +351,7 @@ void Reencoder(graph<vertex>& GA, commandLine P) {
       Choices[2 * i] = i + 1;
       Choices[2 * i + 1] = i + 1;
     }
-    cout << "mw = " << max_weight << endl;
+    std::cout << "mw = " << max_weight << std::endl;
   } else {
     max_weight = 1;
     int* Choices = pbbs::new_array_no_init<int>(2*max_weight);
@@ -363,7 +363,7 @@ void Reencoder(graph<vertex>& GA, commandLine P) {
   } else if (encoding == "bytepd-amortized") {
     encodings::bytepd_amortized::writeWeightedBytePDA(GA, outfile, symmetric);
   }
-  cout << "wrote output graph to: " << outfile << endl;
+  std::cout << "wrote output graph to: " << outfile << std::endl;
   // prevent running multiple times if -rounds 1 is not specified
   exit(0);
 }

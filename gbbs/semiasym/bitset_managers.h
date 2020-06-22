@@ -107,7 +107,7 @@ struct sym_bitset_manager {
 #ifndef SAGE
     return e0;
 #else
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return e0;
     } else {
       return e1;
@@ -651,7 +651,7 @@ struct compressed_sym_bitset_manager {
 #ifndef SAGE
     return e0;
 #else
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return e0;
     } else {
       return e1;

@@ -69,13 +69,13 @@ class sparse_table {
       if (alloc) {
         pbbslib::free_array(table);
       }
-      cout << "# Resizing decrement table, was: " << m;
+      std::cout << "# Resizing decrement table, was: " << m;
       m = incoming;
       mask = m - 1;
       table = pbbslib::new_array_no_init<T>(m);
       clearA(table, m, empty);
       alloc = true;
-      cout << "#  is now: " << m << endl;
+      std::cout << "#  is now: " << m << std::endl;
     }
   }
 

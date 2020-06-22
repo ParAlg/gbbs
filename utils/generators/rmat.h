@@ -39,8 +39,8 @@ namespace rmat {
          double _a, double _b, double _c) {
       n = _n; a = _a; ab = _a + _b; abc = _a+_b+_c;
       h = pbbs::hash64(_seed);
-      if (abc > 1) { cout << "in rMat: a + b + c add to more than 1\n"; abort();}
-      if ((1U << pbbs::log2_up(n)) != n) { cout << "in rMat: n not a power of 2"; exit(0); }
+      if (abc > 1) { std::cout << "in rMat: a + b + c add to more than 1\n"; abort();}
+      if ((1U << pbbs::log2_up(n)) != n) { std::cout << "in rMat: n not a power of 2"; exit(0); }
     }
 
     std::tuple<uintE, uintE> rMatRec(uintE nn, uintE randStart, uintE randStride) {

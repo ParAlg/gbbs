@@ -89,7 +89,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: -k = " << k << " -e (epsilon) = " << epsilon << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));
 

@@ -98,9 +98,9 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto deg_lt = pbbslib::make_sequence<uintE>(GA.n, [&] (size_t i) {
       return GA.get_vertex(i).getOutDegree() < (1 << 15); 
   });
-  cout << "count = " << pbbslib::reduce_add(deg_lt) << endl;
+  std::cout << "count = " << pbbslib::reduce_add(deg_lt) << std::endl;
   auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).getOutDegree() < (1 << 15)) { return GA.get_vertex(i).getOutDegree(); } return (uintE)0;  });
-  cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << endl;
+  std::cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << std::endl;
 
   auto counts = pbbs::sequence<size_t>(GA.n, (size_t)0);
   parallel_for(0, GA.n, [&] (size_t i) {
@@ -111,7 +111,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     };
     counts[i] = GA.get_vertex(i).countOutNgh(i, count_f);
   });
-  cout << "total lt ct = " << pbbslib::reduce_add(counts) << endl;
+  std::cout << "total lt ct = " << pbbslib::reduce_add(counts) << std::endl;
 
 
 
@@ -177,7 +177,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     uintE k = bkt.id;
     finished += rem_edges.size();
     k_max = std::max(k_max, bkt.id);
-    cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << endl;
+    std::cout << "k = " << k << " iter = " << iter << " #edges = " << rem_edges.size() << std::endl;
 
     if (k == 0 || finished == n_edges) {
       // No triangles incident to these edges. We set their trussness to MAX,
@@ -196,7 +196,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     decr_source_table.resize_no_copy(e_space_required);
     auto decr_tab = pbbslib::make_sparse_table<edge_t, uintE>(decr_source_table.table, e_space_required, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id, false /* do not clear */);
 
-//    cout << "starting decrements" << endl;
+//    std::cout << "starting decrements" << std::endl;
     decrement_t.start();
     par_for(0, rem_edges.size(), 1, [&] (size_t i) {
       edge_t id = rem_edges[i];
@@ -205,7 +205,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       truss_utils::decrement_trussness<edge_t, trussness_t>(GA, id, u, v, decr_tab, get_trussness_and_id, k);
     });
     decrement_t.stop();
-//    cout << "finished decrements" << endl;
+//    std::cout << "finished decrements" << std::endl;
 
     auto decr_edges = decr_tab.entries();
     parallel_for(0, decr_edges.size(), [&] (size_t i) {
@@ -275,7 +275,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     if (del_edges.size > 2*GA.n) {
       ct.start();
       // compact
-      cout << "compacting, " << del_edges.size << endl;
+      std::cout << "compacting, " << del_edges.size << std::endl;
       // map over both endpoints, update counts using histogram
       // this is really a uintE seq, but edge_t >= uintE, and this way we can
       // re-use the same histogram structure.
@@ -334,7 +334,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
   // == Important: The actual trussness is the stored trussness value + 1.
   // Edges with trussness 0 had their values stored as std::numeric_limits<int>::max()
-  cout << "iters = " << iter << endl;
+  std::cout << "iters = " << iter << std::endl;
 }
 
 }  // namespace gbbs

@@ -23,6 +23,8 @@
 
 #include "sequence.h"
 
+namespace pbbs {
+
 // The following supports both "union" that is only safe sequentially
 // and "link" that is safe in parallel.  Find is always safe in parallel.
 // See:  "Internally deterministic parallel algorithms can be fast"
@@ -77,3 +79,5 @@ struct unionFind {
             pbbs::atomic_compare_and_swap(&parents[u], -1, v));
   }
 };
+
+}  // namespace pbbs

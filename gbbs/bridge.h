@@ -20,6 +20,13 @@
 
 namespace gbbs {
   // ================== parallel primitives ===================
+
+  using pbbs::parallel_for;
+  using pbbs::par_do;
+  using pbbs::parallel_for_alloc;
+  using pbbs::num_workers;
+  using pbbs::worker_id;
+
   template <typename F>
   static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
     if (!parallel) {
@@ -53,6 +60,8 @@ namespace gbbs {
   // Alias template so that range is exposed w/o namespacing
   template<typename T>
   using range = pbbs::range<T>;
+
+  using pbbs::timer;
 }  // namespace gbbs
 
 
@@ -71,6 +80,12 @@ namespace pbbslib {
   const flags fl_conservative = pbbs::fl_conservative;
   const flags fl_inplace = pbbs::fl_inplace;
   const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
+
+  using pbbs::parallel_for;
+  using pbbs::par_do;
+  using pbbs::parallel_for_alloc;
+  using pbbs::num_workers;
+  using pbbs::worker_id;
 
   using pbbs::free_array;
   using pbbs::delete_array;

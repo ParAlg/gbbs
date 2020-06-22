@@ -436,4 +436,5 @@ sequence<typename Seq::value_type> collect_reduce_sparse(Seq const &A,
   };
   return collect_reduce_sparse(A, hasheq(), monoid);
 }
-}
+
+}  // namespace pbbs

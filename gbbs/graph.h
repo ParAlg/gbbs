@@ -256,7 +256,7 @@ struct symmetric_graph {
   vertex get_vertex(uintE i) { return vertex(e0, v_data[i]); }
 #else
   vertex get_vertex(uintE i) {
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return vertex(e0, v_data[i]);
     } else {
       return vertex(e1, v_data[i]);
@@ -326,7 +326,7 @@ struct asymmetric_graph {
   }
 #else
   vertex get_vertex(size_t i) {
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
     } else {
       return vertex(out_edges_1, v_out_data[i], in_edges_1, v_in_data[i]);

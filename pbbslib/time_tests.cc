@@ -65,9 +65,9 @@ bool run_multiple(size_t n, size_t rounds, float bytes_per_elt,
 
   double bandwidth = rate * bytes_per_elt / 1e9;
 
-  cout << name << std::setprecision(3) << ": r=" << rounds << ", med=" << med
+  std::cout << name << std::setprecision(3) << ": r=" << rounds << ", med=" << med
        << " (" << mint << "," << maxt << "), "
-       << "hlen=" << round(l) << ", " << x << " = " << bandwidth << endl;
+       << "hlen=" << round(l) << ", " << x << " = " << bandwidth << std::endl;
   return 1;
 }
 
@@ -80,7 +80,7 @@ float ebytes(int reads, int write_backs) {
 }
 
 double pick_test(size_t id, size_t n, size_t rounds, bool half_length) {
-  my_mem_pool.clear();
+  pbbs::my_mem_pool.clear();
   switch (id) {
     case 0:
       return run_multiple(n, rounds, ebytes(16, 8), "map long", t_map<long>,
@@ -212,13 +212,13 @@ int main(int argc, char* argv[]) {
   global_check = P.getOption("-check");
   int num_tests = 33;
 
-  cout << "n = " << n << endl;
-  cout << "rounds = " << rounds << endl;
-  cout << "num threads = " << num_workers() << endl;
+  std::cout << "n = " << n << std::endl;
+  std::cout << "rounds = " << rounds << std::endl;
+  std::cout << "num threads = " << pbbs::num_workers() << std::endl;
   if (half_length)
-    cout << "half length on" << endl;
+    std::cout << "half length on" << std::endl;
   else
-    cout << "half length off" << endl;
+    std::cout << "half length off" << std::endl;
 
   if (test_num == -1)
     for (int i = 0; i < num_tests; i++) pick_test(i, n, rounds, half_length);

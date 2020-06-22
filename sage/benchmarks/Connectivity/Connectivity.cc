@@ -45,7 +45,7 @@ double CC_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << " -permute = " << P.getOption("-permute") << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));
   timer t;

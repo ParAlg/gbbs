@@ -46,7 +46,7 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
   if (P.getOptionValue("-fa")) {

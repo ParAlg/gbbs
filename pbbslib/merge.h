@@ -82,4 +82,5 @@ sequence<typename SeqA::value_type> merge(const SeqA &A, const SeqB &B,
   merge_(A, B, R.slice(), f, cons);
   return R;
 }
-}
+
+}  // namespace pbbs

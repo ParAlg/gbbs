@@ -56,7 +56,7 @@ namespace contract {
     };
     auto edge_table = pbbslib::make_sparse_table<K, V>(small_cluster_size, empty, hash_pair);
 
-    timer ins_t; ins_t.start();
+    pbbs::timer ins_t; ins_t.start();
     auto map_f = [&](const uintE& src, const uintE& ngh, const W& w) {
       uintE c_src = clusters[src];
       uintE c_ngh = clusters[ngh];
@@ -87,7 +87,7 @@ namespace contract {
     size_t n = GA.n;
 
     debug(std::cout << "# num_clusters = " << num_clusters << std::endl;);
-    timer count_t;
+    pbbs::timer count_t;
     count_t.start();
     auto deg_map = sequence<uintE>(n + 1);
     auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
@@ -102,7 +102,7 @@ namespace contract {
     count_t.stop();
     debug(count_t.reportTotal("count time"););
 
-    timer ins_t;
+    pbbs::timer ins_t;
     ins_t.start();
     KV empty =
         std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());
@@ -145,7 +145,7 @@ namespace contract {
     debug(std::cout << "# num_clusters = " << num_clusters << std::endl;);
     size_t estimated_edges = num_clusters*5;
 
-    timer ins_t;
+    pbbs::timer ins_t;
     ins_t.start();
     KV empty =
         std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());

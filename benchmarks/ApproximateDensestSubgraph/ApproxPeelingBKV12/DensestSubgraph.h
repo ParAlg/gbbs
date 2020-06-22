@@ -142,7 +142,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   if (last_arr) {
     pbbs::free_array(last_arr);
   }
-  cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }
 

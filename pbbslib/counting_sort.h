@@ -220,7 +220,7 @@ std::pair<sequence<size_t>, bool> count_sort_(InS& In, OutS& Out, KeyS& Keys,
 
   // for (s_size_t i=0; i < num_buckets; i++) {
   //   bucket_offsets[i] = dest_offsets[i*num_blocks];
-  //   //cout << i << ", " << bucket_offsets[i] << endl;
+  //   //cout << i << ", " << bucket_offsets[i] << std::endl;
   // }
   // // last element is the total size n
   // bucket_offsets[num_buckets] = n;
@@ -246,4 +246,5 @@ std::pair<sequence<size_t>, bool> count_sort(
   return count_sort_<size_t>(In, Out, Keys, num_buckets, parallelism,
                              skip_if_in_one);
 }
-}
+
+}  // namespace pbbs

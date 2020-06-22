@@ -8,7 +8,7 @@ double Count5Cycle_runner(Graph& G, commandLine P) {
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s")); // make sure input graph is symmetric
   bool serial = P.getOptionValue("--serial"); 
   bool no_schedule = P.getOptionValue("--no-schedule");

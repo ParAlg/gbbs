@@ -224,4 +224,5 @@ void sample_sort(E* A, s_size_t n, const Compare& less, bool stable) {
   range<E*> B(A, A + n);
   sample_sort_inplace(B, less, stable);
 }
-}
+
+}  // namespace pbbs

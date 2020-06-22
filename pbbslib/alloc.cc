@@ -18,6 +18,7 @@ __mallopt __mallopt_var = __mallopt();
 #endif
 #endif
 
+namespace pbbs {
 namespace {
 
 // returns the log base 2 rounded up (works on ints or longs or unsigned
@@ -57,13 +58,13 @@ void* mem_pool::alloc(size_t s) {
   size_t n = ((size_t)1) << log_size;
   used += n;
   if (r.has_value()) {
-    // if (n > 10000000) cout << "alloc: " << add_header(*r) << ", " << n <<
-    // endl;
+    // if (n > 10000000) std::cout << "alloc: " << add_header(*r) << ", " << n <<
+    // std::endl;
     return add_header(*r);
   } else {
     void* a = (void*)aligned_alloc(header_size, n);
-    // if (n > 10000000) cout << "alloc: " << add_header(a) << ", " << n <<
-    // endl;
+    // if (n > 10000000) std::cout << "alloc: " << add_header(a) << ", " << n <<
+    // std::endl;
     allocated += n;
     if (a == NULL) std::cout << "alloc failed" << std::endl;
     // a hack to make sure pages are touched in parallel
@@ -77,7 +78,7 @@ void* mem_pool::alloc(size_t s) {
 }
 
 void mem_pool::afree(void* a) {
-  // cout << "free: " << a << endl;
+  // std::cout << "free: " << a << std::endl;
   void* b = sub_header(a);
   size_t bucket = *((size_t*)b);
   if (bucket == small_size_tag)
@@ -87,7 +88,7 @@ void mem_pool::afree(void* a) {
     abort();
   } else {
     size_t n = ((size_t)1) << (bucket + log_base);
-    // if (n > 10000000) cout << "free: " << a << ", " << n << endl;
+    // if (n > 10000000) std::cout << "free: " << a << ", " << n << std::endl;
     used -= n;
     if (n > mem_size / 64) {  // fix to 64
       free(b);
@@ -109,3 +110,4 @@ void mem_pool::clear() {
     }
   }
 }
+}  // namespace pbbs

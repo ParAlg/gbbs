@@ -135,7 +135,7 @@ struct vertexSubsetData {
       auto f_seq = pbbslib::make_sequence<D>(n, f);
       auto out = pbbslib::pack_index_and_data<uintE, data>(f_seq, n);
       if (out.size() != m) {
-        std::cout << "# m is " << m << " but out.size says" << out.size() << endl;
+        std::cout << "# m is " << m << " but out.size says" << out.size() << std::endl;
         std::cout << "# bad stored value of m"
                   << "\n";
         abort();
@@ -304,7 +304,7 @@ struct vertexSubsetData<pbbslib::empty> {
           pbbslib::make_sequence<bool>(n, [&](size_t i) { return _d[i]; });
       auto out = pbbslib::pack_index<uintE>(f_in);
       if (out.size() != m) {
-        std::cout << "# m is " << m << " but out.size says" << out.size() << endl;
+        std::cout << "# m is " << m << " but out.size says" << out.size() << std::endl;
         std::cout << "# bad stored value of m"
                   << "\n";
         std::cout << "# out.size = " << out.size() << " m = " << m << " n = " << n

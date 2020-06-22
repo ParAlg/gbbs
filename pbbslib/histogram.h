@@ -233,4 +233,5 @@ sequence<s_size_t> histogram(Seq const &A, size_t m) {
   t.next("within buckets ");
   return counts;
 }
-}
+
+}  // namespace pbbs

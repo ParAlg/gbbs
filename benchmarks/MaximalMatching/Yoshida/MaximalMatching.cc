@@ -62,7 +62,7 @@ double MaximalMatching_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -query_cutoff = " << query_cutoff << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   timer t; t.start();

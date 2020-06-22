@@ -113,7 +113,7 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
   }
   auto get_dist = [&] (size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
   auto dist_im = pbbs::delayed_seq<uintE>(n, get_dist);
-  cout << "max_dist = " << pbbslib::reduce_max(dist_im) << endl;
+  std::cout << "max_dist = " << pbbslib::reduce_max(dist_im) << std::endl;
   bktt.reportTotal("bucket time");
 }
 
@@ -123,15 +123,15 @@ void Compute(Graph& G, commandLine P) {
   uintE delta = P.getOptionLongValue("-delta",1);
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
   if (num_buckets != (1 << pbbs::log2_up(num_buckets))) {
-    cout << "Please specify a number of buckets that is a power of two" << endl;
+    std::cout << "Please specify a number of buckets that is a power of two" << std::endl;
     exit(-1);
   }
-  cout << "### Application: Delta-Stepping" << endl;
-  cout << "### Graph: " << P.getArgument(0) << endl;
-  cout << "### Buckets: " << num_buckets << endl;
-  cout << "### n: " << G.n << endl;
-  cout << "### m: " << G.m << endl;
-  cout << "### delta = " << delta << endl;
+  std::cout << "### Application: Delta-Stepping" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Buckets: " << num_buckets << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
+  std::cout << "### delta = " << delta << std::endl;
   DeltaStepping(G, src, delta, num_buckets);
 }
 

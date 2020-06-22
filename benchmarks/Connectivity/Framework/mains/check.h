@@ -70,7 +70,7 @@ inline void cc_check(S1& correct, S2& check) {
       pbbs::write_max(&max_chk, check[i], std::less<parent>());
     }
   });
-  cout << "# correctness check: " << is_correct << endl;
-  cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << endl;
+  std::cout << "# correctness check: " << is_correct << std::endl;
+  std::cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << std::endl;
 }
 }  // namespace gbbs

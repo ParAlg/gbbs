@@ -31,7 +31,7 @@ namespace pbbs {
   // Reads a character sequence from a file
   //    if end is zero or larger than file, then returns full file
   //    if start past end of file then returns an empty string
-  sequence<char> 
+  sequence<char>
   char_seq_from_file(const std::string& filename, size_t start=0, size_t end=0);
 
   // Writes a character sequence to a file, returns 0 if successful
@@ -118,7 +118,7 @@ namespace pbbs {
 	return S.begin() + Starts[i];});
   }
 
-  
+
   template <class Seq, class BoolSeq>
   sequence<range<char*>> partition_at(Seq const &S, BoolSeq const &StartFlags) {
     size_t n = S.size();
@@ -128,8 +128,8 @@ namespace pbbs {
     sequence<long> Starts = pbbs::pack_index<long>(StartFlags);
     return sequence<range<char*>>(Starts.size(), [&] (size_t i) {
 	long end = (i==Starts.size()-1) ? n : Starts[i+1];
-	return range<char*>(S.slice(Starts[i],end));});			    
+	return range<char*>(S.slice(Starts[i],end));});
   }
 
-}
+}  // namespace pbbs
 

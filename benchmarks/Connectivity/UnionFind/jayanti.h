@@ -38,7 +38,7 @@ namespace jayanti_rank {
     }
 
     void print(uintE vtx_id) const {
-      cout << "# vtx: " << vtx_id << " parent = " << get_parent() << " rank = " << get_rank() << " is_root = " << is_root() << endl;
+      std::cout << "# vtx: " << vtx_id << " parent = " << get_parent() << " rank = " << get_rank() << " is_root = " << is_root() << std::endl;
     }
   };
 

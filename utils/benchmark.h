@@ -2,7 +2,7 @@
 
 /* ************************* Benchmark Utils *************************** */
 namespace gbbs {
-static timer bt;
+static pbbs::timer bt;
 using uchar = unsigned char;
 
 #define time(_var,_body)    \
