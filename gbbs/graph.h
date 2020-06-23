@@ -57,7 +57,7 @@ struct symmetric_graph {
   size_t num_vertices() { return n; }
   size_t num_edges() { return m; }
 
-  // ======================= Graph Operators: Packing ========================
+  // ======== Graph operators that perform packing ========
   template <class P>
   uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
     uintE new_degree = get_vertex(id).packOutNgh(id, p, (std::tuple<uintE, W>*)tmp);
@@ -149,6 +149,90 @@ struct symmetric_graph {
   std::function<void()> deletion_fn;
 };
 
+// Similar to symmetric_graph, but edges are not necessarily allocated
+// consecutively. The structure simply stores an array of vertex
+// objects (which store an 8-byte pointer, and a uintE degree each).
+template <template <class W> class vertex_type, class W>
+struct symmetric_ptr_graph {
+  using vertex = vertex_type<W>;
+  using weight_type = W;
+  using edge_type = typename vertex::edge_type;
+  using graph = symmetric_ptr_graph<vertex_type, W>;
+
+  size_t num_vertices() { return n; }
+  size_t num_edges() { return m; }
+
+  // ======== Graph operators that perform packing ========
+  template <class P>
+  uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
+    uintE new_degree = get_vertex(id).packOutNgh(id, p, (std::tuple<uintE, W>*)tmp);
+    vertices[id].degree = new_degree;  // updates the degree
+    return new_degree;
+  }
+
+  // degree must be <= old_degree
+  void decreaseVertexDegree(uintE id, uintE degree) {
+    assert(degree <= vertices[id].degree);
+    vertices[id].degree = degree;
+  }
+
+  void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
+
+  pbbs::sequence<std::tuple<uintE, uintE, W>> edges() {
+    using g_edge = std::tuple<uintE, uintE, W>;
+    auto degs = pbbs::sequence<size_t>(
+        n, [&](size_t i) { return get_vertex(i).getOutDegree(); });
+    size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
+    assert(sum_degs == m);
+    auto edges = pbbs::sequence<g_edge>(sum_degs);
+    parallel_for(0, n, [&](size_t i) {
+      size_t k = degs[i];
+      auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+       edges[k++] = std::make_tuple(u, v, wgh);
+      };
+      get_vertex(i).mapOutNgh(i, map_f, false);
+    }, 1);
+    return edges;
+  }
+
+  template <class F>
+  void mapEdges(F f, bool parallel_inner_map = true) {
+    parallel_for(0, n, [&](size_t i) {
+      get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
+    }, 1);
+  }
+
+  // ======================= Constructors and fields  ========================
+  symmetric_ptr_graph()
+      : n(0),
+        m(0),
+        vertices(nullptr),
+        deletion_fn([]() {}) {}
+
+  symmetric_ptr_graph(size_t n, size_t m, vertex* _vertices, std::function<void()> _deletion_fn)
+      : n(n),
+        m(m),
+        vertices(_vertices),
+        deletion_fn(_deletion_fn) {
+  }
+  void del() { deletion_fn(); }
+
+  // Note that observers recieve a handle to a vertex object which is only valid
+  // so long as this graph's memory is valid (i.e., before del() has been
+  // called).
+  vertex get_vertex(uintE i) { return vertices[i]; }
+
+  // number of vertices in G
+  size_t n;
+  // number of edges in G
+  size_t m;
+  // pointer to array of vertex objects
+  vertex* vertices;
+
+  // called to delete the graph
+  std::function<void()> deletion_fn;
+};
+
 /* Compressed Sparse Row (CSR) based representation for asymmetric
  * graphs.  Note that the symmetric/asymmetric structures are pretty
  * similar, but defined separately. The purpose is to try and avoid
@@ -235,6 +319,51 @@ struct asymmetric_graph {
       in_edges_1 = _in_edges_1;
     }
   }
+
+  void del() { deletion_fn(); }
+
+  template <class F>
+  void mapEdges(F f, bool parallel_inner_map = true) {
+    parallel_for(
+        0, n,
+        [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
+        1);
+  }
+};
+
+// Similar to asymmetric_graph, but edges are not necessarily allocated
+// consecutively.
+template <template <class W> class vertex_type, class W>
+struct asymmetric_ptr_graph {
+  using vertex = vertex_type<W>;
+  using weight_type = W;
+  using edge_type = typename vertex::edge_type;
+
+  // number of vertices in G
+  size_t n;
+  // number of edges in G
+  size_t m;
+  // pointer to array of vertex object
+  vertex* vertices;
+
+  // called to delete the graph
+  std::function<void()> deletion_fn;
+
+  vertex get_vertex(size_t i) {
+    return vertices[i];
+  }
+
+  asymmetric_ptr_graph()
+      : n(0),
+        m(0),
+        vertices(nullptr),
+        deletion_fn([]() {}) {}
+
+  asymmetric_ptr_graph(size_t n, size_t m, vertex* _vertices, std::function<void()> _deletion_fn)
+      : n(n),
+        m(m),
+        vertices(_vertices),
+        deletion_fn(_deletion_fn) {}
 
   void del() { deletion_fn(); }
 
