@@ -480,7 +480,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     return !not_critical_edge(src, ngh);
   };
   timer ft; ft.start();
-  GA.filterEdges(pack_predicate);
+  filterEdges(GA, pack_predicate);
 //  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
   ft.stop(); debug(ft.reportTotal("filter edges time"););
 //  vs_active.del();

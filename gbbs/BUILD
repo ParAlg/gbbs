@@ -11,6 +11,7 @@ cc_library(
   ":bridge",
   ":flags",
   ":graph",
+  ":interface",
   ":macros",
   ":vertex_subset",
   ]
@@ -157,6 +158,20 @@ cc_library(
   ":graph_mutation",
   ":macros",
   ":vertex",
+  ":vertex_subset",
+  ]
+)
+
+cc_library(
+  name = "interface",
+  hdrs = ["interface.h"],
+  deps = [
+  ":edge_array",
+  ":edge_map_reduce",
+  ":edge_map_data",
+  ":flags",
+  ":graph_mutation",
+  ":macros",
   ":vertex_subset",
   ]
 )

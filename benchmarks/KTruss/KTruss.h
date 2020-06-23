@@ -52,7 +52,7 @@ void initialize_trussness_values(Graph& GA, MT& multi_table) {
   // 2.(b) Direct edges to point from lower to higher rank vertices.
   auto pack_predicate =
       [&](const uintE& u, const uintE& v, const W& wgh) { return rank[u] < rank[v]; };
-  auto DG = GA.filterGraph(GA, pack_predicate);
+  auto DG = filterGraph(GA, pack_predicate);
   std::cout << "Filtered graph to construct dirgraph: n = " << DG.n << " m = " << DG.m << std::endl;
 
   // Each triangle only found once---increment all three edges
@@ -303,7 +303,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       em_t.start();
       auto vs = vertexSubset(GA.n, decr_seq.size(), decr_seq.begin());
       auto cond_f = [&] (const uintE& u) { return true; };
-      GA.nghCount(vs, cond_f, apply_vtx_f, em);
+      nghCount(GA, vs, cond_f, apply_vtx_f, em);
       em_t.stop();
 
       auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
