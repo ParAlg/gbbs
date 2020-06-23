@@ -102,7 +102,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
       return Elms[ngh] != sc::COVERED;
     };
     auto pack_apply = [&](uintE v, size_t ct) { D[v] = get_bucket_clamped(ct); };
-    auto packed_vtxs = G.srcPack(active, pack_predicate, pack_edges);
+    auto packed_vtxs = srcPack(G, active, pack_predicate, pack_edges);
     vertexMap(packed_vtxs, pack_apply);
     packt.stop();
 
@@ -145,7 +145,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     auto threshold_f = [&](const uintE& v, const uintE& numWon) {
       if (numWon >= low_threshold) D[v] = UINT_E_MAX;
     };
-    auto activeAndCts = G.srcCount(still_active, won_ngh_f);
+    auto activeAndCts = srcCount(G, still_active, won_ngh_f);
     vertexMap(activeAndCts, threshold_f);
     auto inCover =
         vertexFilter(activeAndCts, [&](const uintE& v, const uintE& numWon) {

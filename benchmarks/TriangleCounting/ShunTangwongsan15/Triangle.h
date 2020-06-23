@@ -189,7 +189,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DG = G.filterGraph(G, pack_predicate);
+  auto DG = filterGraph(G, pack_predicate);
   //auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
@@ -224,7 +224,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
     return (ordering[u] < ordering[v]);
   };
 
-  auto DG = G.filterGraph(G, pack_predicate);
+  auto DG = filterGraph(G, pack_predicate);
  // auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");

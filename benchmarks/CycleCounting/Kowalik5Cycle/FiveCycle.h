@@ -332,7 +332,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
   std::cout << "Filter done\n"; fflush(stdout);
 
 
@@ -456,7 +456,7 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
   std::cout << "Filter done\n"; fflush(stdout);
 
   timer t; t.start();
@@ -493,7 +493,7 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
   std::cout << "Filter done\n"; fflush(stdout);
 
   timer t2; t2.start();
@@ -558,7 +558,7 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
 
   std::cout << "Filter done\n"; fflush(stdout);
 
@@ -684,13 +684,13 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
+  auto OUTG = filterGraph(GDO, out_direction); // only keeps track of out edges
 
   auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u > v;
   };
-  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
+  auto ING = filterGraph(GDO, in_direction); // only keeps track of in edges
 
   std::cout << "Filter done\n"; fflush(stdout);
 
@@ -864,13 +864,13 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
+  auto OUTG = filterGraph(GDO, out_direction); // only keeps track of out edges
 
   auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u > v;
   };
-  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
+  auto ING = filterGraph(GDO, in_direction); // only keeps track of in edges
 
   std::cout << "Filter done\n"; fflush(stdout);
 

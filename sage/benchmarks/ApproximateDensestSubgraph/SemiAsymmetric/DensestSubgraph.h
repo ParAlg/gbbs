@@ -81,7 +81,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return std::nullopt;
     };
 
-    G.nghCount(vs, cond_f, apply_f, em, no_output);
+    nghCount(G, vs, cond_f, apply_f, em, no_output);
 
     round++;
     last_arr = this_arr;
@@ -140,7 +140,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       auto cond_f = [&] (const uintE& u) {
         return alive[u];
       };
-      G.nghCount(vs, cond_f, apply_f, em, no_output);
+      nghCount(G, vs, cond_f, apply_f, em, no_output);
     }
 
     round++;

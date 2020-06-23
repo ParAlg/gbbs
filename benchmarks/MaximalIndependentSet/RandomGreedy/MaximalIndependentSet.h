@@ -87,7 +87,7 @@ struct GetNghs {
 template <class Graph, class VS, class P>
 inline vertexSubset get_nghs(Graph& G, VS& vs, P& p) {
   using W = typename Graph::weight_type;
-  return G.nghMap(vs, GetNghs<P, W>(p));
+  return nghMap(G, vs, GetNghs<P, W>(p));
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {

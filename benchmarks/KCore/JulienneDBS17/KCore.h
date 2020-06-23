@@ -64,7 +64,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     };
 
     auto cond_f = [] (const uintE& u) { return true; };
-    vertexSubsetData<uintE> moved = G.nghCount(active, cond_f, apply_f, em, no_dense);
+    vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
     bt.start();
     if (moved.dense()) {
       b.update_buckets(moved.get_fn_repr(), n);
