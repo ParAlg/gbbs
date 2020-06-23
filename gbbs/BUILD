@@ -170,6 +170,7 @@ cc_library(
   ":edge_map_reduce",
   ":edge_map_data",
   ":flags",
+  ":graph",
   ":graph_mutation",
   ":macros",
   ":vertex_subset",

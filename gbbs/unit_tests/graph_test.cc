@@ -77,6 +77,32 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   graph.del();
 }
 
+TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
+  // Graph diagram:
+  // 0 -- 1    2    3
+  using edge = std::tuple<uintE, uintE, int>;
+  const uintE n = 4;
+  pbbs::sequence<edge> edges(2);
+  edges[0] = std::make_tuple(0, 1, 1);
+  edges[1] = std::make_tuple(1, 0, 1);
+  auto graph = sym_graph_from_edges(edges, n);
+
+  ASSERT_EQ(graph.n, n);
+  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+  auto G = graph.copy();
+  graph.del();
+
+  ASSERT_EQ(G.n, n);
+  ASSERT_EQ(G.get_vertex(0).getOutDegree(), 1);
+  ASSERT_EQ(G.get_vertex(1).getOutDegree(), 1);
+  ASSERT_EQ(G.get_vertex(2).getOutDegree(), 0);
+  ASSERT_EQ(G.get_vertex(3).getOutDegree(), 0);
+  G.del();
+}
+
 TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   // Graph diagram:
   // 0 -- 1    2    3
@@ -124,6 +150,33 @@ TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
   ASSERT_EQ(G.get_vertex(8).getOutDegree(), 2);
   ASSERT_EQ(G.get_vertex(9).getOutDegree(), 2);
   ASSERT_EQ(G.get_vertex(10).getOutDegree(), 3);
+  G.del();
+}
+
+TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
+  // Graph diagram:
+  // 0 -- 1    2    3
+  using edge = std::tuple<uintE, uintE, int>;
+  const uintE n = 4;
+  pbbs::sequence<edge> edges(2);
+  edges[0] = std::make_tuple(0, 1, 1);
+  edges[1] = std::make_tuple(1, 0, 1);
+  auto graph = sym_ptr_graph_from_edges(edges, n);
+
+  ASSERT_EQ(graph.n, n);
+  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+
+  auto G = graph.copy();
+  graph.del();
+
+  ASSERT_EQ(G.n, n);
+  ASSERT_EQ(G.get_vertex(0).getOutDegree(), 1);
+  ASSERT_EQ(G.get_vertex(1).getOutDegree(), 1);
+  ASSERT_EQ(G.get_vertex(2).getOutDegree(), 0);
+  ASSERT_EQ(G.get_vertex(3).getOutDegree(), 0);
   G.del();
 }
 

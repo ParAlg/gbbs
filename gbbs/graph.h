@@ -121,6 +121,22 @@ struct symmetric_graph {
   }
   void del() { deletion_fn(); }
 
+  // creates an in-memory copy of the graph.
+  graph copy() {
+    auto vd = pbbs::new_array_no_init<vertex_data>(n);
+    auto ed = pbbs::new_array_no_init<edge_type>(m);
+    parallel_for(0, n, [&] (size_t i) {
+      vd[i] = v_data[i];
+    });
+    parallel_for(0, m, [&] (size_t i) {
+      ed[i] = e0[i];
+    });
+    return graph(vd, n, m, [vd, ed] () {
+      pbbs::free_array(vd);
+      pbbs::free_array(ed);
+    }, ed);
+  }
+
 #ifndef SAGE
   vertex get_vertex(uintE i) { return vertex(e0, v_data[i]); }
 #else
@@ -207,15 +223,50 @@ struct symmetric_ptr_graph {
       : n(0),
         m(0),
         vertices(nullptr),
+        edge_list_sizes(nullptr),
         deletion_fn([]() {}) {}
 
-  symmetric_ptr_graph(size_t n, size_t m, vertex* _vertices, std::function<void()> _deletion_fn)
+  symmetric_ptr_graph(size_t n, size_t m, vertex* _vertices, std::function<void()> _deletion_fn, uintE* _edge_list_sizes=nullptr)
       : n(n),
         m(m),
         vertices(_vertices),
+        edge_list_sizes(_edge_list_sizes),
         deletion_fn(_deletion_fn) {
   }
   void del() { deletion_fn(); }
+
+  // creates an in-memory copy of the graph.
+  graph copy() {
+    vertex* V = pbbs::new_array_no_init<vertex>(n);
+    auto offsets = sequence<size_t>(n+1);
+    parallel_for(0, n, [&] (size_t i) {
+      V[i] = vertices[i];
+      offsets[i] = (edge_list_sizes == nullptr) ? V[i].getOutDegree() : edge_list_sizes[i];
+    });
+    offsets[n] = 0;
+    size_t total_space = pbbslib::scan_add_inplace(offsets.slice());
+    edge_type* E = pbbs::new_array_no_init<edge_type>(total_space);
+    parallel_for(0, n, [&] (size_t i) {
+      size_t offset = offsets[i];
+      if constexpr (std::is_same<vertex, symmetric_vertex<W>>::value) {
+        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t ind) {
+          E[offset + ind] = std::make_tuple(v, wgh);
+        };
+        V[i].mapOutNghWithIndex(i, map_f);
+      } else {
+        size_t next_offset = offsets[i+1];
+        size_t to_copy = next_offset - offset;
+        // memcpy?
+        parallel_for(0, to_copy, [&] (size_t j) {
+          E[offset + j] = V[i].neighbors[j];
+        });
+      }
+    });
+    return graph(n, m, V, [V, E] () {
+        pbbs::free_array(V);
+        pbbs::free_array(E);
+    });
+  }
 
   // Note that observers recieve a handle to a vertex object which is only valid
   // so long as this graph's memory is valid (i.e., before del() has been
@@ -228,6 +279,9 @@ struct symmetric_ptr_graph {
   size_t m;
   // pointer to array of vertex objects
   vertex* vertices;
+  // pointer to array of vertex edge-list sizes---necessary if copying a
+  // compressed graph in this representation.
+  uintE* edge_list_sizes;
 
   // called to delete the graph
   std::function<void()> deletion_fn;
