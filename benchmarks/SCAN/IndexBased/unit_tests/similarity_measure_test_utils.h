@@ -3,6 +3,8 @@
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "gmock/gmock.h"
 
+namespace gbbs {
+
 // Googletest-like equality matcher for `scan::EdgeSimilarity`.
 inline auto EdgeSimilarityEq(
     const uintE expected_source,
@@ -17,3 +19,5 @@ inline auto EdgeSimilarityEq(
       &scan::EdgeSimilarity::similarity,
       ::testing::FloatEq(expected_similarity)));
 }
+
+}  // namespace gbbs

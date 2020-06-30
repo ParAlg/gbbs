@@ -9,6 +9,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+namespace gbbs {
+
 namespace gt = graph_test;
 namespace s = scan;
 namespace si = scan::internal;
@@ -199,3 +201,5 @@ TEST(ApproxJaccardSimilarity, AllEdges) {
         EdgeSimilarityApproxEq(3, 4, 0.75, kTolerance),
         EdgeSimilarityApproxEq(4, 3, 0.75, kTolerance)));
 }
+
+}  // namespace gbbs

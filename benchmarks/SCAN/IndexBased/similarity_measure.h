@@ -191,7 +191,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   const auto filter_predicate{[&](const uintE u, const uintE v, pbbs::empty) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
-  auto directed_graph{graph->filterGraph(*graph, filter_predicate)};
+  auto directed_graph{filterGraph(*graph, filter_predicate)};
 
   // Estimate the amount of work for each vertex for better load balancing.
   auto parallel_work{sequence<size_t>(directed_graph.n)};
