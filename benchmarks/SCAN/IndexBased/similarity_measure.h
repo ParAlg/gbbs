@@ -458,13 +458,15 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     num_vertices,
     [&](const size_t vertex_id) {
       Vertex vertex{graph->get_vertex(vertex_id)};
-      const uintE degree{vertex.getOutDegree()};
+      if (vertex.getOutDegree() < exact_threshold) {
+        return pbbs::sequence<uint64_t>{};
+      }
       bool skip_fingerprint{true};
       const auto check_exact_threshold{
         [&](uintE, const uintE neighbor_id, Weight) {
           if (skip_fingerprint &&
-              (degree + graph->get_vertex(neighbor_id).getOutDegree() >=
-               exact_threshold)) {
+              graph->get_vertex(neighbor_id).getOutDegree() >=
+                exact_threshold) {
             skip_fingerprint = false;
           }
         }};
@@ -507,10 +509,12 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       Vertex neighbor{graph->get_vertex(neighbor_id)};
       const size_t vertex_degree{vertex.getOutDegree()};
       const size_t neighbor_degree{neighbor.getOutDegree()};
-      if (vertex_degree + neighbor_degree < exact_threshold) {
+      if (vertex_degree < exact_threshold ||
+          neighbor_degree < exact_threshold) {
         // compute exact similarity
+        constexpr auto no_op{[](uintE, uintE, uintE) {}};
         const size_t num_shared_neighbors{
-          vertex.intersect(&neighbor, vertex_id, neighbor_id)};
+          vertex.intersect_f_par(&neighbor, vertex_id, neighbor_id, no_op)};
         const size_t union_of_neighbors{
           vertex_degree + neighbor_degree - num_shared_neighbors};
         similarity_estimate =
@@ -590,7 +594,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  const size_t exact_threshold{static_cast<size_t>(1.5 * num_samples_)};
+  const size_t exact_threshold{static_cast<size_t>(2.0 * num_samples_)};
   return internal::ApproxJaccardEdgeSimilarities(
       graph, num_samples_, exact_threshold, random_seed_);
 }
