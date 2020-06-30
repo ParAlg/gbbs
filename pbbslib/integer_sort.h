@@ -190,9 +190,10 @@ template <typename SeqIn, typename IterOut, typename Get_Key>
 sequence<size_t> integer_sort_(SeqIn const &In, range<IterOut> Out,
                                range<IterOut> Tmp, Get_Key const &g,
                                size_t bits, size_t num_buckets, bool inplace) {
-  if (slice_eq(In.slice(), Out))
-    throw std::invalid_argument(
-        "in integer_sort : input and output must be different locations");
+  if (slice_eq(In.slice(), Out)) {
+    std::cout << "in integer_sort : input and output must be different locations" << std::endl;
+    exit(-1);
+  }
   if (bits == 0) {
     auto get_key = [&](size_t i) { return g(In[i]); };
     auto keys = delayed_seq<size_t>(In.size(), get_key);
@@ -245,4 +246,5 @@ integer_sort_with_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
   auto R = integer_sort(In, g, bits);
   return std::make_pair(std::move(R), get_counts<Tint>(R, g, num_buckets));
 }
-}
+
+}  // namespace pbbs

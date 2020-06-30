@@ -24,11 +24,11 @@
 #pragma once
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
-#include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/contract.h"
 #include "benchmarks/Connectivity/common.h"
 
+namespace gbbs {
 namespace workefficient_cc {
 
 template <class Graph>
@@ -117,3 +117,4 @@ inline sequence<parent> CC(Graph& G, double beta = 0.2, bool pack = false, bool 
 }
 
 }  // namespace workefficient_cc
+}  // namespace gbbs

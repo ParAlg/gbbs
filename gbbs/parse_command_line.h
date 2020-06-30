@@ -28,6 +28,8 @@
 #include <iostream>
 #include <string>
 
+namespace gbbs {
+
 struct commandLine {
   int argc;
   char** argv;
@@ -57,3 +59,5 @@ struct commandLine {
   double
   getOptionDoubleValue(const std::string& option, double defaultValue) const;
 };
+
+}  // namespace gbbs

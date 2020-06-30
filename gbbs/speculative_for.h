@@ -27,7 +27,7 @@
 
 #include "bridge.h"
 
-//namespace pbbslib {
+namespace gbbs {
 
   template <class intT>
   struct reservation {
@@ -162,4 +162,5 @@
     }
     return totalProcessed;
   }
-//}; // namespace pbbslib
+
+}  // namespace gbbs

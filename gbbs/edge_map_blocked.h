@@ -9,6 +9,8 @@
 
 #include <vector>
 
+namespace gbbs {
+
 template <class data  /* data associated with vertices in the output vertex_subset */,
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
@@ -116,7 +118,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
-  cout << "# num_blocks = " << num_blocks << endl;
+  std::cout << "# num_blocks = " << num_blocks << std::endl;
 
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
@@ -212,7 +214,7 @@ struct em_data_block {
   size_t block_size;
   uint8_t data[kDataBlockSizeBytes];
 };
-using data_block_allocator = list_allocator<em_data_block>;
+using data_block_allocator = pbbs::list_allocator<em_data_block>;
 
 
 // block format:
@@ -316,9 +318,9 @@ void alloc_init(Graph& G) {
   size_t uintes_per_block = kDataBlockSizeBytes/sizeof(uintE);
   size_t list_alloc_init_blocks = std::max(static_cast<size_t>(0.5 * (G.n/uintes_per_block)),
       static_cast<size_t>(1000));
-  cout << "# list_alloc init_blocks: " << list_alloc_init_blocks << endl;
+  std::cout << "# list_alloc init_blocks: " << list_alloc_init_blocks << std::endl;
   data_block_allocator::reserve(list_alloc_init_blocks);
-  cout << "# after init: " << endl;
+  std::cout << "# after init: " << std::endl;
   data_block_allocator::print_stats();
 }
 
@@ -379,9 +381,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
   size_t n_groups = pbbs::num_blocks(outEdgeCount, edge_block_size);
 
-//  cout << "outEdgeCount = " << outEdgeCount << endl;
-//  cout << "n_blocks = " << num_blocks << endl;
-//  cout << "n_groups = " << n_groups << endl;
+//  std::cout << "outEdgeCount = " << outEdgeCount << std::endl;
+//  std::cout << "n_blocks = " << num_blocks << std::endl;
+//  std::cout << "n_groups = " << n_groups << std::endl;
 
   auto our_emhelper = emhelper<data, Graph>(n_groups);
 
@@ -460,3 +462,4 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 //  our_em_block.reset(); (handled by get_all_blocks)
   return std::move(ret);
 }
+}  // namespace gbbs

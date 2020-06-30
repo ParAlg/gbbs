@@ -1,5 +1,6 @@
 #include "byte.h"
 
+namespace gbbs {
 namespace byte {
 
 long compressFirstEdge(uchar* start, long offset, long source,
@@ -39,3 +40,4 @@ long compressFirstEdge(uchar* start, long offset, long source,
 
 
 }  // namespace byte
+}  // namespace gbbs

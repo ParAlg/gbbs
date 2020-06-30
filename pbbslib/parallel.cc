@@ -2,6 +2,7 @@
 
 #if defined(CILK)
 
+namespace pbbs {
 void set_num_workers(int n) {
   __cilkrts_end_cilk();
   std::stringstream ss;
@@ -11,19 +12,26 @@ void set_num_workers(int n) {
     std::abort();
   }
 }
+}  // namespace pbbs
 
 #elif defined(OPENMP)
 
+namespace pbbs {
 bool in_par_do = false;
-
 void set_num_workers(int n) { omp_set_num_threads(n); }
+}  // namespace pbbs
 
 #elif defined(HOMEGROWN)
 
-void set_num_workers(int n) { global_scheduler.set_num_workers(n); }
+namespace pbbs {
+void set_num_workers(int n) { pbbs::global_scheduler.set_num_workers(n); }
+}  // namespace pbbs
 
 #else
 
+namespace pbbs {
 void set_num_workers(int n) { ; }
+}  // namespace pbbs
 
 #endif
+

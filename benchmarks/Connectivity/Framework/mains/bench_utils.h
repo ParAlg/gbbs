@@ -6,6 +6,7 @@
 
 /* ************************* Benchmark Utils *************************** */
 
+namespace gbbs {
 static timer bt;
 using uchar = unsigned char;
 
@@ -121,3 +122,4 @@ double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
   }
   return t;
 }
+}  // namespace gbbs

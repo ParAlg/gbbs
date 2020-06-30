@@ -5,6 +5,7 @@
 
 #include "common.h"
 
+namespace gbbs {
 namespace spanning_forest {
 
   template <class Seq>
@@ -62,8 +63,8 @@ namespace spanning_forest {
         pbbs::write_max(&max_chk, check[i], std::less<parent>());
       }
     }
-    cout << "# correctness check: " << is_correct << endl;
-    cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << endl;
+    std::cout << "# correctness check: " << is_correct << std::endl;
+    std::cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << std::endl;
   }
 
   pbbs::sequence<std::tuple<uintE, uintE, pbbs::empty>> double_edges(pbbs::sequence<edge>& in) {
@@ -101,5 +102,6 @@ namespace spanning_forest {
     cc_check(conn_correct, conn_check);
   }
 
-}
+}  // namespace spanning_forest
+}  // namespace gbbs
 

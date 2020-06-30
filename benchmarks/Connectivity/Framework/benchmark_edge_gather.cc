@@ -5,6 +5,7 @@
 
 #include "utils/benchmark.h"
 
+namespace gbbs {
 template <class CpuStats>
 void print_result(commandLine& P, std::string method, size_t rounds, double time, CpuStats& stats) {
   std::cout << "{" << std::endl;
@@ -109,10 +110,11 @@ template <class Graph>
 double Sampler(Graph& G, commandLine& P) {
   std::cout << "[" << std::endl;
   TestEdgeGather<Graph>(G, P);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestEdgeMap<Graph>(G, P);
 
   std::cout << "]" << std::endl;
 }
+}  // namespace gbbs
 
-generate_symmetric_once_main(Sampler, false);
+generate_symmetric_once_main(gbbs::Sampler, false);

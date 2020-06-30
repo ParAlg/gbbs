@@ -27,6 +27,7 @@
 #include "gbbs/bucket.h"
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 namespace widestpath {
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
@@ -88,7 +89,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     G.get_vertex(i).mapOutNgh(i, map_f);
   }, 1);
   mw.stop(); mw.reportTotal("max weight time");
-  cout << "max_weight = " << max_weight << endl;
+  std::cout << "max_weight = " << max_weight << std::endl;
 
   timer init;
   init.start();
@@ -106,9 +107,9 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     if (d == INT_E_MAX) { return 0; }
     return get_bkt(d);
   });
-  cout << "creating bucket" << endl;
+  std::cout << "creating bucket" << std::endl;
   auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);
-  cout << "created bucket" << endl;
+  std::cout << "created bucket" << std::endl;
 
   auto apply_f = [&](const uintE v, uintE& old_width) -> void {
     uintE new_width = width[v] & widestpath::VAL_MASK;
@@ -224,3 +225,4 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
   std::cout << "n rounds = " << round << "\n";
   return width;
 }
+}  // namespace gbbs

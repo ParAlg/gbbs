@@ -27,7 +27,9 @@
 #include "gbbs/bucket.h"
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 namespace wbfs {
+
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
 
@@ -146,3 +148,4 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
 
   return dists;
 }
+}  // namespace gbbs

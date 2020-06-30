@@ -13,6 +13,7 @@
 #include "gbbs/vertex.h"
 #include "pbbslib/utilities.h"
 
+namespace gbbs {
 namespace graph_test {
 
 namespace internal {  // Internal declarations
@@ -73,3 +74,4 @@ void CheckUnweightedNeighbors(
 }  // namespace internal
 
 }  // namespace graph_test
+}  // namespace gbbs

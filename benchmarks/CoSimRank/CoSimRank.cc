@@ -33,6 +33,7 @@
 
 #include "CoSimRank.h"
 
+namespace gbbs {
 template <class Graph>
 double CoSimRank_runner(Graph& G, commandLine P) {
   std::cout << "### Application: CoSimRank" << std::endl;
@@ -41,7 +42,7 @@ double CoSimRank_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << P.getOptionDoubleValue("-eps", 0.000001) << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
   double eps = P.getOptionDoubleValue("-eps", 0.000001);
@@ -56,5 +57,6 @@ double CoSimRank_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(CoSimRank_runner, false);
+generate_main(gbbs::CoSimRank_runner, false);

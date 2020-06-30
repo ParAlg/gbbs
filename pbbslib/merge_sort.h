@@ -46,4 +46,5 @@ void merge_sort_inplace(range<T*> In, const F& f) {
   sequence<T> B(In.size());
   merge_sort_(In.slice(), B.slice(), f, true);
 }
-}
+
+}  // namespace pbbs

@@ -35,6 +35,8 @@
 
 #include "MaximalIndependentSet.h"
 
+namespace gbbs {
+
 template <class Graph>
 double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   bool spec_for = P.getOption("-specfor");
@@ -44,7 +46,7 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -specfor (deterministic reservations) = " << spec_for << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));
   double tt = 0.0;
@@ -84,4 +86,6 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(MaximalIndependentSet_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::MaximalIndependentSet_runner, false);

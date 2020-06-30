@@ -5,7 +5,9 @@
 #include "concurrent_stack.h"
 
 #if defined(__APPLE__)
+namespace pbbs {
 inline void* aligned_alloc(size_t a, size_t n) { return malloc(n); }
+}  // namespace pbbs
 #else
 #ifdef USEMALLOC
 struct __mallopt {
@@ -19,6 +21,7 @@ extern __mallopt __mallopt_var;
 #endif
 #endif
 
+namespace pbbs {
 struct mem_pool {
   concurrent_stack<void*>* buckets;
   static constexpr size_t header_size = 64;
@@ -39,3 +42,4 @@ struct mem_pool {
 };
 
 static mem_pool my_mem_pool;
+}  // namespace pbbs

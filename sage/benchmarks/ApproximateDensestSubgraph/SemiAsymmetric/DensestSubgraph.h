@@ -23,10 +23,11 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 template <class Graph>
 double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   const size_t n = G.n;
-  auto em = pbbslib::hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
+  auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
@@ -80,7 +81,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return std::nullopt;
     };
 
-    G.template nghCount<uintE>(vs, cond_f, apply_f, em, no_output);
+    nghCount(G, vs, cond_f, apply_f, em, no_output);
 
     round++;
     last_arr = this_arr;
@@ -139,7 +140,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       auto cond_f = [&] (const uintE& u) {
         return alive[u];
       };
-      G.template nghCount<uintE>(vs, cond_f, apply_f, em, no_output);
+      nghCount(G, vs, cond_f, apply_f, em, no_output);
     }
 
     round++;
@@ -154,6 +155,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   if (last_arr) {
     pbbs::free_array(last_arr);
   }
-  cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+  std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }
+}  // namespace gbbs

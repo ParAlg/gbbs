@@ -39,6 +39,7 @@
 #include <random>
 
 
+namespace gbbs {
 namespace union_find {
 
 /* ================================== CSR templates ================================== */
@@ -147,3 +148,4 @@ pbbs::sequence<parent> find_compress_uf(size_t n, Seq& updates) {
 }
 
 }  // namespace union_find
+}  // namespace gbbs

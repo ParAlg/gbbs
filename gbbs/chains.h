@@ -33,6 +33,8 @@
 
 #include "gbbs.h"
 
+namespace gbbs {
+
 template <class W, class L, class B>
 struct Decr {
   L& cts;
@@ -141,3 +143,5 @@ inline auto remove_chains(Graph& G) {
   std::cout << "nr = " << nr << "\n";
   return chains;
 }
+
+}  // namespace gbbs

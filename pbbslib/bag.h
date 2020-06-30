@@ -118,4 +118,5 @@ struct bag {
     }
   }
 };
-}
+
+}  // namespace pbbs

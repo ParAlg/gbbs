@@ -37,6 +37,8 @@
 #include "flags.h"
 #include "vertex_subset.h"
 
+namespace gbbs {
+
 template <class Data  /* per-vertex data in the emitted vertex_subset */,
           class Graph /* graph type */,
           class VS    /* vertex_subset type */,
@@ -189,3 +191,5 @@ struct EdgeMap_F {
 
   inline bool cond(const uintE& d) const { return true; }
 };
+
+}  // namespace gbbs

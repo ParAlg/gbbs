@@ -36,6 +36,7 @@
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
 
+namespace gbbs {
 template <class Graph>
 double SpanningForest_runner(Graph& G, commandLine P) {
   auto beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -45,7 +46,7 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   auto pack = P.getOption("-pack");
   assert(P.getOption("-s"));
@@ -53,7 +54,7 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   timer t;
   t.start();
   auto edges = workefficient_sf::SpanningForest(G, beta, pack, P.getOptionValue("-permute"));
-  cout << "n = " << G.n << " #edges = " << edges.size() << endl;
+  std::cout << "n = " << G.n << " #edges = " << edges.size() << std::endl;
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
@@ -71,5 +72,6 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   }
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(SpanningForest_runner, false);
+generate_main(gbbs::SpanningForest_runner, false);

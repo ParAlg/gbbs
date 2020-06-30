@@ -16,7 +16,7 @@ double t_histogram_reducer(size_t n, bool check) {
   });
   auto f = [&](size_t i) { red->add_value(In[i][0]); };
   time(t, parallel_for(0, n, f););
-  // cout << red.get_value()[0] << endl;
+  // std::cout << red.get_value()[0] << std::endl;
   return t;
 }
 #else

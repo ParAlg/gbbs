@@ -2,6 +2,7 @@
 
 #include "benchmarks/Connectivity/connectit.h"
 
+namespace gbbs {
 namespace connectit {
   template<
     class Graph,
@@ -96,4 +97,5 @@ namespace connectit {
     auto name = jayanti_options_to_string(no_sampling, find_option);
     return run_multiple(G, rounds, name, P, test);
   }
-} // connectit
+}  // namespace connectit
+}  // namespace gbbs

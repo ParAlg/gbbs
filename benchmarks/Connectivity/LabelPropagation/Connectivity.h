@@ -27,6 +27,7 @@
 #include "pbbslib/random_shuffle.h"
 #include "benchmarks/Connectivity/common.h"
 
+namespace gbbs {
 namespace labelprop_cc {
 
   constexpr uint8_t unemitted = 0;
@@ -136,3 +137,4 @@ namespace labelprop_cc {
   }
 
 }  // namespace labelprop_cc
+}  // namespace gbbs

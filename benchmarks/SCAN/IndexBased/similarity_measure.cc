@@ -3,6 +3,8 @@
 #include <cmath>
 #include <type_traits>
 
+namespace gbbs {
+
 namespace scan {
 
 namespace internal {
@@ -93,3 +95,5 @@ ApproxJaccardSimilarity::ApproxJaccardSimilarity(
   , random_seed_{random_seed} {}
 
 }  // namespace scan
+
+}  // namespace gbbs

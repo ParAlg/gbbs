@@ -12,6 +12,7 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace indexed_scan {
 
 namespace internal {
@@ -146,3 +147,4 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
 }  // namespace internal
 
 }  // namespace indexed_scan
+}  // namespace gbbs

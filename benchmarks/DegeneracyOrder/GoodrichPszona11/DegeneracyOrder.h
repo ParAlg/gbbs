@@ -1,5 +1,4 @@
-#ifndef _GOODRICH_PSZONA_DEGEN
-#define _GOODRICH_PSZONA_DEGEN
+#pragma once
 
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
@@ -9,8 +8,8 @@
 #include "pbbslib/kth_smallest.h"
 #include "pbbslib/random.h"
 
+namespace gbbs {
 namespace goodrichpszona_degen {
-
 
 // Goodrich (2+epsilon) approx for degeneracy ordering where epsilon > 0
 // Returns vertice sorted in degeneracy order
@@ -129,6 +128,5 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
   return ret;
 }
 
-}
-
-#endif
+}  // namespace goodrichpszona_degen
+}  // namespace gbbs

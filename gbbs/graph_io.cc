@@ -4,6 +4,7 @@
 
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 namespace gbbs_io {
 
 typedef std::pair<uintE, uintE> intPair;
@@ -155,7 +156,7 @@ asymmetric_graph<asymmetric_vertex, intE> read_weighted_asymmetric_graph(
 
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
-  debug(cout << "# scan I back " << endl;);
+  debug(cout << "# scan I back " << std::endl;);
   auto t_seq = pbbslib::make_sequence(tOffsets, n+1).rslice();
   auto M = pbbslib::minm<uintT>();
   M.identity = m;
@@ -365,3 +366,4 @@ read_unweighted_edge_list(const char* filename) {
 }
 
 }  // namespace gbbs_io
+}  // namespace gbbs

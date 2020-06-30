@@ -20,6 +20,7 @@
 #include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
 // Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
@@ -53,4 +54,7 @@ double RunScan(Graph& graph, commandLine parameters) {
 }
 
 static constexpr bool kMutatesGraph{false};
-generate_symmetric_main(RunScan, kMutatesGraph);
+
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::RunScan, gbbs::kMutatesGraph);

@@ -5,16 +5,26 @@
 
 #include "gbbs/macros.h"
 
+namespace gbbs {
+
 class UndirectedEdge;
+
+}  // namespace gbbs
+
 
 namespace std {
 
 template <>
-struct hash<UndirectedEdge> {
-  size_t operator()(const UndirectedEdge& edge) const;
+struct hash<gbbs::UndirectedEdge> {
+  size_t operator()(const gbbs::UndirectedEdge& edge) const;
 };
 
 }  // namespace std
+
+
+namespace gbbs {
+
+class UndirectedEdge;
 
 // Represents an unweighted, undirected edge in a graph.
 // This has the property that `UndirectedEdge({u, v}) == Undirected({v, u})`, so
@@ -40,3 +50,6 @@ class UndirectedEdge {
 };
 
 std::ostream& operator<<(std::ostream& os, const UndirectedEdge&);
+
+}  // namespace gbbs
+

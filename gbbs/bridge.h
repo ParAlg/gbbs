@@ -18,52 +18,55 @@
 #include "pbbslib/sequence_ops.h"
 #include "pbbslib/utilities.h"
 
-// ================== parallel primitives ===================
-template <typename F>
-static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
-  if (!parallel) {
-    for (size_t i=start; i<end; i++) {
-      f(i);
-    }
-  } else {
-    parallel_for(start, end, f, granularity);
-  }
-}
+namespace gbbs {
+  // ================== parallel primitives ===================
 
-template <typename F>
-static void par_for(size_t start, size_t end, F f, bool parallel=true, size_t granularity=std::numeric_limits<size_t>::max()) {
-  if (!parallel) {
-    for (size_t i=start; i<end; i++) {
-      f(i);
-    }
-  } else {
-    if (granularity == std::numeric_limits<size_t>::max()) {
-      parallel_for(start, end, f);
+  using pbbs::parallel_for;
+  using pbbs::par_do;
+  using pbbs::parallel_for_alloc;
+  using pbbs::num_workers;
+  using pbbs::worker_id;
+
+  template <typename F>
+  static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
+    if (!parallel) {
+      for (size_t i=start; i<end; i++) {
+        f(i);
+      }
     } else {
       parallel_for(start, end, f, granularity);
     }
   }
-}
 
-//template <typename F>
-//static void par_for(size_t start, size_t end, F f, bool parallel=true) {
-//  size_t n = end - start;
-//  size_t granularity = (n > 100) ? ceil(sqrt(n)) : 100;
-//  par_for<F>(start, end, granularity, f, parallel);
-//}
+  template <typename F>
+  static void par_for(size_t start, size_t end, F f, bool parallel=true, size_t granularity=std::numeric_limits<size_t>::max()) {
+    if (!parallel) {
+      for (size_t i=start; i<end; i++) {
+        f(i);
+      }
+    } else {
+      if (granularity == std::numeric_limits<size_t>::max()) {
+        parallel_for(start, end, f);
+      } else {
+        parallel_for(start, end, f, granularity);
+      }
+    }
+  }
 
-// Alias template so that sequence is exposed w/o namespacing
-template<typename T>
-using sequence = pbbs::sequence<T>;
+  // Alias template so that sequence is exposed w/o namespacing
+  template<typename T>
+  using sequence = pbbs::sequence<T>;
 
-// Alias template so that range is exposed w/o namespacing
-template<typename T>
-using range = pbbs::range<T>;
+  // Alias template so that range is exposed w/o namespacing
+  template<typename T>
+  using range = pbbs::range<T>;
+
+  using pbbs::timer;
+}  // namespace gbbs
 
 
 // Bridge to pbbslib (c++17)
 namespace pbbslib {
-
 
   constexpr const size_t kSequentialForThreshold = 2048;
 
@@ -77,6 +80,12 @@ namespace pbbslib {
   const flags fl_conservative = pbbs::fl_conservative;
   const flags fl_inplace = pbbs::fl_inplace;
   const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
+
+  using pbbs::parallel_for;
+  using pbbs::par_do;
+  using pbbs::parallel_for_alloc;
+  using pbbs::num_workers;
+  using pbbs::worker_id;
 
   using pbbs::free_array;
   using pbbs::delete_array;
@@ -95,6 +104,14 @@ namespace pbbslib {
   using pbbs::log2_up;
   using pbbs::granularity;
 
+  // Alias template so that sequence is exposed w/o namespacing
+  template<typename T>
+  using sequence = pbbs::sequence<T>;
+
+  // Alias template so that range is exposed w/o namespacing
+  template<typename T>
+  using range = pbbs::range<T>;
+
   template<typename T>
   inline void assign_uninitialized(T& a, const T& b) {
     new (static_cast<void*>(std::addressof(a))) T(b);
@@ -105,7 +122,7 @@ namespace pbbslib {
     new (static_cast<void*>(std::addressof(a))) T(std::move(b));
   }
 
-  // Currently unused; including commented out.
+  // Currently unused, but may be useful in the future; including commented out.
   // template <class ET>
   // inline bool CAS128(ET* a, ET b, ET c) {
   //   return __sync_bool_compare_and_swap_16((__int128*)a, *((__int128*)&b),
@@ -264,7 +281,6 @@ namespace pbbslib {
   using random = pbbs::random;
   using pbbs::random_permutation;
   using pbbs::random_shuffle;
-
 }
 
 
@@ -311,7 +327,7 @@ namespace pbbslib {
     if (n < b) return filter_seq(In, Out, n, p);
     size_t l = pbbs::num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
-    par_for(0, l, 1, [&] (size_t i) {
+    parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
       size_t e = std::min(s + b, n);
       size_t k = s;
@@ -319,17 +335,17 @@ namespace pbbslib {
         if (p(In[j])) In[k++] = In[j];
       }
       Sums[i] = k - s;
-    });
+    }, 1);
     auto isums = make_sequence(Sums, l);
     size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
-    par_for(0, l, 1, [&] (size_t i) {
+    parallel_for(0, l, [&] (size_t i) {
       T* I = In + i * b;
       T* O = Out + Sums[i];
       for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
         O[j] = I[j];
       }
-    });
+    }, 1);
     pbbslib::free_array(Sums);
     return m;
   }
@@ -349,7 +365,7 @@ namespace pbbslib {
     }
     size_t l = pbbs::num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
-    par_for(0, l, 1, [&] (size_t i) {
+    parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
       size_t e = std::min(s + b, n);
       size_t k = s;
@@ -357,17 +373,17 @@ namespace pbbslib {
         if (p(In[j])) In[k++] = In[j];
       }
       Sums[i] = k - s;
-    });
+    }, 1);
     auto isums = make_sequence(Sums, l);
     size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
-    par_for(0, l, 1, [&] (size_t i) {
+    parallel_for(0, l, [&] (size_t i) {
       T* I = In + i * b;
       size_t si = out_off + Sums[i];
       for (size_t j = 0; j < Sums[i + 1] - Sums[i]; j++) {
         out(si + j, I[j]);
       }
-    });
+    }, 1);
     pbbslib::free_array(Sums);
     return m;
   }
@@ -388,7 +404,7 @@ namespace pbbslib {
     b = pbbs::num_blocks(n, l);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
 
-    par_for(0, l, 1, [&] (size_t i) {
+    parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
       size_t e = std::min(s + b, n);
       size_t k = s;
@@ -402,11 +418,11 @@ namespace pbbslib {
         }
       }
       Sums[i] = k - s;
-    });
+    }, 1);
     auto isums = make_sequence(Sums, l);
     size_t m = scan_add_inplace(isums.slice());
     Sums[l] = m;
-    par_for(0, l, 1, [&] (size_t i) {
+    parallel_for(0, l, [&] (size_t i) {
       T* I = In + (i * b);
       size_t i_off = Sums[i];
       size_t num_i = Sums[i+1] - i_off;
@@ -415,7 +431,7 @@ namespace pbbslib {
         O[j] = I[j];
         I[j] = empty;
       }
-    });
+    }, 1);
     pbbslib::free_array(Sums);
     return m;
   }
@@ -532,5 +548,4 @@ namespace pbbslib {
 
     return pbbslib::filter(C, [&] (char A) { return A > 0; });
   }
-
 }

@@ -36,6 +36,8 @@
 #include "pbbslib/binary_search.h"
 #include "pbbslib/utilities.h"
 
+namespace gbbs {
+
 // Standard version of edgeMapDense.
 template <typename data,
           typename std::enable_if<std::is_same<data, pbbslib::empty>::value,
@@ -256,3 +258,5 @@ template <class W, class D, class F,
 inline auto wrap_with_default(F f, D def) -> decltype(f) {
   return f;
 }
+
+}  // namespace gbbs

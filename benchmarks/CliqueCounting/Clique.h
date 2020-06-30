@@ -30,7 +30,6 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/assert.h"
 #include "pbbslib/list_allocator.h"
 #include "pbbslib/integer_sort.h"
@@ -51,6 +50,8 @@
 #include "peel.h"
 
 #define SIMD_STATE 4
+
+namespace gbbs {
 
 template <class Graph>
 inline uintE* degreeOrderNodes(Graph& G, size_t n) {
@@ -158,7 +159,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
   };
-  auto DG = filter ? GA.filterGraph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
+  auto DG = filter ? filterGraph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
   double tt_filter = t_filter.stop();
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
@@ -218,3 +219,5 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
 
   return count;
 }
+
+}  // namespace gbbs

@@ -27,6 +27,7 @@
 #include "empty_starting_graph.h"
 #include "subsample_starting_graph.h"
 
+namespace gbbs {
 namespace connectit {
 
   /* find_atomic_split */
@@ -95,7 +96,7 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
 //        connectit::unite_rem_cas_find_naive_splice_atomic<Graph, provides_initial_graph>
       });
 }
-
+}  // namespace gbbs
 
 #include "empty_starting_graph.h"
 #include "subsample_starting_graph.h"

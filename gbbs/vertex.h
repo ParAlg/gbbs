@@ -26,6 +26,7 @@
 #include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
+namespace gbbs {
 namespace intersection {
 
 template <template <typename W> class vertex, class W>
@@ -403,8 +404,6 @@ inline size_t packNghs(vertex<W>* v, uintE vtx_id, Pred& p,
     }
     return k;
   } else {
-    std::cout << "vtxid = " << vtx_id << " Using tmp = " << tmp << std::endl;
-
     // copy to tmp
     par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] = nghs[i]; });
     auto pc = [&](const std::tuple<uintE, W>& nw) {
@@ -472,8 +471,7 @@ struct symmetric_vertex {
   edge_type* neighbors;
   uintE degree;
 
-//  symmetric_vertex() {
-//  }
+  symmetric_vertex() {}
 
   symmetric_vertex(edge_type* n, vertex_data& vdata) {
     neighbors = (n + vdata.offset);
@@ -737,6 +735,8 @@ struct asymmetric_vertex {
   uintE inDegree;
   uintE outDegree;
 
+  asymmetric_vertex() {}
+
   asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data,
                     edge_type* in_neighbors, vertex_data& in_data) {
     inNeighbors = in_neighbors + in_data.offset;
@@ -992,3 +992,5 @@ struct asymmetric_vertex {
     return vertex_ops::calculateTemporarySpace(getInDegree());
   }
 };
+
+}  // namespace gbbs

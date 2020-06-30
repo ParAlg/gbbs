@@ -27,14 +27,16 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "gbbs/pbbslib/sparse_table.h"
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 namespace bc {
+
 constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
 constexpr uintE VAL_MASK = INT_E_MAX;
+
 };  // namespace bc
 
 using labels = std::tuple<uintE, uintE>;
@@ -478,7 +480,7 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
     return !not_critical_edge(src, ngh);
   };
   timer ft; ft.start();
-  GA.filterEdges(pack_predicate);
+  filterEdges(GA, pack_predicate);
 //  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
   ft.stop(); debug(ft.reportTotal("filter edges time"););
 //  vs_active.del();
@@ -574,3 +576,5 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
   return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
                                out_f);
 }
+
+}  // namespace gbbs

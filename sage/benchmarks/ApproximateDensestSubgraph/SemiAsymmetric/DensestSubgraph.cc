@@ -31,6 +31,7 @@
 #include "sage/sage.h"
 #include "DensestSubgraph.h"
 
+namespace gbbs {
 template <class Graph>
 double DensestSubgraph_runner(Graph& G, commandLine P) {
   double eps = P.getOptionDoubleValue("-eps", 0.001);
@@ -40,7 +41,7 @@ double DensestSubgraph_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << eps << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
 
   timer t; t.start();
@@ -50,5 +51,6 @@ double DensestSubgraph_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_symmetric_sage_main(DensestSubgraph_runner);
+generate_symmetric_sage_main(gbbs::DensestSubgraph_runner);

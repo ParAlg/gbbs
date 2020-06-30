@@ -5,6 +5,8 @@
 #include "gtest/gtest.h"
 #include "gbbs/graph_test_utils.h"
 
+namespace gbbs {
+
 namespace gi = gbbs_io;
 namespace gt = graph_test;
 using NoWeight = pbbs::empty;
@@ -272,3 +274,5 @@ TEST(EdgeListToSymmetricGraph, OutOfOrderEdges) {
     gt::CheckUnweightedOutNeighbors(vertex, kExpectedOutNeighbors);
   }
 }
+
+}  // namespace gbbs

@@ -35,6 +35,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 
+namespace gbbs {
 namespace bytepd_amortized {
 
 inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
@@ -1248,4 +1249,5 @@ inline long sequentialCompressEdgeSet(uchar* edgeArray, size_t current_offset,
   }
   return current_offset;
 }
-};  // namespace bytepd_amortized
+}  // namespace bytepd_amortized
+}  // namespace gbbs

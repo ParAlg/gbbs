@@ -29,6 +29,8 @@
 #include "gbbs/gbbs.h"
 #include "sage/sage.h"
 
+namespace gbbs {
+
 template <class Graph>
 inline uintE* rankNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
@@ -208,3 +210,5 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
     exit(1);
   }
 }
+
+}  // namespace gbbs

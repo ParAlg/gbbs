@@ -42,6 +42,8 @@
 #include "gbbs/pbbslib/sparse_additive_map.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
+
 template <template <typename W> class vertex, class W>
 void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
@@ -76,7 +78,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
 
   size_t mask = (1 << 12) - 1;
   auto empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
-  auto ST = sparse_additive_map<uintE, uintE>(n, empty);
+  auto ST = pbbslib::sparse_additive_map<uintE, uintE>(n, empty);
 
   auto map_bc_label = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     auto label = bicc_label(src, ngh);
@@ -135,7 +137,7 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   std::cout << "### n: " << GA.n << std::endl;
   std::cout << "### m: " << GA.m << std::endl;
   std::cout << "### Params: n/a" << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   auto in_f = P.getOptionValue("-if");
   auto out_f = P.getOptionValue("-of");
@@ -153,4 +155,6 @@ double Biconnectivity_runner(symmetric_graph<vertex, W>& GA, commandLine P) {
   exit(0);
 }
 
-generate_symmetric_main(Biconnectivity_runner, true);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::Biconnectivity_runner, true);

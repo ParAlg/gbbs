@@ -91,4 +91,5 @@ sequence<intT> random_permutation(size_t n, random r = random()) {
   sequence<intT> id(n, [&](size_t i) { return i; });
   return pbbs::random_shuffle(id, r);
 }
-}
+
+}  // namespace pbbs

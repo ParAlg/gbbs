@@ -2,6 +2,7 @@
 
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
+namespace gbbs {
 template <class W>
 struct LDD_Edges_Fn {
   pbbs::sequence<uintE>& Parents;
@@ -102,4 +103,4 @@ struct LDDSamplingTemplate {
     return std::make_pair(Parents, Edges);
   }
 };
-
+}  // namespace gbbs

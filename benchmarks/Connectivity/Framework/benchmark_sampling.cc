@@ -5,6 +5,7 @@
 
 #include "utils/benchmark.h"
 
+namespace gbbs {
 void print_result(commandLine& P, std::string sampling_method, size_t rounds, double sampling_time, double pct_covered, double pct_ic_edges, size_t k=0) {
   std::cout << "{" << std::endl;
   std::cout << "  \"test_type\": \"sampling_result\"," << std::endl;
@@ -231,81 +232,81 @@ template <class Graph>
 double Sampler(Graph& G, commandLine& P) {
   std::cout << "[" << std::endl;
   TestBFSSampling<Graph>(G, P);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.01, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.05, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.1, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
   TestLDDSampling<Graph>(G, P, 0.2, false);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.3, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.4, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.5, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.6, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.7, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.8, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.9, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.95, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.999, false);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 
 //  TestLDDSampling<Graph>(G, P, 0.01, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.05, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.1, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.2, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.3, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.4, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.5, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.6, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.7, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.8, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.9, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.95, true);
-//  std::cout << "," << endl;
+//  std::cout << "," << std::endl;
 //  TestLDDSampling<Graph>(G, P, 0.999, true);
 
   TestKOutSampling<Graph>(G, P, 1);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutSampling<Graph>(G, P, 2);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutSampling<Graph>(G, P, 3);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutSampling<Graph>(G, P, 4);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutSampling<Graph>(G, P, 5);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
 
   TestKOutAfforestSampling<Graph>(G, P, 1);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutAfforestSampling<Graph>(G, P, 2);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutAfforestSampling<Graph>(G, P, 3);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutAfforestSampling<Graph>(G, P, 4);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
   TestKOutAfforestSampling<Graph>(G, P, 5);
-  std::cout << "," << endl;
+  std::cout << "," << std::endl;
 
   TestKOutPureSampling<Graph>(G, P, 1);
   std::cout << "," << std::endl;
@@ -329,5 +330,6 @@ double Sampler(Graph& G, commandLine& P) {
 
   std::cout << "]" << std::endl;
 }
+}  // namespace gbbs
 
-generate_symmetric_once_main(Sampler, false);
+generate_symmetric_once_main(gbbs::Sampler, false);

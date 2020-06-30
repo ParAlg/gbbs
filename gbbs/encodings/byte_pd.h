@@ -31,6 +31,7 @@
 #include <iostream>
 #include <tuple>
 
+#include "pbbslib/bridge.h"
 #include "pbbslib/binary_search.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
@@ -38,6 +39,7 @@
 
 #include "gbbs/macros.h"
 
+namespace gbbs {
 namespace bytepd {
 
 template <class W>
@@ -1023,4 +1025,5 @@ uchar* parallelCompressWeightedEdges(std::tuple<uintE, intE>* edges,
   return edges_c;
 }
 
-};  // namespace bytepd
+}  // namespace bytepd
+}  // namespace gbbs

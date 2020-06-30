@@ -35,6 +35,8 @@
 #include "sage/sage.h"
 #include "benchmarks/SSBetweenessCentrality/Brandes/SSBetweennessCentrality.h"
 
+namespace gbbs {
+
 template <class Graph>
 double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
@@ -44,7 +46,7 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
   if (P.getOptionValue("-fa")) {
@@ -71,4 +73,6 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_sage_main(SSBetweennessCentrality_runner);
+}  // namespace gbbs
+
+generate_sage_main(gbbs::SSBetweennessCentrality_runner);

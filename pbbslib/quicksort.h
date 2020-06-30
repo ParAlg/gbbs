@@ -226,4 +226,5 @@ void p_quicksort_inplace(range<T*> In, const F& f) {
   sequence<T> Tmp = sequence<T>::no_init(In.size());
   p_quicksort_(In, Tmp.slice(), f, true);
 }
-}
+
+}  // namespace pbbs

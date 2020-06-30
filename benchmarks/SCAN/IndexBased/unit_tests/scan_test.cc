@@ -21,6 +21,8 @@
 #include "gbbs/vertex.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
+
 using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::Eq;
@@ -540,3 +542,4 @@ TEST(Cluster, TwoClusterGraph) {
         &graph, clustering, kExpectedHubs, kExpectedOutliers);
   }
 }
+}  // namespace gbbs

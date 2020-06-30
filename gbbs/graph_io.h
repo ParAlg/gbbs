@@ -37,6 +37,7 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/stlalgs.h"
 
+namespace gbbs {
 namespace gbbs_io {
 
 template <class weight_type>
@@ -446,6 +447,7 @@ pbbs::sequence<vertex_data> sorted_edges_to_vertex_data_array(
   return data;
 }
 
-} // namespace internal
+}  // namespace internal
 
-} // namespace gbbs_io
+}  // namespace gbbs_io
+}  // namespace gbbs

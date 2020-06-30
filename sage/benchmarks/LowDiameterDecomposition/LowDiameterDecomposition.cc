@@ -36,6 +36,8 @@
 #include "sage/sage.h"
 #include "benchmarks/LowDiameterDecomposition/MPX13/LowDiameterDecomposition.h"
 
+namespace gbbs {
+
 template <class Graph>
 double LDD_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
@@ -46,7 +48,7 @@ double LDD_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << " -permute = " << permute << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
   timer t; t.start();
   auto ldd = LDD(G, beta, permute);
@@ -61,4 +63,6 @@ double LDD_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_sage_main(LDD_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::LDD_runner);

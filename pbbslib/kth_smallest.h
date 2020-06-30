@@ -35,4 +35,5 @@ typename Seq::value_type approximate_kth_smallest(Seq const &S, size_t k,
   return sample_sort(samples, less)[k * num_samples / n];
   // kth_smallest(samples, k * num_samples / n, less);
 }
-}
+
+}  // namespace pbbs

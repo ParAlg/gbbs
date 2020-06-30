@@ -12,6 +12,7 @@
 #include <cmath>
 #include <fstream>
 
+namespace gbbs {
 namespace gbbs_io {
 
 // returns a pointer and a length
@@ -136,3 +137,4 @@ std::tuple<char*, size_t> read_o_direct(const char* fname) {
 }
 
 }  // namespace gbbs_io
+}  // namespace gbbs

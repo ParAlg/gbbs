@@ -1,5 +1,7 @@
 #include "DegeneracyOrder.h"
 
+namespace gbbs {
+
 template <class Graph>
 double DegeneracyOrder_runner(Graph& G, commandLine P) {
   double eps = P.getOptionDoubleValue("-e", 0.1);
@@ -21,4 +23,6 @@ double DegeneracyOrder_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(DegeneracyOrder_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::DegeneracyOrder_runner, false);

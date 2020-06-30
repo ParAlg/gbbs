@@ -23,6 +23,7 @@
 #include "pbbslib/stlalgs.h"
 #include "pbbslib/utilities.h"
 
+namespace gbbs {
 namespace naive_scan {
 
 // We represent a clustering on an n-vertex graph by an n-length sequence S such
@@ -118,3 +119,4 @@ Clustering Cluster(
 }
 
 }  // namespace naive_scan
+}  // namespace gbbs

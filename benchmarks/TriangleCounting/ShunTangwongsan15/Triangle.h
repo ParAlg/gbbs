@@ -32,6 +32,8 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+namespace gbbs {
+
 template <class Graph>
 struct countF {
   Graph& G;
@@ -187,7 +189,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DG = G.filterGraph(G, pack_predicate);
+  auto DG = filterGraph(G, pack_predicate);
   //auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
@@ -222,7 +224,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
     return (ordering[u] < ordering[v]);
   };
 
-  auto DG = G.filterGraph(G, pack_predicate);
+  auto DG = filterGraph(G, pack_predicate);
  // auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
@@ -267,3 +269,5 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
     exit(1);
   }
 }
+
+}  // namespace gbbs

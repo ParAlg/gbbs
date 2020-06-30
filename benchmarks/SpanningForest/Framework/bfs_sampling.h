@@ -1,5 +1,6 @@
 #pragma once
 
+namespace gbbs {
 template <class W>
 struct BFS_ComponentLabel_F {
   pbbs::sequence<parent>& Parents;
@@ -90,4 +91,4 @@ struct BFSSamplingTemplate {
     return std::make_tuple(Parents, Edges);
   }
 };
-
+}  // namespace gbbs

@@ -37,6 +37,8 @@
 #include "sage/sage.h"
 #include "benchmarks/Spanner/MPXV15/Spanner.h"
 
+namespace gbbs {
+
 // Beta should be set to log n/2k. See Corollary 3.1 and Lemma 3.2 in MPVX'15.
 template <class Graph>
 double Spanner_runner(Graph& G, commandLine P) {
@@ -49,7 +51,7 @@ double Spanner_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -k = " << k << " => \\beta = \\log n/2k = " << beta << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));
   timer t;
@@ -57,8 +59,10 @@ double Spanner_runner(Graph& G, commandLine P) {
   auto spanner = spanner::Spanner(G, beta);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   return tt;
 }
 
-generate_symmetric_sage_main(Spanner_runner);
+}  // namespace gbbs
+
+generate_symmetric_sage_main(gbbs::Spanner_runner);

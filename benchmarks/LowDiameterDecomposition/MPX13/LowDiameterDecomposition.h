@@ -28,7 +28,9 @@
 
 #include <cmath>
 
+namespace gbbs {
 namespace ldd_utils {
+
 inline size_t total_rounds(size_t n, double beta) {
   return std::min<uintE>(n + 1, 2 + ceil(log(n) / beta));
 }
@@ -196,7 +198,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
 template <class Graph>
 sequence<uintE> LDD(Graph& G, double beta, bool permute = true) {
   using W = typename Graph::weight_type;
-  debug(cout << "permute = " << permute << endl;);
+  debug(cout << "permute = " << permute << std::endl;);
   auto oracle = [&](const uintE& u, const uintE& v, const W& wgh) {
     return true;
   };
@@ -209,3 +211,4 @@ sequence<uintE> LDD_oracle(Graph& G, EO& oracle, double beta,
   return LDD_impl(G, oracle, beta, permute);
 }
 
+}  // namespace gbbs

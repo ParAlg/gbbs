@@ -37,6 +37,8 @@
 #include <iostream>
 #include <iomanip>
 
+namespace gbbs {
+
 void print_stats(commandLine& P, size_t query_cutoff, size_t max_query_length, size_t total_work, double fraction_covered, double rt) {
   std::cout << "{" << std::endl;
   std::cout << "  \"test_type\": \"Yoshida matching result\"," << std::endl;
@@ -58,7 +60,7 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -query_cutoff = " << query_cutoff << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   timer t; t.start();
@@ -69,4 +71,6 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(MaximalIndependentSet_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::MaximalIndependentSet_runner, false);

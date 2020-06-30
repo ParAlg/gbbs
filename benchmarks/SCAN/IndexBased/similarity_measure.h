@@ -17,6 +17,8 @@
 #include "pbbslib/sequence_ops.h"
 #include "pbbslib/utilities.h"
 
+namespace gbbs {
+
 namespace scan {
 
 struct EdgeSimilarity {
@@ -600,3 +602,5 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
 }
 
 }  // namespace scan
+
+} // namespace gbbs

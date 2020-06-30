@@ -26,6 +26,7 @@
 #include "benchmarks/SpanningForest/BFSSF/SpanningForest.h"
 #include "benchmarks/SpanningForest/check.h"
 
+namespace gbbs {
 template <class Graph>
 double SF_runner(Graph& G, commandLine P) {
   std::cout << "### Application: SpanningForest (LabelPropagation-based)" << std::endl;
@@ -33,7 +34,7 @@ double SF_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t;
   t.start();
@@ -54,5 +55,6 @@ double SF_runner(Graph& G, commandLine P) {
 
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(SF_runner, false);
+generate_main(gbbs::SF_runner, false);

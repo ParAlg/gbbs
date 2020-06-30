@@ -143,13 +143,13 @@ namespace pbbs {
       //sequence<size_t> h = histogram<size_t>(offsets, 200);
       //int i = 2;
       //int total = 0;
-      //while (h[i] > 0) cout << i  << " : " << h[i] << ", " << (total += h[i++]) << endl;
+      //while (h[i] > 0) std::cout << i  << " : " << h[i] << ", " << (total += h[i++]) << std::endl;
 
       scan_inplace(offsets.slice(), addm<Uint>());
       t.next("Get Counts");
 
       if (verbose)
-	cout << "leaves = " << n << " internal nodes = " << num_internal << endl;
+	cout << "leaves = " << n << " internal nodes = " << num_internal << std::endl;
 
       // tag edges with character from s
       sequence<Uint> root_indices = pack_index<Uint>(is_root);
@@ -161,7 +161,7 @@ namespace pbbs {
 		       ((i==n-1) ? LCP[i] : std::max(LCP[i], LCP[i+1])) :
 		       LCP[Parents[root_indices[i]]]);
 	  int start = is_leaf ? SA[i] : SA[root_indices[i]];
-	  //cout << i << ", " << depth << ", " << is_leaf << ", " << SA[i] << endl;
+	  //cout << i << ", " << depth << ", " << is_leaf << ", " << SA[i] << std::endl;
 	  edge e = {i, S[start+depth], is_leaf ? leaf : internal};
 	  return e;
 	});
@@ -174,7 +174,7 @@ namespace pbbs {
 	  Uint offset = offsets[i];
 	  Uint location = SA[root_indices[i]];
 	  node r = {lcp, location, offset};
-	  //cout << i << ", " << offset << ", " << location << ", " << lcp << endl;
+	  //cout << i << ", " << offset << ", " << location << ", " << lcp << std::endl;
 	  return r;
 	});
       t.next("Make nodes");
@@ -198,20 +198,20 @@ namespace pbbs {
       std::optional<Uint> None;
       while (true) {
 	if (s[j] == 0) return std::optional<Uint>(Nodes[node].location);
-	//cout << "j = " << j << " node = " << node << endl;
+	//cout << "j = " << j << " node = " << node << std::endl;
 	edge e = find_child(node, s[j++]);
 	switch (e.type) {
 	case empty :
 	  return None;
 	case leaf :
-	  //cout << "leaf" << endl;
+	  //cout << "leaf" << std::endl;
 	  while (true) {
 	    if (s[j] == 0) return std::optional<Uint>(SA[e.child]);
 	    if (s[j] != S[SA[e.child] + j]) return None;
 	    j++;
 	  }
 	case internal :
-	  //cout << "internal: " << Nodes[node].location << endl;
+	  //cout << "internal: " << Nodes[node].location << std::endl;
 	  node = e.child;
 	  size_t l = Nodes[node].lcp;
 	  while (j < l) {
@@ -223,4 +223,5 @@ namespace pbbs {
       }
     }
   };
-}
+
+}  // namespace pbbs

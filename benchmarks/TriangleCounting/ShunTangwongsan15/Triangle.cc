@@ -33,6 +33,8 @@
 
 #include "Triangle.h"
 
+namespace gbbs {
+
 template <class Graph>
 double Triangle_runner(Graph& G, commandLine P) {
   auto ordering = P.getOptionValue("-ordering", "degree");
@@ -42,7 +44,7 @@ double Triangle_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: ordering=" << ordering << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
   size_t count = 0;
   auto f = [&] (uintE u, uintE v, uintE w) { };
@@ -64,4 +66,6 @@ double Triangle_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(Triangle_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::Triangle_runner, false);

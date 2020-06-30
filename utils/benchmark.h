@@ -1,7 +1,8 @@
 #pragma once
 
 /* ************************* Benchmark Utils *************************** */
-static timer bt;
+namespace gbbs {
+static pbbs::timer bt;
 using uchar = unsigned char;
 
 #define time(_var,_body)    \
@@ -53,3 +54,4 @@ namespace benchmark {
     return std::make_tuple(mint, maxt, medt);
   }
 }
+}  // namespace gbbs

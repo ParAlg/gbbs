@@ -25,6 +25,8 @@
 
 #include "gbbs/gbbs.h"
 
+namespace gbbs {
+
 template <class W>
 struct BFS_F {
   uintE* Parents;
@@ -56,7 +58,7 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
-        G.nghMap(Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
+        nghMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
     Frontier.del();
     Frontier = output;
   }
@@ -64,3 +66,5 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }
+
+}  // namespace gbbs

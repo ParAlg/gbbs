@@ -26,6 +26,7 @@
 #include "gbbs/gbbs.h"
 #include "benchmarks/Connectivity/common.h"
 
+namespace gbbs {
 namespace shiloachvishkin_cc {
 
 template <class Graph>
@@ -192,3 +193,4 @@ struct SVAlgorithm {
 
 
 }  // namespace shiloachvishkin_cc
+}  // namespace gbbs

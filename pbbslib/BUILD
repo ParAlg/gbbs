@@ -94,7 +94,8 @@ cc_library(
   hdrs = ["transpose.h"],
   deps = [
   ":utilities",
-  ":get_time"
+  ":get_time",
+  ":sequence_ops",
   ]
 )
 
@@ -123,6 +124,7 @@ cc_library(
   deps = [
   ":utilities",
   ":sequence_ops",
+  ":integer_sort",
   ":transpose",
   ":histogram"
   ]
@@ -232,7 +234,8 @@ cc_library(
   hdrs = ["hash_table.h"],
   deps = [
   ":utilities",
-  ":sequence_ops"
+  ":sequence_ops",
+  ":get_time"
   ]
 )
 
@@ -240,7 +243,8 @@ cc_library(
   name = "sparse_mat_vec_mult",
   hdrs = ["sparse_mat_vec_mult.h"],
   deps = [
-  ":utilities"
+  ":utilities",
+  ":sequence_ops"
   ]
 )
 
@@ -297,6 +301,7 @@ cc_library(
   ":sample_sort",
   ":merge",
   ":merge_sort",
+  ":random_shuffle",
   ":bag",
   ":hash_table",
   ":sparse_mat_vec_mult",

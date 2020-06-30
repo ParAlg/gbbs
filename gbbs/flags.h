@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
+namespace gbbs {
+
 typedef uint32_t flags;
 const flags no_output = 1;
 const flags pack_edges = 2;
@@ -13,3 +17,5 @@ const flags fine_parallel = 256; // split to a node-size of 1
 const flags compact_blocks = 512; // used in SAGE
 const flags dense_only  = 1024;
 inline bool should_output(const flags& fl) { return !(fl & no_output); }
+
+}  // namespace gbbs

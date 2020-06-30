@@ -33,13 +33,11 @@
 #include "bridge.h"
 #include "compressed_vertex.h"
 #include "edge_array.h"
-#include "edge_map_data.h"
-#include "edge_map_reduce.h"
 #include "flags.h"
-#include "graph_mutation.h"
 #include "macros.h"
 #include "vertex.h"
-#include "vertex_subset.h"
+
+namespace gbbs {
 
 //  Compressed Sparse Row (CSR) based representation for symmetric graphs.
 //  Takes two template parameters:
@@ -59,185 +57,7 @@ struct symmetric_graph {
   size_t num_vertices() { return n; }
   size_t num_edges() { return m; }
 
-  // =================== VertexSubset Operators: Mapping =====================
-  // Applies the the supplied (update, cond) operators on edges incident to the
-  // input vertex_subset, aggregating results at the neighbors of this vset.
-  // This is the specialized version of the general nghMap function where the
-  // output is a plain vertex_subset.
-  // F is a struct providing the following functions:
-  //   update : (uintE * uintE * W) -> bool
-  //   updateAtomic : (uintE * uintE * W) -> bool
-  //   cond : uintE -> bool
-  template <class VS, class F>
-  inline vertexSubsetData<pbbs::empty> nghMap(VS& vs, F f, intT threshold = -1,
-                                              flags fl = 0) {
-    return edgeMapData<pbbs::empty>(*this, vs, f, threshold, fl);
-  }
-
-  // The generalized version of edgeMap. Takes an input vertex_subset and
-  // aggregates results at the neighbors of the vset. See above for the
-  // requirements on F.
-  template <class Data,  // data associated with vertices in the output
-            class VS,    // input vertex_subset type
-            class F>     // map function type
-  inline vertexSubsetData<Data>
-  nghMapData(VS& vs, F f, intT threshold = -1, flags fl = 0) {
-    return edgeMapData<Data>(*this, vs, f, threshold, fl);
-  }
-
-  // srcMap. Applies
-  template <class VS,  // input vertex_subset type
-            class F>   // map function type
-  inline vertexSubsetData<pbbs::empty>
-  srcMap(VS& vs, F f, intT threshold = -1, flags fl = 0) {
-    std::cout << "srcMap currently not implemented" << std::endl;
-    exit(-1);  // currently unused by any benchmark
-  }
-
-  // The generalized version of srcMap. Takes an input vertex_subset and
-  // aggregates results at the neighbors of the vset.
-  template <class Data,  // data associated with vertices in the output
-            class VS,    // input vertex_subset type
-            class F>     // map function type
-  inline vertexSubsetData<Data>
-  srcMap(VS& vs, F f, intT threshold = -1, flags fl = 0) {
-    std::cout << "srcMap currently not implemented" << std::endl;
-    exit(-1);  // currently unused by any benchmark
-  }
-
-  // =================== VertexSubset Operators: Counting =====================
-  template <
-      class Data,  // data associated with vertices in the output vertex_subset
-      class Cond,
-      class Apply,  // function from std::tuple<uintE, uintE> ->
-                    // std::optional<std::tuple<uintE, Data>>
-      class VS>
-  inline vertexSubsetData<Data> nghCount(VS& vs, Cond cond_f, Apply apply_f,
-                                         pbbslib::hist_table<uintE, Data>& ht,
-                                         flags fl = 0) {
-    static_assert(std::is_same<Data, uintE>::value,
-                  "Histogram code used in the implementation is specialized "
-                  "for Data == counting_type (in this case uintE) for "
-                  "performance.");
-    return edgeMapCount<Data, Cond, Apply, VS>(*this, vs, cond_f, apply_f, ht, fl);
-  }
-
-  template <class Cond, class VS>
-  inline vertexSubsetData<uintE> nghCount(VS& vs, Cond cond_f,
-                                          pbbslib::hist_table<uintE, uintE>& ht,
-                                          flags fl = 0) {
-    auto apply_f = [&](const std::tuple<uintE, uintE>& ct) {
-      return std::optional<std::tuple<uintE, uintE>>(ct);
-    };
-    return edgeMapCount<uintE, Cond, decltype(apply_f), VS>(*this, vs, cond_f,
-                                                            apply_f, ht, fl);
-  }
-
-  template <class P, class VS>
-  inline vertexSubsetData<uintE> srcCount(VS& vs, P p, flags fl = 0) {
-    return edgeMapFilter(*this, vs, p, fl);
-  }
-
-  // =================== VertexSubset Operators: Reduction =====================
-  template <class Data, class Apply, class Map, class Reduce, class VS>
-  inline vertexSubsetData<Data> nghReduce(VS& vs,
-                                          pbbslib::hist_table<uintE, Data>& ht,
-                                          Apply apply_f, Map map_f,
-                                          Reduce reduce_f, flags fl = 0) {
-    std::cout
-        << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"
-        << std::endl;
-    exit(-1);
-    return vertexSubsetData<Data>(n);
-  }
-
-  template <class VS, class Map, class Reduce>
-  inline vertexSubsetData<uintE> nghReduce(VS& vs, Map map_f, Reduce reduce_f,
-                                           flags fl = 0) {
-    std::cout
-        << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"
-        << std::endl;
-    exit(-1);
-    return vertexSubsetData<uintE>(n);
-  }
-
-  // =================== VertexSubset Operators: Packing =====================
-  template <class P>
-  vertexSubsetData<uintE> srcPack(vertexSubset& vs, P p, flags fl = 0) {
-    return packEdges(*this, vs, p, fl);
-  }
-
-  // Similar to srcPack, but returns the nghs as a vs.
-  template <class P>
-  vertexSubsetData<uintE> nghPack(vertexSubset& vs, P p, flags fl = 0) {
-    assert(false);  // not implemented as this primitive is unused in the
-                    // benchmark.
-    exit(-1);
-    return vertexSubsetData<uintE>();
-  }
-
-  // ======================= Graph Operators: Filtering ========================
-  // Filters the symmetric graph, G, with a predicate function pred.  Note
-  // that the predicate does not have to be symmetric, i.e. f(u,v) is
-  // not necesssarily equal to f(v,u), but we only represent the out-edges of
-  // this
-  // (possibly) directed graph. For convenience in cases where the graph needed
-  // is
-  // symmetric, we coerce this to a symmetric_graph.
-  template <template <class inner_wgh> class vtx_type, class wgh_type,
-            typename P,
-            typename std::enable_if<
-                std::is_same<vtx_type<wgh_type>, symmetric_vertex<W>>::value,
-                int>::type = 0>
-  static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
-      symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-    auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, W>(G, pred);
-    assert(newN == G.num_vertices());
-    return symmetric_graph<symmetric_vertex, W>(
-        newVData, newN, newM,
-        [newVData = newVData, newEdges = newEdges]() {
-          pbbslib::free_arrays(newVData, newEdges);
-        }, newEdges);
-  }
-
-  template <
-      template <class inner_wgh> class vtx_type, class wgh_type, typename P,
-      typename std::enable_if<
-          std::is_same<vtx_type<wgh_type>, csv_bytepd_amortized<W>>::value,
-          int>::type = 0>
-  static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
-      symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-    auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, W>(G, pred);
-    assert(newN == G.num_vertices());
-    return symmetric_graph<csv_byte, W>(
-        newVData, newN, newM,
-        [newVData = newVData, newEdges = newEdges]() {
-          pbbslib::free_arrays(newVData, newEdges);
-        }, newEdges);
-  }
-
-  // Used by MST and MaximalMatching
-  // Predicate returns three values:
-  // 0 : keep in graph, do not return in edge array
-  // 1 : remove from graph, do not return in edge array
-  // 2 : remove from graph, return in edge array
-  // Cost: O(n+m) work
-  template <class P>
-  edge_array<W> filterEdges(P& pred, flags fl = 0) {
-    return filter_edges(*this, pred, fl);
-  }
-
-  template <class P>
-  edge_array<W> filterAllEdges(P& pred, flags fl = 0) {
-    return filter_all_edges(*this, pred, fl);
-  }
-
-  template <class P>
-  edge_array<W> sampleEdges(P& pred) {
-    return sample_edges(*this, pred);
-  }
-
-  // ======================= Graph Operators: Packing ========================
+  // ======== Graph operators that perform packing ========
   template <class P>
   uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
     uintE new_degree = get_vertex(id).packOutNgh(id, p, (std::tuple<uintE, W>*)tmp);
@@ -260,25 +80,21 @@ struct symmetric_graph {
     size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
     assert(sum_degs == m);
     auto edges = pbbs::sequence<g_edge>(sum_degs);
-    parallel_for(0, n,
-                 [&](size_t i) {
-                   size_t k = degs[i];
-                   auto map_f = [&](const uintE& u, const uintE& v,
-                                    const W& wgh) {
-                     edges[k++] = std::make_tuple(u, v, wgh);
-                   };
-                   get_vertex(i).mapOutNgh(i, map_f, false);
-                 },
-                 1);
+    parallel_for(0, n, [&](size_t i) {
+      size_t k = degs[i];
+      auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+       edges[k++] = std::make_tuple(u, v, wgh);
+      };
+      get_vertex(i).mapOutNgh(i, map_f, false);
+    }, 1);
     return edges;
   }
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) {
-    parallel_for(
-        0, n,
-        [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
-        1);
+    parallel_for(0, n, [&](size_t i) {
+      get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
+    }, 1);
   }
 
   // ======================= Constructors and fields  ========================
@@ -305,11 +121,27 @@ struct symmetric_graph {
   }
   void del() { deletion_fn(); }
 
+  // creates an in-memory copy of the graph.
+  graph copy() {
+    auto vd = pbbs::new_array_no_init<vertex_data>(n);
+    auto ed = pbbs::new_array_no_init<edge_type>(m);
+    parallel_for(0, n, [&] (size_t i) {
+      vd[i] = v_data[i];
+    });
+    parallel_for(0, m, [&] (size_t i) {
+      ed[i] = e0[i];
+    });
+    return graph(vd, n, m, [vd, ed] () {
+      pbbs::free_array(vd);
+      pbbs::free_array(ed);
+    }, ed);
+  }
+
 #ifndef SAGE
   vertex get_vertex(uintE i) { return vertex(e0, v_data[i]); }
 #else
   vertex get_vertex(uintE i) {
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return vertex(e0, v_data[i]);
     } else {
       return vertex(e1, v_data[i]);
@@ -328,6 +160,128 @@ struct symmetric_graph {
   size_t n;
   // number of edges in G
   size_t m;
+
+  // called to delete the graph
+  std::function<void()> deletion_fn;
+};
+
+// Similar to symmetric_graph, but edges are not necessarily allocated
+// consecutively. The structure simply stores an array of vertex
+// objects (which store an 8-byte pointer, and a uintE degree each).
+template <template <class W> class vertex_type, class W>
+struct symmetric_ptr_graph {
+  using vertex = vertex_type<W>;
+  using weight_type = W;
+  using edge_type = typename vertex::edge_type;
+  using graph = symmetric_ptr_graph<vertex_type, W>;
+
+  size_t num_vertices() { return n; }
+  size_t num_edges() { return m; }
+
+  // ======== Graph operators that perform packing ========
+  template <class P>
+  uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
+    uintE new_degree = get_vertex(id).packOutNgh(id, p, (std::tuple<uintE, W>*)tmp);
+    vertices[id].degree = new_degree;  // updates the degree
+    return new_degree;
+  }
+
+  // degree must be <= old_degree
+  void decreaseVertexDegree(uintE id, uintE degree) {
+    assert(degree <= vertices[id].degree);
+    vertices[id].degree = degree;
+  }
+
+  void zeroVertexDegree(uintE id) { decreaseVertexDegree(id, 0); }
+
+  pbbs::sequence<std::tuple<uintE, uintE, W>> edges() {
+    using g_edge = std::tuple<uintE, uintE, W>;
+    auto degs = pbbs::sequence<size_t>(
+        n, [&](size_t i) { return get_vertex(i).getOutDegree(); });
+    size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
+    assert(sum_degs == m);
+    auto edges = pbbs::sequence<g_edge>(sum_degs);
+    parallel_for(0, n, [&](size_t i) {
+      size_t k = degs[i];
+      auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+       edges[k++] = std::make_tuple(u, v, wgh);
+      };
+      get_vertex(i).mapOutNgh(i, map_f, false);
+    }, 1);
+    return edges;
+  }
+
+  template <class F>
+  void mapEdges(F f, bool parallel_inner_map = true) {
+    parallel_for(0, n, [&](size_t i) {
+      get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
+    }, 1);
+  }
+
+  // ======================= Constructors and fields  ========================
+  symmetric_ptr_graph()
+      : n(0),
+        m(0),
+        vertices(nullptr),
+        edge_list_sizes(nullptr),
+        deletion_fn([]() {}) {}
+
+  symmetric_ptr_graph(size_t n, size_t m, vertex* _vertices, std::function<void()> _deletion_fn, uintE* _edge_list_sizes=nullptr)
+      : n(n),
+        m(m),
+        vertices(_vertices),
+        edge_list_sizes(_edge_list_sizes),
+        deletion_fn(_deletion_fn) {
+  }
+  void del() { deletion_fn(); }
+
+  // creates an in-memory copy of the graph.
+  graph copy() {
+    vertex* V = pbbs::new_array_no_init<vertex>(n);
+    auto offsets = sequence<size_t>(n+1);
+    parallel_for(0, n, [&] (size_t i) {
+      V[i] = vertices[i];
+      offsets[i] = (edge_list_sizes == nullptr) ? V[i].getOutDegree() : edge_list_sizes[i];
+    });
+    offsets[n] = 0;
+    size_t total_space = pbbslib::scan_add_inplace(offsets.slice());
+    edge_type* E = pbbs::new_array_no_init<edge_type>(total_space);
+    parallel_for(0, n, [&] (size_t i) {
+      size_t offset = offsets[i];
+      if constexpr (std::is_same<vertex, symmetric_vertex<W>>::value) {
+        auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t ind) {
+          E[offset + ind] = std::make_tuple(v, wgh);
+        };
+        V[i].mapOutNghWithIndex(i, map_f);
+      } else {
+        size_t next_offset = offsets[i+1];
+        size_t to_copy = next_offset - offset;
+        // memcpy?
+        parallel_for(0, to_copy, [&] (size_t j) {
+          E[offset + j] = V[i].neighbors[j];
+        });
+      }
+    });
+    return graph(n, m, V, [V, E] () {
+        pbbs::free_array(V);
+        pbbs::free_array(E);
+    });
+  }
+
+  // Note that observers recieve a handle to a vertex object which is only valid
+  // so long as this graph's memory is valid (i.e., before del() has been
+  // called).
+  vertex get_vertex(uintE i) { return vertices[i]; }
+
+  // number of vertices in G
+  size_t n;
+  // number of edges in G
+  size_t m;
+  // pointer to array of vertex objects
+  vertex* vertices;
+  // pointer to array of vertex edge-list sizes---necessary if copying a
+  // compressed graph in this representation.
+  uintE* edge_list_sizes;
 
   // called to delete the graph
   std::function<void()> deletion_fn;
@@ -379,7 +333,7 @@ struct asymmetric_graph {
   }
 #else
   vertex get_vertex(size_t i) {
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
     } else {
       return vertex(out_edges_1, v_out_data[i], in_edges_1, v_in_data[i]);
@@ -422,31 +376,50 @@ struct asymmetric_graph {
 
   void del() { deletion_fn(); }
 
-  // Applies the edgeMap operator on the input vertex_subset, aggregating
-  // results
-  // at the neighbors of this vset. This is the specialized version of the
-  // general nghMap function where the output is a plain vertex_subset.
-  // F must provide:
-  // update : (uintE * uintE * W) -> bool
-  // updateAtomic : (uintE * uintE * W) -> bool
-  // cond : uintE -> bool
-  template <class VS, /* input vertex_subset type */
-            class F /* edgeMap function type */>
-  inline vertexSubsetData<pbbs::empty> nghMap(VS& vs, F f, intT threshold = -1,
-                                              flags fl = 0) {
-    return edgeMapData<pbbs::empty>(*this, vs, f, threshold, fl);
+  template <class F>
+  void mapEdges(F f, bool parallel_inner_map = true) {
+    parallel_for(
+        0, n,
+        [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
+        1);
+  }
+};
+
+// Similar to asymmetric_graph, but edges are not necessarily allocated
+// consecutively.
+template <template <class W> class vertex_type, class W>
+struct asymmetric_ptr_graph {
+  using vertex = vertex_type<W>;
+  using weight_type = W;
+  using edge_type = typename vertex::edge_type;
+
+  // number of vertices in G
+  size_t n;
+  // number of edges in G
+  size_t m;
+  // pointer to array of vertex object
+  vertex* vertices;
+
+  // called to delete the graph
+  std::function<void()> deletion_fn;
+
+  vertex get_vertex(size_t i) {
+    return vertices[i];
   }
 
-  // The generalized version of edgeMap. Takes an input vertex_subset and
-  // aggregates results at the neighbors of the vset.
-  template <class Data, /* data associated with vertices in the output
-                           vertex_subset */
-            class VS,   /* input vertex_subset type */
-            class F /* edgeMap function type */>
-  inline vertexSubsetData<Data> nghMap(VS& vs, F f, intT threshold = -1,
-                                       flags fl = 0) {
-    return edgeMapData(*this, vs, f, threshold, fl);
-  }
+  asymmetric_ptr_graph()
+      : n(0),
+        m(0),
+        vertices(nullptr),
+        deletion_fn([]() {}) {}
+
+  asymmetric_ptr_graph(size_t n, size_t m, vertex* _vertices, std::function<void()> _deletion_fn)
+      : n(n),
+        m(m),
+        vertices(_vertices),
+        deletion_fn(_deletion_fn) {}
+
+  void del() { deletion_fn(); }
 
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true) {
@@ -544,3 +517,4 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   auto get_w = [&](const edge& e) { return std::get<2>(e); };
   return sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
 }
+}  // namespace gbbs

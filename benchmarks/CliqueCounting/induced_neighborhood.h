@@ -5,6 +5,7 @@
 #include "intersect.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace induced_neighborhood {
 
   template<class Graph>
@@ -99,4 +100,5 @@ namespace induced_neighborhood {
     return pbbslib::reduce_add(tots);
   }
 
-} // namespace induced_neighborhood
+}  // namespace induced_neighborhood
+}  // namespace gbbs

@@ -27,8 +27,8 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/speculative_for.h"
-#include "gbbs/pbbslib/sparse_table.h"
 
+namespace gbbs {
 namespace MaximalIndependentSet_rootset {
 
 template <class Graph, class Fl>
@@ -87,7 +87,7 @@ struct GetNghs {
 template <class Graph, class VS, class P>
 inline vertexSubset get_nghs(Graph& G, VS& vs, P& p) {
   using W = typename Graph::weight_type;
-  return G.nghMap(vs, GetNghs<P, W>(p));
+  return nghMap(G, vs, GetNghs<P, W>(p));
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
@@ -266,3 +266,4 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
               << "\n";
   }
 }
+}  // namespace gbbs

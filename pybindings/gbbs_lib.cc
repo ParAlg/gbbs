@@ -18,6 +18,7 @@
 
 #include <sys/stat.h>
 
+namespace gbbs {
 namespace gbbs_lib {
 namespace py = ::pybind11;
 
@@ -221,3 +222,4 @@ PYBIND11_MODULE(gbbs_lib, m) {
 }
 
 }  // namespace gbbs_lib
+}  // namespace gbbs

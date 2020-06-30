@@ -32,6 +32,7 @@
 // not necessary, at least on the graphs we tested on).
 //#include "third_party/gbbs/src/chains.h"
 
+namespace gbbs {
 constexpr size_t TOP_BIT = ((size_t)LONG_MAX) + 1;
 constexpr size_t VAL_MASK = LONG_MAX;
 using label_type = size_t;
@@ -429,3 +430,4 @@ inline void scc_stats(Seq& labels) {
     }
   }
 }
+}  // namespace gbbs

@@ -26,6 +26,7 @@
 #include <limits.h>
 #include "bridge.h"
 
+namespace gbbs {
 #define LONG 1
 
 #ifndef NDEBUG
@@ -99,3 +100,4 @@ typedef unsigned char uchar;
 #define compression bytepd
 #endif
 #endif
+}  // namespace gbbs

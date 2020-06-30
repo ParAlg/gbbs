@@ -1,7 +1,10 @@
 #pragma once
 
+#include "gbbs/gbbs.h"
+
 #ifndef EMPTY_STARTING_GRAPH
 
+namespace gbbs {
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
@@ -44,7 +47,7 @@ double Run(Graph& G, commandLine P) {
     return hash_to_double(u,v) < update_pct; /* return in sample */
   };
   timer tt; tt.start();
-  auto updates_arr = G.sampleEdges(update_pred);
+  auto updates_arr = sampleEdges(G, update_pred);
   tt.stop(); tt.reportTotal("# sample edges time");
   auto updates = pbbs::sequence<std::tuple<uintE, uintE>>((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
   updates_arr.E = nullptr; /* relinquish memory */
@@ -61,18 +64,19 @@ double Run(Graph& G, commandLine P) {
 
 //  if (insert_to_query != 1 && !permute) {
     auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
-    auto FG = edge_array<pbbs::empty>();
+    auto FG = gbbs::edge_array<pbbs::empty>();
     run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
 //  } else {
 //    auto annotated_updates = annotate_updates_insert(updates, insert_to_query, n, permute);
-//    auto FG = edge_array<pbbs::empty>();
+//    auto FG = gbbs::edge_array<pbbs::empty>();
 //    run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
   //}
 
   return 1.0;
 }
+}  // namespace gbbs
 
 //mmapcopy
-generate_symmetric_once_main(Run, false);
+generate_symmetric_once_main(gbbs::Run, false);
 
 #endif

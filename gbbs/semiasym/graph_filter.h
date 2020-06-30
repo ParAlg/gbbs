@@ -34,6 +34,8 @@
 #include "block_vertex.h"
 #include "gbbs/graph.h"
 
+namespace gbbs {
+
 namespace sage {
 /*
  * block_manager supplies:
@@ -440,3 +442,4 @@ void filter_graph(packed_graph<vertex_type, W>& GA, P& pred_f) {
 
 }
 
+}  // namespace gbbs
