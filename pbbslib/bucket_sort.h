@@ -62,7 +62,11 @@ bool get_buckets(range<T*> A, uchar* buckets, binOp f, size_t rounds) {
   for (size_t i = 1; i < num_pivots; i++)
     pivots[i] = sample_set[over_sample * (i + 1)];
 
-  if (!f(pivots[0], pivots[num_pivots - 1])) return true;
+  if (!f(pivots[0], pivots[num_pivots - 1])) {
+    my_free(pivots);
+    my_free(sample_set);
+    return true;
+  }
 
   T* pivots2 = sample_set;
   to_heap_order(pivots, pivots2, 0, 0, num_pivots);
