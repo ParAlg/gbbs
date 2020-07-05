@@ -80,11 +80,35 @@ double Modularity(
 
 namespace internal {
 
-
-template <class A, class B, class C, class D, class E>
-const pbbs::sequence<uintT> CollectReduce(A, B, C, D, E)  {
-  // TODO implement this --- this used to be collect_reduce from
-  // collect_reduce.h, but that's buggy
+// For each collection of values that have the same key in the input sequence,
+// reduces over those values. Returns a sequence `R` such that `R[i]` is the
+// reduction result over values with key `i`.
+//
+// This function's interface matches the interface of `pbbs::collect_reduce`. We
+// don't use `pbbs::collect_reduce` because the implementation is broken at the
+// time of writing this comment.
+//
+// Arguments
+// ---------
+// seq: Sequence<Element>
+//   Input sequence of key-value pairs
+// get_key: Element -> size_t
+//   Function that gets the key of an element from `seq`.
+// get_value: Element -> Value
+//   Function that gets the value of an element from `seq`
+// reduce: Monoid<Value>
+//   Monoid with a reduction function over values
+// num_keys:
+//   This must be strictly larger than the max value returned by `get_key` on
+//   elements of `seq`
+template <class Seq, class Key_fn, class Value_fn, class Monoid>
+pbbs::sequence<typename Monoid::T> CollectReduce(
+    const Seq& seq,
+    Key_fn&& get_key,
+    Value_fn&& get_value,
+    Monoid&& reduce,
+    size_t num_keys) {
+  // TODO implement this
   assert(false);  // TODO
   return {};
 }
