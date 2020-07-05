@@ -60,6 +60,7 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
+        "//pbbslib:integer_sort",
         "//pbbslib:monoid",
         "//pbbslib:seq",
     ],

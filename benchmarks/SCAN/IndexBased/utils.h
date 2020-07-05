@@ -12,6 +12,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
+#include "pbbslib/integer_sort.h"
 #include "pbbslib/monoid.h"
 #include "pbbslib/seq.h"
 
@@ -99,18 +100,38 @@ namespace internal {
 // reduce: Monoid<Value>
 //   Monoid with a reduction function over values
 // num_keys:
-//   This must be strictly larger than the max value returned by `get_key` on
-//   elements of `seq`
+//   Must be such that keys returned by `get_key on elements of `seq` are in the
+//   range [0, `num_keys`).
 template <class Seq, class Key_fn, class Value_fn, class Monoid>
 pbbs::sequence<typename Monoid::T> CollectReduce(
     const Seq& seq,
     Key_fn&& get_key,
     Value_fn&& get_value,
-    Monoid&& reduce,
+    Monoid&& reduce_fn,
     size_t num_keys) {
-  // TODO implement this
-  assert(false);  // TODO
-  return {};
+  using Value = typename Monoid::T;
+  pbbs::sequence<size_t> bucketed_indices{
+    seq.size(),
+    [](const size_t i) { return i; }};
+  const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
+  integer_sort_inplace(bucketed_indices.slice(), index_to_key, num_keys);
+  pbbs::sequence<size_t> key_offsets{
+    pbbs::get_counts(bucketed_indices, index_to_key, num_keys)};
+  pbbslib::scan_add_inplace(key_offsets);
+  pbbs::sequence<Value> result{
+    num_keys,
+    [&](const size_t i) {
+      const size_t values_start{key_offsets[i]};
+      const size_t values_end{
+        i + 1 == key_offsets.size() ? seq.size() : key_offsets[i + 1]};
+      const auto values{pbbs::delayed_seq<Value>(
+          values_end - values_start,
+          [&](const size_t j) {
+            return get_value(seq[bucketed_indices[values_start + j]]);
+          })};
+      return pbbslib::reduce(values, reduce_fn);
+    }};
+  return result;
 }
 
 }  // namespace internal
