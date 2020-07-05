@@ -60,7 +60,6 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
-        "//pbbslib:collect_reduce",
         "//pbbslib:monoid",
         "//pbbslib:seq",
     ],

@@ -12,7 +12,6 @@
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "pbbslib/collect_reduce.h"
 #include "pbbslib/monoid.h"
 #include "pbbslib/seq.h"
 
@@ -55,6 +54,45 @@ size_t CompactClustering(Clustering* clustering);
 //     `kUnclustered`.
 template <class Vertex>
 UnclusteredType DetermineUnclusteredType(
+    const Clustering& clustering, Vertex vertex, uintE vertex_id);
+
+// Quality measure of clustering based on the difference of the edge density of
+// each cluster compared to the expected edge density of the cluster given a
+// random graph with the same degree distribution.
+//
+// The modularity is at most 1. It may be negative if a clustering is "worse
+// than random."
+//
+// This implementation treats each unclustered vertex as if it is in its own
+// cluster.
+//
+// Further reading:
+// - Wikipedia page on "Modularity (networks)"
+// - Section 3.3.2 of "Community detection in graphs" by Santo Fortunato (2009).
+template <template <typename> class VertexTemplate>
+double Modularity(
+    symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+    const Clustering& clustering);
+
+//////////////
+// Internal //
+//////////////
+
+namespace internal {
+
+
+template <class A, class B, class C, class D, class E>
+const pbbs::sequence<uintT> CollectReduce(A, B, C, D, E)  {
+  // TODO implement this --- this used to be collect_reduce from
+  // collect_reduce.h, but that's buggy
+  assert(false);  // TODO
+  return {};
+}
+
+}  // namespace internal
+
+template <class Vertex>
+UnclusteredType DetermineUnclusteredType(
     const Clustering& clustering, Vertex vertex, uintE vertex_id) {
   bool is_hub{false};
   // `candidate_cluster` holds a cluster ID that vertex i is adjacent to, or
@@ -79,25 +117,6 @@ UnclusteredType DetermineUnclusteredType(
   return is_hub ? UnclusteredType::kHub : UnclusteredType::kOutlier;
 }
 
-// How an algorithm should treat unclustered vertices.
-enum class UnclusteredBehavior {
-  kDiscard,  // Remove unclustered vertices.
-  kSeparateClusters,  // Treat unclustered vertices as a separ
-};
-
-// Quality measure of clustering based on the difference of the edge density of
-// each cluster compared to the expected edge density of the cluster given a
-// random graph with the same degree distribution.
-//
-// The modularity is at most 1. It may be negative if a clustering is "worse
-// than random."
-//
-// This implementation treats each unclustered vertex as if it is in its own
-// cluster.
-//
-// Further reading:
-// - Wikipedia page on "Modularity (networks)"
-// - Section 3.3.2 of "Community detection in graphs" by Santo Fortunato (2009).
 template <template <typename> class VertexTemplate>
 double Modularity(
     symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
@@ -149,7 +168,7 @@ double Modularity(
   const auto& num_unclustered_vertices{degrees_split_result.second};
   // degrees_by_cluster[i] == sum of degrees over vertices in cluster i
   const pbbs::sequence<uintT> degrees_by_cluster{
-    pbbs::collect_reduce(
+    internal::CollectReduce(
       degrees.slice(num_unclustered_vertices, degrees.size()),
       [&](const std::pair<uintE, uintT> p) { return p.first; },
       [&](const std::pair<uintE, uintT> p) { return p.second; },
