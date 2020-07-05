@@ -114,7 +114,7 @@ pbbs::sequence<typename Monoid::T> CollectReduce(
     seq.size(),
     [](const size_t i) { return i; }};
   const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
-  integer_sort_inplace(bucketed_indices.slice(), index_to_key, num_keys);
+  integer_sort_inplace(bucketed_indices.slice(), index_to_key);
   pbbs::sequence<size_t> key_offsets{
     pbbs::get_counts(bucketed_indices, index_to_key, num_keys)};
   pbbslib::scan_add_inplace(key_offsets);
