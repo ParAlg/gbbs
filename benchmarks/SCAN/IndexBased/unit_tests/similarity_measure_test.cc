@@ -100,10 +100,10 @@ TEST(CosineSimilarity, AllEdges) {
   // it always outputs exact similarities also gives the same output.
   constexpr uint32_t kNumSamples{10};
   constexpr size_t kRandomSeed{0};
-  constexpr size_t kExactThreshold{std::numeric_limits<size_t>::max()};
+  constexpr size_t kDegreeThreshold{std::numeric_limits<size_t>::max()};
   const pbbs::sequence<s::EdgeSimilarity> approx_similarities{
     si::ApproxCosineEdgeSimilarities(
-        &graph, kNumSamples, kExactThreshold, kRandomSeed)};
+        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
 }
 
@@ -115,10 +115,10 @@ TEST(ApproxCosineSimilarity, AllEdges) {
   // passes on all random seeds in the range [0, 99).
   constexpr uint32_t kNumSamples{400};
   constexpr size_t kRandomSeed{0};
-  constexpr size_t kExactThreshold{0};  // Approximate all similarities
+  constexpr size_t kDegreeThreshold{0};  // Approximate all similarities
   const pbbs::sequence<s::EdgeSimilarity> similarities{
     si::ApproxCosineEdgeSimilarities(
-        &graph, kNumSamples, kExactThreshold, kRandomSeed)};
+        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   constexpr float kTolerance{0.1};
   EXPECT_THAT(similarities,
       UnorderedElementsAre(
@@ -164,10 +164,10 @@ TEST(JaccardSimilarity, AllEdges) {
   // it always outputs exact similarities also gives the same output.
   constexpr uint32_t kNumSamples{10};
   constexpr size_t kRandomSeed{0};
-  constexpr size_t kExactThreshold{std::numeric_limits<size_t>::max()};
+  constexpr size_t kDegreeThreshold{std::numeric_limits<size_t>::max()};
   const pbbs::sequence<s::EdgeSimilarity> approx_similarities{
     si::ApproxJaccardEdgeSimilarities(
-        &graph, kNumSamples, kExactThreshold, kRandomSeed)};
+        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
 }
 
@@ -179,10 +179,10 @@ TEST(ApproxJaccardSimilarity, AllEdges) {
   // passes on all random seeds in the range [0, 99).
   constexpr uint32_t kNumSamples{300};
   constexpr size_t kRandomSeed{0};
-  constexpr size_t kExactThreshold{0};  // Approximate all similarities
+  constexpr size_t kDegreeThreshold{0};  // Approximate all similarities
   const pbbs::sequence<s::EdgeSimilarity> similarities{
     si::ApproxJaccardEdgeSimilarities(
-        &graph, kNumSamples, kExactThreshold, kRandomSeed)};
+        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   constexpr float kTolerance{0.1};
   EXPECT_THAT(similarities,
       UnorderedElementsAre(
