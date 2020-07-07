@@ -161,6 +161,20 @@ pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
     const size_t num_directed_edges,
     const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities);
 
+// Create a directed version of `graph`, pointing edges from lower degree
+// vertices to higher degree vertices. This upper bounds the out-degree of each
+// vertex in the directed graph with `sqrt(graph->m)`.
+template <class Graph>
+auto DirectGraphByDegree(Graph* graph) {
+  uintE* vertex_degree_ranking{rankNodes(*graph, graph->n)};
+  const auto filter_predicate{[&](const uintE u, const uintE v, pbbs::empty) {
+    return vertex_degree_ranking[u] < vertex_degree_ranking[v];
+  }};
+  auto directed_graph{filterGraph(*graph, filter_predicate)};
+  pbbs::free_array(vertex_degree_ranking);
+  return directed_graph;
+}
+
 // Returns an sequence `vertex_offsets` such that if there is another sequence
 // `edges` consisting of the out-edges of `*graph` sorted by source vertex, then
 // `vertex_offsets[i]` is the first appearance of vertex i as a source vertex.
@@ -199,14 +213,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   // `benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h`. We modify it to
   // maintain triangle counts for each edge.
 
-  // Create a directed version of `graph`, pointing edges from lower degree
-  // vertices to higher degree vertices in order to bound the maximum degree of
-  // each vertex.
-  uintE* vertex_degree_ranking{rankNodes(*graph, graph->n)};
-  const auto filter_predicate{[&](const uintE u, const uintE v, pbbs::empty) {
-    return vertex_degree_ranking[u] < vertex_degree_ranking[v];
-  }};
-  auto directed_graph{filterGraph(*graph, filter_predicate)};
+  auto directed_graph{DirectGraphByDegree(graph)};
 
   // Estimate the amount of work for each vertex for better load balancing.
   auto parallel_work{sequence<size_t>(directed_graph.n)};
@@ -304,7 +311,6 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   });
 
   directed_graph.del();
-  pbbs::free_array(vertex_degree_ranking);
   return similarities;
 }
 
