@@ -214,25 +214,6 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   // maintain triangle counts for each edge.
 
   auto directed_graph{DirectGraphByDegree(graph)};
-
-  // Estimate the amount of work for each vertex for better load balancing.
-  auto parallel_work{sequence<size_t>(directed_graph.n)};
-  {
-    const auto get_edge_work{[&](const uintE u, const uintE v, pbbs::empty) {
-      return directed_graph.get_vertex(v).getOutDegree();
-    }};
-    const auto addition{pbbslib::addm<size_t>()};
-    par_for(0, directed_graph.n, [&](const size_t i) {
-      parallel_work[i] =
-        directed_graph.get_vertex(i).template reduceOutNgh<size_t>(
-            i, get_edge_work, addition);
-    });
-  }
-  const size_t total_work{pbbslib::scan_add_inplace(parallel_work)};
-  constexpr size_t work_block_size{50000};
-  const size_t num_work_blocks{
-    (total_work + work_block_size - 1) / work_block_size};
-
   // Each counter in `counters` holds the number of shared neighbors in `graph`
   // between u and v for some edge {u, v}.
   pbbs::sequence<std::atomic<uintE>> counters(
@@ -247,43 +228,29 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   //     u --> v
   // There's a bijection between triangles of this form in `directed_graph` and
   // undirected triangles in `graph`.
-  const auto run_intersection_on_block{[&]
-      (const size_t block_start, const size_t block_end) {
-    for (size_t vertex_id = block_start; vertex_id < block_end; vertex_id++) {
-      auto vertex{directed_graph.get_vertex(vertex_id)};
-      const uintT vertex_counter_offset{counter_offsets[vertex_id]};
-      const auto intersect{[&](
-          const uintE v_id,
-          const uintE neighbor_id,
-          pbbs::empty,
-          const uintE v_to_neighbor_index) {
-        auto neighbor{directed_graph.get_vertex(neighbor_id)};
-        const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
-        const auto update_counters{[&](
-            const uintE shared_neighbor,
-            const uintE vertex_to_shared_index,
-            const uintE neighbor_to_shared_index) {
-          counters[vertex_counter_offset + vertex_to_shared_index]++;
-          counters[neighbor_counter_offset + neighbor_to_shared_index]++;
-        }};
-        counters[vertex_counter_offset + v_to_neighbor_index] +=
-          internal::intersect_f_with_index_par(
-              &vertex, &neighbor, vertex_id, neighbor_id, update_counters);
+  par_for(0, graph->n, [&](const size_t vertex_id) {
+    auto vertex{directed_graph.get_vertex(vertex_id)};
+    const uintT vertex_counter_offset{counter_offsets[vertex_id]};
+    const auto intersect{[&](
+        const uintE v_id,
+        const uintE neighbor_id,
+        pbbs::empty,
+        const uintE v_to_neighbor_index) {
+      auto neighbor{directed_graph.get_vertex(neighbor_id)};
+      const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
+      const auto update_counters{[&](
+          const uintE shared_neighbor,
+          const uintE vertex_to_shared_index,
+          const uintE neighbor_to_shared_index) {
+        counters[vertex_counter_offset + vertex_to_shared_index]++;
+        counters[neighbor_counter_offset + neighbor_to_shared_index]++;
       }};
-      constexpr bool kParallel{false};
-      vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
-    }
-  }};
-  constexpr size_t kGranularity{1};
-  par_for(0, num_work_blocks, kGranularity, [&](size_t i) {
-    const size_t work_start{i * work_block_size};
-    const size_t work_end{work_start + work_block_size};
-    constexpr auto less_fn{std::less<size_t>()};
-    const size_t block_start{
-      pbbs::binary_search(parallel_work, work_start, less_fn)};
-    const size_t block_end{
-      pbbs::binary_search(parallel_work, work_end, less_fn)};
-    run_intersection_on_block(block_start, block_end);
+      counters[vertex_counter_offset + v_to_neighbor_index] +=
+        internal::intersect_f_with_index_par(
+            &vertex, &neighbor, vertex_id, neighbor_id, update_counters);
+    }};
+    constexpr bool kParallel{false};
+    vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
   });
 
   pbbs::sequence<EdgeSimilarity> similarities(graph->m);
