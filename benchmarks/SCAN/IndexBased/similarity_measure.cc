@@ -9,48 +9,23 @@ namespace scan {
 
 namespace internal {
 
-pbbs::sequence<float>
-RandomNormalNumbers(const size_t num_numbers, const pbbs::random rng) {
+float RandomNormal(const pbbs::random rng, const uint64_t i) {
   using RngInt =
     std::result_of<
       decltype(&pbbs::random::ith_rand)(pbbs::random*, uint64_t)>::type;
   constexpr float max_rng_val{
     static_cast<float>(std::numeric_limits<RngInt>::max())};
-
-  pbbs::sequence<float> normals{pbbs::sequence<float>::no_init(num_numbers)};
-  // Generate normal numbers with the Box–Muller transform.
-  par_for(0, (num_numbers + 1) / 2, [&](const size_t i) {
-    const float uniform_1{rng.ith_rand(2 * i) / max_rng_val};
-    const float uniform_2{rng.ith_rand(2 * i + 1) / max_rng_val};
-    const float radius{std::sqrt(-2.0f * std::log(uniform_1))};
-    const float angle{static_cast<float>(2.0 * M_PI * uniform_2)};
-    normals[2 * i] = radius * std::cos(angle);
-    if (2 * i + 1 < num_numbers) {
-      normals[2 * i + 1] = radius * std::sin(angle);
-    }
-  });
-  return normals;
-}
-
-pbbs::sequence<EdgeSimilarity> BidirectionalSimilarities(
-    const size_t num_directed_edges,
-    const pbbs::sequence<EdgeSimilarity>& unidirectional_similarities) {
-  // Copy similarities for edges (u, v) where u > v.
-  const size_t half_num_edges{num_directed_edges / 2};
-  pbbs::sequence<EdgeSimilarity> similarities{
-    pbbs::sequence<EdgeSimilarity>::no_init(num_directed_edges)};
-  constexpr auto is_valid_similarity{
-    [](const EdgeSimilarity& edge) { return !std::isnan(edge.similarity); }};
-  pbbs::filter_out(
-      unidirectional_similarities, similarities.slice(), is_valid_similarity);
-  par_for(0, half_num_edges, [&](const size_t i) {
-      const EdgeSimilarity& edge{similarities[i]};
-      similarities[i + half_num_edges] = {
-        .source = edge.neighbor,
-        .neighbor = edge.source,
-        .similarity = edge.similarity};
-  });
-  return similarities;
+  // Generate normal numbers with the Box–Muller transform. This transform takes
+  // two independent uniform random numbers and generates two independent normal
+  // random numbers. We wastefully throw away one of the normal numbers to keep
+  // the interface simple.
+  const float uniform_1{rng.ith_rand(2 * i) / max_rng_val};
+  const float uniform_2{rng.ith_rand(2 * i + 1) / max_rng_val};
+  const float radius{std::sqrt(-2.0f * std::log(uniform_1))};
+  const float angle{static_cast<float>(2.0 * M_PI * uniform_2)};
+  return radius * std::cos(angle);
+  // `radius * std::sin(angle)` is the other, independent normal number that we
+  // ignore for simplicity
 }
 
 }  // namespace internal
