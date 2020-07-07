@@ -295,17 +295,14 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
 
 // Implementation of ApproxCosineSimilarities::AllEdges.
 //
-// `exact_threshold` is a threshold where if the sum of neighborhood sizes of
-// adjacent vertices u and v is below `exact_threshold`, then we compute
-// similarity score between u and v exactly.
-// (The cost to computing the similarity score between vertices u and v exactly
-// is O(<size of neighborhood of u> + <size of neighborhood of v>), whereas the
-// cost to computing the similarity score approximately is O(num_samples_).)
+// `degree_threshold` is a threshold so that we only approximate the similarity
+// score between two vertices if their degrees are high enough. (When the
+// degrees are low, it's cheap to compute the similarity exactly.)
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph,
     const uint32_t num_samples,
-    const size_t exact_threshold,
+    const size_t degree_threshold,
     const size_t random_seed) {
   // Approximates cosine similarity using SimHash (c.f. "Similarity Estimation
   // Techniques from Rounding Algorithms" by Moses Charikar).
@@ -343,15 +340,15 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       Vertex vertex{graph->get_vertex(vertex_id)};
       const uintE degree{vertex.getOutDegree()};
       bool skip_fingerprint{true};
-      const auto check_exact_threshold{
+      const auto check_degree_threshold{
         [&](uintE, const uintE neighbor_id, Weight) {
           if (skip_fingerprint &&
               (degree + graph->get_vertex(neighbor_id).getOutDegree() >=
-               exact_threshold)) {
+               degree_threshold)) {
             skip_fingerprint = false;
           }
         }};
-      vertex.mapOutNgh(vertex_id, check_exact_threshold);
+      vertex.mapOutNgh(vertex_id, check_degree_threshold);
       if (skip_fingerprint) {
         return pbbs::sequence<BitArray>{};
       }
@@ -400,7 +397,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       Vertex neighbor{graph->get_vertex(neighbor_id)};
       const size_t vertex_degree{vertex.getOutDegree()};
       const size_t neighbor_degree{neighbor.getOutDegree()};
-      if (vertex_degree + neighbor_degree < exact_threshold) {
+      if (vertex_degree + neighbor_degree < degree_threshold) {
         // compute exact similarity
         const size_t num_shared_neighbors{
           vertex.intersect(&neighbor, vertex_id, neighbor_id)};
@@ -437,17 +434,14 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 
 // Implementation of ApproxJaccardSimilarities::AllEdges.
 //
-// `exact_threshold` is a threshold where if the sum of neighborhood sizes of
-// adjacent vertices u and v is below `exact_threshold`, then we compute
-// similarity score between u and v exactly.
-// (The cost to computing the similarity score between vertices u and v exactly
-// is O(<size of neighborhood of u> + <size of neighborhood of v>), whereas the
-// cost to computing the similarity score approximately is O(num_samples_).)
+// `degree_threshold` is a threshold so that we only approximate the similarity
+// score between two vertices if their degrees are high enough. (When the
+// degrees are low, it's cheap to compute the similarity exactly.)
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph,
     const uint32_t num_samples,
-    const size_t exact_threshold,
+    const size_t degree_threshold,
     const size_t random_seed) {
   using Weight = pbbs::empty;
   using Vertex = VertexTemplate<Weight>;
@@ -460,19 +454,19 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     num_vertices,
     [&](const size_t vertex_id) {
       Vertex vertex{graph->get_vertex(vertex_id)};
-      if (vertex.getOutDegree() < exact_threshold) {
+      if (vertex.getOutDegree() < degree_threshold) {
         return pbbs::sequence<uint64_t>{};
       }
       bool skip_fingerprint{true};
-      const auto check_exact_threshold{
+      const auto check_degree_threshold{
         [&](uintE, const uintE neighbor_id, Weight) {
           if (skip_fingerprint &&
               graph->get_vertex(neighbor_id).getOutDegree() >=
-                exact_threshold) {
+                degree_threshold) {
             skip_fingerprint = false;
           }
         }};
-      vertex.mapOutNgh(vertex_id, check_exact_threshold);
+      vertex.mapOutNgh(vertex_id, check_degree_threshold);
       if (skip_fingerprint) {
         return pbbs::sequence<uint64_t>{};
       }
@@ -511,8 +505,8 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       Vertex neighbor{graph->get_vertex(neighbor_id)};
       const size_t vertex_degree{vertex.getOutDegree()};
       const size_t neighbor_degree{neighbor.getOutDegree()};
-      if (vertex_degree < exact_threshold ||
-          neighbor_degree < exact_threshold) {
+      if (vertex_degree < degree_threshold ||
+          neighbor_degree < degree_threshold) {
         // compute exact similarity
         constexpr auto no_op{[](uintE, uintE, uintE) {}};
         const size_t num_shared_neighbors{
@@ -548,6 +542,20 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         vertex_id, compute_similarity);
   });
   return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
+
+  // TODO TODO TODO
+  // - get the directed graph
+  // - for [high-deg] -> [high-deg] :
+  //   - calc approximate similarity on verts in undirected graph
+  // - for [high-deg] -> [low-deg] or vice versa:
+  //   - calc (possibly approximate) similarity on verts in undirected graph
+  //   - on directed graph, increment counter from low-deg vert to any shared
+  //     low-deg neighbor (ignore any high-deg neighbors)
+  //   - (this is potentially bad, we intersect on both the undirected and the
+  //   directed graph. hopefully it's cheap)
+  // - for [low-deg] -> [low-deg]:
+  //   - on directed graph, increment 3 counters to any shared low-deg neibhor
+  //   (ignore any high-deg neighbors)
 }
 
 }  // namespace internal
@@ -588,17 +596,17 @@ pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  const size_t exact_threshold{static_cast<size_t>(1.5 * num_samples_)};
+  const size_t degree_threshold{static_cast<size_t>(1.5 * num_samples_)};
   return internal::ApproxCosineEdgeSimilarities(
-      graph, num_samples_, exact_threshold, random_seed_);
+      graph, num_samples_, degree_threshold, random_seed_);
 }
 
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  const size_t exact_threshold{static_cast<size_t>(2.0 * num_samples_)};
+  const size_t degree_threshold{static_cast<size_t>(2.0 * num_samples_)};
   return internal::ApproxJaccardEdgeSimilarities(
-      graph, num_samples_, exact_threshold, random_seed_);
+      graph, num_samples_, degree_threshold, random_seed_);
 }
 
 }  // namespace scan
