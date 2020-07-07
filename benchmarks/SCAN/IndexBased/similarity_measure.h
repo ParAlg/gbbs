@@ -530,20 +530,6 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         vertex_id, compute_similarity);
   });
   return internal::BidirectionalSimilarities(graph->m, undirected_similarities);
-
-  // TODO TODO TODO
-  // - get the directed graph
-  // - for [high-deg] -> [high-deg] :
-  //   - calc approximate similarity on verts in undirected graph
-  // - for [high-deg] -> [low-deg] or vice versa:
-  //   - calc (possibly approximate) similarity on verts in undirected graph
-  //   - on directed graph, increment counter from low-deg vert to any shared
-  //     low-deg neighbor (ignore any high-deg neighbors)
-  //   - (this is potentially bad, we intersect on both the undirected and the
-  //   directed graph. hopefully it's cheap)
-  // - for [low-deg] -> [low-deg]:
-  //   - on directed graph, increment 3 counters to any shared low-deg neibhor
-  //   (ignore any high-deg neighbors)
 }
 
 }  // namespace internal
@@ -599,4 +585,4 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
 
 }  // namespace scan
 
-} // namespace gbbs
+}  // namespace gbbs
