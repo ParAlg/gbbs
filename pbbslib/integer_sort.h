@@ -226,6 +226,9 @@ sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key const &g,
 template <typename Tint = size_t, typename Seq, typename Get_Key>
 sequence<Tint> get_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
   size_t n = In.size();
+  if (n == 0) {
+    return sequence<Tint>(num_buckets, 0);
+  }
   sequence<Tint> starts(num_buckets, (Tint)0);
   sequence<Tint> ends(num_buckets, (Tint)0);
   parallel_for(0, n - 1, [&](size_t i) {
