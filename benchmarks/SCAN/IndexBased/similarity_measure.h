@@ -85,9 +85,14 @@ class JaccardSimilarity {
 // within the code with perfectly random number generator, then picking
 //   num_samples = 1.5 * pi ^ 2 * ln(2 * m / a) / b ^ 2
 // gives that with probability at least `1 - a`, each edge receives the correct
-// cosine similarity with absolute error up to `b`.
+// cosine similarity with absolute error up to `b`. In practice, setting
+// num_samples so high is probably excessive.
 //
 // This is a biased estimate of the cosine similarity.
+//
+// This is really only helpful for graphs with lots of high degree vertices.
+// Otherwise, the cost to approximate similarities with enough samples to have
+// good accuracy outweighs the cost to compute similarities exactly.
 struct ApproxCosineSimilarity {
  public:
   ApproxCosineSimilarity(uint32_t num_samples, size_t random_seed);
@@ -111,7 +116,12 @@ struct ApproxCosineSimilarity {
 // hash function with a random hash function with no collisions, then picking
 //   num_samples = 3 * ln(2 * m / a) / b ^ 2
 // gives that with probability at least `1 - a`, each edge receives the correct
-// Jaccard similarity with absolute error up to `b`.
+// Jaccard similarity with absolute error up to `b`. In practice, setting
+// num_samples so high is probably excessive.
+//
+// This is really only helpful for graphs with lots of high degree vertices.
+// Otherwise, the cost to approximate similarities with enough samples to have
+// good accuracy outweighs the cost to compute similarities exactly.
 struct ApproxJaccardSimilarity {
  public:
   ApproxJaccardSimilarity(uint32_t num_samples, size_t random_seed);
