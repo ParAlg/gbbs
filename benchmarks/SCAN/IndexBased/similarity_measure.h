@@ -239,7 +239,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const uintE v_neighborhood{graph->get_vertex(vertex_id).getOutDegree()};
+    const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
@@ -247,9 +247,9 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
         const uintE v_to_u_index) {
       const uintT counter_index{v_counter_offset + v_to_u_index};
       const uintE num_shared_neighbors{counters[counter_index]};
-      const uintE u_neighborhood{graph->get_vertex(u_id).getOutDegree()};
+      const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
       const float similarity{neighborhood_sizes_to_similarity(
-          v_neighborhood, u_neighborhood, num_shared_neighbors)};
+          v_degree, u_degree, num_shared_neighbors)};
       similarities[2 * counter_index] =
         {.source = v_id, .neighbor = u_id, .similarity = similarity};
       similarities[2 * counter_index + 1] =
@@ -438,9 +438,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const uintE v_neighborhood{graph->get_vertex(vertex_id).getOutDegree()};
-    const bool vertex_is_high_degree{
-      graph->v_data[vertex_id].degree >= degree_threshold};
+    const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
+    const bool vertex_is_high_degree{v_degree >= degree_threshold};
     const pbbs::sequence<uint64_t>& vertex_fingerprint{
       vertex_fingerprints[vertex_id]};
     const auto compute_similarity{[&](
@@ -465,9 +464,9 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         similarity = std::cos(angle_estimate);
       } else {  // exact similarity
         const uintE num_shared_neighbors{counters[counter_index]};
-        const uintE u_neighborhood{graph->get_vertex(u_id).getOutDegree()};
+        const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
         similarity = (num_shared_neighbors + 2) /
-          (sqrtf(v_neighborhood + 1) * sqrtf(u_neighborhood + 1));
+          (sqrtf(v_degree + 1) * sqrtf(u_degree + 1));
       }
       similarities[2 * counter_index] =
         {.source = v_id, .neighbor = u_id, .similarity = similarity};
@@ -599,9 +598,8 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const uintE v_neighborhood{graph->get_vertex(vertex_id).getOutDegree()};
-    const bool vertex_is_high_degree{
-      graph->v_data[vertex_id].degree >= degree_threshold};
+    const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
+    const bool vertex_is_high_degree{v_degree >= degree_threshold};
     const pbbs::sequence<uint64_t>& vertex_fingerprint{
       vertex_fingerprints[vertex_id]};
     const auto compute_similarity{[&](
@@ -625,9 +623,9 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
               static_cast<float>(num_samples);
       } else {  // exact similarity
         const uintE num_shared_neighbors{counters[counter_index]};
-        const uintE u_neighborhood{graph->get_vertex(u_id).getOutDegree()};
+        const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
         const uintE neighborhood_union{
-          v_neighborhood + u_neighborhood - num_shared_neighbors};
+          v_degree + u_degree - num_shared_neighbors};
         similarity =
           static_cast<float>((num_shared_neighbors + 2)) / neighborhood_union;
       }
