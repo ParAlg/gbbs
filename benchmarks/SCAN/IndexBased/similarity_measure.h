@@ -139,10 +139,9 @@ DivideRoundingUp(const size_t numerator, const size_t denominator) {
   return (numerator - 1) / denominator + 1;
 }
 
-// Returns a pseudorandom normal number of zero mean and unit variance, with `i`
-// being a random seed. Think of this like `pbbs::random::ith_rand`, but
-// drawing from a normal distribution rather than uniform distribution.
-float RandomNormal(const pbbs::random rng, uint64_t i);
+// Pseudorandomly generate `num_numbers` random normal numbers, each with zero
+// mean and unit variance.
+pbbs::sequence<float> RandomNormalNumbers(size_t num_numbers, pbbs::random rng);
 
 // Create a directed version of `graph`, pointing edges from lower degree
 // vertices to higher degree vertices. This upper bounds the out-degree of each
@@ -302,19 +301,14 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   using BitArray = uint64_t;
   constexpr size_t kBitArraySize{sizeof(BitArray) * 8};
 
-  const size_t num_vertices{graph->n};
-  const pbbs::random rng{random_seed};
-  const auto addition_monoid{pbbs::addm<float>{}};
-  const size_t num_bit_arrays{
-    internal::DivideRoundingUp(num_samples, kBitArraySize)};
-  // Compute MinHash fingerprints for high degree vertices.
-  const pbbs::sequence<pbbs::sequence<BitArray>> vertex_fingerprints{
-    num_vertices,
-    [&](const size_t vertex_id) {
-      Vertex vertex{graph->get_vertex(vertex_id)};
-      if (vertex.getOutDegree() < degree_threshold) {
-        return pbbs::sequence<BitArray>{};
-      }
+  pbbs::sequence<bool> needs_fingerprint_seq(graph->n, false);
+  pbbs::sequence<bool> needs_normals_seq(graph->n, false);
+  par_for(0, graph->n, [&](const size_t vertex_id) {
+    Vertex vertex{graph->get_vertex(vertex_id)};
+    if (vertex.getOutDegree() >= degree_threshold) {
+      // Vertex should be fingerprinted if both it and one of its neighbors
+      // has high degree. If a vertex needs to be fingerprinted, then normal
+      // random numbers should be generated for it and its neighbors.
       bool skip_fingerprint{true};
       const auto check_degree_threshold{
         [&](uintE, const uintE neighbor_id, Weight) {
@@ -324,12 +318,43 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
           }
         }};
       vertex.mapOutNgh(vertex_id, check_degree_threshold);
-      if (skip_fingerprint) {
+      if (!skip_fingerprint) {
+        needs_fingerprint_seq[vertex_id] = true;
+        needs_normals_seq[vertex_id] = true;
+        const auto set_needs_normals{
+          [&](uintE, const uintE neighbor_id, Weight) {
+            needs_normals_seq[neighbor_id] = true;
+          }};
+        vertex.mapOutNgh(vertex_id, set_needs_normals);
+      }
+    }
+  });
+  const pbbs::random rng{random_seed};
+  // Computing random normal numbers is expensive, so we precompute the normal
+  // numbers needed for fingerprinting.
+  const pbbs::sequence<pbbs::sequence<float>> normals{
+    graph->n,
+    [&](const size_t vertex_id) {
+      return needs_normals_seq[vertex_id]
+        ? RandomNormalNumbers(num_samples, rng.fork(vertex_id))
+        : pbbs::sequence<float>{};
+    }};
+
+  const size_t num_vertices{graph->n};
+  const auto addition_monoid{pbbs::addm<float>{}};
+  const size_t num_bit_arrays{
+    internal::DivideRoundingUp(num_samples, kBitArraySize)};
+  // Simhash fingerprints.
+  const pbbs::sequence<pbbs::sequence<BitArray>> vertex_fingerprints{
+    num_vertices,
+    [&](const size_t vertex_id) {
+      if (!needs_fingerprint_seq[vertex_id]) {
         return pbbs::sequence<BitArray>{};
       }
       return pbbs::sequence<BitArray>{
         num_bit_arrays,
         [&](const size_t bit_array_id) {
+          Vertex vertex{graph->get_vertex(vertex_id)};
           BitArray bits{0};
           const size_t max_bit_id{
             bit_array_id == num_bit_arrays - 1
@@ -338,12 +363,11 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
           const size_t bits_offset{bit_array_id * kBitArraySize};
           for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
             const auto neighbor_to_normal_sample{
-              [&](uintE, const uintE neighbor, pbbs::empty) {
-                return RandomNormal(
-                    rng, num_samples * neighbor + bits_offset + bit_id);
+              [&](uintE, const uintE neighbor_id, pbbs::empty) {
+                return normals[neighbor_id][bits_offset + bit_id];
             }};
             const float hyperplane_dot_product{
-              RandomNormal(rng, num_samples * vertex_id + bits_offset + bit_id)
+              normals[vertex_id][bits_offset + bit_id]
                 + vertex.template reduceOutNgh<float>(
                     vertex_id, neighbor_to_normal_sample, addition_monoid)};
             if (hyperplane_dot_product >= 0) {
