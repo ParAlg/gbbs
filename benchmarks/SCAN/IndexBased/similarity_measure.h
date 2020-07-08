@@ -301,6 +301,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   using BitArray = uint64_t;
   constexpr size_t kBitArraySize{sizeof(BitArray) * 8};
 
+  // Computing random normal numbers is expensive, so we precompute which
+  // vertices need assignments of normal numbers for Minhash fingerprinting.
   pbbs::sequence<bool> needs_fingerprint_seq(graph->n, false);
   pbbs::sequence<bool> needs_normals_seq(graph->n, false);
   par_for(0, graph->n, [&](const size_t vertex_id) {
@@ -330,8 +332,6 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     }
   });
   const pbbs::random rng{random_seed};
-  // Computing random normal numbers is expensive, so we precompute the normal
-  // numbers needed for fingerprinting.
   const pbbs::sequence<pbbs::sequence<float>> normals{
     graph->n,
     [&](const size_t vertex_id) {
