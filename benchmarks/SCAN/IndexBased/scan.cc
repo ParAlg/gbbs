@@ -7,7 +7,6 @@
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 #include "gbbs/bridge.h"
 #include "gbbs/pbbslib/sparse_table.h"
-#include "pbbslib/parallel.h"
 
 namespace gbbs {
 namespace indexed_scan {
@@ -20,7 +19,8 @@ using VertexSet =
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
-  return pbbslib::make_sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
+  return pbbslib::make_sparse_table<
+    uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
       capacity, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
 }
 

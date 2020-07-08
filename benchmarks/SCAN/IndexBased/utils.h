@@ -12,7 +12,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "pbbslib/collect_reduce.h"
+#include "pbbslib/integer_sort.h"
 #include "pbbslib/monoid.h"
 #include "pbbslib/seq.h"
 
@@ -55,6 +55,89 @@ size_t CompactClustering(Clustering* clustering);
 //     `kUnclustered`.
 template <class Vertex>
 UnclusteredType DetermineUnclusteredType(
+    const Clustering& clustering, Vertex vertex, uintE vertex_id);
+
+// Quality measure of clustering based on the difference of the edge density of
+// each cluster compared to the expected edge density of the cluster given a
+// random graph with the same degree distribution.
+//
+// The modularity is at most 1. It may be negative if a clustering is "worse
+// than random."
+//
+// This implementation treats each unclustered vertex as if it is in its own
+// cluster.
+//
+// Further reading:
+// - Wikipedia page on "Modularity (networks)"
+// - Section 3.3.2 of "Community detection in graphs" by Santo Fortunato (2009).
+template <template <typename> class VertexTemplate>
+double Modularity(
+    symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+    const Clustering& clustering);
+
+//////////////
+// Internal //
+//////////////
+
+namespace internal {
+
+// For each collection of values that have the same key in the input sequence,
+// reduces over those values. Returns a sequence `R` such that `R[i]` is the
+// reduction result over values with key `i`.
+//
+// This function's interface matches the interface of `pbbs::collect_reduce`. We
+// don't use `pbbs::collect_reduce` because the implementation is broken at the
+// time of writing this comment.
+//
+// Arguments
+// ---------
+// seq: Sequence<Element>
+//   Input sequence of key-value pairs
+// get_key: Element -> size_t
+//   Function that gets the key of an element from `seq`.
+// get_value: Element -> Value
+//   Function that gets the value of an element from `seq`
+// reduce: Monoid<Value>
+//   Monoid with a reduction function over values
+// num_keys:
+//   Must be such that keys returned by `get_key on elements of `seq` are in the
+//   range [0, `num_keys`).
+template <class Seq, class Key_fn, class Value_fn, class Monoid>
+pbbs::sequence<typename Monoid::T> CollectReduce(
+    const Seq& seq,
+    Key_fn&& get_key,
+    Value_fn&& get_value,
+    Monoid&& reduce_fn,
+    size_t num_keys) {
+  using Value = typename Monoid::T;
+  pbbs::sequence<size_t> bucketed_indices{
+    seq.size(),
+    [](const size_t i) { return i; }};
+  const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
+  integer_sort_inplace(bucketed_indices.slice(), index_to_key);
+  pbbs::sequence<size_t> key_offsets{
+    pbbs::get_counts(bucketed_indices, index_to_key, num_keys)};
+  pbbslib::scan_add_inplace(key_offsets);
+  pbbs::sequence<Value> result{
+    num_keys,
+    [&](const size_t i) {
+      const size_t values_start{key_offsets[i]};
+      const size_t values_end{
+        i + 1 == key_offsets.size() ? seq.size() : key_offsets[i + 1]};
+      const auto values{pbbs::delayed_seq<Value>(
+          values_end - values_start,
+          [&](const size_t j) {
+            return get_value(seq[bucketed_indices[values_start + j]]);
+          })};
+      return pbbslib::reduce(values, reduce_fn);
+    }};
+  return result;
+}
+
+}  // namespace internal
+
+template <class Vertex>
+UnclusteredType DetermineUnclusteredType(
     const Clustering& clustering, Vertex vertex, uintE vertex_id) {
   bool is_hub{false};
   // `candidate_cluster` holds a cluster ID that vertex i is adjacent to, or
@@ -79,25 +162,6 @@ UnclusteredType DetermineUnclusteredType(
   return is_hub ? UnclusteredType::kHub : UnclusteredType::kOutlier;
 }
 
-// How an algorithm should treat unclustered vertices.
-enum class UnclusteredBehavior {
-  kDiscard,  // Remove unclustered vertices.
-  kSeparateClusters,  // Treat unclustered vertices as a separ
-};
-
-// Quality measure of clustering based on the difference of the edge density of
-// each cluster compared to the expected edge density of the cluster given a
-// random graph with the same degree distribution.
-//
-// The modularity is at most 1. It may be negative if a clustering is "worse
-// than random."
-//
-// This implementation treats each unclustered vertex as if it is in its own
-// cluster.
-//
-// Further reading:
-// - Wikipedia page on "Modularity (networks)"
-// - Section 3.3.2 of "Community detection in graphs" by Santo Fortunato (2009).
 template <template <typename> class VertexTemplate>
 double Modularity(
     symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
@@ -149,7 +213,7 @@ double Modularity(
   const auto& num_unclustered_vertices{degrees_split_result.second};
   // degrees_by_cluster[i] == sum of degrees over vertices in cluster i
   const pbbs::sequence<uintT> degrees_by_cluster{
-    pbbs::collect_reduce(
+    internal::CollectReduce(
       degrees.slice(num_unclustered_vertices, degrees.size()),
       [&](const std::pair<uintE, uintT> p) { return p.first; },
       [&](const std::pair<uintE, uintT> p) { return p.second; },
