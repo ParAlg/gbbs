@@ -314,7 +314,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Computing random normal numbers is expensive, so we precompute which
   // vertices need assignments of normal numbers for Minhash fingerprinting.
   pbbs::sequence<bool> needs_fingerprint_seq(graph->n, false);
-  pbbs::sequence<bool> needs_normals_seq(graph->n, false);
+  pbbs::sequence<uintE> needs_normals_seq(graph->n, 0U);
   par_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     if (vertex.getOutDegree() >= degree_threshold) {
@@ -341,14 +341,11 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       }
     }
   });
-  const pbbs::random rng{random_seed};
-  const pbbs::sequence<pbbs::sequence<float>> normals{
-    graph->n,
-    [&](const size_t vertex_id) {
-      return needs_normals_seq[vertex_id]
-        ? RandomNormalNumbers(num_samples, rng.fork(vertex_id))
-        : pbbs::sequence<float>{};
-    }};
+  // repurpose `needs_normals_seq` to serve as the index of a vertex into
+  // `normals`
+  const uintE num_needs_normals{pbbslib::scan_add_inplace(needs_normals_seq)};
+  const pbbs::sequence<float> normals{RandomNormalNumbers(
+      num_needs_normals * num_samples, pbbs::random{random_seed})};
 
   const size_t num_vertices{graph->n};
   const auto addition_monoid{pbbs::addm<float>{}};
@@ -361,23 +358,26 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       if (!needs_fingerprint_seq[vertex_id]) {
         return pbbs::sequence<BitArray>{};
       }
+      Vertex vertex{graph->get_vertex(vertex_id)};
+      const uintE vertex_normal_offset{
+        num_samples * needs_normals_seq[vertex_id]};
       return pbbs::sequence<BitArray>{
         num_bit_arrays,
         [&](const size_t bit_array_id) {
-          Vertex vertex{graph->get_vertex(vertex_id)};
           BitArray bits{0};
           const size_t max_bit_id{
-            bit_array_id == num_bit_arrays - 1
+            bit_array_id + 1 == num_bit_arrays
             ? kBitArraySize - (num_bit_arrays * kBitArraySize - num_samples)
             : kBitArraySize};
           const size_t bits_offset{bit_array_id * kBitArraySize};
           for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
             const auto neighbor_to_normal_sample{
               [&](uintE, const uintE neighbor_id, pbbs::empty) {
-                return normals[neighbor_id][bits_offset + bit_id];
+                return normals[num_samples * needs_normals_seq[neighbor_id]
+                  + bits_offset + bit_id];
             }};
             const float hyperplane_dot_product{
-              normals[vertex_id][bits_offset + bit_id]
+              normals[vertex_normal_offset + bits_offset + bit_id]
                 + vertex.template reduceOutNgh<float>(
                     vertex_id, neighbor_to_normal_sample, addition_monoid)};
             if (hyperplane_dot_product >= 0) {
