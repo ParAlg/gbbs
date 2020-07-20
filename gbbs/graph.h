@@ -152,7 +152,7 @@ struct symmetric_graph {
   }
 
   template <class VS, class Map, class Reduce>
-  inline vertexSubsetData<uintE> nghReduce(VS& vs, Map map_f, Reduce reduce_f,
+  inline vertexSubsetData<pbbs::empty> nghReduce(VS& vs, Map map_f, Reduce reduce_f,
                                            flags fl = 0) {
     std::cout
         << "TODO: map edgeMapReduce interface to the one in edge_map_reduce.h"

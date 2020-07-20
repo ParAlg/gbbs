@@ -5,6 +5,7 @@ cc_library(
   "//gbbs:gbbs",
   "//pbbslib:random_shuffle",
   "//pbbslib:sample_sort",
+  "//gbbs/pbbslib:sparse_table",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore"
