@@ -12,7 +12,7 @@ cc_library(
   "//ligra:ligra",
   "//pbbslib:sample_sort",
   "//pbbslib:monoid",
-  "//ligra/pbbslib:hash_table",
+  "//ligra/pbbslib:sparse_table",
   ":two_level_tables",
   ]
 )
