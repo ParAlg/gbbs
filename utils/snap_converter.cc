@@ -62,7 +62,7 @@ int RunSnapConverter(int argc, char* argv[]) {
     "  -s: Treat the edges as a list of undirected edges and create a\n"
     "      symmetric graph. (Without this flag, the edges are treated as a\n"
     "      list of directed edges.)\n"
-    "  -wi: Use this flag if the edge list is weighted with 32-bit integers.\n"
+    "  -w: Use this flag if the edge list is weighted with 32-bit integers.\n"
     "  -wf: Use this flag if the edge list is weighted with 32-bit floats.\n"
   };
   const std::string kInputFlag{"-i"};
@@ -72,7 +72,7 @@ int RunSnapConverter(int argc, char* argv[]) {
   const char* const input_file{parameters.getOptionValue(kInputFlag)};
   const char* const output_file{parameters.getOptionValue(kOutputFlag)};
   const bool is_symmetric_graph{parameters.getOption("-s")};
-  const bool integer_weighted{parameters.getOption("-wi")};
+  const bool integer_weighted{parameters.getOption("-w")};
   const bool float_weighted{parameters.getOption("-wf")};
 
   if (argc < 2 ||
@@ -103,7 +103,7 @@ int RunSnapConverter(int argc, char* argv[]) {
     const auto edge_list{gbbs_io::read_unweighted_edge_list(input_file)};
     WriteEdgeListAsGraph(output_file, edge_list, is_symmetric_graph);
   }
-  return 1;
+  return 0;
 }
 
 }  // namespace
