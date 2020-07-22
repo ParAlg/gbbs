@@ -62,7 +62,8 @@ int RunSnapConverter(int argc, char* argv[]) {
     "  -s: Treat the edges as a list of undirected edges and create a\n"
     "      symmetric graph. (Without this flag, the edges are treated as a\n"
     "      list of directed edges.)\n"
-    "  -w: Use this flag if the edge list is weighted.\n"
+    "  -wi: Use this flag if the edge list is weighted with 32-bit integers.\n"
+    "  -wf: Use this flag if the edge list is weighted with 32-bit floats.\n"
   };
   const std::string kInputFlag{"-i"};
   const std::string kOutputFlag{"-o"};
@@ -71,7 +72,8 @@ int RunSnapConverter(int argc, char* argv[]) {
   const char* const input_file{parameters.getOptionValue(kInputFlag)};
   const char* const output_file{parameters.getOptionValue(kOutputFlag)};
   const bool is_symmetric_graph{parameters.getOption("-s")};
-  const bool weighted{parameters.getOption("-w")};
+  const bool integer_weighted{parameters.getOption("-wi")};
+  const bool float_weighted{parameters.getOption("-wf")};
 
   if (argc < 2 ||
       std::string(argv[1]) == "-h" ||
@@ -86,9 +88,16 @@ int RunSnapConverter(int argc, char* argv[]) {
       "' flag.\n";
     std::terminate();
   }
+  if (integer_weighted && float_weighted) {
+    std::cerr << "ERROR: Please only specify one weight type.\n";
+    std::terminate();
+  }
 
-  if (weighted) {
-    const auto edge_list{gbbs_io::read_weighted_edge_list(input_file)};
+  if (integer_weighted) {
+    const auto edge_list{gbbs_io::read_weighted_edge_list<int32_t>(input_file)};
+    WriteEdgeListAsGraph(output_file, edge_list, is_symmetric_graph);
+  } else if (float_weighted) {
+    const auto edge_list{gbbs_io::read_weighted_edge_list<float>(input_file)};
     WriteEdgeListAsGraph(output_file, edge_list, is_symmetric_graph);
   } else {
     const auto edge_list{gbbs_io::read_unweighted_edge_list(input_file)};

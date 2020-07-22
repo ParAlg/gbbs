@@ -67,6 +67,8 @@ const std::string kUnweightedAdjGraphHeader = "AdjacencyGraph";
 // Header string expected at the top of weighted adjacency graph files.
 const std::string kWeightedAdjGraphHeader = "WeightedAdjacencyGraph";
 
+void skip_ifstream_comments(std::ifstream* stream);
+
 template <class weight_type>
 size_t get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>&);
 
@@ -225,7 +227,24 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
 //     <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>
 //     ...
 //     <edge m first endpoint> <edge m second endpoint> <edge m weight>
-std::vector<Edge<intT>> read_weighted_edge_list(const char* filename);
+template <typename Weight>
+std::vector<Edge<Weight>> read_weighted_edge_list(const char* filename) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+  internal::skip_ifstream_comments(&file);
+
+  std::vector<Edge<Weight>> edge_list;
+  uintE from;
+  uintE to;
+  Weight weight;
+  while (file >> from >> to >> weight) {
+    edge_list.emplace_back(from, to, weight);
+  }
+  return edge_list;
+}
 
 // Read edges from a file that has the following format:
 //     # There can be comments at the top of the file as long as each line of

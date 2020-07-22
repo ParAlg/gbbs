@@ -10,7 +10,7 @@ namespace gbbs_io {
 typedef std::pair<uintE, uintE> intPair;
 typedef std::pair<uintE, std::pair<uintE, intE>> intTriple;
 
-namespace {
+namespace internal {
 
 // Starting from the current position, skips all consecutive lines in the stream
 // that start with '#' or are empty.
@@ -29,7 +29,7 @@ void skip_ifstream_comments(std::ifstream* stream) {
   }
 }
 
-}  // namespace
+}  // namespace internal
 
 template <>
 Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
@@ -328,24 +328,6 @@ std::tuple<char*, size_t> parse_compressed_graph(
   return std::make_tuple(bytes, bytes_size);
 }
 
-std::vector<Edge<intT>> read_weighted_edge_list(const char* filename) {
-  std::ifstream file{filename};
-  if (!file.is_open()) {
-    std::cout << "ERROR: Unable to open file: " << filename << '\n';
-    std::terminate();
-  }
-  skip_ifstream_comments(&file);
-
-  std::vector<Edge<intT>> edge_list;
-  uintE from;
-  uintE to;
-  intT weight;
-  while (file >> from >> to >> weight) {
-    edge_list.emplace_back(from, to, weight);
-  }
-  return edge_list;
-}
-
 std::vector<Edge<pbbslib::empty>>
 read_unweighted_edge_list(const char* filename) {
   std::ifstream file{filename};
@@ -353,7 +335,7 @@ read_unweighted_edge_list(const char* filename) {
     std::cout << "ERROR: Unable to open file: " << filename << '\n';
     std::terminate();
   }
-  skip_ifstream_comments(&file);
+  internal::skip_ifstream_comments(&file);
 
   std::vector<Edge<pbbslib::empty>> edge_list;
   uintE from;
