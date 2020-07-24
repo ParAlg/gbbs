@@ -291,11 +291,13 @@ inline auto get_pcm_state() { return (size_t)1; }
       }                                                                       \
     } else {                                                                  \
       if (symmetric) {                                                        \
-        auto G = gbbs::gbbs_io::read_weighted_symmetric_graph(iFile, mmap);   \
+        auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(    \
+            iFile, mmap);                                                     \
         gbbs::alloc_init(G);                                                  \
         run_app(G, APP, rounds)                                               \
       } else {                                                                \
-        auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph(iFile, mmap);  \
+        auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph<gbbs::intE>(   \
+            iFile, mmap);                                                     \
         gbbs::alloc_init(G);                                                  \
         run_app(G, APP, rounds)                                               \
       }                                                                       \
@@ -322,7 +324,8 @@ inline auto get_pcm_state() { return (size_t)1; }
       gbbs::alloc_init(G);                                                 \
       run_app(G, APP, rounds)                                              \
     } else {                                                               \
-      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph(iFile, mmap);  \
+      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(   \
+          iFile, mmap);                                                    \
       gbbs::alloc_init(G);                                                 \
       run_app(G, APP, rounds)                                              \
     }                                                                      \
