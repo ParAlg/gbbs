@@ -85,6 +85,9 @@ namespace DBTGraph{
         bool is_high_v(uintE v){ return is_high(D[v]);}
         bool is_low_v(uintE v){return !is_high_v(v);}
 
+        bool use_block(uintE d){return d <= block_size;}
+        bool use_block_v(uintE v){return D[v] < block_size;}
+
         inline void insertTop(tableE *tb, uintE u, size_t size, size_t bottom_load ){
             SetT *tbB = new SetT(size, EMPTYV, vertexHash(), bottom_load);
             tb->insert(make_tuple(u, tbB));
@@ -101,7 +104,8 @@ namespace DBTGraph{
             }
         };
         inline void insertW(uintE u, uintE v, int flag, size_t val = 1){
-            if(u > v) swap(u,v);
+            // if(u > v) swap(u,v);
+            if(u >= v) return; //TODO: only store a wedge once
             T->insert_f(make_tuple(make_pair(u,v), WTV(flag, val)), updateTF());
 
         }
@@ -125,7 +129,7 @@ namespace DBTGraph{
         DyGraph(int t_block_size, Graph& G):block_size(t_block_size){
             n = G.num_vertices();
             m = G.num_edges();
-            M  = 2 * m + 1;
+            M  = m + 1; // m already doubled
             t1 = sqrt(M) / 2;
             t2 = 3 * t1;
 
@@ -135,17 +139,13 @@ namespace DBTGraph{
             parallel_for(0, block_size*n, [&](size_t i) { edges[i] = 0; });
             lowD = pbbs::sequence<size_t>::no_init(n);
             
-            //gather vertices with low/high neighbors
-            // pbbs::sequence<std::tuple<uintE, uintE, W>> edgesAll = G.edges();
-            pbbs::sequence<bool> flag = pbbs::sequence<bool>(m);
+            //compute low degree
+            pbbs::sequence<int> flag = pbbs::sequence<int>(m);
             parallel_for(0, m, [&](size_t i) { flag[i] = 0; });
             auto monoid = pbbslib::addm<size_t>();
-            // par_for(0, m, [&] (size_t i) {
-            //     if(is_low_v(get<2>(edgesAll[i]))) flag[i] = 1;
-            // });
-            pbbslib::scan_add_inplace(D.slice());
+
             parallel_for(0, n, [&](size_t i) {
-            size_t k = D[i];
+                size_t k = v_data[i].offset;
                 auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
                     if(is_low_v(v)) flag[k] = 1;
                     k++;
@@ -159,14 +159,25 @@ namespace DBTGraph{
                 lowD[i] = pbbs::reduce(flag.slice(offset, offset_next), monoid);
             });
 
-            flag.shrink(n);
+            // flag.shrink(n);
+            // par_for(0, n, [&] (size_t i) {
+            //     if(is_low_v(i)) flag[i] = 1;
+            //     else flag[i] = 0;
+            // });
+            // size_t lowNum = pbbs::reduce(flag, monoid);
+            flag.clear();
+            // pbbs::sequence<bool> flag2 = pbbs::sequence<bool>::no_init(n);
+            pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
             par_for(0, n, [&] (size_t i) {
-                D[i] = G.get_vertex(i).getOutDegree(); 
-                if(is_low_v(i)) flag[i] = 1;
-                else flag[i] = 0;
+                // if(is_low_v(i)){ flag2[i] = false;}else{ flag2[i] = true;}
+                vArray[i] = i;
             });
-            size_t lowNum = pbbs::reduce(flag, monoid);
+            pbbs::sequence<uintE> highNodes = pbbs::filter(vArray, [=] (size_t i) {return is_high_v(i);});
+            size_t lowNum = n - highNodes.size();
+            vArray.clear();
+            // flag2.clear();
 
+            // TODO: can allocate less, count using block nodes
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
@@ -174,16 +185,27 @@ namespace DBTGraph{
             T  = new tableW((n-lowNum)*(n-lowNum), make_tuple(make_pair(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);
 
             // insert top level keys
-            double bottom_load = 1.5;
+            double bottom_load = 1.1;
             par_for(0, n, [&] (size_t i) {
                 size_t degree = D[i];
-                if(degree < block_size){
-                    memcpy ( &edges[block_size*i], &G.e0[v_data[i].offset], degree*sizeof(edge_type) );
+                if(use_block(degree)){
+                    size_t k = block_size*i; //v_data[i].offset;
+                    // memcpy ( &edges[block_size*i], &G.e0[v_data[i].offset], degree*sizeof(edge_type) );
+                    // par_for(0, degree, [&](size_t j) { 
+                    //     edges[block_size*i + j]  = std::get<0>(&G.e0[edge_offset + j]); });
+                    auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
+                        edges[k] = v;
+                        k++;
+                    };
+                    G.get_vertex(i).mapOutNgh(i, map_f, false);
+                    // if(is_high(degree) && lowD[i] != 0){
+                    //     insertTop(HL, i, 0, bottom_load);
+                    // }
                 }else{
                     // edges[offset*(i+1)-1] = NOEDGE;
                     tableE *tb1 = HL;
                     tableE *tb2 = HH;
-                    if(is_high(degree)){
+                    if(is_low(degree)){
                         tb1 = LL;
                         tb2 = LH;
                     }
@@ -200,12 +222,11 @@ namespace DBTGraph{
                     }
                 }
             });
-            flag.clear();
 
             // insert bottom level
             auto insert_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
                 size_t degree = D[u];
-                if(degree < block_size) return; // edges already in array
+                if(use_block(degree)) return; // edges already in array
                 if(is_low_v(u)){
                     if(is_low_v(v)){
                         insertE(LL, u,v);
@@ -223,28 +244,51 @@ namespace DBTGraph{
             G.mapEdges(insert_f, true);
 
             // init T
-            par_for(0, HL->size(), [&] (size_t i) {
-                uintE u = get<0>(HL->table[i]);
-                SetT* L = get<1>(HL->table[i]);
+            // par_for(0, HL->size(), [&] (size_t i) {
+            par_for(0, highNodes.size(), [&] (size_t i) {
+                // uintE u = get<0>(HL->table[i]);  
+                uintE u = highNodes[i];                
                 if(u != HL->empty_key){
-                    par_for(0, L->size(), [&] (size_t j) {
-                        uintE w = L->table[j];
-                        if(w != L->empty_key){
-                            insertT(u);
+                if(use_block_v(u)){
+                    par_for(0, D[u], [&] (size_t j) {
+                        uintE w = edges[i * block_size + j];
+                        if(is_low_v(w)){
+                            insertT(u, w);
                         }
                     });
+                }else{
+                    //  SetT* L = get<1>(HL->table[i]);
+                     SetT* L = HL->find(u, (SetT*) NULL);
+                     par_for(0, L->size(), [&] (size_t j) {
+                        uintE w = L->table[j];
+                        if(w != L->empty_key){
+                            insertT(u, w);
+                        }
+                    });                   
+                }
+
                 }
             });
-
         }
+        // u is high, w is low
+        inline void insertT(uintE u, uintE w){
+            if(use_block_v(w)){
+                par_for(0, D[w], [&] (size_t k) {
+                    uintE v = edges[w * block_size + k];
+                    if(is_high_v(v)){
+                        insertW(u, v, UPDATET1, 1);
+                    }
+                });
+            }else{
+                SetT* H = LH->find(w,(SetT*) NULL );
+                par_for(0, H->size(), [&] (size_t k) {
+                    uintE v = H->table[k];
+                    if(v != H->empty_key){
+                        insertW(u, v, UPDATET1, 1);
+                    }
+                });
+            }
 
-        inline void insertT(uintE u){
-            par_for(0, LH->size(), [&] (size_t k) {
-                uintE v = get<0>(LH->table[k]);
-                if(v != LH->empty_key){
-                    insertW(u, v, UPDATET1, 1);
-                }
-            });
         }
 
         // ~(){
