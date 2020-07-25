@@ -58,29 +58,4 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   return 0;
 }
 
-
-// template <class Graph>
-// inline auto Initialize(Graph& G){
-//   using K = uintE;
-//   using V = int;
-//   using BT = std::tuple<K, V>;
-//   // using W = typename Graph::weight_type;
-//   size_t n = G.n;
-//   BT empty = std::make_tuple(UINT_E_MAX, -1);
-
-//   auto HH = NestHash::nested_table<K, V, hash_vertex>(n, empty, hash_vertex());
-//   auto HL = NestHash::nested_table<K, V, hash_vertex>(n, empty, hash_vertex());
-//   auto LH = NestHash::nested_table<K, V, hash_vertex>(n, empty, hash_vertex());
-//   auto LL = NestHash::nested_table<K, V, hash_vertex>(n, empty, hash_vertex());
-//   auto T  = NestHash::nested_table<K, size_t, hash_vertex>(2*n, empty, hash_vertex());
-//   // auto D  = sequence<size_t>(n);
-
-//   using E = decltype(HH);
-//   using F = decltype(T);
-  
-//   auto state = BPDTriangleCountState<Graph, E, F>(G, HH, HL, LH, LL, T);
-
-//   return state;
-// }
-
 }  // namespace gbbs

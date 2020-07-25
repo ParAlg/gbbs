@@ -5,7 +5,6 @@
 #include "pbbslib/monoid.h"
 // #include "gbbs/pbbslib/sparse_table.h"
 #include "sparse_table.h"
-// #include "two_level_tables.h"
 #include "set.h"
 #include "gbbs/macros.h"
 
@@ -269,6 +268,9 @@ namespace DBTGraph{
 
                 }
             });
+
+            // cleanup
+            highNodes.clear();
         }
         // u is high, w is low
         inline void insertT(uintE u, uintE w){
@@ -291,10 +293,31 @@ namespace DBTGraph{
 
         }
 
-        // ~(){
-        //     HL->del();
-        //     //todo: clear up
-        // }
+        //TODO: better way to clear?
+        inline void clearTableE(tableE *tb){
+            par_for(0, tb->size(), [&] (size_t i) {
+                if(tb->table[i] != tb->empty){
+                    std::get<1>(tb->table[i])->del();
+                    delete std::get<1>(tb->table[i]);
+                }
+            });
+            tb->clear();
+            delete tb;
+        }
+
+        ~DyGraph(){
+            D.clear();
+            lowD.clear();
+            edges.clear();
+            clearTableE(LH);
+            clearTableE(LL);
+            clearTableE(HL);
+            clearTableE(HH);
+            T->del();
+            delete T;
+
+            //todo: clear up
+        }
     };
 
 }
