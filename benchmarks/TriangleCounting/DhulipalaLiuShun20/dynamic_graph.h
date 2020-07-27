@@ -11,6 +11,7 @@
 using namespace std;
 
 #define EMPTYV numeric_limits<uintE>::max()
+#define EMPTYKVB make_tuple(EMPTYV, 0)
 #define EMPTYKV make_tuple(EMPTYV, (SetT *)NULL)
 #define UPDATET1 1
 #define UPDATET2 2
@@ -58,12 +59,13 @@ namespace DBTGraph{
 
     // auto hash_edge = [](const pair<uintE, uintE>& v) {return pbbs::hash_combine(v.first, v.second);};
     struct edgeHash { //TODO: check
-        uint64_t operator ()(const pair<uintE, uintE>& v) const{return pbbs::hash_combine(v.first, v.second);}
-    };
+        uint64_t operator ()(const pair<uintE, uintE>& v) const{
+            return pbbs::hash_combine(pbbs::hash64_2(v.first), pbbs::hash64_2(v.second));}
+    }; 
 
 
-    inline pbbslib::sparse_set<uintE, vertexHash> make_vertex_set(size_t m, long space_mult=-1) {
-        return pbbslib::sparse_set<uintE, vertexHash>(m, EMPTYV, vertexHash(), space_mult);
+    inline pbbslib::sparse_table<uintE, int, vertexHash> make_vertex_set(size_t m, long space_mult=-1) {
+        return pbbslib::sparse_table<uintE, int, vertexHash>(m, EMPTYKVB, vertexHash(), space_mult);
     }
     
 
@@ -72,7 +74,7 @@ namespace DBTGraph{
         using vertex = typename Graph::vertex;
         using weight_type = typename Graph::weight_type;
         using edge_type = typename Graph::edge_type;
-        using SetT = pbbslib::sparse_set<uintE, vertexHash >;
+        using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
         using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
         // using WTV = std::tuple<size_t, size_t, size_t>;
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
@@ -88,13 +90,13 @@ namespace DBTGraph{
         bool use_block_v(uintE v)const{return D[v] < block_size;}
 
         inline void insertTop(tableE *tb, uintE u, size_t size, size_t bottom_load ){
-            SetT *tbB = new SetT(size, EMPTYV, vertexHash(), bottom_load);
+            SetT *tbB = new SetT(size, EMPTYKVB, vertexHash(), bottom_load);
             tb->insert(make_tuple(u, tbB));
         }
 
-        inline void insertE(tableE *tb, uintE u, uintE v){
+        inline void insertE(tableE *tb, uintE u, uintE v, int val = 0){
             SetT *tbB = tb->find(u, NULL);
-            tbB->insert(v);
+            tbB->insert(make_tuple(v, val));
         }
 
         struct updateTF { //TODO: check
@@ -285,7 +287,7 @@ namespace DBTGraph{
                     //  SetT* L = get<1>(HL->table[i]);
                      SetT* L = HL->find(u, (SetT*) NULL);
                      par_for(0, L->size(), [&] (size_t j) {
-                        uintE w = L->table[j];
+                        uintE w = get<0>(L->table[j]);
                         if(w != L->empty_key){
                             insertT(u, w);
                         }
@@ -310,7 +312,7 @@ namespace DBTGraph{
             }else{
                 SetT* H = LH->find(w,(SetT*) NULL );
                 par_for(0, H->size(), [&] (size_t k) {
-                    uintE v = H->table[k];
+                    uintE v = get<0>(H->table[k]);
                     if(v != H->empty_key){
                         insertW(u, v, UPDATET1, 1);
                     }
