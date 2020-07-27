@@ -78,14 +78,14 @@ namespace DBTGraph{
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
         // const 
 
-        bool is_high(size_t k){ return k > t2;}
-        bool is_low(size_t k){return !is_high(k);}
+        bool is_high(size_t k) const { return k > t2;}
+        bool is_low(size_t k) const {return !is_high(k);}
 
-        bool is_high_v(uintE v){ return is_high(D[v]);}
-        bool is_low_v(uintE v){return !is_high_v(v);}
+        bool is_high_v(uintE v)const{ return is_high(D[v]);}
+        bool is_low_v(uintE v)const{return !is_high_v(v);}
 
-        bool use_block(uintE d){return d <= block_size;}
-        bool use_block_v(uintE v){return D[v] < block_size;}
+        bool use_block(uintE d)const{return d <= block_size;}
+        bool use_block_v(uintE v)const{return D[v] < block_size;}
 
         inline void insertTop(tableE *tb, uintE u, size_t size, size_t bottom_load ){
             SetT *tbB = new SetT(size, EMPTYV, vertexHash(), bottom_load);
@@ -123,6 +123,32 @@ namespace DBTGraph{
         tableE *LH;
         tableE *HL;
         tableW *T;
+
+        bool haveEdge (EdgeT e) const{
+            if (e.first >= n || e.second >= n){
+                return false;
+            }
+            uintE u = e.first;
+            uintE v = e.second;
+            size_t degree1 = D[e.first];
+            size_t degree2 = D[e.second];
+            if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
+            if(degree1 == 0 || degree2 == 0) return false;
+            tableE *tb = LL;
+            if(is_high(degree1) && is_high(degree2)){
+                tb = HH;
+            }else if(is_high(degree2)){
+                tb = LH;
+            }
+            if(use_block(degree1)){
+                for(size_t i = 0; i < degree1; ++i){
+                    if(edges[block_size * u + i] == v) return true;
+                }
+                return false;
+            }else{
+                return tb->find(u, (SetT *)NULL)->contains(v);
+            }
+        }
 
 
         DyGraph(int t_block_size, Graph& G):block_size(t_block_size){
@@ -302,7 +328,7 @@ namespace DBTGraph{
                 }
             });
             tb->clear();
-            delete tb;
+            // delete tb;
         }
 
         ~DyGraph(){
@@ -314,7 +340,7 @@ namespace DBTGraph{
             clearTableE(HL);
             clearTableE(HH);
             T->del();
-            delete T;
+            // delete T;
 
             //todo: clear up
         }
