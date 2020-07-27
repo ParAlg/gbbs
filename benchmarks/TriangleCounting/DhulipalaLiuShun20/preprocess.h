@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gbbs/gbbs.h"
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/monoid.h"
 #include "dynamic_graph.h"
@@ -8,7 +9,7 @@ namespace gbbs {
 using namespace std;
 
 template <class Graph, class EdgeT>
-inline bool dupEdge(DBTGraph::DyGraph<Graph> G, pair<EdgeT, bool> e){
+inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, pair<EdgeT, bool> &e){
   if (e.first.first >= G.n || e.first.second >= G.n){
       cout << "edge out of bound " << endl;
       exit(1);
@@ -17,7 +18,7 @@ inline bool dupEdge(DBTGraph::DyGraph<Graph> G, pair<EdgeT, bool> e){
 }
 
 template <class Graph, class EdgeT>
-inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> G, pbbs::sequence<pair<EdgeT, bool>> updates){
+inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(const DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates){
   size_t n = updates.size();
   // u < v
   parallel_for(0, n, [&](size_t i) {

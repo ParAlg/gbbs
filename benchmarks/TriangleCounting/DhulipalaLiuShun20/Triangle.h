@@ -27,6 +27,7 @@
 #include "gbbs/gbbs.h"
 #include "dynamic_graph.h"
 #include "benchmark.h"
+#include "preprocess.h"
 
 
 namespace gbbs {
@@ -36,18 +37,39 @@ using namespace std;
 template <class Graph, class F>
 inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   // auto C0 = P.getOptionIntValue("-c", 0);
-  timer t;
-  t.start();
   using EdgeT = DBTGraph::EdgeT;
-  DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G);
-  t.stop();
-  t.reportTotal("init");
+  using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
+  timer t;
 
-  // pbbs::sequence<pair<EdgeT, bool>> updates = UTIL::generateEdgeUpdates<EdgeT>(DG.n, 5);
-  // pbbs::sequence<pair<EdgeT, bool>> updates_final = Preprocessing(DG, updates);
-  // updates->clear();
-  // delete updates;
-  // UTIL::PrintPairSeq(updates);
+  t.start();
+  DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G); t.stop();t.reportTotal("init");
+
+  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.n, 5);
+  t.start(); //step 1
+  UpdatesT updates_final = Preprocessing(DG, updates); 
+  pbbs::sequence<bool> flag = pbbs::sequence<bool>::no_init(updates_final.size());
+  par_for(0, updates_final.size(), [&] (size_t i) {
+      flag[i] = updates_final[i].second;
+  });
+  pair<UpdatesT, size_t> tmp = pbbs::split_two(updates_final, flag);
+  updates.clear();
+  updates = tmp.first;
+  size_t m_del = tmp.second;
+  size_t m_ins = updates_final.size() - tmp.second;
+
+  
+  t.stop();t.reportTotal("preprocess");
+  
+  UTIL::PrintFunctionItem("1", "m", updates_final.size());
+
+
+  t.start(); //step 2
+  // mark_inserted_edges(updates_final); t.stop();t.reportTotal("preprocess");
+
+
+
+
+
   cout << "done" << endl;
 
   return 0;
