@@ -72,12 +72,10 @@ namespace DBTGraph{
     };
 
 
-    // auto hash_vertex = [](const uintE& v) {return pbbs::hash64_2(v);};
     struct vertexHash { //TODO: check
         uint64_t operator ()(const uintE& v) const {return pbbs::hash64_2(v);}
     };
 
-    // auto hash_edge = [](const pair<uintE, uintE>& v) {return pbbs::hash_combine(v.first, v.second);};
     struct edgeHash { //TODO: check
         uint64_t operator ()(const pair<uintE, uintE>& v) const{
             return pbbs::hash_combine(pbbs::hash64_2(v.first), pbbs::hash64_2(v.second));}
@@ -224,31 +222,12 @@ namespace DBTGraph{
             t1 = sqrt(M) / 2;
             t2 = 3;// 3 * t1;
 
-            // vertex_data* v_data = G.v_data;
             D = pbbs::sequence<size_t>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
             edges = pbbs::sequence<pair<uintE,int>>((size_t)(block_size*n), make_pair(EMPTYV,0));
-            // parallel_for(0, block_size*n, [&](size_t i) { edges[i] = make_pair(EMPTYV,0); });
             lowD = pbbs::sequence<size_t>::no_init(n);
             
             //compute low degree
-            // pbbs::sequence<int> flag = pbbs::sequence<int>(m);
-            // parallel_for(0, m, [&](size_t i) { flag[i] = 0; });
             auto monoid = pbbslib::addm<size_t>();
-
-            // parallel_for(0, n, [&](size_t i) {
-            //     size_t k = v_data[i].offset;
-            //     auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
-            //         if(is_low_v(v)) flag[k] = 1;
-            //         k++;
-            //     };
-            //     G.get_vertex(i).mapOutNgh(i, map_f, false); // TODO: reduceOutNgh
-            // }, 1);
-            // par_for(0, n, [&] (size_t i) {
-            //     size_t offset = v_data[i].offset;
-            //     size_t offset_next = i == n-1? m : v_data[i+1].offset;
-                
-            //     lowD[i] = pbbs::reduce(flag.slice(offset, offset_next), monoid);
-            // });
             auto map_f = [&](uintE u, uintE v, const typename Graph::weight_type& wgh) -> size_t {
                 if(is_low_v(v)) return 1;
                 return 0;
@@ -258,23 +237,11 @@ namespace DBTGraph{
                 lowD[i] = G.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid);
             });
 
-            // flag.shrink(n);
-            // par_for(0, n, [&] (size_t i) {
-            //     if(is_low_v(i)) flag[i] = 1;
-            //     else flag[i] = 0;
-            // });
-            // size_t lowNum = pbbs::reduce(flag, monoid);
-            // flag.clear();
-            // pbbs::sequence<bool> flag2 = pbbs::sequence<bool>::no_init(n);
             pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
-            par_for(0, n, [&] (size_t i) {
-                // if(is_low_v(i)){ flag2[i] = false;}else{ flag2[i] = true;}
-                vArray[i] = i;
-            });
+            par_for(0, n, [&] (size_t i) {vArray[i] = i;});
             pbbs::sequence<uintE> highNodes = pbbs::filter(vArray, [=] (size_t i) {return is_high_v(i);});
             size_t lowNum = n - highNodes.size();
             vArray.clear();
-            // flag2.clear();
 
             // TODO: can allocate less, count using block nodes
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
@@ -289,15 +256,6 @@ namespace DBTGraph{
                 size_t degree = D[i];
                 if(use_block(degree)){
                     size_t k = block_size*i; //v_data[i].offset;
-                    // memcpy ( &edges[block_size*i], &G.e0[v_data[i].offset], degree*sizeof(edge_type) );
-                    // par_for(0, degree, [&](size_t j) { 
-                    //     edges[block_size*i + j]  = std::get<0>(&G.e0[edge_offset + j]); });
-                    // auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
-                    //     // edges[k] = v;
-                    //     setEArray(v,k,0);
-                    //     k++;
-                    // };
-                    // G.get_vertex(i).mapOutNgh(i, map_f, false); //mapOutNghWithIndex copy() in graph
 
                     auto map_f = [&] (const uintE& u, const uintE& v, const typename Graph::weight_type& wgh, size_t ind) {
                         setEArray(v,k + ind,0);
@@ -308,7 +266,6 @@ namespace DBTGraph{
                     //     insertTop(HL, i, 0, bottom_load);
                     // }
                 }else{
-                    // edges[offset*(i+1)-1] = NOEDGE;
                     tableE *tb1 = HL;
                     tableE *tb2 = HH;
                     if(is_low(degree)){
