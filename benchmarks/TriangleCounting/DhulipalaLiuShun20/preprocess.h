@@ -10,7 +10,7 @@ using namespace std;
 
 template <class Graph, class EdgeT>
 inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
-  if (e.first.first >= G.n || e.first.second >= G.n){
+  if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
       cout << "edge out of bound " << endl;
       exit(1);
   }

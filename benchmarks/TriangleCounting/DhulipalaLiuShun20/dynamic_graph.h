@@ -96,11 +96,31 @@ namespace DBTGraph{
         using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
 
-        bool is_high(size_t k) const { return k > t2;}
-        bool is_low(size_t k) const {return !is_high(k);}
+        size_t n;
+        size_t m;
+        size_t block_size;
+        size_t M;
+        double t1, t2;
+        pbbs::sequence<size_t> D;
+        pbbs::sequence<bool> status;//true if high
+        pbbs::sequence<size_t> lowD;
+        pbbs::sequence<pair<uintE,int>> edges;
+        tableE *LL;
+        tableE *HH;
+        tableE *LH;
+        tableE *HL;
+        tableW *T;
 
-        bool is_high_v(uintE v)const{ return is_high(D[v]);}
+        // bool is_high(size_t k) const { return k > 2*t1;} // 
+        // bool is_low(size_t k) const {return !is_high(k);}
+
+        bool is_high_v(uintE v)const{ return status[v];}//is_high(D[v]);}
         bool is_low_v(uintE v)const{return !is_high_v(v);}
+
+        bool must_high(size_t k) const { return k > t2;}
+        bool must_low(size_t k) const {return k < t1;}
+
+        bool change_status(uintE v, size_t k) const { return (is_high_v(v) && must_low(k)) || (is_low_v(v) && must_high(k));}
 
         bool use_block(uintE d)const{return d <= block_size;}
         bool use_block_v(uintE v)const{return use_block(D[v]);}
@@ -141,19 +161,9 @@ namespace DBTGraph{
 
 
     public:
-        size_t block_size;
-        size_t n;
-        size_t m;
-        size_t M;
-        double t1, t2;
-        pbbs::sequence<size_t> D;
-        pbbs::sequence<size_t> lowD;
-        pbbs::sequence<pair<uintE,int>> edges;
-        tableE *LL;
-        tableE *HH;
-        tableE *LH;
-        tableE *HL;
-        tableW *T;
+
+        size_t num_vertices() const { return n; }
+        size_t num_edges() const { return m; }
 
         bool haveEdge (EdgeT e) const{
             if (e.first >= n || e.second >= n){
@@ -161,14 +171,14 @@ namespace DBTGraph{
             }
             uintE u = e.first;
             uintE v = e.second;
-            size_t degree1 = D[e.first];
-            size_t degree2 = D[e.second];
+            size_t degree1 = D[u];
+            size_t degree2 = D[v];
             if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
             if(degree1 == 0 || degree2 == 0) return false;
             tableE *tb = LL;
-            if(is_high(degree1) && is_high(degree2)){
+            if(is_high_v(u) && is_high_v(v)){
                 tb = HH;
-            }else if(is_high(degree2)){
+            }else if(is_high_v(v)){
                 tb = LH;
             }
             if(use_block(degree1)){
@@ -225,6 +235,8 @@ namespace DBTGraph{
             D = pbbs::sequence<size_t>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
             edges = pbbs::sequence<pair<uintE,int>>((size_t)(block_size*n), make_pair(EMPTYV,0));
             lowD = pbbs::sequence<size_t>::no_init(n);
+            status = pbbs::sequence<bool>::no_init(n);
+
             
             //compute low degree
             auto monoid = pbbslib::addm<size_t>();
@@ -233,8 +245,8 @@ namespace DBTGraph{
                 return 0;
             };
             par_for(0, n, [&] (size_t i) {
-                // auto monoid = pbbslib::addm<size_t>();
                 lowD[i] = G.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid);
+                status[i] = D[i] > 2 * t1;
             });
 
             pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
@@ -262,13 +274,13 @@ namespace DBTGraph{
                     };
                     G.get_vertex(i).mapOutNghWithIndex(i, map_f);
 
-                    // if(is_high(degree) && lowD[i] != 0){
+                    // if(is_high_v(i) && lowD[i] != 0){
                     //     insertTop(HL, i, 0, bottom_load);
                     // }
                 }else{
                     tableE *tb1 = HL;
                     tableE *tb2 = HH;
-                    if(is_low(degree)){
+                    if(is_low_v(i)){
                         tb1 = LL;
                         tb2 = LH;
                     }

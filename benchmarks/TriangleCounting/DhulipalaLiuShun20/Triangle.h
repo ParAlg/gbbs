@@ -89,7 +89,7 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   t.start();
   DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G); t.stop();t.reportTotal("init");
 
-  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.n, 10);
+  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
   t.start(); //step 1
   UpdatesT updates_final = Preprocessing(DG, updates); 
 
@@ -112,25 +112,15 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
 
 
 
-  t.start(); //step 2
+  t.start(); //resizing
   pbbs::sequence<EdgeT> edges = pbbs::sequence<EdgeT>::no_init(2*m);
-  pbbs::sequence<size_t> offsets = pbbs::sequence<size_t>::no_init(G.n+1);
+  pbbs::sequence<size_t> offsets = pbbs::sequence<size_t>::no_init(DG.num_vertices()+1);
   // toCSR(G, updates_final, updates_final.size(),edges,offsets);
 
   // symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges( major rebalancing 
-
-  // mark_inserted_edges(updates_final); t.stop();t.reportTotal("preprocess");
-
-
-  // first delete then insert to use the hashtable space better
-  // delete
-
-  // update degree 
   
   // gather resizing info
-
   // count new lowNum 
-
   // compute lowD
 
   // resize table (increase)
@@ -139,6 +129,19 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   // minor rebalancing
 
   // resize table (decrease)
+  t.stop();t.reportTotal("resizing");
+
+  t.start(); //step 2 and 3
+  // mark insert + delete
+  // mark_inserted_edges(updates_final); t.stop();t.reportTotal("preprocess");
+  t.stop();t.reportTotal("marking");
+
+  // update insertions
+  // count c1, c2, c3
+
+  //update deletions
+  // count c4, c5, c6
+
 
   
 
