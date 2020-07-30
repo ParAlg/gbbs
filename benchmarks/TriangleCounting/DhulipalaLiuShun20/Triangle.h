@@ -89,9 +89,11 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   t.start();
   DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G); t.stop();t.reportTotal("init");
 
-  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.n, 5);
+  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.n, 10);
   t.start(); //step 1
   UpdatesT updates_final = Preprocessing(DG, updates); 
+
+  // splits to insertions and deletions, deletions first
   pbbs::sequence<bool> flag = pbbs::sequence<bool>::no_init(updates_final.size());
   par_for(0, updates_final.size(), [&] (size_t i) {
       flag[i] = updates_final[i].second;

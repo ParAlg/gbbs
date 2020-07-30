@@ -103,7 +103,7 @@ namespace DBTGraph{
         bool is_low_v(uintE v)const{return !is_high_v(v);}
 
         bool use_block(uintE d)const{return d <= block_size;}
-        bool use_block_v(uintE v)const{return D[v] < block_size;}
+        bool use_block_v(uintE v)const{return use_block(D[v]);}
 
         inline void insertTop(tableE *tb, uintE u, size_t size, size_t bottom_load ){
             SetT *tbB = new SetT(size, EMPTYKVB, vertexHash(), bottom_load);
@@ -220,7 +220,7 @@ namespace DBTGraph{
             m = G.num_edges();
             M  = m + 1; // m already doubled
             t1 = sqrt(M) / 2;
-            t2 = 3;// 3 * t1;
+            t2 = 3 * t1;
 
             D = pbbs::sequence<size_t>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
             edges = pbbs::sequence<pair<uintE,int>>((size_t)(block_size*n), make_pair(EMPTYV,0));
@@ -311,7 +311,7 @@ namespace DBTGraph{
             par_for(0, highNodes.size(), [&] (size_t i) {
                 // uintE u = get<0>(HL->table[i]);  
                 uintE u = highNodes[i];                
-                // if(u != HL->empty_key){
+                if(lowD[u] > 0){//(u != HL->empty_key){
                 if(use_block_v(u)){
                     par_for(0, D[u], [&] (size_t j) {
                         uintE w = getEArray(u,j);//edges[u * block_size + j];
@@ -324,13 +324,13 @@ namespace DBTGraph{
                      SetT* L = HL->find(u, (SetT*) NULL);
                      par_for(0, L->size(), [&] (size_t j) {
                         uintE w = get<0>(L->table[j]);
-                        if(w != L->empty_key){
+                        if(w != L->empty_key && lowD[w] < D[w]-1){
                             insertT(u, w);
                         }
                     });                   
                 }
 
-                // }
+                }
             });
 
             // cleanup
@@ -349,7 +349,7 @@ namespace DBTGraph{
                 SetT* H = LH->find(w,(SetT*) NULL );
                 par_for(0, H->size(), [&] (size_t k) {
                     uintE v = get<0>(H->table[k]);
-                    if(v != H->empty_key){
+                    if(v != H->empty_key && u != v){
                         insertW(u, v, UPDATET1, 1);
                     }
                 });
