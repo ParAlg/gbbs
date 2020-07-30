@@ -9,7 +9,7 @@ namespace gbbs {
 using namespace std;
 
 template <class Graph, class EdgeT>
-inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, pair<EdgeT, bool> &e){
+inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
   if (e.first.first >= G.n || e.first.second >= G.n){
       cout << "edge out of bound " << endl;
       exit(1);
@@ -67,11 +67,11 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(const DBTGraph::DyGraph<G
       }
   });
   
-  updates.clear();
+  // updates.clear();
   inds.clear();
 
   // remove inserts/deletes in/notin graph, approximate compaction
-  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (pair<EdgeT, bool> e) {return !dupEdge(G, e);});
+  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdge(G, e);});
 
   flag.clear();
   updates_valid.clear();
