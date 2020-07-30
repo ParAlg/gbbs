@@ -33,6 +33,51 @@
 namespace gbbs {
 using namespace std;
 
+// template <class Graph, class EdgeT>
+// inline void toCSR(const DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates, size_t m,
+//   pbbs::sequence<EdgeT> edges, pbbs::sequence<size_t> offsets){
+
+//   pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(2*m+1);
+//   // pbbs::sequence<size_t> newD = pbbs::sequence<uintE>::no_init(G.n);
+
+//   par_for(0, 2*m, [&] (size_t i) {
+//     edges[i] = updates[i].first;
+//     edges[m+i] = EdgeT(updates[i].first.second, updates[i].first.first);
+//   });
+//   pbbs::sample_sort_inplace(edges.slice(), [&](const EdgeT& i, const EdgeT& j) {return i.first < j.first; });
+  
+//   par_for(0, 2*m-1, [&] (size_t i) {
+//       if(edges[i].first != edges[i+1].first){
+//         flag[i] = 1;
+//       }else{
+//         flag[i] = 0;
+//       }
+//   });
+//   flag[2*m-1] = 1;
+//   flag[2*m] = 1;
+//   auto monoid = pbbslib::addm<size_t>();
+//   pbbs::scan_inplace(flag.slice(), monoid);
+
+//   par_for(0, 2*m, [&] (size_t i) {
+//     if(flag[i]!=flag[i+1]){
+//       offsets[v[i]] = i;}});
+//   offsets[G.n+1] = 2*m;
+
+//   flag.clear();
+
+// }
+
+// // suppose there is enough space
+// template <class Graph, class EdgeT>
+// inline void MarkInsertedEdges(const DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates, size_t m){
+
+//     par_for(0, n, [&] (size_t i) {
+//       uintE u = updates[i].first.first;
+//       uintE v = updates[i].first.second;
+//     });
+
+// }
+
 
 template <class Graph, class F>
 inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
@@ -54,8 +99,9 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   pair<UpdatesT, size_t> tmp = pbbs::split_two(updates_final, flag);
   updates.clear();
   updates = tmp.first;
+  size_t m = updates_final.size();
   size_t m_del = tmp.second;
-  size_t m_ins = updates_final.size() - tmp.second;
+  size_t m_ins = m - tmp.second;
 
   
   t.stop();t.reportTotal("preprocess");
@@ -63,8 +109,38 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   UTIL::PrintFunctionItem("1", "m", updates_final.size());
 
 
+
   t.start(); //step 2
+  pbbs::sequence<EdgeT> edges = pbbs::sequence<EdgeT>::no_init(2*m);
+  pbbs::sequence<size_t> offsets = pbbs::sequence<size_t>::no_init(G.n+1);
+  // toCSR(G, updates_final, updates_final.size(),edges,offsets);
+
+  // symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges( major rebalancing 
+
   // mark_inserted_edges(updates_final); t.stop();t.reportTotal("preprocess");
+
+
+  // first delete then insert to use the hashtable space better
+  // delete
+
+  // update degree 
+  
+  // gather resizing info
+
+  // count new lowNum 
+
+  // compute lowD
+
+  // resize table (increase)
+  // find table using oldD, increase
+
+  // minor rebalancing
+
+  // resize table (decrease)
+
+  
+
+  // insert
 
 
 

@@ -32,22 +32,42 @@ namespace DBTGraph{
 
         // inline size_t getFlag(){return c1;}
         inline size_t getUpdateVal(){return c2;}
-        inline void update(const  std::tuple<EdgeT, WTV>& kv){
+        inline void update(const  std::tuple<EdgeT, WTV>& kv){ //(edge key, flag, val, 0)
             size_t flag  = std::get<1>(kv).c1;
-            if(flag == UPDATET1){
+            switch(flag) {
+            case UPDATET1:
                 pbbslib::write_add(&c1, std::get<1>(kv).c2);
-            }else if(flag == UPDATET2){
+                break;
+            case UPDATET2:
                 pbbslib::write_add(&c2, std::get<1>(kv).c2);
-            }else if(flag == UPDATET3){
+                break;
+            case UPDATET3:
                 pbbslib::write_add(&c3, std::get<1>(kv).c2);
-            }else if(flag == UPDATET4){
+                break;
+            case UPDATET4:
                 pbbslib::write_add(&c2, std::get<1>(kv).c2);
-            }else if(flag == UPDATET5){
+                break;
+            case UPDATET5:
                 pbbslib::write_add(&c3, std::get<1>(kv).c2);
-            }else{
+                break;
+            default:
                 cout << "invalid update flag " << flag << endl;
                 exit(1);
             }
+            // if(flag == UPDATET1){
+            //     pbbslib::write_add(&c1, std::get<1>(kv).c2);
+            // }else if(flag == UPDATET2){
+            //     pbbslib::write_add(&c2, std::get<1>(kv).c2);
+            // }else if(flag == UPDATET3){
+            //     pbbslib::write_add(&c3, std::get<1>(kv).c2);
+            // }else if(flag == UPDATET4){
+            //     pbbslib::write_add(&c2, std::get<1>(kv).c2);
+            // }else if(flag == UPDATET5){
+            //     pbbslib::write_add(&c3, std::get<1>(kv).c2);
+            // }else{
+            //     cout << "invalid update flag " << flag << endl;
+            //     exit(1);
+            // }
         }
     };
 
@@ -76,9 +96,7 @@ namespace DBTGraph{
         using edge_type = typename Graph::edge_type;
         using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
         using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
-        // using WTV = std::tuple<size_t, size_t, size_t>;
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
-        // const 
 
         bool is_high(size_t k) const { return k > t2;}
         bool is_low(size_t k) const {return !is_high(k);}
@@ -111,6 +129,19 @@ namespace DBTGraph{
 
         }
 
+        inline uintE getEArray(uintE u, size_t i)const {
+            return edges[block_size * u + i].first;
+        }
+
+        inline void setEArray(uintE u, uintE v, size_t i, int val){
+            edges[block_size * u + i] = make_pair(v,val);
+        }
+
+        inline void setEArray(uintE v, size_t k, int val){
+            edges[k] = make_pair(v,val);
+        }
+
+
     public:
         size_t block_size;
         size_t n;
@@ -119,7 +150,7 @@ namespace DBTGraph{
         double t1, t2;
         pbbs::sequence<size_t> D;
         pbbs::sequence<size_t> lowD;
-        pbbs::sequence<uintE> edges;
+        pbbs::sequence<pair<uintE,int>> edges;
         tableE *LL;
         tableE *HH;
         tableE *LH;
@@ -144,7 +175,7 @@ namespace DBTGraph{
             }
             if(use_block(degree1)){
                 for(size_t i = 0; i < degree1; ++i){
-                    if(edges[block_size * u + i] == v) return true;
+                    if(getEArray(u,i) == v) return true;
                 }
                 return false;
             }else{
@@ -152,38 +183,79 @@ namespace DBTGraph{
             }
         }
 
+        void markEdgeArray(uintE u, pbbs::sequence<uintE> vs, int flag){
+            size_t degree = D[u];
+            parallel_for(0, vs.size(), [&](size_t i) {
+                setEArray(u,vs[i],degree+i,flag);
+            });
+        }
+
+        void markEdgeTable(uintE u, pbbs::sequence<uintE> vs, int flag, bool rev){
+            if(is_low_v(u)){
+                parallel_for(0, vs.size(), [&](size_t i) { 
+                    uintE v = vs[i];
+                    if(is_low_v(v)){
+                        insertE(LL, u, v, flag);
+                        if(rev) insertE(LL, v, u, flag);
+                    }else{
+                        insertE(LH, u, v, flag);
+                        if(rev) insertE(HL, v, u, flag);
+                    }
+                 });
+                
+            }else{
+                parallel_for(0, vs.size(), [&](size_t i) { 
+                    uintE v = vs[i];
+                    if(is_low_v(v)){
+                        insertE(LH, u, v, flag);
+                        if(rev) insertE(HL, v, u, flag);
+                    }else{
+                        insertE(HH, u, v, flag);
+                        if(rev) insertE(HH, v, u, flag);
+                    }
+                 });
+            }
+        }
 
         DyGraph(int t_block_size, Graph& G):block_size(t_block_size){
             n = G.num_vertices();
             m = G.num_edges();
             M  = m + 1; // m already doubled
             t1 = sqrt(M) / 2;
-            t2 = 3 * t1;
+            t2 = 3;// 3 * t1;
 
-            vertex_data* v_data = G.v_data;
+            // vertex_data* v_data = G.v_data;
             D = pbbs::sequence<size_t>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
-            edges = pbbs::sequence<uintE>((size_t)(block_size*n));
-            parallel_for(0, block_size*n, [&](size_t i) { edges[i] = 0; });
+            edges = pbbs::sequence<pair<uintE,int>>((size_t)(block_size*n), make_pair(EMPTYV,0));
+            // parallel_for(0, block_size*n, [&](size_t i) { edges[i] = make_pair(EMPTYV,0); });
             lowD = pbbs::sequence<size_t>::no_init(n);
             
             //compute low degree
-            pbbs::sequence<int> flag = pbbs::sequence<int>(m);
-            parallel_for(0, m, [&](size_t i) { flag[i] = 0; });
+            // pbbs::sequence<int> flag = pbbs::sequence<int>(m);
+            // parallel_for(0, m, [&](size_t i) { flag[i] = 0; });
             auto monoid = pbbslib::addm<size_t>();
 
-            parallel_for(0, n, [&](size_t i) {
-                size_t k = v_data[i].offset;
-                auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
-                    if(is_low_v(v)) flag[k] = 1;
-                    k++;
-                };
-                G.get_vertex(i).mapOutNgh(i, map_f, false);
-            }, 1);
-            par_for(0, n, [&] (size_t i) {
-                size_t offset = v_data[i].offset;
-                size_t offset_next = i == n-1? m : v_data[i+1].offset;
+            // parallel_for(0, n, [&](size_t i) {
+            //     size_t k = v_data[i].offset;
+            //     auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
+            //         if(is_low_v(v)) flag[k] = 1;
+            //         k++;
+            //     };
+            //     G.get_vertex(i).mapOutNgh(i, map_f, false); // TODO: reduceOutNgh
+            // }, 1);
+            // par_for(0, n, [&] (size_t i) {
+            //     size_t offset = v_data[i].offset;
+            //     size_t offset_next = i == n-1? m : v_data[i+1].offset;
                 
-                lowD[i] = pbbs::reduce(flag.slice(offset, offset_next), monoid);
+            //     lowD[i] = pbbs::reduce(flag.slice(offset, offset_next), monoid);
+            // });
+            auto map_f = [&](uintE u, uintE v, const typename Graph::weight_type& wgh) -> size_t {
+                if(is_low_v(v)) return 1;
+                return 0;
+            };
+            par_for(0, n, [&] (size_t i) {
+                // auto monoid = pbbslib::addm<size_t>();
+                lowD[i] = G.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid);
             });
 
             // flag.shrink(n);
@@ -192,7 +264,7 @@ namespace DBTGraph{
             //     else flag[i] = 0;
             // });
             // size_t lowNum = pbbs::reduce(flag, monoid);
-            flag.clear();
+            // flag.clear();
             // pbbs::sequence<bool> flag2 = pbbs::sequence<bool>::no_init(n);
             pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
             par_for(0, n, [&] (size_t i) {
@@ -212,7 +284,7 @@ namespace DBTGraph{
             T  = new tableW((n-lowNum)*(n-lowNum), make_tuple(make_pair(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);
 
             // insert top level keys
-            double bottom_load = 1.1;
+            double bottom_load = 1.2;// TUNE
             par_for(0, n, [&] (size_t i) {
                 size_t degree = D[i];
                 if(use_block(degree)){
@@ -220,11 +292,18 @@ namespace DBTGraph{
                     // memcpy ( &edges[block_size*i], &G.e0[v_data[i].offset], degree*sizeof(edge_type) );
                     // par_for(0, degree, [&](size_t j) { 
                     //     edges[block_size*i + j]  = std::get<0>(&G.e0[edge_offset + j]); });
-                    auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
-                        edges[k] = v;
-                        k++;
+                    // auto map_f = [&](const uintE& u, const uintE& v, const typename Graph::weight_type& wgh) {
+                    //     // edges[k] = v;
+                    //     setEArray(v,k,0);
+                    //     k++;
+                    // };
+                    // G.get_vertex(i).mapOutNgh(i, map_f, false); //mapOutNghWithIndex copy() in graph
+
+                    auto map_f = [&] (const uintE& u, const uintE& v, const typename Graph::weight_type& wgh, size_t ind) {
+                        setEArray(v,k + ind,0);
                     };
-                    G.get_vertex(i).mapOutNgh(i, map_f, false);
+                    G.get_vertex(i).mapOutNghWithIndex(i, map_f);
+
                     // if(is_high(degree) && lowD[i] != 0){
                     //     insertTop(HL, i, 0, bottom_load);
                     // }
@@ -275,10 +354,10 @@ namespace DBTGraph{
             par_for(0, highNodes.size(), [&] (size_t i) {
                 // uintE u = get<0>(HL->table[i]);  
                 uintE u = highNodes[i];                
-                if(u != HL->empty_key){
+                // if(u != HL->empty_key){
                 if(use_block_v(u)){
                     par_for(0, D[u], [&] (size_t j) {
-                        uintE w = edges[i * block_size + j];
+                        uintE w = getEArray(u,j);//edges[u * block_size + j];
                         if(is_low_v(w)){
                             insertT(u, w);
                         }
@@ -294,7 +373,7 @@ namespace DBTGraph{
                     });                   
                 }
 
-                }
+                // }
             });
 
             // cleanup
@@ -304,7 +383,7 @@ namespace DBTGraph{
         inline void insertT(uintE u, uintE w){
             if(use_block_v(w)){
                 par_for(0, D[w], [&] (size_t k) {
-                    uintE v = edges[w * block_size + k];
+                    uintE v = getEArray(w,k);//edges[w * block_size + k];
                     if(is_high_v(v)){
                         insertW(u, v, UPDATET1, 1);
                     }
