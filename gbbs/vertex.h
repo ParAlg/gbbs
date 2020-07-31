@@ -100,8 +100,7 @@ size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   for (size_t i=0; i < nA; i++) {
     const T& a = A[i];
     size_t mB = pbbslib::binary_search(B, a, std::less<T>());
-    const T& b = B[mB];
-    if (a == b) {
+    if (mB < B.size() && a == B[mB]) {
       f(a);
       ct++;
     }
