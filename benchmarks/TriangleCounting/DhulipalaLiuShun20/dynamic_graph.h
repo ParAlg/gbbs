@@ -7,85 +7,23 @@
 #include "sparse_table.h"
 #include "set.h"
 #include "gbbs/macros.h"
+#include "shared.h"
 
 using namespace std;
 
-#define EMPTYV numeric_limits<uintE>::max()
-#define EMPTYKVB make_tuple(EMPTYV, 0)
-#define EMPTYKV make_tuple(EMPTYV, (SetT *)NULL)
-#define UPDATET1 1
-#define UPDATET2 2
-#define UPDATET3 3
-#define UPDATET4 4
-#define UPDATET5 5
+// #define EMPTYV numeric_limits<uintE>::max()
+// #define EMPTYKVB make_tuple(EMPTYV, 0)
+// #define EMPTYKV make_tuple(EMPTYV, (SetT *)NULL)
+// #define UPDATET1 1
+// #define UPDATET2 2
+// #define UPDATET3 3
+// #define UPDATET4 4
+// #define UPDATET5 5
 
 
 namespace gbbs{
 namespace DBTGraph{
-    using EdgeT = pair<uintE, uintE>;
 
-    struct WTV{
-        size_t c1, c2, c3;
-        WTV():c1(0),c2(0),c3(0){}
-        WTV(size_t cc1, size_t cc2, size_t cc3):c1(cc1),c2(cc2),c3(cc3){}
-        WTV(size_t flag, size_t val):c1(flag),c2(val),c3(0){}
-
-        // inline size_t getFlag(){return c1;}
-        inline size_t getUpdateVal(){return c2;}
-        inline void update(const  std::tuple<EdgeT, WTV>& kv){ //(edge key, flag, val, 0)
-            size_t flag  = std::get<1>(kv).c1;
-            switch(flag) {
-            case UPDATET1:
-                pbbslib::write_add(&c1, std::get<1>(kv).c2);
-                break;
-            case UPDATET2:
-                pbbslib::write_add(&c2, std::get<1>(kv).c2);
-                break;
-            case UPDATET3:
-                pbbslib::write_add(&c3, std::get<1>(kv).c2);
-                break;
-            case UPDATET4:
-                pbbslib::write_add(&c2, std::get<1>(kv).c2);
-                break;
-            case UPDATET5:
-                pbbslib::write_add(&c3, std::get<1>(kv).c2);
-                break;
-            default:
-                cout << "invalid update flag " << flag << endl;
-                exit(1);
-            }
-            // if(flag == UPDATET1){
-            //     pbbslib::write_add(&c1, std::get<1>(kv).c2);
-            // }else if(flag == UPDATET2){
-            //     pbbslib::write_add(&c2, std::get<1>(kv).c2);
-            // }else if(flag == UPDATET3){
-            //     pbbslib::write_add(&c3, std::get<1>(kv).c2);
-            // }else if(flag == UPDATET4){
-            //     pbbslib::write_add(&c2, std::get<1>(kv).c2);
-            // }else if(flag == UPDATET5){
-            //     pbbslib::write_add(&c3, std::get<1>(kv).c2);
-            // }else{
-            //     cout << "invalid update flag " << flag << endl;
-            //     exit(1);
-            // }
-        }
-    };
-
-
-    struct vertexHash { //TODO: check
-        uint64_t operator ()(const uintE& v) const {return pbbs::hash64_2(v);}
-    };
-
-    struct edgeHash { //TODO: check
-        uint64_t operator ()(const pair<uintE, uintE>& v) const{
-            return pbbs::hash_combine(pbbs::hash64_2(v.first), pbbs::hash64_2(v.second));}
-    }; 
-
-
-    inline pbbslib::sparse_table<uintE, int, vertexHash> make_vertex_set(size_t m, long space_mult=-1) {
-        return pbbslib::sparse_table<uintE, int, vertexHash>(m, EMPTYKVB, vertexHash(), space_mult);
-    }
-    
 
     template <class Graph> //symmetric_graph
     class DyGraph{
@@ -111,23 +49,29 @@ namespace DBTGraph{
         tableE *HL;
         tableW *T;
 
-        // bool is_high(size_t k) const { return k > 2*t1;} // 
-        // bool is_low(size_t k) const {return !is_high(k);}
-
         bool is_high_v(uintE v)const{ return status[v];}//is_high(D[v]);}
         bool is_low_v(uintE v)const{return !is_high_v(v);}
+
+        bool is_high(size_t k) const { return k > 2*t1;} // 
+        bool is_low(size_t k) const {return !is_high(k);}
 
         bool must_high(size_t k) const { return k > t2;}
         bool must_low(size_t k) const {return k < t1;}
 
-        bool change_status(uintE v, size_t k) const { return (is_high_v(v) && must_low(k)) || (is_low_v(v) && must_high(k));}
-
-        bool use_block(uintE d)const{return d <= block_size;}
+        bool use_block(size_t d)const{return d <= block_size;}
         bool use_block_v(uintE v)const{return use_block(D[v]);}
 
-        inline void insertTop(tableE *tb, uintE u, size_t size, size_t bottom_load ){
+        inline void insertTop(tableE *tb, uintE u, size_t size, size_t bottom_load = 1.2 ){
+            if(size <= 0) return;
             SetT *tbB = new SetT(size, EMPTYKVB, vertexHash(), bottom_load);
             tb->insert(make_tuple(u, tbB));
+        }
+        //tb1: *L, tb2: *H
+        void insertTop(tableE *tb1, tableE *tb2, uintE i, size_t low_degree, size_t degree){
+            double bottom_load = 1.2;
+            insertTop(tb1, i, low_degree, bottom_load);// if(low_degree > 0){//has low neighbors// }
+            insertTop(tb2, i, degree-low_degree, bottom_load);// if(low_degree < degree){ //has high neighbors// }
+            
         }
 
         inline void insertE(tableE *tb, uintE u, uintE v, int val = 0){
@@ -140,15 +84,21 @@ namespace DBTGraph{
                 v0->update(kv);
             }
         };
+
+        //need u <= v
         inline void insertW(uintE u, uintE v, int flag, size_t val = 1){
             // if(u > v) swap(u,v);
             if(u >= v) return; //TODO: only store a wedge once
-            T->insert_f(make_tuple(make_pair(u,v), WTV(flag, val)), updateTF());
+            T->insert_f(make_tuple(EdgeT(u,v), WTV(flag, val)), updateTF());
 
         }
 
         inline uintE getEArray(uintE u, size_t i)const {
             return edges[block_size * u + i].first;
+        }
+
+        inline uintE getEArrayVal(uintE u, size_t i)const {
+            return edges[block_size * u + i].second;
         }
 
         inline void setEArray(uintE u, uintE v, size_t i, int val){
@@ -190,40 +140,161 @@ namespace DBTGraph{
                 return tb->find(u, (SetT *)NULL)->contains(v);
             }
         }
+        
+        //delete if edge found and flag is true
+        bool haveEdgeDel (EdgeT e, bool flag) {
+            if (e.first >= n || e.second >= n){
+                return false;
+            }
+            uintE u = e.first;
+            uintE v = e.second;
+            size_t degree1 = D[u];
+            size_t degree2 = D[v];
+            if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
+            if(degree1 == 0 || degree2 == 0) return false;
+            tableE *tb = LL;
+            if(is_high_v(u) && is_high_v(v)){
+                tb = HH;
+            }else if(is_high_v(v)){
+                tb = LH;
+            }
+            if(use_block(degree1)){
+                for(size_t i = 0; i < degree1; ++i){
+                    if(getEArray(u,i) == v){ 
+                        if(flag) setEArray(u,v,i, DEL_EDGE);
+                        return true;}
+                }
+                return false;
+            }else{
+                SetT *bottomTb = tb->find(u, (SetT *)NULL);
+                if(bottomTb->contains(v)){
+                    if(flag) bottomTb->updateSeq(v,DEL_EDGE);
+                    return true;
+                }else{
+                    return false;
+                }
+                
+            }
+        }
 
-        void markEdgeArray(uintE u, pbbs::sequence<uintE> vs, int flag){
-            size_t degree = D[u];
-            parallel_for(0, vs.size(), [&](size_t i) {
-                setEArray(u,vs[i],degree+i,flag);
+        /////////////////////// MARK EDGE INSERTION /////////////////////////////////////////////
+        // assume there is enough space in array
+        void markEdgeArrayInsertion(DBTGraph::VtxUpdate u, pbbs::sequence<pair<EdgeT,bool>> &edgesInsert){
+            size_t offset = D[u.id];
+            parallel_for(0, u.insert_degree, [&](size_t i) {
+                setEArray(u.id, edgesInsert[i].first.second, offset+i, NEW_EDGE);
             });
         }
 
-        void markEdgeTable(uintE u, pbbs::sequence<uintE> vs, int flag, bool rev){
-            if(is_low_v(u)){
-                parallel_for(0, vs.size(), [&](size_t i) { 
-                    uintE v = vs[i];
-                    if(is_low_v(v)){
-                        insertE(LL, u, v, flag);
-                        if(rev) insertE(LL, v, u, flag);
-                    }else{
-                        insertE(LH, u, v, flag);
-                        if(rev) insertE(HL, v, u, flag);
-                    }
-                 });
-                
-            }else{
-                parallel_for(0, vs.size(), [&](size_t i) { 
-                    uintE v = vs[i];
-                    if(is_low_v(v)){
-                        insertE(LH, u, v, flag);
-                        if(rev) insertE(HL, v, u, flag);
-                    }else{
-                        insertE(HH, u, v, flag);
-                        if(rev) insertE(HH, v, u, flag);
-                    }
-                 });
+        // assume in table
+        void markEdgeTablesInsertion(DBTGraph::VtxUpdate u, pbbs::sequence<pair<EdgeT,bool>> &edgesInsert, bool resize){
+            tableE *tb1 = LL;tableE *tb2 = LH;
+            if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
+            if(resize){
+                if(lowD[u.id] > 0){
+                    SetT *bottomTb1 = tb1->find(u, NULL);
+                    bottomTb1->maybe_resize(u.insert_low_degree, lowD[u.id]);
+                }
+                if(D[u.id]-lowD[u.id] > 0){
+                    SetT *bottomTb2 = tb2->find(u, NULL);
+                    bottomTb2->maybe_resize(u.insert_degree - u.insert_low_degree,  D[u.id] - lowD[u.id]);
+                }
+            }
+            parallel_for(0, u.insert_degree, [&](size_t i) { 
+                uintE v = edgesInsert[i].first.second;
+                if(is_low_v(v)){
+                    insertE(tb1, u, v, NEW_EDGE);
+                }else{
+                    insertE(tb2, u, v, NEW_EDGE);
+                }
+            });
+
+        }
+
+        void copyArrayToTable(DBTGraph::VtxUpdate u){
+            tableE *tb1 = LL;tableE *tb2 = LH;
+            if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
+            size_t low_space = lowD[u.id] + u.insert_low_degree;
+            size_t space = D[u.id] + u.insert_degree;
+            insertTop(tb1, u.id, low_space); //// if(low_space > 0){// have low edges }
+            insertTop(tb2, u.id, space-low_space);//// if(low_space < space){ }
+            
+            parallel_for(0, D[u.id], [&](size_t i) {
+                uintE v = getEArray(u.id, i);
+                if(is_high_v(v)){
+                    insertE(tb2,u.id,v,OLD_EDGE);
+                }else{
+                    insertE(tb1,u.id,v,OLD_EDGE);
+                }
+            });
+        }
+
+        void markEdgeInsertion(DBTGraph::VtxUpdate i, pbbs::range<pair<EdgeT,bool>> &edgesI){
+            uintE u = i.id;
+            size_t space = D[u] + i.insert_degree;
+            if(use_block(space)){ // copy to array
+                markEdgeArrayInsertion(i, edgesI);
+            }else{ 
+                if(use_block_v(u)){// copy from array to table
+                    copyArrayToTable(i);
+                }
+                markEdgeTablesInsertion(i, edgesI, !use_block_v(u));// insert to table
             }
         }
+
+        /////////////////////// update table insertions /////////////////////////////////////////////
+        void updateTableT(uintE u, uintE v, int val, bool flag){
+            if(u > v) swap(u,v);
+            if(flag && val == OLD_EDGE){
+                insertW(u, v, 2, 1);
+            }else if(flag && val == NEW_EDGE){
+                insertW(u, v, 3, 1);
+            }else if(!flag && val ==  OLD_EDGE){
+                insertW(u, v, 4, 1);
+            }else if(!flag && val ==  DEL_EDGE){
+                insertW(u, v, 5, 1);
+            }
+            // ignore mixed edges
+        }
+        void updateTableArray(DBTGraph::VtxUpdate w, uintE u, bool flag){
+            par_for(0, D[w.id] + w.insert_degree, [&] (size_t i) { // bruteforce finding high ngh of w
+                uintE v = getEArray(w.id, i);
+                if(v!=u && is_high_v(v)){
+                    updateTableT(u, v, getEArrayVal(u, i), flag);
+                }
+            });
+
+        }
+        //edgesID is the insertions and deletions of w in updates
+        void updateTable(DBTGraph::VtxUpdate w, pbbs::range<pair<EdgeT,bool>> &edgesID){
+            if (is_low_v(w.id) && 
+               (lowD[w.id]+w.insert_low_degree < D[w.id] + w.insert_degree) ){ // w is low and w has high ngh
+            par_for(0, w.degree, [&] (size_t i) { // loop over the udpate batch (w,u)
+                uintE uid = edgesID[i].first.second;
+                if(is_high_v(uid)){               // proceed only when u is high
+                    bool flag = edgesID[i].second; // insertion or deletion
+                    if(use_block_v(w.id)){           
+                        updateTableArray(w ,uid, flag);
+                    }else{
+                        SetT *H = LH->find(w.id, NULL);
+                        par_for(0, H.size(), [&] (size_t j) {
+                            uintE v = get<0>(H->table[j]);
+                            if(v != H->empty_key && u.id != v){
+                                updateTableT(u.id, v, get<1>(H->table[j]), flag);}});                    
+                    }
+                }
+            }
+            }
+        }
+         // pbbs::sequence<DBTGraph::VtxUpdate> &vtxNew, pbbs::sequence<size_t> &vtxMap
+
+
+        /////////////////////// Count Triangles /////////////////////////////////////////////
+        inline void CountTriangles(DBTGraph::VtxUpdate u, DBTGraph::VtxUpdate v, bool flag, TriangleCounts tc){
+            
+
+        }
+
 
         DyGraph(int t_block_size, Graph& G):block_size(t_block_size){
             n = G.num_vertices();
@@ -246,7 +317,7 @@ namespace DBTGraph{
             };
             par_for(0, n, [&] (size_t i) {
                 lowD[i] = G.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid);
-                status[i] = D[i] > 2 * t1;
+                status[i] = is_high(D[i]);
             });
 
             pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
@@ -255,7 +326,7 @@ namespace DBTGraph{
             size_t lowNum = n - highNodes.size();
             vArray.clear();
 
-            // TODO: can allocate less, count using block nodes
+            // important: save space in top table for array nodes
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
@@ -263,7 +334,6 @@ namespace DBTGraph{
             T  = new tableW((n-lowNum)*(n-lowNum), make_tuple(make_pair(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);
 
             // insert top level keys
-            double bottom_load = 1.2;// TUNE
             par_for(0, n, [&] (size_t i) {
                 size_t degree = D[i];
                 if(use_block(degree)){
@@ -277,24 +347,21 @@ namespace DBTGraph{
                     // if(is_high_v(i) && lowD[i] != 0){
                     //     insertTop(HL, i, 0, bottom_load);
                     // }
-                }else{
-                    tableE *tb1 = HL;
-                    tableE *tb2 = HH;
-                    if(is_low_v(i)){
-                        tb1 = LL;
-                        tb2 = LH;
-                    }
-                    if(lowD[i] == 0){ //only has high neighbors
-                        insertTop(tb2, i, degree, bottom_load);
-                    }else if(lowD[i] < degree){
-                        insertTop(tb1, i, lowD[i], bottom_load);
-                        insertTop(tb2, i, degree - lowD[i], bottom_load);
-                    }else if(lowD[i] == degree){//only has low neighbors
-                        insertTop(tb1, i, degree, bottom_load);
-                    }else{
-                        cout << "dynamic_graph.h wrong size " << lowD[i] << endl;
-                        exit(1);
-                    }
+                }else{                   
+                    tableE *tb1 = LL;tableE *tb2 = LH;
+                    if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
+                    insertTop(tb1, tb2, i, lowD[i], D[i]);
+                    // if(lowD[i] == 0){ //only has high neighbors
+                    //     insertTop(tb2, i, degree, bottom_load);
+                    // }else if(lowD[i] < degree){
+                    //     insertTop(tb1, i, lowD[i], bottom_load);
+                    //     insertTop(tb2, i, degree - lowD[i], bottom_load);
+                    // }else if(lowD[i] == degree){//only has low neighbors
+                    //     insertTop(tb1, i, degree, bottom_load);
+                    // }else{
+                    //     cout << "dynamic_graph.h wrong size " << lowD[i] << endl;
+                    //     exit(1);
+                    // }
                 }
             });
 
