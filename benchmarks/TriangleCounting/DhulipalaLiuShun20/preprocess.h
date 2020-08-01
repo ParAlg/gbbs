@@ -17,8 +17,18 @@ inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &
   return G.haveEdge(e.first) == e.second;
 }
 
+//check duplicated edge, mark delete if exiting and need to delete
 template <class Graph, class EdgeT>
-inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(const DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates){
+inline bool dupEdgeDel(DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
+  if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
+      cout << "edge out of bound " << endl;
+      exit(1);
+  }
+  return G.haveEdgeDel(e.first, e.second) == e.second;
+}
+
+template <class Graph, class EdgeT>
+inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates){
   size_t n = updates.size();
   // u < v
   parallel_for(0, n, [&](size_t i) {
@@ -70,8 +80,9 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(const DBTGraph::DyGraph<G
   // updates.clear();
   inds.clear();
 
-  // remove inserts/deletes in/notin graph, approximate compaction
-  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdge(G, e);});
+  // remove inserts/deletes in/notin graph
+  // pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdge(G, e);});
+  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdgeDel(G, e);});
 
   flag.clear();
   updates_valid.clear();

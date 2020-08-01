@@ -125,6 +125,51 @@ class sparse_table {
     }
   }
 
+  // Pre-condition: k must be present in T.
+  // do not support removing and inserting at the same time
+  inline std::tuple<K, V> delVal(K k) const {
+    size_t h = idx(k);
+    std::tuple<K, V> kv = table[h];
+    table[h] = empty;
+    return kv
+  }
+
+  // Pre-condition: k must be present in T.
+  // do not support updating and inserting at the same time
+  inline void updateSeq(K k, V val) const {
+    size_t h = idx(k);
+    get<1>(table[h] = val)
+  }
+
+  void maybe_resize(size_t n_inc, size_t ne) {
+      size_t nt = ne + n_inc;
+      if (nt > (0.9 * m)) {
+        size_t old_m = m;
+        auto old_t = table;
+        m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
+        if (m == old_m) {
+          return;
+        }
+        mask = m - 1;
+        ne = 0;
+        size_t line_size = 64;
+        size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
+        table = (T*)aligned_alloc(line_size, bytes);
+        clearA(table, m, empty);
+        parallel_for(0, old_m, [&] (size_t i) {
+          if (std::get<0>(old_t[i]) != empty_key) {
+            insert(old_t[i]);
+          }
+        });
+        // update_nelms();
+        if (alloc) {
+          pbbslib::free_array(old_t);
+        }
+        alloc = true;
+      }
+    }
+
+
   bool insert(std::tuple<K, V> kv) {
     K k = std::get<0>(kv);
     size_t h = firstIndex(k);

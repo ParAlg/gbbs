@@ -28,55 +28,92 @@
 #include "dynamic_graph.h"
 #include "benchmark.h"
 #include "preprocess.h"
+#include "shared.h"
 
 
 namespace gbbs {
 using namespace std;
 
-// template <class Graph, class EdgeT>
-// inline void toCSR(const DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates, size_t m,
-//   pbbs::sequence<EdgeT> edges, pbbs::sequence<size_t> offsets){
+template <class EdgeT>
+inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
+  return edges[i].first.first;
+}
 
-//   pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(2*m+1);
-//   // pbbs::sequence<size_t> newD = pbbs::sequence<uintE>::no_init(G.n);
+template <class EdgeT>
+inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
+  return edges[i].first.second;
+}
 
-//   par_for(0, 2*m, [&] (size_t i) {
-//     edges[i] = updates[i].first;
-//     edges[m+i] = EdgeT(updates[i].first.second, updates[i].first.first);
-//   });
-//   pbbs::sample_sort_inplace(edges.slice(), [&](const EdgeT& i, const EdgeT& j) {return i.first < j.first; });
-  
-//   par_for(0, 2*m-1, [&] (size_t i) {
-//       if(edges[i].first != edges[i+1].first){
-//         flag[i] = 1;
-//       }else{
-//         flag[i] = 0;
-//       }
-//   });
-//   flag[2*m-1] = 1;
-//   flag[2*m] = 1;
-//   auto monoid = pbbslib::addm<size_t>();
-//   pbbs::scan_inplace(flag.slice(), monoid);
+//TODO: not keeping vtxMap if not used later
+template <class Graph, class EdgeT>
+pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(pbbs::range<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> edges, size_t n){
+  size_t m = edges.size();
+  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew;
+  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>::no_init(n);
+  // pbbs::sequence<pair<EdgeT,bool>> edges = pbbs::sequence<pair<EdgeT,bool>>::no_init(2*m);
+  pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(2*m+1);
 
-//   par_for(0, 2*m, [&] (size_t i) {
-//     if(flag[i]!=flag[i+1]){
-//       offsets[v[i]] = i;}});
-//   offsets[G.n+1] = 2*m;
+  //sort edges
+  par_for(0, m, [&] (size_t i) {
+    edges[2*i] = edgesIn[i];
+    edges[2*i+1] = make_pair(EdgeT(getSecond(edgesIn,i), getFirst(edgesIn,i)), edgesIn[i].second);
+  });
+  // size_t bits = pbbslib::log2_up(n);
+  // pbbslib::integer_sort_inplace(A.slice(), get_u, bits); // which sort?
+  pbbs::sample_sort_inplace(edges.slice(), [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
+    if(i.first.first == j.first.first) return i.second && !j.second;
+      return i.first.first < j.first.first; 
+    });
 
-//   flag.clear();
+  //find offsets of vertices
+  par_for(0, 2*m-1, [&] (size_t i) {
+    if(getFirst(edges,i) != getFirst(edges,i+1)){flag[i] = 1;
+    }else{flag[i] = 0;}});
+  flag[2*m-1] = 1;
+  flag[2*m] = 1;
+  auto monoid = pbbslib::addm<size_t>();
+  size_t numVtx = pbbs::scan_inplace(flag.slice(), monoid) - 1 ;
+  vtxNew =  pbbs::sequence<DBTGraph::VtxUpdate>::no_init(numVtx);
 
-// }
+  par_for(0, 2*m, [&] (size_t i) {
+  if(flag[i]!=flag[i+1]){
+    uintE u = getFirst(edges,i);
+    vtxNew[flag[i]] = DBTGraph::VtxUpdate(u,i);
+    vtxMap[u] = flag[i];
+  }});
 
-// // suppose there is enough space
-// template <class Graph, class EdgeT>
-// inline void MarkInsertedEdges(const DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates, size_t m){
+  //count D and insert D
+  par_for(0, 2*m-1, [&] (size_t i) {
+  if(getFirst(edges,i) == getFirst(edges,i+1) && edges[i].second && !edges[i+1].second){
+    uintE u = getFirst(edges,i);
+    vtxNew[vtxMap[u]].insert_degree = i-vtxNew[vtxMap[u]].offset;
+  }else if(getFirst(edges,i) != getFirst(edges,i+1)){
+    uintE u = getFirst(edges,i);
+    uintE next_v = getFirst(edges,i+1);
+    vtxNew[vtxMap[u]].setDeg(vtxNew[vtxMap[next_v]].offset - vtxNew[vtxMap[u]].offset);
+    if(edges[i].second)vtxNew[vtxMap[u]].insert_degree = i-vtxNew[vtxMap[u]].offset;
+  }
+  });
+  vtxNew[numVtx-1].setDeg(2*m - vtxNew[numVtx-1].offset);
+  if(edges[2*m-1].second) vtxNew[numVtx-1].insert_degree = vtxNew[numVtx-1].degree;
 
-//     par_for(0, n, [&] (size_t i) {
-//       uintE u = updates[i].first.first;
-//       uintE v = updates[i].first.second;
-//     });
+  //count lowD
+    par_for(0, 2*m, [&] (size_t i) {
+      flag[i] = G.is_low_v(getSecond(edges,i));
+    });
+    par_for(0, numVtx, [&] (size_t i) {
+      size_t s = vtxNew[i].offset;
+      sizee_t s2 = vtxNew[i].offset + vtxNew[i].insert_degree;
+      // size_t e = s+vtxNew[i].degree;
+      vtxNew[i].insert_low_degree = pbbslib::reduce(flag.slice(s,s2 ), monoid);
+      // size_t insert_high_degree = pbbslib::reduce(flag.slice(s2,e), monoid);
+      // cilk_sync;
+      // vtxNew[i].insert_degree = vtxNew[i].insert_low_degree + insert_high_degree;
+    });
 
-// }
+    flag.clear();
+    return make_pair(vtxNew,vtxMap);
+}
 
 
 template <class Graph, class F>
@@ -85,39 +122,54 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
+  size_t m, m_del, m_ins;
 
   t.start();
   DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G); t.stop();t.reportTotal("init");
 
   UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
-  t.start(); //step 1
-  UpdatesT updates_final = Preprocessing(DG, updates); 
-
-  // splits to insertions and deletions, deletions first
-  pbbs::sequence<bool> flag = pbbs::sequence<bool>::no_init(updates_final.size());
-  par_for(0, updates_final.size(), [&] (size_t i) {
-      flag[i] = updates_final[i].second;
-  });
-  pair<UpdatesT, size_t> tmp = pbbs::split_two(updates_final, flag);
+  t.start(); //step 1 and 3
+  UpdatesT updates_final = Preprocessing(DG, updates);  // mark delete edge as well
+  m = updates_final.size();
   updates.clear();
-  updates = tmp.first;
-  size_t m = updates_final.size();
-  size_t m_del = tmp.second;
-  size_t m_ins = m - tmp.second;
+  t.stop();t.reportTotal("1. preprocess + 3. mark deletes");
+  UTIL::PrintFunctionItem("1.", "m", m);
 
-  
-  t.stop();t.reportTotal("preprocess");
-  
-  UTIL::PrintFunctionItem("1", "m", updates_final.size());
+  t.start(); //toCSR
+  UpdatesT edges = UpdatesT::no_init(2*m);
+  auto result = toCSR(updates_final, edges, DG.num_vertices());
+  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
+  pbbs::sequence<size_t> vtxMap = result.second;
+  t.stop();t.reportTotal("count degrees");
 
+  t.start(); //step 2 mark insert  
+  par_for(0, vtxNew.size(), [&] (size_t i) {
+    DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].insert_degree));
+  });
+  t.stop();t.reportTotal("2. mark inserts");
 
+  t.start(); //step 4 and 5 update insertions  and deletions
+  // loop over the low degree vertices, process if the other is high
+  // only process each edge once
+  par_for(0, vtxNew.size(), [&] (size_t i) {
+    DBTGraph::VtxUpdate w = vtxNew[i];
+    updateTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].degree));
+  });
+  t.stop();t.reportTotal("4.5. update insertions and deletions");
 
-  t.start(); //resizing
-  pbbs::sequence<EdgeT> edges = pbbs::sequence<EdgeT>::no_init(2*m);
-  pbbs::sequence<size_t> offsets = pbbs::sequence<size_t>::no_init(DG.num_vertices()+1);
-  // toCSR(G, updates_final, updates_final.size(),edges,offsets);
+  t.start(); //step 6. count triangles // updates final has one copy of each edge
+  DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
+  par_for(0, updates_final.size(), [&] (size_t i) {
+    EdgeT e = updates_final[i].first;
+    bool flag = updates_final[i].second;
+    DBTGraph::VtxUpdate u = vtxNew[vtxMap[e.first]];
+    DBTGraph::VtxUpdate v = vtxNew[vtxMap[e.second]];
+    countTriangles(u,v,flag, tc);
+  });
+  updates_final.clear();
 
-  // symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges( major rebalancing 
+  t.stop();t.reportTotal("6. count triangles");
+
   
   // gather resizing info
   // count new lowNum 
@@ -128,28 +180,11 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
 
   // minor rebalancing
 
-  // resize table (decrease)
-  t.stop();t.reportTotal("resizing");
-
-  t.start(); //step 2 and 3
-  // mark insert + delete
-  // mark_inserted_edges(updates_final); t.stop();t.reportTotal("preprocess");
-  t.stop();t.reportTotal("marking");
-
-  // update insertions
-  // count c1, c2, c3
-
-  //update deletions
-  // count c4, c5, c6
+  // // resize table (decrease)
+  // t.stop();t.reportTotal("resizing");
 
 
-  
-
-  // insert
-
-
-
-
+  //CLEANUP TODO: move to array
 
   cout << "done" << endl;
 
