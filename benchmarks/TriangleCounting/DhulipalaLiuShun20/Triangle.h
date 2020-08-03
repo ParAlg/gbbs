@@ -78,12 +78,6 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   });
   t.stop();t.reportTotal("2. 3. mark insertions + deletions");
 
-  // t.start(); //step 3 mark deletion 
-  // par_for(0, vtxNew.size(), [&] (size_t i) {
-  //   DG.markEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].offset + vtxNew[i].insert_degree, vtxNew[i].offset + vtxNew[i].degree));
-  // });
-  // t.stop();t.reportTotal("3. mark deletions");
-
   t.start(); //step 4 and 5 update insertions  and deletions
   // loop over the low degree vertices, process if the other is high
   // only process each edge once

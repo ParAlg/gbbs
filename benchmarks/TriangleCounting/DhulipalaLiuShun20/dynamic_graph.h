@@ -177,8 +177,8 @@ namespace DBTGraph{
         }
 
         void markEdgeArrayDeletion(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool>*> &edgesDeletion){
-            parallel_for(0, D[u.id], [&](size_t i) {
-                parallel_for(0, edgesDeletion.size(), [&](size_t j) {
+            parallel_for(0, edgesDeletion.size(), [&](size_t j) {
+                for(0, D[u.id], [&](size_t i) {
                 if(getEArray(u.id, i) == edgesDeletion[j].first.second){
                     setEArrayVal(u.id, i, DEL_EDGE);
                 }
@@ -248,11 +248,11 @@ namespace DBTGraph{
 
         // if flag is true, update value to val
         // if flag is false, delete value
-        void markEdgeTables(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool> *> &edges, bool flag, int val){
+        void markEdgeTables(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool> *> &edgesM, bool flag, int val){
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
-            parallel_for(0, edges.size(), [&](size_t i) { 
-                uintE v = edges[i].first.second;
+            parallel_for(0, edgesM.size(), [&](size_t i) { 
+                uintE v = edgesM[i].first.second;
                 if(is_low_v(v)){
                     SetT* L = tb1->find(u.id, NULL);
                     if(flag){L->updateSeq(v,val);}
