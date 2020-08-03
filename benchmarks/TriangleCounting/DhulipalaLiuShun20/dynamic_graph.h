@@ -167,7 +167,7 @@ namespace DBTGraph{
             }
         }
 
-        /////////////////////// MARK EDGE INSERTION /////////////////////////////////////////////
+        /////////////////////// MARK EDGE INSERTION & DELETION /////////////////////////////////////////////
         // assume there is enough space in array
         void markEdgeArrayInsertion(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool>*> &edgesInsert, int val){
             size_t offset = D[u.id];
@@ -178,11 +178,11 @@ namespace DBTGraph{
 
         void markEdgeArrayDeletion(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool>*> &edgesDeletion){
             parallel_for(0, edgesDeletion.size(), [&](size_t j) {
-                for(0, D[u.id], [&](size_t i) {
+                for(size_t i = 0; i < D[u.id]; ++i) {
                 if(getEArray(u.id, i) == edgesDeletion[j].first.second){
                     setEArrayVal(u.id, i, DEL_EDGE);
                 }
-                });
+                }
             });
         }
 
