@@ -14,6 +14,7 @@
 //     -mu : SCAN parameter mu
 //     -epsilon : SCAN parameter epsilon
 #include <string>
+#include <unordered_set>
 
 #include "benchmarks/SCAN/IndexBased/scan.h"
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
@@ -26,11 +27,11 @@ template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
   const size_t cluster_rounds{
     parameters.getOptionLongValue("-cluster-rounds", 1)};
-  const uint64_t mu{parameters.getOptionLongValue("-mu", 5)};
-  const float epsilon{
-    static_cast<float>(parameters.getOptionDoubleValue("-epsilon", 0.6))};
-  std::cout << "Scan parameters: mu = " << mu << ", epsilon = " << epsilon
-    << '\n';
+  // const uint64_t mu{parameters.getOptionLongValue("-mu", 5)};
+  // const float epsilon{
+  //   static_cast<float>(parameters.getOptionDoubleValue("-epsilon", 0.6))};
+  // std::cout << "Scan parameters: mu = " << mu << ", epsilon = " << epsilon
+  //   << '\n';
 
   timer index_construction_timer{"Index construction time"};
   const indexed_scan::Index scan_index{&graph, scan::CosineSimilarity{}};
@@ -38,11 +39,24 @@ double RunScan(Graph& graph, commandLine parameters) {
 
   timer cluster_timer{
     "Clustering time over " + std::to_string(cluster_rounds) + " rounds"};
-  for (size_t i = 0; i < cluster_rounds; i++) {
-    cluster_timer.start();
-    const indexed_scan::Clustering clustering{scan_index.Cluster(mu, epsilon)};
-    cluster_timer.stop();
-    std::cout << "Modularity: " << scan::Modularity(&graph, clustering) << '\n';
+  std::vector<uint64_t> mus = {2, 5, 10, 25, 60, 150, 500, 1000};
+  std::vector<float> es = {0.01, 0.1, 0.3, 0.5, 0.7, 0.9, 0.95};
+  for (uint64_t mu : mus) {
+    for (float e : es) {
+      cluster_timer.start();
+      const indexed_scan::Clustering clustering{scan_index.Cluster(mu, e)};
+      cluster_timer.stop();
+      std::cerr << "computing modularity-" << mu << "-" << e <<"... ";
+      const auto modularity = scan::Modularity(&graph, clustering) ;
+      std::cerr << modularity;
+      std::unordered_set<uintE> clusters;
+      for (auto c : clustering) {
+        if (c != scan::kUnclustered) {
+          clusters.emplace(c);
+        }
+      }
+      std::cerr << " with " << clusters.size() << " clusters\n";
+    }
   }
 
   index_construction_timer.reportTotal("");
@@ -57,4 +71,4 @@ static constexpr bool kMutatesGraph{false};
 
 }  // namespace gbbs
 
-generate_symmetric_main(gbbs::RunScan, gbbs::kMutatesGraph);
+generate_symmetric_weighted_main(gbbs::RunScan, gbbs::kMutatesGraph);

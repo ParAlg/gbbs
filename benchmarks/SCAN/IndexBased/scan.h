@@ -28,10 +28,10 @@ class Index {
   //     Determines how to compute the similarity between two adjacency
   //     vertices. The traditional choice for SCAN is `scan::CosineSimilarity`.
   template <
-    template <typename> class VertexTemplate,
+    class Graph,
     class SimilarityMeasure = scan::CosineSimilarity>
   explicit Index(
-      symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+      Graph* graph,
       const SimilarityMeasure& similarity_measure = scan::CosineSimilarity{})
     : num_vertices_{graph->n}
     , neighbor_order_{graph, similarity_measure}

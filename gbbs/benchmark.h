@@ -314,17 +314,13 @@ inline auto get_pcm_state() { return (size_t)1; }
     debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
     bool compressed = P.getOptionValue("-c");                              \
     bool mmap = P.getOptionValue("-m");                                    \
-    bool mmapcopy = mutates;                                               \
     debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);              \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
     gbbs::pcm_init();                                                      \
     if (compressed) {                                                      \
-      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>( \
-          iFile, mmap, mmapcopy);                                          \
-      gbbs::alloc_init(G);                                                 \
-      run_app(G, APP, rounds)                                              \
+      exit(-1); \
     } else {                                                               \
-      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(   \
+      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(   \
           iFile, mmap);                                                    \
       gbbs::alloc_init(G);                                                 \
       run_app(G, APP, rounds)                                              \
