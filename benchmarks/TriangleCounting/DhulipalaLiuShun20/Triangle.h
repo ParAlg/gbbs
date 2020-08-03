@@ -46,8 +46,8 @@ inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
 
 //TODO: not keeping vtxMap if not used later
 template <class Graph, class EdgeT>
-pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> edges, size_t n){
-  size_t m = edges.size();
+pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
+  size_t m = edgesIn.size();
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew;
   pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>::no_init(n);
   // pbbs::sequence<pair<EdgeT,bool>> edges = pbbs::sequence<pair<EdgeT,bool>>::no_init(2*m);
@@ -75,23 +75,26 @@ pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph
   size_t numVtx = pbbs::scan_inplace(flag.slice(), monoid) - 1 ;
   vtxNew =  pbbs::sequence<DBTGraph::VtxUpdate>::no_init(numVtx);
 
-  par_for(0, 2*m, [&] (size_t i) {
-  if(flag[i]!=flag[i+1]){
+  par_for(1, 2*m, [&] (size_t i) {
+  if(flag[i-1]!=flag[i]){
     uintE u = getFirst(edges,i);
     vtxNew[flag[i]] = DBTGraph::VtxUpdate(u,i);
     vtxMap[u] = flag[i];
   }});
+  uintE u = getFirst(edges,0);
+  vtxNew[0] = DBTGraph::VtxUpdate(u,0);
+  vtxMap[u] = 0;
 
   //count D and insert D
   par_for(0, 2*m-1, [&] (size_t i) {
   if(getFirst(edges,i) == getFirst(edges,i+1) && edges[i].second && !edges[i+1].second){
     uintE u = getFirst(edges,i);
-    vtxNew[vtxMap[u]].insert_degree = i-vtxNew[vtxMap[u]].offset;
+    vtxNew[vtxMap[u]].insert_degree = i + 1 - vtxNew[vtxMap[u]].offset;
   }else if(getFirst(edges,i) != getFirst(edges,i+1)){
     uintE u = getFirst(edges,i);
     uintE next_v = getFirst(edges,i+1);
     vtxNew[vtxMap[u]].setDeg(vtxNew[vtxMap[next_v]].offset - vtxNew[vtxMap[u]].offset);
-    if(edges[i].second)vtxNew[vtxMap[u]].insert_degree = i-vtxNew[vtxMap[u]].offset;
+    if(edges[i].second)vtxNew[vtxMap[u]].insert_degree = vtxNew[vtxMap[u]].degree;
   }
   });
   vtxNew[numVtx-1].setDeg(2*m - vtxNew[numVtx-1].offset);
@@ -129,10 +132,10 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
 
   // UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
   UpdatesT updates = UpdatesT::no_init(8);
-  updates[0] = make_pair(EdgeT(1,2), true);
+  updates[0] = make_pair(EdgeT(7,8), true); //add
   updates[1] = make_pair(EdgeT(3,2), true);
   updates[2] = make_pair(EdgeT(1,2), true);
-  updates[3] = make_pair(EdgeT(1,2), false);
+  updates[3] = make_pair(EdgeT(5,8), false);//remove
   updates[4] = make_pair(EdgeT(1,2), true);
   updates[5] = make_pair(EdgeT(4,2), false);//remove
   updates[6] = make_pair(EdgeT(0,4), false);
