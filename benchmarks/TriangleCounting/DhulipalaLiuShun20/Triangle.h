@@ -127,8 +127,18 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   t.start();
   DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G); t.stop();t.reportTotal("init");
 
-  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
-  t.start(); //step 1 and 3
+  // UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
+  UpdatesT updates = UpdatesT::no_init(8);
+  updates[0] = make_pair(EdgeT(1,2), true);
+  updates[1] = make_pair(EdgeT(3,2), true);
+  updates[2] = make_pair(EdgeT(1,2), true);
+  updates[3] = make_pair(EdgeT(1,2), false);
+  updates[4] = make_pair(EdgeT(1,2), true);
+  updates[5] = make_pair(EdgeT(4,2), false);//remove
+  updates[6] = make_pair(EdgeT(0,4), false);
+  updates[7] = make_pair(EdgeT(1,4), true);//add
+
+  t.start(); //step 1
   UpdatesT updates_final = Preprocessing(DG, updates);  // mark delete edge as well
   m = updates_final.size();
   updates.clear();
@@ -146,7 +156,13 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   par_for(0, vtxNew.size(), [&] (size_t i) {
     DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].insert_degree));
   });
-  t.stop();t.reportTotal("2. mark inserts");
+  t.stop();t.reportTotal("2. mark insertions");
+
+  t.start(); //step 3 mark deletion 
+  par_for(0, vtxNew.size(), [&] (size_t i) {
+    DG.markEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].offset + vtxNew[i].insert_degree, vtxNew[i].offset + vtxNew[i].degree));
+  });
+  t.stop();t.reportTotal("3. mark deletions");
 
   t.start(); //step 4 and 5 update insertions  and deletions
   // loop over the low degree vertices, process if the other is high
