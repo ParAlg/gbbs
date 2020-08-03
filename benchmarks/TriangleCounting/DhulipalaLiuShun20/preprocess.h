@@ -81,8 +81,8 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
   inds.clear();
 
   // remove inserts/deletes in/notin graph
-  // pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdge(G, e);});
-  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdgeDel(G, e);});
+  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdge(G, e);});
+  // pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdgeDel(G, e);});
 
   flag.clear();
   updates_valid.clear();

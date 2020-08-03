@@ -93,11 +93,11 @@ namespace DBTGraph{
 
         }
 
-        inline uintE getEArray(uintE u, size_t i)const {
+        inline uintE getEArray(uintE u, size_t i)const { //get ith ngh of u
             return edges[block_size * u + i].first;
         }
 
-        inline int getEArrayVal(uintE u, size_t i)const {
+        inline int getEArrayVal(uintE u, size_t i)const { //get status of ith ngh of u
             return edges[block_size * u + i].second;
         }
 
@@ -173,7 +173,7 @@ namespace DBTGraph{
             }
         }
         
-        //delete if edge found and flag is true
+        //delete if edge found and flag is false
         bool haveEdgeDel (EdgeT e, bool flag) {
             if (e.first >= n || e.second >= n){
                 return false;
@@ -193,14 +193,14 @@ namespace DBTGraph{
             if(use_block_v(u)){
                 for(size_t i = 0; i < degree1; ++i){
                     if(getEArray(u,i) == v){ 
-                        if(flag) setEArray(u,v,i, DEL_EDGE);
+                        if(!flag) setEArray(u,v,i, DEL_EDGE);
                         return true;}
                 }
                 return false;
             }else{
                 SetT *bottomTb = tb->find(u, (SetT *)NULL);
                 if(bottomTb->contains(v)){
-                    if(flag) bottomTb->updateSeq(v,DEL_EDGE);
+                    if(!flag) bottomTb->updateSeq(v,DEL_EDGE);
                     return true;
                 }else{
                     return false;
@@ -275,6 +275,35 @@ namespace DBTGraph{
                     check_resize = false;
                 }
                 markEdgeTablesInsertion(i, edgesI, check_resize);// insert to table
+            }
+        }
+
+                // if flag is true, update value to flag 2
+        // if flag is false, delete value
+        void markEdgeTables(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool> *> &edges, bool flag, bool flag2){
+            tableE *tb1 = LL;tableE *tb2 = LH;
+            if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
+            parallel_for(0, edges.size(), [&](size_t i) { 
+                uintE v = edges[i].first.second;
+                if(is_low_v(v)){
+                    SetT* L = tb1->find(u.id, NULL);
+                    if(flag){L->updateSeq(v,flag2);}
+                    else{L->deleteVal(v);}
+                }else{
+                    SetT* H = tb2->find(u.id, NULL);
+                    if(flag){H->updateSeq(v,flag2);}
+                    else{H->deleteVal(v);}
+                }
+            });
+        }
+
+        void markEdgeDeletion(DBTGraph::VtxUpdate i, pbbs::range<pair<EdgeT,bool> *> edgesD){
+            if(edgesD.size()==0) return;
+            uintE u = i.id;
+            if(use_block_v(u)){ // mark in array
+                markEdgeArrayInsertion(i, edgesD, DEL_EDGE);
+            }else{ 
+                markEdgeTables(i, edgesD, true, DEL_EDGE); // mark as old edges
             }
         }
 
@@ -395,24 +424,6 @@ namespace DBTGraph{
         }
 
         /////////////////////////////// CLEANUP TABLES /////////////////////////////////
-        void cleanUpEdgeTables(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool> *> &edges, bool flag){
-            tableE *tb1 = LL;tableE *tb2 = LH;
-            if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
-            parallel_for(0, edges.size(), [&](size_t i) { 
-                uintE v = edges[i].first.second;
-                if(is_low_v(v)){
-                    SetT* L = tb1->find(u.id, NULL);
-                    if(flag){L->updateSeq(v,OLD_EDGE);}
-                    else{L->deleteVal(v);}
-                }else{
-                    SetT* H = tb2->find(u.id, NULL);
-                    if(flag){H->updateSeq(v,OLD_EDGE);}
-                    else{H->deleteVal(v);}
-                }
-            });
-
-        }
-
         void packEdgeArrayDeletions(DBTGraph::VtxUpdate u){
             size_t offset = block_size * u.id;
             size_t k= offset;
@@ -426,7 +437,7 @@ namespace DBTGraph{
             if(use_block_v(u)){ // mark in array
                 markEdgeArrayInsertion(i, edgesI, OLD_EDGE);
             }else{ 
-                cleanUpEdgeTables(i, edgesI, true); // mark as old edges
+                markEdgeTables(i, edgesI, true, OLD_EDGE); // mark as old edges
             }
         }
 
@@ -436,7 +447,7 @@ namespace DBTGraph{
             if(use_block_v(u)){ // copy to array
                 packEdgeArrayDeletions(i); // deletions will be packed out
             }else{ 
-                cleanUpEdgeTables(i, edgesD, false);// remove edges 
+                markEdgeTables(i, edgesD, false, OLD_EDGE);// remove edges 
             }
         }
 
