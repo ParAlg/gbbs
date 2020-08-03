@@ -11,16 +11,6 @@
 
 using namespace std;
 
-// #define EMPTYV numeric_limits<uintE>::max()
-// #define EMPTYKVB make_tuple(EMPTYV, 0)
-// #define EMPTYKV make_tuple(EMPTYV, (SetT *)NULL)
-// #define UPDATET1 1
-// #define UPDATET2 2
-// #define UPDATET3 3
-// #define UPDATET4 4
-// #define UPDATET5 5
-
-
 namespace gbbs{
 namespace DBTGraph{
 
@@ -172,42 +162,6 @@ namespace DBTGraph{
                 return tb->find(u, (SetT *)NULL)->contains(v);
             }
         }
-        
-        //delete if edge found and flag is false
-        bool haveEdgeDel (EdgeT e, bool flag) {
-            if (e.first >= n || e.second >= n){
-                return false;
-            }
-            uintE u = e.first;
-            uintE v = e.second;
-            size_t degree1 = D[u];
-            size_t degree2 = D[v];
-            if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
-            if(degree1 == 0 || degree2 == 0) return false;
-            tableE *tb = LL;
-            if(is_high_v(u) && is_high_v(v)){
-                tb = HH;
-            }else if(is_high_v(v)){
-                tb = LH;
-            }
-            if(use_block_v(u)){
-                for(size_t i = 0; i < degree1; ++i){
-                    if(getEArray(u,i) == v){ 
-                        if(!flag) setEArray(u,v,i, DEL_EDGE);
-                        return true;}
-                }
-                return false;
-            }else{
-                SetT *bottomTb = tb->find(u, (SetT *)NULL);
-                if(bottomTb->contains(v)){
-                    if(!flag) bottomTb->updateSeq(v,DEL_EDGE);
-                    return true;
-                }else{
-                    return false;
-                }
-                
-            }
-        }
 
         /////////////////////// MARK EDGE INSERTION /////////////////////////////////////////////
         // assume there is enough space in array
@@ -278,20 +232,20 @@ namespace DBTGraph{
             }
         }
 
-                // if flag is true, update value to flag 2
+        // if flag is true, update value to val
         // if flag is false, delete value
-        void markEdgeTables(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool> *> &edges, bool flag, bool flag2){
+        void markEdgeTables(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool> *> &edges, bool flag, int val){
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
             parallel_for(0, edges.size(), [&](size_t i) { 
                 uintE v = edges[i].first.second;
                 if(is_low_v(v)){
                     SetT* L = tb1->find(u.id, NULL);
-                    if(flag){L->updateSeq(v,flag2);}
+                    if(flag){L->updateSeq(v,val);}
                     else{L->deleteVal(v);}
                 }else{
                     SetT* H = tb2->find(u.id, NULL);
-                    if(flag){H->updateSeq(v,flag2);}
+                    if(flag){H->updateSeq(v,val);}
                     else{H->deleteVal(v);}
                 }
             });
