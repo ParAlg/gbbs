@@ -95,6 +95,10 @@ namespace DBTGraph{
             edges[block_size * u + i] = make_pair(v,val);
         }
 
+        inline void setEArrayVal(uintE u, size_t i, int val){
+            edges[block_size * u + i].second = val;
+        }
+
         inline void setEArray(uintE v, size_t k, int val){
             edges[k] = make_pair(v,val);
         }
@@ -165,10 +169,20 @@ namespace DBTGraph{
 
         /////////////////////// MARK EDGE INSERTION /////////////////////////////////////////////
         // assume there is enough space in array
-        void markEdgeArrayInsertion(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool>*> &edgesInsert, int flag){
+        void markEdgeArrayInsertion(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool>*> &edgesInsert, int val){
             size_t offset = D[u.id];
             parallel_for(0, u.insert_degree, [&](size_t i) {
-                setEArray(u.id, edgesInsert[i].first.second, offset+i, flag);
+                setEArray(u.id, edgesInsert[i].first.second, offset+i, val);
+            });
+        }
+
+        void markEdgeArrayDeletion(DBTGraph::VtxUpdate u, pbbs::range<pair<EdgeT,bool>*> &edgesDeletion){
+            parallel_for(0, D[u.id], [&](size_t i) {
+                parallel_for(0, edgesDeletion.size(), [&](size_t j) {
+                if(getEArray(u.id, i) == edgesDeletion[j].first.second){
+                    setEArrayVal(u.id, i, DEL_EDGE);
+                }
+                });
             });
         }
 
@@ -255,7 +269,7 @@ namespace DBTGraph{
             if(edgesD.size()==0) return;
             uintE u = i.id;
             if(use_block_v(u)){ // mark in array
-                markEdgeArrayInsertion(i, edgesD, DEL_EDGE);
+                markEdgeArrayDeletion(i, edgesD);
             }else{ 
                 markEdgeTables(i, edgesD, true, DEL_EDGE); // mark as old edges
             }
