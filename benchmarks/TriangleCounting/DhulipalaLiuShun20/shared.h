@@ -52,29 +52,6 @@ namespace DBTGraph{
         }
     };
 
-
-    // struct EdgeT{
-    //     uintE first;
-    //     uintE second;
-
-    //     EdgeT(uintE a, uintE b):first(a), second(b){}
-    //     EdgeT(VtxUpdate a, VtxUpdate b):first(a.id), second(b.id){}
-    //     EdgeT(){}
-    //     bool operator ==(const EdgeT &b) const{
-    //         return b.first ==first && b.second == second;
-    //     }
-
-    //     bool operator !=(const EdgeT &b) const{
-    //         return b.first !=first || b.second != second;
-    //     }
-
-    //     bool operator >(const EdgeT &b) const{
-    //         if(first > b.first)return true;
-    //         if(first < b.first) return false;
-    //         return second > b.second;
-    //     }
-    // };
-
     struct TriangleCounts{ // cache line?
         pbbs::sequence<size_t> c;
         size_t P;

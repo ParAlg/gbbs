@@ -66,6 +66,30 @@
     //     }
     // };
 
+
+
+    // struct EdgeT{
+    //     uintE first;
+    //     uintE second;
+
+    //     EdgeT(uintE a, uintE b):first(a), second(b){}
+    //     EdgeT(VtxUpdate a, VtxUpdate b):first(a.id), second(b.id){}
+    //     EdgeT(){}
+    //     bool operator ==(const EdgeT &b) const{
+    //         return b.first ==first && b.second == second;
+    //     }
+
+    //     bool operator !=(const EdgeT &b) const{
+    //         return b.first !=first || b.second != second;
+    //     }
+
+    //     bool operator >(const EdgeT &b) const{
+    //         if(first > b.first)return true;
+    //         if(first < b.first) return false;
+    //         return second > b.second;
+    //     }
+    // };
+
   // splits to insertions and deletions, deletions first
   // pbbs::sequence<bool> flag = pbbs::sequence<bool>::no_init(m);
 
@@ -208,6 +232,42 @@ auto sortVertexOutNgh(pbbs::range<pair<EdgeT,bool>> &In, pbbs::range<EdgeT> &Out
 
 
             // insert array to table
+        }
+        
+        //delete if edge found and flag is false
+        bool haveEdgeDel (EdgeT e, bool flag) {
+            if (e.first >= n || e.second >= n){
+                return false;
+            }
+            uintE u = e.first;
+            uintE v = e.second;
+            size_t degree1 = D[u];
+            size_t degree2 = D[v];
+            if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
+            if(degree1 == 0 || degree2 == 0) return false;
+            tableE *tb = LL;
+            if(is_high_v(u) && is_high_v(v)){
+                tb = HH;
+            }else if(is_high_v(v)){
+                tb = LH;
+            }
+            if(use_block_v(u)){
+                for(size_t i = 0; i < degree1; ++i){
+                    if(getEArray(u,i) == v){ 
+                        if(!flag) setEArray(u,v,i, DEL_EDGE);
+                        return true;}
+                }
+                return false;
+            }else{
+                SetT *bottomTb = tb->find(u, (SetT *)NULL);
+                if(bottomTb->contains(v)){
+                    if(!flag) bottomTb->updateSeq(v,DEL_EDGE);
+                    return true;
+                }else{
+                    return false;
+                }
+                
+            }
         }
 
 ./Triangle -s ../../../inputs/rMatGraph_J_5_100

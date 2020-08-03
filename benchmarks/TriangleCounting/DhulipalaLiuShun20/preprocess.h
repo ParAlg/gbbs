@@ -17,15 +17,15 @@ inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &
   return G.haveEdge(e.first) == e.second;
 }
 
-//check duplicated edge, mark delete if exiting and need to delete
-template <class Graph, class EdgeT>
-inline bool dupEdgeDel(DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
-  if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
-      cout << "edge out of bound " << endl;
-      exit(1);
-  }
-  return G.haveEdgeDel(e.first, e.second) == e.second;
-}
+// //check duplicated edge, mark delete if exiting and need to delete
+// template <class Graph, class EdgeT>
+// inline bool dupEdgeDel(DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
+//   if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
+//       cout << "edge out of bound " << endl;
+//       exit(1);
+//   }
+//   return G.haveEdgeDel(e.first, e.second) == e.second;
+// }
 
 template <class Graph, class EdgeT>
 inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates){
