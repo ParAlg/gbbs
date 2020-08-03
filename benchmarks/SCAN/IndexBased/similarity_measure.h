@@ -59,9 +59,9 @@ class CosineSimilarity {
  public:
   CosineSimilarity() = default;
 
-  template <class Graph>
+  template <template <typename> class VertexTemplate, typename Weight>
   pbbs::sequence<EdgeSimilarity>
-  AllEdges(Graph* graph) const;
+  AllEdges(symmetric_graph<VertexTemplate, Weight>* graph) const;
 };
 
 // The Jaccard similarity between two adjacent vertices u and v is
@@ -157,10 +157,10 @@ pbbs::sequence<float> RandomNormalNumbers(size_t num_numbers, pbbs::random rng);
 // Create a directed version of `graph`, pointing edges from lower degree
 // vertices to higher degree vertices. This upper bounds the out-degree of each
 // vertex in the directed graph with `sqrt(graph->m)`.
-template <class Graph>
-auto DirectGraphByDegree(Graph* graph) {
+template <template <typename> class VertexTemplate, typename Weight>
+auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
   uintE* vertex_degree_ranking{rankNodes(*graph, graph->n)};
-  const auto filter_predicate{[&](const uintE u, const uintE v, typename Graph::weight_type) {
+  const auto filter_predicate{[&](const uintE u, const uintE v, Weight) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
   auto directed_graph{filterGraph(*graph, filter_predicate)};
@@ -171,8 +171,8 @@ auto DirectGraphByDegree(Graph* graph) {
 // Returns an sequence `vertex_offsets` such that if there is another sequence
 // `edges` consisting of the out-edges of `*graph` sorted by source vertex, then
 // `vertex_offsets[i]` is the first appearance of vertex i as a source vertex.
-template <class Graph>
-pbbs::sequence<uintT> VertexOutOffsets(Graph* graph) {
+template <template <typename> class VertexTemplate, typename Weight>
+pbbs::sequence<uintT> VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
   pbbs::sequence<uintT> vertex_offsets{
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
@@ -231,10 +231,9 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
 
 }  // namespace internal
 
-template <class Graph>
+template <template <typename> class VertexTemplate, typename Weight>
 pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
-    Graph* graph) const {
-  using W = typename Graph::weight_type;
+    symmetric_graph<VertexTemplate, Weight>* graph) const {
   auto directed_graph{internal::DirectGraphByDegree(graph)};
   // Each counter in `counters` holds the number of shared neighbors in `graph`
   // between u and v for some edge {u, v}.
@@ -256,7 +255,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     const auto intersect{[&](
         const uintE v_id,
         const uintE neighbor_id,
-        W w,
+        Weight w,
         const uintE v_to_neighbor_index) {
       auto neighbor{directed_graph.get_vertex(neighbor_id)};
       const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
@@ -264,8 +263,8 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
           const uintE shared_neighbor,
           const uintE vertex_to_shared_index,
           const uintE neighbor_to_shared_index,
-          W w1,
-          W w2) {
+          Weight w1,
+          Weight w2) {
         counters[vertex_counter_offset + vertex_to_shared_index] += static_cast<long long>(1000 * 1000 * w * w2);
         counters[neighbor_counter_offset + neighbor_to_shared_index] += static_cast<long long>(1000 * 1000 * w * w1);
       }};
@@ -278,7 +277,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
   });
 
-  pbbs::sequence<double> weighted_deg{
+  const pbbs::sequence<double> norms{
     graph->n,
     [&](const size_t i) {
       double wt = 1000 * 1000;
@@ -299,11 +298,11 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
-        W w,
+        Weight w,
         const uintE v_to_u_index) {
       const uintT counter_index{v_counter_offset + v_to_u_index};
       const double shared_weight{counters[counter_index] + 2 * 1000 * 1000 * w};  // add self edge
-      const float similarity{static_cast<float>(shared_weight / (weighted_deg[v_id] * weighted_deg[u_id]))};
+      const float similarity{static_cast<float>(shared_weight / (norms[v_id] * norms[u_id]))};
       similarities[2 * counter_index] =
         {.source = v_id, .neighbor = u_id, .similarity = similarity};
       similarities[2 * counter_index + 1] =

@@ -29,9 +29,12 @@ class NeighborOrder {
   //
   // The neighbor lists for each vertex in the graph must be sorted by ascending
   // neighbor ID.
-  template <class Graph, class SimilarityMeasure>
+  template <
+    template <typename> class VertexTemplate,
+    typename Weight,
+    class SimilarityMeasure>
   NeighborOrder(
-      Graph* graph,
+      symmetric_graph<VertexTemplate, Weight>* graph,
       const SimilarityMeasure& similarity_measure);
 
   // Get all similarity scores from vertex `source` to its neighbors (not
@@ -106,10 +109,13 @@ size_t BinarySearch(const Seq& sequence, Func&& predicate) {
     pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
 }
 
-template <class Graph, class SimilarityMeasure>
+template <
+  template <typename> class VertexTemplate,
+  typename Weight,
+  class SimilarityMeasure>
 NeighborOrder::NeighborOrder(
-    Graph* graph,
-    const SimilarityMeasure& similarity_measure) {
+      symmetric_graph<VertexTemplate, Weight>* graph,
+      const SimilarityMeasure& similarity_measure) {
   timer function_timer{"Construct neighbor order"};
   similarities_ = similarity_measure.AllEdges(graph);
   pbbs::sample_sort_inplace(
