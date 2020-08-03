@@ -46,18 +46,13 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   DBTGraph::DyGraph DG = DBTGraph::DyGraph(2, G); t.stop();t.reportTotal("init");
 
   // UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
-  UpdatesT updates = UpdatesT::no_init(8);
-  updates[0] = make_pair(EdgeT(7,8), true);//add
-  updates[1] = make_pair(EdgeT(3,2), true);
-  updates[2] = make_pair(EdgeT(1,2), true);
-  updates[3] = make_pair(EdgeT(5,8), false);//remove
-  updates[4] = make_pair(EdgeT(1,2), true);
-  updates[5] = make_pair(EdgeT(4,2), false);//remove
-  updates[6] = make_pair(EdgeT(0,4), false);
-  updates[7] = make_pair(EdgeT(1,4), true);//add
+  UpdatesT updates = UpdatesT::no_init(3);
+  updates[0] = make_pair(EdgeT(1,2), true);//add
+  updates[1] = make_pair(EdgeT(2,4), false);
+  updates[2] = make_pair(EdgeT(3,4), false);
 
   t.start(); //step 1
-  UpdatesT updates_final = Preprocessing(DG, updates);  // mark delete edge as well
+  UpdatesT updates_final = Preprocessing(DG, updates);
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");
@@ -129,6 +124,8 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   // change top level first, then bottom level
 
   // remove empty table
+
+  // resize T since num high changes
   
   // t.stop();t.reportTotal("8. 9. minor rebalancing");
   }

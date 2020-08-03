@@ -127,6 +127,10 @@ namespace DBTGraph{
 
         inline void cleanUp(){
             c1  = c1 + c2 + c3 -c4 -c5;
+            c2 = 0;
+            c3 = 0;
+            c4 = 0;
+            c5 = 0;
         }
     };
 
