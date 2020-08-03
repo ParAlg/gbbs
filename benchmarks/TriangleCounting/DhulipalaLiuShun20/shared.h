@@ -75,7 +75,7 @@ namespace DBTGraph{
         }
 
         inline pbbs::sequence<size_t> report(){
-            pbbs::sequence<size_t> result = pbbs::sequence<size_t>::no_init(6);
+            pbbs::sequence<size_t> result = pbbs::sequence<size_t>(6, (size_t)0);
             par_for(0, 6, [&] (size_t i) {
                 for(size_t j = 0; j < P; ++j) {
                     result[i] += c[6 * j + i];

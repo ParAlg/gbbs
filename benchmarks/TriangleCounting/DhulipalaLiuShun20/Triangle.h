@@ -79,11 +79,10 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   t.stop();t.reportTotal("2. 3. mark insertions + deletions");
 
   t.start(); //step 4 and 5 update insertions  and deletions
-  // loop over the low degree vertices, process if the other is high
+  // loop over the low degree vertices w, process if the other is high
   // only process each edge once
   par_for(0, vtxNew.size(), [&] (size_t i) {
-    DBTGraph::VtxUpdate w = vtxNew[i];
-    DG.updateTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].end()));
+    DG.updateTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
   t.stop();t.reportTotal("4.5. update insertions and deletions");
 
@@ -110,16 +109,15 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
     DG.cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
-  par_for(0, vtxNew.size(), [&] (size_t i) {
-    DBTGraph::VtxUpdate w = vtxNew[i];
-    DG.cleanUpTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].end()));
+  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T
+    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
   t.stop();t.reportTotal("7. clean up tables");
   
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
   auto monoid = pbbslib::addm<size_t>();
-  m_ins = pbbs::reduce(insertDegrees, monoid);
+  m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(2 * m_ins - m)){
     cout <<  "major rebalancing not implemented " << endl;
   }else{
