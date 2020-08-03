@@ -53,6 +53,8 @@ class sparse_table {
   inline size_t hashToRange(size_t h) const { return h & mask; }
   inline size_t firstIndex(K& k) const { return hashToRange(key_hash(k)); }
   inline size_t incrementIndex(size_t h) const { return hashToRange(h + 1); }
+  inline size_t decrementIndex(size_t h) {return hashToRange(h-1);}
+  inline bool lessIndex(size_t a, size_t b) {return 2 * hashToRange(a - b) > m;}
 
   void del() {
     if (alloc) {
@@ -127,18 +129,92 @@ class sparse_table {
 
   // Pre-condition: k must be present in T.
   // do not support removing and inserting at the same time
-  inline std::tuple<K, V> delVal(K k) const {
-    size_t h = idx(k);
-    std::tuple<K, V> kv = table[h];
-    table[h] = empty;
-    return kv
+  // needs to be more thoroughly tested
+  // currently always returns true
+  bool deleteVal(K v) {
+    size_t i = firstIndex(v);
+    int cmp = 1;
+
+    // find first element less than or equal to v in priority order
+    size_t j = i;
+    T c = table[j];
+
+    if (c == empty) return true;
+      
+    // find first location with priority less or equal to v's priority
+    // while(c != empty && (cmp = hashStruct.cmp(v,hashStruct.getKey(c))) != 0) {
+    while(c != empty && (cmp = key_hash.cmp(v,std::get<0>(c))) != 0) {
+      j = incrementIndex(j);
+      c = table[j];
+    }
+    cmp=(c==empty)?1:key_hash.cmp(v,std::get<0>(c));
+    while (1) {
+      // Invariants:
+      //   v is the key that needs to be deleted
+      //   j is our current index into TA
+      //   if v appears in TA, then at least one copy must appear at or before j
+      //   c = TA[j] at some previous time (could now be changed)
+      //   i = h(v)
+      //   cmp = compare v to key of c (1 if greater, 0 equal, -1 less)
+      
+      if (cmp != 0){//why doesn't the following work as the condition???
+	//c==empty || hashStruct.cmp(v,hashStruct.getKey(c)) != 0) {
+        // v does not match key of c, need to move down one and exit if
+        // moving before h(v)
+	if (j == i) return true;
+  	j = decrementIndex(j);
+  	c = table[j];
+  	cmp = (c == empty) ? 1 : key_hash.cmp(v, std::get<0>(c));
+      } else { // found v at location j (at least at some prior time)
+
+  	// Find next available element to fill location j.
+        // This is a little tricky since we need to skip over elements for
+        // which the hash index is greater than j, and need to account for
+        // things being moved downwards by others as we search.
+        // Makes use of the fact that values in a cell can only decrease
+        // during a delete phase as elements are moved from the right to left.
+  	size_t jj = incrementIndex(j);
+  	T x = table[jj];
+  	while (x != empty && lessIndex(j, firstIndex(std::get<0>(x)))) {
+  	  jj = incrementIndex(jj);
+  	  x = table[jj];
+  	}
+  	size_t jjj = decrementIndex(jj);
+  	while (jjj != j) {
+  	  T y = table[jjj];
+  	  if (y == empty || !lessIndex(j, firstIndex(std::get<0>(y)))) {
+  	    x = y;
+  	    jj = jjj;
+  	  }
+  	  jjj = decrementIndex(jjj);
+  	}
+
+  	// try to copy the the replacement element into j
+  	if (pbbslib::CAS(&std::get<0>(table[j]),std::get<0>(c),std::get<0>(x))) {
+      std::get<1>(table[j]) = std::get<1>(x);
+          // swap was successful
+          // if the replacement element was empty, we are done
+  	  if (x == empty) return true;
+
+  	  // Otherwise there are now two copies of the replacement element x
+          // delete one copy (probably the original) by starting to look at jj.
+          // Note that others can come along in the meantime and delete
+          // one or both of them, but that is fine.
+  	  v = std::get<0>(x);
+  	  j = jj;
+  	  i = firstIndex(v);
+  	}
+  	c = table[j];
+  	cmp = (c == empty) ? 1 : key_hash.cmp(v, std::get<0>(c));
+      }
+    }
   }
 
   // Pre-condition: k must be present in T.
   // do not support updating and inserting at the same time
-  inline void updateSeq(K k, V val) const {
+  inline void updateSeq(K k, V val) {
     size_t h = idx(k);
-    get<1>(table[h] = val)
+    std::get<1>(table[h]) = val;
   }
 
   void maybe_resize(size_t n_inc, size_t ne) {
@@ -154,7 +230,7 @@ class sparse_table {
         ne = 0;
         size_t line_size = 64;
         size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
-        table = (T*)aligned_alloc(line_size, bytes);
+        table = (T*)pbbs::aligned_alloc(line_size, bytes);
         clearA(table, m, empty);
         parallel_for(0, old_m, [&] (size_t i) {
           if (std::get<0>(old_t[i]) != empty_key) {
