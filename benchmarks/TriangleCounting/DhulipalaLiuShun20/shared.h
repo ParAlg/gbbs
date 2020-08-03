@@ -40,6 +40,8 @@ namespace DBTGraph{
         VtxUpdate(uintE a, size_t o):id(a), offset(o){}
         VtxUpdate(){}
         inline void setDeg(size_t a){degree = a;}
+        inline size_t end(){return offset + degree;}
+        inline size_t insOffset(){return offset + insert_degree;}
 
     };
 

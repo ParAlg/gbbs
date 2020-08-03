@@ -34,91 +34,6 @@
 namespace gbbs {
 using namespace std;
 
-template <class EdgeT>
-inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
-  return edges[i].first.first;
-}
-
-template <class EdgeT>
-inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
-  return edges[i].first.second;
-}
-
-//TODO: not keeping vtxMap if not used later
-template <class Graph, class EdgeT>
-pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
-  size_t m = edgesIn.size();
-  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew;
-  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>::no_init(n);
-  // pbbs::sequence<pair<EdgeT,bool>> edges = pbbs::sequence<pair<EdgeT,bool>>::no_init(2*m);
-  pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(2*m+1);
-
-  //sort edges
-  par_for(0, m, [&] (size_t i) {
-    edges[2*i] = edgesIn[i];
-    edges[2*i+1] = make_pair(EdgeT(getSecond(edgesIn,i), getFirst(edgesIn,i)), edgesIn[i].second);
-  });
-  // size_t bits = pbbslib::log2_up(n);
-  // pbbslib::integer_sort_inplace(A.slice(), get_u, bits); // which sort?
-  pbbs::sample_sort_inplace(edges.slice(), [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
-    if(i.first.first == j.first.first) return i.second && !j.second;
-      return i.first.first < j.first.first; 
-    });
-
-  //find offsets of vertices
-  par_for(0, 2*m-1, [&] (size_t i) {
-    if(getFirst(edges,i) != getFirst(edges,i+1)){flag[i] = 1;
-    }else{flag[i] = 0;}});
-  flag[2*m-1] = 1;
-  flag[2*m] = 1;
-  auto monoid = pbbslib::addm<size_t>();
-  size_t numVtx = pbbs::scan_inplace(flag.slice(), monoid) - 1 ;
-  vtxNew =  pbbs::sequence<DBTGraph::VtxUpdate>::no_init(numVtx);
-
-  par_for(1, 2*m, [&] (size_t i) {
-  if(flag[i-1]!=flag[i]){
-    uintE u = getFirst(edges,i);
-    vtxNew[flag[i]] = DBTGraph::VtxUpdate(u,i);
-    vtxMap[u] = flag[i];
-  }});
-  uintE u = getFirst(edges,0);
-  vtxNew[0] = DBTGraph::VtxUpdate(u,0);
-  vtxMap[u] = 0;
-
-  //count D and insert D
-  par_for(0, 2*m-1, [&] (size_t i) {
-  if(getFirst(edges,i) == getFirst(edges,i+1) && edges[i].second && !edges[i+1].second){
-    uintE u = getFirst(edges,i);
-    vtxNew[vtxMap[u]].insert_degree = i + 1 - vtxNew[vtxMap[u]].offset;
-  }else if(getFirst(edges,i) != getFirst(edges,i+1)){
-    uintE u = getFirst(edges,i);
-    uintE next_v = getFirst(edges,i+1);
-    vtxNew[vtxMap[u]].setDeg(vtxNew[vtxMap[next_v]].offset - vtxNew[vtxMap[u]].offset);
-    if(edges[i].second)vtxNew[vtxMap[u]].insert_degree = vtxNew[vtxMap[u]].degree;
-  }
-  });
-  vtxNew[numVtx-1].setDeg(2*m - vtxNew[numVtx-1].offset);
-  if(edges[2*m-1].second) vtxNew[numVtx-1].insert_degree = vtxNew[numVtx-1].degree;
-
-  //count lowD
-    par_for(0, 2*m, [&] (size_t i) {
-      flag[i] = G.is_low_v(getSecond(edges,i));
-    });
-    par_for(0, numVtx, [&] (size_t i) {
-      size_t s = vtxNew[i].offset;
-      size_t s2 = vtxNew[i].offset + vtxNew[i].insert_degree;
-      // size_t e = s+vtxNew[i].degree;
-      vtxNew[i].insert_low_degree = pbbslib::reduce(flag.slice(s,s2 ), monoid);
-      // size_t insert_high_degree = pbbslib::reduce(flag.slice(s2,e), monoid);
-      // cilk_sync;
-      // vtxNew[i].insert_degree = vtxNew[i].insert_low_degree + insert_high_degree;
-    });
-
-    flag.clear();
-    return make_pair(vtxNew,vtxMap);
-}
-
-
 template <class Graph, class F>
 inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   // auto C0 = P.getOptionIntValue("-c", 0);
@@ -128,11 +43,11 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   size_t m, m_ins;
 
   t.start();
-  DBTGraph::DyGraph DG = DBTGraph::DyGraph(3, G); t.stop();t.reportTotal("init");
+  DBTGraph::DyGraph DG = DBTGraph::DyGraph(2, G); t.stop();t.reportTotal("init");
 
   // UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
   UpdatesT updates = UpdatesT::no_init(8);
-  updates[0] = make_pair(EdgeT(7,8), true); //add
+  updates[0] = make_pair(EdgeT(7,8), true);//add
   updates[1] = make_pair(EdgeT(3,2), true);
   updates[2] = make_pair(EdgeT(1,2), true);
   updates[3] = make_pair(EdgeT(5,8), false);//remove
@@ -145,7 +60,7 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   UpdatesT updates_final = Preprocessing(DG, updates);  // mark delete edge as well
   m = updates_final.size();
   updates.clear();
-  t.stop();t.reportTotal("1. preprocess + 3. mark deletes");
+  t.stop();t.reportTotal("1. preprocess");
   UTIL::PrintFunctionItem("1.", "m", m);
 
   t.start(); //toCSR
@@ -155,24 +70,26 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   pbbs::sequence<size_t> vtxMap = result.second;
   t.stop();t.reportTotal("count degrees");
 
-  t.start(); //step 2 mark insert ,  some array moves to tables
+  // insertion must be before deletion, because when resizing write OLD_EDGE into tables
+  t.start(); //step 2 mark insert,  some array moves to tables
   par_for(0, vtxNew.size(), [&] (size_t i) {
-    DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].insert_degree));
+    DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
+    DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
-  t.stop();t.reportTotal("2. mark insertions");
+  t.stop();t.reportTotal("2. 3. mark insertions + deletions");
 
-  t.start(); //step 3 mark deletion 
-  par_for(0, vtxNew.size(), [&] (size_t i) {
-    DG.markEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].offset + vtxNew[i].insert_degree, vtxNew[i].offset + vtxNew[i].degree));
-  });
-  t.stop();t.reportTotal("3. mark deletions");
+  // t.start(); //step 3 mark deletion 
+  // par_for(0, vtxNew.size(), [&] (size_t i) {
+  //   DG.markEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].offset + vtxNew[i].insert_degree, vtxNew[i].offset + vtxNew[i].degree));
+  // });
+  // t.stop();t.reportTotal("3. mark deletions");
 
   t.start(); //step 4 and 5 update insertions  and deletions
   // loop over the low degree vertices, process if the other is high
   // only process each edge once
   par_for(0, vtxNew.size(), [&] (size_t i) {
     DBTGraph::VtxUpdate w = vtxNew[i];
-    DG.updateTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].degree));
+    DG.updateTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
   t.stop();t.reportTotal("4.5. update insertions and deletions");
 
@@ -187,23 +104,21 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   });
   pbbs::sequence<size_t> triCounts = tc.report();
   size_t delta_triangles = triCounts[0] + triCounts[1]/2 + triCounts[2]/3 - triCounts[3] - triCounts[4]/2 - triCounts[5]/3;
-  UTIL::PrintFunctionItem("6.", "tri", delta_triangles);
+  UTIL::PrintFunctionItem("6.", "# tri", delta_triangles);
   tc.clear();
   triCounts.clear();
-
-
   t.stop();t.reportTotal("6. count triangles");
 
   t.start(); //  first remark inserts, then remove
   par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
-    DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].insert_degree));
+    DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
-    DG.cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].offset + vtxNew[i].insert_degree, vtxNew[i].offset + vtxNew[i].degree));
+    DG.cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
   par_for(0, vtxNew.size(), [&] (size_t i) {
     DBTGraph::VtxUpdate w = vtxNew[i];
-    DG.cleanUpTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].offset + vtxNew[i].degree));
+    DG.cleanUpTable(w, edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
   t.stop();t.reportTotal("7. clean up tables");
   
