@@ -91,8 +91,10 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
     DG.countTriangles(u,v,flag, tc);
   });
   pbbs::sequence<size_t> triCounts = tc.report();
-  size_t delta_triangles = triCounts[0] + triCounts[1]/2 + triCounts[2]/3 - triCounts[3] - triCounts[4]/2 - triCounts[5]/3;
-  UTIL::PrintFunctionItem("6.", "# tri", delta_triangles);
+  size_t delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
+  size_t delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
+  UTIL::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
+  UTIL::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
   tc.clear();
   triCounts.clear();
   t.stop();t.reportTotal("6. count triangles");
