@@ -43,13 +43,9 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   size_t m, m_ins;
 
   t.start();
-  DBTGraph::DyGraph DG = DBTGraph::DyGraph(2, G); t.stop();t.reportTotal("init");
+  DBTGraph::DyGraph DG = DBTGraph::DyGraph(5, G); t.stop();t.reportTotal("init");
 
-  // UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
-  UpdatesT updates = UpdatesT::no_init(3);
-  updates[0] = make_pair(EdgeT(1,2), true);//add
-  updates[1] = make_pair(EdgeT(2,4), false);
-  updates[2] = make_pair(EdgeT(3,4), false);
+  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
 
   t.start(); //step 1
   UpdatesT updates_final = Preprocessing(DG, updates);
@@ -79,7 +75,7 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   par_for(0, vtxNew.size(), [&] (size_t i) {
     DG.updateTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
-  t.stop();t.reportTotal("4.5. update insertions and deletions");
+  t.stop();t.reportTotal("4. 5. update insertions and deletions");
 
   t.start(); //step 6. count triangles // updates final has one copy of each edge
   DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
