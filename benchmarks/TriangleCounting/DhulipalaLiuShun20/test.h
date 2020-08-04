@@ -40,3 +40,12 @@ inline void test2(DBTGraph::DyGraph<Graph> G){
 
 }
 
+template <class Graph>
+inline void test3(DBTGraph::DyGraph<Graph> G){
+  using EdgeT = DBTGraph::EdgeT;
+  UpdatesT updates = UpdatesT::no_init(3);
+  updates[0] = make_pair(EdgeT(1,2), true);//add
+  updates[1] = make_pair(EdgeT(2,4), false);
+  updates[2] = make_pair(EdgeT(3,4), false);
+}
+
