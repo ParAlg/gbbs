@@ -42,7 +42,7 @@ namespace DBTGraph{
 
 
 
-        bool is_high(size_t k) const { return k > 3;} // 2*t1;}
+        bool is_high(size_t k) const { return k > 2*t1;}
         bool is_low(size_t k) const {return !is_high(k);}
 
         bool must_high(size_t k) const { return k > t2;}
