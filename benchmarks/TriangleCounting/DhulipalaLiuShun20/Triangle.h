@@ -128,8 +128,8 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   // t.stop();t.reportTotal("8. 9. minor rebalancing");
   }
 
-  // insertDegrees.clear();
   updates_final.clear();
+  edges.clear();
 
 
   // resize table (increase)

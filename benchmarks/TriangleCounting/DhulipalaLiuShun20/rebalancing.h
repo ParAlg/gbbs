@@ -19,12 +19,9 @@ namespace DBTGraph{
     template <class Graph>
     class UpdateDyGraph{
         size_t n;
-        pbbs::sequence<EdgeT> edges; // 2m
         pbbs::sequence<size_t> vtxMap; //n
-        pbbs::sequence<bool> newStatus;
-        pbbs::sequence<pair<uintE, size_t>> vtxNew;
-        pbbs::sequence<size_t> inD;// insertion degree 
-        pbbs::sequence<size_t> inLowD;// insertion low degree 
+        pbbs::sequence<bool> newStatus; //nn
+        pbbs::sequence<pair<uintE, size_t>> vtxNew; //nn
 
 
 
@@ -35,13 +32,9 @@ namespace DBTGraph{
 
         }
 
-
-        // edges needs to have size 2m
-template <class Graph, class EdgeT>
-
 // edges needs to have size 2m
 template <class Graph, class EdgeT>
-inline pbbs::sequence<DBTGraph::VtxUpdate> Rebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::range<pair<EdgeT,bool>> &updates){
+inline pbbs::sequence<DBTGraph::VtxUpdate> minorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::range<pair<EdgeT,bool>> &updates){
     // count top level resizing
     flag.shrink(2 * numVtx); // to H, then to L, 
     par_for(0, numVtx, [&] (size_t i) {flag[i] = 0;}

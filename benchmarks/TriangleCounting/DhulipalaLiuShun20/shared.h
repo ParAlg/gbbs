@@ -54,38 +54,43 @@ namespace DBTGraph{
         }
     };
 
-    struct TriangleCounts{ // cache line?
-        pbbs::sequence<size_t> c;
+    struct TriangleCounts{ // cache line size 64
+        pbbs::sequence<size_t> c; //c1, c2, c3, c4, c5, c6 ... padding to 64; c1, c2, c3, c4, c5, c6; ....padding to 64;
         size_t P;
-        //c1, c2, c3, c4, c5, c6; c1, c2, c3, c4, c5, c6;
+        constexpr size_t eltsPerCacheLine = 128 /sizeof(size_t);
+        
         //TriangleCounts():c1(0),c2(0),c3(0), c4(0), c5(0), c6(0){
         TriangleCounts(){
             P = num_workers();
-            c = pbbs::sequence<size_t>(P * 6, (size_t)0);
+            c = pbbs::sequence<size_t>::no_init(P * eltsPerCacheLine);
+            clear();
         }
 
         //flag \in {1,2,3}
         inline void increment(int flag, size_t val){
-            c[6 * worker_id() + flag - 1 ] += val;
+            c[eltsPerCacheLine * worker_id() + flag - 1 ] += val;
         }
 
         //flag \in {1,2,3}
         inline void decrement(int flag, size_t val){
-            c[6 * worker_id() + 2 + flag] += val;
+            c[eltsPerCacheLine * worker_id() + 2 + flag] += val;
         }
 
         inline pbbs::sequence<size_t> report(){
             pbbs::sequence<size_t> result = pbbs::sequence<size_t>(6, (size_t)0);
-            par_for(0, 6, [&] (size_t i) {
-                for(size_t j = 0; j < P; ++j) {
-                    result[i] += c[6 * j + i];
+            par_for(0, P, [&] (size_t i){
+                for(int j=0;j<6;++j){
+                    result[j] += c[eltsPerCacheLine * i + j];
                 }
             });
             return result;
         }
 
         inline void clear(){
-            par_for(0, 6 * P, [&] (size_t i) {c[i] = 0;});
+            // par_for(0, 6 * P, [&] (size_t i) {c[i] = 0;});
+            par_for(0, P, [&] (size_t i){
+                for(int j=0;j<6;++j){c[eltsPerCacheLine * i + j] = 0;}
+            });
         }
     };
 
