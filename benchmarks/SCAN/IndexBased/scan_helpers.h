@@ -18,7 +18,6 @@ namespace indexed_scan {
 namespace internal {
 
 using EdgeSimilarity = scan::EdgeSimilarity;
-using NoWeight = pbbslib::empty;
 
 // An adjacency list for the graph in which each vertex's neighbor list is
 // sorted by descending similarity.
@@ -30,9 +29,12 @@ class NeighborOrder {
   //
   // The neighbor lists for each vertex in the graph must be sorted by ascending
   // neighbor ID.
-  template <template <typename> class VertexTemplate, class SimilarityMeasure>
+  template <
+    template <typename> class VertexTemplate,
+    typename Weight,
+    class SimilarityMeasure>
   NeighborOrder(
-      symmetric_graph<VertexTemplate, NoWeight>* graph,
+      symmetric_graph<VertexTemplate, Weight>* graph,
       const SimilarityMeasure& similarity_measure);
 
   // Get all similarity scores from vertex `source` to its neighbors (not
@@ -107,9 +109,12 @@ size_t BinarySearch(const Seq& sequence, Func&& predicate) {
     pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
 }
 
-template <template <typename> class VertexTemplate, class SimilarityMeasure>
+template <
+  template <typename> class VertexTemplate,
+  typename Weight,
+  class SimilarityMeasure>
 NeighborOrder::NeighborOrder(
-    symmetric_graph<VertexTemplate, NoWeight>* graph,
+    symmetric_graph<VertexTemplate, Weight>* graph,
     const SimilarityMeasure& similarity_measure) {
   timer function_timer{"Construct neighbor order"};
   similarities_ = similarity_measure.AllEdges(graph);
