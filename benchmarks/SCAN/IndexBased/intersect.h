@@ -168,11 +168,13 @@ typename IntersectReturn<Weight>::type merge(
     return scan::internal::merge<Weight>(
         B, A, offset_B, offset_A, !are_sequences_swapped, f);
   } else if (nA < _bs_merge_base) {
-    return seq_merge<Weight>(A, B, offset_A, offset_B, are_sequences_swapped, f);
+    return
+      seq_merge<Weight>(A, B, offset_A, offset_B, are_sequences_swapped, f);
   } else {
     const auto B_ids = ProjectSequenceZero(B);
     size_t mA = nA/2;
-    size_t mB = pbbslib::binary_search(B_ids, std::get<0>(A[mA]), std::less<uintE>());
+    size_t mB =
+      pbbslib::binary_search(B_ids, std::get<0>(A[mA]), std::less<uintE>());
     ReturnType m_left = 0;
     ReturnType m_right = 0;
     par_do(
@@ -220,13 +222,14 @@ typename IntersectReturn<Weight>::type merge(
 ////////////////////////////
 // For weighted vertices: //
 ////////////////////////////
-// Returns the sum of (weight from A to C) * (weight from B to C) over shared
+// Returns the sum of (weight from A to C) * (weight from B to C) for shared
 // neighbors C between A and B.
 //
 // Arguments:
 //   ...
-//   f:
-//   TODO write a comment
+//   f: (uintE, uintE, uintE, Weight, Weight) -> void
+//     Same as unweighted case, but will be run as
+//     `f(c, a_to_c_index, b_to_c_index, a_to_c_weight, b_to_c_weight)`.
 template <template <typename> class VertexTemplate, typename Weight, class F>
 typename IntersectReturn<Weight>::type intersect_f_with_index_par(
     VertexTemplate<Weight>* A,
@@ -245,7 +248,7 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
         seqA, seqB, kOffset, kOffset, kAreSeqsSwapped, f);
   } else {
     // TODO(tomtseng) copy over code for intersected compressed vertices
-    ABORT("Compressed vertices not yet supported");
+    ABORT("Not yet implemented for compressed vertices");
   }
 }
 
