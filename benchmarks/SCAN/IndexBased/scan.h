@@ -29,9 +29,10 @@ class Index {
   //     vertices. The traditional choice for SCAN is `scan::CosineSimilarity`.
   template <
     template <typename> class VertexTemplate,
+    typename Weight,
     class SimilarityMeasure = scan::CosineSimilarity>
   explicit Index(
-      symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+      symmetric_graph<VertexTemplate, Weight>* graph,
       const SimilarityMeasure& similarity_measure = scan::CosineSimilarity{})
     : num_vertices_{graph->n}
     , neighbor_order_{graph, similarity_measure}
