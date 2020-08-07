@@ -192,7 +192,7 @@ pbbs::sequence<uintT> VertexOutOffsets(Graph* graph) {
 //   neighborhood_sizes_to_similarity: (uintE, uintE, uintE) -> float
 //     Function that computes the similarity between adjacent vertices u and v,
 //     taking (size of u's neighborhood, size of v's neighborhood, size of the
-//     the intersection of the two negibhorhoods) as arguments. The function
+//     the intersection of the two neighborhoods) as arguments. The function
 //     should be symmetric, i.e., give the same output when u and v are swapped.
 template <template <typename> class VertexTemplate, class F>
 pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
