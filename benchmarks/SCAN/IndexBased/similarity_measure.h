@@ -399,20 +399,22 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
             hyperplane_dot_products[bit_id] =
               normals[vertex_normal_offset + bits_offset + bit_id];
           }
-          const auto update_dot_products{
-            [&](uintE, const uintE neighbor_id, const Weight weight) {
-              for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
-                if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
-                  // unweighted case
-                  hyperplane_dot_products[bit_id] +=
-                    normals[num_samples * needs_normals_seq[neighbor_id]
-                      + bits_offset + bit_id];
-                } else {  // weighted case
-                  hyperplane_dot_products[bit_id] +=
-                    normals[num_samples * needs_normals_seq[neighbor_id]
-                      + bits_offset + bit_id] * weight;
-                }
+          const auto update_dot_products{[&](
+              uintE,
+              const uintE neighbor_id,
+              [[maybe_unused]] const Weight weight) {
+            for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
+              if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+                // unweighted case
+                hyperplane_dot_products[bit_id] +=
+                  normals[num_samples * needs_normals_seq[neighbor_id]
+                    + bits_offset + bit_id];
+              } else {  // weighted case
+                hyperplane_dot_products[bit_id] +=
+                  normals[num_samples * needs_normals_seq[neighbor_id]
+                    + bits_offset + bit_id] * weight;
               }
+            }
           }};
           constexpr bool kParallel{false};
           vertex.mapOutNgh(vertex_id, update_dot_products, kParallel);
@@ -471,7 +473,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     const auto intersect{[&](
         const uintE v_id,
         const uintE neighbor_id,
-        const Weight weight,
+        [[maybe_unused]] const Weight weight,
         const uintE v_to_neighbor_index) {
       auto neighbor{directed_graph.get_vertex(neighbor_id)};
       const bool neighbor_is_high_degree{
@@ -550,7 +552,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
-        const Weight weight,
+        [[maybe_unused]] const Weight weight,
         const uintE v_to_u_index) {
       const uintT counter_index{v_counter_offset + v_to_u_index};
       float similarity{-1};

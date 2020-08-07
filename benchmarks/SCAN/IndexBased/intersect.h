@@ -251,6 +251,7 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
   } else {
     // TODO(tomtseng) copy over code for intersected compressed vertices
     ABORT("Not yet implemented for compressed vertices");
+    (void)A; (void)B; (void)f;
   }
 }
 
