@@ -29,6 +29,7 @@ namespace DBTGraph{
         size_t block_size;
         size_t M;
         double t1, t2;
+        const double threshold;
         pbbs::sequence<size_t> D;
         pbbs::sequence<bool> status;//true if high
         pbbs::sequence<bool> blockStatus;//true if high
@@ -42,7 +43,7 @@ namespace DBTGraph{
 
 
 
-        bool is_high(size_t k) const { return k > 2*t1;}
+        bool is_high(size_t k) const { return k > threshold;}
         bool is_low(size_t k) const {return !is_high(k);}
 
         bool must_high(size_t k) const { return k > t2;}
@@ -474,6 +475,7 @@ namespace DBTGraph{
             M  = 2 * m + 1; 
             t1 = sqrt(M) / 2;
             t2 = 3 * t1;
+            threshold = 2*t1;
 
             D = pbbs::sequence<size_t>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
             edges = pbbs::sequence<pair<uintE,int>>((size_t)(block_size*n), make_pair(EMPTYV,0));
@@ -502,7 +504,7 @@ namespace DBTGraph{
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
             HH = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
-            T  = new tableW((n-lowNum)*(n-lowNum)/2 + 1, make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);
+            T  = new tableW((size_t)((M/threshold)*(M/threshold)/2 + 1), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);
 
             // insert top level keys
             par_for(0, n, [&] (size_t i) {
