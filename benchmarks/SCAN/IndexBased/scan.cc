@@ -118,6 +118,62 @@ void AttachNoncoresToClusters(
   internal::ReportTime(function_timer);
 }
 
+// Same as AttachNoncoresToClusters, but with a consistent, deterministic
+// result. Does not attempt to be particularly efficient.
+[[maybe_unused]] void AttachNoncoresToClustersDeterminstically(
+    const internal::NeighborOrder& neighbor_order,
+    const pbbs::sequence<uintE>& cores,
+    const pbbs::sequence<size_t>& core_similar_edge_counts,
+    Clustering* clustering) {
+  timer function_timer{"Attach non-cores to clusters time"};
+  const size_t num_vertices{clustering->size()};
+  // Attach each non-core to its most structurally similar adjacent core,
+  // breaking ties in favor of the lowest vertex ID. (We break ties by vertex ID
+  // instead of cluster ID so that we don't have to assume that cluster IDs are
+  // deterministic.)
+
+  // for a non-core vertex v, `tentative_attachments[v]` represents (similarity
+  // score, vertex ID) of the most similar adjacent core to v.
+  pbbs::sequence<std::pair<float, uintE>> tentative_attachments{
+    num_vertices,
+    [](const size_t i) { return std::make_pair(-1, UINT_E_MAX); }};
+
+  par_for(0, cores.size(), [&](const uintE i) {
+    const uintE core{cores[i]};
+    const auto& neighbors{neighbor_order[core]};
+    constexpr bool kParallelizeInnerLoop{false};
+    par_for(0, core_similar_edge_counts[i], [&](const size_t j) {
+      const uintE neighbor{neighbors[j].neighbor};
+      if ((*clustering)[neighbor] == kUnclustered) {
+        const float similarity{neighbors[j].similarity};
+        while (true) {
+          const std::pair<float, uintE> current_attachment{
+            tentative_attachments[neighbor]};
+          if (similarity > current_attachment.first ||
+              (similarity == current_attachment.first &&
+               core < current_attachment.second)) {
+            if (pbbslib::atomic_compare_and_swap(
+                &(tentative_attachments[neighbor]),
+                current_attachment,
+                std::make_pair(similarity, core))) {
+              break;  // successful attachment
+            }
+          } else {
+            break;  // existing attachment is better
+          }
+        }
+      }
+    }, kParallelizeInnerLoop);
+  });
+  par_for(0, num_vertices, [&](const size_t vertex_id) {
+    if (tentative_attachments[vertex_id].first > 0.0) {
+      (*clustering)[vertex_id] =
+        (*clustering)[tentative_attachments[vertex_id].second];
+    }
+  });
+  internal::ReportTime(function_timer);
+}
+
 }  // namespace
 
 Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
