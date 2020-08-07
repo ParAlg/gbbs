@@ -240,7 +240,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
       }};
       counters[vertex_counter_offset + v_to_neighbor_index] +=
         internal::intersect_f_with_index_par(
-            &vertex, &neighbor, v_id, neighbor_id, update_counters);
+            &vertex, &neighbor, update_counters);
     }};
     constexpr bool kParallel{false};
     vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
@@ -444,7 +444,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       }};
       counters[vertex_counter_offset + v_to_neighbor_index] +=
         internal::intersect_f_with_index_par(
-            &vertex, &neighbor, v_id, neighbor_id, update_counters);
+            &vertex, &neighbor, update_counters);
     }};
     constexpr bool kParallel{false};
     vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
@@ -604,7 +604,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       }};
       counters[vertex_counter_offset + v_to_neighbor_index] +=
         internal::intersect_f_with_index_par(
-            &vertex, &neighbor, v_id, neighbor_id, update_counters);
+            &vertex, &neighbor, update_counters);
     }};
     constexpr bool kParallel{false};
     vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
