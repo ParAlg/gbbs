@@ -210,8 +210,8 @@ double Modularity(
         pbbs::delayed_seq<bool>(
           num_vertices,
           [&](const size_t i) { return clustering[i] != kUnclustered; }))};
-    // <cluster id, degree> of each vertex, with unclustered vertices at the start
-    // of the list
+    // <cluster id, degree> of each vertex, with unclustered vertices at the
+    // start of the list
     const auto& clusters_and_degrees{degrees_split_result.first};
     const auto& num_unclustered_vertices{degrees_split_result.second};
     // degrees_by_cluster[i] == sum of degrees over vertices in cluster i
@@ -223,8 +223,8 @@ double Modularity(
         [&](const std::pair<uintE, uintT> p) { return p.second; },
         pbbs::addm<uintT>{},
         num_clusters)};
-    // Approximately the fraction of edges that fall within a cluster for a random
-    // graph with the same degree distribution:
+    // Approximately the fraction of edges that fall within a cluster for a
+    // random graph with the same degree distribution:
     //   sum((sum(degree) for each vertex in cluster) / (2 * <number of edges>)
     //       for each cluster in graph)
     const double null_intracluster_proportion{
@@ -287,11 +287,12 @@ double Modularity(
         pbbs::delayed_seq<bool>(
           num_vertices,
           [&](const size_t i) { return clustering[i] != kUnclustered; }))};
-    // <cluster id, degree> of each vertex, with unclustered vertices at the start
-    // of the list
+    // <cluster id, degree> of each vertex, with unclustered vertices at the
+    // start of the list
     const auto& clusters_and_degrees{degrees_split_result.first};
     const auto& num_unclustered_vertices{degrees_split_result.second};
-    // degrees_by_cluster[i] == sum of weighted degrees over vertices in cluster i
+    // degrees_by_cluster[i] == sum of weighted degrees over vertices in cluster
+    // i
     const pbbs::sequence<double> degrees_by_cluster{
       internal::CollectReduce(
         clusters_and_degrees.slice(
@@ -300,8 +301,8 @@ double Modularity(
         [&](const std::pair<uintE, double> p) { return p.second; },
         add_weights,
         num_clusters)};
-    // Approximately the fraction edge weight that falls within a cluster for a random
-    // graph with the same degree distribution.
+    // Approximately the fraction edge weight that falls within a cluster for a
+    // random graph with the same degree distribution.
     const double null_intracluster_proportion{
        pbbslib::reduce_add(pbbs::delayed_seq<double>(
          num_clusters,
