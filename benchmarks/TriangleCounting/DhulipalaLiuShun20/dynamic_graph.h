@@ -30,6 +30,7 @@ namespace DBTGraph{
         size_t M;
         double t1, t2;
         const double threshold;
+        size_t lowNum;
         pbbs::sequence<size_t> D;
         pbbs::sequence<bool> status;//true if high
         pbbs::sequence<bool> blockStatus;//true if high
@@ -134,12 +135,28 @@ namespace DBTGraph{
 
         size_t num_vertices() const { return n; }
         size_t num_edges() const { return m; }
+        size_t num_vertices_low() const {return lowNum;}
+        void set_vertices_low(size_t a){lowNum = a;}
 
         bool is_high_v(uintE v)const{ return status[v];}//is_high(D[v]);}
         bool is_low_v(uintE v)const{return !is_high_v(v);}
+        bool change_status(uintE v, size_t ins_d, size_t del_d) const { // given id v and new degree k
+            size_t new_d = D[v] + ins_d - del_d;
+            return (is_high_v(v) && must_low(new_d)) || (is_low_v(v) && must_high(new_d));
+        }
 
-        bool majorRebalance(size_t k){
-            return (num_edges()+k) < M/4 || (num_edges()+k) > M;
+        size_t get_new_degree(DBTGraph::VtxUpdate &u) const {
+            return D[u.id] + 2*u.insert_degree - u.degree;
+        }
+
+
+        size_t get_new_low_degree(DBTGraph::VtxUpdate &u){
+            return lowD[u.id] + u.insert_low_degree - u.delete_low_degree;
+        }
+
+        bool majorRebalance(size_t ins_d, sizez_t del_d){
+            size_t new_d = num_edges() + ins_d - del_d;
+            return  new_d  < M/4 || new_d  > M;
         }
 
         bool haveEdge (EdgeT e) const{
@@ -496,7 +513,7 @@ namespace DBTGraph{
             pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
             par_for(0, n, [&] (size_t i) {vArray[i] = i;});
             pbbs::sequence<uintE> highNodes = pbbs::filter(vArray, [=] (size_t i) {return is_high_v(i);});
-            size_t lowNum = n - highNodes.size();
+            lowNum = n - highNodes.size();
             vArray.clear();
 
             // important: save space in top table for array nodes
@@ -623,6 +640,156 @@ namespace DBTGraph{
 
             //todo: clear up
         }
+
+
+        ///////////////// Minor Rebalance /////////////
+
+        size_t minorRblResizeTop(size_t numHtoL, size_t numLtoH){
+            if(num_vertices_low() + numHtoL > LH->size()){
+                LH->maybe_resize(numHtoL, num_vertices_low());
+                LL->maybe_resize(numHtoL, num_vertices_low());
+            }
+            size_t numH = num_vertices() - num_vertices_low();
+            if(numH + numLtoH > HH->size()){
+                HH->maybe_resize(numLtoH, numH);
+                HL->maybe_resize(numLtoH, numH);
+            }
+            return lowNum + numHtoL - numLtoH;
+        }
+        // prereq: u not using block
+        void minorRblMoveTopTable(DBTGraph::VtxUpdate &u){
+            tableE *tb1 = HL;tableE *tb3 = LL; // move from 1 to 3
+            tableE *tb2 = HH;tableE *tb4 = LH; // move from 2 to 4
+            if(!is_high_v(u)){    
+                swap(tb1,tb3);
+                swap(tb2,tb4);
+            }  
+            size_t new_low_degree = get_new_low_degree(u);
+            size_t new_degree = get_new_degree(u);
+            if(new_low_degree > 0){
+                SetT *L = tb1->find(u.id, NULL);
+                tb3->insert(make_tuple(u.id, L));
+            }  
+            if(new_low_degree < new_degree){
+                SetT *H = tb2->find(u.id, NULL);
+                tb4->insert(make_tuple(u.id, H));                
+            }
+            status[u.id] = !status[u.id];
+        }
+
+        size_t get_neighbors_helper(tableE  *tb, uintE u, range<EdgeT> seq_out){
+            auto pred = [&](const EdgeT& t) { return t.second != tb->empty_key; };
+            auto table_seq = pbbs::delayed_sequence<EdgeT, MakeEdge>(tb->table.size(), MakeEdge(u,tb->table));
+            return pbbslib::filter_out(table_seq, seq_out, pred);
+        }
+
+        void get_neighbors(DBTGraph::VtxUpdate &u, pbbs::sequence<EdgeT> &Ngh, size_t ngh_s, size_t ngh_e, bool is_low_now){
+            size_t new_degree = ngh_e - ngh_s;
+            if(use_block_v(u)){
+                for(size_t i  = 0; i<new_degree; ++i){
+                    Ngh[ngh_s + i] = getEArray(u.id, i);
+                }
+            }else{
+                tableE *tb1 = LL; tableE *tb2 = LH;
+                if(!is_low_now){tb1 = HL; tb2 = HH;}
+                size_t new_low_degree = 0;
+                if(lowD[u.id]>0 || u.insert_low_degree >0){
+                    new_low_degree = get_neighbors_helper(tb1->find(u.id, NULL), u.id, Ngh.slice(ngh_s, ngh_e));
+                    // newLowDegs[u.id] = new_low_degree;
+                    assert(new_low_degree == get_new_low_degree(u));
+                }
+                if(lowD[u.id]<D[u.id] || u.insert_low_degree < u.insert_degree){
+                     get_neighbors_helper(tb2->find(u.id, NULL), u.id, Ngh.slice(new_low_degree, ngh_e));
+                }
+            }
+        }
+
+        //is_low_now is true if v has delta nghbors moving from L to H
+        // require: v is not using array
+        void minorRblResizeBottomTable(DBTGraph::VtxUpdate &v, size_t delta, bool is_low_now){
+            // if(use_block_v(v.id)) return;
+            tableE *tb;
+            size_t ne;
+            if(is_high_v(v.id) && is_low_now){     
+                tb = HH; // we are moving delta entries to HH[v] from HL[v]
+                ne =  get_new_degree(u) - get_new_low_degree(v);  //number of elements in tb[v] now
+            }else if(is_high_v(v)){             
+                tb = HL;
+                ne =  newLowDegs[v.id]; 
+            }else if(is_low_v(v) && is_low_now){
+                tb = LH;
+                ne = get_new_degree(u) - get_new_low_degree(v);  
+            }else{                              
+                tb = LL;
+                ne = newLowDegs[v]; 
+            }
+
+            if(ne == 0){
+            insertTop(tb, v, delta);
+            }else{
+            tb->find(v,NULL)->maybe_resize(delta, ne);
+            }
+
+        }
+
+        void minorRblMoveBottomTable(DBTGraph::VtxUpdate &v, pbbs::range<EdgeT> Ngh, bool is_low_now, bool is_delete){
+            tableE *tb1;
+            tableE *tb2;
+            if(is_high_v(v.id)){    
+                tb1 = HL; 
+                tb2 = HH; // we are moving delta entries to HH[v] from HL[v]
+            }else{
+                tb1 = LL; 
+                tb2 = LH; // we are moving delta entries to LH[v] from LL[v]
+            }    
+            if(!is_low_now){swap(tb1,tb2);}   //swap,moving to xL from xH
+
+            SetT *fromSet = tb1->find(v, NULL);
+            SetT *toSet = tb2->find(v, NULL);
+
+            par_for(0, Ngh.size(), [&](size_t){
+                uintE u = Ngh[i].second;
+                if(is_delete){fromSet->deleteVal(u);}
+                else{toSet->insert(make_tuple(u,OLD_EDGE));}
+            });
+        }
+
+
+        //////////////////////////////////////////// CLEANUP /////////////////////
+        size_t pack_neighbors_helper(tableE  *tb, uintE u, range<EdgeT> seq_out){
+            auto pred = [&](const EdgeT& t) { return t.first != tb->empty_key; };
+            auto table_seq = pbbs::delayed_sequence<EdgeT, MakeEdge>(tb->table.size(), MakeEdgeEntry(tb->table));
+            return pbbslib::filter_out(table_seq, seq_out, pred);
+        }
+
+        void updateDegrees(DBTGraph::VtxUpdate &u){
+            D[u.id] = get_new_degree(u);
+            lowD[u.id] = get_new_low_degree(u);
+            if(use_block(D[u.id])&&!use_block_v(u.id)){
+                tableE *tb1 = LL; tableE *tb2 = LH;
+                if(is_high_v(u)){tb1 = HL; tb2 = HH;}
+                if(lowD[u.id]>0 ){
+                    pack_neighbors_helper(tb1->find(u.id, NULL), u.id, edges.slice(u.id*block_size, u.id*block_size + lowD[u.id]));
+                }
+                if(lowD[u.id]<D[u.id]){
+                     pack_neighbors_helper(tb2->find(u.id, NULL), u.id, Ngh.slice( u.id*block_size + lowD[u.id], (u.id +1)*block_size));
+                }               
+            }
+        }
+
+        void updateDegreesDeleteFromTable(DBTGraph::VtxUpdate &u){
+            if(use_block(D[u.id])&&!use_block_v(u.id)){
+                tableE *tb1 = LL; tableE *tb2 = LH;
+                if(is_high_v(u)){tb1 = HL; tb2 = HH;}
+                if(lowD[u.id]>0 ){
+                    tb1->deleteVal(u.id);
+                }
+                if(lowD[u.id]<D[u.id]){
+                    tb2->deleteVal(u.id);
+                }               
+            }
+        }
+
     };
 
 }

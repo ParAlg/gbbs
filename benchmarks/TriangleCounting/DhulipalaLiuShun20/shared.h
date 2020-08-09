@@ -36,13 +36,14 @@ namespace DBTGraph{
         size_t insert_degree = 0; // number of insertion updates
         size_t insert_low_degree = 0; // number of insertion updates to low
         size_t offset = -1; // offsets in edges
+        size_t delete_low_degree = 0;
 
         VtxUpdate(uintE a, size_t o):id(a), offset(o){}
         VtxUpdate(){}
         inline void setDeg(size_t a){degree = a;}
         inline size_t end(){return offset + degree;}
         inline size_t insOffset(){return offset + insert_degree;}
-
+        inline size_t delDeg(){return degree-insert_degree;}
     };
 
     struct VtxUpdateInsDeg{
@@ -51,6 +52,27 @@ namespace DBTGraph{
 
         size_t operator ()(size_t i)const {
             return vtxNew[i].insert_degree;
+        }
+    };
+
+    template <class T>
+    struct MakeEdge{
+        uintE u;
+        T *table;
+        MakeEdge(uintE uu, T*t_table):u(uu), table(t_table){}
+
+        size_t operator ()(size_t i)const {
+            return EdgeT(get<0>(table[i]),u);
+        }
+    };
+    
+    template <class T>
+    struct MakeEdgeEntry{
+        T *table;
+        MakeEdgeEntry(T*t_table):table(t_table){}
+
+        size_t operator ()(size_t i)const {
+            return make_pair(get<0>(table[i]),OLD_EDGE);
         }
     };
 

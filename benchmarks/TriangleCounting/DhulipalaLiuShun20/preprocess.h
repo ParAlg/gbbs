@@ -162,12 +162,10 @@ pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph
     });
     par_for(0, numVtx, [&] (size_t i) {
       size_t s = vtxNew[i].offset;
-      size_t s2 = vtxNew[i].offset + vtxNew[i].insert_degree;
-      // size_t e = s+vtxNew[i].degree;
+      size_t s2 = vtxNew[i].insOffset();
+      size_t e = vtxNew[i].end();
       vtxNew[i].insert_low_degree = pbbslib::reduce(flag.slice(s,s2 ), monoid);
-      // size_t insert_high_degree = pbbslib::reduce(flag.slice(s2,e), monoid);
-      // cilk_sync;
-      // vtxNew[i].insert_degree = vtxNew[i].insert_low_degree + insert_high_degree;
+      vtxNew[i].delete_low_degree = pbbslib::reduce(flag.slice(s2,e ), monoid);
     });
 
     flag.clear();

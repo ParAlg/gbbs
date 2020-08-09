@@ -25,10 +25,12 @@
 #include <algorithm>
 #include <cmath>
 #include "gbbs/gbbs.h"
+#include "shared.h"
 #include "dynamic_graph.h"
 #include "benchmark.h"
 #include "preprocess.h"
-#include "shared.h"
+#include "rebalancing.h"
+
 
 
 namespace gbbs {
@@ -111,37 +113,30 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
   auto monoid = pbbslib::addm<size_t>();
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
-  if(DG.majorRebalance(2 * m_ins - m)){
+  if(DG.majorRebalance(m_ins, m-m_ins)){
     cout <<  "major rebalancing not implemented " << endl;
   }else{
-  // t.start(); //  minor rebalancing 
-  // move between tables 
-  // move table to array
+  t.start(); //  minor rebalancing 
+  size_t newLowNum = minorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::range<pair<EdgeT,bool>> &updates)
+  t.stop();t.reportTotal("9. minor rebalancing");
 
-  // move if not in array and change from L->H or H->L
-  // change top level first, then bottom level
-
-  // remove empty table
-
-  // resize T since num high changes
-  
-  // t.stop();t.reportTotal("8. 9. minor rebalancing");
-  }
-
+  t.start(); //  minor rebalancing 
   updates_final.clear();
   edges.clear();
 
+  //update degree and low degree and lowNum,
+  //table back to array
+  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
+    DG.updateDegrees(vtxNew[i]);
+  });
+  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
+    DG.updateDegreesDeleteFromTable(vtxNew[i]);
+  });
+  DG.set_vertices_low(newLowNum);
 
-  // resize table (increase)
-  // find table using oldD, increase
+  t.stop();t.reportTotal("8. update degrees");
+  }
 
-  // minor rebalancing
-
-  // // resize table (decrease)
-  // t.stop();t.reportTotal("resizing");
-
-
-  //CLEANUP TODO: move to array,  remove empty tables
   //TODO: do not keep block nodes in T,  in minor rebalance add to T
 
   cout << "done" << endl;

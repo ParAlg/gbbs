@@ -372,6 +372,25 @@ class sparse_table {
     return pbbslib::filter(table_seq, pred);
   }
 
+  size_t entries_out(range<T> seq_out) const {
+    auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
+    auto table_seq = pbbslib::make_sequence<T>(table, m);
+    return pbbslib::filter_out(table_seq, seq_out, pred);
+  }
+
+  struct getKey{
+    getKey(){}
+    K operator ()(size_t i)const {
+            return std::get<0>(table[i]);
+    }
+  };
+
+  size_t keys_out(range<K> seq_out) const {
+    auto pred = [&](const K& t) { return t != empty_key; };
+    auto table_seq = pbbs::delayed_sequence<K, getKey>(table.size(), getKey());
+    return pbbslib::filter_out(table_seq, seq_out, pred);
+  }
+
   void clear() {
     parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
   }
