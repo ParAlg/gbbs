@@ -49,3 +49,30 @@ inline void test3(DBTGraph::DyGraph<Graph> G){
   updates[2] = make_pair(EdgeT(3,4), false);
 }
 
+
+// Read weighted edges from a file that has the following format:
+//     # There can be comments at the top of the file as long as each line of
+//     # the comment starts with '#'.
+//     <edge 1 first endpoint> <edge 1 second endpoint> <edge 1 weight>
+//     <edge 2 first endpoint> <edge 2 second endpoint> <edge 2 weight>
+//     <edge 3 first endpoint> <edge 3 second endpoint> <edge 3 weight>
+//     ...
+//     <edge m first endpoint> <edge m second endpoint> <edge m weight>
+template <class Edge>
+std::vector<Edge> read_weighted_edge_list(const char* filename) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+  internal::skip_ifstream_comments(&file);
+
+  std::vector<Edge> edge_list;
+  uintE from;
+  uintE to;
+  weight_type weight;
+  while (file >> from >> to >> weight) {
+    edge_list.emplace_back(from, to, weight);
+  }
+  return edge_list;
+}

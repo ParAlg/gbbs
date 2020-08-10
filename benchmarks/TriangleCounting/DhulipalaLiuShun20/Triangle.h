@@ -63,6 +63,13 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   pbbs::sequence<size_t> vtxMap = result.second;
   t.stop();t.reportTotal("count degrees");
 
+  auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
+  auto monoid = pbbslib::addm<size_t>();
+  m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
+  if(DG.majorRebalance(m_ins, m-m_ins)){
+    size_t new_m = DG.num_edges() + 2*m_ins - m;
+    majorRebalancing(DG,edges,vtxNew,new_m);
+  }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables
   par_for(0, vtxNew.size(), [&] (size_t i) {
@@ -109,37 +116,17 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   });
   t.stop();t.reportTotal("7. clean up tables");
   
-
-  auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
-  auto monoid = pbbslib::addm<size_t>();
-  m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
-  if(DG.majorRebalance(m_ins, m-m_ins)){
-    cout <<  "major rebalancing not implemented " << endl;
-  }else{
   t.start(); //  minor rebalancing 
-  size_t newLowNum = minorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::range<pair<EdgeT,bool>> &updates)
-  t.stop();t.reportTotal("9. minor rebalancing");
-
-  t.start(); //  minor rebalancing 
-  updates_final.clear();
-  edges.clear();
-
-  //update degree and low degree and lowNum,
-  //table back to array
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
-    DG.updateDegrees(vtxNew[i]);
-  });
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
-    DG.updateDegreesDeleteFromTable(vtxNew[i]);
-  });
-  DG.set_vertices_low(newLowNum);
-
-  t.stop();t.reportTotal("8. update degrees");
+  minorRebalancing(DG, vtxNew, vtxMap);
+  t.stop();t.reportTotal("8. 9. update degree + minor rebalancing");
   }
 
-  //TODO: do not keep block nodes in T,  in minor rebalance add to T
 
+  //TODO: do not keep block nodes in T,  in minor rebalance add to T
+  updates_final.clear();
+  edges.clear();
   cout << "done" << endl;
+
 
   return 0;
 }

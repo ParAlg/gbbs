@@ -19,6 +19,7 @@ using namespace std;
 #define UPDATET3 3
 #define UPDATET4 4
 #define UPDATET5 5
+#define UPDATECLEAR 6
 
 #define OLD_EDGE 0
 #define NEW_EDGE 1
@@ -29,6 +30,7 @@ using namespace std;
 namespace gbbs{
 namespace DBTGraph{
     using EdgeT = pair<uintE, uintE>;
+     using UpdateVSetT = pbbslib::sparse_set<uintE, vertexHash >;
 
     struct VtxUpdate{
         uintE id = -1;
@@ -72,7 +74,7 @@ namespace DBTGraph{
         MakeEdgeEntry(T*t_table):table(t_table){}
 
         size_t operator ()(size_t i)const {
-            return make_pair(get<0>(table[i]),OLD_EDGE);
+            return make_pair(get<0>(table[i]),get<1>(table[i]));
         }
     };
 
@@ -146,18 +148,22 @@ namespace DBTGraph{
             case UPDATET5:
                 pbbslib::write_add(&c5, std::get<1>(kv).c2);
                 break;
+            case UPDATECLEAR:
+                if(c1 !=0) c1 = 0;
+                break;
             default:
                 cout << "invalid update flag " << flag << endl;
                 exit(1);
             }
         }
 
-        inline void cleanUp(){
+        inline size_t cleanUp(){
             c1  = c1 + c2 + c3 -c4 -c5;
             c2 = 0;
             c3 = 0;
             c4 = 0;
             c5 = 0;
+            return c1;
         }
     };
 
