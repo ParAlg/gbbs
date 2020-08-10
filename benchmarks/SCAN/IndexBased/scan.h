@@ -42,9 +42,9 @@ class Index {
   // mu and epsilon.
   //
   // Those who are familiar with SCAN may know that some "border" vertices of
-  // clusters can belong to multiple clusters at once. This implementation
-  // non-deterministically picks an arbitrary choice of a single cluster
-  // assignment for those vertices.
+  // clusters can belong to multiple clusters at once. This implementation, by
+  // default, non-deterministically picks an arbitrary choice of a single
+  // cluster assignment for those vertices.
   //
   // Arguments:
   //   epsilon
@@ -56,13 +56,19 @@ class Index {
   //     be considered a "core" vertex from which a cluster is grown.
   //     Increasing this increases the minimum cluster size and but also makes
   //     large clusters less likely to appear.
+  //   get_deterministic_result
+  //     If this is set to true, the output result will be deterministic, but
+  //     but the computation time of this function may be longer.
   //
   // Returns:
   //   `graph->n`-length sequence S where S[i] is the cluster ID of vertex i or
   //   is `kUnclustered` if vertex i does not belong to any cluster. The cluster
   //   IDs will be in the range `[0, graph->n)` but will not necessarily be
   //   contiguous.
-  Clustering Cluster(uint64_t mu, float epsilon) const;
+  Clustering Cluster(
+      uint64_t mu,
+      float epsilon,
+      bool get_deterministic_result = false) const;
 
  private:
   const size_t num_vertices_;

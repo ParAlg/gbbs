@@ -120,7 +120,7 @@ void AttachNoncoresToClusters(
 
 // Same as AttachNoncoresToClusters, but with a consistent, deterministic
 // result. Does not attempt to be particularly efficient.
-[[maybe_unused]] void AttachNoncoresToClustersDeterminstically(
+void AttachNoncoresToClustersDeterministic(
     const internal::NeighborOrder& neighbor_order,
     const pbbs::sequence<uintE>& cores,
     const pbbs::sequence<size_t>& core_similar_edge_counts,
@@ -176,7 +176,10 @@ void AttachNoncoresToClusters(
 
 }  // namespace
 
-Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
+Clustering Index::Cluster(
+    const uint64_t mu,
+    const float epsilon,
+    const bool get_deterministic_result) const {
   const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
   if (cores.empty()) {
     // Nothing is a core. There are no clusters, and every vertex is an outlier.
@@ -200,8 +203,13 @@ Clustering Index::Cluster(const uint64_t mu, const float epsilon) const {
   internal::ReportTime(preprocessing_timer);
 
   ClusterCores(neighbor_order_, cores, core_similar_edge_counts, &clustering);
-  AttachNoncoresToClusters(
-      neighbor_order_, cores, core_similar_edge_counts, &clustering);
+  if (get_deterministic_result) {
+    AttachNoncoresToClustersDeterministic(
+        neighbor_order_, cores, core_similar_edge_counts, &clustering);
+  } else {
+    AttachNoncoresToClusters(
+        neighbor_order_, cores, core_similar_edge_counts, &clustering);
+  }
   return clustering;
 }
 
