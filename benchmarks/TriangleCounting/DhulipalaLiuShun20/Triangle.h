@@ -36,8 +36,8 @@
 namespace gbbs {
 using namespace std;
 
-template <class Graph, class F>
-inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
+template <class Graph, class F, class UT>
+inline size_t Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   // auto C0 = P.getOptionIntValue("-c", 0);
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
@@ -47,10 +47,10 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   t.start();
   DBTGraph::DyGraph DG = DBTGraph::DyGraph(5, G); t.stop();t.reportTotal("init");
 
-  UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
+  // UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
 
   t.start(); //step 1
-  UpdatesT updates_final = Preprocessing(DG, updates);
+  UpdatesT updates_final = Preprocessing<Graph, EdgeT, UT>(DG, updates);
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");

@@ -27,16 +27,21 @@ inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &
 //   return G.haveEdgeDel(e.first, e.second) == e.second;
 // }
 
-template <class Graph, class EdgeT>
-inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, pbbs::sequence<pair<EdgeT, bool>> &updates){
+template <class EdgeT, class UT>
+inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
+  return make_pair(EdgeT(e.from, e.to), e.weight == 1);
+}
+
+template <class Graph, class EdgeT, class UT>
+inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, std::vector<UT> &updates){
   size_t n = updates.size();
   // u < v
   parallel_for(0, n, [&](size_t i) {
-    uintE u = updates[i].first.first;
-    uintE v = updates[i].first.second;
+    uintE u = updates[i].from;
+    uintE v = updates[i].to;
     if(u > v){
-      updates[i].first.first = v;
-      updates[i].first.second = u;
+      updates[i].to = v;
+      updates[i].from = u;
     }
 
   }, 1);
@@ -52,12 +57,12 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
 
   pbbs::sample_sort_inplace(inds.slice(),  //check
     [&](const size_t i, const size_t j) {
-      return updates[i].first < updates[j].first;
+      return make_pair(updates[i].from, updates[i].to) < make_pair(updates[j].from, updates[j].to);
       }, true);
 
   pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(n+1);
   par_for(0, n-1, [&] (size_t i) {
-      if(updates[inds[i]].first != updates[inds[i+1]].first){
+      if(updates[inds[i]].from != updates[inds[i+1]].from || updates[inds[i]].to != updates[inds[i+1]].to){
         flag[i] = 1;
       }else{
         flag[i] = 0;
@@ -73,7 +78,7 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
   pbbs::sequence<pair<EdgeT, bool>> updates_valid = pbbs::sequence<pair<EdgeT, bool>>::no_init(new_n);
   par_for(0, n, [&] (size_t i) {
       if(flag[i] != flag[i+1]){
-        updates_valid[flag[i]] = updates[inds[i]];
+        updates_valid[flag[i]] = toMyUpdateEdgeT<EdgeT, UT>(updates[inds[i]]);
       }
   });
   
