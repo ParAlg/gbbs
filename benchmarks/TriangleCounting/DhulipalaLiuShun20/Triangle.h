@@ -29,7 +29,7 @@
 #include "dynamic_graph.h"
 #include "benchmark.h"
 #include "preprocess.h"
-#include "rebalancing.h"
+// #include "rebalancing.h"
 
 
 
@@ -69,8 +69,8 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   auto monoid = pbbslib::addm<size_t>();
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(m_ins, m-m_ins)){
-    size_t new_m = DG.num_edges() + 2*m_ins - m;
-    majorRebalancing(DG,edges,vtxNew, vtxMap, P);
+    // size_t new_m = DG.num_edges() + 2*m_ins - m;
+    // DBTGraph::majorRebalancing(DG,edges,vtxNew, vtxMap, P);
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables
@@ -122,12 +122,12 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   t.stop();t.reportTotal("7. clean up tables");
   
   t.start(); //  minor rebalancing 
-  minorRebalancing(DG, vtxNew, vtxMap);
+  // DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.stop();t.reportTotal("8. 9. update degree + minor rebalancing");
   }
 
   par_for(0, vtxNew.size(), [&] (size_t i) {
-    vtxMap[vtxNew[i].id] = EMPTYV;
+    vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
 
   //TODO: do not keep block nodes in T,  in minor rebalance add to T

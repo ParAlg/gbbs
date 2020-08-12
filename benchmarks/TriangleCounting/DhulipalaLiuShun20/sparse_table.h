@@ -139,15 +139,15 @@ class sparse_table {
     size_t j = i;
     T c = table[j];
 
-    if (c == empty) return true;
+    if (std::get<0>(c) == empty_key) return true;
       
     // find first location with priority less or equal to v's priority
     // while(c != empty && (cmp = hashStruct.cmp(v,hashStruct.getKey(c))) != 0) {
-    while(c != empty && (cmp = key_hash.cmp(v,std::get<0>(c))) != 0) {
+    while(std::get<0>(c) != empty_key && (cmp = key_hash.cmp(v,std::get<0>(c))) != 0) {
       j = incrementIndex(j);
       c = table[j];
     }
-    cmp=(c==empty)?1:key_hash.cmp(v,std::get<0>(c));
+    cmp=(std::get<0>(c) == empty_key)?1:key_hash.cmp(v,std::get<0>(c));
     while (1) {
       // Invariants:
       //   v is the key that needs to be deleted
@@ -164,7 +164,7 @@ class sparse_table {
 	if (j == i) return true;
   	j = decrementIndex(j);
   	c = table[j];
-  	cmp = (c == empty) ? 1 : key_hash.cmp(v, std::get<0>(c));
+  	cmp = (std::get<0>(c) == empty_key) ? 1 : key_hash.cmp(v, std::get<0>(c));
       } else { // found v at location j (at least at some prior time)
 
   	// Find next available element to fill location j.
@@ -175,14 +175,14 @@ class sparse_table {
         // during a delete phase as elements are moved from the right to left.
   	size_t jj = incrementIndex(j);
   	T x = table[jj];
-  	while (x != empty && lessIndex(j, firstIndex(std::get<0>(x)))) {
+  	while (std::get<0>(x) != empty_key && lessIndex(j, firstIndex(std::get<0>(x)))) {
   	  jj = incrementIndex(jj);
   	  x = table[jj];
   	}
   	size_t jjj = decrementIndex(jj);
   	while (jjj != j) {
   	  T y = table[jjj];
-  	  if (y == empty || !lessIndex(j, firstIndex(std::get<0>(y)))) {
+  	  if (std::get<0>(y) == empty_key || !lessIndex(j, firstIndex(std::get<0>(y)))) {
   	    x = y;
   	    jj = jjj;
   	  }
@@ -194,7 +194,7 @@ class sparse_table {
       std::get<1>(table[j]) = std::get<1>(x);
           // swap was successful
           // if the replacement element was empty, we are done
-  	  if (x == empty) return true;
+  	  if (std::get<0>(x) == empty_key) return true;
 
   	  // Otherwise there are now two copies of the replacement element x
           // delete one copy (probably the original) by starting to look at jj.
@@ -205,7 +205,7 @@ class sparse_table {
   	  i = firstIndex(v);
   	}
   	c = table[j];
-  	cmp = (c == empty) ? 1 : key_hash.cmp(v, std::get<0>(c));
+  	cmp = (std::get<0>(c) == empty_key) ? 1 : key_hash.cmp(v, std::get<0>(c));
       }
     }
   }
@@ -226,7 +226,7 @@ class sparse_table {
           return;
         }
         mask = m - 1;
-        ne = 0;
+        // ne = 0;
         size_t line_size = 64;
         size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
         table = (T*)pbbs::aligned_alloc(line_size, bytes);
@@ -379,19 +379,6 @@ class sparse_table {
   size_t entries_out(range<T> seq_out) const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = pbbslib::make_sequence<T>(table, m);
-    return pbbslib::filter_out(table_seq, seq_out, pred);
-  }
-
-  struct getKey{
-    getKey(){}
-    K operator ()(size_t i)const {
-            return std::get<0>(table[i]);
-    }
-  };
-
-  size_t keys_out(range<K> seq_out) const {
-    auto pred = [&](const K& t) { return t != empty_key; };
-    auto table_seq = pbbs::delayed_sequence<K, getKey>(table.size(), getKey());
     return pbbslib::filter_out(table_seq, seq_out, pred);
   }
 

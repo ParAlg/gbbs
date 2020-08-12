@@ -10,6 +10,7 @@
 using namespace std;
 
 #define EMPTYV numeric_limits<uintE>::max()
+#define EMPTYVMAP numeric_limits<size_t>::max()
 #define EMPTYKVB make_tuple(EMPTYV, 0)
 #define EMPTYKV make_tuple(EMPTYV, (SetT *)NULL)
 #define EMPTYWTV numeric_limits<size_t>::max()
@@ -31,16 +32,23 @@ namespace gbbs{
 namespace DBTGraph{
     
     using EdgeT = pair<uintE, uintE>;
-    using UpdateVSetT = pbbslib::sparse_set<uintE, vertexHash >;
 
-    inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
+    inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> &edges, size_t i){
     return edges[i].first.first;
     }
 
-    inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
+    inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> &edges, size_t i){
     return edges[i].first.second;
     }
-    
+
+    inline uintE getFirst(pbbs::range<pair<EdgeT,bool> *> edges, size_t i){
+    return edges[i].first.first;
+    }
+
+    inline uintE getSecond(pbbs::range<pair<EdgeT,bool> *> edges, size_t i){
+    return edges[i].first.second;
+    }
+
     inline uintE getFirst(pair<EdgeT,bool> e){
     return e.first.first;
     }
@@ -96,13 +104,11 @@ namespace DBTGraph{
         }
     };
 
-    template <class T>
+    template <class SetT>
     struct MakeEdge{
-        uintE u;
-        SetT::T *table;
-        SetT::K empty_key;
+        using T = typename SetT::T; using K = typename SetT::K;
+        uintE u;T *table;K empty_key;
         MakeEdge(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
-
 
         EdgeT operator ()(size_t i)const {
             return EdgeT(get<0>(table[i]),u);
@@ -111,9 +117,8 @@ namespace DBTGraph{
 
     template <class SetT>
     struct MakeEdgeEntry{
-        uintE u;
-        SetT::T *table;
-        SetT::K empty_key;
+        using T = typename SetT::T; using K = typename SetT::K;
+        uintE u;T *table;K empty_key;
         MakeEdgeEntry(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
         pair<uintE, int> operator ()(size_t i)const {
@@ -123,33 +128,32 @@ namespace DBTGraph{
 
     template <class SetT, class edge_type>
     struct MakeEdgeEntryMajor{
-        uintE u;
-        SetT::T *table;
-        SetT::K empty_key;
-        MakeEdgeEntry2(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
+        using T = typename SetT::T; using K = typename SetT::K;
+        uintE u;T *table;K empty_key;
+        MakeEdgeEntryMajor(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
         edge_type operator ()(size_t i)const {
-            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, pbbslib::empty);
-            return make_tuple(get<0>(table[i]), pbbslib::empty);
+            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, pbbslib::empty());
+            return make_tuple(get<0>(table[i]), pbbslib::empty());
         }
     };
 
-    template <class T>
+    template <class SetT>
     struct MakeEdgeLtoH{
-        uintE u;
-        T *table;
-        MakeEdge(uintE uu, T*t_table):u(uu), table(t_table){}
+        using T = typename SetT::T; using K = typename SetT::K;
+        uintE u;T *table;K empty_key;
+        MakeEdgeLtoH(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
         pair<EdgeT, bool> operator ()(size_t i)const {
             return make_pair(EdgeT(get<0>(table[i]),u), true);
         }
     };
 
-    template <class T>
+    template <class SetT>
     struct MakeEdgeHtoL{
-        uintE u;
-        T *table;
-        MakeEdge(uintE uu, T*t_table):u(uu), table(t_table){}
+        using T = typename SetT::T; using K = typename SetT::K;
+        uintE u;T *table;K empty_key;
+        MakeEdgeHtoL(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
         pair<EdgeT, bool> operator ()(size_t i)const {
             return make_pair(EdgeT(get<0>(table[i]),u), false);
@@ -167,16 +171,16 @@ namespace DBTGraph{
         inline void setDeg(size_t a){degree = a;}
         inline void setInsDeg(size_t a){LtoH = a;}
         inline size_t newLowDeg(size_t oldDeg){return oldDeg + degree - LtoH - LtoH;}
-        inline size_t getHtoL(){return degree-LtoH}
+        inline size_t getHtoL(){return degree-LtoH;}
         inline size_t insOffset(){return offset + LtoH;}
         inline size_t end(){return offset + degree;}
-        
+
     };
 
     struct TriangleCounts{ // cache line size 64
         pbbs::sequence<size_t> c; //c1, c2, c3, c4, c5, c6 ... padding to 64; c1, c2, c3, c4, c5, c6; ....padding to 64;
         size_t P;
-        constexpr size_t eltsPerCacheLine = 128 /sizeof(size_t);
+        static constexpr size_t eltsPerCacheLine = 128 /sizeof(size_t);
         
         //TriangleCounts():c1(0),c2(0),c3(0), c4(0), c5(0), c6(0){
         TriangleCounts(){
@@ -263,6 +267,13 @@ namespace DBTGraph{
             c5 = 0;
             return c1;
         }
+
+        inline bool operator== (const WTV& j){
+            return c1 == j.c1 && c2 == j.c2 && c3 == j.c3 && c4 == j.c4 && c5 == j.c5 ;
+        }
+        // bool operator == (const WTV& i, const WTV& j){
+        //     return i.c1 == j.c1 && i.c2 == j.c2 && i.c3 == j.c3 && i.c4 == j.c4 && i.c5 == j.c5 ;
+        // }
     };
 
 

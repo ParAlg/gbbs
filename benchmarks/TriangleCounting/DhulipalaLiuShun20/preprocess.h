@@ -44,7 +44,7 @@ inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
 // remove duplicates, leave only last update that's in/not in graph
 template <class Graph, class EdgeT, class UT>
 inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, std::vector<UT> &t_updates){
-  size_t n = updates.size();
+  size_t n = t_updates.size();
   
   // change to our type
   pbbs::sequence<pair<EdgeT, bool>> updates(n);
@@ -102,16 +102,21 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
 // true is before false
 // vtxNew is filled with offset, degree, and insert degree
 template <class EdgeT, class VTX>
-inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequence<VTX> &vtxNew, pbbs::sequence<size_t> vtxMap){
+inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequence<VTX> &vtxNew, pbbs::sequence<size_t> vtxMap, pbbs::sequence<size_t> flag = NULL){
   pbbs::sample_sort_inplace(edges.slice(), [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
     if(i.first.first == j.first.first) return i.second && !j.second;
       return i.first.first < j.first.first; 
     });
 
   size_t edgeL = edges.size();
+  bool clearflag = false;
+  if(flag == NULL){
+    flag = pbbs::sequence<size_t>::no_init(edgeL+1);
+    clearflag = true;
+  }
   //find offsets of vertices
   par_for(0, edgeL-1, [&] (size_t i) {
-    if(getFirst(edges,i) != getFirst(edges,i+1)){flag[i] = 1;
+    if(DBTGraph::getFirst(edges,i) != DBTGraph::getFirst(edges,i+1)){flag[i] = 1;
     }else{flag[i] = 0;}});
   flag[edgeL-1] = 1;
   flag[edgeL] = 1;
@@ -122,28 +127,30 @@ inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequen
   // compute offsets
   par_for(1, edgeL, [&] (size_t i) {
   if(flag[i-1]!=flag[i]){
-    uintE u = getFirst(edges,i);
+    uintE u = DBTGraph::getFirst(edges,i);
     vtxNew[flag[i]] = VTX(u,i);
     vtxMap[u] = flag[i];
   }});
-  uintE u = getFirst(edges,0);
+  uintE u = DBTGraph::getFirst(edges,0);
   vtxNew[0] = VTX(u,0);
   vtxMap[u] = 0;
 
   //count D and insert D
   par_for(0, edgeL-1, [&] (size_t i) {
-  if(getFirst(edges,i) == getFirst(edges,i+1) && edges[i].second && !edges[i+1].second){
-    uintE u = getFirst(edges,i);
+  if(DBTGraph::getFirst(edges,i) == DBTGraph::getFirst(edges,i+1) && edges[i].second && !edges[i+1].second){
+    uintE u = DBTGraph::getFirst(edges,i);
     vtxNew[vtxMap[u]].setInsDeg(i + 1 - vtxNew[vtxMap[u]].offset);
-  }else if(getFirst(edges,i) != getFirst(edges,i+1)){
-    uintE u = getFirst(edges,i);
-    uintE next_v = getFirst(edges,i+1);
+  }else if(DBTGraph::getFirst(edges,i) != DBTGraph::getFirst(edges,i+1)){
+    uintE u = DBTGraph::getFirst(edges,i);
+    uintE next_v = DBTGraph::getFirst(edges,i+1);
     vtxNew[vtxMap[u]].setDeg(vtxNew[vtxMap[next_v]].offset - vtxNew[vtxMap[u]].offset);
     if(edges[i].second)vtxNew[vtxMap[u]].setInsDeg(vtxNew[vtxMap[u]].degree);
   }
   });
-  vtxNew[numVtx-1].setDeg(2*m - vtxNew[numVtx-1].offset);
+  vtxNew[numVtx-1].setDeg(edgeL - vtxNew[numVtx-1].offset);
   if(edges[edgeL-1].second) vtxNew[numVtx-1].setInsDeg(vtxNew[numVtx-1].degree);
+
+  if(clearflag) flag.clear();
 }
 
 
@@ -152,23 +159,25 @@ template <class Graph, class EdgeT>
 pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
   size_t m = edgesIn.size();
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew;
-  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYV);
+  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
   // pbbs::sequence<pair<EdgeT,bool>> edges = pbbs::sequence<pair<EdgeT,bool>>::no_init(2*m);
   pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(2*m+1);
+  auto monoid = pbbslib::addm<size_t>();
+
 
   //double edges
   par_for(0, m, [&] (size_t i) {
     edges[2*i] = edgesIn[i];
-    edges[2*i+1] = make_pair(EdgeT(getSecond(edgesIn,i), getFirst(edgesIn,i)), edgesIn[i].second);
+    edges[2*i+1] = make_pair(EdgeT(DBTGraph::getSecond(edgesIn,i), DBTGraph::getFirst(edgesIn,i)), edgesIn[i].second);
   });
 
-  computeOffsets<EdgeT, DBTGraph::VtxUpdate>(edges, vtxNew, vtxMap);
+  computeOffsets<EdgeT, DBTGraph::VtxUpdate>(edges, vtxNew, vtxMap, flag);
 
   //count lowD
     par_for(0, 2*m, [&] (size_t i) {
-      flag[i] = G.is_low_v(getSecond(edges,i));
+      flag[i] = G.is_low_v(DBTGraph::getSecond(edges,i));
     });
-    par_for(0, numVtx, [&] (size_t i) {
+    par_for(0, vtxNew.size(), [&] (size_t i) {
       size_t s = vtxNew[i].offset;
       size_t s2 = vtxNew[i].insOffset();
       size_t e = vtxNew[i].end();
