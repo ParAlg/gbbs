@@ -3,7 +3,6 @@
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
-// #include "gbbs/pbbslib/sparse_table.h"
 #include "sparse_table.h"
 #include "set.h"
 #include "gbbs/macros.h"
@@ -20,6 +19,7 @@ using namespace std;
 #define UPDATET4 4
 #define UPDATET5 5
 #define UPDATECLEAR 6
+#define UPDATECLEANUP 7
 
 #define OLD_EDGE 0
 #define NEW_EDGE 1
@@ -29,8 +29,44 @@ using namespace std;
 
 namespace gbbs{
 namespace DBTGraph{
+    
     using EdgeT = pair<uintE, uintE>;
-     using UpdateVSetT = pbbslib::sparse_set<uintE, vertexHash >;
+    using UpdateVSetT = pbbslib::sparse_set<uintE, vertexHash >;
+
+    inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
+    return edges[i].first.first;
+    }
+
+    inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> edges, size_t i){
+    return edges[i].first.second;
+    }
+    
+    inline uintE getFirst(pair<EdgeT,bool> e){
+    return e.first.first;
+    }
+
+    inline uintE getSecond(pair<EdgeT,bool> e){
+    return e.first.second;
+    }
+
+    inline uintE getFirst(pair<uintE, int> e){
+    return e.first;
+    }
+
+    inline uintE getSecond(pair<uintE, int> e){
+    return e.second;
+    }
+
+    template <class W>
+    inline uintE getFirst(tuple<uintE,W> e){
+    return get<0>(e);
+    }
+
+    template <class W>
+    inline uintE getSecond(tuple<uintE,W> e){
+    return get<1>(e);
+    }
+
 
     struct VtxUpdate{
         uintE id = -1;
@@ -41,11 +77,14 @@ namespace DBTGraph{
         size_t delete_low_degree = 0;
 
         VtxUpdate(uintE a, size_t o):id(a), offset(o){}
-        VtxUpdate(){}
+        VtxUpdate(uintE a):id(a){}
         inline void setDeg(size_t a){degree = a;}
+        inline void setInsDeg(size_t a){insert_degree = a;}
         inline size_t end(){return offset + degree;}
         inline size_t insOffset(){return offset + insert_degree;}
         inline size_t delDeg(){return degree-insert_degree;}
+        inline size_t newDeg(size_t oldDeg){return oldDeg + 2*insert_degree - degree;}
+        inline size_t newLowDeg(size_t oldDeg){return oldDeg + insert_low_degree - delete_low_degree;}
     };
 
     struct VtxUpdateInsDeg{
@@ -60,22 +99,74 @@ namespace DBTGraph{
     template <class T>
     struct MakeEdge{
         uintE u;
-        T *table;
-        MakeEdge(uintE uu, T*t_table):u(uu), table(t_table){}
+        SetT::T *table;
+        SetT::K empty_key;
+        MakeEdge(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
-        size_t operator ()(size_t i)const {
+
+        EdgeT operator ()(size_t i)const {
             return EdgeT(get<0>(table[i]),u);
         }
     };
-    
-    template <class T>
-    struct MakeEdgeEntry{
-        T *table;
-        MakeEdgeEntry(T*t_table):table(t_table){}
 
-        size_t operator ()(size_t i)const {
+    template <class SetT>
+    struct MakeEdgeEntry{
+        uintE u;
+        SetT::T *table;
+        SetT::K empty_key;
+        MakeEdgeEntry(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
+
+        pair<uintE, int> operator ()(size_t i)const {
             return make_pair(get<0>(table[i]),get<1>(table[i]));
         }
+    };
+
+    template <class SetT, class edge_type>
+    struct MakeEdgeEntryMajor{
+        uintE u;
+        SetT::T *table;
+        SetT::K empty_key;
+        MakeEdgeEntry2(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
+
+        edge_type operator ()(size_t i)const {
+            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, pbbslib::empty);
+            return make_tuple(get<0>(table[i]), pbbslib::empty);
+        }
+    };
+
+    template <class T>
+    struct MakeEdgeLtoH{
+        uintE u;
+        T *table;
+        MakeEdge(uintE uu, T*t_table):u(uu), table(t_table){}
+
+        pair<EdgeT, bool> operator ()(size_t i)const {
+            return make_pair(EdgeT(get<0>(table[i]),u), true);
+        }
+    };
+
+    template <class T>
+    struct MakeEdgeHtoL{
+        uintE u;
+        T *table;
+        MakeEdge(uintE uu, T*t_table):u(uu), table(t_table){}
+
+        pair<EdgeT, bool> operator ()(size_t i)const {
+            return make_pair(EdgeT(get<0>(table[i]),u), false);
+        }
+    };
+
+    struct VtxRbl{
+        uintE id = -1;
+        size_t LtoH;
+        size_t degree;
+        size_t offset = -1; // offsets in Ngh
+
+        VtxRbl(uintE a, size_t o):id(a), offset(o){}
+        VtxRbl(uintE a):id(a){}
+        inline void setDeg(size_t a){degree = a;}
+        inline void setInsDeg(size_t a){LtoH = a;}
+        inline size_t newLowDeg(size_t oldDeg){return oldDeg + degree - LtoH - LtoH;}
     };
 
     struct TriangleCounts{ // cache line size 64
@@ -147,6 +238,9 @@ namespace DBTGraph{
                 break;
             case UPDATET5:
                 pbbslib::write_add(&c5, std::get<1>(kv).c2);
+                break;
+            case UPDATECLEANUP:
+                cleanUp();
                 break;
             case UPDATECLEAR:
                 if(c1 !=0) c1 = 0;

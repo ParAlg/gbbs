@@ -37,20 +37,22 @@ namespace gbbs {
 using namespace std;
 
 template <class Graph, class F, class UT>
-inline size_t Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
+inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   // auto C0 = P.getOptionIntValue("-c", 0);
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
   size_t m, m_ins;
 
+  size_t block_size = P.getOptionLongValue("-blocksize", 5);        
+
   t.start();
-  DBTGraph::DyGraph DG = DBTGraph::DyGraph(5, G); t.stop();t.reportTotal("init");
+  DBTGraph::DyGraph DG = DBTGraph::DyGraph(block_size, G); t.stop();t.reportTotal("init");
 
   // UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
 
   t.start(); //step 1
-  UpdatesT updates_final = Preprocessing<Graph, EdgeT, UT>(DG, updates);
+  UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates);
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");
@@ -58,7 +60,7 @@ inline size_t Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLi
 
   t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
-  auto result = toCSR(DG, updates_final, edges, DG.num_vertices());
+  auto result = DBTInternal::toCSR(DG, updates_final, edges, DG.num_vertices());
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
   pbbs::sequence<size_t> vtxMap = result.second;
   t.stop();t.reportTotal("count degrees");
@@ -68,7 +70,7 @@ inline size_t Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLi
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(m_ins, m-m_ins)){
     size_t new_m = DG.num_edges() + 2*m_ins - m;
-    majorRebalancing(DG,edges,vtxNew,new_m);
+    majorRebalancing(DG,edges,vtxNew, vtxMap, P);
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables
@@ -105,14 +107,17 @@ inline size_t Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLi
   t.stop();t.reportTotal("6. count triangles");
 
   t.start(); //  first remark inserts, then remove
+  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T
+    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
+  });
+  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
+    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true);
+  });
   par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
     DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
     DG.cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  });
-  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T
-    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
   t.stop();t.reportTotal("7. clean up tables");
   
@@ -121,10 +126,14 @@ inline size_t Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLi
   t.stop();t.reportTotal("8. 9. update degree + minor rebalancing");
   }
 
+  par_for(0, vtxNew.size(), [&] (size_t i) {
+    vtxMap[vtxNew[i].id] = EMPTYV;
+  });
 
   //TODO: do not keep block nodes in T,  in minor rebalance add to T
   updates_final.clear();
   edges.clear();
+  vtxNew.clear(); vtxMap.clear();
   cout << "done" << endl;
 
 

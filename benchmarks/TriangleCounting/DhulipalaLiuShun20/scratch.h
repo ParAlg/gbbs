@@ -270,4 +270,149 @@ auto sortVertexOutNgh(pbbs::range<pair<EdgeT,bool>> &In, pbbs::range<EdgeT> &Out
             }
         }
 
+
+
+// ======================== major rebalancing ==================================
+
+
+template <class Graph, class EdgeT>
+DBTGraph::DyGraph<Graph> majorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::sequence<pair<EdgeT,bool>> &edges, 
+                              pbbs::sequence<DBTGraph::VtxUpdate> vtxNew, size_t new_m){
+  //mark deletions in tables
+  par_for(0, vtxNew.size(), [&] (size_t i) {
+    DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+  });
+  
+  // //init new tables, update degrees, insert from old graph, insert from array, init T
+  DBTGraph::DyGraph<Graph> newDG = DBTGraph::DyGraph<Graph>(DG.get_block_size(), DG.num_vertices(), new_m);
+  DG.inherit(newDG, vtxNew);
+  DG.clearAfterInherit();// remove old graph
+
+  // count triangles
+  return newDG;
+}
+
+
+
+
+        void inheritArrays(pbbs::sequence<size_t>& t_D, pbbs::sequence<size_t>& t_lowD, pbbs::sequence<pair<uintE,int>>& t_edges,
+                        pbbs::sequence<bool>& t_status, pbbs::sequence<bool>& t_blockStatus,
+                        pbbs::sequence<DBTGraph::VtxUpdate> &vtxNew){
+            D = pbbs::sequence<size_t>(n, [&](size_t i) { return t_D[i]; });
+            lowD = pbbs::sequence<size_t>(n, [&](size_t i) { return t_lowD[i]; });
+            status = pbbs::sequence<bool>(n, [&](size_t i) { return t_status[i]; });
+            blockStatus = pbbs::sequence<bool>(n, [&](size_t i) { return t_blockStatus[i];});
+            edges = t_edges;
+
+            par_for(0, vtxNew.size(), [&] (size_t i) { // now share the same array
+                DBTGraph::VtxUpdate u = vtxNew[i];
+                updateDegrees(u, false);
+                updateStatus(u.id);
+                if(t_status(u.id) && use_block_v(u)) packEdgeArrayDeletions(u, t_D[u]);
+            });
+
+            auto statusFlag = pbbs::delayed_sequence(status.size(), [&](size_t i)->size_t{
+                if(status[i]) return 0;
+                return 1;
+            });
+            auto monoid = pbbslib::addm<size_t>();
+            lowNum = pbbs::reduce(statusFlag, monoid);
+        }
+
+        void updateStatus(uintE u){
+            status[u] = is_high(D[i]); 
+            blockStatus[u] = use_block(D[i]);
+        }
+
+        void initInsertTopLevelKeys(){
+            par_for(0, n, [&] (size_t i) {
+                if(!use_block_v(i)){                
+                    tableE *tb1 = LL;tableE *tb2 = LH;
+                    if(is_high_v(i)){tb1 = HL;tb2 = HH;}
+                    insertTop(tb1, tb2, i, lowD[i], D[i]);
+                }
+            });
+        }
+
+        void inheritEdges(uintE u, SetT *tb, DBTGraph::DyGraph<Graph>& newDG){
+           par_for(0, tb->size(), [&](size_t i){
+                uintE v = get<0>(tb->table[i]);
+                if(v != tb->empty_key && get<1>(tb->table[i])!=DEL_EDGE){
+                    newDG.insertE(u,v);
+                }
+            });
+        }
+
+        void inheritEdges(uintE u, DBTGraph::DyGraph<Graph>& newDG){
+            if(use_block_v(u) && newDG.use_block_v(u)){ //array to array. alredy packed in array init
+                return;
+            }else if(use_block_v(u)){ //array to table
+                for(size_t i = 0; i<D[u]; ++i){
+                    if(getEArrayVal(u,i)!=OLD_EDGE){
+                        newDG.insertE(u,getEArray(u,i));
+                    }
+                }
+            }else{ 
+                tableE *tb1 = LL;tableE *tb2 = LH;
+                if(is_high_v(u)){tb1 = HL;tb2 = HH;}
+                if((!use_block_v(u)) && newDG.use_block_v(u)){ // table to array
+                    size_t offset = 0;
+                    if(lowD[u] > 0){
+                        offset = newDG.pack_neighbors_helper(tb1->find(u, NULL), u, u*block_size, u*block_size + lowD[u]);
+                    }
+                    if(lowD[u] <D[u]){
+                        newDG.pack_neighbors_helper(tb2->find(u, NULL), u, u*block_size + offset, (u+1)*block_size);
+                    }
+                }else{ //table to table
+                    if(lowD[u] > 0){inheritEdges(u,tb1->find(u,NULL),newDG)}
+                    if(lowD[u] <D[u]){inheritEdges(u,tb2->find(u,NULL),newDG)}
+                }
+            }
+
+        }
+
+        void initEdgeInsertion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>> &edgesI, size_t oldDeg){
+            if(edgesI.size()==0) return;
+            if(use_block_v(u.id)){ // copy to array
+                markEdgeArrayInsertion(u, edgesI, OLD_EDGE, oldDeg - u.delDeg());
+            }else{ 
+                markEdgeTablesInsertion(u, edgesI, false, OLD_EDGE);// insert to table
+            }            
+        }
+
+        DyGraph(int t_block_size, size_t t_n, size_t t_m):block_size(t_block_size), n(t_n), m(t_m){
+            initParams();
+        }
+
+        void inherit(DBTGraph::DyGraph<Graph>& newDG, pbbs::sequence<DBTGraph::VtxUpdate> &vtxNew, pbbs::sequence<pair<EdgeT,bool>> &edges){
+            newDG.inheritArrays(D,lowD,edges,status,blockStatus, vtxNew);
+            newDG.initTables();
+            newDG.initInsertTopLevelKeys();
+            par_for(0, n, [&](uintE u){
+                inheritEdges(u, newDG);
+            });
+            // insert from arrays
+            par_for(0, vtxNew.size(), [&] (size_t i) {
+                newDG.initEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()), D[vtxNew[i].id]);
+            });
+            // init T
+            par_for(0, n, [&] (size_t i) {
+                newDG.insertWedges(i, true); 
+            });
+        }
+
+        void clearAfterInherit(){
+            D.clear();
+            lowD.clear();
+            status.clear();
+            blockStatus.clear();
+            clearTableE(LH);
+            clearTableE(LL);
+            clearTableE(HL);
+            clearTableE(HH);
+            T->del();
+        }
+
+
+        
 ./Triangle -s ../../../inputs/rMatGraph_J_5_100

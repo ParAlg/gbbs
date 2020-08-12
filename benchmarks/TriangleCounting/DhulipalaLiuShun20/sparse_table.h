@@ -217,9 +217,8 @@ class sparse_table {
     std::get<1>(table[h]) = val;
   }
 
-  void maybe_resize(size_t n_inc, size_t ne) {
-      size_t nt = ne + n_inc;
-      if (nt > (0.9 * m)) {
+  void maybe_resize(size_t nt) {
+      if (nt > (0.9 * m) || nt < (0.5 * m)) {
         size_t old_m = m;
         auto old_t = table;
         m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
@@ -243,6 +242,11 @@ class sparse_table {
         }
         alloc = true;
       }
+    }
+
+    void maybe_resize(size_t n_inc, size_t ne){
+      size_t nt = ne + n_inc;
+      maybe_resize(nt); 
     }
 
 

@@ -49,7 +49,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
   size_t count = 0;
   auto f = [&] (uintE u, uintE v, uintE w) { };
   timer t; t.start();
-  count = Triangle(G, updates, f, P);
+  count = Dynamic_Triangle(G, updates, f, P);
   double tt = t.stop();
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {
