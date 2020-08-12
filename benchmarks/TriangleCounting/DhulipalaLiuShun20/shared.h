@@ -167,6 +167,10 @@ namespace DBTGraph{
         inline void setDeg(size_t a){degree = a;}
         inline void setInsDeg(size_t a){LtoH = a;}
         inline size_t newLowDeg(size_t oldDeg){return oldDeg + degree - LtoH - LtoH;}
+        inline size_t getHtoL(){return degree-LtoH}
+        inline size_t insOffset(){return offset + LtoH;}
+        inline size_t end(){return offset + degree;}
+        
     };
 
     struct TriangleCounts{ // cache line size 64

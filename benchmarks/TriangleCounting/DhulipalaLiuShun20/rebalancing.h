@@ -72,18 +72,18 @@ DBTGraph::DyGraph<Graph> majorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::se
   }
 
   // make graph, count triangles
-  Graph G = Graph{
+  Graph G = Graph(
     vertex_data_array,
     num_vertices,
     num_edges,
     [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
-    edges_array};;
+    edges_array);
 
   // count triangles
   auto f = [&] (uintE u, uintE v, uintE w) { };
   size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
   G.clear();
-  
+
   // convert to new grpah
   DBTGraph::DyGraph<Graph> newDG = DBTGraph::DyGraph(DG.get_block_size(), G);
   DG.clear();
@@ -122,53 +122,9 @@ size_t minorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::sequence<DBTGraph::V
       DG.minorRblDeleteWedge(u));
     });
 
-
-
-    //  ============================= Count Rbled Degrees ============================= 
-
-    // nghN is the sum of number of nghs of all changed vertices
-    // Ngh is the array of the nghs of all changed vertices
-    // init to ***(v,u)*** where u \in vtxChangeLH, v is u's ngh
-    // then sort Ngh by v for LtoH and H to L separately to count the min size of lower tables
-    // Ngh[0, numNghLtoH) is the ngh of L to H, the rest H to L
+    //  ============================= Count Rbled Degrees =============================
     pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG.get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
-    size_t nghN = pbbs::scan_inplace(newDegrees, monoid);             
-    pbbs::sequence<EdgeT> Ngh = pbbs::sequence<EdgeT>::no_init(nghN); 
-    par_for(0,vtxChangeLH.size(),[&](size_t i){
-      size_t ngh_s = newDegrees[i];
-      size_t ngh_e = nghN;
-      if(i < vtxChangeLH.size()-1) ngh_e = newDegrees[i+1];
-      DG.get_neighbors<EdgeT, MakeEdge>(vtxChangeLH[i], Ngh, ngh_s, ngh_e, i<numLtoH, false); //TODO: optimize to nghs not using blocks
-    });
-    size_t numNghLtoH = newDegrees[numLtoH];
-    pbbs::sample_sort_inplace(Ngh.slice(0,    numNghLtoH),less<EdgeT>);
-    pbbs::sample_sort_inplace(Ngh.slice(numNghLtoH, nghN),less<EdgeT>);
-    newDegrees.clear();
-
-    // count the offsets by v after sorting
-    // offsetsNgh stores the offsets of each v of (u,v) in sorted Ngh[0, numNghLtoH) and Ngh[numNghLtoH, nghN)
-    // offsetsLength is the number of distinct v in Ngh[0, numNghLtoH) and Ngh[numNghLtoH, nghN)
-    // Ngh[offsetsNgh[i]].first is each distinct v for i \in [0, offsetsLength)
-    // Ngh.slice(offsetsNgh[i], offsetsNgh[i+1]) is the nghs that changed for v
-    pbbs::sequence<size_t> flag2 = pbbs::sequence<size_t>(nghN, 0);
-    par_for(0,nghN-1,[&](size_t i){
-      if(Ngh[i].first!=Ngh[i+1].first){flag2[i] = 1;}
-    });
-    flag2[numNghLtoH-1] = 1;
-    flag2[nghN-1] = 1;
-    size_t offsetsLength =  pbbs::scan_inplace(flag2.slice(), monoid);
-    pbbs::sequence<size_t> offsetsNgh = pbbs::sequence<size_t>::no_init(offsetsLength+1);
-    offsetsNgh[0] = 0; 
-    par_for(1,nghN,[&](size_t i){
-      if(flag2[i]!=flag2[i-1]){
-        offsetsNgh[flag2[i]] = i;
-      }
-    });
-    offsetsNgh[offsetsLength] = nghN;
-    flag2.clear();
-
-    //  ============================= Count Rbled Degrees 2 ============================= 
-    size_t rblN = nghN;
+    size_t rblN = pbbs::scan_inplace(newDegrees, monoid);   
     pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>::no_init(rblN); 
     pbbs::sequence<DBTGraph::VtxRbl> vtxRbl;
     pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>(n, EMPTYV);
@@ -177,39 +133,43 @@ size_t minorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::sequence<DBTGraph::V
       size_t ngh_e = rblN;
       if(i < vtxChangeLH.size()-1) ngh_e = newDegrees[i+1];
       if(i < numLtoH){
-      DG.get_neighbors<pair<EdgeT,bool>, MakeEdgeLtoH<tuple<uintE, int>>>(vtxChangeLH[i], Ngh, ngh_s, ngh_e, i<numLtoH, false); //TODO: optimize to nghs not using blocks
+      DG.get_neighbors<pair<EdgeT,bool>, MakeEdgeLtoH<tuple<uintE, int>>>(vtxChangeLH[i], rblEdges, ngh_s, ngh_e, i<numLtoH, false); 
       }else{
-      DG.get_neighbors<pair<EdgeT,bool>, MakeEdgeHtoL<tuple<uintE, int>>>(vtxChangeLH[i], Ngh, ngh_s, ngh_e, i<numLtoH, false); //TODO: optimize to nghs not using blocks
+      DG.get_neighbors<pair<EdgeT,bool>, MakeEdgeHtoL<tuple<uintE, int>>>(vtxChangeLH[i], rblEdges, ngh_s, ngh_e, i<numLtoH, false); 
       }
     });
-    computeOffsets<EdgeT, DBTGraph::VtxRbl>(rblEdges, vtxRbl, vtxRblMap);
+    DBTInternal::computeOffsets<EdgeT, DBTGraph::VtxRbl>(rblEdges, vtxRbl, vtxRblMap);
+    size_t tblVtxN = vtxRbl.size();
 
     //  ============================= Reisze lower table ============================= 
     // rezize bottom table for all v (L to H and H to L)
     // vertices using blocks do not need to update lower size table bc low and high ngh are stored together
     // TODO: resize to account for delete edges
-    par_for(0,offsetsLength,[&](size_t i){
-      uintE v = Ngh[offsetsNgh[i]].first;
+
+    par_for(0,tblVtxN,[&](size_t i){
+      uintE v = vtxRbl[i].id;
       if(DG.use_block_v(v)) return;
-      size_t delta = offsetsNgh[i+1] - offsetsNgh[i];
-      if(vertexMap[v] == EMPTYV){DG.minorRblResizeBottomTable(DBTGraph::VtxUpdate(v), delta, i < numNghLtoH);}
-      else{DG.minorRblResizeBottomTable(vtxNew[vertexMap[v]], delta, i < numNghLtoH);}
+      size_t deltaLtoH = vtxRbl[i].LtoH;
+      size_t deltaHtoL = vtxRbl[i].getHtoL();
+      DBTGraph::VtxUpdate vobj;
+      if(vertexMap[v] == EMPTYV){vobj = DBTGraph::VtxUpdate(v);
+      }else{vobj = vtxNew[vertexMap[v]];}
+      if(deltaLtoH > 0) DG.minorRblResizeBottomTable(vobj, deltaLtoH, true);
+      if(deltaHtoL > 0) DG.minorRblResizeBottomTable(vobj, deltaHtoL, false);
     });
-
-
 
     //  ============================= Move between lower tables ============================= 
 
     //delete from bottom table
-    par_for(0,offsetsLength,[&](size_t i){
-      uintE v = Ngh[offsetsNgh[i]].first;
-      DG.minorRblMoveBottomTable(v, Ngh.slice(offsetsNgh[i], offsetsNgh[i+1]), i < numNghLtoH, true)
+    par_for(0,tblVtxN,[&](size_t i){
+      DBTGraph::VtxRbl v = vtxRbl[i];
+      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end), DG.is_low_v(v.id), true)
     });
 
     //insert to bottom table
-    par_for(0,offsetsLength, [&](size_t i){
-      uintE v = Ngh[offsetsNgh[i]].first;
-      DG.minorRblMoveBottomTable(v, Ngh.slice(offsetsNgh[i], offsetsNgh[i+1]), i < numNghLtoH, false)
+    par_for(0,tblVtxN, [&](size_t i){
+      DBTGraph::VtxRbl v = vtxRbl[i];
+      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end), DG.is_low_v(v.id), false)
     });
 
 
