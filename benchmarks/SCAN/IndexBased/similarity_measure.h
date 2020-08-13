@@ -894,7 +894,7 @@ pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
 template <template <typename> class VertexTemplate, typename Weight>
 pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, Weight>* graph) const {
-  const size_t degree_threshold{static_cast<size_t>(4.0 * num_samples_)};
+  const size_t degree_threshold{static_cast<size_t>(1.5 * num_samples_)};
   return internal::ApproxCosineEdgeSimilarities(
       graph, num_samples_, degree_threshold, random_seed_);
 }
@@ -902,7 +902,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
-  const size_t degree_threshold{static_cast<size_t>(4.0 * num_samples_)};
+  const size_t degree_threshold{static_cast<size_t>(1.5 * num_samples_)};
   return internal::ApproxJaccardEdgeSimilarities(
       graph, num_samples_, degree_threshold, random_seed_);
 }
