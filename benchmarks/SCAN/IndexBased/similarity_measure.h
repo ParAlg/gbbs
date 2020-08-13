@@ -124,15 +124,6 @@ struct ApproxCosineSimilarity {
 // This is an approximate version of `JaccardSimilarity`. Increasing
 // `num_samples` increases the approximation accuracy.
 //
-// Let `m` be the number of undirected edges in the graph, and let `a` and `b`
-// be in the range (0, 1). Then, if we replace the pseudorandom number generator
-// used within the code with perfectly random number generator and replace the
-// hash function with a random hash function with no collisions, then picking
-//   num_samples = 3 * ln(2 * m / a) / b ^ 2
-// gives that with probability at least `1 - a`, each edge receives the correct
-// Jaccard similarity with absolute error up to `b`. In practice, setting
-// num_samples so high is probably excessive.
-//
 // This is really only helpful for graphs with lots of high degree vertices.
 // Otherwise, the cost to approximate similarities with enough samples to have
 // good accuracy outweighs the cost to compute similarities exactly.
@@ -607,26 +598,32 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     symmetric_graph<VertexTemplate, pbbs::empty>* graph,
-    const uint32_t num_samples,
+    const uint32_t original_num_samples,
     const size_t degree_threshold,
     const size_t random_seed) {
   using Weight = pbbs::empty;
   using Vertex = VertexTemplate<Weight>;
   // For edges between high degree vertices, estimate the Jaccard similarity
-  // with MinHash. For edges with a low degree vertex, compute the Jaccard
-  // similarity exactly with triangle counting like in
+  // with a MinHash variant --- see paper "One Permutation Hashing for Efficient
+  // Search and Learning." For edges with a low degree vertex, compute the
+  // Jaccard similarity exactly with triangle counting like in
   // `AllEdgeNeighborhoodSimilarities()`.
-
+  const uint32_t log_num_samples{
+    std::max<uint32_t>(pbbs::log2_up(original_num_samples), 1)};
+  const uintE num_samples{static_cast<uintE>(1ULL << log_num_samples)};
+  const uintE bucket_mask{num_samples - 1};
+  constexpr uintE kEmptyBucket{UINT_E_MAX};
   const size_t num_vertices{graph->n};
-  const auto min_monoid{pbbs::minm<uint64_t>{}};
-  const uint64_t random_offset{pbbs::hash64(random_seed)};
+  const pbbs::sequence<uintE> vertex_permutation{
+    pbbs::random_permutation<uintE>(num_vertices, pbbs::random{random_seed})};
+
   // Compute MinHash fingerprints for high degree vertices.
-  const pbbs::sequence<pbbs::sequence<uint64_t>> vertex_fingerprints{
+  const pbbs::sequence<pbbs::sequence<uintE>> vertex_fingerprints{
     num_vertices,
     [&](const size_t vertex_id) {
       Vertex vertex{graph->get_vertex(vertex_id)};
       if (vertex.getOutDegree() < degree_threshold) {
-        return pbbs::sequence<uint64_t>{};
+        return pbbs::sequence<uintE>{};
       }
       bool skip_fingerprint{true};
       const auto check_degree_threshold{
@@ -638,22 +635,21 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         }};
       vertex.mapOutNgh(vertex_id, check_degree_threshold);
       if (skip_fingerprint) {
-        return pbbs::sequence<uint64_t>{};
+        return pbbs::sequence<uintE>{};
       }
-      return pbbs::sequence<uint64_t>{
-        num_samples,
-        [&](const size_t sample_id) {
-          const auto hash_neighbor{
-            [&](uintE, const uintE neighbor, pbbs::empty) {
-              return pbbs::hash64_2(
-                  random_offset + num_samples * neighbor + sample_id);
-          }};
-          return std::min(
-              pbbs::hash64_2(
-                random_offset + num_samples * vertex_id + sample_id),
-              vertex.template reduceOutNgh<uint64_t>(
-                vertex_id, hash_neighbor, min_monoid));
+
+      pbbs::sequence<uintE> fingerprint(num_samples, kEmptyBucket);
+      const auto update_fingerprint{
+        [&](uintE, const uintE neighbor, pbbs::empty) {
+          const uintE permuted_neighbor{vertex_permutation[neighbor]};
+          const uintE bucket_id{permuted_neighbor & bucket_mask};
+          const uintE bucket_value{permuted_neighbor >> log_num_samples};
+          pbbs::write_min(
+              &(fingerprint[bucket_id]), bucket_value, std::less<uintE>{});
         }};
+      update_fingerprint(vertex_id, vertex_id, pbbs::empty{});
+      vertex.mapOutNgh(vertex_id, update_fingerprint);
+      return fingerprint;
     }};
 
   auto directed_graph{DirectGraphByDegree(graph)};
@@ -718,7 +714,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
-    const pbbs::sequence<uint64_t>& vertex_fingerprint{
+    const pbbs::sequence<uintE>& vertex_fingerprint{
       vertex_fingerprints[vertex_id]};
     const auto compute_similarity{[&](
         const uintE v_id,
@@ -728,17 +724,26 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       const uintT counter_index{v_counter_offset + v_to_u_index};
       float similarity{-1};
       if (vertex_is_high_degree) {  // approximate similarity
-        const pbbs::sequence<uint64_t>& neighbor_fingerprint{
+        const pbbs::sequence<uintE>& neighbor_fingerprint{
           vertex_fingerprints[u_id]};
-        const auto fingerprint_matches{
-          pbbs::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
-            vertex_fingerprint.size(),
-            [&](const size_t i) {
-              return vertex_fingerprint[i] == neighbor_fingerprint[i];
-            })};
-        similarity =
-            pbbslib::reduce_add(fingerprint_matches) /
-              static_cast<float>(num_samples);
+        const uintE fingerprint_matches{
+          pbbslib::reduce_add(
+            pbbs::delayed_seq<uintE>(
+              vertex_fingerprint.size(),
+              [&](const size_t i) {
+                return vertex_fingerprint[i] != kEmptyBucket &&
+                  vertex_fingerprint[i] == neighbor_fingerprint[i];
+              }))};
+        const uintE fingerprint_empty_count{
+          pbbslib::reduce_add(
+            pbbs::delayed_seq<uintE>(
+              vertex_fingerprint.size(),
+              [&](const size_t i) {
+                return vertex_fingerprint[i] == kEmptyBucket &&
+                  neighbor_fingerprint[i] == kEmptyBucket;
+              }))};
+        similarity = fingerprint_matches /
+          (static_cast<float>(num_samples - fingerprint_empty_count));
       } else {  // exact similarity
         const uintE num_shared_neighbors{counters[counter_index]};
         const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
