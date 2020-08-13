@@ -171,35 +171,4 @@ TEST(JaccardSimilarity, AllEdges) {
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
 }
 
-TEST(ApproxJaccardSimilarity, AllEdges) {
-  auto graph{MakeBasicGraph()};
-  // This tests `scan::ApproxJaccardSimilarity::AllEdges`, which has a
-  // pseudorandom output. Test failures might just be unlucky and fixable by
-  // changing the random seed. At the time of writing this comment, the test
-  // passes on all random seeds in the range [0, 99).
-  constexpr uint32_t kNumSamples{300};
-  constexpr size_t kRandomSeed{0};
-  constexpr size_t kDegreeThreshold{0};  // Approximate all similarities
-  const pbbs::sequence<s::EdgeSimilarity> similarities{
-    si::ApproxJaccardEdgeSimilarities(
-        &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
-  constexpr float kTolerance{0.1};
-  EXPECT_THAT(similarities,
-      UnorderedElementsAre(
-        EdgeSimilarityApproxEq(0, 1, 0.5, kTolerance),
-        EdgeSimilarityApproxEq(1, 0, 0.5, kTolerance),
-        EdgeSimilarityApproxEq(1, 2, 0.5, kTolerance),
-        EdgeSimilarityApproxEq(2, 1, 0.5, kTolerance),
-        EdgeSimilarityApproxEq(1, 3, 0.6, kTolerance),
-        EdgeSimilarityApproxEq(3, 1, 0.6, kTolerance),
-        EdgeSimilarityApproxEq(2, 3, 0.8, kTolerance),
-        EdgeSimilarityApproxEq(3, 2, 0.8, kTolerance),
-        EdgeSimilarityApproxEq(2, 4, 0.6, kTolerance),
-        EdgeSimilarityApproxEq(4, 2, 0.6, kTolerance),
-        EdgeSimilarityApproxEq(2, 5, 0.4, kTolerance),
-        EdgeSimilarityApproxEq(5, 2, 0.4, kTolerance),
-        EdgeSimilarityApproxEq(3, 4, 0.75, kTolerance),
-        EdgeSimilarityApproxEq(4, 3, 0.75, kTolerance)));
-}
-
 }  // namespace gbbs
