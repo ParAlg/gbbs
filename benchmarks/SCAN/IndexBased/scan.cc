@@ -217,16 +217,17 @@ pbbs::sequence<Clustering> Index::Cluster(
     const uint64_t mu,
     const pbbs::sequence<float>& epsilons,
     const bool get_deterministic_result) const {
-  // TODO(tomtseng): please refactor this. this is messy code written in a rush
+  // TODO(tomtseng): please refactor this. this is messy, copy-and-pasted code
+  // written in a rush
 
   pbbs::sequence<Clustering> clusterings{
     epsilons.size(), [&](const size_t i) { return Clustering{}; }};
-  pbbs::sequence<size_t> sorted_epsilons{
+  pbbs::sequence<size_t> sorted_epsilon_indices{
     epsilons.size(), [](const size_t i) { return i; }};
   // Sort epsilons in decreasing order --- as epsilon decreases, more
   // core-to-core edges appear.
   pbbs::sample_sort_inplace(
-      sorted_epsilons.slice(),
+      sorted_epsilon_indices.slice(),
       [&](const size_t i, const size_t j) {
         return epsilons[i] > epsilons[j];
       });
@@ -238,8 +239,8 @@ pbbs::sequence<Clustering> Index::Cluster(
     num_vertices_,
     [&](const size_t i) { return kUnclustered; }};
   for (size_t i{0}; i < epsilons.size(); i++) {
-    const float epsilon{epsilons[sorted_epsilons[i]]};
-    Clustering* clustering = &(clusterings[sorted_epsilons[i]]);
+    const float epsilon{epsilons[sorted_epsilon_indices[i]]};
+    Clustering* clustering = &(clusterings[sorted_epsilon_indices[i]]);
     *clustering = previous_core_clustering;
 
     pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
@@ -269,6 +270,8 @@ pbbs::sequence<Clustering> Index::Cluster(
       const uintE core{cores[j]};
       const auto& neighbors{neighbor_order_[core]};
       constexpr bool kParallelizeInnerLoop{false};
+      // only operate on new edges for this iteration, hence the ternary
+      // statement
       par_for(
           j < previous_cores.size()
             ? previous_core_similar_edge_counts[j]
@@ -276,8 +279,12 @@ pbbs::sequence<Clustering> Index::Cluster(
           core_similar_edge_counts[j],
           [&](const size_t k) {
         const uintE neighbor{neighbors[k].neighbor};
-         if ((j >= previous_cores.size() || core > neighbor) &&
-             cores_set.contains(neighbor)) {
+        // the `core > neighbor` check tries to avoid the extra work of adding
+        // both directions of an edge. but sometimes when a new core is added we
+        // do need to check the other direction of an edge, hence the `j >=
+        // previous_cores.size()` check
+        if ((j >= previous_cores.size() || core > neighbor) &&
+            cores_set.contains(neighbor)) {
           unite(core, neighbor, *clustering);
         }
       }, kParallelizeInnerLoop);
