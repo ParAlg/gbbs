@@ -43,6 +43,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
+  std::cout << "### b: " << updates.size() << std::endl;
   // std::cout << "### Params: ordering=" << ordering << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
@@ -50,6 +51,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
   auto f = [&] (uintE u, uintE v, uintE w) { };
   timer t; t.start();
   count = Dynamic_Triangle(G, updates, f, P);
+  std::cout << "### count: " << count << std::endl;
   double tt = t.stop();
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {
@@ -88,8 +90,8 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
 #define generate_symmetric_dynamic_main(APP, mutates)                                  \
   int main(int argc, char* argv[]) {                                           \
     gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");            \
-    char* iFile = P.getArgument(0);                                            \
-    char* uFile1 = P.getArgument(1);                                           \
+    char* iFile = P.getArgument(1);                                            \
+    char* uFile1 = P.getArgument(0);                                           \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
@@ -100,7 +102,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
            << std::endl;                                                            \
       std::cout << "# Please run on a symmetric input." << std::endl;                    \
     }                                                                          \
-    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
+    size_t rounds = P.getOptionLongValue("-rounds", 1);                        \
     gbbs::pcm_init();                                                          \
     auto updates = gbbs::gbbs_io::read_weighted_edge_list<int>(uFile1);        \
     if (compressed) {                                                          \

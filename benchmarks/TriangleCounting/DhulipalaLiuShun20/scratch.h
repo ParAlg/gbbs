@@ -483,4 +483,8 @@ DBTGraph::DyGraph<Graph> majorRebalancing(DBTGraph::DyGraph<Graph>& DG, pbbs::se
 
 
         
-./Triangle -s ../../../inputs/rMatGraph_J_5_100
+./Triangle -s ../../../inputs/rMatGraph_J_5_100 ../../../inputs/update2.txt
+
+./Triangle -s -trict 2 ../../../inputs/triangles2.txt ../../../inputs/update2.txt
+
+./Triangle -s -trict 3 ../../../inputs/triangles3.txt ../../../inputs/update3.txt

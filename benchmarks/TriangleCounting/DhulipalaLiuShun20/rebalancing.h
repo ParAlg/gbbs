@@ -105,6 +105,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](VtxUpdate u){
       return DG.change_status(u);
     });
+    if(vtxChange.size() == 0) return DG.num_vertices_low();
     pbbs::sequence<bool> flag = pbbs::sequence<bool>(vtxChange.size(), [&](VtxUpdate u){
       return DG.is_high_v(u.id);
     });

@@ -38,7 +38,7 @@ using namespace std;
 
 template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
-  auto C0 = P.getOptionIntValue("-c", 0);
+  auto C0 = P.getOptionIntValue("-trict", 0);
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
@@ -57,7 +57,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");
-  UTIL::PrintFunctionItem("1.", "m", m);
+  UTIL::PrintFunctionItem("1.", "valid b", m);
 
   t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
@@ -136,8 +136,6 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   updates_final.clear();
   edges.clear();
   vtxNew.clear(); vtxMap.clear();
-  cout << "done" << endl;
-
 
   return C0 + delta_triangles_pos - delta_triangles_neg;
 }
