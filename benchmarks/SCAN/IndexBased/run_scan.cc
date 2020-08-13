@@ -24,49 +24,37 @@ namespace gbbs {
 // Executes SCAN on the input graph and reports stats on the execution.
 template <class Graph>
 double RunScan(Graph& graph, commandLine parameters) {
+  const size_t cluster_rounds{
+    parameters.getOptionLongValue("-cluster-rounds", 1)};
+  const uint64_t mu{parameters.getOptionLongValue("-mu", 5)};
+  const float epsilon{
+    static_cast<float>(parameters.getOptionDoubleValue("-epsilon", 0.6))};
+  std::cout << "Scan parameters: mu = " << mu << ", epsilon = " << epsilon
+    << '\n';
+
   timer index_construction_timer{"Index construction time"};
   const indexed_scan::Index scan_index{&graph, scan::CosineSimilarity{}};
+  index_construction_timer.stop();
+
+  timer cluster_timer{
+    "Clustering time over " + std::to_string(cluster_rounds) + " rounds"};
+  for (size_t i = 0; i < cluster_rounds; i++) {
+    cluster_timer.start();
+    const indexed_scan::Clustering clustering{scan_index.Cluster(mu, epsilon)};
+    cluster_timer.stop();
+    std::cout << "Modularity: " << scan::Modularity(&graph, clustering) << '\n';
+  }
+
   index_construction_timer.reportTotal("");
-
-  constexpr uint32_t kMu{3};
-  constexpr bool kDeterministic{true};
-  pbbs::sequence<float> epsilons{
-      99, [&](const size_t i) { return (i + 1) * .01;}};
-  pbbs::sequence<scan::Clustering> clusterings{
-    scan_index.Cluster(kMu, epsilons, kDeterministic)};
-  bool good{true};
-  for (size_t i = 0; i < 99; i++) {
-    scan::Clustering clustering{
-      scan_index.Cluster(kMu, epsilons[i], kDeterministic)};
-    bool check{clustering == clusterings[i]};
-    // std::cerr << epsilons[i] << ": " << check << '\n';
-    if (!check) {
-      good = false;
-    }
-  }
-  if (!good) {
-    std::cerr << "######## FAILURE" << std::endl;
-  } else {
-    std::cerr << "!! Good!\n";
-  }
-
-  for (int i = 0; i < 3; i++) {
-    timer cluster_sweep_timer{"Clustering sweep time"};
-    scan_index.Cluster(kMu, epsilons);
-    cluster_sweep_timer.reportTotal("");
-
-    timer cluster_timer{"Clustering individual time"};
-    for (auto e : epsilons) {
-      scan_index.Cluster(kMu, e);
-    }
-    cluster_timer.reportTotal("");
-  }
-
-  return 0.0;
+  cluster_timer.reportTotal("");
+  const double running_time{
+    index_construction_timer.get_total() + cluster_timer.get_total()};
+  std::cout << "Total SCAN running time: " << running_time << '\n';
+  return running_time;
 }
 
 static constexpr bool kMutatesGraph{false};
 
 }  // namespace gbbs
 
-generate_symmetric_once_main(gbbs::RunScan, gbbs::kMutatesGraph);
+generate_symmetric_main(gbbs::RunScan, gbbs::kMutatesGraph);
