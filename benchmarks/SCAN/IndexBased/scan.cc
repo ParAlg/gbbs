@@ -308,6 +308,7 @@ pbbs::sequence<Clustering> Index::Cluster(
     previous_core_similar_edge_counts = std::move(core_similar_edge_counts);
   }
 
+  cores_set.del();
   return clusterings;
 }
 
