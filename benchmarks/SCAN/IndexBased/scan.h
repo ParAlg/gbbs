@@ -70,6 +70,12 @@ class Index {
       float epsilon,
       bool get_deterministic_result = false) const;
 
+  // Computes clusterings for several epsilon values.
+  pbbs::sequence<Clustering> Cluster(
+      uint64_t mu,
+      const pbbs::sequence<float>& epsilons,
+      bool get_deterministic_result = false) const;
+
  private:
   const size_t num_vertices_;
   const internal::NeighborOrder neighbor_order_;
