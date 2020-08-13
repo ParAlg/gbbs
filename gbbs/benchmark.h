@@ -331,3 +331,21 @@ inline auto get_pcm_state() { return (size_t)1; }
     }                                                                      \
     gbbs::alloc_finish();                                                  \
   }
+
+#define generate_symmetric_uncompressed_float_weighted_once_main(APP)      \
+  int main(int argc, char* argv[]) {                                       \
+    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                     \
+    char* iFile = P.getArgument(0);                                        \
+    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
+    bool compressed = P.getOptionValue("-c");                              \
+    if (compressed) {                                                      \
+      std::cerr << "compressed graphs not allowed\n";                      \
+    }                                                                      \
+    bool mmap = P.getOptionValue("-m");                                    \
+    gbbs::pcm_init();                                                      \
+    auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(          \
+        iFile, mmap);                                                      \
+    gbbs::alloc_init(G);                                                   \
+    run_app(G, APP, 1)                                                     \
+    gbbs::alloc_finish();                                                  \
+  }

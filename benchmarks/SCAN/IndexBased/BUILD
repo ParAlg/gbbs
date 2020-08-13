@@ -79,3 +79,53 @@ cc_binary(
         "//gbbs",
     ],
 )
+
+cc_binary(
+    name = "unweighted_experiments",
+    srcs = ["unweighted_experiments.cc"],
+    deps = [
+        ":scan",
+        ":similarity_measure",
+        ":utils",
+        "//gbbs",
+        "//pbbslib:assert",
+    ],
+    linkopts = ["-lpython3.6m"],
+)
+
+cc_binary(
+    name = "unweighted_experiments_serial",
+    srcs = ["unweighted_experiments_serial.cc"],
+    deps = [
+        ":scan",
+        ":similarity_measure",
+        ":utils",
+        "//gbbs",
+        "//pbbslib:assert",
+    ],
+)
+
+cc_binary(
+    name = "weighted_experiments",
+    srcs = ["weighted_experiments.cc"],
+    deps = [
+        ":scan",
+        ":similarity_measure",
+        ":utils",
+        "//gbbs",
+        "//pbbslib:assert",
+    ],
+    linkopts = ["-lpython3.6m"],
+)
+
+cc_binary(
+    name = "weighted_experiments_serial",
+    srcs = ["weighted_experiments_serial.cc"],
+    deps = [
+        ":scan",
+        ":similarity_measure",
+        ":utils",
+        "//gbbs",
+        "//pbbslib:assert",
+    ],
+)

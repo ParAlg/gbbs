@@ -68,7 +68,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
   t.stop();
-  t.reportTotal("Rank time");
+  // t.reportTotal("Rank time");
   return r;
 }
 
