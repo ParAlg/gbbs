@@ -180,7 +180,7 @@ double RunScan(Graph& graph, commandLine parameters) {
       }
     }
     {
-      for (double epsilon{0.01}; epsilon < 0.995; epsilon += 0.01) {
+      for (double epsilon{0.1}; epsilon < 0.99; epsilon += 0.1) {
         std::vector<double> query_times;
         constexpr double kMu{5};
         std::cerr << "query " << ParametersToString(kMu, epsilon) << ":";
