@@ -29,7 +29,7 @@
 #include "dynamic_graph.h"
 #include "benchmark.h"
 #include "preprocess.h"
-// #include "rebalancing.h"
+#include "rebalancing.h"
 
 
 
@@ -38,11 +38,12 @@ using namespace std;
 
 template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
-  // auto C0 = P.getOptionIntValue("-c", 0);
+  auto C0 = P.getOptionIntValue("-c", 0);
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
   size_t m, m_ins;
+  size_t delta_triangles_pos, delta_triangles_neg;
 
   size_t block_size = P.getOptionLongValue("-blocksize", 5);        
 
@@ -70,7 +71,8 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(m_ins, m-m_ins)){
     // size_t new_m = DG.num_edges() + 2*m_ins - m;
-    // DBTGraph::majorRebalancing(DG,edges,vtxNew, vtxMap, P);
+    DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
+    return DBTGraph::majorRebalancing(DG, DGnew, edges,vtxNew, vtxMap, P);
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables
@@ -98,8 +100,8 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
     DG.countTriangles(u,v,flag, tc);
   });
   pbbs::sequence<size_t> triCounts = tc.report();
-  size_t delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
-  size_t delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
+  delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
+  delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
   UTIL::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
   UTIL::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
   tc.clear();
@@ -122,7 +124,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   t.stop();t.reportTotal("7. clean up tables");
   
   t.start(); //  minor rebalancing 
-  // DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
+  DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.stop();t.reportTotal("8. 9. update degree + minor rebalancing");
   }
 
@@ -137,7 +139,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   cout << "done" << endl;
 
 
-  return 0;
+  return C0 + delta_triangles_pos - delta_triangles_neg;
 }
 
 }  // namespace gbbs

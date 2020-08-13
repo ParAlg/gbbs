@@ -32,6 +32,8 @@ namespace gbbs{
 namespace DBTGraph{
     
     using EdgeT = pair<uintE, uintE>;
+    using SymGraph = symmetric_graph<symmetric_vertex, pbbs::empty>;
+    using StaticEdgeT = tuple<uintE, pbbs::empty>;
 
     inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> &edges, size_t i){
     return edges[i].first.first;
@@ -106,7 +108,7 @@ namespace DBTGraph{
 
     template <class SetT>
     struct MakeEdge{
-        using T = typename SetT::T; using K = typename SetT::K;
+        using T = typename SetT::T; using K = typename SetT::KT;
         uintE u;T *table;K empty_key;
         MakeEdge(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
@@ -117,7 +119,7 @@ namespace DBTGraph{
 
     template <class SetT>
     struct MakeEdgeEntry{
-        using T = typename SetT::T; using K = typename SetT::K;
+        using T = typename SetT::T; using K = typename SetT::KT;
         uintE u;T *table;K empty_key;
         MakeEdgeEntry(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
@@ -126,13 +128,13 @@ namespace DBTGraph{
         }
     };
 
-    template <class SetT, class edge_type>
+    template <class SetT>
     struct MakeEdgeEntryMajor{
-        using T = typename SetT::T; using K = typename SetT::K;
+        using T = typename SetT::T; using K = typename SetT::KT;
         uintE u;T *table;K empty_key;
         MakeEdgeEntryMajor(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
-        edge_type operator ()(size_t i)const {
+        StaticEdgeT operator ()(size_t i)const {
             if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, pbbslib::empty());
             return make_tuple(get<0>(table[i]), pbbslib::empty());
         }
@@ -140,7 +142,7 @@ namespace DBTGraph{
 
     template <class SetT>
     struct MakeEdgeLtoH{
-        using T = typename SetT::T; using K = typename SetT::K;
+        using T = typename SetT::T; using K = typename SetT::KT;
         uintE u;T *table;K empty_key;
         MakeEdgeLtoH(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
@@ -151,7 +153,7 @@ namespace DBTGraph{
 
     template <class SetT>
     struct MakeEdgeHtoL{
-        using T = typename SetT::T; using K = typename SetT::K;
+        using T = typename SetT::T; using K = typename SetT::KT;
         uintE u;T *table;K empty_key;
         MakeEdgeHtoL(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 

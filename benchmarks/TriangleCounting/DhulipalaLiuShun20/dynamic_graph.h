@@ -16,13 +16,14 @@ namespace DBTGraph{
 
     template <class Graph> //symmetric_graph
     class DyGraph{
+    public:
         using vertex = typename Graph::vertex;
         using weight_type = typename Graph::weight_type;
         using edge_type = typename Graph::edge_type;
         using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
         using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
-
+    private:
         size_t n;
         size_t m;
         size_t block_size;
@@ -182,7 +183,7 @@ namespace DBTGraph{
 
         inline bool change_status(DBTGraph::VtxUpdate &v) const { // given id v and new degree k
             size_t new_d = v.newDeg(D[v.id]);
-            return (is_high_v(v) && must_low(new_d)) || (is_low_v(v) && must_high(new_d));}
+            return (is_high_v(v.id) && must_low(new_d)) || (is_low_v(v.id) && must_high(new_d));}
 
         inline size_t get_new_degree(DBTGraph::VtxUpdate&u) const {
             return u.newDeg(D[u.id]);}
@@ -229,7 +230,7 @@ namespace DBTGraph{
         // tb is a lower table.
         // put all entries v \in tb into seq_out as (v,u)
         template<class E, class F>
-        size_t pack_neighbors_helper(SetT *tb, uintE u, pbbs::range<E> seq_out) const {
+        size_t pack_neighbors_helper(SetT *tb, uintE u, pbbs::range<E *> seq_out) const {
             auto pred = [&](const E& t) { return getFirst(t) != tb->empty_key; };
             auto table_seq = pbbs::delayed_sequence<E, F>(tb->size(), F(u, tb->table, tb->empty_key));
             return pbbslib::filter_out(table_seq, seq_out, pred);
@@ -246,7 +247,7 @@ namespace DBTGraph{
             size_t new_degree = ngh_e - ngh_s;
             if(use_block_v(u.id)){
                 for(size_t i  = 0; i<new_degree; ++i){
-                    Ngh[ngh_s + i] = EdgeT(u.id, getEArray(u.id, i));
+                    Ngh[ngh_s + i] = make_pair(EdgeT(u.id, getEArray(u.id, i)), is_low_now );
                 }
             }else{
                 tableE *tb1 = LL; tableE *tb2 = LH;
@@ -261,13 +262,13 @@ namespace DBTGraph{
             }
         }
 
-        void get_neighbors_major(uintE u, pbbs::sequence<edge_type> &seq_out, size_t offset) const {
-            using F = MakeEdgeEntryMajor<SetT, edge_type>;
+        void get_neighbors_major(uintE u, pbbs::sequence<StaticEdgeT> &seq_out, size_t offset) const {
+            using F = MakeEdgeEntryMajor<SetT>;
             if(use_block_v(u)){
                 for(size_t i = 0; i<D[u]; ++i){
                     size_t k = 0;
                     if(getEArrayVal(u,i)!=DEL_EDGE){
-                        seq_out[offset + k] = make_tuple(getEArray(u,i),Graph::W());
+                        seq_out[offset + k] = make_tuple(getEArray(u,i), pbbs::empty());
                         k++;
                     }
                 }
@@ -276,9 +277,9 @@ namespace DBTGraph{
                 if(is_high_v(u)){tb1 = HL; tb2 = HH;}
                 size_t tmp = 0;
                 if(lowD[u] > 0){ 
-                    tmp = pack_neighbors_helper<edge_type, F>(tb1->find(u, NULL), u, seq_out.slice(offset, offset + D[u]));}
+                    tmp = pack_neighbors_helper<StaticEdgeT, F>(tb1->find(u, NULL), u, seq_out.slice(offset, offset + D[u]));}
                 if(lowD[u] < D[u]){
-                    pack_neighbors_helper<edge_type, F>(tb2->find(u, NULL), u, seq_out.slice(tmp, offset + D[u]));}
+                    pack_neighbors_helper<StaticEdgeT, F>(tb2->find(u, NULL), u, seq_out.slice(tmp, offset + D[u]));}
             }
         }
 
@@ -609,6 +610,9 @@ namespace DBTGraph{
             T  = new tableW((size_t)((M/threshold)*(M/threshold)/2 + 1), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);        
         }
 
+        DyGraph():n(0), m(0), block_size(0){
+        }
+
         DyGraph(int t_block_size, Graph& G):block_size(t_block_size){
             n = G.num_vertices();
             m = G.num_edges() / 2 ;// edges already doubled
@@ -728,7 +732,7 @@ namespace DBTGraph{
             // delete tb;
         }
 
-        ~DyGraph(){
+        void del(){
             D.clear();
             lowD.clear();
             edges.clear();
@@ -739,11 +743,11 @@ namespace DBTGraph{
             clearTableE(HL);
             clearTableE(HH);
             T->del();
-            // delete T;
-
-            //todo: clear up
         }
 
+        ~DyGraph(){
+            del();
+        }
 
         ///////////////// Minor Rebalance /////////////
 
@@ -800,10 +804,10 @@ namespace DBTGraph{
             if(is_high_v(v.id) && is_low_now){     
                 tb = HH; // we are moving delta entries from HL[v] to HH[v] 
                 ne =  get_new_degree(v) - get_new_low_degree(v);  //number of elements in HH[v] now
-            }else if(is_high_v(v)){             
+            }else if(is_high_v(v.id)){             
                 tb = HL;
                 ne =  get_new_low_degree(v); 
-            }else if(is_low_v(v) && is_low_now){
+            }else if(is_low_v(v.id) && is_low_now){
                 tb = LH;
                 ne = get_new_degree(v) - get_new_low_degree(v);  
             }else{                              
@@ -840,7 +844,7 @@ namespace DBTGraph{
         }
 
         //////////////////////////////////////////// UPDATE T TABLE /////////////////////
-        void minorRbldeleteW(uintE u, uint v){
+        void minorRbldeleteW(uintE u, uintE v){
             if(u == v) return;
             if(u > v) swap(u,v); 
             T->deleteVal(EdgeT(u,v));
@@ -849,11 +853,12 @@ namespace DBTGraph{
         // called before tables and status are updated, u is now H, w is now L (before update)
         // edges are updated and packed based on VtxUpdate 
         // delete all wedges (u,w,v) where v is now H
-        // "delete" means change wedge num to 0
         // if u.v both change from H to L, update twice
-        inline void minorRbldeleteWedgeHelper(uintE u, uintE w){
+        inline void minorRbldeleteWedgeHelper(uintE u, uintE w, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
             if(use_block_v(w)){
-                par_for(0, get_new_degree(w), [&] (size_t k) {
+                VtxUpdate wobj = VtxUpdate(w);
+                if(vtxMap[w] != EMPTYVMAP) wobj = vtxNew[vtxMap[w]];
+                par_for(0, get_new_degree(wobj), [&] (size_t k) {
                     uintE v = getEArray(w,k);//edges[w * block_size + k];
                     if(is_high_v(v)){
                         minorRbldeleteW(u, v);
@@ -881,13 +886,13 @@ namespace DBTGraph{
         // delete all wedges (u,w,v) where v is now H and w is now L
         // "delete" means change wedge num to 0
         // if u.v both change from H to L, update twice
-        void minorRblDeleteWedge(DBTGraph::VtxUpdate &u){
+        void minorRblDeleteWedge(DBTGraph::VtxUpdate &u, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
             if(get_new_low_degree(u) > 0){
             if(use_block_v(u.id)){
                 par_for(0, get_new_degree(u), [&] (size_t j) {
-                    uintE w = getEArray(u,j);//edges[u * block_size + j];
+                    uintE w = getEArray(u.id,j);//edges[u * block_size + j];
                     if(is_low_v(w)){
-                        minorRbldeleteWedgeHelper(u, w);
+                        minorRbldeleteWedgeHelper(u.id, w, vtxNew, vtxMap);
                     }
                 });
             }else{
@@ -895,7 +900,7 @@ namespace DBTGraph{
                     par_for(0, L->size(), [&] (size_t j) {
                     uintE w = get<0>(L->table[j]);
                     if(w != L->empty_key){ // we can check if H is NULL here, but makes code messy
-                        minorRbldeleteWedgeHelper(u, w);
+                        minorRbldeleteWedgeHelper(u.id, w, vtxNew, vtxMap);
                     }
                 });                   
             }
@@ -954,7 +959,7 @@ namespace DBTGraph{
         // remove tables that 1) packed to array 2) has zero entry
         void downSizeTablesDeletes(DBTGraph::VtxUpdate &u){
             tableE *tb1 = LL; tableE *tb2 = LH;
-            if(is_high_v(u)){tb1 = HL; tb2 = HH;}            
+            if(is_high_v(u.id)){tb1 = HL; tb2 = HH;}            
             if(use_block(D[u.id])&&!use_block_v(u.id)){ // new degree using block, but is not using it
                 if(lowD[u.id]>0 ){
                     tb1->deleteVal(u.id);

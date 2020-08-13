@@ -33,6 +33,7 @@ template <class K, class V, class KeyHash>
 class sparse_table {
  public:
   using T = std::tuple<K, V>;
+  using KT = K;
 
   size_t m;
   size_t mask;
