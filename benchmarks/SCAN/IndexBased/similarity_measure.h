@@ -605,9 +605,20 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   using Vertex = VertexTemplate<Weight>;
   // For edges between high degree vertices, estimate the Jaccard similarity
   // with a MinHash variant --- see paper "One Permutation Hashing for Efficient
-  // Search and Learning." For edges with a low degree vertex, compute the
-  // Jaccard similarity exactly with triangle counting like in
-  // `AllEdgeNeighborhoodSimilarities()`.
+  // Search and Learning."
+  // The MinHash variant works as follows to estimate the Jaccard similarity
+  // between two sets using k samples: partition the universe U of elements into k
+  // equally sized buckets U_1, U_2, ..., U_k (e.g., permute U to assign each
+  // element x some value permute(x) in [0, |U|), then assign x to bucket
+  // U_{(permute(x) % k) + 1}). The fingerprint of a set S consists of (x_1,
+  // ..., x_k) where x_i is the minimum element of U_i that is also in S, or
+  // <empty> if no such element exists. Then the estimate of the Jaccard
+  // distance between sets with fingerprints (x_1, ..., x_k) and (y_1, ..., y_k)
+  // is <number of indices i where x_i == y_i != <empty>> / (k - <number of
+  // indices where x_i == y_i == <empty>>).
+  //
+  // For edges with a low degree vertex, compute the Jaccard similarity exactly
+  // with triangle counting like in `AllEdgeNeighborhoodSimilarities()`.
   const uint32_t log_num_samples{
     std::max<uint32_t>(pbbs::log2_up(original_num_samples), 1)};
   const uintE num_samples{static_cast<uintE>(1ULL << log_num_samples)};
