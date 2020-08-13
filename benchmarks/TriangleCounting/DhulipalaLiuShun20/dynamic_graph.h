@@ -413,7 +413,7 @@ namespace DBTGraph{
             par_for(0, D[w.id] + w.insert_degree, [&] (size_t i) { // bruteforce finding high ngh of w
                 uintE v = getEArray(w.id, i);
                 if(v!=u && is_high_v(v)){
-                    updateTableT(u, v, getEArrayVal(u, i), flag);
+                    updateTableT(u, v, getEArrayVal(w.id, i), flag);
                 }
             });
         }
@@ -492,7 +492,7 @@ namespace DBTGraph{
                     countTrianglesHelper(H,u.id,v.id,flag, tc);
                 }
             }else{ // both are high vertices
-                if(low_space < space){ //HHH
+                if(low_space < space - 1){ //HHH, if only, that's v
                     SetT *H = HH->find(u.id, NULL);
                     countTrianglesHelper(H,u.id,v.id,flag, tc);
                 }
