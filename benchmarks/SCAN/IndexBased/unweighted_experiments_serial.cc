@@ -117,7 +117,7 @@ double RunScan(Graph& graph, commandLine parameters) {
     std::cerr << "** ApproxCosineSimilarity **\n";
     std::cerr << "****************************\n";
 
-    for (uint32_t num_samples{100}; 2 * num_samples < max_degree; num_samples *= 2) {
+    for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
       std::cerr << "Samples=" << num_samples << '\n';
       std::cerr << "----------\n";
       std::vector<double> approx_index_times;
@@ -136,7 +136,7 @@ double RunScan(Graph& graph, commandLine parameters) {
     std::cerr << "*****************************\n";
     std::cerr << "** ApproxJaccardSimilarity **\n";
     std::cerr << "*****************************\n";
-    for (uint32_t num_samples{100}; 2 * num_samples < max_degree; num_samples *= 2) {
+    for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
       std::cerr << "Samples=" << num_samples << '\n';
       std::cerr << "----------\n";
       std::vector<double> approx_index_times;
