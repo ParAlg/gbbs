@@ -265,8 +265,8 @@ namespace DBTGraph{
         void get_neighbors_major(uintE u, pbbs::sequence<StaticEdgeT> &seq_out, size_t offset) const {
             using F = MakeEdgeEntryMajor<SetT>;
             if(use_block_v(u)){
-                for(size_t i = 0; i<D[u]; ++i){
-                    size_t k = 0;
+                size_t k = 0;
+                for(size_t i = 0; i<D[u]; ++i){ 
                     if(getEArrayVal(u,i)!=DEL_EDGE){
                         seq_out[offset + k] = make_tuple(getEArray(u,i), pbbs::empty());
                         k++;

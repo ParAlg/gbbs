@@ -44,7 +44,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
       return DG.get_new_degree(vtxNew[vtxMap[i]]);
     }
   }); 
-  size_t num_edges = pbbs::scan_inplace(newDegrees, monoid);  
+  size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);  
 
   par_for(0, num_vertices-1, [&](const size_t i) {
     vertex_data_array[i].degree = newDegrees[i+1]-newDegrees[i];
@@ -69,7 +69,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
 
   // insert from tables 
   par_for(0, num_vertices, [&](const size_t u) {
-    DG.get_neighbors_major(u, edges_seq, vertex_data_array[u].offset);
+    if(vertex_data_array[u].degree > 0) DG.get_neighbors_major(u, edges_seq, vertex_data_array[u].offset);
   });
 
   // make graph, count triangles
@@ -83,7 +83,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
   // count triangles
   auto f = [&] (uintE u, uintE v, uintE w) { };
   size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
-  G.del();
+  // G.del();
 
   // convert to new grpah
   size_t block_size = DG.get_block_size();
@@ -127,7 +127,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //  ============================= Count Rbled Degrees =============================
     pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG.get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
-    size_t rblN = pbbs::scan_inplace(newDegrees, monoid);   
+    size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);   
     pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>::no_init(rblN); 
     pbbs::sequence<VtxRbl> vtxRbl;
     pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
