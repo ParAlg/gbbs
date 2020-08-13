@@ -40,7 +40,7 @@ VertexSet MakeVertexSet(const size_t capacity) {
 void ClusterCores(
     const internal::NeighborOrder& neighbor_order,
     const pbbs::sequence<uintE>& cores,
-    const pbbs::sequence<size_t>& core_similar_edge_counts,
+    const pbbs::sequence<uintE>& core_similar_edge_counts,
     Clustering* clustering) {
   timer function_timer{"Cluster cores time"};
 
@@ -94,7 +94,7 @@ void ClusterCores(
 void AttachNoncoresToClusters(
     const internal::NeighborOrder& neighbor_order,
     const pbbs::sequence<uintE>& cores,
-    const pbbs::sequence<size_t>& core_similar_edge_counts,
+    const pbbs::sequence<uintE>& core_similar_edge_counts,
     Clustering* clustering) {
   timer function_timer{"Attach non-cores to clusters time"};
   // Attach each non-core to the same cluster as an arbitrary adjacent core.
@@ -123,7 +123,7 @@ void AttachNoncoresToClusters(
 void AttachNoncoresToClustersDeterministic(
     const internal::NeighborOrder& neighbor_order,
     const pbbs::sequence<uintE>& cores,
-    const pbbs::sequence<size_t>& core_similar_edge_counts,
+    const pbbs::sequence<uintE>& core_similar_edge_counts,
     Clustering* clustering) {
   timer function_timer{"Attach non-cores to clusters time"};
   const size_t num_vertices{clustering->size()};
@@ -187,8 +187,8 @@ Clustering Index::Cluster(
   }
 
   timer preprocessing_timer{"Cluster - additional preprocessing time"};
-  pbbs::sequence<size_t> core_similar_edge_counts{
-      pbbs::map<size_t>(
+  pbbs::sequence<uintE> core_similar_edge_counts{
+      pbbs::map<uintE>(
           cores,
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
@@ -211,6 +211,97 @@ Clustering Index::Cluster(
         neighbor_order_, cores, core_similar_edge_counts, &clustering);
   }
   return clustering;
+}
+
+pbbs::sequence<Clustering> Index::Cluster(
+    const uint64_t mu,
+    const pbbs::sequence<float>& epsilons,
+    const bool get_deterministic_result) const {
+  // TODO(tomtseng): please refactor this. this is messy code written in a rush
+
+  pbbs::sequence<Clustering> clusterings{
+    epsilons.size(), [&](const size_t i) { return Clustering{}; }};
+  pbbs::sequence<size_t> sorted_epsilons{
+    epsilons.size(), [](const size_t i) { return i; }};
+  // Sort epsilons in decreasing order --- as epsilon decreases, more
+  // core-to-core edges appear.
+  pbbs::sample_sort_inplace(
+      sorted_epsilons.slice(),
+      [&](const size_t i, const size_t j) {
+        return epsilons[i] > epsilons[j];
+      });
+
+  pbbs::sequence<uintE> previous_cores{};
+  pbbs::sequence<uintE> previous_core_similar_edge_counts{};
+  VertexSet cores_set{MakeVertexSet(num_vertices_)};
+  Clustering previous_core_clustering{
+    num_vertices_,
+    [&](const size_t i) { return kUnclustered; }};
+  for (size_t i{0}; i < epsilons.size(); i++) {
+    const float epsilon{epsilons[sorted_epsilons[i]]};
+    Clustering* clustering = &(clusterings[sorted_epsilons[i]]);
+    *clustering = previous_core_clustering;
+
+    pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
+    pbbs::sequence<uintE> core_similar_edge_counts{
+        pbbs::map<uintE>(
+            cores,
+            [&](const uintE vertex) {
+              // Get the number of neighbors of `vertex` that have at least
+              // `epsilon` structural similarity with the vertex.
+              return internal::BinarySearch(
+                  neighbor_order_[vertex],
+                  [epsilon](const internal::EdgeSimilarity& es) {
+                    return es.similarity >= epsilon;
+                  });
+            })};
+
+    // ClusterCores() logic -- get connected components induced by sufficiently
+    // similar core-to-core edges
+    par_for(previous_cores.size(), cores.size(), [&](const size_t j) {
+      const uintE core{cores[j]};
+      cores_set.insert(std::make_pair(core, pbbslib::empty{}));
+      (*clustering)[core] = core;
+    });
+    constexpr auto find{find_variants::find_compress};
+    auto unite{unite_variants::Unite<decltype(find)>{find}};
+    par_for(0, cores.size(), [&](const size_t j) {
+      const uintE core{cores[j]};
+      const auto& neighbors{neighbor_order_[core]};
+      constexpr bool kParallelizeInnerLoop{false};
+      par_for(
+          j < previous_cores.size()
+            ? previous_core_similar_edge_counts[j]
+            : 0,
+          core_similar_edge_counts[j],
+          [&](const size_t k) {
+        const uintE neighbor{neighbors[k].neighbor};
+         if ((j >= previous_cores.size() || core > neighbor) &&
+             cores_set.contains(neighbor)) {
+          unite(core, neighbor, *clustering);
+        }
+      }, kParallelizeInnerLoop);
+    });
+    par_for(0, cores.size(), [&](const size_t j) {
+        const uintE core{cores[j]};
+        (*clustering)[core] = find(core, *clustering);
+    });
+
+    previous_core_clustering = *clustering;
+
+    if (get_deterministic_result) {
+      AttachNoncoresToClustersDeterministic(
+          neighbor_order_, cores, core_similar_edge_counts, clustering);
+    } else {
+      AttachNoncoresToClusters(
+          neighbor_order_, cores, core_similar_edge_counts, clustering);
+    }
+
+    previous_cores = std::move(cores);
+    previous_core_similar_edge_counts = std::move(core_similar_edge_counts);
+  }
+
+  return clusterings;
 }
 
 }  // namespace indexed_scan
