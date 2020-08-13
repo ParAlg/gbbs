@@ -39,6 +39,7 @@ using namespace std;
 template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   auto C0 = P.getOptionIntValue("-trict", 0);
+  UTIL::PrintFunctionItem("0.", "C0", C0);
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;

@@ -181,7 +181,7 @@ namespace DBTGraph{
         inline bool is_low_v(uintE v)const{return !is_high_v(v);}
         inline bool use_block_v(uintE v)const{return blockStatus[v];}
 
-        inline bool change_status(DBTGraph::VtxUpdate &v) const { // given id v and new degree k
+        inline bool change_status(const DBTGraph::VtxUpdate &v) const { // given id v and new degree k
             size_t new_d = v.newDeg(D[v.id]);
             return (is_high_v(v.id) && must_low(new_d)) || (is_low_v(v.id) && must_high(new_d));}
 
@@ -931,11 +931,12 @@ namespace DBTGraph{
         // D and lowD updated to after updates and rebalanced
         // pack table to arrays if new degree is low enough
         // all deleted edges are removed
+        // status is not changed, change status in downSizeTablesDeletes
         void downSizeTables(DBTGraph::VtxUpdate &i){
             uintE u = i.id;
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u)){tb1 = HL;tb2 = HH;}
-            if(use_block(D[u])&&!use_block_v(u)){
+            if(use_block(D[u])&&!use_block_v(u)){ // with new degree should block, but is not using it
                 size_t offset = u*block_size;
                 if(lowD[u] > 0){
                     pack_neighbors_in(tb1->find(u, NULL), u, offset,          offset + lowD[u]);
@@ -943,8 +944,7 @@ namespace DBTGraph{
                 if(lowD[u] < D[u]){
                     pack_neighbors_in(tb2->find(u, NULL), u, offset + lowD[u], D[u]);
                 }  
-                blockStatus[u] = true; 
-            }else{
+            }else if(!use_block(D[u])){ // downsize if w/ new degree should use table
                 if(lowD[u]!=0 ){
                     tb1->find(u, NULL)->maybe_resize(lowD[u]);
                 }
@@ -954,20 +954,21 @@ namespace DBTGraph{
             }
         }
         
-        // called after degrees are updated
+        // called after degrees are updated and downSizeTables
         // D is now new degrees
         // remove tables that 1) packed to array 2) has zero entry
         void downSizeTablesDeletes(DBTGraph::VtxUpdate &u){
             tableE *tb1 = LL; tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL; tb2 = HH;}            
-            if(use_block(D[u.id])&&!use_block_v(u.id)){ // new degree using block, but is not using it
+            if(use_block(D[u.id])&&!use_block_v(u.id)){ // with new degree should block, but is not using it
                 if(lowD[u.id]>0 ){
                     tb1->deleteVal(u.id);
                 }
                 if(lowD[u.id]<D[u.id]){
                     tb2->deleteVal(u.id);
-                }               
-            }else{ // if table exists it would have zero entry
+                }  
+                blockStatus[u.id] = true;              
+            }else if(!use_block_v(u.id)){ // if table exists it would have zero entry
                 if(lowD[u.id]==0 ){
                     tb1->deleteVal(u.id);
                 }

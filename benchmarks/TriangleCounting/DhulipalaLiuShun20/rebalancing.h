@@ -102,12 +102,12 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //  ============================= find vertices that change low/high status   =============================
     //TODO: can optimize
-    pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](VtxUpdate u){
+    pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](const VtxUpdate &u){
       return DG.change_status(u);
     });
     if(vtxChange.size() == 0) return DG.num_vertices_low();
-    pbbs::sequence<bool> flag = pbbs::sequence<bool>(vtxChange.size(), [&](VtxUpdate u){
-      return DG.is_high_v(u.id);
+    pbbs::sequence<bool> flag = pbbs::sequence<bool>(vtxChange.size(), [&](const size_t i){
+      return DG.is_high_v(vtxChange[i].id);
     });
 
     // [0,numLtoH) are vertices that change from L to H, the rest from H to L
@@ -120,7 +120,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     flag.clear();
 
     //  ============================= update Wedge Table, H to L ============================= 
-    par_for(numLtoH, vtxChangeLH.size(), [&] (size_t i) { 
+    par_for(numLtoH, vtxChangeLH.size(), [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
       DG.minorRblDeleteWedge(u, vtxNew, vtxMap);
     });
@@ -163,13 +163,13 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     //  ============================= Move between lower tables ============================= 
 
     //delete from bottom table
-    par_for(0,tblVtxN,[&](size_t i){
+    par_for(0,tblVtxN,[&](const size_t i){
       VtxRbl v = vtxRbl[i];
       DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), DG.is_low_v(v.id), true);
     });
 
     //insert to bottom table
-    par_for(0,tblVtxN, [&](size_t i){
+    par_for(0,tblVtxN, [&](const size_t i){
       VtxRbl v = vtxRbl[i];
       DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), DG.is_low_v(v.id), false);
     });
@@ -180,23 +180,23 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //  ============================= Move between top tables ============================= 
     // move top table LtoH
-    par_for(0,  numLtoH, [&] (size_t i) { //update  status
+    par_for(0,  numLtoH, [&] (const size_t i) { //update  status
       VtxUpdate u = vtxChangeLH[i];      
       DG.minorRblMoveTopTable(u, true, false);
     });
 
-    par_for(0,  numLtoH, [&] (size_t i) { //update  status
+    par_for(0,  numLtoH, [&] (const size_t i) { //update  status
       VtxUpdate u = vtxChangeLH[i];      
       DG.minorRblMoveTopTable(u, true, true);
     });
 
     // move top table HtoL
-    par_for(numLtoH,  vtxChangeLH.size(), [&] (size_t i) { //update  status
+    par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { //update  status
       VtxUpdate u = vtxChangeLH[i];      
       DG.minorRblMoveTopTable(u, false, false);
     });
 
-    par_for(numLtoH,  vtxChangeLH.size(), [&] (size_t i) { //update  status
+    par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { //update  status
       VtxUpdate u = vtxChangeLH[i];      
       DG.minorRblMoveTopTable(u, false, true);
     });
@@ -208,18 +208,18 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //update degree and low degree and lowNum,
     
-    par_for(0, vtxNew.size(), [&] (size_t i) { // update degrees and low degrees from inserts/deletes
+    par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes
       DG.updateDegrees(vtxNew[i]);
     });
 
-    par_for(0, vtxRbl.size(), [&] (size_t i) { // update low degrees from rebalancing
+    par_for(0, vtxRbl.size(), [&] (const size_t i) { // update low degrees from rebalancing
       DG.updateDegrees(vtxRbl[i]);
     });
 
-    par_for(0, vtxNew.size(), [&] (size_t i) { // pack table to arrays if new degree is low enough
+    par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, called before downSizeTablesDeletes
       DG.downSizeTables(vtxNew[i]);
     });
-    par_for(0, vtxNew.size(), [&] (size_t i) { // delete tables packed
+    par_for(0, vtxNew.size(), [&] (const size_t i) { // delete tables packed and change status
       DG.downSizeTablesDeletes(vtxNew[i]);
     });
 
@@ -229,7 +229,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
 
     //  ============================= Update Wedge Table, L to H ============================= 
-    par_for(0, numLtoH, [&] (size_t i) { 
+    par_for(0, numLtoH, [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
       if(DG.use_block_v(u.id)) return;
       DG.minorRblInsertWedge(u);

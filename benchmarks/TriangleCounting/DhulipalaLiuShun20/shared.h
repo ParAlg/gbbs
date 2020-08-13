@@ -90,11 +90,11 @@ namespace DBTGraph{
         VtxUpdate(uintE a):id(a){}
         inline void setDeg(size_t a){degree = a;}
         inline void setInsDeg(size_t a){insert_degree = a;}
-        inline size_t end(){return offset + degree;}
-        inline size_t insOffset(){return offset + insert_degree;}
-        inline size_t delDeg(){return degree-insert_degree;}
-        inline size_t newDeg(size_t oldDeg){return oldDeg + 2*insert_degree - degree;}
-        inline size_t newLowDeg(size_t oldDeg){return oldDeg + insert_low_degree - delete_low_degree;}
+        inline size_t end() const {return offset + degree;}
+        inline size_t insOffset() const {return offset + insert_degree;}
+        inline size_t delDeg() const {return degree-insert_degree;}
+        inline size_t newDeg(size_t oldDeg) const {return oldDeg + 2*insert_degree - degree;}
+        inline size_t newLowDeg(size_t oldDeg) const {return oldDeg + insert_low_degree - delete_low_degree;}
     };
 
     struct VtxUpdateInsDeg{
@@ -172,10 +172,10 @@ namespace DBTGraph{
         VtxRbl(uintE a):id(a){}
         inline void setDeg(size_t a){degree = a;}
         inline void setInsDeg(size_t a){LtoH = a;}
-        inline size_t newLowDeg(size_t oldDeg){return oldDeg + degree - LtoH - LtoH;}
-        inline size_t getHtoL(){return degree-LtoH;}
-        inline size_t insOffset(){return offset + LtoH;}
-        inline size_t end(){return offset + degree;}
+        inline size_t newLowDeg(size_t oldDeg) const {return oldDeg + degree - LtoH - LtoH;}
+        inline size_t getHtoL() const {return degree-LtoH;}
+        inline size_t insOffset() const {return offset + LtoH;}
+        inline size_t end() const {return offset + degree;}
 
     };
 

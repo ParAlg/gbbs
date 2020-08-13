@@ -89,7 +89,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
  * symmetric graph inputs and weighted edge updates input (weight is int type) */
 #define generate_symmetric_dynamic_main(APP, mutates)                                  \
   int main(int argc, char* argv[]) {                                           \
-    gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");            \
+    gbbs::commandLine P(argc, argv, " [-s] [-trict 0] [-blocksize 5] <inFile> <updateFile1>");            \
     char* iFile = P.getArgument(1);                                            \
     char* uFile1 = P.getArgument(0);                                           \
     bool symmetric = P.getOptionValue("-s");                                   \
