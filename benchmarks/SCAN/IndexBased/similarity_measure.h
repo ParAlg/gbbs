@@ -568,7 +568,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
             })};
         const float angle_estimate{static_cast<float>(
             pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
-        similarity = std::cos(angle_estimate);
+        similarity = std::max(std::cos(angle_estimate), 0.0f);
       } else {  // exact similarity
         if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
           // unweighted case
