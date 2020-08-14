@@ -17,6 +17,28 @@ using namespace std;
 namespace gbbs{
 namespace DBTGraph{
 
+template <class Graph, class UT>
+size_t majorRebalancing( std::vector<UT>& updates, DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, commandLine& P){
+
+  std::vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges(updates.size());
+  for (auto & e : updates) {
+    edges.emplace_back(e.from, e.to, pbbs::empty());
+  } 
+  updates.clear();
+  SymGraph G = gbbs::gbbs_io::edge_list_to_symmetric_graph(edges);
+
+  // count triangles
+  auto f = [&] (uintE u, uintE v, uintE w) { };
+  size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
+
+  // convert to new grpah
+  size_t block_size = DG.get_block_size();
+  DGnew = DyGraph(block_size, G);
+  // delete G;
+  
+  return c;
+}
+
 // edges needs to have size 2m
 // edges are preprocessed and sorted
 template <class Graph>
@@ -30,10 +52,13 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
   size_t num_vertices = DG.num_vertices();
   auto monoid = pbbslib::addm<size_t>();
 
-  //mark deletions in tables
-  par_for(0, vtxNew.size(), [&] (size_t i) {
-    DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  });
+  if( DG.num_edges()  !=  0){
+    //mark deletions in tables
+    par_for(0, vtxNew.size(), [&] (size_t i) {
+      DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+    });
+  }
+
 
   // count new degrees
   vertex_data *vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
@@ -73,9 +98,10 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
   pbbs::sequence<edge_type> edges_seq = pbbs::sequence<edge_type>(edges_array, num_edges);
 
   // insert from tables 
+  if( DG.num_edges()  !=  0){
   par_for(0, num_vertices, [&](const size_t u) {
     DG.get_neighbors_major(u, edges_seq, vertex_data_array[u].offset);
-  });
+  });}
 
   // make graph, count triangles
   SymGraph G = SymGraph(

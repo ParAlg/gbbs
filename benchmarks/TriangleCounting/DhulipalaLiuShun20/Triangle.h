@@ -65,10 +65,12 @@ inline size_t staticCount(Graph& G, std::vector<UT>& edges, const F& f, commandL
 
 // auto perm = pbbs::random_permutation<uintE>(n);
 
+// if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   auto C0 = P.getOptionIntValue("-trict", 0);
   int empty_graph = P.getOptionIntValue("-e", 0);  
+  bool edges_sorted = P.getOptionValue("-es"); 
   if(empty_graph < 0) cout << "-e must be positive" << endl;  
   DBTInternal::PrintFunctionItem("0.", "C0", C0);
   using EdgeT = DBTGraph::EdgeT;
@@ -90,6 +92,12 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
    
 
   // DBTInternal::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
+
+  if(empty_graph == 0 && edges_sorted){
+    DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
+    size_t  new_ct = DBTGraph::majorRebalancing(updates, DG, DGnew, P);
+    return new_ct;
+  }
 
   t.start(); //step 1
   UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates);
