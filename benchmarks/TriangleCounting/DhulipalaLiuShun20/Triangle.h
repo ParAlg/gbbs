@@ -164,13 +164,13 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   if(batch_offset == 0 && edges_sorted){ // all edges are inserts updates
     DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, n); 
     DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
-    size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), DG.get_block_size(), DGnew, P);
+    size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), n, DG.get_block_size(), DGnew, P);
     return new_ct;
   }
 
   vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
   vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, updates.size());
-  DBTGraph::SymGraph G2 = gbbs::gbbs_io::edge_list_to_symmetric_graph(edges);
+  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(edges, n);
   auto C0 = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
   DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2);
   G.del();

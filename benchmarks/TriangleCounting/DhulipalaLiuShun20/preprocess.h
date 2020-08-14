@@ -11,6 +11,49 @@ using namespace std;
 
 namespace DBTInternal{
 
+template <class weight_type>
+symmetric_graph<symmetric_vertex, weight_type>
+edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge_list, size_t num_vertices) {
+  using edge_type = typename symmetric_vertex<weight_type>::edge_type;
+
+  if (edge_list.empty()) {
+    return symmetric_graph<symmetric_vertex, weight_type>{};
+  }
+
+  pbbs::sequence<gbbs_io::Edge<weight_type>> edges_both_directions(2 * edge_list.size());
+  par_for(0, edge_list.size(), [&](const size_t i) {
+      const gbbs_io::Edge<weight_type>& edge = edge_list[i];
+      edges_both_directions[2 * i] = edge;
+      edges_both_directions[2 * i + 1] =
+        gbbs_io::Edge<weight_type>{edge.to, edge.from, edge.weight};
+  });
+  constexpr auto compare_endpoints = [](
+      const gbbs_io::Edge<weight_type>& left,
+      const gbbs_io::Edge<weight_type>& right) {
+    return std::tie(left.from, left.to) < std::tie(right.from, right.to);
+  };
+  pbbs::sequence<gbbs_io::Edge<weight_type>> edges =
+    pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
+  const size_t num_edges = edges.size();
+  // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
+  pbbs::sequence<vertex_data> vertex_data =
+    gbbs_io::internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
+
+  edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
+  par_for(0, num_edges, [&](const size_t i) {
+    const gbbs_io::Edge<weight_type>& edge = edges[i];
+    edges_array[i] = std::make_tuple(edge.to, edge.weight);
+  });
+
+  auto vertex_data_array = vertex_data.to_array();
+  return symmetric_graph<symmetric_vertex, weight_type>{
+    vertex_data_array,
+    num_vertices,
+    num_edges,
+    [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
+    edges_array};
+}
+
 // return true if an insert edge is in graph or a delete edge is not in graph
 template <class Graph, class EdgeT>
 inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
