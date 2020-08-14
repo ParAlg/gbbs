@@ -336,6 +336,34 @@ std::vector<Edge<weight_type>> read_weighted_edge_list(const char* filename) {
 std::vector<Edge<pbbslib::empty>>
 read_unweighted_edge_list(const char* filename);
 
+// Read edges from a file that has the following format:
+//     # There can be comments at the top of the file as long as each line of
+//     # the comment starts with '#'.
+//     <edge 1 first endpoint> <edge 1 second endpoint>
+//     <edge 2 first endpoint> <edge 2 second endpoint>
+//     <edge 3 first endpoint> <edge 3 second endpoint>
+//     ...
+//     <edge m first endpoint> <edge m second endpoint>
+// give a weighted edge list with weight being "weight" for all edges
+template <class weight_type>
+std::vector<gbbs::gbbs_io::Edge<weight_type>> read_unweighted_edge_list(const char* filename, weight_type weight) {
+  std::ifstream file{filename};
+  if (!file.is_open()) {
+    std::cout << "ERROR: Unable to open file: " << filename << '\n';
+    std::terminate();
+  }
+  gbbs::gbbs_io::internal::skip_ifstream_comments(&file);
+
+  std::vector<gbbs::gbbs_io::Edge<weight_type>> edge_list;
+  uintE from;
+  uintE to;
+  // int weight;
+  while (file >> from >> to) {
+    edge_list.emplace_back(from, to, weight);
+  }
+  return edge_list;
+}
+
 // Converts edge list into an asymmetric graph.
 //
 // Adjacency lists of the output graph are sorted by increasing neighbor vertex

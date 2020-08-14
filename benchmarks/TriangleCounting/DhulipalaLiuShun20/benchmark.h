@@ -10,13 +10,22 @@
 #include "gbbs/gbbs.h"
 
 namespace gbbs{
-namespace UTIL {
+namespace DBTInternal {
 
-  // struct UpdateTag{
-  //   bool is_insert;
-  //   double t; // timestamp
-  //   UpdateTag(bool a, double b):is_insert(a), t(b){}
-  // };
+//   const auto edge_list = pbbs::sequence<UT>(
+//       edges.size(), [&](const size_t i) { return edges[i]; });
+//   edges.clear();
+// template <class EdgeT, class UT>
+// static inline symmetric_graph<symmetric_vertex, pbbs::empty> sym_graph_from_edges(
+//     pbbs::sequence<UT>& A, size_t n,
+//     bool is_sorted = false) {
+//   using edge = UT;
+//   auto get_u = [&](const edge& e) { return e.from; };
+//   auto get_v = [&](const edge& e) { return e.to; };
+//   auto get_w = [&](const edge& e) { return pbbs::empty(); };
+//   return sym_graph_from_edges<pbbs::empty>(A, n, get_u, get_v, get_w, is_sorted);
+// }
+
 
   template <class EdgeT>
   pbbs::sequence<pair<EdgeT, bool>> generateEdgeUpdates(size_t nv, size_t numEdges){

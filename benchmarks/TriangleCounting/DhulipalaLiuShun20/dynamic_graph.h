@@ -41,6 +41,7 @@ namespace DBTGraph{
         tableE *LH;
         tableE *HL;
         tableW *T;
+        bool alloc;
 
 
 
@@ -197,10 +198,11 @@ namespace DBTGraph{
             return false;}
 #else
             size_t new_d = num_edges() + ins_d - del_d;
-            return  new_d  < M/4 || new_d  > M;}
+            return  new_d  < M/4 || new_d  >= M;}
 #endif  
         // can't be used during update, D must align with current entries
         bool haveEdge (EdgeT e) const {
+            if(m == 0) return false;
             if (e.first >= n || e.second >= n){
                 return false;
             }
@@ -625,10 +627,16 @@ namespace DBTGraph{
             T  = new tableW((size_t)((M/threshold)*(M/threshold)/2 + 1), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);        
         }
 
-        DyGraph():n(0), m(0), block_size(0){
+        DyGraph():n(0), m(0), block_size(0), alloc(false){
         }
 
-        DyGraph(int t_block_size, Graph& G):block_size(t_block_size){
+        // init an empty grpah
+        // no need to init arrays, because will major rebalance
+        DyGraph(int t_block_size, size_t a):n(a), m(0), block_size(t_block_size), lowNum(0), alloc(false){
+            initParams();
+        }
+
+        DyGraph(int t_block_size, Graph& G):block_size(t_block_size), alloc(true){
             n = G.num_vertices();
             m = G.num_edges() / 2 ;// edges already doubled
             initParams();
@@ -749,6 +757,7 @@ namespace DBTGraph{
         }
 
         void del(){
+            if(!alloc) return;
             D.clear();
             lowD.clear();
             edges.clear();

@@ -39,22 +39,38 @@
 namespace gbbs {
 using namespace std;
 
+
+
+//num edge is multiple of 10, already randomly shuffled
 template <class Graph, class F, class UT>
-inline size_t test(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
+inline size_t staticCount(Graph& G, std::vector<UT>& edges, const F& f, commandLine& P) {
 
-// readin CSR format, output to edges
+  size_t num_batch = 10;
+  size_t batch_size = edges.size()/10;
+  for(size_t i = 0; i< num_batch; ++i){
+    size_t end = batch_size  * (i+1) + 1;
 
-// random  shuffle edges
+  // write out edges in batches
 
-//write out edges
+  // Graph from edge lsits
+  symmetric_graph<symmetric_vertex, pbbs::empty> G = gbbs_io::edge_list_to_symmetric_graph(vector(edges.begin(), edges.end()+end));
+
+  // run dynamic from edge lists
+
+  // run static from edge lists
+
+  // gbbs_io::write_graph_to_file
+  }
 }
 
-
+// auto perm = pbbs::random_permutation<uintE>(n);
 
 template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   auto C0 = P.getOptionIntValue("-trict", 0);
-  UTIL::PrintFunctionItem("0.", "C0", C0);
+  int empty_graph = P.getOptionIntValue("-e", 0);  
+  if(empty_graph < 0) cout << "-e must be positive" << endl;  
+  DBTInternal::PrintFunctionItem("0.", "C0", C0);
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
@@ -64,16 +80,23 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   size_t block_size = P.getOptionLongValue("-blocksize", 5);        
 
   t.start();
-  DBTGraph::DyGraph DG = DBTGraph::DyGraph(block_size, G); t.stop();t.reportTotal("init");
+  DBTGraph::DyGraph<Graph> DG;
+  if(empty_graph == 0){
+    DG = DBTGraph::DyGraph<Graph>(block_size, G); 
+  }else{
+    DG = DBTGraph::DyGraph<Graph>(block_size, empty_graph); 
+  }
+  t.stop();t.reportTotal("init");
+   
 
-  // UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
+  // DBTInternal::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
 
   t.start(); //step 1
   UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates);
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");
-  UTIL::PrintFunctionItem("1.", "valid b", m);
+  DBTInternal::PrintFunctionItem("1.", "valid b", m);
 
   t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
@@ -120,8 +143,8 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   pbbs::sequence<size_t> triCounts = tc.report();
   delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
   delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
-  UTIL::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
-  UTIL::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
+  DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
+  DBTInternal::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
   tc.clear();
   triCounts.clear();
   t.stop();t.reportTotal("6. count triangles");

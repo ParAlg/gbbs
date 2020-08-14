@@ -70,7 +70,6 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
 
 }  // namespace gbbs
 
-
 #define run_dynamic_app(G, updates, APP, rounds)                                            \
   auto before_state = gbbs::get_pcm_state();                               \
   pbbs::timer st;                                                                \
@@ -89,9 +88,10 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
  * symmetric graph inputs and weighted edge updates input (weight is int type) */
 #define generate_symmetric_dynamic_main(APP, mutates)                                  \
   int main(int argc, char* argv[]) {                                           \
-    gbbs::commandLine P(argc, argv, " [-s] [-trict 0] [-blocksize 5] <inFile> <updateFile1>");            \
+    gbbs::commandLine P(argc, argv, " [-s] [-trict 0] [-blocksize 5] [-w 1] [-e 0] <inFile> <updateFile1>");            \
     char* iFile = P.getArgument(1);                                            \
     char* uFile1 = P.getArgument(0);                                           \
+    int weighted = P.getOptionIntValue("-w", 1);                               \
     bool symmetric = P.getOptionValue("-s");                                   \
     bool compressed = P.getOptionValue("-c");                                  \
     bool mmap = P.getOptionValue("-m");                                        \
@@ -104,7 +104,16 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
     }                                                                          \
     size_t rounds = P.getOptionLongValue("-rounds", 1);                        \
     gbbs::pcm_init();                                                          \
-    auto updates = gbbs::gbbs_io::read_weighted_edge_list<int>(uFile1);        \
+    vector<gbbs::gbbs_io::Edge<int>> updates;                              \
+    if(weighted  == 0){                                                      \
+      updates = gbbs::gbbs_io::read_weighted_edge_list<int>(uFile1);        \
+    }else if (weighted == 1){                                                 \
+      updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 1);        \
+    }else if (weighted == 1){\
+      updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 0);        \
+    }else{                                                              \
+      std::cout << "# wrong  weighted flag. use 0 for weighted, 1 for inserts , 2 for deletes"  << std::endl; \
+    }                                                                          \
     if (compressed) {                                                          \
       auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>( \
           iFile, mmap, mmapcopy);                                              \
