@@ -4,4 +4,97 @@ INFO: Build option --cxxopt has changed, discarding analysis cache.
 Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments_2 (0 packages loaded, 0 targets configured)
 INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments_2 (0 packages loaded, 214 targets configured).
 INFO: Found 1 target...
-[0 / 2] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[0 / 8] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[26 / 28] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments_2.cc; 1s local
+[27 / 28] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments_2
+Target //benchmarks/SCAN/IndexBased:unweighted_experiments_2 up-to-date:
+  bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments_2
+INFO: Elapsed time: 6.873s, Critical Path: 6.52s
+INFO: 24 processes: 24 local.
+INFO: Build completed successfully, 25 total actions
+INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments_2 -s --serial /home/ubuntu/data/orkut-gbbs
+INFO: Build completed successfully, 25 total actions
+# list_alloc init_blocks: 1000
+# after init: 
+# Used: 0, allocated: 6656, node size: 16392, bytes: 109105152
+****************************
+** ApproxCosineSimilarity **
+****************************
+
+Samples=2048
+----------
+** Index construction median: 194.653
+
+
+Samples=4096
+----------
+** Index construction median: 214.538
+
+
+Samples=8192
+----------
+** Index construction median: 235.34
+
+
+Samples=16384
+----------
+** Index construction median: 202.858
+
+*****************************
+** ApproxJaccardSimilarity **
+*****************************
+
+Samples=64
+----------
+[Clock] Fri Aug 14 20:35:28 2020
+** Index construction median: 87.872
+
+
+Samples=128
+----------
+[Clock] Fri Aug 14 20:42:47 2020
+** Index construction median: 113.619
+
+
+Samples=256
+----------
+[Clock] Fri Aug 14 20:52:15 2020
+** Index construction median: 131.055
+
+
+Samples=512
+----------
+[Clock] Fri Aug 14 21:03:11 2020
+** Index construction median: 141.834
+
+
+Samples=1024
+----------
+[Clock] Fri Aug 14 21:15:00 2020
+** Index construction median: 146.613
+
+
+Samples=2048
+----------
+[Clock] Fri Aug 14 21:27:13 2020
+** Index construction median: 146.522
+
+
+Samples=4096
+----------
+[Clock] Fri Aug 14 21:39:26 2020
+** Index construction median: 146.261
+
+
+Samples=8192
+----------
+[Clock] Fri Aug 14 21:51:37 2020
+** Index construction median: 146.091
+
+
+Samples=16384
+----------
+[Clock] Fri Aug 14 22:03:48 2020
+** Index construction median: 146.026
+
+# time per iter: 0
