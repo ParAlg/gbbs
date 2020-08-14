@@ -213,15 +213,14 @@ Clustering Index::Cluster(
   return clustering;
 }
 
-pbbs::sequence<Clustering> Index::Cluster(
+void Index::Cluster(
     const uint64_t mu,
     const pbbs::sequence<float>& epsilons,
+    const std::function<void(Clustering, size_t)> f,
     const bool get_deterministic_result) const {
   // TODO(tomtseng): please refactor this. this is messy, copy-and-pasted code
   // written in a rush
 
-  pbbs::sequence<Clustering> clusterings{
-    epsilons.size(), [&](const size_t i) { return Clustering{}; }};
   pbbs::sequence<size_t> sorted_epsilon_indices{
     epsilons.size(), [](const size_t i) { return i; }};
   // Sort epsilons in decreasing order --- as epsilon decreases, more
@@ -240,8 +239,7 @@ pbbs::sequence<Clustering> Index::Cluster(
     [&](const size_t i) { return kUnclustered; }};
   for (size_t i{0}; i < epsilons.size(); i++) {
     const float epsilon{epsilons[sorted_epsilon_indices[i]]};
-    Clustering* clustering = &(clusterings[sorted_epsilon_indices[i]]);
-    *clustering = previous_core_clustering;
+    Clustering clustering{std::move(previous_core_clustering)};
 
     pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
     pbbs::sequence<uintE> core_similar_edge_counts{
@@ -262,7 +260,7 @@ pbbs::sequence<Clustering> Index::Cluster(
     par_for(previous_cores.size(), cores.size(), [&](const size_t j) {
       const uintE core{cores[j]};
       cores_set.insert(std::make_pair(core, pbbslib::empty{}));
-      (*clustering)[core] = core;
+      clustering[core] = core;
     });
     constexpr auto find{find_variants::find_compress};
     auto unite{unite_variants::Unite<decltype(find)>{find}};
@@ -285,31 +283,32 @@ pbbs::sequence<Clustering> Index::Cluster(
         // previous_cores.size()` check
         if ((j >= previous_cores.size() || core > neighbor) &&
             cores_set.contains(neighbor)) {
-          unite(core, neighbor, *clustering);
+          unite(core, neighbor, clustering);
         }
       }, kParallelizeInnerLoop);
     });
     par_for(0, cores.size(), [&](const size_t j) {
         const uintE core{cores[j]};
-        (*clustering)[core] = find(core, *clustering);
+        clustering[core] = find(core, clustering);
     });
 
-    previous_core_clustering = *clustering;
+    previous_core_clustering = clustering;
 
     if (get_deterministic_result) {
       AttachNoncoresToClustersDeterministic(
-          neighbor_order_, cores, core_similar_edge_counts, clustering);
+          neighbor_order_, cores, core_similar_edge_counts, &clustering);
     } else {
       AttachNoncoresToClusters(
-          neighbor_order_, cores, core_similar_edge_counts, clustering);
+          neighbor_order_, cores, core_similar_edge_counts, &clustering);
     }
+
+    f(std::move(clustering), sorted_epsilon_indices[i]);
 
     previous_cores = std::move(cores);
     previous_core_similar_edge_counts = std::move(core_similar_edge_counts);
   }
 
   cores_set.del();
-  return clusterings;
 }
 
 }  // namespace indexed_scan

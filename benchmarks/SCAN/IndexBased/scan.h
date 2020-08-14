@@ -71,9 +71,17 @@ class Index {
       bool get_deterministic_result = false) const;
 
   // Computes clusterings for several epsilon values.
-  pbbs::sequence<Clustering> Cluster(
+  // Instead of returning all the clusterings, which may be memory intensive,
+  // this function runs f on each clustering as follows:
+  //   f(<clustering with parameters (mu, epsilons[i])>, i) for each i.
+  // f is called sequentially, but the order in which f is called on each i is
+  // arbitrary.
+  //
+  // TODO(tomtseng) change std::function argument to a templated argument
+  void Cluster(
       uint64_t mu,
       const pbbs::sequence<float>& epsilons,
+      const std::function<void(Clustering, size_t)> f,
       bool get_deterministic_result = false) const;
 
  private:
