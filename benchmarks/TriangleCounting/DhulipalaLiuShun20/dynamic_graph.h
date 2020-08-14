@@ -144,14 +144,11 @@ namespace DBTGraph{
         }
 
         // return OLD_EDGE, NEW_EDGE, DEL_EDGE, or NO_EDGE
-        int getEdgeVal (uintE u, uintE v) const{
+        //  degree1 is the number of entries we will check in edge[] if u is using block
+        int getEdgeVal (uintE u, uintE v, size_t degree1) const{
             if (u >= n || v >= n){
                 return false;
             }
-            size_t degree1 = D[u];
-            size_t degree2 = D[v];
-            if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
-            if(degree1 == 0 || degree2 == 0) return false;
             tableE *tb = LL;
             if(is_high_v(u) && is_high_v(v)){
                 tb = HH;
@@ -201,7 +198,8 @@ namespace DBTGraph{
 #else
             size_t new_d = num_edges() + ins_d - del_d;
             return  new_d  < M/4 || new_d  > M;}
-#endif
+#endif  
+        // can't be used during update, D must align with current entries
         bool haveEdge (EdgeT e) const {
             if (e.first >= n || e.second >= n){
                 return false;
@@ -211,7 +209,7 @@ namespace DBTGraph{
             size_t degree1 = D[u];
             size_t degree2 = D[v];
             if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
-            if(degree1 == 0 || degree2 == 0) return false;
+            if(degree1 == 0 || degree2 == 0) return false; // can't have this, because edges might be inserted
             tableE *tb = LL;
             if(is_high_v(u) && is_high_v(v)){
                 tb = HH;
@@ -458,19 +456,21 @@ namespace DBTGraph{
             }
         }
 
+        // requrie: tables and edges updated
         //tb = XX->find(u)
-        inline void countTrianglesHelper(SetT *tb, uintE u, uintE v, bool flag, TriangleCounts &tc){
+        inline void countTrianglesHelper(SetT *tb, uintE u, uintE v, size_t v_new_degree, bool flag, TriangleCounts &tc){
             par_for(0, tb->size(), [&] (size_t i) {
                 uintE w = get<0>(tb->table[i]);
                 if(w != tb->empty_key && w != v){
                     int val1 = get<1>(tb->table[i]);
-                    int val2 = getEdgeVal(w,v);
+                    int val2 = getEdgeVal(v,  w, v_new_degree);
                     countTrianglesHelper(val1, val2, flag, tc);
                 }
             });
 
         }
 
+        // requrie: tables and edges updated
         inline void countTriangles(DBTGraph::VtxUpdate &u, DBTGraph::VtxUpdate &v, bool flag, TriangleCounts &tc){
             if(D[u.id] > D[v.id])swap(u,v);
             if(use_block_v(u.id)){
@@ -478,7 +478,7 @@ namespace DBTGraph{
                     uintE w = getEArray(u.id, i);
                     if(w != v.id){
                     int val1 = getEArrayVal(u.id, i);
-                    int val2 = getEdgeVal(w,v.id);
+                    int val2 = getEdgeVal(v.id, w, get_new_degree(v));
                     countTrianglesHelper(val1, val2, flag, tc);
                     }
                 }); 
@@ -489,16 +489,27 @@ namespace DBTGraph{
             if(is_low_v(u.id)){ // at least one low vertex    
                 if(low_space > 0){ //LLL or LLH
                     SetT *L = LL->find(u.id, NULL);
-                    countTrianglesHelper(L,u.id,v.id,flag, tc);
+                    countTrianglesHelper(L,u.id,v.id,get_new_degree(v),flag, tc);
                 }
                 if(low_space < space){ //LHL or LHH
                     SetT *H = LH->find(u.id, NULL);
-                    countTrianglesHelper(H,u.id,v.id,flag, tc);
+                    countTrianglesHelper(H,u.id,v.id,get_new_degree(v),flag, tc);
                 }
+            // }else if(is_low_v(v.id)){// at least one low vertex   // noot needed because low/high is only changed in  minor rebalancing 
+            //     low_space = lowD[v.id] + v.insert_low_degree;
+            //     space = D[v.id] + v.insert_degree;
+            //     if(low_space > 0){ //LLL or LLH
+            //         SetT *L = LL->find(v.id, NULL);
+            //         countTrianglesHelper(L,v.id,u.id,flag, tc);
+            //     }
+            //     if(low_space < space){ //LHL or LHH
+            //         SetT *H = LH->find(v.id, NULL);
+            //         countTrianglesHelper(H,v.id,u.id,flag, tc);
+            //     }
             }else{ // both are high vertices
                 if(low_space < space - 1){ //HHH, if only, that's v
                     SetT *H = HH->find(u.id, NULL);
-                    countTrianglesHelper(H,u.id,v.id,flag, tc);
+                    countTrianglesHelper(H,u.id,v.id,get_new_degree(v),flag, tc);
                 }
                 if(u.id > v.id) swap(u,v);
                 WTV wedges = T->find(EdgeT(u.id,v.id), WTV(EMPTYWTV));
