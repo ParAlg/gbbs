@@ -51,6 +51,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
     vertex_data_array[i].offset = newDegrees[i];
   });    
   vertex_data_array[num_vertices-1].degree = num_edges - newDegrees[num_vertices-1];
+  vertex_data_array[num_vertices-1].offset = newDegrees[num_vertices-1];
   newDegrees.clear();
 
   // put edges to array, first old edges, then new edges
@@ -69,7 +70,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
 
   // insert from tables 
   par_for(0, num_vertices, [&](const size_t u) {
-    if(vertex_data_array[u].degree > 0) DG.get_neighbors_major(u, edges_seq, vertex_data_array[u].offset);
+    DG.get_neighbors_major(u, edges_seq, vertex_data_array[u].offset);
   });
 
   // make graph, count triangles

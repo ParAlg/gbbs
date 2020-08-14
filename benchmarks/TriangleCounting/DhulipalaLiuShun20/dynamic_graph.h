@@ -196,9 +196,12 @@ namespace DBTGraph{
             return u.newLowDeg(lowD[u.id]);}
 
         inline bool majorRebalance(size_t ins_d, size_t del_d) const {
+#ifdef TURNOFFMAJOR
+            return false;}
+#else
             size_t new_d = num_edges() + ins_d - del_d;
             return  new_d  < M/4 || new_d  > M;}
-
+#endif
         bool haveEdge (EdgeT e) const {
             if (e.first >= n || e.second >= n){
                 return false;
@@ -263,6 +266,7 @@ namespace DBTGraph{
         }
 
         void get_neighbors_major(uintE u, pbbs::sequence<StaticEdgeT> &seq_out, size_t offset) const {
+            if(D[u] ==  0) return;
             using F = MakeEdgeEntryMajor<SetT>;
             if(use_block_v(u)){
                 size_t k = 0;

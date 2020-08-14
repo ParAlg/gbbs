@@ -25,6 +25,9 @@
 #include <algorithm>
 #include <cmath>
 #include "gbbs/gbbs.h"
+
+// #define TURNOFFMAJOR
+
 #include "shared.h"
 #include "dynamic_graph.h"
 #include "benchmark.h"
