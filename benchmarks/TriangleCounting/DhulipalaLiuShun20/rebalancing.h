@@ -142,14 +142,13 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       }
     });
     DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges, vtxRbl, vtxRblMap);
-    size_t tblVtxN = vtxRbl.size();
 
     //  ============================= Reisze lower table ============================= 
     // rezize bottom table for all v (L to H and H to L)
     // vertices using blocks do not need to update lower size table bc low and high ngh are stored together
     // TODO: resize to account for delete edges
 
-    par_for(0,tblVtxN,[&](size_t i){
+    par_for(0,vtxRbl.size(),[&](size_t i){
       uintE v = vtxRbl[i].id;
       if(DG.use_block_v(v)) return;
       size_t deltaLtoH = vtxRbl[i].LtoH;
@@ -163,13 +162,13 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     //  ============================= Move between lower tables ============================= 
 
     //delete from bottom table
-    par_for(0,tblVtxN,[&](const size_t i){
+    par_for(0,vtxRbl.size(),[&](const size_t i){
       VtxRbl v = vtxRbl[i];
       DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), DG.is_low_v(v.id), true);
     });
 
     //insert to bottom table
-    par_for(0,tblVtxN, [&](const size_t i){
+    par_for(0,vtxRbl.size(), [&](const size_t i){
       VtxRbl v = vtxRbl[i];
       DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), DG.is_low_v(v.id), false);
     });
@@ -180,26 +179,18 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //  ============================= Move between top tables ============================= 
     // move top table LtoH
-    par_for(0,  numLtoH, [&] (const size_t i) { //update  status
-      VtxUpdate u = vtxChangeLH[i];      
-      DG.minorRblMoveTopTable(u, true, false);
-    });
+    par_for(0,  numLtoH, [&] (const size_t i) { 
+      DG.minorRblMoveTopTable(vtxChangeLH[i], true, false);});
 
     par_for(0,  numLtoH, [&] (const size_t i) { //update  status
-      VtxUpdate u = vtxChangeLH[i];      
-      DG.minorRblMoveTopTable(u, true, true);
-    });
+      DG.minorRblMoveTopTable(vtxChangeLH[i], true, true);});
 
     // move top table HtoL
-    par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { //update  status
-      VtxUpdate u = vtxChangeLH[i];      
-      DG.minorRblMoveTopTable(u, false, false);
-    });
+    par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { 
+      DG.minorRblMoveTopTable(vtxChangeLH[i], false, false);});
 
     par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { //update  status
-      VtxUpdate u = vtxChangeLH[i];      
-      DG.minorRblMoveTopTable(u, false, true);
-    });
+      DG.minorRblMoveTopTable(vtxChangeLH[i], false, true);});
 
     //  ============================= Update Degrees ============================= 
     timer t;

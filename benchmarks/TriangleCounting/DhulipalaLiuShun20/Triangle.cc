@@ -51,7 +51,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
   auto f = [&] (uintE u, uintE v, uintE w) { };
   timer t; t.start();
   count = Dynamic_Triangle(G, updates, f, P);
-  std::cout << "### count: " << count << std::endl;
+  std::cout << "### Num triangles = " << count << "\n";
   double tt = t.stop();
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {

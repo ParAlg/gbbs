@@ -114,7 +114,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
     DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
-    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true);
+    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true); //TODO: change to tombstone
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
     DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));

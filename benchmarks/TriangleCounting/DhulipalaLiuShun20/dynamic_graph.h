@@ -767,7 +767,7 @@ namespace DBTGraph{
         // prereq: u changes from L to H or H to L, tables are already resized
         // called after moving lower level
         // must insert first, then delete
-        // change the status of u
+        // change the status of u when is_delete is true
         void minorRblMoveTopTable(DBTGraph::VtxUpdate &u, bool is_low_now, bool is_delete){
             if(use_block_v(u.id)) return; // not in either tables
             tableE *tb1 = HL;tableE *tb3 = LL; // move from 1 to 3
@@ -792,7 +792,7 @@ namespace DBTGraph{
                     tb4->insert(make_tuple(u.id, H));
                 }         
             }
-            status[u.id] = is_low_now;//status true if high after
+            if(is_delete) status[u.id] = is_low_now;//status true if high after
         }
 
         // is_low_now is true if v has delta nghbors moving from L to H, otherwise from H to L
@@ -850,7 +850,7 @@ namespace DBTGraph{
             T->deleteVal(EdgeT(u,v));
         }
 
-        // called before tables and status are updated, u is now H, w is now L (before update)
+        // called before tables and status are are rebalanced, but already updated, u is now H, w is now L (before update)
         // edges are updated and packed based on VtxUpdate 
         // delete all wedges (u,w,v) where v is now H
         // if u.v both change from H to L, update twice
@@ -860,7 +860,7 @@ namespace DBTGraph{
                 if(vtxMap[w] != EMPTYVMAP) wobj = vtxNew[vtxMap[w]];
                 par_for(0, get_new_degree(wobj), [&] (size_t k) {
                     uintE v = getEArray(w,k);//edges[w * block_size + k];
-                    if(is_high_v(v)){
+                    if(is_high_v(v) && u != v){
                         minorRbldeleteW(u, v);
                         // if(u > v) swap(u,v);
                         // insertW(u, v, UPDATECLEAR);
@@ -881,7 +881,7 @@ namespace DBTGraph{
 
         }
 
-        //called before tables and status are updated, u is now H (before update)
+        //called before tables and status are rebalanced, but already updated, u is now H (before update)
         // edges are updated and packed based on VtxUpdate 
         // delete all wedges (u,w,v) where v is now H and w is now L
         // "delete" means change wedge num to 0
@@ -909,7 +909,7 @@ namespace DBTGraph{
         }
 
 
-        // u is now H (after update), called after tables AND DEGREES are updated
+        // u is now H (after update), called after tables AND DEGREES are rebalanced
         void minorRblInsertWedge(DBTGraph::VtxUpdate &u){
             insertWedges(u.id, false);
         }
@@ -954,7 +954,7 @@ namespace DBTGraph{
             }
         }
         
-        // called after degrees are updated and downSizeTables
+        // called after degrees are updated&rebalanced and downSizeTables
         // D is now new degrees
         // remove tables that 1) packed to array 2) has zero entry
         void downSizeTablesDeletes(DBTGraph::VtxUpdate &u){
