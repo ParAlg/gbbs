@@ -53,6 +53,12 @@ std::string ParametersToString(const size_t mu, const float epsilon) {
   return std::to_string(mu) + "-" + std::to_string(epsilon);
 }
 
+void PrintClock() {
+  std::time_t time{std::chrono::system_clock::to_time_t(
+      std::chrono::system_clock::now())};
+  std::cerr << "[Clock] " << std::ctime(&time);
+}
+
 double AdjustedRandIndex(const scan::Clustering& a, const scan::Clustering& b) {
   PyObject* py_args = PyTuple_New(2);
   for (const auto& [i, arg] : {std::make_pair(0, a), std::make_pair(1, b)}) {
@@ -158,6 +164,8 @@ double RunScan(Graph& graph, const commandLine& parameters) {
     std::cerr << "** CosineSimilarity **\n";
     std::cerr << "**********************\n";
 
+    PrintClock();
+
     std::vector<double> exact_index_times;
     if (verbose) { std::cerr << "Index construction:"; }
     for (size_t i{0}; i < index_rounds - 1; i++) {
@@ -168,10 +176,12 @@ double RunScan(Graph& graph, const commandLine& parameters) {
     }
     // on last trial, keep the index
     timer exact_index_timer{"Index construction"};
-    const indexed_scan::Index exact_index{&graph, scan::CosineSimilarity{}};
+    indexed_scan::Index exact_index{&graph, scan::CosineSimilarity{}};
     exact_index_times.emplace_back(exact_index_timer.stop());
     if (verbose) { std::cerr << ' ' << exact_index_times.back(); }
     std::cerr << "** Index construction median: " << Median(exact_index_times) << "\n\n";
+
+    PrintClock();
 
     // timing trials for querying
     constexpr size_t cluster_rounds{5};
@@ -248,11 +258,13 @@ double RunScan(Graph& graph, const commandLine& parameters) {
       std::cerr << '\n';
       return ret;
     }()};
+    exact_index = indexed_scan::Index{};  // destruct index to save memory
 
     for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
       std::cerr << "\n";
       std::cerr << "Samples=" << num_samples << '\n';
       std::cerr << "----------\n";
+      PrintClock();
       std::vector<double> approx_index_times;
       if (verbose) { std::cerr << "Index construction:"; }
       for (size_t i{0}; i < index_rounds; i++) {
@@ -266,6 +278,7 @@ double RunScan(Graph& graph, const commandLine& parameters) {
       if (is_serial) {
         continue;
       }
+      PrintClock();
 
       double total_modularity_at_exact = 0.0;
       double total_modularity_at_approx = 0.0;
