@@ -25,6 +25,9 @@
 #include <algorithm>
 #include <cmath>
 #include "gbbs/gbbs.h"
+
+// #define TURNOFFMAJOR
+
 #include "shared.h"
 #include "dynamic_graph.h"
 #include "benchmark.h"
@@ -35,6 +38,18 @@
 
 namespace gbbs {
 using namespace std;
+
+template <class Graph, class F, class UT>
+inline size_t test(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
+
+// readin CSR format, output to edges
+
+// random  shuffle edges
+
+//write out edges
+}
+
+
 
 template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
