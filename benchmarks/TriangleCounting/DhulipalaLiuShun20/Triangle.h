@@ -165,7 +165,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   }
 
   size_t batch_offset = P.getOptionLongValue("-bo", 0);  
-  size_t batch_end = P.getOptionLongValue("-be", updates.size());  
+  size_t batch_end = min(P.getOptionLongValue("-be", updates.size()),  updates.size());  
 
   vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
   vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
