@@ -170,7 +170,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
   vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(edges, n);
-  auto C0 = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
+  auto C0 = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
   DBTInternal::PrintFunctionItem("0.", "C0", C0);
   DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2);
   // G.del();

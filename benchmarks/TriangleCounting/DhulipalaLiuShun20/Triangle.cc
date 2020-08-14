@@ -41,10 +41,10 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
   std::cout << "### Application: Dynamic Triangle Counting" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << G.n << std::endl;
-  std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### b: " << updates.size() << std::endl;
-  // std::cout << "### Params: ordering=" << ordering << std::endl;
+  // std::cout << "### n: " << G.n << std::endl;
+  // std::cout << "### m: " << G.m << std::endl;
+  // std::cout << "### b: " << updates.size() << std::endl;
+  // // std::cout << "### Params: ordering=" << ordering << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
   size_t count = 0;

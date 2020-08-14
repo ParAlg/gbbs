@@ -109,15 +109,15 @@ namespace DBTInternal {
 
 //num edge is multiple of 10, already randomly shuffled
 template <class UT>
-inline void staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P) {
+inline void staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P, size_t n) {
 //   size_t block_size = 0; 
   size_t batch_size = edges.size()/10;
-  PrintFunctionItem("Static", "batchsize", batch_size);
+  std::cout << "batch_size " << batch_size << std::endl;
   DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
   for(int i = 0; i< num_batch; ++i){
     size_t batch_end = min(batch_size  * (i+1), edges.size());
     timer t; t.start();
-    DBTGraph::majorRebalancing(edges, 0,  batch_end, 0, DGnew, P, false);
+    DBTGraph::majorRebalancing(edges, 0,  batch_end, n, 0, DGnew, P, false);
     // PrintFunctionItem("Static", "batch", i);
     std::cout << "batch " << i << std::endl;
     t.stop();t.reportTotal("");
@@ -127,7 +127,7 @@ inline void staticCount(const std::vector<UT>& edges, int num_batch, commandLine
 }
 
 
-// example: ./benchmark -i ../../../inputs/rMatEdgesShuffle
+// example: ./benchmark -n 128 -i ../../../inputs/rMatEdgesShuffle
 int RunBenchmark(int argc, char* argv[]) {
   const std::string kCommandLineHelpString{
     "Usage: ./benchmark [-static] [-w] [-n 10] -i <input file>\n"
@@ -149,7 +149,9 @@ int RunBenchmark(int argc, char* argv[]) {
   const char* const input_file{parameters.getOptionValue(kInputFlag)};
   const bool integer_weighted{parameters.getOption("-w")};
   const bool float_weighted{parameters.getOption("-wf")};
-  const int num_batch{parameters.getOptionIntValue("-n", 10)};
+  const int num_batch{parameters.getOptionIntValue("-nb", 10)};
+  const size_t n{parameters.getOptionLongValue("-n", 0)};
+
 
 //   if (argc < 2 ||
 //       std::string(argv[1]) == "-h" ||
@@ -171,13 +173,13 @@ int RunBenchmark(int argc, char* argv[]) {
 
   if (integer_weighted) {
     const auto edge_list{gbbs_io::read_weighted_edge_list<int32_t>(input_file)};
-    staticCount(edge_list, num_batch, parameters);
+    staticCount(edge_list, num_batch, parameters, n);
   } else if (float_weighted) {
     const auto edge_list{gbbs_io::read_weighted_edge_list<float>(input_file)};
-    staticCount(edge_list, num_batch, parameters);
+    staticCount(edge_list, num_batch, parameters, n);
   } else {
     const auto edge_list{gbbs_io::read_unweighted_edge_list(input_file)};
-    staticCount(edge_list, num_batch, parameters);
+    staticCount(edge_list, num_batch, parameters, n);
   }
   return 0;
 } 

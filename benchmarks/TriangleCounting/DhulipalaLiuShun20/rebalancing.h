@@ -20,7 +20,7 @@ namespace DBTGraph{
 vector<gbbs::gbbs_io::Edge<pbbs::empty>> getEdgeVec(const vector<gbbs::gbbs_io::Edge<pbbs::empty>>& updates, size_t s, size_t e){
   if(s == 0 && e == updates.size()) return updates;
   vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges;
-  for (auto el = updates.begin() + s; el != updates.begin() + e + 1; ++el) {
+  for (auto el = updates.begin() + s; el != updates.begin() + e; ++el) {
     edges.emplace_back(el->from, el->to);
   } 
   return edges;
