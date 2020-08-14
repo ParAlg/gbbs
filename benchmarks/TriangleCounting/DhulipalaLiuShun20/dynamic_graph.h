@@ -634,6 +634,10 @@ namespace DBTGraph{
         // no need to init arrays, because will major rebalance
         DyGraph(int t_block_size, size_t a):n(a), m(0), block_size(t_block_size), lowNum(0), alloc(false){
             initParams();
+            D = pbbs::sequence<size_t>(n, (size_t)0);
+            lowD = D;
+            status = pbbs::sequence<bool>(n, false);
+            blockStatus = status;
         }
 
         DyGraph(int t_block_size, Graph& G):block_size(t_block_size), alloc(true){
@@ -757,11 +761,11 @@ namespace DBTGraph{
         }
 
         void del(){
-            if(!alloc) return;
             D.clear();
+            status.clear();
+            if(!alloc) return;
             lowD.clear();
             edges.clear();
-            status.clear();
             blockStatus.clear();
             clearTableE(LH);
             clearTableE(LL);

@@ -53,3 +53,4 @@ inline void test3(DBTGraph::DyGraph<Graph> G){
 // ./Triangle -s -trict 2 ../../../inputs/triangles2.txt ../../../inputs/update2.txt
 // ./Triangle -s -trict 2 ../../../inputs/triangles2.txt ../../../inputs/update2.txt
 // ./Triangle -s -e 7 ../../../inputs/empty ../../../inputs/edges4
+// ./Triangle -s -e 128 -w 1 ../../../inputs/empty ../../../inputs/rMatEdges

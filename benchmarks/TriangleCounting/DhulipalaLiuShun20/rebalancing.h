@@ -61,6 +61,10 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
     VtxUpdate u =  vtxNew[i];
     size_t offset = vertex_data_array[u.id].offset;
     offset += DG.get_degree(u.id) - u.delDeg();
+    pbbs::sample_sort_inplace(edges.slice(offset, offset + u.insert_degree), 
+      [&](const pair<EdgeT,bool>& a, const pair<EdgeT,bool>& b) {
+        return getSecond(a) < getSecond(b);
+      });
     par_for(0, u.insert_degree, [&](const size_t j){
       edges_array[offset + j] = std::make_tuple(getSecond(edges, u.offset + j), pbbs::empty());
     });
