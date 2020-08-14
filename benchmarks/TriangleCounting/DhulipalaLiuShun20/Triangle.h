@@ -39,31 +39,7 @@
 namespace gbbs {
 using namespace std;
 
-
-
-//num edge is multiple of 10, already randomly shuffled
-template <class Graph, class F, class UT>
-inline size_t staticCount(Graph& G, std::vector<UT>& edges, const F& f, commandLine& P) {
-
-  size_t num_batch = 10;
-  size_t batch_size = edges.size()/10;
-  for(size_t i = 0; i< num_batch; ++i){
-    size_t end = batch_size  * (i+1) + 1;
-
-  // write out edges in batches
-
-  // Graph from edge lsits
-  symmetric_graph<symmetric_vertex, pbbs::empty> G = gbbs_io::edge_list_to_symmetric_graph(vector(edges.begin(), edges.end()+end));
-
-  // run dynamic from edge lists
-
-  // run static from edge lists
-
-  // gbbs_io::write_graph_to_file
-  }
-}
-
-// auto perm = pbbs::random_permutation<uintE>(n);
+// gbbs_io::write_graph_to_file
 
 // if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F, class UT>
@@ -95,7 +71,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
 
   if(empty_graph == 0 && edges_sorted){
     DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
-    size_t  new_ct = DBTGraph::majorRebalancing(updates, DG, DGnew, P);
+    size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), DG.get_block_size(), DGnew, P);
     return new_ct;
   }
 

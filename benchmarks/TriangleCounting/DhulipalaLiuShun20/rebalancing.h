@@ -17,14 +17,29 @@ using namespace std;
 namespace gbbs{
 namespace DBTGraph{
 
-template <class Graph, class UT>
-size_t majorRebalancing( std::vector<UT>& updates, DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, commandLine& P){
-
-  std::vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges(updates.size());
-  for (auto & e : updates) {
-    edges.emplace_back(e.from, e.to, pbbs::empty());
+vector<gbbs::gbbs_io::Edge<pbbs::empty>> getEdgeVec(const vector<gbbs::gbbs_io::Edge<pbbs::empty>>& updates, size_t s, size_t e){
+  if(s == 0 && e == updates.size()) return updates;
+  vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges;
+  for (auto el = updates.begin() + s; el != updates.begin() + e + 1; ++el) {
+    edges.emplace_back(el->from, el->to);
   } 
-  updates.clear();
+  return edges;
+}
+
+template<class W>
+vector<gbbs::gbbs_io::Edge<pbbs::empty>> getEdgeVec(const vector<gbbs::gbbs_io::Edge<W>>& updates, size_t s, size_t e){
+  vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges;
+  for (auto el = updates.begin() + s; el != updates.begin() + e; ++el) {
+    edges.emplace_back(el->from, el->to, pbbs::empty());
+  } 
+  return edges;
+}
+
+// if DGnew is NULL, do not generate new DyGraph
+template <class UT>
+size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e,  size_t block_size, DyGraph<SymGraph> &DGnew, commandLine& P, bool build_new = true){
+
+  vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = getEdgeVec(updates, s, e);
   SymGraph G = gbbs::gbbs_io::edge_list_to_symmetric_graph(edges);
 
   // count triangles
@@ -32,8 +47,7 @@ size_t majorRebalancing( std::vector<UT>& updates, DyGraph<Graph>& DG, DyGraph<S
   size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
 
   // convert to new grpah
-  size_t block_size = DG.get_block_size();
-  DGnew = DyGraph(block_size, G);
+  if(build_new) DGnew = DyGraph(block_size, G);
   // delete G;
   
   return c;
