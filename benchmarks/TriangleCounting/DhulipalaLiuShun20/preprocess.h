@@ -57,10 +57,10 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
 // return true if an insert edge is in graph or a delete edge is not in graph
 template <class Graph, class EdgeT>
 inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
-  if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
-      cout << "edge out of bound " << endl;
-      exit(1);
-  }
+  // if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
+  //     cout << "edge out of bound " << endl;
+  //     abort();
+  // }
   return G.haveEdge(e.first) == e.second;
 }
 

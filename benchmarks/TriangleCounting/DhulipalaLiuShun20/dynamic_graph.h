@@ -3,10 +3,9 @@
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
-#include "sparse_table.h"
-#include "set.h"
-#include "gbbs/macros.h"
 #include "shared.h"
+#include "sparse_table.h"
+
 
 using namespace std;
 
@@ -640,9 +639,18 @@ namespace DBTGraph{
             blockStatus = status;
         }
 
-        DyGraph(int t_block_size, Graph& G):block_size(t_block_size), alloc(true){
-            n = G.num_vertices();
+        DyGraph(int t_block_size, Graph& G,  size_t t_n):block_size(t_block_size), alloc(true){
+            n = t_n;
             m = G.num_edges() / 2 ;// edges already doubled
+            if(G.num_vertices() == 0 ||  m == 0){
+                alloc = false;
+                initParams();
+                D = pbbs::sequence<size_t>(n, (size_t)0);
+                lowD = D;
+                status = pbbs::sequence<bool>(n, false);
+                blockStatus = status;
+                return;
+            }
             initParams();
 
             D = pbbs::sequence<size_t>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });

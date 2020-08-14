@@ -4,7 +4,6 @@
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
 #include "sparse_table.h"
-#include "set.h"
 #include "gbbs/macros.h"
 
 using namespace std;

@@ -3,12 +3,10 @@
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
-// #include "gbbs/pbbslib/sparse_table.h"
 #include "sparse_table.h"
-#include "set.h"
-#include "gbbs/macros.h"
-#include "dynamic_graph.h"
+// #include "gbbs/macros.h"
 #include "shared.h"
+#include "dynamic_graph.h"
 #include "preprocess.h"
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 
@@ -56,7 +54,7 @@ size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size
   size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
 
   // convert to new grpah
-  if(build_new) DGnew = DyGraph(block_size, G);
+  if(build_new) DGnew = DyGraph(block_size, G, n);
   // delete G;
   
   return c;
@@ -66,13 +64,12 @@ size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size
 // edges are preprocessed and sorted
 template <class Graph>
 size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequence<pair<EdgeT,bool>> &edges, 
-                              pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap, commandLine& P){
+                              pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap, size_t num_vertices, commandLine& P){
 
   using W = pbbslib::empty;
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
 
-  size_t num_vertices = DG.num_vertices();
   auto monoid = pbbslib::addm<size_t>();
 
   if( DG.num_edges()  !=  0){
@@ -140,7 +137,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
 
   // convert to new grpah
   size_t block_size = DG.get_block_size();
-  DGnew = DyGraph(block_size, G);
+  DGnew = DyGraph(block_size, G, num_vertices);
   // delete G;
   
   return c;

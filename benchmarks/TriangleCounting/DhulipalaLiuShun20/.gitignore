@@ -1,4 +1,5 @@
 .vscode/*
 Triangle
 benchmark
-staticCounts*
+outputs/*
+scratch/*

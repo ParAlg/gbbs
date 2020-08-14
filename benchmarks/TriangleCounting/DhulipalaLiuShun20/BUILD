@@ -1,24 +1,22 @@
 cc_library(
-  name = "two_level_tables",
-  hdrs = ["two_level_tables.h"],
-  deps = ["//ligra/pbbslib:hash_table",
-  ]
-)
-
-cc_library(
   name = "Triangle",
   hdrs = ["Triangle.h"],
   deps = [
-  "//ligra:ligra",
+  "//gbbs:gbbs",
   "//pbbslib:sample_sort",
   "//pbbslib:monoid",
-  "//ligra/pbbslib:sparse_table",
-  ":two_level_tables",
+  "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle"
+  ":sparse_table",
+  ":dynamic_graph",
+  ":benchmark",
+  ":preprocess",
+  ":rebalancing",
+  ":shared",
   ]
 )
 
 cc_binary(
-  name = "Triangle_main",
+  name = "DynamicTriangle_main",
   srcs = ["Triangle.cc"],
   deps = [":Triangle"]
 )
