@@ -86,9 +86,9 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
 /* Macro to generate binary for unweighted graph applications that can ingest
  * only
  * symmetric graph inputs and weighted edge updates input (weight is int type) */
-#define generate_symmetric_dynamic_main(APP, mutates)                                  \
+#define generate_symmetric_dynamic_main(APP, mutates)                          \
   int main(int argc, char* argv[]) {                                           \
-    gbbs::commandLine P(argc, argv, " [-s] [-trict 0] [-blocksize 5] [-w 1] [-e 0] [-es] <inFile> <updateFile1>");            \
+    gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");            \
     char* iFile = P.getArgument(1);                                            \
     char* uFile1 = P.getArgument(0);                                           \
     int weighted = P.getOptionIntValue("-w", 1);                               \
@@ -127,5 +127,15 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
     gbbs::alloc_finish();                                                      \
   }
 
-// generate_symmetric_main(gbbs::Triangle_runner, false);
+  //    
+  //   "Usage: ./Triangle [-trict 0] [-s] [-c] [-w] <inFile> <updateFile1> \n"
+  //   "Optional arguments:\n"
+  //   "  -w: 0 if the edge list is weighted with 32-bit integers., 1 if unweighted inserts. 2 if unweighted deletes\n"
+  //   "  -n: number of vertices"
+  //   "  -eg: ignore <inFile>. otherwise inFile is the original graph"
+  //   "  -trict: triangle counts in <inFile>"
+  //   "  -blocksize: blocksize to use"
+  // [-trict]: inFile is the original graph, has trict triangles
+  // [-eg] [-n] [-alli]: All edges in <updateFile1> will be inserted, edges are sorted already
+  // [-eg] [-n] [-bo] [-be]: first [bo] are counted statically, [bo:be] are updates
 generate_symmetric_dynamic_main(gbbs::Dynamic_Triangle_runner, false);

@@ -145,9 +145,6 @@ template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   bool empty_graph = P.getOptionValue("-eg"); 
   size_t block_size = P.getOptionLongValue("-blocksize", 5);        
-   
-
-  // DBTInternal::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
 
   if(!empty_graph){
     auto C0 = P.getOptionIntValue("-trict", 0);
@@ -158,20 +155,23 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   }
 
   size_t n = P.getOptionLongValue("-n", 0);  
-  size_t batch_offset = P.getOptionLongValue("-bo", 0);  
-  bool edges_sorted = P.getOptionValue("-es"); 
+  bool sorted_inserts = P.getOptionValue("-alli"); 
 
-  if(batch_offset == 0 && edges_sorted){ // all edges are inserts updates
+  if(sorted_inserts){ // all edges are inserts updates
     DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, n); 
     DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
     size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), n, DG.get_block_size(), DGnew, P);
     return new_ct;
   }
 
+  size_t batch_offset = P.getOptionLongValue("-bo", 0);  
+  size_t batch_end = P.getOptionLongValue("-be", updates.size());  
+
   vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
-  vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, updates.size());
+  vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(edges, n);
   auto C0 = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
+  DBTInternal::PrintFunctionItem("0.", "C0", C0);
   DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2);
   G.del();
   return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates2, C0, P); 
