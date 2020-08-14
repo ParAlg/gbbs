@@ -37,6 +37,18 @@ namespace gbbs {
 using namespace std;
 
 template <class Graph, class F, class UT>
+inline size_t test(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
+
+// readin CSR format, output to edges
+
+// random  shuffle edges
+
+//write out edges
+}
+
+
+
+template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   auto C0 = P.getOptionIntValue("-trict", 0);
   UTIL::PrintFunctionItem("0.", "C0", C0);

@@ -722,14 +722,15 @@ namespace DBTGraph{
 
         //TODO: better way to clear?
         inline void clearTableE(tableE *tb){
+            if(!tb->alloc) return;
             par_for(0, tb->size(), [&] (size_t i) {
                 if(tb->table[i] != tb->empty){
                     std::get<1>(tb->table[i])->del();
-                    delete std::get<1>(tb->table[i]);
+                    // delete std::get<1>(tb->table[i]);
                 }
             });
-            // tb->del();
-            delete tb;
+            tb->del();
+            // delete tb;
         }
 
         void del(){
@@ -742,7 +743,7 @@ namespace DBTGraph{
             clearTableE(LL);
             clearTableE(HL);
             clearTableE(HH);
-            delete T;
+            T->del();
         }
 
         ~DyGraph(){
