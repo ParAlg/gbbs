@@ -28,7 +28,9 @@ namespace DBTInternal {
   inline void PrintFunctionItem(std::string t_func, std::string t_item, T t_suffix);
 
   template <class T>
-  inline void PrintSubtimer(std::string t_item, T t_suffix);
+  inline void PrintFunctionItem(std::string t_func, std::string t_item, T t_suffix) {
+    std::cout << "[" << t_func << "] " << t_item << " = " << t_suffix << std::endl;
+  }
 
   inline void PrintBreak();
 

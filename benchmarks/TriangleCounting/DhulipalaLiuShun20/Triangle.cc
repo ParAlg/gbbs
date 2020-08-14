@@ -109,7 +109,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
       updates = gbbs::gbbs_io::read_weighted_edge_list<int>(uFile1);        \
     }else if (weighted == 1){                                                 \
       updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 1);        \
-    }else if (weighted == 1){\
+    }else if (weighted == 2){\
       updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 0);        \
     }else{                                                              \
       std::cout << "# wrong  weighted flag. use 0 for weighted, 1 for inserts , 2 for deletes"  << std::endl; \
@@ -118,7 +118,7 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, commandLine P) {
       auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>( \
           iFile, mmap, mmapcopy);                                              \
       gbbs::alloc_init(G);                                                     \
-      run_dynamic_app(G, updates, APP, rounds)                                                  \
+      run_dynamic_app(G, updates, APP, rounds)                                  \
     } else {                                                                   \
       auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);    \
       gbbs::alloc_init(G);                                                     \

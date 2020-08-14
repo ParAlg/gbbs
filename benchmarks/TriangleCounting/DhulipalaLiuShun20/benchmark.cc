@@ -58,10 +58,12 @@ namespace DBTInternal {
     std::cout << "[" << t_func << "] " << t_suffix << std::endl;
   }
 
-  template <class T>
-  inline void PrintFunctionItem(std::string t_func, std::string t_item, T t_suffix) {
-    std::cout << "[" << t_func << "] " << t_item << " = " << t_suffix << std::endl;
-  }
+
+
+  // template <class T, class T2>
+  // inline void PrintFunctionItem(std::string t_func, T2 t_item, T t_suffix) {
+  //   std::cout << "[" << t_func << "] " << t_item << " = " << t_suffix << std::endl;
+  // }
 
   template <class T>
   inline void PrintSubtimer(std::string t_item, T t_suffix) {
@@ -116,7 +118,8 @@ inline void staticCount(const std::vector<UT>& edges, int num_batch, commandLine
     size_t batch_end = min(batch_size  * (i+1), edges.size());
     timer t; t.start();
     DBTGraph::majorRebalancing(edges, 0,  batch_end, 0, DGnew, P, false);
-    PrintFunctionItem("Static", "batch", i);
+    // PrintFunctionItem("Static", "batch", i);
+    std::cout << "batch " << i << std::endl;
     t.stop();t.reportTotal("");
     PrintBreak();
 

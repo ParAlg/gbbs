@@ -35,6 +35,15 @@ vector<gbbs::gbbs_io::Edge<pbbs::empty>> getEdgeVec(const vector<gbbs::gbbs_io::
   return edges;
 }
 
+template<class W>
+vector<gbbs::gbbs_io::Edge<W>> getEdgeVecWeighted(const vector<gbbs::gbbs_io::Edge<W>>& updates, size_t s, size_t e){
+  vector<gbbs::gbbs_io::Edge<W>>edges;
+  for (auto el = updates.begin() + s; el != updates.begin() + e; ++el) {
+    edges.emplace_back(el->from, el->to, el->weight);
+  } 
+  return edges;
+}
+
 // if DGnew is NULL, do not generate new DyGraph
 template <class UT>
 size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e,  size_t block_size, DyGraph<SymGraph> &DGnew, commandLine& P, bool build_new = true){

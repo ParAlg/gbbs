@@ -41,39 +41,13 @@ using namespace std;
 
 // gbbs_io::write_graph_to_file
 
-// if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F, class UT>
-inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
-  auto C0 = P.getOptionIntValue("-trict", 0);
-  int empty_graph = P.getOptionIntValue("-e", 0);  
-  bool edges_sorted = P.getOptionValue("-es"); 
-  if(empty_graph < 0) cout << "-e must be positive" << endl;  
-  DBTInternal::PrintFunctionItem("0.", "C0", C0);
+inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<UT>& updates, size_t C0, commandLine& P) {
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
   size_t m, m_ins;
   size_t delta_triangles_pos, delta_triangles_neg;
-
-  size_t block_size = P.getOptionLongValue("-blocksize", 5);        
-
-  t.start();
-  DBTGraph::DyGraph<Graph> DG;
-  if(empty_graph == 0){
-    DG = DBTGraph::DyGraph<Graph>(block_size, G); 
-  }else{
-    DG = DBTGraph::DyGraph<Graph>(block_size, empty_graph); 
-  }
-  t.stop();t.reportTotal("init");
-   
-
-  // DBTInternal::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
-
-  if(empty_graph == 0 && edges_sorted){
-    DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
-    size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), DG.get_block_size(), DGnew, P);
-    return new_ct;
-  }
 
   t.start(); //step 1
   UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates);
@@ -163,6 +137,45 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   vtxNew.clear(); vtxMap.clear();
 
   return C0 + delta_triangles_pos - delta_triangles_neg;
+
+}
+
+// if es flag is there assume edges is sorted and there is no duplicates
+template <class Graph, class F, class UT>
+inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
+  bool empty_graph = P.getOptionValue("-eg"); 
+  size_t block_size = P.getOptionLongValue("-blocksize", 5);        
+   
+
+  // DBTInternal::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
+
+  if(!empty_graph){
+    auto C0 = P.getOptionIntValue("-trict", 0);
+    timer t;t.start();
+    DBTGraph::DyGraph<Graph> DG = DBTGraph::DyGraph<Graph>(block_size, G);
+    t.stop();t.reportTotal("init");
+    return Dynamic_Triangle_Helper<Graph, F, UT>(DG, updates, C0, P); 
+  }
+
+  size_t n = P.getOptionLongValue("-n", 0);  
+  size_t batch_offset = P.getOptionLongValue("-bo", 0);  
+  bool edges_sorted = P.getOptionValue("-es"); 
+
+  if(batch_offset == 0 && edges_sorted){ // all edges are inserts updates
+    DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, n); 
+    DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
+    size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), DG.get_block_size(), DGnew, P);
+    return new_ct;
+  }
+
+  vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
+  vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, updates.size());
+  DBTGraph::SymGraph G2 = gbbs::gbbs_io::edge_list_to_symmetric_graph(edges);
+  auto C0 = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
+  DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2);
+  G.del();
+  return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates2, C0, P); 
+
 }
 
 }  // namespace gbbs
