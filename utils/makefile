@@ -10,7 +10,8 @@ ALL = \
 	converter \
 	random_reorder \
 	to_edge_list \
-	snap_converter
+	snap_converter \
+	shuffle_edge_list
 
 # These aren't benchmarks, but they can be built in the same fashion.
 include $(ROOTDIR)benchmarks/makefile.benchmarks
