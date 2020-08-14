@@ -1,0 +1,64 @@
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 0 targets configured)
+INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 0 targets configured).
+INFO: Found 1 target...
+[0 / 3] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[1 / 3] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments.cc; 1s local
+[2 / 3] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments
+Target //benchmarks/SCAN/IndexBased:unweighted_experiments up-to-date:
+  bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments
+INFO: Elapsed time: 7.025s, Critical Path: 6.92s
+INFO: 2 processes: 2 local.
+INFO: Build completed successfully, 3 total actions
+INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments -s --serial /home/ubuntu/data/orkut-gbbs
+INFO: Build completed successfully, 3 total actions
+# list_alloc init_blocks: 1000
+# after init: 
+# Used: 0, allocated: 6656, node size: 16392, bytes: 109105152
+**********************
+** CosineSimilarity **
+**********************
+** Index construction median: 142.697
+
+** Cluster median 2-0.600000: 0.0600009
+** Cluster median 4-0.600000: 0.0194571
+** Cluster median 8-0.600000: 0.00876808
+** Cluster median 16-0.600000: 0.00443506
+** Cluster median 32-0.600000: 0.00214291
+** Cluster median 64-0.600000: 0.0012939
+** Cluster median 128-0.600000: 0.000974894
+** Cluster median 256-0.600000: 0.000986099
+** Cluster median 512-0.600000: 0.000925064
+** Cluster median 1024-0.600000: 0.000957012
+** Cluster median 2048-0.600000: 0.000925064
+** Cluster median 4096-0.600000: 0.000976086
+** Cluster median 8192-0.600000: 0.000916004
+** Cluster median 16384-0.600000: 0.000954151
+** Cluster median 32768-0.600000: 0.000925064
+** Cluster median 5-0.100000: 4.12327
+** Cluster median 5-0.200000: 2.27235
+** Cluster median 5-0.300000: 1.06434
+** Cluster median 5-0.400000: 0.402681
+** Cluster median 5-0.500000: 0.0969939
+** Cluster median 5-0.600000: 0.0143299
+** Cluster median 5-0.700000: 0.00272894
+** Cluster median 5-0.800000: 0.00110698
+** Cluster median 5-0.900000: 0.000968933
+** Bulk cluster median mu=5: 6.81672 vs. total individual queries: 7.97659
+****************************
+** ApproxCosineSimilarity **
+****************************
+
+Samples=64
+----------
+** Index construction median: 110.3
+
+
+Samples=128
+----------
+** Index construction median: 138.518
+
+
+Samples=256
+----------

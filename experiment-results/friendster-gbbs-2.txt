@@ -1,0 +1,6 @@
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments_3 (0 packages loaded, 0 targets configured)
+INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments_3 (0 packages loaded, 2 targets configured).
+INFO: Found 1 target...
+[0 / 6] [Prepa] BazelWorkspaceStatusAction stable-status.txt
