@@ -30,6 +30,8 @@ void ReportTime([[maybe_unused]] const timer& t) {
 #endif
 }
 
+NeighborOrder::NeighborOrder() : similarities_{}, similarities_by_source_{} {}
+
 const pbbs::range<EdgeSimilarity*>&
 NeighborOrder::operator[](size_t source) const {
   return similarities_by_source_[source];

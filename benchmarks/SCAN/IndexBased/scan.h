@@ -38,6 +38,8 @@ class Index {
     , neighbor_order_{graph, similarity_measure}
     , core_order_{neighbor_order_} {}
 
+  Index();
+
   // Compute a SCAN clustering of the indexed graph using SCAN parameters
   // mu and epsilon.
   //
@@ -85,9 +87,9 @@ class Index {
       bool get_deterministic_result = false) const;
 
  private:
-  const size_t num_vertices_;
-  const internal::NeighborOrder neighbor_order_;
-  const internal::CoreOrder core_order_;
+  size_t num_vertices_;
+  internal::NeighborOrder neighbor_order_;
+  internal::CoreOrder core_order_;
 };
 
 }  // namespace indexed_scan
