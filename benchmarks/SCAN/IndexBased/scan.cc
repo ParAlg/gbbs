@@ -176,6 +176,11 @@ void AttachNoncoresToClustersDeterministic(
 
 }  // namespace
 
+Index::Index()
+  : num_vertices_{0U}
+  , neighbor_order_{}
+  , core_order_{neighbor_order_} {}
+
 Clustering Index::Cluster(
     const uint64_t mu,
     const float epsilon,

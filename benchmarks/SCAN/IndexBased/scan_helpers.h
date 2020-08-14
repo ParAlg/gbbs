@@ -37,6 +37,8 @@ class NeighborOrder {
       symmetric_graph<VertexTemplate, Weight>* graph,
       const SimilarityMeasure& similarity_measure);
 
+  NeighborOrder();
+
   // Get all similarity scores from vertex `source` to its neighbors (not
   // including `source` itself), sorted by descending similarity.
   const pbbs::range<EdgeSimilarity*>& operator[](size_t source) const;
@@ -72,7 +74,7 @@ class CoreOrder {
   pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
 
  private:
-  const size_t num_vertices_;
+  size_t num_vertices_;
   pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
 };
 
