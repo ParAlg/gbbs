@@ -728,8 +728,8 @@ namespace DBTGraph{
                     delete std::get<1>(tb->table[i]);
                 }
             });
-            tb->clear();
-            // delete tb;
+            // tb->del();
+            delete tb;
         }
 
         void del(){
@@ -742,7 +742,7 @@ namespace DBTGraph{
             clearTableE(LL);
             clearTableE(HL);
             clearTableE(HH);
-            T->del();
+            delete T;
         }
 
         ~DyGraph(){
@@ -932,6 +932,7 @@ namespace DBTGraph{
         // pack table to arrays if new degree is low enough
         // all deleted edges are removed
         // status is not changed, change status in downSizeTablesDeletes
+        // free allocated lower table if degree is 0
         void downSizeTables(DBTGraph::VtxUpdate &i){
             uintE u = i.id;
             tableE *tb1 = LL;tableE *tb2 = LH;
@@ -947,10 +948,16 @@ namespace DBTGraph{
             }else if(!use_block(D[u])){ // downsize if w/ new degree should use table
                 if(lowD[u]!=0 ){
                     tb1->find(u, NULL)->maybe_resize(lowD[u]);
+                }else{
+                    SetT *L = tb1->find(u, NULL);
+                    if(L != NULL){delete L;} //L->del();free(L);
                 }
                 if(lowD[u]!=D[u]){
                     tb2->find(u, NULL)->maybe_resize(D[u] - lowD[u]);
-                } 
+                }else{
+                    SetT *H = tb2->find(u, NULL);
+                    if(H != NULL){delete H;}
+                }
             }
         }
         

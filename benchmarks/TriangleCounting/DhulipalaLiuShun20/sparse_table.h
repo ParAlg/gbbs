@@ -219,7 +219,7 @@ class sparse_table {
   }
 
   void maybe_resize(size_t nt) {
-      if (nt > (0.9 * m) || nt < (0.5 * m)) {
+      if (nt > (0.9 * m) || nt < (m/4)) {
         size_t old_m = m;
         auto old_t = table;
         m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));

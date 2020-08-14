@@ -73,7 +73,9 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   if(DG.majorRebalance(m_ins, m-m_ins)){
     // size_t new_m = DG.num_edges() + 2*m_ins - m;
     DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
-    return DBTGraph::majorRebalancing(DG, DGnew, edges,vtxNew, vtxMap, P);
+    size_t new_ct = DBTGraph::majorRebalancing(DG, DGnew, edges,vtxNew, vtxMap, P);
+    // DG.del();
+    return new_ct;
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables

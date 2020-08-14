@@ -83,12 +83,11 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
   // count triangles
   auto f = [&] (uintE u, uintE v, uintE w) { };
   size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
-  // G.del();
 
   // convert to new grpah
   size_t block_size = DG.get_block_size();
-  DG.del();
   DGnew = DyGraph(block_size, G);
+  // delete G;
   
   return c;
 }
@@ -155,8 +154,8 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       size_t deltaHtoL = vtxRbl[i].getHtoL();
       VtxUpdate vobj = VtxUpdate(v);
       if(vtxMap[v] != EMPTYVMAP) vobj = vtxNew[vtxMap[v]];
-      if(deltaLtoH > 0) DG.minorRblResizeBottomTable(vobj, deltaLtoH, true);
-      if(deltaHtoL > 0) DG.minorRblResizeBottomTable(vobj, deltaHtoL, false);
+      if(deltaLtoH > deltaHtoL) DG.minorRblResizeBottomTable(vobj, deltaLtoH - deltaHtoL, true);
+      if(deltaHtoL > deltaLtoH) DG.minorRblResizeBottomTable(vobj, deltaHtoL - deltaLtoH, false);
     });
 
     //  ============================= Move between lower tables ============================= 
