@@ -12,29 +12,29 @@ using namespace std;
 namespace DBTInternal{
 
 template <class weight_type>
-symmetric_graph<symmetric_vertex, weight_type>
-edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge_list, size_t num_vertices) {
-  using edge_type = typename symmetric_vertex<weight_type>::edge_type;
+symmetric_graph<symmetric_vertex, pbbs::empty>
+edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge_list, size_t num_vertices, size_t s, size_t e) {
+  using edge_type = typename symmetric_vertex<pbbs::empty>::edge_type;
 
-  if (edge_list.empty()) {
-    return symmetric_graph<symmetric_vertex, weight_type>{};
+  size_t edgelistsize = e-s;
+  if (edge_list.empty() || edgelistsize == 0) {
+    return symmetric_graph<symmetric_vertex, pbbs::empty>{};
   }
 
-  pbbs::sequence<gbbs_io::Edge<weight_type>> edges_both_directions(2 * edge_list.size());
-  par_for(0, edge_list.size(), [&](const size_t i) {
-      const gbbs_io::Edge<weight_type>& edge = edge_list[i];
-      edges_both_directions[2 * i] = edge;
+  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> edges_both_directions(2 * edgelistsize);
+  par_for(0, edgelistsize, [&](const size_t i) {
+      const gbbs_io::Edge<weight_type>& edge = edge_list[s+i];
+      edges_both_directions[2 * i] = gbbs_io::Edge<pbbs::empty>{edge.from, edge.to, pbbs::empty()};
       edges_both_directions[2 * i + 1] =
-        gbbs_io::Edge<weight_type>{edge.to, edge.from, edge.weight};
+        gbbs_io::Edge<pbbs::empty>{edge.to, edge.from, pbbs::empty()};
   });
   constexpr auto compare_endpoints = [](
-      const gbbs_io::Edge<weight_type>& left,
-      const gbbs_io::Edge<weight_type>& right) {
+      const gbbs_io::Edge<pbbs::empty>& left,
+      const gbbs_io::Edge<pbbs::empty>& right) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
-  pbbs::sequence<gbbs_io::Edge<weight_type>> t_edges =
-    pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
-  pbbs::sequence<gbbs_io::Edge<weight_type>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<weight_type>& e) {return e.from  != e.to;});
+  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> t_edges = pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
+  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<pbbs::empty>& e) {return e.from  != e.to;});
   t_edges.clear();
   const size_t num_edges = edges.size();
   // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
@@ -43,12 +43,12 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
 
   edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
   par_for(0, num_edges, [&](const size_t i) {
-    const gbbs_io::Edge<weight_type>& edge = edges[i];
+    const gbbs_io::Edge<pbbs::empty>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
   });
-
+  edges.clear();
   auto vertex_data_array = vertex_data.to_array();
-  return symmetric_graph<symmetric_vertex, weight_type>{
+  return symmetric_graph<symmetric_vertex, pbbs::empty>{
     vertex_data_array,
     num_vertices,
     num_edges,
@@ -89,15 +89,14 @@ inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
 // given raw updates, give valid updates
 // remove duplicates, leave only last update that's in/not in graph
 template <class Graph, class EdgeT, class UT>
-inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, std::vector<UT> &t_updates){
-  size_t n = t_updates.size();
+inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, std::vector<UT> &t_updates, size_t s, size_t e){
+  size_t n = e-s;//t_updates.size();
   
   // change to our type
   pbbs::sequence<pair<EdgeT, bool>> updates(n);
   par_for(0, n, [&](const size_t i) {
-      updates[i] = toMyUpdateEdgeT<EdgeT, UT>(t_updates[i]);
+      updates[i] = toMyUpdateEdgeT<EdgeT, UT>(t_updates[s+i]);
   });
-  t_updates.clear();
 
   // nullify, leave only the chronologically last update
   // sort indices instead of edges directly

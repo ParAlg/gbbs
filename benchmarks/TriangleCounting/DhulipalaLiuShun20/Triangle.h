@@ -42,7 +42,7 @@ using namespace std;
 // gbbs_io::write_graph_to_file
 
 template <class Graph, class F, class UT>
-inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<UT>& updates, size_t C0, commandLine& P, size_t n) {
+inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<UT>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
@@ -50,7 +50,7 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   size_t delta_triangles_pos, delta_triangles_neg;
 
   t.start(); //step 1
-  UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates);
+  UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates, s, e);
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");
@@ -151,7 +151,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
     timer t;t.start();
     DBTGraph::DyGraph<Graph> DG = DBTGraph::DyGraph<Graph>(block_size, G, G.num_vertices());
     t.stop();t.reportTotal("init");
-    return Dynamic_Triangle_Helper<Graph, F, UT>(DG, updates, C0, P,  G.num_vertices()); 
+    return Dynamic_Triangle_Helper<Graph, F, UT>(DG, updates, C0, P,  G.num_vertices(), 0, updates.size()); 
   }
 
   size_t n = P.getOptionLongValue("-n", 0); 
@@ -167,14 +167,14 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   size_t batch_offset = P.getOptionLongValue("-bo", 0);  
   size_t batch_end = min(P.getOptionLongValue("-be", updates.size()),  updates.size());  
 
-  vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
-  vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
-  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(edges, n);
+  // vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
+  // vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
+  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, batch_offset);
   auto C0 = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
   DBTInternal::PrintFunctionItem("0.", "C0", C0);
   DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2, n);
   // G.del();
-  return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates2, C0, P, n); 
+  return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates, C0, P, n, batch_offset, batch_end); 
 
 }
 

@@ -15,39 +15,12 @@ using namespace std;
 namespace gbbs{
 namespace DBTGraph{
 
-vector<gbbs::gbbs_io::Edge<pbbs::empty>> getEdgeVec(const vector<gbbs::gbbs_io::Edge<pbbs::empty>>& updates, size_t s, size_t e){
-  if(s == 0 && e == updates.size()) return updates;
-  vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges;
-  for (auto el = updates.begin() + s; el != updates.begin() + e; ++el) {
-    edges.emplace_back(el->from, el->to);
-  } 
-  return edges;
-}
-
-template<class W>
-vector<gbbs::gbbs_io::Edge<pbbs::empty>> getEdgeVec(const vector<gbbs::gbbs_io::Edge<W>>& updates, size_t s, size_t e){
-  vector<gbbs::gbbs_io::Edge<pbbs::empty>>edges;
-  for (auto el = updates.begin() + s; el != updates.begin() + e; ++el) {
-    edges.emplace_back(el->from, el->to, pbbs::empty());
-  } 
-  return edges;
-}
-
-template<class W>
-vector<gbbs::gbbs_io::Edge<W>> getEdgeVecWeighted(const vector<gbbs::gbbs_io::Edge<W>>& updates, size_t s, size_t e){
-  vector<gbbs::gbbs_io::Edge<W>>edges;
-  for (auto el = updates.begin() + s; el != updates.begin() + e; ++el) {
-    edges.emplace_back(el->from, el->to, el->weight);
-  } 
-  return edges;
-}
-
 // if DGnew is NULL, do not generate new DyGraph
 template <class UT>
 size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size_t n, size_t block_size, DyGraph<SymGraph> &DGnew, commandLine& P, bool build_new = true){
 
-  vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = getEdgeVec(updates, s, e);
-  SymGraph G = DBTInternal::edge_list_to_symmetric_graph(edges, n);
+  // vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = getEdgeVec(updates, s, e);
+  SymGraph G = DBTInternal::edge_list_to_symmetric_graph(updates, n, s, e);
 
   // count triangles
   auto f = [&] (uintE u, uintE v, uintE w) { };
