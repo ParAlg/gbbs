@@ -304,11 +304,11 @@ namespace DBTGraph{
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
             if(resize){
-                if(u.insert_low_degree > 0 && lowD[u.id] > 0){
+                if(u.ins_low() && !low_table_empty(u)){
                     SetT *bottomTb1 = tb1->find(u.id, NULL);
                     bottomTb1->maybe_resize(u.insert_low_degree, lowD[u.id]);
                 }
-                if(u.degree > u.insert_low_degree && lowD[u.id] < D[u.id]){
+                if(u.ins_high() && !high_table_empty(u)){
                     SetT *bottomTb2 = tb2->find(u.id, NULL);
                     bottomTb2->maybe_resize(u.insert_degree - u.insert_low_degree,  D[u.id] - lowD[u.id]);
                 }
@@ -328,8 +328,8 @@ namespace DBTGraph{
         // assume originally u is using table. i.e. use_block(u) is false
         void markEdgeInsertTop(DBTGraph::VtxUpdate &u, tableE *tb1, tableE *tb2, size_t space){
             size_t low_space = lowD[u.id] + u.insert_low_degree;
-            if(low_space > 0 && lowD[u.id] == 0)  insertTop(tb1, u.id, low_space); 
-            if(low_space < space && lowD[u.id] == D[u.id]) insertTop(tb2, u.id, space-low_space);
+            if(u.ins_low() && low_table_empty(u))  insertTop(tb1, u.id, low_space); 
+            if(u.ins_high() && high_table_empty(u)) insertTop(tb2, u.id, space-low_space);
         }
 
         // copy u's neighbors to table with OLD_EDGE
@@ -388,6 +388,8 @@ namespace DBTGraph{
 
         // if flag is true, update value to val
         // if flag is false, delete value
+        // prereq: u is in tables and nghs in edgesM in tables/array 
+        // prereq true bc of preprocessing
         void markEdgeTables(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool> *> &edgesM, bool flag, int val){
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
@@ -405,6 +407,7 @@ namespace DBTGraph{
             });
         }
 
+        // mark array or tables of i with DEL_EDGE for neghs in edgesD
         void markEdgeDeletion(DBTGraph::VtxUpdate &i, pbbs::range<pair<EdgeT,bool> *> edgesD){
             if(edgesD.size()==0) return;
             uintE u = i.id;

@@ -212,7 +212,7 @@ class sparse_table {
   }
 
   // Pre-condition: k must be present in T.
-  // do not support updating and inserting at the same time
+  // do not support updating and deleting/insert_f at the same time
   inline void updateSeq(K k, V val) {
     size_t h = idx(k);
     std::get<1>(table[h]) = val;

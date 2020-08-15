@@ -94,6 +94,9 @@ namespace DBTGraph{
         inline size_t delDeg() const {return degree-insert_degree;}
         inline size_t newDeg(size_t oldDeg) const {return oldDeg + 2*insert_degree - degree;}
         inline size_t newLowDeg(size_t oldDeg) const {return oldDeg + insert_low_degree - delete_low_degree;}
+        inline bool ins_low(){return insert_low_degree > 0;}
+        inline bool ins_high(){return insert_low_degree < insert_degree;}
+
     };
 
     struct VtxUpdateInsDeg{
