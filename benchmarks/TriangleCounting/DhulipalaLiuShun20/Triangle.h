@@ -46,7 +46,7 @@ using DSymGraph = DBTGraph::DyGraph<DBTGraph::SymGraph>;
 // gbbs_io::write_graph_to_file
 
 template <class Graph, class F, class UT>
-inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<UT>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
+inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, pbbs::sequence<size_t>& vtxMap, std::vector<UT>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
@@ -68,9 +68,9 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
   t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
-  auto result = DBTInternal::toCSR(DG, updates_final, edges, DG.num_vertices());
-  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
-  pbbs::sequence<size_t> vtxMap = result.second;
+  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG.num_vertices());
+  // pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
+  // pbbs::sequence<size_t> vtxMap = result.second;
   t.next("count degrees");
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
@@ -143,11 +143,11 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
   updates_final.clear(); // preprocessed edges
   edges.clear(); // sorted preprocessed edges in both direction
-  vtxNew.clear(); vtxMap.clear();
+  vtxNew.clear(); 
   t.stop(); t.reportTotal("DCountTime");
 
 
-  DG.checkStatus();
+  // DG.checkStatus();
 
   return make_tuple(C0 + delta_triangles_pos - delta_triangles_neg, false, DGnew);
 
@@ -164,17 +164,15 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph> DG, std::vector<UT>& edges
   // tuple<size_t, bool, DSymGraph *> result;
   DSymGraph DGold;
   DSymGraph *DGnew;
+  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
   for(int i = batch_offset; i< num_batch; ++i){
     size_t batch_end = min(batch_size  * (i+1), edges.size());
     timer t; t.start();
     if(switched){
-      tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DGold, edges, count, P, n, i*batch_size, batch_end);
+      tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DGold, vtxMap, edges, count, P, n, i*batch_size, batch_end);
     }else{
-      tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<Graph, F, UT>(DG, edges, count, P, n, i*batch_size, batch_end);
+      tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<Graph, F, UT>(DG, vtxMap, edges, count, P, n, i*batch_size, batch_end);
     }
-    // count = get<0>(result);
-    // use_new = get<1>(result);
-    // DGnew = get<2>(result); 
     if(use_new){
       if(switched){DGold.del();}else{DG.del();}
       DGold = *DGnew;
@@ -185,6 +183,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph> DG, std::vector<UT>& edges
     t.stop();t.reportTotal("");
     std::cout << std::endl;
   }
+  vtxMap.clear();
   return count;
 }
 
