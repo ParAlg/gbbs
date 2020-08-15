@@ -360,6 +360,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // repurpose `needs_normals_seq` to serve as the index of a vertex into
   // `normals`
   const uintE num_needs_normals{pbbslib::scan_add_inplace(needs_normals_seq)};
+  const pbbs::sequence<uintE>& normals_index{needs_normals_seq};
   const pbbs::sequence<float> normals{RandomNormalNumbers(
       num_needs_normals * num_samples, pbbs::random{random_seed})};
 
@@ -375,7 +376,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       }
       Vertex vertex{graph->get_vertex(vertex_id)};
       const uintE vertex_normal_offset{
-        num_samples * needs_normals_seq[vertex_id]};
+        num_samples * normals_index[vertex_id]};
       return pbbs::sequence<BitArray>{
         num_bit_arrays,
         [&](const size_t bit_array_id) {
@@ -398,11 +399,11 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
               if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
                 // unweighted case
                 hyperplane_dot_products[bit_id] +=
-                  normals[num_samples * needs_normals_seq[neighbor_id]
+                  normals[num_samples * normals_index[neighbor_id]
                     + bits_offset + bit_id];
               } else {  // weighted case
                 hyperplane_dot_products[bit_id] +=
-                  normals[num_samples * needs_normals_seq[neighbor_id]
+                  normals[num_samples * normals_index[neighbor_id]
                     + bits_offset + bit_id] * weight;
               }
             }
