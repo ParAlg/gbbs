@@ -32,8 +32,10 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
       const gbbs_io::Edge<weight_type>& right) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
-  pbbs::sequence<gbbs_io::Edge<weight_type>> edges =
+  pbbs::sequence<gbbs_io::Edge<weight_type>> t_edges =
     pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
+  pbbs::sequence<gbbs_io::Edge<weight_type>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<weight_type>& e) {return e.from  != e.to;});
+  t_edges.clear();
   const size_t num_edges = edges.size();
   // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
   pbbs::sequence<vertex_data> vertex_data =
@@ -61,6 +63,7 @@ inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &
   //     cout << "edge out of bound " << endl;
   //     abort();
   // }
+  if(e.first.first == e.first.second){return true;}
   return G.haveEdge(e.first) == e.second;
 }
 

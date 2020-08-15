@@ -207,6 +207,7 @@ namespace DBTGraph{
             }
             uintE u = e.first;
             uintE v = e.second;
+            if(u==v) return false;
             size_t degree1 = D[u];
             size_t degree2 = D[v];
             if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}

@@ -1,7 +1,10 @@
 #!/bin/bash
 
-let "e = $1 + 1000"
-./Triangle -s -eg -blocksize 100 -n 2048 -bo $1 -be $2 ../../../inputs/empty ../../../inputs/rMatGraph_J_2K_10K
+let "e = $1 + 100"
+./Triangle -s -eg -blocksize 100 -n 256 -bo $1 -be $e ../../../inputs/empty ../../../inputs/rMatGraph_J_200_1K_300
+
+# ./Triangle -s -eg -blocksize 5 -n 128 -bo $1 -be $e ../../../inputs/empty ../../../inputs/rMatEdgesShuffle
+
 
 # ./exp.sh 0 70
 # ./exp.sh 71 140
