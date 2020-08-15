@@ -19,33 +19,33 @@ INFO: Build completed successfully, 2 total actions
 **********************
 ** CosineSimilarity **
 **********************
-** Index construction median: 2.86694
+** Index construction median: 2.76594
 
-** Cluster median 2-0.600000: 0.00237608
-** Cluster median 4-0.600000: 0.000905037
-** Cluster median 8-0.600000: 0.00057292
-** Cluster median 16-0.600000: 0.000423908
-** Cluster median 32-0.600000: 0.000298023
-** Cluster median 64-0.600000: 0.000197887
-** Cluster median 128-0.600000: 0.000139236
-** Cluster median 256-0.600000: 8.70228e-05
-** Cluster median 512-0.600000: 8.51154e-05
-** Cluster median 1024-0.600000: 8.60691e-05
-** Cluster median 2048-0.600000: 8.79765e-05
-** Cluster median 4096-0.600000: 8.60691e-05
-** Cluster median 8192-0.600000: 9.10759e-05
-** Cluster median 16384-0.600000: 8.98838e-05
+** Cluster median 2-0.600000: 0.0022552
+** Cluster median 4-0.600000: 0.00100017
+** Cluster median 8-0.600000: 0.000605822
+** Cluster median 16-0.600000: 0.000442028
+** Cluster median 32-0.600000: 0.000320911
+** Cluster median 64-0.600000: 0.000204802
+** Cluster median 128-0.600000: 0.000137091
+** Cluster median 256-0.600000: 8.08239e-05
+** Cluster median 512-0.600000: 8.39233e-05
+** Cluster median 1024-0.600000: 9.17912e-05
+** Cluster median 2048-0.600000: 8.01086e-05
+** Cluster median 4096-0.600000: 8.10623e-05
+** Cluster median 8192-0.600000: 8.51154e-05
+** Cluster median 16384-0.600000: 8.39233e-05
 ** Cluster median 32768-0.600000: 8.60691e-05
-** Cluster median 5-0.100000: 0.0964401
-** Cluster median 5-0.200000: 0.060976
-** Cluster median 5-0.300000: 0.029047
-** Cluster median 5-0.400000: 0.0115111
-** Cluster median 5-0.500000: 0.0030129
-** Cluster median 5-0.600000: 0.000751972
-** Cluster median 5-0.700000: 0.000342846
-** Cluster median 5-0.800000: 0.000226021
-** Cluster median 5-0.900000: 0.000135899
-** Bulk cluster median mu=5: 0.16744 vs. total individual queries: 0.202516
+** Cluster median 5-0.100000: 0.094003
+** Cluster median 5-0.200000: 0.0586429
+** Cluster median 5-0.300000: 0.028589
+** Cluster median 5-0.400000: 0.0112741
+** Cluster median 5-0.500000: 0.00304484
+** Cluster median 5-0.600000: 0.000813007
+** Cluster median 5-0.700000: 0.000353813
+** Cluster median 5-0.800000: 0.000229836
+** Cluster median 5-0.900000: 0.000138998
+** Bulk cluster median mu=5: 0.165947 vs. total individual queries: 0.197481
 ****************************
 ** ApproxCosineSimilarity **
 ****************************
@@ -54,7 +54,7 @@ exact mod 5: -8.16136e-12 1.90364e-07 9.92957e-08 1.94191e-06 5.97864e-05 0.0003
 
 Samples=64
 ----------
-** Index construction median: 2.42577
+** Index construction median: 2.14565
 
 At exact params: modularity=0.0969203 ARI=0.524248
 At best approx params 512-0.020000 modularity=0.135428
@@ -72,7 +72,7 @@ approx mod 5: -8.16136e-12 1.87486e-07 2.03947e-07 2.91655e-07 5.11632e-07 5.693
 
 Samples=128
 ----------
-** Index construction median: 2.98494
+** Index construction median: 2.6652
 
 At exact params: modularity=0.103574 ARI=0.752873
 At best approx params 1024-0.010000 modularity=0.135075
@@ -90,7 +90,7 @@ approx mod 5: -8.16136e-12 1.87486e-07 2.03644e-07 3.71765e-07 4.87283e-06 4.797
 
 Samples=256
 ----------
-** Index construction median: 3.63531
+** Index construction median: 3.02249
 
 At exact params: modularity=0.123566 ARI=0.876259
 At best approx params 32-0.270000 modularity=0.181343
@@ -108,7 +108,7 @@ approx mod 5: -8.16136e-12 1.87486e-07 2.05405e-07 1.25592e-06 3.38894e-05 0.000
 
 Samples=512
 ----------
-** Index construction median: 4.50124
+** Index construction median: 3.38223
 
 At exact params: modularity=0.153574 ARI=0.935766
 At best approx params 64-0.180000 modularity=0.222892
@@ -126,7 +126,7 @@ approx mod 5: -8.16136e-12 1.87366e-07 2.32281e-07 2.81469e-06 5.75181e-05 0.000
 
 Samples=1024
 ----------
-** Index construction median: 5.73769
+** Index construction median: 3.62116
 
 At exact params: modularity=0.258545 ARI=0.996826
 At best approx params 128-0.110000 modularity=0.262556
@@ -144,7 +144,7 @@ approx mod 5: -8.16136e-12 1.86272e-07 1.479e-07 2.16716e-06 5.99409e-05 0.00033
 
 Samples=2048
 ----------
-** Index construction median: 7.71279
+** Index construction median: 3.96687
 
 At exact params: modularity=0.262204 ARI=0.999416
 At best approx params 128-0.110000 modularity=0.262952
@@ -162,7 +162,7 @@ approx mod 5: -8.16136e-12 1.87909e-07 1.3242e-07 2.06632e-06 6.00411e-05 0.0003
 
 Samples=4096
 ----------
-** Index construction median: 10.2471
+** Index construction median: 4.26101
 
 At exact params: modularity=0.262446 ARI=0.999628
 At best approx params 128-0.110000 modularity=0.262917
@@ -180,7 +180,7 @@ approx mod 5: -8.16136e-12 1.90364e-07 9.92957e-08 1.96506e-06 5.98393e-05 0.000
 
 Samples=8192
 ----------
-** Index construction median: 12.852
+** Index construction median: 4.57853
 
 At exact params: modularity=0.26318 ARI=1
 At best approx params 256-0.060000 modularity=0.26318
@@ -198,7 +198,7 @@ approx mod 5: -8.16136e-12 1.90364e-07 9.92957e-08 1.94191e-06 5.97864e-05 0.000
 
 Samples=16384
 ----------
-** Index construction median: 7.50112
+** Index construction median: 3.92902
 
 At exact params: modularity=0.26318 ARI=1
 At best approx params 256-0.060000 modularity=0.26318
@@ -221,7 +221,7 @@ exact mod 5: 3.19162e-06 7.54572e-05 0.000977551 0.0043639 0.0123228 0.02551 0.0
 
 Samples=64
 ----------
-** Index construction median: 1.90234
+** Index construction median: 1.86581
 
 At exact params: modularity=0.127428 ARI=0.765879
 At best approx params 128-0.070000 modularity=0.19286
@@ -239,7 +239,7 @@ approx mod 5: 1.19159e-06 1.03389e-05 3.87169e-05 0.00102982 0.00533723 0.008095
 
 Samples=128
 ----------
-** Index construction median: 2.27953
+** Index construction median: 2.29971
 
 At exact params: modularity=0.126919 ARI=0.868673
 At best approx params 128-0.060000 modularity=0.223812
@@ -257,7 +257,7 @@ approx mod 5: 1.55266e-06 2.20633e-05 0.000430499 0.00287811 0.00856439 0.017585
 
 Samples=256
 ----------
-** Index construction median: 2.5472
+** Index construction median: 2.61267
 
 At exact params: modularity=0.259205 ARI=0.99158
 At best approx params 128-0.050000 modularity=0.259205
@@ -275,7 +275,7 @@ approx mod 5: 1.85653e-06 6.13536e-05 0.000857082 0.00385092 0.0108662 0.0227922
 
 Samples=512
 ----------
-** Index construction median: 2.71332
+** Index construction median: 2.80486
 
 At exact params: modularity=0.255837 ARI=0.998486
 At best approx params 128-0.050000 modularity=0.255837
@@ -293,7 +293,7 @@ approx mod 5: 2.76934e-06 7.51286e-05 0.000967131 0.00430393 0.0120871 0.0248831
 
 Samples=1024
 ----------
-** Index construction median: 2.8085
+** Index construction median: 2.94262
 
 At exact params: modularity=0.255068 ARI=0.999918
 At best approx params 128-0.050000 modularity=0.255068
@@ -311,7 +311,7 @@ approx mod 5: 3.13531e-06 7.52989e-05 0.000979517 0.00436239 0.0122987 0.0254478
 
 Samples=2048
 ----------
-** Index construction median: 2.8429
+** Index construction median: 2.97076
 
 At exact params: modularity=0.255035 ARI=0.999992
 At best approx params 128-0.050000 modularity=0.255035
@@ -329,7 +329,7 @@ approx mod 5: 3.19162e-06 7.52928e-05 0.000979663 0.00436207 0.0123166 0.0254844
 
 Samples=4096
 ----------
-** Index construction median: 2.83378
+** Index construction median: 2.94041
 
 At exact params: modularity=0.255037 ARI=0.999999
 At best approx params 128-0.050000 modularity=0.255037
@@ -347,7 +347,7 @@ approx mod 5: 3.19162e-06 7.54572e-05 0.000979204 0.0043639 0.0123212 0.0255083 
 
 Samples=8192
 ----------
-** Index construction median: 2.82803
+** Index construction median: 2.92462
 
 At exact params: modularity=0.255042 ARI=1
 At best approx params 128-0.050000 modularity=0.255042
@@ -365,7 +365,7 @@ approx mod 5: 3.19162e-06 7.54572e-05 0.000977564 0.0043639 0.0123214 0.02551 0.
 
 Samples=16384
 ----------
-** Index construction median: 2.81748
+** Index construction median: 2.92243
 
 At exact params: modularity=0.255042 ARI=1
 At best approx params 128-0.050000 modularity=0.255042

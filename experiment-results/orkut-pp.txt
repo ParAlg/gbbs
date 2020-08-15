@@ -1,0 +1,33 @@
+int size:4
+n:3072627, m:234370166
+read degree file time:45 ms
+read adjacency list file time:4246 ms
+check input graph file time:227 ms
+other construct time:59 ms
+
+Total input cost:4578 ms
+##### median 2-0.600000 0.88
+##### median 4-0.600000 0.831
+##### median 8-0.600000 0.812
+##### median 16-0.600000 0.805
+##### median 32-0.600000 0.694
+##### median 64-0.600000 0.564
+##### median 128-0.600000 0.465
+##### median 256-0.600000 0.287
+##### median 512-0.600000 0.182
+##### median 1024-0.600000 0.17
+##### median 2048-0.600000 0.174
+##### median 4096-0.600000 0.158
+##### median 8192-0.600000 0.158
+##### median 16384-0.600000 0.154
+##### median 5-0.100000 1.267
+##### median 5-0.200000 1.707
+##### median 5-0.300000 1.566
+##### median 5-0.400000 1.474
+##### median 5-0.500000 1.129
+##### median 5-0.600000 0.885
+##### median 5-0.700000 0.62
+##### median 5-0.800000 0.383
+##### median 5-0.900000 0.27
+Total output cost:0 ms
+
