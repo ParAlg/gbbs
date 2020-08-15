@@ -1025,22 +1025,26 @@ namespace DBTGraph{
                 size_t offset = u*block_size;
                 if(lowD[u] > 0){
                     pack_neighbors_in(tb1->find(u, NULL), u, offset,          offset + lowD[u]);
+                    SetT *L = tb1->find(u, NULL);
+                    L->del();
                 }
                 if(lowD[u] < D[u]){
                     pack_neighbors_in(tb2->find(u, NULL), u, offset + lowD[u], D[u]);
+                    SetT *H = tb2->find(u, NULL);
+                    H->del();
                 }  
             }else if(!use_block(D[u])){ // downsize if w/ new degree should use table
                 if(lowD[u]!=0 ){
                     tb1->find(u, NULL)->maybe_resize(lowD[u]);
                 }else{
                     SetT *L = tb1->find(u, NULL);
-                    if(L != NULL){delete L;} //L->del();free(L);
+                    if(L != NULL){L->del();} //free(L);
                 }
                 if(lowD[u]!=D[u]){
                     tb2->find(u, NULL)->maybe_resize(D[u] - lowD[u]);
                 }else{
                     SetT *H = tb2->find(u, NULL);
-                    if(H != NULL){delete H;}
+                    if(H != NULL){H->del();}
                 }
             }
         }
@@ -1052,12 +1056,8 @@ namespace DBTGraph{
             tableE *tb1 = LL; tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL; tb2 = HH;}            
             if(use_block(D[u.id])&&!use_block_v(u.id)){ // with new degree should block, but is not using it
-                if(lowD[u.id]>0 ){
-                    tb1->deleteVal(u.id);
-                }
-                if(lowD[u.id]<D[u.id]){
-                    tb2->deleteVal(u.id);
-                }  
+                tb1->deleteVal(u.id);
+                tb2->deleteVal(u.id);
                 blockStatus[u.id] = true;              
             }else if(!use_block_v(u.id)){ // if table exists it would have zero entry
                 if(lowD[u.id]==0 ){
@@ -1066,9 +1066,60 @@ namespace DBTGraph{
                 if(lowD[u.id]==D[u.id]){
                     tb2->deleteVal(u.id);
                 }    
-
+                if(D[u.id] == 0)blockStatus[u.id] = true;              
             }
         }
+
+        void checkStatus(){
+            par_for(0, n, [&] (const size_t i) { 
+                uintE u = i;
+                if((is_high_v(i) && must_low(D[i])) || (is_low_v(i) && must_high(D[i]) )){
+                    cout << "status wrong " << i << endl;
+                    abort();
+                };
+                
+                if(use_block_v(i) != use_block(D[i])){
+                    cout << "block status wrong " << i << endl;
+                    abort();
+                };
+
+                if(!use_block_v(i)){
+                    tableE *tb1 = LL; tableE *tb2 = LH;
+                    if(is_high_v(u)){tb1 = HL; tb2 = HH;} 
+                    SetT *L = tb1->find(u, NULL);
+                    SetT *H = tb2->find(u, NULL);
+                    if(lowD[u]!=0 && L == NULL){
+                        cout << "missing L " << i << endl;
+                        abort();
+                    }else if(lowD[u]==0 && L != NULL){
+                        cout << "not deleting L " << i << endl;
+                        abort();
+                    }
+                    if(lowD[u]!=D[u]  && H == NULL){
+                        cout << "missing H " << i << endl;
+                        abort();
+                    }else if(lowD[u]==D[u] && H != NULL){
+                        cout << "not deleting H " << i << endl;
+                        abort();
+                    }
+                }
+
+            });
+
+                // check W. Can't check if all valid wedges in. check if all entries valid
+
+                for(size_t i = 0; i < T->size(); ++ i){
+                    if(get<0>(T->table[i])!=T->empty_key){
+                        uintE u  = get<0>(T->table[i]).first;
+                        uintE v  = get<0>(T->table[i]).second;
+                        if(is_low_v(u)||is_low_v(v)){
+                            cout << "not deleting T entry " << u << " " << v << endl;
+                            abort();
+                        }
+                    }
+                }
+
+        }// end checkStatus
 
     };
 

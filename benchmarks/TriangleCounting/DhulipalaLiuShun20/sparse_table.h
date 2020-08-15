@@ -378,6 +378,18 @@ class sparse_table {
     return pbbslib::filter(table_seq, pred);
   }
 
+  struct getKey{
+    getKey(){}
+    K operator  () (const T& kv) {
+      return std::get<0>(kv);
+    }
+  };
+  sequence<K> keys() const {
+    auto pred = [&](const K& k) { return k != empty_key; };
+    auto table_seq = pbbs::delayed_sequence<K, getKey>(m, getKey());
+    return pbbslib::filter(table_seq, pred);
+  }
+
   size_t entries_out(range<T> seq_out) const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = pbbslib::make_sequence<T>(table, m);

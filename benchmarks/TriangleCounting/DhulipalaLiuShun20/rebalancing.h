@@ -253,7 +253,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     par_for(0, vtxNew.size(), [&] (const size_t i) { // delete tables packed and change status
       DG.downSizeTablesDeletes(vtxNew[i]);
     });
-
+    
     DG.set_vertices_low(newLowNum);
 
     t.stop();t.reportTotal("8. update degrees");
