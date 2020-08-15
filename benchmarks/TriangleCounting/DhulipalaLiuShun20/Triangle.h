@@ -141,7 +141,6 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
 
-  //TODO: do not keep block nodes in T,  in minor rebalance add to T
   updates_final.clear(); // preprocessed edges
   edges.clear(); // sorted preprocessed edges in both direction
   vtxNew.clear(); vtxMap.clear();
