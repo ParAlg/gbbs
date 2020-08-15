@@ -22,15 +22,13 @@
 // SOFTWARE.
 #pragma once
 
+#include "benchmark.h"
+#include "dynamic_graph.h"
+#include "gbbs/gbbs.h"
+#include "pbbslib/sample_sort.h"
+#include "shared.h"
 #include <algorithm>
 #include <cmath>
-#include "gbbs/gbbs.h"
-#include "dynamic_graph.h"
-#include "benchmark.h"
-#include "preprocess.h"
-#include "quicksort.h"
-#include "shared.h"
-
 
 namespace gbbs {
 using namespace std;
@@ -39,7 +37,7 @@ template <class Graph, class F>
 inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   // auto C0 = P.getOptionIntValue("-c", 0);
   using EdgeT = DBTGraph::EdgeT;
-  using UpdatesT = pbbs::sequence<EdgeT>;
+  using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
   size_t m, m_ins;
 
@@ -49,7 +47,7 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   UpdatesT updates = UTIL::generateEdgeUpdates<EdgeT>(DG.num_vertices(), 10);
 
   t.start(); //step 1
-  UpdatesT updates_final = Preprocessing(DG, updates);
+  UpdatesT updates_final = Preprocessing(DG, updates); // Already sorted
   m = updates_final.size();
   updates.clear();
   t.stop();t.reportTotal("1. preprocess");
@@ -62,12 +60,36 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   pbbs::sequence<size_t> vtxMap = result.second;
   t.stop();t.reportTotal("count degrees");
 
-  t.start(); //Sorting the batch of edge insertions using radix sort
-  auto sort_by_index = [&] (EdgeT a, EdgeT b) {
-     return a <= b;
-  }
-  quicksort(updates_final, sort_by_index);
-  t.stop();t.reportTotal("Radix sort the batch of update");
+  /////Perform merging of sorted adjacency lists////
+  int n = updates_final.size();
+  pbbs::sequence<size_t> unique_flags =
+      pbbs::sequence<size_t>::no_init(n); // count the set of unique adj lists
+  par_for(0, n - 1, [&](size_t i) {
+    if (updates[i].first.first != updates[i + 1].first.first) {
+      unique_flags[i] = 1;
+    } else {
+      unique_flags[i] = 0;
+    }
+  });
+  unique_flags[n - 1] = 1;
+
+  auto monoid = pbbslib::addm<size_t>();
+  size_t num_distinct_adj_lists =
+      pbbs::scan_inplace(unique_flags.slice(), monoid);
+
+  pbbs::sequence<size_t> adj_list_starts =
+      pbbs::sequence<size_t>::no_init(num_distinct_adj_lists);
+  adj_list_starts[0] = 0;
+  par_for(0, num_distinct_adj_lists - 1, [&](size_t i) {
+    if (unique_flags[i] != unique_flags[i + 1]) {
+      adj_list_starts[unique_flags[i + 1]] = i + 1;
+    }
+  });
+
+  // Clearing flags
+  unique_flags.clear();
+
+  // Merging with DG adjacency lists
 
   ////////////////Remainder of the file is from yushangdi's branch////////////
   t.start(); //step 6. count triangles // updates final has one copy of each edge
@@ -102,7 +124,6 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
 
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
-  auto monoid = pbbslib::addm<size_t>();
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(2 * m_ins - m)){
     cout <<  "major rebalancing not implemented " << endl;
