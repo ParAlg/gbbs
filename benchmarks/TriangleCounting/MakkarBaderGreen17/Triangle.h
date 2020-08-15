@@ -26,7 +26,6 @@
 #include "dynamic_graph.h"
 #include "gbbs/gbbs.h"
 #include "pbbslib/sample_sort.h"
-#include "sample_sort.h"
 #include "shared.h"
 #include <algorithm>
 #include <cmath>
@@ -62,16 +61,17 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   t.stop();t.reportTotal("count degrees");
 
   /////Perform merging of sorted adjacency lists////
+  int n = updates_final.size();
   pbbs::sequence<size_t> unique_flags =
       pbbs::sequence<size_t>::no_init(n); // count the set of unique adj lists
   par_for(0, n - 1, [&](size_t i) {
     if (updates[i].first.first != updates[i + 1].first.first) {
       unique_flags[i] = 1;
     } else {
-      s unique_flags[i] = 0;
+      unique_flags[i] = 0;
     }
   });
-  flag[n - 1] = 1;
+  unique_flags[n - 1] = 1;
 
   auto monoid = pbbslib::addm<size_t>();
   size_t num_distinct_adj_lists =
@@ -80,7 +80,7 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   pbbs::sequence<size_t> adj_list_starts =
       pbbs::sequence<size_t>::no_init(num_distinct_adj_lists);
   adj_list_starts[0] = 0;
-  par_for(0, num_distinct_adj_list - 1, [&](size_t i) {
+  par_for(0, num_distinct_adj_lists - 1, [&](size_t i) {
     if (unique_flags[i] != unique_flags[i + 1]) {
       adj_list_starts[unique_flags[i + 1]] = i + 1;
     }
@@ -124,7 +124,6 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
 
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
-  auto monoid = pbbslib::addm<size_t>();
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(2 * m_ins - m)){
     cout <<  "major rebalancing not implemented " << endl;
