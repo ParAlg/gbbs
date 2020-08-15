@@ -511,12 +511,13 @@ namespace DBTGraph{
         // flag is true if inserts, false if deletes
         inline void countTriangles(DBTGraph::VtxUpdate &u, DBTGraph::VtxUpdate &v, bool flag, TriangleCounts &tc){
             if(D[u.id] + u.insert_degree > D[v.id] + v.insert_degree)swap(u,v); 
+            size_t space_v = D[v.id] + v.insert_degree;
             if(use_block_v(u.id)){
                 par_for(0, D[u.id] + u.insert_degree, [&] (size_t i) {
                     uintE w = getEArray(u.id, i);
                     if(w != v.id){
                     int val1 = getEArrayVal(u.id, i); //(u,w)
-                    int val2 = getEdgeVal(v.id, w, get_new_degree(v)); //(v,w)
+                    int val2 = getEdgeVal(v.id, w, space_v); //(v,w)
                     countTrianglesHelper(val1, val2, flag, tc);
                     }
                 }); 
@@ -524,7 +525,6 @@ namespace DBTGraph{
             }
             size_t low_space = lowD[u.id] + u.insert_low_degree;
             size_t space = D[u.id] + u.insert_degree;
-            size_t space_v = D[v.id] + v.insert_degree;
             size_t low_space_v = lowD[v.id] + v.insert_low_degree;
             if(is_low_v(u.id)){ // at least one low vertex    
                 if(low_space > 0){ //LLL or LLH
