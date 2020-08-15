@@ -117,14 +117,14 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   triCounts.clear();
   t.next("6. count triangles");
 
-  t.start(); //  first remark inserts, then remove
-  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T
+  t.start(); //  first cleanup wedge tables, then re-mark inserts to OLD_EDGE, then remove
+  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, called before tables are cleaned up
     DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
     DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true); //TODO: change to tombstone
   });
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
+  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
     DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes

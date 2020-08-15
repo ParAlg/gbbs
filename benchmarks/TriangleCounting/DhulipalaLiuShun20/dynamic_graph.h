@@ -454,6 +454,8 @@ namespace DBTGraph{
         // edgesID is the insertions and deletions of w in updates
         // update the c1-c5 counts for wedges centered at w
         //called after marking inserts and deletions, so nghs in edgesID guaranteed in table/array
+        // for each update (w,u) where w is low and u is high
+        //      for w's ngh high  v, check (u,v)
         void updateTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID){
             if (is_low_v(w.id)){ // w is low 
             par_for(0, w.degree, [&] (size_t i) { // loop over the udpate batch (w,u)
@@ -599,7 +601,9 @@ namespace DBTGraph{
             }
         }
 
-        void cleanUpTableT(uintE u, uintE v, bool flag, bool del_flag){
+        // cleanup or delete (u,v) from T
+        // swap u,v if needed
+        void cleanUpTableT(uintE u, uintE v, bool del_flag){
             if(u > v) swap(u,v); 
             if(del_flag){
                 WTV wedge = T->find(EdgeT(u,v), WTV(EMPTYWTV));
@@ -611,11 +615,11 @@ namespace DBTGraph{
             }
         }
 
-        void cleanUpTableArray(DBTGraph::VtxUpdate &w, uintE u, bool flag, bool del_flag){
+        void cleanUpTableArray(DBTGraph::VtxUpdate &w, uintE u, bool del_flag){
             par_for(0, D[w.id] + w.insert_degree, [&] (size_t i) { // bruteforce finding high ngh of w
                 uintE v = getEArray(w.id, i);
                 if(v!=u && is_high_v(v)){
-                    cleanUpTableT(u, v, flag, del_flag); //getEArrayVal(u, i), 
+                    cleanUpTableT(u, v, del_flag); //getEArrayVal(u, i), 
                 }
             });
         }
@@ -623,21 +627,23 @@ namespace DBTGraph{
         // cleanUp the wedges, let c1 = c1+c2+c3-c4-c5
         // called before tables are cleaned up
         // if del_flag is true, we delete 0 counts wedges, use edgesD if del_flag is true
+        // for each update (w,u) where w is low and u is high
+        //      for w's ngh high v, check (u,v)
         void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID, bool del_flag = false){
             if (is_low_v(w.id)){ // w is low and w has high ngh
             par_for(0, edgesID.size(), [&] (size_t i) { // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
                 if(is_high_v(uid)){               // proceed only when u is high
-                    bool flag = edgesID[i].second; // insertion or deletion
+                    // bool flag = edgesID[i].second; // insertion or deletion
                     // if(!(del_flag && flag)){ // continue if not (we want to delete and this is an inserting edge)
                         if(use_block_v(w.id)){           
-                            cleanUpTableArray(w ,uid, flag, del_flag );
+                            cleanUpTableArray(w ,uid, del_flag );
                         }else{
                             SetT *H = LH->find(w.id, NULL);
                             par_for(0, H->size(), [&] (size_t j) {
                                 uintE v = get<0>(H->table[j]);
                                 if(v != H->empty_key && uid != v){
-                                cleanUpTableT(uid, v, flag, del_flag);}});  //get<1>(H->table[j]),
+                                cleanUpTableT(uid, v, del_flag);}}); 
                         }
                     // }
                 }
