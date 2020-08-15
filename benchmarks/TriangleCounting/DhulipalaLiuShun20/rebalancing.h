@@ -19,8 +19,8 @@ namespace DBTGraph{
 // build DGnew to be a graph with block_size
 // return triangle counts in the graph
 template <class UT>
-size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size_t n, size_t block_size, DyGraph<SymGraph> &DGnew, commandLine& P, bool build_new = true){
-
+tuple<size_t,  DyGraph<SymGraph> *>majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size_t n, size_t block_size, commandLine& P, bool build_new = true){
+  DyGraph<SymGraph> *DGnew;
   timer t;t.start();
   SymGraph G = DBTInternal::edge_list_to_symmetric_graph(updates, n, s, e);
   t.next("[MAJ] build G");
@@ -29,9 +29,11 @@ size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size
   size_t c = Triangle(G, f, "degree", P); t.next("[MAJ] count tri"); //TODO: which ordering?, how to ini commandline object?
   
   // convert to new grpah
-  if(build_new){t.start(); DGnew = DyGraph(block_size, G, n); t.next("[MAJ] update DG");}
+  if(build_new){t.start(); 
+  DGnew = new DyGraph(block_size, G, n); 
+  t.next("[MAJ] update DG");}
   
-  return c;
+  return make_tuple(c, DGnew);
 }
 
 // edges needs to have size 2m
@@ -39,13 +41,13 @@ size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size
 // merge edges and DG  to a new graph DGnew
 // return new triangle counts
 template <class Graph>
-size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequence<pair<EdgeT,bool>> &edges, 
+tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<pair<EdgeT,bool>> &edges, 
                               pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap, size_t num_vertices, commandLine& P){
 
   using W = pbbslib::empty;
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
-
+  DyGraph<SymGraph> *DGnew;
   auto monoid = pbbslib::addm<size_t>();  
 
   if( DG.num_edges()  !=  0){
@@ -116,10 +118,10 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
 
   // convert to new grpah
   size_t block_size = DG.get_block_size();
-  DGnew = DyGraph(block_size, G, num_vertices);
+  DGnew = new DyGraph(block_size, G, num_vertices);
   // delete G;
   
-  return c;
+  return make_tuple(c, DGnew);
 }
 
 /* Perform minor rebalancing and update the degrees arrays and status arrays in DG */

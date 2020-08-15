@@ -222,16 +222,16 @@ class sparse_table {
       if (nt > (0.9 * m) || nt < (m/4)) {
         size_t old_m = m;
         auto old_t = table;
-        m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
+        m = ((size_t)1 << pbbslib::log2_up((size_t)(1.2 * nt) + 1));
         if (m == old_m) {
           return;
         }
         mask = m - 1;
         // ne = 0;
-        size_t line_size = 128;
-        size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
+        // size_t line_size = 128;
+        // size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
         // table = (T*)pbbs::aligned_alloc(line_size, bytes);
-        table = (T*)malloc(bytes);
+        table = pbbs::new_array_no_init<T>(m);
         clearA(table, m, empty);
         parallel_for(0, old_m, [&] (size_t i) {
           if (std::get<0>(old_t[i]) != empty_key) {

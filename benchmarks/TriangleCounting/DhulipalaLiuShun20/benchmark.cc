@@ -113,16 +113,14 @@ inline void staticCount(const std::vector<UT>& edges, int num_batch, commandLine
 //   size_t block_size = 0; 
   size_t batch_size = edges.size()/num_batch;
   std::cout << "batch_size " << batch_size << std::endl;
-  DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
   for(int i = 0; i< num_batch; ++i){
     size_t batch_end = min(batch_size  * (i+1), edges.size());
     timer t; t.start();
-    DBTGraph::majorRebalancing(edges, 0,  batch_end, n, 0, DGnew, P, false);
+    DBTGraph::majorRebalancing(edges, 0,  batch_end, n, 0, P, false);
     // PrintFunctionItem("Static", "batch", i);
     std::cout << "batch " << i << std::endl;
     t.stop();t.reportTotal("");
     PrintBreak();
-
   }
 }
 

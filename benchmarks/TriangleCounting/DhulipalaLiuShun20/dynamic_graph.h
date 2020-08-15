@@ -306,7 +306,7 @@ namespace DBTGraph{
             });
         }
 
-        // assume in table
+        // assume in table //bottomTb exists?
         void markEdgeTablesInsertion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>*> &edgesInsert, bool resize, int val){
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
@@ -617,13 +617,17 @@ namespace DBTGraph{
             threshold = 2*t1;
         }
 
+        size_t myceil(size_t x, size_t y){
+            return 1 + ((x - 1) / y);
+        }
+
         void initTables(){
             // important: save space in top table for array nodes
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
             HH = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
-            T  = new tableW((size_t)((M/threshold)*(M/threshold)/2 + 1), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);        
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);        
         }
 
         DyGraph():n(0), m(0), block_size(0), alloc(false){
