@@ -5,6 +5,7 @@
 // and is confusing
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -329,7 +330,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 
   // Computing random normal numbers is expensive, so we precompute which
   // vertices need assignments of normal numbers for Minhash fingerprinting.
-  pbbs::sequence<bool> needs_fingerprint_seq(graph->n, false);
+  pbbs::sequence<uintE> needs_fingerprint_seq(graph->n, 0U);
   pbbs::sequence<uintE> needs_normals_seq(graph->n, 0U);
   par_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
@@ -358,65 +359,73 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     }
   });
   // repurpose `needs_normals_seq` to serve as the index of a vertex into
-  // `normals`
+  // `normals`, and same with `needs_fingerprint_seq`
   const uintE num_needs_normals{pbbslib::scan_add_inplace(needs_normals_seq)};
+  const pbbs::sequence<uintE>& normals_indices{needs_normals_seq};
   const pbbs::sequence<float> normals{RandomNormalNumbers(
       num_needs_normals * num_samples, pbbs::random{random_seed})};
+  const uintE num_needs_fingerprint{
+    pbbslib::scan_add_inplace(needs_fingerprint_seq)};
+  const pbbs::sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
 
   const size_t num_vertices{graph->n};
   const size_t num_bit_arrays{
     internal::DivideRoundingUp(num_samples, kBitArraySize)};
   // Simhash fingerprints.
-  const pbbs::sequence<pbbs::sequence<BitArray>> vertex_fingerprints{
-    num_vertices,
-    [&](const size_t vertex_id) {
-      if (!needs_fingerprint_seq[vertex_id]) {
-        return pbbs::sequence<BitArray>{};
+  pbbs::sequence<BitArray> fingerprints{
+    pbbs::sequence<BitArray>::no_init(num_needs_fingerprint * num_bit_arrays)};
+  par_for(0, num_vertices, [&](const size_t vertex_id) {
+    const uintE fingerprint_index{fingerprint_indices[vertex_id]};
+    const bool needs_fingerprint{
+      vertex_id + 1 == num_vertices
+      ? fingerprint_index != num_needs_fingerprint
+      : fingerprint_index != fingerprint_indices[vertex_id + 1]};
+    if (!needs_fingerprint) {
+      return;
+    }
+    Vertex vertex{graph->get_vertex(vertex_id)};
+    const uintE vertex_normal_offset{
+      num_samples * normals_indices[vertex_id]};
+    const size_t fingerprint_offset{fingerprint_index * num_bit_arrays};
+    par_for(0, num_bit_arrays, [&](const size_t bit_array_id) {
+      BitArray bits{0};
+      const size_t max_bit_id{
+        bit_array_id + 1 == num_bit_arrays
+        ? kBitArraySize - (num_bit_arrays * kBitArraySize - num_samples)
+        : kBitArraySize};
+      const size_t bits_offset{bit_array_id * kBitArraySize};
+      std::array<float, kBitArraySize> hyperplane_dot_products;
+      for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
+        hyperplane_dot_products[bit_id] =
+          normals[vertex_normal_offset + bits_offset + bit_id];
       }
-      Vertex vertex{graph->get_vertex(vertex_id)};
-      const uintE vertex_normal_offset{
-        num_samples * needs_normals_seq[vertex_id]};
-      return pbbs::sequence<BitArray>{
-        num_bit_arrays,
-        [&](const size_t bit_array_id) {
-          BitArray bits{0};
-          const size_t max_bit_id{
-            bit_array_id + 1 == num_bit_arrays
-            ? kBitArraySize - (num_bit_arrays * kBitArraySize - num_samples)
-            : kBitArraySize};
-          const size_t bits_offset{bit_array_id * kBitArraySize};
-          std::array<float, kBitArraySize> hyperplane_dot_products;
-          for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
-            hyperplane_dot_products[bit_id] =
-              normals[vertex_normal_offset + bits_offset + bit_id];
+      const auto update_dot_products{[&](
+          uintE,
+          const uintE neighbor_id,
+          [[maybe_unused]] const Weight weight) {
+        for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
+          if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+            // unweighted case
+            hyperplane_dot_products[bit_id] +=
+              normals[num_samples * normals_indices[neighbor_id]
+                + bits_offset + bit_id];
+          } else {  // weighted case
+            hyperplane_dot_products[bit_id] +=
+              normals[num_samples * normals_indices[neighbor_id]
+                + bits_offset + bit_id] * weight;
           }
-          const auto update_dot_products{[&](
-              uintE,
-              const uintE neighbor_id,
-              [[maybe_unused]] const Weight weight) {
-            for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
-              if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
-                // unweighted case
-                hyperplane_dot_products[bit_id] +=
-                  normals[num_samples * needs_normals_seq[neighbor_id]
-                    + bits_offset + bit_id];
-              } else {  // weighted case
-                hyperplane_dot_products[bit_id] +=
-                  normals[num_samples * needs_normals_seq[neighbor_id]
-                    + bits_offset + bit_id] * weight;
-              }
-            }
-          }};
-          constexpr bool kParallel{false};
-          vertex.mapOutNgh(vertex_id, update_dot_products, kParallel);
-          for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
-            if (hyperplane_dot_products[bit_id] >= 0) {
-              bits |= (1LL << bit_id);
-            }
-          }
-          return bits;
-        }};
-    }};
+        }
+      }};
+      constexpr bool kParallel{false};
+      vertex.mapOutNgh(vertex_id, update_dot_products, kParallel);
+      for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
+        if (hyperplane_dot_products[bit_id] >= 0) {
+          bits |= (1LL << bit_id);
+        }
+      }
+      fingerprints[fingerprint_offset + bit_array_id] = bits;
+    });
+  });
 
   auto directed_graph{DirectGraphByDegree(graph)};
   using Counter = typename EdgeCounter<Weight>::type;
@@ -538,8 +547,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
-    const pbbs::sequence<uint64_t>& vertex_fingerprint{
-      vertex_fingerprints[vertex_id]};
+    const size_t vertex_fingerprint_offset{
+      fingerprint_indices[vertex_id] * num_bit_arrays};
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
@@ -548,14 +557,15 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       const uintT counter_index{v_counter_offset + v_to_u_index};
       float similarity{-1};
       if (vertex_is_high_degree) {  // approximate similarity
-        const pbbs::sequence<BitArray>& neighbor_fingerprint{
-          vertex_fingerprints[u_id]};
+        const size_t neighbor_fingerprint_offset{
+          fingerprint_indices[u_id] * num_bit_arrays};
         const auto fingerprint_xor{
           pbbs::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
-            vertex_fingerprint.size(),
+            num_bit_arrays,
             [&](const size_t i) {
               return __builtin_popcountll(
-                  vertex_fingerprint[i] ^ neighbor_fingerprint[i]);
+                  fingerprints[vertex_fingerprint_offset + i] ^
+                  fingerprints[neighbor_fingerprint_offset + i]);
             })};
         const float angle_estimate{static_cast<float>(
             pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
@@ -607,8 +617,8 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // with a MinHash variant --- see paper "One Permutation Hashing for Efficient
   // Search and Learning."
   // The MinHash variant works as follows to estimate the Jaccard similarity
-  // between two sets using k samples: partition the universe U of elements into k
-  // equally sized buckets U_1, U_2, ..., U_k (e.g., permute U to assign each
+  // between two sets using k samples: partition the universe U of elements into
+  // k equally sized buckets U_1, U_2, ..., U_k (e.g., permute U to assign each
   // element x some value permute(x) in [0, |U|), then assign x to bucket
   // U_{(permute(x) % k) + 1}). The fingerprint of a set S consists of (x_1,
   // ..., x_k) where x_i is the minimum element of U_i that is also in S, or
@@ -628,40 +638,55 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   const pbbs::sequence<uintE> vertex_permutation{
     pbbs::random_permutation<uintE>(num_vertices, pbbs::random{random_seed})};
 
+  pbbs::sequence<uintE> needs_fingerprint_seq{
+      graph->n,
+      [&](const size_t vertex_id) {
+        Vertex vertex{graph->get_vertex(vertex_id)};
+        if (vertex.getOutDegree() < degree_threshold) {
+          return false;
+        }
+        bool needs_fingerprint{false};
+        const auto check_degree_threshold{
+          [&](uintE, const uintE neighbor_id, Weight) {
+            if (!needs_fingerprint &&
+                graph->v_data[neighbor_id].degree >= degree_threshold) {
+              needs_fingerprint = true;
+            }
+          }};
+        vertex.mapOutNgh(vertex_id, check_degree_threshold);
+        return needs_fingerprint;
+      }};
+  const uintE num_needs_fingerprint{
+    pbbslib::scan_add_inplace(needs_fingerprint_seq)};
+  const pbbs::sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
   // Compute MinHash fingerprints for high degree vertices.
-  const pbbs::sequence<pbbs::sequence<uintE>> vertex_fingerprints{
-    num_vertices,
-    [&](const size_t vertex_id) {
-      Vertex vertex{graph->get_vertex(vertex_id)};
-      if (vertex.getOutDegree() < degree_threshold) {
-        return pbbs::sequence<uintE>{};
-      }
-      bool skip_fingerprint{true};
-      const auto check_degree_threshold{
-        [&](uintE, const uintE neighbor_id, Weight) {
-          if (skip_fingerprint &&
-              graph->v_data[neighbor_id].degree >= degree_threshold) {
-            skip_fingerprint = false;
-          }
-        }};
-      vertex.mapOutNgh(vertex_id, check_degree_threshold);
-      if (skip_fingerprint) {
-        return pbbs::sequence<uintE>{};
-      }
+  pbbs::sequence<uintE> fingerprints(
+    num_needs_fingerprint * num_samples, kEmptyBucket);
+  par_for(0, num_vertices, [&](const size_t vertex_id) {
+    const uintE fingerprint_index{fingerprint_indices[vertex_id]};
+    const bool needs_fingerprint{
+      vertex_id + 1 == num_vertices
+      ? fingerprint_index != num_needs_fingerprint
+      : fingerprint_index != fingerprint_indices[vertex_id + 1]};
+    if (!needs_fingerprint) {
+      return;
+    }
 
-      pbbs::sequence<uintE> fingerprint(num_samples, kEmptyBucket);
-      const auto update_fingerprint{
-        [&](uintE, const uintE neighbor, pbbs::empty) {
-          const uintE permuted_neighbor{vertex_permutation[neighbor]};
-          const uintE bucket_id{permuted_neighbor & bucket_mask};
-          const uintE bucket_value{permuted_neighbor >> log_num_samples};
-          pbbs::write_min(
-              &(fingerprint[bucket_id]), bucket_value, std::less<uintE>{});
-        }};
-      update_fingerprint(vertex_id, vertex_id, pbbs::empty{});
-      vertex.mapOutNgh(vertex_id, update_fingerprint);
-      return fingerprint;
-    }};
+    Vertex vertex{graph->get_vertex(vertex_id)};
+    const size_t fingerprint_offset{fingerprint_index * num_samples};
+    const auto update_fingerprint{
+      [&](uintE, const uintE neighbor, pbbs::empty) {
+        const uintE permuted_neighbor{vertex_permutation[neighbor]};
+        const uintE bucket_id{permuted_neighbor & bucket_mask};
+        const uintE bucket_value{permuted_neighbor >> log_num_samples};
+        pbbs::write_min(
+            &(fingerprints[fingerprint_offset + bucket_id]),
+            bucket_value,
+            std::less<uintE>{});
+      }};
+    update_fingerprint(vertex_id, vertex_id, pbbs::empty{});
+    vertex.mapOutNgh(vertex_id, update_fingerprint);
+  });
 
   auto directed_graph{DirectGraphByDegree(graph)};
   // Each counter in `counters` holds the number of shared neighbors in `graph`
@@ -725,8 +750,8 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     const uintT v_counter_offset{counter_offsets[vertex_id]};
     const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
-    const pbbs::sequence<uintE>& vertex_fingerprint{
-      vertex_fingerprints[vertex_id]};
+    const size_t vertex_fingerprint_offset{
+      fingerprint_indices[vertex_id] * num_samples};
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
@@ -735,23 +760,26 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       const uintT counter_index{v_counter_offset + v_to_u_index};
       float similarity{-1};
       if (vertex_is_high_degree) {  // approximate similarity
-        const pbbs::sequence<uintE>& neighbor_fingerprint{
-          vertex_fingerprints[u_id]};
+        const size_t neighbor_fingerprint_offset{
+          fingerprint_indices[u_id] * num_samples};
         const uintE fingerprint_matches{
           pbbslib::reduce_add(
             pbbs::delayed_seq<uintE>(
-              vertex_fingerprint.size(),
+              num_samples,
               [&](const size_t i) {
-                return vertex_fingerprint[i] != kEmptyBucket &&
-                  vertex_fingerprint[i] == neighbor_fingerprint[i];
+                return
+                  fingerprints[vertex_fingerprint_offset + i] != kEmptyBucket &&
+                  fingerprints[vertex_fingerprint_offset + i] ==
+                  fingerprints[neighbor_fingerprint_offset + i];
               }))};
         const uintE fingerprint_empty_count{
           pbbslib::reduce_add(
             pbbs::delayed_seq<uintE>(
-              vertex_fingerprint.size(),
+              num_samples,
               [&](const size_t i) {
-                return vertex_fingerprint[i] == kEmptyBucket &&
-                  neighbor_fingerprint[i] == kEmptyBucket;
+                return
+                  fingerprints[vertex_fingerprint_offset + i] == kEmptyBucket &&
+                  fingerprints[neighbor_fingerprint_offset + i] == kEmptyBucket;
               }))};
         similarity = fingerprint_matches /
           (static_cast<float>(num_samples - fingerprint_empty_count));
