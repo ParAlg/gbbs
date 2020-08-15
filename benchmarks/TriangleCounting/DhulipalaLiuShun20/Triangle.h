@@ -84,7 +84,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables
   par_for(0, vtxNew.size(), [&] (size_t i) {
-    DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
+    DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset())); // called before deletion
     DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
   t.next("2. 3. mark insertions + deletions");

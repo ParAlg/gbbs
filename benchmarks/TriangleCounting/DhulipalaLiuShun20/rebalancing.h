@@ -143,7 +143,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       return DG.change_status(u);
     });
 
-    if(vtxChange.size() != 0){ // return DG.num_vertices_low();
+    if(vtxChange.size() != 0){ //  ============================= continue if there is changes. Otherwise go to degree updates   =============================
 
     pbbs::sequence<bool> flag = pbbs::sequence<bool>(vtxChange.size(), [&](const size_t i){
       return DG.is_high_v(vtxChange[i].id);
