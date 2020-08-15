@@ -20,6 +20,7 @@ test --test_strategy=standalone
 
 # By default build in C++17 mode using the Homegrown scheduler for parallelism.
 build --cxxopt=-std=c++17
+build --cxxopt=-O3
 build --cxxopt=-mcx16        # 16 byte CAS
 build --cxxopt=-DHOMEGROWN   # use the homegrown scheduler
 build --cxxopt=-DLONG        # use 8 byte vertex identifiers
