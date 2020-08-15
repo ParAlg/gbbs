@@ -182,7 +182,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG.get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
     size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);   
     pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>::no_init(rblN); 
-    pbbs::sequence<VtxRbl> vtxRbl;
+    pbbs::sequence<VtxRbl> vtxRbl = pbbs::sequence<VtxRbl>();
     pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
     par_for(0,vtxChangeLH.size(),[&](size_t i){
       size_t ngh_s = newDegrees[i];

@@ -256,10 +256,9 @@ namespace DBTGraph{
                 tableE *tb1 = LL; tableE *tb2 = LH;
                 if(!is_low_now){tb1 = HL; tb2 = HH;}
                 size_t new_low_degree = get_new_low_degree(u);
-                size_t tmp = 0;
+                // size_t tmp = 0; //shuold  be the same as new_low_degree
                 if(new_low_degree >0){
-                    tmp = pack_neighbors_helper<E, F>(tb1->find(u.id, NULL), u.id, Ngh.slice(ngh_s, new_low_degree));
-                    assert(new_low_degree == tmp);}
+                    pack_neighbors_helper<E, F>(tb1->find(u.id, NULL), u.id, Ngh.slice(ngh_s, new_low_degree));}
                 if(new_low_degree < new_degree){
                     pack_neighbors_helper<E, F>(tb2->find(u.id, NULL), u.id, Ngh.slice(new_low_degree, ngh_e));}
             }
