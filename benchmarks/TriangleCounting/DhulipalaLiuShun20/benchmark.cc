@@ -107,7 +107,7 @@ namespace DBTInternal {
     }
 
 
-//num edge is multiple of 10, already randomly shuffled
+//edges already randomly shuffled
 template <class UT>
 inline void staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P, size_t n) {
 //   size_t block_size = 0; 

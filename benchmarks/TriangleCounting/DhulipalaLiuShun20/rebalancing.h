@@ -126,24 +126,32 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
 template <class Graph>
 size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, pbbs::sequence<size_t>& vtxMap){
     size_t n = DG.num_vertices();
-    // size_t numVtx = vtxNew.size();
     auto monoid = pbbslib::addm<size_t>();
+    pbbs::sequence<VtxUpdate> vtxChangeLH = pbbs::sequence<VtxUpdate>();
+    pbbs::sequence<VtxRbl> vtxRbl = pbbs::sequence<VtxRbl>();
+    pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>();
+    pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>();
+    size_t numLtoH =  0;
+    size_t numHtoL =  0;
+    size_t newLowNum = DG.num_vertices_low();
 
     //  ============================= find vertices that change low/high status   =============================
     //TODO: can optimize
     pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](const VtxUpdate &u){
       return DG.change_status(u);
     });
-    if(vtxChange.size() == 0) return DG.num_vertices_low();
+
+    if(vtxChange.size() != 0){ // return DG.num_vertices_low();
+
     pbbs::sequence<bool> flag = pbbs::sequence<bool>(vtxChange.size(), [&](const size_t i){
       return DG.is_high_v(vtxChange[i].id);
     });
 
     // [0,numLtoH) are vertices that change from L to H, the rest from H to L
     pair<pbbs::sequence<VtxUpdate>, size_t> vtxChangeLHsize = pbbs::split_two(vtxChange, flag);
-    pbbs::sequence<VtxUpdate> vtxChangeLH =  vtxChangeLHsize.first; // LtoH, then HtoL 
-    size_t numLtoH =  vtxChangeLHsize.second;
-    size_t numHtoL =  vtxChange.size() - numLtoH;
+    vtxChangeLH =  vtxChangeLHsize.first; // LtoH, then HtoL 
+    numLtoH =  vtxChangeLHsize.second;
+    numHtoL =  vtxChange.size() - numLtoH;
 
     vtxChange.clear();
     flag.clear();
@@ -158,7 +166,6 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG.get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
     size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);   
     pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>::no_init(rblN); 
-    pbbs::sequence<VtxRbl> vtxRbl = pbbs::sequence<VtxRbl>();
     pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
     par_for(0,vtxChangeLH.size(),[&](size_t i){
       size_t ngh_s = newDegrees[i];
@@ -204,7 +211,7 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
 
     //  ============================= Reisze top table ============================= 
-    size_t newLowNum = DG.minorRblResizeTop(numHtoL, numLtoH);
+    newLowNum = DG.minorRblResizeTop(numHtoL, numLtoH);
 
     //  ============================= Move between top tables ============================= 
     // move top table LtoH
@@ -220,6 +227,8 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { //update  status
       DG.minorRblMoveTopTable(vtxChangeLH[i], false, true);});
+    
+    } // end if vtxChange.size() != 0;
 
     //  ============================= Update Degrees ============================= 
     timer t;

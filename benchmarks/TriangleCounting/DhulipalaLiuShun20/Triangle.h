@@ -39,20 +39,24 @@
 namespace gbbs {
 using namespace std;
 
+namespace DBTInternal{
+using DSymGraph = DBTGraph::DyGraph<DBTGraph::SymGraph>;
+
+
 // gbbs_io::write_graph_to_file
 
 template <class Graph, class F, class UT>
-inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<UT>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
+inline tuple<size_t, DSymGraph, bool> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<UT>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   timer t;
   size_t m, m_ins;
   size_t delta_triangles_pos, delta_triangles_neg;
+  DSymGraph DGnew;
 
   t.start(); //step 1
   UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates, s, e);
   m = updates_final.size();
-  updates.clear();
   t.next("1. preprocess");
   DBTInternal::PrintFunctionItem("1.", "valid b", m);
 
@@ -67,11 +71,8 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   auto monoid = pbbslib::addm<size_t>();
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
   if(DG.majorRebalance(m_ins, m-m_ins)){
-    // size_t new_m = DG.num_edges() + 2*m_ins - m;
-    DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
     size_t new_ct = DBTGraph::majorRebalancing(DG, DGnew, edges,vtxNew, vtxMap, n, P);
-    // DG.del();
-    return new_ct;
+    return make_tuple(new_ct, DGnew, true);
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   t.start(); //step 2 mark insert,  some array moves to tables
@@ -137,48 +138,82 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   vtxNew.clear(); vtxMap.clear();
   t.stop(); t.reportTotal("DCountTime");
 
-  return C0 + delta_triangles_pos - delta_triangles_neg;
+  return make_tuple(C0 + delta_triangles_pos - delta_triangles_neg, DGnew, false);
 
 }
 
+//edges already randomly shuffled
+template <class Graph, class F, class UT>
+inline size_t dynamicBatches(DBTGraph::DyGraph<Graph> DG, std::vector<UT>& edges, int num_batch, commandLine& P, size_t n, size_t batch_offset, size_t C0) {
+  size_t batch_size = edges.size()/num_batch;
+  std::cout << "Batch Size " << batch_size << std::endl;
+  bool use_new = false; // use new graph (major rebalanced) or old graph
+  bool switched_to_new = false; 
+  size_t count = C0;
+  tuple<size_t, DSymGraph, bool> result;
+  DSymGraph DGnew;
+  for(int i = batch_offset; i< num_batch; ++i){
+    size_t batch_end = min(batch_size  * (i+1), edges.size());
+    timer t; t.start();
+    if(switched_to_new){
+      result = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DGnew, edges, count, P, n, i*batch_size, batch_end);
+    }else{
+      result = Dynamic_Triangle_Helper<Graph, F, UT>(DG, edges, count, P, n, i*batch_size, batch_end);
+    }
+    count = get<0>(result);
+    use_new = get<2>(result);
+    if(use_new){
+      if(switched_to_new){DGnew.del();}else{DG.del();}
+      switched_to_new = true;
+      DGnew = get<1>(result); 
+    }
+    std::cout << "### Batch " << i << std::endl;
+    std::cout << "### Num triangles = " << count << "\n";
+    t.stop();t.reportTotal("");
+    std::cout << std::endl;
+  }
+  return count;
+}
+
+}  //namespace DBTInternal
+
 // if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F, class UT>
-inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
+inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, int batch_num, commandLine& P) {
   bool empty_graph = P.getOptionValue("-eg"); 
   size_t block_size = P.getOptionLongValue("-blocksize", 5);        
   timer t;t.start();
+
+  size_t batch_offset = P.getOptionLongValue("-bo", 0);  
+  // size_t batch_end = min(P.getOptionLongValue("-be", updates.size()),  updates.size());  
+
   if(!empty_graph){
     auto C0 = P.getOptionIntValue("-trict", 0);
     DBTGraph::DyGraph<Graph> DG = DBTGraph::DyGraph<Graph>(block_size, G, G.num_vertices());
     t.next("Init");
-    return Dynamic_Triangle_Helper<Graph, F, UT>(DG, updates, C0, P,  G.num_vertices(), 0, updates.size()); 
+    return DBTInternal::dynamicBatches<Graph, F, UT>(DG, updates, batch_num, P, G.num_vertices(), batch_offset, C0);
   }
 
   size_t n = P.getOptionLongValue("-n", 0); 
-  bool sorted_inserts = P.getOptionValue("-alli"); 
+  // bool sorted_inserts = P.getOptionValue("-alli"); 
 
-  if(sorted_inserts){ // all edges are inserts updates
-    DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, n); 
-    DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
-    t.next("Init");
-    size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), n, DG.get_block_size(), DGnew, P);
-    return new_ct;
-  }
+  // if(sorted_inserts){ // all edges are inserts updates
+  //   DBTInternal::DSymGraph DG = DBTInternal::DSymGraph(block_size, n); 
+  //   DBTInternal::DSymGraph DGnew;
+  //   t.next("Init");
+  //   size_t new_ct = DBTInternal::dynamicBatches(DG, updates, batch_num, P, n, batch_offset);
+  //   return new_ct;
+  // }
 
-  size_t batch_offset = P.getOptionLongValue("-bo", 0);  
-  size_t batch_end = min(P.getOptionLongValue("-be", updates.size()),  updates.size());  
+  size_t batch_size = updates.size()/batch_num;
 
-  // vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = DBTGraph::getEdgeVec(updates, 0, batch_offset);
-  // vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
-  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, batch_offset);
-  auto C0 = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
-  // DBTInternal::PrintFunctionItem("0.", "C0", C0);
+  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, batch_offset * batch_size);
+  size_t C0 = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
   t.next("Init");
-  DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2, n);
-  // G.del();
+  DBTInternal::DSymGraph DG = DBTInternal::DSymGraph(block_size, G2, n);
+  G2.del();
   t.next("Build DG");
-  return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates, C0, P, n, batch_offset, batch_end); 
-
+  return DBTInternal::dynamicBatches<DBTGraph::SymGraph, F, UT>(DG, updates, batch_num, P, n, batch_offset, C0);
 }
 
 }  // namespace gbbs

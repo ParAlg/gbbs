@@ -27,11 +27,6 @@ namespace DBTInternal {
   template <class T>
   inline void PrintFunctionItem(std::string t_func, std::string t_item, T t_suffix);
 
-  template <class T>
-  inline void PrintFunctionItem(std::string t_func, std::string t_item, T t_suffix) {
-    std::cout << "[" << t_func << "] " << t_item << " = " << t_suffix << std::endl;
-  }
-
   inline void PrintBreak();
 
   template <typename A>
@@ -45,6 +40,12 @@ namespace DBTInternal {
 
   template <typename A>
   inline void PrintVec2(A *t_vec, int t_len);
+
+
+  template <class T>
+  inline void PrintFunctionItem(std::string t_func, std::string t_item, T t_suffix) {
+    std::cout << "[" << t_func << "] " << t_item << " = " << t_suffix << std::endl;
+  }
 
 template <class UT>
 inline void staticCount(std::vector<UT>& edges, size_t num_batch);
