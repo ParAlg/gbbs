@@ -4,7 +4,6 @@
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
 #include "sparse_table.h"
-// #include "gbbs/macros.h"
 #include "shared.h"
 #include "dynamic_graph.h"
 #include "preprocess.h"
@@ -15,26 +14,30 @@ using namespace std;
 namespace gbbs{
 namespace DBTGraph{
 
-// if DGnew is NULL, do not generate new DyGraph
+// if build_new is false, do not update  DGnew to new graph, used in benchmark
+// given edges updates[s,e] and vertices number  n
+// build DGnew to be a graph with block_size
+// return triangle counts in the graph
 template <class UT>
 size_t majorRebalancing(const std::vector<UT>& updates, size_t s, size_t e, size_t n, size_t block_size, DyGraph<SymGraph> &DGnew, commandLine& P, bool build_new = true){
 
-  // vector<gbbs::gbbs_io::Edge<pbbs::empty>> edges = getEdgeVec(updates, s, e);
+  timer t;t.start();
   SymGraph G = DBTInternal::edge_list_to_symmetric_graph(updates, n, s, e);
+  t.next("[MAJ] build G");
 
-  // count triangles
-  auto f = [&] (uintE u, uintE v, uintE w) { };
-  size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
-
+  t.start();auto f = [&] (uintE u, uintE v, uintE w) { }; // count triangles
+  size_t c = Triangle(G, f, "degree", P); t.next("[MAJ] count tri"); //TODO: which ordering?, how to ini commandline object?
+  
   // convert to new grpah
-  if(build_new) DGnew = DyGraph(block_size, G, n);
-  // delete G;
+  if(build_new){t.start(); DGnew = DyGraph(block_size, G, n); t.next("[MAJ] update DG");}
   
   return c;
 }
 
 // edges needs to have size 2m
 // edges are preprocessed and sorted
+// merge edges and DG  to a new graph DGnew
+// return new triangle counts
 template <class Graph>
 size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequence<pair<EdgeT,bool>> &edges, 
                               pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap, size_t num_vertices, commandLine& P){
@@ -43,7 +46,7 @@ size_t majorRebalancing(DyGraph<Graph>& DG, DyGraph<SymGraph> &DGnew, pbbs::sequ
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
 
-  auto monoid = pbbslib::addm<size_t>();
+  auto monoid = pbbslib::addm<size_t>();  
 
   if( DG.num_edges()  !=  0){
     //mark deletions in tables

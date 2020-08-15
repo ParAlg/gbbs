@@ -53,7 +53,7 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   UpdatesT updates_final = DBTInternal::Preprocessing<Graph, EdgeT, UT>(DG, updates, s, e);
   m = updates_final.size();
   updates.clear();
-  t.stop();t.reportTotal("1. preprocess");
+  t.next("1. preprocess");
   DBTInternal::PrintFunctionItem("1.", "valid b", m);
 
   t.start(); //toCSR
@@ -61,7 +61,7 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   auto result = DBTInternal::toCSR(DG, updates_final, edges, DG.num_vertices());
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
   pbbs::sequence<size_t> vtxMap = result.second;
-  t.stop();t.reportTotal("count degrees");
+  t.next("count degrees");
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
   auto monoid = pbbslib::addm<size_t>();
@@ -79,7 +79,7 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
     DG.markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
     DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
-  t.stop();t.reportTotal("2. 3. mark insertions + deletions");
+  t.next("2. 3. mark insertions + deletions");
 
   t.start(); //step 4 and 5 update insertions  and deletions
   // loop over the low degree vertices w, process if the other is high
@@ -87,7 +87,7 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   par_for(0, vtxNew.size(), [&] (size_t i) {
     DG.updateTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
   });
-  t.stop();t.reportTotal("4. 5. update insertions and deletions");
+  t.next("4. 5. update insertions and deletions");
 
   t.start(); //step 6. count triangles // updates final has one copy of each edge
   DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
@@ -101,11 +101,11 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   pbbs::sequence<size_t> triCounts = tc.report();
   delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
   delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
-  DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
-  DBTInternal::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
+  // DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
+  // DBTInternal::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
   tc.clear();
   triCounts.clear();
-  t.stop();t.reportTotal("6. count triangles");
+  t.next("6. count triangles");
 
   t.start(); //  first remark inserts, then remove
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T
@@ -120,11 +120,11 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
     DG.cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
-  t.stop();t.reportTotal("7. clean up tables");
+  t.next("7. clean up tables");
   
   t.start(); //  minor rebalancing 
   DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
-  t.stop();t.reportTotal("8. 9. update degree + minor rebalancing");
+  t.next("8. 9. update degree + minor rebalancing");
   }
 
   par_for(0, vtxNew.size(), [&] (size_t i) {
@@ -135,6 +135,7 @@ inline size_t Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>& DG, std::vector<
   updates_final.clear();
   edges.clear();
   vtxNew.clear(); vtxMap.clear();
+  t.stop(); t.reportTotal("DCountTime");
 
   return C0 + delta_triangles_pos - delta_triangles_neg;
 
@@ -145,12 +146,11 @@ template <class Graph, class F, class UT>
 inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, commandLine& P) {
   bool empty_graph = P.getOptionValue("-eg"); 
   size_t block_size = P.getOptionLongValue("-blocksize", 5);        
-  
+  timer t;t.start();
   if(!empty_graph){
     auto C0 = P.getOptionIntValue("-trict", 0);
-    timer t;t.start();
     DBTGraph::DyGraph<Graph> DG = DBTGraph::DyGraph<Graph>(block_size, G, G.num_vertices());
-    t.stop();t.reportTotal("init");
+    t.next("Init");
     return Dynamic_Triangle_Helper<Graph, F, UT>(DG, updates, C0, P,  G.num_vertices(), 0, updates.size()); 
   }
 
@@ -160,6 +160,7 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   if(sorted_inserts){ // all edges are inserts updates
     DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, n); 
     DBTGraph::DyGraph<DBTGraph::SymGraph> DGnew;
+    t.next("Init");
     size_t  new_ct = DBTGraph::majorRebalancing(updates, 0, updates.size(), n, DG.get_block_size(), DGnew, P);
     return new_ct;
   }
@@ -171,9 +172,10 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   // vector<UT> updates2 = DBTGraph::getEdgeVecWeighted(updates, batch_offset, batch_end);
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, batch_offset);
   auto C0 = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
-  DBTInternal::PrintFunctionItem("0.", "C0", C0);
+  // DBTInternal::PrintFunctionItem("0.", "C0", C0);
   DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2, n);
   // G.del();
+  t.next("Init");
   return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates, C0, P, n, batch_offset, batch_end); 
 
 }
