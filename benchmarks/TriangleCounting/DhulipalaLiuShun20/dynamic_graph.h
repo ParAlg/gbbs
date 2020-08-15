@@ -205,7 +205,7 @@ namespace DBTGraph{
             if (e.first >= n || e.second >= n){
                 return false;
             }
-            uintE u = e.first;
+            uintE u = e.first; //must make a new copy for the swap below
             uintE v = e.second;
             if(u==v) return false;
             size_t degree1 = D[u];
@@ -419,6 +419,10 @@ namespace DBTGraph{
         }
 
         /////////////////////// update table insertions /////////////////////////////////////////////
+        // update wegde (u,v) or (v,u) centered at some w
+        // flag is status of (w,u). true if it's an inserts.  false if deletes
+        // val is status of (v,w)
+        // if none of flag and val is an old edge, (u,v) will be found twice, only u<v does the update
         void updateTableT(uintE u, uintE v, int val, bool flag){ // maybe inserting new entries
             if(flag && val == OLD_EDGE){
                 if(u > v) swap(u,v); 
@@ -444,11 +448,13 @@ namespace DBTGraph{
             });
         }
 
-        //edgesID is the insertions and deletions of w in updates
+        // edgesID is the insertions and deletions of w in updates
+        // update the c1-c5 counts for wedges centered at w
+        //called after marking inserts and deletions, so nghs in edgesID guaranteed in table/array
         void updateTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID){
             if (is_low_v(w.id)){ // w is low 
             par_for(0, w.degree, [&] (size_t i) { // loop over the udpate batch (w,u)
-                uintE uid = edgesID[i].first.second;
+                uintE uid = getSecond(edgesID, i);
                 if(is_high_v(uid)){               // proceed only when u is high
                     bool flag = edgesID[i].second; // insertion or deletion
                     if(use_block_v(w.id)){           
@@ -464,8 +470,6 @@ namespace DBTGraph{
             });
             }
         }
-         // pbbs::sequence<DBTGraph::VtxUpdate> &vtxNew, pbbs::sequence<size_t> &vtxMap
-
 
         /////////////////////// Count Triangles /////////////////////////////////////////////
 
@@ -495,14 +499,17 @@ namespace DBTGraph{
         }
 
         // requrie: tables and edges updated
+        // might swap u,v, so must make a new copy when pass in
+        // count the delta triangle caused by counting wedges of (u,v)
+        // for each ngh w of u, check if (w,v) exits. If so update tri counts
         inline void countTriangles(DBTGraph::VtxUpdate &u, DBTGraph::VtxUpdate &v, bool flag, TriangleCounts &tc){
-            if(D[u.id] > D[v.id])swap(u,v);
+            if(D[u.id] > D[v.id])swap(u,v); 
             if(use_block_v(u.id)){
                 par_for(0, D[u.id] + u.insert_degree, [&] (size_t i) {
                     uintE w = getEArray(u.id, i);
                     if(w != v.id){
-                    int val1 = getEArrayVal(u.id, i);
-                    int val2 = getEdgeVal(v.id, w, get_new_degree(v));
+                    int val1 = getEArrayVal(u.id, i); //(u,w)
+                    int val2 = getEdgeVal(v.id, w, get_new_degree(v)); //(v,w)
                     countTrianglesHelper(val1, val2, flag, tc);
                     }
                 }); 

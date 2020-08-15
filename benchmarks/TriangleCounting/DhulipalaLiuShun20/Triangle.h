@@ -97,16 +97,18 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   });
   t.next("4. 5. update insertions and deletions");
 
-  t.start(); //step 6. count triangles // updates final has one copy of each edge
+  t.start(); //step 6. count triangles 
   DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
+  // updates final has one copy of each edge
+  // for each edge, count the delta triangle caused by counting wedges
   par_for(0, updates_final.size(), [&] (size_t i) {
     EdgeT e = updates_final[i].first;
     bool flag = updates_final[i].second;
-    DBTGraph::VtxUpdate u = vtxNew[vtxMap[e.first]];
-    DBTGraph::VtxUpdate v = vtxNew[vtxMap[e.second]];
+    DBTGraph::VtxUpdate u = vtxNew[vtxMap[e.first]]; // must make a copy here, because countTriangles might swap variables
+    DBTGraph::VtxUpdate v = vtxNew[vtxMap[e.second]]; // must make a copy here, because countTriangles might swap variables
     DG.countTriangles(u,v,flag, tc);
   });
-  pbbs::sequence<size_t> triCounts = tc.report();
+  pbbs::sequence<size_t> triCounts = tc.report();  //TODO: reuse
   delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
   delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
   // DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
@@ -135,13 +137,13 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   t.next("8. 9. update degree + minor rebalancing");
   }
 
-  par_for(0, vtxNew.size(), [&] (size_t i) {
+  par_for(0, vtxNew.size(), [&] (size_t i) { //TODO: reuse
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
 
   //TODO: do not keep block nodes in T,  in minor rebalance add to T
-  updates_final.clear();
-  edges.clear();
+  updates_final.clear(); // preprocessed edges
+  edges.clear(); // sorted preprocessed edges in both direction
   vtxNew.clear(); vtxMap.clear();
   t.stop(); t.reportTotal("DCountTime");
 
