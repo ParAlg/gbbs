@@ -173,9 +173,10 @@ inline size_t Dynamic_Triangle(Graph& G, std::vector<UT>& updates, const F& f, c
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, batch_offset);
   auto C0 = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
   // DBTInternal::PrintFunctionItem("0.", "C0", C0);
+  t.next("Init");
   DBTGraph::DyGraph<DBTGraph::SymGraph> DG = DBTGraph::DyGraph<DBTGraph::SymGraph>(block_size, G2, n);
   // G.del();
-  t.next("Init");
+  t.next("Build DG");
   return Dynamic_Triangle_Helper<DBTGraph::SymGraph, F, UT>(DG, updates, C0, P, n, batch_offset, batch_end); 
 
 }
