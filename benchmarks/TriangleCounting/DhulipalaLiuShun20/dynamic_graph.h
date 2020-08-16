@@ -1,15 +1,13 @@
 #pragma once
 
-#define DBT_USING_TOMB
+// #define DBT_USING_TOMB 
 
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
 #include "shared.h"
 #include "sparse_table.h"
-#ifdef DBT_USING_TOMB
 #include "tomb_table.h"
-#endif
 
 using namespace std;
 
@@ -28,8 +26,9 @@ namespace DBTGraph{
         using tableE = pbbslib::tomb_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
 #else
-        using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
-        using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
+        using tableE = pbbslib::sparse_table<unsigned long long, SetT*, vertexHash >;
+        using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
+        // using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
 #endif
     private:
         size_t n;
@@ -685,7 +684,8 @@ namespace DBTGraph{
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
             HH = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
-            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0); 
+            // T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0); 
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
 #endif                   
         }
 
@@ -1128,11 +1128,8 @@ namespace DBTGraph{
                 // check W. Can't check if all valid wedges in. check if all entries valid
 
                 for(size_t i = 0; i < T->size(); ++ i){
-#ifdef DBT_USING_TOMB
                     if(get<0>(T->table[i])!=T->empty_key && get<0>(T->table[i])!=T->tomb_key){
-#else
-                    if(get<0>(T->table[i])!=T->empty_key){
-#endif
+                    // if(get<0>(T->table[i])!=T->empty_key){
                         uintE u  = get<0>(T->table[i]).first;
                         uintE v  = get<0>(T->table[i]).second;
                         if(is_low_v(u)||is_low_v(v)){
