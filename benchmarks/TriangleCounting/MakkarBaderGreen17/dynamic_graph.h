@@ -20,6 +20,8 @@ struct vertex_hash {
   uint64_t operator()(const uintE &v) const { return pbbs::hash64_2(v); }
 };
 
+    // TODO: Need to cleanup pointers and references and also make sure to clear
+    // memory.
     template <class Graph> //symmetric_graph
     class DyGraph{
     public:
@@ -38,12 +40,10 @@ struct vertex_hash {
 
           ins_edges =
               pbbs::sequence<pbbs::sequence<uintE>>::no_init(batch_alloc_size);
-          radj_ins_edges = pbbs::sequence<size_t>::no_init(batch_alloc_size);
           ind_ins_ids = pbbs::sequence<uintE>::no_init(batch_alloc_size);
 
           del_edges =
               pbbs::sequence<pbbs::sequence<uintE>>::no_init(batch_alloc_size);
-          radj_del_edges = pbbs::sequence<size_t>::no_init(batch_alloc_size);
           ind_del_ids = pbbs::sequence<uintE>::no_init(batch_alloc_size);
 
           id_cur_edges = new tableV(n_alloc_size, EMPTYKV, vertex_hash());
@@ -52,19 +52,48 @@ struct vertex_hash {
 
           degrees = pbbs::sequence<size_t>::no_init(n_alloc_size);
           non_zero_deg = 0;
+
+          cur_triangle_count_ = 0;
         }
 
-        size_t get_cur_size() { return cur_edges.size(); }
+        DyGraph(): non_zero_deg(0) {
+                init_data_structures();
+        }
 
+        DyGraph(pbbs::sequence<EdgeT>& initial_graph_edges, pbbs::sequence<uintE>& initialGraph, pbbs::sequence<uintE>& uniqueIds,
+                pbbs::sequence<size_t>& offsets): initial_graph_edges_(initial_graph_edges),
+        initial_graph_(initialGraph), initial_ids_(uniqueIds),
+        initial_offsets_(offsets){
+                size_t n = initial_ids_.size();
+                auto max_monoid = pbbslib::maxm<size_t>();
+
+                size_t batch_size = pbbs::scan_inplace(offsets.slice(), max_monoid);
+
+                init_data_structures(n, batch_size);
+                create_update_graph(initial_graph_, initial_offsets_, initial_ids_, true);
+                update_inserts(initial_graph_, initial_offsets_, initial_ids_);
+
+                cur_triangle_count_ = countTriangles(initial_graph_edges_, true);
+        }
+
+        size_t get_cur_size() { return non_zero_deg; }
         size_t get_ins_batch_size() { return ins_edges.size(); }
-
         size_t get_del_batch_size() { return del_edges.size(); }
+        size_t get_cur_triangle_count() { return cur_triangle_count_;}
 
         // Resize adjacency list method
         void resize_adj_list(size_t new_size, size_t adj_ind,
                              pbbs::sequence<uintE> updates, bool isInsert) {
           size_t j = updates.size() - 1;
           size_t i = cur_edges[adj_ind].size() - 1;
+
+          uintE id = ind_cur_ids[adj_ind];
+
+          size_t reduce_index;
+          if (isInsert)
+              reduce_index = new_size;
+            else
+              reduce_index = 0;
 
           pbbs::sequence<uintE> new_adj_list =
               pbbs::sequence<uintE>::no_init(new_size);
@@ -75,19 +104,27 @@ struct vertex_hash {
 
               if (diff > 0) {
                 new_adj_list[i + j + 1] = cur_edges[adj_ind][i];
+                if (id > cur_edges[adj_ind][i])
+                    reduce_index = i + j + 1;
                 i--;
               } else {
                 new_adj_list[i + j + 1] = updates[j];
+                if (id > updates[j])
+                    reduce_index = i + j + 1;
                 j--;
               }
             }
 
             while (j >= 0) {
               new_adj_list[i + j + 1] = updates[j];
+                if (id > updates[j])
+                    reduce_index = i + j + 1;
             }
 
             while (i >= 0) {
               new_adj_list[i + j + 1] = cur_edges[adj_ind][i];
+                if (id > cur_edges[adj_ind][i])
+                    reduce_index = i + j + 1;
             }
           } else {
             while (i >= 0 && j >= 0) {
@@ -110,9 +147,12 @@ struct vertex_hash {
             while (i < new_adj_list.size()) {
               if (cur_edges[adj_ind][i] != NULL) {
                 new_adj_list[j] = cur_edges[adj_ind][i];
+                if (id <= cur_edges[adj_ind][i])
+                    reduce_index = j;
                 j++;
               }
             }
+            reduce_index++;
             cur_edges[adj_ind].clear();
             cur_edges[adj_ind] = new_adj_list;
           }
@@ -128,7 +168,16 @@ struct vertex_hash {
           cur_edges.clear();
           cur_edges = new_edges_list;
 
-          // TODO: Also need to resize the table for storing node IDs here.
+          // Also need to resize the table for storing node IDs here.
+            id_cur_edges->clear();
+            tableV *newTable = new tableV(2 * s, EMPTYKV, vertex_hash());
+
+            par_for(0, non_zero_deg, [&] (const size_t i) {
+                uintE id = ind_cur_ids[i];
+                newTable->insert(std::tuple<uintE, size_t>(id, i));
+            });
+
+            id_cur_edges = newTable;
         }
 
         void create_new_adj_list(uintE node_id, size_t j,
@@ -158,7 +207,7 @@ struct vertex_hash {
             if (isInsert)
               reduce_index = d + j;
             else
-              reduce_index = d - j;
+                reduce_index = 0;
 
             if (isInsert) {
               if (d + j > degrees[adj_index]) {
@@ -211,12 +260,12 @@ struct vertex_hash {
                 while (i < cur_edges[adj_index].size()) {
                   if (cur_adj_list[i] != NULL) {
                     cur_edges[adj_index][j] = cur_adj_list[i];
-                    if (cur_adj_list[i] > node_id &&
-                        cur_adj_list[reduce_index] <= node_id)
+                    if (cur_adj_list[i] >= node_id)
                       reduce_index = j;
                     j++;
                   }
                 }
+                reduce_index++;
               }
               degrees[adj_index] = d - j;
             }
@@ -285,8 +334,6 @@ struct vertex_hash {
         }
 
         // Counts the number of intersections between adjacency lists
-        // TODO: Make sure that the adjacency lists are filled (i.e. no empty
-        // spaces, do this in the method that calls this method.)
         size_t countIntersection(pbbs::sequence<uintE> &adj_1,
                                  pbbs::sequence<uintE> &adj_2, bool use_reduced,
                                  uintE u = 0) {
@@ -329,7 +376,8 @@ struct vertex_hash {
             size_t v = id_cur_edges->find(id_v, 0);
 
             size_t num_intersects =
-                countIntersection(cur_edges[u], cur_edges[v], false);
+                countIntersection(cur_edges[u].slice(0, degrees[u]),
+                        cur_edges[v].slice(0, degrees[v]), false);
             updates_triangles_count[i] = num_intersects;
           });
 
@@ -351,7 +399,7 @@ struct vertex_hash {
             }
 
             size_t num_intersects =
-                countIntersection(cur_edges[u], adj_list, true, u);
+                countIntersection(cur_edges[u].slice(0, degrees[u]), adj_list, true, u);
             if (isInsert)
               updates_triangles_count[i] -= num_intersects;
             else
@@ -363,7 +411,7 @@ struct vertex_hash {
           pbbs::sequence<size_t> update_graph_counts =
               pbbs::sequence<size_t>::no_init(updates.size());
 
-          // Finally count all the intersections between in the update graph
+          // Finally count all the intersections in the update graph
           par_for(0, updates_triangles_count.size(), [&](const size_t i) {
             uintE id_u = ind_cur_ids[updates[i].first];
             uintE id_v = ind_cur_ids[updates[i].second];
@@ -397,6 +445,23 @@ struct vertex_hash {
           return t_sum + u_sum / 3;
         }
 
+        // Clean up all unnecessary structures
+        void cleanup() {
+          ins_edges.clear();
+          del_edges.clear();
+          id_ins_edges->clear();
+          id_del_edges->clear();
+          ind_ins_ids.clear();
+          ind_del_ids.clear();
+        }
+        // Clean up initialization structures
+        void cleanup_initial() {
+          initial_graph_.clear();
+          initial_graph_edges_.clear();
+          initial_ids_.clear();
+          initial_offsets_.clear();
+        }
+
       private:
         // 3 structures for each of the following graphs: the current graph
         // the update graph consisting of edge insertion, and the update
@@ -412,8 +477,6 @@ struct vertex_hash {
         // Stores the index of each adjacent list to create the reduced
         // adjacency lists
         pbbs::sequence<size_t> radj_cur_edges;
-        pbbs::sequence<size_t> radj_ins_edges;
-        pbbs::sequence<size_t> radj_del_edges;
 
         // Vertex sparse table for mapping a vertex ID with the corresponding
         // adjacency list
@@ -431,6 +494,16 @@ struct vertex_hash {
 
         // Set of vertices with nonzero degree
         size_t non_zero_deg;
+
+        // Initial graph information
+        pbbs::sequence<uintE> initial_graph_;
+        pbbs::sequence<EdgeT> initial_graph_edges_;
+        pbbs::sequence<uintE> initial_ids_;
+        pbbs::sequence<size_t> initial_offsets_;
+
+        // Current triangle count
+        size_t cur_triangle_count_;
+
     }; // class end
     }  // namespace DBTGraph
     }  // namespace gbbs
