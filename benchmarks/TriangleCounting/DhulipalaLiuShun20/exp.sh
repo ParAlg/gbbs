@@ -5,7 +5,7 @@
 # let "e = $s + $bs"
 
 # -blocksize 100
-# ./Triangle -s -eg -nb 10 -n 2048 -bo $1 ../../../inputs/empty ../../../inputs/rMatGraph_J_2K_10K
+./Triangle -s -eg -nb 10 -n 2048 -bo $1 ../../../inputs/empty ../../../inputs/rMatGraph_J_2K_10K
 
 ./Triangle -s -w -trict 3 -nb 1 -n 7 -bo 0 ../../../inputs/small/triangles4.txt ../../../inputs/small/update4.txt
 

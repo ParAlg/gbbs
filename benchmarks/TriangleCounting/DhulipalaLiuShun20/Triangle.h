@@ -26,14 +26,14 @@
 #include <cmath>
 #include "gbbs/gbbs.h"
 
-// #define TURNOFFMAJOR
+#define DBT_TOMB_MERGE
+#define DBT_USING_TOMB 
 
 #include "shared.h"
 #include "dynamic_graph.h"
 #include "benchmark.h"
 #include "preprocess.h"
 #include "rebalancing.h"
-
 
 
 namespace gbbs {
@@ -68,9 +68,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
   t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
-  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG.num_vertices());
-  // pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
-  // pbbs::sequence<size_t> vtxMap = result.second;
+  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG.num_vertices()); // fill vtxMap and edges
   t.next("count degrees");
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
@@ -118,12 +116,18 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   t.next("6. count triangles");
 
   t.start(); //  first cleanup wedge tables, then re-mark inserts to OLD_EDGE, then remove
+#ifdef DBT_TOMB_MERGE
+  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T and delete if count is 0
+    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
+  });
+#else
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, called before tables are cleaned up
     DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
     DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true); //TODO: change to tombstone
   });
+  #endif
   par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
     DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
   });

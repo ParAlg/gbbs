@@ -1,7 +1,5 @@
 #pragma once
 
-// #define DBT_USING_TOMB 
-
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
@@ -637,7 +635,7 @@ namespace DBTGraph{
         // if del_flag is true, we delete 0 counts wedges, use edgesD if del_flag is true
         // for each update (w,u) where w is low and u is high
         //      for w's ngh high v, check (u,v)
-        void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID, bool del_flag = false){
+        void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID, bool del_flag){
             if (is_low_v(w.id)){ // w is low and w has high ngh
             par_for(0, edgesID.size(), [&] (size_t i) { // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
@@ -654,6 +652,50 @@ namespace DBTGraph{
                                 cleanUpTableT(uid, v, del_flag);}}); 
                         }
                     // }
+                }
+            });
+            }
+        }
+
+        // updates and deletes at the same time
+        // if (u,v) is not a delete edge, do not need to check for deleting wedge
+        // only deleting edges might cause wedge count to decrease
+        void cleanUpTableT2(uintE u, uintE v, bool is_ins){
+            if(u > v) swap(u,v); 
+            insertW(u, v, UPDATECLEANUP);
+            if(is_ins) return;
+            WTV wedge = T->find(EdgeT(u,v), WTV(EMPTYWTV));
+            if( wedge.c1 != EMPTYWTV && wedge.c1 == 0){
+                T->deleteVal(EdgeT(u,v));
+            }
+        }
+
+        // updates and deletes at the same time
+        void cleanUpTableArray2(DBTGraph::VtxUpdate &w, uintE u, bool is_ins){
+            par_for(0, D[w.id] + w.insert_degree, [&] (size_t i) { // bruteforce finding high ngh of w
+                uintE v = getEArray(w.id, i);
+                if(v!=u && is_high_v(v)){
+                    cleanUpTableT2(u, v, is_ins); 
+                }
+            });
+        }
+
+        // updates and deletes at the same time
+        void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID){
+            if (is_low_v(w.id)){ // w is low and w has high ngh
+            par_for(0, edgesID.size(), [&] (size_t i) { // loop over the udpate batch (w,u)
+                uintE uid = edgesID[i].first.second;
+                if(is_high_v(uid)){               // proceed only when u is high
+                        bool is_ins = edgesID[i].second;
+                        if(use_block_v(w.id)){           
+                            cleanUpTableArray2(w ,uid, is_ins);
+                        }else{
+                            SetT *H = LH->find(w.id, NULL);
+                            par_for(0, H->size(), [&] (size_t j) {
+                                uintE v = get<0>(H->table[j]);
+                                if(v != H->empty_key && uid != v){
+                                cleanUpTableT2(uid, v, is_ins);}}); 
+                        }
                 }
             });
             }
@@ -1085,9 +1127,52 @@ namespace DBTGraph{
                 if(lowD[u.id]==D[u.id]){
                     tb2->deleteVal(u.id);
                 }    
-                if(D[u.id] == 0)blockStatus[u.id] = true;              
+                // if(D[u.id] == 0)blockStatus[u.id] = true;              
             }
         }
+
+#ifdef DBT_USING_TOMB
+        // D and lowD updated to after updates and rebalanced
+        // pack table to arrays if new degree is low enough, **delete table**
+        // all deleted edges are removed
+        // change status 
+        // free and delete allocated lower table if degree is 0
+        void downSizeTablesBoth(DBTGraph::VtxUpdate &i){
+            uintE u = i.id;
+            tableE *tb1 = LL;tableE *tb2 = LH;
+            if(is_high_v(u)){tb1 = HL;tb2 = HH;}
+            if(use_block(D[u])&&!use_block_v(u)){ // with new degree should block, but is not using it
+                size_t offset = u*block_size;
+                if(lowD[u] > 0){
+                    pack_neighbors_in(tb1->find(u, NULL), u, offset,          offset + lowD[u]);
+                    SetT *L = tb1->find(u, NULL);
+                    L->del();
+                    tb1->deleteVal(u);
+                }
+                if(lowD[u] < D[u]){
+                    pack_neighbors_in(tb2->find(u, NULL), u, offset + lowD[u], D[u]);
+                    SetT *H = tb2->find(u, NULL);
+                    H->del();
+                    tb2->deleteVal(u);
+                }  
+                blockStatus[u] = true;  
+            }else if(!use_block(D[u])){ // downsize if w/ new degree should use table
+                if(lowD[u]!=0 ){
+                    tb1->find(u, NULL)->maybe_resize(lowD[u]);
+                }else{
+                    SetT *L = tb1->find(u, NULL);
+                    if(L != NULL){L->del();tb1->deleteVal(u);} //free(L);
+                }
+                if(lowD[u]!=D[u]){
+                    tb2->find(u, NULL)->maybe_resize(D[u] - lowD[u]);
+                }else{
+                    SetT *H = tb2->find(u, NULL);
+                    if(H != NULL){H->del();tb2->deleteVal(u);}
+                }
+                // if(D[u] == 0)blockStatus[u] = true;  
+            }
+        }
+#endif
 
         void checkStatus(){
             par_for(0, n, [&] (const size_t i) { 
