@@ -30,7 +30,7 @@ tuple<size_t,  DyGraph<SymGraph> *>majorRebalancing(const std::vector<UT>& updat
   
   // convert to new grpah
   if(build_new){t.start(); 
-  DGnew = new DyGraph(block_size, G, n); 
+  DGnew = new DyGraph<SymGraph>(block_size, G, n); 
   t.next("[MAJ] update DG");}
   
   return make_tuple(c, DGnew);
@@ -118,7 +118,7 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
 
   // convert to new grpah
   size_t block_size = DG.get_block_size();
-  DGnew = new DyGraph(block_size, G, num_vertices);
+  DGnew = new DyGraph<SymGraph>(block_size, G, num_vertices);
   // delete G;
   
   return make_tuple(c, DGnew);
