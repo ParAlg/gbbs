@@ -166,15 +166,17 @@ namespace DBTGraph{
 
     struct VtxRbl{
         uintE id = -1;
-        size_t LtoH;
-        size_t degree;
+        size_t LtoH = 0;
+        size_t degree = 0;
         size_t offset = -1; // offsets in Ngh
 
         VtxRbl(uintE a, size_t o):id(a), offset(o){}
         VtxRbl(uintE a):id(a){}
         inline void setDeg(size_t a){degree = a;}
         inline void setInsDeg(size_t a){LtoH = a;}
-        inline size_t newLowDeg(size_t oldDeg) const {return oldDeg + degree - LtoH - LtoH;}
+        inline size_t newLowDeg(size_t oldDeg) const {
+            return oldDeg + degree - LtoH - LtoH;
+        }
         inline size_t getHtoL() const {return degree-LtoH;}
         inline size_t insOffset() const {return offset + LtoH;}
         inline size_t end() const {return offset + degree;}

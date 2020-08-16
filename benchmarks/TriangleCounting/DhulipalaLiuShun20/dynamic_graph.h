@@ -209,13 +209,17 @@ namespace DBTGraph{
         
         inline size_t get_degree(uintE u) const {
             return D[u];}
-            
+
         inline size_t get_low_degree(uintE u) const {
             return lowD[u];}
 
         template <class VTX>
         inline size_t get_new_low_degree(VTX &u) const {
             return u.newLowDeg(lowD[u.id]);}
+
+        template <class VTX>
+        inline size_t get_new_low_degree_tmp(VTX &u) const {
+            return u.newLowDeg(rbledLowD[u.id]);}
 
         template <class VTX>
         inline size_t get_rbled_low_degree(VTX &u) const {
@@ -275,7 +279,7 @@ namespace DBTGraph{
         // put the nghs of u into Ngh[ngh_s, ngh_e]. is_low_now is true is u is low before updates (so in LL and/or LH)
         // assume edges array is already updated and packed
         template<class E, class F>
-        void get_neighbors_minor(DBTGraph::VtxUpdate &u, pbbs::sequence<E> &Ngh, size_t ngh_s, size_t ngh_e, bool is_low_now) const {
+        void get_neighbors_minor(DBTGraph::VtxUpdate &u, pbbs::range<E *> Ngh, size_t ngh_s, size_t ngh_e, bool is_low_now) const {
             size_t new_degree = ngh_e - ngh_s;
             if(use_block_v(u.id)){
                 for(size_t i  = 0; i<new_degree; ++i){
@@ -285,15 +289,14 @@ namespace DBTGraph{
                 tableE *tb1 = LL; tableE *tb2 = LH;
                 if(!is_low_now){tb1 = HL; tb2 = HH;}
                 size_t new_low_degree = get_new_low_degree(u);
-                // size_t tmp = 0; //shuold  be the same as new_low_degree
                 if(new_low_degree >0){
-                    pack_neighbors_helper<E, F>(tb1->find(u.id, NULL), u.id, Ngh.slice(ngh_s, new_low_degree));}
+                    pack_neighbors_helper<E, F>(tb1->find(u.id, NULL), u.id, Ngh.slice(ngh_s, ngh_s+ new_low_degree));}
                 if(new_low_degree < new_degree){
-                    pack_neighbors_helper<E, F>(tb2->find(u.id, NULL), u.id, Ngh.slice(new_low_degree, ngh_e));}
+                    pack_neighbors_helper<E, F>(tb2->find(u.id, NULL), u.id, Ngh.slice(ngh_s+ new_low_degree, ngh_e));}
             }
         }
 
-        void get_neighbors_major(uintE u, pbbs::sequence<StaticEdgeT> &seq_out, size_t offset) const {
+        void get_neighbors_major(uintE u, pbbs::range<StaticEdgeT *> seq_out, size_t offset) const {
             if(D[u] ==  0) return;
             using F = MakeEdgeEntryMajor<SetT>;
             if(use_block_v(u)){
@@ -1103,7 +1106,7 @@ namespace DBTGraph{
 
         // update low degrees from rebalancing
         inline void updateDegreesTmp(DBTGraph::VtxRbl &v){
-            rbledLowD[v.id] = get_new_low_degree(v);
+            rbledLowD[v.id] = get_new_low_degree_tmp(v);
         }
 
 

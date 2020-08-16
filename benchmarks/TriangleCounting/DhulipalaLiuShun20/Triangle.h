@@ -128,7 +128,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
     DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true); //TODO: change to tombstone
   });
-  #endif
+#endif
   par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
     DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
   });
@@ -140,7 +140,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   t.start(); //  minor rebalancing 
   DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.next("8. 9. update degree + minor rebalancing");
-  }
+  } //end else (nort major rebalancing)
 
   par_for(0, vtxNew.size(), [&] (size_t i) { //TODO: reuse
     vtxMap[vtxNew[i].id] = EMPTYVMAP;

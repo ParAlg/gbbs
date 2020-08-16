@@ -95,7 +95,7 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
   if( DG.num_edges()  !=  0){
   par_for(0, num_vertices, [&](const size_t u) {
     size_t offset = vertex_data_array[u].offset;
-    DG.get_neighbors_major(u, edges_seq, offset);
+    DG.get_neighbors_major(u, edges_seq.slice(), offset);
     pbbs::sample_sort_inplace(edges_seq.slice(offset, offset + vertex_data_array[u].degree), 
     [&](const edge_type& a, const edge_type& b) {
       return get<0>(a) < get<0>(b);
@@ -174,12 +174,12 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       size_t ngh_e = rblN;
       if(i < vtxChangeLH.size()-1) ngh_e = newDegrees[i+1];
       if(i < numLtoH){
-      DG.template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeLtoH<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges, ngh_s, ngh_e, true); 
+      DG.template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeLtoH<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, true); 
       }else{
-      DG.template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeHtoL<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges, ngh_s, ngh_e, false); 
+      DG.template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeHtoL<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, false); 
       }
     });
-    DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges, vtxRbl, vtxRblMap);
+    vtxRbl = DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges.slice(), vtxRblMap.slice());
     newDegrees.clear();
 
     par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes to tmp array
@@ -247,7 +247,6 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
 
     //update degree and low degree and lowNum,
-    
     par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes
       DG.updateDegrees(vtxNew[i]);
     });
@@ -255,7 +254,6 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     par_for(0, vtxRbl.size(), [&] (const size_t i) { // update low degrees from rebalancing
       DG.updateDegrees(vtxRbl[i]);
     });
-
 #ifdef DBT_TOMB_MERGE
     par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, delete tables and change status
       DG.downSizeTablesBoth(vtxNew[i]);

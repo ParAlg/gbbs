@@ -147,8 +147,8 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
 // true is before false
 // vtxNew is filled with offset, degree, and insert degree
 template <class EdgeT, class VTX>
-inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequence<VTX> &vtxNew, pbbs::sequence<size_t> &vtxMap, pbbs::sequence<size_t> flag = pbbs::sequence<size_t>()){
-  pbbs::sample_sort_inplace(edges.slice(), [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
+inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges, pbbs::range<size_t *> vtxMap, pbbs::sequence<size_t> flag = pbbs::sequence<size_t>()){
+  pbbs::sample_sort_inplace(edges, [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
     if(i.first.first == j.first.first) return i.second && !j.second;
       return i.first.first < j.first.first; 
     });
@@ -167,7 +167,7 @@ inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequen
   flag[edgeL] = 1;
   auto monoid = pbbslib::addm<size_t>();
   size_t numVtx = pbbs::scan_inplace(flag.slice(), monoid) - 1 ;
-  vtxNew =  pbbs::sequence<VTX>::no_init(numVtx);
+  pbbs::sequence<VTX> vtxNew =  pbbs::sequence<VTX>::no_init(numVtx);
 
   // compute offsets
   par_for(1, edgeL, [&] (size_t i) {
@@ -196,6 +196,7 @@ inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequen
   if(edges[edgeL-1].second) vtxNew[numVtx-1].setInsDeg(vtxNew[numVtx-1].degree);
 
   if(clearflag) flag.clear();
+  return vtxNew;
 }
 
 
@@ -215,7 +216,7 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::seq
     edges[2*i+1] = make_pair(EdgeT(DBTGraph::getSecond(edgesIn,i), DBTGraph::getFirst(edgesIn,i)), edgesIn[i].second);
   });
 
-  computeOffsets<EdgeT, DBTGraph::VtxUpdate>(edges, vtxNew, vtxMap, flag);
+  vtxNew = computeOffsets<EdgeT, DBTGraph::VtxUpdate>(edges.slice(), vtxMap.slice(), flag);
 
   //count lowD
     par_for(0, 2*m, [&] (size_t i) {

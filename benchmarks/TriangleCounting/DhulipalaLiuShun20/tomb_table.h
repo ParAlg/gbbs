@@ -160,6 +160,7 @@ class tomb_table {
   // can run update/find at the same time, make sure key to update is already in table
   bool deleteVal(K k) {
     size_t h = firstIndex(k);
+    size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == k) {
         return pbbslib::CAS(&std::get<0>(table[h]), k, tomb_key);
@@ -167,6 +168,10 @@ class tomb_table {
         return false;
       }
       h = incrementIndex(h);
+      if(ct++ > m){
+        cout << " table full" << endl;
+        abort();
+      }
     }
     return false;
    }
@@ -216,6 +221,7 @@ class tomb_table {
   tuple<bool, size_t> insert_helper(K k) const {
     size_t h = firstIndex(k);
     size_t ind = h; bool flag = true;
+    size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == k) {
         return make_tuple(true, h);
@@ -226,6 +232,9 @@ class tomb_table {
         flag = true;
       }
       h = incrementIndex(h);
+      if(ct++ > m){
+        return make_tuple(false, ind); 
+      }
     }
     return make_tuple(false, ind);  //should not reach here
   }
@@ -241,6 +250,7 @@ class tomb_table {
     size_t h; bool found;
     std::tie(found, h) = insert_helper(k);
     if(found) return false;
+    size_t ct = 0;
     while (true) {
       K prev_key = std::get<0>(table[h]);
       if (prev_key == empty_key || prev_key == tomb_key) {
@@ -253,6 +263,10 @@ class tomb_table {
         return false;
       }
       h = incrementIndex(h);
+      if(ct++ > m){
+        cout << " table full" << endl;
+        abort();
+      }
     }
     return false;
   }
@@ -262,6 +276,7 @@ class tomb_table {
     K k = std::get<0>(kv);
     size_t h; bool found;
     std::tie(found, h) = insert_helper(k);
+    size_t ct = 0;
     if(found){ 
       f(&std::get<1>(table[h]), kv);
       return false;}
@@ -279,6 +294,10 @@ class tomb_table {
         return false;
       }
       h = incrementIndex(h);
+      if(ct++ > m){
+        cout << " table full" << endl;
+        abort();
+      }
     }
     return false;
   }
@@ -288,6 +307,7 @@ class tomb_table {
     size_t h; bool found;
     std::tie(found, h) = insert_helper(k);
     if(found) return false;
+    size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == empty_key || std::get<0>(table[h]) == tomb_key ) {
         table[h] = kv;
@@ -297,12 +317,17 @@ class tomb_table {
         return false;
       }
       h = incrementIndex(h);
+      if(ct++ > m){
+        cout << " table full" << endl;
+        abort();
+      }
     }
     return false;
   }
 
   bool contains(K k) const {
     size_t h = firstIndex(k);
+    size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == k) {
         return true;
@@ -310,12 +335,14 @@ class tomb_table {
         return false;
       }
       h = incrementIndex(h);
+      if(ct++ > m) return false;
     }
     return false;
   }
 
   V find(K k, V default_value) const {
     size_t h = firstIndex(k);
+    size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == k) {
         return std::get<1>(table[h]);
@@ -323,6 +350,7 @@ class tomb_table {
         return default_value;
       }
       h = incrementIndex(h);
+      if(ct++ > m) return default_value;
     }
     return default_value;
   }
