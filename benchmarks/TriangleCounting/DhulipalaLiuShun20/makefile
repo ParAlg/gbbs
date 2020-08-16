@@ -4,7 +4,6 @@ ROOTDIR = $(strip $(shell git rev-parse --show-cdup))
 include $(ROOTDIR)makefile.variables
 
 ALL= Triangle
-# benchmark 
 
 include $(ROOTDIR)benchmarks/makefile.benchmarks
 
