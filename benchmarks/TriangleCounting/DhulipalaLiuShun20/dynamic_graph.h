@@ -24,10 +24,11 @@ namespace DBTGraph{
         using weight_type = typename Graph::weight_type;
         using edge_type = typename Graph::edge_type;
         using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
-        using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
 #ifdef DBT_USING_TOMB
+        using tableE = pbbslib::tomb_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
 #else
+        using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
 #endif
     private:
@@ -672,15 +673,18 @@ namespace DBTGraph{
             return 1 + ((x - 1) / y);
         }
 
-        void initTables(){
-            // important: save space in top table for array nodes
+        void initTables(){// important: save space in top table for array nodes
+#ifdef DBT_USING_TOMB            
+            LL = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            LH = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            HL = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            HH = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
+#else
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
             HH = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
-#ifdef DBT_USING_TOMB
-            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
-#else
             T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0); 
 #endif                   
         }
