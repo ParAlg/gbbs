@@ -29,10 +29,10 @@ struct vertex_hash {
 
         void init_data_structures(size_t n = 0, size_t batch_size = 0) {
           int n_alloc_size = 2 * n;
-          int batch_alloc_size = 2 * n;
+          int batch_alloc_size = n;
 
           cur_edges =
-              pbbs::sequence<pbbs::sequence<uintE>>::no_init(n_alloc_size);
+              pbbs::sequence<pbbs::sequence<uintE> *>::no_init(n_alloc_size);
           radj_cur_edges = pbbs::sequence<size_t>::no_init(n_alloc_size);
           ind_cur_ids = pbbs::sequence<uintE>::no_init(n_alloc_size);
 
@@ -66,17 +66,15 @@ struct vertex_hash {
           size_t j = updates.size() - 1;
           size_t i = cur_edges[adj_ind].size() - 1;
 
-          pbbs::sequence<uintE> *adj_list = cur_edges[adj_ind];
-
           pbbs::sequence<uintE> new_adj_list =
-              pbbs::sequence<size_t>::no_init(new_size);
+              pbbs::sequence<uintE>::no_init(new_size);
 
           if (isInsert) {
             while (i >= 0 && j >= 0) {
-              uintE diff = adj_list[i] - updates[j];
+              uintE diff = cur_edges[adj_ind][i] - updates[j];
 
               if (diff > 0) {
-                new_adj_list[i + j + 1] = adj_list[i];
+                new_adj_list[i + j + 1] = cur_edges[adj_ind][i];
                 i--;
               } else {
                 new_adj_list[i + j + 1] = updates[j];
@@ -89,13 +87,13 @@ struct vertex_hash {
             }
 
             while (i >= 0) {
-              new_adj_list[i + j + 1] = adj_list[i];
+              new_adj_list[i + j + 1] = cur_edges[adj_ind][i];
             }
           } else {
             while (i >= 0 && j >= 0) {
-              uintE diff = adj_list[i] - updates[j];
+              uintE diff = cur_edges[adj_ind][i] - updates[j];
               if (diff == 0) {
-                adj_list[i] = -1;
+                cur_edges[adj_ind][i] = NULL;
               }
 
               if (diff >= 0) {
@@ -110,8 +108,8 @@ struct vertex_hash {
             i = 0;
             j = 0;
             while (i < new_adj_list.size()) {
-              if (adj_list[i] != -1) {
-                new_adj_list[j] = adj_list[i];
+              if (cur_edges[adj_ind][i] != NULL) {
+                new_adj_list[j] = cur_edges[adj_ind][i];
                 j++;
               }
             }
@@ -121,34 +119,70 @@ struct vertex_hash {
           degrees[adj_ind] = new_size / 2;
         }
 
+        void resize_edge_list() {
+          size_t s = cur_edges.size();
+          pbbs::sequence<pbbs::sequence<uintE> *> new_edges_list =
+              pbbs::sequence<pbbs::sequence<uintE> *>::no_init(2 * s);
+          par_for(0, 2 * s,
+                  [&](const size_t i) { new_edges_list[i] = &cur_edges[i]; });
+          cur_edges.clear();
+          cur_edges = new_edges_list;
+
+          // TODO: Also need to resize the table for storing node IDs here.
+        }
+
+        void create_new_adj_list(uintE node_id, size_t j,
+                                 pbbs::sequence<uintE> updates) {
+          cur_edges[non_zero_deg] = pbbs::sequence<uintE>::no_init(2 * j);
+          par_for(0, j, [&](const size_t i) {
+            cur_edges[non_zero_deg][i] = updates[i];
+          });
+        }
+
         // Merge adjacency list with batch of inserts
-        void merge_adj_list(uintE node_id, range<uintE> updates,
+        // TODO: make sure the reduce adj list methods are propagated throughout
+        // even when doing the resizings. Currently it is not.
+        void merge_adj_list(uintE node_id, pbbs::sequence<uintE> updates,
                             bool isInsert) {
-          if (ind_cur_edges.contains(node_id)) {
-            size_t adj_index = ind_cur_edges.find(node_id);
-            pbbs::sequence<uintE> *cur_adj_list = cur_edges[adj_index];
+          if (id_cur_edges->contains(node_id)) {
+            size_t adj_index = id_cur_edges->find(node_id, 0);
+            pbbs::sequence<uintE> cur_adj_list = cur_edges[adj_index];
 
             size_t j = updates.size();
 
-            d = degrees[adj_index] - 1;
+            size_t d = degrees[adj_index] - 1;
+
+            // Find the first index where the ID in the adjacency list is
+            // greater than the node id
+            size_t reduce_index;
+            if (isInsert)
+              reduce_index = d + j;
+            else
+              reduce_index = d - j;
 
             if (isInsert) {
               if (d + j > degrees[adj_index]) {
                 resize_adj_list(2 * (d + j), adj_index, updates, true);
               } else {
                 while (d >= 0 && j >= 0) {
-                  uintE diff = *cur_adj_list[d] - updates[j];
+                  uintE diff = cur_adj_list[d] - updates[j];
                   if (diff > 0) {
-                    *cur_adj_list[d + j + 1] = *cur_adj_list[d];
-                    i--;
+                    cur_adj_list[d + j + 1] = cur_adj_list[d];
+                    if (cur_adj_list[d] > node_id)
+                      reduce_index = d + j + 1;
+                    d--;
                   } else {
-                    *cur_adj_list[d + j + 1] = updates[j];
+                    cur_adj_list[d + j + 1] = updates[j];
+                    if (updates[j] > node_id)
+                      reduce_index = d + j + 1;
                     j--;
                   }
                 }
 
                 while (j >= 0) {
-                  *cur_adj_list[d + j + 1] = insert_updates[j];
+                  cur_adj_list[d + j + 1] = updates[j];
+                  if (updates[j] > node_id)
+                    reduce_index = d + j + 1;
                   j--;
                 }
               }
@@ -158,13 +192,13 @@ struct vertex_hash {
                 resize_adj_list(2 * (d - j), adj_index, updates, false);
               } else {
                 while (d >= 0 && j >= 0) {
-                  uintE diff = *cur_adj_list[d] - updates[j];
+                  uintE diff = cur_adj_list[d] - updates[j];
                   if (diff == 0) {
-                    *cur_adj_list[d] = -1;
+                    cur_adj_list[d] = NULL;
                   }
 
                   if (diff >= 0) {
-                    i--;
+                    d--;
                   }
 
                   if (diff <= 0) {
@@ -172,11 +206,14 @@ struct vertex_hash {
                   }
                 }
 
-                i = 0;
+                size_t i = 0;
                 j = 0;
                 while (i < cur_edges[adj_index].size()) {
-                  if (adj_list[i] != -1) {
-                    cur_edges[adj_index][j] = *cur_adj_list[i];
+                  if (cur_adj_list[i] != NULL) {
+                    cur_edges[adj_index][j] = cur_adj_list[i];
+                    if (cur_adj_list[i] > node_id &&
+                        cur_adj_list[reduce_index] <= node_id)
+                      reduce_index = j;
                     j++;
                   }
                 }
@@ -185,26 +222,179 @@ struct vertex_hash {
             }
 
           } else {
-              if (non_zero_degree + 1 > cur_edges.size) {
-                    resize_edge_list();
-              }
+            if (non_zero_deg + 1 > cur_edges.size()) {
+              resize_edge_list();
+            }
 
-              int j = updates.size();
-
+            int j = updates.size();
+            create_new_adj_list(node_id, j, updates);
+            non_zero_deg++;
           }
         }
 
         // Merge the batch of inserts to the current graph to obtain updated
         // graph
+        // list_starts should have size update_ids.size() + 1
+        // TODO: check the above
         void update_inserts(pbbs::sequence<uintE> inserts,
                             pbbs::sequence<size_t> list_starts,
                             pbbs::sequence<size_t> update_ids) {
-          int num_ids = update_ids.ize();
+          size_t num_ids = update_ids.size();
           par_for(0, num_ids - 1, [&](const size_t i) {
-            merge_adj_ins_list(
-                update_ides[i],
-                inserts.slice(list_starts[i], list_starts[i + 1]));
+            merge_adj_list(update_ids[i],
+                           inserts.slice(list_starts[i], list_starts[i + 1]),
+                           true);
           });
+        }
+
+        // Merge the batch of deletes to the current graph to obtain updated
+        // graph
+        void update_deletes(pbbs::sequence<uintE> deletes,
+                            pbbs::sequence<size_t> list_starts,
+                            pbbs::sequence<size_t> update_ids) {
+          size_t num_ids = update_ids.size();
+          par_for(0, num_ids - 1, [&](const size_t i) {
+            merge_adj_list(update_ids[i],
+                           deletes.slice(list_starts[i], list_starts[i + 1]),
+                           true);
+          });
+        }
+
+        // Create the update graph from insertions and/or deletion batched
+        // updates
+        // TODO: Make sure offsets is length +1 greater than the lengths of the
+        // other lists
+        void create_update_graph(pbbs::sequence<uintE> updates,
+                                 pbbs::sequence<size_t> offsets,
+                                 pbbs::sequence<uintE> ids, bool isInsert) {
+          if (isInsert) {
+            par_for(0, ids.size(), [&](const size_t i) {
+              uintE u = ids[i];
+              ins_edges[i] = updates.slice(offsets[i], offsets[i + 1]);
+              ind_ins_ids[i] = u;
+              id_ins_edges[u] = i;
+            });
+          } else {
+            par_for(0, ids.size(), [&](const size_t i) {
+              uintE u = ids[i];
+              del_edges[i] = updates.slice(offsets[i], offsets[i + 1]);
+              ind_del_ids[i] = u;
+              id_del_edges[u] = i;
+            });
+          }
+        }
+
+        // Counts the number of intersections between adjacency lists
+        // TODO: Make sure that the adjacency lists are filled (i.e. no empty
+        // spaces, do this in the method that calls this method.)
+        size_t countIntersection(pbbs::sequence<uintE> &adj_1,
+                                 pbbs::sequence<uintE> &adj_2, bool use_reduced,
+                                 uintE u = 0) {
+          size_t count = 0;
+          size_t i, j = 0;
+
+          size_t ind_u = ind_cur_ids[u];
+
+          size_t a = adj_1.size();
+          size_t b = adj_2.size();
+
+          if (use_reduced) {
+            pbbs::sequence<uintE> first = adj_1.slice(0, radj_cur_edges[ind_u]);
+          } else {
+            pbbs::sequence<uintE> first = adj_1;
+          }
+
+          while (i < a && b < j) {
+            size_t diff = adj_1[i] - adj_2[j];
+            if (diff == 0)
+              count += 1;
+            else if (diff <= 0)
+              i++;
+            else if (diff >= 0)
+              j++;
+          }
+
+          return count;
+        }
+
+        size_t countTriangles(pbbs::sequence<EdgeT> updates, bool isInsert) {
+          pbbs::sequence<size_t> updates_triangles_count =
+              pbbs::sequence<size_t>::no_init(updates.size());
+          // First count all the update intersections in the current graph
+          par_for(0, updates_triangles_count.size(), [&](const size_t i) {
+            uintE id_u = ind_cur_ids[updates[i].first];
+            uintE id_v = ind_cur_ids[updates[i].second];
+
+            size_t u = id_cur_edges->find(id_u, 0);
+            size_t v = id_cur_edges->find(id_v, 0);
+
+            size_t num_intersects =
+                countIntersection(cur_edges[u], cur_edges[v], false);
+            updates_triangles_count[i] = num_intersects;
+          });
+
+          // Then count all the update intersections between current graph
+          // and the update graph
+          par_for(0, updates_triangles_count.size(), [&](const size_t i) {
+            uintE id_u = ind_cur_ids[updates[i].first];
+            uintE id_v = ind_cur_ids[updates[i].second];
+
+            size_t u = id_cur_edges->find(id_u, 0);
+
+            pbbs::sequence<uintE> adj_list;
+            if (isInsert) {
+              size_t v = id_ins_edges->find(id_v, 0);
+              adj_list = ins_edges[v];
+            } else {
+              size_t v = id_del_edges->find(id_v, 0);
+              adj_list = del_edges[v];
+            }
+
+            size_t num_intersects =
+                countIntersection(cur_edges[u], adj_list, true, u);
+            if (isInsert)
+              updates_triangles_count[i] -= num_intersects;
+            else
+              updates_triangles_count[i] += num_intersects;
+          });
+
+          // Need a separate sequence because we need to divide this total by
+          // three Because we are not truncating adjacency lists
+          pbbs::sequence<size_t> update_graph_counts =
+              pbbs::sequence<size_t>::no_init(updates.size());
+
+          // Finally count all the intersections between in the update graph
+          par_for(0, updates_triangles_count.size(), [&](const size_t i) {
+            uintE id_u = ind_cur_ids[updates[i].first];
+            uintE id_v = ind_cur_ids[updates[i].second];
+
+            pbbs::sequence<uintE> adj_list_u;
+            pbbs::sequence<uintE> adj_list_v;
+            if (isInsert) {
+              size_t u = id_ins_edges->find(id_u, 0);
+              size_t v = id_ins_edges->find(id_v, 0);
+              adj_list_u = ins_edges[u];
+              adj_list_v = ins_edges[v];
+            } else {
+              size_t v = id_del_edges->find(id_v, 0);
+              size_t u = id_del_edges->find(id_u, 0);
+              adj_list_u = del_edges[u];
+              adj_list_v = del_edges[v];
+            }
+
+            size_t num_intersections =
+                countIntersection(adj_list_u, adj_list_v, false);
+            update_graph_counts[i] = num_intersections;
+          });
+
+          // Parallel scan to get the total
+          auto monoid = pbbslib::addm<size_t>();
+          size_t t_sum =
+              pbbs::scan_inplace(updates_triangles_count.slice(), monoid);
+
+          size_t u_sum =
+              pbbs::scan_inplace(update_graph_counts.slice(), monoid);
+          return t_sum + u_sum / 3;
         }
 
       private:
@@ -213,7 +403,7 @@ struct vertex_hash {
         // graph consisting of edge deletions.
 
         // Current edges in the graph
-        pbbs::sequence<pbbs::sequence<uintE>> cur_edges;
+        pbbs::sequence<pbbs::sequence<uintE> *> cur_edges;
         // Edges that are updates in the insert batch
         pbbs::sequence<pbbs::sequence<uintE>> ins_edges;
         // Edges that are updates in the delete batch
@@ -241,6 +431,6 @@ struct vertex_hash {
 
         // Set of vertices with nonzero degree
         size_t non_zero_deg;
-
-    }; // DBTGraph
+    }; // class end
     }  // namespace DBTGraph
+    }  // namespace gbbs
