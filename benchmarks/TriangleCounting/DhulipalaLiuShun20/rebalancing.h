@@ -180,6 +180,15 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       }
     });
     DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges, vtxRbl, vtxRblMap);
+    newDegrees.clear();
+
+    par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes to tmp array
+      DG.updateDegreesTmp(vtxNew[i]);
+    });
+
+    par_for(0, vtxRbl.size(), [&] (const size_t i) { // update low degrees from rebalancing  to tmp array
+      DG.updateDegreesTmp(vtxRbl[i]);
+    });
 
     //  ============================= Reisze lower table ============================= 
     // rezize bottom table for all v (L to H and H to L)
@@ -202,13 +211,13 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     //delete from bottom table
     par_for(0,vtxRbl.size(),[&](const size_t i){
       VtxRbl v = vtxRbl[i];
-      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), DG.is_low_v(v.id), true);
+      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), true);
     });
 
     //insert to bottom table
     par_for(0,vtxRbl.size(), [&](const size_t i){
       VtxRbl v = vtxRbl[i];
-      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), DG.is_low_v(v.id), false);
+      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), false);
     });
 
 
