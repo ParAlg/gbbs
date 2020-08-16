@@ -227,7 +227,7 @@ class tomb_table {
       }
       h = incrementIndex(h);
     }
-    return make_tuple(false, h);  //should not reach here
+    return make_tuple(false, ind);  //should not reach here
   }
 
   // first check if k is in table already. 
