@@ -58,23 +58,23 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
 
 // return true if an insert edge is in graph or a delete edge is not in graph
 template <class Graph, class EdgeT>
-inline bool dupEdge(const DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
-  // if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
+inline bool dupEdge(const DBTGraph::DyGraph<Graph> *G, const pair<EdgeT, bool> &e){
+  // if (e.first.first >= G->num_vertices() || e.first.second >= G->num_vertices()){
   //     cout << "edge out of bound " << endl;
   //     abort();
   // }
   if(e.first.first == e.first.second){return true;}
-  return G.haveEdge(e.first) == e.second;
+  return G->haveEdge(e.first) == e.second;
 }
 
 // //check duplicated edge, mark delete if exiting and need to delete
 // template <class Graph, class EdgeT>
 // inline bool dupEdgeDel(DBTGraph::DyGraph<Graph> &G, const pair<EdgeT, bool> &e){
-//   if (e.first.first >= G.num_vertices() || e.first.second >= G.num_vertices()){
+//   if (e.first.first >= G->num_vertices() || e.first.second >= G->num_vertices()){
 //       cout << "edge out of bound " << endl;
 //       exit(1);
 //   }
-//   return G.haveEdgeDel(e.first, e.second) == e.second;
+//   return G->haveEdgeDel(e.first, e.second) == e.second;
 // }
 
 // change graphio edge type into our edge type 
@@ -89,7 +89,7 @@ inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
 // given raw updates, give valid updates
 // remove duplicates, leave only last update that's in/not in graph
 template <class Graph, class EdgeT, class UT>
-inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, const std::vector<UT> &t_updates, size_t s, size_t e){
+inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, const std::vector<UT> &t_updates, size_t s, size_t e){
   size_t n = e-s;//t_updates.size();
   
   // change to our type
@@ -202,7 +202,7 @@ inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges,
 
 //TODO: not keeping vtxMap if not used later
 template <class Graph, class EdgeT>
-pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<size_t>& vtxMap, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
+pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, pbbs::sequence<size_t>& vtxMap, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
   size_t m = edgesIn.size();
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew;
   // pbbs::sequence<pair<EdgeT,bool>> edges = pbbs::sequence<pair<EdgeT,bool>>::no_init(2*m);
@@ -220,7 +220,7 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::seq
 
   //count lowD
     par_for(0, 2*m, [&] (size_t i) {
-      flag[i] = G.is_low_v(DBTGraph::getSecond(edges,i));
+      flag[i] = G->is_low_v(DBTGraph::getSecond(edges,i));
     });
     par_for(0, vtxNew.size(), [&] (size_t i) {
       size_t s = vtxNew[i].offset;

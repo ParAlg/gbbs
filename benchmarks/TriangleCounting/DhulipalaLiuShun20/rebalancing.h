@@ -41,7 +41,7 @@ tuple<size_t,  DyGraph<SymGraph> *>majorRebalancing(const std::vector<UT>& updat
 // merge edges and DG  to a new graph DGnew
 // return new triangle counts
 template <class Graph>
-tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<pair<EdgeT,bool>> &edges, 
+tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<pair<EdgeT,bool>> &edges, 
                               pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap, size_t num_vertices, commandLine& P){
 
   using W = pbbslib::empty;
@@ -50,10 +50,10 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
   DyGraph<SymGraph> *DGnew;
   auto monoid = pbbslib::addm<size_t>();  
 
-  if( DG.num_edges()  !=  0){
+  if( DG->num_edges()  !=  0){
     //mark deletions in tables
     par_for(0, vtxNew.size(), [&] (size_t i) {
-      DG.markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+      DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
     });
   }
 
@@ -62,9 +62,9 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
   vertex_data *vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
   pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(num_vertices, [&](const size_t i) {
     if(vtxMap[i] == EMPTYVMAP){
-      return DG.get_degree(i);
+      return DG->get_degree(i);
     }else{
-      return DG.get_new_degree(vtxNew[vtxMap[i]]);
+      return DG->get_new_degree(vtxNew[vtxMap[i]]);
     }
   }); 
   size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);  
@@ -83,7 +83,7 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
   par_for(0, vtxNew.size(), [&] (const size_t i) {
     VtxUpdate u =  vtxNew[i];
     size_t offset = vertex_data_array[u.id].offset;
-    offset += DG.get_degree(u.id) - u.delDeg();
+    offset += DG->get_degree(u.id) - u.delDeg();
     par_for(0, u.insert_degree, [&](const size_t j){
       edges_array[offset + j] = std::make_tuple(getSecond(edges, u.offset + j), pbbs::empty());
     });
@@ -92,10 +92,10 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
   pbbs::sequence<edge_type> edges_seq = pbbs::sequence<edge_type>(edges_array, num_edges);
 
   // insert from tables 
-  if( DG.num_edges()  !=  0){
+  if( DG->num_edges()  !=  0){
   par_for(0, num_vertices, [&](const size_t u) {
     size_t offset = vertex_data_array[u].offset;
-    DG.get_neighbors_major(u, edges_seq.slice(), offset);
+    DG->get_neighbors_major(u, edges_seq.slice(), offset);
     pbbs::sample_sort_inplace(edges_seq.slice(offset, offset + vertex_data_array[u].degree), 
     [&](const edge_type& a, const edge_type& b) {
       return get<0>(a) < get<0>(b);
@@ -117,7 +117,7 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
   size_t c = Triangle(G, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
 
   // convert to new grpah
-  size_t block_size = DG.get_block_size();
+  size_t block_size = DG->get_block_size();
   DGnew = new DyGraph<SymGraph>(block_size, G, num_vertices);
   // delete G;
   
@@ -126,8 +126,8 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>& DG, pbbs::s
 
 /* Perform minor rebalancing and update the degrees arrays and status arrays in DG */
 template <class Graph>
-size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, pbbs::sequence<size_t>& vtxMap){
-    size_t n = DG.num_vertices();
+size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, pbbs::sequence<size_t>& vtxMap){
+    size_t n = DG->num_vertices();
     auto monoid = pbbslib::addm<size_t>();
     pbbs::sequence<VtxUpdate> vtxChangeLH = pbbs::sequence<VtxUpdate>();
     pbbs::sequence<VtxRbl> vtxRbl = pbbs::sequence<VtxRbl>();
@@ -135,18 +135,18 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>();
     size_t numLtoH =  0;
     size_t numHtoL =  0;
-    size_t newLowNum = DG.num_vertices_low();
+    size_t newLowNum = DG->num_vertices_low();
 
     //  ============================= find vertices that change low/high status   =============================
     //TODO: can optimize
     pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](const VtxUpdate &u){
-      return DG.change_status(u);
+      return DG->change_status(u);
     });
 
     if(vtxChange.size() != 0){ //  ============================= continue if there is changes. Otherwise go to degree updates   =============================
 
     pbbs::sequence<bool> flag = pbbs::sequence<bool>(vtxChange.size(), [&](const size_t i){
-      return DG.is_high_v(vtxChange[i].id);
+      return DG->is_high_v(vtxChange[i].id);
     });
 
     // [0,numLtoH) are vertices that change from L to H, the rest from H to L
@@ -161,11 +161,11 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     //  ============================= update Wedge Table, H to L ============================= 
     par_for(numLtoH, vtxChangeLH.size(), [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
-      DG.minorRblDeleteWedge(u, vtxNew, vtxMap);
+      DG->minorRblDeleteWedge(u, vtxNew, vtxMap);
     });
 
     //  ============================= Count Rbled Degrees =============================
-    pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG.get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
+    pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG->get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
     size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);   
     pbbs::sequence<pair<EdgeT,bool>> rblEdges = pbbs::sequence<pair<EdgeT,bool>>::no_init(rblN); 
     pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
@@ -174,20 +174,20 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       size_t ngh_e = rblN;
       if(i < vtxChangeLH.size()-1) ngh_e = newDegrees[i+1];
       if(i < numLtoH){
-      DG.template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeLtoH<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, true); 
+      DG->template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeLtoH<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, true); 
       }else{
-      DG.template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeHtoL<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, false); 
+      DG->template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeHtoL<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, false); 
       }
     });
     vtxRbl = DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges.slice(), vtxRblMap.slice());
     newDegrees.clear();
 
     par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes to tmp array
-      DG.updateDegreesTmp(vtxNew[i]);
+      DG->updateDegreesTmp(vtxNew[i]);
     });
 
     par_for(0, vtxRbl.size(), [&] (const size_t i) { // update low degrees from rebalancing  to tmp array
-      DG.updateDegreesTmp(vtxRbl[i]);
+      DG->updateDegreesTmp(vtxRbl[i]);
     });
 
     //  ============================= Reisze lower table ============================= 
@@ -197,13 +197,13 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     par_for(0,vtxRbl.size(),[&](size_t i){
       uintE v = vtxRbl[i].id;
-      if(DG.use_block_v(v)) return;
+      if(DG->use_block_v(v)) return;
       size_t deltaLtoH = vtxRbl[i].LtoH;
       size_t deltaHtoL = vtxRbl[i].getHtoL();
       VtxUpdate vobj = VtxUpdate(v);
       if(vtxMap[v] != EMPTYVMAP) vobj = vtxNew[vtxMap[v]];
-      if(deltaLtoH > deltaHtoL) DG.minorRblResizeBottomTable(vobj, deltaLtoH - deltaHtoL, true);
-      if(deltaHtoL > deltaLtoH) DG.minorRblResizeBottomTable(vobj, deltaHtoL - deltaLtoH, false);
+      if(deltaLtoH > deltaHtoL) DG->minorRblResizeBottomTable(vobj, deltaLtoH - deltaHtoL, true);
+      if(deltaHtoL > deltaLtoH) DG->minorRblResizeBottomTable(vobj, deltaHtoL - deltaLtoH, false);
     });
 
     //  ============================= Move between lower tables ============================= 
@@ -211,33 +211,33 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     //delete from bottom table
     par_for(0,vtxRbl.size(),[&](const size_t i){
       VtxRbl v = vtxRbl[i];
-      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), true);
+      DG->minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), true);
     });
 
     //insert to bottom table
     par_for(0,vtxRbl.size(), [&](const size_t i){
       VtxRbl v = vtxRbl[i];
-      DG.minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), false);
+      DG->minorRblMoveBottomTable(v.id, rblEdges.slice(v.offset, v.end()), false);
     });
 
 
     //  ============================= Reisze top table ============================= 
-    newLowNum = DG.minorRblResizeTop(numHtoL, numLtoH);
+    newLowNum = DG->minorRblResizeTop(numHtoL, numLtoH);
 
     //  ============================= Move between top tables ============================= 
     // move top table LtoH
     par_for(0,  numLtoH, [&] (const size_t i) { 
-      DG.minorRblMoveTopTable(vtxChangeLH[i], true, false);});
+      DG->minorRblMoveTopTable(vtxChangeLH[i], true, false);});
 
     par_for(0,  numLtoH, [&] (const size_t i) { //update  status
-      DG.minorRblMoveTopTable(vtxChangeLH[i], true, true);});
+      DG->minorRblMoveTopTable(vtxChangeLH[i], true, true);});
 
     // move top table HtoL
     par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { 
-      DG.minorRblMoveTopTable(vtxChangeLH[i], false, false);});
+      DG->minorRblMoveTopTable(vtxChangeLH[i], false, false);});
 
     par_for(numLtoH,  vtxChangeLH.size(), [&] (const size_t i) { //update  status
-      DG.minorRblMoveTopTable(vtxChangeLH[i], false, true);});
+      DG->minorRblMoveTopTable(vtxChangeLH[i], false, true);});
     
     } // end if vtxChange.size() != 0;
 
@@ -248,25 +248,25 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //update degree and low degree and lowNum,
     par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes
-      DG.updateDegrees(vtxNew[i]);
+      DG->updateDegrees(vtxNew[i]);
     });
 
     par_for(0, vtxRbl.size(), [&] (const size_t i) { // update low degrees from rebalancing
-      DG.updateDegrees(vtxRbl[i]);
+      DG->updateDegrees(vtxRbl[i]);
     });
 #ifdef DBT_TOMB_MERGE
     par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, delete tables and change status
-      DG.downSizeTablesBoth(vtxNew[i]);
+      DG->downSizeTablesBoth(vtxNew[i]);
     });
 #else
     par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, called before downSizeTablesDeletes
-      DG.downSizeTables(vtxNew[i]);
+      DG->downSizeTables(vtxNew[i]);
     });
     par_for(0, vtxNew.size(), [&] (const size_t i) { // delete tables packed and change status
-      DG.downSizeTablesDeletes(vtxNew[i]);
+      DG->downSizeTablesDeletes(vtxNew[i]);
     });
 #endif
-    DG.set_vertices_low(newLowNum);
+    DG->set_vertices_low(newLowNum);
 
     t.stop();t.reportTotal("8. update degrees");
 
@@ -274,8 +274,8 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     //  ============================= Update Wedge Table, L to H ============================= 
     par_for(0, numLtoH, [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
-      if(DG.use_block_v(u.id)) return;
-      DG.minorRblInsertWedge(u);
+      if(DG->use_block_v(u.id)) return;
+      DG->minorRblInsertWedge(u);
     });
 
   // flag.clear();
