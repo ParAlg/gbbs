@@ -89,7 +89,7 @@ inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
 // given raw updates, give valid updates
 // remove duplicates, leave only last update that's in/not in graph
 template <class Graph, class EdgeT, class UT>
-inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, std::vector<UT> &t_updates, size_t s, size_t e){
+inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> &G, const std::vector<UT> &t_updates, size_t s, size_t e){
   size_t n = e-s;//t_updates.size();
   
   // change to our type

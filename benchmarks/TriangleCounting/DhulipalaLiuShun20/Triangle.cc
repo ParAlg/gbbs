@@ -72,62 +72,104 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, int batch_num, commandLine
   gbbs::print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
   G.del();
 
+
+template<class Graph>
+inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
+  vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
+    size_t m = G.num_edges();
+    auto perm = pbbs::random_permutation<gbbs::uintE>(m);
+    pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
+    for (size_t i = 0; i< m; ++i) {
+      updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list[perm[i]]), std::get<1>(edge_list[perm[i]]), weight));
+    } 
+    edge_list.clear();
+    std::cout << "shuffled" << std::endl;
+    return updates_shuffled;    
+}
+
 /* Macro to generate binary for unweighted graph applications that can ingest
  * only
  * symmetric graph inputs and weighted edge updates input (weight is int type) */
-#define generate_symmetric_dynamic_main(APP, mutates)                          \
-  int main(int argc, char* argv[]) {                                           \
-    gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");            \
-    char* iFile = P.getArgument(1);                                            \
-    char* uFile1 = P.getArgument(0);                                           \
-    int weighted = P.getOptionIntValue("-w", 1);                               \
-    int batch_num = P.getOptionIntValue("-nb", 5);                               \
-    bool symmetric = P.getOptionValue("-s");                                   \
-    bool compressed = P.getOptionValue("-c");                                  \
-    bool mmap = P.getOptionValue("-m");                                        \
-    bool mmapcopy = mutates;                                                   \
-    if (!symmetric) {                                                          \
-      std::cout << "# The application expects the input graph to be symmetric (-s " \
-              "flag)."                                                         \
-           << std::endl;                                                            \
-      std::cout << "# Please run on a symmetric input." << std::endl;                    \
-    }                                                                          \
-    size_t rounds = P.getOptionLongValue("-rounds", 1);                        \
-    gbbs::pcm_init();                                                          \
-    vector<gbbs::gbbs_io::Edge<int>> updates;                              \
-    if(weighted  == 0){                                                      \
-      updates = gbbs::gbbs_io::read_weighted_edge_list<int>(uFile1);        \
-    }else if (weighted == 1){                                                 \
-      updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 1);        \
-    }else if (weighted == 2){\
-      updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 0);        \
-    }else{                                                              \
-      std::cout << "# wrong  weighted flag. use 0 for weighted, 1 for inserts , 2 for deletes"  << std::endl; \
-    }                                                                          \
-    if (compressed) {                                                          \
-      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>( \
-          iFile, mmap, mmapcopy);                                              \
-      gbbs::alloc_init(G);                                                     \
-      run_dynamic_app(G, updates, APP, rounds, batch_num)                                  \
-    } else {                                                                   \
-      auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);    \
-      gbbs::alloc_init(G);                                                     \
-      run_dynamic_app(G, updates, APP, rounds, batch_num)                                                  \
-    }                                                                          \
-    gbbs::alloc_finish();                                                      \
+// #define generate_symmetric_dynamic_main(APP, mutates)                         
+  int main(int argc, char* argv[]) {                                          
+    gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");           
+    char* iFile = P.getArgument(1);     
+    char* uFile1 = P.getArgument(0);                                                                              
+    int weight = P.getOptionIntValue("-w", 1);                              
+    int batch_num = P.getOptionIntValue("-nb", 5);                              
+    bool symmetric = P.getOptionValue("-s");                                  
+    bool compressed = P.getOptionValue("-c");                                 
+    bool mmap = P.getOptionValue("-m");                                       
+    bool mmapcopy = false;//mutates;                                                  
+    bool shuffle = P.getOptionValue("-shuffle");
+    bool start_graph = P.getOptionValue("-sg");  
+    if(shuffle && start_graph){
+      std::cout << "can't shuffle start graph, can use only one of -shuffle and -eg" << std::endl;
+      abort();
+    }
+
+    if (!symmetric) {                                                         
+      std::cout << "# The application expects the input graph to be symmetric (-s "
+              "flag)."                                                        
+           << std::endl;                                                           
+      std::cout << "# Please run on a symmetric input." << std::endl;                   
+    }       
+
+    size_t rounds = P.getOptionLongValue("-rounds", 1);                       
+    gbbs::pcm_init();                                                         
+    vector<gbbs::gbbs_io::Edge<int>> updates; 
+    if(!shuffle){             
+      if(weight  == 0){                                                     
+        updates = gbbs::gbbs_io::read_weighted_edge_list<int>(uFile1);       
+      }else if (weight == 1){                                                
+        updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 1);       
+      }else if (weight == 2){\
+        updates = gbbs::gbbs_io::read_unweighted_edge_list<int>(uFile1, 0);       
+      }else{                                                             
+        std::cout << "# wrong  weighted flag. use 0 for weighted, 1 for inserts , 2 for deletes"  << std::endl;
+      }   
+    }                                                                                         
+                                                               
+    if (compressed) {                                                         
+      gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
+      if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(iFile, mmap, mmapcopy);  
+      if(shuffle) {
+        updates = shuffle_edges(G, weight);  
+      }                                         
+      gbbs::alloc_init(G);                                                    
+      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_num)                                 
+    } else {                                                                  
+      gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+      if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);   
+      if(shuffle) {
+        updates = shuffle_edges(G, weight);  
+      }
+      gbbs::alloc_init(G);                                                    
+      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_num)                                                 
+    }                                                                         
+    gbbs::alloc_finish();                                                     
   }
 
   //    
-  //   "Usage: ./Triangle [-trict 0] [-s] [-c] [-w] <inFile> <updateFile1> \n"
-  //   "Optional arguments:\n"
-  //   "  -w: 0 if the edge list is weighted with 32-bit integers., 1 if unweighted inserts. 2 if unweighted deletes\n"
-  //   "  -eg: ignore <inFile>. otherwise inFile is the original graph"
+  //   "Usage: ./Triangle [-s] <inFile> <updateFile> \n"
+  //   "Methods:\n"
+  //   "  -sg: inFile is the original graph"
   //   "  -trict: triangle counts in <inFile>"
 
+  //   "  -shuffle: shuffle edges in <inFile> as updates, do not use <updateFile>"
+
   //   "  -n: number of vertices"
+
+  //   "  -static: statically count"
+  //  OPTIONAL:
+  //   "  -c: compressed <inFile>" 
+  //   "  -w: 0 if the edge list is weighted with 32-bit integers., 1 if unweighted inserts. 2 if unweighted deletes\n"
   //   "  -nb: number of batches" 
   //   "  -bo: updates start eith [bo]th batch", if [-eg], first [bo] batches are statically counted
   //   "  -blocksize: blocksize to use"
-  // [-trict] [-bo 0] [-nb 5] [-blocksize 5]: inFile is the original graph, has trict triangles. start with [bo]th batch
-  // [-eg] [-n] [-bo 0] [-nb 5] [-blocksize 5]: first [bo] are counted statically, start with [bo]th batch
-generate_symmetric_dynamic_main(gbbs::Dynamic_Triangle_runner, false);
+
+  // if neither -sg or -shuffle is used, <inFile> is not used
+  // [-sg]  [-trict] : inFile is the original graph, has trict triangles. start with [bo]th batch
+  // [-n] : first [bo] batches of <updateFile> are counted statically, start with [bo]th batch
+  // [-shuffle]: first [bo] batches of shuffled <inFile> edges are counted statically, start with [bo]th batch
+// generate_symmetric_dynamic_main(gbbs::Dynamic_Triangle_runner, false);
