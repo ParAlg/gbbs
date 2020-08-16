@@ -58,9 +58,10 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
   auto result = toCSR(DG, updates_final, edges, DG.num_vertices());
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = result.first;
   pbbs::sequence<size_t> vtxMap = result.second;
-  t.stop();t.reportTotal("count degrees");
+  t.stop();t.reportTotal("process update graph and create structure");
 
   /////Perform merging of sorted adjacency lists////
+  t.start();
   int n = updates_final.size();
   pbbs::sequence<size_t> unique_flags =
       pbbs::sequence<size_t>::no_init(n); // count the set of unique adj lists
@@ -91,72 +92,7 @@ inline size_t Triangle(Graph& G, const F& f, commandLine& P) {
 
   // Merging with DG adjacency lists
 
-  ////////////////Remainder of the file is from yushangdi's branch////////////
-  t.start(); //step 6. count triangles // updates final has one copy of each edge
-  DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
-  par_for(0, updates_final.size(), [&] (size_t i) {
-    EdgeT e = updates_final[i].first;
-    bool flag = updates_final[i].second;
-    DBTGraph::VtxUpdate u = vtxNew[vtxMap[e.first]];
-    DBTGraph::VtxUpdate v = vtxNew[vtxMap[e.second]];
-    DG.countTriangles(u,v,flag, tc);
-  });
-  pbbs::sequence<size_t> triCounts = tc.report();
-  size_t delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
-  size_t delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
-  UTIL::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
-  UTIL::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
-  tc.clear();
-  triCounts.clear();
-  t.stop();t.reportTotal("6. count triangles");
-
-  t.start(); //  first remark inserts, then remove
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts
-    DG.cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
-  });
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
-    DG.cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  });
-  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T
-    DG.cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
-  });
-  t.stop();t.reportTotal("7. clean up tables");
-
-
-  auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
-  m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
-  if(DG.majorRebalance(2 * m_ins - m)){
-    cout <<  "major rebalancing not implemented " << endl;
-  }else{
-  // t.start(); //  minor rebalancing
-  // move between tables
-  // move table to array
-
-  // move if not in array and change from L->H or H->L
-  // change top level first, then bottom level
-
-  // remove empty table
-
-  // resize T since num high changes
-
-  // t.stop();t.reportTotal("8. 9. minor rebalancing");
-  }
-
-  // insertDegrees.clear();
-  updates_final.clear();
-
-
-  // resize table (increase)
-  // find table using oldD, increase
-
-  // minor rebalancing
-
-  // // resize table (decrease)
-  // t.stop();t.reportTotal("resizing");
-
-
-  //CLEANUP TODO: move to array,  remove empty tables
-  //TODO: do not keep block nodes in T,  in minor rebalance add to T
+  t.end(); t.reportTotal("Merging sorted adjacency lists.");
 
   cout << "done" << endl;
 
