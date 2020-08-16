@@ -247,13 +247,18 @@ size_t minorRebalancing(DyGraph<Graph>& DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       DG.updateDegrees(vtxRbl[i]);
     });
 
+#ifdef DBT_TOMB_MERGE
+    par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, delete tables and change status
+      DG.downSizeTablesBoth(vtxNew[i]);
+    });
+#else
     par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, called before downSizeTablesDeletes
       DG.downSizeTables(vtxNew[i]);
     });
     par_for(0, vtxNew.size(), [&] (const size_t i) { // delete tables packed and change status
       DG.downSizeTablesDeletes(vtxNew[i]);
     });
-    
+#endif
     DG.set_vertices_low(newLowNum);
 
     t.stop();t.reportTotal("8. update degrees");

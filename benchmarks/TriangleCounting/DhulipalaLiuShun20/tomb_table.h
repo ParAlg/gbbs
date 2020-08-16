@@ -89,7 +89,7 @@ class tomb_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  tomb_table(size_t _m, T _empty, T _tomb_key, KeyHash _key_hash, long inp_space_mult=-1)
+  tomb_table(size_t _m, T _empty, K _tomb_key, KeyHash _key_hash, long inp_space_mult=-1)
       : empty(_empty),
         empty_key(std::get<0>(empty)),
         tomb_key(_tomb_key),
@@ -105,7 +105,7 @@ class tomb_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  tomb_table(size_t _m, T _empty, T _tomb_key, KeyHash _key_hash, T* _tab, bool clear=true)
+  tomb_table(size_t _m, T _empty, K _tomb_key, KeyHash _key_hash, T* _tab, bool clear=true)
       : m(_m),
         mask(m - 1),
         empty(_empty),
@@ -131,7 +131,10 @@ class tomb_table {
   }
 
 
-  // change to tombstone if found
+  // change to tombstone if found, return true if deleted,
+  // false if not found
+  // does not support delete and insert at the same time
+  // can run update/find at the same time, make sure key to update is already in table
   bool deleteVal(K k) {
     size_t h = firstIndex(k);
     while (true) {
@@ -145,20 +148,27 @@ class tomb_table {
     return false;
    }
 
-  void maybe_resize(size_t n_inc, size_t ne) {
-      size_t nt = ne + n_inc;
-      if (nt > (0.9 * m)) {
+  // Pre-condition: k must be present in T.
+  // do not support updating and deleting/insert_f at the same time
+  inline void updateSeq(K k, V val) {
+    size_t h = idx(k);
+    std::get<1>(table[h]) = val;
+  }
+
+  void maybe_resize(size_t nt) {
+      if (nt > (0.9 * m)|| nt < (m/4)) {
         size_t old_m = m;
         auto old_t = table;
-        m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
+        m = ((size_t)1 << pbbslib::log2_up((size_t)(1.2 * nt) + 1));
         if (m == old_m) {
           return;
         }
         mask = m - 1;
-        ne = 0;
-        size_t line_size = 64;
-        size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
-        table = (T*)pbbs::aligned_alloc(line_size, bytes);
+        // ne = 0;
+        // size_t line_size = 128;
+        // size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
+        // table = (T*)pbbs::aligned_alloc(line_size, bytes);
+        table = pbbs::new_array_no_init<T>(m);
         clearA(table, m, empty);
         parallel_for(0, old_m, [&] (size_t i) {
           if (std::get<0>(old_t[i]) != empty_key && std::get<0>(old_t[i]) != tomb_key) {
@@ -173,10 +183,41 @@ class tomb_table {
       }
     }
 
+    void maybe_resize(size_t n_inc, size_t ne){
+      size_t nt = ne + n_inc;
+      maybe_resize(nt); 
+    }
 
+  // true if found, return index of element
+  // false if not found, give first tombstone index
+  tuple<bool, size_t> insert_helper(K k) const {
+    size_t h = firstIndex(k);
+    size_t ind = h; bool flag = true;
+    while (true) {
+      if (std::get<0>(table[h]) == k) {
+        return make_tuple(true, h);
+      } else if (std::get<0>(table[h]) == empty_key) {
+        return make_tuple(false, h);
+      } else if (flag && std::get<0>(table[h]) == tomb_key){
+        ind = h;
+        flag = true;
+      }
+      h = incrementIndex(h);
+    }
+    return make_tuple(false, h);  //should not reach here
+  }
+
+  // first check if k is in table already. 
+  // if in table quit
+  // if not, start from first tombstone and insert to the first tombstone or empty, 
+  // stop when CAS success or key is the same
+  // does not support inserting and deleting  at  the same time
+  // return true if inserted, false if already in table
   bool insert(std::tuple<K, V> kv) {
     K k = std::get<0>(kv);
-    size_t h = firstIndex(k);
+    size_t h; bool found;
+    std::tie(found, h) = insert_helper(k);
+    if(found) return false;
     while (true) {
       K prev_key = std::get<0>(table[h]);
       if (prev_key == empty_key || prev_key == tomb_key) {
@@ -196,7 +237,11 @@ class tomb_table {
   template <class F>
   bool insert_f(std::tuple<K, V> kv, const F& f) {
     K k = std::get<0>(kv);
-    size_t h = firstIndex(k);
+    size_t h; bool found;
+    std::tie(found, h) = insert_helper(k);
+    if(found){ 
+      f(&std::get<1>(table[h]), kv);
+      return false;}
     while (true) {
       K prev_key = std::get<0>(table[h]);
       if (prev_key == empty_key || prev_key == tomb_key) {
@@ -217,7 +262,9 @@ class tomb_table {
 
   bool insert_seq(std::tuple<K, V> kv) {
     K k = std::get<0>(kv);
-    size_t h = firstIndex(k);
+    size_t h; bool found;
+    std::tie(found, h) = insert_helper(k);
+    if(found) return false;
     while (true) {
       if (std::get<0>(table[h]) == empty_key || std::get<0>(table[h]) == tomb_key ) {
         table[h] = kv;
@@ -230,45 +277,6 @@ class tomb_table {
     }
     return false;
   }
-
-  // bool insert_check(std::tuple<K, V> kv, bool* abort) {
-  //   if (*abort) { return false; }
-  //   K k = std::get<0>(kv);
-  //   size_t h = firstIndex(k);
-  //   size_t n_probes = 0;
-  //   while (true) {
-  //     if (std::get<0>(table[h]) == empty_key) {
-  //       if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
-  //         std::get<1>(table[h]) = std::get<1>(kv);
-  //         return true;
-  //       }
-  //     }
-  //     if (std::get<0>(table[h]) == k) {
-  //       return false;
-  //     }
-  //     h = incrementIndex(h);
-  //     n_probes++;
-  //     if (n_probes > 10000) {
-  //       *abort = true;
-  //       break;
-  //     }
-  //   }
-  //   return false;
-  // }
-
-  // void mark_seq(K k) {
-  //   size_t h = firstIndex(k);
-  //   while (true) {
-  //     if (std::get<0>(table[h]) == empty_key) {
-  //       return;
-  //     }
-  //     if (std::get<0>(table[h]) == k) {
-  //       std::get<0>(table[h]) = empty_key - 1;
-  //       return;
-  //     }
-  //     h = incrementIndex(h);
-  //   }
-  // }
 
   bool contains(K k) const {
     size_t h = firstIndex(k);

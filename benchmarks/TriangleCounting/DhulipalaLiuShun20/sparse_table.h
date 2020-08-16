@@ -191,8 +191,9 @@ class sparse_table {
   	}
 
   	// try to copy the the replacement element into j
-  	if (pbbslib::CAS(&std::get<0>(table[j]),std::get<0>(c),std::get<0>(x))) {
-      std::get<1>(table[j]) = std::get<1>(x);
+  	// if (pbbslib::CAS(&std::get<0>(table[j]),std::get<0>(c),std::get<0>(x))) {
+    //   std::get<1>(table[j]) = std::get<1>(x);
+    if (pbbslib::CAS(&table[j],c,x)) {
           // swap was successful
           // if the replacement element was empty, we are done
   	  if (std::get<0>(x) == empty_key) return true;

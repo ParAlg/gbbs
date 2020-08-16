@@ -5,7 +5,7 @@
 #include "pbbslib/monoid.h"
 #include "shared.h"
 #include "sparse_table.h"
-
+#include "tomb_table.h"
 
 using namespace std;
 
@@ -20,8 +20,14 @@ namespace DBTGraph{
         using weight_type = typename Graph::weight_type;
         using edge_type = typename Graph::edge_type;
         using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
-        using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
-        using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
+#ifdef DBT_USING_TOMB
+        using tableE = pbbslib::tomb_table<uintE, SetT*, vertexHash >;
+        using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
+#else
+        using tableE = pbbslib::sparse_table<unsigned long long, SetT*, vertexHash >;
+        using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
+        // using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
+#endif
     private:
         size_t n;
         size_t m;
@@ -629,7 +635,7 @@ namespace DBTGraph{
         // if del_flag is true, we delete 0 counts wedges, use edgesD if del_flag is true
         // for each update (w,u) where w is low and u is high
         //      for w's ngh high v, check (u,v)
-        void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID, bool del_flag = false){
+        void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID, bool del_flag){
             if (is_low_v(w.id)){ // w is low and w has high ngh
             par_for(0, edgesID.size(), [&] (size_t i) { // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
@@ -651,6 +657,50 @@ namespace DBTGraph{
             }
         }
 
+        // updates and deletes at the same time
+        // if (u,v) is not a delete edge, do not need to check for deleting wedge
+        // only deleting edges might cause wedge count to decrease
+        void cleanUpTableT2(uintE u, uintE v, bool is_ins){
+            if(u > v) swap(u,v); 
+            insertW(u, v, UPDATECLEANUP);
+            if(is_ins) return;
+            WTV wedge = T->find(EdgeT(u,v), WTV(EMPTYWTV));
+            if( wedge.c1 != EMPTYWTV && wedge.c1 == 0){
+                T->deleteVal(EdgeT(u,v));
+            }
+        }
+
+        // updates and deletes at the same time
+        void cleanUpTableArray2(DBTGraph::VtxUpdate &w, uintE u, bool is_ins){
+            par_for(0, D[w.id] + w.insert_degree, [&] (size_t i) { // bruteforce finding high ngh of w
+                uintE v = getEArray(w.id, i);
+                if(v!=u && is_high_v(v)){
+                    cleanUpTableT2(u, v, is_ins); 
+                }
+            });
+        }
+
+        // updates and deletes at the same time
+        void cleanUpTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID){
+            if (is_low_v(w.id)){ // w is low and w has high ngh
+            par_for(0, edgesID.size(), [&] (size_t i) { // loop over the udpate batch (w,u)
+                uintE uid = edgesID[i].first.second;
+                if(is_high_v(uid)){               // proceed only when u is high
+                        bool is_ins = edgesID[i].second;
+                        if(use_block_v(w.id)){           
+                            cleanUpTableArray2(w ,uid, is_ins);
+                        }else{
+                            SetT *H = LH->find(w.id, NULL);
+                            par_for(0, H->size(), [&] (size_t j) {
+                                uintE v = get<0>(H->table[j]);
+                                if(v != H->empty_key && uid != v){
+                                cleanUpTableT2(uid, v, is_ins);}}); 
+                        }
+                }
+            });
+            }
+        }
+
         /////////////////////////////// Init Graph /////////////////////////////////
         
         void initParams(){
@@ -664,13 +714,21 @@ namespace DBTGraph{
             return 1 + ((x - 1) / y);
         }
 
-        void initTables(){
-            // important: save space in top table for array nodes
+        void initTables(){// important: save space in top table for array nodes
+#ifdef DBT_USING_TOMB            
+            LL = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            LH = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            HL = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            HH = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
+#else
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
             HH = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
-            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);        
+            // T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0); 
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
+#endif                   
         }
 
         DyGraph():n(0), m(0), block_size(0), alloc(false){
@@ -853,7 +911,10 @@ namespace DBTGraph{
         // must insert first, then delete
         // change the status of u when is_delete is true
         void minorRblMoveTopTable(DBTGraph::VtxUpdate &u, bool is_low_now, bool is_delete){
-            if(use_block_v(u.id)) return; // not in either tables
+            if(use_block_v(u.id)){ 
+                if(is_delete) status[u.id] = is_low_now;//status true if high after
+                return;
+            } // not in either tables
             tableE *tb1 = HL;tableE *tb3 = LL; // move from 1 to 3
             tableE *tb2 = HH;tableE *tb4 = LH; // move from 2 to 4
             if(is_low_now){    // currently low
@@ -1066,9 +1127,52 @@ namespace DBTGraph{
                 if(lowD[u.id]==D[u.id]){
                     tb2->deleteVal(u.id);
                 }    
-                if(D[u.id] == 0)blockStatus[u.id] = true;              
+                // if(D[u.id] == 0)blockStatus[u.id] = true;              
             }
         }
+
+#ifdef DBT_USING_TOMB
+        // D and lowD updated to after updates and rebalanced
+        // pack table to arrays if new degree is low enough, **delete table**
+        // all deleted edges are removed
+        // change status 
+        // free and delete allocated lower table if degree is 0
+        void downSizeTablesBoth(DBTGraph::VtxUpdate &i){
+            uintE u = i.id;
+            tableE *tb1 = LL;tableE *tb2 = LH;
+            if(is_high_v(u)){tb1 = HL;tb2 = HH;}
+            if(use_block(D[u])&&!use_block_v(u)){ // with new degree should block, but is not using it
+                size_t offset = u*block_size;
+                if(lowD[u] > 0){
+                    pack_neighbors_in(tb1->find(u, NULL), u, offset,          offset + lowD[u]);
+                    SetT *L = tb1->find(u, NULL);
+                    L->del();
+                    tb1->deleteVal(u);
+                }
+                if(lowD[u] < D[u]){
+                    pack_neighbors_in(tb2->find(u, NULL), u, offset + lowD[u], D[u]);
+                    SetT *H = tb2->find(u, NULL);
+                    H->del();
+                    tb2->deleteVal(u);
+                }  
+                blockStatus[u] = true;  
+            }else if(!use_block(D[u])){ // downsize if w/ new degree should use table
+                if(lowD[u]!=0 ){
+                    tb1->find(u, NULL)->maybe_resize(lowD[u]);
+                }else{
+                    SetT *L = tb1->find(u, NULL);
+                    if(L != NULL){L->del();tb1->deleteVal(u);} //free(L);
+                }
+                if(lowD[u]!=D[u]){
+                    tb2->find(u, NULL)->maybe_resize(D[u] - lowD[u]);
+                }else{
+                    SetT *H = tb2->find(u, NULL);
+                    if(H != NULL){H->del();tb2->deleteVal(u);}
+                }
+                // if(D[u] == 0)blockStatus[u] = true;  
+            }
+        }
+#endif
 
         void checkStatus(){
             par_for(0, n, [&] (const size_t i) { 
@@ -1109,7 +1213,8 @@ namespace DBTGraph{
                 // check W. Can't check if all valid wedges in. check if all entries valid
 
                 for(size_t i = 0; i < T->size(); ++ i){
-                    if(get<0>(T->table[i])!=T->empty_key){
+                    if(get<0>(T->table[i])!=T->empty_key && get<0>(T->table[i])!=T->tomb_key){
+                    // if(get<0>(T->table[i])!=T->empty_key){
                         uintE u  = get<0>(T->table[i]).first;
                         uintE v  = get<0>(T->table[i]).second;
                         if(is_low_v(u)||is_low_v(v)){
