@@ -212,7 +212,7 @@ class sparse_table {
   }
 
   // Pre-condition: k must be present in T.
-  // do not support updating and inserting at the same time
+  // do not support updating and deleting/insert_f at the same time
   inline void updateSeq(K k, V val) {
     size_t h = idx(k);
     std::get<1>(table[h]) = val;
@@ -375,6 +375,18 @@ class sparse_table {
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = pbbslib::make_sequence<T>(table, m);
+    return pbbslib::filter(table_seq, pred);
+  }
+
+  struct getKey{
+    getKey(){}
+    K operator  () (const T& kv) {
+      return std::get<0>(kv);
+    }
+  };
+  sequence<K> keys() const {
+    auto pred = [&](const K& k) { return k != empty_key; };
+    auto table_seq = pbbs::delayed_sequence<K, getKey>(m, getKey());
     return pbbslib::filter(table_seq, pred);
   }
 

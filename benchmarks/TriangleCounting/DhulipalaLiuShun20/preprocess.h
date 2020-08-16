@@ -201,10 +201,9 @@ inline void computeOffsets(pbbs::sequence<pair<EdgeT,bool>> &edges, pbbs::sequen
 
 //TODO: not keeping vtxMap if not used later
 template <class Graph, class EdgeT>
-pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
+pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>& G, pbbs::sequence<size_t>& vtxMap, pbbs::sequence<pair<EdgeT,bool>> &edgesIn, pbbs::sequence<pair<EdgeT,bool>> &edges, size_t n){
   size_t m = edgesIn.size();
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew;
-  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
   // pbbs::sequence<pair<EdgeT,bool>> edges = pbbs::sequence<pair<EdgeT,bool>>::no_init(2*m);
   pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(2*m+1);
   auto monoid = pbbslib::addm<size_t>();
@@ -231,7 +230,7 @@ pair<pbbs::sequence<DBTGraph::VtxUpdate>, pbbs::sequence<size_t>> toCSR(DBTGraph
     });
 
     flag.clear();
-    return make_pair(vtxNew,vtxMap);
+    return vtxNew;
 }
 }
 }
