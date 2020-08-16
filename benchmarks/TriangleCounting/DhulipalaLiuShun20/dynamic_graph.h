@@ -1,11 +1,15 @@
 #pragma once
 
+#define DBT_USING_TOMB
+
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
 #include "shared.h"
 #include "sparse_table.h"
-
+#ifdef DBT_USING_TOMB
+#include "tomb_table.h"
+#endif
 
 using namespace std;
 
@@ -21,7 +25,11 @@ namespace DBTGraph{
         using edge_type = typename Graph::edge_type;
         using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
         using tableE = pbbslib::sparse_table<uintE, SetT*, vertexHash >;
+#ifdef DBT_USING_TOMB
+        using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
+#else
         using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
+#endif
     private:
         size_t n;
         size_t m;
@@ -670,7 +678,11 @@ namespace DBTGraph{
             LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
             HL = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
             HH = new tableE(n-lowNum, EMPTYKV, vertexHash(), 1.0);
-            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0);        
+#ifdef DBT_USING_TOMB
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
+#else
+            T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), edgeHash(), 1.0); 
+#endif                   
         }
 
         DyGraph():n(0), m(0), block_size(0), alloc(false){
