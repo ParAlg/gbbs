@@ -865,7 +865,10 @@ namespace DBTGraph{
         // must insert first, then delete
         // change the status of u when is_delete is true
         void minorRblMoveTopTable(DBTGraph::VtxUpdate &u, bool is_low_now, bool is_delete){
-            if(use_block_v(u.id)) return; // not in either tables
+            if(use_block_v(u.id)){ 
+                if(is_delete) status[u.id] = is_low_now;//status true if high after
+                return;
+            } // not in either tables
             tableE *tb1 = HL;tableE *tb3 = LL; // move from 1 to 3
             tableE *tb2 = HH;tableE *tb4 = LH; // move from 2 to 4
             if(is_low_now){    // currently low
@@ -1121,7 +1124,11 @@ namespace DBTGraph{
                 // check W. Can't check if all valid wedges in. check if all entries valid
 
                 for(size_t i = 0; i < T->size(); ++ i){
+#ifdef DBT_USING_TOMB
+                    if(get<0>(T->table[i])!=T->empty_key && get<0>(T->table[i])!=T->tomb_key){
+#else
                     if(get<0>(T->table[i])!=T->empty_key){
+#endif
                         uintE u  = get<0>(T->table[i]).first;
                         uintE v  = get<0>(T->table[i]).second;
                         if(is_low_v(u)||is_low_v(v)){

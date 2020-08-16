@@ -147,7 +147,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   t.stop(); t.reportTotal("DCountTime");
 
 
-  // DG.checkStatus();
+  DG.checkStatus();
 
   return make_tuple(C0 + delta_triangles_pos - delta_triangles_neg, false, DGnew);
 
