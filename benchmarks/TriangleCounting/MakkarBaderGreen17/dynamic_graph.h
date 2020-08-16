@@ -40,12 +40,10 @@ struct vertex_hash {
 
           ins_edges =
               pbbs::sequence<pbbs::sequence<uintE>>::no_init(batch_alloc_size);
-          radj_ins_edges = pbbs::sequence<size_t>::no_init(batch_alloc_size);
           ind_ins_ids = pbbs::sequence<uintE>::no_init(batch_alloc_size);
 
           del_edges =
               pbbs::sequence<pbbs::sequence<uintE>>::no_init(batch_alloc_size);
-          radj_del_edges = pbbs::sequence<size_t>::no_init(batch_alloc_size);
           ind_del_ids = pbbs::sequence<uintE>::no_init(batch_alloc_size);
 
           id_cur_edges = new tableV(n_alloc_size, EMPTYKV, vertex_hash());
@@ -91,6 +89,7 @@ struct vertex_hash {
 
           uintE id = ind_cur_ids[adj_ind];
 
+          size_t reduce_index;
           if (isInsert)
               reduce_index = new_size;
             else
@@ -446,9 +445,22 @@ struct vertex_hash {
           return t_sum + u_sum / 3;
         }
 
-      void cleanup() {
-
-      }
+        // Clean up all unnecessary structures
+        void cleanup() {
+          ins_edges.clear();
+          del_edges.clear();
+          id_ins_edges->clear();
+          id_del_edges->clear();
+          ind_ins_ids.clear();
+          ind_del_ids.clear();
+        }
+        // Clean up initialization structures
+        void cleanup_initial() {
+          initial_graph_.clear();
+          initial_graph_edges_.clear();
+          initial_ids_.clear();
+          initial_offsets_.clear();
+        }
 
       private:
         // 3 structures for each of the following graphs: the current graph
@@ -465,8 +477,6 @@ struct vertex_hash {
         // Stores the index of each adjacent list to create the reduced
         // adjacency lists
         pbbs::sequence<size_t> radj_cur_edges;
-        pbbs::sequence<size_t> radj_ins_edges;
-        pbbs::sequence<size_t> radj_del_edges;
 
         // Vertex sparse table for mapping a vertex ID with the corresponding
         // adjacency list
