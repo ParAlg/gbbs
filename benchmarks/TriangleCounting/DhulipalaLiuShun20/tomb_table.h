@@ -33,6 +33,7 @@ template <class K, class V, class KeyHash>
 class tomb_table {
  public:
   using T = std::tuple<K, V>;
+  using KT = K;
 
   size_t m;
   size_t mask;
@@ -45,6 +46,14 @@ class tomb_table {
 
   size_t size() const {
     return m;
+  }
+
+  bool not_empty(K k){
+    return k != empty_key && k!=tomb_key;
+  }
+
+  bool not_empty(T kv){
+    return std::get<0>(kv) != empty_key && std::get<0>(kv) !=tomb_key;
   }
 
   static void clearA(T* A, long n, T kv) {
@@ -93,6 +102,20 @@ class tomb_table {
       : empty(_empty),
         empty_key(std::get<0>(empty)),
         tomb_key(_tomb_key),
+        key_hash(_key_hash) {
+    double space_mult = 1.1;
+    if (inp_space_mult != -1) space_mult = inp_space_mult;
+    m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m) + 1);
+    mask = m - 1;
+    table = pbbslib::new_array_no_init<T>(m);
+    clearA(table, m, empty);
+    alloc = true;
+  }
+
+    tomb_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1)
+      : empty(_empty),
+        empty_key(std::get<0>(empty)),
+        tomb_key(std::get<0>(empty) - 1),
         key_hash(_key_hash) {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;

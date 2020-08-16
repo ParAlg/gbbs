@@ -19,11 +19,12 @@ namespace DBTGraph{
         using vertex = typename Graph::vertex;
         using weight_type = typename Graph::weight_type;
         using edge_type = typename Graph::edge_type;
-        using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;
 #ifdef DBT_USING_TOMB
+        using SetT = pbbslib::tomb_table<uintE, int, vertexHash >;            
         using tableE = pbbslib::tomb_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
 #else
+        using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;    
         using tableE = pbbslib::sparse_table<unsigned long long, SetT*, vertexHash >;
         using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
         // using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
@@ -75,7 +76,7 @@ namespace DBTGraph{
             return lowD[i.id] == D[i.id] && i.insert_low_degree == i.insert_degree;}
         // ------end----- D and lowD are not updated
 
-        inline void insertTop(tableE *tb, uintE u, size_t size, double bottom_load = 1.2 ){
+        inline void insertTop(tableE *tb, uintE u, size_t size, double bottom_load = 2 ){
             if(size <= 0) return;
             SetT *tbB = new SetT(size, EMPTYKVB, vertexHash(), bottom_load);
             bool suc = tb->insert(make_tuple(u, tbB));
@@ -86,9 +87,8 @@ namespace DBTGraph{
         }
         //tb1: *L, tb2: *H
         void insertTop(tableE *tb1, tableE *tb2, uintE i, size_t low_degree, size_t degree){
-            double bottom_load = 1.2;
-            insertTop(tb1, i, low_degree, bottom_load);// if(low_degree > 0){//has low neighbors// }
-            insertTop(tb2, i, degree-low_degree, bottom_load);// if(low_degree < degree){ //has high neighbors// }
+            insertTop(tb1, i, low_degree);// if(low_degree > 0){//has low neighbors// }
+            insertTop(tb2, i, degree-low_degree);// if(low_degree < degree){ //has high neighbors// }
             
         }
 
@@ -202,12 +202,9 @@ namespace DBTGraph{
             return u.newLowDeg(lowD[u.id]);}
 
         inline bool majorRebalance(size_t ins_d, size_t del_d) const {
-#ifdef TURNOFFMAJOR
-            return false;}
-#else
             size_t new_d = num_edges() + ins_d - del_d;
             return  new_d  < M/4 || new_d  >= M;}
-#endif  
+
         // can't be used during update, D must align with current entries
         bool haveEdge (EdgeT e) const {
             if(m == 0) return false;
@@ -243,7 +240,7 @@ namespace DBTGraph{
         // put all entries v \in tb into seq_out as (v,u)
         template<class E, class F>
         size_t pack_neighbors_helper(SetT *tb, uintE u, pbbs::range<E *> seq_out) const {
-            auto pred = [&](const E& t) { return getFirst(t) != tb->empty_key; };
+            auto pred = [&](const E& t) { return tb->not_empty(getFirst(t)); };
             auto table_seq = pbbs::delayed_sequence<E, F>(tb->size(), F(u, tb->table, tb->empty_key));
             return pbbslib::filter_out(table_seq, seq_out, pred);
         }
@@ -474,7 +471,7 @@ namespace DBTGraph{
                         SetT *H = LH->find(w.id, NULL);
                         par_for(0, H->size(), [&] (size_t j) {
                             uintE v = get<0>(H->table[j]);
-                            if(v != H->empty_key && uid != v){
+                            if(H->not_empty(v) && uid != v){
                                 updateTableT(uid, v, get<1>(H->table[j]), flag);}});                    
                     }
                 }
@@ -503,7 +500,7 @@ namespace DBTGraph{
         inline void countTrianglesHelper(SetT *tb, uintE u, uintE v, size_t v_new_degree, bool flag, TriangleCounts &tc){
             par_for(0, tb->size(), [&] (size_t i) {
                 uintE w = get<0>(tb->table[i]);
-                if(w != tb->empty_key && w != v){
+                if(tb->not_empty(w) && w != v){
                     int val1 = get<1>(tb->table[i]);
                     int val2 = getEdgeVal(v,  w, v_new_degree);
                     countTrianglesHelper(val1, val2, flag, tc);
@@ -648,7 +645,7 @@ namespace DBTGraph{
                             SetT *H = LH->find(w.id, NULL);
                             par_for(0, H->size(), [&] (size_t j) {
                                 uintE v = get<0>(H->table[j]);
-                                if(v != H->empty_key && uid != v){
+                                if(H->not_empty(v) && uid != v){
                                 cleanUpTableT(uid, v, del_flag);}}); 
                         }
                     // }
@@ -693,7 +690,7 @@ namespace DBTGraph{
                             SetT *H = LH->find(w.id, NULL);
                             par_for(0, H->size(), [&] (size_t j) {
                                 uintE v = get<0>(H->table[j]);
-                                if(v != H->empty_key && uid != v){
+                                if(H->not_empty(v) && uid != v){
                                 cleanUpTableT2(uid, v, is_ins);}}); 
                         }
                 }
@@ -830,7 +827,7 @@ namespace DBTGraph{
                     SetT* L = HL->find(u, (SetT*) NULL);
                     par_for(0, L->size(), [&] (size_t j) {
                     uintE w = get<0>(L->table[j]);
-                    if(w != L->empty_key && lowD[w] < D[w]-1){
+                    if(L->not_empty(w) && lowD[w] < D[w]-1){
                         insertT(u, w);
                     }
                 });                   
@@ -852,7 +849,7 @@ namespace DBTGraph{
                 SetT* H = LH->find(w,(SetT*) NULL );
                 par_for(0, H->size(), [&] (size_t k) {
                     uintE v = get<0>(H->table[k]);
-                    if(v != H->empty_key && u != v){
+                    if(H->not_empty(v) && u != v){
                         insertW(u, v, UPDATET1, 1);
                     }
                 });
@@ -864,7 +861,7 @@ namespace DBTGraph{
         inline void clearTableE(tableE *tb){
             if(!tb->alloc) return;
             par_for(0, tb->size(), [&] (size_t i) {
-                if(tb->table[i] != tb->empty){
+                if(tb->not_empty(tb->table[i])){
                     std::get<1>(tb->table[i])->del();
                     // delete std::get<1>(tb->table[i]);
                 }
@@ -1016,7 +1013,7 @@ namespace DBTGraph{
                 if(H == NULL) return; // we can check if H is NULL beforehand, but makes code messy
                 par_for(0, H->size(), [&] (size_t k) {
                     uintE v = get<0>(H->table[k]);
-                    if(v != H->empty_key && u != v){
+                    if(H->not_empty(v) && u != v){
                         minorRbldeleteW(u, v);
                         // if(u > v) swap(u,v);
                         // insertW(u, v, UPDATECLEAR);
@@ -1044,7 +1041,7 @@ namespace DBTGraph{
                     SetT* L = HL->find(u.id, (SetT*) NULL);
                     par_for(0, L->size(), [&] (size_t j) {
                     uintE w = get<0>(L->table[j]);
-                    if(w != L->empty_key){ // we can check if H is NULL here, but makes code messy
+                    if(L->not_empty(w)){ // we can check if H is NULL here, but makes code messy
                         minorRbldeleteWedgeHelper(u.id, w, vtxNew, vtxMap);
                     }
                 });                   
@@ -1213,7 +1210,7 @@ namespace DBTGraph{
                 // check W. Can't check if all valid wedges in. check if all entries valid
 
                 for(size_t i = 0; i < T->size(); ++ i){
-                    if(get<0>(T->table[i])!=T->empty_key && get<0>(T->table[i])!=T->tomb_key){
+                    if(T->not_empty(get<0>(T->table[i]))){
                     // if(get<0>(T->table[i])!=T->empty_key){
                         uintE u  = get<0>(T->table[i]).first;
                         uintE v  = get<0>(T->table[i]).second;

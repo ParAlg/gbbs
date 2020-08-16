@@ -39,6 +39,7 @@ class sparse_table {
   size_t mask;
   T empty;
   K empty_key;
+  K tomb_key;
   T* table;
   bool alloc;
   KeyHash key_hash;
@@ -64,6 +65,12 @@ class sparse_table {
     }
   }
 
+  bool not_empty(K k){
+    return k != empty_key;
+  }
+  bool not_empty(T kv){
+    return std::get<0>(kv) != empty_key;
+  }
   // Does not copy elements in the current table; just resize the underlying
   // table.
   // Incoming must be a power of two
@@ -92,6 +99,7 @@ class sparse_table {
   sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1)
       : empty(_empty),
         empty_key(std::get<0>(empty)),
+        tomb_key(std::get<0>(empty)),
         key_hash(_key_hash) {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;
@@ -109,6 +117,7 @@ class sparse_table {
         mask(m - 1),
         empty(_empty),
         empty_key(std::get<0>(empty)),
+        tomb_key(std::get<0>(empty)),
         table(_tab),
         key_hash(_key_hash) {
     if (clear) {
