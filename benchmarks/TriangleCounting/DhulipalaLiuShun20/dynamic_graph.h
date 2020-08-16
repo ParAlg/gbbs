@@ -41,6 +41,8 @@ namespace DBTGraph{
         pbbs::sequence<bool> status;//true if high
         pbbs::sequence<bool> blockStatus;//true if using block
         pbbs::sequence<size_t> lowD;
+        // pbbs::sequence<size_t> rbledD;
+        pbbs::sequence<size_t> rbledLowD;
         pbbs::sequence<pair<uintE,int>> edges;
         tableE *LL;
         tableE *HH;
@@ -51,28 +53,37 @@ namespace DBTGraph{
 
 
 
-        bool is_high(size_t k) const { return k > threshold;}
-        bool is_low(size_t k) const {return !is_high(k);}
+        inline bool is_high(size_t k) const { return k > threshold;}
+        inline bool is_low(size_t k) const {return !is_high(k);}
 
-        bool must_high(size_t k) const { return k > t2;}
-        bool must_low(size_t k) const {return k < t1;}
+        inline bool must_high(size_t k) const { return k > t2;}
+        inline bool must_low(size_t k) const {return k < t1;}
 
-        bool use_block(size_t d)const{return d <= block_size;}
+        inline bool use_block(size_t d)const{return d <= block_size;}
 
         // ------start----- D and lowD are not updated
-        bool low_table_empty(DBTGraph::VtxUpdate &i){
+        inline bool low_table_empty(DBTGraph::VtxUpdate &i)const {
             return lowD[i.id] == 0;}
 
-        bool high_table_empty(DBTGraph::VtxUpdate &i){
+        inline bool high_table_empty(DBTGraph::VtxUpdate &i)const {
             return lowD[i.id] == D[i.id];}
 
-        bool new_low_table_empty(DBTGraph::VtxUpdate &i){return get_new_low_degree(i) == 0;}
-        bool new_high_table_empty(DBTGraph::VtxUpdate &i){return get_new_low_degree(i) == get_new_degree(i);}
+        inline bool low_table_empty(uintE i)const {
+            return lowD[i] == 0;}
 
-        bool marked_low_table_empty(DBTGraph::VtxUpdate &i){
+        inline bool high_table_empty(uintE i)const {
+            return lowD[i] == D[i];}
+
+        inline bool packed_low_table_empty(DBTGraph::VtxUpdate &i){return get_new_low_degree(i) == 0;} 
+        inline bool packed_high_table_empty(DBTGraph::VtxUpdate &i){return get_new_low_degree(i) == get_new_degree(i);}
+
+        inline bool rbled_low_table_empty(DBTGraph::VtxUpdate &i){return rbledLowD[i.id] == 0;}
+        inline bool rbled_high_table_empty(DBTGraph::VtxUpdate &i){return rbledLowD[i.id] == get_new_degree(i);}
+
+        inline bool marked_low_table_empty(DBTGraph::VtxUpdate &i){
             return lowD[i.id] == 0 && i.insert_low_degree == 0;}
 
-        bool marked_high_table_empty(DBTGraph::VtxUpdate &i){
+        inline bool marked_high_table_empty(DBTGraph::VtxUpdate &i){
             return lowD[i.id] == D[i.id] && i.insert_low_degree == i.insert_degree;}
         // ------end----- D and lowD are not updated
 
@@ -169,8 +180,10 @@ namespace DBTGraph{
                     tb = LH;
                 }else if(is_high_v(u)){
                     tb = HL;
-                }
-                return tb->find(u, (SetT *)NULL)->find(v, NO_EDGE);
+                }                
+                SetT *bottomTb = tb->find(u, (SetT *)NULL);
+                if(bottomTb == NULL) return NO_EDGE;
+                return bottomTb->find(v, NO_EDGE);
             }
         }
 
@@ -196,10 +209,17 @@ namespace DBTGraph{
         
         inline size_t get_degree(uintE u) const {
             return D[u];}
+            
+        inline size_t get_low_degree(uintE u) const {
+            return lowD[u];}
 
         template <class VTX>
         inline size_t get_new_low_degree(VTX &u) const {
             return u.newLowDeg(lowD[u.id]);}
+
+        template <class VTX>
+        inline size_t get_rbled_low_degree(VTX &u) const {
+            return rbledLowD[u.id];}
 
         inline bool majorRebalance(size_t ins_d, size_t del_d) const {
             size_t new_d = num_edges() + ins_d - del_d;
@@ -218,19 +238,22 @@ namespace DBTGraph{
             size_t degree2 = D[v];
             if(degree1 > degree2) {swap(u,v); swap(degree1, degree2);}
             if(degree1 == 0 || degree2 == 0) return false; // can't have this, because edges might be inserted
-            tableE *tb = LL;
-            if(is_high_v(u) && is_high_v(v)){
-                tb = HH;
-            }else if(is_high_v(v)){
-                tb = LH;
-            }
+
             if(use_block_v(u)){
                 for(size_t i = 0; i < degree1; ++i){
                     if(getEArray(u,i) == v) return true;
                 }
                 return false;
             }else{
-                return tb->find(u, (SetT *)NULL)->contains(v);
+                tableE *tb = LL;
+                if(is_high_v(u) && is_high_v(v)){
+                    tb = HH;
+                }else if(is_high_v(v)){
+                    tb = LH;
+                }
+                SetT *bottomTb = tb->find(u, (SetT *)NULL);
+                if(bottomTb == NULL) return false;
+                return bottomTb->contains(v);
             }
         }
 
@@ -760,6 +783,7 @@ namespace DBTGraph{
             lowD = pbbs::sequence<size_t>::no_init(n);
             status = pbbs::sequence<bool>(n, [&](size_t i) { return is_high(D[i]); });
             blockStatus = pbbs::sequence<bool>(n, [&](size_t i) { return use_block(D[i]);});
+            rbledLowD = pbbs::sequence<size_t>::no_init(n);
 
             //compute low degree
             auto monoid = pbbslib::addm<size_t>();
@@ -769,6 +793,7 @@ namespace DBTGraph{
             };
             par_for(0, n, [&] (size_t i) {
                 lowD[i] = G.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid);
+                rbledLowD[i] = lowD[i];
             });
 
             pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
@@ -874,6 +899,8 @@ namespace DBTGraph{
             D.clear();
             status.clear();
             if(!alloc) return;
+            // rbledD.clear();
+            rbledLowD.clear();
             lowD.clear();
             edges.clear();
             blockStatus.clear();
@@ -918,7 +945,7 @@ namespace DBTGraph{
                 swap(tb1,tb3);
                 swap(tb2,tb4);
             }  
-            if(!new_low_table_empty(u)){ 
+            if(!rbled_low_table_empty(u)){ //TODO: CHANGE!
                 if(is_delete){
                     tb1->deleteVal(u.id);
                 }else{
@@ -926,7 +953,7 @@ namespace DBTGraph{
                     tb3->insert(make_tuple(u.id, L));
                 }
             }   
-            if(!new_high_table_empty(u)){
+            if(!rbled_high_table_empty(u)){
                 if(is_delete){
                     tb2->deleteVal(u.id);
                 }else{                     
@@ -963,9 +990,8 @@ namespace DBTGraph{
             }
         }
 
-        // is_low_now is true if v has nghbors Ngh moving from L to H, otherwise from H to L
         // require: edges is updated and packed, tables are already resized, before top tables moves
-        void minorRblMoveBottomTable(uintE v, pbbs::range<pair<EdgeT,bool> *> Ngh, bool is_low_now, bool is_delete){
+        void minorRblMoveBottomTable(uintE v, pbbs::range<pair<EdgeT,bool> *> rblEdges, bool is_delete){
             if(use_block_v(v)) return;
             tableE *tb1 = LL;
             tableE *tb2 = LH;
@@ -973,13 +999,14 @@ namespace DBTGraph{
                 tb1 = HL; 
                 tb2 = HH; // we are moving delta entries from HL[v] to HH[v] 
             }
-            if(!is_low_now){swap(tb1,tb2);}   //swap,moving to xL from xH
 
-            SetT *fromSet = tb1->find(v, NULL); // both shoud not be NULL
-            SetT *toSet = tb2->find(v, NULL);
+            par_for(0, rblEdges.size(), [&](const size_t i){
+                uintE u = getSecond(rblEdges,i);
+                if(!rblEdges[i].second){swap(tb1,tb2);}   //swap,moving to xH from xL,  u is now high
 
-            par_for(0, Ngh.size(), [&](const size_t i){
-                uintE u = getSecond(Ngh,i);
+                SetT *fromSet = tb1->find(v, NULL); // both shoud not be NULL
+                SetT *toSet = tb2->find(v, NULL);
+                
                 if(is_delete){fromSet->deleteVal(u);}
                 else{toSet->insert(make_tuple(u,OLD_EDGE));}
             });
@@ -1026,7 +1053,6 @@ namespace DBTGraph{
         //called before tables and status are rebalanced, but already updated, u is now H (before update)
         // edges are updated and packed based on VtxUpdate 
         // delete all wedges (u,w,v) where v is now H and w is now L
-        // "delete" means change wedge num to 0
         // if u.v both change from H to L, update twice
         void minorRblDeleteWedge(DBTGraph::VtxUpdate &u, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
             if(get_new_low_degree(u) > 0){
@@ -1052,21 +1078,32 @@ namespace DBTGraph{
 
 
         // u is now H (after update), called after tables AND DEGREES are rebalanced
-        void minorRblInsertWedge(DBTGraph::VtxUpdate &u){
+        inline void minorRblInsertWedge(DBTGraph::VtxUpdate &u){
             insertWedges(u.id, false);
         }
 
         //////////////////////////////////////////// Minor Rebalancing CLEANUP /////////////////////
 
         // update degrees and low degrees from inserts/deletes
-        void updateDegrees(DBTGraph::VtxUpdate &u){
-            D[u.id] = get_new_degree(u);
-            lowD[u.id] = get_new_low_degree(u);
+        inline void updateDegrees(DBTGraph::VtxUpdate &u){
+            D[u.id] = get_new_degree(u); 
+            lowD[u.id] = get_new_low_degree(u); //not using rbledD to avoid fetching new cache
         }
 
         // update low degrees from rebalancing
-        void updateDegrees(DBTGraph::VtxRbl &v){
-            lowD[v.id] = get_new_low_degree(v);
+        inline void updateDegrees(DBTGraph::VtxRbl &v){
+            lowD[v.id] = get_new_low_degree(v); //not using rbledD to avoid fetching new cache
+        }
+
+        // only keep lowD because D can be computed
+        inline void updateDegreesTmp(DBTGraph::VtxUpdate &u){
+            // rbledD[u.id] = get_new_degree(u);
+            rbledLowD[u.id] = get_new_low_degree(u);
+        }
+
+        // update low degrees from rebalancing
+        inline void updateDegreesTmp(DBTGraph::VtxRbl &v){
+            rbledLowD[v.id] = get_new_low_degree(v);
         }
 
 

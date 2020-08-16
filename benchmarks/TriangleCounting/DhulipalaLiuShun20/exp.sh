@@ -13,7 +13,7 @@
 # 
 
 
-./Triangle -s -w -sg -trict 3 -nb  1 -n 7 -bo 0 ../../../inputs/small/triangles4.txt ../../../inputs/small/update4.txt
+# ./Triangle -s -w -sg -trict 3 -nb  1 -n 7 -bo 0 ../../../inputs/small/triangles4.txt ../../../inputs/small/update4.txt
 
 # ./Triangle -s -w -shuffle -nb  1 -n 7 -bo 0 ../../../inputs/small/triangles4.txt ../../../inputs/small/empty
 
@@ -22,6 +22,8 @@
 # ./Triangle -s -w -static -shuffle -nb  1 -n 7 -bo 0 ../../../inputs/small/triangles4.txt ../../../inputs/small/empty
 
 # ./Triangle -s -w 1 -nb 10 -n 128 -bo 0 ../../../inputs/empty ../../../inputs/rMatEdgesShuffle
+
+./Triangle -s -shuffle -nb 10 -n 1138499 -blocksize 20 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
 
 
 
