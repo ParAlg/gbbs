@@ -172,12 +172,13 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph> DG, const vector<gbbs_io::
   DSymGraph *DGnew;
   pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
   // inserts
-  for(int i = batch_offset; i< num_batch; ++i){
+  for(int i = batch_offset; i<= num_batch; ++i){
     size_t batch_start = i*batch_size;
     if(all_del){
       batch_start = (num_batch-1-i+batch_offset)*batch_size;
     }
     size_t batch_end = min(batch_size + batch_start, edges.size());
+    if(batch_end == batch_start) break;
     timer t; t.start();
     if(switched){
       tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F>(DGold, vtxMap, edges, count, P, n, batch_start, batch_end);
@@ -238,11 +239,12 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   }
 
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, batch_offset * batch_size);
+  t.next("Build Graph");
   C0 = Triangle(G2, f, "degree", P); 
-  t.next("Init");
+  t.next("Static Count");
   DBTInternal::DSymGraph DG = DBTInternal::DSymGraph(block_size, G2, n);
   G2.del();
-  t.next("Build DG");
+  t.next("Build Dynamic Graph");
   return DBTInternal::dynamicBatches<DBTGraph::SymGraph, F>(DG, updates, batch_num, P, n, batch_offset, C0, false);
 }
 

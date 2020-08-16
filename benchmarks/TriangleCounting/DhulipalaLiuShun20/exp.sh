@@ -23,7 +23,10 @@
 
 # ./Triangle -s -w 1 -nb 10 -n 128 -bo 0 ../../../inputs/empty ../../../inputs/rMatEdgesShuffle
 
-./Triangle -s -shuffle -nb 10 -n 1138499 -blocksize 10 -bo 0 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
+./Triangle -s -shuffle -static -nb 4 -n 1138499 -bo $1 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
+
+
+# ./Triangle -s -shuffle -nb 10 -n 1138499 -blocksize 10 -bo $1 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
 
 
 

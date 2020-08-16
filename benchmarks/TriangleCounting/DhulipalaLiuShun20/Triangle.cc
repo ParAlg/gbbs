@@ -77,12 +77,17 @@ template<class Graph>
 inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
   vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
     size_t m = G.num_edges();
-    auto perm = pbbs::random_permutation<gbbs::uintE>(m);
+    auto perm = pbbs::random_permutation<gbbs::uintE>(m/2);
     pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
-    for (size_t i = 0; i< m; ++i) {
-      updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list[perm[i]]), std::get<1>(edge_list[perm[i]]), weight));
-    } 
+    auto edge_list_dedup = pbbs::filter(edge_list, [&](const std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type> & e){
+      return std::get<0>(e) < std::get<1>(e);
+    });
     edge_list.clear();
+    assert(edge_list_dedup.size() == m/2);
+    for (size_t i = 0; i< edge_list_dedup.size(); ++i) {
+      updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), weight));
+    } 
+    edge_list_dedup.clear();
     std::cout << "shuffled" << std::endl;
     return updates_shuffled;    
 }

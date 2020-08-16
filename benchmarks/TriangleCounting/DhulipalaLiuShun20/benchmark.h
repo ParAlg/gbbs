@@ -56,15 +56,16 @@ namespace DBTInternal {
   template <class UT>
   inline size_t staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P, size_t n) {
 //   size_t block_size = 0; 
-  size_t batch_size = edges.size()/num_batch;
+  size_t batch_size = edges.size()/num_batch + 1;
   std::cout << "batch_size " << batch_size << std::endl;
   size_t count = 0;
   DBTGraph::DyGraph<DBTGraph::SymGraph> *DGnew;
-  for(int i = 0; i< num_batch; ++i){
+  for(int i = 0; i <= num_batch; ++i){
     size_t batch_end = min(batch_size  * (i+1), edges.size());
+    if(batch_end == batch_size * i)  break;
     timer t; t.start();
     tie(count, DGnew)= DBTGraph::majorRebalancing(edges, 0,  batch_end, n, 0, P, false);
-    std::cout << "batch " << i << std::endl;
+    std::cout << "batch " << i << " [" << 0 << " " << batch_end << "]" << std::endl;
     t.stop();t.reportTotal("");
     PrintBreak();
   }
