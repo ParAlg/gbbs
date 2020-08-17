@@ -171,8 +171,9 @@ class tomb_table {
       }
       h = incrementIndex(h);
       if(ct++ > m){
-        cout << " table full" << endl;
-        abort();
+        return false;
+        // cout << " table full 1" << endl;
+        // abort();
       }
     }
     return false;
@@ -189,7 +190,7 @@ class tomb_table {
       if (nt > (0.9 * m)|| nt < (m/4)) {
         size_t old_m = m;
         auto old_t = table;
-        m = ((size_t)1 << pbbslib::log2_up((size_t)(1.2 * nt) + 1));
+        m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
         if (m == old_m) {
           return;
         }
@@ -222,21 +223,23 @@ class tomb_table {
   // false if not found, give first tombstone index
   tuple<bool, size_t> insert_helper(K k) const {
     size_t h = firstIndex(k);
-    size_t ind = h; bool flag = true;
+    size_t ind = h; bool found = false;
     size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == k) {
         return make_tuple(true, h);
       } else if (std::get<0>(table[h]) == empty_key) {
-        return make_tuple(false, h);
-      } else if (flag && std::get<0>(table[h]) == tomb_key){
+        return make_tuple(false, ind);
+      } else if (!found && std::get<0>(table[h]) == tomb_key){
         ind = h;
-        flag = true;
+        found = true;
       }
       h = incrementIndex(h);
-      if(ct++ > m){
-        return make_tuple(false, ind); 
-      }
+      if(ct++ > m){return make_tuple(false, ind); }
+      // {
+      //   cout << " table full 2" << endl;
+      //   abort();
+      // }//
     }
     return make_tuple(false, ind);  //should not reach here
   }
@@ -266,7 +269,7 @@ class tomb_table {
       }
       h = incrementIndex(h);
       if(ct++ > m){
-        cout << " table full" << endl;
+        cout << " table full 3" << endl;
         abort();
       }
     }
@@ -297,7 +300,7 @@ class tomb_table {
       }
       h = incrementIndex(h);
       if(ct++ > m){
-        cout << " table full" << endl;
+        cout << " table full 4" << endl;
         abort();
       }
     }
@@ -320,7 +323,7 @@ class tomb_table {
       }
       h = incrementIndex(h);
       if(ct++ > m){
-        cout << " table full" << endl;
+        cout << " table full 5" << endl;
         abort();
       }
     }
@@ -337,7 +340,11 @@ class tomb_table {
         return false;
       }
       h = incrementIndex(h);
-      if(ct++ > m) return false;
+      if(ct++ > m)return false;
+      // {
+      //   cout << " table full 6" << endl;
+      //   abort();
+      // }// 
     }
     return false;
   }
@@ -352,7 +359,11 @@ class tomb_table {
         return default_value;
       }
       h = incrementIndex(h);
-      if(ct++ > m) return default_value;
+      if(ct++ > m)return default_value;
+      // {
+      //   cout << " table full 7" << endl;
+      //   abort();
+      // }// 
     }
     return default_value;
   }

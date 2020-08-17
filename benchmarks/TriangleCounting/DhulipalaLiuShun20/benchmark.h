@@ -54,13 +54,13 @@ namespace DBTInternal {
 
   //edges already randomly shuffled
   template <class UT>
-  inline size_t staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P, size_t n) {
+  inline size_t staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P, size_t n, size_t batch_offset) {
 //   size_t block_size = 0; 
   size_t batch_size = edges.size()/num_batch;
   std::cout << "batch_size " << batch_size << std::endl;
   size_t count = 0;
   DBTGraph::DyGraph<DBTGraph::SymGraph> *DGnew;
-  for(int i = 0; i <= num_batch; ++i){
+  for(int i = batch_offset; i <= num_batch; ++i){
     size_t batch_end = min(batch_size  * (i+1), edges.size());
     if(batch_end == batch_size * i)  break;
     timer t; t.start();

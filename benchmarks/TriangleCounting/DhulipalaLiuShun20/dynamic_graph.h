@@ -4,7 +4,7 @@
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
 #include "shared.h"
-#include "sparse_table.h"
+// #include "sparse_table.h"
 #include "tomb_table.h"
 // #include "tomb_table2.h"
 
@@ -31,7 +31,7 @@ namespace DBTGraph{
         using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
         // using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
 #endif
-    private:
+    // private:
         size_t n;
         size_t m;
         size_t block_size;
@@ -89,7 +89,7 @@ namespace DBTGraph{
             return lowD[i.id] == D[i.id] && i.insert_low_degree == i.insert_degree;}
         // ------end----- D and lowD are not updated
 
-        inline void insertTop(tableE *tb, uintE u, size_t size, double bottom_load = 2 ){
+        inline void insertTop(tableE *tb, uintE u, size_t size, double bottom_load = 3 ){
             if(size <= 0) return;
             SetT *tbB = new SetT(size, EMPTYKVB, vertexHash(), bottom_load);
             bool suc = tb->insert(make_tuple(u, tbB));
@@ -511,29 +511,39 @@ namespace DBTGraph{
 
         // update triangle count for a wedge with val1 and val2 edges
         // flag is true if inserts, false if deletes
-        inline void countTrianglesHelper(int val1, int val2, bool flag, TriangleCounts &tc){
-            if(val1 == NO_EDGE || val2 == NO_EDGE) return;
+        inline size_t countTrianglesHelper(int val1, int val2, bool flag, TriangleCounts &tc){
+            if(val1 == NO_EDGE || val2 == NO_EDGE) return 0;
             if(flag){// +1 new inserts
-                if(val1 == DEL_EDGE || val2 == DEL_EDGE) return;
+                if(val1 == DEL_EDGE || val2 == DEL_EDGE) return 0; 
                 tc.increment(val1 + val2 + 1, 1);
+                return val1 + val2 + 1;
             }else{// +1 new deletions
-                if(val1 == NEW_EDGE || val2 == NEW_EDGE) return;
+                if(val1 == NEW_EDGE || val2 == NEW_EDGE) return 0 ;
                 tc.decrement(val1/2 + val2 /2 + 1, 1);
+                return 1;
             }
         }
 
         // requrie: tables and edges updated
         //tb = XX->find(u)
         // for each ngh w of u, check if (w,v) exits. If so update tri counts
-        inline void countTrianglesHelper(SetT *tb, uintE u, uintE v, size_t v_new_degree, bool flag, TriangleCounts &tc){
+        inline tuple<size_t, size_t, size_t> countTrianglesHelper(SetT *tb, uintE u, uintE v, size_t v_new_degree, bool flag, TriangleCounts &tc){
+            tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
             par_for(0, tb->size(), [&] (size_t i) {
                 uintE w = get<0>(tb->table[i]);
                 if(tb->not_empty(w) && w != v){
                     int val1 = get<1>(tb->table[i]);
                     int val2 = getEdgeVal(v,  w, v_new_degree);
-                    countTrianglesHelper(val1, val2, flag, tc);
+                    size_t result = countTrianglesHelper(val1, val2, flag, tc);
+                    // if(u == 1071 && v == 1845){
+                    //     cout << w << " " << val1 << " " << val2 << endl;
+                    // }
+                    if(result == 1){get<0>(ct) += 1;}
+                    if(result == 2){get<1>(ct) += 1;}
+                    if(result == 3){get<2>(ct) += 1;}
                 }
             });
+            return ct;
 
         }
 
@@ -569,11 +579,11 @@ namespace DBTGraph{
                     countTrianglesHelper(H,u.id,v.id,space_v,flag, tc);
                 }
             }else if(is_low_v(v.id)){// at least one low vertex 
-                if(low_space_v > 0){ //LLL or LLH
+                if(low_space_v > 0){ // LLH
                     SetT *L = LL->find(v.id, NULL);
                     countTrianglesHelper(L,v.id,u.id,space,flag, tc);
                 }
-                if(low_space_v < space_v - 1){ //LHL or LHH, if only 1 high ngh, that's u
+                if(low_space_v < space_v - 1){ //LHH, if only 1 high ngh, that's u
                     SetT *H = LH->find(v.id, NULL);
                     countTrianglesHelper(H,v.id,u.id,space,flag, tc);
                 }
@@ -582,6 +592,12 @@ namespace DBTGraph{
                     SetT *H = HH->find(u.id, NULL);
                     countTrianglesHelper(H,u.id,v.id,space_v,flag, tc);
                 }
+                // tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
+                // if(low_space > 0){ //HLH
+                //     SetT *L = HL->find(u.id, NULL);
+                //     ct = countTrianglesHelper(L,u.id,v.id,space_v,flag, tc);
+                // }
+                // size_t ct2 = 0;
                 if(u.id > v.id) swap(u,v);
                 WTV wedges = T->find(EdgeT(u.id,v.id), WTV(EMPTYWTV));
                 if(wedges.c1!=EMPTYWTV){
@@ -589,14 +605,32 @@ namespace DBTGraph{
                         tc.increment(1, wedges.c1);
                         tc.increment(2, wedges.c2);
                         tc.increment(3, wedges.c3);
+                        // ct2 =  wedges.c1  +  wedges.c2 +  wedges.c3;
                     }else{
                         tc.decrement(1, wedges.c1 - wedges.c4 - wedges.c5);
                         tc.decrement(2, wedges.c4);
                         tc.decrement(3, wedges.c5);
                     }
                 }
+
+                // if(get<0>(ct)+get<1>(ct)+get<2>(ct) != ct2){
+                //     cout << " counts wrong!" << endl;
+                // }
             }
 
+        }
+
+        size_t debugging_temp(){
+            TriangleCounts tc = TriangleCounts();
+            uintE u = 1071;
+            uintE v = 1845;
+            if(is_low_v(u) && is_low_v(v)) return 0;
+            tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
+            if(is_high_v(u) && is_high_v(v)){
+                SetT *L = HL->find(u, NULL);
+                if(L!=NULL) ct = countTrianglesHelper(L,u,v,0,true, tc);
+            }
+            return get<0>(ct);
         }
 
         /////////////////////////////// CLEANUP TABLES /////////////////////////////////
@@ -1081,10 +1115,113 @@ namespace DBTGraph{
             }
         }
 
+        void minorRblDeleteWedgeCenterArray(DBTGraph::VtxUpdate &w){
+            for(size_t i = 0; i < get_new_degree(w); ++i) { // bruteforce finding high ngh of w
+                uintE u = getEArray(w.id, i);
+                if(is_high_v(u)){
+                    for(size_t j = 0; j < i; ++j) { 
+                        uintE v = getEArray(w.id, j);
+                        if(is_high_v(v)){
+                            uintE uu = u;
+                            uintE vv = v;
+                            if(u > v) swap(uu,vv);
+                            if(T->contains(EdgeT(uu,vv)))T->insert_f(make_tuple(EdgeT(uu,vv), WTV(REMOVE1,1)), updateTF());
+                        }
+                    }
+                }
+            }
+        }
+
+        void minorRblDeleteWedgeCenterTable(DBTGraph::VtxUpdate &w){
+            SetT *H = LH->find(w.id, NULL);
+            // if(H == NULL) return;
+            par_for(0, H->size(), [&] (size_t i) {
+                uintE u = get<0>(H->table[i]);
+                if(H->not_empty(u)){
+                    par_for(0, i, [&] (size_t j) {
+                        uintE v = get<0>(H->table[j]);
+                        if(H->not_empty(v)){
+                            uintE uu = u;
+                            uintE vv = v;
+                            if(u > v) swap(uu,vv);
+                            if(T->contains(EdgeT(uu,vv)))T->insert_f(make_tuple(EdgeT(uu,vv), WTV(REMOVE1,1)), updateTF());
+                        }
+                    });
+                }
+            });         
+        }
+
+        // for each w that changes from L to H, remove HLH where w is involved
+        // require w is now L and is changing to H
+        // called before tables are rebalanced and status updated for rebalancing
+        void minorRblDeleteWedgeCenter(DBTGraph::VtxUpdate &w){
+            if(use_block_v(w.id)){           
+                minorRblDeleteWedgeCenterArray(w);
+            }else{
+                if(!packed_high_table_empty(w))minorRblDeleteWedgeCenterTable(w);                  
+            }
+        }
+
 
         // u is now H (after update), called after tables AND DEGREES are rebalanced
-        inline void minorRblInsertWedge(DBTGraph::VtxUpdate &u){
-            insertWedges(u.id, false);
+        // degree is updated to after rebalanced
+        inline void minorRblInsertWedge(DBTGraph::VtxUpdate &uobj, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
+            uintE u = uobj.id;
+            if(lowD[u] > 0){//(u != HL->empty_key){
+            if(use_block_v(u)){
+                par_for(0, D[u], [&] (size_t j) {
+                    uintE w = getEArray(u,j);//edges[u * block_size + j];
+                    if(is_low_v(w)){
+                        rblInsertT(uobj, w, vtxNew, vtxMap);
+                    }
+                });
+            }else{
+                    SetT* L = HL->find(u, (SetT*) NULL);
+                    par_for(0, L->size(), [&] (size_t j) {
+                    uintE w = get<0>(L->table[j]);
+                    if(L->not_empty(w)){
+                        rblInsertT(uobj, w, vtxNew, vtxMap);
+                    }
+                });                   
+            }
+
+            }
+        }
+
+        
+        // u is high, w is low
+        // degree is updated to after rebalanced already
+        inline void rblInsertT(DBTGraph::VtxUpdate &uobj, uintE w, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
+            if(use_block_v(w)){
+                par_for(0, D[w], [&] (size_t k) {
+                    uintE v = getEArray(w,k);//edges[w * block_size + k];
+                    if(is_high_v(v)){   
+                        rblInsertW(uobj, v, vtxNew, vtxMap);
+                    }
+                });
+            }else{
+                SetT* H = LH->find(w,(SetT*) NULL );
+                par_for(0, H->size(), [&] (size_t k) {
+                    uintE v = get<0>(H->table[k]);
+                    if(H->not_empty(v) && uobj.id != v){
+                        rblInsertW(uobj, v, vtxNew, vtxMap);
+                    }
+                });
+            }
+
+        }
+
+        // assume v is high
+        inline void rblInsertW(DBTGraph::VtxUpdate &uobj, uintE v, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
+            uintE u = uobj.id;
+            if(vtxMap[v] == EMPTYVMAP){ // v is not changed for L to H, must insert wedge
+                if( u > v) swap(u,v);
+                T->insert_f(make_tuple(EdgeT(u,v), WTV(UPDATET1, 1)), updateTF());
+            }else{
+                if(vtxNew[vtxMap[v]].change_status && u > v) return; // v is also low to high and u > v, v should insert
+                if( u > v) swap(u,v);
+                T->insert_f(make_tuple(EdgeT(u,v), WTV(UPDATET1, 1)), updateTF());
+            }
         }
 
         //////////////////////////////////////////// Minor Rebalancing CLEANUP /////////////////////

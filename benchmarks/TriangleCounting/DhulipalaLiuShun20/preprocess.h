@@ -235,14 +235,14 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, pbbs::seq
 }
 
 template <class Graph, class UT>
-void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t s, size_t e, size_t n){
+void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t s, size_t e, size_t n, commandLine& P){
   using W = pbbslib::empty;
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
   size_t num_vertices = n;
   auto monoid = pbbslib::addm<size_t>();  
 
-  DBTGraph::SymGraph G = edge_list_to_symmetric_graph(edges, n, 0, e);
+  // DBTGraph::SymGraph G = edge_list_to_symmetric_graph(edges, n, 0, e);
 
   // count new degrees
   vertex_data *vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
@@ -258,11 +258,11 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   vertex_data_array[num_vertices-1].degree = num_edges - newDegrees[num_vertices-1];
   vertex_data_array[num_vertices-1].offset = newDegrees[num_vertices-1];
   newDegrees.clear();
-  for(size_t i=0; i< num_vertices; ++i) {
-    if(vertex_data_array[i].degree != G.v_data[i].degree){
-      cout << "degree wrong! " << i << endl;
-    }
-  }
+  // for(size_t i=0; i< num_vertices; ++i) {
+  //   if(vertex_data_array[i].degree != G.v_data[i].degree){
+  //     cout << "degree wrong! " << i << endl;
+  //   }
+  // }
 
   // put edges to array, first old edges, then new edges
   pbbs::sequence<edge_type> edges_seq = pbbs::sequence<edge_type>(num_edges);
@@ -280,12 +280,25 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
     });
   }
 
-  for(size_t i=0; i< num_edges; ++i) {
-    if(get<0>(edges_seq[i]) != get<0>(G.e0[i])){
-      cout << "neighbor wrong! " << i << endl;
-    }
-  }
 
+  // for(size_t i=0; i< num_edges; ++i) {
+  //   if(get<0>(edges_seq[i]) != get<0>(G.e0[i])){
+  //     cout << "neighbor wrong! " << i << endl;
+  //   }
+  // }
+
+  edge_type *edges_array = edges_seq.to_array();
+
+  DBTGraph::SymGraph G2 = DBTGraph::SymGraph(
+    vertex_data_array,
+    num_vertices,
+    num_edges,
+    [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
+    edges_array);
+
+    auto f = [&] (uintE u, uintE v, uintE w) { };
+  size_t c = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
+  cout << c << endl;
 }
 
 

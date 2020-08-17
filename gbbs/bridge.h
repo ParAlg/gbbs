@@ -99,6 +99,7 @@ namespace pbbslib {
   using pbbs::atomic_compare_and_swap;
   using pbbs::fetch_and_add;
   using pbbs::write_add;
+  using pbbs::write_minus;
   using pbbs::write_max;
   using pbbs::write_min;
   using pbbs::log2_up;
