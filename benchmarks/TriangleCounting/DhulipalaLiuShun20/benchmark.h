@@ -56,7 +56,7 @@ namespace DBTInternal {
   template <class UT>
   inline size_t staticCount(const std::vector<UT>& edges, int num_batch, commandLine& P, size_t n) {
 //   size_t block_size = 0; 
-  size_t batch_size = edges.size()/num_batch + 1;
+  size_t batch_size = edges.size()/num_batch;
   std::cout << "batch_size " << batch_size << std::endl;
   size_t count = 0;
   DBTGraph::DyGraph<DBTGraph::SymGraph> *DGnew;
