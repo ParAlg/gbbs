@@ -34,7 +34,7 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
   pbbs::sequence<gbbs_io::Edge<pbbs::empty>> t_edges = pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
-  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<pbbs::empty>& e) {return e.from  != e.to;});
+  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<pbbs::empty>& ee) {return ee.from  != ee.to;});
   t_edges.clear();
   const size_t num_edges = edges.size();
   // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
@@ -134,7 +134,7 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
   inds.clear();
 
   // remove inserts/deletes in/notin graph
-  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdge(G, e);});
+  pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& eee) {return !dupEdge(G, eee);});
   // pbbs::sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdgeDel(G, e);});
 
   flag.clear();
@@ -176,9 +176,9 @@ inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges,
     vtxNew[flag[i]] = VTX(u,i);
     vtxMap[u] = flag[i];
   }});
-  uintE u = DBTGraph::getFirst(edges,0);
-  vtxNew[0] = VTX(u,0);
-  vtxMap[u] = 0;
+  uintE uu = DBTGraph::getFirst(edges,0);
+  vtxNew[0] = VTX(uu,0);
+  vtxMap[uu] = 0;
 
   //count D and insert D
   par_for(0, edgeL-1, [&] (size_t i) {

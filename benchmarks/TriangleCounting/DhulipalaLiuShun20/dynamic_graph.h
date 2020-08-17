@@ -814,10 +814,10 @@ namespace DBTGraph{
                 if(use_block(degree)){
                     size_t k = block_size*i; //v_data[i].offset;
 
-                    auto map_f = [&] (const uintE& u, const uintE& v, const typename Graph::weight_type& wgh, size_t ind) {
+                    auto map_f2 = [&] (const uintE& u, const uintE& v, const typename Graph::weight_type& wgh, size_t ind) {
                         setEArray(v,k + ind,0);
                     };
-                    G.get_vertex(i).mapOutNghWithIndex(i, map_f);
+                    G.get_vertex(i).mapOutNghWithIndex(i, map_f2);
                 }else{                   
                     tableE *tb1 = LL;tableE *tb2 = LH;
                     if(is_high_v(i)){tb1 = HL;tb2 = HH;}

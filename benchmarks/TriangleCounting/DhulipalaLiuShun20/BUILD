@@ -5,13 +5,7 @@ cc_library(
   "//gbbs:gbbs",
   "//pbbslib:sample_sort",
   "//pbbslib:monoid",
-  "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle"
-  ":sparse_table",
-  ":dynamic_graph",
-  ":benchmark",
-  ":preprocess",
-  ":rebalancing",
-  ":shared",
+  "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
   ]
 )
 

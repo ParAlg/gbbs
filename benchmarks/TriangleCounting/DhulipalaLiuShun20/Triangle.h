@@ -101,10 +101,10 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // updates final has one copy of each edge
   // for each edge, count the delta triangle caused by counting wedges
   par_for(0, updates_final.size(), [&] (size_t i) {
-    EdgeT e = updates_final[i].first;
+    EdgeT elocal = updates_final[i].first;
     bool flag = updates_final[i].second;
-    DBTGraph::VtxUpdate u = vtxNew[vtxMap[e.first]]; // must make a copy here, because countTriangles might swap variables
-    DBTGraph::VtxUpdate v = vtxNew[vtxMap[e.second]]; // must make a copy here, because countTriangles might swap variables
+    DBTGraph::VtxUpdate u = vtxNew[vtxMap[elocal.first]]; // must make a copy here, because countTriangles might swap variables
+    DBTGraph::VtxUpdate v = vtxNew[vtxMap[elocal.second]]; // must make a copy here, because countTriangles might swap variables
     DG->countTriangles(u,v,flag, tc);
   });
   pbbs::sequence<size_t> triCounts = tc.report();  //TODO: reuse
