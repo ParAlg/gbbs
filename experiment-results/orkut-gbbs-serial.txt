@@ -1,98 +1,111 @@
-Loading:
+Loading: 
 Loading: 0 packages loaded
+INFO: Build option --cxxopt has changed, discarding analysis cache.
 Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 0 targets configured)
-INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 0 targets configured).
+INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 214 targets configured).
 INFO: Found 1 target...
 [0 / 3] [Prepa] BazelWorkspaceStatusAction stable-status.txt
-[1 / 3] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments.cc; 1s local
-[2 / 3] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments
+[24 / 28] Compiling benchmarks/SCAN/IndexBased/scan.cc; 1s local ... (3 actions running)
+[26 / 28] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments.cc; 3s local
+[27 / 28] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments
 Target //benchmarks/SCAN/IndexBased:unweighted_experiments up-to-date:
   bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments
-INFO: Elapsed time: 7.025s, Critical Path: 6.92s
-INFO: 2 processes: 2 local.
-INFO: Build completed successfully, 3 total actions
+INFO: Elapsed time: 9.523s, Critical Path: 9.22s
+INFO: 24 processes: 24 local.
+INFO: Build completed successfully, 25 total actions
 INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments -s --serial /home/ubuntu/data/orkut-gbbs
-INFO: Build completed successfully, 3 total actions
+INFO: Build completed successfully, 25 total actions
 # list_alloc init_blocks: 1000
-# after init:
+# after init: 
 # Used: 0, allocated: 6656, node size: 16392, bytes: 109105152
 **********************
 ** CosineSimilarity **
 **********************
-** Index construction median: 142.697
+[Clock] Sat Aug 15 22:33:59 2020
+** Index construction median: 148.146
 
-** Cluster median 2-0.600000: 0.0600009
-** Cluster median 4-0.600000: 0.0194571
-** Cluster median 8-0.600000: 0.00876808
-** Cluster median 16-0.600000: 0.00443506
-** Cluster median 32-0.600000: 0.00214291
-** Cluster median 64-0.600000: 0.0012939
-** Cluster median 128-0.600000: 0.000974894
-** Cluster median 256-0.600000: 0.000986099
-** Cluster median 512-0.600000: 0.000925064
-** Cluster median 1024-0.600000: 0.000957012
-** Cluster median 2048-0.600000: 0.000925064
-** Cluster median 4096-0.600000: 0.000976086
-** Cluster median 8192-0.600000: 0.000916004
-** Cluster median 16384-0.600000: 0.000954151
-** Cluster median 32768-0.600000: 0.000925064
-** Cluster median 5-0.100000: 4.12327
-** Cluster median 5-0.200000: 2.27235
-** Cluster median 5-0.300000: 1.06434
-** Cluster median 5-0.400000: 0.402681
-** Cluster median 5-0.500000: 0.0969939
-** Cluster median 5-0.600000: 0.0143299
-** Cluster median 5-0.700000: 0.00272894
-** Cluster median 5-0.800000: 0.00110698
-** Cluster median 5-0.900000: 0.000968933
-** Bulk cluster median mu=5: 6.81672 vs. total individual queries: 7.97659
+[Clock] Sat Aug 15 22:46:20 2020
+** Cluster median 2-0.600000: 0.0627329
+** Cluster median 4-0.600000: 0.0203891
+** Cluster median 8-0.600000: 0.0091989
+** Cluster median 16-0.600000: 0.00434899
+** Cluster median 32-0.600000: 0.00204206
+** Cluster median 64-0.600000: 0.00112486
+** Cluster median 128-0.600000: 0.000872135
+** Cluster median 256-0.600000: 0.00079298
+** Cluster median 512-0.600000: 0.000833988
+** Cluster median 1024-0.600000: 0.000794888
+** Cluster median 2048-0.600000: 0.000804901
+** Cluster median 4096-0.600000: 0.000791788
+** Cluster median 8192-0.600000: 0.000790119
+** Cluster median 16384-0.600000: 0.000826836
+** Cluster median 32768-0.600000: 0.000790119
+** Cluster median 5-0.100000: 4.65577
+** Cluster median 5-0.200000: 2.42888
+** Cluster median 5-0.300000: 1.11539
+** Cluster median 5-0.400000: 0.398127
+** Cluster median 5-0.500000: 0.097518
+** Cluster median 5-0.600000: 0.0151381
+** Cluster median 5-0.700000: 0.00278211
+** Cluster median 5-0.800000: 0.000995159
+** Cluster median 5-0.900000: 0.000819921
+** Bulk cluster median mu=5: 7.05755 vs. total individual queries: 8.71562
 ****************************
 ** ApproxCosineSimilarity **
 ****************************
 
 Samples=64
 ----------
-** Index construction median: 110.3
+[Clock] Sat Aug 15 22:47:39 2020
+** Index construction median: 93.6859
 
 
 Samples=128
 ----------
-** Index construction median: 138.518
+[Clock] Sat Aug 15 22:55:29 2020
+** Index construction median: 121.98
 
 
 Samples=256
 ----------
-** Index construction median: 160.112
+[Clock] Sat Aug 15 23:05:39 2020
+** Index construction median: 141.556
 
 
 Samples=512
 ----------
-** Index construction median: 174.287
+[Clock] Sat Aug 15 23:17:27 2020
+** Index construction median: 158.416
 
 
 Samples=1024
 ----------
-** Index construction median: 179.825
+[Clock] Sat Aug 15 23:30:39 2020
+** Index construction median: 163.903
 
 
 Samples=2048
 ----------
-** Index construction median: 194.653
+[Clock] Sat Aug 15 23:44:19 2020
+** Index construction median: 176.693
 
 
 Samples=4096
 ----------
-** Index construction median: 214.538
+[Clock] Sat Aug 15 23:59:04 2020
+** Index construction median: 194.374
 
 
 Samples=8192
 ----------
-** Index construction median: 235.34
+[Clock] Sun Aug 16 00:15:17 2020
+** Index construction median: 215.255
 
 
 Samples=16384
 ----------
-** Index construction median: 202.858
+[Clock] Sun Aug 16 00:33:16 2020
+** Index construction median: 191.69
 
 *****************************
 ** ApproxJaccardSimilarity **
@@ -100,55 +113,55 @@ Samples=16384
 
 Samples=64
 ----------
-[Clock] Fri Aug 14 20:35:28 2020
-** Index construction median: 87.872
+[Clock] Sun Aug 16 00:51:40 2020
+** Index construction median: 84.3542
 
 
 Samples=128
 ----------
-[Clock] Fri Aug 14 20:42:47 2020
-** Index construction median: 113.619
+[Clock] Sun Aug 16 00:58:42 2020
+** Index construction median: 111.214
 
 
 Samples=256
 ----------
-[Clock] Fri Aug 14 20:52:15 2020
-** Index construction median: 131.055
+[Clock] Sun Aug 16 01:07:58 2020
+** Index construction median: 128.239
 
 
 Samples=512
 ----------
-[Clock] Fri Aug 14 21:03:11 2020
-** Index construction median: 141.834
+[Clock] Sun Aug 16 01:18:39 2020
+** Index construction median: 138.317
 
 
 Samples=1024
 ----------
-[Clock] Fri Aug 14 21:15:00 2020
-** Index construction median: 146.613
+[Clock] Sun Aug 16 01:30:10 2020
+** Index construction median: 144.044
 
 
 Samples=2048
 ----------
-[Clock] Fri Aug 14 21:27:13 2020
-** Index construction median: 146.522
+[Clock] Sun Aug 16 01:42:10 2020
+** Index construction median: 144.443
 
 
 Samples=4096
 ----------
-[Clock] Fri Aug 14 21:39:26 2020
-** Index construction median: 146.261
+[Clock] Sun Aug 16 01:54:12 2020
+** Index construction median: 143.949
 
 
 Samples=8192
 ----------
-[Clock] Fri Aug 14 21:51:37 2020
-** Index construction median: 146.091
+[Clock] Sun Aug 16 02:06:12 2020
+** Index construction median: 143.769
 
 
 Samples=16384
 ----------
-[Clock] Fri Aug 14 22:03:48 2020
-** Index construction median: 146.026
+[Clock] Sun Aug 16 02:18:11 2020
+** Index construction median: 143.536
 
 # time per iter: 0

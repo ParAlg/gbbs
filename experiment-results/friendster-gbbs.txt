@@ -1,0 +1,124 @@
+Loading: 
+Loading: 0 packages loaded
+Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 0 targets configured)
+INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 2 targets configured).
+INFO: Found 1 target...
+[0 / 6] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+Target //benchmarks/SCAN/IndexBased:unweighted_experiments up-to-date:
+  bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments
+INFO: Elapsed time: 0.213s, Critical Path: 0.06s
+INFO: 0 processes.
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments -s --serial /home/ubuntu/data/friendster-gbbs
+INFO: Build completed successfully, 1 total action
+# list_alloc init_blocks: 8008
+# after init: 
+# Used: 0, allocated: 62464, node size: 16392, bytes: 1023909888
+**********************
+** CosineSimilarity **
+**********************
+[Clock] Sat Aug 15 21:31:03 2020
+** Index construction median: 56.0829
+
+[Clock] Sat Aug 15 21:35:43 2020
+** Cluster median 2-0.600000: 0.0502429
+** Cluster median 4-0.600000: 0.00724387
+** Cluster median 8-0.600000: 0.00420213
+** Cluster median 16-0.600000: 0.00387192
+** Cluster median 32-0.600000: 0.00373602
+** Cluster median 64-0.600000: 0.0035491
+** Cluster median 128-0.600000: 0.0034492
+** Cluster median 256-0.600000: 0.00345111
+** Cluster median 512-0.600000: 0.00342798
+** Cluster median 1024-0.600000: 0.00343299
+** Cluster median 2048-0.600000: 0.00342703
+** Cluster median 4096-0.600000: 0.00345492
+** Cluster median 5-0.100000: 1.42153
+** Cluster median 5-0.200000: 0.407775
+** Cluster median 5-0.300000: 0.092788
+** Cluster median 5-0.400000: 0.0249019
+** Cluster median 5-0.500000: 0.00943184
+** Cluster median 5-0.600000: 0.00520706
+** Cluster median 5-0.700000: 0.00429606
+** Cluster median 5-0.800000: 0.00391889
+** Cluster median 5-0.900000: 0.00378609
+** Bulk cluster median mu=5: 2.15202 vs. total individual queries: 1.97444
+****************************
+** ApproxCosineSimilarity **
+****************************
+
+Samples=64
+----------
+[Clock] Sat Aug 15 21:36:04 2020
+** Index construction median: 42.6235
+
+
+Samples=128
+----------
+[Clock] Sat Aug 15 21:39:37 2020
+** Index construction median: 53.6999
+
+
+Samples=256
+----------
+[Clock] Sat Aug 15 21:44:06 2020
+** Index construction median: 64.4858
+
+
+Samples=512
+----------
+[Clock] Sat Aug 15 21:49:28 2020
+** Index construction median: 68.2374
+
+
+Samples=1024
+----------
+[Clock] Sat Aug 15 21:55:11 2020
+** Index construction median: 67.0643
+
+
+Samples=2048
+----------
+[Clock] Sat Aug 15 22:00:46 2020
+** Index construction median: 59.8266
+
+*****************************
+** ApproxJaccardSimilarity **
+*****************************
+
+Samples=64
+----------
+[Clock] Sat Aug 15 22:06:40 2020
+** Index construction median: 36.0003
+
+
+Samples=128
+----------
+[Clock] Sat Aug 15 22:09:40 2020
+** Index construction median: 44.7288
+
+
+Samples=256
+----------
+[Clock] Sat Aug 15 22:13:24 2020
+** Index construction median: 53.2922
+
+
+Samples=512
+----------
+[Clock] Sat Aug 15 22:17:51 2020
+** Index construction median: 58.6392
+
+
+Samples=1024
+----------
+[Clock] Sat Aug 15 22:22:44 2020
+** Index construction median: 59.7824
+
+
+Samples=2048
+----------
+[Clock] Sat Aug 15 22:27:44 2020
+** Index construction median: 59.4441
+
+# time per iter: 0

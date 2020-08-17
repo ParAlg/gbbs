@@ -178,4 +178,124 @@ approx mod 5: 0.0131502 0.0142746 0.0152691 0.0167764 0.0186925 0.0210486 0.0238
 
 Samples=4096
 ----------
-[Clock] Sat Aug 15 19:53:15 2020
+[Clock] Sat Aug 15 20:15:29 2020
+** Index construction median: 25.6054
+
+
+Samples=8192
+----------
+[Clock] Sat Aug 15 20:17:37 2020
+** Index construction median: 25.0518
+
+
+Samples=16384
+----------
+[Clock] Sat Aug 15 20:19:42 2020
+** Index construction median: 25.4292
+
+
+Samples=32768
+----------
+[Clock] Sat Aug 15 20:21:50 2020
+** Index construction median: 25.6112
+
+
+Samples=65536
+----------
+[Clock] Sat Aug 15 20:24:00 2020
+** Index construction median: 27.3121
+
+
+Samples=131072
+----------
+[Clock] Sat Aug 15 21:01:24 2020
+** Index construction median: 30.8025
+
+
+Samples=262144
+----------
+[Clock] Sat Aug 15 21:04:04 2020
+** Index construction median: 38.0492
+
+*****************************
+** ApproxJaccardSimilarity **
+*****************************
+
+Samples=64
+----------
+[Clock] Sat Aug 15 21:07:36 2020
+** Index construction median: 10.3255
+
+
+Samples=128
+----------
+[Clock] Sat Aug 15 21:08:28 2020
+** Index construction median: 10.9539
+
+
+Samples=256
+----------
+[Clock] Sat Aug 15 21:09:23 2020
+** Index construction median: 12.0472
+
+
+Samples=512
+----------
+[Clock] Sat Aug 15 21:10:24 2020
+** Index construction median: 14.902
+
+
+Samples=1024
+----------
+[Clock] Sat Aug 15 21:11:38 2020
+** Index construction median: 19.6446
+
+
+Samples=2048
+----------
+[Clock] Sat Aug 15 21:13:17 2020
+** Index construction median: 23.3418
+
+
+Samples=4096
+----------
+[Clock] Sat Aug 15 21:15:14 2020
+** Index construction median: 22.1902
+
+
+Samples=8192
+----------
+[Clock] Sat Aug 15 21:17:04 2020
+** Index construction median: 22.2251
+
+
+Samples=16384
+----------
+[Clock] Sat Aug 15 21:18:53 2020
+** Index construction median: 21.367
+
+
+Samples=32768
+----------
+[Clock] Sat Aug 15 21:20:41 2020
+** Index construction median: 21.4169
+
+
+Samples=65536
+----------
+[Clock] Sat Aug 15 21:22:28 2020
+** Index construction median: 22.2117
+
+
+Samples=131072
+----------
+[Clock] Sat Aug 15 21:24:19 2020
+** Index construction median: 21.9233
+
+
+Samples=262144
+----------
+[Clock] Sat Aug 15 21:26:09 2020
+** Index construction median: 21.6251
+
+# time per iter: 0
