@@ -199,7 +199,6 @@ cc_library(
   ":macros",
   ":vertex",
   "//pbbslib:sample_sort",
-  "//pbbslib:stlalgs",
   "//pbbslib/strings:string_basics",
   ]
 )

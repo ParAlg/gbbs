@@ -36,7 +36,6 @@
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
 #include "pbbslib/sample_sort.h"
-#include "pbbslib/stlalgs.h"
 #include "pbbslib/strings/string_basics.h"
 
 namespace gbbs {
@@ -85,6 +84,15 @@ parse_weighted_graph(
   bool mmap,
   char* bytes = nullptr,
   size_t bytes_size = std::numeric_limits<size_t>::max());
+
+// Output a list of sorted edges with no duplicates and no self-loop edges.  If
+// there are multiple edges between the same endpoints with different weights,
+// an arbitrary one is kept.
+//
+// The argument is passed by value, so use `std::move` where appropriate.
+template <class weight_type>
+pbbs::sequence<Edge<weight_type>> sort_and_dedupe(
+  pbbs::sequence<Edge<weight_type>> edges);
 
 } // namespace internal
 
@@ -341,8 +349,8 @@ read_unweighted_edge_list(const char* filename);
 // Adjacency lists of the output graph are sorted by increasing neighbor vertex
 // ID.
 //
-// Duplicate edges are removed. If there are multiple edges between the same
-// endpoints with different weights, an arbitrary one is kept.
+// Duplicate edges and self-loop edges are removed. If there are multiple edges
+// between the same endpoints with different weights, an arbitrary one is kept.
 template <class weight_type>
 asymmetric_graph<asymmetric_vertex, weight_type>
 edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
@@ -352,15 +360,10 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     return asymmetric_graph<asymmetric_vertex, weight_type>{};
   }
 
-  constexpr auto compare_endpoints = [](
-      const Edge<weight_type>& left,
-      const Edge<weight_type>& right) {
-    return std::tie(left.from, left.to) < std::tie(right.from, right.to);
-  };
-  const auto edge_list_seq = pbbs::delayed_seq<Edge<weight_type>>(
-      edge_list.size(), [&](const size_t i) { return edge_list[i]; });
-  pbbs::sequence<Edge<weight_type>> out_edges =
-    pbbs::remove_duplicates_ordered(edge_list_seq, compare_endpoints);
+  const pbbs::sequence<Edge<weight_type>> out_edges = internal::sort_and_dedupe(
+      pbbs::sequence<Edge<weight_type>>{
+        edge_list.size(),
+        [&](const size_t i) { return edge_list[i]; }});
   const size_t num_edges = out_edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(out_edges);
   pbbs::sequence<vertex_data> vertex_out_data =
@@ -370,6 +373,11 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     pbbs::map<Edge<weight_type>>(out_edges, [&](const Edge<weight_type>& edge) {
       return Edge<weight_type>{edge.to, edge.from, edge.weight};
     });
+  constexpr auto compare_endpoints = [](
+      const Edge<weight_type>& left,
+      const Edge<weight_type>& right) {
+    return std::tie(left.from, left.to) < std::tie(right.from, right.to);
+  };
   pbbs::sample_sort_inplace(in_edges.slice(), compare_endpoints);
   pbbs::sequence<vertex_data> vertex_in_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, in_edges);
@@ -400,8 +408,8 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
 // Adjacency lists of the output graph are sorted by increasing neighbor vertex
 // ID.
 //
-// Duplicate edges are removed. If there are multiple edges between the same
-// endpoints with different weights, an arbitrary one is kept.
+// Duplicate edges and self-loop edges are removed. If there are multiple edges
+// between the same endpoints with different weights, an arbitrary one is kept.
 template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type>
 edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
@@ -418,13 +426,8 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
       edges_both_directions[2 * i + 1] =
         Edge<weight_type>{edge.to, edge.from, edge.weight};
   });
-  constexpr auto compare_endpoints = [](
-      const Edge<weight_type>& left,
-      const Edge<weight_type>& right) {
-    return std::tie(left.from, left.to) < std::tie(right.from, right.to);
-  };
-  pbbs::sequence<Edge<weight_type>> edges =
-    pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
+  const pbbs::sequence<Edge<weight_type>> edges =
+    internal::sort_and_dedupe(std::move(edges_both_directions));
   const size_t num_edges = edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
   pbbs::sequence<vertex_data> vertex_data =
@@ -618,6 +621,32 @@ parse_weighted_graph(
   tokens.clear();
 
   return std::make_tuple(n, m, offsets, edges);
+}
+
+template <class weight_type>
+pbbs::sequence<Edge<weight_type>> sort_and_dedupe(
+  pbbs::sequence<Edge<weight_type>> edges) {
+  constexpr auto compare_endpoints{[](
+      const Edge<weight_type>& left,
+      const Edge<weight_type>& right) {
+    return std::tie(left.from, left.to) < std::tie(right.from, right.to);
+  }};
+  constexpr auto unequal_endpoints{[](
+      const Edge<weight_type>& left,
+      const Edge<weight_type>& right) {
+    return std::tie(left.from, left.to) != std::tie(right.from, right.to);
+  }};
+  pbbs::sample_sort_inplace(edges.slice(), compare_endpoints);
+  return pbbslib::pack(
+      edges,
+      pbbslib::make_sequence<bool>(
+        edges.size(),
+        [&](const size_t i) {
+          const auto edge{edges[i]};
+          const bool is_self_loop{edge.from == edge.to};
+          return !is_self_loop &&
+            (i == 0 || unequal_endpoints(edges[i - 1], edge));
+        }));
 }
 
 }  // namespace internal
