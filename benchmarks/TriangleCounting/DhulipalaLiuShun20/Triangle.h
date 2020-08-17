@@ -190,6 +190,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
       DGold = DGnew;
       switched = true;
     }
+    // DBTInternal::compare(DGold, edges, batch_start, batch_end, n);
     std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
     std::cout << "### Num triangles = " << count << "\n";
     t.stop();t.reportTotal("");

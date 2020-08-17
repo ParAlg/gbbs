@@ -233,5 +233,61 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, pbbs::seq
     flag.clear();
     return vtxNew;
 }
+
+template <class Graph, class UT>
+void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t s, size_t e, size_t n){
+  using W = pbbslib::empty;
+  using vertex_type = symmetric_vertex<W>;
+  using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
+  size_t num_vertices = n;
+  auto monoid = pbbslib::addm<size_t>();  
+
+  DBTGraph::SymGraph G = edge_list_to_symmetric_graph(edges, n, 0, e);
+
+  // count new degrees
+  vertex_data *vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
+  pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(num_vertices, [&](const size_t i) {
+    return DG->get_degree(i);
+  }); 
+  size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);  
+
+  par_for(0, num_vertices-1, [&](const size_t i) {
+    vertex_data_array[i].degree = newDegrees[i+1]-newDegrees[i];
+    vertex_data_array[i].offset = newDegrees[i];
+  });    
+  vertex_data_array[num_vertices-1].degree = num_edges - newDegrees[num_vertices-1];
+  vertex_data_array[num_vertices-1].offset = newDegrees[num_vertices-1];
+  newDegrees.clear();
+  for(size_t i=0; i< num_vertices; ++i) {
+    if(vertex_data_array[i].degree != G.v_data[i].degree){
+      cout << "degree wrong! " << i << endl;
+    }
+  }
+
+  // put edges to array, first old edges, then new edges
+  pbbs::sequence<edge_type> edges_seq = pbbs::sequence<edge_type>(num_edges);
+  for(size_t i=0; i< num_edges; ++i) {
+    get<0>(edges_seq[i]) = 345;
+  }
+
+  // insert from tables 
+  for(uintE u=0; u < num_vertices; ++u) {
+    size_t offset = vertex_data_array[u].offset;
+    DG->get_neighbors_major(u, edges_seq.slice(), offset);
+    pbbs::sample_sort_inplace(edges_seq.slice(offset, offset + vertex_data_array[u].degree), 
+    [&](const edge_type& a, const edge_type& b) {
+      return get<0>(a) < get<0>(b);
+    });
+  }
+
+  for(size_t i=0; i< num_edges; ++i) {
+    if(get<0>(edges_seq[i]) != get<0>(G.e0[i])){
+      cout << "neighbor wrong! " << i << endl;
+    }
+  }
+
+}
+
+
 }
 }

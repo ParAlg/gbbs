@@ -6,7 +6,7 @@
 #include "shared.h"
 #include "sparse_table.h"
 #include "tomb_table.h"
-#include "tomb_table2.h"
+// #include "tomb_table2.h"
 
 
 using namespace std;
@@ -22,8 +22,8 @@ namespace DBTGraph{
         using weight_type = typename Graph::weight_type;
         using edge_type = typename Graph::edge_type;
 #ifdef DBT_USING_TOMB
-        using SetT = pbbslib::tomb_table2<uintE, int, vertexHash >;            
-        using tableE = pbbslib::tomb_table2<unsigned long long, SetT*, vertexHash >;
+        using SetT = pbbslib::tomb_table<uintE, int, vertexHash >;            
+        using tableE = pbbslib::tomb_table<uintE, SetT*, vertexHash >;
         using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
 #else
         using SetT = pbbslib::sparse_table<uintE, int, vertexHash >;    
@@ -316,7 +316,7 @@ namespace DBTGraph{
                 if(lowD[u] > 0){ 
                     tmp = pack_neighbors_helper<StaticEdgeT, F>(tb1->find(u, NULL), u, seq_out.slice(offset, offset + D[u]));}
                 if(lowD[u] < D[u]){
-                    pack_neighbors_helper<StaticEdgeT, F>(tb2->find(u, NULL), u, seq_out.slice(tmp, offset + D[u]));}
+                    pack_neighbors_helper<StaticEdgeT, F>(tb2->find(u, NULL), u, seq_out.slice(offset+tmp, offset + D[u]));}
             }
         }
 
