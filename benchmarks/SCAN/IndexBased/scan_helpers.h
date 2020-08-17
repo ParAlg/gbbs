@@ -82,35 +82,6 @@ class CoreOrder {
 // SCAN_DETAILED_TIMES is defined, otherwise does nothing.
 void ReportTime(const timer&);
 
-// Finds the least `i` such that `predicate(sequence[i])` is false. If
-// `predicate(sequence[i])` is true for all `i`, then this returns
-// `sequence.size()`.
-//
-// `sequence` and `predicate` must be partitioned such that there is some `i`
-// (which will be the return value) for which `predicate(sequence[i])` is true
-// for all j < i and for which `predicate(sequence[i])` is false for all j >= i.
-//
-// `predicate` should take a `SeqElement` and return a boolean.
-//
-// Running time is O(log [return value]).
-template <class Seq, class Func>
-size_t BinarySearch(const Seq& sequence, Func&& predicate) {
-  // Start off the binary search with an exponential search so that running time
-  // while be O(log [return value]) rather than O(log sequence.size()).
-  // In practice this probably doesn't matter much....
-  size_t hi{0};
-  while (hi < sequence.size() && predicate(sequence[hi])) {
-    hi = 2 * hi + 1;
-  }
-  const size_t lo{hi / 2};
-  if (hi > sequence.size()) {
-    hi = sequence.size();
-  }
-
-  return lo +
-    pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
-}
-
 template <
   template <typename> class VertexTemplate,
   typename Weight,
