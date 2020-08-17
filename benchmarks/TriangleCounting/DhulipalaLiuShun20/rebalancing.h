@@ -137,8 +137,6 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     size_t numHtoL =  0;
     size_t newLowNum = DG->num_vertices_low();
 
-     cout << DG->D[1071] << " !!!!!!!!!! ====== " << DG->D[1845] << endl;
-
     //  ============================= find vertices that change low/high status   =============================
     //TODO: can optimize
     par_for(0, vtxNew.size(), [&](const size_t i){
@@ -164,12 +162,18 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     vtxChange.clear();
     flag.clear();
 
-    //  ============================= update Wedge Table, H to L ============================= 
+    //  ============================= update Wedge Table, remove ============================= 
+    // remove HLH where u was high
     par_for(numLtoH, vtxChangeLH.size(), [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
       DG->minorRblDeleteWedge(u, vtxNew, vtxMap);
     });
 
+    // remove LHL where u was low
+    par_for(0, numLtoH, [&] (const size_t i) { // called after deleting HLH
+      DG->minorRblDeleteWedgeCenter(vtxChangeLH[i]);
+    });
+    
     //  ============================= Count Rbled Degrees =============================
     pbbs::sequence<size_t> newDegrees = pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i){return DG->get_new_degree(vtxChangeLH[i]);}); //TOCO: can optimize to delayed seq
     size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);   

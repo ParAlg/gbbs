@@ -20,6 +20,7 @@ using namespace std;
 #define UPDATET5 5
 #define UPDATECLEAR 6
 #define UPDATECLEANUP 7
+#define REMOVE1 8
 
 #define OLD_EDGE 0
 #define NEW_EDGE 1
@@ -242,6 +243,9 @@ namespace DBTGraph{
             switch(flag) {
             case UPDATET1:
                 pbbslib::write_add(&c1, std::get<1>(kv).c2);
+                break;
+            case REMOVE1:
+                pbbslib::write_minus(&c1, std::get<1>(kv).c2);
                 break;
             case UPDATET2:
                 pbbslib::write_add(&c2, std::get<1>(kv).c2);

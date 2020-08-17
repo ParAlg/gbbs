@@ -136,19 +136,11 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     DG->cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
   t.next("7. clean up tables");
-
-  DBTGraph::WTV wedges = DG->T->find(EdgeT(1071,1845), DBTGraph::WTV(EMPTYWTV));
-  cout << wedges.c1 << endl;
-  cout << DG->debugging_temp() << endl;
   
   // t.start(); //  minor rebalancing 
   DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.next("8. 9. update degree + minor rebalancing");
   } //end else (nort major rebalancing)
-
-  DBTGraph::WTV wedges = DG->T->find(EdgeT(1071,1845), DBTGraph::WTV(EMPTYWTV));
-  cout << wedges.c1 << endl;
-  cout << DG->debugging_temp() << endl;
 
   par_for(0, vtxNew.size(), [&] (size_t i) { //TODO: reuse
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
@@ -198,8 +190,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
       DGold = DGnew;
       switched = true;
     }
-    // if(switched){ DBTInternal::compare(DGold, edges, batch_start, batch_end, n, P);}
-    // else{ DBTInternal::compare(DG, edges, batch_start, batch_end, n, P);}
+
     std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
     std::cout << "### Num triangles = " << count << "\n";
     t.stop();t.reportTotal("");

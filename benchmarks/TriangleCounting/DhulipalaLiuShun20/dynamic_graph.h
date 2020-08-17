@@ -4,7 +4,7 @@
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
 #include "shared.h"
-#include "sparse_table.h"
+// #include "sparse_table.h"
 #include "tomb_table.h"
 // #include "tomb_table2.h"
 
@@ -1115,15 +1115,58 @@ namespace DBTGraph{
             }
         }
 
+        void minorRblDeleteWedgeCenterArray(DBTGraph::VtxUpdate &w){
+            for(size_t i = 0; i < get_new_degree(w); ++i) { // bruteforce finding high ngh of w
+                uintE u = getEArray(w.id, i);
+                if(is_high_v(u)){
+                    for(size_t j = 0; j < i; ++j) { 
+                        uintE v = getEArray(w.id, j);
+                        if(is_high_v(v)){
+                            uintE uu = u;
+                            uintE vv = v;
+                            if(u > v) swap(uu,vv);
+                            if(T->contains(EdgeT(uu,vv)))T->insert_f(make_tuple(EdgeT(uu,vv), WTV(REMOVE1,1)), updateTF());
+                        }
+                    }
+                }
+            }
+        }
+
+        void minorRblDeleteWedgeCenterTable(DBTGraph::VtxUpdate &w){
+            SetT *H = LH->find(w.id, NULL);
+            // if(H == NULL) return;
+            par_for(0, H->size(), [&] (size_t i) {
+                uintE u = get<0>(H->table[i]);
+                if(H->not_empty(u)){
+                    par_for(0, i, [&] (size_t j) {
+                        uintE v = get<0>(H->table[j]);
+                        if(H->not_empty(v)){
+                            uintE uu = u;
+                            uintE vv = v;
+                            if(u > v) swap(uu,vv);
+                            if(T->contains(EdgeT(uu,vv)))T->insert_f(make_tuple(EdgeT(uu,vv), WTV(REMOVE1,1)), updateTF());
+                        }
+                    });
+                }
+            });         
+        }
+
+        // for each w that changes from L to H, remove HLH where w is involved
+        // require w is now L and is changing to H
+        // called before tables are rebalanced and status updated for rebalancing
+        void minorRblDeleteWedgeCenter(DBTGraph::VtxUpdate &w){
+            if(use_block_v(w.id)){           
+                minorRblDeleteWedgeCenterArray(w);
+            }else{
+                if(!packed_high_table_empty(w))minorRblDeleteWedgeCenterTable(w);                  
+            }
+        }
+
 
         // u is now H (after update), called after tables AND DEGREES are rebalanced
         // degree is updated to after rebalanced
         inline void minorRblInsertWedge(DBTGraph::VtxUpdate &uobj, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
             uintE u = uobj.id;
-            if(u == 1845){
-                cout << " in minor Rbl" << endl;
-            }
-            
             if(lowD[u] > 0){//(u != HL->empty_key){
             if(use_block_v(u)){
                 par_for(0, D[u], [&] (size_t j) {
