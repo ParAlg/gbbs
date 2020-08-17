@@ -163,7 +163,9 @@ class tomb_table {
     size_t ct = 0;
     while (true) {
       if (std::get<0>(table[h]) == k) {
-        return pbbslib::CAS(&std::get<0>(table[h]), k, tomb_key);
+        bool suc = pbbslib::CAS(&std::get<0>(table[h]), k, tomb_key);
+        if(suc){std::get<1>(table[h]) = std::get<1>(empty);}
+        return suc;
       } else if (std::get<0>(table[h]) == empty_key) {//when delete, only stop when seeing empty
         return false;
       }
