@@ -3,8 +3,8 @@
 #include <tuple>
 #include "gbbs/gbbs.h"
 #include "pbbslib/monoid.h"
-#include "sparse_table.h"
-#include "gbbs/macros.h"
+// #include "sparse_table.h"
+// #include "gbbs/macros.h"
 
 using namespace std;
 
@@ -300,8 +300,8 @@ namespace DBTGraph{
     }; 
 
 
-    inline pbbslib::sparse_table<uintE, int, vertexHash> make_vertex_set(size_t m, long space_mult=-1) {
-        return pbbslib::sparse_table<uintE, int, vertexHash>(m, EMPTYKVB, vertexHash(), space_mult);
-    }
+    // inline pbbslib::sparse_table<uintE, int, vertexHash> make_vertex_set(size_t m, long space_mult=-1) {
+    //     return pbbslib::sparse_table<uintE, int, vertexHash>(m, EMPTYKVB, vertexHash(), space_mult);
+    // }
     
 }}
