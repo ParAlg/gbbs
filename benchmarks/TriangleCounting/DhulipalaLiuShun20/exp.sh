@@ -26,7 +26,10 @@
 # ./Triangle -s -shuffle -static -nb 10 -n 1138499 -bo $1 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
 
 
-./Triangle -s -shuffle -nb 10 -n 1138499 -blocksize 10 -bo $1 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
+./Triangle -s -shuffle -nb 10 -n 1138499 -blocksize 5 -bo 0 -bp 10 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
+
+# ./Triangle -s -w 2 -shuffle -nb 10 -n 1138499  -blocksize 10 -bo $1 -bp 10 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
+
 
 
 
