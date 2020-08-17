@@ -28,7 +28,7 @@ struct vertex_hash {
         using vertex = typename Graph::vertex;
         using edge_type = typename Graph::edge_type;
         using tableV = pbbslib::sparse_table<size_t, uintE, vertex_hash>;
-
+        // See definitions of all structures at the bottom of the file under private variables
         void init_data_structures(size_t n = 0, size_t batch_size = 0) {
           int n_alloc_size = 2 * n;
           int batch_alloc_size = n;
@@ -56,10 +56,17 @@ struct vertex_hash {
           cur_triangle_count_ = 0;
         }
 
+        // Initializes an empty graph
         DyGraph(): non_zero_deg(0) {
                 init_data_structures();
         }
 
+        // Takes in a set of edge updates where EdgeT is a pair on the vertices
+        // Also a set of adjacency list insertions as initialGraph
+        // A sequence of uniqueIds indicating the IDs of nodes to insert the adjacency list
+        // insertions to their adjacency list.
+        // A list of offsets indicating the segments of the initialGraph array to
+        // the adjacency list of the corresponding node ID.
         DyGraph(pbbs::sequence<EdgeT>& initial_graph_edges, pbbs::sequence<uintE>& initialGraph, pbbs::sequence<uintE>& uniqueIds,
                 pbbs::sequence<size_t>& offsets): initial_graph_edges_(initial_graph_edges),
         initial_graph_(initialGraph), initial_ids_(uniqueIds),
@@ -82,6 +89,10 @@ struct vertex_hash {
         size_t get_cur_triangle_count() { return cur_triangle_count_;}
 
         // Resize adjacency list method
+        // Takes the new size the adj list should be, the index of the adjacency
+        // list in the array of adjacency lists, the list of updates to add to
+        // the adjacency list, and a boolean indicating whether an insert or
+        // deletion is being done to the list.
         void resize_adj_list(size_t new_size, size_t adj_ind,
                              pbbs::sequence<uintE> updates, bool isInsert) {
           size_t j = updates.size() - 1;
@@ -159,6 +170,9 @@ struct vertex_hash {
           degrees[adj_ind] = new_size / 2;
         }
 
+        // Resize the edge list meaning the list including the pointers
+        // to the adjacency lists of each vertex with non-zero index.
+        // Resize by increasing the list of the list by 2.
         void resize_edge_list() {
           size_t s = cur_edges.size();
           pbbs::sequence<pbbs::sequence<uintE> *> new_edges_list =
@@ -180,6 +194,8 @@ struct vertex_hash {
             id_cur_edges = newTable;
         }
 
+        // Add a new node with non-zero degree into the list of
+        // IDs containing pointers to the adjacency lists of the nodes.
         void create_new_adj_list(uintE node_id, size_t j,
                                  pbbs::sequence<uintE> updates) {
           cur_edges[non_zero_deg] = pbbs::sequence<uintE>::no_init(2 * j);
@@ -188,9 +204,7 @@ struct vertex_hash {
           });
         }
 
-        // Merge adjacency list with batch of inserts
-        // TODO: make sure the reduce adj list methods are propagated throughout
-        // even when doing the resizings. Currently it is not.
+        // Merge adjacency lists of nodes with the new batch of updates
         void merge_adj_list(uintE node_id, pbbs::sequence<uintE> updates,
                             bool isInsert) {
           if (id_cur_edges->contains(node_id)) {
@@ -382,7 +396,11 @@ struct vertex_hash {
           });
 
           // Then count all the update intersections between current graph
-          // and the update graph
+          // and the update graph. This is the only step we are doing
+          // truncating. We are truncating the original adjacency list in the
+          // current graph. Because we are doing this truncating, we need
+          // to consider both orientations of each update edge because
+          // some orientations does not allow us to find the edge.
           par_for(0, updates_triangles_count.size(), [&](const size_t i) {
             uintE id_u = ind_cur_ids[updates[i].first];
             uintE id_v = ind_cur_ids[updates[i].second];
@@ -407,7 +425,9 @@ struct vertex_hash {
           });
 
           // Need a separate sequence because we need to divide this total by
-          // three Because we are not truncating adjacency lists
+          // three because we are not truncating adjacency lists.
+          // We can consider doing truncating here also but we are currently
+          // not because the paper doesn't consider it.
           pbbs::sequence<size_t> update_graph_counts =
               pbbs::sequence<size_t>::no_init(updates.size());
 
