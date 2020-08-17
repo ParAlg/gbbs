@@ -136,11 +136,19 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     DG->cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
   t.next("7. clean up tables");
+
+  DBTGraph::WTV wedges = DG->T->find(EdgeT(1071,1845), DBTGraph::WTV(EMPTYWTV));
+  cout << wedges.c1 << endl;
+  cout << DG->debugging_temp() << endl;
   
   // t.start(); //  minor rebalancing 
   DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.next("8. 9. update degree + minor rebalancing");
   } //end else (nort major rebalancing)
+
+  DBTGraph::WTV wedges = DG->T->find(EdgeT(1071,1845), DBTGraph::WTV(EMPTYWTV));
+  cout << wedges.c1 << endl;
+  cout << DG->debugging_temp() << endl;
 
   par_for(0, vtxNew.size(), [&] (size_t i) { //TODO: reuse
     vtxMap[vtxNew[i].id] = EMPTYVMAP;

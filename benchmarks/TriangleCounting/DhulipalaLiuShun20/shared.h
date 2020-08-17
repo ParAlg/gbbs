@@ -84,6 +84,7 @@ namespace DBTGraph{
         size_t insert_low_degree = 0; // number of insertion updates to low
         size_t offset = -1; // offsets in edges
         size_t delete_low_degree = 0;
+        bool change_status = false;
 
         VtxUpdate(uintE a, size_t o):id(a), offset(o){}
         VtxUpdate(uintE a):id(a){}

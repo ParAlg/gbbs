@@ -171,8 +171,9 @@ class tomb_table {
       }
       h = incrementIndex(h);
       if(ct++ > m){
-        cout << " table full 1" << endl;
-        abort();
+        return false;
+        // cout << " table full 1" << endl;
+        // abort();
       }
     }
     return false;

@@ -137,10 +137,16 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     size_t numHtoL =  0;
     size_t newLowNum = DG->num_vertices_low();
 
+     cout << DG->D[1071] << " !!!!!!!!!! ====== " << DG->D[1845] << endl;
+
     //  ============================= find vertices that change low/high status   =============================
     //TODO: can optimize
+    par_for(0, vtxNew.size(), [&](const size_t i){
+      if(DG->change_status(vtxNew[i])) vtxNew[i].change_status = true;
+    });
     pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](const VtxUpdate &u){
-      return DG->change_status(u);
+      //return DG->change_status(u);
+      return u.change_status;
     });
 
     if(vtxChange.size() != 0){ //  ============================= continue if there is changes. Otherwise go to degree updates   =============================
@@ -275,11 +281,12 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     par_for(0, numLtoH, [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
       if(DG->use_block_v(u.id)) return;
-      DG->minorRblInsertWedge(u);
+      DG->minorRblInsertWedge(u, vtxNew, vtxMap);
     });
 
   // flag.clear();
   // vtxChange.clear();
+
   vtxChangeLH.clear();
   rblEdges.clear(); 
   vtxRbl.clear();
