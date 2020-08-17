@@ -28,7 +28,7 @@ cc_library(
   hdrs = ["dynamic_graph.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid"
+    "//pbbslib:monoid",
     ":shared",
     ":sparse_table",
     ":tomb_table",
@@ -40,7 +40,7 @@ cc_library(
   hdrs = ["preprocess.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid"
+    "//pbbslib:monoid",
     "//pbbslib:sample_sort",
     ":dynamic_graph",
   ]
@@ -51,7 +51,7 @@ cc_library(
   hdrs = ["rebalancing.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid"
+    "//pbbslib:monoid",
     ":shared",
     ":sparse_table",
     ":tomb_table",
