@@ -1,91 +1,63 @@
-Starting local Bazel server and connecting to it...
 Loading: 
 Loading: 0 packages loaded
-Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments (1 packages loaded, 0 targets configured)
-INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments (26 packages loaded, 214 targets configured).
+INFO: Build option --cxxopt has changed, discarding analysis cache.
+Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 0 targets configured)
+INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments (0 packages loaded, 214 targets configured).
 INFO: Found 1 target...
-INFO: Deleting stale sandbox base /home/ubuntu/.cache/bazel/_bazel_ubuntu/2dde086906e9d7655af5b7e623874498/sandbox
-[1 / 30] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[0 / 2] [Prepa] BazelWorkspaceStatusAction stable-status.txt
+[24 / 28] Compiling benchmarks/SCAN/IndexBased/scan_helpers.cc; 1s local ... (3 actions running)
+[26 / 28] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments.cc; 3s local
+[27 / 28] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments
 Target //benchmarks/SCAN/IndexBased:unweighted_experiments up-to-date:
   bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments
-INFO: Elapsed time: 2.113s, Critical Path: 0.03s
-INFO: 0 processes.
-INFO: Build completed successfully, 1 total action
+INFO: Elapsed time: 9.466s, Critical Path: 9.15s
+INFO: 24 processes: 24 local.
+INFO: Build completed successfully, 25 total actions
 INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments -s --serial /home/ubuntu/data/webbase-gbbs
-INFO: Build completed successfully, 1 total action
+INFO: Build completed successfully, 25 total actions
 # list_alloc init_blocks: 14421
 # after init: 
 # Used: 0, allocated: 20224, node size: 16392, bytes: 331511808
 **********************
 ** CosineSimilarity **
 **********************
-[Clock] Sun Aug 16 20:32:47 2020
-** Index construction median: 500.4
+[Clock] Mon Aug 17 04:58:49 2020
+** Index construction median: 457.622
 
-[Clock] Sun Aug 16 21:14:44 2020
-** Cluster median 2-0.600000: 9.80563
-** Cluster median 4-0.600000: 7.18492
-** Cluster median 8-0.600000: 5.16263
-** Cluster median 16-0.600000: 3.02216
-** Cluster median 32-0.600000: 1.44888
-** Cluster median 64-0.600000: 0.639908
-** Cluster median 128-0.600000: 0.345624
-** Cluster median 256-0.600000: 0.21817
-** Cluster median 512-0.600000: 0.151763
-** Cluster median 1024-0.600000: 0.114482
-** Cluster median 2048-0.600000: 0.08886
-** Cluster median 4096-0.600000: 0.0687931
-** Cluster median 8192-0.600000: 0.066823
-** Cluster median 16384-0.600000: 0.066453
-** Cluster median 32768-0.600000: 0.06621
-** Cluster median 65536-0.600000: 0.065953
-** Cluster median 131072-0.600000: 0.065902
-** Cluster median 262144-0.600000: 0.065856
-** Cluster median 524288-0.600000: 0.065589
-** Cluster median 5-0.100000: 34.0492
-** Cluster median 5-0.200000: 23.0277
-** Cluster median 5-0.300000: 16.7078
-** Cluster median 5-0.400000: 11.9103
-** Cluster median 5-0.500000: 8.81974
-** Cluster median 5-0.600000: 6.67987
-** Cluster median 5-0.700000: 4.95403
-** Cluster median 5-0.800000: 3.5745
-** Cluster median 5-0.900000: 2.4539
-** Bulk cluster median mu=5: 108.465 vs. total individual queries: 112.187
+[Clock] Mon Aug 17 05:36:57 2020
+** Cluster median 2-0.600000: 30.279
+** Cluster median 4-0.600000: 19.5896
+** Cluster median 8-0.600000: 12.4906
+** Cluster median 16-0.600000: 6.29713
+** Cluster median 32-0.600000: 2.63183
+** Cluster median 64-0.600000: 1.22212
+** Cluster median 128-0.600000: 0.677306
+** Cluster median 256-0.600000: 0.4812
+** Cluster median 512-0.600000: 0.286208
+** Cluster median 1024-0.600000: 0.190375
+** Cluster median 2048-0.600000: 0.0801871
+** Cluster median 4096-0.600000: 0.065706
+** Cluster median 8192-0.600000: 0.0656209
+** Cluster median 16384-0.600000: 0.0659809
+** Cluster median 32768-0.600000: 0.0660019
+** Cluster median 65536-0.600000: 0.0655999
+** Cluster median 131072-0.600000: 0.0656128
+** Cluster median 262144-0.600000: 0.065702
+** Cluster median 524288-0.600000: 0.0659091
+** Cluster median 5-0.100000: 72.0221
+** Cluster median 5-0.200000: 50.4092
+** Cluster median 5-0.300000: 37.1366
+** Cluster median 5-0.400000: 31.4352
+** Cluster median 5-0.500000: 22.5599
+** Cluster median 5-0.600000: 16.489
+** Cluster median 5-0.700000: 13.4312
+** Cluster median 5-0.800000: 9.28345
+** Cluster median 5-0.900000: 6.3021
+** Bulk cluster median mu=5: 142.493 vs. total individual queries: 259.073
 ****************************
 ** ApproxCosineSimilarity **
 ****************************
 
 Samples=64
 ----------
-[Clock] Sun Aug 16 21:35:31 2020
-** Index construction median: 514.64
-
-
-Samples=128
-----------
-[Clock] Sun Aug 16 22:18:28 2020
-** Index construction median: 502.257
-
-
-Samples=256
-----------
-[Clock] Sun Aug 16 23:00:18 2020
-** Index construction median: 519.999
-
-
-Samples=512
-----------
-[Clock] Sun Aug 16 23:43:32 2020
-** Index construction median: 597.469
-
-
-Samples=1024
-----------
-[Clock] Mon Aug 17 00:33:19 2020
-** Index construction median: 780.241
-
-
-Samples=2048
-----------
-[Clock] Mon Aug 17 01:36:47 2020
+[Clock] Mon Aug 17 06:16:39 2020
