@@ -110,8 +110,8 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   pbbs::sequence<size_t> triCounts = tc.report();  //TODO: reuse
   delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
   delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
-  // DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
-  // DBTInternal::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
+  DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
+  DBTInternal::PrintFunctionItem("6.", "# tri -", delta_triangles_neg);
   tc.clear();
   triCounts.clear();
   t.next("6. count triangles");
@@ -190,7 +190,8 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
       DGold = DGnew;
       switched = true;
     }
-    // DBTInternal::compare(DGold, edges, batch_start, batch_end, n);
+    // if(switched){ DBTInternal::compare(DGold, edges, batch_start, batch_end, n, P);}
+    // else{ DBTInternal::compare(DG, edges, batch_start, batch_end, n, P);}
     std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
     std::cout << "### Num triangles = " << count << "\n";
     t.stop();t.reportTotal("");
