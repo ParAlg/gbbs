@@ -185,20 +185,20 @@ Clustering Index::Cluster(
     const uint64_t mu,
     const float epsilon,
     const bool get_deterministic_result) const {
+  timer preprocessing_timer{"Cluster - additional preprocessing time"};
   const pbbs::sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
   if (cores.empty()) {
     // Nothing is a core. There are no clusters, and every vertex is an outlier.
     return Clustering(num_vertices_, kUnclustered);
   }
 
-  timer preprocessing_timer{"Cluster - additional preprocessing time"};
   pbbs::sequence<uintE> core_similar_edge_counts{
       pbbs::map<uintE>(
           cores,
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
             // `epsilon` structural similarity with the vertex.
-            return internal::BinarySearch(
+            return pbbs::binary_search(
                 neighbor_order_[vertex],
                 [epsilon](const internal::EdgeSimilarity& es) {
                   return es.similarity >= epsilon;
@@ -253,7 +253,7 @@ void Index::Cluster(
             [&](const uintE vertex) {
               // Get the number of neighbors of `vertex` that have at least
               // `epsilon` structural similarity with the vertex.
-              return internal::BinarySearch(
+              return pbbs::binary_search(
                   neighbor_order_[vertex],
                   [epsilon](const internal::EdgeSimilarity& es) {
                     return es.similarity >= epsilon;

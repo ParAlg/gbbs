@@ -145,7 +145,7 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 
   const pbbs::sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
-    BinarySearch(
+    pbbs::binary_search(
         possible_cores,
         [epsilon](const internal::CoreThreshold& core_threshold) {
           return core_threshold.threshold >= epsilon;
