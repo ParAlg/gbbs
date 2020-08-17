@@ -26,7 +26,7 @@
 #include <cmath>
 #include "gbbs/gbbs.h"
 
-#define DBT_TOMB_MERGE
+// #define DBT_TOMB_MERGE
 #define DBT_USING_TOMB 
 
 #include "shared.h"
