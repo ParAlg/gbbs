@@ -61,3 +61,9 @@ INFO: Build completed successfully, 25 total actions
 Samples=64
 ----------
 [Clock] Mon Aug 17 06:16:39 2020
+** Index construction median: 423.16
+
+
+Samples=128
+----------
+[Clock] Mon Aug 17 06:51:59 2020
