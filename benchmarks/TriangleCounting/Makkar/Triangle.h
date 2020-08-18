@@ -38,7 +38,7 @@ inline size_t Dynamic_Triangle(
     int batch_num,
     commandLine& P) {
   size_t n = P.getOptionLongValue("-n", 1000000);
-  size_t batch_size = 10000;
+  size_t batch_size = P.getOptionLongValue("-bs", 1000);
   size_t num_batches = (updates.size() + batch_size - 1) / batch_size;
 
   // Just convert to sequence for convenince.
@@ -63,8 +63,6 @@ inline size_t Dynamic_Triangle(
     timer bt; bt.start();
     DG.process_batch(batch);
     bt.stop(); bt.reportTotal("batch time");
-//    size_t tc = DG.triangle_count();
-//    std::cout << "Triangle count = " << tc << std::endl;
     std::cout << std::endl;
   }
   DG.report_stats();

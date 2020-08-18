@@ -87,11 +87,15 @@ namespace gbbs {
         return e.weight == 1;
       });
       auto deletions = pbbs::filter(batch, [&] (const auto& e) {
-        return e.weight == 0;
+//        return e.weight == 0;
+        return e.weight == 1;
       });
 
       process_insertions(insertions);
-      process_deletions(std::move(deletions));
+
+      process_deletions(deletions);
+
+      process_insertions(insertions);
     }
 
     template <class Container>
@@ -331,9 +335,94 @@ namespace gbbs {
       });
     }
 
+
+    template <class Container>
+    size_t merge_deletions_inplace(uintE* A, uintE nA, Container& B) {
+      size_t a = 0, b = 0, nB = B.size(), k = 0;
+      while (a < nA && b < nB) {
+        if (A[a] == B[b].second) { // deleted
+          a++; b++;
+        } else if (A[a] < B[b].second) { // not deleted
+          A[k] = A[a];
+          k++; a++;
+        } else { // deletion not found
+          b++;
+        }
+      }
+      while (a < nA) {
+        A[k] = A[a];
+        k++; a++;
+      }
+      return k;
+    }
+
+    template <class C>
+    void merge_deletions(uintE v, C& updates) {
+      uintE current_degree = D[v];
+      uintE* ngh_v = A[v];
+      size_t new_degree = merge_deletions_inplace(ngh_v, current_degree, updates);
+      D[v] = new_degree;
+    }
+
     // An unsorted batch of updates
     template <class B>
-    void process_deletions(B&& batch) {
+    void process_deletions(B& unsorted_batch) {
+      auto duplicated_batch = pbbs::sequence<edge>(2*unsorted_batch.size());
+      parallel_for(0, unsorted_batch.size(), [&] (size_t i) {
+        duplicated_batch[2*i] = unsorted_batch[i];
+        duplicated_batch[2*i+1].from = unsorted_batch[i].to;
+        duplicated_batch[2*i+1].to = unsorted_batch[i].from;
+        duplicated_batch[2*i+1].weight = 1;
+      });
+
+      // (i) sort the batch
+      auto sort_f = [&] (const edge& l, const edge& r) {
+        return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
+      };
+      timer sort_t; sort_t.start();
+      pbbs::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+
+
+      // (ii) define the unweighted version (with ins/del) dropped and filter to
+      // remove duplicates in the batch
+      auto duplicated_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
+        return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
+      });
+      auto batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
+        return (ind == 0) || (p != duplicated_batch_unweighted[ind-1]);
+      });
+
+      // (iii) generate vertex offsets into the de-duplicated batch
+      auto index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
+        return std::make_pair(batch[i].first, i);
+      });
+      // starts contains (vertex id, indexof start in batch) pairs.
+      auto starts = pbbs::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
+        size_t ind = p.second;
+        return ind == 0 || (index_seq[ind].first != index_seq[ind-1].first);
+      });
+      std::cout << "batchsize = " << batch.size() << " starts.size = " << starts.size() << std::endl;
+
+      // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
+      parallel_for(0, starts.size(), [&] (size_t i) {
+        const auto[v, index] = starts[i];
+        starts_offsets[v] = i;
+      });
+
+      // (v) insert the updates into the old graph
+      parallel_for(0, starts.size(), [&] (size_t i) {
+        const auto [v, index] = starts[i];
+        size_t v_deg = ((i == starts.size()-1) ? batch.size() : starts[i+1].second) - index;
+        if (v_deg == 0) abort();
+
+        auto v_inserts = batch.slice(index, index + v_deg);
+        merge_deletions(v, v_inserts);
+      });
+
+      /////////////////////////////////////////////////////////////////////////
+      // the next phase of the algorithm intersects the batch + the updated
+      // graph, and updates the triangle counts
+
     }
 
     void report_stats() {
