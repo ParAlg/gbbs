@@ -87,15 +87,14 @@ namespace gbbs {
         return e.weight == 1;
       });
       auto deletions = pbbs::filter(batch, [&] (const auto& e) {
-//        return e.weight == 0;
-        return e.weight == 1;
+        return e.weight == 0;
+//        return e.weight == 1;
       });
 
       process_insertions(insertions);
 
-      process_deletions(deletions);
-
-      process_insertions(insertions);
+//      process_deletions(deletions);
+//      process_insertions(insertions);
     }
 
     template <class Container>
