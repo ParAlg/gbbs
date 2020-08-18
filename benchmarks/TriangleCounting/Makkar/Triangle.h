@@ -38,7 +38,7 @@ inline size_t Dynamic_Triangle(
     int batch_num,
     commandLine& P) {
   size_t n = P.getOptionLongValue("-n", 1000000);
-  size_t batch_size = 1000;
+  size_t batch_size = 1000000000;
   size_t num_batches = (updates.size() + batch_size - 1) / batch_size;
 
   // Just convert to sequence for convenince.

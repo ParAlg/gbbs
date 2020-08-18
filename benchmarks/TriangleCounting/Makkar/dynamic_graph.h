@@ -36,6 +36,9 @@ namespace gbbs {
     // the number of vertices
     size_t n;
 
+    // the triangle count
+    size_t T;
+
     // adjacency lists
     pbbs::sequence<uintE*> A;
     // degrees
@@ -45,10 +48,9 @@ namespace gbbs {
     // a flag per vertex indicating whether its adjacency list in A is allocated,
     // or from initial_vertex_memory
     pbbs::sequence<bool> allocated;
-    // a dense array of offsets used to index into the batch
-    // post_ins_offs[v] (if v is in the batch) indicates the index into "starts"
-    // corresponding to v (see process_insertions).
-    // pbbs::sequence<std::pair<uintE, uintE>> post_ins_offs;
+    // a dense array of offsets used to index into the batch. UINT_E_MAX if the
+    // vertex is not updated in this batch.
+    pbbs::sequence<uintE> starts_offsets;
 
     // The edge type used. A batch is a sequence of edges.
     using edge = gbbs::gbbs_io::Edge<int>;
@@ -59,12 +61,15 @@ namespace gbbs {
     DynamicGraph(size_t num_vertices) : n(num_vertices) {
       A = pbbs::sequence<uintE*>(num_vertices);
       D = pbbs::sequence<uintE>(n);
+      T = 0;
       initial_vertex_memory = pbbs::sequence<uintE>(num_vertices*initial_vertex_size);
       allocated = pbbs::sequence<bool>(n);
+      starts_offsets = pbbs::sequence<uintE>(n);
       parallel_for(0, n, [&] (size_t i) {
         A[i] = &(initial_vertex_memory[i*initial_vertex_size]);
         D[i] = 0;
         allocated[i] = false;
+        starts_offsets[i] = UINT_E_MAX;
         // post_ins_offs[i] = std::make_pair(UINT_E_MAX, UINT_E_MAX); // TODO
       });
       std::cout << "Initialized!" << std::endl;
@@ -148,12 +153,47 @@ namespace gbbs {
       size_t a = 0, b = 0, nA = D[a_id], nB = D[b_id], k = 0;
       uintE* A_arr = A[a_id]; uintE* B_arr = A[b_id];
       while (a < nA && b < nB) {
-        if (A[a] == B[b].second) {
+        if (A_arr[a] == B_arr[b]) {
           k++; a++; b++;
-        } else if (A[a] < B[b].second) {
-          k++; a++;
+        } else if (A_arr[a] < B_arr[b]) {
+          a++;
         } else {
-          k++; b++;
+          b++;
+        }
+      }
+      return k;
+    }
+
+    template <class Container>
+    size_t truncated_intersect(uintE a_id, Container& B) {
+      size_t a = 0, b = 0, nA = D[a_id], nB = B.size(), k = 0;
+      uintE* A_arr = A[a_id];
+      while (a < nA && b < nB) {
+        if (A_arr[a] <= a_id) { // filter edges to vertices < a_id
+          a++;
+          continue;
+        }
+        if (A_arr[a] == B[b].second) {
+          k++; a++; b++;
+        } else if (A_arr[a] < B[b].second) {
+          a++;
+        } else {
+          b++;
+        }
+      }
+      return k;
+    }
+
+    template <class ContainerA, class ContainerB>
+    size_t intersect_new(ContainerA& A, ContainerB& B) {
+      size_t a = 0, b = 0, nA = A.size(), nB = B.size(), k = 0;
+      while (a < nA && b < nB) {
+        if (A[a].second == B[b].second) {
+          k++; a++; b++;
+        } else if (A[a].second < B[b].second) {
+          a++;
+        } else {
+          b++;
         }
       }
       return k;
@@ -189,12 +229,13 @@ namespace gbbs {
       });
       std::cout << "batchsize = " << batch.size() << " starts.size = " << starts.size() << std::endl;
 
-//      parallel_for(0, starts.size(), [&] (size_t i) {
-//        const auto[v, index] = starts[i];
-//        post_ins_offs[v] = i; // TODO
-//      });
+      // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
+      parallel_for(0, starts.size(), [&] (size_t i) {
+        const auto[v, index] = starts[i];
+        starts_offsets[v] = i;
+      });
 
-      // (iv) insert the updates into the old graph
+      // (v) insert the updates into the old graph
       parallel_for(0, starts.size(), [&] (size_t i) {
         const auto [v, index] = starts[i];
         size_t v_deg = ((i == starts.size()-1) ? batch.size() : starts[i+1].second) - index;
@@ -209,21 +250,69 @@ namespace gbbs {
       // graph, and updates the triangle counts
 
       // G(u) intersect G(v)
-      pbbs::sequence<size_t>(batch.size()) counts_one;
+      pbbs::sequence<size_t> counts_one(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         counts_one[b] = intersect_A(u, v);
       });
 
+      auto get_new_edgelist = [&] (const uintE& u, size_t u_starts_offset) {
+        auto [up, index] = starts[u_starts_offset];
+        assert(up == u);
+        size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
+        if (u_deg == 0) abort();
+        auto u_inserts = batch.slice(index, index + u_deg);
+        return u_inserts;
+      };
+
       // truncated G(u) intersect G'(v) and truncated G(v) intersect G'(u)
-      pbbs::sequence<size_t>(batch.size()) counts_two;
+      pbbs::sequence<size_t> counts_two(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         size_t count = 0;
 
-        count += truncated_intersect(u, new_v);
+        size_t v_starts_offset = starts_offsets[v];
+        if (v_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
+          auto v_inserts = get_new_edgelist(v, v_starts_offset);
+          count += truncated_intersect(u, v_inserts);
+        }
+
+        size_t u_starts_offset = starts_offsets[u];
+        if (u_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
+          auto u_inserts = get_new_edgelist(u, u_starts_offset);
+          count += truncated_intersect(v, u_inserts);
+        }
+        counts_two[b] = count;
       });
 
+      pbbs::sequence<size_t> counts_three(batch.size());
+      parallel_for(0, batch.size(), [&] (size_t b) {
+        auto [u, v] = batch[b];
+        size_t count = 0;
+        size_t v_starts_offset = starts_offsets[v];
+        size_t u_starts_offset = starts_offsets[u];
+        if (u_starts_offset != UINT_E_MAX && v_starts_offset != UINT_E_MAX) {
+          auto u_inserts = get_new_edgelist(u, u_starts_offset);
+          auto v_inserts = get_new_edgelist(v, v_starts_offset);
+          count += intersect_new(u_inserts, v_inserts);
+        }
+        counts_three[b] = count;
+      });
+
+      size_t first_count = pbbslib::reduce_add(counts_one.slice());
+      size_t second_count = pbbslib::reduce_add(counts_two.slice());
+      size_t third_count = pbbslib::reduce_add(counts_three.slice());
+
+      size_t new_triangles = first_count - second_count + (third_count/3);
+      T += new_triangles;
+      std::cout << "first_count = " << first_count << " second_count = " << second_count << " third_count = " << third_count << std::endl;
+      std::cout << "Number of new triangles:" << new_triangles << " total count = " << T << std::endl;
+
+      // (cleanup) update starts_offsets mapping for batch vertices (reset at the end of this batch)
+      parallel_for(0, starts.size(), [&] (size_t i) {
+        const auto[v, index] = starts[i];
+        starts_offsets[v] = UINT_E_MAX;
+      });
     }
 
     // An unsorted batch of updates
