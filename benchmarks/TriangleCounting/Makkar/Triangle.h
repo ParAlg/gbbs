@@ -55,18 +55,18 @@ inline size_t Dynamic_Triangle(
 
   auto DG = gbbs::DynamicGraph(n);
 
-//  for (size_t i=0; i<num_batches; i++) {
-//    // process batch i
-//    size_t batch_start = i*batch_size;
-//    size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
-//    auto batch = U.slice(batch_start, batch_end);
-//    timer bt; bt.start();
-//    DG.process_batch(batch);
-//    bt.stop(); bt.reportTotal("batch time");
+  for (size_t i=0; i<num_batches; i++) {
+    // process batch i
+    size_t batch_start = i*batch_size;
+    size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
+    auto batch = U.slice(batch_start, batch_end);
+    timer bt; bt.start();
+    DG.process_batch(batch);
+    bt.stop(); bt.reportTotal("batch time");
 //    size_t tc = DG.triangle_count();
 //    std::cout << "Triangle count = " << tc << std::endl;
-//    std::cout << std::endl;
-//  }
+    std::cout << std::endl;
+  }
 
 //  t.end();
 //  t.reportTotal("total processing time");
