@@ -423,6 +423,72 @@ namespace gbbs {
       // the next phase of the algorithm intersects the batch + the updated
       // graph, and updates the triangle counts
 
+      // G(u) intersect G(v)
+      pbbs::sequence<size_t> counts_one(batch.size());
+      parallel_for(0, batch.size(), [&] (size_t b) {
+        auto [u, v] = batch[b];
+        if (u < v) {
+          counts_one[b] = intersect_A(u, v);
+        } else {
+          counts_one[b] = 0;
+        }
+      });
+
+      auto get_new_edgelist = [&] (const uintE& u, size_t u_starts_offset) {
+        auto [up, index] = starts[u_starts_offset];
+        assert(up == u);
+        size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
+        if (u_deg == 0) abort();
+        auto u_inserts = batch.slice(index, index + u_deg);
+        return u_inserts;
+      };
+
+      // truncated G(u) intersect G'(v) and truncated G(v) intersect G'(u)
+      pbbs::sequence<size_t> counts_two(batch.size());
+      parallel_for(0, batch.size(), [&] (size_t b) {
+        auto [u, v] = batch[b];
+        size_t count = 0;
+
+        if (u < v) {
+          size_t v_starts_offset = starts_offsets[v];
+          if (v_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
+            auto v_inserts = get_new_edgelist(v, v_starts_offset);
+            count += truncated_intersect(u, v_inserts);
+          }
+
+          size_t u_starts_offset = starts_offsets[u];
+          if (u_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
+            auto u_inserts = get_new_edgelist(u, u_starts_offset);
+            count += truncated_intersect(v, u_inserts);
+          }
+        }
+        counts_two[b] = count;
+      });
+
+      pbbs::sequence<size_t> counts_three(batch.size());
+      parallel_for(0, batch.size(), [&] (size_t b) {
+        auto [u, v] = batch[b];
+        size_t count = 0;
+        if (u < v) {
+          size_t v_starts_offset = starts_offsets[v];
+          size_t u_starts_offset = starts_offsets[u];
+          if (u_starts_offset != UINT_E_MAX && v_starts_offset != UINT_E_MAX) {
+            auto u_inserts = get_new_edgelist(u, u_starts_offset);
+            auto v_inserts = get_new_edgelist(v, v_starts_offset);
+            count += intersect_new(u_inserts, v_inserts);
+          }
+        }
+        counts_three[b] = count;
+      });
+
+      size_t first_count = pbbslib::reduce_add(counts_one.slice());
+      size_t second_count = pbbslib::reduce_add(counts_two.slice());
+      size_t third_count = pbbslib::reduce_add(counts_three.slice());
+
+      size_t triangles_deleted = first_count + second_count + third_count;
+      T -= triangles_deleted;
+      std::cout << "first_count = " << first_count << " second_count = " << second_count << " third_count = " << third_count << std::endl;
+      std::cout << "Number of new triangles deleted:" << triangles_deleted << " total count = " << T << std::endl;
     }
 
     void report_stats() {
