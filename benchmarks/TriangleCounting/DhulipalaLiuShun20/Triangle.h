@@ -245,8 +245,9 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   //   t.next("Build DG");
   //   return DBTInternal::dynamicBatches<DBTGraph::SymGraph, F>(DG, updates, batch_num, P, n, batch_offset, C0, true);
   // }
-
-  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, min(batch_offset * batch_size, updates.size()));
+  size_t init_graph_end = min(batch_offset * batch_size, updates.size());
+  if(weight == 2) init_graph_end =  updates.size();
+  DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, init_graph_end);
   t.next("Build Graph");
   C0 = Triangle(G2, f, "degree", P); 
   t.next("Static Count");
