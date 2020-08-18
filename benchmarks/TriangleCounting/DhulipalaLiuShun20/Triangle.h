@@ -54,6 +54,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   size_t m, m_ins;
   size_t delta_triangles_pos, delta_triangles_neg;
   DSymGraph *DGnew;
+  size_t new_ct;
     
   if(DG->num_edges() == 0){ // mahorRebalancing from empty graph
     size_t new_ct;
@@ -75,10 +76,11 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
   auto monoid = pbbslib::addm<size_t>();
   m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
+  bool major_rebalanced = false;
   if(DG->majorRebalance(m_ins, m-m_ins)){
-    size_t new_ct;
+    major_rebalanced = true;;
     tie(new_ct, DGnew) = DBTGraph::majorRebalancing(DG, edges,vtxNew, vtxMap, n, P);
-    return make_tuple(new_ct, true, DGnew);
+    // return make_tuple(new_ct, true, DGnew);
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   // t.start(); //step 2 mark insert,  some array moves to tables
@@ -140,8 +142,11 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // t.start(); //  minor rebalancing 
   DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.next("8. 9. update degree + minor rebalancing");
+  DG->updateNumEdges(m_ins, m-m_ins);
+  new_ct = C0 + delta_triangles_pos - delta_triangles_neg; 
   } //end else (nort major rebalancing)
 
+  
   par_for(0, vtxNew.size(), [&] (size_t i) { //TODO: reuse
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
@@ -154,7 +159,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
   // DG->checkStatus();
 
-  return make_tuple(C0 + delta_triangles_pos - delta_triangles_neg, false, DGnew);
+  return make_tuple(new_ct, major_rebalanced, DGnew);
 
 }
 

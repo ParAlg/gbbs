@@ -231,6 +231,9 @@ namespace DBTGraph{
             size_t new_d = num_edges() + ins_d - del_d;
             return  new_d  < M/4 || new_d  >= M;}
 
+        inline void updateNumEdges(size_t ins_d, size_t del_d) {
+            m = m + ins_d - del_d;}
+
         // can't be used during update, D must align with current entries
         bool haveEdge (EdgeT e) const {
             if(m == 0) return false;
@@ -1009,6 +1012,9 @@ namespace DBTGraph{
             // if(use_block_v(v.id)) return;
             tableE *tb;
             size_t ne;
+            // if(v.id == 651731){
+            //     cout << "============" << endl;
+            // }
             if(is_high_v(v.id) && is_low_now){     
                 tb = HH; // we are moving delta entries from HL[v] to HH[v] 
                 ne =  get_new_degree(v) - get_new_low_degree(v);  //number of elements in HH[v] now
