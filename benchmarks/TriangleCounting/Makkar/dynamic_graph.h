@@ -202,20 +202,28 @@ namespace gbbs {
     // An unsorted batch of updates
     template <class B>
     void process_insertions(B& unsorted_batch) {
+      auto duplicated_batch = pbbs::sequence<edge>(2*unsorted_batch.size());
+      parallel_for(0, unsorted_batch.size(), [&] (size_t i) {
+        duplicated_batch[2*i] = unsorted_batch[i];
+        duplicated_batch[2*i+1].from = unsorted_batch[i].to;
+        duplicated_batch[2*i+1].to = unsorted_batch[i].from;
+        duplicated_batch[2*i+1].weight = 1;
+      });
+
       // (i) sort the batch
       auto sort_f = [&] (const edge& l, const edge& r) {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbs::sample_sort_inplace(unsorted_batch.slice(), sort_f);
+      pbbs::sample_sort_inplace(duplicated_batch.slice(), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
-      // remove duplicates in the input batch
-      auto unsorted_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(unsorted_batch.size(), [&] (const size_t i) {
-        return std::make_pair(unsorted_batch[i].from, unsorted_batch[i].to);
+      // remove duplicates in the batch
+      auto duplicated_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
+        return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
-      auto batch = pbbs::filter_index(unsorted_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
-        return (ind == 0) || (p != unsorted_batch_unweighted[ind-1]);
+      auto batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
+        return (ind == 0) || (p != duplicated_batch_unweighted[ind-1]);
       });
 
       // (iii) generate vertex offsets into the de-duplicated batch
@@ -253,7 +261,11 @@ namespace gbbs {
       pbbs::sequence<size_t> counts_one(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
-        counts_one[b] = intersect_A(u, v);
+        if (u < v) {
+          counts_one[b] = intersect_A(u, v);
+        } else {
+          counts_one[b] = 0;
+        }
       });
 
       auto get_new_edgelist = [&] (const uintE& u, size_t u_starts_offset) {
@@ -271,16 +283,18 @@ namespace gbbs {
         auto [u, v] = batch[b];
         size_t count = 0;
 
-        size_t v_starts_offset = starts_offsets[v];
-        if (v_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
-          auto v_inserts = get_new_edgelist(v, v_starts_offset);
-          count += truncated_intersect(u, v_inserts);
-        }
+        if (u < v) {
+          size_t v_starts_offset = starts_offsets[v];
+          if (v_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
+            auto v_inserts = get_new_edgelist(v, v_starts_offset);
+            count += truncated_intersect(u, v_inserts);
+          }
 
-        size_t u_starts_offset = starts_offsets[u];
-        if (u_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
-          auto u_inserts = get_new_edgelist(u, u_starts_offset);
-          count += truncated_intersect(v, u_inserts);
+          size_t u_starts_offset = starts_offsets[u];
+          if (u_starts_offset != UINT_E_MAX) { // non-zero number of updates for v in this batch
+            auto u_inserts = get_new_edgelist(u, u_starts_offset);
+            count += truncated_intersect(v, u_inserts);
+          }
         }
         counts_two[b] = count;
       });
@@ -289,12 +303,14 @@ namespace gbbs {
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         size_t count = 0;
-        size_t v_starts_offset = starts_offsets[v];
-        size_t u_starts_offset = starts_offsets[u];
-        if (u_starts_offset != UINT_E_MAX && v_starts_offset != UINT_E_MAX) {
-          auto u_inserts = get_new_edgelist(u, u_starts_offset);
-          auto v_inserts = get_new_edgelist(v, v_starts_offset);
-          count += intersect_new(u_inserts, v_inserts);
+        if (u < v) {
+          size_t v_starts_offset = starts_offsets[v];
+          size_t u_starts_offset = starts_offsets[u];
+          if (u_starts_offset != UINT_E_MAX && v_starts_offset != UINT_E_MAX) {
+            auto u_inserts = get_new_edgelist(u, u_starts_offset);
+            auto v_inserts = get_new_edgelist(v, v_starts_offset);
+            count += intersect_new(u_inserts, v_inserts);
+          }
         }
         counts_three[b] = count;
       });
