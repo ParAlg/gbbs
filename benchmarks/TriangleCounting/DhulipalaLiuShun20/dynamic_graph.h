@@ -514,40 +514,40 @@ namespace DBTGraph{
 
         // update triangle count for a wedge with val1 and val2 edges
         // flag is true if inserts, false if deletes
-        inline size_t countTrianglesHelper(int val1, int val2, bool flag, TriangleCounts &tc){
-            if(val1 == NO_EDGE || val2 == NO_EDGE) return 0;
+        inline void countTrianglesHelper(int val1, int val2, bool flag, TriangleCounts &tc){
+            if(val1 == NO_EDGE || val2 == NO_EDGE) return ;
             if(flag){// +1 new inserts
-                if(val1 == DEL_EDGE || val2 == DEL_EDGE) return 0; 
+                if(val1 == DEL_EDGE || val2 == DEL_EDGE) return ; 
                 tc.increment(val1 + val2 + 1, 1);
-                return val1 + val2 + 1;
+                // return val1 + val2 + 1;
             }else{// +1 new deletions
-                if(val1 == NEW_EDGE || val2 == NEW_EDGE) return 0 ;
+                if(val1 == NEW_EDGE || val2 == NEW_EDGE) return ;
                 tc.decrement(val1/2 + val2 /2 + 1, 1);
-                return 1;
+                // return 1; 
             }
         }
 
         // requrie: tables and edges updated
         //tb = XX->find(u)
         // for each ngh w of u, check if (w,v) exits. If so update tri counts
-        inline tuple<size_t, size_t, size_t> countTrianglesHelper(SetT *tb, uintE u, uintE v, size_t v_new_degree, bool flag, TriangleCounts &tc){
-            tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
+        inline void countTrianglesHelper(SetT *tb, uintE u, uintE v, size_t v_new_degree, bool flag, TriangleCounts &tc){
+            // tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
             par_for(0, tb->size(), [&] (size_t i) {
                 uintE w = get<0>(tb->table[i]);
                 if(tb->not_empty(w) && w != v){
                     int val1 = get<1>(tb->table[i]);
                     int val2 = getEdgeVal(v,  w, v_new_degree);
-                    size_t result = countTrianglesHelper(val1, val2, flag, tc);
+                    countTrianglesHelper(val1, val2, flag, tc);
+                    // size_t result = 
                     // if(u == 1071 && v == 1845){
                     //     cout << w << " " << val1 << " " << val2 << endl;
                     // }
-                    if(result == 1){get<0>(ct) += 1;}
-                    if(result == 2){get<1>(ct) += 1;}
-                    if(result == 3){get<2>(ct) += 1;}
+                    // if(result == 1){pbbs::write_add(&get<0>(ct), 1);}
+                    // if(result == 2){pbbs::write_add(&get<1>(ct), 1);}
+                    // if(result == 3){pbbs::write_add(&get<2>(ct), 1);}
                 }
             });
-            return ct;
-
+            // return ct;
         }
 
         // requrie: tables and edges updated
