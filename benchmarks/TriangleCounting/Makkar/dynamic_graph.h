@@ -48,7 +48,7 @@ namespace gbbs {
     // a dense array of offsets used to index into the batch
     // post_ins_offs[v] (if v is in the batch) indicates the index into "starts"
     // corresponding to v (see process_insertions).
-    pbbs::sequence<std::pair<uintE, uintE>> post_ins_offs;
+    // pbbs::sequence<std::pair<uintE, uintE>> post_ins_offs;
 
     // The edge type used. A batch is a sequence of edges.
     using edge = gbbs::gbbs_io::Edge<int>;
@@ -58,12 +58,14 @@ namespace gbbs {
     // insertions.
     DynamicGraph(size_t num_vertices) : n(num_vertices) {
       A = pbbs::sequence<uintE*>(num_vertices);
+      D = pbbs::sequence<uintE>(n);
       initial_vertex_memory = pbbs::sequence<uintE>(num_vertices*initial_vertex_size);
       allocated = pbbs::sequence<bool>(n);
       parallel_for(0, n, [&] (size_t i) {
         A[i] = &(initial_vertex_memory[i*initial_vertex_size]);
+        D[i] = 0;
         allocated[i] = false;
-        post_ins_offs[i] = std::make_pair(UINT_E_MAX, UINT_E_MAX); // TODO
+        // post_ins_offs[i] = std::make_pair(UINT_E_MAX, UINT_E_MAX); // TODO
       });
       std::cout << "Initialized!" << std::endl;
     }
@@ -76,8 +78,6 @@ namespace gbbs {
     // updates)
     template <class B>
     void process_batch(B& batch) {
-      size_t batch_size = batch.size();
-
       auto insertions = pbbs::filter(batch, [&] (const auto& e) {
         return e.weight == 1;
       });
@@ -100,7 +100,7 @@ namespace gbbs {
           out[k] = A[a];
           k++; a++;
         } else {
-          out[k] = B[b];
+          out[k] = B[b].second;
           k++; b++;
         }
       }
@@ -109,7 +109,7 @@ namespace gbbs {
         k++; a++;
       }
       while (b < nB) {
-        out[k] = B[b];
+        out[k] = B[b].second;
         k++; b++;
       }
       return k;
@@ -117,9 +117,9 @@ namespace gbbs {
 
     template <class C>
     void merge_small_insertions(uintE v, C& updates, uintE current_degree) {
-      uintE[initial_vertex_size] tmp;
+      uintE tmp[initial_vertex_size];
       uintE* ngh_v = A[v];
-      size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, &tmp);
+      size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, tmp);
       for (size_t i=0; i<new_degree; i++) {
         ngh_v[i] = tmp[i]; // update the actual edges
       }
@@ -139,6 +139,24 @@ namespace gbbs {
       uintE* new_array = pbbs::new_array_no_init<uintE>(max_new_degree);
       size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, new_array);
       D[v] = new_degree; // update the degree in the table
+      if (allocated[v]) { pbbs::free_array(ngh_v); } // free old neighbors if nec.
+      else { allocated[v] = true; } // update allocated[v] if nec.
+      A[v] = new_array; // update to the new neighbors
+    }
+
+    size_t intersect_A(uintE a_id, uintE b_id) {
+      size_t a = 0, b = 0, nA = D[a_id], nB = D[b_id], k = 0;
+      uintE* A_arr = A[a_id]; uintE* B_arr = A[b_id];
+      while (a < nA && b < nB) {
+        if (A[a] == B[b].second) {
+          k++; a++; b++;
+        } else if (A[a] < B[b].second) {
+          k++; a++;
+        } else {
+          k++; b++;
+        }
+      }
+      return k;
     }
 
     // An unsorted batch of updates
@@ -167,23 +185,43 @@ namespace gbbs {
       // starts contains (vertex id, indexof start in batch) pairs.
       auto starts = pbbs::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
         size_t ind = p.second;
-        return ind == 0 || (index_seq[ind].first != index_seq[ind-1].first)
+        return ind == 0 || (index_seq[ind].first != index_seq[ind-1].first);
       });
       std::cout << "batchsize = " << batch.size() << " starts.size = " << starts.size() << std::endl;
 
-      parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto[v, index] = starts[i];
-        post_ins_offs[v] = i; // TODO
-      });
+//      parallel_for(0, starts.size(), [&] (size_t i) {
+//        const auto[v, index] = starts[i];
+//        post_ins_offs[v] = i; // TODO
+//      });
 
       // (iv) insert the updates into the old graph
       parallel_for(0, starts.size(), [&] (size_t i) {
         const auto [v, index] = starts[i];
-        size_t v_deg = ((i == starts.size()) ? batch.size() : starts[i+].second) - index;
+        size_t v_deg = ((i == starts.size()-1) ? batch.size() : starts[i+1].second) - index;
         if (v_deg == 0) abort();
 
         auto v_inserts = batch.slice(index, index + v_deg);
         merge_insertions(v, v_inserts);
+      });
+
+      /////////////////////////////////////////////////////////////////////////
+      // the next phase of the algorithm intersects the batch + the updated
+      // graph, and updates the triangle counts
+
+      // G(u) intersect G(v)
+      pbbs::sequence<size_t>(batch.size()) counts_one;
+      parallel_for(0, batch.size(), [&] (size_t b) {
+        auto [u, v] = batch[b];
+        counts_one[b] = intersect_A(u, v);
+      });
+
+      // truncated G(u) intersect G'(v) and truncated G(v) intersect G'(u)
+      pbbs::sequence<size_t>(batch.size()) counts_two;
+      parallel_for(0, batch.size(), [&] (size_t b) {
+        auto [u, v] = batch[b];
+        size_t count = 0;
+
+        count += truncated_intersect(u, new_v);
       });
 
     }
@@ -191,6 +229,13 @@ namespace gbbs {
     // An unsorted batch of updates
     template <class B>
     void process_deletions(B&& batch) {
+    }
+
+    void report_stats() {
+      // compute reduction
+       auto seq_copy = pbbs::sequence<size_t>(n, [&] (size_t i) { return D[i]; });
+       size_t sum_deg = pbbslib::reduce_add(seq_copy.slice());
+       std::cout << "Deg = " << sum_deg << std::endl;
     }
 
   };

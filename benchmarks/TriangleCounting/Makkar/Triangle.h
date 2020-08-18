@@ -67,6 +67,7 @@ inline size_t Dynamic_Triangle(
 //    std::cout << "Triangle count = " << tc << std::endl;
     std::cout << std::endl;
   }
+  DG.report_stats();
 
 //  t.end();
 //  t.reportTotal("total processing time");
