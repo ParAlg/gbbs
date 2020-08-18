@@ -121,4 +121,9 @@ Samples=2048
 [Clock] Sat Aug 15 22:27:44 2020
 ** Index construction median: 59.4441
 
+****************************
+** ApproxCosineSimilarity **
+****************************
+Best exact params 256-0.050000, modularity 0.0924098
+
 # time per iter: 0
