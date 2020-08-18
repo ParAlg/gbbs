@@ -30,7 +30,7 @@
 
 # ./Triangle -s -shuffle -nb 10 -n 1138499  -blocksize 16 -bo $1 -bp 10 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
 
-
+# ./Triangle -s -w 2 -batchsize 500 -nb 10 -n 128 -bo 10 ../../../inputs/empty ../../../inputs/rMatEdgesShuffle
 
 
 # ./exp.sh 0 70

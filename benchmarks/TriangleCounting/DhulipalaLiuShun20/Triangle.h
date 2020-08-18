@@ -175,17 +175,14 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
   bool switched = false; 
   size_t count = C0;
   int batch_proc = P.getOptionLongValue("-bp", num_batch+1); 
-  // tuple<size_t, bool, DSymGraph *> result;
   DSymGraph *DGold = new DSymGraph();
   DSymGraph *DGnew;
   pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
-  // inserts
-  int j = batch_offset-1;
   for(int i = batch_offset; i<= batch_offset+ batch_proc; ++i){
     size_t batch_start = i*batch_size;
     if(all_del){
-      batch_start = j*batch_size;
-      j--;
+      batch_start = (num_batch-i) * batch_size;
+      // j--;
     }
     size_t batch_end = min(batch_size + batch_start, edges.size());
     if(batch_end <= batch_start || batch_start < 0) continue;
@@ -201,8 +198,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
       switched = true;
     }
 
-    if(!all_del){std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;}
-    else{std::cout << "### Batch " << j << " [" << batch_start << " " << batch_end << "]" << std::endl;}
+    std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
     std::cout << "### Num triangles = " << count << "\n";
     t.stop();t.reportTotal("");
     std::cout << std::endl;
