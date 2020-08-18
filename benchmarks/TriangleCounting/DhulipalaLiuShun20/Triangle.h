@@ -57,7 +57,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   size_t new_ct;
     
   if(DG->num_edges() == 0){ // mahorRebalancing from empty graph
-    size_t new_ct;
+    //size_t new_ct;
     tie(new_ct, DGnew) = DBTGraph::majorRebalancing(updates, s, e, n, DG->get_block_size(), P, true);
     return make_tuple(new_ct, true, DGnew);
   }
@@ -167,7 +167,8 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 template <class Graph, class F>
 inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io::Edge<int>>& edges, int num_batch, commandLine& P, 
                               size_t n, int batch_offset, size_t C0, bool all_del) {
-  size_t batch_size = edges.size()/num_batch;
+  size_t batch_size =  P.getOptionLongValue("-batchsize", 5);
+  num_batch = edges.size()/batch_size;
   std::cout << "Batch Size " << batch_size << std::endl;
   std::cout <<""<< std::endl;
   bool use_new = false; // use new graph (major rebalanced) or old graph
