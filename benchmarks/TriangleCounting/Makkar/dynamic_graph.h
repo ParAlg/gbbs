@@ -485,10 +485,16 @@ namespace gbbs {
       size_t second_count = pbbslib::reduce_add(counts_two.slice());
       size_t third_count = pbbslib::reduce_add(counts_three.slice());
 
-      size_t triangles_deleted = first_count + second_count + third_count;
+      size_t triangles_deleted = first_count + second_count + (third_count/3);
       T -= triangles_deleted;
       std::cout << "first_count = " << first_count << " second_count = " << second_count << " third_count = " << third_count << std::endl;
       std::cout << "Number of new triangles deleted:" << triangles_deleted << " total count = " << T << std::endl;
+
+      // (cleanup) update starts_offsets mapping for batch vertices (reset at the end of this batch)
+      parallel_for(0, starts.size(), [&] (size_t i) {
+        const auto[v, index] = starts[i];
+        starts_offsets[v] = UINT_E_MAX;
+      });
     }
 
     void report_stats() {
