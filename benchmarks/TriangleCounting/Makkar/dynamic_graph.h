@@ -26,50 +26,23 @@
 #include <cmath>
 #include "gbbs/gbbs.h"
 
-#include "dynamic_graph.h"
-
 namespace gbbs {
 
-template <class Graph, class F>
-inline size_t Dynamic_Triangle(
-    Graph& G,
-    const vector<gbbs::gbbs_io::Edge<int>>& updates,
-    const F& f,
-    int batch_num,
-    commandLine& P) {
-  size_t n = P.getOptionLongValue("-n", 1000000);
-  size_t batch_size = 1000;
-  size_t num_batches = (updates.size() + batch_size - 1) / batch_size;
 
-  // Just convert to sequence for convenince.
-  using Edge = gbbs::gbbs_io::Edge<int>;
-  pbbs::sequence<Edge> U(updates.size());
-  parallel_for(0, updates.size(), [&] (size_t i) {
-    U[i].from = updates[i].from;
-    U[i].to = updates[i].to;
-    U[i].weight = updates[i].weight;
-  });
+  struct DynamicGraph {
 
-  timer t;
-  t.start();
+    size_t n; // num_vertices
+    pbbs::sequence<pbbs::sequence<uintE>*> A; // adjacency lists
 
-  auto DG = gbbs::DynamicGraph(n);
+    // For now, num_vertices is a fixed upper-bound on the number of vertices.
+    // This code should be able to be easily extended to support vertex
+    // insertions.
+    DynamicGraph(size_t num_vertices) : n(num_vertices) {
+      A = pbbs::sequence<pbbs::sequence<uintE>*>(num_vertices);
+    }
 
-//  for (size_t i=0; i<num_batches; i++) {
-//    // process batch i
-//    size_t batch_start = i*batch_size;
-//    size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
-//    auto batch = U.slice(batch_start, batch_end);
-//    timer bt; bt.start();
-//    DG.process_batch(batch);
-//    bt.stop(); bt.reportTotal("batch time");
-//    size_t tc = DG.triangle_count();
-//    std::cout << "Triangle count = " << tc << std::endl;
-//    std::cout << std::endl;
-//  }
 
-//  t.end();
-//  t.reportTotal("total processing time");
-}
+  };
+
 
 }  // namespace gbbs
