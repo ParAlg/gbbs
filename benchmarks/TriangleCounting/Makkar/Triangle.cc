@@ -75,12 +75,21 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, int batch_num, commandLine
   G.del();
 
 
+//template<class Graph>
+//inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight) {
+//  size_t m = G.num_edges();
+//  pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
+//  std::vector<gbbs::gbbs_io::Edge<int>> output(m/2);
+//}
+
+
 template<class Graph>
 inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
   vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
     size_t m = G.num_edges();
     auto perm = pbbs::random_permutation<gbbs::uintE>(m/2);
     pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
+    std::cout << "G.edges size = " << edge_list.size() << " m = " << m << std::endl;
     auto edge_list_dedup = pbbs::filter(edge_list, [&](const std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type> & e){
       return std::get<0>(e) < std::get<1>(e);
     });
@@ -90,6 +99,7 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
     }
     edge_list_dedup.clear();
     std::cout << "shuffled" << std::endl;
+    std::cout << "updates_shuffled = " << updates_shuffled.size() << std::endl;
     return updates_shuffled;
 }
 

@@ -101,8 +101,9 @@ namespace gbbs {
     size_t do_merge_ins(uintE* A, uintE nA, Container& B, uintE* out) {
       size_t a = 0, b = 0, nB = B.size(), k = 0;
       while (a < nA && b < nB) {
-        if (A[a] == B[b].second) {
+        if (A[a] == B[b].second) { // this edge is already present, delete in B
           out[k] = A[a];
+          B[b].second = UINT_E_MAX; // mark as deleted
           k++; a++; b++;
         } else if (A[a] < B[b].second) {
           out[k] = A[a];
@@ -157,6 +158,7 @@ namespace gbbs {
       uintE* A_arr = A[a_id]; uintE* B_arr = A[b_id];
       while (a < nA && b < nB) {
         if (A_arr[a] == B_arr[b]) {
+//          std::cout << "(1) found triangle: " << a_id << " " << b_id << " " << A_arr[a] << std::endl;
           k++; a++; b++;
         } else if (A_arr[a] < B_arr[b]) {
           a++;
@@ -177,6 +179,7 @@ namespace gbbs {
           continue;
         }
         if (A_arr[a] == B[b].second) {
+//          std::cout << "(2) found triangle: " << a_id << " " << B[b].first << " " << A_arr[a] << std::endl;
           k++; a++; b++;
         } else if (A_arr[a] < B[b].second) {
           a++;
@@ -188,10 +191,11 @@ namespace gbbs {
     }
 
     template <class ContainerA, class ContainerB>
-    size_t intersect_new(ContainerA& A, ContainerB& B) {
+    size_t intersect_new(ContainerA& A, ContainerB& B, uintE a_id, uintE b_id) {
       size_t a = 0, b = 0, nA = A.size(), nB = B.size(), k = 0;
       while (a < nA && b < nB) {
         if (A[a].second == B[b].second) {
+//          std::cout << "(3) found triangle: " << a_id << " " << b_id << " " << A[a].second << std::endl;
           k++; a++; b++;
         } else if (A[a].second < B[b].second) {
           a++;
@@ -225,11 +229,43 @@ namespace gbbs {
       auto duplicated_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
         return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
-      auto batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
+      auto untested_batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
         return ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
       });
 
+//      for (size_t i=0; i<batch.size(); i++) {
+//        std::cout << "inserting edge: " << batch[i].first << " " << batch[i].second << std::endl;
+//      }
+//      std::cout << "end" << std::endl;
+
       // (iii) generate vertex offsets into the de-duplicated batch
+      auto untested_index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(untested_batch.size(), [&] (size_t i) {
+        return std::make_pair(untested_batch[i].first, i);
+      });
+      // starts contains (vertex id, indexof start in batch) pairs.
+      auto untested_starts = pbbs::filter(untested_index_seq, [&] (const std::pair<uintE, size_t>& p) {
+        size_t ind = p.second;
+        return ind == 0 || (untested_index_seq[ind].first != untested_index_seq[ind-1].first);
+      });
+      std::cout << "batchsize = " << untested_batch.size() << " starts.size = " << untested_starts.size() << std::endl;
+
+      // (v) insert the updates into the old graph
+      parallel_for(0, untested_starts.size(), [&] (size_t i) {
+        const auto [v, index] = untested_starts[i];
+        size_t v_deg = ((i == untested_starts.size()-1) ? untested_batch.size() : untested_starts[i+1].second) - index;
+        if (v_deg == 0) abort();
+
+        auto v_inserts = untested_batch.slice(index, index + v_deg);
+        merge_insertions(v, v_inserts);
+      });
+
+      //////////////////////////////////////////////////////////////////////
+
+      // some edges may now be marked as "deleted". filter these out and
+      // recompute starts.
+      auto batch = pbbs::filter(untested_batch, [&] (const pair<uintE, uintE>& p) {
+        return p.second != UINT_E_MAX;
+      });
       auto index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
         return std::make_pair(batch[i].first, i);
       });
@@ -246,15 +282,7 @@ namespace gbbs {
         starts_offsets[v] = i;
       });
 
-      // (v) insert the updates into the old graph
-      parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto [v, index] = starts[i];
-        size_t v_deg = ((i == starts.size()-1) ? batch.size() : starts[i+1].second) - index;
-        if (v_deg == 0) abort();
 
-        auto v_inserts = batch.slice(index, index + v_deg);
-        merge_insertions(v, v_inserts);
-      });
 
       /////////////////////////////////////////////////////////////////////////
       // the next phase of the algorithm intersects the batch + the updated
@@ -312,7 +340,7 @@ namespace gbbs {
           if (u_starts_offset != UINT_E_MAX && v_starts_offset != UINT_E_MAX) {
             auto u_inserts = get_new_edgelist(u, u_starts_offset);
             auto v_inserts = get_new_edgelist(v, v_starts_offset);
-            count += intersect_new(u_inserts, v_inserts);
+            count += intersect_new(u_inserts, v_inserts, u, v);
           }
         }
         counts_three[b] = count;
@@ -475,7 +503,7 @@ namespace gbbs {
           if (u_starts_offset != UINT_E_MAX && v_starts_offset != UINT_E_MAX) {
             auto u_inserts = get_new_edgelist(u, u_starts_offset);
             auto v_inserts = get_new_edgelist(v, v_starts_offset);
-            count += intersect_new(u_inserts, v_inserts);
+            count += intersect_new(u_inserts, v_inserts, u, v);
           }
         }
         counts_three[b] = count;

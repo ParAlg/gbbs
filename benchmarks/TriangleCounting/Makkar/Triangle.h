@@ -61,6 +61,8 @@ inline size_t Dynamic_Triangle(
     size_t batch_start = i*batch_size;
     size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
     std::cout << "batch_start = " << batch_start << " batch_end = " << batch_end << std::endl;
+    std::cout << "batch_size = " << batch_size << std::endl;
+    std::cout << "updates.size = " << updates.size() << std::endl;
     auto batch = U.slice(batch_start, batch_end);
     timer bt; bt.start();
     DG.process_batch(batch);
