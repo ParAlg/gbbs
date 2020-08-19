@@ -33,6 +33,8 @@
 
 #include "shared.h"
 #include "Triangle.h"
+#include "makkar.h"
+
 
 namespace gbbs {
 template <class Graph, class UT>
@@ -176,7 +178,15 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
       }else{                                                             
         std::cout << "# wrong  weighted flag. use 0 for weighted, 1 for inserts , 2 for deletes"  << std::endl;
       }   
-    }                                                                                         
+    }                                 
+
+    bool makkar = P.getOptionValue("-makkar");     
+    if(makkar){
+      gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+      gbbs::alloc_init(G);                                                    
+      gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, P);  
+    }else{
+
                                                                
     if (compressed) {                                                         
       gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
@@ -194,7 +204,9 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
       }
       gbbs::alloc_init(G);                                                    
       run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)                                                 
-    }                                                                         
+    }       
+
+    }// end of else markkar                                                                  
     gbbs::alloc_finish();                                                     
   }
 

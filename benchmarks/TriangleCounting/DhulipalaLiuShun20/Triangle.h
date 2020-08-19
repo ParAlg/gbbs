@@ -233,7 +233,8 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   
 
   if(run_static){
-    return DBTInternal::staticCount(updates, batch_size, P, n, batch_offset);
+    size_t num_batch =  (updates.size() + batch_size - 1) / batch_size;
+    return DBTInternal::staticCount(updates, num_batch, P, n, batch_offset);
   }
 
   // if(weight == 2){
