@@ -165,10 +165,10 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
 //edges already randomly shuffled
 template <class Graph, class F>
-inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io::Edge<int>>& edges, int num_batch, commandLine& P, 
+inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io::Edge<int>>& edges, size_t batch_size, commandLine& P, 
                               size_t n, int batch_offset, size_t C0, bool all_del) {
-  size_t batch_size =  P.getOptionLongValue("-batchsize", 5);
-  num_batch = edges.size()/batch_size;
+
+  size_t num_batch = edges.size()/batch_size;
   std::cout << "Batch Size " << batch_size << std::endl;
   std::cout <<""<< std::endl;
   bool use_new = false; // use new graph (major rebalanced) or old graph
@@ -211,11 +211,10 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
 
 // if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F>
-inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, int batch_num, commandLine& P) {
+inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, size_t batch_size, commandLine& P) {
   auto C0 = P.getOptionIntValue("-trict", 0);
   bool start_graph = P.getOptionValue("-sg"); 
   bool run_static = P.getOptionValue("-static"); 
-
   int batch_offset = P.getOptionLongValue("-bo", 0); 
   size_t block_size = P.getOptionLongValue("-blocksize", 5);  
   size_t n = P.getOptionLongValue("-n", 0); 
@@ -227,13 +226,14 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
     n = G.num_vertices();
     DBTGraph::DyGraph<Graph> * DG = new DBTGraph::DyGraph<Graph>(block_size, G, n);
     t.next("Init");
-    return DBTInternal::dynamicBatches<Graph, F>(DG, updates, batch_num, P, n, batch_offset, C0, weight == 2);
+    return DBTInternal::dynamicBatches<Graph, F>(DG, updates, batch_size, P, n, batch_offset, C0, weight == 2);
   }
 
-  size_t batch_size = updates.size()/batch_num;
+  // size_t batch_size = updates.size()/batch_num;
+  
 
   if(run_static){
-    return DBTInternal::staticCount(updates, batch_num, P, n, batch_offset);
+    return DBTInternal::staticCount(updates, batch_size, P, n, batch_offset);
   }
 
   // if(weight == 2){
@@ -254,7 +254,7 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   DBTInternal::DSymGraph * DG = new DBTInternal::DSymGraph(block_size, G2, n);
   G2.del();
   t.next("Build Dynamic Graph");
-  return DBTInternal::dynamicBatches<DBTGraph::SymGraph, F>(DG, updates, batch_num, P, n, batch_offset, C0, weight==2);
+  return DBTInternal::dynamicBatches<DBTGraph::SymGraph, F>(DG, updates, batch_size, P, n, batch_offset, C0, weight==2);
 }
 
 }  // namespace gbbs

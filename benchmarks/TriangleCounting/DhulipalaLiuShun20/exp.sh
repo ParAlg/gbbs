@@ -32,6 +32,8 @@
 
 # ./Triangle -s -w 2 -batchsize 500 -nb 10 -n 128 -bo 10 ../../../inputs/empty ../../../inputs/rMatEdgesShuffle
 
+./Triangle -s -w 1 -blocksize 16 -batchsize 1000 -n 2048 -partial 1073741824 ../../../inputs/empty ../../../inputs/rMatGraph_J_2K_10K
+
 
 # ./exp.sh 0 70
 # ./exp.sh 71 140
