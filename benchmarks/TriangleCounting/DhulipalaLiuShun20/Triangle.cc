@@ -90,14 +90,9 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
       updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), weight));
     }
     edge_list_dedup.clear();
-<<<<<<< HEAD
     std::cout << "shuffled and deduped" << std::endl;
     std::cout << updates_shuffled.size() << " deduped edges" << std::endl;
     return updates_shuffled;    
-=======
-    std::cout << "shuffled" << std::endl;
-    return updates_shuffled;
->>>>>>> fe4e9c366af34a810b282e48f7b5bd1538cbfa81
 }
 
 // Read first [partial_end] edges from a file that has the following format:
