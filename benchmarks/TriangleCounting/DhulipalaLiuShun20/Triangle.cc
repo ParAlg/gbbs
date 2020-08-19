@@ -185,11 +185,11 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
     if(makkar){
       gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
       if(shuffle) {
-        G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);   
-        updates = shuffle_edges(G, weight);  
-      }  
-      gbbs::alloc_init(G);                                                    
-      gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, P);  
+        G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);
+        updates = shuffle_edges(G, weight);
+      }
+      gbbs::alloc_init(G);
+      gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, P);
     }else{
 
 

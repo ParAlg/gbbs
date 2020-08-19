@@ -85,7 +85,6 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
       return std::get<0>(e) < std::get<1>(e);
     });
     edge_list.clear();
-    assert(edge_list_dedup.size() == m/2);
     for (size_t i = 0; i< edge_list_dedup.size(); ++i) {
       updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), weight));
     }
