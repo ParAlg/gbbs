@@ -88,11 +88,16 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
     // assert(edge_list_dedup.size() == m/2);
     for (size_t i = 0; i< edge_list_dedup.size(); ++i) {
       updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), weight));
-    } 
+    }
     edge_list_dedup.clear();
+<<<<<<< HEAD
     std::cout << "shuffled and deduped" << std::endl;
     std::cout << updates_shuffled.size() << " deduped edges" << std::endl;
     return updates_shuffled;    
+=======
+    std::cout << "shuffled" << std::endl;
+    return updates_shuffled;
+>>>>>>> fe4e9c366af34a810b282e48f7b5bd1538cbfa81
 }
 
 // Read first [partial_end] edges from a file that has the following format:
@@ -137,51 +142,51 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
 /* Macro to generate binary for unweighted graph applications that can ingest
  * only
  * symmetric graph inputs and weighted edge updates input (weight is int type) */
-// #define generate_symmetric_dynamic_main(APP, mutates)                         
-  int main(int argc, char* argv[]) {                                          
-    gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");           
-    char* iFile = P.getArgument(1);     
-    char* uFile1 = P.getArgument(0);                                                                              
-    int weight = P.getOptionIntValue("-w", 1);                              
-    size_t batch_size =  P.getOptionLongValue("-batchsize", 5);                             
-    bool symmetric = P.getOptionValue("-s");                                  
-    bool compressed = P.getOptionValue("-c");                                 
-    bool mmap = P.getOptionValue("-m");                                       
-    bool mmapcopy = false;//mutates;                                                  
+// #define generate_symmetric_dynamic_main(APP, mutates)
+  int main(int argc, char* argv[]) {
+    gbbs::commandLine P(argc, argv, " [-s] <inFile> <updateFile1>");
+    char* iFile = P.getArgument(1);
+    char* uFile1 = P.getArgument(0);
+    int weight = P.getOptionIntValue("-w", 1);
+    size_t batch_size =  P.getOptionLongValue("-batchsize", 5);
+    bool symmetric = P.getOptionValue("-s");
+    bool compressed = P.getOptionValue("-c");
+    bool mmap = P.getOptionValue("-m");
+    bool mmapcopy = false;//mutates;
     bool shuffle = P.getOptionValue("-shuffle");
-    bool start_graph = P.getOptionValue("-sg"); 
-    size_t partial_end = P.getOptionLongValue("-partial", 0);    
+    bool start_graph = P.getOptionValue("-sg");
+    size_t partial_end = P.getOptionLongValue("-partial", 0);
     if(shuffle && start_graph){
       std::cout << "can't shuffle start graph, can use only one of -shuffle and -eg" << std::endl;
       abort();
     }
 
-    if (!symmetric) {                                                         
+    if (!symmetric) {
       std::cout << "# The application expects the input graph to be symmetric (-s "
-              "flag)."                                                        
-           << std::endl;                                                           
-      std::cout << "# Please run on a symmetric input." << std::endl;                   
-    }       
+              "flag)."
+           << std::endl;
+      std::cout << "# Please run on a symmetric input." << std::endl;
+    }
 
-    size_t rounds = P.getOptionLongValue("-rounds", 1);                       
-    gbbs::pcm_init();                                                         
-    vector<gbbs::gbbs_io::Edge<int>> updates; 
-    if(!shuffle){             
-      if(weight  == 0){                                                     
-        updates = DBT_read_edge_list<int>(uFile1, true, 0, partial_end);  
-        cout << "# update size: " << updates.size() << endl;     
-      }else if (weight == 1){                                                
-        updates = DBT_read_edge_list<int>(uFile1, false, 1, partial_end); 
-        cout << "# update size: " << updates.size() << endl;           
+    size_t rounds = P.getOptionLongValue("-rounds", 1);
+    gbbs::pcm_init();
+    vector<gbbs::gbbs_io::Edge<int>> updates;
+    if(!shuffle){
+      if(weight  == 0){
+        updates = DBT_read_edge_list<int>(uFile1, true, 0, partial_end);
+        cout << "# update size: " << updates.size() << endl;
+      }else if (weight == 1){
+        updates = DBT_read_edge_list<int>(uFile1, false, 1, partial_end);
+        cout << "# update size: " << updates.size() << endl;
       }else if (weight == 2){\
-        updates = DBT_read_edge_list<int>(uFile1, false, 0, partial_end);  
-        cout << "# update size: " << updates.size() << endl;          
-      }else{                                                             
+        updates = DBT_read_edge_list<int>(uFile1, false, 0, partial_end);
+        cout << "# update size: " << updates.size() << endl;
+      }else{
         std::cout << "# wrong  weighted flag. use 0 for weighted, 1 for inserts , 2 for deletes"  << std::endl;
-      }   
-    }                                 
+      }
+    }
 
-    bool makkar = P.getOptionValue("-makkar");     
+    bool makkar = P.getOptionValue("-makkar");
     if(makkar){
       gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
       if(shuffle) {
@@ -192,30 +197,30 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
       gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, P);  
     }else{
 
-                                                               
-    if (compressed) {                                                         
-      gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
-      if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(iFile, mmap, mmapcopy);  
-      if(shuffle) {
-        updates = shuffle_edges(G, weight);  
-      }                                         
-      gbbs::alloc_init(G);                                                    
-      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)                                 
-    } else {                                                                  
-      gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
-      if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);   
-      if(shuffle) {
-        updates = shuffle_edges(G, weight);  
-      }
-      gbbs::alloc_init(G);                                                    
-      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)                                                 
-    }       
 
-    }// end of else markkar                                                                  
-    gbbs::alloc_finish();                                                     
+    if (compressed) {
+      gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
+      if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(iFile, mmap, mmapcopy);
+      if(shuffle) {
+        updates = shuffle_edges(G, weight);
+      }
+      gbbs::alloc_init(G);
+      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)
+    } else {
+      gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+      if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);
+      if(shuffle) {
+        updates = shuffle_edges(G, weight);
+      }
+      gbbs::alloc_init(G);
+      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)
+    }
+
+    }// end of else markkar
+    gbbs::alloc_finish();
   }
 
-  //    
+  //
   //   "Usage: ./Triangle [-s] <inFile> <updateFile> \n"
   //   "Methods:\n"
   //   "  -sg: inFile is the original graph"
@@ -229,9 +234,9 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
   //   "  -partial_end: when reading edge list files, only read first [partial_end] edges"
 
   //  OPTIONAL:
-  //   "  -c: compressed <inFile>" 
+  //   "  -c: compressed <inFile>"
   //   "  -w: 0 if the edge list is weighted with 32-bit integers., 1 if unweighted inserts. 2 if unweighted deletes\n"
-  //   "  -nb: number of batches" 
+  //   "  -nb: number of batches"
   //   "  -bo: updates start eith [bo]th batch", if [-eg], first [bo] batches are statically counted
   //   "  -blocksize: blocksize to use"
 
