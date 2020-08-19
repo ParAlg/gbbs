@@ -226,7 +226,7 @@ namespace gbbs {
         return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
       auto batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
-        return (ind == 0) || (p != duplicated_batch_unweighted[ind-1]);
+        return ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
       });
 
       // (iii) generate vertex offsets into the de-duplicated batch
@@ -388,7 +388,8 @@ namespace gbbs {
         return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
       auto batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
-        return (ind == 0) || (p != duplicated_batch_unweighted[ind-1]);
+//        return (ind == 0) || (p != duplicated_batch_unweighted[ind-1]);
+        return ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
       });
 
       // (iii) generate vertex offsets into the de-duplicated batch
