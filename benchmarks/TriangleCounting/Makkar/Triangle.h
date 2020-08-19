@@ -40,6 +40,7 @@ inline size_t Dynamic_Triangle(
   size_t n = P.getOptionLongValue("-n", 1000000);
   size_t batch_size = P.getOptionLongValue("-bs", 1000);
   size_t num_batches = (updates.size() + batch_size - 1) / batch_size;
+  std::cout << "num_batches = " << num_batches << std::endl;
 
   // Just convert to sequence for convenince.
   using Edge = gbbs::gbbs_io::Edge<int>;
@@ -59,6 +60,7 @@ inline size_t Dynamic_Triangle(
     // process batch i
     size_t batch_start = i*batch_size;
     size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
+    std::cout << "batch_start = " << batch_start << " batch_end = " << batch_end << std::endl;
     auto batch = U.slice(batch_start, batch_end);
     timer bt; bt.start();
     DG.process_batch(batch);
