@@ -85,12 +85,13 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
       return std::get<0>(e) < std::get<1>(e);
     });
     edge_list.clear();
-    assert(edge_list_dedup.size() == m/2);
+    // assert(edge_list_dedup.size() == m/2);
     for (size_t i = 0; i< edge_list_dedup.size(); ++i) {
       updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), weight));
     } 
     edge_list_dedup.clear();
-    std::cout << "shuffled" << std::endl;
+    std::cout << "shuffled and deduped" << std::endl;
+    std::cout << updates_shuffled.size() << " deduped edges" << std::endl;
     return updates_shuffled;    
 }
 
@@ -183,6 +184,10 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
     bool makkar = P.getOptionValue("-makkar");     
     if(makkar){
       gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+      if(shuffle) {
+        G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);   
+        updates = shuffle_edges(G, weight);  
+      }  
       gbbs::alloc_init(G);                                                    
       gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, P);  
     }else{
