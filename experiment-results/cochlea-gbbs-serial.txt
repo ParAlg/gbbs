@@ -23,6 +23,15 @@ INFO: Build completed successfully, 25 total actions
 **********************
 [Clock] Tue Aug 18 12:24:45 2020
 ** Index construction ONE ROUND: 30137.2
+[Clock] Wed Aug 19 01:43:30 2020
+INDEX TIME: 30995.5
+[Clock] Wed Aug 19 10:20:06 2020
+INDEX TIME: 30979
+[Clock] Wed Aug 19 18:56:25 2020
+INDEX TIME: 30892.1
+[Clock] Thu Aug 20 03:31:17 2020
+INDEX TIME: 30882.2
+
 [Clock] Tue Aug 18 20:47:02 2020
 ** Cluster median 2-0.600000: 7.58723
 ** Cluster median 4-0.600000: 7.59598
