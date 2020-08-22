@@ -48,8 +48,8 @@ inline size_t Makkar_Dynamic_Triangle(
 
   return 0;
 
-//  t.end();
-//  t.reportTotal("total processing time");
+  t.stop();
+  t.reportTotal("total processing time");
 }
 
 
