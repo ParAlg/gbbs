@@ -89,7 +89,7 @@ namespace DBTGraph{
             return lowD[i.id] == D[i.id] && i.insert_low_degree == i.insert_degree;}
         // ------end----- D and lowD are not updated
 
-        inline void insertTop(tableE *tb, uintE u, size_t size, double bottom_load = 3 ){
+        inline void insertTop(tableE *tb, uintE u, size_t size, double bottom_load = 2 ){
             if(size <= 0) return;
             SetT *tbB = new SetT(size, EMPTYKVB, vertexHash(), bottom_load);
             bool suc = tb->insert(make_tuple(u, tbB));
@@ -778,10 +778,10 @@ namespace DBTGraph{
 
         void initTables(){// important: save space in top table for array nodes
 #ifdef DBT_USING_TOMB            
-            LL = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
-            LH = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
-            HL = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
-            HH = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 2);
+            LL = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 1);
+            LH = new tableE(lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 1);
+            HL = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 1);
+            HH = new tableE(n-lowNum, EMPTYKV, EMPTYV-1, vertexHash(), 1);
             T  = new tableW((size_t)(myceil(M,t1)*myceil(M,t1)/2), make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()), EdgeT(EMPTYV-1, EMPTYV-1), edgeHash(), 1.0); 
 #else
             LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
