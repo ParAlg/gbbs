@@ -210,7 +210,7 @@ namespace DBTGraph{
         inline pbbs::sequence<size_t> report(){
             pbbs::sequence<size_t> result = pbbs::sequence<size_t>(6, (size_t)0);
             par_for(0, 6, [&] (size_t j){
-                for(int i=0;i<P;++i){
+                for(size_t i=0;i<P;++i){
                     result[j] += c[eltsPerCacheLine * i + j];
                 }
             });
