@@ -519,11 +519,9 @@ namespace DBTGraph{
             if(flag){// +1 new inserts
                 if(val1 == DEL_EDGE || val2 == DEL_EDGE) return ; 
                 tc.increment(val1 + val2 + 1, 1);
-                // return val1 + val2 + 1;
             }else{// +1 new deletions
                 if(val1 == NEW_EDGE || val2 == NEW_EDGE) return ;
                 tc.decrement(val1/2 + val2 /2 + 1, 1);
-                // return 1; 
             }
         }
 
@@ -538,16 +536,8 @@ namespace DBTGraph{
                     int val1 = get<1>(tb->table[i]);
                     int val2 = getEdgeVal(v,  w, v_new_degree);
                     countTrianglesHelper(val1, val2, flag, tc);
-                    // size_t result = 
-                    // if(u == 1071 && v == 1845){
-                    //     cout << w << " " << val1 << " " << val2 << endl;
-                    // }
-                    // if(result == 1){pbbs::write_add(&get<0>(ct), 1);}
-                    // if(result == 2){pbbs::write_add(&get<1>(ct), 1);}
-                    // if(result == 3){pbbs::write_add(&get<2>(ct), 1);}
                 }
             });
-            // return ct;
         }
 
         // requrie: tables and edges updated
@@ -595,12 +585,7 @@ namespace DBTGraph{
                     SetT *H = HH->find(u.id, NULL);
                     countTrianglesHelper(H,u.id,v.id,space_v,flag, tc);
                 }
-                // tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
-                // if(low_space > 0){ //HLH
-                //     SetT *L = HL->find(u.id, NULL);
-                //     ct = countTrianglesHelper(L,u.id,v.id,space_v,flag, tc);
-                // }
-                // size_t ct2 = 0;
+
                 if(u.id > v.id) swap(u,v);
                 WTV wedges = T->find(EdgeT(u.id,v.id), WTV(EMPTYWTV));
                 if(wedges.c1!=EMPTYWTV){
@@ -616,24 +601,8 @@ namespace DBTGraph{
                     }
                 }
 
-                // if(get<0>(ct)+get<1>(ct)+get<2>(ct) != ct2){
-                //     cout << " counts wrong!" << endl;
-                // }
             }
 
-        }
-
-        size_t debugging_temp(){
-            TriangleCounts tc = TriangleCounts();
-            uintE u = 1071;
-            uintE v = 1845;
-            if(is_low_v(u) && is_low_v(v)) return 0;
-            tuple<size_t, size_t, size_t> ct = make_tuple(0,0,0);
-            if(is_high_v(u) && is_high_v(v)){
-                SetT *L = HL->find(u, NULL);
-                if(L!=NULL) ct = countTrianglesHelper(L,u,v,0,true, tc);
-            }
-            return get<0>(ct);
         }
 
         /////////////////////////////// CLEANUP TABLES /////////////////////////////////
