@@ -169,7 +169,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       DG->minorRblDeleteWedge(u, vtxNew, vtxMap);
     });
 
-    // remove LHL where u was low
+    // remove HLH where center w was low
     par_for(0, numLtoH, [&] (const size_t i) { // called after deleting HLH
       DG->minorRblDeleteWedgeCenter(vtxChangeLH[i]);
     });
@@ -282,11 +282,21 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
 
     //  ============================= Update Wedge Table, L to H ============================= 
+    // insert HLH where u was low
     par_for(0, numLtoH, [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
       if(DG->use_block_v(u.id)) return;
       DG->minorRblInsertWedge(u, vtxNew, vtxMap);
     });
+
+    // insert HLH where center w was high
+    // called after minorRblInsertWedge
+    // only add to wegdes(u,v) where both (u,v) are not changing from L to H
+    // otherwise the count already includes new low centers
+    par_for(numLtoH, vtxChangeLH.size(), [&] (const size_t i) { // called after inserting HLH
+      DG->minorRblInsertWedgeCenter(vtxChangeLH[i], vtxNew, vtxMap);
+    });
+
 
   // flag.clear();
   // vtxChange.clear();

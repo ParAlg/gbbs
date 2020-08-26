@@ -26,13 +26,13 @@
 # ./Triangle -s -shuffle -static -nb 10 -n 1138499 -bo $1 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
 
 
-./Triangle -s -shuffle -nb 1000 -n 1138499 -blocksize 16 -bo 0 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty >> tmp
+./Triangle -s -shuffle -batchsize 1000 -n 1138499 -blocksize 16 -bo 0 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty >> tmp
 
 # ./Triangle -s -shuffle -nb 10 -n 1138499  -blocksize 16 -bo $1 -bp 10 ../../../inputs/youtube_sym.adj ../../../inputs/small/empty
 
 # ./Triangle -s -w 2 -batchsize 500 -nb 10 -n 128 -bo 10 ../../../inputs/empty ../../../inputs/rMatEdgesShuffle
 
-./Triangle -s -w 1 -blocksize 16 -batchsize 1000 -n 2048 -partial 1073741824 ../../../inputs/empty ../../../inputs/rMatGraph_J_2K_10K
+# ./Triangle -s -w 1 -blocksize 16 -batchsize 1000 -n 2048 -partial 5000 ../../../inputs/empty ../../../inputs/rMatGraph_J_2K_10K
 
 
 # ./exp.sh 0 70

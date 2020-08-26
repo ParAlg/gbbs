@@ -644,7 +644,7 @@ namespace DBTGraph{
             if(u > v) swap(u,v); 
             if(del_flag){
                 WTV wedge = T->find(EdgeT(u,v), WTV(EMPTYWTV));
-                if( wedge.c1 != EMPTYWTV && wedge.c1 == 0){
+                if(wedge.c1 == 0){
                     T->deleteVal(EdgeT(u,v));
                 }
             }else{
@@ -696,7 +696,7 @@ namespace DBTGraph{
             insertW(u, v, UPDATECLEANUP);
             if(is_ins) return;
             WTV wedge = T->find(EdgeT(u,v), WTV(EMPTYWTV));
-            if( wedge.c1 != EMPTYWTV && wedge.c1 == 0){
+            if(wedge.c1 == 0){
                 T->deleteVal(EdgeT(u,v));
             }
         }
@@ -1134,6 +1134,60 @@ namespace DBTGraph{
                 minorRblDeleteWedgeCenterArray(w);
             }else{
                 if(!packed_high_table_empty(w))minorRblDeleteWedgeCenterTable(w);                  
+            }
+        }
+
+        // w uses block and is low
+        // want to increament wedge count for (u,v) where w is the center
+        // AND BOTH u,v are not LtoH (i.e. they were originally high), otherwise u,w,v are already counted in minorRblInsertWedge
+        void minorRblInsertWedgeCenterArray(DBTGraph::VtxUpdate &w, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
+            for(size_t i = 0; i < D[w.id]; ++i) { // bruteforce finding high ngh of w
+                uintE u = getEArray(w.id, i);
+                if(is_high_v(u)  && (vtxMap[u] == EMPTYVMAP || vtxNew[vtxMap[u]].change_status == false )){
+                    for(size_t j = 0; j < i; ++j) { 
+                        uintE v = getEArray(w.id, j);
+                        if(is_high_v(v)  && (vtxMap[v] == EMPTYVMAP || vtxNew[vtxMap[v]].change_status == false )){
+                            uintE uu = u;
+                            uintE vv = v;
+                            if(u > v) swap(uu,vv);
+                            T->insert_f(make_tuple(EdgeT(uu,vv), WTV(UPDATET1,1)), updateTF());
+                        }
+                    }
+                }
+            }
+        }
+
+        // w uses table and is low
+        // want to increament wedge count for (u,v) where w is the center
+        // AND BOTH u,v are not LtoH (i.e. they were originally high), otherwise u,w,v are already counted in minorRblInsertWedge
+        void minorRblInsertWedgeCenterTable(DBTGraph::VtxUpdate &w, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
+            SetT *H = LH->find(w.id, NULL);
+            // if(H == NULL) return;
+            par_for(0, H->size(), [&] (size_t i) {
+                uintE u = get<0>(H->table[i]);
+                if(H->not_empty(u) && (vtxMap[u] == EMPTYVMAP || vtxNew[vtxMap[u]].change_status == false )){
+                    par_for(0, i, [&] (size_t j) {
+                        uintE v = get<0>(H->table[j]);
+                        if(H->not_empty(v) && (vtxMap[v] == EMPTYVMAP || vtxNew[vtxMap[v]].change_status == false )){
+                            uintE uu = u;
+                            uintE vv = v;
+                            if(u > v) swap(uu,vv);
+                            T->insert_f(make_tuple(EdgeT(uu,vv), WTV(UPDATET1,1)), updateTF());
+                        }
+                    });
+                }
+            });         
+        }
+
+
+        // for each w that changes from H to L, increment HLH where w is involved
+        // require w is now H and is changing to L
+        // called after tables are rebalanced and status&degrees updated for rebalancing
+        void minorRblInsertWedgeCenter(DBTGraph::VtxUpdate &w,  pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
+            if(use_block_v(w.id)){           
+                minorRblInsertWedgeCenterArray(w, vtxNew, vtxMap);
+            }else{
+                if(!high_table_empty(w))minorRblInsertWedgeCenterTable(w, vtxNew, vtxMap);                  
             }
         }
 
