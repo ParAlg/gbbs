@@ -5,7 +5,8 @@
 #include "gbbs/gbbs.h"
 #include <vector>
 
-#include "../Makkar/dynamic_graph.h"
+//#include "../Makkar/dynamic_graph.h"
+#include "makkar_graph.h"
 
 namespace gbbs {
 

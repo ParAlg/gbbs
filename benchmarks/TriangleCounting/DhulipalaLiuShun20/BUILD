@@ -87,10 +87,29 @@ cc_library(
   ]
 )
 
+
+cc_library(
+  name = "makkar_graph",
+  hdrs = ["makkar_graph.h"],
+  deps = [
+    "//gbbs:gbbs",
+    "//pbbslib:sample_sort",
+  ]
+)
+
+cc_library(
+  name = "Makkar",
+  hdrs = ["makkar.h"],
+  deps = [
+    "//gbbs:gbbs",
+    ":makkar_graph",
+  ]
+)
+
 cc_binary(
   name = "DynamicTriangle_main",
   srcs = ["Triangle.cc"],
-  deps = [":Triangle"]
+  deps = [":Triangle", ":Makkar"]
 )
 
 package(
