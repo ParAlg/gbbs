@@ -228,8 +228,8 @@ namespace DBTGraph{
     
 
     struct WTV{
-        size_t c1, c2, c3, c4, c5;
-        bool changing = false;
+        volatile size_t c1, c2, c3, c4, c5;
+        volatile bool changing = false;
         WTV():c1(0),c2(0),c3(0), c4(0), c5(0){}
         WTV(size_t a):c1(a),c2(a),c3(a), c4(a), c5(a){}
 
