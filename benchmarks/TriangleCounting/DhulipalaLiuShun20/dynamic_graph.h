@@ -590,7 +590,7 @@ namespace DBTGraph{
                 WTV wedges = T->find(EdgeT(u.id,v.id), WTV(EMPTYWTV));
                 if(wedges.c1!=EMPTYWTV){
                     if(flag){
-                        tc.increment(1, wedges.c1);
+                        tc.increment(1, wedges.c1 - wedges.c4 - wedges.c5);
                         tc.increment(2, wedges.c2);
                         tc.increment(3, wedges.c3);
                         // ct2 =  wedges.c1  +  wedges.c2 +  wedges.c3;
