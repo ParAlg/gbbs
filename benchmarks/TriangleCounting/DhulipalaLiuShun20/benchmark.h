@@ -73,6 +73,39 @@ namespace DBTInternal {
   return count;
 }
 
+
+  //edges already randomly shuffled
+  template <class UT>
+  inline size_t staticCountMixed(const std::vector<UT>& edges, size_t batch_size, commandLine& P, size_t n, size_t batch_offset) {
+//   size_t block_size = 0; 
+  // size_t batch_size = edges.size()/num_batch;
+
+  std::vector<UT> edges_new;
+
+  size_t num_batch =  edges.size() / batch_size;
+  size_t end = num_batch * batch_size;
+  for (size_t i = end/2; i< end; ++i) {
+    edges_new.push_back(edges[i]);
+  }
+  for (size_t i = 0; i< end/2; ++i) {
+    edges_new.push_back(edges[i]);
+  }
+  std::cout << "batch_size " << batch_size << std::endl;
+  size_t count = 0;
+  DBTGraph::DyGraph<DBTGraph::SymGraph> *DGnew;
+  for(size_t i = batch_offset; i <= num_batch; ++i){
+    size_t batch_end = i* batch_size/2 + end/2;
+    // if(batch_end == batch_size * i)  break;
+    timer t; t.start();
+    tie(count, DGnew)= DBTGraph::majorRebalancing(edges_new, i* batch_size/2,  batch_end, n, 0, P, false);
+    std::cout << "batch " << i << " [" <<  i* batch_size/2 << " " << batch_end << "]" << std::endl;
+    t.stop();t.reportTotal("");
+    PrintBreak();
+  }
+  edges_new.clear();
+  return count;
+}
+
 } // namespace DBTInternal
 
 } // namespace gbbs

@@ -220,7 +220,8 @@ template <class Graph, class F>
 inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, size_t batch_size, commandLine& P) {
   auto C0 = P.getOptionIntValue("-trict", 0);
   bool start_graph = P.getOptionValue("-sg"); 
-  bool run_static = P.getOptionValue("-static"); 
+  bool run_static = P.getOptionValue("-static");
+  bool run_static_mix = P.getOptionValue("-staticmix"); 
   int batch_offset = P.getOptionLongValue("-bo", 0); 
   size_t block_size = P.getOptionLongValue("-blocksize", 10000);  
   size_t n = P.getOptionLongValue("-n", 0); 
@@ -236,7 +237,9 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   }
 
   // size_t batch_size = updates.size()/batch_num;
-  
+  if(run_static_mix){
+    return DBTInternal::staticCountMixed(updates, batch_size, P, n, batch_offset);
+  }
 
   if(run_static){
     return DBTInternal::staticCount(updates, batch_size, P, n, batch_offset);
