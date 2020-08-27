@@ -56,9 +56,15 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   DSymGraph *DGnew;
   size_t new_ct;
     
-  if(DG->num_edges() == 0){ // mahorRebalancing from empty graph
+  if(DG->num_edges() == 0){ // majorRebalancing from empty graph
     //size_t new_ct;
-    tie(new_ct, DGnew) = DBTGraph::majorRebalancing(updates, s, e, n, DG->get_block_size(), P, true);
+    vector<gbbs_io::Edge<int>> updates_ins;
+    for (size_t i = s; i< e; ++i) {
+      if(updates[i].weight == 1 && updates[i].from != updates[i].to) updates_ins.emplace_back(updates[i].from, updates[i].to, 1);
+    }
+    t.next("1. preprocess");
+    DBTInternal::PrintFunctionItem("1.", "valid b",  updates_ins.size());
+    tie(new_ct, DGnew) = DBTGraph::majorRebalancing(updates_ins, 0, updates_ins.size(), n, DG->get_block_size(), P, true);
     return make_tuple(new_ct, true, DGnew);
   }
 
@@ -216,7 +222,7 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   bool start_graph = P.getOptionValue("-sg"); 
   bool run_static = P.getOptionValue("-static"); 
   int batch_offset = P.getOptionLongValue("-bo", 0); 
-  size_t block_size = P.getOptionLongValue("-blocksize", 5);  
+  size_t block_size = P.getOptionLongValue("-blocksize", 10000);  
   size_t n = P.getOptionLongValue("-n", 0); 
   int weight = P.getOptionIntValue("-w", 1);    
   timer t;t.start();
@@ -233,19 +239,17 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   
 
   if(run_static){
-    size_t num_batch =  (updates.size() + batch_size - 1) / batch_size;
-    return DBTInternal::staticCount(updates, num_batch, P, n, batch_offset);
+    return DBTInternal::staticCount(updates, batch_size, P, n, batch_offset);
   }
 
-  // if(weight == 2){
-  //   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, updates.size());
-  //   C0 = Triangle(G2, f, "degree", P);  
-  //   t.next("Init");
-  //   DBTInternal::DSymGraph* DG = new DBTInternal::DSymGraph(block_size, G2, n);
-  //   G2.del();
-  //   t.next("Build DG");
-  //   return DBTInternal::dynamicBatches<DBTGraph::SymGraph, F>(DG, updates, batch_num, P, n, batch_offset, C0, true);
-  // }
+  if(weight == 0 && P.getOptionValue("-shuffle")){
+    C0 = Triangle(G, f, "degree", P); 
+    t.next("Static Count");
+    DBTGraph::DyGraph<Graph> * DG = new DBTGraph::DyGraph<Graph>(block_size, G, n);
+    t.next("Build Dynamic Graph");
+    return DBTInternal::dynamicBatches<Graph, F>(DG, updates, batch_size, P, n, batch_offset, C0, false);
+  }
+
   size_t init_graph_end = min(batch_offset * batch_size, updates.size());
   if(weight == 2) init_graph_end =  updates.size();
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, init_graph_end);

@@ -95,6 +95,40 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
     return updates_shuffled;    
 }
 
+
+template<class Graph>
+inline tuple<vector<gbbs::gbbs_io::Edge<int>>, vector<gbbs::gbbs_io::Edge<pbbs::empty>>> shuffle_edges_mix(Graph G, size_t batch_size){
+  vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
+  vector<gbbs::gbbs_io::Edge<pbbs::empty>> base_graph;
+    size_t m = G.num_edges();
+    auto perm = pbbs::random_permutation<gbbs::uintE>(m/2);
+    pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
+    auto edge_list_dedup = pbbs::filter(edge_list, [&](const std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type> & e){
+      return std::get<0>(e) < std::get<1>(e);
+    });
+    edge_list.clear();
+    // assert(edge_list_dedup.size() == m/2);
+    size_t batch_num = edge_list_dedup.size() / batch_size;
+    size_t end = batch_num * batch_size;
+    for (size_t j = 0; j< batch_num; ++j) {
+      for (size_t i = j * batch_size/2; i< (j+1)*batch_size/2; ++i) {
+        updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), 1));
+      }
+      for (size_t i = end/2 + j * batch_size/2; i< end/2 +  (j+1)*batch_size/2; ++i) {
+        updates_shuffled.emplace_back(gbbs::gbbs_io::Edge<int>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]]), 0));
+      }
+    }
+    for (size_t i = end/2; i< end; ++i) {
+      base_graph.emplace_back(gbbs::gbbs_io::Edge<pbbs::empty>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]])));
+    }
+
+    edge_list_dedup.clear();
+    std::cout << "shuffled and deduped" << std::endl;
+    std::cout << updates_shuffled.size() << " deduped edges" << std::endl;
+    std::cout << end/2 << " : " <<  end <<std::endl;
+    return make_tuple(updates_shuffled, base_graph);    
+}
+
 // Read first [partial_end] edges from a file that has the following format:
 //     # There can be comments at the top of the file as long as each line of
 //     # the comment starts with '#'.
@@ -143,7 +177,7 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
     char* iFile = P.getArgument(1);
     char* uFile1 = P.getArgument(0);
     int weight = P.getOptionIntValue("-w", 1);
-    size_t batch_size =  P.getOptionLongValue("-batchsize", 5);
+    size_t batch_size =  P.getOptionLongValue("-batchsize", 10000);
     bool symmetric = P.getOptionValue("-s");
     bool compressed = P.getOptionValue("-c");
     bool mmap = P.getOptionValue("-m");
@@ -205,7 +239,14 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
       gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
       if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);
       if(shuffle) {
-        updates = shuffle_edges(G, weight);
+        if(weight == 0){
+          vector<gbbs::gbbs_io::Edge<pbbs::empty>> base_graph;
+          tie(updates, base_graph) = shuffle_edges_mix(G, batch_size);
+          G.del();
+          G = gbbs::gbbs_io::edge_list_to_symmetric_graph(base_graph);
+        }else{
+          updates = shuffle_edges(G, weight);
+        }
       }
       gbbs::alloc_init(G);
       run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)
