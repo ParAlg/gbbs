@@ -244,6 +244,7 @@ cc_library(
   deps = [
   ":graph_io",
   ":parse_command_line",
+  "//pbbslib:assert",
   ]
 )
 
