@@ -495,7 +495,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         counters[vertex_counter_offset + v_to_neighbor_index] +=
           internal::intersect_f_with_index_par(
               &vertex, &neighbor, update_counters);
-      } else if constexpr (std::is_floating_point<Weight>::value) {
+      } else {
         // weighted case
         const auto update_counters{[&](
           const uintE shared_neighbor,
@@ -580,9 +580,9 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         } else {  // weighted case
           // additional term is to account for self-loop edge in closed
           // neighborhood
-          const double shared_weight{
+          const double shared_weight{static_cast<double>(
             counters[counter_index]
-              + 2 * kWeightFactor * kWeightFactor * weight};
+              + 2 * kWeightFactor * kWeightFactor * weight)};
           similarity = static_cast<float>(
               shared_weight / (norms[v_id] * norms[u_id]));
         }
@@ -900,9 +900,9 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
         const uintT counter_index{v_counter_offset + v_to_u_index};
         // additional term is to account for self-loop edge in closed
         // neighborhood
-        const double shared_weight{
+        const double shared_weight{static_cast<double>(
           counters[counter_index]
-            + 2 * kWeightFactor * kWeightFactor * weight};
+            + 2 * kWeightFactor * kWeightFactor * weight)};
         const float similarity{static_cast<float>(
             shared_weight / (norms[v_id] * norms[u_id]))};
         similarities[2 * counter_index] =
