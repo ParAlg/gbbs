@@ -1,6 +1,6 @@
 cc_library(
   name = "FiveCycle",
-  hdrs = ["FiveCycle.h"],
+  hdrs = ["FiveCycle.h", "FiveCycle-escape.h", "FiveCycle-match.h"],
   deps = [
   "//gbbs:gbbs",
   "//pbbslib:random_shuffle",

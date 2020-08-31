@@ -24,7 +24,7 @@
 #include "gbbs/pbbslib/sparse_table.h"
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
-
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 // Wrapper for a hash function
 struct hashtup {
@@ -37,13 +37,8 @@ struct U_FastReset {
   ulong num_distinct = 0; 
 
   void alloc(size_t n) {
-    if (!U) U = (uintE*) calloc(n, sizeof(uintE)); //malloc(n * sizeof(uintE));
-
+    if (!U) U = (uintE*) calloc(n, sizeof(uintE)); 
     if (!distinct) distinct = (uintE*) calloc(n, sizeof(uintE));
-    // auto V = sequence<uintE>(n, [&](size_t s) { return 0; });
-    // U = (uintE*) &V;
-    // auto distinct_s = sequence<uintE>(n, [&](size_t s) { return 0; });
-    // distinct = (uintE*) &distinct_s;
   }
 
   void reset(){
@@ -215,17 +210,21 @@ inline sequence<uintT> orderNodesByDegree(Graph& G, size_t n) {
 // ****************************************************************************************
 template <class Graph>
 inline auto Preprocess(Graph& GA, sequence<uintE>& rank, long order_type = 0, double epsilon = 0.1) {
-  //using W = typename Graph::weight_type;
   // sequence<uintE> rank;
   // relabel the graph first. then do degeneracyorder
   auto order_to_vertex = orderNodesByDegree(GA, GA.n);
   debug(cout << "Order done\n"; fflush(stdout));
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
   debug(cout << "Relabel done\n"; fflush(stdout));
-
-  if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GDO, epsilon);
-  else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GDO, epsilon);
-  else if (order_type == 2) rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
+  if (order_type == 0) {
+    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GDO, epsilon);
+  } else if (order_type == 1) { 
+    rank = barenboimelkin_degen::DegeneracyOrder(GDO, epsilon);
+  } else if (order_type == 2) { 
+    rank = sequence<uintE>(GA.n, [&](size_t s) { return GA.n-1-s; });
+  } else if (order_type == 3) {
+    rank = DegeneracyOrder(GDO).to_seq();
+  }
   debug(cout << "Rank done\n"; fflush(stdout));
   return GDO;
 }
@@ -243,11 +242,6 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
   
   if (degree == 0) return 0; 
 
-  // uintE viOutDegree = DGDO.get_vertex(i).getOutDegree();
-  // uintE* outnghs_vi = (uintE*) DGDO.get_vertex(i).getOutNeighbors();
-  // auto outnghs_vi_seq =  sequence<uintE>(outnghs_vi, viOutDegree);
-  // auto custom_less_i = [&](uintE arg) { return i < arg; }; // for binary searching.
-
   uintE u, uDegree, w, wOutDegree, x;
 
   for (uintE j = 0; (j < degree) && ((u = nghs[j]) > i); j++) {
@@ -258,7 +252,7 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
       if (U[w] == 0) { V->distinct[V->num_distinct] = w; V->num_distinct++; }
       U[w] += 1;
     }
-  } // end of line 7. 
+  } 
   
   for (uintE j = 0; (j < degree) && ((u = nghs[j]) > i); j++) {
     auto vu = GDO.get_vertex(u);
@@ -275,247 +269,27 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
       int w_vi_neighbors = 0;
 
       // This part check if w->vi or vi->w is in DGDO, hence w_vi_neighbors
-      // TODO: binary search!
-
-      // stuff for binary search
-      // auto outnghs_w_seq =  sequence<uintE>(outnghs_w, wOutDegree);
       auto custom_less_w = [&](uintE arg) { return w < arg; };
-      //uintE index_leq_i, index_leq_w; 
-      // // auto less_fn = std::less<size_t>();
-      // if (wOutDegree > 0
-      //       && (index_leq_i = _binary_search(outnghs_w, custom_less_i, wOutDegree)) < wOutDegree 
-      //        && outnghs_w[index_leq_i] == i) {
-      //   w_vi_neighbors = 1;
-      // } else if ((index_leq_w = _binary_search(outnghs_vi, custom_less_w, viOutDegree)) < viOutDegree   
-      //        && outnghs_vi[index_leq_w] == w) {
-      //   w_vi_neighbors = 1;
-      // }
       uintE index_leq_w;
       if ((index_leq_w = _binary_search(nghs, custom_less_w, degree)) < degree 
              && nghs[index_leq_w] == w) {
         w_vi_neighbors = 1;
       }
-
-
-
-      // for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) >= i); l++)  {
-      //   if (x == i) {w_vi_neighbors = 1; break;}
-      // }
-      // for (uintE l = 0; (l < viOutDegree) && ((x = outnghs_vi[l]) >= w); l++)  {
-      //   if (x == w) w_vi_neighbors = 1; 
-      // }
       
       for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) > i); l++) {
         if (x != u) {
             temp += U[x] - w_vi_neighbors;
         }
       }
-
-      // auto wnghs = outnghs_w_seq.to_array();
     }
 
     for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
       U[w] += 1;
     }
-
   }
-
-  // auto inghs = outnghs_vi_seq.to_array();
-
   V->reset();
   return temp;
 }
-  
-// template <class Graph, class Graph2>
-// inline ulong Count5CycleVertex_par(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t i){
-//   typedef sparse_table<uintE, uint, hashtup> HTHT;
-
-  
-//   uintE* U = V->U;
-//   auto vi = GDO.get_vertex(i);
-//   uintE degree = vi.getOutDegree();
-//   uintE* nghs = (uintE*) vi.getOutNeighbors(); 
-  
-//   if (degree == 0) return 0; 
-  
-//   uintE u0, uDegree0, w0;
-//   for (uintE j = 0; (j < degree) && ((u0 = nghs[j]) > i); j++) {
-//     auto vu = GDO.get_vertex(u0);
-//     uintE* nghs_u = (uintE*) vu.getOutNeighbors();
-//     uDegree0 = vu.getOutDegree();
-//     for (uintE k = 0; (k < uDegree0) && ((w0 = nghs_u[k]) > i); k++) {
-//       if (U[w0] == 0) { V->distinct[V->num_distinct] = w0; V->num_distinct++; }
-//       U[w0] += 1;
-//     }
-//   } // end of line 7. 
-
-//   const size_t eltsPerCacheLine = 64/sizeof(ulong);
-//   sequence<uintE> cycleCounts = sequence<uintE>(degree * eltsPerCacheLine, [&](size_t s){return 0;} );
-
-//   size_t table_size = degree; 
-//   auto init_ht = [&](HTHT* ht){ *ht = HTHT(table_size, std::make_tuple(UINT_E_MAX, 0), hashtup());  };
-//   auto finish_ht = [&](HTHT* ht){ return; };
-//   parallel_for_alloc<HTHT>(init_ht, finish_ht, 0, degree, 
-//   [&] (size_t jj, HTHT* ht){
-//     ulong temp = 0;
-//     uintE u, uDegree, w, wOutDegree, x;
-//     u = nghs[jj];
-//     auto vu = GDO.get_vertex(u); 
-//     uintE* nghs_u = (uintE*) vu.getOutNeighbors();
-//     uDegree = vu.getOutDegree();
-
-//     for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
-//       ht->insert(std::make_tuple(w, 1));
-//     }
-
-//     if (i == 5 && jj < 5){
-//       std::cout << "j = " <<  jj << std::endl;
-//       auto entries = ht->entries();
-//       std::cout << "size = " << entries.size() << std::endl; 
-//       for (int z = 0; z < entries.size(); z++){
-//         std::cout << "(" << std::get<0>(entries[z]) << ',' <<  std::get<1>(entries[z]) <<  ") ";
-//       }
-//       std::cout << std::endl;
-//     }
-
-
-//     for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
-//       auto vw = DGDO.get_vertex(w);
-//       uintE* outnghs_w = (uintE*) vw.getOutNeighbors();
-//       wOutDegree = vw.getOutDegree();
-//       int w_vi_neighbors = 0;
-
-//       // This part check if w->vi or vi->w is in DGDO, hence w_vi_neighbors
-//       auto custom_less_w = [&](uintE arg) { return w < arg; };
-//       uintE index_leq_w;
-//       if ((index_leq_w = _binary_search(nghs, custom_less_w, degree)) < degree 
-//             && nghs[index_leq_w] == w) {
-//         w_vi_neighbors = 1;
-//       }
-
-//       for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) > i); l++) {
-//         if (x != u) {
-//           temp += U[x] - w_vi_neighbors - ht->find(x, 0); // - ((int) ht->contains(x));
-//           if (ht->find(x, 0) > 1) {
-//             std::cout << i << "," << u << "," << w  << "," << x << ": " << ht->find(x, 0) << std::endl;
-//           } 
-//         }
-//       }
-//     }
-
-//     ht->clear();
-//     cycleCounts[jj * eltsPerCacheLine] = temp;
-
-//   }, pbbslib::kSequentialForThreshold, true);
-
-//   V->reset();
-//   return  pbbslib::reduce_add(cycleCounts);
-
-// }
-
-// template <class Graph, class Graph2>
-// inline ulong Count5CycleVertex_par(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t i){
-  
-//   // sequence<ulong> temp = sequence<ulong>(num_workers() * eltsPerCacheLine, [&](size_t s){ return 0; });
-//   using W = typename Graph::weight_type;
-//   uintE* U = V->U;
-//   auto vi = GDO.get_vertex(i);
-//   uintE degree = vi.getOutDegree();
-//   uintE* nghs = (uintE*) vi.getOutNeighbors(); 
-  
-//   if (degree == 0) return 0; 
-  
-//   uintE u0, w0; 
-//   for (uintE j = 0; (j < degree) && ((u0 = nghs[j]) > i); j++) {
-//     auto vu = GDO.get_vertex(u0);
-//     uintE* nghs_u = (uintE*) vu.getOutNeighbors();
-//     uintE uDegree = vu.getOutDegree();
-//     for (uintE k = 0; (k < uDegree) && ((w0 = nghs_u[k]) > i); k++) {
-//       if (U[w0] == 0) { V->distinct[V->num_distinct] = w0; V->num_distinct++; }
-//       U[w0] += 1;
-//     }
-//   } // end of line 7. 
-  
-//   auto parallel_work = sequence<size_t>(degree, [&](size_t ii){return GDO.get_vertex(nghs[ii]).getOutDegree(); });
-
-//   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
-
-//   size_t block_size = 5000;
-//   size_t n_blocks = total_work/block_size + 1;
-//   // std::cout << "##### number of blocks: " << n_blocks << std::endl;
-//   size_t work_per_block = total_work / n_blocks;
-//   n_blocks = (total_work/work_per_block) + 1;
-//   const size_t eltsPerCacheLine = 64/sizeof(ulong);
-//   sequence<ulong> cycleCounts = sequence<ulong>(n_blocks * eltsPerCacheLine, [&](size_t s) { return 0; });
-
-
-//   auto run_intersection = [&]( size_t start_ind, size_t end_ind, size_t block_index, sequence<uintE>* Vj) {
-//     uintE u, uDegree, w, wOutDegree, x;
-//     ulong count = 0;
-//     sequence<uintE> Uj = *Vj;
-//     for (uintE j = start_ind; (j < end_ind) && ((u = nghs[j]) > i); j++) {
-//       // u = nghs[j];
-//       // if (u <= i) return; 
-//       auto vu = GDO.get_vertex(u);
-//       uintE* nghs_u = (uintE*) vu.getOutNeighbors();
-//       uDegree = vu.getOutDegree();
-//       for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
-//         Uj[w] -= 1;
-//       }
-
-//       for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
-//         auto vw = DGDO.get_vertex(w);
-//         uintE* outnghs_w = (uintE*) vw.getOutNeighbors();
-//         wOutDegree = vw.getOutDegree();
-//         int w_vi_neighbors = 0;
-
-//         auto custom_less_w = [&](uintE arg) { return w < arg; };
-//         uintE index_leq_w;
-//         if ((index_leq_w = _binary_search(nghs, custom_less_w, degree)) < degree 
-//               && nghs[index_leq_w] == w) {
-//           w_vi_neighbors = 1;
-//         }
-        
-//         for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) > i); l++) {
-//           if (x != u) {
-//               count += Uj[x] - w_vi_neighbors;
-//           }
-//         }
-//       }
-
-//       for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
-//         Uj[w] += 1;
-//       }
-//     }
-//     //pbbslib::fetch_and_add(&temp, count);
-//     cycleCounts[block_index * eltsPerCacheLine] += count;
-//   };
-
-//   // auto init_Vj = [&](U_FastReset* Vj) { 
-//   //   Vj->alloc(GDO.n);
-//   //   V->copy(Vj); 
-//   // };
-//   // auto finish_Vj = [&](U_FastReset* Vj) { delete Vj; };
-  
-//   auto init_Uj = [&](sequence<uintE>* Uj){ *Uj = sequence<uintE>(GDO.n, [&](size_t s) { return V->U[s]; }); };
-//   auto finish_Uj = [&](sequence<uintE>* Uj){ delete Uj;  };
-
-//   parallel_for_alloc<sequence<uintE>>(init_Uj, finish_Uj, 0, n_blocks,
-//   [&] (size_t jj, sequence<uintE>* Uj){
-//     size_t start = jj * work_per_block;
-//     size_t end = (jj + 1) * work_per_block;
-//     auto less_fn = std::less<size_t>();
-//     size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
-//     size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
-//     run_intersection(start_ind, end_ind, jj, Uj);
-//   });
-
-//   V->reset();
-//   // return pbbslib::reduce_add(temp);
-//   return  pbbslib::reduce_add(cycleCounts);
-// }
-
-
 
 // ****************************************************************************************
 // This implements the 5-cycle counting algorithm from Kowalik
@@ -526,12 +300,28 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, size_t block_size = 500
   using W = typename Graph::weight_type;
   sequence<uintE> rank;
   auto GDO = Preprocess(GA, rank, order_type, epsilon);
+  // cout << "rank: ";
+  // for (int i = 0; i < GA.n; i++){
+  //   cout << rank[i] << ",";
+  // }
+  // cout << endl;
 
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
+
+  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintE 
   debug(cout << "Filter done\n"; fflush(stdout););
+    // uintE max = 0;
+  // cout << "out-deg: "; 
+  // for (int i = 0; i < GA.n; i++){
+  //   cout << DGDO.get_vertex(i).getOutDegree() << ",";
+  //   if (DGDO.get_vertex(i).getOutDegree() > max) 
+  //     max = DGDO.get_vertex(i).getOutDegree();
+  // }
+  // cout << "max degree: " << max << endl;
+  // abort();
+
   double ttp = tp.stop();
   debug(std::cout << "##### Preprocessing: " << ttp << std::endl;);
 
@@ -590,6 +380,11 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, size_t block_size = 500
     size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
     run_intersection(start_ind, end_ind, i, V);
   });
+
+  // for (size_t i =0; i < n_blocks; i++){
+  //   cout << cycleCounts[i*eltsPerCacheLine] << ",";
+  // }
+  // cout << endl;
 
   ulong total = pbbslib::reduce_add(cycleCounts);
   double ttc = tc.stop();
@@ -797,399 +592,5 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, size_t block
   std::cout << "##### Actual counting: " << tt << std::endl;
   GDO.del();
   DGDO.del();
-  return cycleCount;
-}
-
-
-
-// ****************************************************************************************
-// This is the ESCAPE five-cycle counting algorithm.
-// ****************************************************************************************
-template <class Graph>
-inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, size_t block_size = 500000, double epsilon = 0.1) {
-
-  //std::cout << "JUST TO MAKE SURE I AM REALLY USING ESCAPE" << std::endl;
-  using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
-
-  //auto GA2 = relabel_graph(GA, sequence<uintT>(GA.n, [&](size_t i){return i;}));
-  sequence<uintE> rank ;
-  //auto rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
-  // relabel the graph first. then do degeneracyorder
-  sequence<uintT> order_to_vertex;
-
-  if (order_type == 0) {
-    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-                { order_to_vertex[rank[v]] = v; });
-  } else if (order_type == 1) {
-    rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-               { order_to_vertex[rank[v]] = v; });
-  } else if (order_type == 2) {
-    order_to_vertex = orderNodesByDegree(GA, GA.n);
-    rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                { rank[order_to_vertex[i]] = i; });
-  }
-  cout << "Rank abd Order done\n"; fflush(stdout);
-  auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
-
-  //auto GDO = GA;
-  cout << "Relabel done\n"; fflush(stdout);
-
-  auto out_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
-    //return rank[u] < rank[v];
-    return u < v;
-  };
-  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
-
-  auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
-    //return rank[u] < rank[v];
-    return u > v;
-  };
-  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
-
-  cout << "Filter done\n"; fflush(stdout);
-
-  timer t; t.start();
-  ulong cycleCount = 0;
-  auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-  auto distinct = sequence<uintE>(GA.n, [&](size_t s){ return 0; } ); 
-  uintE num_distinct = 0;
-  for (uintE i = 0; i < GA.n; i++) {
-    ulong tmp = 0;
-    //auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-    auto vi = GDO.get_vertex(i);
-    uintE degree = vi.getOutDegree();
-    uintE* nghs = (uintE*) vi.getOutNeighbors();
-
-
-    if (degree == 0) continue; //return;
-    auto nghs_seq = sequence<uintE>(nghs, degree);
-
-
-    uintE viOutDegree  = OUTG.get_vertex(i).getOutDegree();
-    uintE* outnghs_vi = (uintE*) OUTG.get_vertex(i).getOutNeighbors();
-    uintE viInDegree  = ING.get_vertex(i).getOutDegree();
-    uintE* innghs_vi = (uintE*) ING.get_vertex(i).getOutNeighbors();
-
-    uintE vj, vk, vl;
-    // i -> j -> k
-    for (uintE j = 0; j < viOutDegree; j++){
-      vj = outnghs_vi[j];
-      uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
-      uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
-
-      for (uintE k = 0; k < vjOutDegree;  k++) {
-        vk = outnghs_vj[k];
-        if (U[vk] == 0) { distinct[num_distinct] = vk; num_distinct++; }
-        U[vk] += 1;
-      }
-    }
-
-    // i <- j -> k or i <- j <- k
-    for (uintE j = 0; j < viInDegree; j++){
-      vj = innghs_vi[j];
-      uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
-      uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
-      for (uintE k = 0; k < vj_degree; k++){
-        if (U[nghs_vj[k]] == 0) { distinct[num_distinct] = nghs_vj[k]; num_distinct++; }
-        U[nghs_vj[k]] += 1;
-      }
-    }
-
-    U[i] = 0;
-
-
-    for (uintE j = 0; j < viInDegree; j++) {
-      vj = innghs_vi[j];
-      uintE* innghs_vj = (uintE*) ING.get_vertex(vj).getOutNeighbors();
-      uintE vjInDegree = ING.get_vertex(vj).getOutDegree();
-      uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
-      uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
-
-      if (vj_degree == 0) continue;
-      auto nghs_vj_seq = sequence<uintE>(nghs_vj, vj_degree);
-
-
-      for (uintE k = 0; k < vjInDegree; k++) {
-        vk = innghs_vj[k];
-        uintE* outnghs_vk = (uintE*) OUTG.get_vertex(vk).getOutNeighbors();
-        uintE vkOutDegree = OUTG.get_vertex(vk).getOutDegree();
-        auto custom_less_k = [&](uintE arg) { return vk < arg; };
-        for (uintE ell = 0; ell < vkOutDegree; ell++) {
-          vl = outnghs_vk[ell];
-          if (vl == i || vl == vj) continue;
-          tmp += U[vl];
-
-          auto custom_less_l = [&](uintE arg) { return vl < arg; };
-
-          uintE index_leq_vk, index_leq_vl;
-          if ( ((index_leq_vk = pbbslib::binary_search(nghs_seq, custom_less_k)) < degree )
-              && (nghs_seq[index_leq_vk] == vk))  tmp--;
-
-          if (((index_leq_vl = pbbslib::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
-            && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
-        }
-
-      }
-
-      nghs_vj = nghs_vj_seq.to_array();
-
-    }
-
-    // cycleCounts[worker_id()] += tmp;
-    cycleCount += tmp;
-
-
-    // // U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-    // for (uintE j = 0; j < viOutDegree; j++){
-    //   vj = outnghs_vi[j];
-    //   uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
-    //   uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
-
-    //   for (uintE k = 0; k < vjOutDegree;  k++) {
-    //     vk = outnghs_vj[k];
-    //     U[vk] = 0;
-    //   }
-
-    // }
-
-    // // i -> j <- k or i -> j -> k
-    // for (uintE j = 0; j < viInDegree; j++){
-    //   vj = innghs_vi[j];
-    //   uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
-    //   uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
-    //   for (uintE k = 0; k < vj_degree; k++){
-    //     U[nghs_vj[k]] = 0;
-    //   }
-    // }
-    for (int z = 0; z < num_distinct; z++){
-      U[distinct[z]] = 0;
-      distinct[z] = 0;
-    }
-    num_distinct = 0; 
-
-    nghs = nghs_seq.to_array();
-  }
-
-  //ulong cycleCount = pbbslib::reduce_add(cycleCounts);
-
-  double tt = t.stop();
-  std::cout << "##### Actual counting: " << tt << std::endl;
-  GDO.del();
-  ING.del();
-  OUTG.del();
-  return cycleCount;
-}
-
-
-
-// TODO: Make this parallel with work-scheduling
-// ****************************************************************************************
-// This is the ESCAPE five-cycle counting algorithm.
-// ****************************************************************************************
-template <class Graph>
-inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, size_t block_size = 500000, double epsilon = 0.1) {
-
-  //std::cout << "JUST TO MAKE SURE I AM REALLY USING ESCAPE" << std::endl;
-  using W = typename Graph::weight_type;
-  // using edge = typename Graph::edge_type; //std::tuple<uintE, W>;
-
-  //auto GA2 = relabel_graph(GA, sequence<uintT>(GA.n, [&](size_t i){return i;}));
-  sequence<uintE> rank ;
-  //auto rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
-  // relabel the graph first. then do degeneracyorder
-  sequence<uintT> order_to_vertex;
-
-  if (order_type == 0) {
-    rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-                { order_to_vertex[rank[v]] = v; });
-  } else if (order_type == 1) {
-    rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
-               { order_to_vertex[rank[v]] = v; });
-  } else if (order_type == 2) {
-    order_to_vertex = orderNodesByDegree(GA, GA.n);
-    rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                { rank[order_to_vertex[i]] = i; });
-  }
-  cout << "Rank abd Order done\n"; fflush(stdout);
-  auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
-
-  //auto GDO = GA;
-  cout << "Relabel done\n"; fflush(stdout);
-
-  auto out_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
-    //return rank[u] < rank[v];
-    return u < v;
-  };
-  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
-
-  auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
-    //return rank[u] < rank[v];
-    return u > v;
-  };
-  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
-
-  cout << "Filter done\n"; fflush(stdout);
-
-
-  timer t; t.start();
-  auto parallel_work = sequence<size_t>(GA.n);
-  {
-    auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
-      return GDO.get_vertex(v).getOutDegree();
-    };
-    par_for(0, GA.n, [&] (size_t i) {
-      auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = GDO.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid); // summing the degrees of the neighbors for each vertex?
-    });
-  }
-
-  size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
-
-  // size_t block_size = 50000;
-  size_t n_blocks = total_work/block_size + 1;
-  size_t work_per_block = total_work / n_blocks;
-  n_blocks = (total_work/work_per_block) + 1;
-  double tt = t.stop();
-  std::cout << "##### Scheduling: " << tt << std::endl;
-
-
-  timer t2; t2.start();
-  const size_t eltsPerCacheLine = 64/sizeof(ulong);
-  //sequence<ulong> cycleCounts = sequence<ulong>(72 * eltsPerCacheLine, [&](size_t s) { return 0; });
-  sequence<ulong> cycleCounts = sequence<ulong>(n_blocks * eltsPerCacheLine, [&](size_t s) { return 0; });
-
-  auto run_intersection = [&](size_t start_ind, size_t end_ind, size_t block_index) {
-    for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
-      auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-      ulong tmp = 0;
-      //auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-      auto vi = GDO.get_vertex(i);
-      uintE degree = vi.getOutDegree();
-      uintE* nghs = (uintE*) vi.getOutNeighbors();
-
-
-      if (degree == 0) continue; //return;
-      auto nghs_seq = sequence<uintE>(nghs, degree);
-
-
-      uintE viOutDegree  = OUTG.get_vertex(i).getOutDegree();
-      uintE* outnghs_vi = (uintE*) OUTG.get_vertex(i).getOutNeighbors();
-      uintE viInDegree  = ING.get_vertex(i).getOutDegree();
-      uintE* innghs_vi = (uintE*) ING.get_vertex(i).getOutNeighbors();
-
-      uintE vj, vk, vl;
-      // i -> j -> k
-      for (uintE j = 0; j < viOutDegree; j++){
-        vj = outnghs_vi[j];
-        uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
-        uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
-
-        for (uintE k = 0; k < vjOutDegree;  k++) {
-          vk = outnghs_vj[k];
-          U[vk] += 1;
-        }
-      }
-      // i <- j -> k or i <- j <- k
-      for (uintE j = 0; j < viInDegree; j++){
-        vj = innghs_vi[j];
-        uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
-        uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
-        for (uintE k = 0; k < vj_degree; k++){
-          U[nghs_vj[k]] += 1;
-        }
-      }
-      U[i] = 0;
-
-      for (uintE j = 0; j < viInDegree; j++) {
-        vj = innghs_vi[j];
-        uintE* innghs_vj = (uintE*) ING.get_vertex(vj).getOutNeighbors();
-        uintE vjInDegree = ING.get_vertex(vj).getOutDegree();
-        uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
-        uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
-
-        if (vj_degree == 0) continue;
-        auto nghs_vj_seq = sequence<uintE>(nghs_vj, vj_degree);
-
-        for (uintE k = 0; k < vjInDegree; k++) {
-          vk = innghs_vj[k];
-          uintE* outnghs_vk = (uintE*) OUTG.get_vertex(vk).getOutNeighbors();
-          uintE vkOutDegree = OUTG.get_vertex(vk).getOutDegree();
-          auto custom_less_k = [&](uintE arg) { return vk < arg; };
-          for (uintE ell = 0; ell < vkOutDegree; ell++) {
-            vl = outnghs_vk[ell];
-            if (vl == i || vl == vj) continue;
-            tmp += U[vl];
-
-            auto custom_less_l = [&](uintE arg) { return vl < arg; };
-
-            uintE index_leq_vk, index_leq_vl;
-            if ( ((index_leq_vk = pbbslib::binary_search(nghs_seq, custom_less_k)) < degree )
-                && (nghs_seq[index_leq_vk] == vk))  tmp--;
-
-            if (((index_leq_vl = pbbslib::binary_search(nghs_vj_seq, custom_less_l)) < vj_degree)
-              && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
-          }
-        }
-        nghs_vj = nghs_vj_seq.to_array();
-      }
-      // cycleCounts[worker_id()] += tmp;
-      cycleCounts[block_index * eltsPerCacheLine] += tmp;
-
-
-      // U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-      for (uintE j = 0; j < viOutDegree; j++){
-        vj = outnghs_vi[j];
-        uintE* outnghs_vj = (uintE*) OUTG.get_vertex(vj).getOutNeighbors();
-        uintE vjOutDegree = OUTG.get_vertex(vj).getOutDegree();
-
-        for (uintE k = 0; k < vjOutDegree;  k++) {
-          vk = outnghs_vj[k];
-          U[vk] = 0;
-        }
-
-      }
-
-      // i -> j <- k or i -> j -> k
-      for (uintE j = 0; j < viInDegree; j++){
-        vj = innghs_vi[j];
-        uintE* nghs_vj = (uintE*) GDO.get_vertex(vj).getOutNeighbors();
-        uintE vj_degree = GDO.get_vertex(vj).getOutDegree();
-        for (uintE k = 0; k < vj_degree; k++){
-          U[nghs_vj[k]] = 0;
-        }
-      }
-
-      nghs = nghs_seq.to_array();
-    }
-  };
-
-
-  par_for(0, n_blocks, 1, [&] (size_t i) {
-    size_t start = i * work_per_block;
-    size_t end = (i + 1) * work_per_block;
-    auto less_fn = std::less<size_t>();
-    size_t start_ind = pbbslib::binary_search(parallel_work, start, less_fn);
-    size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
-    run_intersection(start_ind, end_ind, i);
-  });
-
-  ulong cycleCount = pbbslib::reduce_add(cycleCounts);
-
-  double tt2 = t2.stop();
-  std::cout << "##### Actual counting: " << tt2 << std::endl;
-  GDO.del();
-  ING.del();
-  OUTG.del();
   return cycleCount;
 }
