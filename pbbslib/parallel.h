@@ -152,10 +152,12 @@ inline void par_do(Lf left, Rf right, bool conservative) {
     in_par_do = true;  // at top level start up tasking
 #pragma omp parallel
 #pragma omp single
+    {
 #pragma omp task
     left();
 #pragma omp task
     right();
+    }
 #pragma omp taskwait
     in_par_do = false;
   } else {  // already started
