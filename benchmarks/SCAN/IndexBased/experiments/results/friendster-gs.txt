@@ -1,41 +1,11 @@
-load graph finished
-Index 1 compute similarity and sort neighbor time: 7380642385 (7380 sec, 123.000000 min);  sort core eps_deg = 1000
-sort core eps_deg = 2000
-sort core eps_deg = 3000
-sort core eps_deg = 4000
-sort core eps_deg = 5000
 Index 1 construction time: 10278503538 (10278 sec, 171.300003 min);  idx1 size: 40.368805 GB (41337.656250 MB)
 Memory usage = 70877380KB, 69216MB, 67.000000GB
-load graph finished
-Index 1 compute similarity and sort neighbor time: 6236599297 (6236 sec, 103.933334 min);  sort core eps_deg = 1000
-sort core eps_deg = 2000
-sort core eps_deg = 3000
-sort core eps_deg = 4000
-sort core eps_deg = 5000
 Index 1 construction time: 9058586673 (9058 sec, 150.966660 min);  idx1 size: 40.368805 GB (41337.656250 MB)
 Memory usage = 70877300KB, 69216MB, 67.000000GB
-load graph finished
-Index 1 compute similarity and sort neighbor time: 5954218205 (5954 sec, 99.233330 min);  sort core eps_deg = 1000
-sort core eps_deg = 2000
-sort core eps_deg = 3000
-sort core eps_deg = 4000
-sort core eps_deg = 5000
 Index 1 construction time: 8476992886 (8476 sec, 141.266663 min);  idx1 size: 40.368805 GB (41337.656250 MB)
 Memory usage = 70877256KB, 69216MB, 67.000000GB
-load graph finished
-Index 1 compute similarity and sort neighbor time: 5958005825 (5958 sec, 99.300003 min);  sort core eps_deg = 1000
-sort core eps_deg = 2000
-sort core eps_deg = 3000
-sort core eps_deg = 4000
-sort core eps_deg = 5000
 Index 1 construction time: 8484456808 (8484 sec, 141.399994 min);  idx1 size: 40.368805 GB (41337.656250 MB)
 Memory usage = 70877304KB, 69216MB, 67.000000GB
-load graph finished
-Index 1 compute similarity and sort neighbor time: 5862294637 (5862 sec, 97.699997 min);  sort core eps_deg = 1000
-sort core eps_deg = 2000
-sort core eps_deg = 3000
-sort core eps_deg = 4000
-sort core eps_deg = 5000
 Index 1 construction time: 8383210344 (8383 sec, 139.716660 min);  idx1 size: 40.368805 GB (41337.656250 MB)
 Memory usage = 70877332KB, 69216MB, 67.000000GB
 ##### median 2-0.600000 1.6031
