@@ -1,52 +1,29 @@
-Loading: 
-Loading: 0 packages loaded
-Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments_no_approx (0 packages loaded, 0 targets configured)
-INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments_no_approx (0 packages loaded, 0 targets configured).
-INFO: Found 1 target...
-[0 / 2] [Prepa] BazelWorkspaceStatusAction stable-status.txt
-[4 / 7] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx.cc; 1s local
-INFO: From Compiling benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx.cc:
-benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx.cc:62:8: warning: 'double gbbs::{anonymous}::AdjustedRandIndex(const Clustering&, const Clustering&)' defined but not used [-Wunused-function]
- double AdjustedRandIndex(const scan::Clustering& a, const scan::Clustering& b) {
-        ^~~~~~~~~~~~~~~~~
-[5 / 7] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx
-Target //benchmarks/SCAN/IndexBased:unweighted_experiments_no_approx up-to-date:
-  bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx
-INFO: Elapsed time: 5.196s, Critical Path: 5.11s
-INFO: 4 processes: 4 local.
-INFO: Build completed successfully, 5 total actions
-INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx -s --serial /home/ubuntu/data/friendster-gbbs
-INFO: Build completed successfully, 5 total actions
-# list_alloc init_blocks: 8008
-# after init: 
-# Used: 0, allocated: 13824, node size: 16392, bytes: 226603008
 **********************
 ** CosineSimilarity **
 **********************
 [Clock] Mon Aug 17 09:50:47 2020
-** Index construction median: 3920.18
+** Index construction median time: 3920.18
 
 [Clock] Mon Aug 17 15:17:20 2020
-** Cluster median 2-0.600000: 1.6619
-** Cluster median 4-0.600000: 0.191906
-** Cluster median 8-0.600000: 0.0548241
-** Cluster median 16-0.600000: 0.0409329
-** Cluster median 32-0.600000: 0.0380552
-** Cluster median 64-0.600000: 0.0367911
-** Cluster median 128-0.600000: 0.036411
-** Cluster median 256-0.600000: 0.0364749
-** Cluster median 512-0.600000: 0.036478
-** Cluster median 1024-0.600000: 0.0365179
-** Cluster median 2048-0.600000: 0.0363429
-** Cluster median 4096-0.600000: 0.0365331
-** Cluster median 5-0.100000: 59.2489
-** Cluster median 5-0.200000: 17.011
-** Cluster median 5-0.300000: 3.83045
-** Cluster median 5-0.400000: 0.911656
-** Cluster median 5-0.500000: 0.286193
-** Cluster median 5-0.600000: 0.103567
-** Cluster median 5-0.700000: 0.0616119
-** Cluster median 5-0.800000: 0.046922
-** Cluster median 5-0.900000: 0.0408812
-** Bulk cluster median mu=5: 79.573 vs. total individual queries: 81.5435
-# time per iter: 0
+** Cluster median time 2-0.600000: 1.6619
+** Cluster median time 4-0.600000: 0.191906
+** Cluster median time 8-0.600000: 0.0548241
+** Cluster median time 16-0.600000: 0.0409329
+** Cluster median time 32-0.600000: 0.0380552
+** Cluster median time 64-0.600000: 0.0367911
+** Cluster median time 128-0.600000: 0.036411
+** Cluster median time 256-0.600000: 0.0364749
+** Cluster median time 512-0.600000: 0.036478
+** Cluster median time 1024-0.600000: 0.0365179
+** Cluster median time 2048-0.600000: 0.0363429
+** Cluster median time 4096-0.600000: 0.0365331
+** Cluster median time 5-0.100000: 59.2489
+** Cluster median time 5-0.200000: 17.011
+** Cluster median time 5-0.300000: 3.83045
+** Cluster median time 5-0.400000: 0.911656
+** Cluster median time 5-0.500000: 0.286193
+** Cluster median time 5-0.600000: 0.103567
+** Cluster median time 5-0.700000: 0.0616119
+** Cluster median time 5-0.800000: 0.046922
+** Cluster median time 5-0.900000: 0.0408812
+** Bulk cluster median time mu=5: 79.573 vs. total individual queries: 81.5435

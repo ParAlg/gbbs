@@ -1,56 +1,31 @@
-Loading: 
-Loading: 0 packages loaded
-INFO: Build option --cxxopt has changed, discarding analysis cache.
-Analyzing: target //benchmarks/SCAN/IndexBased:unweighted_experiments_no_approx (0 packages loaded, 0 targets configured)
-INFO: Analyzed target //benchmarks/SCAN/IndexBased:unweighted_experiments_no_approx (0 packages loaded, 214 targets configured).
-INFO: Found 1 target...
-[0 / 3] [Prepa] BazelWorkspaceStatusAction stable-status.txt
-[24 / 28] Compiling benchmarks/SCAN/IndexBased/scan_helpers.cc; 1s local ... (3 actions running)
-[26 / 28] Compiling benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx.cc; 3s local
-INFO: From Compiling benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx.cc:
-benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx.cc:62:8: warning: 'double gbbs::{anonymous}::AdjustedRandIndex(const Clustering&, const Clustering&)' defined but not used [-Wunused-function]
- double AdjustedRandIndex(const scan::Clustering& a, const scan::Clustering& b) {
-        ^~~~~~~~~~~~~~~~~
-[27 / 28] [Prepa] Linking benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx
-Target //benchmarks/SCAN/IndexBased:unweighted_experiments_no_approx up-to-date:
-  bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx
-INFO: Elapsed time: 5.381s, Critical Path: 5.18s
-INFO: 24 processes: 24 local.
-INFO: Build completed successfully, 25 total actions
-INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/unweighted_experiments_no_approx -s --serial /home/ubuntu/data/brain-gbbs
-INFO: Build completed successfully, 25 total actions
-# list_alloc init_blocks: 1000
-# after init: 
-# Used: 0, allocated: 6656, node size: 16392, bytes: 109105152
 **********************
 ** CosineSimilarity **
 **********************
 [Clock] Mon Aug 17 07:50:35 2020
-** Index construction median: 1054.26
+** Index construction median time: 1054.26
 
 [Clock] Mon Aug 17 09:18:28 2020
-** Cluster median 2-0.600000: 1.41357
-** Cluster median 4-0.600000: 1.381
-** Cluster median 8-0.600000: 1.33615
-** Cluster median 16-0.600000: 1.25116
-** Cluster median 32-0.600000: 1.18129
-** Cluster median 64-0.600000: 0.84403
-** Cluster median 128-0.600000: 0.416078
-** Cluster median 256-0.600000: 0.049818
-** Cluster median 512-0.600000: 0.00754905
-** Cluster median 1024-0.600000: 0.00011611
-** Cluster median 2048-0.600000: 0.000115871
-** Cluster median 4096-0.600000: 0.00011611
-** Cluster median 8192-0.600000: 0.000115871
-** Cluster median 16384-0.600000: 0.00011611
-** Cluster median 5-0.100000: 10.2138
-** Cluster median 5-0.200000: 8.54672
-** Cluster median 5-0.300000: 6.09467
-** Cluster median 5-0.400000: 3.9603
-** Cluster median 5-0.500000: 2.401
-** Cluster median 5-0.600000: 1.37229
-** Cluster median 5-0.700000: 0.698837
-** Cluster median 5-0.800000: 0.248032
-** Cluster median 5-0.900000: 0.00476193
-** Bulk cluster median mu=5: 15.9973 vs. total individual queries: 33.5463
-# time per iter: 0
+** Cluster median time 2-0.600000: 1.41357
+** Cluster median time 4-0.600000: 1.381
+** Cluster median time 8-0.600000: 1.33615
+** Cluster median time 16-0.600000: 1.25116
+** Cluster median time 32-0.600000: 1.18129
+** Cluster median time 64-0.600000: 0.84403
+** Cluster median time 128-0.600000: 0.416078
+** Cluster median time 256-0.600000: 0.049818
+** Cluster median time 512-0.600000: 0.00754905
+** Cluster median time 1024-0.600000: 0.00011611
+** Cluster median time 2048-0.600000: 0.000115871
+** Cluster median time 4096-0.600000: 0.00011611
+** Cluster median time 8192-0.600000: 0.000115871
+** Cluster median time 16384-0.600000: 0.00011611
+** Cluster median time 5-0.100000: 10.2138
+** Cluster median time 5-0.200000: 8.54672
+** Cluster median time 5-0.300000: 6.09467
+** Cluster median time 5-0.400000: 3.9603
+** Cluster median time 5-0.500000: 2.401
+** Cluster median time 5-0.600000: 1.37229
+** Cluster median time 5-0.700000: 0.698837
+** Cluster median time 5-0.800000: 0.248032
+** Cluster median time 5-0.900000: 0.00476193
+** Bulk cluster median time mu=5: 15.9973 vs. total individual queries: 33.5463

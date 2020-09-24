@@ -1,23 +1,3 @@
-Loading: 
-Loading: 0 packages loaded
-INFO: Build option --cxxopt has changed, discarding analysis cache.
-Analyzing: target //benchmarks/SCAN/IndexBased:weighted_experiments_index_unrepeat (0 packages loaded, 0 targets configured)
-INFO: Analyzed target //benchmarks/SCAN/IndexBased:weighted_experiments_index_unrepeat (0 packages loaded, 214 targets configured).
-INFO: Found 1 target...
-[0 / 25] [Prepa] BazelWorkspaceStatusAction stable-status.txt
-[24 / 28] Compiling benchmarks/SCAN/IndexBased/scan_helpers.cc; 1s local ... (3 actions running)
-[26 / 28] Compiling benchmarks/SCAN/IndexBased/weighted_experiments_index_unrepeat.cc; 3s local
-[28 / 28] checking cached actions
-Target //benchmarks/SCAN/IndexBased:weighted_experiments_index_unrepeat up-to-date:
-  bazel-bin/benchmarks/SCAN/IndexBased/weighted_experiments_index_unrepeat
-INFO: Elapsed time: 5.180s, Critical Path: 4.80s
-INFO: 24 processes: 24 local.
-INFO: Build completed successfully, 25 total actions
-INFO: Running command line: bazel-bin/benchmarks/SCAN/IndexBased/weighted_experiments_index_unrepeat -s -w --serial /home/ubuntu/data/cochlea-gbbs
-INFO: Build completed successfully, 25 total actions
-# list_alloc init_blocks: 1000
-# after init: 
-# Used: 0, allocated: 6656, node size: 16392, bytes: 109105152
 **********************
 ** CosineSimilarity **
 **********************
@@ -33,30 +13,30 @@ INDEX TIME: 30892.1
 INDEX TIME: 30882.2
 
 [Clock] Tue Aug 18 20:47:02 2020
-** Cluster median 2-0.600000: 7.58723
-** Cluster median 4-0.600000: 7.59598
-** Cluster median 8-0.600000: 7.58198
-** Cluster median 16-0.600000: 7.56601
-** Cluster median 32-0.600000: 7.57966
-** Cluster median 64-0.600000: 7.57226
-** Cluster median 128-0.600000: 7.57069
-** Cluster median 256-0.600000: 7.56987
-** Cluster median 512-0.600000: 7.5735
-** Cluster median 1024-0.600000: 7.56765
-** Cluster median 2048-0.600000: 7.60462
-** Cluster median 4096-0.600000: 7.54639
-** Cluster median 8192-0.600000: 7.49629
-** Cluster median 16384-0.600000: 7.14768
-** Cluster median 5-0.100000: 8.22381
-** Cluster median 5-0.200000: 8.20898
-** Cluster median 5-0.300000: 8.22242
-** Cluster median 5-0.400000: 8.21482
-** Cluster median 5-0.500000: 8.10654
-** Cluster median 5-0.600000: 7.58341
-** Cluster median 5-0.700000: 6.31862
-** Cluster median 5-0.800000: 2.88354
-** Cluster median 5-0.900000: 0.44201
-** Bulk cluster median mu=5: 13.066 vs. total individual queries: 58.198
+** Cluster median time 2-0.600000: 7.58723
+** Cluster median time 4-0.600000: 7.59598
+** Cluster median time 8-0.600000: 7.58198
+** Cluster median time 16-0.600000: 7.56601
+** Cluster median time 32-0.600000: 7.57966
+** Cluster median time 64-0.600000: 7.57226
+** Cluster median time 128-0.600000: 7.57069
+** Cluster median time 256-0.600000: 7.56987
+** Cluster median time 512-0.600000: 7.5735
+** Cluster median time 1024-0.600000: 7.56765
+** Cluster median time 2048-0.600000: 7.60462
+** Cluster median time 4096-0.600000: 7.54639
+** Cluster median time 8192-0.600000: 7.49629
+** Cluster median time 16384-0.600000: 7.14768
+** Cluster median time 5-0.100000: 8.22381
+** Cluster median time 5-0.200000: 8.20898
+** Cluster median time 5-0.300000: 8.22242
+** Cluster median time 5-0.400000: 8.21482
+** Cluster median time 5-0.500000: 8.10654
+** Cluster median time 5-0.600000: 7.58341
+** Cluster median time 5-0.700000: 6.31862
+** Cluster median time 5-0.800000: 2.88354
+** Cluster median time 5-0.900000: 0.44201
+** Bulk cluster median time mu=5: 13.066 vs. total individual queries: 58.198
 ****************************
 ** ApproxCosineSimilarity **
 ****************************
@@ -64,19 +44,19 @@ INDEX TIME: 30882.2
 Samples=64
 ----------
 [Clock] Tue Aug 18 21:01:46 2020
-** Index construction median: 73.8708
+** Index construction median time: 73.8708
 
 
 Samples=128
 ----------
 [Clock] Tue Aug 18 21:07:56 2020
-** Index construction median: 90.4513
+** Index construction median time: 90.4513
 
 
 Samples=256
 ----------
 [Clock] Tue Aug 18 21:15:28 2020
-** Index construction median: 123.102
+** Index construction median time: 123.102
 
 
 Samples=512
