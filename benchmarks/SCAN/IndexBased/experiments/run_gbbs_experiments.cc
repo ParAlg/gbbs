@@ -116,6 +116,7 @@ size_t GetMaxDegree(Graph* graph) {
     }));
 }
 
+// Output index construction time as the median of several trials.
 template <class Graph, class SimilarityMeasure>
 indexed_scan::Index BuildIndexAndOutputTimes(
     Graph* graph,
@@ -138,10 +139,12 @@ indexed_scan::Index BuildIndexAndOutputTimes(
   return index;
 }
 
+// Output query time as the median of several trials.
 void OutputQueryTimes(
     const indexed_scan::Index& index,
     const size_t max_degree,
     const size_t num_rounds) {
+  // Output query times with fixed epsilon and varying mu.
   for (size_t mu{2}; mu <= max_degree + 1; mu *= 2) {
     std::vector<double> query_times;
     constexpr double kEpsilon{0.6};
@@ -157,6 +160,7 @@ void OutputQueryTimes(
     std::cerr << "** Cluster median time " << ParametersToString(mu, kEpsilon) << ": " << Median(query_times) << "\n";
   }
 
+  // Output query times with fixed mu and varying epsilon.
   constexpr double kMu{5};
   const pbbs::sequence<float> epsilons{.1, .2, .3, .4, .5, .6, .7, .8, .9};
   std::vector<double> total_query_times(num_rounds, 0);
@@ -185,6 +189,8 @@ void OutputQueryTimes(
     << " vs. total individual queries: " << Median(total_query_times) << "\n";
 }
 
+// Output approximate index construction time as the median of several trials
+// with different pseudorandom seeds.
 template <class Graph, class SimilarityMeasure>
 void OutputBuildApproximateIndexTimes(
     Graph* graph,
@@ -243,6 +249,18 @@ QueryInfo SearchForClusters(
     .modularity = best_modularity};
 }
 
+// Builds an index with an approximate similarity measure and outputs
+//   - clustering modularity with approximate similarity measure at the best
+//   parameters found by `SearchForClusters` relative to the exact similarity
+//   measure,
+//   - adjusted Rand index between approximate clustering and exact clustering
+//   at the best parameters found by `SearchForClusters` relative to the exact
+//   similarity measure,
+//   - clustering modularity with approximate similarity measure at the best
+//   parameters found by `SearchForClusters` relative to the approximate
+//   measure.
+// Measurements are the mean across several rounds with different pseudorandom
+// seeds.
 template <class Graph, class SimilarityMeasure>
 void OutputApproximateQuality(
     Graph* graph,
@@ -281,6 +299,7 @@ void OutputApproximateQuality(
     << total_modularity_at_approx / num_rounds << '\n';
 }
 
+// Run experiments with cosine similarity as the similarity measure.
 template <class Graph>
 void RunCosineExperiments(
     Graph* graph,
@@ -332,6 +351,7 @@ void RunCosineExperiments(
   }
 }
 
+// Run experiments with Jaccard similarity as the similarity measure.
 template <class Graph>
 void RunJaccardExperiments(
     Graph* graph,
