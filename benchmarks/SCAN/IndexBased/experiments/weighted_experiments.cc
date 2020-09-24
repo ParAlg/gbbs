@@ -1,4 +1,5 @@
 // Runs SCAN to cluster a graph and times how long the computation takes.
+// This is experimental code and makes no effort to be clean.
 //
 // Usage example:
 //     bazel run //benchmarks/SCAN/IndexBased:SCAN_main -- -s <path to graph>
@@ -114,21 +115,6 @@ QueryInfo SearchForClusters(Graph* graph, const indexed_scan::Index index, const
     .modularity = best_modularity};
 }
 
-template <class Graph>
-std::vector<double> Modularities_5(Graph* graph, const indexed_scan::Index index) {
-  constexpr uint64_t kMu{5};
-  constexpr bool kDeterministic{true};  // for consistency
-  const pbbs::sequence<float> epsilons(
-      99, [](const size_t i) { return (i + 1) * .01; });
-  std::vector<double> modularities(epsilons.size());
-  const auto get_modularity{
-    [&](scan::Clustering clusters, size_t i) {
-      modularities[i] = scan::Modularity(graph, clusters);
-    }};
-  index.Cluster(kMu, epsilons, get_modularity, kDeterministic);
-  return modularities;
-}
-
 }  // namespace
 
 // Executes SCAN on the input graph and reports stats on the execution.
@@ -179,7 +165,7 @@ double RunScan(Graph& graph, const commandLine& parameters) {
     indexed_scan::Index exact_index{&graph, scan::CosineSimilarity{}};
     exact_index_times.emplace_back(exact_index_timer.stop());
     if (verbose) { std::cerr << ' ' << exact_index_times.back(); }
-    std::cerr << "** Index construction median: " << Median(exact_index_times) << "\n\n";
+    std::cerr << "** Index construction median time: " << Median(exact_index_times) << "\n\n";
 
     PrintClock();
 
@@ -198,7 +184,7 @@ double RunScan(Graph& graph, const commandLine& parameters) {
           query_times.emplace_back(query_timer.stop());
           if (verbose) { std::cerr << ' ' << query_times.back(); }
         }
-        std::cerr << "** Cluster median " << ParametersToString(mu, kEpsilon) << ": " << Median(query_times) << "\n";
+        std::cerr << "** Cluster median time " << ParametersToString(mu, kEpsilon) << ": " << Median(query_times) << "\n";
       }
     }
     {
@@ -215,7 +201,7 @@ double RunScan(Graph& graph, const commandLine& parameters) {
           if (verbose) { std::cerr << ' ' << query_times.back(); }
           total_query_times[i] += query_times.back();
         }
-        std::cerr << "** Cluster median " << ParametersToString(kMu, epsilon) << ": " << Median(query_times) << "\n";
+        std::cerr << "** Cluster median time " << ParametersToString(kMu, epsilon) << ": " << Median(query_times) << "\n";
       }
       std::vector<double> bulk_query_times;
       for (size_t i{0}; i < cluster_rounds; i++) {
@@ -224,7 +210,7 @@ double RunScan(Graph& graph, const commandLine& parameters) {
         bulk_query_times.emplace_back(bulk_query_timer.stop());
         if (verbose) { std::cerr << ' ' << bulk_query_times.back(); }
       }
-      std::cerr << "** Bulk cluster median mu=5: " << Median(bulk_query_times)
+      std::cerr << "** Bulk cluster median time mu=5: " << Median(bulk_query_times)
         << " vs. total individual queries: " << Median(total_query_times) << "\n";
     }
 
@@ -246,18 +232,6 @@ double RunScan(Graph& graph, const commandLine& parameters) {
         << ", modularity " << ret.modularity << '\n';
       return ret;
     }()};
-    const std::vector<double> exact_modularities_5{[&]() {
-      if (is_serial) {
-        return std::vector<double>{};
-      }
-      const std::vector<double> ret{Modularities_5(&graph, exact_index)};
-      std::cerr << "exact mod 5:";
-      for (auto mod : ret) {
-        std::cerr << " " << mod;
-      }
-      std::cerr << '\n';
-      return ret;
-    }()};
     exact_index = indexed_scan::Index{};  // destruct index to save memory
 
     for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
@@ -273,7 +247,7 @@ double RunScan(Graph& graph, const commandLine& parameters) {
         approx_index_times.emplace_back(approx_index_timer.stop());
         if (verbose) { std::cerr << ' ' << approx_index_times.back(); }
       }
-      std::cerr << "** Index construction median: " << Median(approx_index_times) << "\n\n";
+      std::cerr << "** Index construction median time: " << Median(approx_index_times) << "\n\n";
 
       if (is_serial) {
         continue;
@@ -283,7 +257,6 @@ double RunScan(Graph& graph, const commandLine& parameters) {
       double total_modularity_at_exact = 0.0;
       double total_modularity_at_approx = 0.0;
       double total_ari = 0.0;
-      std::vector<double> total_approx_modularities_5(exact_modularities_5.size());
       for (size_t seed{0}; seed < index_rounds; seed++) {
         const indexed_scan::Index approx_index{&graph, scan::ApproxCosineSimilarity{num_samples, seed}};
         {
@@ -300,107 +273,9 @@ double RunScan(Graph& graph, const commandLine& parameters) {
           total_modularity_at_approx += best_approx_query.modularity;
           std::cerr << "At best approx params " << ParametersToString(best_approx_query.mu, best_approx_query.epsilon) << " modularity=" << best_approx_query.modularity << '\n';
         }
-        const std::vector<double> approx_modularities_5{Modularities_5(&graph, approx_index)};
-        for (size_t i = 0; i < approx_modularities_5.size(); i++) {
-          total_approx_modularities_5[i] += approx_modularities_5[i];
-        }
       }
       std::cerr << "Mean modularity @ exact params=" << total_modularity_at_exact / index_rounds << " mean ari=" << total_ari / index_rounds << '\n';
       std::cerr << "Mean modularity @ approx best params=" << total_modularity_at_approx / index_rounds << '\n';
-      std::cerr << "approx mod 5:";
-      for (auto mod : total_approx_modularities_5) {
-        std::cerr << ' ' << mod / index_rounds;
-      }
-      std::cerr << '\n';
-    }
-  }
-
-  {
-    std::cerr << "*****************************\n";
-    std::cerr << "** ApproxJaccardSimilarity **\n";
-    std::cerr << "*****************************\n";
-
-    indexed_scan::Index exact_index{&graph, scan::JaccardSimilarity{}};
-    const QueryInfo best_exact_query{[&]() {
-      if (is_serial) {
-        return QueryInfo{
-          .mu = 0,
-          .epsilon = -100,
-          .clusters = {},
-          .modularity = -100};
-      }
-      const QueryInfo ret{SearchForClusters(&graph, exact_index, max_degree)};
-      std::cerr << "Best exact params "
-        << ParametersToString(ret.mu, ret.epsilon)
-        << ", modularity " << ret.modularity << '\n';
-      return ret;
-    }()};
-    const std::vector<double> exact_modularities_5{[&]() {
-      if (is_serial) {
-        return std::vector<double>{};
-      }
-      const std::vector<double> ret{Modularities_5(&graph, exact_index)};
-      std::cerr << "exact mod 5:";
-      for (auto mod : ret) {
-        std::cerr << " " << mod;
-      }
-      std::cerr << '\n';
-      return ret;
-    }()};
-    exact_index = indexed_scan::Index{};  // destruct index to save memory
-
-    for (uint32_t num_samples{64}; 2 * num_samples < max_degree; num_samples *= 2) {
-      std::cerr << "\n";
-      std::cerr << "Samples=" << num_samples << '\n';
-      std::cerr << "----------\n";
-      PrintClock();
-      std::vector<double> approx_index_times;
-      if (verbose) { std::cerr << "Index construction:"; }
-      for (size_t i{0}; i < index_rounds; i++) {
-        timer approx_index_timer{"Index construction"};
-        const indexed_scan::Index approx_index{&graph, scan::ApproxJaccardSimilarity{num_samples, i}};
-        approx_index_times.emplace_back(approx_index_timer.stop());
-        if (verbose) { std::cerr << ' ' << approx_index_times.back(); }
-      }
-      std::cerr << "** Index construction median: " << Median(approx_index_times) << "\n\n";
-
-      if (is_serial) {
-        continue;
-      }
-      PrintClock();
-
-      double total_modularity_at_exact = 0.0;
-      double total_modularity_at_approx = 0.0;
-      double total_ari = 0.0;
-      std::vector<double> total_approx_modularities_5(exact_modularities_5.size());
-      for (size_t seed{0}; seed < index_rounds; seed++) {
-        const indexed_scan::Index approx_index{&graph, scan::ApproxJaccardSimilarity{num_samples, seed}};
-        {
-          constexpr bool kDeterministic{true};  // for consistency
-          const scan::Clustering clusters{approx_index.Cluster(best_exact_query.mu, best_exact_query.epsilon, kDeterministic)};
-          const double modularity{scan::Modularity(&graph, clusters)};
-          const double ari{AdjustedRandIndex(best_exact_query.clusters, clusters)};
-          total_modularity_at_exact += modularity;
-          total_ari += ari;
-          std::cerr << "At exact params: modularity=" << modularity << " ARI=" << ari << '\n';
-        }
-        {
-          const QueryInfo best_approx_query{SearchForClusters(&graph, approx_index, max_degree)};
-          total_modularity_at_approx += best_approx_query.modularity;
-          std::cerr << "At best approx params " << ParametersToString(best_approx_query.mu, best_approx_query.epsilon) << " modularity=" << best_approx_query.modularity << '\n';
-        }
-        const std::vector<double> approx_modularities_5{Modularities_5(&graph, approx_index)};
-        for (size_t i = 0; i < approx_modularities_5.size(); i++) {
-          total_approx_modularities_5[i] += approx_modularities_5[i];
-        }
-      }
-      std::cerr << "Mean modularity @ exact params=" << total_modularity_at_exact / index_rounds << " mean ari=" << total_ari / index_rounds << '\n';
-      std::cerr << "Mean modularity @ approx best params=" << total_modularity_at_approx / index_rounds << '\n';
-      std::cerr << "approx mod 5:";
-      for (auto mod : total_approx_modularities_5) {
-        std::cerr << ' ' << mod / index_rounds;
-      }
-      std::cerr << '\n';
     }
   }
 
@@ -413,8 +288,24 @@ double RunScan(Graph& graph, const commandLine& parameters) {
   return 0.0;
 }
 
-static constexpr bool kMutatesGraph{false};
-
 }  // namespace gbbs
 
-generate_symmetric_once_main(gbbs::RunScan, gbbs::kMutatesGraph);
+int main(int argc, char* argv[]) {
+  gbbs::commandLine P(argc, argv, " [-s] <inFile>");
+  char* iFile = P.getArgument(0);
+  bool symmetric = P.getOptionValue("-s");
+  ASSERT(symmetric);
+  bool compressed = P.getOptionValue("-c");
+  bool mmap = P.getOptionValue("-m");
+  size_t rounds = 1;
+  gbbs::pcm_init();
+  if (compressed) {
+    ABORT("Graph compression not yet implemented for float weights");
+  } else {
+    auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
+        iFile, mmap);
+    gbbs::alloc_init(G);
+    run_app(G, gbbs::RunScan, rounds)
+  }
+  gbbs::alloc_finish();
+}
