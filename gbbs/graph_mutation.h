@@ -265,7 +265,8 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
   G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "# G.m is now = " << G.m << "\n";
 
-  return edge_array<W>(arr.to_array(), n, n, arr.size());
+  auto arr_size = arr.size();
+  return edge_array<W>(arr.to_array(), n, n, arr_size);
 }
 
 // Used by MaximalMatching.
@@ -307,7 +308,8 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
   }, 1);
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
-  return edge_array<W>(arr.to_array(), n, n, arr.size());
+  auto arr_size = arr.size();
+  return edge_array<W>(arr.to_array(), n, n, arr_size);
 }
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
@@ -363,7 +365,8 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
       }
     }, 1);
   }
-  return edge_array<W>(output_arr.to_array(), n, n, output_arr.size());
+  auto output_arr_size = output_arr.size();
+  return edge_array<W>(output_arr.to_array(), n, n, output_arr_size);
 }
 
 

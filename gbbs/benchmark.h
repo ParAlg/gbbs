@@ -3,6 +3,7 @@
 // (e.g., profiling)
 #pragma once
 
+#include "assert.h"
 #include "graph_io.h"
 
 namespace gbbs {
@@ -332,20 +333,24 @@ inline auto get_pcm_state() { return (size_t)1; }
     gbbs::alloc_finish();                                                  \
   }
 
-#define generate_symmetric_uncompressed_float_weighted_once_main(APP)      \
+/* Macro to generate binary for floating-point weighted graph applications that
+ * can ingest only symmetric graph inputs */
+#define generate_symmetric_float_weighted_main(APP)                        \
   int main(int argc, char* argv[]) {                                       \
     gbbs::commandLine P(argc, argv, " [-s] <inFile>");                     \
     char* iFile = P.getArgument(0);                                        \
     debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
     bool compressed = P.getOptionValue("-c");                              \
-    if (compressed) {                                                      \
-      std::cerr << "compressed graphs not allowed\n";                      \
-    }                                                                      \
     bool mmap = P.getOptionValue("-m");                                    \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
     gbbs::pcm_init();                                                      \
-    auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(          \
-        iFile, mmap);                                                      \
-    gbbs::alloc_init(G);                                                   \
-    run_app(G, APP, 1)                                                     \
+    if (compressed) {                                                      \
+      ABORT("Graph compression not yet implemented for float weights");    \
+    } else {                                                               \
+      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(        \
+          iFile, mmap);                                                    \
+      gbbs::alloc_init(G);                                                 \
+      run_app(G, APP, rounds)                                              \
+    }                                                                      \
     gbbs::alloc_finish();                                                  \
   }

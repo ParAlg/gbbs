@@ -326,4 +326,22 @@ double RunScan(Graph& graph, const commandLine& parameters) {
 
 }  // namespace gbbs
 
-generate_symmetric_uncompressed_float_weighted_once_main(gbbs::RunScan);
+int main(int argc, char* argv[]) {
+  gbbs::commandLine P(argc, argv, " [-s] <inFile>");
+  char* iFile = P.getArgument(0);
+  bool symmetric = P.getOptionValue("-s");
+  assert(symmetric);
+  bool compressed = P.getOptionValue("-c");
+  bool mmap = P.getOptionValue("-m");
+  size_t rounds = 1;
+  gbbs::pcm_init();
+  if (compressed) {
+    ABORT("Graph compression not yet implemented for float weights");
+  } else {
+    auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
+        iFile, mmap);
+    gbbs::alloc_init(G);
+    run_app(G, gbbs::RunScan, rounds)
+  }
+  gbbs::alloc_finish();
+}
