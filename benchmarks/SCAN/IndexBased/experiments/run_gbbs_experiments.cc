@@ -2,7 +2,7 @@
 // measures clustering quality.
 //
 // Usage example:
-//     bazel run //benchmarks/SCAN/IndexBased:SCAN_main -- -s <path to graph>
+//     bazel run //benchmarks/SCAN/IndexBased/experiments:run_gbbs_experiments -- -s <path to graph>
 // flags:
 //   required:
 //     -s : indicate that the graph is symmetric
