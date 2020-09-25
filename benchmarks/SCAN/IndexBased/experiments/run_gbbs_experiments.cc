@@ -157,7 +157,8 @@ void OutputQueryTimes(
       query_times.emplace_back(query_timer.stop());
       if (verbose) { std::cerr << ' ' << query_times.back(); }
     }
-    std::cerr << "** Cluster median time " << ParametersToString(mu, kEpsilon) << ": " << Median(query_times) << "\n";
+    std::cerr << "** Cluster median time " << ParametersToString(mu, kEpsilon)
+      << ": " << Median(query_times) << "\n";
   }
 
   // Output query times with fixed mu and varying epsilon.
@@ -276,16 +277,21 @@ void OutputApproximateQuality(
       graph, SimilarityMeasure{num_samples, seed}};
     {
       constexpr bool kDeterministic{true};  // for consistency
-      const scan::Clustering clusters{approx_index.Cluster(best_exact_clustering.mu, best_exact_clustering.epsilon, kDeterministic)};
+      const scan::Clustering clusters{approx_index.Cluster(
+          best_exact_clustering.mu,
+          best_exact_clustering.epsilon,
+          kDeterministic)};
       const double modularity{scan::Modularity(graph, clusters)};
-      const double ari{ari_querier.AdjustedRandIndex(best_exact_clustering.clusters, clusters)};
+      const double ari{ari_querier.AdjustedRandIndex(
+          best_exact_clustering.clusters, clusters)};
       total_modularity_at_exact += modularity;
       total_ari += ari;
       std::cerr << "At exact params: modularity=" << modularity
         << " ARI=" << ari << '\n';
     }
     {
-      const QueryInfo best_approx_query{SearchForClusters(graph, approx_index, max_degree)};
+      const QueryInfo best_approx_query{
+        SearchForClusters(graph, approx_index, max_degree)};
       total_modularity_at_approx += best_approx_query.modularity;
       std::cerr << "At best approx params "
         << ParametersToString(best_approx_query.mu, best_approx_query.epsilon)
