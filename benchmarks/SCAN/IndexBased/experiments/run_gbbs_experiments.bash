@@ -2,8 +2,7 @@
 
 DATA_DIR=~/data
 RESULTS_DIR=~/scan-experiment-results
-RUN_PARALLEL="numactl -i all bazel run --cxxopt=-O3
-//benchmarks/SCAN/IndexBased/experiments:run_gbbs_experiments -- -s"
+RUN_PARALLEL="numactl -i all bazel run --cxxopt=-O3 //benchmarks/SCAN/IndexBased/experiments:run_gbbs_experiments -- -s"
 RUN_SERIAL="bazel run --cxxopt=-O3 --config=serial //benchmarks/SCAN/IndexBased/experiments:run_gbbs_experiments -- -s --serial"
 
 mkdir --parents ${RESULTS_DIR}
