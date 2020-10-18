@@ -75,14 +75,6 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, int batch_num, commandLine
   G.del();
 
 
-//template<class Graph>
-//inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight) {
-//  size_t m = G.num_edges();
-//  pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
-//  std::vector<gbbs::gbbs_io::Edge<int>> output(m/2);
-//}
-
-
 template<class Graph>
 inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
   vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
