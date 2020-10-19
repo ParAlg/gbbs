@@ -66,6 +66,7 @@ inline size_t Makkar_Dynamic_Triangle(
 
   t.start();
   auto all_edges = U.slice(0, U.size());
+  std::cout << "init starts" << std::endl;
   DG.process_batch(all_edges);
 
   parallel_for(0, updates.size(), [&] (size_t i) {
