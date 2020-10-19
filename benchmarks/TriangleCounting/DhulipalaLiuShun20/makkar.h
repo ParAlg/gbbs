@@ -78,7 +78,8 @@ inline size_t Makkar_Dynamic_Triangle(
   for (size_t i=0; i<=num_batches; i++) {
     // process batch i
     size_t batch_start = (num_batches-i) * batch_size;
-    size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
+    size_t batch_end = std::min(updates.size(), batch_start + batch_size);
+    if(batch_end <= batch_start) continue;
     auto batch = U.slice(batch_start, batch_end);
     timer bt; bt.start();
     DG.process_batch(batch);
