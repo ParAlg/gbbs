@@ -223,7 +223,7 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
         updates = shuffle_edges(G, weight);
       }
       gbbs::alloc_init(G);
-      gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, P);
+      gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, weight, P);
     }else{
 
 
