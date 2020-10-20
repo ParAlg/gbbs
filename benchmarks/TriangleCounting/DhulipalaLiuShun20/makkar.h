@@ -55,24 +55,15 @@ inline size_t Makkar_Dynamic_Triangle(
 
   }else if(weight == 2){ ////////////////////// deletions
 
-  auto DG = gbbs::DynamicGraph(n);
-  
+
   parallel_for(0, updates.size(), [&] (size_t i) {
     U[i].from = updates[i].from;
     U[i].to = updates[i].to;
-    U[i].weight = 1;
-  });
-
-
-  t.start();
-  auto all_edges = U.slice(0, U.size());
-  std::cout << "init starts" << std::endl;
-  DG.process_batch(all_edges);
-
-  parallel_for(0, updates.size(), [&] (size_t i) {
     U[i].weight = 0;
   });
 
+  t.start();
+  auto DG = gbbs::DynamicGraph(G);
   t.next("graph initialized");
 
   for (size_t i=0; i<=num_batches; i++) {

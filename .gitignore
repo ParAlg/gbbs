@@ -1,6 +1,10 @@
 *~
 *.swo
 *.swp
+*.txt
+*.sh
+*.gdb_history
+*.md
 
 *.a
 *.o
