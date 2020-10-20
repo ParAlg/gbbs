@@ -245,6 +245,7 @@ namespace gbbs {
     // An unsorted batch of updates
     template <class B>
     void process_insertions(B& unsorted_batch) {
+      if (unsorted_batch.size() == 0) { return; }
       auto duplicated_batch = pbbs::sequence<edge>(2*unsorted_batch.size());
       parallel_for(0, unsorted_batch.size(), [&] (size_t i) {
         duplicated_batch[2*i] = unsorted_batch[i];
@@ -409,12 +410,17 @@ namespace gbbs {
           A[k] = A[a];
           k++; a++;
         } else { // deletion not found
+          B[b].second = UINT_E_MAX; // mark as void
           b++;
         }
       }
       while (a < nA) {
         A[k] = A[a];
         k++; a++;
+      }
+      while (b < nB) {
+        B[b].second = UINT_E_MAX;
+        b++;
       }
       return k;
     }
@@ -423,13 +429,30 @@ namespace gbbs {
     void merge_deletions(uintE v, C& updates) {
       uintE current_degree = D[v];
       uintE* ngh_v = A[v];
+//      std::cout << "Current adj: ";
+//      for (size_t i=0; i<current_degree; i++) {
+//        std::cout << A[v][i] << " ";
+//      }
+//      std::cout << endl;
+//      std::cout << "Updates: ";
+//      for (size_t i=0; i<updates.size(); i++) {
+//        std::cout << updates[i].second << " ";
+//      }
+//      std::cout << endl;
       size_t new_degree = merge_deletions_inplace(ngh_v, current_degree, updates);
       D[v] = new_degree;
+//      std::cout << "New adj: ";
+//      for (size_t i=0; i<new_degree; i++) {
+//        std::cout << A[v][i] << " ";
+//      }
+//      std::cout << endl;
+//      std::cout << "Updated degree of v = " << v << " from " << current_degree << " to " << new_degree << std::endl;
     }
 
     // An unsorted batch of updates
     template <class B>
     void process_deletions(B& unsorted_batch) {
+      if (unsorted_batch.size() == 0) { return; }
       auto duplicated_batch = pbbs::sequence<edge>(2*unsorted_batch.size());
       parallel_for(0, unsorted_batch.size(), [&] (size_t i) {
         duplicated_batch[2*i] = unsorted_batch[i];
@@ -445,42 +468,67 @@ namespace gbbs {
       timer sort_t; sort_t.start();
       pbbs::sample_sort_inplace(duplicated_batch.slice(), sort_f);
 
-
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
       auto duplicated_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
         return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
-      auto batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
-//        return (ind == 0) || (p != duplicated_batch_unweighted[ind-1]);
-        return ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
+      auto untested_batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
+        bool not_zero_deg = D[p.first] > 0;
+        return not_zero_deg && ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
       });
 
       // (iii) generate vertex offsets into the de-duplicated batch
+      auto untested_index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(untested_batch.size(), [&] (size_t i) {
+        return std::make_pair(untested_batch[i].first, i);
+      });
+      // starts contains (vertex id, indexof start in batch) pairs.
+      auto untested_starts = pbbs::filter(untested_index_seq, [&] (const std::pair<uintE, size_t>& p) {
+        size_t ind = p.second;
+        return ind == 0 || (untested_index_seq[ind].first != untested_index_seq[ind-1].first);
+      });
+
+      // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
+      parallel_for(0, untested_starts.size(), [&] (size_t i) {
+        const auto[v, index] = untested_starts[i];
+        starts_offsets[v] = i;
+      });
+
+      // (v) insert the updates into the old graph
+      parallel_for(0, untested_starts.size(), [&] (size_t i) {
+        const auto [v, index] = untested_starts[i];
+        size_t v_deg = ((i == untested_starts.size()-1) ? untested_batch.size() : untested_starts[i+1].second) - index;
+        if (v_deg == 0) abort();
+
+        auto v_inserts = untested_batch.slice(index, index + v_deg);
+        merge_deletions(v, v_inserts);
+      });
+
+      // some edges may now be marked as "void". filter these out and
+      // recompute starts.
+      auto batch = pbbs::filter(untested_batch, [&] (const pair<uintE, uintE>& p) {
+        return p.second != UINT_E_MAX;
+      });
       auto index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
         return std::make_pair(batch[i].first, i);
       });
+
+//      std::cout << "printing batch" << std::endl;
+//      for (size_t i=0; i<batch.size(); i++) {
+//        std::cout << batch[i].first << " " << batch[i].second << std::endl;
+//      }
+
       // starts contains (vertex id, indexof start in batch) pairs.
       auto starts = pbbs::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
         size_t ind = p.second;
         return ind == 0 || (index_seq[ind].first != index_seq[ind-1].first);
       });
-      std::cout << "batchsize = " << batch.size() << " starts.size = " << starts.size() << std::endl;
+//      std::cout << "batchsize = " << batch.size() << " starts.size = " << starts.size() << std::endl;
 
       // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
       parallel_for(0, starts.size(), [&] (size_t i) {
         const auto[v, index] = starts[i];
         starts_offsets[v] = i;
-      });
-
-      // (v) insert the updates into the old graph
-      parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto [v, index] = starts[i];
-        size_t v_deg = ((i == starts.size()-1) ? batch.size() : starts[i+1].second) - index;
-        if (v_deg == 0) abort();
-
-        auto v_inserts = batch.slice(index, index + v_deg);
-        merge_deletions(v, v_inserts);
       });
 
       /////////////////////////////////////////////////////////////////////////
@@ -540,6 +588,15 @@ namespace gbbs {
             auto u_inserts = get_new_edgelist(u, u_starts_offset);
             auto v_inserts = get_new_edgelist(v, v_starts_offset);
             count += intersect_new(u_inserts, v_inserts, u, v);
+//            std::cout << "intersecting " << u << " and " << v << std::endl;
+//            std::cout << "u = " << u << std::endl;
+//            for (size_t i=0; i<u_inserts.size(); i++) {
+//              std::cout << u_inserts[i].first << " " << u_inserts[i].second << std::endl;
+//            }
+//            std::cout << "v = " << v << std::endl;
+//            for (size_t i=0; i<v_inserts.size(); i++) {
+//              std::cout << v_inserts[i].first << " " << v_inserts[i].second << std::endl;
+//            }
           }
         }
         counts_three[b] = count;

@@ -53,33 +53,64 @@ inline size_t Makkar_Dynamic_Triangle(
   DG.report_stats();
 
 
-  }else if(weight == 2){ ////////////////////// deletions
+  } else if(weight == 2){ ////////////////////// deletions
+
+    if (G.n != 0) {
+      parallel_for(0, updates.size(), [&] (size_t i) {
+        U[i].from = updates[i].from;
+        U[i].to = updates[i].to;
+        U[i].weight = 0;
+      });
+
+      t.start();
+      auto DG = gbbs::DynamicGraph(G);
+      t.next("graph initialized");
+
+      for (size_t i=0; i<=num_batches; i++) {
+        // process batch i
+        size_t batch_start = (num_batches-i) * batch_size;
+        size_t batch_end = std::min(updates.size(), batch_start + batch_size);
+        if(batch_end <= batch_start) continue;
+        auto batch = U.slice(batch_start, batch_end);
+        timer bt; bt.start();
+        DG.process_batch(batch);
+        bt.stop(); bt.reportTotal("batch time");
+        std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
+        std::cout << std::endl;
+      }
+      DG.report_stats();
+    } else {
+      parallel_for(0, updates.size(), [&] (size_t i) {
+        U[i].from = updates[i].from;
+        U[i].to = updates[i].to;
+        U[i].weight = 1;
+      });
+
+      t.start();
+      auto inserts = U.slice();
+      auto DG = gbbs::DynamicGraph(n);
+      DG.process_batch(inserts);
+      t.next("graph initialized");
 
 
-  parallel_for(0, updates.size(), [&] (size_t i) {
-    U[i].from = updates[i].from;
-    U[i].to = updates[i].to;
-    U[i].weight = 0;
-  });
+      parallel_for(0, updates.size(), [&] (size_t i) {
+        U[i].weight = 0;
+      });
 
-  t.start();
-  auto DG = gbbs::DynamicGraph(G);
-  t.next("graph initialized");
-
-  for (size_t i=0; i<=num_batches; i++) {
-    // process batch i
-    size_t batch_start = (num_batches-i) * batch_size;
-    size_t batch_end = std::min(updates.size(), batch_start + batch_size);
-    if(batch_end <= batch_start) continue;
-    auto batch = U.slice(batch_start, batch_end);
-    timer bt; bt.start();
-    DG.process_batch(batch);
-    bt.stop(); bt.reportTotal("batch time");
-    std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
-    std::cout << std::endl;
-  }
-  DG.report_stats();
-
+      for (size_t i=0; i<=num_batches; i++) {
+        // process batch i
+        size_t batch_start = (num_batches-i) * batch_size;
+        size_t batch_end = std::min(updates.size(), batch_start + batch_size);
+        if(batch_end <= batch_start) continue;
+        auto batch = U.slice(batch_start, batch_end);
+        timer bt; bt.start();
+        DG.process_batch(batch);
+        bt.stop(); bt.reportTotal("batch time");
+        std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
+        std::cout << std::endl;
+      }
+      DG.report_stats();
+    }
   }
 
 
