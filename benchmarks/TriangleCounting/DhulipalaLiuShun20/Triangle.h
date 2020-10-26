@@ -91,15 +91,19 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   // t.start(); //step 2 mark insert,  some array moves to tables
   // par_for(0, vtxNew.size(), [&] (size_t i) {
-  int nworkers = pbbs::num_workers();
-  pbbs::set_num_workers(1);
-  for(0, vtxNew.size(), [&] (size_t i) {
+  // int nworkers = pbbs::num_workers();
+  // pbbs::set_num_workers(1);
+  // par_for(0, vtxNew.size(), [&] (size_t i) {
+  //   DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
+  //   DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+  // });
+  for(size_t i = 0; i< vtxNew.size(); ++i){
     DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
     DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   });
   t.next("2. 3. mark insertions + deletions");
-   pbbs::set_num_workers(nworkers);
-   
+  //  pbbs::set_num_workers(nworkers);
+
   // t.start(); //step 4 and 5 update insertions  and deletions
   // loop over the low degree vertices w, process if the other is high
   // only process each edge once
