@@ -100,7 +100,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   for(size_t i = 0; i< vtxNew.size(); ++i){
     DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
     DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  });
+  }
   t.next("2. 3. mark insertions + deletions");
   //  pbbs::set_num_workers(nworkers);
 

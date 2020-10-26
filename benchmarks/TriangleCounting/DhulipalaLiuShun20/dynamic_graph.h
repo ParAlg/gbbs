@@ -361,13 +361,13 @@ namespace DBTGraph{
 
         // }
 
-        // // insert to top table to after insertion we will need that table but previously no table
-        // // assume originally u is using table. i.e. use_block(u) is false
-        // void markEdgeInsertTop(DBTGraph::VtxUpdate &u, tableE *tb1, tableE *tb2, size_t space){
-        //     size_t low_space = lowD[u.id] + u.insert_low_degree;
-        //     if(u.ins_low() && low_table_empty(u))  insertTop(tb1, u.id, low_space); 
-        //     if(u.ins_high() && high_table_empty(u)) insertTop(tb2, u.id, space-low_space);
-        // }
+        // insert to top table to after insertion we will need that table but previously no table
+        // assume originally u is using table. i.e. use_block(u) is false
+        void markEdgeInsertTop(DBTGraph::VtxUpdate &u, tableE *tb1, tableE *tb2, size_t space){
+            size_t low_space = lowD[u.id] + u.insert_low_degree;
+            if(u.ins_low() && low_table_empty(u))  insertTop(tb1, u.id, low_space); 
+            if(u.ins_high() && high_table_empty(u)) insertTop(tb2, u.id, space-low_space);
+        }
 
         // // copy u's neighbors to table with OLD_EDGE
         // // insert top tables if needed
@@ -392,9 +392,9 @@ namespace DBTGraph{
         //  start from offset and end at u.insert_degree
         void markEdgeArrayInsertion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>*> &edgesInsert, int val, size_t offset){
             // size_t offset = D[u.id];
-            for(0, u.insert_degree, [&](size_t i) {
+            for(size_t i = 0; i < u.insert_degree; ++ i) { 
                 setEArray(u.id, edgesInsert[i].first.second, offset+i, val);
-            });
+            }
         }
 
         // assume u in top tables
@@ -414,23 +414,15 @@ namespace DBTGraph{
                     bottomTb2->maybe_resize(u.insert_degree - u.insert_low_degree,  D[u.id] - lowD[u.id]);
                 }
             }
-            for(0, u.insert_degree, [&](size_t i) { 
+            for(size_t i = 0; i < u.insert_degree; ++ i) { 
                 uintE v = edgesInsert[i].first.second;
                 if(is_low_v(v)){
                     insertE(tb1, u.id, v, val);
                 }else{
                     insertE(tb2, u.id, v, val);
                 }
-            });
+            }
 
-        }
-
-        // insert to top table to after insertion we will need that table but previously no table
-        // assume originally u is using table. i.e. use_block(u) is false
-        void markEdgeInsertTop(DBTGraph::VtxUpdate &u, tableE *tb1, tableE *tb2, size_t space){
-            size_t low_space = lowD[u.id] + u.insert_low_degree;
-            if(u.ins_low() && low_table_empty(u))  insertTop(tb1, u.id, low_space); 
-            if(u.ins_high() && high_table_empty(u)) insertTop(tb2, u.id, space-low_space);
         }
 
         // copy u's neighbors to table with OLD_EDGE
@@ -439,14 +431,14 @@ namespace DBTGraph{
             size_t low_space = lowD[u.id] + u.insert_low_degree;
             if(low_space > 0 )  insertTop(tb1, u.id, low_space); //// {// have low edges }
             if(low_space < space) insertTop(tb2, u.id, space-low_space);//// { }
-            for(0, D[u.id], [&](size_t i) {
+            for(size_t i = 0; i < D[u.id]; ++i) {
                 uintE v = getEArray(u.id, i);
                 if(is_high_v(v)){
                     insertE(tb2,u.id,v,OLD_EDGE);
                 }else{
                     insertE(tb1,u.id,v,OLD_EDGE);
                 }
-            });
+            }
             blockStatus[u.id]  = false;
         }
        
@@ -509,13 +501,13 @@ namespace DBTGraph{
         // }
 
         void markEdgeArrayDeletion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>*> &edgesDeletion){
-            for(0, edgesDeletion.size(), [&](size_t j) {
+            for(size_t j = 0, j < edgesDeletion.size(); ++j) {
                 for(size_t i = 0; i < D[u.id]; ++i) {
                 if(getEArray(u.id, i) == edgesDeletion[j].first.second){
                     setEArrayVal(u.id, i, DEL_EDGE);
                 }
                 }
-            });
+            }
         }
 
         // if flag is true, update value to val
@@ -525,7 +517,7 @@ namespace DBTGraph{
         void markEdgeTables(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool> *> &edgesM, bool flag, int val){
             tableE *tb1 = LL;tableE *tb2 = LH;
             if(is_high_v(u.id)){tb1 = HL;tb2 = HH;}
-            for(0, edgesM.size(), [&](size_t i) { 
+            for(size_t i = 0; i < edgesM.size(); ++i) { 
                 uintE v = edgesM[i].first.second;
                 if(is_low_v(v)){
                     SetT* L = tb1->find(u.id, NULL);
@@ -536,7 +528,7 @@ namespace DBTGraph{
                     if(flag){H->updateSeq(v,val);}
                     else{H->deleteVal(v);}
                 }
-            });
+            }
         }
 
         // mark array or tables of i with DEL_EDGE for neghs in edgesD
