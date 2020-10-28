@@ -268,9 +268,9 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 //       DG->downSizeTablesBoth(vtxNew[i]);
 //     });
 // #else
-    par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, called before downSizeTablesDeletes
+    parallel_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, called before downSizeTablesDeletes
       DG->downSizeTables(vtxNew[i]);
-    });
+    }, 1);
     par_for(0, vtxNew.size(), [&] (const size_t i) { // delete tables packed and change status
       DG->downSizeTablesDeletes(vtxNew[i]);
     });
@@ -282,19 +282,19 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     //  ============================= Update Wedge Table, L to H ============================= 
     // insert HLH where u was low
-    par_for(0, numLtoH, [&] (const size_t i) { 
+    parallel_for(0, numLtoH, [&] (const size_t i) { 
       VtxUpdate u = vtxChangeLH[i];
       if(DG->use_block_v(u.id)) return;
       DG->minorRblInsertWedge(u, vtxNew, vtxMap);
-    });
+    }, 1);
 
     // insert HLH where center w was high
     // called after minorRblInsertWedge
     // only add to wegdes(u,v) where both (u,v) are not changing from L to H
     // otherwise the count already includes new low centers
-    par_for(numLtoH, vtxChangeLH.size(), [&] (const size_t i) { // called after inserting HLH
+    parallel_for(numLtoH, vtxChangeLH.size(), [&] (const size_t i) { // called after inserting HLH
       DG->minorRblInsertWedgeCenter(vtxChangeLH[i], vtxNew, vtxMap);
-    });
+    }, 1);
 
 
   // flag.clear();
