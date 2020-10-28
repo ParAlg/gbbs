@@ -786,9 +786,9 @@ namespace DBTGraph{
                 alloc = false;
                 initParams();
                 D = pbbs::sequence<size_t>(n, (size_t)0);
-                lowD = D;
+                lowD = move(D);
                 status = pbbs::sequence<bool>(n, false);
-                blockStatus = status;
+                blockStatus = move(status); // will copy here, and it's intended
                 return;
             }
             initParams();

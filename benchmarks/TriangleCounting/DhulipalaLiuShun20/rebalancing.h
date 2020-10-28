@@ -138,12 +138,10 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     size_t newLowNum = DG->num_vertices_low();
 
     //  ============================= find vertices that change low/high status   =============================
-    //TODO: can optimize
     par_for(0, vtxNew.size(), [&](const size_t i){
       if(DG->change_status(vtxNew[i])) vtxNew[i].change_status = true;
     });
     pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(vtxNew, [&](const VtxUpdate &u){
-      //return DG->change_status(u);
       return u.change_status;
     });
 
@@ -155,7 +153,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
 
     // [0,numLtoH) are vertices that change from L to H, the rest from H to L
     pair<pbbs::sequence<VtxUpdate>, size_t> vtxChangeLHsize = pbbs::split_two(vtxChange, flag);
-    vtxChangeLH =  vtxChangeLHsize.first; // LtoH, then HtoL 
+    vtxChangeLH =  move(vtxChangeLHsize.first); // LtoH, then HtoL 
     numLtoH =  vtxChangeLHsize.second;
     numHtoL =  vtxChange.size() - numLtoH;
 
@@ -265,18 +263,18 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
     par_for(0, vtxRbl.size(), [&] (const size_t i) { // update low degrees from rebalancing
       DG->updateDegrees(vtxRbl[i]);
     });
-#ifdef DBT_TOMB_MERGE
-    par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, delete tables and change status
-      DG->downSizeTablesBoth(vtxNew[i]);
-    });
-#else
+// #ifdef DBT_TOMB_MERGE
+//     par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, delete tables and change status
+//       DG->downSizeTablesBoth(vtxNew[i]);
+//     });
+// #else
     par_for(0, vtxNew.size(), [&] (const size_t i) { // pack table to arrays if new degree is low enough, called before downSizeTablesDeletes
       DG->downSizeTables(vtxNew[i]);
     });
     par_for(0, vtxNew.size(), [&] (const size_t i) { // delete tables packed and change status
       DG->downSizeTablesDeletes(vtxNew[i]);
     });
-#endif
+// #endif
     DG->set_vertices_low(newLowNum);
 
     t.stop();t.reportTotal("8. update degrees");

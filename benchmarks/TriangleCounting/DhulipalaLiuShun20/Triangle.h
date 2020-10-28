@@ -100,9 +100,9 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // t.start(); //step 4 and 5 update insertions  and deletions
   // loop over the low degree vertices w, process if the other is high
   // only process each edge once
-  par_for(0, vtxNew.size(), [&] (size_t i) {
+  parallel_for(0, vtxNew.size(), [&] (size_t i) {
     DG->updateTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
-  });
+  }, 1);
   t.next("4. 5. update insertions and deletions");
 
   // t.start(); //step 6. count triangles 
@@ -126,18 +126,18 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   t.next("6. count triangles");
 
   // t.start(); //  first cleanup wedge tables, then re-mark inserts to OLD_EDGE, then remove
-#ifdef DBT_TOMB_MERGE
-  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T and delete if count is 0
-    DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
-  });
-#else
+// #ifdef DBT_TOMB_MERGE
+//   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T and delete if count is 0
+//     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
+//   });
+// #else
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, called before tables are cleaned up
     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
   });
   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true);
   });
-#endif
+// #endif
   par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
     DG->cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
   });
