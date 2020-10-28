@@ -109,13 +109,13 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
   // updates final has one copy of each edge
   // for each edge, count the delta triangle caused by counting wedges
-  par_for(0, updates_final.size(), [&] (size_t i) {
+  parallel_for(0, updates_final.size(), [&] (size_t i) {
     EdgeT elocal = updates_final[i].first;
     bool flag = updates_final[i].second;
     DBTGraph::VtxUpdate u = vtxNew[vtxMap[elocal.first]]; // must make a copy here, because countTriangles might swap variables
     DBTGraph::VtxUpdate v = vtxNew[vtxMap[elocal.second]]; // must make a copy here, because countTriangles might swap variables
     DG->countTriangles(u,v,flag, tc);
-  });
+  }, 1);
   pbbs::sequence<size_t> triCounts = tc.report();  //TODO: reuse
   delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
   delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
@@ -131,19 +131,19 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 //     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
 //   });
 // #else
-  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, called before tables are cleaned up
+  parallel_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, called before tables are cleaned up
     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
-  });
-  par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
+  }, 1);
+  parallel_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true);
-  });
+  }, 1);
 // #endif
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
+  parallel_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
     DG->cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
-  });
-  par_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
+  }, 1);
+  parallel_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
     DG->cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  });
+  }, 1);
   t.next("7. clean up tables");
   
   // t.start(); //  minor rebalancing 

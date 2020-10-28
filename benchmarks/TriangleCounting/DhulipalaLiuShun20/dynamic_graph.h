@@ -496,7 +496,7 @@ namespace DBTGraph{
         //      for w's ngh high  v, check (u,v)
         void updateTable(DBTGraph::VtxUpdate &w, pbbs::range<pair<EdgeT,bool> *> edgesID){
             if (is_low_v(w.id)){ // w is low 
-            par_for(0, w.degree, [&] (size_t i) { // loop over the udpate batch (w,u)
+            parallel_for(0, w.degree, [&] (size_t i) { // loop over the udpate batch (w,u)
                 uintE uid = getSecond(edgesID, i);
                 if(is_high_v(uid)){               // proceed only when u is high
                     bool flag = edgesID[i].second; // insertion or deletion
@@ -510,7 +510,7 @@ namespace DBTGraph{
                                 updateTableT(uid, v, get<1>(H->table[j]), flag);}});                    
                     }
                 }
-            });
+            }, 1);
             }
         }
 
@@ -1045,7 +1045,7 @@ namespace DBTGraph{
             if(use_block_v(w)){
                 VtxUpdate wobj = VtxUpdate(w);
                 if(vtxMap[w] != EMPTYVMAP) wobj = vtxNew[vtxMap[w]];
-                par_for(0, get_new_degree(wobj), [&] (size_t k) {
+                par_for(0, get_new_degree(wobj), pbbslib::kSequentialForThreshold, [&] (size_t k) {
                     uintE v = getEArray(w,k);//edges[w * block_size + k];
                     if(is_high_v(v) && u != v){
                         minorRbldeleteW(u, v);
@@ -1056,7 +1056,7 @@ namespace DBTGraph{
             }else{
                 SetT* H = LH->find(w,(SetT*) NULL );
                 if(H == NULL) return; // we can check if H is NULL beforehand, but makes code messy
-                par_for(0, H->size(), [&] (size_t k) {
+                par_for(0, H->size(), pbbslib::kSequentialForThreshold, [&] (size_t k) {
                     uintE v = get<0>(H->table[k]);
                     if(H->not_empty(v) && u != v){
                         minorRbldeleteW(u, v);
@@ -1075,20 +1075,20 @@ namespace DBTGraph{
         void minorRblDeleteWedge(DBTGraph::VtxUpdate &u, pbbs::sequence<VtxUpdate> &vtxNew,  pbbs::sequence<size_t> &vtxMap){
             if(get_new_low_degree(u) > 0){
             if(use_block_v(u.id)){
-                par_for(0, get_new_degree(u), [&] (size_t j) {
+                parallel_for(0, get_new_degree(u), [&] (size_t j) {
                     uintE w = getEArray(u.id,j);//edges[u * block_size + j];
                     if(is_low_v(w)){
                         minorRbldeleteWedgeHelper(u.id, w, vtxNew, vtxMap);
                     }
-                });
+                }, 1);
             }else{
-                    SetT* L = HL->find(u.id, (SetT*) NULL);
-                    par_for(0, L->size(), [&] (size_t j) {
+                SetT* L = HL->find(u.id, (SetT*) NULL);
+                parallel_for(0, L->size(), [&] (size_t j) {
                     uintE w = get<0>(L->table[j]);
                     if(L->not_empty(w)){ // we can check if H is NULL here, but makes code messy
                         minorRbldeleteWedgeHelper(u.id, w, vtxNew, vtxMap);
                     }
-                });                   
+                }, 1);                   
             }
 
             }
