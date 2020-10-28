@@ -774,9 +774,9 @@ namespace DBTGraph{
         DyGraph(int t_block_size, size_t a):n(a), m(0), block_size(t_block_size), lowNum(0), alloc(false){
             initParams();
             D = pbbs::sequence<size_t>(n, (size_t)0);
-            lowD = D;
+            lowD = move(D);
             status = pbbs::sequence<bool>(n, false);
-            blockStatus = status;
+            blockStatus = move(status);
         }
 
         DyGraph(int t_block_size, Graph& G,  size_t t_n):block_size(t_block_size), alloc(true){

@@ -68,6 +68,10 @@ tuple<size_t,  DyGraph<SymGraph> *> majorRebalancing(DyGraph<Graph>* DG, pbbs::s
     }
   }); 
   size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);  
+  if(num_edges == 0){
+    DGnew = new DyGraph<SymGraph>(DG->get_block_size(), num_vertices); 
+    return make_tuple(0, DGnew);
+  }
 
   par_for(0, num_vertices-1, DBTGraph::smallTasksForThreshold, [&](const size_t i) {
     vertex_data_array[i].degree = newDegrees[i+1]-newDegrees[i];
