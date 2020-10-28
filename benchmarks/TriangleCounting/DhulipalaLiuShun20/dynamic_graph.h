@@ -328,9 +328,10 @@ namespace DBTGraph{
         //  start from offset and end at u.insert_degree
         void markEdgeArrayInsertion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>*> &edgesInsert, int val, size_t offset){
             // size_t offset = D[u.id];
-            parallel_for(0, u.insert_degree, [&](size_t i) {
+            // par_for(0, u.insert_degree, [&](size_t i) { //can be parallel
+            for(size_t i = 0; i < u.insert_degree; ++ i) { 
                 setEArray(u.id, edgesInsert[i].first.second, offset+i, val);
-            });
+            }
         }
 
         // assume u in top tables
@@ -375,14 +376,15 @@ namespace DBTGraph{
             size_t low_space = lowD[u.id] + u.insert_low_degree;
             if(low_space > 0 )  insertTop(tb1, u.id, low_space); //// {// have low edges }
             if(low_space < space) insertTop(tb2, u.id, space-low_space);//// { }
-            parallel_for(0, D[u.id], [&](size_t i) {
+            // par_for(0, D[u.id], [&](size_t i) {//can be parallel
+            for(size_t i = 0; i < D[u.id]; ++i) {
                 uintE v = getEArray(u.id, i);
                 if(is_high_v(v)){
                     insertE(tb2,u.id,v,OLD_EDGE);
                 }else{
                     insertE(tb1,u.id,v,OLD_EDGE);
                 }
-            });
+            }
             blockStatus[u.id]  = false;
         }
         
@@ -414,13 +416,15 @@ namespace DBTGraph{
         /////////////////////// MARK EDGE DELETION /////////////////////////////////////////////
 
         void markEdgeArrayDeletion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>*> &edgesDeletion){
-            parallel_for(0, edgesDeletion.size(), [&](size_t j) {
+            // par_for(0, edgesDeletion.size(), [&](size_t j) { //can be parallel
+            for(size_t j = 0; j < edgesDeletion.size(); ++j) {
                 for(size_t i = 0; i < D[u.id]; ++i) {
                 if(getEArray(u.id, i) == edgesDeletion[j].first.second){
                     setEArrayVal(u.id, i, DEL_EDGE);
+                    break;
                 }
                 }
-            });
+            }
         }
 
         // if flag is true, update value to val
