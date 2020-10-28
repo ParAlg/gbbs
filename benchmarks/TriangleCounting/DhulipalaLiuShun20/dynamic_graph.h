@@ -502,9 +502,11 @@ namespace DBTGraph{
 
         void markEdgeArrayDeletion(DBTGraph::VtxUpdate &u, pbbs::range<pair<EdgeT,bool>*> &edgesDeletion){
             for(size_t j = 0; j < edgesDeletion.size(); ++j) {
+            // size_t i = 0;
                 for(size_t i = 0; i < D[u.id]; ++i) {
                 if(getEArray(u.id, i) == edgesDeletion[j].first.second){
                     setEArrayVal(u.id, i, DEL_EDGE);
+	            break;
                 }
                 }
             }

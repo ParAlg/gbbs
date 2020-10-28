@@ -92,15 +92,15 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // t.start(); //step 2 mark insert,  some array moves to tables
   // par_for(0, vtxNew.size(), [&] (size_t i) {
   // int nworkers = pbbs::num_workers();
-  // pbbs::set_num_workers(1);
-  // par_for(0, vtxNew.size(), [&] (size_t i) {
-  //   DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
-  //   DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  // });
-  for(size_t i = 0; i< vtxNew.size(); ++i){
-    DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
-    DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
-  }
+   //pbbs::set_num_workers(1);
+   parallel_for(0, vtxNew.size(), [&] (size_t i) {
+     DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
+     DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+   }, 1);
+  //for(size_t i = 0; i< vtxNew.size(); ++i){
+  //  DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
+  //  DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+  //}
   t.next("2. 3. mark insertions + deletions");
   //  pbbs::set_num_workers(nworkers);
 

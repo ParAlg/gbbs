@@ -189,7 +189,8 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew, p
       DG->template get_neighbors_minor<pair<EdgeT,bool>, MakeEdgeHtoL<typename DyGraph<Graph>::SetT>>(vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, false); 
       }
     });
-    if(rblN != 0){vtxRbl = DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges.slice(), vtxRblMap.slice());}
+auto flagg = pbbs::sequence<size_t>();    
+if(rblN != 0){vtxRbl = DBTInternal::computeOffsets<EdgeT, VtxRbl>(rblEdges.slice(), vtxRblMap.slice(), flagg);}
     newDegrees.clear();
 
     par_for(0, vtxNew.size(), [&] (const size_t i) { // update degrees and low degrees from inserts/deletes to tmp array

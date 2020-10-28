@@ -102,7 +102,7 @@ namespace DBTGraph{
     };
 
     struct VtxUpdateInsDeg{
-        pbbs::sequence<VtxUpdate> vtxNew;
+        pbbs::sequence<VtxUpdate> &vtxNew;
         VtxUpdateInsDeg(pbbs::sequence<VtxUpdate>& a):vtxNew(a){}
 
         size_t operator ()(size_t i)const {

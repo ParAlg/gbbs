@@ -147,7 +147,7 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
 // true is before false
 // vtxNew is filled with offset, degree, and insert degree
 template <class EdgeT, class VTX>
-inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges, pbbs::range<size_t *> vtxMap, pbbs::sequence<size_t> flag = pbbs::sequence<size_t>()){
+inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges, pbbs::range<size_t *> vtxMap, pbbs::sequence<size_t> &flag){
   pbbs::sample_sort_inplace(edges, [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
     if(i.first.first == j.first.first) return i.second && !j.second;
       return i.first.first < j.first.first; 
