@@ -165,7 +165,6 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
 
   // DG->checkStatus();
-
   return make_tuple(new_ct, major_rebalanced, DGnew);
 
 }
@@ -219,7 +218,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
 // if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F>
 inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, size_t batch_size, commandLine& P) {
-  auto C0 = P.getOptionIntValue("-trict", 0);
+  size_t C0 = P.getOptionIntValue("-trict", 0);
   bool start_graph = P.getOptionValue("-sg"); 
   bool run_static = P.getOptionValue("-static");
   bool run_static_mix = P.getOptionValue("-staticmix"); 
