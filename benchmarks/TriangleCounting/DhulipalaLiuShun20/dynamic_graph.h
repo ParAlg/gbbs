@@ -746,6 +746,7 @@ namespace DBTGraph{
         }
 
         size_t myceil(size_t x, size_t y){
+            if(y==0) return 0;
             return 1 + ((x - 1) / y);
         }
 
