@@ -228,13 +228,14 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
 
 
     if (compressed) {
-      gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
-      if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(iFile, mmap, mmapcopy);
-      if(shuffle) {
-        updates = shuffle_edges(G, weight);
-      }
-      gbbs::alloc_init(G);
-      run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)
+       cout << "not supporting compressed format" << endl;
+      //gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
+      //if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(iFile, mmap, mmapcopy);
+      //if(shuffle) {
+      //  updates = shuffle_edges(G, weight);
+     // }
+     // gbbs::alloc_init(G);
+      //run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)
     } else {
       gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
       if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);

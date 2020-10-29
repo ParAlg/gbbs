@@ -75,7 +75,12 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   t.next("1. preprocess");
   DBTInternal::PrintFunctionItem("1.", "valid b", m);
 
-  // t.start(); //toCSR
+ if(m == 0){
+    updates_final.clear(); // preprocessed edges
+    t.stop(); t.reportTotal("DCountTime");
+    return make_tuple(C0, false, DG);
+  }
+ // t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
   pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG->num_vertices()); // fill vtxMap and edges
   t.next("count degrees");
