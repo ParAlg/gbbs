@@ -47,6 +47,7 @@ void* mem_pool::add_header(void* a) { return (void*)((char*)a + header_size); }
 void* mem_pool::sub_header(void* a) { return (void*)((char*)a - header_size); }
 
 void* mem_pool::alloc(size_t s) {
+  std::cout << "mempool alloc" << std::endl;
   size_t log_size = log2_up((size_t)s + header_size);
   if (log_size < 20) {
     void* a = (void*)aligned_alloc(header_size, s + header_size);

@@ -91,7 +91,9 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   bool major_rebalanced = false;
   if(DG->majorRebalance(m_ins, m-m_ins)){
     major_rebalanced = true;;
+    timer mt; mt.start();
     tie(new_ct, DGnew) = DBTGraph::majorRebalancing(DG, edges,vtxNew, vtxMap, n, P);
+    mt.stop(); mt.reportTotal("major rebalance time");
     // return make_tuple(new_ct, true, DGnew);
   }else{
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
