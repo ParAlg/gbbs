@@ -12,7 +12,7 @@ using namespace std;
 #define EMPTYVMAP numeric_limits<size_t>::max()
 #define EMPTYKVB make_tuple(EMPTYV, 0)
 #define EMPTYKV make_tuple(EMPTYV, (SetT *)NULL)
-#define EMPTYWTV numeric_limits<size_t>::max()
+#define EMPTYWTV numeric_limits<uintE>::max()
 #define UPDATET1 1
 #define UPDATET2 2
 #define UPDATET3 3
@@ -229,10 +229,10 @@ namespace DBTGraph{
     
 
     struct WTV{
-        volatile size_t c1, c2, c3, c4, c5;
+        volatile uintE c1, c2, c3, c4, c5;
         volatile bool changing = false;
         WTV():c1(0),c2(0),c3(0), c4(0), c5(0){}
-        WTV(size_t a):c1(a),c2(a),c3(a), c4(a), c5(a){}
+        WTV(uintE a):c1(a),c2(a),c3(a), c4(a), c5(a){}
 
         // WTV(size_t cc1, size_t cc2, size_t cc3):c1(cc1),c2(cc2),c3(cc3){}
         WTV(size_t flag, size_t val):c1(flag),c2(val),c3(0), c4(0), c5(0){}

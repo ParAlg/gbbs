@@ -874,6 +874,14 @@ class DyGraph {
     T = new tableW((size_t)(myceil(M, t1) * myceil(M, t1) / 2),
                    make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()),
                    EdgeT(EMPTYV - 1, EMPTYV - 1), edgeHash(), 1.0);
+    std::cout << "Sizes are: " <<
+      lowNum << " " <<
+      lowNum << " " <<
+      (n - lowNum) << " " << 
+      (n - lowNum) << " " << 
+      (size_t)(myceil(M, t1) * myceil(M, t1) / 2) << " " <<
+      "M = " << M << " t1 = " << t1 << std::endl;
+    std::cout << "sizeof WTV = " << sizeof(WTV) << std::endl;
 #else
     LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
     LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
@@ -1056,6 +1064,7 @@ class DyGraph {
   void del() {
     D.clear();
     status.clear();
+    std::cout << "Dynamic graph alloc = " << alloc << std::endl;
     if (!alloc) return;
     // rbledD.clear();
     rbledLowD.clear();

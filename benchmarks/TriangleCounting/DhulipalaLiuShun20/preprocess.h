@@ -297,7 +297,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
     edges_array);
 
     auto f = [&] (uintE u, uintE v, uintE w) { };
-  size_t c = Triangle(G2, f, "degree", P);  //TODO: which ordering?, how to ini commandline object?
+  size_t c = Triangle_degree_ordering(G2, f);
   cout << c << endl;
 }
 

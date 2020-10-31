@@ -30,7 +30,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
 
   t.start();
   auto f = [&](uintE u, uintE v, uintE w) {};  // count triangles
-  size_t c = Triangle(G, f, "degree", P);
+  size_t c = Triangle_degree_ordering(G, f);
   t.next("[MAJ] count tri");  // TODO: which ordering?, how to ini commandline
                               // object?
 
@@ -148,8 +148,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
   // count triangles
   auto f = [&](uintE u, uintE v, uintE w) {};
   size_t c =
-      Triangle(G, f, "degree",
-               P);  // TODO: which ordering?, how to ini commandline object?
+      Triangle_degree_ordering(G, f);
 
   timer ng; ng.start();
   // convert to new grpah
