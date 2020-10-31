@@ -316,6 +316,18 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew,
 
     //  ============================= Move between top tables
     //  =============================
+    
+#ifdef DBT_USING_ARRAYTOP
+    // move top table LtoH
+    par_for(0, numLtoH, DBTGraph::smallTasksForThreshold, [&](const size_t i) {
+      DG->minorRblMoveTopTable(vtxChangeLH[i], true);
+    });
+    // move top table HtoL
+    par_for(numLtoH, vtxChangeLH.size(), DBTGraph::smallTasksForThreshold,
+            [&](const size_t i) {
+              DG->minorRblMoveTopTable(vtxChangeLH[i], false);
+            });
+#else
     // move top table LtoH
     par_for(0, numLtoH, DBTGraph::smallTasksForThreshold, [&](const size_t i) {
       DG->minorRblMoveTopTable(vtxChangeLH[i], true, false);
@@ -336,6 +348,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew,
             [&](const size_t i) {  // update  status
               DG->minorRblMoveTopTable(vtxChangeLH[i], false, true);
             });
+#endif
 
   }  // end if vtxChange.size() != 0;
 

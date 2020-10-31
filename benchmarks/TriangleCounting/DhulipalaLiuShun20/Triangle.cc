@@ -181,7 +181,7 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
     bool symmetric = P.getOptionValue("-s");
     bool compressed = P.getOptionValue("-c");
     bool mmap = P.getOptionValue("-m");
-    bool mmapcopy = false;//mutates;
+    // bool mmapcopy = false;//mutates;
     bool shuffle = P.getOptionValue("-shuffle");
     bool start_graph = P.getOptionValue("-sg");
     size_t partial_end = P.getOptionLongValue("-partial", 0);

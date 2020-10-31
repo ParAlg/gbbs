@@ -21,11 +21,7 @@ class DyGraph {
   using edge_type = typename Graph::edge_type;
 #ifdef DBT_USING_TOMB
   using SetT = pbbslib::tomb_table<uintE, int, vertexHash>;
-#ifdef DBT_USING_ARRAYTOP
-  using tableE = UpperTable<SetT>;
-#else
   using tableE = pbbslib::tomb_table<uintE, SetT*, vertexHash>;
-#endif
   using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
 #else
   using SetT = pbbslib::sparse_table<uintE, int, vertexHash>;
@@ -33,8 +29,7 @@ class DyGraph {
   using tableW = pbbslib::tomb_table<EdgeT, WTV, edgeHash>;
 // using tableW = pbbslib::sparse_table<EdgeT, WTV, edgeHash>;
 #endif
-
-  public:
+  // private:
   size_t n;
   size_t m;
   size_t block_size;
@@ -48,18 +43,13 @@ class DyGraph {
   pbbs::sequence<size_t> lowD;
   // pbbs::sequence<size_t> rbledD;
   pbbs::sequence<size_t> rbledLowD;
-  
-  
-  private:
   pbbs::sequence<pair<uintE, int>> edges;
-  tableE* LL; // have to be pointers, uses swap sometimes
+  tableE* LL;
   tableE* HH;
   tableE* LH;
   tableE* HL;
   tableW* T;
   bool alloc;
-
-  public:
 
   inline bool is_high(size_t k) const { return k > threshold; }
   inline bool is_low(size_t k) const { return !is_high(k); }
@@ -877,17 +867,10 @@ class DyGraph {
 
   void initTables() {  // important: save space in top table for array nodes
 #ifdef DBT_USING_TOMB
-#ifdef DBT_USING_ARRAYTOP
-    LL = new tableE(n); 
-    LH = new tableE(n); 
-    HL = new tableE(n); 
-    HH = new tableE(n); 
-#else
     LL = new tableE(lowNum, EMPTYKV, EMPTYV - 1, vertexHash(), 1);
     LH = new tableE(lowNum, EMPTYKV, EMPTYV - 1, vertexHash(), 1);
     HL = new tableE(n - lowNum, EMPTYKV, EMPTYV - 1, vertexHash(), 1);
     HH = new tableE(n - lowNum, EMPTYKV, EMPTYV - 1, vertexHash(), 1);
-#endif
     T = new tableW((size_t)(myceil(M, t1) * myceil(M, t1) / 2),
                    make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()),
                    EdgeT(EMPTYV - 1, EMPTYV - 1), edgeHash(), 1.0);
@@ -1067,7 +1050,6 @@ class DyGraph {
 
   // TODO: better way to clear?
   inline void clearTableE(tableE* tb) {
-#ifndef DBT_USING_ARRAYTOP
     if (!tb->alloc) return;
     par_for(0, tb->size(), [&](size_t i) {
       if (tb->not_empty(tb->table[i])) {
@@ -1075,7 +1057,6 @@ class DyGraph {
         // delete std::get<1>(tb->table[i]);
       }
     });
-#endif
     tb->del();
     // delete tb;
   }
@@ -1102,7 +1083,6 @@ class DyGraph {
   ///////////////// Minor Rebalance /////////////
 
   size_t minorRblResizeTop(size_t numHtoL, size_t numLtoH) {
-#ifndef DBT_USING_ARRAYTOP
     if (num_vertices_low() + numHtoL > LH->size()) {
       LH->maybe_resize(numHtoL, num_vertices_low());
       LL->maybe_resize(numHtoL, num_vertices_low());
@@ -1112,7 +1092,6 @@ class DyGraph {
       HH->maybe_resize(numLtoH, numH);
       HL->maybe_resize(numLtoH, numH);
     }
-#endif
     return lowNum + numHtoL - numLtoH;
   }
 
@@ -1152,35 +1131,6 @@ class DyGraph {
     }
     if (is_delete) status[u.id] = is_low_now;  // status true if high after
   }
-
-#ifdef DBT_USING_ARRAYTOP
-  // for when top table is array, delete and insert in the same batch
-  void minorRblMoveTopTable(DBTGraph::VtxUpdate& u, bool is_low_now) {
-    if (use_block_v(u.id)) {
-      status[u.id] = is_low_now;  // status true if high after
-      return;
-    }  // not in either tables
-    tableE* tb1 = HL;
-    tableE* tb3 = LL;  // move from 1 to 3
-    tableE* tb2 = HH;
-    tableE* tb4 = LH;  // move from 2 to 4
-    if (is_low_now) {  // currently low
-      swap(tb1, tb3);
-      swap(tb2, tb4);
-    }
-    if (!rbled_low_table_empty(u)) {  // TODO: CHANGE!
-        SetT* L = tb1->find(u.id, NULL);
-        tb3->insert(make_tuple(u.id, L));
-        tb1->deleteVal(u.id);
-    }
-    if (!rbled_high_table_empty(u)) {
-        SetT* H = tb2->find(u.id, NULL);
-        tb4->insert(make_tuple(u.id, H));
-        tb2->deleteVal(u.id);
-    }
-    status[u.id] = is_low_now;  // status true if high after
-  }
-#endif
 
   // is_low_now is true if v has delta nghbors moving from L to H, otherwise
   // from H to L

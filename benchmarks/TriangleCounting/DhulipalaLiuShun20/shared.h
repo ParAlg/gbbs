@@ -78,6 +78,89 @@ namespace DBTGraph{
     return get<1>(e);
     }
 
+    template<class SetT>
+    struct UpperTable{
+        pbbslib::sequence<SetT*> tb;//caution copy
+        using K = uintE;
+        using V = SetT*;
+        using T = std::tuple<K, V>;
+        using KT = K;
+
+        UpperTable(size_t n){
+            tb = pbbslib::sequence<SetT*>(n, (SetT*)nullptr); // must initialize
+        }
+
+        // UpperTable(size_t n, T _empty, K _tomb_key, KeyHash _key_hash, long inp_space_mult=-1){
+        //     tb = pbbslib::sequence<SetT*>(n, (SetT*)nullptr); // must initialize
+        // }
+        
+        inline size_t size() const {return tb.n;}
+
+        // bool not_empty(K k){}
+
+        // bool not_empty(T kv){}
+        
+        // static void clearA(T* A, long n, T kv) {
+        //     parallel_for(0, n, [&] (size_t i) { A[i] = kv; });
+        // }
+
+        inline void clear() {
+            parallel_for(0, tb.n, [&] (size_t i) { tb[i] = nullptr; });
+        }
+
+        inline void del() {
+            tb.clear();
+        }
+
+        // undetermined behavior if delete + insert/update same key
+        // at the same time
+        inline bool deleteVal(K k) {
+            V v = tb[k];
+            if(v == nullptr) return false;
+            return pbbslib::CAS(&tb[k], v, (SetT*) nullptr);
+        }
+
+        inline bool insert(std::tuple<K, V> kv){
+            K k = get<0>(kv);
+            V v = get<1>(kv);
+            return pbbslib::CAS(&tb[k], (SetT*) nullptr, v);
+        }
+
+        // template <class F>
+        // inline bool insert_f(std::tuple<K, V> kv, const F& f) {
+        //     K k = get<0>(kv);
+        //     V v = get<1>(kv);
+        //     SetT** addr = &tb[k];
+        //     if (pbbslib::CAS(addr, nullptr, v)) {
+        //         // f(&std::get<1>(table[h]), kv);
+        //         f(addr, kv);
+        //         return true;
+        //     }else{
+        //         f(addr, kv);
+        //         return false;
+        //     }
+            
+        // }
+
+        inline void updateSeq(K k, V val) {
+            tb[k] = val;
+        }
+
+        inline void maybe_resize(size_t nt) {}
+
+        inline void maybe_resize(size_t n_inc, size_t ne){}
+
+        inline bool contains(K k) const {return tb[k] != nullptr;}
+
+        inline V find(K k, V default_value) const {
+            if(tb[k] == nullptr) return default_value;
+            return tb[k];
+        }
+
+
+
+    };
+
 
     struct VtxUpdate{
         uintE id = -1;
