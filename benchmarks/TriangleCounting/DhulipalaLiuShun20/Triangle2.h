@@ -27,7 +27,8 @@
 #include "gbbs/gbbs.h"
 
 // #define DBT_TOMB_MERGE
-#define DBT_USING_TOMB 
+#define DBT_USING_TOMB
+#define DBT_USING_ARRAYTOP
 
 #include "shared.h"
 #include "dynamic_graph.h"
@@ -56,7 +57,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   size_t delta_triangles_neg = 0;
   DSymGraph *DGnew;
   size_t new_ct;
-    
+
   if(DG->num_edges() == 0){ // majorRebalancing from empty graph
     //size_t new_ct;
     vector<gbbs_io::Edge<int>> updates_ins;
@@ -112,7 +113,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   }, 1);
   t.next("4. 5. update insertions and deletions");
 
-  // t.start(); //step 6. count triangles 
+  // t.start(); //step 6. count triangles
   DBTGraph::TriangleCounts tc = DBTGraph::TriangleCounts();
   // updates final has one copy of each edge
   // for each edge, count the delta triangle caused by counting wedges
@@ -152,22 +153,22 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     DG->cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
   }, 1);
   t.next("7. clean up tables");
-  
-  // t.start(); //  minor rebalancing 
+
+  // t.start(); //  minor rebalancing
   DBTGraph::minorRebalancing(DG, vtxNew, vtxMap);
   t.next("8. 9. update degree + minor rebalancing");
   DG->updateNumEdges(m_ins, m-m_ins);
-  new_ct = C0 + delta_triangles_pos - delta_triangles_neg; 
+  new_ct = C0 + delta_triangles_pos - delta_triangles_neg;
   } //end else (nort major rebalancing)
 
-  
+
   par_for(0, vtxNew.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
 
   updates_final.clear(); // preprocessed edges
   edges.clear(); // sorted preprocessed edges in both direction
-  vtxNew.clear(); 
+  vtxNew.clear();
   t.stop(); t.reportTotal("DCountTime");
 
 
@@ -178,22 +179,20 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
 //edges already randomly shuffled
 template <class Graph, class F>
-inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io::Edge<int>>& edges, size_t batch_size, commandLine& P, 
+inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io::Edge<int>>& edges, size_t batch_size, commandLine& P,
                               size_t n, int batch_offset, size_t C0, bool all_del) {
 
   size_t num_batch = edges.size()/batch_size;
   std::cout << "Batch Size " << batch_size << std::endl;
   std::cout <<""<< std::endl;
   bool use_new = false; // use new graph (major rebalanced) or old graph
-  bool switched = false; 
+  bool switched = false;
   size_t count = C0;
-  int batch_proc = P.getOptionLongValue("-bp", num_batch+1); 
+  int batch_proc = P.getOptionLongValue("-bp", num_batch+1);
   DSymGraph *DGold = new DSymGraph();
   DSymGraph *DGnew;
   pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
   for(int i = batch_offset; i<= batch_offset+ batch_proc; ++i){
-    if(i == 5){ // testing round, insert after deleting
-    /////// file NOT UPTO DATE!!!
     size_t batch_start = i*batch_size;
     if(all_del){
       batch_start = (num_batch-i) * batch_size;
@@ -208,7 +207,11 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
       tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<Graph, F>(DG, vtxMap, edges, count, P, n, batch_start, batch_end);
     }
     if(use_new){
-      if(switched){DGold->del();}else{DG->del();}
+      if(switched){
+        DGold->del();
+      } else {
+        DG->del();
+      }
       DGold = DGnew;
       switched = true;
     }
@@ -217,38 +220,13 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
     std::cout << "### Num triangles = " << count << "\n";
     t.stop();t.reportTotal("");
     std::cout << std::endl;
-
-    }else{ // normal round
-
-    size_t batch_start = i*batch_size;
-    if(all_del){
-      batch_start = (num_batch-i) * batch_size;
-      // j--;
-    }
-    size_t batch_end = min(batch_size + batch_start, edges.size());
-    if(batch_end <= batch_start || batch_start < 0) continue;
-    timer t; t.start();
-    if(switched){
-      tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F>(DGold, vtxMap, edges, count, P, n, batch_start, batch_end);
-    }else{
-      tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<Graph, F>(DG, vtxMap, edges, count, P, n, batch_start, batch_end);
-    }
-    if(use_new){
-      if(switched){DGold->del();}else{DG->del();}
-      DGold = DGnew;
-      switched = true;
-    }
-
-    std::cout << "### Batch " << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
-    std::cout << "### Num triangles = " << count << "\n";
-    t.stop();t.reportTotal("");
-    std::cout << std::endl;
-
-    }
-
-
   }
   vtxMap.clear();
+  if (switched) {
+    DGold->del();
+  } else {
+    DG->del();
+  }
   return count;
 }
 
@@ -258,15 +236,18 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
 template <class Graph, class F>
 inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, size_t batch_size, commandLine& P) {
   size_t C0 = P.getOptionIntValue("-trict", 0);
-  bool start_graph = P.getOptionValue("-sg"); 
+  bool start_graph = P.getOptionValue("-sg");
   bool run_static = P.getOptionValue("-static");
-  bool run_static_mix = P.getOptionValue("-staticmix"); 
-  int batch_offset = P.getOptionLongValue("-bo", 0); 
-  size_t block_size = P.getOptionLongValue("-blocksize", 10000);  
-  size_t n = P.getOptionLongValue("-n", 0); 
-  int weight = P.getOptionIntValue("-w", 1);    
+  bool run_static_mix = P.getOptionValue("-staticmix");
+  int batch_offset = P.getOptionLongValue("-bo", 0);
+  size_t block_size = P.getOptionLongValue("-blocksize", 10000);
+  size_t n = P.getOptionLongValue("-n", 0);
+  int weight = P.getOptionIntValue("-w", 1);
   timer t;t.start();
 
+#ifdef DBT_USING_ARRAYTOP
+  cout << "array top level" << endl;
+#endif
 
   if(start_graph){
     n = G.num_vertices();
@@ -285,7 +266,7 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   }
 
   if(weight == 0 && P.getOptionValue("-shuffle")){
-    C0 = Triangle(G, f, "degree", P); 
+    C0 = Triangle_degree_ordering(G, f);
     t.next("Static Count");
     DBTGraph::DyGraph<Graph> * DG = new DBTGraph::DyGraph<Graph>(block_size, G, n);
     t.next("Build Dynamic Graph");
@@ -296,7 +277,7 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   if(weight == 2) init_graph_end =  updates.size();
   DBTGraph::SymGraph G2 = DBTInternal::edge_list_to_symmetric_graph(updates, n, 0, init_graph_end);
   t.next("Build Graph");
-  C0 = Triangle(G2, f, "degree", P); 
+  C0 = Triangle_degree_ordering(G2, f);
   t.next("Static Count");
   DBTInternal::DSymGraph * DG = new DBTInternal::DSymGraph(block_size, G2, n);
   G2.del();
