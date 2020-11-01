@@ -47,7 +47,7 @@ using DSymGraph = DBTGraph::DyGraph<DBTGraph::SymGraph>;
 // gbbs_io::write_graph_to_file
 
 template <class Graph, class F>
-inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>* DG, pbbs::sequence<size_t>& vtxMap, const vector<gbbs_io::Edge<int>>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
+inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>* DG, pbbs::sequence<size_t>& vtxMap, vector<gbbs_io::Edge<int>>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
   using EdgeT = DBTGraph::EdgeT;
   using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
   using UT = gbbs_io::Edge<int>;
@@ -179,7 +179,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
 
 //edges already randomly shuffled
 template <class Graph, class F>
-inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io::Edge<int>>& edges, size_t batch_size, commandLine& P,
+inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, vector<gbbs_io::Edge<int>>& edges, size_t batch_size, commandLine& P,
                               size_t n, int batch_offset, size_t C0, bool all_del) {
 
   size_t num_batch = edges.size()/batch_size;
@@ -223,22 +223,22 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
 
 
 
-    if(all_del && i == 5){ //===================== testing round, insert after deleting
-      par_for(s, e, [&](size_t i){
-        edges[i].weight == 1;
+    if(all_del && i == 3){ //===================== testing round, insert after deleting
+      par_for(batch_start, batch_end, [&](size_t i){
+        edges[i].weight = 1;
       });
       timer t2; t2.start();
       // if(switched){
-        tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F>(DGold, vtxMap, edges, count, P, n, batch_start, batch_end);
+        tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F>(DG, vtxMap, edges, count, P, n, batch_start, batch_end);
       // }else{
       //   tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<Graph, F>(DG, vtxMap, edges, count, P, n, batch_start, batch_end);
       // }
-      if(use_new){
-        // if(switched){DGold->del();}else{DG->del();}
-        DGold->del();
-        DGold = DGnew;
-        // switched = true;
-      }
+      // if(use_new){
+      //   // if(switched){DGold->del();}else{DG->del();}
+      //   DG->del();
+      //   DGold = DGnew;
+      //   // switched = true;
+      // }
 
       std::cout << "### Batch re-insert" << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
       std::cout << "### Num triangles = " << count << "\n";
@@ -261,7 +261,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
 
 // if es flag is there assume edges is sorted and there is no duplicates
 template <class Graph, class F>
-inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, size_t batch_size, commandLine& P) {
+inline size_t Dynamic_Triangle(Graph& G, vector<gbbs::gbbs_io::Edge<int>>& updates, const F& f, size_t batch_size, commandLine& P) {
   size_t C0 = P.getOptionIntValue("-trict", 0);
   bool start_graph = P.getOptionValue("-sg");
   bool run_static = P.getOptionValue("-static");
