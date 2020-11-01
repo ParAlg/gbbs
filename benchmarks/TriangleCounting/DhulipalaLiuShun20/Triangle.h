@@ -245,6 +245,9 @@ inline size_t Dynamic_Triangle(Graph& G, const vector<gbbs::gbbs_io::Edge<int>>&
   int weight = P.getOptionIntValue("-w", 1);
   timer t;t.start();
 
+#ifdef DBT_USING_ARRAYTOP
+  cout << "array top level" << endl;
+#endif
 
   if(start_graph){
     n = G.num_vertices();

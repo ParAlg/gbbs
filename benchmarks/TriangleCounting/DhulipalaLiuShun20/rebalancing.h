@@ -31,8 +31,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
   t.start();
   auto f = [&](uintE u, uintE v, uintE w) {};  // count triangles
   size_t c = Triangle_degree_ordering(G, f);
-  t.next("[MAJ] count tri");  // TODO: which ordering?, how to ini commandline
-                              // object?
+  t.next("[MAJ] count tri");  
 
   // convert to new grpah
   if (build_new) {

@@ -220,7 +220,34 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, const vector<gbbs_io:
     std::cout << "### Num triangles = " << count << "\n";
     t.stop();t.reportTotal("");
     std::cout << std::endl;
-  }
+
+
+
+    if(all_del && i == 5){ //===================== testing round, insert after deleting
+      par_for(s, e, [&](size_t i){
+        edges[i].weight == 1;
+      });
+      timer t2; t2.start();
+      // if(switched){
+        tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<DBTGraph::SymGraph, F>(DGold, vtxMap, edges, count, P, n, batch_start, batch_end);
+      // }else{
+      //   tie(count, use_new, DGnew) = Dynamic_Triangle_Helper<Graph, F>(DG, vtxMap, edges, count, P, n, batch_start, batch_end);
+      // }
+      if(use_new){
+        // if(switched){DGold->del();}else{DG->del();}
+        DGold->del();
+        DGold = DGnew;
+        // switched = true;
+      }
+
+      std::cout << "### Batch re-insert" << i << " [" << batch_start << " " << batch_end << "]" << std::endl;
+      std::cout << "### Num triangles = " << count << "\n";
+      t2.stop();t2.reportTotal("");
+      std::cout << std::endl;
+      break;
+    }
+
+  } // End of for loop
   vtxMap.clear();
   if (switched) {
     DGold->del();

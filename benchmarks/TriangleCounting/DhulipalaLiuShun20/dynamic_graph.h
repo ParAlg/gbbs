@@ -891,14 +891,6 @@ class DyGraph {
     T = new tableW((size_t)(myceil(M, t1) * myceil(M, t1) / 2),
                    make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()),
                    EdgeT(EMPTYV - 1, EMPTYV - 1), edgeHash(), 1.0);
-    std::cout << "Sizes are: " <<
-      lowNum << " " <<
-      lowNum << " " <<
-      (n - lowNum) << " " << 
-      (n - lowNum) << " " << 
-      (size_t)(myceil(M, t1) * myceil(M, t1) / 2) << " " <<
-      "M = " << M << " t1 = " << t1 << std::endl;
-    std::cout << "sizeof WTV = " << sizeof(WTV) << std::endl;
 #else
     LL = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
     LH = new tableE(lowNum, EMPTYKV, vertexHash(), 1.0);
@@ -909,6 +901,17 @@ class DyGraph {
     T = new tableW((size_t)(myceil(M, t1) * myceil(M, t1) / 2),
                    make_tuple(EdgeT(EMPTYV, EMPTYV), WTV()),
                    EdgeT(EMPTYV - 1, EMPTYV - 1), edgeHash(), 1.0);
+#endif
+
+#ifndef DBT_USING_ARRAYTOP
+    std::cout << "Sizes are: " <<
+      lowNum << " " <<
+      lowNum << " " <<
+      (n - lowNum) << " " << 
+      (n - lowNum) << " " << 
+      (size_t)(myceil(M, t1) * myceil(M, t1) / 2) << " " <<
+      "M = " << M << " t1 = " << t1 << std::endl;
+    std::cout << "sizeof WTV = " << sizeof(WTV) << std::endl;
 #endif
   }
 
@@ -1013,10 +1016,10 @@ class DyGraph {
 
     timer insw; insw.start();
     // init T
-    par_for(0, highNodes.size(), [&](size_t i) {
+    parallel_for(0, highNodes.size(), [&](size_t i) {
       uintE u = highNodes[i];
       insertWedges(u, false);
-    });
+    }, 1);
     insw.stop(); insw.reportTotal("Build DyGraph: insert wedge");
 
     // cleanup
