@@ -80,9 +80,12 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, size_t batch_size, command
   pbbs::timer st;                                                                \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
+    std::cout << "### Application: Dynamic Triangle Counting" << std::endl;  \
     pbbs::timer t; t.start();                                                    \
     gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, weight, P);     \
-    total_time += t.stop();                                               \
+    double round_time = t.stop();                                     \
+    total_time +=    round_time;                                   \
+    std::cout << "### Running Time: " << round_time << std::endl;     \
   }                                                                        \
   auto time_per_iter = total_time / rounds;                                \
   std::cout << "# time per iter: " << time_per_iter << "\n";               \
