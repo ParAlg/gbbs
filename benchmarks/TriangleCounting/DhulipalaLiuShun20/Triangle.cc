@@ -32,7 +32,7 @@
 //     -rounds : the number of times to run the algorithm
 
 #include "shared.h"
-#include "Triangle.h"
+#include "Triangle2.h"
 #include "makkar.h"
 
 
@@ -61,12 +61,12 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, size_t batch_size, command
 
 }  // namespace gbbs
 
-#define run_dynamic_app(G, updates, APP, rounds, batch_size)                                            \
+#define run_dynamic_app(G, updates, APP, rounds, batch_size)              \
   auto before_state = gbbs::get_pcm_state();                               \
   pbbs::timer st;                                                                \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
-    total_time += APP(G, updates, batch_size, P);                                               \
+    total_time += APP(G, updates, batch_size, P);                            \
   }                                                                        \
   auto time_per_iter = total_time / rounds;                                \
   std::cout << "# time per iter: " << time_per_iter << "\n";               \
@@ -74,6 +74,21 @@ double Dynamic_Triangle_runner(Graph& G, UT& updates, size_t batch_size, command
   gbbs::print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
   G.del();
 
+
+#define run_makkar_app(G, updates, rounds, batch_size, weight, P)         \
+  auto before_state = gbbs::get_pcm_state();                               \
+  pbbs::timer st;                                                                \
+  double total_time = 0.0;                                                 \
+  for (size_t r = 0; r < rounds; r++) {                                    \
+    pbbs::timer t; t.start();                                                    \
+    gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, weight, P);     \
+    total_time += t.stop();                                               \
+  }                                                                        \
+  auto time_per_iter = total_time / rounds;                                \
+  std::cout << "# time per iter: " << time_per_iter << "\n";               \
+  auto after_state = gbbs::get_pcm_state();                                \
+  gbbs::print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
+  G.del();
 
 template<class Graph>
 inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
@@ -223,7 +238,8 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
         updates = shuffle_edges(G, weight);
       }
       gbbs::alloc_init(G);
-      gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, weight, P);
+      // gbbs::Makkar_Dynamic_Triangle(G, updates, batch_size, weight, P);
+      run_makkar_app(G, updates, rounds, batch_size, weight, P);
     }else{
 
 
