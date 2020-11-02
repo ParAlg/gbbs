@@ -223,7 +223,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, vector<gbbs_io::Edge<
 
 
 
-    if(all_del && i == 3){ //===================== testing round, insert after deleting
+    if(all_del && i == 6){ //===================== testing round, insert after deleting
       par_for(batch_start, batch_end, [&](size_t i){
         edges[i].weight = 1;
       });
@@ -244,6 +244,9 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, vector<gbbs_io::Edge<
       std::cout << "### Num triangles = " << count << "\n";
       t2.stop();t2.reportTotal("");
       std::cout << std::endl;
+      par_for(batch_start, batch_end, [&](size_t i){
+        edges[i].weight = 0;
+      });
       break;
     }
 
