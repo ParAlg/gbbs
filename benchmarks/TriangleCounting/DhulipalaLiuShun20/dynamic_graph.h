@@ -48,8 +48,8 @@ class DyGraph {
   pbbs::sequence<size_t> lowD;
   // pbbs::sequence<size_t> rbledD;
   pbbs::sequence<size_t> rbledLowD;
-  
-  
+
+
   private:
   pbbs::sequence<pair<uintE, int>> edges;
   tableE* LL; // have to be pointers, uses swap sometimes
@@ -788,6 +788,9 @@ class DyGraph {
   void cleanUpTable(DBTGraph::VtxUpdate& w,
                     pbbs::range<pair<EdgeT, bool>*> edgesID, bool del_flag) {
     if (is_low_v(w.id)) {  // w is low and w has high ngh
+      // TODO(laxman, shangdi): there is a nested par_for here without
+      // specifying the granularity. Should the outer par_for be a parallel_for
+      // with a granularity of 1?
       par_for(0, edgesID.size(),
               [&](size_t i) {  // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
@@ -840,6 +843,9 @@ class DyGraph {
   void cleanUpTable(DBTGraph::VtxUpdate& w,
                     pbbs::range<pair<EdgeT, bool>*> edgesID) {
     if (is_low_v(w.id)) {  // w is low and w has high ngh
+      // TODO(laxman, shangdi): there is a nested par_for here without
+      // specifying the granularity. Should the outer par_for be a parallel_for
+      // with a granularity of 1?
       par_for(0, edgesID.size(),
               [&](size_t i) {  // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
@@ -878,10 +884,10 @@ class DyGraph {
   void initTables() {  // important: save space in top table for array nodes
 #ifdef DBT_USING_TOMB
 #ifdef DBT_USING_ARRAYTOP
-    LL = new tableE(n); 
-    LH = new tableE(n); 
-    HL = new tableE(n); 
-    HH = new tableE(n); 
+    LL = new tableE(n);
+    LH = new tableE(n);
+    HL = new tableE(n);
+    HH = new tableE(n);
 #else
     LL = new tableE(lowNum, EMPTYKV, EMPTYV - 1, vertexHash(), 1);
     LH = new tableE(lowNum, EMPTYKV, EMPTYV - 1, vertexHash(), 1);
@@ -907,8 +913,8 @@ class DyGraph {
     std::cout << "Sizes are: " <<
       lowNum << " " <<
       lowNum << " " <<
-      (n - lowNum) << " " << 
-      (n - lowNum) << " " << 
+      (n - lowNum) << " " <<
+      (n - lowNum) << " " <<
       (size_t)(myceil(M, t1) * myceil(M, t1) / 2) << " " <<
       "M = " << M << " t1 = " << t1 << std::endl;
     std::cout << "sizeof WTV = " << sizeof(WTV) << std::endl;
@@ -1302,6 +1308,7 @@ class DyGraph {
                            pbbs::sequence<size_t>& vtxMap) {
     if (get_new_low_degree(u) > 0) {
       if (use_block_v(u.id)) {
+        // TODO(laxman, shangdi): is a granularity of 1 necessary here?
         parallel_for(0, get_new_degree(u),
                      [&](size_t j) {
                        uintE w =
@@ -1313,6 +1320,7 @@ class DyGraph {
                      1);
       } else {
         SetT* L = HL->find(u.id, (SetT*)NULL);
+        // TODO(laxman, shangdi): is a granularity of 1 necessary here?
         parallel_for(0, L->size(),
                      [&](size_t j) {
                        uintE w = get<0>(L->table[j]);
@@ -1349,6 +1357,9 @@ class DyGraph {
   void minorRblDeleteWedgeCenterTable(DBTGraph::VtxUpdate& w) {
     SetT* H = LH->find(w.id, NULL);
     // if(H == NULL) return;
+    // TODO(laxman, shangdi): there is a nested par_for here without
+    // specifying the granularity. Should the outer par_for be a parallel_for
+    // with a granularity of 1?
     par_for(0, H->size(), [&](size_t i) {
       uintE u = get<0>(H->table[i]);
       if (H->not_empty(u)) {
@@ -1413,6 +1424,9 @@ class DyGraph {
                                       pbbs::sequence<size_t>& vtxMap) {
     SetT* H = LH->find(w.id, NULL);
     // if(H == NULL) return;
+    // TODO(laxman, shangdi): there is a nested par_for here without
+    // specifying the granularity. Should the outer par_for be a parallel_for
+    // with a granularity of 1?
     par_for(0, H->size(), [&](size_t i) {
       uintE u = get<0>(H->table[i]);
       if (H->not_empty(u) && (vtxMap[u] == EMPTYVMAP ||
