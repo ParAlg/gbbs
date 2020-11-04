@@ -148,7 +148,7 @@ class DyGraph {
     }
   }
 
-  struct updateTF {  // TODO: check
+  struct updateTF { 
     void operator()(WTV* v0, const std::tuple<EdgeT, WTV>& kv) const {
       v0->update(kv);
     }
@@ -791,7 +791,7 @@ class DyGraph {
       // TODO(laxman, shangdi): there is a nested par_for here without
       // specifying the granularity. Should the outer par_for be a parallel_for
       // with a granularity of 1?
-      par_for(0, edgesID.size(),
+      parallel_for(0, edgesID.size(),
               [&](size_t i) {  // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
                 if (is_high_v(uid)) {  // proceed only when u is high
@@ -811,7 +811,7 @@ class DyGraph {
                   }
                   // }
                 }
-              });
+              }, 1);
     }
   }
 
@@ -846,7 +846,7 @@ class DyGraph {
       // TODO(laxman, shangdi): there is a nested par_for here without
       // specifying the granularity. Should the outer par_for be a parallel_for
       // with a granularity of 1?
-      par_for(0, edgesID.size(),
+      parallel_for(0, edgesID.size(),
               [&](size_t i) {  // loop over the udpate batch (w,u)
                 uintE uid = edgesID[i].first.second;
                 if (is_high_v(uid)) {  // proceed only when u is high
@@ -863,7 +863,7 @@ class DyGraph {
                     });
                   }
                 }
-              });
+              }, 1);
     }
   }
 
@@ -1074,7 +1074,6 @@ class DyGraph {
     }
   }
 
-  // TODO: better way to clear?
   inline void clearTableE(tableE* tb) {
 #ifndef DBT_USING_ARRAYTOP
     if (!tb->alloc) return;
@@ -1143,7 +1142,7 @@ class DyGraph {
       swap(tb1, tb3);
       swap(tb2, tb4);
     }
-    if (!rbled_low_table_empty(u)) {  // TODO: CHANGE!
+    if (!rbled_low_table_empty(u)) { 
       if (is_delete) {
         tb1->deleteVal(u.id);
       } else {
@@ -1177,7 +1176,7 @@ class DyGraph {
       swap(tb1, tb3);
       swap(tb2, tb4);
     }
-    if (!rbled_low_table_empty(u)) {  // TODO: CHANGE!
+    if (!rbled_low_table_empty(u)) {  
         SetT* L = tb1->find(u.id, NULL);
         tb3->insert(make_tuple(u.id, L));
         tb1->deleteVal(u.id);
@@ -1309,6 +1308,7 @@ class DyGraph {
     if (get_new_low_degree(u) > 0) {
       if (use_block_v(u.id)) {
         // TODO(laxman, shangdi): is a granularity of 1 necessary here?
+        // only some iterations need to do work
         parallel_for(0, get_new_degree(u),
                      [&](size_t j) {
                        uintE w =
@@ -1321,6 +1321,7 @@ class DyGraph {
       } else {
         SetT* L = HL->find(u.id, (SetT*)NULL);
         // TODO(laxman, shangdi): is a granularity of 1 necessary here?
+        // only some iterations need to do work
         parallel_for(0, L->size(),
                      [&](size_t j) {
                        uintE w = get<0>(L->table[j]);
@@ -1360,7 +1361,7 @@ class DyGraph {
     // TODO(laxman, shangdi): there is a nested par_for here without
     // specifying the granularity. Should the outer par_for be a parallel_for
     // with a granularity of 1?
-    par_for(0, H->size(), [&](size_t i) {
+    parallel_for(0, H->size(), [&](size_t i) {
       uintE u = get<0>(H->table[i]);
       if (H->not_empty(u)) {
         par_for(0, i, [&](size_t j) {
@@ -1375,7 +1376,7 @@ class DyGraph {
           }
         });
       }
-    });
+    }, 1);
   }
 
   // for each w that changes from L to H, remove HLH where w is involved
@@ -1427,7 +1428,7 @@ class DyGraph {
     // TODO(laxman, shangdi): there is a nested par_for here without
     // specifying the granularity. Should the outer par_for be a parallel_for
     // with a granularity of 1?
-    par_for(0, H->size(), [&](size_t i) {
+    parallel_for(0, H->size(), [&](size_t i) {
       uintE u = get<0>(H->table[i]);
       if (H->not_empty(u) && (vtxMap[u] == EMPTYVMAP ||
                               vtxNew[vtxMap[u]].change_status == false)) {
@@ -1443,7 +1444,7 @@ class DyGraph {
           }
         });
       }
-    });
+    }, 1);
   }
 
   // for each w that changes from H to L, increment HLH where w is involved
