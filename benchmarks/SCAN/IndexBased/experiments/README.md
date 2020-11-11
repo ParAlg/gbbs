@@ -18,3 +18,8 @@ To run the experiments:
 We omit the code for running timing experiments with GS\*-Index since the
 GS\*-Index code is not publicly available. We received the source code for
 GS\*-Index via personal correspondence with its authors.
+
+(For the paper, we ran the timing experiments on a c5.24xlarge AWS EC2 instance,
+but we ran the clustering quality experiments on a m5a.24xlarge AWS EC2 instance
+because the program barely exceeds the memory limits of a c5.24xlarge instance
+when running on the Friendster graph.)
