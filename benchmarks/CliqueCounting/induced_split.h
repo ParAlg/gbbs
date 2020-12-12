@@ -5,7 +5,9 @@
 
 /* TODO: describe what this file does */
 
+namespace gbbs {
 namespace induced_split {
+
   template <class Graph, class F>
   inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, long recursive_level=0) {
     timer t; t.start();
@@ -55,4 +57,6 @@ namespace induced_split {
 
     return pbbslib::reduce_add(tots);
   }
-} // induced_intersection
+
+}  // namespace induced_intersection
+}  // namespace gbbs

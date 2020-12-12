@@ -5,6 +5,7 @@
 
 /* ****************************** Sampling ******************************/
 
+namespace gbbs {
 template <
     class Graph,
     class Sampler,
@@ -130,7 +131,7 @@ struct KOutSamplingTemplate {
   pbbs::sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
-    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
     auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     pbbs::sequence<uintE> hooks;
@@ -177,7 +178,7 @@ struct KOutSamplingTemplate {
   pbbs::sequence<parent> initial_components_max_degree() {
     using W = typename G::weight_type;
     size_t n = GA.n;
-    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
     auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     pbbs::sequence<uintE> hooks;
@@ -399,3 +400,4 @@ struct LDDSamplingTemplate {
   }
 };
 
+}  // namespace gbbs

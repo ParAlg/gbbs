@@ -1,3 +1,6 @@
+// This code is part of the project "Theoretically Efficient Parallel Graph
+// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
+// in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -30,6 +33,9 @@
 
 #include "DensestSubgraph.h"
 
+namespace gbbs {
+namespace {
+
 template <class Graph>
 double DensestSubgraph_runner(Graph& G, commandLine P) {
   double eps = P.getOptionDoubleValue("-eps", 0.001);
@@ -39,7 +45,7 @@ double DensestSubgraph_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -eps = " << eps << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   assert(P.getOption("-s"));
 
   timer t; t.start();
@@ -50,4 +56,7 @@ double DensestSubgraph_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(DensestSubgraph_runner, false);
+}  // namespace
+}  // namespace gbbs
+
+generate_main(gbbs::DensestSubgraph_runner, false);

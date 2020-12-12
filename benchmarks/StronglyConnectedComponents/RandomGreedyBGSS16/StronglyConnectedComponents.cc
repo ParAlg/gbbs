@@ -34,6 +34,7 @@
 
 #include "StronglyConnectedComponents.h"
 
+namespace gbbs {
 template <class Graph>
 double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
@@ -43,7 +44,7 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -beta = " << beta << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(!P.getOption("-s"));
   timer scc_t;
@@ -58,5 +59,6 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(StronglyConnectedComponents_runner, false);
+generate_main(gbbs::StronglyConnectedComponents_runner, false);

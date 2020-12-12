@@ -23,6 +23,7 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/utilities.h"
 
+namespace gbbs {
 namespace truss_utils {
 
   struct edge_id {
@@ -410,5 +411,5 @@ namespace truss_utils {
     G.get_vertex(u).intersect_f_par(&v_v, u, v, f);
   }
 
-}; // namespace truss_utils
-
+}  // namespace truss_utils
+}  // namespace gbbs

@@ -2,6 +2,7 @@
 
 #include "benchmarks/Connectivity/connectit.h"
 
+namespace gbbs {
 // returns a component labeling
 // Based on the implementation in gapbs/cc.c, Thanks to S. Beamer + M. Sutton
 // for the well documented reference implementation of afforest.
@@ -38,7 +39,7 @@ struct KOutSamplingTemplate {
   auto initial_spanning_forest() {
     using W = typename G::weight_type;
     size_t n = GA.n;
-    cout << "# neighbor_rounds = " << neighbor_rounds << endl;
+    std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
     auto Parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
     auto Edges = pbbs::sequence<edge>(n, empty_edge);
@@ -79,5 +80,5 @@ struct KOutSamplingTemplate {
     }
     return std::make_pair(Parents, Edges);
    }
-
 };
+}  // namespace gbbs

@@ -3,7 +3,6 @@ cc_library(
   hdrs = ["MaximalIndependentSet.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs/pbbslib:sparse_table"
   ]
 )
 

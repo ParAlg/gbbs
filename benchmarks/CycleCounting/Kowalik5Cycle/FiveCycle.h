@@ -25,6 +25,7 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 
 
+namespace gbbs {
 struct U_FastReset {
   uintE* U = nullptr;
   uintE* distinct = nullptr;
@@ -205,14 +206,14 @@ inline auto Preprocess(Graph& GA, sequence<uintE>& rank, long order_type = 0, do
   // sequence<uintE> rank;
   // relabel the graph first. then do degeneracyorder
   auto order_to_vertex = orderNodesByDegree(GA, GA.n);
-  cout << "Order done\n"; fflush(stdout);
+  std::cout << "Order done\n"; fflush(stdout);
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
-  cout << "Relabel done\n"; fflush(stdout);
+  std::cout << "Relabel done\n"; fflush(stdout);
 
   if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GDO, epsilon);
   else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GDO, epsilon);
   else if (order_type == 2) rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
-  cout << "Rank done\n"; fflush(stdout);
+  std::cout << "Rank done\n"; fflush(stdout);
   return GDO;
 }
 
@@ -331,8 +332,8 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
-  cout << "Filter done\n"; fflush(stdout);
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
+  std::cout << "Filter done\n"; fflush(stdout);
 
 
   // Start of work scheduling code.
@@ -442,21 +443,21 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
   // relabel the graph first. then do degeneracyorder
 
   auto order_to_vertex = orderNodesByDegree(GA, GA.n);
-  cout << "Order done\n"; fflush(stdout);
+  std::cout << "Order done\n"; fflush(stdout);
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
   //auto GDO = GA;
-  cout << "Relabel done\n"; fflush(stdout);
+  std::cout << "Relabel done\n"; fflush(stdout);
 
   if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GDO, epsilon);
   else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GDO, epsilon);
   else if (order_type == 2) rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
-  cout << "Rank done\n"; fflush(stdout);
+  std::cout << "Rank done\n"; fflush(stdout);
 
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
-  cout << "Filter done\n"; fflush(stdout);
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
+  std::cout << "Filter done\n"; fflush(stdout);
 
   timer t; t.start();
   ulong cycleCount = 0;
@@ -492,8 +493,8 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
-  cout << "Filter done\n"; fflush(stdout);
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
+  std::cout << "Filter done\n"; fflush(stdout);
 
   timer t2; t2.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
@@ -547,19 +548,19 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
-  cout << "Rank abd Order done\n"; fflush(stdout);
+  std::cout << "Rank abd Order done\n"; fflush(stdout);
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
 
   //auto GDO = GA;
-  cout << "Relabel done\n"; fflush(stdout);
+  std::cout << "Relabel done\n"; fflush(stdout);
 
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto DGDO = GDO.filterGraph(GDO, direction); // only keeps track of out  uintEs
+  auto DGDO = filterGraph(GDO, direction); // only keeps track of out  uintEs
 
-  cout << "Filter done\n"; fflush(stdout);
+  std::cout << "Filter done\n"; fflush(stdout);
 
   timer t; t.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
@@ -673,25 +674,25 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
-  cout << "Rank abd Order done\n"; fflush(stdout);
+  std::cout << "Rank abd Order done\n"; fflush(stdout);
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
 
   //auto GDO = GA;
-  cout << "Relabel done\n"; fflush(stdout);
+  std::cout << "Relabel done\n"; fflush(stdout);
 
   auto out_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
+  auto OUTG = filterGraph(GDO, out_direction); // only keeps track of out edges
 
   auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u > v;
   };
-  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
+  auto ING = filterGraph(GDO, in_direction); // only keeps track of in edges
 
-  cout << "Filter done\n"; fflush(stdout);
+  std::cout << "Filter done\n"; fflush(stdout);
 
   timer t; t.start();
   ulong cycleCount = 0;
@@ -853,25 +854,25 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
     par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
-  cout << "Rank abd Order done\n"; fflush(stdout);
+  std::cout << "Rank abd Order done\n"; fflush(stdout);
   auto GDO = relabel_graph(GA, order_to_vertex); // graph by degree ordering
 
   //auto GDO = GA;
-  cout << "Relabel done\n"; fflush(stdout);
+  std::cout << "Relabel done\n"; fflush(stdout);
 
   auto out_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u < v;
   };
-  auto OUTG = GDO.filterGraph(GDO, out_direction); // only keeps track of out edges
+  auto OUTG = filterGraph(GDO, out_direction); // only keeps track of out edges
 
   auto in_direction = [&](const uintE& u, const uintE& v, const W& wgh) {
     //return rank[u] < rank[v];
     return u > v;
   };
-  auto ING = GDO.filterGraph(GDO, in_direction); // only keeps track of in edges
+  auto ING = filterGraph(GDO, in_direction); // only keeps track of in edges
 
-  cout << "Filter done\n"; fflush(stdout);
+  std::cout << "Filter done\n"; fflush(stdout);
 
 
   timer t; t.start();
@@ -1025,3 +1026,4 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
   OUTG.del();
   return cycleCount;
 }
+}  // namespace gbbs

@@ -5,6 +5,7 @@ cc_binary(
         "//gbbs",
         "//gbbs:io",
         "//gbbs:parse_command_line",
+        "//gbbs/encodings:byte_pd_amortized",
         "//pbbslib:random",
         "//pbbslib:utilities",
     ],

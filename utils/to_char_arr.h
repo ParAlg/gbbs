@@ -1,5 +1,6 @@
 #pragma once
 
+namespace gbbs {
 inline int xToStringLen(long a) { return 21;}
 inline void xToString(char* s, long a) { sprintf(s,"%ld",a);}
 
@@ -83,3 +84,4 @@ void writeArrayToStream(std::ofstream& os, S& arr) {
     offset += BSIZE;
   }
 }
+}  // namespace gbbs

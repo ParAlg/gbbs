@@ -121,4 +121,5 @@ range_min<Seq, Compare, Uint> make_range_min(Seq &a, Compare less,
                                              long block_size = 32) {
   return range_min<Seq, Compare, Uint>(a, less, block_size);
 }
-}
+
+}  // namespace pbbs

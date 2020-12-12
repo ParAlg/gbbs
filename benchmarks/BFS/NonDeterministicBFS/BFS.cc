@@ -34,6 +34,8 @@
 
 #include "BFS.h"
 
+namespace gbbs {
+
 template <class Graph>
 double BFS_runner(Graph& G, commandLine P) {
   uintE src = static_cast<uintE>(P.getOptionLongValue("-src", 0));
@@ -43,8 +45,8 @@ double BFS_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
-  std::cout << "### ------------------------------------" << endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
   auto parents = BFS(G, src);
@@ -54,4 +56,6 @@ double BFS_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_main(BFS_runner, false);
+}  // namespace gbbs
+
+generate_main(gbbs::BFS_runner, false);

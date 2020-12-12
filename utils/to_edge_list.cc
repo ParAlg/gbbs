@@ -7,6 +7,7 @@
 #include "pbbslib/random_shuffle.h"
 #include "pbbslib/strings/string_basics.h"
 
+namespace gbbs {
 /* Format:
  * Emits a lexicographically sorted list of edges. The format takes (u,v)
  * and writes:
@@ -63,7 +64,7 @@ void print_edge_list(Graph& GA, std::string& outfile, bool direct_sym, bool mult
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();
-  cout << "Done" << endl;
+  std::cout << "Done" << std::endl;
 }
 
 /* Format:
@@ -111,7 +112,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
   file.write(edges_chars.begin(), edges_chars.size());
 
   file.close();
-  cout << "Done" << endl;
+  std::cout << "Done" << std::endl;
 }
 
 template <class Graph>
@@ -128,5 +129,6 @@ double Reorderer(Graph& GA, commandLine P) {
   exit(0);
   return 1.0;
 }
+}  // namespace gbbs
 
-generate_main(Reorderer, false);
+generate_main(gbbs::Reorderer, false);

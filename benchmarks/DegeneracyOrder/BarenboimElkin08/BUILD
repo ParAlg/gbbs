@@ -3,7 +3,6 @@ cc_library(
   hdrs = ["DegeneracyOrder.h"],
   deps = [
   "//gbbs:bucket",
-  "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//pbbslib:integer_sort",

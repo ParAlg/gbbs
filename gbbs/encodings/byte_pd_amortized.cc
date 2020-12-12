@@ -1,5 +1,6 @@
 #include "byte_pd_amortized.h"
 
+namespace gbbs {
 namespace bytepd_amortized {
 
 long compressFirstEdge(uchar* start, long offset, long source,
@@ -81,3 +82,4 @@ uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
 }
 
 }  // namespace bytepd_amortized
+}  // namespace gbbs

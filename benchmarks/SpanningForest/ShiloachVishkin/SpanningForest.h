@@ -27,6 +27,7 @@
 #include "benchmarks/SpanningForest/common.h"
 #include "benchmarks/Connectivity/connectit.h"
 
+namespace gbbs {
 namespace shiloachvishkin_sf {
 
 template <class Graph>
@@ -129,5 +130,5 @@ inline pbbs::sequence<edge> SpanningForest(Graph& G) {
   });
 }
 
-
 }  // namespace shiloachvishkin_sf
+}  // namespace gbbs

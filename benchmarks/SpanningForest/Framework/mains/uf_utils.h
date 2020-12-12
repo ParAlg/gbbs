@@ -2,6 +2,7 @@
 
 #include "benchmarks/SpanningForest/check.h"
 
+namespace gbbs {
 namespace connectit {
   template<
     class Graph,
@@ -86,6 +87,6 @@ namespace connectit {
     auto name = jayanti_options_to_string<sampling_option, find_option>();
     return run_multiple(G, rounds, correct, name, P, test);
   }
- } // namespace connectit
 
-
+}  // namespace connectit
+}  // namespace gbbs

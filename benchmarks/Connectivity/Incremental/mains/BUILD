@@ -206,6 +206,9 @@ cc_library(
 cc_library(
     name = "subsample_starting_graph",
     hdrs = ["subsample_starting_graph.h"],
+    deps = [
+      "//gbbs"
+    ],
 )
 
 cc_library(

@@ -5,6 +5,7 @@
 
 /* ************************* Benchmark Utils *************************** */
 
+namespace gbbs {
 static timer bt;
 using uchar = unsigned char;
 
@@ -109,3 +110,4 @@ void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& corre
   }
 }
 
+}  // namespace gbbs

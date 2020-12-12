@@ -39,6 +39,8 @@
 #include "random_shuffle.h"
 #include "utilities.h"
 
+namespace pbbs {
+
 constexpr const size_t default_alloc_size = 5000;
 constexpr const size_t list_size = 1 << 8;
 constexpr const size_t pad_size = 4096;
@@ -291,3 +293,5 @@ inline T* list_allocator<T>::alloc() {
 
   return &p->data;
 }
+
+}  // namespace pbbs

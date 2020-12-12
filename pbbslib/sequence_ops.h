@@ -398,4 +398,4 @@ auto split_two(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
   return std::make_pair(std::move(Out), m);
 }
 
-}
+}  // namespace pbbs

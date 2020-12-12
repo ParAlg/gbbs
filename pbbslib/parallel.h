@@ -1,5 +1,6 @@
 #pragma once
 
+namespace pbbs {
 //***************************************
 // All the pbbs library uses only four functions for
 // accessing parallelism.
@@ -42,6 +43,7 @@ template <typename A, typename Af, typename Df, typename F>
 static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity = 0,
                                bool conservative = false);
+}  // namespace pbbs
 
 //***************************************
 
@@ -54,6 +56,7 @@ static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
 #include <sstream>
 #define PAR_GRANULARITY 2000
 
+namespace pbbs {
 template <typename F>
 inline void parallel_for(long start, long end, F f, long granularity,
                          bool conservative) {
@@ -119,6 +122,7 @@ inline int numanode() {
   return 1;
 }
 #endif
+}  // namespace pbbs
 
 // openmp
 #elif defined(OPENMP)
@@ -126,6 +130,7 @@ inline int numanode() {
 #include <stddef.h>
 #define PAR_GRANULARITY 200000
 
+namespace pbbs {
 extern bool in_par_do;
 
 template <class F>
@@ -192,6 +197,7 @@ inline int numanode() {
   return 1;
 }
 #endif
+}  // namespace pbbs
 
 
 // Guy's scheduler (ABP)
@@ -200,15 +206,16 @@ inline int numanode() {
 
 #define PAR_GRANULARITY 512
 
+namespace pbbs {
 template <class F>
 inline void parallel_for(long start, long end, F f, long granularity,
                          bool conservative) {
-  global_scheduler.parfor(start, end, f, granularity, conservative);
+  pbbs::global_scheduler.parfor(start, end, f, granularity, conservative);
 }
 
 template <typename Lf, typename Rf>
 inline void par_do(Lf left, Rf right, bool conservative) {
-  return global_scheduler.pardo(left, right, conservative);
+  return pbbs::global_scheduler.pardo(left, right, conservative);
 }
 
 template <typename Job>
@@ -230,19 +237,21 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
   // finish_alloc(alloc);
 }
 
-inline int num_workers() { return global_scheduler.num_workers(); }
+inline int num_workers() { return pbbs::global_scheduler.num_workers(); }
 
-inline int worker_id() { return global_scheduler.worker_id(); }
+inline int worker_id() { return pbbs::global_scheduler.worker_id(); }
 
 #ifdef SAGE
-inline int numanode() { return global_scheduler.numanode(); }
+inline int numanode() { return pbbs::global_scheduler.numanode(); }
 #endif
+}  // namespace pbbs
 
 // c++
 #else
 
 #define PAR_GRANULARITY 1000
 
+namespace pbbs {
 template <class F>
 inline void parallel_for(long start, long end, F f, long granularity,
                          bool conservative) {
@@ -276,5 +285,6 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
 
 inline int num_workers() { return 1; }
 inline int worker_id() { return 0; }
+}  // namespace pbbs
 
 #endif

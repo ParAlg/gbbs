@@ -23,7 +23,9 @@
 #error "Unable to define getMemorySize( ) for an unknown OS."
 #endif
 
+namespace pbbs {
 /**
  * Returns the size of physical memory (RAM) in bytes.
  */
 size_t getMemorySize();
+}  // namespace pbbs

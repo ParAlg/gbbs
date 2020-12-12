@@ -1,5 +1,4 @@
-#ifndef _BARENBOIM_ELKIN_DEGEN
-#define _BARENBOIM_ELKIN_DEGEN
+#pragma once
 
 #include "gbbs/bucket.h"
 #include "gbbs/edge_map_reduce.h"
@@ -10,7 +9,9 @@
 #include "benchmarks/ApproximateDensestSubgraph/GreedyCharikar/DensestSubgraph.h"
 #include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
 
+namespace gbbs {
 namespace barenboimelkin_degen {
+
 template<class Graph>
 inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool approx=false) {
   double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
@@ -52,7 +53,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
   auto ret = sequence<uintE>::no_init(n);
   parallel_for (0,n,[&] (size_t j) { ret[sortD[j]] = j; });
   return ret;
-} 
 }
 
-#endif
+}  // namespace barenboimelkin_degen
+}  // namespace gbbs

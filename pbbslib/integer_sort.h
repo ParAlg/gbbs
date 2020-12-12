@@ -190,9 +190,10 @@ template <typename SeqIn, typename IterOut, typename Get_Key>
 sequence<size_t> integer_sort_(SeqIn const &In, range<IterOut> Out,
                                range<IterOut> Tmp, Get_Key const &g,
                                size_t bits, size_t num_buckets, bool inplace) {
-  if (slice_eq(In.slice(), Out))
-    throw std::invalid_argument(
-        "in integer_sort : input and output must be different locations");
+  if (slice_eq(In.slice(), Out)) {
+    std::cout << "in integer_sort : input and output must be different locations" << std::endl;
+    exit(-1);
+  }
   if (bits == 0) {
     auto get_key = [&](size_t i) { return g(In[i]); };
     auto keys = delayed_seq<size_t>(In.size(), get_key);
@@ -204,18 +205,18 @@ sequence<size_t> integer_sort_(SeqIn const &In, range<IterOut> Out,
 
 template <typename T, typename Get_Key>
 void integer_sort_inplace(range<T *> In, Get_Key const &g,
-                          size_t num_buckets = 0) {
+                          size_t num_bits = 0) {
   sequence<T> Tmp = sequence<T>::no_init(In.size());
-  integer_sort_(In, Tmp.slice(), In, g, num_buckets, 0, true);
+  integer_sort_(In, Tmp.slice(), In, g, num_bits, 0, true);
 }
 
 template <typename Seq, typename Get_Key>
 sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key const &g,
-                                                size_t num_buckets = 0) {
+                                                size_t num_bits = 0) {
   using T = typename Seq::value_type;
   sequence<T> Out = sequence<T>::no_init(In.size());
   sequence<T> Tmp = sequence<T>::no_init(In.size());
-  integer_sort_(In, Out.slice(), Tmp.slice(), g, num_buckets, 0, false);
+  integer_sort_(In, Out.slice(), Tmp.slice(), g, num_bits, 0, false);
   return Out;
 }
 
@@ -225,6 +226,9 @@ sequence<typename Seq::value_type> integer_sort(Seq const &In, Get_Key const &g,
 template <typename Tint = size_t, typename Seq, typename Get_Key>
 sequence<Tint> get_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
   size_t n = In.size();
+  if (n == 0) {
+    return sequence<Tint>(num_buckets, (Tint)0);
+  }
   sequence<Tint> starts(num_buckets, (Tint)0);
   sequence<Tint> ends(num_buckets, (Tint)0);
   parallel_for(0, n - 1, [&](size_t i) {
@@ -245,4 +249,5 @@ integer_sort_with_counts(Seq const &In, Get_Key const &g, size_t num_buckets) {
   auto R = integer_sort(In, g, bits);
   return std::make_pair(std::move(R), get_counts<Tint>(R, g, num_buckets));
 }
-}
+
+}  // namespace pbbs

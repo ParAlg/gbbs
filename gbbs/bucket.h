@@ -50,6 +50,8 @@
 #define CACHE_LINE_S 64
 
 
+namespace gbbs {
+
 enum bucket_order { decreasing, increasing };
 
 // Maintains a dynamic mapping from a set of ident_t's to a set of buckets with
@@ -449,3 +451,5 @@ inline buckets<D, uintE, bucket_t> make_vertex_custom_buckets(size_t n, D& d, bu
       order, size_t total_buckets = 128) {
   return buckets<D, uintE, bucket_t>(n, d, order, total_buckets);
 }
+
+}  // namespace gbbs

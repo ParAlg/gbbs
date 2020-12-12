@@ -41,6 +41,8 @@
 #include "macros.h"
 #include "pbbslib/monoid.h"
 
+namespace gbbs {
+
 namespace cvertex {
 
 template <class W, class C, class F, class G, class VS>
@@ -767,3 +769,5 @@ struct csv_byte
   using inner = compressed_symmetric_vertex<W, byte_decode>;
   using inner::inner;
 };
+
+}  // namespace gbbs

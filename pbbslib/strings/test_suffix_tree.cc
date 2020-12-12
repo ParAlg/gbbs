@@ -22,14 +22,14 @@ int main (int argc, char *argv[]) {
   sequence<char> teststr = char_seq_from_file(fname);
   //auto r = tokens(teststr, [&] (char c) {return c != 'N';});
   //uint max = reduce(sequence<uint>(r.size(), [&] (size_t i) {return r[i].size();}), maxm<uint>());
-  //cout << "max: " << max << endl;
+  //cout << "max: " << max << std::endl;
   //sequence<char> out = filter(teststr, [&] (char c) {return (c == 'A') || c == 'C' || c == 'T' || c == 'G' || c == 'M' || c == 'N';});
   //char_seq_to_file(out, "bar");
   //string teststr = "aabcabd";
   //string teststr = "bacacdaba";
   size_t n = teststr.size();
   sequence<Uchar> a(n, [&] (size_t i) -> uchar {return teststr[i];});
-  //cout << teststr << endl;
+  //cout << teststr << std::endl;
   //sequence<Node> R =
   timer t("total Suffix Tree", true);
   for (int i=0; i < 3; i++) {
@@ -40,9 +40,9 @@ int main (int argc, char *argv[]) {
     //t.next("lcp");
     suffix_tree<Uint> T(a);
     t.next("");
-    //cout << "wonderful: " << endl;
+    //cout << "wonderful: " << std::endl;
     //maybe<Uint> r = T.find("wonder");
-    //if (r) cout << *r << endl;
+    //if (r) std::cout << *r << std::endl;
   }
-  //for (size_t i = 0; i < n; i++) cout << R[i].location << ", " << R[i].value << ", " << R[i].parent << endl;
+  //for (size_t i = 0; i < n; i++) std::cout << R[i].location << ", " << R[i].value << ", " << R[i].parent << std::endl;
 }

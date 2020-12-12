@@ -6,6 +6,8 @@
 #include "gbbs/flags.h"
 #include "gbbs/encodings/byte_pd_amortized.h"
 
+namespace gbbs {
+
 /* Note that the block degree computable by differencing two starts. */
 struct vtx_info {
   /* vertex's (packed) degree. */
@@ -105,7 +107,7 @@ struct sym_bitset_manager {
 #ifndef SAGE
     return e0;
 #else
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return e0;
     } else {
       return e1;
@@ -649,7 +651,7 @@ struct compressed_sym_bitset_manager {
 #ifndef SAGE
     return e0;
 #else
-    if (numanode() == 0) {
+    if (pbbs::numanode() == 0) {
       return e0;
     } else {
       return e1;
@@ -1161,3 +1163,5 @@ struct compressed_sym_bitset_manager {
         block_data_start);
   }
 };
+
+}  // namespace gbbs

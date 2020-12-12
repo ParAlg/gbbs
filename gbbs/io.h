@@ -25,6 +25,7 @@
 
 #include "macros.h"
 
+namespace gbbs {
 namespace gbbs_io {
 
 template <class E>
@@ -48,4 +49,5 @@ sequence<char> readStringFromFile(const char* fileName);
 
 std::tuple<char*, size_t> read_o_direct(const char* fname);
 
-} // namespace gbbs_io
+}  // namespace gbbs_io
+}  // namespace gbbs

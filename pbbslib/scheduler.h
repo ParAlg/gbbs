@@ -12,6 +12,8 @@
 #include <numa.h>
 #endif
 
+namespace pbbs {
+
 // EXAMPLE USE 1:
 //
 // fork_join_scheduler fj;
@@ -430,3 +432,5 @@ struct SchedulerInitializer {
 static SchedulerInitializer global_scheduler_initializer;
 
 }  // namespace internal
+
+}  // namespace pbbs

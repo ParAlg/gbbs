@@ -2,7 +2,11 @@
 
 #include "bridge.h"
 #include "compressed_vertex.h"
+#include "edge_array.h"
 #include "vertex.h"
+#include "vertex_subset.h"
+
+namespace gbbs {
 
 /* Filters a symmetric graph, G, with a predicate function pred.  Note
  * that the predicate does not have to be symmetric, i.e. f(u,v) is
@@ -194,7 +198,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
                            std::get<1>(l) + std::get<1>(r));
   };
   auto red_monoid = pbbslib::make_monoid(red_f, id);
-  timer reduce_t; reduce_t.start();
+  pbbs::timer reduce_t; reduce_t.start();
   parallel_for(0, n, [&] (size_t i) {
     auto res = G.get_vertex(i).template reduceOutNgh<T>(i, map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
@@ -261,7 +265,8 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
   G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "# G.m is now = " << G.m << "\n";
 
-  return edge_array<W>(arr.to_array(), n, n, arr.size());
+  auto arr_size = arr.size();
+  return edge_array<W>(arr.to_array(), n, n, arr_size);
 }
 
 // Used by MaximalMatching.
@@ -303,7 +308,8 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
   }, 1);
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
-  return edge_array<W>(arr.to_array(), n, n, arr.size());
+  auto arr_size = arr.size();
+  return edge_array<W>(arr.to_array(), n, n, arr_size);
 }
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
@@ -359,7 +365,8 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
       }
     }, 1);
   }
-  return edge_array<W>(output_arr.to_array(), n, n, output_arr.size());
+  auto output_arr_size = output_arr.size();
+  return edge_array<W>(output_arr.to_array(), n, n, output_arr_size);
 }
 
 
@@ -474,3 +481,5 @@ inline vertexSubsetData<uintE> edgeMapFilter(Graph& G,
     return vertexSubsetData<uintE>(n);
   }
 }
+
+}  // namespace gbbs

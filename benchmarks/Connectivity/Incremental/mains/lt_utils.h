@@ -1,5 +1,6 @@
 #pragma once
 
+namespace gbbs {
 namespace connectit {
   template <
     class Graph,
@@ -41,4 +42,5 @@ namespace connectit {
     auto name = liu_tarjan_options_to_string(no_sampling,connect_option,update_option,shortcut_option,alter_option);
     return run_multiple(G, rounds, name, P, test);
   }
-} // connectit
+}  // namespace connectit
+}  // namespace gbbs

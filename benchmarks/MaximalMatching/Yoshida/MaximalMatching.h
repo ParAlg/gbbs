@@ -28,6 +28,8 @@
 #include "reorder.h"
 #include "yoshida_matching_utils.h"
 
+namespace gbbs {
+
 enum mm_status {
   in,
   out,
@@ -141,3 +143,4 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
 
   return std::make_tuple(max_query_length, tot_work, fraction_covered);
 }
+}  // namespace gbbs

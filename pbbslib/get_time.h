@@ -2,6 +2,8 @@
 
 #include <string>
 
+namespace pbbs {
+
 struct timer {
   double total_time;
   double last_time;
@@ -22,6 +24,4 @@ struct timer {
   void next(const std::string& str);
 };
 
-static timer _tm;
-#define startTime() _tm.start();
-#define nextTime(_string) _tm.next(_string);
+}  // namespace pbbs

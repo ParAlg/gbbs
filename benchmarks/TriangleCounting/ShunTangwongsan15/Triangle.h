@@ -32,6 +32,8 @@
 #include "benchmarks/DegeneracyOrder/GoodrichPszona11/DegeneracyOrder.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
+namespace gbbs {
+
 template <class Graph>
 struct countF {
   Graph& G;
@@ -57,16 +59,12 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
   sequence<uintE> o(n);
 
-  timer t;
-  t.start();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
     return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
   });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
-  t.stop();
-  t.reportTotal("Rank time");
   return r;
 }
 
@@ -179,7 +177,9 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
                   { counts[i] = 0; });
 
   // 1. Rank vertices based on degree
+  timer rt; rt.start();
   uintE* rank = rankNodes(G, G.n);
+  rt.stop(); rt.reportTotal("rank time");
 
   // 2. Direct edges to point from lower to higher rank vertices.
   // Note that we currently only store out-neighbors for this graph to save
@@ -187,7 +187,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return rank[u] < rank[v];
   };
-  auto DG = G.filterGraph(G, pack_predicate);
+  auto DG = filterGraph(G, pack_predicate);
   //auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
@@ -222,7 +222,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
     return (ordering[u] < ordering[v]);
   };
 
-  auto DG = G.filterGraph(G, pack_predicate);
+  auto DG = filterGraph(G, pack_predicate);
  // auto DG = Graph::filterGraph(G, pack_predicate);
   gt.stop();
   gt.reportTotal("build graph time");
@@ -267,3 +267,5 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
     exit(1);
   }
 }
+
+}  // namespace gbbs

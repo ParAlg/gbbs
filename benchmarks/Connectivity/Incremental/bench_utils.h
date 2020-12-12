@@ -2,6 +2,7 @@
 
 /* ************************* Benchmark Utils *************************** */
 
+namespace gbbs {
 template<typename F>
 double reduce(std::vector<double> V, F f) {
   double x = V[0];
@@ -65,7 +66,7 @@ bool run_multiple(Graph& G, size_t rounds,
   double maxtp = reduce(tp, maxf);
   double medtp = median(tp);
 
-  cout << "Test = {"
+  std::cout << "Test = {"
        << "\"name\": \"" << name << "\"" << std::setprecision(5)
        << ", \"rounds\":" << rounds
        << ", \"med_time\":" << medt
@@ -78,7 +79,7 @@ bool run_multiple(Graph& G, size_t rounds,
        << ", \"min_throughput\":" << mintp
        << ", \"max_throughput\":" << maxtp
        << "}"
-       << endl;
+       << std::endl;
   return 1;
 }
 
@@ -100,3 +101,4 @@ void print_cpu_stats(Stats& stats, commandLine& P) {
     + " ,\"total_uf_tries\":" + std::to_string(total_uf_tries.get_value())
     + "}" << std::endl;
 }
+}  // namespace gbbs

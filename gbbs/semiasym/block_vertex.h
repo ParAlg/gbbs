@@ -27,6 +27,8 @@
 #include "gbbs/macros.h"
 #include "pbbslib/sequence_ops.h"
 
+namespace gbbs {
+
 namespace block_vertex_ops {
 
 template <class It>
@@ -342,3 +344,5 @@ inline size_t decode_block(uintE vtx_id, BM& block_manager, uintT o,
 //}
 
 }  // namespace block_vertex_ops
+
+}  // namespace gbbs

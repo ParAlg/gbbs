@@ -2,6 +2,8 @@
 
 #include "pbbslib/assert.h"
 
+namespace gbbs {
+
 // Creates a case on `case_label` and returns `case_label` as a string in the
 // case.
 #define RETURN_CASE_LABEL(case_label) \
@@ -138,3 +140,4 @@ std::string liu_tarjan_options_to_string(
 }
 
 }  // namespace connectit
+}  // namespace gbbs

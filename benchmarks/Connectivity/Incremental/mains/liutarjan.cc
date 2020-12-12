@@ -27,6 +27,7 @@
 #include "empty_starting_graph.h"
 #include "subsample_starting_graph.h"
 
+namespace gbbs {
 namespace connectit {
   template <class Graph, bool provides_initial_graph>
   void liutarjan_R(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
@@ -78,6 +79,7 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
         connectit::liutarjan_PRFA<Graph, provides_initial_graph>,
       });
 }
+}  // namespace gbbs
 
 
 #include "empty_starting_graph.h"

@@ -26,6 +26,8 @@
 #include "bridge.h"
 #include "macros.h"
 
+namespace gbbs {
+
 // Edge Array Representation
 template <class W>
 struct edge_array {
@@ -97,3 +99,5 @@ inline edge_array<W> to_edge_array(Graph& G) {
   });
   return edge_array<W>(arr, n, n, m);
 }
+
+}  // namespace gbbs

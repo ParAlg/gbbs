@@ -33,6 +33,8 @@
 
 #include "KTruss.h"
 
+namespace gbbs {
+
 template <class Graph>
 double KTruss_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
@@ -43,7 +45,7 @@ double KTruss_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -nb (num_buckets) = " << num_buckets << " -no_buckets = " << no_buckets << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
   if (num_buckets != static_cast<size_t>((1 << pbbslib::log2_up(num_buckets)))) {
     std::cout << "Number of buckets must be a power of two."
               << "\n";
@@ -63,4 +65,6 @@ double KTruss_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_symmetric_main(KTruss_runner, false);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::KTruss_runner, false);

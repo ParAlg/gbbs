@@ -6,13 +6,14 @@
 
 namespace std {
 
-size_t hash<UndirectedEdge>::operator()(const UndirectedEdge& edge) const {
+size_t hash<gbbs::UndirectedEdge>::operator()(const gbbs::UndirectedEdge& edge) const {
   return pbbs::hash_combine(
-      pbbs::hash64_2(edge.edge_.first), pbbs::hash64_2(edge.edge_.second));
+     pbbs::hash64_2(edge.edge_.first), pbbs::hash64_2(edge.edge_.second));
 }
 
 }  // namespace std
 
+namespace gbbs {
 UndirectedEdge::UndirectedEdge(const uintE u, const uintE v)
   : edge_{std::minmax(u, v)} {}
 
@@ -36,3 +37,4 @@ std::ostream& operator<<(std::ostream& os, const UndirectedEdge& edge) {
   os<< "{" << endpoints.first << ", " << endpoints.second << "}";
   return os;
 }
+}  // namespace gbbs

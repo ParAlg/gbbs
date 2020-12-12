@@ -27,6 +27,7 @@
 #include "gbbs/speculative_for.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
+namespace gbbs {
 namespace mm {
 
   constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
@@ -84,7 +85,7 @@ namespace mm {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
-    auto E = G.filterAllEdges(pred);
+    auto E = filterAllEdges(G, pred);
 
     timer perm_t;
     perm_t.start();
@@ -127,7 +128,7 @@ namespace mm {
     };
     timer fet;
     fet.start();
-    auto E = G.filterEdges(pred);
+    auto E = filterEdges(G, pred);
     fet.stop();
     fet.reportTotal("Filter edges time");
 
@@ -260,3 +261,5 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
               << "\n";
   }
 }
+
+}  // namespace gbbs

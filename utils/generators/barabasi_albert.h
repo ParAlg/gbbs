@@ -4,6 +4,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 
+namespace gbbs {
 namespace barabasi_albert {
 auto generate_updates(
     size_t n,
@@ -51,4 +52,5 @@ auto generate_updates(
   }
   return edges;
 }
-} // namespace barabasi_albert
+}  // namespace barabasi_albert
+}  // namespace gbbs

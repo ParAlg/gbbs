@@ -28,6 +28,7 @@
 #include "benchmarks/SpanningForest/common.h"
 #include "benchmarks/Connectivity/connectit.h"
 
+namespace gbbs {
 namespace labelprop_sf {
 
   constexpr uint8_t unemitted = 0;
@@ -177,3 +178,4 @@ namespace labelprop_sf {
   }
 
 }  // namespace labelprop_sf
+}  // namespace gbbs

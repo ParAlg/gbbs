@@ -2,6 +2,10 @@
 
 #include <x86intrin.h>
 #include "gbbs/macros.h"
+
+
+namespace gbbs {
+
 // see bitmagic
 // precondition: rank > 0
 unsigned select64_tz(uint64_t w, unsigned rank)
@@ -156,3 +160,5 @@ static uintE block_degree(uint8_t* finger, uintE block_num, uintE num_blocks,
   return next_offset - offset;
 }
 }  // namespace bitsets
+
+}  // namespace gbbs

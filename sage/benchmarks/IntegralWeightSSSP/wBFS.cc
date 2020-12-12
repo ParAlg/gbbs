@@ -38,6 +38,8 @@
 #include "sage/sage.h"
 #include "benchmarks/IntegralWeightSSSP/JulienneDBS17/wBFS.h"
 
+namespace gbbs {
+
 template <class Graph>
 double wBFS_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
@@ -51,7 +53,7 @@ double wBFS_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"
@@ -66,4 +68,6 @@ double wBFS_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_weighted_sage_main(wBFS_runner);
+}  // namespace gbbs
+
+generate_weighted_sage_main(gbbs::wBFS_runner);

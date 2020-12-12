@@ -4,6 +4,7 @@
 #include "gbbs/graph_test_utils.h"
 #include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace gt = graph_test;
 
 TEST(Modularity, NullGraph) {
@@ -29,7 +30,7 @@ TEST(Modularity, BasicGraph) {
   //   |  2 -- 3 -- 4  |
   //   | /     |     \ |
   //   1       7       6
-  //         /   \
+  //         /   \.
   //        8 --- 9
   constexpr size_t kNumVertices{10};
   const std::unordered_set<UndirectedEdge> kEdges{
@@ -59,3 +60,4 @@ TEST(Modularity, BasicGraph) {
     EXPECT_FLOAT_EQ(scan::Modularity(&graph, clusters), 0.28472222);
   }
 }
+}  // namespace gbbs

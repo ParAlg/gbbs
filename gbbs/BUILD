@@ -11,6 +11,7 @@ cc_library(
   ":bridge",
   ":flags",
   ":graph",
+  ":interface",
   ":macros",
   ":vertex_subset",
   ]
@@ -123,7 +124,9 @@ cc_library(
   deps = [
   ":bridge",
   ":compressed_vertex",
+  ":edge_array",
   ":vertex",
+  ":vertex_subset",
   ]
 )
 
@@ -160,6 +163,21 @@ cc_library(
 )
 
 cc_library(
+  name = "interface",
+  hdrs = ["interface.h"],
+  deps = [
+  ":edge_array",
+  ":edge_map_reduce",
+  ":edge_map_data",
+  ":flags",
+  ":graph",
+  ":graph_mutation",
+  ":macros",
+  ":vertex_subset",
+  ]
+)
+
+cc_library(
   name = "contract",
   hdrs = ["contract.h"],
   deps = [
@@ -181,7 +199,6 @@ cc_library(
   ":macros",
   ":vertex",
   "//pbbslib:sample_sort",
-  "//pbbslib:stlalgs",
   "//pbbslib/strings:string_basics",
   ]
 )
@@ -196,7 +213,7 @@ cc_library(
   ":undirected_edge",
   ":vertex",
   "//pbbslib:utilities",
-  "@googletest//:gtest_main",
+  "@googletest//:gtest",
   ]
 )
 
@@ -227,6 +244,7 @@ cc_library(
   deps = [
   ":graph_io",
   ":parse_command_line",
+  "//pbbslib:assert",
   ]
 )
 

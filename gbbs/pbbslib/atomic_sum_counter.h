@@ -3,6 +3,8 @@
 #include "pbbslib/utilities.h"
 #include "gbbs/macros.h"
 
+namespace pbbslib {
+
 /* atomic max object for numeric type T */
 /* Note the temporary bad hack around usage---see note on reset() */
 template <class T>
@@ -52,8 +54,9 @@ struct atomic_sum_counter {
   }
 
   void update_value(T new_val) {
-    uintE id = worker_id();
+    size_t id = worker_id();
     entries[id << stride] += new_val;
   }
 };
 
+}  // namespace pbbslib

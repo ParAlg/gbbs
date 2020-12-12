@@ -38,6 +38,8 @@
 #include "sage/sage.h"
 #include "benchmarks/SSWidestPath/JulienneDBS17/SSWidestPath.h"
 
+namespace gbbs {
+
 template <class Graph>
 double SSWidestPath_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
@@ -51,7 +53,7 @@ double SSWidestPath_runner(Graph& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << " -nb (num_buckets) = " << num_buckets << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   if (num_buckets != (((uintE)1) << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two"
@@ -70,4 +72,6 @@ double SSWidestPath_runner(Graph& G, commandLine P) {
   return tt;
 }
 
-generate_weighted_sage_main(SSWidestPath_runner);
+}  // namespace gbbs
+
+generate_weighted_sage_main(gbbs::SSWidestPath_runner);

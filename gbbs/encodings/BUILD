@@ -9,6 +9,7 @@ cc_library(
   name = "byte_pd",
   hdrs = ["byte_pd.h"],
   deps = [
+  "//gbbs:bridge",
   "//gbbs:macros",
   "//pbbslib:binary_search",
   "//pbbslib:seq",

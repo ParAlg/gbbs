@@ -7,6 +7,7 @@
 
 #include <mutex>
 
+namespace gbbs {
 namespace find_variants {
   inline uintE find_naive(uintE i, pbbs::sequence<parent>& parents) {
     uintE pathlen = 1;
@@ -303,4 +304,6 @@ namespace unite_variants {
 
   /* Add unite-by-size (lock-based?) */
 
-} // namespace unite_variants
+}  // namespace unite_variants
+
+}  // namespace gbbs

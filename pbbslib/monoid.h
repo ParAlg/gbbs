@@ -156,4 +156,5 @@ struct Add_Nested_Array {
     return r;
   }
 };
-}
+
+}  // namespace pbbs

@@ -1,3 +1,4 @@
+#include "gbbs/encodings/byte_pd_amortized.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/io.h"
 #include "gbbs/parse_command_line.h"
@@ -12,11 +13,11 @@
 // Provides utilities for converting between different compressed
 // representations.
 
-namespace encodings {
-namespace bytepd_amortized {
+namespace gbbs {
 
   template <class Graph>
   void write_graph_bytepd_amortized_directed(Graph& GA, std::ofstream& out) {
+    namespace encoding = bytepd_amortized;
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -33,11 +34,11 @@ namespace bytepd_amortized {
         auto f = [&] (uintE u, uintE v, W w) {
           long bytes = 0;
           if ((deg % PARALLEL_DEGREE) == 0) {
-            bytes = byte::compressFirstEdge(tmp, bytes, u, v);
-            bytes = byte::compressWeight<W>(tmp, bytes, w);
+            bytes = encoding::compressFirstEdge(tmp, bytes, u, v);
+            bytes = encoding::compressWeight<W>(tmp, bytes, w);
           } else {
-            bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
-            bytes = byte::compressWeight<W>(tmp, bytes, w);
+            bytes = encoding::compressEdge(tmp, bytes, v - last_ngh);
+            bytes = encoding::compressWeight<W>(tmp, bytes, w);
           }
           last_ngh = v;
           total_bytes += bytes;
@@ -69,7 +70,7 @@ namespace bytepd_amortized {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.get_vertex(i).getOutIter(i);
-          size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+          size_t nbytes = encoding::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -102,11 +103,11 @@ namespace bytepd_amortized {
         auto f = [&] (uintE u, uintE v, W w) {
           long bytes = 0;
           if ((deg % PARALLEL_DEGREE) == 0) {
-            bytes = byte::compressFirstEdge(tmp, bytes, u, v);
-            bytes = byte::compressWeight<W>(tmp, bytes, w);
+            bytes = encoding::compressFirstEdge(tmp, bytes, u, v);
+            bytes = encoding::compressWeight<W>(tmp, bytes, w);
           } else {
-            bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
-            bytes = byte::compressWeight<W>(tmp, bytes, w);
+            bytes = encoding::compressEdge(tmp, bytes, v - last_ngh);
+            bytes = encoding::compressWeight<W>(tmp, bytes, w);
           }
           last_ngh = v;
           total_bytes += bytes;
@@ -138,7 +139,7 @@ namespace bytepd_amortized {
         uintE deg = degrees[i];
         if (deg > 0) {
           auto it = GA.get_vertex(i).getInIter(i);
-          size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+          size_t nbytes = encoding::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
             exit(0);
@@ -158,6 +159,7 @@ namespace bytepd_amortized {
 
   template <class Graph>
   void write_graph_bytepd_amortized_format(Graph& GA, std::ofstream& out, bool symmetric) {
+    namespace encoding = bytepd_amortized;
     using W = typename Graph::weight_type;
     if (!symmetric) {
       write_graph_bytepd_amortized_directed(GA, out);
@@ -249,11 +251,11 @@ namespace bytepd_amortized {
 //        }
         long bytes = 0;
         if ((deg % PARALLEL_DEGREE) == 0) {
-          bytes = byte::compressFirstEdge(tmp, bytes, u, v);
-          bytes = byte::compressWeight<W>(tmp, bytes, w);
+          bytes = encoding::compressFirstEdge(tmp, bytes, u, v);
+          bytes = encoding::compressWeight<W>(tmp, bytes, w);
         } else {
-          bytes = byte::compressEdge(tmp, bytes, v - last_ngh);
-          bytes = byte::compressWeight<W>(tmp, bytes, w);
+          bytes = encoding::compressEdge(tmp, bytes, v - last_ngh);
+          bytes = encoding::compressWeight<W>(tmp, bytes, w);
         }
         last_ngh = v;
         total_bytes += bytes;
@@ -287,7 +289,7 @@ namespace bytepd_amortized {
       uintE deg = degrees[i];
       if (deg > 0) {
         auto it = GA.get_vertex(i).getOutIter(i);
-        size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
+        size_t nbytes = encoding::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
 
 //        uchar* edgeArray = edges.begin() + byte_offsets[i];
 //        size_t degree = deg;
@@ -397,8 +399,6 @@ namespace bytepd_amortized {
     out.write((char*)edges.begin(),total_space); //write edges
     out.close();
   }
-}; // namespace bytepd_amortized
-}; // namespace encodings
 
 template <class Graph>
 double converter(Graph& GA, commandLine P) {
@@ -413,7 +413,7 @@ double converter(Graph& GA, commandLine P) {
   auto encoding = P.getOptionValue("-enc", "bytepd-amortized");
 
   if (encoding == "bytepd-amortized") {
-    encodings::bytepd_amortized::write_graph_bytepd_amortized_format(GA, out, symmetric);
+    write_graph_bytepd_amortized_format(GA, out, symmetric);
   } else {
     std::cout << "Unknown encoding: " << encoding << std::endl;
     exit(0);
@@ -422,6 +422,7 @@ double converter(Graph& GA, commandLine P) {
   exit(0);
   return 0;
 }
+}  // namespace gbbs
 
 
-generate_main(converter, false);
+generate_main(gbbs::converter, false);

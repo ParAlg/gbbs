@@ -2,6 +2,7 @@
 
 #include <limits>
 
+namespace gbbs {
 namespace indexed_scan {
 
 namespace {
@@ -16,25 +17,6 @@ struct VertexDegree {
 
 namespace internal {
 
-bool operator==(const EdgeSimilarity& a, const EdgeSimilarity& b) {
-  constexpr float kEpsilon{1e-6};
-  return std::tie(a.source, a.neighbor) == std::tie(b.source, b.neighbor) &&
-    std::abs(a.similarity - b.similarity) < kEpsilon;
-}
-
-std::ostream&
-operator<<(std::ostream& os, const EdgeSimilarity& edge_similarity) {
-  os << "{edge=(" << edge_similarity.source << ',' << edge_similarity.neighbor
-     << "), similarity=" << edge_similarity.similarity << '}';
-  return os;
-}
-
-bool operator==(const CoreThreshold& a, const CoreThreshold& b) {
-  constexpr float kEpsilon{1e-6};
-  return a.vertex_id == b.vertex_id &&
-    std::abs(a.threshold - b.threshold) < kEpsilon;
-}
-
 std::ostream&
 operator<<(std::ostream& os, const CoreThreshold& core_threshold) {
   os << "{vertex=" << core_threshold.vertex_id
@@ -47,6 +29,8 @@ void ReportTime([[maybe_unused]] const timer& t) {
   t.reportTotal("");
 #endif
 }
+
+NeighborOrder::NeighborOrder() : similarities_{}, similarities_by_source_{} {}
 
 const pbbs::range<EdgeSimilarity*>&
 NeighborOrder::operator[](size_t source) const {
@@ -161,7 +145,7 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 
   const pbbs::sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
-    BinarySearch(
+    pbbs::binary_search(
         possible_cores,
         [epsilon](const internal::CoreThreshold& core_threshold) {
           return core_threshold.threshold >= epsilon;
@@ -176,3 +160,4 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 }  // namespace internal
 
 }  // namespace indexed_scan
+}  // namespace gbbs

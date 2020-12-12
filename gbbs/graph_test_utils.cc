@@ -2,6 +2,7 @@
 
 #include <tuple>
 
+namespace gbbs {
 namespace graph_test {
 
 symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
@@ -25,7 +26,7 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
           weight);
     ++edges_it;
   }
-  // TODO(tom.tseng): Some graph operations assume that the neighbor lists are
+  // TODO(tomtseng): Some graph operations assume that the neighbor lists are
   // sorted, so we sort here. But maybe this sorting belongs in
   // `sym_graph_from_edges` or as an option to `sym_graph_from_edges`.
   // See https://github.com/ldhulipala/gbbs/pull/21.
@@ -40,3 +41,4 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
 }
 
 }  // namespace graph_test
+}  // namespace gbbs

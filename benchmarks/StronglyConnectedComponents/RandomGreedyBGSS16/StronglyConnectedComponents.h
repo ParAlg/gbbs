@@ -32,6 +32,7 @@
 // not necessary, at least on the graphs we tested on).
 //#include "third_party/gbbs/src/chains.h"
 
+namespace gbbs {
 constexpr size_t TOP_BIT = ((size_t)LONG_MAX) + 1;
 constexpr size_t VAL_MASK = LONG_MAX;
 using label_type = size_t;
@@ -194,7 +195,7 @@ inline bool* first_search(Graph& GA, L& labels, uintE start,
 }
 
 template <class Graph>
-inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta = 1.1) {
+inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta = 1.5) {
   timer initt;
   initt.start();
   size_t n = GA.n;
@@ -375,6 +376,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     rt.reportTotal("Round time");
   }
 
+  parallel_for(0, labels.size(), [&] (size_t i) {
+    labels[i] = labels[i] & VAL_MASK;
+  });
   return labels;
 }
 
@@ -426,3 +430,4 @@ inline void scc_stats(Seq& labels) {
     }
   }
 }
+}  // namespace gbbs

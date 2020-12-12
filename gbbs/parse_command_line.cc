@@ -1,5 +1,6 @@
 #include "parse_command_line.h"
 
+namespace gbbs {
 commandLine::commandLine(int _c, char** _v, std::string _cl)
     : argc(_c), argv(_v), comLine(std::move(_cl)) {}
 
@@ -80,3 +81,4 @@ double commandLine::getOptionDoubleValue(
     }
   return defaultValue;
 }
+}  // namespace gbbs

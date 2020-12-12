@@ -2,9 +2,9 @@
 
 #include "gbbs/graph.h"
 
+namespace gbbs {
 using edge = std::pair<uintE, uintE>;
 using parent = uintE;
-
 
 constexpr edge empty_edge = std::make_pair(UINT_E_MAX, UINT_E_MAX);
 
@@ -20,3 +20,4 @@ namespace spanning_forest {
     });
   }
 }
+}  // namespace gbbs

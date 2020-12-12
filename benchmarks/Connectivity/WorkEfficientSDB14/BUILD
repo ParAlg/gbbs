@@ -6,7 +6,6 @@ cc_library(
   "//benchmarks/Connectivity:common",
   "//gbbs:gbbs",
   "//gbbs:contract",
-  "//gbbs/pbbslib:sparse_table"
   ]
 )
 

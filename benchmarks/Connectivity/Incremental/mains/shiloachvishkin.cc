@@ -26,6 +26,7 @@
 #include "empty_starting_graph.h"
 #include "subsample_starting_graph.h"
 
+namespace gbbs {
 namespace connectit {
 
   template <class Graph, bool provides_initial_graph>
@@ -63,3 +64,4 @@ void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updat
         connectit::shiloach_vishkin<Graph, provides_initial_graph>
       });
 }
+}  // namespace gbbs

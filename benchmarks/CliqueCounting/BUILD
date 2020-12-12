@@ -6,7 +6,6 @@ cc_library(
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_table",
   ]
 )
 
@@ -101,9 +100,8 @@ cc_binary(
   name = "Clique_main",
   srcs = ["Clique.cc"],
   deps = [
-  ":Clique",
-  "@simdinter//:intersectiondeps",],
-  copts = ["-Iexternal/simdinter/include"],
+  ":Clique"
+  ]
 )
 
 package(

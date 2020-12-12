@@ -23,6 +23,7 @@
 
 #include "Connectivity.h"
 
+namespace gbbs {
 template <class Graph>
 double CC_runner(Graph& G, commandLine P) {
   std::cout << "### Application: CC (Connectivity)" << std::endl;
@@ -30,7 +31,7 @@ double CC_runner(Graph& G, commandLine P) {
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   timer t;
   t.start();
@@ -44,5 +45,6 @@ double CC_runner(Graph& G, commandLine P) {
 
   return tt;
 }
+}  // namespace gbbs
 
-generate_main(CC_runner, false);
+generate_main(gbbs::CC_runner, false);

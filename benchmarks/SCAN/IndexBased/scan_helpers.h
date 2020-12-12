@@ -4,61 +4,43 @@
 // main SCAN header file.
 #pragma once
 
-#include <atomic>
-#include <functional>
 #include <utility>
 
-#include "benchmarks/SCAN/IndexBased/intersect.h"
-#include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
+#include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "gbbs/graph.h"
-#include "gbbs/graph_mutation.h"
-#include "gbbs/undirected_edge.h"
 #include "pbbslib/get_time.h"
 #include "pbbslib/sample_sort.h"
+#include "pbbslib/seq.h"
 
+namespace gbbs {
 namespace indexed_scan {
 
 namespace internal {
 
-using NoWeight = pbbslib::empty;
-
-struct EdgeSimilarity {
-  // Source vertex ID.
-  uintE source;
-  // Neighbor vertex ID.
-  uintE neighbor;
-  // Similarity of source vertex to neighbor vertex.
-  float similarity;
-};
-// Beware that this equality operator compares the floating-point field
-// approximately. This is convenient for unit tests but might not be appropriate
-// for other uses (e.g., this operator is not transitive).
-bool operator==(const EdgeSimilarity&, const EdgeSimilarity&);
-std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
+using EdgeSimilarity = scan::EdgeSimilarity;
 
 // An adjacency list for the graph in which each vertex's neighbor list is
-// sorted by descending structural similarity.
-//
-// The structural similarity between two vertices u and v is
-//   (size of intersection of closed neighborhoods of u and v) /
-//   (geometric mean of size of closed neighborhoods of u and of v)
-// where the closed neighborhood of a vertex x consists of all neighbors of x
-// along with x itself.
-//
-// Unlike the presentation in "Efficient Structural Graph Clustering:  An
-// Index-Based Approach", the neighbor list for a vertex `v` will not contain
-// `v` itself, unless `(v, v)` is explicitly given as an edge in `graph`.
+// sorted by descending similarity.
 class NeighborOrder {
  public:
-  // Constructor.
+  // Constructor where the similarity between two adjacent vertices is
+  // determined using a particular similarity measure (see
+  // `similarity_measure.h` for options).
   //
   // The neighbor lists for each vertex in the graph must be sorted by ascending
   // neighbor ID.
-  template <template <typename> class VertexTemplate>
-  explicit NeighborOrder(symmetric_graph<VertexTemplate, NoWeight>* graph);
+  template <
+    template <typename> class VertexTemplate,
+    typename Weight,
+    class SimilarityMeasure>
+  NeighborOrder(
+      symmetric_graph<VertexTemplate, Weight>* graph,
+      const SimilarityMeasure& similarity_measure);
 
-  // Get all structural similarity scores from vertex `source` to its neighbors,
-  // sorted by descending similarity.
+  NeighborOrder();
+
+  // Get all similarity scores from vertex `source` to its neighbors (not
+  // including `source` itself), sorted by descending similarity.
   const pbbs::range<EdgeSimilarity*>& operator[](size_t source) const;
 
   bool empty() const;
@@ -81,10 +63,6 @@ struct CoreThreshold {
   // vertex (given some fixed reference value for SCAN parameter mu).
   float threshold;
 };
-// Beware that this equality operator compares the floating-point field
-// approximately. This is convenient for unit tests but might not be appropriate
-// for other uses (e.g., this operator is not transitive)
-bool operator==(const CoreThreshold&, const CoreThreshold&);
 std::ostream& operator<<(std::ostream& os, const CoreThreshold&);
 
 class CoreOrder {
@@ -96,7 +74,7 @@ class CoreOrder {
   pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
 
  private:
-  const size_t num_vertices_;
+  size_t num_vertices_;
   pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
 };
 
@@ -104,163 +82,15 @@ class CoreOrder {
 // SCAN_DETAILED_TIMES is defined, otherwise does nothing.
 void ReportTime(const timer&);
 
-// Finds the least `i` such that `predicate(sequence[i])` is false. If
-// `predicate(sequence[i])` is true for all `i`, then this returns
-// `sequence.size()`.
-//
-// `sequence` and `predicate` must be partitioned such that there is some `i`
-// (which will be the return value) for which `predicate(sequence[i])` is true
-// for all j < i and for which `predicate(sequence[i])` is false for all j >= i.
-//
-// `predicate` should take a `SeqElement` and return a boolean.
-//
-// Running time is O(log [return value]).
-template <class Seq, class Func>
-size_t BinarySearch(const Seq& sequence, Func&& predicate) {
-  // Start off the binary search with an exponential search so that running time
-  // while be O(log [return value]) rather than O(log sequence.size()).
-  // In practice this probably doesn't matter much....
-  size_t hi{0};
-  while (hi < sequence.size() && predicate(sequence[hi])) {
-    hi = 2 * hi + 1;
-  }
-  const size_t lo{hi / 2};
-  if (hi > sequence.size()) {
-    hi = sequence.size();
-  }
-
-  return lo +
-    pbbs::binary_search(sequence.slice(lo, hi), std::forward<Func>(predicate));
-}
-
-template <template <typename> class VertexTemplate>
+template <
+  template <typename> class VertexTemplate,
+  typename Weight,
+  class SimilarityMeasure>
 NeighborOrder::NeighborOrder(
-    symmetric_graph<VertexTemplate, NoWeight>* graph) {
+    symmetric_graph<VertexTemplate, Weight>* graph,
+    const SimilarityMeasure& similarity_measure) {
   timer function_timer{"Construct neighbor order"};
-
-  // To compute structural similarities, we need to count shared neighbors
-  // between two vertices. Counting the neighbors shared between adjacent
-  // vertices u and v is the same as counting the number of triangles that the
-  // edge {u, v} appears in.
-  //
-  // The triangle counting logic here is borrowed from
-  // `Triangle_degree_ordering()` in
-  // `benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h`. We modify it to
-  // maintain triangle counts for each edge.
-
-  // Create a directed version of `graph`, pointing edges from lower degree
-  // vertices to higher degree vertices in order to bound the maximum degree of
-  // each vertex.
-  uintE* vertex_degree_ranking{rankNodes(*graph, graph->n)};
-  const auto filter_predicate{[&](const uintE u, const uintE v, NoWeight) {
-    return vertex_degree_ranking[u] < vertex_degree_ranking[v];
-  }};
-  auto directed_graph{graph->filterGraph(*graph, filter_predicate)};
-
-  // Estimate the amount of work for each vertex for better load balancing.
-  auto parallel_work{sequence<size_t>(directed_graph.n)};
-  {
-    const auto get_edge_work{[&](const uintE u, const uintE v, NoWeight) {
-      return directed_graph.get_vertex(v).getOutDegree();
-    }};
-    const auto addition{pbbslib::addm<size_t>()};
-    par_for(0, directed_graph.n, [&](const size_t i) {
-      parallel_work[i] =
-        directed_graph.get_vertex(i).template reduceOutNgh<size_t>(
-            i, get_edge_work, addition);
-    });
-  }
-  const size_t total_work{pbbslib::scan_add_inplace(parallel_work)};
-  constexpr size_t work_block_size{50000};
-  const size_t num_work_blocks{
-    (total_work + work_block_size - 1) / work_block_size};
-
-  // Each counter in `counters` holds the number of shared neighbors in `graph`
-  // between u and v for some edge {u, v}.
-  pbbs::sequence<std::atomic<uintE>> counters(
-      directed_graph.m, [](size_t) { return std::atomic<uintE>{0}; });
-  // We use `counter_offsets` to be able to index into `counters` for each edge.
-  pbbs::sequence<uintT> counter_offsets(
-      directed_graph.n,
-      [&](const size_t i) {
-        return directed_graph.get_vertex(i).getOutDegree();
-      });
-  pbbslib::scan_add_inplace(counter_offsets);
-
-  // Find triangles of the following form:
-  //        w
-  //       ^ ^
-  //      /   \.
-  //     u --> v
-  // There's a bijection between triangles of this form in `directed_graph` and
-  // undirected triangles in `graph`.
-  const auto run_intersection_on_block{[&]
-      (const size_t block_start, const size_t block_end) {
-    for (size_t vertex_id = block_start; vertex_id < block_end; vertex_id++) {
-      auto vertex{directed_graph.get_vertex(vertex_id)};
-      const uintT vertex_counter_offset{counter_offsets[vertex_id]};
-      const auto intersect{[&](
-          const uintE v_id,
-          const uintE neighbor_id,
-          NoWeight,
-          const uintE v_to_neighbor_index) {
-        auto neighbor{directed_graph.get_vertex(neighbor_id)};
-        const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
-        const auto update_counters{[&](
-            const uintE shared_neighbor,
-            const uintE vertex_to_shared_index,
-            const uintE neighbor_to_shared_index) {
-          counters[vertex_counter_offset + vertex_to_shared_index]++;
-          counters[neighbor_counter_offset + neighbor_to_shared_index]++;
-        }};
-        counters[vertex_counter_offset + v_to_neighbor_index] +=
-          intersect_f_with_index_par(
-              &vertex, &neighbor, vertex_id, neighbor_id, update_counters);
-      }};
-      constexpr bool kParallel{false};
-      vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
-    }
-  }};
-  constexpr size_t kGranularity{1};
-  par_for(0, num_work_blocks, kGranularity, [&](size_t i) {
-    const size_t work_start{i * work_block_size};
-    const size_t work_end{work_start + work_block_size};
-    constexpr auto less_fn{std::less<size_t>()};
-    const size_t block_start{
-      pbbs::binary_search(parallel_work, work_start, less_fn)};
-    const size_t block_end{
-      pbbs::binary_search(parallel_work, work_end, less_fn)};
-    run_intersection_on_block(block_start, block_end);
-  });
-
-  // Convert shared neighbor counts into structural similarities for each edge.
-  similarities_ = pbbs::sequence<EdgeSimilarity>(graph->m);
-  par_for(0, directed_graph.n, [&](const size_t vertex_id) {
-    const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const float v_neighborhood_sqrt{
-      sqrtf(graph->get_vertex(vertex_id).getOutDegree() + 1)};
-    const auto compute_similarity{[&](
-        const uintE v_id,
-        const uintE u_id,
-        NoWeight,
-        const uintE v_to_u_index) {
-      // SCAN structural similarities are defined using _closed_ neighborhoods,
-      // hence the need to to adjust these values by `+ 1` and `+ 2`.
-      const float u_neighborhood_sqrt{
-        sqrtf(graph->get_vertex(u_id).getOutDegree() + 1)};
-      const uintT counter_index{v_counter_offset + v_to_u_index};
-      const uintE num_shared_neighbors{counters[counter_index] + 2};
-      const float structural_similarity{
-        num_shared_neighbors / (v_neighborhood_sqrt * u_neighborhood_sqrt)};
-      similarities_[2 * counter_index] =
-        {.source = v_id, .neighbor = u_id, .similarity = structural_similarity};
-      similarities_[2 * counter_index + 1] =
-        {.source = u_id, .neighbor = v_id, .similarity = structural_similarity};
-    }};
-    directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
-        vertex_id, compute_similarity);
-  });
-
+  similarities_ = similarity_measure.AllEdges(graph);
   pbbs::sample_sort_inplace(
       similarities_.slice(),
       [](const EdgeSimilarity& left, const EdgeSimilarity& right) {
@@ -268,20 +98,17 @@ NeighborOrder::NeighborOrder(
         return std::tie(left.source, right.similarity) <
           std::tie(right.source, left.similarity);
       });
-  pbbs::sequence<uintT> source_offsets(
+  pbbs::sequence<uintT> vertex_offsets{
       graph->n,
-      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); });
-  pbbslib::scan_add_inplace(source_offsets);
+      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
+  pbbslib::scan_add_inplace(vertex_offsets);
   similarities_by_source_ = pbbs::sequence<pbbs::range<EdgeSimilarity*>>(
       graph->n,
       [&](const size_t i) {
         return similarities_.slice(
-          source_offsets[i],
-          i + 1 == graph->n ? similarities_.size() : source_offsets[i + 1]);
+          vertex_offsets[i],
+          i + 1 == graph->n ? similarities_.size() : vertex_offsets[i + 1]);
       });
-
-  directed_graph.del();
-  pbbs::free_array(vertex_degree_ranking);
   internal::ReportTime(function_timer);
 }
 
@@ -298,3 +125,4 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
 }  // namespace internal
 
 }  // namespace indexed_scan
+}  // namespace gbbs

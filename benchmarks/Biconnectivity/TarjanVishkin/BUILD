@@ -5,7 +5,6 @@ cc_library(
   "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
-  "//gbbs/pbbslib:sparse_table",
   "//pbbslib:random",
   "//pbbslib:sample_sort",
   "//pbbslib/strings:string_basics",

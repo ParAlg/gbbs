@@ -39,6 +39,8 @@
 #include <iostream>
 #include <optional>
 
+namespace pbbs {
+
 template <typename T>
 class concurrent_stack {
   struct Node {
@@ -131,3 +133,5 @@ class concurrent_stack {
   concurrent_stack() {}
   ~concurrent_stack() { clear(); }
 };
+
+}  // namespace pbbs

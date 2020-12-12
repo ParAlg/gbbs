@@ -33,6 +33,7 @@
 #include "pbbslib/random.h"
 #include "pbbslib/sample_sort.h"
 
+namespace gbbs {
 namespace MinimumSpanningForest_spec_for {
 constexpr size_t sample_size = 10000;
 inline size_t hash_to_range(size_t hsh, size_t range) { return hsh & range; }
@@ -193,3 +194,4 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
 }
 
 }  // namespace MinimumSpanningForest_spec_for
+}  // namespace gbbs

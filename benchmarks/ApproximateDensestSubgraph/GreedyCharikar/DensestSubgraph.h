@@ -1,3 +1,6 @@
+// This code is part of the project "Theoretically Efficient Parallel Graph
+// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
+// in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +24,9 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/edge_map_reduce.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
+
+namespace gbbs {
 
 // Implements a parallel version of Charikar's 2-appx that runs in O(m+n)
 // expected work and O(\rho\log n) depth w.h.p.
@@ -61,8 +65,8 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
   size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),
       pbbslib::fl_inplace);
   if (total_edges != GA.m) {
-    cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
-      total_edges << endl;
+    std::cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
+      total_edges << std::endl;
     exit(0);
   }
 
@@ -72,6 +76,8 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     return static_cast<double>(dens) / static_cast<double>(rem);
   });
   double max_density = pbbslib::reduce_max(density_seq);
-  cout << "### Density of 2-Densest Subgraph is: " << max_density << endl;
+  std::cout << "### Density of 2-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }
+
+}  // namespace gbbs

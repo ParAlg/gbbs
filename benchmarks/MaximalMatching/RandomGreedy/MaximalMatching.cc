@@ -39,6 +39,8 @@
 #include <fstream>
 #include <iostream>
 
+namespace gbbs {
+
 template <template <class W> class vertex, class W>
 double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   std::cout << "### Application: CC (Connectivity)" << std::endl;
@@ -47,7 +49,7 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: (n/a)" << std::endl;
-  std::cout << "### ------------------------------------" << endl;
+  std::cout << "### ------------------------------------" << std::endl;
 
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");
@@ -91,4 +93,6 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   exit(0);
 }
 
-generate_symmetric_main(MaximalMatching_runner, true);
+}  // namespace gbbs
+
+generate_symmetric_main(gbbs::MaximalMatching_runner, true);

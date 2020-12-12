@@ -65,4 +65,5 @@ size_t binary_search_eq(Seq const& I, const F& less, const G& eq) {
   }
   return start + linear_search(I.slice(start, end), less);
 }
-}
+
+}  // namespace pbbs

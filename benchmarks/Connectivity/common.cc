@@ -1,7 +1,9 @@
 #include "benchmarks/Connectivity/common.h"
 
-atomic_max_counter<uintE> max_pathlen;
-atomic_sum_counter<size_t> total_pathlen;
+namespace gbbs {
+
+pbbslib::atomic_max_counter<uintE> max_pathlen;
+pbbslib::atomic_sum_counter<size_t> total_pathlen;
 
 void report_pathlen(uintE pathlen) {
 #ifdef REPORT_PATH_LENGTHS
@@ -44,3 +46,5 @@ annotate_updates(pbbs::sequence<std::tuple<uintE, uintE>>& updates, double inser
   }
   return result;
 }
+
+}  // namespace gbbs

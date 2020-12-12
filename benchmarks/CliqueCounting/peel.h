@@ -11,6 +11,8 @@
 #include "induced_hybrid.h"
 #include "intersect.h"
 
+namespace gbbs {
+
 // Wrapper for a hash function
 struct hashtup {
   inline size_t operator () (const uintE & a) const {return pbbs::hash64_2(a);}
@@ -125,7 +127,7 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
 
   // Hash table to contain triangle count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
-  auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+  auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -202,7 +204,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
 
   // Hash table to contain clique count updates
   size_t edge_table_size = (size_t) (active_deg < n ? active_deg : n);
-  auto edge_table = sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
+  auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(UINT_E_MAX, false), hashtup());
 
   // Function that dictates which edges to consider in first level of recursion
   auto ignore_f = [&](const uintE& u, const uintE& v) {
@@ -542,9 +544,11 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
 double tt2 = t2.stop();
 std::cout << "### Peel Running Time: " << tt2 << std::endl;
 std::cout << "rho: " << round << std::endl;
- std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << endl;
+ std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
 
   free(still_active);
 
   return max_density;
 }
+
+}  // namespace gbbs

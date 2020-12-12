@@ -1,5 +1,7 @@
 #pragma once
 
+namespace gbbs {
+
 struct bitvector {
   size_t n;
   uint8_t* data;
@@ -52,3 +54,5 @@ struct bitvector {
     }
   }
 };
+
+}  // namespace gbbs

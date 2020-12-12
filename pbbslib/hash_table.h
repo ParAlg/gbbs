@@ -22,6 +22,7 @@
 #pragma once
 #include "sequence_ops.h"
 #include "utilities.h"
+#include "get_time.h"
 
 namespace pbbs {
 
@@ -275,10 +276,10 @@ class Table {
 
   // prints the current entries along with the index they are stored at
   void print() {
-    cout << "vals = ";
+    std::cout << "vals = ";
     for (size_t i = 0; i < m; i++)
-      if (TA[i] != empty) cout << i << ":" << TA[i] << ",";
-    cout << endl;
+      if (TA[i] != empty) std::cout << i << ":" << TA[i] << ",";
+    std::cout << std::endl;
   }
 };
 
@@ -317,4 +318,5 @@ template <class T>
 sequence<T> remove_duplicates(sequence<T> const& A) {
   return remove_duplicates(A, hashInt<T>());
 }
-}
+
+}  // namespace pbbs

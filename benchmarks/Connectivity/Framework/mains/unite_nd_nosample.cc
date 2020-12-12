@@ -29,6 +29,7 @@
 #include "bench_utils.h"
 #include "uf_utils.h"
 
+namespace gbbs {
 namespace connectit {
 template <class Graph>
 void unite_nd_find_compress(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
@@ -70,5 +71,6 @@ double Benchmark_runner(Graph& G, commandLine P) {
     });
   return 1.0;
 }
+}  // namespace gbbs
 
-generate_symmetric_once_main(Benchmark_runner, false);
+generate_symmetric_once_main(gbbs::Benchmark_runner, false);

@@ -1,7 +1,7 @@
 // This code is part of the project "A Simple Parallel Cartesian Tree
 // Algorithm and its Application to Parallel Suffix Tree
 // Construction", ACM Transactions on Parallel Computing, 2014.
-// (earlier version appears in ALENEX 2011).  
+// (earlier version appears in ALENEX 2011).
 // Copyright (c) 2014-2019 Julian Shun and Guy Blelloch
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -36,14 +36,14 @@ namespace pbbs {
 
   template <class Index>
   struct ct_node { Index value; Index parent;};
-  
+
   template <class Index>
   void ct_merge(ct_node<Index>* N, Index left, Index right) {
     Index head;
     if (N[left].value > N[right].value) {
       head = left; left = N[left].parent;}
     else {head = right; right= N[right].parent;}
-  
+
     while(1) {
       if (left == 0) {N[head].parent = right; break;}
       if (right == 0) {N[head].parent = left; break;}
@@ -55,7 +55,7 @@ namespace pbbs {
   }
 
   template <class Index>
-  void cartesian_tree_r(ct_node<Index>* Nodes, Index s, Index e) { 
+  void cartesian_tree_r(ct_node<Index>* Nodes, Index s, Index e) {
     if (e-s < 2) {
     } else if (e-s == 2) {
       if (Nodes[s].value > Nodes[s+1].value)
@@ -81,4 +81,4 @@ namespace pbbs {
 	return Nodes[i].parent;});
   }
 
-}
+}  // namespace pbbs

@@ -26,6 +26,8 @@
 
 #include "gbbs/bridge.h"
 
+namespace pbbslib {
+
 template <class K, class V>
 class sparse_additive_map {
  public:
@@ -39,7 +41,7 @@ class sparse_additive_map {
   bool alloc;
 
   static void clearA(T* A, long n, T kv) {
-    par_for(0, n, 2048, [&] (size_t i) { A[i] = kv; });
+    parallel_for(0, n, [&] (size_t i) { A[i] = kv; });
   }
 
   inline size_t hashToRange(size_t h) { return h & mask; }
@@ -118,16 +120,14 @@ class sparse_additive_map {
   }
 
   auto entries() {
-    // T* out = pbbslib::new_array_no_init<T>(m);
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = pbbslib::make_sequence<T>(table, m);
     return pbbslib::filter(table_seq, pred);
-//    size_t new_m = pbbslib::filterf(table, out, m, pred);
-//    return pbbslib::sequence<T>(out, new_m, true); // allocated
   }
 
   void clear() {
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                    { table[i] = empty; });
+    parallel_for(0, m, [&] (size_t i) { table[i] = empty; });
   }
 };
+
+}  // namespace pbbslib

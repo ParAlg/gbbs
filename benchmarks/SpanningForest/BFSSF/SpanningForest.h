@@ -26,6 +26,7 @@
 #include "gbbs/gbbs.h"
 #include "benchmarks/SpanningForest/common.h"
 
+namespace gbbs {
 namespace bfs_sf {
 
 template <class W>
@@ -147,3 +148,4 @@ inline pbbs::sequence<edge> SpanningForestDet(Graph& G) {
 }
 
 }  // namespace bfs_sf
+}  // namespace gbbs

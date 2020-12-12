@@ -1,5 +1,6 @@
 #include "scheduler.h"
 
+namespace pbbs {
 namespace {
 
 int global_scheduler_counter;  // Zero-initialized at load time.
@@ -42,3 +43,5 @@ fork_join_scheduler::~fork_join_scheduler() {
 int fork_join_scheduler::num_workers() { return sched->num_workers(); }
 int fork_join_scheduler::worker_id() { return sched->worker_id(); }
 void fork_join_scheduler::set_num_workers(int n) { sched->set_num_workers(n); }
+
+}  // namespace pbbs

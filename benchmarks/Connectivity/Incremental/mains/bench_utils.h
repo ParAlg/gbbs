@@ -8,6 +8,7 @@
 
 /* ************************* Benchmark Utils *************************** */
 
+namespace gbbs {
 size_t global_batch_size = 0;
 double global_update_pct = 0.0;
 double global_insert_to_query = 0.0;
@@ -262,7 +263,5 @@ namespace connectit {
     return std::make_tuple(t, med_batch_time, throughput, ncc_before, ncc_after);
   }
 
-} // connectit
-
-
-
+}  // namespace connectit
+}  // namespace gbbs
