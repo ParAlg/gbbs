@@ -20,36 +20,36 @@ partially complete (please check our [github
 repo](https://www.github.com/ParAlg/gbbs) for the latest state).
 
 ### Shortest Path Problems
-* [Breadth-First Search](benchmarks/sssp/breadth_first_search)
-* [Integral-Weight SSSP](benchmarks/sssp/integral_weight_sssp)
-* [Positive-Weight SSSP](benchmarks/sssp/positive_weight_sssp)
-* [General-Weight SSSP](benchmarks/sssp/general_weight_sssp)
-* [Single-Source Widest Path](benchmarks/sssp/ss_widest_path)
-* [Single-Source Betwenness Centrality](benchmarks/sssp/ss_betweenness_centrality)
-* [Graph Spanner](benchmarks/sssp/spanner)
+* [Breadth-First Search](/gbbs/docs/benchmarks/sssp/breadth_first_search)
+* [Integral-Weight SSSP](/gbbs/docs/benchmarks/sssp/integral_weight_sssp)
+* [Positive-Weight SSSP](/gbbs/docs/benchmarks/sssp/positive_weight_sssp)
+* [General-Weight SSSP](/gbbs/docs/benchmarks/sssp/general_weight_sssp)
+* [Single-Source Widest Path](/gbbs/docs/benchmarks/sssp/ss_widest_path)
+* [Single-Source Betwenness Centrality](/gbbs/docs/benchmarks/sssp/ss_betweenness_centrality)
+* [Graph Spanner](/gbbs/docs/benchmarks/sssp/spanner)
 
 ### Connectivity Problems
-* [Low-Diameter Decomposition](benchmarks/connectivity/low_diameter_decomposition)
-* [Connectivity](benchmarks/connectivity/connectivity)
-* [Biconnectivity](benchmarks/connectivity/biconnectivity)
-* [Strongly Connected Components](benchmarks/connectivity/strongly_connected_components)
-* [Minimum Spanning Forest](benchmarks/connectivity/minimum_spanning_forest)
+* [Low-Diameter Decomposition](/gbbs/docs/benchmarks/connectivity/low_diameter_decomposition)
+* [Connectivity](/gbbs/docs/benchmarks/connectivity/connectivity)
+* [Biconnectivity](/gbbs/docs/benchmarks/connectivity/biconnectivity)
+* [Strongly Connected Components](/gbbs/docs/benchmarks/connectivity/strongly_connected_components)
+* [Minimum Spanning Forest](/gbbs/docs/benchmarks/connectivity/minimum_spanning_forest)
 
 ### Covering Problems
-* [Maximal Independent Set (MIS)](benchmarks/covering/maximal_independent_set)
-* [Maximal Matching](benchmarks/covering/maximal_matching)
-* [Graph Coloring](benchmarks/covering/coloring)
-* [Approximate Set Cover](benchmarks/covering/apx_set_cover)
+* [Maximal Independent Set (MIS)](/gbbs/docs/benchmarks/covering/maximal_independent_set)
+* [Maximal Matching](/gbbs/docs/benchmarks/covering/maximal_matching)
+* [Graph Coloring](/gbbs/docs/benchmarks/covering/graph_coloring)
+* [Approximate Set Cover](/gbbs/docs/benchmarks/covering/apx_set_cover)
 
 ### Substructure Problems
-* [Triangle Counting](benchmarks/substructure/triangle_counting)
-* [$k$-Clique Counting](benchmarks/substructure/k_clique_counting)
-* [$k$-Core](benchmarks/substructure/k_core)
-* [$k$-Truss](benchmarks/substructure/k_truss)
-* [Approximate Densest Subgraph](benchmarks/substructure/apx_densest_subgraph)
-* [Low-Outdegree Orientation (Arboricity Ordering)](benchmarks/substructure/low_outdegree_orientation)
+* [Triangle Counting](/gbbs/docs/benchmarks/substructure/triangle_counting)
+* [$k$-Clique Counting](/gbbs/docs/benchmarks/substructure/k_clique_counting)
+* [$k$-Core](/gbbs/docs/benchmarks/substructure/k_core)
+* [$k$-Truss](/gbbs/docs/benchmarks/substructure/k_truss)
+* [Approximate Densest Subgraph](/gbbs/docs/benchmarks/substructure/apx_densest_subgraph)
+* [Low-Outdegree Orientation (Arboricity Ordering)](/gbbs/docs/benchmarks/substructure/low_outdegree_orientation)
 
 ### Eigenvector Problems
-* [PageRank](benchmarks/eigenvector/pagerank)
-* [CoSimRank](benchmarks/eigenvector/cosimrank)
+* [PageRank](/gbbs/docs/benchmarks/eigenvector/pagerank)
+* [CoSimRank](/gbbs/docs/benchmarks/eigenvector/cosimrank)
 
