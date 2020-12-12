@@ -103,7 +103,7 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
     double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
     if(L1_norm < eps) break;
 
-    debug(cout << "L1_norm = " << L1_norm << std::endl;);
+    debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
     // Reset p_curr
     parallel_for(0, n, [&] (size_t i) { p_curr[i] = static_cast<double>(0); });
     std::swap(p_curr,p_next);
@@ -170,7 +170,7 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
     });
     double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
     if(L1_norm < eps) break;
-    debug(cout << "L1_norm = " << L1_norm << std::endl;);
+    debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset p_curr
     std::swap(p_curr,p_next);
@@ -355,7 +355,7 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     });
     double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
     if(L1_norm < eps) break;
-    debug(cout << "L1_norm = " << L1_norm << std::endl;);
+    debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
     // Reset
     parallel_for(0, n, [&] (size_t i) { nghSum[i] = static_cast<double>(0); });
