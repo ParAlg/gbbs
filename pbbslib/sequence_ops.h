@@ -24,6 +24,9 @@
 
 #include <math.h>
 #include <iostream>
+#include <type_traits>
+#include <utility>
+
 #include "monoid.h"
 #include "seq.h"
 #include "utilities.h"
@@ -110,7 +113,7 @@ auto reduce(Seq const &A, Monoid m, flags fl = no_flag) ->
 const flags fl_scan_inclusive = (1 << 4);
 
 template <SEQ In_Seq, RANGE Out_Seq, class Monoid>
-auto scan_serial(In_Seq const &In, Out_Seq Out, Monoid const &m,
+auto scan_serial(In_Seq const &In, Out_Seq&& Out, Monoid const &m,
                  typename In_Seq::value_type offset, flags fl = no_flag) ->
     typename In_Seq::value_type {
   using T = typename In_Seq::value_type;
@@ -133,14 +136,18 @@ auto scan_serial(In_Seq const &In, Out_Seq Out, Monoid const &m,
 }
 
 template <SEQ In_Seq, RANGE Out_Range, class Monoid>
-auto scan_(In_Seq const &In, Out_Range Out, Monoid const &m, flags fl = no_flag,
-           typename In_Seq::value_type* tmp = nullptr)
-    -> typename In_Seq::value_type {
+auto scan_(
+    In_Seq const &In,
+    Out_Range&& Out,
+    Monoid const &m,
+    flags fl = no_flag,
+    typename In_Seq::value_type* tmp = nullptr)
+  -> typename In_Seq::value_type {
   using T = typename In_Seq::value_type;
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
   if (l <= 2 || fl & fl_sequential)
-    return scan_serial(In, Out, m, m.identity, fl);
+    return scan_serial(In, std::forward<Out_Range>(Out), m, m.identity, fl);
   //sequence<T> Sums(l);
   bool alloc = false;
   if (tmp == nullptr) {
@@ -163,9 +170,13 @@ auto scan_(In_Seq const &In, Out_Range Out, Monoid const &m, flags fl = no_flag,
 }
 
 template <RANGE Range, class Monoid>
-auto scan_inplace(Range In, Monoid m, flags fl = no_flag, typename Range::value_type* tmp = nullptr) ->
-    typename Range::value_type {
-  return scan_(In, In, m, fl, tmp);
+auto scan_inplace(
+    Range&& In,
+    Monoid m,
+    flags fl = no_flag,
+    typename std::remove_reference<Range>::type::value_type* tmp = nullptr)
+  -> typename std::remove_reference<Range>::type::value_type {
+  return scan_(In.slice(), In.slice(), m, fl, tmp);
 }
 
 template <SEQ In_Seq, class Monoid>
@@ -207,7 +218,7 @@ auto pack_serial(In_Seq const &In, Bool_Seq const &Fl)
 }
 
 template <class Slice, class Slice2, RANGE Out_Seq>
-size_t pack_serial_at(Slice In, Slice2 Fl, Out_Seq Out) {
+size_t pack_serial_at(Slice In, Slice2 Fl, Out_Seq&& Out) {
   size_t k = 0;
   for (size_t i = 0; i < In.size(); i++)
     if (Fl[i]) assign_uninitialized(Out[k++], In[i]);
@@ -238,12 +249,13 @@ auto pack(In_Seq const &In, Bool_Seq const &Fl, flags fl = no_flag)
 
 // Pack the output to the output range.
 template <SEQ In_Seq, SEQ Bool_Seq, RANGE Out_Seq>
-size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq Out,
+size_t pack_out(In_Seq const &In, Bool_Seq const &Fl, Out_Seq&& Out,
                 flags fl = no_flag) {
   size_t n = In.size();
   size_t l = num_blocks(n, _block_size);
   if (l <= 1 || fl & fl_sequential) {
-    return pack_serial_at(In, Fl.slice(0, In.size()), Out);
+    return pack_serial_at(
+        In, Fl.slice(0, In.size()), std::forward<Out_Seq>(Out));
   }
   sequence<size_t> Sums(l);
   sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
@@ -281,7 +293,7 @@ auto filter(In_Seq const &In, F f, flags fl = no_flag)
 
 // Filter and write the output to the output range.
 template <SEQ In_Seq, RANGE Out_Seq, class F>
-size_t filter_out(In_Seq const &In, Out_Seq Out, F f, flags fl = no_flag) {
+size_t filter_out(In_Seq const &In, Out_Seq&& Out, F f, flags fl = no_flag) {
   size_t n = In.size();
   size_t l = pbbs::num_blocks(n, _block_size);
   pbbs::sequence<size_t> Sums(l);

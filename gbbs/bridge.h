@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include <type_traits>
+#include <utility>
+
 #include "pbbslib/binary_search.h"
 #include "pbbslib/counting_sort.h"
 #include "pbbslib/integer_sort.h"
@@ -218,15 +221,14 @@ namespace pbbslib {
   //   Out[i] = In[0] + In[1] + ... + In[i - 1].
   // The return value is the sum over the whole input sequence.
   template <RANGE In_Seq>
-  inline auto scan_add_inplace(In_Seq const& In, flags fl = no_flag, typename In_Seq::value_type* tmp = nullptr) -> typename In_Seq::value_type {
-    using T = typename In_Seq::value_type;
-    return pbbs::scan_inplace(In, pbbs::addm<T>(), fl, nullptr);
-  }
-
-  // Scans the input sequence using the addm monoid.
-  template <class T>
-  inline auto scan_add_inplace(sequence<T> const& In, flags fl = no_flag, T* tmp = nullptr) -> T {
-    return pbbs::scan_inplace(In.slice(), pbbs::addm<T>(), fl, tmp);
+  inline auto scan_add_inplace(
+      In_Seq&& In,
+      flags fl = no_flag,
+      typename std::remove_reference<In_Seq>::type::value_type* tmp = nullptr)
+    -> typename std::remove_reference<In_Seq>::type::value_type {
+    using T = typename std::remove_reference<In_Seq>::type::value_type;
+    return pbbs::scan_inplace(
+        std::forward<In_Seq>(In), pbbs::addm<T>(), fl, tmp);
   }
 
   template <class Seq>
@@ -253,13 +255,17 @@ namespace pbbslib {
     return pbbs::reduce(I, pbbs::xorm<T>(), fl);
   }
 
-  // Pack the output to the output range.
+  // Writes the list of indices `i` where `Fl[i] == true` to range `Out`.
   template <SEQ Bool_Seq, RANGE Out_Seq>
-  size_t pack_index_out(Bool_Seq const &Fl, Out_Seq Out,
+  size_t pack_index_out(Bool_Seq const &Fl, Out_Seq&& Out,
                 flags fl = no_flag) {
-    using Idx_Type = typename Out_Seq::value_type;
+    using Idx_Type = typename std::remove_reference<Out_Seq>::type::value_type;
     auto identity = [] (size_t i) {return (Idx_Type) i;};
-    return pbbs::pack_out(pbbs::delayed_seq<Idx_Type>(Fl.size(),identity), Fl, Out, fl);
+    return pbbs::pack_out(
+        pbbs::delayed_seq<Idx_Type>(Fl.size(),identity),
+        Fl,
+        std::forward<Out_Seq>(Out),
+        fl);
   }
 
   // ====================== binary search =======================
