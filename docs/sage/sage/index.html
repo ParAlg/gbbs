@@ -18,19 +18,19 @@
 
 <link rel="preload" href="/gbbs/styles.b3e934c1.js" as="script">
 
-<link rel="preload" href="/gbbs/runtime~main.dbfe1c03.js" as="script">
+<link rel="preload" href="/gbbs/runtime~main.42037aef.js" as="script">
 
-<link rel="preload" href="/gbbs/main.46e1d393.js" as="script">
+<link rel="preload" href="/gbbs/main.ed190ed4.js" as="script">
 
-<link rel="preload" href="/gbbs/1.71a768be.js" as="script">
+<link rel="preload" href="/gbbs/1.cb25274f.js" as="script">
 
-<link rel="preload" href="/gbbs/43.9b5c0c5c.js" as="script">
+<link rel="preload" href="/gbbs/43.16e8e66d.js" as="script">
 
 <link rel="preload" href="/gbbs/736cb962.556af73e.js" as="script">
 
 <link rel="preload" href="/gbbs/17896441.3f7f82cd.js" as="script">
 
-<link rel="preload" href="/gbbs/a4713618.0ed427f3.js" as="script">
+<link rel="preload" href="/gbbs/a4713618.0611e335.js" as="script">
 
 </head>
 <body>
@@ -41,37 +41,33 @@ NVRAM-based code used in our paper <a href="https://arxiv.org/abs/1910.12310">Sa
 Graph Algorithms for NVRAMs</a>.</p><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="download"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#download" title="Direct link to heading">#</a>Download</h2><p>Our code is currently included as part of the GBBS benchmarks, under the
 top-level <code>sage</code> directory. You can download the code by cloning the
 gbbs repository through ssh (see our
-<a href="https://github.com/ParAlg/gbbs">github</a> for other download options).</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">git clone git@github.com:ParAlg/gbbs.git</span></div></code></pre></div><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="graph-formats"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#graph-formats" title="Direct link to heading">#</a>Graph Formats</h2><p>The code currently requires users to use either the binary
+<a href="https://github.com/ParAlg/gbbs">github</a> for other download options).</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">git clone git@github.com:ParAlg/gbbs.git</span></div></code></pre></div><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="compile"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#compile" title="Direct link to heading">#</a>Compile</h2><p>Compilation requires the <code>bazel</code> build tool, which you can find
+installation instructions for
+<a href="https://docs.bazel.build/versions/master/install.html">here</a>.</p><p>After installing bazel, all of the Sage implementations can be built
+by running:</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">bazel build //sage/...</span></div></code></pre></div><p>This command will compile binaries and store them in the top-level
+<code>bazel-bin</code> directory. For example, the BFS benchmark is located at:</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">bazel-bin/sage/benchmarks/BFS/BFS_main</span></div></code></pre></div><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="graph-formats"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#graph-formats" title="Direct link to heading">#</a>Graph Formats</h2><p>The code currently requires users to use either the binary
 compressed-sparse row format (binary CSR), or the parallel byte-encoded
 compressed-sparse row format (parallel-byte CSR). Both formats are supported by GBBS, and
 we provide more information about the formats
 <a href="https://paralg.github.io/gbbs/docs/formats">here</a>.</p><p>The default format is the binary CSR. Specifying that the input graph
-is compressed is done through the command-line argument <code>-c</code>.</p><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="compilation"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#compilation" title="Direct link to heading">#</a>Compilation</h2><p>Compilation requires the <code>bazel</code> build tool, which you can find
-installation instructions for
-<a href="https://docs.bazel.build/versions/master/install.html">here</a>.</p><p>After installing bazel, all of the Sage implementations can be built
-by running:</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">bazel build //sage/...</span></div></code></pre></div><p>This command will compile binaries and store them in the top-level
-<code>bazel-bin</code> directory. For example, the BFS benchmark is located at:</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">bazel-bin/sage/benchmarks/BFS/BFS_main</span></div></code></pre></div><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="running-benchmarks"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#running-benchmarks" title="Direct link to heading">#</a>Running Benchmarks</h2><p>After compilation, benchmarks can be run as follow, e.g., for BFS:</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">./bazel-bin/sage/benchmarks/Connectivity/Connectivity_main -s -m -f1 /mnt/pmem0/soc-LiveJournal1_sym.binary -f2 /mnt/pmem1/soc-LiveJournal1_sym.binary</span></div></code></pre></div><p>where <code>-f1</code> and <code>-f2</code> specify paths to graphs stored on persistent
-memory attached to the 1st and 2nd sockets, respectively.</p><p>If the system is run on a single socket system, or graph is served
-from DRAM (in which case the NUMA effect is less severe), both
-arguments should supply the same graph.</p><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="contact"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#contact" title="Direct link to heading">#</a>Contact</h2><p>Please contact <a href="mailto:ldhulipa@cs.cmu.edu">ldhulipa@cs.cmu.edu</a> with any questions about using
-Sage, or assistance with running experiments.</p></div></article><div class="margin-vert--lg"><nav class="pagination-nav"><div class="pagination-nav__item"></div><div class="pagination-nav__item pagination-nav__item--next"></div></nav></div></div></div><div class="col col--3"><div class="tableOfContents_TbNY"><ul class="contents contents__left-border"><li><a href="#download" class="contents__link">Download</a></li><li><a href="#graph-formats" class="contents__link">Graph Formats</a></li><li><a href="#compilation" class="contents__link">Compilation</a></li><li><a href="#running-benchmarks" class="contents__link">Running Benchmarks</a></li><li><a href="#contact" class="contents__link">Contact</a></li></ul></div></div></div></div></div></main></div></div><footer class="footer"><div class="container"><div class="row footer__links"><div class="col footer__col"><h4 class="footer__title">Docs</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/tutorial">Tutorial</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/introduction">Documentation</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/library/overview">Library</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/benchmarks/overview">Benchmark Specifications</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Community</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/contributors/">Contributors</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/research">Research Projects using GBBS</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Links</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" to="https://github.com/ParAlg/gbbs" href="https://github.com/ParAlg/gbbs">GitHub</a></li></ul></div></div><div class="text--center"><div>Copyright © 2020 GBBS Authors.</div></div></div></footer>
+is compressed is done through the command-line argument <code>-c</code>.</p><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="running"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#running" title="Direct link to heading">#</a>Running</h2></div></article><div class="margin-vert--lg"><nav class="pagination-nav"><div class="pagination-nav__item"></div><div class="pagination-nav__item pagination-nav__item--next"></div></nav></div></div></div><div class="col col--3"><div class="tableOfContents_TbNY"><ul class="contents contents__left-border"><li><a href="#download" class="contents__link">Download</a></li><li><a href="#compile" class="contents__link">Compile</a></li><li><a href="#graph-formats" class="contents__link">Graph Formats</a></li><li><a href="#running" class="contents__link">Running</a></li></ul></div></div></div></div></div></main></div></div><footer class="footer"><div class="container"><div class="row footer__links"><div class="col footer__col"><h4 class="footer__title">Docs</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/tutorial">Tutorial</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/introduction">Documentation</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/library/overview">Library</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/benchmarks/overview">Benchmark Specifications</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Community</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/contributors/">Contributors</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/research">Research Projects using GBBS</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Links</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" to="https://github.com/ParAlg/gbbs" href="https://github.com/ParAlg/gbbs">GitHub</a></li></ul></div></div><div class="text--center"><div>Copyright © 2020 GBBS Authors.</div></div></div></footer>
 </div>
 
 <script src="/gbbs/styles.b3e934c1.js"></script>
 
-<script src="/gbbs/runtime~main.dbfe1c03.js"></script>
+<script src="/gbbs/runtime~main.42037aef.js"></script>
 
-<script src="/gbbs/main.46e1d393.js"></script>
+<script src="/gbbs/main.ed190ed4.js"></script>
 
-<script src="/gbbs/1.71a768be.js"></script>
+<script src="/gbbs/1.cb25274f.js"></script>
 
-<script src="/gbbs/43.9b5c0c5c.js"></script>
+<script src="/gbbs/43.16e8e66d.js"></script>
 
 <script src="/gbbs/736cb962.556af73e.js"></script>
 
 <script src="/gbbs/17896441.3f7f82cd.js"></script>
 
-<script src="/gbbs/a4713618.0ed427f3.js"></script>
+<script src="/gbbs/a4713618.0611e335.js"></script>
 
 
 </body>
