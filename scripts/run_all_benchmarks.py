@@ -112,9 +112,10 @@ WEIGHTED_GRAPH_BENCHMARKS = [
 # The script will not invoke these binaries. Shell-style globbing is allowed in
 # this list.
 IGNORED_BINARIES = [
-    # These files take input in a format that's different than that of other
-    # benchmarks.
+    # These incremental connectivity binaries take input in a format that's
+    # different than that of other benchmarks.
     "//benchmarks/Connectivity/Incremental/mains:*_no_starting",
+    "//benchmarks/SCAN/IndexBased/experiments:*",
 ]
 
 
