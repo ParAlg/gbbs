@@ -13,3 +13,7 @@ cplib.sh
 /bazel-*
 .pytype
 .ycm_extra_conf.py
+
+# Leftover files from switching from website branch to code branch
+.docusaurus/
+node_modules/
