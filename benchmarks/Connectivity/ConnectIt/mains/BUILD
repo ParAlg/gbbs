@@ -5,7 +5,7 @@ cc_binary(
         ":bench_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/LabelPropagation:Connectivity",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
@@ -18,7 +18,7 @@ cc_binary(
         ":bench_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/LabelPropagation:Connectivity",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
@@ -32,7 +32,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -45,7 +45,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -58,7 +58,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -71,7 +71,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -84,7 +84,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -97,7 +97,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -110,7 +110,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -123,7 +123,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -136,7 +136,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -148,7 +148,7 @@ cc_binary(
         ":bench_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -161,7 +161,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -174,7 +174,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -187,7 +187,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -200,7 +200,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -213,7 +213,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -226,7 +226,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -239,7 +239,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -252,7 +252,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -265,7 +265,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -278,7 +278,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -291,7 +291,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -304,7 +304,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -317,7 +317,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -330,7 +330,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -343,7 +343,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -356,7 +356,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -369,7 +369,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -382,7 +382,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -395,7 +395,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )
@@ -408,7 +408,7 @@ cc_binary(
         ":uf_utils",
         "//benchmarks/Connectivity:common",
         "//benchmarks/Connectivity/BFSCC:Connectivity",
-        "//benchmarks/Connectivity/Framework:framework",
+        "//benchmarks/Connectivity/ConnectIt:framework",
         "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
     ],
 )

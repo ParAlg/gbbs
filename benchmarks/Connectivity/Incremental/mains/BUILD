@@ -184,8 +184,8 @@ cc_library(
     name = "bench_utils",
     hdrs = ["bench_utils.h"],
     deps = [
-        "//benchmarks/Connectivity/Framework:framework",
-        "//benchmarks/Connectivity/Framework/mains:check",
+        "//benchmarks/Connectivity/ConnectIt:framework",
+        "//benchmarks/Connectivity/ConnectIt/mains:check",
         "//gbbs",
     ],
 )
