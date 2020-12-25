@@ -100,7 +100,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
           }};
         const auto addition_monoid{pbbslib::addm<size_t>()};
         const size_t num_shared_neighbors{
-          smaller_degree_vertex->template reduceOutNgh<size_t>(
+          smaller_degree_vertex->reduceOutNgh(
               smaller_degree_vertex_id,
               is_shared_neighbor,
               addition_monoid)};

@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "benchmarks/Connectivity/Framework/framework.h"
+#include "benchmarks/Connectivity/ConnectIt/framework.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/Connectivity/BFSCC/Connectivity.h"
 #include "benchmarks/Connectivity/common.h"

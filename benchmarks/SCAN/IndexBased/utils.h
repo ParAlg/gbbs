@@ -255,7 +255,7 @@ double Modularity(
       graph->n,
       [&](const size_t i) {
         return graph->get_vertex(i)
-          .template reduceOutNgh<double>(i, get_weight, add_weights);
+          .reduceOutNgh(i, get_weight, add_weights);
       }};
     // 2 * sum of all edge weights
     const double total_weight{pbbslib::reduce_add(weighted_degrees)};
@@ -273,7 +273,7 @@ double Modularity(
             [&](const uintE v_id, const uintE ngh_id, const Weight w) {
               return clustering[ngh_id] == cluster_id ? w : 0.0;
             }};
-          return graph->get_vertex(vertex_id).template reduceOutNgh<double>(
+          return graph->get_vertex(vertex_id).reduceOutNgh(
               vertex_id, get_intracluster_weight, add_weights);
         })) / total_weight};
 

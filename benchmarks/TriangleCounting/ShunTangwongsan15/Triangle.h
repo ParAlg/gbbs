@@ -112,7 +112,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
     };
     par_for(0, n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = DG.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, monoid);
+      parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
     });
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());

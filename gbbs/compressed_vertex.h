@@ -178,12 +178,12 @@ template <class W, class C, class F>
 inline size_t countNghs(uintE vtx_id, uintE d, uchar* nghArr, F& f,
                         bool parallel = true) {
   auto monoid = pbbs::addm<size_t>();
-  return C::template map_reduce<W, size_t>(nghArr, vtx_id, d, f, monoid, parallel);
+  return C::template map_reduce<W>(nghArr, vtx_id, d, f, monoid, parallel);
 }
 
-template <class W, class C, class E, class M, class Monoid>
-inline E reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r) {
-  return C::template map_reduce<W, E>(nghArr, vtx_id, d, m, r);
+template <class W, class C, class M, class Monoid>
+inline typename Monoid::T reduceNghs(uintE vtx_id, uintE d, uchar* nghArr, M& m, Monoid& r) {
+  return C::template map_reduce<W>(nghArr, vtx_id, d, m, r);
 }
 
 template <class W, class C, class P, class O>
@@ -396,16 +396,16 @@ struct compressed_symmetric_vertex {
                                        getOutNeighbors(), f, parallel);
   }
 
-  template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
-    return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getInDegree(),
-                                              getInNeighbors(), m, r);
+  template <class M, class Monoid>
+  inline typename Monoid::T reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
+    return cvertex::reduceNghs<W, C, M, Monoid>(vtx_id, getInDegree(),
+                                                getInNeighbors(), m, r);
   }
 
-  template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
-    return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getOutDegree(),
-                                              getOutNeighbors(), m, r);
+  template <class M, class Monoid>
+  inline typename Monoid::T reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
+    return cvertex::reduceNghs<W, C, M, Monoid>(vtx_id, getOutDegree(),
+                                                getOutNeighbors(), m, r);
   }
 
   template <class P>
@@ -662,16 +662,16 @@ struct compressed_asymmetric_vertex {
                                        getOutNeighbors(), f, parallel);
   }
 
-  template <class E, class M, class Monoid>
-  inline E reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
-    return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getInDegree(),
-                                              getInNeighbors(), m, r);
+  template <class M, class Monoid>
+  inline typename Monoid::T reduceInNgh(uintE vtx_id, M& m, Monoid& r) {
+    return cvertex::reduceNghs<W, C, M, Monoid>(vtx_id, getInDegree(),
+                                                getInNeighbors(), m, r);
   }
 
-  template <class E, class M, class Monoid>
-  inline E reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
-    return cvertex::reduceNghs<W, C, E, M, Monoid>(vtx_id, getOutDegree(),
-                                              getOutNeighbors(), m, r);
+  template <class M, class Monoid>
+  inline typename Monoid::T reduceOutNgh(uintE vtx_id, M& m, Monoid& r) {
+    return cvertex::reduceNghs<W, C, M, Monoid>(vtx_id, getOutDegree(),
+                                                getOutNeighbors(), m, r);
   }
 
   template <class P, class O>

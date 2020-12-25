@@ -349,9 +349,9 @@ struct EdgeMap {
                      if (cond_f(i)) {
                        M reduced_val =
                            (fl & in_edges)
-                               ? G.get_vertex(i).template reduceInNgh<M>(
+                               ? G.get_vertex(i).reduceInNgh(
                                      i, map_f, red_monoid)
-                               : G.get_vertex(i).template reduceOutNgh<M>(
+                               : G.get_vertex(i).reduceOutNgh(
                                      i, map_f, red_monoid);
                        auto tup = std::make_tuple(i, reduced_val);
                        apply_f(tup);
@@ -367,9 +367,9 @@ struct EdgeMap {
                      if (cond_f(i)) {
                        M reduced_val =
                            (fl & in_edges)
-                               ? G.get_vertex(i).template reduceInNgh<M>(
+                               ? G.get_vertex(i).reduceInNgh(
                                      i, map_f, red_monoid)
-                               : G.get_vertex(i).template reduceOutNgh<M>(
+                               : G.get_vertex(i).reduceOutNgh(
                                      i, map_f, red_monoid);
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);

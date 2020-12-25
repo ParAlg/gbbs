@@ -3,3 +3,5 @@ converter
 random_reorder
 snap_converter
 to_edge_list
+add_weights
+check_symmetric

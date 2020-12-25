@@ -120,7 +120,7 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
         return (size_t)(mis[v]);
       };
       auto mon = pbbs::addm<size_t>();
-      size_t nghs_ct = G.get_vertex(i).template reduceOutNgh<size_t>(i, map_f, mon);
+      size_t nghs_ct = G.get_vertex(i).reduceOutNgh(i, map_f, mon);
       if (mis[i]) { // if in, ensure no neighbors are in
         assert(nghs_ct == 0);
         if (nghs_ct != 0) {

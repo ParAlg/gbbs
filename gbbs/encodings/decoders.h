@@ -87,11 +87,11 @@ struct byte_decode {
     return byte::pack(pred, edge_start, source, degree, tmp_space);
   }
 
-  template <class W, class E, class M, class Monoid>
-  static inline E map_reduce(uchar* edge_start, const uintE& source,
+  template <class W, class M, class Monoid>
+  static inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
                              const uintT& degree, M& m, Monoid& reduce,
                              const bool par = true) {
-    return byte::map_reduce<W, E, M, Monoid>(edge_start, source, degree, m, reduce,
+    return byte::map_reduce<W, M, Monoid>(edge_start, source, degree, m, reduce,
                                           par);
   }
 
@@ -161,11 +161,11 @@ struct bytepd_amortized_decode {
                                              tmp_space, par);
   }
 
-  template <class W, class E, class M, class Monoid>
-  static inline E map_reduce(uchar* edge_start, const uintE& source,
+  template <class W, class M, class Monoid>
+  static inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
                              const uintT& degree, M& m, Monoid& reduce,
                              const bool par = true) {
-    return bytepd_amortized::map_reduce<W, E>(edge_start, source,
+    return bytepd_amortized::map_reduce<W>(edge_start, source,
                                                          degree, m, reduce, par);
   }
 

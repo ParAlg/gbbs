@@ -351,8 +351,8 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
     auto reduce_incident_edges = [&] (vertexSubset& vs, flags fl) {
       vertexMap(vs, [&] (const uintE& u) {
         NumPaths[u] = (fl & in_edges) ?
-          G.get_vertex(u).template reduceInNgh<fType>(u, map_f, monoid_f):
-          G.get_vertex(u).template reduceOutNgh<fType>(u, map_f, monoid_f);
+          G.get_vertex(u).reduceInNgh(u, map_f, monoid_f):
+          G.get_vertex(u).reduceOutNgh(u, map_f, monoid_f);
       });
     };
     while (!Frontier.isEmpty()) {
@@ -414,7 +414,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
 
     auto reduce_dependencies = [&] (vertexSubset& vs) {
       vertexMap(vs, [&] (const uintE& u) {
-        Dependencies[u] = G.get_vertex(u).template reduceOutNgh<fType>(u, map_f, monoid_f);
+        Dependencies[u] = G.get_vertex(u).reduceOutNgh(u, map_f, monoid_f);
       });
     };
     for (long r = round - 2; r >= 0; r--) {

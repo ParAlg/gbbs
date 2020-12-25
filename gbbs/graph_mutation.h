@@ -181,7 +181,6 @@ template <class Graph, class P>
 inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const flags fl = 0) {
   using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
-  using T = std::tuple<uintT, uintT>;
   size_t n = G.num_vertices();
   auto vtx_offs = sequence<std::tuple<size_t, size_t, size_t>>(n + 1);
 
@@ -200,7 +199,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
   auto red_monoid = pbbslib::make_monoid(red_f, id);
   pbbs::timer reduce_t; reduce_t.start();
   parallel_for(0, n, [&] (size_t i) {
-    auto res = G.get_vertex(i).template reduceOutNgh<T>(i, map_f, red_monoid);
+    auto res = G.get_vertex(i).reduceOutNgh(i, map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
       vtx_offs[i] = std::make_tuple(std::get<0>(res), std::get<1>(res),
                                     G.get_vertex(i).calculateOutTemporarySpace());
@@ -329,7 +328,7 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
   auto red_f = [](size_t l, size_t r) { return l + r; };
   auto red_monoid = pbbslib::make_monoid(red_f, id);
   parallel_for(0, n, [&] (size_t i) {
-    uintE ct = G.get_vertex(i).template reduceOutNgh<uintE>(i, map_f, red_monoid);
+    uintE ct = G.get_vertex(i).reduceOutNgh(i, map_f, red_monoid);
     if (ct > 0) {
       vtx_offs[i] = std::make_tuple(ct, G.get_vertex(i).calculateOutTemporarySpace());
     } else {

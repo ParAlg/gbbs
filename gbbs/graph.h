@@ -91,10 +91,18 @@ struct symmetric_graph {
   }
 
   template <class F>
-  void mapEdges(F f, bool parallel_inner_map = true) {
+  void mapEdges(F f, bool parallel_inner_map = true, size_t granularity=1) {
     parallel_for(0, n, [&](size_t i) {
       get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
-    }, 1);
+    }, granularity);
+  }
+
+  template <class M, class R>
+  typename R::T reduceEdges(M map_f, R reduce_f) {
+    using T = typename R::T;
+    auto D = pbbs::delayed_seq<T>(n, [&] (size_t i) { return
+      get_vertex(i).reduceOutNgh(i, map_f, reduce_f); });
+    return pbbs::reduce(D, reduce_f);
   }
 
   // ======================= Constructors and fields  ========================
@@ -216,6 +224,14 @@ struct symmetric_ptr_graph {
     parallel_for(0, n, [&](size_t i) {
       get_vertex(i).mapOutNgh(i, f, parallel_inner_map);
     }, 1);
+  }
+
+  template <class M, class R>
+  typename R::T reduceEdges(M map_f, R reduce_f) {
+    using T = typename R::T;
+    auto D = pbbs::delayed_seq<T>(n, [&] (size_t i) { return
+      get_vertex(i).reduceOutNgh(i, map_f, reduce_f); });
+    return pbbs::reduce(D, reduce_f);
   }
 
   // ======================= Constructors and fields  ========================

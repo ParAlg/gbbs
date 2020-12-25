@@ -2,8 +2,8 @@
 
 #include <iomanip>
 
-#include "benchmarks/Connectivity/Framework/framework.h"
-#include "benchmarks/Connectivity/Framework/mains/check.h"
+#include "benchmarks/Connectivity/ConnectIt/framework.h"
+#include "benchmarks/Connectivity/ConnectIt/mains/check.h"
 #include "gbbs/gbbs.h"
 
 /* ************************* Benchmark Utils *************************** */
