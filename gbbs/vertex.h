@@ -370,7 +370,7 @@ struct uncompressed_neighbors {
     return k;
   }
 
-};
+};  // struct uncompressed_neighbors
 
 
 template <class W>
@@ -394,9 +394,12 @@ struct symmetric_vertex {
    * allocated in a shared array */
   void clear() { pbbslib::free_array(neighbors); }
 
-  auto in_neighbors() {
+  uncompressed_neighbors<W> in_neighbors() {
     return uncompressed_neighbors<W>(neighbors, degree, id); }
-  auto out_neighbors() { return in_neighbors(); }
+  uncompressed_neighbors<W> out_neighbors() { return in_neighbors(); }
+
+  uintE in_degree() { return degree; }
+  uintE out_degree() { return degree; }
 
   constexpr static uintE getInternalBlockSize() {
     return vertex_ops::kBlockSize;
@@ -417,11 +420,11 @@ struct asymmetric_vertex {
   using vertex = asymmetric_vertex<W>;
   using edge_type = std::tuple<uintE, W>;
 
-  edge_type* in_neighbors;
-  edge_type* out_neighbors;
+  edge_type* in_nghs;
+  edge_type* out_nghgs;
 
-  uintE in_degree;
-  uintE out_degree;
+  uintE in_deg;
+  uintE out_deg;
 
   uintE id;
 
@@ -430,11 +433,11 @@ struct asymmetric_vertex {
   asymmetric_vertex(edge_type* out_neighbors_, vertex_data& out_data,
                     edge_type* in_neighbors_, vertex_data& in_data,
                     uintE _id) {
-    in_neighbors = in_neighbors_ + in_data.offset;
-    out_neighbors = out_neighbors_ + out_data.offset;
+    in_nghs = in_neighbors_ + in_data.offset;
+    out_nghs = out_neighbors_ + out_data.offset;
 
-    in_degree = in_data.degree;
-    out_degree = out_data.degree;
+    in_deg = in_data.degree;
+    out_deg = out_data.degree;
 
     id = _id;
   }
@@ -446,22 +449,18 @@ struct asymmetric_vertex {
     pbbslib::free_array(outNeighbors);
   }
 
+  uncompressed_neighbors<W> in_neighbors() {
+    return uncompressed_neighbors<W>(in_nghs, in_degree, id); }
+  uncompressed_neighbors<W> out_neighbors() {
+    return uncompressed_neighbors<W>(out_nghs, out_degree, id); }
 
-  auto in_neighbors() {
-    return uncompressed_neighbors<W>(in_neighbors, in_degree, id); }
-
-  auto out_neighbors() {
-    return uncompressed_neighbors<W>(out_neighbors, out_degree, id); }
+  uintE in_degree() { return in_deg; }
+  uintE out_degree() { return out_deg; }
 
   constexpr static uintE getInternalBlockSize() {
     return vertex_ops::kBlockSize;
   }
 
-// TODO: used?
-//  void flipEdges() {
-//    std::swap(inNeighbors, outNeighbors);
-//    std::swap(inDegree, outDegree);
-//  }
 };
 
 }  // namespace gbbs
