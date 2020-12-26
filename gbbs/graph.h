@@ -85,7 +85,7 @@ struct symmetric_graph {
       auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
        edges[k++] = std::make_tuple(u, v, wgh);
       };
-      get_vertex(i).out_neighbors().map(i, map_f, false);
+      get_vertex(i).out_neighbors().map(map_f, false);
     }, 1);
     return edges;
   }
@@ -93,7 +93,7 @@ struct symmetric_graph {
   template <class F>
   void mapEdges(F f, bool parallel_inner_map = true, size_t granularity=1) {
     parallel_for(0, n, [&](size_t i) {
-      get_vertex(i).out_neighbors().map(i, f, parallel_inner_map);
+      get_vertex(i).out_neighbors().map(f, parallel_inner_map);
     }, granularity);
   }
 
@@ -101,7 +101,7 @@ struct symmetric_graph {
   typename R::T reduceEdges(M map_f, R reduce_f) {
     using T = typename R::T;
     auto D = pbbs::delayed_seq<T>(n, [&] (size_t i) { return
-      get_vertex(i).out_neighbors().reduce(i, map_f, reduce_f); });
+      get_vertex(i).out_neighbors().reduce(map_f, reduce_f); });
     return pbbs::reduce(D, reduce_f);
   }
 
@@ -345,14 +345,14 @@ struct asymmetric_graph {
 
 #ifndef SAGE
   vertex get_vertex(size_t i) {
-    return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
+    return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i], i);
   }
 #else
   vertex get_vertex(size_t i) {
     if (pbbs::numanode() == 0) {
-      return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i]);
+      return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i], i);
     } else {
-      return vertex(out_edges_1, v_out_data[i], in_edges_1, v_in_data[i]);
+      return vertex(out_edges_1, v_out_data[i], in_edges_1, v_in_data[i], i);
     }
   }
 #endif

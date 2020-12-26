@@ -56,10 +56,8 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
         [&](size_t v) {
           std::get<0>(next[v]) = 0;
           if (f.cond(v)) {
-            auto vert = GA.get_vertex(v);
-            (fl & in_edges)
-                ? vert.decodeOutNghBreakEarly(v, vertexSubset, f, g, dense_par)
-                : vert.decodeInNghBreakEarly(v, vertexSubset, f, g, dense_par);
+            auto neighbors = (fl & in_edges) ? GA.get_vertex(v).out_neighbors() : GA.get_vertex(v).in_neighbors();
+            neighbors.decodeBreakEarly(vertexSubset, f, g, dense_par);
           }
         },
         (fl & fine_parallel) ? 1 : 2048);
@@ -69,10 +67,8 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
     parallel_for(0, n,
                  [&](size_t v) {
                    if (f.cond(v)) {
-                     (fl & in_edges) ? GA.get_vertex(v).decodeOutNghBreakEarly(
-                                           v, vertexSubset, f, g, dense_par)
-                                     : GA.get_vertex(v).decodeInNghBreakEarly(
-                                           v, vertexSubset, f, g, dense_par);
+                     auto neighbors = (fl & in_edges) ? GA.get_vertex(v).out_neighbors() : GA.get_vertex(v).in_neighbors();
+                     neighbors.decodeBreakEarly(vertexSubset, f, g, dense_par);
                    }
                  },
                  (fl & fine_parallel) ? 1 : 2048);
@@ -96,8 +92,8 @@ inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F
             [&](size_t i) { std::get<0>(next[i]) = 0; });
     par_for(0, n, 1, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
-        (fl & in_edges) ? GA.get_vertex(i).decodeInNgh(i, f, g)
-                        : GA.get_vertex(i).decodeOutNgh(i, f, g);
+        auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
+        neighbors.decode(f, g);
       }
     });
     return vertexSubsetData<Data>(n, next);
@@ -105,8 +101,8 @@ inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F
     auto g = get_emdense_forward_nooutput_gen<Data>();
     par_for(0, n, 1, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
-        (fl & in_edges) ? GA.get_vertex(i).decodeInNgh(i, f, g)
-                        : GA.get_vertex(i).decodeOutNgh(i, f, g);
+        auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
+        neighbors.decode(f, g);
       }
     });
     return vertexSubsetData<Data>(n);
@@ -138,8 +134,8 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
   } else {
     vs.toSparse();
     auto degree_f = [&](size_t i) {
-      return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInDegree()
-                             : GA.get_vertex(vs.vtx(i)).getOutDegree();
+      return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).in_degree()
+                             : GA.get_vertex(vs.vtx(i)).out_degree();
     };
     auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_im);

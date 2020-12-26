@@ -28,11 +28,11 @@ TEST(TestGraphFilter, TestCreation) {
   EXPECT_EQ(PG.n, G.n);
   EXPECT_EQ(PG.m, G.m);
   for (size_t i=1; i < n; i++) {
-    EXPECT_EQ(G.get_vertex(i).getOutDegree(), 1);
-    EXPECT_EQ(PG.get_vertex(i).getOutDegree(), 1);
+    EXPECT_EQ(G.get_vertex(i).out_degree(), 1);
+    EXPECT_EQ(PG.get_vertex(i).out_degree(), 1);
   }
-  EXPECT_EQ(G.get_vertex(0).getOutDegree(), n-1);
-  EXPECT_EQ(PG.get_vertex(0).getOutDegree(), n-1);
+  EXPECT_EQ(G.get_vertex(0).out_degree(), n-1);
+  EXPECT_EQ(PG.get_vertex(0).out_degree(), n-1);
   std::cout << "m = " << PG.m << std::endl;
 }
 
@@ -46,10 +46,10 @@ TEST(TestGraphFilter, TestFilter) {
   auto PG = sage::filter_graph(G, predicate);
   for (size_t i=1; i < n; i++) {
     if (i % 2 == 1) {
-      EXPECT_EQ(PG.get_vertex(i).getOutDegree(), 0);
+      EXPECT_EQ(PG.get_vertex(i).out_degree(), 0);
     }
   }
-  EXPECT_EQ(PG.get_vertex(0).getOutDegree(), n/2 - 1);
+  EXPECT_EQ(PG.get_vertex(0).out_degree(), n/2 - 1);
 }
 
 //TEST(TestGraphFilter, TestEdgeMapFilter) {
@@ -63,7 +63,7 @@ TEST(TestGraphFilter, TestFilter) {
 //  };
 //  auto vset = vertexSubset(0);
 //  auto packed_vset = edgeMapFilter(PG, vset, predicate, pack_edges);
-//  EXPECT_EQ(PG.get_vertex(0).getOutDegree(), n/2 - 1);
+//  EXPECT_EQ(PG.get_vertex(0).out_degree(), n/2 - 1);
 //}
 
 }  // namespace gbbs

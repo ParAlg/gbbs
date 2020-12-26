@@ -46,12 +46,15 @@ namespace gbbs {
 template <class W, class C>
 struct compressed_neighbors {
 
-  uchar* neighbors;
-  uintE degree;
   uintE id;
+  uintE degree;
+  uchar* neighbors;
+
+  compressed_neighbors(uintE id, uintE degree, uchar* neighbors) :
+    id(id), degree(degree), neighbors(neighbors) {}
 
   template <class F>
-  inline void mapNghs(F& f, bool parallel = true) {
+  inline void map(F& f, bool parallel = true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       f(src, target, weight);
@@ -61,7 +64,7 @@ struct compressed_neighbors {
   }
 
   template <class F>
-  inline void mapNghsWithIndex(F& f, bool parallel = true) {
+  inline void mapWithIndex(F& f, bool parallel = true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       f(src, target, weight, edgeNumber);
@@ -71,7 +74,7 @@ struct compressed_neighbors {
   }
 
   template <class F, class G>
-  inline void copyNghs(uintT offset, F& f, G& g, bool parallel=true) {
+  inline void copy(uintT offset, F& f, G& g, bool parallel=true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       auto val = f(src, target, weight);
@@ -82,23 +85,23 @@ struct compressed_neighbors {
   }
 
   template <class F>
-  inline size_t countNghs(F& f, bool parallel = true) {
+  inline size_t count(F& f, bool parallel = true) {
     auto monoid = pbbs::addm<size_t>();
     return C::template map_reduce<W>(neighbors, id, degree, f, monoid, parallel);
   }
 
   template <class M, class Monoid>
-  inline typename Monoid::T reduceNghs(M& m, Monoid& r) {
+  inline typename Monoid::T reduce(M& m, Monoid& r) {
     return C::template map_reduce<W>(neighbors, id, degree, m, r);
   }
 
   template <class P, class O>
-  inline void filterNghs(P& pred, std::tuple<uintE, W>* tmp, O& out) {
+  inline void filter(P& pred, std::tuple<uintE, W>* tmp, O& out) {
     C::template filter<W, P, O>(pred, neighbors, id, degree, tmp, out);
   }
 
   template <class P>
-  inline size_t packNghs(P& pred, std::tuple<uintE, W>* tmp) {
+  inline size_t pack(P& pred, std::tuple<uintE, W>* tmp) {
     return C::template pack<W>(pred, neighbors, id, degree, tmp);
   }
 
@@ -134,7 +137,6 @@ struct compressed_neighbors {
     return C::template get_ith_neighbor<W>(neighbors, id, degree, i);
   }
 
-  template <class C>
   inline size_t getVirtualDegree() {
     return C::get_virtual_degree(degree, neighbors);
   }
@@ -157,7 +159,7 @@ struct compressed_neighbors {
 
 
   template <class F, class G>
-  inline void decodeNghs(F& f, G& g, bool parallel = true) {
+  inline void decode(F& f, G& g, bool parallel = true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       if (f.cond(target)) {
@@ -169,8 +171,25 @@ struct compressed_neighbors {
     C::template decode<W>(T, neighbors, id, degree, parallel);
   }
 
+
+  template <class F, class G, class H>
+  inline void decodeSparse(uintT offset, F& f, G& g, H& h, bool parallel = true) {
+    auto T = [&](const uintE& src, const uintE& target, const W& weight,
+                 const uintT& edgeNumber) {
+      if (f.cond(target)) {
+        auto m = f.updateAtomic(src, target, weight);
+        g(target, offset + edgeNumber, m);
+      } else {
+        h(target, offset + edgeNumber);
+      }
+      return true;
+    };
+    C::template decode<W>(T, neighbors, id, degree, parallel);
+  }
+
+
   template <class F, class G>
-  inline size_t decodeNghsSparseSeq(uintT offset, F& f, G& g) {
+  inline size_t decodeSparseSeq(uintT offset, F& f, G& g) {
     size_t k = 0;
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
@@ -187,7 +206,7 @@ struct compressed_neighbors {
   }
 
   template <class F, class G>
-  inline size_t decodeNghsSparseBlock(uintT offset, uintE block_size, uintE block_num,
+  inline size_t decodeSparseBlock(uintT offset, uintE block_size, uintE block_num,
                                       F& f, G& g) {
     size_t k = 0;
     auto T = [&](const uintE& src, const uintE& target, const W& weight) {
@@ -207,7 +226,7 @@ struct compressed_neighbors {
     size_t k = 0;
     auto T = [&](const uintE& target, const W& weight, const size_t& edge_id) {
       if (f.cond(target)) {
-        auto m = f.updateAtomic(vtx_id, target, weight);
+        auto m = f.updateAtomic(id, target, weight);
         if (g(target, offset + k, m)) {
           k++;
         }
@@ -215,6 +234,14 @@ struct compressed_neighbors {
     };
     C::template decode_block<W>(T, neighbors, id, degree, block_num);
     return k;
+  }
+
+  uintE get_num_blocks() {
+    return C::get_num_blocks(neighbors, degree);
+  }
+
+  uintE block_degree(uintE block_num) {
+    return C::get_block_degree(neighbors, degree, block_num);
   }
 
 };  // struct compressed_neighbors
@@ -229,13 +256,14 @@ struct compressed_symmetric_vertex {
   uintE degree;
   uintE id;
 
-  compressed_symmetric_vertex(edge_type* n, vertex_data& vdata) {
+  compressed_symmetric_vertex(edge_type* n, vertex_data& vdata, uintE _id) {
     neighbors = n + vdata.offset;
     degree = vdata.degree;
+    id = _id;
   }
 
   compressed_neighbors<W, C> in_neighbors() {
-    return compressed_neighbors<W, C>(neighbors, degree, id); }
+    return compressed_neighbors<W, C>(id, degree, neighbors); }
   compressed_neighbors<W, C> out_neighbors() {
     return in_neighbors(); }
 
@@ -259,19 +287,21 @@ struct compressed_asymmetric_vertex {
   edge_type* outNeighbors;
   uintE outDegree;
   uintE inDegree;
+  uintE id;
 
-  compressed_asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data, edge_type* in_neighbors, vertex_data& in_data) {
+  compressed_asymmetric_vertex(edge_type* out_neighbors, vertex_data& out_data, edge_type* in_neighbors, vertex_data& in_data, uintE _id) {
     inNeighbors = in_neighbors + in_data.offset;
     outNeighbors = out_neighbors + out_data.offset;
 
     inDegree = in_data.degree;
     outDegree = out_data.degree;
+    id = _id;
   }
 
   compressed_neighbors<W, C> in_neighbors() {
-    return compressed_neighbors<W, C>(inNeighbors, inDegree, id); }
+    return compressed_neighbors<W, C>(id, inDegree, inNeighbors); }
   compressed_neighbors<W, C> out_neighbors() {
-    return compressed_neighbors<W, C>(outNeighbors, outDegree, id); }
+    return compressed_neighbors<W, C>(id, outDegree, outNeighbors); }
 
   uintE in_degree() { return inDegree; }
   uintE out_degree() { return outDegree; }

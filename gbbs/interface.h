@@ -19,8 +19,8 @@ namespace gbbs {
 //   updateAtomic : (uintE * uintE * W) -> bool
 //   cond : uintE -> bool
 template <class Graph, class VS, class F>
-inline vertexSubsetData<pbbs::empty> nghMap(Graph& G, VS& vs, F f, intT threshold = -1,
-                                            flags fl = 0) {
+inline vertexSubsetData<pbbs::empty> neighbor_map(Graph& G, VS& vs, F f, intT threshold = -1,
+                                                  flags fl = 0) {
   return edgeMapData<pbbs::empty>(G, vs, f, threshold, fl);
 }
 
