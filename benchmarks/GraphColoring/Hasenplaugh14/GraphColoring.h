@@ -32,7 +32,7 @@ namespace coloring {
 template <class Graph, class Seq>
 inline uintE color(Graph& G, uintE v, Seq& colors) {
   using W = typename Graph::weight_type;
-  uintE deg = G.get_vertex(v).getOutDegree();
+  uintE deg = G.get_vertex(v).out_degree();
   if (deg > 0) {
     bool* bits;
     bool s_bits[1000];
@@ -49,7 +49,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
         bits[color] = 1;
       }
     };
-    G.get_vertex(v).mapOutNgh(v, map_f);
+    G.get_vertex(v).out_neighbors().map(map_f);
     auto im_f = [&](size_t i) { return (bits[i] == 0) ? (uintE)i : UINT_E_MAX; };
     auto im = pbbslib::make_sequence<uintE>(deg, im_f);
     uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
@@ -103,13 +103,13 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     // LF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = G.get_vertex(i).getOutDegree();
+      uintE our_deg = G.get_vertex(i).out_degree();
       uintE i_p = P[i];
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = G.get_vertex(ngh).getOutDegree();
+        uintE ngh_deg = G.get_vertex(ngh).out_degree();
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
-      priorities[i] = G.get_vertex(i).countOutNgh(i, count_f);
+      priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
     });
   } else {
     std::cout << "### Running LLF"
@@ -117,14 +117,14 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     // LLF heuristic
     auto P = pbbslib::random_permutation<uintE>(n);
     par_for(0, n, 1, [&] (size_t i) {
-      uintE our_deg = pbbslib::log2_up(G.get_vertex(i).getOutDegree());
+      uintE our_deg = pbbslib::log2_up(G.get_vertex(i).out_degree());
       uintE i_p = P[i];
       // breaks ties using P
       auto count_f = [&](uintE src, uintE ngh, const W& wgh) {
-        uintE ngh_deg = pbbslib::log2_up(G.get_vertex(ngh).getOutDegree());
+        uintE ngh_deg = pbbslib::log2_up(G.get_vertex(ngh).out_degree());
         return (ngh_deg > our_deg) || ((ngh_deg == our_deg) && P[ngh] < i_p);
       };
-      priorities[i] = G.get_vertex(i).countOutNgh(i, count_f);
+      priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
     });
   }
 
@@ -175,7 +175,7 @@ inline void verify_coloring(Graph& G, Seq& colors) {
       uintE ngh_color = colors[ngh];
       return src_color == ngh_color;
     };
-    size_t ct = G.get_vertex(i).countOutNgh(i, pred);
+    size_t ct = G.get_vertex(i).out_neighbors().count(pred);
     ok[i] = (ct > 0);
   });
   auto im_f = [&](size_t i) { return (size_t)ok[i]; };

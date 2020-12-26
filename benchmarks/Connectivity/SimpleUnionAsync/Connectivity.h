@@ -92,7 +92,7 @@ inline sequence<parent> SimpleUnionAsync(Graph& G) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       uf.unite(u, v);
     };
-    G.get_vertex(i).mapOutNgh(i, map_f);
+    G.get_vertex(i).out_neighbors().map(map_f);
   });
   return uf.finish();
 }

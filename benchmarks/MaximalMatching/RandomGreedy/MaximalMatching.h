@@ -196,8 +196,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                       const auto& e = e_added[i];
                       uintE u = std::get<0>(e) & mm::VAL_MASK;
                       uintE v = std::get<1>(e) & mm::VAL_MASK;
-                      uintE deg_u = G.get_vertex(u).getOutDegree();
-                      uintE deg_v = G.get_vertex(v).getOutDegree();
+                      uintE deg_u = G.get_vertex(u).out_degree();
+                      uintE deg_v = G.get_vertex(v).out_degree();
                       G.zeroVertexDegree(u);
                       G.zeroVertexDegree(v);
                       sizes[i] = deg_u + deg_v;
@@ -248,7 +248,7 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
       ok[ngh] = 0;
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).mapOutNgh(i, map2_f); });
+  par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
   auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);

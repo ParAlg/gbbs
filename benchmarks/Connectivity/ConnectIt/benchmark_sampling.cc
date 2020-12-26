@@ -47,7 +47,7 @@ size_t intercomponent_edges(Graph& G, pbbs::sequence<parent>& parents) {
       return static_cast<size_t>(0);
     };
     auto red_m = pbbs::addm<size_t>();
-    ic_edges[u] = G.get_vertex(u).reduceOutNgh(u, map_f, red_m);
+    ic_edges[u] = G.get_vertex(u).out_neighbors().reduce(map_f, red_m);
   });
   return pbbslib::reduce_add(ic_edges.slice());
 }

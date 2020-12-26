@@ -26,7 +26,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u_out_nghs.get_neighbor(j), u_out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_sequence<int>(u.getOutDegree(), out_f);
+    auto out_im = pbbslib::make_sequence<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
       outOffsets[i] = pbbslib::reduce_add(out_im);
@@ -46,7 +46,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(i);
     size_t out_offset = outOffsets[i];
-    uintE d = u.getOutDegree();
+    uintE d = u.out_degree();
     if (d > 0) {
       edge* nghs = u.neighbors;
       edge* dir_nghs = out_edges.begin() + out_offset;
@@ -237,7 +237,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
 
   // 2. pack and write out
   parallel_for(0, n, [&] (size_t i) {
-    size_t deg = G.get_vertex(i).getOutDegree();
+    size_t deg = G.get_vertex(i).out_degree();
     size_t off = std::get<1>(vtx_offs[i]);
     size_t n_one = std::get<0>(vtx_offs[i + 1]) - std::get<0>(vtx_offs[i]);
     size_t n_two = std::get<1>(vtx_offs[i + 1]) - off;
@@ -260,7 +260,7 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
     }
   }, 1);
   auto degree_imap = pbbslib::make_sequence<size_t>(n,
-      [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
+      [&](size_t i) { return G.get_vertex(i).out_degree(); });
 
   G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "# G.m is now = " << G.m << "\n";
@@ -297,7 +297,7 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
 
   parallel_for(0, n, [&](size_t i) {
     size_t off = std::get<0>(offs[i]);
-    if (G.get_vertex(i).getOutDegree() > 0) {
+    if (G.get_vertex(i).out_degree() > 0) {
       std::tuple<uintE, W>* tmp_v = tmp.begin() + std::get<1>(offs[i]);
       auto out_f = [&](size_t j, const std::tuple<uintE, W>& nw) {
         arr[off + j] = std::make_tuple(i, std::get<0>(nw), std::get<1>(nw));

@@ -10,7 +10,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
   size_t n = G.n;
   auto offs = pbbs::sequence<size_t>(n+1);
   parallel_for(0, n, [&] (size_t i) {
-    offs[i] = G.get_vertex(i).getOutDegree();
+    offs[i] = G.get_vertex(i).out_degree();
   });
   offs[n] = 0;
   size_t m = pbbslib::scan_add_inplace(offs.slice());
@@ -26,7 +26,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
       edges[off + ctr] = std::make_tuple(v, wgh);
       ctr++;
     };
-    G.get_vertex(i).mapOutNgh(i, map_f, false);
+    G.get_vertex(i).out_neighbors().map(map_f, false);
 
     auto comp_f = [&] (const edge_w& l, const edge_w& r) {
       auto pri_l = vertex_pri(std::get<0>(l));

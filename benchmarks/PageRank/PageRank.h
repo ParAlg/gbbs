@@ -37,11 +37,11 @@ struct PR_F {
   PR_F(double* _p_curr, double* _p_next, Graph& G) :
     p_curr(_p_curr), p_next(_p_next), G(G) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){ //update function applies PageRank equation
-    p_next[d] += p_curr[s]/G.get_vertex(s).getOutDegree();
+    p_next[d] += p_curr[s]/G.get_vertex(s).out_degree();
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).getOutDegree());
+    pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }};
@@ -85,7 +85,7 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
 
@@ -130,12 +130,12 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   auto p_next = pbbs::sequence<double>(n, static_cast<double>(0));
   auto frontier = pbbs::sequence<bool>(n, true);
   auto p_div = pbbs::sequence<double>(n, [&] (size_t i) -> double {
-    return one_over_n / static_cast<double>(G.get_vertex(i).getOutDegree());
+    return one_over_n / static_cast<double>(G.get_vertex(i).out_degree());
   });
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   vertexSubset Frontier(n,n,frontier.to_array());
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
@@ -201,13 +201,13 @@ struct PR_Delta_F {
     G(G), Delta(_Delta), nghSum(_nghSum) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){
     double oldVal = nghSum[d];
-    nghSum[d] += Delta[s].delta_over_degree; // Delta[s].delta/Delta[s].degree; // V[s].getOutDegree();
+    nghSum[d] += Delta[s].delta_over_degree; // Delta[s].delta/Delta[s].degree; // V[s].out_degree();
     return oldVal == 0;
   }
   inline bool updateAtomic (const uintE& s, const uintE&  d, const W& wgh) {
     volatile double oldV, newV;
     do { //basically a fetch-and-add
-      oldV = nghSum[d]; newV = oldV + Delta[s].delta_over_degree; // Delta[s]/V[s].getOutDegree();
+      oldV = nghSum[d]; newV = oldV + Delta[s].delta_over_degree; // Delta[s]/V[s].out_degree();
     } while(!pbbs::atomic_compare_and_swap(&nghSum[d],oldV,newV));
     return oldV == 0.0;
   }
@@ -226,7 +226,7 @@ void sparse_or_dense(Graph& G, E& EM, vertexSubset& Frontier, delta_and_degree* 
     };
     auto map_f = [&] (const uintE& s, const uintE& d, const W& wgh) -> double {
       if (Frontier.d[d]) {
-        return Delta[d].delta_over_degree; // Delta[d]/G.V[d].getOutDegree();
+        return Delta[d].delta_over_degree; // Delta[d]/G.V[d].out_degree();
       } else {
         return static_cast<double>(0);
       }
@@ -326,7 +326,7 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
   auto nghSum = pbbs::sequence<double>(n);
   auto frontier = pbbs::sequence<bool>(n);
   parallel_for(0, n, [&] (size_t i) {
-    uintE degree = G.get_vertex(i).getOutDegree();
+    uintE degree = G.get_vertex(i).out_degree();
     p[i] = 0.0;//one_over_n;
     Delta[i].delta = one_over_n; //initial delta propagation from each vertex
     Delta[i].delta_over_degree = one_over_n/degree;
@@ -334,7 +334,7 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     frontier[i] = 1;
   });
 
-  auto get_degree = [&] (size_t i) { return G.get_vertex(i).getOutDegree(); };
+  auto get_degree = [&] (size_t i) { return G.get_vertex(i).out_degree(); };
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, (double)0.0), (size_t)G.m/1000);
   vertexSubset Frontier(n,n,frontier.to_array());
   auto all = pbbs::sequence<bool>(n, true);

@@ -96,7 +96,7 @@ struct compressed_neighbors {
   }
 
   template <class P, class O>
-  inline void filter(P& pred, std::tuple<uintE, W>* tmp, O& out) {
+  inline void filter(P& pred, O& out, std::tuple<uintE, W>* tmp) {
     C::template filter<W, P, O>(pred, neighbors, id, degree, tmp, out);
   }
 

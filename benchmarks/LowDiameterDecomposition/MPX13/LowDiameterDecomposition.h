@@ -85,7 +85,7 @@ inline void num_intercluster_edges(Graph& G, Seq& s) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };
-    size_t ct = G.get_vertex(i).countOutNgh(i, pred);
+    size_t ct = G.get_vertex(i).out_neighbors().count(pred);
     ic_edges[i] = ct;
   });
   std::cout << "num. intercluster edges = " << pbbslib::reduce_add(ic_edges)

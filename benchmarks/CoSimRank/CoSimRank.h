@@ -14,11 +14,11 @@ struct PR_F {
   PR_F(double* _p_curr, double* _p_next, Graph& G) :
     p_curr(_p_curr), p_next(_p_next), G(G) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){ //update function applies PageRank equation
-    p_next[d] += p_curr[s]/G.get_vertex(s).getOutDegree();
+    p_next[d] += p_curr[s]/G.get_vertex(s).out_degree();
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).getOutDegree());
+    pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }
@@ -53,7 +53,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto frontier_v = pbbs::sequence<bool>(n, false);
   frontier_v[v] = true;
@@ -134,14 +134,14 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).getOutDegree(); });
+  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto EM_v = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
   auto EM_u = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
 
   auto cond_f = [&] (const uintE& x) { return true; };
   auto map_f_v = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
-    return p_curr_v[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
+    return p_curr_v[s] / static_cast<double>(G.get_vertex(s).out_degree());
   };
   auto reduce_f = [&] (double l, double r) { return l + r; };
   auto apply_f_v = [&] (std::tuple<uintE, double> k) {
@@ -151,7 +151,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
   };
 
   auto map_f_u = [&] (const uintE& d, const uintE& s, const W& wgh) -> double {
-    return p_curr_u[s] / static_cast<double>(G.get_vertex(s).getOutDegree());
+    return p_curr_u[s] / static_cast<double>(G.get_vertex(s).out_degree());
   };
   auto apply_f_u = [&] (std::tuple<uintE, double> k) {
     const uintE& w = std::get<0>(k);

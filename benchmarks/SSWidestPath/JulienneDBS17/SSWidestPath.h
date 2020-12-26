@@ -86,7 +86,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
         pbbslib::write_max(&max_weight, wgh);
       }
     };
-    G.get_vertex(i).mapOutNgh(i, map_f);
+    G.get_vertex(i).out_neighbors().map(map_f);
   }, 1);
   mw.stop(); mw.reportTotal("max weight time");
   std::cout << "max_weight = " << max_weight << std::endl;

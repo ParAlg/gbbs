@@ -129,8 +129,8 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
         // can only add labels to vertices in our subproblem
         return labels[ngh] == labels[v];
       };
-      size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).countInNgh(v, pred)
-                                                : GA.get_vertex(v).countOutNgh(v, pred);
+      size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).in_neighbors().count(pred)
+                                                : GA.get_vertex(v).out_neighbors().count(pred);
       return effective_degree * n_labels;
     };
     auto im = pbbslib::make_sequence<size_t>(frontier.size(), im_f);
@@ -206,10 +206,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   auto v_im = pbbslib::make_sequence<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
-    return (GA.get_vertex(i).getOutDegree() == 0) || (GA.get_vertex(i).getInDegree() == 0);
+    return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
   auto NZ = pbbslib::filter(v_im, [&](size_t i) {
-    return (GA.get_vertex(i).getOutDegree() > 0) && (GA.get_vertex(i).getInDegree() > 0);
+    return (GA.get_vertex(i).out_degree() > 0) && (GA.get_vertex(i).in_degree() > 0);
   });
 
   auto P = pbbslib::random_shuffle(NZ);
@@ -231,7 +231,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   {
     timer hd; hd.start();
     auto deg_im_f = [&](size_t i) {
-      return std::make_tuple(i, GA.get_vertex(i).getOutDegree());
+      return std::make_tuple(i, GA.get_vertex(i).out_degree());
     };
     auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,

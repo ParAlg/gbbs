@@ -41,8 +41,8 @@ size_t get_vertex_pri(uintE v) {
 template <class Graph>
 std::pair<mis_status, size_t> mis_query(uintE u, Graph& G, size_t work_so_far, size_t query_cutoff) {
   auto vtx_u = G.get_vertex(u);
-  uintE deg_u = vtx_u.getOutDegree();
-  auto nghs_u = (uintE*)vtx_u.getOutNeighbors();
+  uintE deg_u = vtx_u.out_degree();
+  auto nghs_u = (uintE*)vtx_u.neighbors;
   size_t our_pri = get_vertex_pri(u);
 
   size_t work = work_so_far;
@@ -120,7 +120,7 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
         return (size_t)(mis[v]);
       };
       auto mon = pbbs::addm<size_t>();
-      size_t nghs_ct = G.get_vertex(i).reduceOutNgh(i, map_f, mon);
+      size_t nghs_ct = G.get_vertex(i).out_neighbors().reduce(map_f, mon);
       if (mis[i]) { // if in, ensure no neighbors are in
         assert(nghs_ct == 0);
         if (nghs_ct != 0) {

@@ -41,8 +41,8 @@ template <class Graph>
 std::pair<mm_status, size_t> mm_query(uintE u, uintE v, Graph& G, size_t work_so_far, size_t query_cutoff) {
   assert(u < v);
   auto vtx_u = G.get_vertex(u); auto vtx_v = G.get_vertex(v);
-  uintE deg_u = vtx_u.getOutDegree(); uintE deg_v = vtx_v.getOutDegree();
-  auto nghs_u = (uintE*)vtx_u.getOutNeighbors(); auto nghs_v = (uintE*)vtx_v.getOutNeighbors();
+  uintE deg_u = vtx_u.out_degree(); uintE deg_v = vtx_v.out_degree();
+  auto nghs_u = (uintE*)vtx_u.neighbors; auto nghs_v = (uintE*)vtx_v.neighbors;
 
   size_t our_pri = get_edge_pri(u,v);
 
@@ -129,7 +129,7 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
     // Verify that we found a matching.
     for (size_t i=0; i<n; i++) {
       if (matching_cts[i] > 1) {
-        std::cout << "mct = " << matching_cts[i] << " i = " << i << " deg = " << G.get_vertex(i).getOutDegree() << std::endl;
+        std::cout << "mct = " << matching_cts[i] << " i = " << i << " deg = " << G.get_vertex(i).out_degree() << std::endl;
       }
       assert(matching_cts[i] <= 1);
     }
