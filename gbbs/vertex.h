@@ -248,6 +248,10 @@ struct uncompressed_neighbors {
     return (degree < vertex_ops::kAllocThreshold) ? 0 : degree;
   }
 
+  inline size_t calculateTemporarySpaceBytes() {
+    return calculateTemporarySpace() * sizeof(std::tuple<uintE, W>);
+  }
+
   // ======== Internal primitives used by EdgeMap implementations =======
 
   template <class VS, class F, class G>
@@ -300,7 +304,7 @@ struct uncompressed_neighbors {
   // Used by edgeMapSparse. For each out-neighbor satisfying cond, call
   // updateAtomic.
   template <class F, class G, class H>
-  void decodeSparse(uintT offset, const F& f, const G& g, const H& h, bool parallel=true) {
+  void decodeSparse(uintT offset, F& f, const G& g, const H& h, bool parallel=true) {
     size_t granularity = parallel ? pbbslib::kSequentialForThreshold : std::numeric_limits<size_t>::max();
     parallel_for(0, degree, [&] (size_t j) {
       auto nw = neighbors[j];
@@ -317,7 +321,7 @@ struct uncompressed_neighbors {
   // Used by edgeMapSparse_no_filter. Sequentially decode the out-neighbors,
   // and compactly write all neighbors satisfying g().
   template <class F, class G>
-  size_t decodeSparseSeq(uintT offset, const F& f, const G& g) {
+  size_t decodeSparseSeq(uintT offset, F& f, const G& g) {
     size_t k = 0;
     for (size_t j = 0; j < degree; j++) {
       auto nw = neighbors[j];
@@ -337,7 +341,7 @@ struct uncompressed_neighbors {
   // [block_num*KBlockSize, block_num*kBlockSize + block_size)
   // and compactly write all neighbors satisfying g().
   template <class F, class G>
-  size_t decodeSparseBlock(uintT offset, uintE block_size, uintE block_num, const F& f, const G& g) {
+  size_t decodeSparseBlock(uintT offset, uintE block_size, uintE block_num, F& f, const G& g) {
     size_t k = 0;
     size_t start = kEMBlockSize * block_num;
     size_t end = start + block_size;
@@ -357,7 +361,7 @@ struct uncompressed_neighbors {
 
   // Used in edge_map_blocked.h
   template <class F, class G>
-  size_t decode_block(uintT offset, uintE block_num, const F& f, const G& g) {
+  size_t decode_block(uintT offset, uintE block_num, F& f, const G& g) {
     size_t k = 0;
     uintE start = vertex_ops::kBlockSize * block_num;
     uintE end = std::min(start + vertex_ops::kBlockSize, degree);

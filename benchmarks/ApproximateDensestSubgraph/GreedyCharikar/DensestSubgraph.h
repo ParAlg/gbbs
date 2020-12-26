@@ -59,7 +59,7 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
       uintE pos_v = vtx_to_position[v];
       return pos_u < pos_v;
     };
-    density_above[pos_u] = 2*GA.get_vertex(i).countOutNgh(i, vtx_f);
+    density_above[pos_u] = 2*GA.get_vertex(i).out_neighbors().count(vtx_f);
   });
 
   size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),

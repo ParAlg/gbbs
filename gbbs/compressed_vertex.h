@@ -137,7 +137,7 @@ struct compressed_neighbors {
     return C::template get_ith_neighbor<W>(neighbors, id, degree, i);
   }
 
-  inline size_t getVirtualDegree() {
+  inline size_t get_virtual_degree() {
     return C::get_virtual_degree(degree, neighbors);
   }
 
