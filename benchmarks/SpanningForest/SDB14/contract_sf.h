@@ -69,7 +69,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
 
     return edge_table;
   }
@@ -94,7 +94,7 @@ namespace contract_sf {
       return c_src < c_ngh;
     };
     par_for(0, n, 1, [&] (size_t i)
-                    { deg_map[i] = GA.get_vertex(i).countOutNgh(i, pred); });
+                    { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); });
     deg_map[n] = 0;
     pbbslib::scan_add_inplace(deg_map);
     count_t.stop();
@@ -119,7 +119,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge));
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
     return edge_table;
   }
 
@@ -151,7 +151,7 @@ namespace contract_sf {
             std::make_pair(std::make_pair(c_src, c_ngh), orig_edge), &abort);
       }
     };
-    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); }, 1);
+    parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
     if (abort) {
       debug(std::cout << "calling fetch_intercluster_te" << std::endl;);
       return fetch_intercluster_te(GA, clusters, num_clusters, edge_mapping);

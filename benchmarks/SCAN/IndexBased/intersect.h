@@ -241,9 +241,9 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
       std::is_same<VertexTemplate<Weight>, symmetric_vertex<Weight>>::value) {
     using Neighbor = typename VertexTemplate<Weight>::edge_type;
     const auto seqA{pbbslib::make_sequence<Neighbor>(
-        A->getOutNeighbors(), A->getOutDegree())};
+        A->neighbors, A->out_degree())};
     const auto seqB{pbbslib::make_sequence<Neighbor>(
-        B->getOutNeighbors(), B->getOutDegree())};
+        B->neighbors, B->out_degree())};
     constexpr size_t kOffset{0};
     constexpr bool kAreSeqsSwapped{false};
     return scan::internal::merge<Weight>(

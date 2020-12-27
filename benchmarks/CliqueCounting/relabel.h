@@ -44,7 +44,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     size_t deg = 0;
     uchar tmp[16];
 
-    size_t prev_deg = GA.get_vertex(i).getOutDegree();
+    size_t prev_deg = GA.get_vertex(i).out_degree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
     auto tmp_edges = sequence<edge>(prev_deg);
     auto f = [&](uintE u, uintE v, W w) {
@@ -54,7 +54,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
       }
       return false;
     };
-    GA.get_vertex(i).mapOutNgh(i, f, false);
+    GA.get_vertex(i).out_neighbors().map(f, false);
     // need to sort tmp_edges
     tmp_edges.shrink(deg);
     pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
@@ -101,7 +101,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
         }
         return false;
       };
-      GA.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).out_neighbors().map(f, false);
       // need to sort tmp_edges
       pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
         return std::get<0>(u) < std::get<0>(v);
@@ -141,10 +141,11 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = GA.get_vertex(i);
+    auto out_nghs = u.out_neighbors();
     auto out_f = [&](uintE j) {
-      return static_cast<int>(pred(i, u.getOutNeighbor(j), u.getOutWeight(j)));
+      return static_cast<int>(pred(i, out_nghs.get_neighbor(j), out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_sequence<int>(u.getOutDegree(), out_f);
+    auto out_im = pbbslib::make_sequence<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
       outOffsets[rank[i]] = pbbslib::reduce_add(out_im);
@@ -162,10 +163,10 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = GA.get_vertex(i);
     size_t out_offset = outOffsets[rank[i]];
-    uintE d = u.getOutDegree();
+    uintE d = u.out_degree();
     uintE true_deg = outOffsets[rank[i]+1] - out_offset;
     if (d > 0) {
-      edge* nghs = u.getOutNeighbors();
+      edge* nghs = u.neighbors;
       edge* dir_nghs = out_edges.begin() + out_offset;
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));

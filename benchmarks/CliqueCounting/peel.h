@@ -22,10 +22,10 @@ struct hashtup {
 template <class Graph, class Graph2, class F, class H>
 void vtx_intersect(Graph& G, Graph2& DG, F f, H ignore_f, uintE vg, uintE vdg) {
   // Intersect the neighbors of vg (vertex in G) with the neighbros of vdg (vertex in DG)
-  size_t v_deg = G.get_vertex(vg).getOutDegree();
-  size_t i_deg = DG.get_vertex(vdg).getOutDegree();
-  auto i_iter = DG.get_vertex(vdg).getOutIter(vdg);
-  auto v_iter = G.get_vertex(vg).getOutIter(vg);
+  size_t v_deg = G.get_vertex(vg).out_degree();
+  size_t i_deg = DG.get_vertex(vdg).out_degree();
+  auto i_iter = DG.get_vertex(vdg).out_neighbors().get_iter();
+  auto v_iter = G.get_vertex(vg).out_neighbors().get_iter();
   size_t i_iter_idx = 0;
   size_t v_iter_idx = 0;
   // Count of number of neighbors in the intersection
@@ -92,7 +92,7 @@ inline size_t triUpdate_serial(Graph& G, Graph2& DG, F get_active,
     auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
     };
-    G.get_vertex(j).mapOutNgh(j, map_label_f, false);
+    G.get_vertex(j).out_neighbors().map(map_label_f, false);
   };
 
   // Perform update_changed on each vertex with changed triangle counts
@@ -121,7 +121,7 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
   // Sum of all out-degrees in active set
   size_t active_deg = 0;
   auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) {
-    return G.get_vertex(get_active(i)).getOutDegree();
+    return G.get_vertex(get_active(i)).out_degree();
   });
   active_deg += pbbslib::reduce_add(degree_map);
 
@@ -152,7 +152,7 @@ inline size_t triUpdate(Graph& G, Graph2& DG, F get_active, size_t active_size, 
     auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (ignore_f(u, v)) vtx_intersect(G, DG, update_d, ignore_f, u, v);
     };
-    G.get_vertex(j).mapOutNgh(j, map_label_f, false);
+    G.get_vertex(j).out_neighbors().map(map_label_f, false);
   }, granularity, false);
 
   // Extract all vertices with changed triangle counts
@@ -195,7 +195,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
   // Sum of all out-degrees in active set
   size_t active_deg = 0;
   auto degree_map = pbbslib::make_sequence<size_t>(active_size, [&] (size_t i) {
-    return G.get_vertex(get_active(i)).getOutDegree();
+    return G.get_vertex(get_active(i)).out_degree();
   });
   active_deg += pbbslib::reduce_add(degree_map);
 
@@ -226,7 +226,7 @@ inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t k, size_t max_deg, bool 
   parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
                                      [&](size_t i, HybridSpace_lw* induced) {
     auto vert = get_active(i);
-    if (G.get_vertex(vert).getOutDegree() != 0) {
+    if (G.get_vertex(vert).out_degree() != 0) {
       induced->setup(G, DG, k, vert, ignore_f);
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }
@@ -294,7 +294,7 @@ inline size_t cliqueUpdate_serial(Graph& G, Graph2& DG, size_t k, size_t max_deg
   // Clique count updates
   for (size_t i=0; i < active_size; i++) {
     auto vtx = get_active(i);
-    if (G.get_vertex(vtx).getOutDegree() != 0) {
+    if (G.get_vertex(vtx).out_degree() != 0) {
       induced->setup(G, DG, k, vtx, ignore_f);
       induced_hybrid::KCliqueDir_fast_hybrid_rec(G, 1, k, induced, update_d);
     }

@@ -64,7 +64,7 @@ struct compressed_neighbors {
   }
 
   template <class F>
-  inline void mapWithIndex(F& f, bool parallel = true) {
+  inline void map_with_index(F& f, bool parallel = true) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) {
       f(src, target, weight, edgeNumber);
@@ -112,7 +112,7 @@ struct compressed_neighbors {
 
   template <class F>
   inline size_t intersect_f(compressed_neighbors<W, C>* other, const F& f) {
-    return C::template intersect<W>(neighbors, other->neighbors,
+    return C::template intersect_f<W>(neighbors, other->neighbors,
         degree, other->degree, id, other->id, f);
   }
 
@@ -137,8 +137,24 @@ struct compressed_neighbors {
     return C::template get_ith_neighbor<W>(neighbors, id, degree, i);
   }
 
+  // strongly discouraged
+  inline uintE get_neighbor(size_t i) {
+    auto ngh = get_ith_neighbor(i);
+    return std::get<0>(ngh);
+  }
+
+  // strongly discouraged
+  inline W get_weight(size_t i) {
+    auto ngh = get_ith_neighbor(i);
+    return std::get<1>(ngh);
+  }
+
   inline size_t get_virtual_degree() {
     return C::get_virtual_degree(degree, neighbors);
+  }
+
+   auto get_iter() {
+    return C::template iter<W>(neighbors, degree, id);
   }
 
   // ======== Internal primitives used by EdgeMap implementations =======

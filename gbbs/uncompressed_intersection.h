@@ -46,12 +46,13 @@ inline size_t intersect(vertex<W>* A, vertex<W>* B, uintE a, uintE b) {
   return ans;
 }
 
-template <template <typename W> class vertex, class W, class F>
-inline size_t intersect_f(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
-                          const F& f) {
-  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
-  auto nghA = A->getOutNeighbors();
-  auto nghB = B->getOutNeighbors();
+template <class Nghs, class F>
+inline size_t intersect_f(Nghs* A, Nghs* B, const F& f) {
+  uintT i = 0, j = 0, nA = A->degree, nB = B->degree;
+  auto nghA = A->neighbors;
+  auto nghB = B->neighbors;
+  uintE a = A->id,
+        b = B->id;
   size_t ans = 0;
   while (i < nA && j < nB) {
     if (std::get<0>(nghA[i]) == std::get<0>(nghB[j])) {
@@ -131,17 +132,18 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
   }
 }
 
-template <template <typename W> class vertex, class W, class F>
-inline size_t intersect_f_par(vertex<W>* A, vertex<W>* B, uintE a, uintE b,
-                          const F& f) {
-  uintT nA = A->getOutDegree(), nB = B->getOutDegree();
-  uintE* nghA = (uintE*)(A->getOutNeighbors());
-  uintE* nghB = (uintE*)(B->getOutNeighbors());
+template <class Nghs, class F>
+inline size_t intersect_f_par(Nghs* A, Nghs* B, const F& f) {
+  uintT nA = A->degree, nB = B->degree;
+  uintE* nghA = (uintE*)(A->neighbors);
+  uintE* nghB = (uintE*)(B->neighbors);
 
   // Will not work if W is not pbbslib::empty, should assert.
   auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
   auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
 
+  uintE a = A->id;
+  uintE b = B->id;
   auto merge_f = [&] (uintE ngh) {
     f(a, b, ngh);
   };

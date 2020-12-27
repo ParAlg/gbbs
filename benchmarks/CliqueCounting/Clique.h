@@ -61,7 +61,7 @@ inline uintE* degreeOrderNodes(Graph& G, size_t n) {
   par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i){ o[i] = i; });
 
   pbbs::integer_sort_inplace(o.slice(), [&] (size_t p) {
-    return G.get_vertex(p).getOutDegree();
+    return G.get_vertex(p).out_degree();
   });
 
   par_for(0, n, pbbslib::kSequentialForThreshold, 
@@ -157,7 +157,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   // Direct the graph based on ordering
   timer t_filter; t_filter.start();
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= k-1 && GA.get_vertex(v).getOutDegree() >= k-1;
+    return (rank[u] < rank[v]) && GA.get_vertex(u).out_degree() >= k-1 && GA.get_vertex(v).out_degree() >= k-1;
   };
   auto DG = filter ? filterGraph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
   double tt_filter = t_filter.stop();

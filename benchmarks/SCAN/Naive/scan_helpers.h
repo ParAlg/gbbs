@@ -69,14 +69,14 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     auto* const neighbors{&adjacency_list[vertex_id]};
     *neighbors = VertexSet{
-      vertex.getOutDegree(),
+      vertex.out_degree(),
       {UINT_E_MAX, internal::NoWeight{}},
       pbbslib::hash64_2};
     const auto update_adjacency_list{[&neighbors](
         uintE, const uintE neighbor, NoWeight) {
       neighbors->insert({neighbor, pbbslib::empty{}});
     }};
-    vertex.mapOutNgh(vertex_id, update_adjacency_list);
+    vertex.out_neighbors().map(update_adjacency_list);
   });
 
   graph->mapEdges([&graph, &adjacency_list, &similarities](
@@ -87,7 +87,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
         const auto& u_neighbors{adjacency_list[u_id]};
         const auto& v_neighbors{adjacency_list[v_id]};
 
-        const bool u_degree_is_smaller{u.getOutDegree() < v.getOutDegree()};
+        const bool u_degree_is_smaller{u.out_degree() < v.out_degree()};
         const uintE smaller_degree_vertex_id{u_degree_is_smaller ? u_id : v_id};
         Vertex* smaller_degree_vertex{u_degree_is_smaller ? &u : &v};
         const auto& larger_degree_vertex_neighbors{
@@ -100,8 +100,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
           }};
         const auto addition_monoid{pbbslib::addm<size_t>()};
         const size_t num_shared_neighbors{
-          smaller_degree_vertex->reduceOutNgh(
-              smaller_degree_vertex_id,
+          smaller_degree_vertex->out_neighbors().reduce(
               is_shared_neighbor,
               addition_monoid)};
 
@@ -111,7 +110,7 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
         similarities.insert(
             {UndirectedEdge{u_id, v_id},
             (num_shared_neighbors + 2) /
-                (sqrt(u.getOutDegree() + 1) * sqrt(v.getOutDegree() + 1))});
+                (sqrt(u.out_degree() + 1) * sqrt(v.out_degree() + 1))});
       }
   });
   return similarities;

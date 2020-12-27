@@ -286,16 +286,16 @@ namespace truss_utils {
     countF(Graph& G, F f) : G(G), f(f) {}
 
     inline bool update(const uintE& s, const uintE& d, const W& wgh) {
-      auto v_s = G.get_vertex(s);
-      auto v_d = G.get_vertex(d);
-      v_s.intersect_f(&v_d, s, d, f);
+      auto v_s = G.get_vertex(s).out_neighbors();
+      auto v_d = G.get_vertex(d).out_neighbors();
+      v_s.intersect_f(&v_d, f);
       return 1;
     }
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& wgh) {
-      auto v_s = G.get_vertex(s);
-      auto v_d = G.get_vertex(d);
-      v_s.intersect_f(&v_d, s, d, f);
+      auto v_s = G.get_vertex(s).out_neighbors();
+      auto v_d = G.get_vertex(d).out_neighbors();
+      v_s.intersect_f(&v_d, f);
       return 1;
     }
 
@@ -324,7 +324,7 @@ namespace truss_utils {
 
     par_for(0, n, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-      return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
+      return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
     });
     par_for(0, n, [&] (size_t i) { r[o[i]] = i; });
     return r;
@@ -407,8 +407,8 @@ namespace truss_utils {
         }
       }
     };
-    auto v_v = G.get_vertex(v);
-    G.get_vertex(u).intersect_f_par(&v_v, u, v, f);
+    auto v_v = G.get_vertex(v).out_neighbors();
+    G.get_vertex(u).out_neighbors().intersect_f_par(&v_v, f);
   }
 
 }  // namespace truss_utils

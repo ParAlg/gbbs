@@ -158,7 +158,7 @@ UnclusteredType DetermineUnclusteredType(
       is_hub = true;
     }
   }};
-  vertex.mapOutNgh(vertex_id, check_neighbor);
+  vertex.out_neighbors().map(check_neighbor);
   return is_hub ? UnclusteredType::kHub : UnclusteredType::kOutlier;
 }
 
@@ -197,7 +197,7 @@ double Modularity(
               return clustering[ngh_id] == cluster_id;
             }};
           return graph->get_vertex(vertex_id)
-            .countOutNgh(vertex_id, is_same_cluster);
+            .out_neighbors().count(is_same_cluster);
         }))) / num_edges};
 
     const auto degrees_split_result{
@@ -255,7 +255,7 @@ double Modularity(
       graph->n,
       [&](const size_t i) {
         return graph->get_vertex(i)
-          .reduceOutNgh(i, get_weight, add_weights);
+          .out_neighbors().reduce(get_weight, add_weights);
       }};
     // 2 * sum of all edge weights
     const double total_weight{pbbslib::reduce_add(weighted_degrees)};
@@ -273,8 +273,8 @@ double Modularity(
             [&](const uintE v_id, const uintE ngh_id, const Weight w) {
               return clustering[ngh_id] == cluster_id ? w : 0.0;
             }};
-          return graph->get_vertex(vertex_id).reduceOutNgh(
-              vertex_id, get_intracluster_weight, add_weights);
+          return graph->get_vertex(vertex_id).out_neighbors().reduce(
+              get_intracluster_weight, add_weights);
         })) / total_weight};
 
     const auto degrees_split_result{

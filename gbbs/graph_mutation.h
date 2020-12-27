@@ -122,7 +122,7 @@ inline auto filter_graph(Graph& G, P& pred) {
         return pred(i, std::get<0>(val), std::get<1>(val));
       };
 
-      auto iter = G.get_vertex(i).out_neighbors().get_iter(i);
+      auto iter = G.get_vertex(i).out_neighbors().get_iter();
       auto f_it =
           pbbslib::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(

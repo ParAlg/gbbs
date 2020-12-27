@@ -84,7 +84,7 @@ struct uncompressed_neighbors {
     id(a.id), degree(a.degree), neighbors(a.neighbors) {}
 
   uintE get_neighbor(uintE i) { return std::get<0>(neighbors[i]); }
-  uintE get_weight(uintE i) { return std::get<1>(neighbors[i]); }
+  W get_weight(uintE i) { return std::get<1>(neighbors[i]); }
   std::tuple<uintE, W> get_ith_neighbor(uintE i) { return neighbors[i]; }
 
   uintE get_degree() { return degree; }
@@ -175,7 +175,7 @@ struct uncompressed_neighbors {
   //   parallel
   //     Whether to run this function with parallelism.
   template <class F>
-  inline void map_with_index(F f, bool parallel) {
+  inline void map_with_index(F f, bool parallel=true) {
     size_t granularity = parallel ? pbbslib::kSequentialForThreshold : std::numeric_limits<size_t>::max();
     parallel_for(0, degree, [&] (size_t j) {
       const std::tuple<uintE, W>& neighbor = neighbors[j];

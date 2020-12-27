@@ -112,7 +112,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
     };
     par_for(0, n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = DG.get_vertex(i).out_neighbors.reduce(map_f, monoid);
+      parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
@@ -129,7 +129,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
         auto their_neighbors = DG.get_vertex(v).out_neighbors();
-        total_ct += our_neighbors.intersect_f_par(&their_neighbors, u, v, f);
+        total_ct += our_neighbors.intersect_f_par(&their_neighbors, f);
       };
       our_neighbors.map(map_f, false);  // run map sequentially
       counts[i] = total_ct;

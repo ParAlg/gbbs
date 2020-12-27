@@ -193,7 +193,7 @@ pbbs::sequence<uintT>
 VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
   pbbs::sequence<uintT> vertex_offsets{
       graph->n,
-      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
+      [&](const size_t i) { return graph->get_vertex(i).out_degree(); }};
   pbbslib::scan_add_inplace(vertex_offsets);
   return vertex_offsets;
 }
@@ -261,14 +261,14 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
             &vertex, &neighbor, update_counters);
     }};
     constexpr bool kParallel{false};
-    vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
+    vertex.out_neighbors().map_with_index(intersect, kParallel);
   });
 
   pbbs::sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
+    const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
@@ -276,7 +276,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
         const uintE v_to_u_index) {
       const uintT counter_index{v_counter_offset + v_to_u_index};
       const uintE num_shared_neighbors{counters[counter_index]};
-      const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
+      const uintE u_degree{graph->get_vertex(u_id).out_degree()};
       const float similarity{neighborhood_sizes_to_similarity(
           v_degree, u_degree, num_shared_neighbors)};
       similarities[2 * counter_index] =
@@ -284,8 +284,8 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
       similarities[2 * counter_index + 1] =
         {.source = u_id, .neighbor = v_id, .similarity = similarity};
     }};
-    directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
-        vertex_id, compute_similarity);
+    directed_graph.get_vertex(vertex_id).out_neighbors().map_with_index(
+        compute_similarity);
   });
 
   directed_graph.del();
@@ -334,7 +334,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   pbbs::sequence<uintE> needs_normals_seq(graph->n, 0U);
   par_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
-    if (vertex.getOutDegree() >= degree_threshold) {
+    if (vertex.out_degree() >= degree_threshold) {
       // Vertex should be fingerprinted if both it and one of its neighbors
       // has high degree. If a vertex needs to be fingerprinted, then normal
       // random numbers should be generated for it and its neighbors.
@@ -346,7 +346,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
             skip_fingerprint = false;
           }
         }};
-      vertex.mapOutNgh(vertex_id, check_degree_threshold);
+      vertex.out_neighbors().map(check_degree_threshold);
       if (!skip_fingerprint) {
         needs_fingerprint_seq[vertex_id] = true;
         needs_normals_seq[vertex_id] = true;
@@ -354,7 +354,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
           [&](uintE, const uintE neighbor_id, Weight) {
             needs_normals_seq[neighbor_id] = true;
           }};
-        vertex.mapOutNgh(vertex_id, set_needs_normals);
+        vertex.out_neighbors().map(set_needs_normals);
       }
     }
   });
@@ -417,7 +417,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         }
       }};
       constexpr bool kParallel{false};
-      vertex.mapOutNgh(vertex_id, update_dot_products, kParallel);
+      vertex.out_neighbors().map(update_dot_products, kParallel);
       for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
         if (hyperplane_dot_products[bit_id] >= 0) {
           bits |= (1LL << bit_id);
@@ -518,7 +518,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       }
     }};
     constexpr bool kParallel{false};
-    vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
+    vertex.out_neighbors().map_with_index(intersect, kParallel);
   });
 
   const pbbs::sequence<double> norms{[&]() -> pbbs::sequence<double> {
@@ -535,7 +535,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
             [&](uintE, uintE, const Weight weight) {
               norm += kWeightFactor * kWeightFactor * weight * weight;
             }};
-          vertex.mapOutNgh(vertex_id, update_norm, kParallel);
+          vertex.out_neighbors().map(update_norm, kParallel);
           return std::sqrt(norm);
         }};
     }
@@ -545,7 +545,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
+    const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
     const size_t vertex_fingerprint_offset{
       fingerprint_indices[vertex_id] * num_bit_arrays};
@@ -574,7 +574,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
           // unweighted case
           const uintE num_shared_neighbors{counters[counter_index]};
-          const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
+          const uintE u_degree{graph->get_vertex(u_id).out_degree()};
           similarity = (num_shared_neighbors + 2) /
             (sqrtf(v_degree + 1) * sqrtf(u_degree + 1));
         } else {  // weighted case
@@ -592,8 +592,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
       similarities[2 * counter_index + 1] =
         {.source = u_id, .neighbor = v_id, .similarity = similarity};
     }};
-    directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
-        vertex_id, compute_similarity);
+    directed_graph.get_vertex(vertex_id).out_neighbors().map_with_index(
+        compute_similarity);
   });
 
   directed_graph.del();
@@ -642,7 +642,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       graph->n,
       [&](const size_t vertex_id) {
         Vertex vertex{graph->get_vertex(vertex_id)};
-        if (vertex.getOutDegree() < degree_threshold) {
+        if (vertex.out_degree() < degree_threshold) {
           return false;
         }
         bool needs_fingerprint{false};
@@ -653,7 +653,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
               needs_fingerprint = true;
             }
           }};
-        vertex.mapOutNgh(vertex_id, check_degree_threshold);
+        vertex.out_neighbors().map(check_degree_threshold);
         return needs_fingerprint;
       }};
   const uintE num_needs_fingerprint{
@@ -685,7 +685,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
             std::less<uintE>{});
       }};
     update_fingerprint(vertex_id, vertex_id, pbbs::empty{});
-    vertex.mapOutNgh(vertex_id, update_fingerprint);
+    vertex.out_neighbors().map(update_fingerprint);
   });
 
   auto directed_graph{DirectGraphByDegree(graph)};
@@ -741,14 +741,14 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
             &vertex, &neighbor, update_counters);
     }};
     constexpr bool kParallel{false};
-    vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
+    vertex.out_neighbors().map_with_index(intersect, kParallel);
   });
 
   pbbs::sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
-    const uintE v_degree{graph->get_vertex(vertex_id).getOutDegree()};
+    const uintE v_degree{graph->get_vertex(vertex_id).out_degree()};
     const bool vertex_is_high_degree{v_degree >= degree_threshold};
     const size_t vertex_fingerprint_offset{
       fingerprint_indices[vertex_id] * num_samples};
@@ -785,7 +785,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
           (static_cast<float>(num_samples - fingerprint_empty_count));
       } else {  // exact similarity
         const uintE num_shared_neighbors{counters[counter_index]};
-        const uintE u_degree{graph->get_vertex(u_id).getOutDegree()};
+        const uintE u_degree{graph->get_vertex(u_id).out_degree()};
         const uintE neighborhood_union{
           v_degree + u_degree - num_shared_neighbors};
         similarity =
@@ -796,8 +796,8 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       similarities[2 * counter_index + 1] =
         {.source = u_id, .neighbor = v_id, .similarity = similarity};
     }};
-    directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
-        vertex_id, compute_similarity);
+    directed_graph.get_vertex(vertex_id).out_neighbors().map_with_index(
+        compute_similarity);
   });
 
   directed_graph.del();
@@ -871,7 +871,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
                 &vertex, &neighbor, update_counters);
       }};
       constexpr bool kParallel{false};
-      vertex.mapOutNghWithIndex(vertex_id, intersect, kParallel);
+      vertex.out_neighbors().map_with_index(intersect, kParallel);
     });
 
     const pbbs::sequence<double> norms{
@@ -884,7 +884,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
           [&](uintE, uintE, const Weight weight) {
             norm += kWeightFactor * kWeightFactor * weight * weight;
           }};
-        vertex.mapOutNgh(vertex_id, update_norm, kParallel);
+        vertex.out_neighbors().map(update_norm, kParallel);
         return std::sqrt(norm);
       }};
 
@@ -910,8 +910,8 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
         similarities[2 * counter_index + 1] =
           {.source = u_id, .neighbor = v_id, .similarity = similarity};
       }};
-      directed_graph.get_vertex(vertex_id).mapOutNghWithIndex(
-          vertex_id, compute_similarity);
+      directed_graph.get_vertex(vertex_id).out_neighbors().map_with_index(
+           compute_similarity);
     });
 
     directed_graph.del();

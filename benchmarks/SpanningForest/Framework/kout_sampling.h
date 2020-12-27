@@ -52,9 +52,9 @@ struct KOutSamplingTemplate {
          * unite */
         parallel_for(0, n, [&] (size_t u) {
           auto u_vtx = GA.get_vertex(u);
-          if (u_vtx.getOutDegree() > r) {
+          if (u_vtx.out_degree() > r) {
             uintE ngh; W wgh;
-            std::tie(ngh, wgh) = u_vtx.get_ith_out_neighbor(u, r);
+            std::tie(ngh, wgh) = u_vtx.out_neighbors().get_ith_neighbor(r);
             link(u, ngh, Parents, Edges);
           }
         }, granularity);
@@ -62,10 +62,10 @@ struct KOutSamplingTemplate {
         parallel_for(0, n, [&] (size_t u) {
           auto u_rnd = rnd.fork(u);
           auto u_vtx = GA.get_vertex(u);
-          if (u_vtx.getOutDegree() > 1) {
-            uintE deg = u_vtx.getOutDegree() - 1;
+          if (u_vtx.out_degree() > 1) {
+            uintE deg = u_vtx.out_degree() - 1;
             uintE ngh_idx = 1 + (u_rnd.rand() % deg);
-            auto [ngh, wgh] = u_vtx.get_ith_out_neighbor(u, ngh_idx);
+            auto [ngh, wgh] = u_vtx.out_neighbors().get_ith_neighbor(ngh_idx);
             link(u, ngh, Parents, Edges);
           }
         }, granularity);
