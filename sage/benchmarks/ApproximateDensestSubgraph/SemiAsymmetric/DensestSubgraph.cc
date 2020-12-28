@@ -29,7 +29,7 @@
 //     -rounds : the number of times to run the algorithm
 
 #include "sage/sage.h"
-#include "DensestSubgraph.h"
+#include "benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12/DensestSubgraph.h"
 
 namespace gbbs {
 template <class Graph>

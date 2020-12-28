@@ -45,17 +45,17 @@ TEST(TestSymGraphFromEdges, TestBrokenPath) {
   auto G = sym_graph_from_edges(edges, n, /* is_sorted = */false);
 
   ASSERT_EQ(G.n, 11);
-  ASSERT_EQ(G.get_vertex(0).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(1).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(G.get_vertex(3).getOutDegree(), 1);
-  ASSERT_EQ(G.get_vertex(4).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(5).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(6).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(7).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(8).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(9).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(10).getOutDegree(), 3);
+  ASSERT_EQ(G.get_vertex(0).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(1).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(G.get_vertex(3).out_degree(), 1);
+  ASSERT_EQ(G.get_vertex(4).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(5).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(6).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(7).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(8).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(9).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(10).out_degree(), 3);
   G.del();
 }
 
@@ -70,10 +70,10 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   auto graph = sym_graph_from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
-  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
   graph.del();
 }
 
@@ -88,18 +88,18 @@ TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
   auto graph = sym_graph_from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
-  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
   auto G = graph.copy();
   graph.del();
 
   ASSERT_EQ(G.n, n);
-  ASSERT_EQ(G.get_vertex(0).getOutDegree(), 1);
-  ASSERT_EQ(G.get_vertex(1).getOutDegree(), 1);
-  ASSERT_EQ(G.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(G.get_vertex(3).getOutDegree(), 0);
+  ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
+  ASSERT_EQ(G.get_vertex(1).out_degree(), 1);
+  ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(G.get_vertex(3).out_degree(), 0);
   G.del();
 }
 
@@ -114,10 +114,10 @@ TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   auto graph = sym_ptr_graph_from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
-  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
   graph.del();
 }
 
@@ -139,17 +139,17 @@ TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
   auto G = sym_ptr_graph_from_edges(edges, n, /* is_sorted = */false);
 
   ASSERT_EQ(G.n, 11);
-  ASSERT_EQ(G.get_vertex(0).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(1).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(G.get_vertex(3).getOutDegree(), 1);
-  ASSERT_EQ(G.get_vertex(4).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(5).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(6).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(7).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(8).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(9).getOutDegree(), 2);
-  ASSERT_EQ(G.get_vertex(10).getOutDegree(), 3);
+  ASSERT_EQ(G.get_vertex(0).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(1).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(G.get_vertex(3).out_degree(), 1);
+  ASSERT_EQ(G.get_vertex(4).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(5).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(6).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(7).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(8).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(9).out_degree(), 2);
+  ASSERT_EQ(G.get_vertex(10).out_degree(), 3);
   G.del();
 }
 
@@ -164,19 +164,19 @@ TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
   auto graph = sym_ptr_graph_from_edges(edges, n);
 
   ASSERT_EQ(graph.n, n);
-  ASSERT_EQ(graph.get_vertex(0).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(1).getOutDegree(), 1);
-  ASSERT_EQ(graph.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(graph.get_vertex(3).getOutDegree(), 0);
+  ASSERT_EQ(graph.get_vertex(0).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
+  ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
 
   auto G = graph.copy();
   graph.del();
 
   ASSERT_EQ(G.n, n);
-  ASSERT_EQ(G.get_vertex(0).getOutDegree(), 1);
-  ASSERT_EQ(G.get_vertex(1).getOutDegree(), 1);
-  ASSERT_EQ(G.get_vertex(2).getOutDegree(), 0);
-  ASSERT_EQ(G.get_vertex(3).getOutDegree(), 0);
+  ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
+  ASSERT_EQ(G.get_vertex(1).out_degree(), 1);
+  ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
+  ASSERT_EQ(G.get_vertex(3).out_degree(), 0);
   G.del();
 }
 

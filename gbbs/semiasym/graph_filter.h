@@ -226,7 +226,7 @@ struct symmetric_packed_graph {
   void map_edges(F f, bool parallel_inner_map = true) {
     par_for(0, n, 1, [&](size_t v) {
       auto vert_v = get_vertex(v);
-      vert_v.mapOutNgh(v, f, parallel_inner_map);
+      vert_v.out_neighbors().map(f, parallel_inner_map);
     });
   }
 

@@ -112,7 +112,7 @@ namespace bytepd_amortized {
           deg++;
           return false;
         };
-        GA.get_vertex(i).mapOutNgh(i, f, false);
+        GA.get_vertex(i).out_neighbors().map(f, false);
 
         if (deg > 0) {
           size_t n_chunks = 1+(deg-1)/PAR_DEGREE_TWO;
@@ -181,7 +181,7 @@ namespace bytepd_amortized {
           deg++;
           return false;
         };
-        GA.get_vertex(i).mapInNgh(i, f, false);
+        GA.get_vertex(i).in_neighbors().map(f, false);
 
         if (deg > 0) {
           size_t n_chunks = 1+(deg-1)/PAR_DEGREE_TWO;
@@ -205,7 +205,7 @@ namespace bytepd_amortized {
       parallel_for (0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getInIter(i);
+          auto it = GA.get_vertex(i).in_neighbors().get_iter();
           size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
           std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
@@ -254,7 +254,7 @@ namespace bytepd_amortized {
         total_bytes += bytes;
         deg++;
       };
-      GA.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).out_neighbors().map(f, false);
 
       if (deg > 0) {
         size_t n_chunks = 1+(deg-1)/PAR_DEGREE_TWO;
@@ -378,7 +378,7 @@ namespace bytepd_amortized {
         auto map_ngh_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
           nghs[k++] = rank[w];
         };
-        vtx.mapOutNgh(i, map_ngh_f, false);
+        vtx.out_neighbors().map(map_ngh_f, false);
 
         auto new_ngh_seq = pbbslib::make_sequence(nghs, deg);
         pbbs::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
@@ -517,7 +517,7 @@ namespace binary_format {
         auto write_f = [&] (const uintE& ngh, const uintT& offset, const W& val) {
           edges[offset] = std::make_tuple(ngh, val);
         };
-        GA.get_vertex(i).copyOutNgh(i, our_offset, map_f, write_f);
+        GA.get_vertex(i).out_neighbors().copy(our_offset, map_f, write_f);
       });
 
       size_t edge_space = sizeof(edge_type)*n_edges;
@@ -554,7 +554,7 @@ void edgearray(Graph& GA, std::ofstream& out) {
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       edges[off + k++] = std::make_tuple(u, v, wgh);
     };
-    GA.get_vertex(i).mapOutNgh(i, map_f, false);
+    GA.get_vertex(i).out_neighbors().map(map_f, false);
     assert(k == GA.get_vertex(i).out_degree());
   }, 1);
 

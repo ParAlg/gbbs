@@ -1,17 +1,8 @@
-cc_library(
-  name = "DensestSubgraph",
-  hdrs = ["DensestSubgraph.h"],
-  deps = [
-  "//gbbs:edge_map_reduce",
-  "//gbbs:gbbs"
-  ]
-)
-
 cc_binary(
   name = "DensestSubgraph_main",
   srcs = ["DensestSubgraph.cc"],
   deps = [
-    ":DensestSubgraph",
+    "//benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12:DensestSubgraph",
     "//sage:sage",
   ]
 )

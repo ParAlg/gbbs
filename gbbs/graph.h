@@ -257,7 +257,7 @@ struct symmetric_ptr_graph {
     auto offsets = sequence<size_t>(n+1);
     parallel_for(0, n, [&] (size_t i) {
       V[i] = vertices[i];
-      offsets[i] = (edge_list_sizes == nullptr) ? V[i].getOutDegree() : edge_list_sizes[i];
+      offsets[i] = (edge_list_sizes == nullptr) ? V[i].out_degree() : edge_list_sizes[i];
     });
     offsets[n] = 0;
     size_t total_space = pbbslib::scan_add_inplace(offsets.slice());
@@ -268,7 +268,7 @@ struct symmetric_ptr_graph {
         auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh, size_t ind) {
           E[offset + ind] = std::make_tuple(v, wgh);
         };
-        V[i].mapOutNghWithIndex(i, map_f);
+        V[i].out_neighbors().map_with_index(map_f);
       } else {
         size_t next_offset = offsets[i+1];
         size_t to_copy = next_offset - offset;
@@ -396,7 +396,7 @@ struct asymmetric_graph {
   void mapEdges(F f, bool parallel_inner_map = true) {
     parallel_for(
         0, n,
-        [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
+        [&](size_t i) { get_vertex(i).out_neighbors().map(f, parallel_inner_map); },
         1);
   }
 };
@@ -441,7 +441,7 @@ struct asymmetric_ptr_graph {
   void mapEdges(F f, bool parallel_inner_map = true) {
     parallel_for(
         0, n,
-        [&](size_t i) { get_vertex(i).mapOutNgh(i, f, parallel_inner_map); },
+        [&](size_t i) { get_vertex(i).out_neighbors().map(f, parallel_inner_map); },
         1);
   }
 };

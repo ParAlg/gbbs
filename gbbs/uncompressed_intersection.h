@@ -29,11 +29,11 @@
 namespace gbbs {
 namespace intersection {
 
-template <template <typename W> class vertex, class W>
-inline size_t intersect(vertex<W>* A, vertex<W>* B, uintE a, uintE b) {
-  uintT i = 0, j = 0, nA = A->getOutDegree(), nB = B->getOutDegree();
-  auto nghA = A->getOutNeighbors();
-  auto nghB = B->getOutNeighbors();
+template <class Nghs>
+inline size_t intersect(Nghs* A, Nghs* B, uintE a, uintE b) {
+  uintT i = 0, j = 0, nA = A->degree, nB = B->degree;
+  auto nghA = A->neighbors;
+  auto nghB = B->neighbors;
   size_t ans = 0;
   while (i < nA && j < nB) {
     if (std::get<0>(nghA[i]) == std::get<0>(nghB[j]))

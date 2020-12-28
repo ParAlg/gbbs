@@ -83,7 +83,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
   size_t n = G.n;
   auto sizes = pbbs::sequence<uintT>(n);
   parallel_for(0, n,
-               [&](size_t i) { sizes[i] = G.get_vertex(i).getOutDegree(); });
+               [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
   size_t m = pbbslib::scan_add_inplace(sizes.slice());
   assert(m == G.m);
 
@@ -95,7 +95,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
       arr[offset + idx] = std::make_tuple(u, v, wgh);
       idx++;
     };
-    G.get_vertex(i).mapOutNgh(i, map_f, /* parallel = */ false);
+    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
   });
   return edge_array<W>(arr, n, n, m);
 }

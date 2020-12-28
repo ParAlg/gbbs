@@ -54,7 +54,7 @@ double Triangle_runner(Graph& G, commandLine P) {
   double tt = t.stop();
   if (P.getOption("-stats")) {
     auto wedge_im_f = [&](size_t i) {
-      size_t deg = G.get_vertex(i).getOutDegree();
+      size_t deg = G.get_vertex(i).out_degree();
       return (deg * deg - 1) / 2;
     };
     auto wedge_im = pbbslib::make_sequence<size_t>(G.n, wedge_im_f);

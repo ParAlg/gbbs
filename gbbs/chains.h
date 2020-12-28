@@ -73,9 +73,9 @@ inline auto remove_chains(Graph& G) {
   const size_t n = G.n;
   const size_t m = G.m;
   auto in_d =
-      sequence<intE>(n, [&](size_t i) { return G.V[i].getInDegree(); });
+      sequence<intE>(n, [&](size_t i) { return G.V[i].in_degree(); });
   auto out_d =
-      sequence<intE>(n, [&](size_t i) { return G.V[i].getOutDegree(); });
+      sequence<intE>(n, [&](size_t i) { return G.V[i].out_degree(); });
 
   auto in_f = [&](size_t i) { return i; };
   auto in_v = pbbslib::make_sequence<uintE>(n, in_f);
