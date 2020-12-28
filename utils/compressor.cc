@@ -45,7 +45,7 @@ namespace gbbs {
           deg++;
           return false;
         };
-        GA.get_vertex(i).mapOutNgh(i, f, false);
+        GA.get_vertex(i).out_neighbors().map(f, false);
 
         if (deg > 0) {
           size_t n_chunks = 1+(deg-1)/PARALLEL_DEGREE;
@@ -69,7 +69,7 @@ namespace gbbs {
       par_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getOutIter(i);
+          auto it = GA.get_vertex(i).out_neighbors().get_iter();
           size_t nbytes = encoding::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
@@ -114,7 +114,7 @@ namespace gbbs {
           deg++;
           return false;
         };
-        GA.get_vertex(i).mapInNgh(i, f, false);
+        GA.get_vertex(i).in_neighbors().map(f, false);
 
         if (deg > 0) {
           size_t n_chunks = 1+(deg-1)/PARALLEL_DEGREE;
@@ -138,7 +138,7 @@ namespace gbbs {
       par_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getInIter(i);
+          auto it = GA.get_vertex(i).in_neighbors().get_iter();
           size_t nbytes = encoding::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
             std::cout << "nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
@@ -261,7 +261,7 @@ namespace gbbs {
         total_bytes += bytes;
         deg++;
       };
-      GA.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).out_neighbors().map(f, false);
 
       if (deg > 0) {
         size_t n_chunks = 1+(deg-1)/PARALLEL_DEGREE;
@@ -288,7 +288,7 @@ namespace gbbs {
     par_for(0, n, [&] (size_t i) {
       uintE deg = degrees[i];
       if (deg > 0) {
-        auto it = GA.get_vertex(i).getOutIter(i);
+        auto it = GA.get_vertex(i).out_neighbors().get_iter();
         size_t nbytes = encoding::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
 
 //        uchar* edgeArray = edges.begin() + byte_offsets[i];

@@ -44,7 +44,7 @@ namespace byte {
         deg++;
         return false;
       };
-      GA.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).out_neighbors().map(f, false);
 
       degrees[i] = deg;
       byte_offsets[i] = total_bytes;
@@ -57,9 +57,9 @@ namespace byte {
     auto edges = pbbs::sequence<uchar>(total_space);
     parallel_for(0, n, [&] (size_t i) {
       uintE deg = degrees[i];
-      assert(deg == GA.get_vertex(i).getOutDegree());
+      assert(deg == GA.get_vertex(i).out_degree());
       if (deg > 0) {
-        auto it = GA.get_vertex(i).getOutIter(i);
+        auto it = GA.get_vertex(i).out_neighbors().get_iter();
         size_t nbytes = byte::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it);
         if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
         std::cout << "# nbytes = " << nbytes << " but offs = " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
@@ -136,7 +136,7 @@ namespace bytepd_amortized {
       parallel_for(0, n, [&] (size_t i) {
         uintE deg = degrees[i];
         if (deg > 0) {
-          auto it = GA.get_vertex(i).getOutIter(i);
+          auto it = GA.get_vertex(i).out_neighbors().get_iter();
           size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges.begin() + byte_offsets[i], 0, deg, (uintE)i, it, PAR_DEGREE_TWO);
           if (nbytes != (byte_offsets[i+1] - byte_offsets[i])) {
           std::cout << "# nbytes = " << nbytes << ". Should be: " << (byte_offsets[i+1] - byte_offsets[i]) << " deg = " << deg << " i = " << i << std::endl;
@@ -303,7 +303,7 @@ namespace bytepd_amortized {
         size_t our_offset = byte_offsets[j] - start_offset;
         uintE deg = degrees[j];
         if (deg > 0) {
-          auto it = GA.get_vertex(j).getOutIter(j);
+          auto it = GA.get_vertex(j).out_neighbors().get_iter();
           size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)j, it, PAR_DEGREE_TWO);
 
           if (nbytes != (byte_offsets[j+1] - byte_offsets[j])) {
@@ -330,7 +330,7 @@ namespace bytepd_amortized {
     t.start();
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-      return GA.get_vertex(u).getOutDegree() < GA.get_vertex(v).getOutDegree();
+      return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
     par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     { r[o[i]] = i; });
@@ -369,8 +369,8 @@ namespace bytepd_amortized {
       uintE stk[8192];
       uintE* nghs = (uintE*)stk;
       auto vtx = GA.get_vertex(i);
-      if (vtx.getOutDegree() > 0) {
-        if (vtx.getOutDegree() > 8192) {
+      if (vtx.out_degree() > 0) {
+        if (vtx.out_degree() > 8192) {
           nghs = pbbs::new_array_no_init<uintE>(deg);
         }
 
@@ -407,7 +407,7 @@ namespace bytepd_amortized {
           // To account for the virtual degree
           total_bytes += sizeof(uintE);
         }
-        if (vtx.getOutDegree() > 8192) {
+        if (vtx.out_degree() > 8192) {
           pbbs::free_array(nghs);
         }
       }
@@ -447,7 +447,7 @@ namespace bytepd_amortized {
         size_t our_offset = byte_offsets[j] - start_offset;
         uintE deg = degrees[j];
         if (deg > 0) {
-          auto it = GA.get_vertex(j).getOutIter(j);
+          auto it = GA.get_vertex(j).out_neighbors().get_iter();
           size_t nbytes = bytepd_amortized::sequentialCompressEdgeSet<W>(edges + our_offset, 0, deg, (uintE)j, it, PAR_DEGREE_TWO);
 
           if (nbytes != (byte_offsets[j+1] - byte_offsets[j])) {
@@ -480,7 +480,7 @@ namespace binary_format {
     auto offsets = pbbs::sequence<uintT>(n+1);
     std::cout << "# calculating size" << std::endl;
     parallel_for(0, n, [&] (size_t i) {
-      offsets[i] = GA.get_vertex(i).getOutDegree();
+      offsets[i] = GA.get_vertex(i).out_degree();
     });
     offsets[n] = 0;
     size_t offset_scan = pbbslib::scan_add_inplace(offsets.slice());
@@ -543,7 +543,7 @@ void edgearray(Graph& GA, std::ofstream& out) {
   size_t m = GA.m;
 
   auto degs = pbbs::sequence<uintT>(n);
-  par_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).getOutDegree(); });
+  par_for(0, n, [&] (size_t i) { degs[i] = GA.get_vertex(i).out_degree(); });
   pbbs::scan_inplace(degs.slice(), pbbs::addm<uintT>());
 
   auto edges = pbbs::sequence<std::tuple<uintE, uintE, W>>(m);
@@ -555,7 +555,7 @@ void edgearray(Graph& GA, std::ofstream& out) {
       edges[off + k++] = std::make_tuple(u, v, wgh);
     };
     GA.get_vertex(i).mapOutNgh(i, map_f, false);
-    assert(k == GA.get_vertex(i).getOutDegree());
+    assert(k == GA.get_vertex(i).out_degree());
   }, 1);
 
   writeArrayToStream(out, edges); // m edge triples

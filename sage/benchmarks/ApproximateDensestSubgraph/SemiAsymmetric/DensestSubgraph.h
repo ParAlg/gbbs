@@ -31,7 +31,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
-  auto D = sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
+  auto D = sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
   auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
   auto alive = sequence<bool>(n, [&](size_t i) { return true; });

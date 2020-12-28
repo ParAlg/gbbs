@@ -27,9 +27,9 @@ void print_edge_list(Graph& GA, std::string& outfile, bool direct_sym, bool mult
       auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         if (u < v) ctr++;
       };
-      GA.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).out_neighbors().map(f, false);
     } else {
-      ctr = GA.get_vertex(i).getOutDegree();
+      ctr = GA.get_vertex(i).out_degree();
     }
     offs[i] = ctr;
   });
@@ -49,7 +49,7 @@ void print_edge_list(Graph& GA, std::string& outfile, bool direct_sym, bool mult
         ctr++;
       }
     };
-    GA.get_vertex(i).mapOutNgh(i, map_f, false);
+    GA.get_vertex(i).out_neighbors().map(map_f, false);
   });
 
   std::ofstream file (outfile, std::ios::out | std::ios::binary);
@@ -85,7 +85,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
       auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         if (u < v) ctr++;
       };
-      GA.get_vertex(i).mapOutNgh(i, f, false);
+      GA.get_vertex(i).out_neighbors().map(f, false);
     offs[i] = ctr;
   });
   size_t m_out = pbbslib::scan_add_inplace(offs.slice());
@@ -99,7 +99,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
         ctr++;
       }
     };
-    GA.get_vertex(i).mapOutNgh(i, map_f, false);
+    GA.get_vertex(i).out_neighbors().map(map_f, false);
   });
 
   std::ofstream file (outfile, std::ios::out | std::ios::binary);
