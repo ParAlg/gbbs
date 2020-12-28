@@ -1,6 +1,3 @@
-// This code is part of the project "Theoretically Efficient Parallel Graph
-// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
-// in Algorithms and Architectures, 2018.
 // Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,20 +20,21 @@
 
 #pragma once
 
+#include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 
 namespace gbbs {
-
 template <class Graph>
 double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   const size_t n = G.n;
-  auto em = EdgeMap<uintE, Graph>(G, std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 15);
+  auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
   auto D = sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
   auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
+  auto alive = sequence<bool>(n, [&](size_t i) { return true; });
 
   size_t round = 1;
   uintE* last_arr = nullptr;
@@ -67,6 +65,15 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     auto vs = vertexSubset(n, num_removed, this_arr);
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
+    parallel_for(0, num_removed, [&] (size_t i) {
+      auto v = this_arr[i];
+      alive[v] = false;
+    });
+
+    auto cond_f = [&] (const uintE& u) {
+      return alive[u];
+    };
+
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
@@ -74,8 +81,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return std::nullopt;
     };
 
-    auto moved = em.template edgeMapCount<uintE>(vs, apply_f);
-    moved.del();
+    nghCount(G, vs, cond_f, apply_f, em, no_output);
 
     round++;
     last_arr = this_arr;
@@ -117,6 +123,11 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     auto vs = vertexSubset(n, num_removed, this_arr);
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
+    parallel_for(0, num_removed, [&] (size_t i) {
+      auto v = this_arr[i];
+      alive[v] = false;
+    });
+
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
       auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -126,8 +137,10 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
         return std::nullopt;
       };
 
-      auto moved = em.template edgeMapCount<uintE>(vs, apply_f, no_output);
-      moved.del();
+      auto cond_f = [&] (const uintE& u) {
+        return alive[u];
+      };
+      nghCount(G, vs, cond_f, apply_f, em, no_output);
     }
 
     round++;
@@ -145,5 +158,4 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }
-
 }  // namespace gbbs
