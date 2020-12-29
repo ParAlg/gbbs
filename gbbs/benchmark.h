@@ -55,7 +55,7 @@ inline auto get_pcm_state() { return (size_t)1; }
 
 #define run_app(G, APP, rounds)                                            \
   auto before_state = gbbs::get_pcm_state();                               \
-  pbbs::timer st;                                                                \
+  pbbs::timer st;                                                          \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
     total_time += APP(G, P);                                               \
@@ -203,6 +203,34 @@ inline auto get_pcm_state() { return (size_t)1; }
   }
 
 /* Macro to generate binary for unweighted graph applications that can ingest
+ * only asymmetric graph inputs */
+#define generate_asymmetric_main(APP, mutates)                               \
+  int main(int argc, char* argv[]) {                                         \
+    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                       \
+    char* iFile = P.getArgument(0);                                          \
+    bool symmetric = P.getOptionValue("-s");                                 \
+    bool compressed = P.getOptionValue("-c");                                \
+    bool mmap = P.getOptionValue("-m");                                      \
+    bool mmapcopy = mutates;                                                 \
+    assert(!symmetric);                                                      \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                      \
+    gbbs::pcm_init();                                                        \
+    if (compressed) {                                                        \
+      auto G =                                                               \
+          gbbs::gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(   \
+              iFile, mmap, mmapcopy);                                        \
+      gbbs::alloc_init(G);                                                   \
+      run_app(G, APP, rounds)                                                \
+    } else {                                                                 \
+      auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap); \
+      gbbs::alloc_init(G);                                                   \
+      run_app(G, APP, rounds)                                                \
+    }                                                                        \
+    gbbs::alloc_finish();                                                    \
+  }
+
+/* Macro to generate binary for unweighted graph applications that can ingest
  * only
  * symmetric graph inputs */
 #define generate_symmetric_main(APP, mutates)                                  \
@@ -214,10 +242,11 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     if (!symmetric) {                                                          \
-      std::cout << "# The application expects the input graph to be symmetric (-s " \
-              "flag)."                                                         \
-           << std::endl;                                                            \
-      std::cout << "# Please run on a symmetric input." << std::endl;                    \
+      std::cout                                                                \
+          << "# The application expects the input graph to be symmetric (-s "  \
+             "flag)."                                                          \
+          << std::endl;                                                        \
+      std::cout << "# Please run on a symmetric input." << std::endl;          \
     }                                                                          \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     gbbs::pcm_init();                                                          \
@@ -246,10 +275,11 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                        \
     bool mmapcopy = mutates;                                                   \
     if (!symmetric) {                                                          \
-      std::cout << "# The application expects the input graph to be symmetric (-s " \
-              "flag)."                                                         \
-           << std::endl;                                                            \
-      std::cout << "# Please run on a symmetric input." << std::endl;                    \
+      std::cout                                                                \
+          << "# The application expects the input graph to be symmetric (-s "  \
+             "flag)."                                                          \
+          << std::endl;                                                        \
+      std::cout << "# Please run on a symmetric input." << std::endl;          \
     }                                                                          \
     gbbs::pcm_init();                                                          \
     if (compressed) {                                                          \
@@ -308,49 +338,49 @@ inline auto get_pcm_state() { return (size_t)1; }
 
 /* Macro to generate binary for weighted graph applications that can ingest
  * only symmetric graph inputs */
-#define generate_symmetric_weighted_main(APP, mutates)                     \
-  int main(int argc, char* argv[]) {                                       \
-    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                     \
-    char* iFile = P.getArgument(0);                                        \
-    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
-    bool compressed = P.getOptionValue("-c");                              \
-    bool mmap = P.getOptionValue("-m");                                    \
-    bool mmapcopy = mutates;                                               \
-    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);              \
-    size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
-    gbbs::pcm_init();                                                      \
-    if (compressed) {                                                      \
-      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>( \
-          iFile, mmap, mmapcopy);                                          \
-      gbbs::alloc_init(G);                                                 \
-      run_app(G, APP, rounds)                                              \
-    } else {                                                               \
-      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(   \
-          iFile, mmap);                                                    \
-      gbbs::alloc_init(G);                                                 \
-      run_app(G, APP, rounds)                                              \
-    }                                                                      \
-    gbbs::alloc_finish();                                                  \
+#define generate_symmetric_weighted_main(APP, mutates)                         \
+  int main(int argc, char* argv[]) {                                           \
+    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                         \
+    char* iFile = P.getArgument(0);                                            \
+    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););        \
+    bool compressed = P.getOptionValue("-c");                                  \
+    bool mmap = P.getOptionValue("-m");                                        \
+    bool mmapcopy = mutates;                                                   \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                  \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
+    gbbs::pcm_init();                                                          \
+    if (compressed) {                                                          \
+      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>(     \
+          iFile, mmap, mmapcopy);                                              \
+      gbbs::alloc_init(G);                                                     \
+      run_app(G, APP, rounds)                                                  \
+    } else {                                                                   \
+      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(iFile, \
+                                                                        mmap); \
+      gbbs::alloc_init(G);                                                     \
+      run_app(G, APP, rounds)                                                  \
+    }                                                                          \
+    gbbs::alloc_finish();                                                      \
   }
 
 /* Macro to generate binary for floating-point weighted graph applications that
  * can ingest only symmetric graph inputs */
-#define generate_symmetric_float_weighted_main(APP)                        \
-  int main(int argc, char* argv[]) {                                       \
-    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                     \
-    char* iFile = P.getArgument(0);                                        \
-    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););    \
-    bool compressed = P.getOptionValue("-c");                              \
-    bool mmap = P.getOptionValue("-m");                                    \
-    size_t rounds = P.getOptionLongValue("-rounds", 3);                    \
-    gbbs::pcm_init();                                                      \
-    if (compressed) {                                                      \
-      ABORT("Graph compression not yet implemented for float weights");    \
-    } else {                                                               \
-      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(        \
-          iFile, mmap);                                                    \
-      gbbs::alloc_init(G);                                                 \
-      run_app(G, APP, rounds)                                              \
-    }                                                                      \
-    gbbs::alloc_finish();                                                  \
+#define generate_symmetric_float_weighted_main(APP)                         \
+  int main(int argc, char* argv[]) {                                        \
+    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                      \
+    char* iFile = P.getArgument(0);                                         \
+    debug(bool symmetric = P.getOptionValue("-s"); assert(symmetric););     \
+    bool compressed = P.getOptionValue("-c");                               \
+    bool mmap = P.getOptionValue("-m");                                     \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                     \
+    gbbs::pcm_init();                                                       \
+    if (compressed) {                                                       \
+      ABORT("Graph compression not yet implemented for float weights");     \
+    } else {                                                                \
+      auto G =                                                              \
+          gbbs::gbbs_io::read_weighted_symmetric_graph<float>(iFile, mmap); \
+      gbbs::alloc_init(G);                                                  \
+      run_app(G, APP, rounds)                                               \
+    }                                                                       \
+    gbbs::alloc_finish();                                                   \
   }

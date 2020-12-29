@@ -97,10 +97,13 @@ TEST(TestGraphFilter, TestAsymmetricFilter) {
   };
   auto PG = sage::filter_graph(G, predicate);
   for (size_t i=1; i < n; i++) {
+    EXPECT_EQ(G.get_vertex(i).out_degree(), 0);
     EXPECT_EQ(PG.get_vertex(i).out_degree(), 0);
     if (i % 2 == 1) {
+      EXPECT_EQ(G.get_vertex(i).in_degree(), 1);
       EXPECT_EQ(PG.get_vertex(i).in_degree(), 0);
     } else {
+      EXPECT_EQ(G.get_vertex(i).in_degree(), 1);
       EXPECT_EQ(PG.get_vertex(i).in_degree(), 1);
     }
   }

@@ -442,9 +442,28 @@ struct asymmetric_packed_graph {
     });
   }
 
+  template <class P>
+  void clear_vertices(P& pred_v) {
+    auto deg_imap = pbbs::delayed_seq<uintT>(n, [&] (size_t i) {
+      if (!pred_v(i)) { // delete
+        clear_vertex(i);
+      }
+      return out_VI[i].vtx_degree;
+    });
+    std::cout << "Before clearing, m = " << m << std::endl;
+    m = pbbslib::reduce_add(deg_imap);
+    std::cout << "After clearing, m = " << m << std::endl;
+  }
+
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
     pbbslib::free_arrays(out_VI, in_VI, out_blocks, in_blocks);
+  }
+
+  private:
+  inline void clear_vertex(uintE v) {
+    out_VI[v].vtx_degree = 0;
+    in_VI[v].vtx_degree = 0;
   }
 };
 
