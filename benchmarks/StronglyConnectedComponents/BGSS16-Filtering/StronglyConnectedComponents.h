@@ -29,8 +29,6 @@
 #include "gbbs/gbbs.h"
 #include "gbbs/semiasym/graph_filter.h"
 
-#include "MultiSearch.h"
-
 namespace gbbs {
 namespace filter_based_scc {
 
@@ -291,8 +289,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       };
 
       std::cout << "PG.m was: " << PG.m << std::endl;
-      auto labeled = [&] (size_t i) { return labels[i] == kUnfinished; };
-      PG.clear_vertices(labeled);
+      PG.clear_vertices([&] (size_t i) { return labels[i] == kUnfinished; });
       gbbs::sage::filter_graph(PG, pred_f);
       std::cout << "PG.m is now: " << PG.m << std::endl;
 
@@ -349,8 +346,8 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       ft.start();
       uintE start = centers[0];
 
-      auto visited_in  = first_search(GA, zero, start, in_edges);
-      auto visited_out = first_search(GA, zero, start);
+      auto visited_in  = first_search(PG, zero, start, in_edges);
+      auto visited_out = first_search(PG, zero, start);
 
       size_t start_label = label_offset;  // The label of the SCC containing start.
       par_for(0, n, [&] (size_t i) {
@@ -386,42 +383,62 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       ft.reportTotal("first scc time");
     }
 
-//    timer ins; ins.start();
-//    auto centers_copy = centers;
-//    size_t centers_size = centers.size();
-//    auto in_f = vertexSubset(n, centers_size, centers.to_array());
-//    auto in_table =
-//        multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
-//    std::cout << "Finished in search"
-//              << "\n";
-//    ins.stop(); ins.reportTotal("insearch time");
-//
-//    timer outs; outs.start();
-//    auto out_f = vertexSubset(n, centers_size, centers_copy.to_array());
-//    auto out_table = multi_search(GA, labels, bits, out_f, cur_label_offset);
-//    std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
-//              << "\n";
-//    std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
-//              << "\n";
-//    outs.stop(); outs.reportTotal("outsearch time");
-//
-//    auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
-//    auto& larger_t = (in_table.m > out_table.m) ? in_table : out_table;
-//
-//    // intersect the tables
-//    auto map_f = [&](const std::tuple<K, V>& kev) {
-//      uintE v = std::get<0>(kev);
-//      size_t label = std::get<1>(kev);
-//      if (larger_t.contains(v, label)) {
-//        // in 'label' scc
-//        // Max visitor from this StronglyConnectedComponents acquires it.
-//        pbbslib::write_max(&labels[v], label | TOP_BIT);
-//      } else {
-//        pbbslib::write_max(&labels[v], label);
-//      }
-//    };
-//    smaller_t.map(map_f);
-//
+    timer ins; ins.start();
+    auto centers_copy = centers;
+    size_t centers_size = centers.size();
+    auto in_f = vertexSubset(n, centers_size, centers.to_array());
+    auto in_table =
+        multi_search(PG, labels, bits, in_f, cur_label_offset, in_edges);
+    std::cout << "Finished in search"
+              << "\n";
+    ins.stop(); ins.reportTotal("insearch time");
+
+    timer outs; outs.start();
+    auto out_f = vertexSubset(n, centers_size, centers_copy.to_array());
+    auto out_table = multi_search(PG, labels, bits, out_f, cur_label_offset);
+    std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
+              << "\n";
+    std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
+              << "\n";
+    outs.stop(); outs.reportTotal("outsearch time");
+
+    auto& smaller_t = (in_table.m <= out_table.m) ? in_table : out_table;
+    auto& larger_t = (in_table.m > out_table.m) ? in_table : out_table;
+
+    // intersect the tables
+    auto map_f = [&](const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      label_type label = std::get<1>(kev);
+      if (larger_t.contains(v, label)) {
+        // in 'label' scc
+        // Min visitor from this StronglyConnectedComponents acquires it.
+        pbbslib::write_min(&labels[v], label);
+      }
+      // else {  // No longer need to set subproblems
+      //   pbbslib::write_max(&labels[v], label);
+      // }
+    };
+    smaller_t.map(map_f);
+
+
+    PG.clear_vertices([&] (size_t v) { return labels[v] == kUnfinished; });
+
+    auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      if (labels[u] != labels[v]) return false;
+
+      // otherwise, they still have the same label
+      assert(labels[u] == kUnfinished);
+      assert(labels[v] == kUnfinished);
+
+      // generalization of cond_2 and cond_3 from above to multiple searches.
+      if (smaller_t.num_appearances(u) != smaller_t.num_appearances(v)) return false;
+
+      return larger_t.num_appearances(u) == larger_t.num_appearances(v);
+    };
+
+    // Prune the graph.
+    gbbs::sage::filter_graph(PG, pred_f);
+
 //    // set the subproblems
 //    auto sp_map = [&](const std::tuple<K, V>& kev) {
 //      uintE v = std::get<0>(kev);
@@ -431,9 +448,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      pbbslib::write_max(&labels[v], label);
 //    };
 //    larger_t.map(sp_map);
-//
-//    in_table.del();
-//    out_table.del();
+
+    in_table.del();
+    out_table.del();
 
     rt.stop();
     rt.reportTotal("Round time");
