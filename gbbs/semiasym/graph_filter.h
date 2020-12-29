@@ -442,6 +442,8 @@ struct asymmetric_packed_graph {
     });
   }
 
+  // Clears all vertices (zeros out their in-/out-degree) that do not satisfy
+  // the predicate P.
   template <class P>
   void clear_vertices(P& pred_v) {
     auto deg_imap = pbbs::delayed_seq<uintT>(n, [&] (size_t i) {
