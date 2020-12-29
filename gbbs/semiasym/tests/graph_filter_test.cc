@@ -88,5 +88,24 @@ TEST(TestGraphFilter, TestAsymmetricCreation) {
   std::cout << "m = " << PG.m << std::endl;
 }
 
+TEST(TestGraphFilter, TestAsymmetricFilter) {
+  using W = pbbs::empty;
+  uintE n = 20;
+  auto G = CreateDirectedStar(n);
+  auto predicate = [&] (const uintE& u, const uintE& v, const W& wgh) -> bool {
+    return (u % 2 == v % 2) && (u % 2 == 0);
+  };
+  auto PG = sage::filter_graph(G, predicate);
+  for (size_t i=1; i < n; i++) {
+    EXPECT_EQ(PG.get_vertex(i).out_degree(), 0);
+    if (i % 2 == 1) {
+      EXPECT_EQ(PG.get_vertex(i).in_degree(), 0);
+    } else {
+      EXPECT_EQ(PG.get_vertex(i).in_degree(), 1);
+    }
+  }
+  EXPECT_EQ(PG.get_vertex(0).out_degree(), n/2 - 1);
+}
+
 
 }  // namespace gbbs

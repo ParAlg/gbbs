@@ -455,5 +455,63 @@ auto build_asymmetric_packed_graph(asymmetric_graph<vertex_type, W>& GA) {
 }
 
 
+// The predicate pred_f is defined over the _out-edges_ of the graph.
+template <template <class W> class vertex_type, class W, class P>
+asymmetric_packed_graph<vertex_type, W> filter_graph(asymmetric_graph<vertex_type, W>& G, P& pred_f) {
+  // TODO: do allocations, but in a (medium) constant number of allocations.
+  auto GA = asymmetric_packed_graph<vertex_type, W>(G);
+
+  auto reverse_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    return pred_f(v, u, wgh);
+  };
+  {
+    parallel_for(0, G.n, [&] (size_t v) {
+      auto vtx = GA.get_vertex(v);
+      // Pack-out both the in- and out-edges.
+      if (vtx.out_degree() > 0) {
+        vtx.out_neighbors().pack(pred_f, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
+      }
+      if (vtx.in_degree() > 0) {
+        vtx.in_neighbors().pack(reverse_pred, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
+      }
+    }, 1);
+  }
+  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
+    return GA.out_degree(i);
+  });
+  auto new_m = pbbslib::reduce_add(degree_seq);
+  GA.m = new_m;
+  std::cout << "# Returning new asymmetric packed graph, new m = " << new_m << std::endl;
+  return GA;
+}
+
+template <template <class W> class vertex_type, class W, class P>
+void filter_graph(asymmetric_packed_graph<vertex_type, W>& GA, P& pred_f) {
+  // TODO: do allocations, but in a (medium) constant number of allocations.
+
+  auto reverse_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    return pred_f(v, u, wgh);
+  };
+  {
+    parallel_for(0, GA.n, [&] (size_t v) {
+      auto vtx = GA.get_vertex(v);
+      // Pack-out both the in- and out-edges.
+      if (vtx.out_degree() > 0) {
+        vtx.out_neighbors().pack(pred_f, /* tmp = */ nullptr, /* parallel = */ true, /* flags = */ compact_blocks);
+      }
+      if (vtx.in_degree() > 0) {
+        vtx.in_neighbors().pack(reverse_pred, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
+      }
+    }, 1);
+  }
+  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
+    return GA.out_degree(i);
+  });
+  auto new_m = pbbslib::reduce_add(degree_seq);
+  GA.m = new_m;
+  std::cout << "# Packing asymmetric packed graph: new m = " << new_m << std::endl;
+}
+
+
 }  // namespace sage
 }  // namespace gbbs
