@@ -197,6 +197,10 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
 
 }  // namespace
 
+template <template <class W> class vertex_type, class W>
+gbbs::sage::asymmetric_packed_graph<vertex_type, W> get_empty_packed_graph(asymmetric_graph<vertex_type, W>& GA) {
+  return gbbs::sage::asymmetric_packed_graph<vertex_type, W>();
+}
 
 template <class Graph>
 inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta = 1.5) {
@@ -240,7 +244,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // The packed graph that the algorithm iteratively filters.
   timer pg_init; pg_init.start();
-  auto PG = gbbs::sage::build_asymmetric_packed_graph(GA);
+  auto PG = get_empty_packed_graph(GA);
   pg_init.stop(); pg_init.reportTotal("packed graph creation time");
 
   initt.stop();
@@ -293,7 +297,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
       std::cout << "PG.m was: " << PG.m << std::endl;
       timer fg; fg.start();
-      PG.clear_vertices([&] (size_t i) { return labels[i] == kUnfinished; });
+      // PG.clear_vertices([&] (size_t i) { return labels[i] == kUnfinished; });
+      PG = std::move(gbbs::sage::build_asymmetric_packed_graph(GA, [&] (uintE v) { return labels[v] == kUnfinished; }));
+      std::cout << "PG.m is initially: " << PG.m << std::endl;
+
       gbbs::sage::filter_graph(PG, pred_f);
       fg.stop(); fg.reportTotal("Filter Graph (first) time");
       std::cout << "PG.m is now: " << PG.m << std::endl;
