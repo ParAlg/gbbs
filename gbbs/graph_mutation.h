@@ -388,7 +388,7 @@ inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
     std::tuple<uintE, W>* tmp_v = tmp.begin() + space[i];
     G.packNeighbors(i, p, (uint8_t*)tmp_v);
   };
-  paralle_for(0, n, [&] (size_t i) { for_inner(i); }, 1);
+  parallel_for(0, n, [&] (size_t i) { for_inner(i); }, 1);
 }
 
 

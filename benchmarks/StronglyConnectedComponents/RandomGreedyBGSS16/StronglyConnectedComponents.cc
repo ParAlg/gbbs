@@ -46,7 +46,10 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -beta = " << beta << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  assert(!P.getOption("-s"));
+  if (P.getOption("-s")) {
+    std::cout << "SCC should be run on a directed graph;" << std::endl;
+    exit(0);
+  }
   timer scc_t;
   scc_t.start();
   auto labels = StronglyConnectedComponents(G, beta);

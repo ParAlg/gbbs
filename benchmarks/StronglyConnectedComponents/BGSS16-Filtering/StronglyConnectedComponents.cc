@@ -52,11 +52,6 @@ inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    if (labels[i] == 0) {
-      std::cout << "unlabeled"
-                << "\n";
-      exit(0);
-    }
     size_t label = labels[i];
     if ((label != kUnfinished) && !flags[label]) {
       flags[label] = 1;

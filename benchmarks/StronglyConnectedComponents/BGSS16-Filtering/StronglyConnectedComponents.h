@@ -26,6 +26,7 @@
 #include <limits>
 #include "pbbslib/random_shuffle.h"
 #include "gbbs/pbbslib/resizable_table.h"
+#include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/semiasym/graph_filter.h"
 
@@ -230,18 +231,20 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Assign unique labels to each vertex in zero (in their own SCCs).
   // Labels are in [0...zero.size()).
-  par_for(0, zero.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { labels[zero[i]] = i; });
+  parallel_for(0, zero.size(), [&] (size_t i) { labels[zero[i]] = i; });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
   double step_multiplier = beta;
-  size_t label_offset = zero.size() + 1; // TODO(laxmand): zero.size()?
+  size_t label_offset = zero.size();
+
+
+  // The packed graph that the algorithm iteratively filters.
+  timer pg_init; pg_init.start();
+  auto PG = gbbs::sage::build_asymmetric_packed_graph(GA);
+  pg_init.stop(); pg_init.reportTotal("packed graph creation time");
 
   initt.stop();
   initt.reportTotal("init");
-
-  // The packed graph that the algorithm iteratively filters.
-  auto PG = gbbs::sage::build_asymmetric_packed_graph(GA);
 
   // Run the first search (using two BFSs)
   {
@@ -289,8 +292,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       };
 
       std::cout << "PG.m was: " << PG.m << std::endl;
+      timer fg; fg.start();
       PG.clear_vertices([&] (size_t i) { return labels[i] == kUnfinished; });
       gbbs::sage::filter_graph(PG, pred_f);
+      fg.stop(); fg.reportTotal("Filter Graph (first) time");
       std::cout << "PG.m is now: " << PG.m << std::endl;
 
       pbbslib::free_array(visited_in);
@@ -301,17 +306,17 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     }
   }
 
+  timer MS; MS.start();
+
   auto Q = pbbslib::filter(P, [&](uintE v) { return labels[v] == kUnfinished; });
   std::cout << "After first round, Q = " << Q.size()
             << " vertices remain. Total done = " << (n - Q.size()) << "\n";
 
-//  size_t rem_deg = 0;
-//  for (size_t i=0; i<n; i++) {
-//    if (labels[i] == kUnfinished) {
-//      rem_deg += GA.get_vertex(i).out_degree();
-//    }
-//  }
-//  std::cout << "rem_deg = " << rem_deg << std::endl;
+  timer CT;
+  timer clear_vertices_t;
+
+  auto in_sizes = sequence<uintE>(n, UINT_E_MAX);
+  auto out_sizes = sequence<uintE>(n, UINT_E_MAX);
 
   while (finished < Q.size()) {
     timer rt;
@@ -372,8 +377,12 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
       std::cout << "PG.m was: " << PG.m << std::endl;
       auto labeled = [&] (size_t i) { return labels[i] == kUnfinished; };
+      CT.start();
+      clear_vertices_t.start();
       PG.clear_vertices(labeled);
+      clear_vertices_t.stop();
       gbbs::sage::filter_graph(PG, pred_f);
+      CT.stop();
       std::cout << "PG.m is now: " << PG.m << std::endl;
 
       pbbslib::free_array(visited_in);
@@ -420,24 +429,88 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     };
     smaller_t.map(map_f);
 
+    auto in_init_num_appear_f = [&] (const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      if (in_sizes[v] == UINT_E_MAX) in_sizes[v] = in_table.num_appearances(v);
+    };
+    auto out_init_num_appear_f = [&] (const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      if (out_sizes[v] == UINT_E_MAX) out_sizes[v] = out_table.num_appearances(v);
+    };
+    auto in_reset = [&] (const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      if (in_sizes[v] != UINT_E_MAX) in_sizes[v] = UINT_E_MAX;
+    };
+    auto out_reset = [&] (const std::tuple<K, V>& kev) {
+      uintE v = std::get<0>(kev);
+      if (out_sizes[v] != UINT_E_MAX) out_sizes[v] = UINT_E_MAX;
+    };
 
-    PG.clear_vertices([&] (size_t v) { return labels[v] == kUnfinished; });
+    in_table.map(in_init_num_appear_f);
+    out_table.map(out_init_num_appear_f);
+
+    clear_vertices_t.start();
+    //PG.clear_vertices([&] (size_t v) { return labels[v] == kUnfinished; });
+    PG.clear_vertices(centers, [&](size_t v) { return labels[v] == kUnfinished; });
+    clear_vertices_t.stop();
+
+
+
+    size_t remaining = Q.size() - finished + vs_size;
+    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, pbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+    auto in_insert_t = [&] (const std::tuple<K, V>& kev) {
+      auto k = std::get<0>(kev);
+      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        if (!in_table.contains(v)) {
+          to_process.insert(std::make_tuple(v, pbbs::empty()));
+        }
+      };
+      if (to_process.insert(std::make_tuple(k, pbbs::empty()))) {
+        // insert only out neighbors
+        PG.get_vertex(k).out_neighbors().map(insert_fringe);
+      }
+    };
+    in_table.map(in_insert_t);
+
+    auto out_insert_t = [&] (const std::tuple<K, V>& kev) {
+      auto k = std::get<0>(kev);
+      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
+        if (!out_table.contains(v)) {
+          to_process.insert(std::make_tuple(v, pbbs::empty()));
+        }
+      };
+      if (to_process.insert(std::make_tuple(k, pbbs::empty()))) {
+        // insert only out neighbors
+        PG.get_vertex(k).in_neighbors().map(insert_fringe);
+      }
+    };
+    out_table.map(out_insert_t);
+
+    auto elts = to_process.entries();
+    std::cout << "Num elements to process is: " << elts.size() << std::endl;
 
     auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (labels[u] != labels[v]) return false;
 
       // otherwise, they still have the same label
-      assert(labels[u] == kUnfinished);
-      assert(labels[v] == kUnfinished);
+      assert(labels[u] == kUnfinished); assert(labels[v] == kUnfinished);
 
       // generalization of cond_2 and cond_3 from above to multiple searches.
-      if (smaller_t.num_appearances(u) != smaller_t.num_appearances(v)) return false;
-
-      return larger_t.num_appearances(u) == larger_t.num_appearances(v);
+      if (in_sizes[u] != in_sizes[v]) return false;
+      return out_sizes[u] == out_sizes[v];
     };
 
     // Prune the graph.
-    gbbs::sage::filter_graph(PG, pred_f);
+    CT.start();
+    auto elts_seq = pbbs::delayed_seq<uintE>(elts.size(), [&] (size_t i) {
+      return std::get<0>(elts[i]);
+    });
+    PG.filter_graph(pred_f, elts_seq);
+    // gbbs::sage::filter_graph(PG, pred_f);
+    CT.stop();
+
+    in_table.map(in_reset);
+    out_table.map(out_reset);
 
 //    // set the subproblems
 //    auto sp_map = [&](const std::tuple<K, V>& kev) {
@@ -456,6 +529,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     rt.reportTotal("Round time");
   }
 
+  MS.stop();
+  MS.reportTotal("MultiSearch Time");
+  clear_vertices_t.reportTotal("Clear Vertices time");
+  CT.reportTotal("Compression time");
 
   return labels;
 }

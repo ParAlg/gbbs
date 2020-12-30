@@ -67,6 +67,7 @@ struct packed_symmetric_vertex {
 // Returns a pair of (vtx_info*, blocks*)
 template <class Graph>
 std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, gbbs::flags fl= 0) {
+  timer ibm; ibm.start();
   size_t n = GA.n;
 
   // 1. Calculate the #bytes corresponding to each vertex
@@ -80,21 +81,22 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
 
   size_t block_mem_to_alloc =
       pbbslib::scan_add_inplace(block_bytes_offs.slice());
-  std::cout << "# total memory for symmetric_packed_graph = " << block_mem_to_alloc << std::endl;
+  std::cout << "# total memory for block memory = " << block_mem_to_alloc << std::endl;
 
-  auto blocks_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
-    uintE degree = (fl & in_edges) ? GA.get_vertex(i).in_degree() : GA.get_vertex(i).out_degree();
-    if (degree == 0) { return static_cast<size_t>(0); }
-    size_t nb = pbbs::num_blocks(degree, bs);
-    return nb;
-  });
-  size_t total_blocks = pbbslib::reduce_add(blocks_seq);
+//  auto blocks_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
+//    uintE degree = (fl & in_edges) ? GA.get_vertex(i).in_degree() : GA.get_vertex(i).out_degree();
+//    if (degree == 0) { return static_cast<size_t>(0); }
+//    size_t nb = pbbs::num_blocks(degree, bs);
+//    return nb;
+//  });
+//  size_t total_blocks = pbbslib::reduce_add(blocks_seq);
+//  std::cout << "# total blocks = " << total_blocks << std::endl;
 
   // allocate blocks
   auto blocks = pbbs::new_array_no_init<uint8_t>(block_mem_to_alloc);
   auto VI = pbbs::new_array_no_init<vtx_info>(n);
   std::cout << "# packed graph: block_size = " << bs << std::endl;
-  std::cout << "# total blocks = " << total_blocks << " sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << std::endl;
+  std::cout << "# sizeof(vtx_info) = " << (sizeof(vtx_info)) << " total vtx_info bytes = " << (n*sizeof(vtx_info)) << std::endl;
   std::cout << "# total memory usage = " << (block_mem_to_alloc + (n*sizeof(vtx_info))) << " bytes; in_edges = " << (fl & in_edges) << std::endl;
 
   // initialize blocks and vtx_info
@@ -113,9 +115,9 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
         uint8_t* our_block_start = blocks + block_byte_offset;
         bitsets::bitset_init_blocks(our_block_start, degree, num_blocks, bs, bs_in_bytes,
                                     vtx_bytes);
-      },
-      1);
+      });
 
+  ibm.stop(); ibm.reportTotal("init block memory time");
   return {VI, blocks};
 }
 
@@ -457,6 +459,55 @@ struct asymmetric_packed_graph {
     std::cout << "After clearing, m = " << m << std::endl;
   }
 
+  // Clears all vertices (zeros out their in-/out-degree) that do not satisfy
+  // the predicate P.
+  template <class Seq, class P>
+  void clear_vertices(Seq& S, P pred_v) {
+    auto deg_imap = pbbs::delayed_seq<uintT>(S.size(), [&] (size_t i) {
+      uintE v = S[i];
+      uintE ret = 0;
+      if (!pred_v(v)) { // delete
+        ret = out_VI[v].vtx_degree;
+        clear_vertex(v);
+      }
+      return ret;
+    });
+    std::cout << "Before clearing, m = " << m << std::endl;
+    m -= pbbslib::reduce_add(deg_imap);
+    std::cout << "After clearing, m = " << m << std::endl;
+  }
+
+  template <class P, class Seq>
+  void filter_graph(P& pred_f, Seq& S) {
+    // TODO: do allocations, but in a (medium) constant number of allocations.
+
+    auto reverse_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
+      return pred_f(v, u, wgh);
+    };
+
+    auto degree_seq = pbbs::delayed_seq<size_t>(S.size(), [&] (size_t i) {
+      return out_degree(i);
+    });
+    size_t pre_degrees = pbbslib::reduce_add(degree_seq);
+
+    parallel_for(0, S.size(), [&] (size_t i) {
+      uintE v = S[i];
+      auto vtx = get_vertex(v);
+      // Pack-out both the in- and out-edges.
+      if (vtx.out_degree() > 0) {
+        vtx.out_neighbors().pack(pred_f, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
+      }
+      if (vtx.in_degree() > 0) {
+        vtx.in_neighbors().pack(reverse_pred, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
+      }
+    }, 128);
+
+    size_t post_degrees = pbbslib::reduce_add(degree_seq);
+    size_t delta = pre_degrees - post_degrees;
+    m -= delta;
+    std::cout << "# Filtered graph, new m = " << m << std::endl;
+  }
+
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
     pbbslib::free_arrays(out_VI, in_VI, out_blocks, in_blocks);
@@ -508,6 +559,33 @@ asymmetric_packed_graph<vertex_type, W> filter_graph(asymmetric_graph<vertex_typ
 
 template <template <class W> class vertex_type, class W, class P>
 void filter_graph(asymmetric_packed_graph<vertex_type, W>& GA, P& pred_f) {
+  // TODO: do allocations, but in a (medium) constant number of allocations.
+
+  auto reverse_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
+    return pred_f(v, u, wgh);
+  };
+  {
+    parallel_for(0, GA.n, [&] (size_t v) {
+      auto vtx = GA.get_vertex(v);
+      // Pack-out both the in- and out-edges.
+      if (vtx.out_degree() > 0) {
+        vtx.out_neighbors().pack(pred_f, /* tmp = */ nullptr, /* parallel = */ true, /* flags = */ compact_blocks);
+      }
+      if (vtx.in_degree() > 0) {
+        vtx.in_neighbors().pack(reverse_pred, /* tmp = */ nullptr, /* parallel = */true, /* flags = */ compact_blocks);
+      }
+    }, 1);
+  }
+  auto degree_seq = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) {
+    return GA.out_degree(i);
+  });
+  auto new_m = pbbslib::reduce_add(degree_seq);
+  GA.m = new_m;
+  std::cout << "# Packing asymmetric packed graph: new m = " << new_m << std::endl;
+}
+
+template <template <class W> class vertex_type, class W, class Seq, class P>
+void filter_graph(asymmetric_packed_graph<vertex_type, W>& GA, Seq& S, P& pred_f) {
   // TODO: do allocations, but in a (medium) constant number of allocations.
 
   auto reverse_pred = [&] (const uintE& u, const uintE& v, const W& wgh) {
