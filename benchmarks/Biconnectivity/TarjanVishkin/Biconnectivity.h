@@ -165,7 +165,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   // 1. Leaffix for Augmented Sizes
   auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
   auto cts =
-      sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).getOutDegree(); });
+      sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
   auto leaf_im = pbbslib::make_sequence<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
@@ -214,21 +214,23 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     auto offsets = sequence<uintE>(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
-      return Tree.get_vertex(v).getOutDegree();
+      return Tree.get_vertex(v).out_degree();
     });
     auto tot = pbbslib::scan_add_inplace(offsets);
     auto next_vs = sequence<uintE>(tot);
     par_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
-      uintE deg_v = Tree.get_vertex(v).getOutDegree();
+      uintE deg_v = Tree.get_vertex(v).out_degree();
       uintE preorder_number = PN[v] + 1;
+
+      auto neighbors = Tree.get_vertex(v).out_neighbors();
 
       // should be tuned
       if (deg_v < 4000) {
         // Min and max in any vertex are [PN[v], PN[v] + aug_sizes[v])
         for (size_t j = 0; j < deg_v; j++) {
-          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
+          uintE ngh = neighbors.get_neighbor(j);
           PN[ngh] = preorder_number;
           preorder_number += aug_sizes[ngh];
           next_vs[off + j] = ngh;
@@ -236,12 +238,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       } else {
         auto A = sequence<uintE>(deg_v);
         par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
+          uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
         });
         pbbslib::scan_add_inplace(A);
         par_for(0, deg_v, [&] (size_t j) {
-          uintE ngh = Tree.get_vertex(v).getOutNeighbor(j);
+          uintE ngh = neighbors.get_neighbor(j);
           uintE pn = preorder_number + A[j];
           PN[ngh] = pn;
           next_vs[off + j] = ngh;
@@ -283,7 +285,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       }
     }
   };
-  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).mapOutNgh(i, map_f); });
+  par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
   map_e.stop();
   debug(map_e.reportTotal("map edges time"););
 
@@ -291,7 +293,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   leaff.start();
   // 1. Leaffix to update min/max
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { cts[i] = Tree.get_vertex(i).getOutDegree(); });
+                  { cts[i] = Tree.get_vertex(i).out_degree(); });
 
   size_t leafs_size = leafs.size();
   vs = vertexSubset(n, leafs_size, leafs.to_array());

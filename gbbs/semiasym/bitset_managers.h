@@ -1,57 +1,360 @@
+// This code is part of the project "Theoretically Efficient Parallel Graph
+// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
+// in Algorithms and Architectures, 2018.
+// Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all  copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 #pragma once
 
 #include "bitset.h"
 
-#include "gbbs/macros.h"
 #include "gbbs/flags.h"
-#include "gbbs/encodings/byte_pd_amortized.h"
+#include "gbbs/macros.h"
+#include "gbbs/encodings/byte_pd.h"
+// #include "gbbs/encodings/byte_pd_amortized.h"
+#include "pbbslib/sequence_ops.h"
+
+#include "utils.h"
 
 namespace gbbs {
 
-/* Note that the block degree computable by differencing two starts. */
-struct vtx_info {
-  /* vertex's (packed) degree. */
-  uintE vtx_degree;
-  /* number of blocks associated with v */
-  uintE vtx_num_blocks;
-  /* pointer into the block structure */
-  size_t vtx_block_offset;
+namespace block_vertex_ops {
 
-  vtx_info(uintE degree, uintE num_blocks, size_t block_offset)
-      : vtx_degree(degree),
-        vtx_num_blocks(num_blocks),
-        vtx_block_offset(block_offset) {}
-};
-
-// TODO: is this more broadly useful? Maybe move to pbbslib.
-// A sequence which provides value references for [], but accesses these
-// values through a provided function. The function returns a pointer
-// (indirect) reference to the desired location.
-template <typename T, typename F>
-struct indirect_value_sequence {
-  using value_type = T;
-  indirect_value_sequence(size_t n, F _f) : f(_f), s(0), e(n) {};
-  indirect_value_sequence(size_t n, value_type v) : f([&] (size_t i) {return v;}), s(0), e(n) {};
-  indirect_value_sequence(size_t s, size_t e, F _f) : f(_f), s(s), e(e) {};
-  value_type& operator[] (size_t i) const {return *((f)(i+s));}
-  indirect_value_sequence<T,F> slice(size_t ss, size_t ee) const {
-    return indirect_value_sequence<T,F>(s+ss,s+ee,f); }
-  indirect_value_sequence<T,F> slice() const {
-    return indirect_value_sequence<T,F>(s,e,f); }
-  size_t size() const { return e - s;}
-private:
-  const F f;
-  const size_t s, e;
-};
-
-// used so second template argument can be inferred
-template <class T, class F>
-indirect_value_sequence<T,F> indirect_value_seq (size_t n, F f) {
-  return indirect_value_sequence<T,F>(n,f);
+template <class It>
+size_t intersect(It& a, It& b) {
+  size_t i=0; size_t j=0;
+  size_t nA = a.degree(); size_t nB = b.degree();
+  size_t ans = 0;
+  bool advance_a = false;
+  bool advance_b = false;
+  while (i < nA && j < nB) {
+    if (advance_a) {
+      advance_a = false;
+      a.next();
+    }
+    if (advance_b) {
+      advance_b = false;
+      b.next();
+    }
+    if (a.cur() == b.cur()) {
+      advance_a = true;
+      advance_b = true;
+      i++; j++; ans++;
+    } else if (a.cur() < b.cur()) {
+      advance_a = true;
+      i++;
+    } else {
+      advance_b = true;
+      j++;
+    }
+  }
+  return ans;
 }
 
+template <class S, class It>
+size_t intersect_seq(S& a, It& b) {
+  size_t i=0; size_t j=0;
+  size_t nA = a.size(); size_t nB = b.degree();
+  size_t ans = 0;
+  uintE b_cur;
+  if (j < nB) b_cur = b.cur();
+  while (i < nA && j < nB) {
+    if (a[i] == b_cur) {
+      i++; j++; ans++;
+      if (j < nB) {
+        b_cur = b.next();
+      }
+    } else if (a[i] < b_cur) {
+      i++;
+    } else {
+      j++;
+      if (j < nB) {
+        b_cur = b.next();
+      }
+    }
+  }
+  return ans;
+}
+
+template <class SeqA, class SeqB>
+size_t seq_merge(SeqA& A, SeqB& B) {
+  using T = typename SeqA::value_type;
+  size_t nA = A.size(), nB = B.size();
+  size_t i = 0, j = 0;
+  size_t ct = 0;
+  while (i < nA && j < nB) {
+    T& a = A[i];
+    T& b = B[j];
+    if (a == b) {
+      i++;
+      j++;
+      ct++;
+    } else if (a < b) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  return ct;
+}
+
+
+//template <class S, class It>
+//size_t intersect_batch_seq(S& a, It& b) {
+//  size_t b_size = 128;
+//  uintE block[b_size];
+//  size_t n_blocks = pbbs::num_blocks(b.degree(), b_size);
+//  size_t ans = 0;
+//  size_t i=0;
+//  size_t block_id=0;
+//
+//  while (i < nA && block_id < n_blocks) {
+//    size_t block_start =
+//
+//  }
+//
+//  size_t j=0;
+//  size_t nA = a.size(); size_t nB = b.degree();
+//
+//  while (i < nA && j < nB) {
+//    if (a[i] == b_cur) {
+//      i++; j++; ans++;
+//      if (b.has_next()) b.next();
+//      b_cur = std::get<0>(b.cur());
+//    } else if (a[i] < std::get<0>(b.cur())) {
+//      i++;
+//    } else {
+//      j++;
+//      if (b.has_next()) b.next();
+//      b_cur = std::get<0>(b.cur());
+//    }
+//  }
+//  return ans;
+//}
+
+
+/* Used to map over the edges incident to v */
+template <class W /* weight */,
+          class F /* user-specified mapping function */,
+          class BM /* block_manager */>
+inline void map_nghs(uintE vtx_id, BM& block_manager, F& f, bool parallel) {
+  par_for(0, block_manager.num_blocks(), 1,
+          [&](size_t block_num) {
+            block_manager.decode_block(
+                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                  f(vtx_id, ngh, wgh);
+                });
+          },
+          parallel);
+}
+
+/* Map over edges incident to v using M, reduce using Monoid */
+template <class W /* weight */,
+          class M /* mapping function */, class Monoid /* reduction monoid */, class BM /* block_manager */>
+inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
+                       bool parallel = true) -> typename Monoid::T {
+  using T = typename Monoid::T;
+  size_t num_blocks = block_manager.num_blocks();
+  if (num_blocks >= 1) {
+    T stk[100];
+    T* block_outputs;
+    if (num_blocks > 100) {
+      // TODO: should the interface for reduce_nghs expect a tmp memory
+      // allocation for sizes larger than 100 (reduce_alloc_thresh)? Concern is
+      // that in-line memory allocation for large vertices is far slower than
+      // doing a bulk-memory allocation up front and receiving offsets.
+      block_outputs = pbbslib::new_array_no_init<T>(num_blocks);
+    } else {
+      block_outputs = (T*)stk;
+    }
+
+    par_for(0, num_blocks, 1,
+            [&](size_t block_num) {
+              T cur = reduce.identity;
+              block_manager.decode_block(
+                  block_num,
+                  [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                    cur = reduce.f(cur, m(vtx_id, ngh, wgh));
+                  });
+              block_outputs[block_num] = cur;
+            },
+            parallel);
+
+    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    T res = pbbslib::reduce(im, reduce);
+    if (num_blocks > 100) {
+      pbbslib::free_array(block_outputs);
+    }
+    return res;
+  } else {
+    return reduce.identity;
+  }
+}
+
+/* Used to copy edges incident to a vertex */
+template <class W /* weight */,
+          class F /* mapping function */, class G /* output function */, class BM /* block_manager */>
+inline void copyNghs(uintE vtx_id, BM& block_manager, uintT o, F& f, G& g,
+                     bool parallel) {
+  par_for(0, block_manager.num_blocks(), 1,
+          [&](size_t block_num) {
+            block_manager.decode_block(
+                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                  auto val = f(vtx_id, ngh, wgh);
+                  g(ngh, o + edge_num, val);
+                });
+          },
+          parallel);
+}
+
+/* For each out-neighbor satisfying cond, call updateAtomic */
+template <class W /* weight */,
+          class F /* mapping function */, class G /* full output function */,
+          class H /* empty output function */, class BM /* block_manager */>
+inline void decodeNghsSparse(uintE vtx_id, BM& block_manager, uintT o, F& f,
+                             G& g, H& h, bool parallel) {
+  par_for(0, block_manager.num_blocks(), 1,
+          [&](size_t block_num) {
+            block_manager.decode_block(
+                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                  if (f.cond(ngh)) {
+                    auto m = f.updateAtomic(vtx_id, ngh, wgh);
+                    g(ngh, o + edge_num, m);
+                  } else {
+                    h(ngh, o + edge_num);
+                  }
+                });
+          },
+          parallel);
+}
+
+/* For each out-neighbor satisfying cond, call updateAtomic */
+template <class W /* weight */,
+          class F /* mapping function */, class G /* output function */, class BM /* block_manager */>
+inline void decodeNghs(uintE vtx_id, BM& block_manager, F& f, G& g,
+                       bool parallel) {
+  par_for(0, block_manager.num_blocks(), 1,
+          [&](size_t block_num) {
+            block_manager.decode_block(
+                block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+                  auto m = f.updateAtomic(vtx_id, ngh, wgh);
+                  g(ngh, m);
+                });
+          },
+          parallel);
+}
+
+/* Sequentially process incident edges and quit if cond on self fails. */
+template <class W /* weight */,
+          class F /* mapping function */, class G /* output function */,
+          class VS /* vertex_subset type */, class BM /* block_manager */>
+inline void decodeNghsBreakEarly(uintE vtx_id, BM& block_manager,
+                                 VS& vertexSubset, F& f, G& g, bool parallel) {
+  if (block_manager.get_degree() > 0) {
+    if (!parallel) {
+      for (size_t i = 0; i < block_manager.num_blocks(); i++) {
+        block_manager.decode_block_cond(
+            i, [&](const uintE& ngh, const W& wgh, const size_t& edge_num) {
+              if (vertexSubset.isIn(ngh)) {
+                auto m = f.update(ngh, vtx_id, wgh);
+                g(vtx_id, m);
+                return f.cond(vtx_id);
+              }
+              return true;
+            });
+      }
+    } else {
+      size_t num_blocks = block_manager.num_blocks();
+      par_for(0, num_blocks, 1, [&](size_t block_num) {
+        block_manager.decode_block_cond(
+            block_num,
+            [&](const uintE& ngh, const W& wgh, const size_t& edge_num) {
+              if (vertexSubset.isIn(ngh)) {
+                auto m = f.updateAtomic(ngh, vtx_id, wgh);
+                g(vtx_id, m);
+                return f.cond(vtx_id);
+              }
+              return true;
+            });
+      });
+    }
+  }
+}
+
+template <class W /* weight */,
+          class F /* edgemap struct */, class G /* output function */, class BM /* block manager */>
+inline size_t decode_block(uintE vtx_id, BM& block_manager, uintT o,
+                           uintE block_num, F& f, G& g) {
+  size_t k = 0;
+  block_manager.decode_block(
+      block_num, [&](const uintE& ngh, const W& wgh, uintE edge_num) {
+        if (f.cond(ngh)) {
+          auto m = f.updateAtomic(vtx_id, ngh, wgh);
+          bool wrote = g(ngh, o + k, m);
+          if (wrote) {
+            k++;
+          }
+        }
+      });
+  return k;
+}
+
+//// functions to pack
+//// Caller is responsible for setting the degree on v.
+// template <class BM, class W, class P, class E>
+// inline size_t packNghs(uintE vtx_id, BM& block_manager, P& p,
+//                       E* tmp) {
+//  // 1. Pack out all live blocks
+//  par_for(0, block_manager.num_blocks(), 1, [&] (size_t block_num) {
+//    block_manager.pack_block(block_num, p);
+//  }, parallel);
+//
+//  block_manager.pack_blocks(p);
+//
+//  if (d < vertex_ops::kAllocThreshold) {
+//    uintE k = 0;
+//    for (size_t i = 0; i < d; i++) {
+//      auto nw = nghs[i];
+//      uintE ngh = std::get<0>(nw);
+//      W wgh = std::get<1>(nw);
+//      if (p(vtx_id, ngh, wgh)) {
+//        nghs[k++] = std::make_tuple(ngh, wgh);
+//      }
+//    }
+//    return k;
+//  } else {
+//    // copy to tmp
+//    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] =
+//    nghs[i]; }); auto pc = [&](const std::tuple<uintE, W>& nw) {
+//      return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
+//    };
+//    size_t k = pbbslib::filterf(tmp, nghs, d, pc);
+//    return k;
+//  }
+//}
+
+}  // namespace block_vertex_ops
+
+
 template <template <class W> class vertex, class W>
-struct sym_bitset_manager {
+struct uncompressed_bitset_neighbors {
   using WV = vertex<W>;
   using E = typename WV::edge_type;
   using metadata = bitsets::metadata;
@@ -78,7 +381,7 @@ struct sym_bitset_manager {
   E* e1;
 #endif
 
-  sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
+  uncompressed_bitset_neighbors(const uintE vtx_id, uint8_t* blocks,
                      uintE vtx_original_degree, vtx_info* v_infos,
 #ifndef SAGE
                      E* e0
@@ -99,6 +402,7 @@ struct sym_bitset_manager {
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
 
+    // TODO: ensure that blocks is 4-byte aligned.
     blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
   }
@@ -123,6 +427,10 @@ struct sym_bitset_manager {
     return vtx_num_blocks;
   }
 
+  __attribute__((always_inline)) inline size_t get_num_blocks() {
+    return vtx_num_blocks;
+  }
+
 //  uintE vtx_num_blocks;     // number of blocks associated with v
 //  size_t vtx_block_offset;  // pointer into the block structure
 //
@@ -139,6 +447,70 @@ struct sym_bitset_manager {
     return bitsets::block_degree(blocks_start, block_id, vtx_num_blocks,
                                  vtx_degree);
   }
+
+
+  template <class P>
+  inline size_t pack(P& p, uint8_t* tmp, bool parallel = true, const flags fl = 0) {
+    return pack_blocks(vtx_id, p, tmp, parallel, fl);
+  }
+
+  inline size_t calculateTemporarySpaceBytes() {
+    if (vtx_degree > 0) {
+      size_t nblocks =  vtx_num_blocks;
+      if (nblocks > kBlockAllocThreshold) {
+        return (sizeof(uintE) * nblocks) + (bytes_per_block * nblocks);
+      }
+    }
+    return 0;
+  }
+
+  /* mapping/reducing/counting primitives */
+  template <class F>
+  inline void map(F& f, bool parallel = true) {
+    block_vertex_ops::map_nghs<W, F>(vtx_id, *this, f, parallel);
+  }
+
+  template <class M, class Monoid>
+  inline auto reduce(M& m, Monoid& reduce, bool parallel = true) -> typename Monoid::T {
+    return block_vertex_ops::map_reduce<W, M, Monoid>(vtx_id, *this,
+                                                          m, reduce, parallel);
+  }
+
+  template <class F>
+  inline size_t count(F& f, bool parallel = true) {
+    auto reduce_f = pbbs::addm<size_t>();
+    return reduce(f, reduce_f, parallel);
+  }
+
+  /* edgemap primitives */
+  template <class F, class G, class H>
+  inline void decodeSparse(uintT o, F& f, G& g, H& h, bool parallel = true) {
+    block_vertex_ops::decodeNghsSparse<W, F>(vtx_id, *this, o, f, g,
+                                             h, parallel);
+  }
+
+  template <class F, class G>
+  inline size_t decode_block(uintT o, uintE block_num, F& f,
+                            G& g) {
+    return block_vertex_ops::decode_block<W, F, G>(vtx_id, *this, o,
+                                                   block_num, f, g);
+  }
+
+  template <class F, class G>
+  inline void decode(F& f, G& g, bool parallel = true) {
+    block_vertex_ops::decodeNghs<W, F, G>(vtx_id, *this, f, g, parallel);
+  }
+
+  template <class VS, class F, class G>
+  inline void decodeBreakEarly(VS& vertexSubset, F& f, G& g, bool parallel = false) {
+    block_vertex_ops::decodeNghsBreakEarly<W, F, G, VS>(
+        vtx_id, *this, vertexSubset, f, g, parallel);
+  }
+
+
+
+  /* ===================== Implementations ====================== */
+
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
@@ -178,13 +550,6 @@ struct sym_bitset_manager {
       }
       cur_offset += 64; // next long
     }
-
-//    for (size_t k=0; k<(block_end - block_start); k++) {
-//      if (bitsets::is_bit_set(block_bits, k)) { // check if the k-th bit is set
-//        auto& ee = e[block_start + k]; // if so, fetch the k-th edge
-//        f(std::get<0>(ee), std::get<1>(ee), offset++); // and apply f with the correct offset
-//      }
-//    }
   }
 
   template <class F>
@@ -596,7 +961,7 @@ struct sym_bitset_manager {
 };
 
 template <template <class W> class vertex, class W>
-struct compressed_sym_bitset_manager {
+struct compressed_bitset_neighbors {
   using WV = vertex<W>;
   using E = typename WV::edge_type;
   using metadata = bitsets::metadata;
@@ -622,7 +987,7 @@ struct compressed_sym_bitset_manager {
   E* e1;
 #endif
 
-  compressed_sym_bitset_manager(const uintE vtx_id, uint8_t* blocks,
+  compressed_bitset_neighbors(const uintE vtx_id, uint8_t* blocks,
                                 uintE vtx_original_degree, vtx_info* v_infos,
 #ifndef SAGE
                      E* e0
@@ -674,10 +1039,74 @@ struct compressed_sym_bitset_manager {
     return vtx_num_blocks;
   }
 
+  __attribute__((always_inline)) inline size_t get_num_blocks() {
+    return vtx_num_blocks;
+  }
+
   __attribute__((always_inline)) inline uintE block_degree(uintE block_id) {
     return bitsets::block_degree(blocks_start, block_id, vtx_num_blocks,
                                  vtx_degree);
   }
+
+  template <class P>
+  inline size_t pack(P& p, uint8_t* tmp, bool parallel = true, const flags fl = 0) {
+    return pack_blocks(vtx_id, p, tmp, parallel, fl);
+  }
+
+  inline size_t calculateTemporarySpaceBytes() {
+    if (vtx_degree > 0) {
+      size_t nblocks =  vtx_num_blocks;
+      if (nblocks > kBlockAllocThreshold) {
+        return (sizeof(uintE) * nblocks) + (bytes_per_block * nblocks);
+      }
+    }
+    return 0;
+  }
+
+  /* mapping/reducing/counting primitives */
+  template <class F>
+  inline void map(F& f, bool parallel = true) {
+    block_vertex_ops::map_nghs<W, F>(vtx_id, *this, f, parallel);
+  }
+
+  template <class M, class Monoid>
+  inline auto reduce(M& m, Monoid& reduce, bool parallel = true) -> typename Monoid::T {
+    return block_vertex_ops::map_reduce<W, M, Monoid>(vtx_id, *this,
+                                                          m, reduce, parallel);
+  }
+
+  template <class F>
+  inline size_t count(F& f, bool parallel = true) {
+    auto reduce_f = pbbs::addm<size_t>();
+    return reduce(f, reduce_f, parallel);
+  }
+
+  /* edgemap primitives */
+  template <class F, class G, class H>
+  inline void decodeSparse(uintT o, F& f, G& g, H& h, bool parallel = true) {
+    block_vertex_ops::decodeNghsSparse<W, F>(vtx_id, *this, o, f, g,
+                                             h, parallel);
+  }
+
+  template <class F, class G>
+  inline size_t decode_block(uintT o, uintE block_num, F& f,
+                             G& g) {
+    return block_vertex_ops::decode_block<W, F, G>(vtx_id, *this, o,
+                                                   block_num, f, g);
+  }
+
+  template <class F, class G>
+  inline void decode(F& f, G& g, bool parallel = true) {
+    block_vertex_ops::decodeNghs<W, F, G>(vtx_id, *this, f, g, parallel);
+  }
+
+  template <class VS, class F, class G>
+  inline void decodeBreakEarly(VS& vertexSubset, F& f, G& g, bool parallel = false) {
+    block_vertex_ops::decodeNghsBreakEarly<W, F, G, VS>(
+        vtx_id, *this, vertexSubset, f, g, parallel);
+  }
+
+
 
   template <class F>
   __attribute__((always_inline)) inline void decode_block(uintE block_id, F f) {
@@ -691,6 +1120,7 @@ struct compressed_sym_bitset_manager {
     size_t k = 0;
     std::tuple<uintE, W> block_decode[edges_per_block];
     auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+      assert(k < edges_per_block);
       block_decode[k++] = std::make_tuple(ngh, wgh);
     };
     bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
@@ -780,11 +1210,11 @@ struct compressed_sym_bitset_manager {
     };
     bytepd_amortized::template decode_block_cond<W>(t_f, e, vtx_id, vtx_original_degree,
                                                     orig_block_num);
-    debug(uintE block_start = orig_block_num * edges_per_block;
-    uintE block_end =
-        std::min(block_start + edges_per_block, vtx_original_degree);
-    assert(k == (block_end - block_start));
-    );
+//    debug(uintE block_start = orig_block_num * edges_per_block;
+//    uintE block_end =
+//        std::min(block_start + edges_per_block, vtx_original_degree);
+//    assert(k == (block_end - block_start));
+//    );
   }
 
   /* Only called when the discrepency between full and total blocks is large.
@@ -918,11 +1348,12 @@ struct compressed_sym_bitset_manager {
         uintE orig_block_num = block_metadata[block_id].block_num;
         E* e = get_edges();
 
-//        // (i) decode the block
+        // (i) decode the block
 
         size_t k = 0;
         std::tuple<uintE, W> block_decode[edges_per_block];
         auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+          assert(k < edges_per_block);
           block_decode[k++] = std::make_tuple(ngh, wgh);
         };
         bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,

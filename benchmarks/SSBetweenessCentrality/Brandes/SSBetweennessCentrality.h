@@ -163,7 +163,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
   if (Frontier.dense()) {
     auto degree_f = [&](size_t i) -> size_t {
       if (Frontier.d[i]) {
-        return (fl & in_edges) ? G.get_vertex(i).getInVirtualDegree() : G.get_vertex(i).getOutVirtualDegree();
+        return (fl & in_edges) ? G.get_vertex(i).in_neighbors().get_virtual_degree() : G.get_vertex(i).out_neighbors().get_virtual_degree();
       }
       return static_cast<size_t>(0);
     };
@@ -171,7 +171,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
     out_degrees = pbbslib::reduce_add(degree_imap);
   } else {
     auto degree_f = [&](size_t i) -> size_t {
-      return (fl & in_edges) ? G.get_vertex(Frontier.vtx(i)).getInVirtualDegree() : G.get_vertex(Frontier.vtx(i)).getOutVirtualDegree();
+      return (fl & in_edges) ? G.get_vertex(i).in_neighbors().get_virtual_degree() : G.get_vertex(i).out_neighbors().get_virtual_degree();
     };
     auto degree_imap = pbbslib::make_sequence<size_t>(Frontier.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_imap);
@@ -351,8 +351,8 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
     auto reduce_incident_edges = [&] (vertexSubset& vs, flags fl) {
       vertexMap(vs, [&] (const uintE& u) {
         NumPaths[u] = (fl & in_edges) ?
-          G.get_vertex(u).reduceInNgh(u, map_f, monoid_f):
-          G.get_vertex(u).reduceOutNgh(u, map_f, monoid_f);
+          G.get_vertex(u).in_neighbors().reduce(map_f, monoid_f):
+          G.get_vertex(u).out_neighbors().reduce(map_f, monoid_f);
       });
     };
     while (!Frontier.isEmpty()) {
@@ -414,7 +414,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
 
     auto reduce_dependencies = [&] (vertexSubset& vs) {
       vertexMap(vs, [&] (const uintE& u) {
-        Dependencies[u] = G.get_vertex(u).reduceOutNgh(u, map_f, monoid_f);
+        Dependencies[u] = G.get_vertex(u).out_neighbors().reduce(map_f, monoid_f);
       });
     };
     for (long r = round - 2; r >= 0; r--) {

@@ -96,7 +96,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
     }
   };
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { GA.get_vertex(i).mapOutNgh(i, map_bc_label); });
+                  { GA.get_vertex(i).out_neighbors().map(map_bc_label); });
 
   if (component_id == UINT_E_MAX) {
     auto ET = ST.entries();

@@ -12,7 +12,7 @@ namespace induced_hybrid {
   size_t get_max_deg(Graph& DG) {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
-      size_t deg = DG.get_vertex(i).getOutDegree();
+      size_t deg = DG.get_vertex(i).out_degree();
       pbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
@@ -106,7 +106,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
       auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
       parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-        if (DG.get_vertex(i).getOutDegree() != 0) {
+        if (DG.get_vertex(i).out_degree() != 0) {
           induced->setup(DG, k, i);
           tots[i] = KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, recursive_level);
           if (induced->use_base && tots[i] > 0) base_f(i, tots[i]);
@@ -119,7 +119,7 @@ if (recursive_level < k_idx || num_induced < 2) {
 
    size_t max_deg = get_max_deg(DG);
    sequence<size_t> degs = sequence<size_t>::no_init(DG.n+1);
-    parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).getOutDegree();});
+    parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).out_degree();});
     degs[DG.n] = 0;
     size_t num_edges = pbbslib::scan_add_inplace(degs.slice());
     num_edges = degs[DG.n];
@@ -133,7 +133,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     auto less_fn = [&](size_t a, size_t b){ return a <= b; };
     size_t idx = pbbslib::binary_search(degs, j, less_fn);
     auto i = idx - 1;
-    auto ngh = DG.get_vertex(i).getOutNeighbor(j - degs[idx - 1]);
+    auto ngh = DG.get_vertex(i).out_neighbors().get_neighbor(j - degs[idx - 1]);
     induced->setup_edge(DG,k,i,ngh);
     tots[j] = KCliqueDir_fast_hybrid_rec(DG, 1, k-1, induced, base_f, 0);
     if (use_base && tots[j] > 0) { base_f(ngh, tots[j]); base_f(i, tots[j]); }

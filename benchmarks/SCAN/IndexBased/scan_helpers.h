@@ -100,7 +100,7 @@ NeighborOrder::NeighborOrder(
       });
   pbbs::sequence<uintT> vertex_offsets{
       graph->n,
-      [&](const size_t i) { return graph->get_vertex(i).getOutDegree(); }};
+      [&](const size_t i) { return graph->get_vertex(i).out_degree(); }};
   pbbslib::scan_add_inplace(vertex_offsets);
   similarities_by_source_ = pbbs::sequence<pbbs::range<EdgeSimilarity*>>(
       graph->n,

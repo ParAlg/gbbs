@@ -40,7 +40,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   t.start();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-    return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
+    return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
   });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
@@ -74,11 +74,11 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
   auto parallel_work = sequence<size_t>(n);
   {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
-      return DG.get_vertex(v).getOutDegree();
+      return DG.get_vertex(v).out_degree();
     };
     par_for(0, n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
+      parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
@@ -96,7 +96,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
       size_t total_ct = 0;
 
       uintE* nghs = (uintE*)stk;
-      uintE deg = vtx.getOutDegree();
+      uintE deg = vtx.out_degree();
       if (deg > 8192) {
         nghs = pbbs::new_array_no_init<uintE>(deg);
       }
@@ -104,7 +104,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
       auto map_seq_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
         nghs[k++] = w;
       };
-      vtx.mapOutNgh(i, map_seq_f, false);
+      vtx.out_neighbors().map(map_seq_f, false);
 
       auto our_seq = pbbslib::make_sequence(nghs, deg);
 
@@ -112,7 +112,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
         // Copy live neighbors of u into separate array?
         auto ngh_vtx = DG.get_vertex(v);
 //        uintE ngh_stk[8192];
-//        uintE ngh_deg = ngh_vtx.getOutDegree();
+//        uintE ngh_deg = ngh_vtx.out_degree();
 //        size_t idx = 0;
 //        auto map_ngh_f = [&] (const uintE& u, const uintE& w, const W& wgh) {
 //          ngh_stk[idx++] = w;
@@ -121,11 +121,11 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
 //        assert(ngh_deg == idx);
 //        uintE* ngh_arr = (uintE*)ngh_stk;
 //        auto ngh_seq = pbbslib::make_sequence(ngh_arr, ngh_deg);
-        auto iter = ngh_vtx.getOutIter();
+        auto iter = ngh_vtx.out_neighbors().get_iter();
         total_ct += block_vertex_ops::intersect_seq(our_seq, iter);
 //        total_ct += block_vertex_ops::seq_merge(our_seq, ngh_seq);
       };
-      vtx.mapOutNgh(i, map_f, false);  // run map sequentially
+      vtx.out_neighbors().map(map_f, false);  // run map sequentially
       counts[i] = total_ct;
 
       if (deg > 8192) {

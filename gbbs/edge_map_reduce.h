@@ -42,9 +42,9 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
   uintT m = V.size();
   V.toSparse();
   auto degrees = sequence<uintT>(m);
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&](size_t i) {
+  parallel_for(0, m, [&](size_t i) {
     auto v = G.get_vertex(V.vtx(i));
-    uintE degree = (fl & in_edges) ? v.getInDegree() : v.getOutDegree();
+    uintE degree = (fl & in_edges) ? v.in_degree() : v.out_degree();
     degrees[i] = degree;
   });
   long edgeCount = pbbslib::scan_add_inplace(degrees);
@@ -64,17 +64,17 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
   };
 
   if (fl & in_edges) {
-    par_for(0, m, 1, [&](size_t i) {
+    parallel_for(0, m, [&](size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
-      G.get_vertex(v).template copyInNgh(v, o, map_f, gen);
-    });
+      G.get_vertex(v).in_neighbors().copy(o, map_f, gen);
+    }, 1);
   } else {
-    par_for(0, m, 1, [&](size_t i) {
+    parallel_for(0, m, [&](size_t i) {
       uintT o = degrees[i];
       auto v = V.vtx(i);
-      G.get_vertex(v).template copyOutNgh(v, o, map_f, gen);
-    });
+      G.get_vertex(v).out_neighbors().copy(o, map_f, gen);
+    }, 1);
   }
   auto vs = vertexSubsetData<E>(G.n, edgeCount, edges);
   return vs;
@@ -134,10 +134,9 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
     parallel_for(0, n,
                  [&](size_t i) {
                    if (cond_f(i)) {
-                     size_t count =
-                         (fl & in_edges)
-                             ? GA.get_vertex(i).countInNgh(i, count_f)
-                             : GA.get_vertex(i).countOutNgh(i, count_f);
+                     auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
+                     size_t count = neighbors.count(count_f);
+
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
                        apply_f(tup);
@@ -151,10 +150,8 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
     parallel_for(0, n,
                  [&](size_t i) {
                    if (cond_f(i)) {
-                     size_t count =
-                         (fl & in_edges)
-                             ? GA.get_vertex(i).countInNgh(i, count_f)
-                             : GA.get_vertex(i).countOutNgh(i, count_f);
+                     auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
+                     size_t count = neighbors.count(count_f);
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
                        auto applied_val = apply_f(tup);
@@ -183,8 +180,8 @@ inline vertexSubsetData<O> edgeMapCount(Graph& GA, VS& vs, Cond& cond_f,
   }
   vs.toSparse();
   auto degree_f = [&](size_t i) -> size_t {
-    return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).getInVirtualDegree()
-                           : GA.get_vertex(vs.vtx(i)).getOutVirtualDegree();
+    auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
+    return neighbors.get_virtual_degree();
   };
   auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
   auto out_degrees = pbbslib::reduce_add(degree_imap);
@@ -218,7 +215,7 @@ inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
     parallel_for(0, n, [&](size_t i) {
       if (vs.isIn(i)) {
         if (cond_f(i)) {
-          auto tup = {true, GA.get_vertex(i).getOutDegree()};
+          auto tup = {true, GA.get_vertex(i).out_degree()};
           out[i] = apply_f(tup);
         }
       } else {
@@ -231,7 +228,7 @@ inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
     auto out = pbbslib::new_array_no_init<OT>(vs.size());
     parallel_for(0, vs.size(), [&](size_t i) {
       uintE v = vs.vtx(i);
-      out[i] = apply_f({v, GA.get_vertex(v).getOutDegree()});
+      out[i] = apply_f({v, GA.get_vertex(v).out_degree()});
     });
     return vertexSubsetData<O>(n, vs.size(), out);
   }
@@ -250,7 +247,7 @@ inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
 //    auto out = pbbslib::new_array_no_init<OT>(n);
 //    parallel_for(0, n, [&] (size_t i) {
 //      if (vs.isIn(i)) {
-//        out[i] = {true, G.get_vertex(i).getOutDegree()};
+//        out[i] = {true, G.get_vertex(i).out_degree()};
 //      } else {
 //        std::get<0>(out[i]) = false;
 //      }
@@ -259,7 +256,7 @@ inline vertexSubsetData<O> srcCount(Graph& GA, VS& vs, Cond cond_f,
 //    auto out = pbbslib::new_array_no_init<OT>(vs.size());
 //    parallel_for(0, vs.size(), [&] (size_t i) {
 //      uintE v = vs.vtx(i);
-//      out[i] = {v, G.get_vertex(v).getOutDegree()};
+//      out[i] = {v, G.get_vertex(v).out_degree()};
 //    });
 //  }
 //}
@@ -347,12 +344,8 @@ struct EdgeMap {
       parallel_for(0, n,
                    [&](size_t i) {
                      if (cond_f(i)) {
-                       M reduced_val =
-                           (fl & in_edges)
-                               ? G.get_vertex(i).reduceInNgh(
-                                     i, map_f, red_monoid)
-                               : G.get_vertex(i).reduceOutNgh(
-                                     i, map_f, red_monoid);
+                       auto neighbors = (fl & in_edges) ? G.get_vertex(i).in_neighbors() : G.get_vertex(i).out_neighbors();
+                       M reduced_val = neighbors.reduce(map_f, red_monoid);
                        auto tup = std::make_tuple(i, reduced_val);
                        apply_f(tup);
                      }
@@ -365,12 +358,8 @@ struct EdgeMap {
                    [&](size_t i) {
                      std::get<0>(out[i]) = false;
                      if (cond_f(i)) {
-                       M reduced_val =
-                           (fl & in_edges)
-                               ? G.get_vertex(i).reduceInNgh(
-                                     i, map_f, red_monoid)
-                               : G.get_vertex(i).reduceOutNgh(
-                                     i, map_f, red_monoid);
+                       auto neighbors = (fl & in_edges) ? G.get_vertex(i).in_neighbors() : G.get_vertex(i).out_neighbors();
+                       M reduced_val = neighbors.reduce(map_f, red_monoid);
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);
                        if (applied_val.has_value()) {
@@ -401,8 +390,8 @@ struct EdgeMap {
     exit(0);
     vs.toSparse();
     auto degree_f = [&](size_t i) {
-      return (fl & in_edges) ? G.get_vertex(vs.vtx(i)).getInVirtualDegree()
-                             : G.get_vertex(vs.vtx(i)).getOutVirtualDegree();
+      auto neighbors = (fl & in_edges) ? G.get_vertex(vs.vtx(i)).in_neighbors() : G.get_vertex(vs.vtx(i)).out_neighbors();
+      return neighbors.get_virtual_degree();
     };
     auto degree_imap = pbbslib::make_sequence<uintE>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);
@@ -469,10 +458,8 @@ struct EdgeMap {
     if (fl & no_output) {
       parallel_for(0, n,
                    [&](size_t i) {
-                     size_t count =
-                         (fl & in_edges)
-                             ? G.get_vertex(i).countInNgh(i, count_f)
-                             : G.get_vertex(i).countOutNgh(i, count_f);
+                     auto neighbors = (fl & in_edges) ? G.get_vertex(i).in_neighbors() : G.get_vertex(i).out_neighbors();
+                     size_t count = neighbors.count(count_f);
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
                        apply_f(tup);
@@ -484,10 +471,8 @@ struct EdgeMap {
       auto out = pbbslib::new_array<OT>(n);
       parallel_for(0, n,
                    [&](size_t i) {
-                     size_t count =
-                         (fl & in_edges)
-                             ? G.get_vertex(i).countInNgh(i, count_f)
-                             : G.get_vertex(i).countOutNgh(i, count_f);
+                     auto neighbors = (fl & in_edges) ? G.get_vertex(i).in_neighbors() : G.get_vertex(i).out_neighbors();
+                     size_t count = neighbors.count(count_f);
                      auto tup = std::make_tuple(i, count);
                      if (count > 0) {
                        auto applied_val = apply_f(tup);
@@ -512,8 +497,8 @@ struct EdgeMap {
                                           long threshold = -1) {
     vs.toSparse();
     auto degree_f = [&](size_t i) -> size_t {
-      return (fl & in_edges) ? G.get_vertex(vs.vtx(i)).getInVirtualDegree()
-                             : G.get_vertex(vs.vtx(i)).getOutVirtualDegree();
+      auto neighbors = (fl & in_edges) ? G.get_vertex(vs.vtx(i)).in_neighbors() : G.get_vertex(vs.vtx(i)).out_neighbors();
+      return neighbors.get_virtual_degree();
     };
     auto degree_imap = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
     auto out_degrees = pbbslib::reduce_add(degree_imap);

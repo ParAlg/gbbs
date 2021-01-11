@@ -196,10 +196,10 @@ namespace jayanti_rank {
         };
         if constexpr (provides_frequent_comp) {
           if (Parents[i] != frequent_comp) {
-            GA.get_vertex(i).mapOutNgh(i, map_f); // in parallel
+            GA.get_vertex(i).out_neighbors().map(map_f); // in parallel
           }
         } else {
-          GA.get_vertex(i).mapOutNgh(i, map_f);
+          GA.get_vertex(i).out_neighbors().map(map_f);
         }
       }, granularity);
       ut.stop(); ut.reportTotal("union time");

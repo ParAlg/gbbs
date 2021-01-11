@@ -21,7 +21,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
     return i;
   });
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).getOutDegree(); });
+      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
   auto get_deg =

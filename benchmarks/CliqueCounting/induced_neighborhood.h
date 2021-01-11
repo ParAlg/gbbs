@@ -12,7 +12,7 @@ namespace induced_neighborhood {
   size_t get_max_deg(Graph& DG) {
     size_t max_deg = 0;
     parallel_for(0, DG.n, [&] (size_t i) {
-      size_t deg = DG.get_vertex(i).getOutDegree();
+      size_t deg = DG.get_vertex(i).out_degree();
       pbbs::write_min(&max_deg, deg, std::greater<size_t>());
     });
     return max_deg;
@@ -75,7 +75,7 @@ namespace induced_neighborhood {
       induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
 
       //uintE vtx = prev_induced[i];
-      //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).getOutDegree(), true, induced->induced + induced->num_induced[0] * k_idx);
+      //induced->num_induced[k_idx] = lstintersect_set(prev_induced, num_induced, (uintE*)(DG.get_vertex(vtx).getOutNeighbors()), DG.get_vertex(vtx).out_degree(), true, induced->induced + induced->num_induced[0] * k_idx);
       if (induced->num_induced[k_idx] > 0) total_ct += KCliqueDir_fast_orig_rec(DG, k_idx + 1, k, induced);
       //parallel_for(0, new_num_induced, [&] (size_t j){ induced->labels[new_induced[j]] = k_idx-1; });
       for (size_t j=0; j < new_num_induced; j++) { induced->labels[new_induced[j]] = k_idx-1; }
@@ -91,7 +91,7 @@ namespace induced_neighborhood {
     auto init_induced = [&](FullSpace_orig_lw* induced) { induced->alloc(max_deg, k, DG.n); };
     auto finish_induced = [&](FullSpace_orig_lw* induced) { if (induced != nullptr) { delete induced; } };
     parallel_for_alloc<FullSpace_orig_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, FullSpace_orig_lw* induced) {
-      if (DG.get_vertex(i).getOutDegree() != 0) {
+      if (DG.get_vertex(i).out_degree() != 0) {
         induced->setup(DG, k, i);
         tots[i] = KCliqueDir_fast_orig_rec(DG, 1, k, induced);
       } else tots[i] = 0;

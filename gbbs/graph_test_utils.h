@@ -38,7 +38,7 @@ void CheckUnweightedOutNeighbors(
     Vertex& vertex,
     const std::vector<uintE>& expected_neighbors) {
   internal::CheckUnweightedNeighbors(
-      vertex.getOutDegree(), vertex.getOutNeighbors(), expected_neighbors);
+      vertex.out_degree(), vertex.out_neighbors().neighbors, expected_neighbors);
 }
 
 // Check that vertex has `expected_neighbors` as its in-neighbors. Does not
@@ -48,7 +48,7 @@ void CheckUnweightedInNeighbors(
     Vertex& vertex,
     const std::vector<uintE>& expected_neighbors) {
   internal::CheckUnweightedNeighbors(
-      vertex.getInDegree(), vertex.getInNeighbors(), expected_neighbors);
+      vertex.in_degree(), vertex.in_neighbors().neighbors, expected_neighbors);
 }
 
 namespace internal {  // Internal definitions

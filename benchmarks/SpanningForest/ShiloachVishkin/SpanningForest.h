@@ -82,7 +82,7 @@ struct SVAlgorithm {
             if (!changed) { changed = true; }
           }
         };
-        GA.get_vertex(u).mapOutNgh(u, map_f);
+        GA.get_vertex(u).out_neighbors().map(map_f);
 
       }, 1);
 
@@ -99,7 +99,7 @@ struct SVAlgorithm {
             }
           }
         };
-        GA.get_vertex(u).mapOutNgh(u, map_f_2);
+        GA.get_vertex(u).out_neighbors().map(map_f_2);
       }, 1);
 
       // compress

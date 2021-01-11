@@ -466,7 +466,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
 
   pbbs::sequence<size_t> offsets{num_vertices,
     [&](const size_t i) {
-      return graph.get_vertex(i).getOutDegree();
+      return graph.get_vertex(i).out_degree();
     }};
   pbbslib::scan_add_inplace(offsets);
 
@@ -483,7 +483,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
     const auto print_neighbor{[&](uintE, const uintE neighbor_id, weight_type) {
       file << neighbor_id << '\n';
     }};
-    graph.get_vertex(i).mapOutNgh(i, print_neighbor, kParallel);
+    graph.get_vertex(i).out_neighbors().map(print_neighbor, kParallel);
   }
   if constexpr (is_weighted_graph) {
     for (size_t i = 0; i < num_vertices; i++) {
@@ -491,7 +491,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
       const auto print_weight{[&](uintE, uintE, const weight_type& weight) {
         file << weight << '\n';
       }};
-      graph.get_vertex(i).mapOutNgh(i, print_weight, kParallel);
+      graph.get_vertex(i).out_neighbors().map(print_weight, kParallel);
     }
   }
 }

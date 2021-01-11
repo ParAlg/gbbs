@@ -24,6 +24,7 @@
 #pragma once
 
 #include "byte.h"
+#include "byte_pd.h"
 #include "byte_pd_amortized.h"
 
 namespace gbbs {
@@ -36,7 +37,7 @@ struct byte_decode {
                                   uintE block_num) {
     assert(false);  // Unimplemented for byte decoder
     exit(0);
-    return bytepd_amortized::decode_block<W, T>(
+    bytepd_amortized::decode_block<W, T>(
         t, edge_start, source, degree, block_num);
   }
 
@@ -113,6 +114,98 @@ struct byte_decode {
   }
 };
 
+struct bytepd_decode {
+
+  template <class W>
+  static inline size_t intersect(uchar* l1, uchar* l2, uintE l1_size,
+                                 uintE l2_size, uintE l1_src, uintE l2_src) {
+    exit(-1); // TODO
+    return 1;
+  }
+
+  template <class W, class F>
+  static inline size_t intersect_f(uchar* l1, uchar* l2, uintE l1_size,
+                                   uintE l2_size, uintE l1_src, uintE l2_src,
+                                   const F& f) {
+    exit(-1); // TODO
+    return 1;
+  }
+
+  template <class W>
+  static inline auto iter(uchar* edge_start, uintE degree, uintE id)
+      -> bytepd::iter<W> {
+    return bytepd::iter<W>(edge_start, degree, id);
+  }
+
+  template <class W, class I>
+  static inline long sequentialCompressEdgeSet(uchar* edgeArray,
+                                               size_t current_offset,
+                                               uintT degree, uintE source,
+                                               I& it) {
+    return bytepd::sequentialCompressEdgeSet(
+        edgeArray, current_offset, degree, source, it);
+  }
+
+  template <class W, class P, class O>
+  static inline void filter(P pred, uchar* edge_start, const uintE& source,
+                            const uintE& degree, std::tuple<uintE, W>* tmp,
+                            O& out) {
+    return bytepd::filter(pred, edge_start, source, degree,
+                                               tmp, out);
+  }
+
+  template <class W, class P>
+  static inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
+                            const uintE& degree,
+                            std::tuple<uintE, W>* tmp_space, bool par = true) {
+    return bytepd::pack(pred, edge_start, source, degree,
+                                             tmp_space, par);
+  }
+
+  template <class W, class M, class Monoid>
+  static inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source,
+                             const uintT& degree, M& m, Monoid& reduce,
+                             const bool par = true) {
+    return bytepd::map_reduce<W>(edge_start, source,
+                                                         degree, m, reduce, par);
+  }
+
+  template <class W, class T>
+ __attribute__((always_inline)) static inline void decode(T& t, uchar* edge_start, const uintE& source,
+                            const uintT& degree, const bool parallel=true) {
+    return bytepd::decode<W, T>(t, edge_start, source, degree, parallel);
+  }
+
+  static inline size_t get_virtual_degree(uintE d, uchar* nghArr) {
+    return bytepd::get_virtual_degree(d, nghArr);
+  }
+
+  template <class W, class T>
+  static inline void decode_block(T t, uchar* edge_start,
+                                      const uintE& source, const uintT& degree,
+                                      uintE block_num) {
+    bytepd::decode_block<W, T>(
+        t, edge_start, source, degree, block_num);
+  }
+
+  template <class W>
+  static inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start,
+                                                      uintE source,
+                                                      uintE degree, size_t i) {
+    return bytepd::get_ith_neighbor<W>(edge_start, source,
+                                                            degree, i);
+  }
+
+  static inline uintE get_num_blocks(uchar* edge_start, uintE degree) {
+    return bytepd::get_num_blocks(edge_start, degree);
+  }
+
+  static inline uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num) {
+    return bytepd::get_block_degree(edge_start, degree, block_num);
+  }
+};
+
+
 struct bytepd_amortized_decode {
 
   template <class W>
@@ -183,7 +276,7 @@ struct bytepd_amortized_decode {
   static inline void decode_block(T t, uchar* edge_start,
                                       const uintE& source, const uintT& degree,
                                       uintE block_num) {
-    return bytepd_amortized::decode_block<W, T>(
+    bytepd_amortized::decode_block<W, T>(
         t, edge_start, source, degree, block_num);
   }
 

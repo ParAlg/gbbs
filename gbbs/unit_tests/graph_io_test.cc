@@ -36,12 +36,12 @@ TEST(EdgeListToAsymmetricGraph, DuplicateEdges) {
     auto vertex{graph.get_vertex(0)};
     const std::vector<uintE> kExpectedOutNeighbors{1};
     gt::CheckUnweightedOutNeighbors(vertex, kExpectedOutNeighbors);
-    EXPECT_EQ(vertex.getInDegree(), 0);
+    EXPECT_EQ(vertex.in_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(1)};
     const std::vector<uintE> kExpectedInNeighbors{0};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
     gt::CheckUnweightedInNeighbors(vertex, kExpectedInNeighbors);
   }
 }
@@ -61,19 +61,19 @@ TEST(EdgeListToAsymmetricGraph, SkipFirstVertex) {
 
   {
     auto vertex{graph.get_vertex(0)};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
-    EXPECT_EQ(vertex.getInDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
+    EXPECT_EQ(vertex.in_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(1)};
     const std::vector<uintE> kExpectedOutNeighbors{2};
     gt::CheckUnweightedOutNeighbors(vertex, kExpectedOutNeighbors);
-    EXPECT_EQ(vertex.getInDegree(), 0);
+    EXPECT_EQ(vertex.in_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(2)};
     const std::vector<uintE> kExpectedInNeighbors{1};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
     gt::CheckUnweightedInNeighbors(vertex, kExpectedInNeighbors);
   }
 }
@@ -202,7 +202,7 @@ TEST(EdgeListToSymmetricGraph, SkipFirstVertex) {
 
   {
     auto vertex{graph.get_vertex(0)};
-    EXPECT_EQ(vertex.getOutDegree(), 0);
+    EXPECT_EQ(vertex.out_degree(), 0);
   }
   {
     auto vertex{graph.get_vertex(1)};

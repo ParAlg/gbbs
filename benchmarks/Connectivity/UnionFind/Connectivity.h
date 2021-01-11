@@ -82,10 +82,10 @@ struct UFAlgorithm {
       };
       if constexpr (provides_frequent_comp) {
         if (clusters[i] != frequent_comp) {
-          GA.get_vertex(i).mapOutNgh(i, map_f);
+          GA.get_vertex(i).out_neighbors().map(map_f);
         }
       } else {
-        GA.get_vertex(i).mapOutNgh(i, map_f);
+        GA.get_vertex(i).out_neighbors().map(map_f);
       }
     }, granularity);
     ut.stop(); ut.reportTotal("union time");

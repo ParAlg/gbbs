@@ -42,7 +42,7 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
   };
   par_for(0, G.n, [&] (size_t i) {
     if (in_mis[i]) {
-      G.get_vertex(i).mapOutNgh(i, map_f);
+      G.get_vertex(i).out_neighbors().map(map_f);
     }
   });
   par_for(0, G.n, [&] (size_t i) {
@@ -87,7 +87,7 @@ struct GetNghs {
 template <class Graph, class VS, class P>
 inline vertexSubset get_nghs(Graph& G, VS& vs, P& p) {
   using W = typename Graph::weight_type;
-  return nghMap(G, vs, GetNghs<P, W>(p));
+  return neighbor_map(G, vs, GetNghs<P, W>(p));
 }
 
 inline bool hash_lt(const uintE& src, const uintE& ngh) {
@@ -132,7 +132,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
       uintE ngh_pri = perm[ngh];
       return ngh_pri < our_pri;
     };
-    priorities[i] = G.get_vertex(i).countOutNgh(i, count_f);
+    priorities[i] = G.get_vertex(i).out_neighbors().count(count_f);
   });
   init_t.stop();
   debug(init_t.reportTotal("init"););
@@ -218,7 +218,7 @@ struct MaximalIndependentSetstep {
     };
     auto id = std::make_tuple(0, 0);
     auto monoid = pbbslib::make_monoid(red_f, id);
-    auto res = G.get_vertex(i).reduceOutNgh(i, map_f, monoid);
+    auto res = G.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     if (std::get<0>(res) > 0) {
       FlagsNext[i] = 2;
     } else if (std::get<1>(res) > 0) {
@@ -250,7 +250,7 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];
     };
-    size_t ct = G.get_vertex(i).countOutNgh(i, pred);
+    size_t ct = G.get_vertex(i).out_neighbors().count(pred);
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
   auto ok_f = [&](size_t i) { return ok[i]; };

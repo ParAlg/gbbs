@@ -121,10 +121,10 @@ struct LiuTarjanAlgorithm {
         };
         if constexpr (sampling_option != no_sampling) {
           if (P[i] != frequent_comp) {
-            GA.get_vertex(i).mapOutNgh(i, map_f);
+            GA.get_vertex(i).out_neighbors().map(map_f);
           }
         } else {
-          GA.get_vertex(i).mapOutNgh(i, map_f);
+          GA.get_vertex(i).out_neighbors().map(map_f);
         }
       });
 

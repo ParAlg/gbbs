@@ -15,11 +15,11 @@ namespace induced_split {
     auto parallel_work = sequence<size_t>(DG.n);
     {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
-      return DG.get_vertex(v).getOutDegree();
+      return DG.get_vertex(v).out_degree();
     };
     par_for(0, DG.n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
+      parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
     }
     size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
@@ -41,9 +41,9 @@ namespace induced_split {
       size_t end_ind = pbbslib::binary_search(parallel_work, end, less_fn);
       tots[j] = 0;
       for (size_t i=start_ind; i < end_ind; i++) {
-        if (DG.get_vertex(i).getOutDegree() != 0) {
+        if (DG.get_vertex(i).out_degree() != 0) {
           HybridSpace_lw* induced = new HybridSpace_lw();
-          induced->alloc(DG.get_vertex(i).getOutDegree(), k, DG.n, label, use_base);
+          induced->alloc(DG.get_vertex(i).out_degree(), k, DG.n, label, use_base);
           induced->setup(DG, k, i);
           auto curr_counts = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, recursive_level);
           tots[j] += curr_counts;

@@ -58,7 +58,7 @@ Clustering Cluster(
         // `+ 1` accounts for open vs. closed neighborhood
         return
           graph->get_vertex(i)
-            .countOutNgh(i, neighbor_is_epsilon_similar) + 1 >= mu;
+            .out_neighbors().count(neighbor_is_epsilon_similar) + 1 >= mu;
       });
   const auto is_core{[&](const uintE v) { return core_bitmap[v]; }};
   // Cluster all the cores by running BFS on the more-than-epsilon-similar edges
@@ -94,7 +94,7 @@ Clustering Cluster(
   par_for(0, num_vertices, [&](const uintE vertex_id) {
     if (clustering[vertex_id].empty()) {
       auto vertex{graph->get_vertex(vertex_id)};
-      const uintE degree{vertex.getOutDegree()};
+      const uintE degree{vertex.out_degree()};
 
       sequence<uintE> neighboring_clusters(degree);
       size_t index{0};
@@ -109,7 +109,7 @@ Clustering Cluster(
           }
         }};
       constexpr bool kParallel{false};
-      vertex.mapOutNgh(vertex_id, get_neighboring_clusters, kParallel);
+      vertex.out_neighbors().map(get_neighboring_clusters, kParallel);
       clustering[vertex_id] = pbbs::remove_duplicates_ordered(
           neighboring_clusters.slice(0, index), std::less<uintE>{});
     }

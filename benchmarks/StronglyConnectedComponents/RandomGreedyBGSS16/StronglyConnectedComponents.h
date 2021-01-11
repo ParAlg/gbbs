@@ -129,8 +129,8 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
         // can only add labels to vertices in our subproblem
         return labels[ngh] == labels[v];
       };
-      size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).countInNgh(v, pred)
-                                                : GA.get_vertex(v).countOutNgh(v, pred);
+      size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).in_neighbors().count(pred)
+                                                : GA.get_vertex(v).out_neighbors().count(pred);
       return effective_degree * n_labels;
     };
     auto im = pbbslib::make_sequence<size_t>(frontier.size(), im_f);
@@ -206,10 +206,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   auto v_im = pbbslib::make_sequence<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
-    return (GA.get_vertex(i).getOutDegree() == 0) || (GA.get_vertex(i).getInDegree() == 0);
+    return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
   auto NZ = pbbslib::filter(v_im, [&](size_t i) {
-    return (GA.get_vertex(i).getOutDegree() > 0) && (GA.get_vertex(i).getInDegree() > 0);
+    return (GA.get_vertex(i).out_degree() > 0) && (GA.get_vertex(i).in_degree() > 0);
   });
 
   auto P = pbbslib::random_shuffle(NZ);
@@ -218,11 +218,11 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Assign labels from [0...zero.size())
   par_for(0, zero.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { labels[zero[i]] = i | TOP_BIT; });
+                  { labels[zero[i]] = 1 + (i | TOP_BIT); });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
   double step_multiplier = beta;
-  size_t label_offset = zero.size() + 1; // TODO(laxmand): zero.size()?
+  size_t label_offset = zero.size() + 1;
 
   initt.stop();
   initt.reportTotal("init");
@@ -231,7 +231,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   {
     timer hd; hd.start();
     auto deg_im_f = [&](size_t i) {
-      return std::make_tuple(i, GA.get_vertex(i).getOutDegree());
+      return std::make_tuple(i, GA.get_vertex(i).out_degree());
     };
     auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,
@@ -377,7 +377,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   }
 
   parallel_for(0, labels.size(), [&] (size_t i) {
-    labels[i] = labels[i] & VAL_MASK;
+    labels[i] = (labels[i] & VAL_MASK) - 1;
   });
   return labels;
 }
@@ -397,11 +397,11 @@ inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
-    if (labels[i] == 0) {
-      std::cout << "unlabeled"
-                << "\n";
-      exit(0);
-    }
+    // if (labels[i] == 0) {
+    //   std::cout << "unlabeled"
+    //             << "\n";
+    //   exit(0);
+    // }
     size_t label = labels[i] & VAL_MASK;
     if (!flags[label]) {
       flags[label] = 1;

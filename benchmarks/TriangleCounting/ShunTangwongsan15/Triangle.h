@@ -41,14 +41,14 @@ struct countF {
   countF(Graph& G, size_t* _counts) : G(G), counts(_counts) {}
 
   inline bool update(uintE s, uintE d) {
-    auto d_vertex = G.get_vertex(d);
-    pbbslib::write_add(&counts[s], G.get_vertex(s).intersect(&d_vertex, s, d));
+    auto d_neighbors = G.get_vertex(d).out_neighbors();
+    pbbslib::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(&d_neighbors, s, d));
     return 1;
   }
 
   inline bool updateAtomic(uintE s, uintE d) {
-    auto d_vertex = G.get_vertex(d);
-    pbbslib::write_add(&counts[s], G.get_vertex(s).intersect(&d_vertex, s, d));
+    auto d_neighbors = G.get_vertex(d).out_neighbors();
+    pbbslib::write_add(&counts[s], G.get_vertex(s).out_neighbors().intersect(&d_neighbors, s, d));
     return 1;
   }
   inline bool cond(uintE d) { return cond_true(d); }
@@ -61,7 +61,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
 
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
-    return G.get_vertex(u).getOutDegree() < G.get_vertex(v).getOutDegree();
+    return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
   });
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { r[o[i]] = i; });
@@ -108,11 +108,11 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
   auto parallel_work = sequence<size_t>(n);
   {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
-      return DG.get_vertex(v).getOutDegree();
+      return DG.get_vertex(v).out_degree();
     };
     par_for(0, n, [&] (size_t i) {
       auto monoid = pbbslib::addm<size_t>();
-      parallel_work[i] = DG.get_vertex(i).reduceOutNgh(i, map_f, monoid);
+      parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
   }
   size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
@@ -125,13 +125,13 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
 
   auto run_intersection = [&](size_t start_ind, size_t end_ind) {
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
-      auto vtx = DG.get_vertex(i);
+      auto our_neighbors = DG.get_vertex(i).out_neighbors();
       size_t total_ct = 0;
       auto map_f = [&](uintE u, uintE v, W wgh) {
-        auto v_vtx = DG.get_vertex(v);
-        total_ct += vtx.intersect_f_par(&v_vtx, u, v, f);
+        auto their_neighbors = DG.get_vertex(v).out_neighbors();
+        total_ct += our_neighbors.intersect_f_par(&their_neighbors, f);
       };
-      vtx.mapOutNgh(i, map_f, false);  // run map sequentially
+      our_neighbors.map(map_f, false);  // run map sequentially
       counts[i] = total_ct;
     }
   };

@@ -29,7 +29,7 @@
 //     -m : indicate that the graph should be mmap'd
 //     -c : indicate that the graph is compressed
 //     -nb : the number of buckets to use in the bucketing implementation
-#define SAGE 1
+// #define SAGE 1
 
 #include "sage/sage.h"
 #include "ApproximateSetCover.h"
@@ -55,11 +55,6 @@ double SetCover_runner(Graph& G, commandLine P) {
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
-
-  // Set-cover mutates the underlying graph (unless it is copied, which
-  // we don't do to prevent memory issues), so we make sure the algorithm is run
-  // exactly once.
-  exit(0);
   return tt;
 }
 

@@ -86,11 +86,11 @@ struct HybridSpace_lw {
     if (use_base) {
       size_t j = 0;
       auto map_base_f = [&] (const uintE& src, const uintE& v, const W& wgh) { relabel[j] = v; j++;};
-      DG.get_vertex(i).mapOutNgh(i, map_base_f, false);
+      DG.get_vertex(i).out_neighbors().map(map_base_f, false);
     }
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
-    nn = DG.get_vertex(i).getOutDegree();
+    nn = DG.get_vertex(i).out_degree();
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
@@ -104,9 +104,9 @@ struct HybridSpace_lw {
       // Note that v is relabeled to j under the relabeling from 0 to degree of i
       // Store these edges in induced_edges[j*nn]
       // Store the number of edge (degree) in induced_degs[j]
-      size_t v_deg = DG2.get_vertex(v).getOutDegree();
-      auto i_iter = DG.get_vertex(i).getOutIter(i);
-      auto v_iter = DG2.get_vertex(v).getOutIter(v);
+      size_t v_deg = DG2.get_vertex(v).out_degree();
+      auto i_iter = DG.get_vertex(i).out_neighbors().get_iter();
+      auto v_iter = DG2.get_vertex(v).out_neighbors().get_iter();
       size_t i_iter_idx = 0;
       size_t v_iter_idx = 0;
 
@@ -134,7 +134,7 @@ struct HybridSpace_lw {
       }
       j++;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_f, false);
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
@@ -147,7 +147,7 @@ struct HybridSpace_lw {
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
-    nn = DG.get_vertex(i).getOutDegree();
+    nn = DG.get_vertex(i).out_degree();
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
@@ -162,7 +162,7 @@ struct HybridSpace_lw {
       if (use_base) { relabel[o] = ngh; }
       o++;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_label_f, false);
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -183,16 +183,16 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      DG2.get_vertex(v).out_neighbors().map(map_nbhrs_f, false);
       j++;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_f, false);
 
     // Reset the array used for intersecting
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
@@ -224,7 +224,7 @@ struct HybridSpace_lw {
       if (!f(src, ngh)) return;
       old_labels[ngh] = UINT_E_MAX;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_label_f, false);
 
     // Label induced neighbors in the second recursive level (considering neighbors of i and l)
     size_t o = 0;
@@ -240,13 +240,13 @@ struct HybridSpace_lw {
         o++;
       }
     };
-    DG.get_vertex(l).mapOutNgh(l, lmap_label_f, false);
+    DG.get_vertex(l).out_neighbors().map(lmap_label_f, false);
 
     // Reset induced neighbors from the first recursive level but not the second
     auto remap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       if (old_labels[ngh] == UINT_E_MAX) old_labels[ngh] = 0;
     };
-    DG.get_vertex(i).mapOutNgh(i, remap_label_f, true);
+    DG.get_vertex(i).out_neighbors().map(remap_label_f, true);
 
     // Set up second level induced neighborhood (neighbors of vertex i and vertex l, relabeled)
     nn = o;
@@ -268,7 +268,7 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      DG.get_vertex(v).out_neighbors().map(map_nbhrs_f, false);
     }
 
     // Set up vertices in the second level induced neighborhood
@@ -278,7 +278,7 @@ struct HybridSpace_lw {
     auto lremap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
     };
-    DG.get_vertex(l).mapOutNgh(l, lremap_label_f, true);
+    DG.get_vertex(l).out_neighbors().map(lremap_label_f, true);
 
     // Count total number of edges in induced neighborhood
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
@@ -290,10 +290,10 @@ struct HybridSpace_lw {
   void setup_intersect_edge(Graph& DG, size_t k, size_t i, size_t l, F f) {
     // Retrieve induced neighbors in intersection of N(i) and N(l)
     size_t j = 0;
-    size_t v_deg = DG.get_vertex(l).getOutDegree();
-    size_t i_deg = DG.get_vertex(i).getOutDegree();
-    auto i_iter = DG.get_vertex(i).getOutIter(i);
-    auto v_iter = DG.get_vertex(l).getOutIter(l);
+    size_t v_deg = DG.get_vertex(l).out_degree();
+    size_t i_deg = DG.get_vertex(i).out_degree();
+    auto i_iter = DG.get_vertex(i).out_neighbors().get_iter();
+    auto v_iter = DG.get_vertex(l).out_neighbors().get_iter();
     size_t i_iter_idx = 0;
     size_t v_iter_idx = 0;
     while (i_iter_idx < i_deg && v_iter_idx < v_deg) {
@@ -329,8 +329,8 @@ struct HybridSpace_lw {
       // Note that v is relabeled to p under the relabeling
       // Store these edges in induced_edges[p*nn]
       // Store the number of edge (degree) in induced_degs[p]
-      size_t u_deg = DG.get_vertex(induced[p]).getOutDegree();
-      auto u_iter = DG.get_vertex(induced[p]).getOutIter(induced[p]);
+      size_t u_deg = DG.get_vertex(induced[p]).out_degree();
+      auto u_iter = DG.get_vertex(induced[p]).out_neighbors().get_iter();
       size_t u_iter_idx = 0;
       i_iter_idx = 0;
       while (i_iter_idx < nn && u_iter_idx < u_deg) {
@@ -463,7 +463,7 @@ struct FullSpace_orig_lw {
   template <class Graph>
   void setup(Graph& DG, size_t k, size_t i) {
     using W = typename Graph::weight_type;
-    num_induced[0] = DG.get_vertex(i).getOutDegree();
+    num_induced[0] = DG.get_vertex(i).out_degree();
     nn = num_induced[0];
 
     for (size_t  j=0; j < nn; j++) { induced[j] = j; }
@@ -476,7 +476,7 @@ struct FullSpace_orig_lw {
       old_labels[ngh] = o + 1;
       o++;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_label_f, false);
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -487,16 +487,16 @@ struct FullSpace_orig_lw {
           induced_degs[j]++;
         }
       };
-      DG.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      DG.get_vertex(v).out_neighbors().map(map_nbhrs_f, false);
 
       j++;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_f, false);
 
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
     };
-    DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
+    DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges[0] = pbbslib::reduce_add(deg_seq);

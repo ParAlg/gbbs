@@ -238,7 +238,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
 
   auto vertex_offs = sequence<long>(G.n);
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { vertex_offs[i] = G.get_vertex(i).getOutDegree(); });
+                  { vertex_offs[i] = G.get_vertex(i).out_degree(); });
   pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
@@ -250,7 +250,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
         size_t ith = vertex_offs[vtx] - sample_edge - 1;
         uintE ngh;
         W wgh;
-        std::tie(ngh, wgh) = G.get_vertex(vtx).get_ith_out_neighbor(vtx, ith);
+        std::tie(ngh, wgh) = G.get_vertex(vtx).out_neighbors().get_ith_neighbor(ith);
         sample_edges[i] = std::make_tuple(vtx, ngh, wgh);
       });
 

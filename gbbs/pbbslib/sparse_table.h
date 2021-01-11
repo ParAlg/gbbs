@@ -79,6 +79,33 @@ class sparse_table {
     }
   }
 
+  // Incoming must be a power of two
+  void resize(size_t incoming) {
+    if (incoming > m) {
+      bool old_alloc = alloc;
+      auto old_table = table;
+      size_t old_m = m;
+      std::cout << "# Resizing table, was: " << m;
+      size_t new_size = 1 << pbbs::log2_up(2*(m + incoming));
+      m = new_size;
+      mask = m - 1;
+      table = pbbslib::new_array_no_init<T>(m);
+      clearA(table, m, empty);
+      alloc = true;
+      std::cout << "#  is now: " << m << std::endl;
+      parallel_for(0, old_m, [&] (size_t i) {
+        if (std::get<0>(old_table[i]) != empty_key) {
+          insert(old_table[i]);
+        }
+      });
+
+      if (old_alloc) {
+        pbbslib::free_array(old_table);
+      }
+    }
+  }
+
+
   sparse_table() : m(0) {
     mask = 0;
     alloc = false;
@@ -243,6 +270,15 @@ class sparse_table {
       h = incrementIndex(h);
     }
     return default_value;
+  }
+
+  template <class F>
+  void map(F f) {
+    parallel_for(0, m, [&] (size_t i) {
+      if (std::get<0>(table[i]) != empty_key) {
+        f(table[i]);
+      }
+    });
   }
 
   sequence<T> entries() const {

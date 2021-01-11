@@ -96,20 +96,20 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   using trussness_t = uintE;
 
   auto deg_lt = pbbslib::make_sequence<uintE>(GA.n, [&] (size_t i) {
-      return GA.get_vertex(i).getOutDegree() < (1 << 15); 
+      return GA.get_vertex(i).out_degree() < (1 << 15); 
   });
   std::cout << "count = " << pbbslib::reduce_add(deg_lt) << std::endl;
-  auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).getOutDegree() < (1 << 15)) { return GA.get_vertex(i).getOutDegree(); } return (uintE)0;  });
+  auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
   std::cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << std::endl;
 
   auto counts = pbbs::sequence<size_t>(GA.n, (size_t)0);
   parallel_for(0, GA.n, [&] (size_t i) {
-    auto d_i = GA.get_vertex(i).getOutDegree();
+    auto d_i = GA.get_vertex(i).out_degree();
     bool d_i_lt = d_i <= (1 << 15);
     auto count_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       return u < v ? d_i_lt : 0;
     };
-    counts[i] = GA.get_vertex(i).countOutNgh(i, count_f);
+    counts[i] = GA.get_vertex(i).out_neighbors().count(count_f);
   });
   std::cout << "total lt ct = " << pbbslib::reduce_add(counts) << std::endl;
 
@@ -123,7 +123,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
     auto count_f = [&] (uintE u, uintE v, W& wgh) {
       return vtx < v;
     };
-    return GA.get_vertex(vtx).countOutNgh(vtx, count_f);
+    return GA.get_vertex(vtx).out_neighbors().count(count_f);
   };
   auto trussness_multi = truss_utils::make_multi_table<uintE, uintE>(GA.n, UINT_E_MAX, get_size);
 
@@ -154,7 +154,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
   auto actual_degree = pbbs::sequence<uintE>(GA.n, [&] (size_t i) {
-    return GA.get_vertex(i).getOutDegree();
+    return GA.get_vertex(i).out_degree();
   });
 
   auto get_trussness_and_id = [&trussness_multi] (uintE u, uintE v) {
@@ -308,7 +308,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
       auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
       auto to_pack_seq = pbbs::filter(all_vertices, [&] (uintE u) {
-        return 4*actual_degree[u] >= GA.get_vertex(u).getOutDegree();
+        return 4*actual_degree[u] >= GA.get_vertex(u).out_degree();
       });
       auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
 

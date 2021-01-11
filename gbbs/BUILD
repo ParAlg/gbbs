@@ -290,11 +290,20 @@ cc_library(
 )
 
 cc_library(
+  name = "uncompressed_intersection",
+  hdrs = ["uncompressed_intersection.h"],
+  deps = [
+    ":macros",
+  ]
+)
+
+cc_library(
   name = "vertex",
   hdrs = ["vertex.h"],
   deps = [
   ":macros",
-  ":speculative_for"
+  ":speculative_for",
+  ":uncompressed_intersection"
   ]
 )
 

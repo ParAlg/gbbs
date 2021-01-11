@@ -35,6 +35,54 @@
 #include "StronglyConnectedComponents.h"
 
 namespace gbbs {
+namespace filter_based_scc {
+
+template <class Seq>
+inline size_t num_done(Seq& labels) {
+  auto im_f = [&](size_t i) {
+    return (size_t)(labels[i] != kUnfinished);
+  };
+  auto im = pbbslib::make_sequence<size_t>(labels.size(), im_f);
+
+  return pbbslib::reduce_add(im);
+}
+
+template <class Seq>
+inline size_t num_scc(Seq& labels) {
+  size_t n = labels.size();
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    size_t label = labels[i];
+    if ((label != kUnfinished) && !flags[label]) {
+      flags[label] = 1;
+    }
+  });
+  pbbslib::scan_add_inplace(flags);
+  size_t n_scc = flags[n];
+  std::cout << "n_scc = " << flags[n] << "\n";
+  return n_scc;
+}
+
+template <class Seq>
+inline void scc_stats(Seq& labels) {
+  size_t n = labels.size();
+  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  for (size_t i = 0; i < n; i++) {
+    size_t label = labels[i];
+    if (label != kUnfinished)
+      flags[label]++;
+  }
+  size_t maxv = pbbslib::reduce_max(flags);
+  std::cout << "Largest StronglyConnectedComponents has " << maxv << " vertices"
+            << "\n";
+  for (size_t i = 0; i < n; i++) {
+    if (flags[i] == maxv) {
+      std::cout << "max flag = " << i << "\n";
+    }
+  }
+}
+
+
 template <class Graph>
 double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   double beta = P.getOptionDoubleValue("-beta", 1.1);
@@ -46,10 +94,7 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -beta = " << beta << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  if (P.getOption("-s")) {
-    std::cout << "SCC should be run on a directed graph;" << std::endl;
-    exit(0);
-  }
+  assert(!P.getOption("-s"));
   timer scc_t;
   scc_t.start();
   auto labels = StronglyConnectedComponents(G, beta);
@@ -62,6 +107,7 @@ double StronglyConnectedComponents_runner(Graph& G, commandLine P) {
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;
 }
+}  // namespace filter_based_scc
 }  // namespace gbbs
 
-generate_main(gbbs::StronglyConnectedComponents_runner, false);
+generate_asymmetric_main(gbbs::filter_based_scc::StronglyConnectedComponents_runner, false);

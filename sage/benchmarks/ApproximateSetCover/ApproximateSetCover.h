@@ -67,14 +67,14 @@ struct Visit_Elms {
 
 template <template <class W> class vertex, class W>
 inline pbbslib::dyn_arr<uintE> SetCover(symmetric_graph<vertex, W>& G, size_t num_buckets = 512) {
-  auto GA = sage::build_packed_graph(G);
+  auto GA = sage::build_symmetric_packed_graph(G);
   std::cout << "GA.n = " << GA.n << " GA.m = " << GA.m << std::endl;
   timer it; it.start();
   auto Elms = sequence<uintE>(GA.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
-  auto D = sequence<uintE>(GA.n, [&](size_t i) { return get_bucket_clamped(GA.get_vertex(i).getOutDegree()); });
+  auto D = sequence<uintE>(GA.n, [&](size_t i) { return get_bucket_clamped(GA.get_vertex(i).out_degree()); });
   auto d_slice = D.slice();
   auto b = make_vertex_buckets(GA.n, d_slice, decreasing, num_buckets);
 

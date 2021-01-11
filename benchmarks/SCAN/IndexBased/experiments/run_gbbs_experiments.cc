@@ -112,7 +112,7 @@ size_t GetMaxDegree(Graph* graph) {
   return pbbslib::reduce_max(pbbslib::make_sequence<size_t>(
     graph->n,
     [&](const size_t i) {
-      return graph->get_vertex(i).getOutDegree();
+      return graph->get_vertex(i).out_degree();
     }));
 }
 

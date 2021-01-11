@@ -25,21 +25,20 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G,
 
   if (should_output(fl)) {
     auto offsets = sequence<uintT>(indices.size(), [&](size_t i) {
-      return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).getInDegree()
-                             : G.get_vertex(indices.vtx(i)).getOutDegree();
+      return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).in_degree()
+                             : G.get_vertex(indices.vtx(i)).out_degree();
     });
     size_t outEdgeCount = pbbslib::scan_add_inplace(offsets.slice());
 
     outEdges = pbbslib::new_array_no_init<S>(outEdgeCount);
     auto g = get_emsparse_gen_full<data>(outEdges);
     auto h = get_emsparse_gen_empty<data>(outEdges);
-    par_for(0, m, 1, [&] (size_t i) {
+    parallel_for(0, m, [&] (size_t i) {
       uintT v = indices.vtx(i);
       uintT o = offsets[i];
-      auto vert = G.get_vertex(v);
-      (fl & in_edges) ? vert.decodeInNghSparse(v, o, f, g, h)
-                      : vert.decodeOutNghSparse(v, o, f, g, h);
-    });
+      auto neighbors = (fl & in_edges) ? G.get_vertex(v).in_neighbors() : G.get_vertex(v).out_neighbors();
+      neighbors.decodeSparse(o, f, g, h);
+    }, 1);
 
     S* nextIndices = pbbslib::new_array_no_init<S>(outEdgeCount);
     auto p = [](std::tuple<uintE, data>& v) {
@@ -52,12 +51,11 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G,
 
   auto g = get_emsparse_nooutput_gen<data>();
   auto h = get_emsparse_nooutput_gen_empty<data>();
-  par_for(0, m, 1, [&] (size_t i) {
+  parallel_for(0, m, [&] (size_t i) {
     uintT v = indices.vtx(i);
-    auto vert = G.get_vertex(v);
-    (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h)
-                    : vert.decodeOutNghSparse(v, 0, f, g, h);
-  });
+    auto neighbors = (fl & in_edges) ? G.get_vertex(v).in_neighbors() : G.get_vertex(v).out_neighbors();
+    neighbors.decodeSparse(0, f, g, h);
+  }, 1);
   return vertexSubsetData<data>(n);
 }
 
@@ -76,12 +74,11 @@ inline vertexSubsetData<data> edgeMapSparseNoOutput(Graph& G, VS& indices, F& f,
   auto n = G.n;
   auto g = get_emsparse_nooutput_gen<data>();
   auto h = get_emsparse_nooutput_gen_empty<data>();
-  par_for(0, m, 1, [&](size_t i) {
+  parallel_for(0, m, [&](size_t i) {
     uintT v = indices.vtx(i);
-    auto vert = G.get_vertex(v);
-    (fl & in_edges) ? vert.decodeInNghSparse(v, 0, f, g, h, inner_parallel)
-                    : vert.decodeOutNghSparse(v, 0, f, g, h, inner_parallel);
-  });
+    auto neighbors = (fl & in_edges) ? G.get_vertex(v).in_neighbors() : G.get_vertex(v).out_neighbors();
+    neighbors.decodeSparse(0, f, g, h, inner_parallel);
+  }, 1);
   return vertexSubsetData<data>(n);
 }
 
@@ -107,14 +104,14 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   size_t n = indices.n;
 
   auto block_f = [&](size_t i) -> size_t {
-    return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).getNumInBlocks()
-                           : G.get_vertex(indices.vtx(i)).getNumOutBlocks();
+    return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).in_neighbors().get_num_blocks()
+                           : G.get_vertex(indices.vtx(i)).out_neighbors().get_num_blocks();
   };
   auto block_imap = pbbslib::make_sequence<uintE>(indices.size(), block_f);
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
-  par_for(0, indices.size(), pbbslib::kSequentialForThreshold,
+  parallel_for(0, indices.size(),
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
@@ -124,21 +121,19 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan degree array.
-  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
+  parallel_for(0, indices.size(), [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
     size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
-    auto vtx = G.get_vertex(vtx_id);
-    par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
-      size_t block_deg = (fl & in_edges)
-                             ? vtx.in_block_degree(j)
-                             : vtx.out_block_degree(j);
+    auto neighbors = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
+    parallel_for(0, num_vertex_blocks, [&](size_t j) {
+      size_t block_deg = neighbors.block_degree(j);
       // assert(block_deg <= PARALLEL_DEGREE); // only for compressed
       blocks[vtx_off + j] = block(i, j);  // j-th block of the i-th vertex.
       degrees[vtx_off + j] = block_deg;
     });
-  });
+  }, 1);
   pbbslib::scan_add_inplace(degrees.slice(), pbbslib::fl_scan_inclusive);
   size_t outEdgeCount = degrees[num_blocks - 1];
 
@@ -170,11 +165,8 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
 
         uintE vtx_id = indices.vtx(id);  // actual vtx_id corresponding to id
 
-        auto our_vtx = G.get_vertex(vtx_id);
-        size_t num_in =
-            (fl & in_edges)
-                ? our_vtx.decodeInBlock(vtx_id, k, block_num, f, g)
-                : our_vtx.decodeOutBlock(vtx_id, k, block_num, f, g);
+        auto our_nghs = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
+        size_t num_in = our_nghs.decode_block(k, block_num, f, g);
         k += num_in;
       }
       cts[i] = k - start_offset;
@@ -340,8 +332,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   size_t n = indices.n;
 
   auto block_f = [&](size_t i) -> size_t {
-    return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).getNumInBlocks()
-                           : G.get_vertex(indices.vtx(i)).getNumOutBlocks();
+    uintE vtx_id = indices.vtx(i);
+    auto nghs = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
+    return nghs.get_num_blocks();
   };
   auto block_imap = pbbslib::make_sequence<uintE>(indices.size(), block_f);
 
@@ -361,11 +354,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
     size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
-    auto vtx = G.get_vertex(vtx_id);
+    auto neighbors = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
     par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
-      size_t block_deg = (fl & in_edges)
-                             ? vtx.in_block_degree(j)
-                             : vtx.out_block_degree(j);
+      size_t block_deg = neighbors.block_degree(j);
       // assert(block_deg <= PARALLEL_DEGREE); // only for compressed
       blocks[vtx_off + j] = block(i, j);  // j-th block of the i-th vertex.
       degrees[vtx_off + j] = block_deg;
@@ -417,10 +408,8 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
         uintE id = block.id;  // id in vset
         uintE block_num = block.block_num;
         uintE vtx_id = indices.vtx(id);  // actual vtx_id corresponding to id
-        auto vtx = G.get_vertex(vtx_id);
-        size_t num_in = (fl & in_edges)
-          ? vtx.decodeInBlock(vtx_id, offset, block_num, f, g)
-          : vtx.decodeOutBlock(vtx_id, offset, block_num, f, g);
+        auto neighbors = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
+        size_t num_in = neighbors.decode_block(offset, block_num, f, g);
         out_block->block_size += num_in;
       }
     }

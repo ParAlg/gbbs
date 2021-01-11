@@ -18,7 +18,7 @@ void randomReorder(Graph& GA, std::string& outfile) {
   auto edges = pbbs::sequence<uintE>(m);
   auto offs = pbbs::sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) {
-    offs[perm[i]] = GA.get_vertex(i).getOutDegree();
+    offs[perm[i]] = GA.get_vertex(i).out_degree();
   });
   size_t tot = pbbslib::scan_add_inplace(offs.slice());
   std::cout << "m = " << m << " tot = " << tot << std::endl;
@@ -30,7 +30,7 @@ void randomReorder(Graph& GA, std::string& outfile) {
       uintE ngh_perm = perm[ngh];
       edges[off++] = ngh_perm;
     };
-    GA.get_vertex(i).mapOutNgh(i, map_f, false);
+    GA.get_vertex(i).out_neighbors().map(map_f, false);
     std::sort(edges.begin()+off, edges.begin()+next_off, std::less<uintE>());
   });
 

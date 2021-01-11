@@ -58,7 +58,7 @@ double SpanningForest_runner(Graph& G, commandLine P) {
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
-  std::cout << "vtx 0 has degree: " << G.get_vertex(0).getOutDegree() << std::endl;
+  std::cout << "vtx 0 has degree: " << G.get_vertex(0).out_degree() << std::endl;
 
   if (P.getOptionValue("-check")) {
     auto bfs_edges = bfs_sf::SpanningForestDet(G);

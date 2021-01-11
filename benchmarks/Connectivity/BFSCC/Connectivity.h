@@ -53,7 +53,7 @@ struct BFS_ComponentLabel_F {
 template <class Graph>
 void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
   using W = typename Graph::weight_type;
-  if (G.get_vertex(src).getOutDegree() > 0) {
+  if (G.get_vertex(src).out_degree() > 0) {
     vertexSubset Frontier(G.n, src);
     size_t reachable = 0; size_t rounds = 0;
     parents[src] = src;

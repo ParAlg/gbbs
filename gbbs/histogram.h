@@ -504,8 +504,12 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
         }
         assert(is_set);
 
-        std::optional<O> value = apply_f(std::make_tuple(key, total_ct));
-        heavy_cts[bkt_id] = value;
+        if (key != std::get<0>(empty)) {
+          std::optional<O> value = apply_f(std::make_tuple(key, total_ct));
+          heavy_cts[bkt_id] = value;
+        } else {
+          heavy_cts[bkt_id] = std::nullopt;
+        }
       }
     };
     par_for(0, num_actual_buckets, 1, [&] (size_t i)
