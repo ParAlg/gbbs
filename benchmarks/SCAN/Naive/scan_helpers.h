@@ -88,7 +88,6 @@ ComputeStructuralSimilarities(symmetric_graph<VertexType, NoWeight>* graph) {
         const auto& v_neighbors{adjacency_list[v_id]};
 
         const bool u_degree_is_smaller{u.out_degree() < v.out_degree()};
-        const uintE smaller_degree_vertex_id{u_degree_is_smaller ? u_id : v_id};
         Vertex* smaller_degree_vertex{u_degree_is_smaller ? &u : &v};
         const auto& larger_degree_vertex_neighbors{
           u_degree_is_smaller ? v_neighbors : u_neighbors

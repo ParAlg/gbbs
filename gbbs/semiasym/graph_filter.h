@@ -70,7 +70,7 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
   timer ibm; ibm.start();
   size_t n = GA.n;
 
-  // 1. Calculate the #bytes corresponding to each vertex
+  // Calculate the #bytes corresponding to each vertex.
   auto block_bytes_offs = pbbs::sequence<size_t>(n + 1);
   parallel_for(0, n, [&](size_t i) {
     uintE degree = 0;
@@ -205,7 +205,7 @@ struct symmetric_packed_graph {
     using neighborhood_type = uncompressed_bitset_neighbors<vertex_type, W>;
     auto vtx_data = GA.v_data[v];
     uintE original_degree = vtx_data.degree;
-    uintE offset = vtx_data.offset;
+    uintT offset = vtx_data.offset;
 #ifndef SAGE
     auto sym_blocks = neighborhood_type(v, blocks, original_degree, VI, GA.e0 + offset);
 #else
@@ -300,7 +300,7 @@ void filter_graph(symmetric_packed_graph<vertex_type, W>& GA, P& pred_f) {
   std::cout << "# Packing packed graph: new m = " << new_m << std::endl;
 }
 
-
+/* ========================== Asymmetric Utils ========================= */
 
 /*
  * BitsetNeighbors supplies:
@@ -403,7 +403,7 @@ struct asymmetric_packed_graph {
     return in_VI[v].vtx_degree;
   }
 
-  // Symmetric: get_vertex
+  // Uncompressed: get_vertex
   template <
       bool bool_enable = true,
       typename std::enable_if<
@@ -414,11 +414,11 @@ struct asymmetric_packed_graph {
 
     auto in_vtx_data = GA->v_in_data[v];
     uintE in_original_degree = in_vtx_data.degree;
-    uintE in_offset = in_vtx_data.offset;
+    uintT in_offset = in_vtx_data.offset;
 
     auto out_vtx_data = GA->v_out_data[v];
     uintE out_original_degree = out_vtx_data.degree;
-    uintE out_offset = out_vtx_data.offset;
+    uintT out_offset = out_vtx_data.offset;
 
 #ifndef SAGE
     auto in_neighborhood = neighborhood_type(v, in_blocks, in_original_degree, in_VI, GA->in_edges_0 + in_offset);
@@ -430,7 +430,7 @@ struct asymmetric_packed_graph {
     return packed_asymmetric_vertex<W, neighborhood_type>(std::move(in_neighborhood), std::move(out_neighborhood));
   }
 
-  // Compressed Symmetric: get_vertex
+  // Compressed : get_vertex
   template <bool bool_enable = true,
             typename std::enable_if<
                 std::is_same<vertex, cav_bytepd_amortized<W>>::value &&
@@ -441,11 +441,11 @@ struct asymmetric_packed_graph {
 
     auto in_vtx_data = GA->v_in_data[v];
     uintE in_original_degree = in_vtx_data.degree;
-    uintE in_offset = in_vtx_data.offset;
+    uintT in_offset = in_vtx_data.offset;
 
     auto out_vtx_data = GA->v_out_data[v];
     uintE out_original_degree = out_vtx_data.degree;
-    uintE out_offset = out_vtx_data.offset;
+    uintT out_offset = out_vtx_data.offset;
 
 #ifndef SAGE
     auto in_neighborhood = neighborhood_type(v, in_blocks, in_original_degree, in_VI, GA->in_edges_0 + in_offset);
@@ -513,7 +513,8 @@ struct asymmetric_packed_graph {
     };
 
     auto degree_seq = pbbs::delayed_seq<size_t>(S.size(), [&] (size_t i) {
-      return out_degree(i);
+      uintE v = S[i];
+      return out_degree(v);
     });
     size_t pre_degrees = pbbslib::reduce_add(degree_seq);
 

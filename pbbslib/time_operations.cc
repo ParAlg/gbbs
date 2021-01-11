@@ -5,19 +5,20 @@ typedef unsigned __int128 long_int;
 #if defined(CILK)
 #include "reducer.h"
 double t_histogram_reducer(size_t n, bool check) {
-  pbbs::random r(0);
-  constexpr int count = 1024;
-  histogram_reducer<int, count> red;
-  using aa = std::array<size_t, 8>;
-  pbbs::sequence<aa> In(n, [&](size_t i) {
-    aa x;
-    x[0] = r.ith_rand(i) % count;
-    return x;
-  });
-  auto f = [&](size_t i) { red->add_value(In[i][0]); };
-  time(t, parallel_for(0, n, f););
-  // std::cout << red.get_value()[0] << std::endl;
-  return t;
+  return 1.0;
+//  pbbs::random r(0);
+//  constexpr int count = 1024;
+//  histogram_reducer<int, count> red;
+//  using aa = std::array<size_t, 8>;
+//  pbbs::sequence<aa> In(n, [&](size_t i) {
+//    aa x;
+//    x[0] = r.ith_rand(i) % count;
+//    return x;
+//  });
+//  auto f = [&](size_t i) { red->add_value(In[i][0]); };
+//  time(t, parallel_for(0, n, f););
+//  // std::cout << red.get_value()[0] << std::endl;
+//  return t;
 }
 #else
 double t_histogram_reducer(size_t n, bool check) { return 1.0; }

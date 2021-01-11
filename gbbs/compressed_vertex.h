@@ -350,6 +350,20 @@ struct cav_bytepd_amortized
 };
 
 template <class W>
+struct csv_bytepd
+    : compressed_symmetric_vertex<W, bytepd_decode> {
+  using inner = compressed_symmetric_vertex<W, bytepd_decode>;
+  using inner::inner;
+};
+
+template <class W>
+struct cav_bytepd
+    : compressed_asymmetric_vertex<W, bytepd_decode> {
+  using inner = compressed_asymmetric_vertex<W, bytepd_decode>;
+  using inner::inner;
+};
+
+template <class W>
 struct cav_byte
     : compressed_asymmetric_vertex<W, byte_decode> {
   using inner = compressed_asymmetric_vertex<W, byte_decode>;

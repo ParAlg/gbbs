@@ -22,7 +22,9 @@
 
 #pragma once
 
+#include <vector>
 #include <tuple>
+#include <unordered_set>
 
 #include "gbbs/bridge.h"
 
@@ -43,10 +45,11 @@ namespace pbbslib {
     K k;
     size_t h;
     size_t mask;
+    size_t num_probes;
     T* table;
     K empty_key;
     iter_kv(K _k, size_t _h, size_t _mask, T* _table, K _empty_key)
-        : k(_k), h(_h), mask(_mask), table(_table), empty_key(_empty_key) {}
+        : k(_k), h(_h), mask(_mask), num_probes(0), table(_table), empty_key(_empty_key) {}
 
     // Finds the location of the first key
     bool init() {
@@ -57,6 +60,7 @@ namespace pbbslib {
           return true;
         }
         h = incrementIndex(h, mask);
+        num_probes++;
       }
       return false;
     }
@@ -71,6 +75,7 @@ namespace pbbslib {
           return true;
         }
         h = incrementIndex(h, mask);
+        num_probes++;
       }
       return false;
     }
@@ -158,12 +163,36 @@ namespace pbbslib {
       alloc = true;
     }
 
+    void analyze() {
+      std::vector<size_t> probe_lengths;
+      size_t chain_length = 0;
+      for (size_t i=0; i<m; i++) {
+        if (std::get<0>(table[i]) == empty_key) {
+          if (chain_length > 0) {
+            probe_lengths.emplace_back(chain_length);
+          }
+          chain_length = 0;
+        } else {
+          chain_length++;
+        }
+      }
+
+      std::sort(probe_lengths.begin(), probe_lengths.end());
+      std::cout << "Analyzed table, m = " << m << " ne = " << ne << " num_probes = " << probe_lengths.size() << std::endl;
+      for (long k = probe_lengths.size() - 1; k > 0; k--) {
+        std::cout << probe_lengths[k] << " ";
+        if (probe_lengths.size() - k > 250)
+          break;
+      }
+      std::cout << std::endl << "End of table analysis" << std::endl;
+    }
+
     void maybe_resize(size_t n_inc) {
       size_t nt = ne + n_inc;
-      if (nt > (0.9 * m)) {
+      if (nt > (0.25 * m)) {
         size_t old_m = m;
         auto old_t = table;
-        m = ((size_t)1 << pbbslib::log2_up((size_t)(2 * nt)));
+        m = ((size_t)1 << pbbslib::log2_up((size_t)(10 * nt)));
         if (m == old_m) {
           return;
         }

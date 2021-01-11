@@ -218,7 +218,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Assign labels from [0...zero.size())
   par_for(0, zero.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { labels[zero[i]] = 1 + i | TOP_BIT; });
+                  { labels[zero[i]] = 1 + (i | TOP_BIT); });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
   double step_multiplier = beta;

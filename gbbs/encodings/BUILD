@@ -8,13 +8,10 @@ cc_library(
 cc_library(
   name = "byte_pd",
   hdrs = ["byte_pd.h"],
+  srcs = ["byte_pd.cc"],
   deps = [
   "//gbbs:bridge",
   "//gbbs:macros",
-  "//pbbslib:binary_search",
-  "//pbbslib:seq",
-  "//pbbslib:sequence_ops",
-  "//pbbslib:utilities",
   ]
 )
 
@@ -34,6 +31,7 @@ cc_library(
   hdrs = ["decoders.h"],
   deps = [
   ":byte",
+  ":byte_pd",
   ":byte_pd_amortized",
   ]
 )

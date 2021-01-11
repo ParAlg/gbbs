@@ -1,19 +1,11 @@
 cc_library(
-  name = "MultiSearch",
-  hdrs = ["MultiSearch.h"],
-  deps = [
-  "//gbbs:gbbs",
-  "//gbbs/pbbslib:resizable_table",
-  "//pbbslib:random_shuffle"
-  ]
-)
-
-cc_library(
   name = "StronglyConnectedComponents",
   hdrs = ["StronglyConnectedComponents.h"],
   deps = [
   "//gbbs:gbbs",
   "//gbbs/pbbslib:resizable_table",
+  "//gbbs/pbbslib:sparse_table",
+  "//gbbs/semiasym:graph_filter",
   "//pbbslib:random_shuffle"
   ]
 )

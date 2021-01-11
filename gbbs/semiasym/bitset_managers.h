@@ -27,7 +27,8 @@
 
 #include "gbbs/flags.h"
 #include "gbbs/macros.h"
-#include "gbbs/encodings/byte_pd_amortized.h"
+#include "gbbs/encodings/byte_pd.h"
+// #include "gbbs/encodings/byte_pd_amortized.h"
 #include "pbbslib/sequence_ops.h"
 
 #include "utils.h"
@@ -401,6 +402,7 @@ struct uncompressed_bitset_neighbors {
     vtx_degree = v_info.vtx_degree;
     vtx_num_blocks = v_info.vtx_num_blocks;
 
+    // TODO: ensure that blocks is 4-byte aligned.
     blocks_start = blocks + v_info.vtx_block_offset;
     block_data_start = blocks_start + (vtx_num_blocks * sizeof(metadata));
   }
@@ -449,7 +451,7 @@ struct uncompressed_bitset_neighbors {
 
   template <class P>
   inline size_t pack(P& p, uint8_t* tmp, bool parallel = true, const flags fl = 0) {
-    return pack_blocks(p, tmp, parallel, fl);
+    return pack_blocks(vtx_id, p, tmp, parallel, fl);
   }
 
   inline size_t calculateTemporarySpaceBytes() {
@@ -719,7 +721,7 @@ struct uncompressed_bitset_neighbors {
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(P& p, uint8_t* tmp, bool parallel, const flags fl) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel, const flags fl) {
     if (vtx_degree == 0) {
       return 0;
     }
@@ -1048,7 +1050,7 @@ struct compressed_bitset_neighbors {
 
   template <class P>
   inline size_t pack(P& p, uint8_t* tmp, bool parallel = true, const flags fl = 0) {
-    return pack_blocks(p, tmp, parallel, fl);
+    return pack_blocks(vtx_id, p, tmp, parallel, fl);
   }
 
   inline size_t calculateTemporarySpaceBytes() {
@@ -1118,6 +1120,7 @@ struct compressed_bitset_neighbors {
     size_t k = 0;
     std::tuple<uintE, W> block_decode[edges_per_block];
     auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+      assert(k < edges_per_block);
       block_decode[k++] = std::make_tuple(ngh, wgh);
     };
     bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,
@@ -1207,11 +1210,11 @@ struct compressed_bitset_neighbors {
     };
     bytepd_amortized::template decode_block_cond<W>(t_f, e, vtx_id, vtx_original_degree,
                                                     orig_block_num);
-    debug(uintE block_start = orig_block_num * edges_per_block;
-    uintE block_end =
-        std::min(block_start + edges_per_block, vtx_original_degree);
-    assert(k == (block_end - block_start));
-    );
+//    debug(uintE block_start = orig_block_num * edges_per_block;
+//    uintE block_end =
+//        std::min(block_start + edges_per_block, vtx_original_degree);
+//    assert(k == (block_end - block_start));
+//    );
   }
 
   /* Only called when the discrepency between full and total blocks is large.
@@ -1323,7 +1326,7 @@ struct compressed_bitset_neighbors {
   // P : (uintE, uintE, wgh) -> bool
   // only keep edges s.t. P(...) = true.
   template <class P>
-  inline size_t pack_blocks(P& p, uint8_t* tmp, bool parallel, const flags fl) {
+  inline size_t pack_blocks(uintE vtx_id, P& p, uint8_t* tmp, bool parallel, const flags fl) {
     if (vtx_degree == 0) {
       return 0;
     }
@@ -1345,11 +1348,12 @@ struct compressed_bitset_neighbors {
         uintE orig_block_num = block_metadata[block_id].block_num;
         E* e = get_edges();
 
-//        // (i) decode the block
+        // (i) decode the block
 
         size_t k = 0;
         std::tuple<uintE, W> block_decode[edges_per_block];
         auto t_f = [&](const uintE& ngh, const W& wgh, const uintE& orig_edge_id) {
+          assert(k < edges_per_block);
           block_decode[k++] = std::make_tuple(ngh, wgh);
         };
         bytepd_amortized::template decode_block<W>(t_f, e, vtx_id, vtx_original_degree,

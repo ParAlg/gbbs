@@ -52,7 +52,6 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
   auto Parents = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
-  std::cout << "29 vertex degree = " << G.get_vertex(29).out_degree() << std::endl;
   vertexSubset Frontier(G.n, src);
   size_t reachable = 0;
   while (!Frontier.isEmpty()) {
