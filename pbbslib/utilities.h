@@ -249,6 +249,17 @@ inline void write_add(std::atomic<E>* a, EV b) {
   } while (!std::atomic_compare_exchange_strong(a, &oldV, newV));
 }
 
+template <typename E, typename EV>
+inline void write_minus(E* a, EV b) {
+  // volatile E newV, oldV;
+  E newV, oldV;
+  do {
+    oldV = *a;
+    newV = oldV - b;
+  } while (!atomic_compare_and_swap(a, oldV, newV));
+}
+
+
 template <typename ET, typename F>
 inline bool write_min(ET* a, ET b, F less) {
   ET c;
