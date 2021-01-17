@@ -316,7 +316,8 @@ namespace gbbs {
 
       // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
       parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto[v, index] = starts[i];
+        // const auto[v, index] = starts[i];
+        auto v = std::get<0>(starts[i]); //silence -Wunused-variable warning
         starts_offsets[v] = i;
       });
 
@@ -338,8 +339,9 @@ namespace gbbs {
       });
 
       auto get_new_edgelist = [&] (const uintE& u, size_t u_starts_offset) {
-        auto [up, index] = starts[u_starts_offset];
-        assert(up == u);
+        // auto [up, index] = starts[u_starts_offset];
+        auto index = std::get<1>(starts[u_starts_offset]); //silence -Wunused-variable warning
+        // assert(up == u);
         size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
         if (u_deg == 0) abort();
         auto u_inserts = batch.slice(index, index + u_deg);
@@ -395,7 +397,8 @@ namespace gbbs {
 
       // (cleanup) update starts_offsets mapping for batch vertices (reset at the end of this batch)
       parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto[v, index] = starts[i];
+        // const auto[v, index] = starts[i];
+        const auto v = std::get<0>(starts[i]); //silence -Wunused-variable warning
         starts_offsets[v] = std::numeric_limits<size_t>::max();
       });
     }
@@ -491,7 +494,8 @@ namespace gbbs {
 
       // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
       parallel_for(0, untested_starts.size(), [&] (size_t i) {
-        const auto[v, index] = untested_starts[i];
+        // const auto[v, index] = untested_starts[i];
+        const auto v = std::get<0>(untested_starts[i]); //silence -Wunused-variable warning
         starts_offsets[v] = i;
       });
 
@@ -528,7 +532,8 @@ namespace gbbs {
 
       // (iv) update starts_offsets mapping for batch vertices (reset at the end of this batch)
       parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto[v, index] = starts[i];
+        // const auto[v, index] = starts[i];
+        const auto v = std::get<0>(starts[i]); //silence -Wunused-variable warning
         starts_offsets[v] = i;
       });
 
@@ -548,8 +553,9 @@ namespace gbbs {
       });
 
       auto get_new_edgelist = [&] (const uintE& u, size_t u_starts_offset) {
-        auto [up, index] = starts[u_starts_offset];
-        assert(up == u);
+        // auto [up, index] = starts[u_starts_offset];
+        auto index = std::get<1>(starts[u_starts_offset]); //silence -Wunused-variable warning
+        // assert(up == u);
         size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
         if (u_deg == 0) abort();
         auto u_inserts = batch.slice(index, index + u_deg);
@@ -614,7 +620,8 @@ namespace gbbs {
 
       // (cleanup) update starts_offsets mapping for batch vertices (reset at the end of this batch)
       parallel_for(0, starts.size(), [&] (size_t i) {
-        const auto[v, index] = starts[i];
+        // const auto[v, index] = starts[i];
+        const auto v = std::get<0>(starts[i]); //silence -Wunused-variable warning
         starts_offsets[v] = std::numeric_limits<size_t>::max();
       });
     }
