@@ -32,7 +32,7 @@
 //     -rounds : the number of times to run the algorithm
 
 #include "shared.h"
-#include "Triangle2.h"
+#include "Triangle.h"
 #include "makkar.h"
 
 
