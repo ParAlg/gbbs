@@ -34,17 +34,20 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "KCore.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 namespace gbbs {
 template <class Graph>
 double KCore_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
+  double eps = P.getOptionDoubleValue("-eps", 0.2);
+  bool use_pow = P.getOptionValue("-use_pow");
   std::cout << "### Application: KCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -nb (num_buckets) = " << num_buckets << std::endl;
+  std::cout << "### Params: -nb (num_buckets) = " << num_buckets << " epsilon = " << eps << " use_pow = " << use_pow << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
   if (num_buckets != static_cast<size_t>((1 << pbbslib::log2_up(num_buckets)))) {
     std::cout << "Number of buckets must be a power of two."
@@ -55,10 +58,31 @@ double KCore_runner(Graph& G, commandLine P) {
 
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = approximate_kcore::KCore(G, num_buckets);
+  auto cores = approximate_kcore::KCore(G, num_buckets, eps, use_pow);
   double tt = t.stop();
 
+  double mult_appx = (2 + 2*eps);
   if (P.getOptionValue("-stats")) {
+    auto true_cores = KCore(G, num_buckets);
+    size_t bad = 0;
+    double error = 0.0;
+    for (size_t i=0; i<G.n; i++) {
+      double true_core = true_cores[i];
+      double appx_core = cores[i];
+      if (appx_core > (mult_appx*true_core)) {
+        std::cout << "overappx, true_core = " << true_core << " appx_core = " << appx_core << std::endl;
+        bad++;
+      }
+      if (appx_core < (true_core / mult_appx)) {
+        std::cout << "underappx, true_core = " << true_core << " appx_core = " << appx_core << std::endl;
+        bad++;
+      }
+      if (true_core != 0) {
+        error += std::max(true_core, appx_core) / std::min(true_core, appx_core);
+      }
+    }
+    std::cout << "num bad = " << bad << std::endl;
+    std::cout << "average error = " << (error / G.n) << std::endl;
   }
 
   std::cout << "### Running Time: " << tt << std::endl;

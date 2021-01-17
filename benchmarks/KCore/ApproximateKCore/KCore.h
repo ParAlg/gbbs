@@ -30,7 +30,7 @@ namespace gbbs {
 namespace approximate_kcore {
 
 template <class Graph>
-inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2, bool use_pow = false) {
   const size_t n = G.n;
 
   auto Degrees =
@@ -47,7 +47,9 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
 
   size_t finished = 0, rho = 0, k_max = 0;
 
-  size_t cur_inner_rounds = 0, max_inner_rounds = pbbs::log2_up(1 + G.n);
+  size_t cur_inner_rounds = 0;
+  size_t max_inner_rounds = log(G.n) / log(1.0 + eps);
+  uintE prev_bkt = UINT_E_MAX;
 
   while (finished != n) {
     bt.start();
@@ -57,6 +59,10 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
+    if (k != prev_bkt) {
+      prev_bkt = k;
+      cur_inner_rounds = 0;
+    }
 
     std::cout << "cur_bkt = " << k << " peeled = " << active.size() << " vertices. inner_rounds = " << cur_inner_rounds << " max_inner = " << max_inner_rounds << " remaining = " << (G.n - finished) << std::endl;
 
@@ -78,7 +84,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
       uintE v = std::get<0>(p), edges_removed = std::get<1>(p);
       if (!Degrees[v].second) {
         uintE deg = Degrees[v].first;
-        uintE new_deg = deg - edges_removed;
+        uintE new_deg = std::max(deg - edges_removed, (uintE)(1 << (k-1)));
         assert(new_deg >= 0);
         Degrees[v].first = new_deg;
         uintE new_bkt = std::max(get_bucket(new_deg), k);
@@ -110,12 +116,12 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
   std::cout << "### rho = " << rho << " k_{max} = " << (1 << k_max) << "\n";
   debug(bt.reportTotal("bucket time"););
   b.del();
-  // Can either return 1 << D[i] or the actual degrees when peeled as the
-  // approximate coreness values. TODO: figure out which set of values are
-  // better approximations empirically?
   parallel_for(0, n, [&] (size_t i) {
-    D[i] = Degrees[i].first;
-//    D[i] = 1 << D[i];
+    if (use_pow) {  // use 2^{peeled_bkt} as the coreness estimate
+      D[i] = (D[i] == 0) ? 0 : 1 << D[i];
+    } else {
+      D[i] = Degrees[i].first;  // use capped induced degree when peeled as the coreness estimate
+    }
   });
   return D;
 }
