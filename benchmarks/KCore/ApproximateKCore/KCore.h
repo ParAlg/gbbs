@@ -47,7 +47,6 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
 
   size_t finished = 0, rho = 0, k_max = 0;
 
-  size_t cur_bkt = 0;
   size_t cur_inner_rounds = 0;
   size_t max_inner_rounds = pbbs::log2_up(1 + G.n);
 
@@ -59,7 +58,6 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
-    uintE cur_threshold = 1 << k;
 
     std::cout << "cur_bkt = " << k << " peeled = " << active.size() << " vertices. inner_rounds = " << cur_inner_rounds << " max_inner = " << max_inner_rounds << " remaining = " << (G.n - finished) << std::endl;
 
@@ -96,9 +94,6 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     auto cond_f = [] (const uintE& u) { return true; };
     vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
 
-    for (size_t i=0; i<moved.size(); i++) {
-      auto [v, bkt] = moved.s[i];
-    }
     bt.start();
     if (moved.dense()) {
       b.update_buckets(moved.get_fn_repr(), n);
@@ -112,9 +107,12 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     rho++;
     cur_inner_rounds++;
   }
-  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  std::cout << "### rho = " << rho << " k_{max} = " << (1 << k_max) << "\n";
   debug(bt.reportTotal("bucket time"););
   b.del();
+  parallel_for(0, n, [&] (size_t i) {
+    D[i] = 1 << D[i];
+  });
   return D;
 }
 
