@@ -10,7 +10,10 @@ cc_library(
 cc_binary(
   name = "KCore_main",
   srcs = ["KCore.cc"],
-  deps = [":KCore"]
+  deps = [
+  ":KCore",
+  "//benchmarks/KCore/JulienneDBS17:KCore",
+  ]
 )
 
 package(

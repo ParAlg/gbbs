@@ -41,6 +41,7 @@ template <class Graph>
 double KCore_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
   double eps = P.getOptionDoubleValue("-eps", 0.2);
+  double delta = P.getOptionDoubleValue("-delta", 0.1);
   bool use_pow = P.getOptionValue("-use_pow");
   std::cout << "### Application: KCore" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -58,7 +59,7 @@ double KCore_runner(Graph& G, commandLine P) {
 
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = approximate_kcore::KCore(G, num_buckets, eps, use_pow);
+  auto cores = approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
   double tt = t.stop();
 
   double mult_appx = (2 + 2*eps);

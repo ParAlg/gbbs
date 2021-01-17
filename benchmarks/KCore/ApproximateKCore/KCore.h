@@ -30,14 +30,16 @@ namespace gbbs {
 namespace approximate_kcore {
 
 template <class Graph>
-inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2, bool use_pow = false) {
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2, double delta = 0.1, bool use_pow = false) {
   const size_t n = G.n;
 
   auto Degrees =
       sequence<std::pair<uintE, bool>>(n, [&](size_t i) {
           return std::make_pair(G.get_vertex(i).out_degree(), false); });
+  double one_plus_delta = log(1 + delta);
   auto get_bucket = [&](size_t deg) -> uintE {
-    return pbbs::log2_up(1 + deg);
+    return ceil(log(1 + deg) / one_plus_delta);
+//    return pbbs::log2_up(1 + deg);
   };
   auto D = pbbs::sequence<uintE>(G.n, [&] (size_t i) { return get_bucket(Degrees[i].first); });
 
@@ -79,12 +81,13 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
       Degrees[vtx].second = true;  // set to peeled
     });
 
+    uintE lower_bound = pow((1 + delta), k-1);
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edges_removed = std::get<1>(p);
       if (!Degrees[v].second) {
         uintE deg = Degrees[v].first;
-        uintE new_deg = std::max(deg - edges_removed, (uintE)(1 << (k-1)));
+        uintE new_deg = std::max(deg - edges_removed, lower_bound);
         assert(new_deg >= 0);
         Degrees[v].first = new_deg;
         uintE new_bkt = std::max(get_bucket(new_deg), k);
@@ -113,7 +116,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
     rho++;
     cur_inner_rounds++;
   }
-  std::cout << "### rho = " << rho << " k_{max} = " << (1 << k_max) << "\n";
+  std::cout << "### rho = " << rho << " k_{max} = " << pow(1 + delta, k_max) << "\n";
   debug(bt.reportTotal("bucket time"););
   b.del();
   parallel_for(0, n, [&] (size_t i) {
