@@ -47,8 +47,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
 
   size_t finished = 0, rho = 0, k_max = 0;
 
-  size_t cur_inner_rounds = 0;
-  size_t max_inner_rounds = pbbs::log2_up(1 + G.n);
+  size_t cur_inner_rounds = 0, max_inner_rounds = pbbs::log2_up(1 + G.n);
 
   while (finished != n) {
     bt.start();
@@ -61,16 +60,17 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
 
     std::cout << "cur_bkt = " << k << " peeled = " << active.size() << " vertices. inner_rounds = " << cur_inner_rounds << " max_inner = " << max_inner_rounds << " remaining = " << (G.n - finished) << std::endl;
 
-   if (cur_inner_rounds == max_inner_rounds) {
-     k++;  // new re-insertions will go to at least bucket k (one greater than before).
-     cur_inner_rounds = 0;
-   }
+    // Check if we hit the threshold for inner peeling rounds.
+    if (cur_inner_rounds == max_inner_rounds) {
+      k++;  // new re-insertions will go to at least bucket k (one greater than before).
+      cur_inner_rounds = 0;
+    }
 
+    // Mark peeled vertices as done.
     parallel_for(0, active.size(), [&] (size_t i) {
       uintE vtx = active.s[i];
       assert(!Degrees[vtx].second);  // not yet peeled
       Degrees[vtx].second = true;  // set to peeled
-      Degrees[vtx].first = 0;
     });
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -110,8 +110,12 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
   std::cout << "### rho = " << rho << " k_{max} = " << (1 << k_max) << "\n";
   debug(bt.reportTotal("bucket time"););
   b.del();
+  // Can either return 1 << D[i] or the actual degrees when peeled as the
+  // approximate coreness values. TODO: figure out which set of values are
+  // better approximations empirically?
   parallel_for(0, n, [&] (size_t i) {
-    D[i] = 1 << D[i];
+    D[i] = Degrees[i].first;
+//    D[i] = 1 << D[i];
   });
   return D;
 }
