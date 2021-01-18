@@ -197,7 +197,6 @@ struct LDS {
   bool insert_edge(edge_type e) {
     if (edge_exists(e)) return false;
     auto[u, v] = e;
-    std::cout << "inserting edge: " << u << " " << v << std::endl;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     L[u].insert_neighbor(v, l_v);
@@ -238,10 +237,9 @@ template <class Graph>
 inline void RunLDS(Graph& G) {
   using W = typename Graph::weight_type;
   auto layers = LDS(G.n);
-  for (size_t i = 0; i < 1000; i++) {
+  for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
-        // std::cout << "inserting u = " << u << " v = " << v << std::endl;
         bool ret = layers.insert_edge({u, v});
         assert(ret);
       }
@@ -252,10 +250,9 @@ inline void RunLDS(Graph& G) {
   std::cout << "Finished all insertions!" << std::endl;
   layers.check_invariants();
 
-  for (size_t i = 0; i < 1000; i++) {
+  for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
-        // std::cout << "deleting u = " << u << " v = " << v << std::endl;
         bool ret = layers.delete_edge({u, v});
         assert(ret);
       }
