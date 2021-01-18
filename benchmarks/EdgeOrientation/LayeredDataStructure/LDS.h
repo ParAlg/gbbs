@@ -106,10 +106,6 @@ struct LDS {
       return down[level - 1].size() >= static_cast<size_t>(1 << lower_group);
     }
 
-    template <class Levels>
-    void level_decrease(uintE u, Levels& L) {
-      exit(-1);
-    }
   };
 
   // number of inner-levels per group,  O(\log n) many.
@@ -122,16 +118,51 @@ struct LDS {
     L = pbbs::sequence<LDSVertex>(n);
   }
 
+  uintE get_level(uintE ngh) {
+    return L[ngh].level;
+  }
+
+  // Moving u from level to level - 1.
+  template <class Levels>
+  void level_decrease(uintE u, Levels& L) {
+    uintE level = L[u].level;
+    auto& up = L[u].up;
+    assert(level > 0);
+    auto& prev_level = L[u].down[level - 1];
+
+    for (const auto& ngh : prev_level) {
+      up.insert(ngh);
+    }
+    L[u].down.pop_back();  // delete the last level in u's structure.
+
+    for (const auto& ngh : up) {
+      if (get_level(ngh) == level) {
+        L[ngh].up.erase(L[ngh].up.find(u));
+        L[ngh].down[level-1].insert(u);
+      } else if (get_level(ngh) > level) {
+        L[ngh].down[level].erase(L[ngh].down[level].find(u));
+        L[ngh].down[level - 1].insert(u);
+
+        if (get_level(ngh) == level + 1) {
+          Dirty.push(ngh);
+        }
+      } else {
+        // u is still "up" for this ngh, no need to update.
+        assert(get_level(ngh) == (level - 1));
+      }
+    }
+    L[u].level--;  // decrease level
+  }
+
   // Moving u from level to level + 1.
   template <class Levels>
   void level_increase(uintE u, Levels& L) {
-//    std::cout << "Start of level increase for u = " << u << std::endl;
     uintE level = L[u].level;
     std::vector<uintE> same_level;
     auto& up = L[u].up;
+
     for (auto it = up.begin(); it != up.end();) {
       uintE ngh = *it;
-//      std::cout << "processing ngh = " << ngh << " level = " << L[ngh].level << std::endl;
       if (L[ngh].level == level) {
         same_level.emplace_back(ngh);
         it = up.erase(it);
@@ -146,10 +177,11 @@ struct LDS {
           assert(L[ngh].level == level + 1);
           L[ngh].down[level].erase(L[ngh].down[level].find(u));
           L[ngh].up.insert(u);
+
+          Dirty.push(ngh);
         }
       }
     }
-
     // We've now split L[u].up into stuff in the same level (before the
     // update) and stuff in levels >= level + 1. Insert same_level elms
     // into down.
@@ -159,12 +191,8 @@ struct LDS {
     for (const auto& ngh : same_level) {
       down[level].insert(ngh);
     }
-
-//    std::cout << "Increased u = " << u << " level from " << level << " to " << (level + 1) << std::endl;
-//    std::cout << "same_level = " << same_level.size() << std::endl;
     L[u].level++;  // Increase level.
   }
-
 
   void fixup() {
     while (!Dirty.empty()) {
@@ -175,7 +203,7 @@ struct LDS {
         level_increase(u, L);
         Dirty.push(u);  // u might need to move up more levels.
       } else if (!L[u].lower_invariant(levels_per_group)) {
-        L[u].level_decrease(u, L);
+        level_decrease(u, L);
       }
     }
   }
@@ -185,15 +213,16 @@ struct LDS {
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     if (l_u < l_v) {  // look in up(u)
-      return (L[u].up.find(u) != L[u].up.end());
+      return (L[u].up.find(v) != L[u].up.end());
     } else {  // look in up(v)
-      return (L[v].up.find(v) != L[u].up.end());
+      return (L[v].up.find(u) != L[v].up.end());
     }
   }
 
-  void insert_edge(edge_type e) {
-    if (edge_exists(e)) return;
+  bool insert_edge(edge_type e) {
+    if (edge_exists(e)) return false;
     auto[u, v] = e;
+    std::cout << "inserting edge: " << u << " " << v << std::endl;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     L[u].insert_neighbor(v, l_v);
@@ -202,10 +231,12 @@ struct LDS {
     Dirty.push(u);
     Dirty.push(v);
     fixup();
+    return true;
   }
 
-  void delete_edge(edge_type e) {
-    if (!edge_exists(e)) return;
+  bool delete_edge(edge_type e) {
+    assert(edge_exists(e));
+    if (!edge_exists(e)) return false;
     auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
@@ -214,6 +245,7 @@ struct LDS {
 
     Dirty.push(u); Dirty.push(v);
     fixup();
+    return true;
   }
 
   inline uintE group_for_level(uintE level) const {
@@ -225,16 +257,37 @@ template <class Graph>
 inline void RunLDS(Graph& G) {
   using W = typename Graph::weight_type;
   auto layers = LDS(G.n);
-  for (size_t i = 0; i < G.n; i++) {
+  for (size_t i = 0; i < 1000; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
-        std::cout << "inserting u = " << u << " v = " << v << std::endl;
-        layers.insert_edge({u, v});
+        // std::cout << "inserting u = " << u << " v = " << v << std::endl;
+        bool ret = layers.insert_edge({u, v});
+        assert(ret);
       }
     };
     G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
   }
+
   std::cout << "Finished all insertions!" << std::endl;
+
+  for (size_t i = 0; i < 1000; i++) {
+    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+      if (u < v) {
+        // std::cout << "deleting u = " << u << " v = " << v << std::endl;
+        bool ret = layers.delete_edge({u, v});
+        assert(ret);
+      }
+    };
+    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
+  }
+
+  std::cout << "Finished all deletions!" << std::endl;
+
+  size_t sum_lev = 0;
+  for (size_t i=0; i<G.n; i++) {
+    sum_lev += layers.L[i].level;
+  }
+  std::cout << "sum_lev = " << sum_lev << std::endl;
 }
 
 }  // namespace gbbs
