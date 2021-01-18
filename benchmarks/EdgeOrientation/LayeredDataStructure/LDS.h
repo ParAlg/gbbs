@@ -96,6 +96,7 @@ struct LDS {
 
     inline bool upper_invariant(const size_t levels_per_group) const {
       uintE group = level / levels_per_group;
+//      std::cout << "up.size = " << up.size() << " thresh = " << static_cast<size_t>(5 * (1 << group)) << std::endl;
       return up.size() <= static_cast<size_t>(5 * (1 << group));
     }
 
@@ -103,42 +104,6 @@ struct LDS {
       if (level == 0) return true;
       uintE lower_group = (level - 1) / levels_per_group;
       return down[level - 1].size() >= static_cast<size_t>(1 << lower_group);
-    }
-
-    // Moving u from level to level + 1.
-    template <class Levels>
-    void level_increase(uintE u, Levels& L) {
-      std::vector<uintE> same_level;
-      for (auto it = up.begin(); it != up.end();) {
-        uintE ngh = *it;
-        if (L[ngh].level == level) {
-          same_level.emplace_back(ngh);
-          it = up.erase(it);
-          // u is still "up" for this ngh, no need to update.
-        } else {
-          it++;
-          // Must update ngh's accounting of u.
-          if (L[ngh].level > level + 1) {
-            L[ngh].down[level].erase(L[ngh].down[level].find(u));
-            L[ngh].down[level + 1].insert(ngh);
-          } else {
-            assert(L[ngh].level == level + 1);
-            L[ngh].down[level].erase(L[ngh].down[level].find(u));
-            L[ngh].up.insert(u);
-          }
-        }
-      }
-
-      // We've now split L[u].up into stuff in the same level (before the
-      // update) and stuff in levels >= level + 1. Insert same_level elms
-      // into down.
-      down.emplace_back(std::unordered_set<uintE>());
-      assert(down.size() == level + 1);  // [0, level)
-      for (const auto& ngh : same_level) {
-        down[level].insert(ngh);
-      }
-
-      level = level + 1;  // Increase level.
     }
 
     template <class Levels>
@@ -157,13 +122,57 @@ struct LDS {
     L = pbbs::sequence<LDSVertex>(n);
   }
 
-  void Fixup() {
+  // Moving u from level to level + 1.
+  template <class Levels>
+  void level_increase(uintE u, Levels& L) {
+//    std::cout << "Start of level increase for u = " << u << std::endl;
+    uintE level = L[u].level;
+    std::vector<uintE> same_level;
+    auto& up = L[u].up;
+    for (auto it = up.begin(); it != up.end();) {
+      uintE ngh = *it;
+//      std::cout << "processing ngh = " << ngh << " level = " << L[ngh].level << std::endl;
+      if (L[ngh].level == level) {
+        same_level.emplace_back(ngh);
+        it = up.erase(it);
+        // u is still "up" for this ngh, no need to update.
+      } else {
+        it++;
+        // Must update ngh's accounting of u.
+        if (L[ngh].level > level + 1) {
+          L[ngh].down[level].erase(L[ngh].down[level].find(u));
+          L[ngh].down[level + 1].insert(u);
+        } else {
+          assert(L[ngh].level == level + 1);
+          L[ngh].down[level].erase(L[ngh].down[level].find(u));
+          L[ngh].up.insert(u);
+        }
+      }
+    }
+
+    // We've now split L[u].up into stuff in the same level (before the
+    // update) and stuff in levels >= level + 1. Insert same_level elms
+    // into down.
+    auto& down = L[u].down;
+    down.emplace_back(std::unordered_set<uintE>());
+    assert(down.size() == level + 1);  // [0, level)
+    for (const auto& ngh : same_level) {
+      down[level].insert(ngh);
+    }
+
+//    std::cout << "Increased u = " << u << " level from " << level << " to " << (level + 1) << std::endl;
+//    std::cout << "same_level = " << same_level.size() << std::endl;
+    L[u].level++;  // Increase level.
+  }
+
+
+  void fixup() {
     while (!Dirty.empty()) {
       uintE u = Dirty.top();
       Dirty.pop();
       if (!L[u].upper_invariant(levels_per_group)) {
         // Move u to level i+1.
-        L[u].level_increase(u, L);
+        level_increase(u, L);
         Dirty.push(u);  // u might need to move up more levels.
       } else if (!L[u].lower_invariant(levels_per_group)) {
         L[u].level_decrease(u, L);
@@ -192,7 +201,7 @@ struct LDS {
 
     Dirty.push(u);
     Dirty.push(v);
-    Fixup();
+    fixup();
   }
 
   void delete_edge(edge_type e) {
@@ -204,7 +213,7 @@ struct LDS {
     L[v].remove_neighbor(u, l_u);
 
     Dirty.push(u); Dirty.push(v);
-    Fixup();
+    fixup();
   }
 
   inline uintE group_for_level(uintE level) const {
