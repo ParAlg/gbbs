@@ -37,6 +37,7 @@ double LDS_runner(Graph& G, commandLine P) {
 
   timer t; t.start();
 
+  RunLDS(G);
 //  auto cores = (fa) ? LDS_FA(G, num_buckets) : LDS(G, num_buckets);
   double tt = t.stop();
 

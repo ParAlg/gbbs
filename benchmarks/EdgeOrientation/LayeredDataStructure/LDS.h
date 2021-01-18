@@ -25,6 +25,7 @@
 
 #include <unordered_set>
 #include <vector>
+#include <stack>
 
 #include "gbbs/gbbs.h"
 
@@ -77,10 +78,10 @@ struct LDS {
     LDSVertex() : level(0) {}
 
     void insert_neighbor(uintE v, uintE l_v) {
-      if (l_v < level) {  // insert into down
+      if (l_v < level) {
         assert(down.size() > l_v);
         down[l_v].insert(v);
-      } else {  // l_v >= level. insert into up
+      } else {
         up.insert(v);
       }
     }
@@ -92,14 +93,82 @@ struct LDS {
         up.erase(up.find(v));
       }
     }
+
+    inline bool upper_invariant(const size_t levels_per_group) const {
+      uintE group = level / levels_per_group;
+      return up.size() <= static_cast<size_t>(5 * (1 << group));
+    }
+
+    inline bool lower_invariant(const size_t levels_per_group) const {
+      if (level == 0) return true;
+      uintE lower_group = (level - 1) / levels_per_group;
+      return down[level - 1].size() >= static_cast<size_t>(1 << lower_group);
+    }
+
+    // Moving u from level to level + 1.
+    template <class Levels>
+    void level_increase(uintE u, Levels& L) {
+      std::vector<uintE> same_level;
+      for (auto it = up.begin(); it != up.end();) {
+        uintE ngh = *it;
+        if (L[ngh].level == level) {
+          same_level.emplace_back(ngh);
+          it = up.erase(it);
+          // u is still "up" for this ngh, no need to update.
+        } else {
+          it++;
+          // Must update ngh's accounting of u.
+          if (L[ngh].level > level + 1) {
+            L[ngh].down[level].erase(L[ngh].down[level].find(u));
+            L[ngh].down[level + 1].insert(ngh);
+          } else {
+            assert(L[ngh].level == level + 1);
+            L[ngh].down[level].erase(L[ngh].down[level].find(u));
+            L[ngh].up.insert(u);
+          }
+        }
+      }
+
+      // We've now split L[u].up into stuff in the same level (before the
+      // update) and stuff in levels >= level + 1. Insert same_level elms
+      // into down.
+      down.emplace_back(std::unordered_set<uintE>());
+      assert(down.size() == level + 1);  // [0, level)
+      for (const auto& ngh : same_level) {
+        down[level].insert(ngh);
+      }
+
+      level = level + 1;  // Increase level.
+    }
+
+    template <class Levels>
+    void level_decrease(uintE u, Levels& L) {
+      exit(-1);
+    }
   };
 
-  size_t levels_per_group;  // number of inner-levels per group O(\log n) many.
+  // number of inner-levels per group,  O(\log n) many.
+  size_t levels_per_group;
   pbbs::sequence<LDSVertex> L;
+  std::stack<uintE> Dirty;
 
   LDS(size_t n) : n(n) {
     levels_per_group = pbbs::log2_up(n);
     L = pbbs::sequence<LDSVertex>(n);
+  }
+
+  void Fixup() {
+    while (!Dirty.empty()) {
+      uintE u = Dirty.top();
+      Dirty.pop();
+      if (!L[u].upper_invariant(levels_per_group)) {
+        // Move u to level i+1.
+        L[u].level_increase(u, L);
+        Dirty.push(u);  // u might need to move up more levels.
+      } else if (!L[u].lower_invariant(levels_per_group)) {
+        L[u].level_decrease(u, L);
+      }
+    }
   }
 
   bool edge_exists(edge_type e) {
@@ -115,20 +184,27 @@ struct LDS {
 
   void insert_edge(edge_type e) {
     if (edge_exists(e)) return;
-    auto [u, v] = e;
+    auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     L[u].insert_neighbor(v, l_v);
     L[v].insert_neighbor(u, l_u);
+
+    Dirty.push(u);
+    Dirty.push(v);
+    Fixup();
   }
 
   void delete_edge(edge_type e) {
     if (!edge_exists(e)) return;
-    auto [u, v] = e;
+    auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     L[u].remove_neighbor(v, l_v);
     L[v].remove_neighbor(u, l_u);
+
+    Dirty.push(u); Dirty.push(v);
+    Fixup();
   }
 
   inline uintE group_for_level(uintE level) const {
@@ -143,6 +219,7 @@ inline void RunLDS(Graph& G) {
   for (size_t i = 0; i < G.n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
+        std::cout << "inserting u = " << u << " v = " << v << std::endl;
         layers.insert_edge({u, v});
       }
     };
