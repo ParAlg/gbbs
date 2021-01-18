@@ -208,7 +208,6 @@ struct LDS {
   }
 
   bool delete_edge(edge_type e) {
-    assert(edge_exists(e));
     if (!edge_exists(e)) return false;
     auto[u, v] = e;
     auto l_u = L[u].level;
@@ -241,8 +240,7 @@ inline void RunLDS(Graph& G) {
   for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
-        bool ret = layers.insert_edge({u, v});
-        assert(ret);
+        layers.insert_edge({u, v});
       }
     };
     G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
@@ -254,8 +252,7 @@ inline void RunLDS(Graph& G) {
   for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
-        bool ret = layers.delete_edge({u, v});
-        assert(ret);
+        layers.delete_edge({u, v});
       }
     };
     G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
