@@ -236,7 +236,8 @@ struct LDS {
 template <class Graph>
 inline void RunLDS(Graph& G) {
   using W = typename Graph::weight_type;
-  auto layers = LDS(G.n);
+  size_t n = G.n;
+  auto layers = LDS(n);
   for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
