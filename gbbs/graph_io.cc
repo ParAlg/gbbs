@@ -31,7 +31,7 @@ void skip_ifstream_comments(std::ifstream* stream) {
 }  // namespace internal
 
 template <>
-Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
+Edge<gbbs::empty>::Edge(const uintE _from, const uintE _to)
   : from(_from)
   , to(_to) {}
 
@@ -83,7 +83,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
   return std::make_tuple(n, m, offsets, edges);
 }
 
-symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
+symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
     const char* fname,
     bool mmap,
     char* bytes,
@@ -104,7 +104,7 @@ symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_grap
       v_data, n, m, [=](){ pbbslib::free_arrays(v_data, edges); }, (std::tuple<uintE, pbbs::empty>*)edges);
 }
 
-asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
+asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_graph(
     const char* fname,
     bool mmap,
     char* bytes,
@@ -192,7 +192,7 @@ std::tuple<char*, size_t> parse_compressed_graph(
   return std::make_tuple(bytes, bytes_size);
 }
 
-std::vector<Edge<pbbslib::empty>>
+std::vector<Edge<gbbs::empty>>
 read_unweighted_edge_list(const char* filename) {
   std::ifstream file{filename};
   if (!file.is_open()) {
@@ -201,7 +201,7 @@ read_unweighted_edge_list(const char* filename) {
   }
   internal::skip_ifstream_comments(&file);
 
-  std::vector<Edge<pbbslib::empty>> edge_list;
+  std::vector<Edge<gbbs::empty>> edge_list;
   uintE from;
   uintE to;
   while (file >> from >> to) {

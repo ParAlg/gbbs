@@ -160,33 +160,33 @@ struct vertexSubsetData {
   size_t sum_out_degrees;
 };
 
-// Specialized version where data = pbbslib::empty.
+// Specialized version where data = gbbs::empty.
 template <>
-struct vertexSubsetData<pbbslib::empty> {
+struct vertexSubsetData<gbbs::empty> {
   using S = uintE;
 
   // An empty vertex set.
-  vertexSubsetData<pbbslib::empty>(size_t _n)
+  vertexSubsetData<gbbs::empty>(size_t _n)
       : n(_n), m(0), s(NULL), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset with a single vertex.
-  vertexSubsetData<pbbslib::empty>(size_t _n, uintE v)
+  vertexSubsetData<gbbs::empty>(size_t _n, uintE v)
       : n(_n), m(1), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     s = parlay::sequence<uintE>(1);
     s[0] = v;
   }
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m, S* indices)
+  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, S* indices)
       : n(_n), m(_m), s(indices), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m,
-                                   std::tuple<uintE, pbbslib::empty>* indices)
+  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m,
+                                   std::tuple<uintE, gbbs::empty>* indices)
       : n(_n), m(_m), s((uintE*)indices), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from a sequence.
-  vertexSubsetData<pbbslib::empty>(size_t _n, sequence<S>& seq,
+  vertexSubsetData<gbbs::empty>(size_t _n, sequence<S>& seq,
                                    bool transfer = true)
       : n(_n), m(seq.size()), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     if (transfer) {
@@ -196,20 +196,20 @@ struct vertexSubsetData<pbbslib::empty> {
     }
   }
 
-  vertexSubsetData<pbbslib::empty>(size_t n, sequence<S>&& seq)
+  vertexSubsetData<gbbs::empty>(size_t n, sequence<S>&& seq)
       : n(n), d(NULL), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     m = seq.size();
     s = seq.to_array();
   }
 
   // A vertexSubset from boolean array giving number of true values.
-  vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m, bool* _d)
+  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, bool* _d)
       : n(_n), m(_m), s(NULL), d(_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
   template <class BoolSeq>
-  vertexSubsetData<pbbslib::empty>(size_t _n, const BoolSeq& _d)
+  vertexSubsetData<gbbs::empty>(size_t _n, const BoolSeq& _d)
       : n(_n), s(NULL), d(_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto d_map = parlay::delayed_seq<size_t>(n, [&](size_t i) { return _d[i]; });  // TODO: unnecessary
     m = pbbslib::reduce_add(d_map);
@@ -217,8 +217,8 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData<pbbslib::empty>(size_t _n,
-                                   std::tuple<bool, pbbslib::empty>* _d)
+  vertexSubsetData<gbbs::empty>(size_t _n,
+                                   std::tuple<bool, gbbs::empty>* _d)
       : n(_n), s(NULL), d((bool*)_d), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto d_map = parlay::delayed_seq<size_t>(n, [&](size_t i) { return std::get<0>(_d[i]); });
     m = pbbslib::reduce_add(d_map);
@@ -241,37 +241,37 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // Sparse
   inline uintE& vtx(const uintE& i) const { return s[i]; }
-  inline pbbslib::empty vtxData(const uintE& i) const {
-    return pbbslib::empty();
+  inline gbbs::empty vtxData(const uintE& i) const {
+    return gbbs::empty();
   }
-  inline std::tuple<uintE, pbbslib::empty> vtxAndData(const uintE& i) const {
-    return std::make_tuple(s[i], pbbslib::empty());
+  inline std::tuple<uintE, gbbs::empty> vtxAndData(const uintE& i) const {
+    return std::make_tuple(s[i], gbbs::empty());
   }
 
   // Dense
   __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
     return d[v];
   }
-  inline pbbslib::empty ithData(const uintE& v) const {
-    return pbbslib::empty();
+  inline gbbs::empty ithData(const uintE& v) const {
+    return gbbs::empty();
   }
 
   // Returns (uintE) -> std::optional<std::tuple<vertex, vertex-data>>.
   auto get_fn_repr() const
-      -> std::function<std::optional<std::tuple<uintE, pbbslib::empty>>(uintE)> {
-    std::function<std::optional<std::tuple<uintE, pbbslib::empty>>(const uintE&)> fn;
+      -> std::function<std::optional<std::tuple<uintE, gbbs::empty>>(uintE)> {
+    std::function<std::optional<std::tuple<uintE, gbbs::empty>>(const uintE&)> fn;
     if (isDense) {
-      fn = [&](const uintE& v) -> std::optional<std::tuple<uintE, pbbslib::empty>> {
+      fn = [&](const uintE& v) -> std::optional<std::tuple<uintE, gbbs::empty>> {
         if (d[v]) {
-          return std::optional<std::tuple<uintE, pbbslib::empty>>(std::make_tuple(v, pbbslib::empty()));
+          return std::optional<std::tuple<uintE, gbbs::empty>>(std::make_tuple(v, pbbslib::empty()));
         } else {
           return std::nullopt;
         }
       };
     } else {
-      fn = [&](const uintE& i) -> std::optional<std::tuple<uintE, pbbslib::empty>> {
-        return std::optional<std::tuple<uintE, pbbslib::empty>>(
-            std::make_tuple(s[i], pbbslib::empty()));
+      fn = [&](const uintE& i) -> std::optional<std::tuple<uintE, gbbs::empty>> {
+        return std::optional<std::tuple<uintE, gbbs::empty>>(
+            std::make_tuple(s[i], gbbs::empty()));
       };
     }
     return fn;
@@ -320,7 +320,7 @@ struct vertexSubsetData<pbbslib::empty> {
   bool isDense;
   size_t sum_out_degrees;
 };
-using vertexSubset = vertexSubsetData<pbbslib::empty>;
+using vertexSubset = vertexSubsetData<gbbs::empty>;
 
 /* ======================== Functions on VertexSubsets ====================== */
 

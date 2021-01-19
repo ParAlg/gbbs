@@ -27,7 +27,7 @@ void CheckUnweightedNeighbors(
 }  // namespace internal
 
 // Make an undirected, unweighted graph from a list of edges.
-symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
+symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
     const uintE num_vertices,
     const std::unordered_set<UndirectedEdge>& edges);
 

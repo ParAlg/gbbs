@@ -91,14 +91,14 @@ inline vertexSubsetData<O> edgeMapCount_sparse(
       "Currently apply_f must emit the same type as the count-type (uintE)");
   using W = typename Graph::weight_type;
   auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
-    return pbbslib::empty();
+    return gbbs::empty();
   };
   size_t m = vs.size();
   if (m == 0) {
     return vertexSubsetData<O>(vs.numNonzeros());
   }
   uintE empty_key = std::get<0>(ht.empty);
-  auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, cond_f,
+  auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(GA, vs, map_f, cond_f,
                                                           empty_key, fl);
   oneHop.toSparse();
 
@@ -417,7 +417,7 @@ struct EdgeMap {
   inline vertexSubsetData<O> edgeMapCount_sparse(VS& vs, Apply& apply_f,
                                                  const flags fl = 0) {
     auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
-      return pbbslib::empty();
+      return gbbs::empty();
     };
     size_t m = vs.size();
     if (m == 0) {
@@ -425,7 +425,7 @@ struct EdgeMap {
     }
     auto cond_f = [&](const uintE& u) { return true; };
     uintE empty_key = std::get<0>(ht.empty);
-    auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(
+    auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(
         G, vs, map_f, cond_f, empty_key, fl);
     oneHop.toSparse();
 

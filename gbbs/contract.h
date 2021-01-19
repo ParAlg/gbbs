@@ -39,7 +39,7 @@ namespace contract {
   std::pair<edge*, size_t> fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters) {
     debug(std::cout << "# Running fetch edges small" << std::endl;);
     using K = std::tuple<uintE, uintE>;
-    using V = pbbslib::empty;
+    using V = gbbs::empty;
     using KV = std::tuple<K, V>;
     using W = typename Graph::weight_type;
 
@@ -47,7 +47,7 @@ namespace contract {
     size_t n = GA.n;
 
     KV empty =
-        std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());
+        std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), gbbs::empty());
     auto hash_pair = [](const std::tuple<uintE, uintE>& t) {
       size_t l = std::min(std::get<0>(t), std::get<1>(t));
       size_t r = std::max(std::get<0>(t), std::get<1>(t));
@@ -62,7 +62,7 @@ namespace contract {
       uintE c_ngh = clusters[ngh];
       if (c_src < c_ngh) {
         edge_table.insert(
-            std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()));
+            std::make_tuple(std::make_tuple(c_src, c_ngh), gbbs::empty()));
       }
     };
     par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
@@ -80,7 +80,7 @@ namespace contract {
   std::pair<edge*, size_t> fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters) {
     debug(std::cout << "# Running fetch edges te" << std::endl;);
     using K = std::tuple<uintE, uintE>;
-    using V = pbbslib::empty;
+    using V = gbbs::empty;
     using KV = std::tuple<K, V>;
     using W = typename Graph::weight_type;
 
@@ -105,7 +105,7 @@ namespace contract {
     pbbs::timer ins_t;
     ins_t.start();
     KV empty =
-        std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());
+        std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), gbbs::empty());
     auto hash_pair = [](const std::tuple<uintE, uintE>& t) {
       size_t l = std::min(std::get<0>(t), std::get<1>(t));
       size_t r = std::max(std::get<0>(t), std::get<1>(t));
@@ -121,7 +121,7 @@ namespace contract {
       uintE c_ngh = clusters[ngh];
       if (c_src < c_ngh) {
         edge_table.insert(
-            std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()));
+            std::make_tuple(std::make_tuple(c_src, c_ngh), gbbs::empty()));
       }
     };
     par_for(0, n, 1, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); });
@@ -138,7 +138,7 @@ namespace contract {
   template <class Graph, class C>
   std::pair<edge*, size_t> fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters) {
     using K = std::tuple<uintE, uintE>;
-    using V = pbbslib::empty;
+    using V = gbbs::empty;
     using KV = std::tuple<K, V>;
     using W = typename Graph::weight_type;
     size_t n = GA.n;
@@ -148,7 +148,7 @@ namespace contract {
     pbbs::timer ins_t;
     ins_t.start();
     KV empty =
-        std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), pbbslib::empty());
+        std::make_tuple(std::make_tuple(UINT_E_MAX, UINT_E_MAX), gbbs::empty());
     auto hash_pair = [](const std::tuple<uintE, uintE>& t) {
       size_t l = std::min(std::get<0>(t), std::get<1>(t));
       size_t r = std::max(std::get<0>(t), std::get<1>(t));
@@ -164,7 +164,7 @@ namespace contract {
       uintE c_ngh = clusters[ngh];
       if (c_src < c_ngh) {
         edge_table.insert_check(
-            std::make_tuple(std::make_tuple(c_src, c_ngh), pbbslib::empty()), &abort);
+            std::make_tuple(std::make_tuple(c_src, c_ngh), gbbs::empty()), &abort);
       }
     };
     parallel_for(0, n, [&] (size_t i) { GA.get_vertex(i).out_neighbors().map(map_f); }, 1);
@@ -206,7 +206,7 @@ namespace contract {
   // (2) A sequence `T` that is the inverse to (1). Vertex i in the contracted
   //   graph is the contraction of cluster `T[i]`.
   template <class Graph>
-  inline std::tuple<symmetric_graph<symmetric_vertex, pbbslib::empty>, sequence<uintE>, sequence<uintE>>
+  inline std::tuple<symmetric_graph<symmetric_vertex, gbbs::empty>, sequence<uintE>, sequence<uintE>>
   contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
     using K = std::tuple<uintE, uintE, pbbs::empty>;
@@ -252,7 +252,7 @@ namespace contract {
 
     pbbs::free_array(edges);
 
-    auto GC = sym_graph_from_edges<pbbslib::empty>(/* edges = */sym_edges, /* n = */num_ns_clusters);
+    auto GC = sym_graph_from_edges<gbbs::empty>(/* edges = */sym_edges, /* n = */num_ns_clusters);
     return std::make_tuple(GC, std::move(flags), std::move(mapping));
   }
 

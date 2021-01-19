@@ -5,10 +5,10 @@
 namespace gbbs {
 namespace graph_test {
 
-symmetric_graph<symmetric_vertex, pbbslib::empty> MakeUnweightedSymmetricGraph(
+symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
     const uintE num_vertices,
     const std::unordered_set<UndirectedEdge>& edges) {
-  using Edge = std::tuple<uintE, uintE, pbbslib::empty>;
+  using Edge = std::tuple<uintE, uintE, gbbs::empty>;
 
   constexpr pbbs::empty weight{};
   pbbs::sequence<Edge> edge_sequence(edges.size() * 2);

@@ -160,7 +160,7 @@ template <class Graph /* graph type */, class VS /* vertex_subset type */,
           class F /* edgeMap struct */>
 inline vertexSubset edgeMap(Graph& GA, VS& vs, F f, intT threshold = -1,
                             const flags& fl = 0) {
-  return edgeMapData<pbbslib::empty>(GA, vs, f, threshold, fl);
+  return edgeMapData<gbbs::empty>(GA, vs, f, threshold, fl);
 }
 
 // Adds vertices to a vertexSubset vs.
