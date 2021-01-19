@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
 namespace gbbs {
@@ -100,7 +99,7 @@ size_t seq_merge(const SeqA& A, const SeqB& B, const F& f) {
   size_t ct = 0;
   for (size_t i=0; i < nA; i++) {
     const T& a = A[i];
-    size_t mB = pbbslib::binary_search(B, a, std::less<T>());
+    size_t mB = parlay::internal::binary_search(B, a, std::less<T>());
     if (mB < B.size() && a == B[mB]) {
       f(a);
       ct++;
@@ -123,7 +122,7 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
     return intersection::seq_merge(A, B, f);
   } else {
     size_t mA = nA/2;
-    size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
+    size_t mB = parlay::internal::binary_search(B, A[mA], std::less<T>());
     size_t m_left = 0;
     size_t m_right = 0;
     par_do([&] () { m_left = intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
@@ -138,9 +137,9 @@ inline size_t intersect_f_par(Nghs* A, Nghs* B, const F& f) {
   uintE* nghA = (uintE*)(A->neighbors);
   uintE* nghB = (uintE*)(B->neighbors);
 
-  // Will not work if W is not pbbslib::empty, should assert.
-  auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
-  auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
+  // Will not work if W is not gbbs::empty, should assert.
+  auto seqA = parlay::make_slice(nghA, nA);
+  auto seqB = parlay::make_slice(nghB, nB);
 
   uintE a = A->id;
   uintE b = B->id;

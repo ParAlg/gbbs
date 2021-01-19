@@ -119,6 +119,12 @@ cc_library(
 )
 
 cc_library(
+  name = "get_time",
+  hdrs = ["get_time.h"],
+  srcs = ["get_time.cc"],
+)
+
+cc_library(
   name = "graph_mutation",
   hdrs = ["graph_mutation.h"],
   deps = [

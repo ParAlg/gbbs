@@ -26,7 +26,7 @@
 // case of directed/asymmetric graphs).
 //
 // The classes have two templates, W and C:
-// W : the weight type of the underlying graph (pbbslib::empty if unweighted)
+// W : the weight type of the underlying graph (gbbs::empty if unweighted)
 // C : the compression format used. See encodings/decoders.h.
 //
 // To avoid duplication, a lot of the implementation is factored out into
@@ -39,7 +39,7 @@
 
 #include "encodings/decoders.h"
 #include "macros.h"
-#include "pbbslib/monoid.h"
+#include "bridge.h"
 
 namespace gbbs {
 
@@ -86,7 +86,7 @@ struct compressed_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto monoid = pbbs::addm<size_t>();
+    auto monoid = parlay::addm<size_t>();
     return C::template map_reduce<W>(neighbors, id, degree, f, monoid, parallel);
   }
 

@@ -49,7 +49,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
   size_t n = GA.n;
   auto dense_par = fl & dense_parallel;
   if (should_output(fl)) {
-    D* next = pbbslib::new_array_no_init<D>(n);
+    auto next = parlay::sequence<D>(n);
     auto g = get_emdense_gen<Data>(next);
     parallel_for(
         0, n,
@@ -61,7 +61,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
           }
         },
         (fl & fine_parallel) ? 1 : 2048);
-    return vertexSubsetData<Data>(n, next);
+    return vertexSubsetData<Data>(n, std::move(next));
   } else {
     auto g = get_emdense_nooutput_gen<Data>();
     parallel_for(0, n,
@@ -86,25 +86,24 @@ inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F
   using D = std::tuple<bool, Data>;
   size_t n = GA.n;
   if (should_output(fl)) {
-    D* next = pbbslib::new_array_no_init<D>(n);
+    auto next = parlay::sequence<D>(n);
     auto g = get_emdense_forward_gen<Data>(next);
-    par_for(0, n, pbbslib::kSequentialForThreshold,
-            [&](size_t i) { std::get<0>(next[i]) = 0; });
-    par_for(0, n, 1, [&](size_t i) {
+    parallel_for(0, n, [&](size_t i) { std::get<0>(next[i]) = 0; });
+    parallel_for(0, n, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
         auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
         neighbors.decode(f, g);
       }
-    });
-    return vertexSubsetData<Data>(n, next);
+    }, 1);
+    return vertexSubsetData<Data>(n, std::move(next));
   } else {
     auto g = get_emdense_forward_nooutput_gen<Data>();
-    par_for(0, n, 1, [&](size_t i) {
+    parallel_for(0, n, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
         auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
         neighbors.decode(f, g);
       }
-    });
+    }, 1);
     return vertexSubsetData<Data>(n);
   }
 }
@@ -137,7 +136,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
       return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).in_degree()
                              : GA.get_vertex(vs.vtx(i)).out_degree();
     };
-    auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
+    auto degree_im = parlay::delayed_seq<size_t>(vs.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_im);
     vs.set_out_degrees(out_degrees);
   }

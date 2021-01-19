@@ -46,11 +46,11 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 
 uintE get_num_blocks(uchar* edge_start,  uintE degree);
 
-// Read default weight (expects pbbslib::empty)
+// Read default weight (expects gbbs::empty)
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
 __attribute__((always_inline)) inline W eatWeight(uchar*& start) {
-  return (W)pbbslib::empty();
+  return (W)gbbs::empty();
 }
 
 template <class W,
@@ -239,7 +239,7 @@ struct simple_iter {
 // Decode unweighted edges
 template <
     class W, class T,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
   if (degree > 0) {
@@ -252,11 +252,11 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
     // Eat first edge, which is compressed specially
     {uintE ngh = eatFirstEdge(first_finger, source);
-    if (!t(source, ngh, pbbslib::empty(), 0)) return;
+    if (!t(source, ngh, gbbs::empty(), 0)) return;
     for (uintE edge_id = 1; edge_id < block_end; edge_id++) {
       // Eat the next 'edge', which is a difference, and reconstruct edge.
       ngh += eatEdge(first_finger);
-      if (!t(source, ngh, pbbslib::empty(), edge_id)) return;
+      if (!t(source, ngh, gbbs::empty(), edge_id)) return;
     }}
     // do remaining chunks in parallel
     par_for(1, num_blocks, 1, [&] (size_t i) {
@@ -265,11 +265,11 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       uchar* finger = edge_start + block_offsets[i - 1];
       // Eat first edge, which is compressed specially
       uintE ngh = eatFirstEdge(finger, source);
-      if (!t(source, ngh, pbbslib::empty(), o)) end = 0;
+      if (!t(source, ngh, gbbs::empty(), o)) end = 0;
       for (size_t edge_id = o + 1; edge_id < end; edge_id++) {
         // Eat the next 'edge', which is a difference, and reconstruct edge.
         ngh += eatEdge(finger);
-        if (!t(source, ngh, pbbslib::empty(), edge_id)) break;
+        if (!t(source, ngh, gbbs::empty(), edge_id)) break;
       }
     }, par);
   }
@@ -277,7 +277,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
 // Decode weighted edges
 template <class W, class T,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+          typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
@@ -384,10 +384,11 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE* block_offsets = (uintE*)edge_start;
 
+    auto allocator = parlay::allocator<E>();
     E stk[1000];
     E* block_outputs;
     if (num_blocks > 1000) {
-      block_outputs = pbbslib::new_array_no_init<E>(num_blocks);
+      block_outputs = allocator.allocate(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -411,10 +412,10 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
       block_outputs[i] = cur;
     }, par);
 
-    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
-    E res = pbbslib::reduce(im, reduce);
+    auto im = parlay::make_slice(block_outputs, num_blocks);
+    E res = parlay::reduce(im, reduce);
     if (num_blocks > 1000) {
-      pbbslib::free_array(block_outputs);
+      allocator.deallocate(block_outputs, num_blocks);
     }
     return res;
   } else {
@@ -491,7 +492,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 //inline uintE seq_intersect(seq_info u, seq_info v) {
 //  assert(false);  // not implemented
 //  return 0;
-//  //  decode_block<pbbslib::empty>(finger, (std::tuple<uintE, pbbslib::empty>*)ngh_u,
+//  //  decode_block<gbbs::empty>(finger, (std::tuple<uintE, gbbs::empty>*)ngh_u,
 //  //  0,
 //}
 //
@@ -544,8 +545,9 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
     size_t num_blocks = 1 + (d - 1) / PARALLEL_DEGREE;
     uintE stk[100];
     uintE* block_bytes;
+    auto allocator = parlay::allocator<uintE>();
     if (num_blocks > 100) {
-      block_bytes = pbbslib::new_array_no_init<uintE>(num_blocks);
+      block_bytes = allocator.allocate(num_blocks);
     } else {
       block_bytes = (uintE*)stk;
     }
@@ -555,13 +557,13 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
-    auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks);
+    auto bytes_imap = parlay::make_slice(block_bytes, num_blocks);
     size_t total_space = pbbslib::scan_add_inplace(bytes_imap);
 
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
     if (num_blocks > 100) {
-      pbbslib::free_array(block_bytes);
+      allocator.deallocate(block_bytes, num_blocks);
     }
     return total_space;
   } else {
@@ -695,8 +697,9 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
   size_t num_blocks = 1 + (d - 1) / PARALLEL_DEGREE;
   uintE stk[101];
   uintE* block_bytes;
+  auto allocator = parlay::allocator<uintE>();
   if (num_blocks > 100) {
-    block_bytes = pbbslib::new_array_no_init<uintE>(num_blocks + 1);
+    block_bytes = allocator.allocate(num_blocks + 1);
   } else {
     block_bytes = (uintE*)stk;
   }
@@ -711,7 +714,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
   uintE* block_offsets = (uintE*)edgeArray;
 
-  auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks + 1);
+  auto bytes_imap = parlay::make_slice(block_bytes, num_blocks + 1);
   uintE total_space = pbbslib::scan_add_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
@@ -748,7 +751,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
     }
   });
   if (num_blocks > 100) {
-    pbbslib::free_array(block_bytes);
+    allocator.deallocate(block_bytes, num_blocks + 1);
   }
 }
 
@@ -799,22 +802,25 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
     auto pd = [&](const std::tuple<uintE, W>& nw) {
       return pred(source, std::get<0>(nw), std::get<1>(nw));
     };
-    uintE k = pbbslib::filterf(our_tmp, tmp2, degree, pd);
-    if (k == degree || k == 0) {
-      return k;
-    }
+    // TODO(laxman)
+    assert(false);
+    exit(-1);
+    // uintE k = pbbslib::filterf(our_tmp, tmp2, degree, pd);
+    // if (k == degree || k == 0) {
+    //   return k;
+    // }
 
-    for (size_t i = 0; i < k; i++) {
-      assert(std::get<0>(tmp2[i]) < 3072627);
-    }
+    // for (size_t i = 0; i < k; i++) {
+    //   assert(std::get<0>(tmp2[i]) < 3072627);
+    // }
 
-    // pack blocks out in parallel
-    compress_edges<W>(edge_start, source, k, tmp2, mf);
+    // // pack blocks out in parallel
+    // compress_edges<W>(edge_start, source, k, tmp2, mf);
 
-    //    ct = map_reduce<W>(edge_start, source, k, 0, map_f, red_f, true);
-    //    assert(ct == k);
+    // //    ct = map_reduce<W>(edge_start, source, k, 0, map_f, red_f, true);
+    // //    assert(ct == k);
 
-    return k;
+    // return k;
   }
 }
 
@@ -853,14 +859,17 @@ inline size_t filter(P pred, uchar* edge_start, const uintE& source,
       decode_block(finger, tmp, start, end, source);
     });
 
-    // filter edges into tmp2
-    std::tuple<uintE, W>* tmp2 = tmp + degree;
-    auto pd = [&](const std::tuple<uintE, W>& nw) {
-      return pred(source, std::get<0>(nw), std::get<1>(nw));
-    };
-    uintE k = pbbslib::filterf(tmp, tmp2, degree, pd);
-    par_for(0, k, 2000, [&] (size_t i) { out(i, tmp2[i]); });
-    return k;
+    // TODO(laxman):
+    assert(false);
+    exit(-1);
+    // // filter edges into tmp2
+    // std::tuple<uintE, W>* tmp2 = tmp + degree;
+    // auto pd = [&](const std::tuple<uintE, W>& nw) {
+    //   return pred(source, std::get<0>(nw), std::get<1>(nw));
+    // };
+    // uintE k = pbbslib::filterf(tmp, tmp2, degree, pd);
+    // par_for(0, k, 2000, [&] (size_t i) { out(i, tmp2[i]); });
+    // return k;
   }
   return 0;
 }

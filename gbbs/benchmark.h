@@ -55,7 +55,7 @@ inline auto get_pcm_state() { return (size_t)1; }
 
 #define run_app(G, APP, rounds)                                            \
   auto before_state = gbbs::get_pcm_state();                               \
-  pbbs::timer st;                                                          \
+  gbbs::timer st;                                                          \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
     total_time += APP(G, P);                                               \
@@ -84,29 +84,29 @@ inline auto get_pcm_state() { return (size_t)1; }
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
         auto G =                                                               \
-            gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(    \
+            gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(    \
                 iFile, mmap, mmapcopy);                                        \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, rounds)                                            \
       } else {                                                                 \
         auto G =                                                               \
-            gbbs::gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(   \
+            gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(   \
                 iFile, mmap, mmapcopy);                                        \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, rounds)                                            \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);  \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, rounds)                                            \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap); \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, rounds)                                            \
       }                                                                        \
     }                                                                          \
@@ -131,29 +131,29 @@ inline auto get_pcm_state() { return (size_t)1; }
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
         auto G =                                                               \
-            gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(    \
+            gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(    \
                 iFile, mmap, mmapcopy);                                        \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, 1)                                                 \
       } else {                                                                 \
         auto G =                                                               \
-            gbbs::gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(   \
+            gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(   \
                 iFile, mmap, mmapcopy);                                        \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, 1)                                                 \
       }                                                                        \
     } else {                                                                   \
       if (symmetric) {                                                         \
         auto G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);  \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, 1)                                                 \
       } else {                                                                 \
         auto G = gbbs::gbbs_io::read_unweighted_asymmetric_graph(iFile, mmap); \
         gbbs::alloc_init(G);                                                   \
-        auto G_coo = to_edge_array<pbbslib::empty>(G);                         \
+        auto G_coo = to_edge_array<gbbs::empty>(G);                         \
         run_app(G_coo, APP, 1)                                                 \
       }                                                                        \
     }                                                                          \
@@ -177,13 +177,13 @@ inline auto get_pcm_state() { return (size_t)1; }
     if (compressed) {                                                          \
       if (symmetric) {                                                         \
         auto G =                                                               \
-            gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(    \
+            gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(    \
                 iFile, mmap, mmapcopy);                                        \
         gbbs::alloc_init(G);                                                   \
         run_app(G, APP, rounds)                                                \
       } else {                                                                 \
         auto G =                                                               \
-            gbbs::gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(   \
+            gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(   \
                 iFile, mmap, mmapcopy);                                        \
         gbbs::alloc_init(G);                                                   \
         run_app(G, APP, rounds)                                                \
@@ -217,7 +217,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     gbbs::pcm_init();                                                        \
     if (compressed) {                                                        \
       auto G =                                                               \
-          gbbs::gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(   \
+          gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(   \
               iFile, mmap, mmapcopy);                                        \
       gbbs::alloc_init(G);                                                   \
       run_app(G, APP, rounds)                                                \
@@ -250,7 +250,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     gbbs::pcm_init();                                                          \
     if (compressed) {                                                          \
-      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>( \
+      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>( \
           iFile, mmap, mmapcopy);                                              \
       gbbs::alloc_init(G);                                                     \
       run_app(G, APP, rounds)                                                  \
@@ -282,7 +282,7 @@ inline auto get_pcm_state() { return (size_t)1; }
     }                                                                          \
     gbbs::pcm_init();                                                          \
     if (compressed) {                                                          \
-      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>( \
+      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>( \
           iFile, mmap, mmapcopy);                                              \
       gbbs::alloc_init(G);                                                     \
       run_app(G, APP, 1)                                                       \

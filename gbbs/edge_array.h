@@ -33,7 +33,7 @@ template <class W>
 struct edge_array {
   using weight_type = W;
   using edge = std::tuple<uintE, uintE, W>;
-  edge* E;
+  parlay::sequence<edge> E;
   // for sq matrices, num_rows == num_cols
   size_t num_rows;  // n TODO: deprecate #rows/#cols
   size_t num_cols;  // TODO deprecate
@@ -43,9 +43,8 @@ struct edge_array {
 
   // non_zeros is the #edges
   size_t non_zeros;  // m TODO rename to "m"
-  void del() { pbbslib::free_array(E); }
-  edge_array(edge* _E, size_t r, size_t c, size_t nz)
-      : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {
+  edge_array(parlay::sequence<edge>&& _E, size_t r, size_t c, size_t nz)
+      : E(std::move(_E)), num_rows(r), num_cols(c), non_zeros(nz) {
     if (r != c) {
       std::cout << "# edge_array format currently expects square matrix"
                 << std::endl;
@@ -57,11 +56,9 @@ struct edge_array {
   edge_array() {}
   size_t size() { return non_zeros; }
 
-  pbbs::sequence<edge> to_seq() {
-    auto ret = pbbs::sequence<edge>(E, non_zeros);
-    non_zeros = 0;
-    E = nullptr;
-    return std::move(ret);
+  // relinquishes ownership
+  parlay::sequence<edge> to_seq() {
+    return std::move(E);
   }
 
   template <class F>
@@ -81,13 +78,13 @@ template <class W, class Graph>
 inline edge_array<W> to_edge_array(Graph& G) {
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
-  auto sizes = pbbs::sequence<uintT>(n);
+  auto sizes = parlay::sequence<uintT>(n);
   parallel_for(0, n,
                [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
-  size_t m = pbbslib::scan_add_inplace(sizes.slice());
+  size_t m = pbbslib::scan_add_inplace(parlay::make_slice(sizes));
   assert(m == G.m);
 
-  edge* arr = pbbs::new_array_no_init<edge>(m);
+  auto arr = parlay::sequence<edge>(m);
   parallel_for(0, n, [&](size_t i) {
     size_t idx = 0;
     uintT offset = sizes[i];

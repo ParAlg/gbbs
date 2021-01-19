@@ -32,81 +32,13 @@ namespace gbbs {
 
 struct UnionFind {
   size_t n;
-  intT* parents;
+  parlay::sequence<uintE> parents;
+
   UnionFind(size_t _n);
 
-  intT find(int32_t i);
+  uintE find(int32_t i);
 
-  void link(intT u, intT v);
-
-  void clear();
+  void link(uintE u, uintE v);
 };
-
-// edges: <uintE, uintE, W>
-template <class intT, class Edges, class ST, class UF>
-struct UnionFindStep {
-  using res = reservation<intT>;
-  using storage = std::tuple<intT, intT>;
-  Edges& E;
-  res* R;
-  ST& inST;
-  UF& uf;
-  storage* indices;
-
-  size_t n;
-
-  void clear() { pbbslib::free_array(indices); }
-
-  UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf)
-      : E(_E), R(_R), inST(ist), uf(_uf) {
-    n = uf.n;
-    indices = pbbslib::new_array_no_init<storage>(E.non_zeros);
-  }
-
-  bool reserve(intT i) {
-    assert(i < E.non_zeros);
-    auto e = E.E[i];
-    intT u = uf.find(std::get<0>(e));
-    intT v = uf.find(std::get<1>(e));
-    if (u != v) {
-      indices[i] = std::make_tuple(u, v);
-      R[v].reserve(i);
-      R[u].reserve(i);
-      assert(u < n);
-      assert(v < n);
-      return 1;  // active
-    } else
-      return 0;  // done
-  }
-
-  bool commit(intT i) {
-    assert(i < E.non_zeros);
-    // read back u and v from 'reserve'
-    auto st = indices[i];
-    intT u = std::get<0>(st), v = std::get<1>(st);
-    if (u >= n || v >= n) {
-      std::cout << "u = " << u << " v = " << v << " i = " << i << "\n";
-      exit(0);
-    }
-    //    assert(u < n); assert(v < n);
-    if (R[v].checkReset(i)) {
-      R[u].checkReset(i);
-      uf.link(v, u);
-      inST[i] = 1;
-      return 1;
-    } else if (R[u].checkReset(i)) {
-      uf.link(u, v);
-      inST[i] = 1;
-      return 1;
-    } else
-      return 0;
-  }
-};
-
-template <class intT, class Edges, class R, class ST, class UF>
-inline UnionFindStep<intT, Edges, ST, UF> make_uf_step(Edges& e, R r, ST& ist,
-                                                       UF& uf) {
-  return UnionFindStep<intT, Edges, ST, UF>(e, r, ist, uf);
-}
 
 }  // namespace gbbs

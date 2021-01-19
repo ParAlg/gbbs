@@ -2,13 +2,11 @@
 
 #include <algorithm>
 
-#include "pbbslib/utilities.h"
-
 namespace std {
 
 size_t hash<gbbs::UndirectedEdge>::operator()(const gbbs::UndirectedEdge& edge) const {
-  return pbbs::hash_combine(
-     pbbs::hash64_2(edge.edge_.first), pbbs::hash64_2(edge.edge_.second));
+  return gbbs::hash_combine(
+     parlay::hash64_2(edge.edge_.first), parlay::hash64_2(edge.edge_.second));
 }
 
 }  // namespace std

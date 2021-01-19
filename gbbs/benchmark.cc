@@ -1,5 +1,5 @@
 #include "benchmark.h"
-#include  "parse_command_line.h"
+#include "parse_command_line.h"
 
 namespace gbbs {
 cpu_stats::cpu_stats() {

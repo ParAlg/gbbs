@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/sequence_ops.h"
 #include "macros.h"
 #include "uncompressed_intersection.h"
 
@@ -91,7 +90,7 @@ struct uncompressed_neighbors {
   uintE get_virtual_degree() { return degree; }
 
   uintE get_num_blocks() {
-    return pbbs::num_blocks(degree, vertex_ops::kBlockSize);
+    return gbbs::num_blocks(degree, vertex_ops::kBlockSize);
   }
 
   uintE block_degree(uintE block_num) {
@@ -129,7 +128,7 @@ struct uncompressed_neighbors {
       auto nw = neighbors[i];
       return f(id, std::get<0>(nw), std::get<1>(nw));
     };
-    auto im = pbbslib::make_sequence<size_t>(degree, im_f);
+    auto im = parlay::delayed_seq<size_t>(degree, im_f);
     return pbbslib::reduce_add(im);
   }
 
@@ -141,8 +140,8 @@ struct uncompressed_neighbors {
       auto nw = neighbors[i];
       return m(id, std::get<0>(nw), std::get<1>(nw));
     };
-    auto im = pbbslib::make_sequence<T>(degree, im_f);
-    return pbbslib::reduce(im, reduce);
+    auto im = parlay::delayed_seq<T>(degree, im_f);
+    return parlay::reduce(im, reduce);
   }
 
 
@@ -199,9 +198,10 @@ struct uncompressed_neighbors {
         auto pc = [&](const std::tuple<uintE, W>& nw) {
           return p(id, std::get<0>(nw), std::get<1>(nw));
         };
-        auto in_im = pbbslib::make_sequence(neighbors, degree);
-        size_t k = pbbslib::filter_out(in_im, pbbslib::make_sequence(tmp, degree), pc);
-        parallel_for(0, k, [&] (size_t i) { out(i, tmp[i]); });
+        auto in_im = parlay::make_slice(neighbors, degree);
+        // TODO(laxman): update
+        //size_t k = pbbslib::filter_out(in_im, parlay::make_slice(tmp, degree), pc);
+        //parallel_for(0, k, [&] (size_t i) { out(i, tmp[i]); });
       }
     }
   }
@@ -228,9 +228,11 @@ struct uncompressed_neighbors {
       auto pc = [&](const std::tuple<uintE, W>& nw) {
         return p(id, std::get<0>(nw), std::get<1>(nw));
       };
-      size_t k = pbbslib::filterf(tmp, neighbors, degree, pc);
-      degree = k;
-      return k;
+      // TODO(laxman): update
+      assert(false);
+      //size_t k = pbbslib::filterf(tmp, neighbors, degree, pc);
+      //degree = k;
+      //return k;
     }
   }
 
