@@ -147,7 +147,7 @@ struct uncompressed_neighbors {
 
   template <class F>
   inline void map(F f, bool parallel = true) {
-    size_t granularity = parallel ? pbbslib::kSequentialForThreshold : std::numeric_limits<size_t>::max();
+    size_t granularity = parallel ? gbbs::kSequentialForThreshold : std::numeric_limits<size_t>::max();
     parallel_for(0, degree, [&] (size_t j) {
       const std::tuple<uintE, W>& neighbor = neighbors[j];
       f(id, std::get<0>(neighbor), std::get<1>(neighbor));
@@ -175,7 +175,7 @@ struct uncompressed_neighbors {
   //     Whether to run this function with parallelism.
   template <class F>
   inline void map_with_index(F f, bool parallel=true) {
-    size_t granularity = parallel ? pbbslib::kSequentialForThreshold : std::numeric_limits<size_t>::max();
+    size_t granularity = parallel ? gbbs::kSequentialForThreshold : std::numeric_limits<size_t>::max();
     parallel_for(0, degree, [&] (size_t j) {
       const std::tuple<uintE, W>& neighbor = neighbors[j];
       f(id, std::get<0>(neighbor), std::get<1>(neighbor), j);
@@ -262,7 +262,7 @@ struct uncompressed_neighbors {
       for (size_t j = 0; j < degree; j++) {
         auto nw = neighbors[j];
         uintE ngh = std::get<0>(nw);
-        if (vs.isIn(ngh)) {
+        if (vs(ngh)) {
           auto m = f.update(ngh, id, std::get<1>(nw));
           g(id, m);
         }
@@ -279,7 +279,7 @@ struct uncompressed_neighbors {
            if (!f.cond(id)) break;
            auto nw = neighbors[j];
            uintE ngh = std::get<0>(nw);
-           if (vs.isIn(ngh)) {
+           if (vs(ngh)) {
              auto m = f.updateAtomic(ngh, id, std::get<1>(nw));
              g(id, m);
            }
@@ -307,7 +307,7 @@ struct uncompressed_neighbors {
   // updateAtomic.
   template <class F, class G, class H>
   void decodeSparse(uintT offset, F& f, const G& g, const H& h, bool parallel=true) {
-    size_t granularity = parallel ? pbbslib::kSequentialForThreshold : std::numeric_limits<size_t>::max();
+    size_t granularity = parallel ? gbbs::kSequentialForThreshold : std::numeric_limits<size_t>::max();
     parallel_for(0, degree, [&] (size_t j) {
       auto nw = neighbors[j];
       uintE ngh = std::get<0>(nw);

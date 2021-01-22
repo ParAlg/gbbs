@@ -1,10 +1,15 @@
 include ../makefile.variables
 
-INCLUDE_DIRS = -I../   -I../parlaylib/include/
+INCLUDE_DIRS = -I../ -I../parlaylib/include/
 
 OBJDIR = ../bin/gbbs/
 
-ALL_PRE = benchmark bridge edge_map_blocked graph_io io parse_command_line undirected_edge union_find vertex_subset
+$(info $$var is [$(ROOTDIR)])
+$(info VAR is $(OBJDIR))
+$(info VAR is $(ROOTDIR))
+$(info VAR is $(CURDIR))
+
+ALL_PRE = benchmark bridge edge_map_blocked get_time graph_io io parse_command_line undirected_edge union_find vertex_subset
 ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))
 
 all: $(ALL)

@@ -15,6 +15,16 @@
 namespace gbbs {
 namespace gbbs_io {
 
+#ifdef PARLAY_USE_STD_ALLOC
+#include <malloc.h>
+__mallopt::__mallopt() {
+  mallopt(M_MMAP_MAX, 0);
+  mallopt(M_TRIM_THRESHOLD, -1);
+}
+
+__mallopt __mallopt_var = __mallopt();
+#endif
+
 // returns a pointer and a length
 std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   struct stat sb;
@@ -55,7 +65,7 @@ void unmmap(const char* bytes, size_t bytes_size) {
   }
 }
 
-sequence<char> readStringFromFile(const char* fileName) {
+parlay::sequence<char> readStringFromFile(const char* fileName) {
   std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
     debug(std::cout << "# Unable to open file: " << fileName << "\n";);
@@ -64,7 +74,7 @@ sequence<char> readStringFromFile(const char* fileName) {
   uint64_t end = file.tellg();
   file.seekg(0, std::ios::beg);
   uint64_t n = end - file.tellg();
-  auto bytes = sequence<char>(n); // n+1?
+  auto bytes = parlay::sequence<char>(n); // n+1?
   file.read(bytes.begin(), n);
   file.close();
   return bytes;

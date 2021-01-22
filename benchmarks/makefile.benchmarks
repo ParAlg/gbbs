@@ -1,4 +1,4 @@
-INCLUDE_DIRS = -I$(ROOTDIR)
+INCLUDE_DIRS = -I$(ROOTDIR) -I$(ROOTDIR)parlaylib/include/
 
 .DEFAULT_GOAL := all
 

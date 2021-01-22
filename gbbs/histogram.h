@@ -155,9 +155,10 @@ struct hist_table {
     }
   }
 
-  void del() {
+  ~hist_table() {
     if (table) {
       pbbslib::free_array(table);
+      table = nullptr;
     }
   }
 };

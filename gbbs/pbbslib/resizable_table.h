@@ -106,15 +106,16 @@ namespace pbbslib {
 
     void del() {
       if (alloc) {
-        pbbslib::free_array(table);
-        pbbslib::free_array(cts);
+        size_t workers = num_workers();
+        gbbs::free_array(table, m);
+        gbbs::free_array(cts, kResizableTableCacheLineSz * workers);
         alloc = false;
       }
     }
 
     void init_counts() {
       size_t workers = num_workers();
-      cts = pbbslib::new_array_no_init<size_t>(kResizableTableCacheLineSz * workers);
+      cts = gbbs::new_array_no_init<size_t>(kResizableTableCacheLineSz * workers);
       for (size_t i = 0; i < workers; i++) {
         cts[i * kResizableTableCacheLineSz] = 0;
       }
@@ -149,7 +150,7 @@ namespace pbbslib {
     }
 
     resizable_table(size_t _m, T _empty, KeyHash _key_hash)
-        : m((size_t)1 << pbbslib::log2_up((size_t)(1.1 * _m))),
+        : m((size_t)1 << parlay::log2_up((size_t)(1.1 * _m))),
           mask(m - 1),
           ne(0),
           empty(_empty),
@@ -192,7 +193,7 @@ namespace pbbslib {
       if (nt > (0.25 * m)) {
         size_t old_m = m;
         auto old_t = table;
-        m = ((size_t)1 << pbbslib::log2_up((size_t)(10 * nt)));
+        m = ((size_t)1 << parlay::log2_up((size_t)(10 * nt)));
         if (m == old_m) {
           return;
         }
@@ -209,7 +210,7 @@ namespace pbbslib {
         });
         update_nelms();
         if (alloc) {
-          pbbslib::free_array(old_t);
+          gbbs::free_array(old_t, old_m);
         }
         alloc = true;
       }
@@ -302,10 +303,10 @@ namespace pbbslib {
       });
     }
 
-    sequence<T> entries() {
+    parlay::sequence<T> entries() {
       auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-      auto table_seq = pbbslib::make_sequence<T>(table, m);
-      return pbbslib::filter(table_seq, pred);
+      auto table_seq = parlay::make_slice(table, table + m);
+      return parlay::filter(table_seq, pred);
     }
 
     void clear() {

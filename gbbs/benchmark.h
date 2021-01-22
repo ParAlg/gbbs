@@ -63,8 +63,7 @@ inline auto get_pcm_state() { return (size_t)1; }
   auto time_per_iter = total_time / rounds;                                \
   std::cout << "# time per iter: " << time_per_iter << "\n";               \
   auto after_state = gbbs::get_pcm_state();                                \
-  gbbs::print_pcm_stats(before_state, after_state, rounds, time_per_iter); \
-  G.del();
+  gbbs::print_pcm_stats(before_state, after_state, rounds, time_per_iter);
 
 /* Macro to generate binary for graph applications that read a graph (either
  * asymmetric or symmetric) and transform it into a COO (edge-array)

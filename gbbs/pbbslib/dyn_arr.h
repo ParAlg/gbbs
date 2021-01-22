@@ -33,28 +33,26 @@ namespace pbbslib {
 
   constexpr size_t kDynArrMinBktSize = 2000;
 
+  // TODO: deprecate!
   template <class E>
   struct dyn_arr {
-    E* A;
-    size_t size;
-    size_t capacity;
-    bool alloc;
+    parlay::sequence<E> A;
 
-    dyn_arr() : A(NULL), size(0), capacity(0), alloc(false) {}
-    dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = pbbslib::new_array_no_init<E>(s); }
+    dyn_arr()  {}
+    dyn_arr(size_t s) : size(0), capacity(s), alloc(true) { A = gbbs::new_array_no_init<E>(s); }
     dyn_arr(E* _A, long _size, long _capacity, bool _alloc)
         : A(_A), size(_size), capacity(_capacity), alloc(_alloc) {}
 
     void del() {
       if (alloc) {
-        pbbslib::free_array(A);
+        gbbs::free_array(A, capacity);
         alloc = false;
       }
     }
 
-    pbbs::sequence<E> to_seq() {
+    parlay::sequence<E> to_seq() {
       assert(A);
-      auto ret = pbbs::sequence<E>(A, size);
+      auto ret = parlay::sequence<E>(A, size);
       size = 0;
       A = nullptr;
       return std::move(ret);

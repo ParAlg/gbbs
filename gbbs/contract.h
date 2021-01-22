@@ -21,15 +21,15 @@ namespace contract {
     using T = typename Seq::value_type;
     size_t n = ids.size();
     auto inverse_map = sequence<T>(n + 1);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i)
                     { inverse_map[i] = 0; });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
     pbbslib::scan_add_inplace(inverse_map);
 
     size_t new_n = inverse_map[n];
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i)
                     { ids[i] = inverse_map[ids[i]]; });
     return new_n;
   }
@@ -209,7 +209,7 @@ namespace contract {
   inline std::tuple<symmetric_graph<symmetric_vertex, gbbs::empty>, sequence<uintE>, sequence<uintE>>
   contract(Graph& GA, sequence<uintE>& clusters, size_t num_clusters) {
     // Remove duplicates by hashing
-    using K = std::tuple<uintE, uintE, pbbs::empty>;
+    using K = std::tuple<uintE, uintE, gbbs::empty>;
 
     edge* edges;
     size_t edges_size;
@@ -220,7 +220,7 @@ namespace contract {
     // Pack out singleton clusters
     auto flags = sequence<uintE>(num_clusters + 1, static_cast<uintE>(0));
 
-    par_for(0, edges_size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, edges_size, gbbs::kSequentialForThreshold, [&] (size_t i) {
                       auto e = edges[i];
                       uintE u = std::get<0>(e);
                       uintE v = std::get<1>(e);
@@ -231,7 +231,7 @@ namespace contract {
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     auto mapping = sequence<uintE>(num_ns_clusters);
-    par_for(0, num_clusters, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, num_clusters, gbbs::kSequentialForThreshold, [&] (size_t i) {
                       if (flags[i] != flags[i + 1]) {
                         mapping[flags[i]] = i;
                       }
@@ -242,11 +242,11 @@ namespace contract {
       if (i % 2) {
         return std::make_tuple(flags[std::get<0>(edges[src_edge])],
                                flags[std::get<1>(edges[src_edge])],
-                               pbbs::empty());
+                               gbbs::empty());
       } else {
         return std::make_tuple(flags[std::get<1>(edges[src_edge])],
                                flags[std::get<0>(edges[src_edge])],
-                               pbbs::empty());
+                               gbbs::empty());
       }
     });
 

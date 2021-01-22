@@ -8,12 +8,12 @@
 
 namespace gbbs {
 
-symmetric_graph<symmetric_vertex, pbbs::empty> CreateStar(size_t n) {
-  using edge = std::tuple<uintE, uintE, pbbs::empty>;
+symmetric_graph<symmetric_vertex, gbbs::empty> CreateStar(size_t n) {
+  using edge = std::tuple<uintE, uintE, gbbs::empty>;
   auto edges = pbbs::sequence<edge>(2*(n-1));
   for (size_t i=0; i<(n-1); i++) {
-    edges[2*i] = {0, i+1, pbbs::empty()};
-    edges[2*i+1] = {i+1, 0, pbbs::empty()};
+    edges[2*i] = {0, i+1, gbbs::empty()};
+    edges[2*i+1] = {i+1, 0, gbbs::empty()};
     std::cout << "(" << 0 << "," << (i+1) << ")" << std::endl;
   }
   auto G = sym_graph_from_edges(edges, n, /* is_sorted = */false);
@@ -37,7 +37,7 @@ TEST(TestGraphFilter, TestCreation) {
 }
 
 TEST(TestGraphFilter, TestFilter) {
-  using W = pbbs::empty;
+  using W = gbbs::empty;
   uintE n = 20;
   auto G = CreateStar(n);
   auto predicate = [&] (const uintE& u, const uintE& v, const W& wgh) -> bool {
@@ -55,11 +55,11 @@ TEST(TestGraphFilter, TestFilter) {
 }
 
 
-asymmetric_graph<asymmetric_vertex, pbbs::empty> CreateDirectedStar(size_t n) {
-  using edge = std::tuple<uintE, uintE, pbbs::empty>;
+asymmetric_graph<asymmetric_vertex, gbbs::empty> CreateDirectedStar(size_t n) {
+  using edge = std::tuple<uintE, uintE, gbbs::empty>;
   auto edges = pbbs::sequence<edge>(n-1);
   for (size_t i=0; i<(n-1); i++) {
-    edges[i] = {0, i+1, pbbs::empty()};  // directed arc from center -> satellite
+    edges[i] = {0, i+1, gbbs::empty()};  // directed arc from center -> satellite
     std::cout << "(" << 0 << "," << (i+1) << ")" << std::endl;
   }
   auto G = asym_graph_from_edges(edges, n, /* is_sorted = */false);
@@ -89,7 +89,7 @@ TEST(TestGraphFilter, TestAsymmetricCreation) {
 }
 
 TEST(TestGraphFilter, TestAsymmetricFilter) {
-  using W = pbbs::empty;
+  using W = gbbs::empty;
   uintE n = 20;
   auto G = CreateDirectedStar(n);
   auto predicate = [&] (const uintE& u, const uintE& v, const W& wgh) -> bool {

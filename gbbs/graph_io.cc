@@ -2,8 +2,6 @@
 
 #include <sys/mman.h>
 
-#include "pbbslib/strings/string_basics.h"
-
 namespace gbbs {
 namespace gbbs_io {
 
@@ -40,16 +38,14 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     bool mmap,
     char* bytes,
     size_t bytes_size) {
-  sequence<char*> tokens;
-  sequence<char> S;
+  // parlay::sequence<parlay::slice<char*, char*>> tokens;
+  parlay::sequence<char> S;
 
   if (bytes == nullptr) {
     if (mmap) {
       std::pair<char*, size_t> MM = mmapStringFromFile(fname);
-      S = sequence<char>(MM.second);
-      // Cannot mutate the graph unless we copy.
-      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { S[i] = MM.first[i]; });
+      S = parlay::sequence<char>::uninitialized(MM.second);
+      parallel_for(0, S.size(), [&] (size_t i) { S[i] = MM.first[i]; });
       if (munmap(MM.first, MM.second) == -1) {
         perror("munmap");
         exit(-1);
@@ -58,28 +54,28 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
       S = readStringFromFile(fname);
     }
   }
-  tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+  parlay::sequence<parlay::slice<char*, char*>> tokens = parlay::map_tokens(parlay::make_slice(S),[] (auto x) { return parlay::make_slice(x); });
 
-  assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
+  assert(tokens[0].begin() == internal::kUnweightedAdjGraphHeader);
 
-  uint64_t n = atol(tokens[1]);
-  uint64_t m = atol(tokens[2]);
+  uint64_t n = parlay::internal::chars_to_int_t<unsigned long>(tokens[1]);
+  uint64_t m = parlay::internal::chars_to_int_t<unsigned long>(tokens[2]);
 
   debug(std::cout << "# n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
   uint64_t len = tokens.size() - 1;
   assert(len == n + m + 2););
 
-  uintT* offsets = pbbslib::new_array_no_init<uintT>(n+1);
-  uintE* edges = pbbslib::new_array_no_init<uintE>(m);
+  uintT* offsets = gbbs::new_array_no_init<uintT>(n+1);
+  uintE* edges = gbbs::new_array_no_init<uintE>(m);
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { offsets[i] = atol(tokens[i + 3]); });
+  par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i)
+                  { offsets[i] = parlay::internal::chars_to_int_t<unsigned long>(tokens[i + 3]); });
   offsets[n] = m; /* make sure to set the last offset */
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { edges[i] = atol(tokens[i + n + 3]); });
+  par_for(0, m, gbbs::kSequentialForThreshold, [&] (size_t i)
+                  { edges[i] = parlay::internal::chars_to_int_t<unsigned long>(tokens[i + n + 3]); });
   S.clear();
-  tokens.clear();
 
+  tokens.clear();
   return std::make_tuple(n, m, offsets, edges);
 }
 
@@ -93,15 +89,22 @@ symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
   uintE* edges;
   std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, bytes, bytes_size);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
-  pbbs::free_array(offsets);
+  gbbs::free_array(offsets, n+1);
 
-  return symmetric_graph<symmetric_vertex, pbbs::empty>(
-      v_data, n, m, [=](){ pbbslib::free_arrays(v_data, edges); }, (std::tuple<uintE, pbbs::empty>*)edges);
+  auto edge_slice = gbbs::make_slice<std::tuple<uintE, gbbs::empty>>(edges, edges + m);
+  return symmetric_graph<symmetric_vertex, gbbs::empty>(
+      parlay::make_slice(v_data, v_data + n),
+      n,
+      m, [=](){
+        gbbs::free_array(v_data, n);
+        gbbs::free_array(edges, m); },
+      edge_slice,
+      edge_slice);
 }
 
 asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_graph(
@@ -114,19 +117,19 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   uintE* edges;
   std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, bytes, bytes_size);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
-  pbbs::free_array(offsets);
+  gbbs::free_array(offsets, n+1);
 
   /* construct transpose of the graph */
-  uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  auto tOffsets = parlay::sequence<uintT>(n);
+  par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
-  intPair* temp = pbbslib::new_array_no_init<intPair>(m);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  auto temp = parlay::sequence<intPair>(m);
+  par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i) {
     uintT o = v_data[i].offset;
     uintT deg = v_data[i].degree;
     for (uintT j = 0; j < deg; j++) {
@@ -134,37 +137,47 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
     }
   });
 
-  auto temp_seq = pbbslib::make_sequence(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbs::log2_up(n));
+  parlay::integer_sort_inplace(parlay::make_slice(temp), [&] (const intPair& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
-  uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
+  uintE* inEdges = gbbs::new_array_no_init<uintE>(m);
   inEdges[0] = temp[0].second;
-  par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(1, m, gbbs::kSequentialForThreshold, [&] (size_t i) {
     inEdges[i] = temp[i].second;
     if (temp[i].first != temp[i - 1].first) {
       tOffsets[temp[i].first] = i;
     }
   });
 
-  pbbslib::free_array(temp);
-
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
-  auto t_seq = pbbslib::make_sequence(tOffsets, n).rslice();
-  auto M = pbbslib::minm<uintT>();
+  auto t_seq = parlay::make_slice(tOffsets.rbegin(), tOffsets.rend());
+  auto M = parlay::minm<uintT>();
   M.identity = m;
-  pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
+  parlay::scan_inclusive_inplace(t_seq, M);
 
-  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_in_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
   });
-  pbbs::free_array(tOffsets);
 
-  return asymmetric_graph<asymmetric_vertex, pbbs::empty>(
-      v_data, v_in_data, n, m, [=]() {pbbslib::free_arrays(v_data, v_in_data, inEdges, edges);},(std::tuple<uintE, pbbs::empty>*)edges, (std::tuple<uintE, pbbs::empty>*)inEdges);
+  auto in_slice = gbbs::make_slice<std::tuple<uintE, gbbs::empty>>(edges, edges + m);
+  auto out_slice = gbbs::make_slice<std::tuple<uintE, gbbs::empty>>(inEdges, inEdges + m);
+
+  return asymmetric_graph<asymmetric_vertex, gbbs::empty>(
+      parlay::make_slice(v_data, v_data + n),
+      parlay::make_slice(v_in_data, v_in_data + n),
+      n,
+      m,
+      [=]() {
+        gbbs::free_array(v_data, n);
+        gbbs::free_array(v_in_data, n);
+        gbbs::free_array(inEdges, m);
+        gbbs::free_array(edges, m);
+      },
+      out_slice, in_slice,
+      out_slice, in_slice);
 }
 
 std::tuple<char*, size_t> parse_compressed_graph(
@@ -177,8 +190,8 @@ std::tuple<char*, size_t> parse_compressed_graph(
     if (mmapcopy) {
       debug(std::cout << "# Copying compressed graph due to mmapcopy being set."
                 << "\n";);
-      char* next_bytes = pbbslib::new_array_no_init<char>(bytes_size);
-      par_for(0, bytes_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      char* next_bytes = gbbs::new_array_no_init<char>(bytes_size);
+      par_for(0, bytes_size, gbbs::kSequentialForThreshold, [&] (size_t i)
                       { next_bytes[i] = bytes[i]; });
       if (munmap(bytes, bytes_size) == -1) {
         perror("munmap");

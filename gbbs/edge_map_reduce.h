@@ -106,7 +106,6 @@ inline vertexSubsetData<O> edgeMapCount_sparse(
   auto get_key = pbbslib::make_sequence<uintE>(oneHop.size(), key_f);
   auto res = histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                        apply_f, ht);
-  oneHop.del();
   return vertexSubsetData<O>(vs.n, res.first, res.second);
 }
 
@@ -312,10 +311,8 @@ struct EdgeMap {
     };
     auto res = histogram_reduce<std::tuple<K, M>, std::tuple<K, O> >(
         get_elm, get_key, oneHop.size(), q, apply_f, ht);
-    oneHop.del();
     auto ret = vertexSubsetData<O>(vs.n, res.first, res.second);
     if (fl & no_output) {
-      ret.del();
       return vertexSubsetData<O>(n);
     }
     return ret;
@@ -433,7 +430,6 @@ struct EdgeMap {
     auto get_key = pbbslib::make_sequence<uintE>(oneHop.size(), key_f);
     auto res = histogram<std::tuple<uintE, O> >(get_key, oneHop.size(),
                                                          apply_f, ht);
-    oneHop.del();
     return vertexSubsetData<O>(vs.n, res.first, res.second);
   }
 

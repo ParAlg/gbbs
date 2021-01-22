@@ -25,6 +25,8 @@ namespace gbbs {
 
   struct empty {};
 
+  constexpr const size_t kSequentialForThreshold = 2048;
+
   using parlay::parallel_for;
   using parlay::par_do;
   // using pbbs::parallel_for_alloc;  // TODO
@@ -36,14 +38,27 @@ namespace gbbs {
 
   template <class E>
   E* new_array_no_init(size_t n) {
+#ifndef PARLAY_USE_STD_ALLOC
     auto allocator = parlay::allocator<E>();
+#else
+    auto allocator = std::allocator<E>();
+#endif
     return allocator.allocate(n);
   }
 
   template <class E>
   void free_array(E* e, size_t n) {
+#ifndef PARLAY_USE_STD_ALLOC
     auto allocator = parlay::allocator<E>();
+#else
+    auto allocator = std::allocator<E>();
+#endif
     allocator.deallocate(e, n);
+  }
+
+  template <class E, class T>
+  slice<E> make_slice(T* start, T* end) {
+    return parlay::make_slice((E*)start, (E*)end);
   }
 
   // TODO: deprecate
@@ -98,8 +113,6 @@ namespace gbbs {
 
 // Bridge to pbbslib (c++17)
 namespace pbbslib {
-
-  constexpr const size_t kSequentialForThreshold = 2048;
 
   // ====================== utilities =======================
   using empty = gbbs::empty;  // TODO: handle defining
@@ -357,13 +370,13 @@ inline bool write_max(std::atomic<ET>* a, ET b, F less) {
   template <class Seq>
   inline auto reduce_add(Seq const& I) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return parlay::reduce(I, parlay::addm<T>());
+    return parlay::reduce(parlay::make_slice(I), parlay::addm<T>());
   }
 
   template <class Seq>
   inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return parlay::reduce(I, parlay::maxm<T>());
+    return parlay::reduce(parlay::make_slice(I), parlay::maxm<T>());
   }
 
   template <class Seq>

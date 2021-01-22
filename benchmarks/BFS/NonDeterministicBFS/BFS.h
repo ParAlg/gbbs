@@ -49,8 +49,10 @@ template <class Graph>
 inline sequence<uintE> BFS(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
   /* Creates Parents array, initialized to all -1, except for src. */
-  auto Parents = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Parents = parlay::sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
+
+  std::cout << "degree = " << G.get_vertex(src).out_degree() << std::endl;
 
   vertexSubset Frontier(G.n, src);
   size_t reachable = 0;
@@ -58,11 +60,9 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
     vertexSubset output =
-        neighbor_map(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
-    Frontier.del();
-    Frontier = output;
+        edgeMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
+    Frontier = output;  // TODO: assignment in vertexSubset
   }
-  Frontier.del();
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }

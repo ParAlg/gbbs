@@ -164,7 +164,7 @@ struct compressed_neighbors {
                                    F& f, const G& g, bool parallel=false) {
     auto T = [&](const uintE& src, const uintE& target, const W& weight,
                  const uintT& edgeNumber) __attribute__((always_inline)) {
-      if (vs.isIn(target)) {
+      if (vs(target)) {
         auto m = f.update(target, src, weight);
         g(src, m);
       }

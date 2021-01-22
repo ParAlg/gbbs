@@ -28,6 +28,17 @@
 namespace gbbs {
 namespace gbbs_io {
 
+#ifdef PARLAY_USE_STD_ALLOC
+struct __mallopt {
+  __mallopt();
+};
+
+// This global variable invokes the constructor of `__mallopt` at program
+// initialization. The constructor adjusts the behavior of memory-allocation
+// functions like `malloc` for performance.
+extern __mallopt __mallopt_var;
+#endif
+
 template <class E>
 struct pairFirstCmp {
   bool operator()(std::pair<uintE, E> a, std::pair<uintE, E> b) {
@@ -45,7 +56,7 @@ std::pair<char*, size_t> mmapStringFromFile(const char* filename);
 
 void unmmap(const char* bytes, size_t bytes_size);
 
-sequence<char> readStringFromFile(const char* fileName);
+parlay::sequence<char> readStringFromFile(const char* fileName);
 
 std::tuple<char*, size_t> read_o_direct(const char* fname);
 

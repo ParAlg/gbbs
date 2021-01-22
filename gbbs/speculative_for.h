@@ -60,9 +60,9 @@ namespace gbbs {
     intT maxRoundSize = (e - s) / granularity + 1;
     intT currentRoundSize = maxRoundSize;
 
-    auto I = sequence<intT>(maxRoundSize);
-    auto Inext = sequence<intT>(maxRoundSize);
-    auto keep = sequence<bool>(maxRoundSize);
+    auto I = parlay::sequence<intT>(maxRoundSize);
+    auto Inext = parlay::sequence<intT>(maxRoundSize);
+    auto keep = parlay::sequence<bool>(maxRoundSize);
 
     intT round = 0;
     intT numberDone = s;      // number of iterations done
@@ -89,7 +89,7 @@ namespace gbbs {
       });
 
       // keep iterations that failed for next round. Written into Inext
-      numberKeep = pbbslib::pack_out(I.slice(0, size), keep, Inext.slice());
+      numberKeep = parlay::pack_into(I.cut(0, size), keep, parlay::make_slice(Inext));
 //      seq.set_allocated(false);
 //      numberKeep = seq.size();
       numberDone += size - numberKeep;
@@ -113,9 +113,9 @@ namespace gbbs {
     intT maxRoundSize = (e - s) / granularity + 1;
     intT currentRoundSize = maxRoundSize;
 
-    auto I = sequence<intT>(maxRoundSize);
-    auto Inext = sequence<intT>(maxRoundSize);
-    auto keep = sequence<bool>(maxRoundSize);
+    auto I = parlay::sequence<intT>(maxRoundSize);
+    auto Inext = parlay::sequence<intT>(maxRoundSize);
+    auto keep = parlay::sequence<bool>(maxRoundSize);
 
     intT round = 0;
     intT numberDone = s;      // number of iterations done
@@ -142,7 +142,7 @@ namespace gbbs {
       });
 
       // keep iterations that failed for next round. Written into Inext
-      numberKeep = pbbslib::pack_out(I.slice(0, size), keep, Inext.slice());
+      numberKeep = parlay::pack_into(I.cut(0, size), keep, parlay::make_slice(Inext));
 //      numberKeep = pbbslib::pack_out(I.slice(0, size), keep, pbbslib::no_flag, Inext.slice());
 //      seq.set_allocated(false);
 //      numberKeep = seq.size();

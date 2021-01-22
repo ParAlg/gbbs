@@ -3,7 +3,7 @@
 namespace gbbs {
 UnionFind::UnionFind(size_t _n) : n(_n) {
   parents = parlay::sequence<uintE>(n);
-  parallel_for(0, n, [&] (size_t i)  parents[i] = -1; });
+  parallel_for(0, n, [&] (size_t i) { parents[i] = -1; });
 }
 
 uintE UnionFind::find(int32_t i) {

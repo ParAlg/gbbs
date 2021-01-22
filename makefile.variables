@@ -46,7 +46,8 @@ CFLAGS = \
 	$(INTE) \
 	$(CONCEPTS) \
 	-DAMORTIZEDPD \
-	-DUSEMALLOC
+#	-DPARLAY_USE_STD_ALLOC \
+	$(JEMALLOC)
 # Add GCC-specific and Clang-specific flags
 ifeq ($(OS), linux)
   CFLAGS += \

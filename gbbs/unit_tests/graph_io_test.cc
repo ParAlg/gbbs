@@ -9,7 +9,7 @@ namespace gbbs {
 
 namespace gi = gbbs_io;
 namespace gt = graph_test;
-using NoWeight = pbbs::empty;
+using NoWeight = gbbs::empty;
 
 TEST(EdgeListToAsymmetricGraph, NoEdges) {
   const std::vector<gi::Edge<NoWeight>> kEdges{};

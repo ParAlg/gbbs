@@ -384,11 +384,10 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
     size_t num_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE* block_offsets = (uintE*)edge_start;
 
-    auto allocator = parlay::allocator<E>();
     E stk[1000];
     E* block_outputs;
     if (num_blocks > 1000) {
-      block_outputs = allocator.allocate(num_blocks);
+      block_outputs = gbbs::new_array_no_init<E>(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -415,7 +414,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
     auto im = parlay::make_slice(block_outputs, num_blocks);
     E res = parlay::reduce(im, reduce);
     if (num_blocks > 1000) {
-      allocator.deallocate(block_outputs, num_blocks);
+      gbbs::free_array(block_outputs, num_blocks);
     }
     return res;
   } else {
@@ -545,9 +544,8 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
     size_t num_blocks = 1 + (d - 1) / PARALLEL_DEGREE;
     uintE stk[100];
     uintE* block_bytes;
-    auto allocator = parlay::allocator<uintE>();
     if (num_blocks > 100) {
-      block_bytes = allocator.allocate(num_blocks);
+      block_bytes = gbbs::new_array_no_init<uintE>(num_blocks);
     } else {
       block_bytes = (uintE*)stk;
     }
@@ -563,7 +561,7 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
     if (num_blocks > 100) {
-      allocator.deallocate(block_bytes, num_blocks);
+      gbbs::free_array(block_bytes, num_blocks);
     }
     return total_space;
   } else {
@@ -697,9 +695,8 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
   size_t num_blocks = 1 + (d - 1) / PARALLEL_DEGREE;
   uintE stk[101];
   uintE* block_bytes;
-  auto allocator = parlay::allocator<uintE>();
   if (num_blocks > 100) {
-    block_bytes = allocator.allocate(num_blocks + 1);
+    block_bytes = gbbs::new_array_no_init<uintE>(num_blocks + 1);
   } else {
     block_bytes = (uintE*)stk;
   }
@@ -751,7 +748,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
     }
   });
   if (num_blocks > 100) {
-    allocator.deallocate(block_bytes, num_blocks + 1);
+    gbbs::free_array(block_bytes, num_blocks + 1);
   }
 }
 

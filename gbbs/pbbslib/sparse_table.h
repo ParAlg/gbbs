@@ -56,7 +56,7 @@ class sparse_table {
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(table);
+      gbbs::free_array(table, m);
       alloc = false;
     }
   }
@@ -67,12 +67,12 @@ class sparse_table {
   void resize_no_copy(size_t incoming) {
     if (incoming > m) {
       if (alloc) {
-        pbbslib::free_array(table);
+        gbbs::free_array(table, m);
       }
       std::cout << "# Resizing decrement table, was: " << m;
       m = incoming;
       mask = m - 1;
-      table = pbbslib::new_array_no_init<T>(m);
+      table = gbbs::new_array_no_init<T>(m);
       clearA(table, m, empty);
       alloc = true;
       std::cout << "#  is now: " << m << std::endl;
@@ -86,10 +86,10 @@ class sparse_table {
       auto old_table = table;
       size_t old_m = m;
       std::cout << "# Resizing table, was: " << m;
-      size_t new_size = 1 << pbbs::log2_up(2*(m + incoming));
+      size_t new_size = 1 << parlay::log2_up(2*(m + incoming));
       m = new_size;
       mask = m - 1;
-      table = pbbslib::new_array_no_init<T>(m);
+      table = gbbs::new_array_no_init<T>(m);
       clearA(table, m, empty);
       alloc = true;
       std::cout << "#  is now: " << m << std::endl;
@@ -100,7 +100,7 @@ class sparse_table {
       });
 
       if (old_alloc) {
-        pbbslib::free_array(old_table);
+        gbbs::free_array(old_table, old_m);
       }
     }
   }
@@ -119,9 +119,9 @@ class sparse_table {
         key_hash(_key_hash) {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;
-    m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m) + 1);
+    m = (size_t)1 << parlay::log2_up((size_t)(space_mult * _m) + 1);
     mask = m - 1;
-    table = pbbslib::new_array_no_init<T>(m);
+    table = gbbs::new_array_no_init<T>(m);
     clearA(table, m, empty);
     alloc = true;
   }
@@ -283,8 +283,8 @@ class sparse_table {
 
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
-    auto table_seq = pbbslib::make_sequence<T>(table, m);
-    return pbbslib::filter(table_seq, pred);
+    auto table_seq = parlay::make_slice<T>(table, table + m);
+    return parlay::filter(table_seq, pred);
   }
 
   void clear() {

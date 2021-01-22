@@ -10,7 +10,7 @@ symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
     const std::unordered_set<UndirectedEdge>& edges) {
   using Edge = std::tuple<uintE, uintE, gbbs::empty>;
 
-  constexpr pbbs::empty weight{};
+  constexpr gbbs::empty weight{};
   pbbs::sequence<Edge> edge_sequence(edges.size() * 2);
   auto edges_it{edges.cbegin()};
   for (size_t i = 0; i < edges.size(); i++) {

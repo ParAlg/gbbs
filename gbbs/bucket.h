@@ -173,12 +173,12 @@ struct buckets {
     return null_bkt;
   }
 
-  void del() {
+  ~buckets() {
     if (allocated) {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].clear();
       }
-      pbbslib::free_array(bkts);
+      gbbs::free_array(bkts);
       allocated = false;
     }
   }
@@ -233,7 +233,7 @@ struct buckets {
     });
     outs[last_ind] = 0;
 
-    pbbslib::scan_inplace(parlay::make_slice(outs), parlay::addm<bucket_id>());
+    parlay::scan_inplace(parlay::make_slice(outs), parlay::addm<bucket_id>());
 //    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
@@ -322,7 +322,7 @@ struct buckets {
     size_t m = bkts[open_buckets].size;
     auto tmp = sequence<ident_t>(m);
     ident_t* A = bkts[open_buckets].A;
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, gbbs::kSequentialForThreshold, [&] (size_t i)
                     { tmp[i] = A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range
@@ -349,13 +349,13 @@ struct buckets {
     size_t num_in_range = updated - bkts[open_buckets].size;
     //none in range
     if(num_in_range == 0 && bkts[open_buckets].size > 0) {
-      auto imap = pbbslib::delayed_seq<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
+      auto imap = parlay::delayed_seq<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
       if(order == increasing) {
-        size_t minBkt = pbbs::reduce(imap, pbbs::minm<size_t>());
+        size_t minBkt = parlay::reduce(imap, parlay::minm<size_t>());
         cur_range = minBkt/open_buckets-1; //will be incremented in next unpack() call
       }
       else if(order == decreasing) {
-        size_t minBkt = pbbs::reduce(imap, pbbs::maxm<size_t>());
+        size_t minBkt = parlay::reduce(imap, parlay::maxm<size_t>());
         cur_range = (open_buckets+minBkt)/open_buckets+1; //will be decremented in next unpack() call
       }
     }
@@ -400,16 +400,16 @@ struct buckets {
   }
 
   inline bucket get_cur_bucket() {
-    id_dyn_arr bkt = bkts[cur_bkt];
+    id_dyn_arr bkt = bkts[cur_bkt];  // TODO should be a ref (&)?
     size_t size = bkt.size;
     num_elms -= size;
-    auto out = pbbs::sequence<ident_t>(size);
+    // auto out = parlay::sequence<ident_t>(size);
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
-    size_t m = pbbslib::filterf(bkt.A, out, size, p);
+    size_t m = parlay::filter(bkt, p);  // TODO: make bkt a sequence
     bkts[cur_bkt].size = 0;
     if (m == 0) {
-      pbbslib::free_array(out);
+      gbbs::free_array(out);
       return next_bucket();
     }
     auto ret = bucket(cur_bkt_num, sequence<ident_t>(std::move(out), m));

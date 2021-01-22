@@ -4,29 +4,6 @@
 
 namespace gbbs {
 
-namespace {
-
-  // Purely for the sake of quickly testing the _ptr_ graph objects.
-  template <class Wgh>
-  static inline symmetric_ptr_graph<symmetric_vertex, Wgh> sym_ptr_graph_from_edges(
-      pbbs::sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
-      bool is_sorted = false) {
-    using edge = std::tuple<uintE, uintE, Wgh>;
-    auto get_u = [&](const edge& e) { return std::get<0>(e); };
-    auto get_v = [&](const edge& e) { return std::get<1>(e); };
-    auto get_w = [&](const edge& e) { return std::get<2>(e); };
-    auto G = sym_graph_from_edges<Wgh>(A, n, get_u, get_v, get_w, is_sorted);
-    using vertex = symmetric_vertex<Wgh>;
-    vertex* vertices = pbbs::new_array_no_init<vertex>(G.n);
-    for (size_t i=0; i<G.n; i++) {
-      vertices[i] = G.get_vertex(i);
-    }
-    auto GP = symmetric_ptr_graph<symmetric_vertex, Wgh>(G.n, G.m, vertices, G.deletion_fn);
-    return GP;
-  }
-
-}
-
 TEST(TestSymGraphFromEdges, TestBrokenPath) {
   using edge = std::tuple<uintE, uintE, int>;
   uintE n = 11;
@@ -56,7 +33,6 @@ TEST(TestSymGraphFromEdges, TestBrokenPath) {
   ASSERT_EQ(G.get_vertex(8).out_degree(), 2);
   ASSERT_EQ(G.get_vertex(9).out_degree(), 2);
   ASSERT_EQ(G.get_vertex(10).out_degree(), 3);
-  G.del();
 }
 
 TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
@@ -74,7 +50,6 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
-  graph.del();
 }
 
 TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
@@ -93,14 +68,12 @@ TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
   auto G = graph.copy();
-  graph.del();
 
   ASSERT_EQ(G.n, n);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
   ASSERT_EQ(G.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(G.get_vertex(3).out_degree(), 0);
-  G.del();
 }
 
 TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
@@ -118,7 +91,6 @@ TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(graph.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
-  graph.del();
 }
 
 TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
@@ -150,7 +122,6 @@ TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
   ASSERT_EQ(G.get_vertex(8).out_degree(), 2);
   ASSERT_EQ(G.get_vertex(9).out_degree(), 2);
   ASSERT_EQ(G.get_vertex(10).out_degree(), 3);
-  G.del();
 }
 
 TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
@@ -170,14 +141,12 @@ TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
   ASSERT_EQ(graph.get_vertex(3).out_degree(), 0);
 
   auto G = graph.copy();
-  graph.del();
 
   ASSERT_EQ(G.n, n);
   ASSERT_EQ(G.get_vertex(0).out_degree(), 1);
   ASSERT_EQ(G.get_vertex(1).out_degree(), 1);
   ASSERT_EQ(G.get_vertex(2).out_degree(), 0);
   ASSERT_EQ(G.get_vertex(3).out_degree(), 0);
-  G.del();
 }
 
 }  // namespace gbbs

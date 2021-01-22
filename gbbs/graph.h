@@ -113,7 +113,7 @@ struct symmetric_graph {
 
   symmetric_graph(gbbs::slice<vertex_data> v_data, size_t n, size_t m,
                   std::function<void()> _deletion_fn, gbbs::slice<edge_type> _e0,
-                  gbbs::slice<edge_type> _e1 = gbbs::slice<edge_type>())
+                  gbbs::slice<edge_type> _e1)
       : v_data(std::move(v_data)),
         e0(std::move(_e0)),
         e1(std::move(_e1)),
@@ -142,7 +142,7 @@ struct symmetric_graph {
   }
 
 #ifndef SAGE
-  vertex get_vertex(uintE i) { return vertex(e0, v_data[i], i); }
+  vertex get_vertex(uintE i) { return vertex(e0.begin(), v_data[i], i); }
 #else
   vertex get_vertex(uintE i) {
     // TODO: fix numanode in sched
@@ -213,7 +213,7 @@ struct asymmetric_graph {
 
 #ifndef SAGE
   vertex get_vertex(size_t i) {
-    return vertex(out_edges_0, v_out_data[i], in_edges_0, v_in_data[i], i);
+    return vertex(out_edges_0.begin(), v_out_data[i], in_edges_0.begin(), v_in_data[i], i);
   }
 #else
   vertex get_vertex(size_t i) {
@@ -235,8 +235,8 @@ struct asymmetric_graph {
   asymmetric_graph(gbbs::slice<vertex_data> v_out_data, gbbs::slice<vertex_data> v_in_data, size_t n,
                    size_t m, std::function<void()> _deletion_fn,
                    gbbs::slice<edge_type> _out_edges_0, gbbs::slice<edge_type> _in_edges_0,
-                   gbbs::slice<edge_type> _out_edges_1 = gbbs::slice<edge_type>(),
-                   gbbs::slice<edge_type> _in_edges_1 = gbbs::slice<edge_type>())
+                   gbbs::slice<edge_type> _out_edges_1,
+                   gbbs::slice<edge_type> _in_edges_1)
       : n(n),
         m(m),
         deletion_fn(_deletion_fn),

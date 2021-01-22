@@ -501,11 +501,10 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
     uchar* nghs_start = edge_start + (num_blocks - 1) * sizeof(uintE) +
                         sizeof(uintE);  // block offs + virtual_degree
 
-    auto allocator = parlay::allocator<E>();
     E stk[100];
     E* block_outputs;
     if (num_blocks > 100) {
-      block_outputs = allocator.allocate(num_blocks);
+      block_outputs = gbbs::new_array_no_init<E>(num_blocks);
     } else {
       block_outputs = (E*)stk;
     }
@@ -539,7 +538,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
     auto im = parlay::make_slice(block_outputs, num_blocks);
     E res = parlay::reduce(im, reduce);
     if (num_blocks > 100) {
-      allocator.deallocate(block_outputs, num_blocks);
+      gbbs::free_array(block_outputs, num_blocks);
     }
     return res;
 //    return cur;
@@ -885,9 +884,8 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     using uintEW = std::tuple<uintE, W>;
     uintEW tmp_stack[100];
     uintEW* U = tmp_stack;
-    auto allocator = parlay::allocator<uintEW>();
     if (degree > 100) {
-      U = allocator.allocate(degree);
+      U = gbbs::new_array_no_init<uintEW>(degree);
     }
     par_for(0, num_blocks, 2, [&] (size_t i) {
       uchar* finger =
@@ -914,9 +912,8 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     // 2. Repack from edge_start
     size_t new_blocks = 1 + (degree - 1) / PARALLEL_DEGREE;
     uintE offs_stack[100];
-    auto uinte_allocator = parlay::allocator<uintE>();
     uintE* offs =
-        ((new_blocks + 1) <= 100) ? offs_stack : uinte_allocator.allocate(new_blocks + 1);
+        ((new_blocks + 1) <= 100) ? offs_stack : gbbs::new_array_no_init<uintE>(new_blocks + 1);
 
     // 3. Compute #bytes per new block
     par_for(0, new_blocks, 2, [&] (size_t i) {
@@ -982,10 +979,10 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     }, par);
 
     if ((new_blocks + 1) > 100) {
-      uinte_allocator.deallocate(offs, new_blocks + 1);
+      gbbs::free_array(offs, new_blocks + 1);
     }
     if (degree > 100) {
-      allocator.deallocate(U, degree);
+      gbbs::free_array(U, degree);
     }
   }
 }
@@ -1003,9 +1000,8 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
                       sizeof(uintE);  // block offs + virtual_degree
 
   size_t block_cts_stack[100];
-  auto sizet_alloc = parlay::allocator<size_t>();
   size_t* block_cts =
-      (num_blocks > 100) ? sizet_alloc.allocate(num_blocks + 1) : block_cts_stack;
+      (num_blocks > 100) ? gbbs::new_array_no_init<size_t>(num_blocks + 1) : block_cts_stack;
 
   par_for(0, num_blocks, 2, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1077,7 +1073,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   });
 
   if (num_blocks > 100) {
-    sizet_alloc.deallocate(block_cts, num_blocks + 1);
+    gbbs::free_array(block_cts, num_blocks + 1);
   }
 
   // Can comment out this call to avoid repacking; this can make algorithms,
