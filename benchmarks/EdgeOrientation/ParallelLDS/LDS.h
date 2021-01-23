@@ -24,7 +24,6 @@
 #pragma once
 
 #include <unordered_set>
-#include <vector>
 #include <stack>
 
 #include "gbbs/gbbs.h"
@@ -33,10 +32,14 @@ namespace gbbs {
 
 struct LDS {
   size_t n;  // number of vertices
+  static constexpr double delta = 9.0;
+  static constexpr double upper_constant = (2 + static_cast<double>(3) / delta);
+  static constexpr double epsilon = 3.0;
+  static constexpr double one_plus_eps = 1 + epsilon;
 
-  using level = std::unordered_set<uintE>;
-  using down_neighbors = parlay::sequence<level>;
-  using up_neighbors = level;
+  using levelset = pbbs::sparse_table<uintE, gbbs::empty>;
+  using down_neighbors = parlay::sequence<levelset>;
+  using up_neighbors = levelset;
   using edge_type = std::pair<uintE, uintE>;
 
   struct LDSVertex {
@@ -64,9 +67,13 @@ struct LDS {
       }
     }
 
+    inline double group_degree(size_t group) const {
+      return pow(one_plus_eps, group);
+    }
+
     inline bool upper_invariant(const size_t levels_per_group) const {
       uintE group = level / levels_per_group;
-      return up.size() <= static_cast<size_t>(5 * (1 << group));
+      return up.size() <= static_cast<size_t>(upper_constant * group_degree(group));
     }
 
     inline bool lower_invariant(const size_t levels_per_group) const {
@@ -74,7 +81,7 @@ struct LDS {
       uintE lower_group = (level - 1) / levels_per_group;
       auto up_size = up.size();
       auto prev_level_size = down[level - 1].size();
-      return (up_size + prev_level_size) >= static_cast<size_t>(1 << lower_group);
+      return (up_size + prev_level_size) >= static_cast<size_t>(group_degree(lower_group));  // needs a floor or ceil?
     }
 
   };
@@ -85,7 +92,8 @@ struct LDS {
   std::stack<uintE> Dirty;
 
   LDS(size_t n) : n(n) {
-    levels_per_group = parlay::log2_up(n);
+    levels_per_group = ceil(log(n) / log(one_plus_eps));
+    // levels_per_group = parlay::log2_up(n);
     L = parlay::sequence<LDSVertex>(n);
   }
 
@@ -207,6 +215,19 @@ struct LDS {
     return true;
   }
 
+  template <class Seq>
+  void batch_insertion(const Seq& insertions_unfiltered) {
+    auto insertions = parlay::filter(parlay::make_slice(insertions_unfiltered), [&] (const edge_type& e) { return !edge_exists(e); });
+    // 1. perform insertions locally
+
+
+    // 2. initialize L many buckets based on desire levels.
+
+
+    // 3.
+
+  }
+
   bool delete_edge(edge_type e) {
     if (!edge_exists(e)) return false;
     auto[u, v] = e;
@@ -220,26 +241,17 @@ struct LDS {
     return true;
   }
 
-  template <class Seq>
-  void insert_edges(const Seq& unfiltered_insertions) {
-    auto insertions = parlay::filter(parlay::to_slice(unfiltered_insertions),
-        [&] (const edge_type& e) { return !edge_exists(e); });
-
-  }
-
-  template <class Seq>
-  void delete_edges(const Seq& unfiltered_deletions) {
-    auto deletions = parlay::filter(parlay::to_slice(unfiltered_deletions),
-        [&] (const edge_type& e) { return edge_exists(e); });
-
-  }
-
-
   void check_invariants() {
+    bool invs_ok = true;
     for (size_t i=0; i<n; i++) {
-      assert(L[i].upper_invariant(levels_per_group));
-      assert(L[i].lower_invariant(levels_per_group));
+      bool upper_ok = L[i].upper_invariant(levels_per_group);
+      bool lower_ok = L[i].lower_invariant(levels_per_group);
+      assert(upper_ok);
+      assert(lower_ok);
+      invs_ok &= upper_ok;
+      invs_ok &= lower_ok;
     }
+    std::cout << "invs ok is: " << invs_ok << std::endl;
   }
 
   inline uintE group_for_level(uintE level) const {

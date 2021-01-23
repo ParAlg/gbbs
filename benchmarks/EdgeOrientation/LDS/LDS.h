@@ -23,9 +23,9 @@
 
 #pragma once
 
+#include <stack>
 #include <unordered_set>
 #include <vector>
-#include <stack>
 
 #include "gbbs/gbbs.h"
 
@@ -33,6 +33,16 @@ namespace gbbs {
 
 struct LDS {
   size_t n;  // number of vertices
+  static constexpr double delta = 9.0;
+  static constexpr double upper_constant = (2 + static_cast<double>(3) / delta);
+  static constexpr double epsilon = 3.0;
+  static constexpr double one_plus_eps = 1 + epsilon;
+
+  inline static double group_degree(size_t group) {
+    return pow(one_plus_eps, group);
+  }
+
+  size_t total_work;
 
   using level = std::unordered_set<uintE>;
   using down_neighbors = std::vector<level>;
@@ -64,9 +74,11 @@ struct LDS {
       }
     }
 
+
     inline bool upper_invariant(const size_t levels_per_group) const {
       uintE group = level / levels_per_group;
-      return up.size() <= static_cast<size_t>(5 * (1 << group));
+      return up.size() <=
+             static_cast<size_t>(upper_constant * group_degree(group));
     }
 
     inline bool lower_invariant(const size_t levels_per_group) const {
@@ -74,9 +86,10 @@ struct LDS {
       uintE lower_group = (level - 1) / levels_per_group;
       auto up_size = up.size();
       auto prev_level_size = down[level - 1].size();
-      return (up_size + prev_level_size) >= static_cast<size_t>(1 << lower_group);
+      return (up_size + prev_level_size) >=
+             static_cast<size_t>(
+                 group_degree(lower_group));  // needs a floor or ceil?
     }
-
   };
 
   // number of inner-levels per group,  O(\log n) many.
@@ -85,17 +98,17 @@ struct LDS {
   std::stack<uintE> Dirty;
 
   LDS(size_t n) : n(n) {
-    levels_per_group = parlay::log2_up(n);
+    levels_per_group = ceil(log(n) / log(one_plus_eps));
+    // levels_per_group = parlay::log2_up(n);
     L = parlay::sequence<LDSVertex>(n);
   }
 
-  uintE get_level(uintE ngh) {
-    return L[ngh].level;
-  }
+  uintE get_level(uintE ngh) { return L[ngh].level; }
 
   // Moving u from level to level - 1.
   template <class Levels>
   void level_decrease(uintE u, Levels& L) {
+    total_work++;
     uintE level = L[u].level;
     auto& up = L[u].up;
     assert(level > 0);
@@ -109,7 +122,7 @@ struct LDS {
     for (const auto& ngh : up) {
       if (get_level(ngh) == level) {
         L[ngh].up.erase(L[ngh].up.find(u));
-        L[ngh].down[level-1].insert(u);
+        L[ngh].down[level - 1].insert(u);
 
       } else if (get_level(ngh) > level) {
         L[ngh].down[level].erase(L[ngh].down[level].find(u));
@@ -129,6 +142,7 @@ struct LDS {
   // Moving u from level to level + 1.
   template <class Levels>
   void level_increase(uintE u, Levels& L) {
+    total_work++;
     uintE level = L[u].level;
     std::vector<uintE> same_level;
     auto& up = L[u].up;
@@ -202,7 +216,8 @@ struct LDS {
     L[u].insert_neighbor(v, l_v);
     L[v].insert_neighbor(u, l_u);
 
-    Dirty.push(u); Dirty.push(v);
+    Dirty.push(u);
+    Dirty.push(v);
     fixup();
     return true;
   }
@@ -215,16 +230,30 @@ struct LDS {
     L[u].remove_neighbor(v, l_v);
     L[v].remove_neighbor(u, l_u);
 
-    Dirty.push(u); Dirty.push(v);
+    Dirty.push(u);
+    Dirty.push(v);
     fixup();
     return true;
   }
 
   void check_invariants() {
-    for (size_t i=0; i<n; i++) {
-      assert(L[i].upper_invariant(levels_per_group));
-      assert(L[i].lower_invariant(levels_per_group));
+    bool invs_ok = true;
+    for (size_t i = 0; i < n; i++) {
+      bool upper_ok = L[i].upper_invariant(levels_per_group);
+      bool lower_ok = L[i].lower_invariant(levels_per_group);
+      assert(upper_ok);
+      assert(lower_ok);
+      invs_ok &= upper_ok;
+      invs_ok &= lower_ok;
     }
+    std::cout << "invs ok is: " << invs_ok << std::endl;
+  }
+
+  uintE max_coreness() {
+    auto levels = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return L[i].level; });
+    uintE max_level = pbbslib::reduce_max(levels);
+    uintE max_group = group_for_level(max_level);
+    return group_degree(max_group);
   }
 
   inline uintE group_for_level(uintE level) const {
@@ -248,6 +277,7 @@ inline void RunLDS(Graph& G) {
 
   std::cout << "Finished all insertions!" << std::endl;
   layers.check_invariants();
+  std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
 
   for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
@@ -261,11 +291,17 @@ inline void RunLDS(Graph& G) {
   std::cout << "Finished all deletions!" << std::endl;
   layers.check_invariants();
 
+  std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+
+
   size_t sum_lev = 0;
-  for (size_t i=0; i<G.n; i++) {
+  for (size_t i = 0; i < G.n; i++) {
     sum_lev += layers.L[i].level;
   }
   std::cout << "sum_lev = " << sum_lev << std::endl;
+
+  std::cout << "Total level increases and decreases: " << layers.total_work
+            << std::endl;
 }
 
 }  // namespace gbbs
