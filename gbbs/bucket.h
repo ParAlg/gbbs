@@ -45,7 +45,6 @@
 #include "vertex_subset.h"
 #include "bridge.h"
 
-#include "pbbslib/dyn_arr.h"
 
 #define CACHE_LINE_S 64
 
@@ -71,7 +70,7 @@ struct buckets {
     }
   };
 
-  using id_dyn_arr = pbbslib::dyn_arr<ident_t>;
+  using id_dyn_arr = parlay::sequence<ident_t>;
 
   const bucket_id null_bkt = std::numeric_limits<bucket_id>::max();
 
@@ -96,6 +95,7 @@ struct buckets {
         allocated(true) {
     // Initialize array consisting of the materialized buckets.
     bkts = parlay::sequence<id_dyn_arr>(total_buckets);
+    prev_bkt_sizes = parlay::sequence<size_t>(total_buckets);
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
@@ -173,14 +173,18 @@ struct buckets {
     return null_bkt;
   }
 
-  ~buckets() {
-    if (allocated) {
-      for (size_t i = 0; i < total_buckets; i++) {
-        bkts[i].clear();
+  template <class F>
+  inline size_t update_buckets_seq(F& f, size_t k) {
+    size_t ne_before = num_elms;
+    for (size_t i = 0; i < k; i++) {
+      auto m = f(i);
+      bucket_id bkt = std::get<1>(*m);
+      if (m.has_value() && bkt != null_bkt) {
+        bkts[bkt].emplace_back(std::get<0>(*m));
+        num_elms++;
       }
-      gbbs::free_array(bkts);
-      allocated = false;
     }
+    return num_elms - ne_before;
   }
 
   // Updates k identifiers in the bucket structure. The i'th identifier and
@@ -190,6 +194,7 @@ struct buckets {
     size_t num_blocks = k / 4096;
     int num_threads = num_workers();
     if (k < 4096 || num_threads == 1) {
+    // if (true) {
       return update_buckets_seq(f, k);
     }
 
@@ -199,13 +204,14 @@ struct buckets {
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
-    auto hists = parlay::sequence<bucket_id> ((num_blocks + 1) * total_buckets * CACHE_LINE_S);
+    auto hists_seq = parlay::sequence<bucket_id>::uninitialized((num_blocks + 1) * total_buckets * CACHE_LINE_S);
+    auto hists = hists_seq.begin();
 
     // 1. Compute per-block histograms
-    parallel_for(0, num_blocks, [&] (size_t i) {
-      size_t s = i * block_size;
+    parallel_for(0, num_blocks, [&] (size_t block_id) {
+      size_t s = block_id * block_size;
       size_t e = std::min(s + block_size, k);
-      bucket_id* hist = &(hists[i * total_buckets]);
+      bucket_id* hist = &(hists[block_id * total_buckets]);
 
       for (size_t j = 0; j < total_buckets; j++) {
         hist[j] = 0;
@@ -227,58 +233,63 @@ struct buckets {
     };
 
     size_t last_ind = (num_blocks * total_buckets);
-    auto outs = sequence<bucket_id>(last_ind + 1);
+    auto outs = parlay::sequence<bucket_id>::uninitialized(last_ind + 1);
     parallel_for(0, last_ind, [&] (size_t i) {
       outs[i] = get(i);
     });
     outs[last_ind] = 0;
 
     parlay::scan_inplace(parlay::make_slice(outs), parlay::addm<bucket_id>());
-//    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
     for (size_t i = 0; i < total_buckets; i++) {
       size_t num_inc = outs[(i + 1) * num_blocks] - outs[i * num_blocks];
-      bkts[i].resize(num_inc);
+      size_t cur_size = bkts[i].size();
+      prev_bkt_sizes[i] = cur_size;
+      bkts[i].resize(cur_size + num_inc);
       num_elms += num_inc;
     }
 
     // 4. Compute the starting offsets for each block.
-    par_for(0, total_buckets, 1, [&] (size_t i) {
-      size_t start = outs[i * num_blocks];
-      for (size_t j = 0; j < num_blocks; j++) {
-        hists[(i * num_blocks + j) * CACHE_LINE_S] =
-            outs[i * num_blocks + j] - start;
+    parallel_for(0, total_buckets, [&] (size_t bucket_id) {
+      size_t start = outs[bucket_id * num_blocks];
+      for (size_t block_id = 0; block_id < num_blocks; block_id++) {
+        hists[(bucket_id * num_blocks + block_id) * CACHE_LINE_S] =
+            outs[bucket_id * num_blocks + block_id] - start;
       }
-    });
+    }, 1);
+
+    size_t* const prev_sizes = prev_bkt_sizes.begin();
 
     // 5. Iterate over blocks again. Insert (id, bkt) into bkt[hists[bkt]]
     // and increment hists[bkt].
-    par_for(0, num_blocks, 1, [&] (size_t i) {
-      size_t s = i * block_size;
+    par_for(0, num_blocks, 1, [&] (size_t block_id) {
+      size_t s = block_id * block_size;
       size_t e = std::min(s + block_size, k);
       // our buckets are now spread out, across outs
       for (size_t j = s; j < e; j++) {
         auto m = f(j);
-        ident_t v = std::get<0>(*m);
-        bucket_id b = std::get<1>(*m);
-        if (m.has_value() && b != null_bkt) {
-          size_t ind = hists[(b * num_blocks + i) * CACHE_LINE_S];
-          bkts[b].insert(v, ind);
-          hists[(b * num_blocks + i) * CACHE_LINE_S]++;
+        bucket_id bucket_id = std::get<1>(*m);
+        if (m.has_value() && bucket_id != null_bkt) {
+          ident_t v = std::get<0>(*m);
+          size_t ind = prev_sizes[bucket_id] + hists[(bucket_id * num_blocks + block_id) * CACHE_LINE_S];
+          bkts[bucket_id][ind] = v;
+          hists[(bucket_id * num_blocks + block_id) * CACHE_LINE_S]++;
         }
       }
     });
 
-    // 6. Finally, update the size of each bucket.
-    for (size_t i = 0; i < total_buckets; i++) {
-      size_t num_inc = outs[(i + 1) * num_blocks] - outs[i * num_blocks];
-      size_t& m = bkts[i].size;
-      m += num_inc;
-    }
+//    // 6. Finally, update the size of each bucket.
+//    for (size_t i = 0; i < total_buckets; i++) {
+//      size_t num_inc = outs[(i + 1) * num_blocks] - outs[i * num_blocks];
+//      size_t& m = bkts[i].size();
+//      m += num_inc;
+//    }
 
     return num_elms - ne_before;
   }
+
+  size_t num_elms;
 
  private:
   size_t n;  // total number of identifiers in the system
@@ -288,48 +299,24 @@ struct buckets {
   size_t total_buckets;
   size_t cur_bkt;
   size_t max_bkt;
-  size_t num_elms;
   bool allocated;
 
   size_t cur_range;
   parlay::sequence<id_dyn_arr> bkts;
+  parlay::sequence<size_t> prev_bkt_sizes;
 
-  template <class F>
-  inline size_t update_buckets_seq(F& f, size_t k) {
-    size_t ne_before = num_elms;
-    for (size_t i = 0; i < k; i++) {
-      auto m = f(i);
-      bucket_id bkt = std::get<1>(*m);
-      if (m.has_value() && bkt != null_bkt) {
-        bkts[bkt].resize(1);
-        insert_in_bucket(bkt, std::get<0>(*m));
-        num_elms++;
-      }
-    }
-    return num_elms - ne_before;
-  }
-
-  inline void insert_in_bucket(bucket_id bkt, ident_t ident) {
-    auto dst = bkts[bkt].A;
-    auto size = bkts[bkt].size;
-    dst[size] = ident;
-    bkts[bkt].size++;
-  }
-
-  inline bool curBucketNonEmpty() { return bkts[cur_bkt].size > 0; }
+  inline bool curBucketNonEmpty() { return bkts[cur_bkt].size() > 0; }
 
   inline void unpack() {
-    size_t m = bkts[open_buckets].size;
-    auto tmp = sequence<ident_t>(m);
-    ident_t* A = bkts[open_buckets].A;
-    par_for(0, m, gbbs::kSequentialForThreshold, [&] (size_t i)
-                    { tmp[i] = A[i]; });
+    size_t m = bkts[open_buckets].size();
+    auto A = bkts[open_buckets].begin();
+    auto tmp = parlay::sequence<ident_t>::from_function(m, [&] (size_t i) { return A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range
     } else {
       cur_range--;
     }
-    bkts[open_buckets].size = 0;  // reset size
+    bkts[open_buckets].clear(); // reset size
 
     auto g = [&](ident_t i) -> std::optional<std::tuple<ident_t, bucket_id> > {
       ident_t v = tmp[i];
@@ -346,10 +333,13 @@ struct buckets {
       assert(m == num_elms);  // corrruption in bucket structure.
     }
     size_t updated = update_buckets(g, m);
-    size_t num_in_range = updated - bkts[open_buckets].size;
+    size_t num_in_range = updated - bkts[open_buckets].size();
     //none in range
-    if(num_in_range == 0 && bkts[open_buckets].size > 0) {
-      auto imap = parlay::delayed_seq<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
+    if(num_in_range == 0 && bkts[open_buckets].size() > 0) {
+      auto open_bkt = bkts[open_buckets].begin();
+      auto imap = parlay::delayed_seq<bucket_t>(bkts[open_buckets].size(), [&] (size_t j) {
+        return (size_t)d[open_bkt[j]];
+      });
       if(order == increasing) {
         size_t minBkt = parlay::reduce(imap, parlay::minm<size_t>());
         cur_range = minBkt/open_buckets-1; //will be incremented in next unpack() call
@@ -400,22 +390,21 @@ struct buckets {
   }
 
   inline bucket get_cur_bucket() {
-    id_dyn_arr bkt = bkts[cur_bkt];  // TODO should be a ref (&)?
-    size_t size = bkt.size;
+    auto& bkt = bkts[cur_bkt];
+    size_t size = bkt.size();
     num_elms -= size;
-    // auto out = parlay::sequence<ident_t>(size);
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
-    size_t m = parlay::filter(bkt, p);  // TODO: make bkt a sequence
-    bkts[cur_bkt].size = 0;
-    if (m == 0) {
-      gbbs::free_array(out);
+    auto out = parlay::filter(parlay::make_slice(bkt), p);
+    bkts[cur_bkt].clear();  // reset size
+    if (out.size() == 0) {
       return next_bucket();
     }
-    auto ret = bucket(cur_bkt_num, sequence<ident_t>(std::move(out), m));
+    auto ret = bucket(cur_bkt_num, std::move(out));
     ret.num_filtered = size;
-    return std::move(ret);
+    return ret;
   }
+
 };
 
 inline const std::optional<std::tuple<uintE, uintE> > wrap(const uintE& l,

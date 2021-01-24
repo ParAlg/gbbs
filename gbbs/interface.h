@@ -85,12 +85,13 @@ template <template <class inner_wgh> class vtx_type, class wgh_type,
               int>::type = 0>
 static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
     symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-  auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, wgh_type>(G, pred);
+  auto[newN, newM, newVData, newEdges, newEdgesSize] = filter_graph<vtx_type, wgh_type>(G, pred);
   assert(newN == G.num_vertices());
   return symmetric_graph<symmetric_vertex, wgh_type>(
       newVData, newN, newM,
-      [newVData = newVData, newEdges = newEdges]() {
-        pbbslib::free_arrays(newVData, newEdges);
+      [=]() {
+        gbbs::free_array(newVData, newN);
+        gbbs::free_array(newEdges, newEdgesSize);
       }, newEdges);
 }
 
@@ -101,12 +102,13 @@ template <
         int>::type = 0>
 static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
     symmetric_graph<vtx_type, wgh_type>& G, P& pred) {
-  auto[newN, newM, newVData, newEdges] = filter_graph<vtx_type, wgh_type>(G, pred);
+  auto[newN, newM, newVData, newEdges, newEdgesSize] = filter_graph<vtx_type, wgh_type>(G, pred);
   assert(newN == G.num_vertices());
   return symmetric_graph<csv_byte, wgh_type>(
       newVData, newN, newM,
-      [newVData = newVData, newEdges = newEdges]() {
-        pbbslib::free_arrays(newVData, newEdges);
+      [=]() {
+        gbbs::free_array(newVData, newN);
+        gbbs::free_array(newEdges, newEdgesSize);
       }, newEdges);
 }
 

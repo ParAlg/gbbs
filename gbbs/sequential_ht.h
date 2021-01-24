@@ -132,15 +132,15 @@ class sequentialHT {
   }
 
   // F : KV -> E
-  template <class E, class F>
-  inline size_t compactInto(F& f, E* Out) {
+  template <class F, class R>
+  inline size_t compactInto(F& f, R&& Out) {
     size_t k = 0;
     for (size_t i = 0; i < m; i++) {
       auto kv = table[i];
       auto key = std::get<0>(kv);
       if (key != max_key) {
         table[i] = empty;
-        std::optional<E> value = f(kv);
+        auto value = f(kv);
         if (value.has_value()) {
           Out[k++] = *value;
         }

@@ -81,7 +81,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
   auto sizes = parlay::sequence<uintT>(n);
   parallel_for(0, n,
                [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
-  size_t m = pbbslib::scan_add_inplace(parlay::make_slice(sizes));
+  size_t m = parlay::scan_inplace(parlay::make_slice(sizes));
   assert(m == G.m);
 
   auto arr = parlay::sequence<edge>(m);

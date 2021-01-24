@@ -293,7 +293,6 @@ inline void RunLDS(Graph& G) {
 
   std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
 
-
   size_t sum_lev = 0;
   for (size_t i = 0; i < G.n; i++) {
     sum_lev += layers.L[i].level;

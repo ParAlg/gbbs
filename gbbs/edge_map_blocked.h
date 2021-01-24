@@ -200,7 +200,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   blocks.clear();
   degrees.clear();
 
-  return vertexSubsetData<data>(n, out_size, out);
+  return vertexSubsetData<data>(n, out);
 }
 
 constexpr size_t kDataBlockSizeBytes = 16384;
@@ -435,7 +435,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
       // deallocate block to list_alloc
       data_block_allocator::free(block);
     }, 1);
-    ret = vertexSubsetData<data>(n, output_size, std::move(out_seq));
+    ret = vertexSubsetData<data>(n, std::move(out_seq));
   } else {
     parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
       em_data_block* block = all_blocks[block_id];

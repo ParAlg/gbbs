@@ -42,8 +42,8 @@ struct vertexSubsetData {
   vertexSubsetData(size_t _n) : n(_n), m(0), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData(size_t _n, size_t _m, parlay::sequence<S>&& indices)
-      : n(_n), m(_m), s(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
+  vertexSubsetData(size_t _n, parlay::sequence<S>&& indices)
+      : n(_n), m(indices.size()), s(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
 //  // A vertexSubset from a sequence.
 //  vertexSubsetData(size_t _n, sequence<S>& seq, bool transfer = true)
@@ -173,8 +173,8 @@ struct vertexSubsetData<gbbs::empty> {
   }
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, parlay::sequence<S>&& indices)
-      : n(_n), m(_m), s(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
+  vertexSubsetData<gbbs::empty>(size_t _n, parlay::sequence<S>&& indices)
+      : n(_n), m(indices.size()), s(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
 //  // A vertexSubset from a sequence.
 //  vertexSubsetData<gbbs::empty>(size_t _n, sequence<S>& seq, bool transfer =
@@ -221,7 +221,7 @@ struct vertexSubsetData<gbbs::empty> {
 
   // Dense
   __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
-    return d.begin()[v];
+    return d[v];
   }
   inline gbbs::empty ithData(const uintE& v) const {
     return gbbs::empty();
