@@ -90,8 +90,12 @@ std::pair<char*, size_t> mmap_pmem(const char* filename) {
 template <class weight_type>
 symmetric_graph<csv_bytepd_amortized, weight_type>
 read_compressed_symmetric_graph(const char* f1, const char* f2) {
-  auto [s0, s0_size] = mmap_pmem(f1);
-  auto [s1, s1_size] = mmap_pmem(f2);
+  auto [s0_sb, s0_size_sb] = mmap_pmem(f1);
+  auto [s1_sb, s1_size_sb] = mmap_pmem(f2);
+  auto s0 = s0_sb;
+  auto s0_size = s0_size_sb;
+  auto s1 = s1_sb;
+  auto s1_size = s1_size_sb;
   if (s0_size != s1_size) {
     std::cout << f1 << " and " << f2 << " have different file lengths, aborting" << std::endl;
     exit(-1);
@@ -130,8 +134,12 @@ read_compressed_symmetric_graph(const char* f1, const char* f2) {
 template <class weight_type>
 asymmetric_graph<cav_bytepd_amortized, weight_type>
 read_compressed_asymmetric_graph(const char* f1, const char* f2) {
-  auto [s0, s0_size] = mmap_pmem(f1);
-  auto [s1, s1_size] = mmap_pmem(f2);
+  auto [s0_sb, s0_size_sb] = mmap_pmem(f1);
+  auto [s1_sb, s1_size_sb] = mmap_pmem(f2);
+  auto s0 = s0_sb;
+  auto s0_size = s0_size_sb;
+  auto s1 = s1_sb;
+  auto s1_size = s1_size_sb;
   if (s0_size != s1_size) {
     std::cout << f1 << " and " << f2 << " have different file lengths, aborting" << std::endl;
     exit(-1);
@@ -185,8 +193,12 @@ read_compressed_asymmetric_graph(const char* f1, const char* f2) {
 template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type>
 read_symmetric_binary_graph(const char* f1, const char* f2) {
-  auto [s0, s0_size] = mmap_pmem(f1);
-  auto [s1, s1_size] = mmap_pmem(f2);
+  auto [s0_sb, s0_size_sb] = mmap_pmem(f1);
+  auto [s1_sb, s1_size_sb] = mmap_pmem(f2);
+  auto s0 = s0_sb;
+  auto s0_size = s0_size_sb;
+  auto s1 = s1_sb;
+  auto s1_size = s1_size_sb;
   if (s0_size != s1_size) {
     std::cout << f1 << " and " << f2 << " have different file lengths, aborting" << std::endl;
     exit(-1);
@@ -225,8 +237,12 @@ read_symmetric_binary_graph(const char* f1, const char* f2) {
 template <class weight_type>
 asymmetric_graph<asymmetric_vertex, weight_type>
 read_asymmetric_binary_graph(const char* f1, const char* f2) {
-  auto [s0, s0_size] = mmap_pmem(f1);
-  auto [s1, s1_size] = mmap_pmem(f2);
+  auto [s0_sb, s0_size_sb] = mmap_pmem(f1);
+  auto [s1_sb, s1_size_sb] = mmap_pmem(f2);
+  auto s0 = s0_sb;
+  auto s0_size = s0_size_sb;
+  auto s1 = s1_sb;
+  auto s1_size = s1_size_sb;
   if (s0_size != s1_size) {
     std::cout << f1 << " and " << f2 << " have different file lengths, aborting" << std::endl;
     exit(-1);
