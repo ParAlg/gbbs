@@ -52,7 +52,8 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
   if (edgeCount == 0) {
     return vertexSubsetData<E>(G.n);
   }
-  auto edges = parlay::sequence<S>::uninitialized(edgeCount);
+  auto edges_seq = parlay::sequence<S>::uninitialized(edgeCount);
+  auto edges = edges_seq.begin();
 
   auto gen = [&](const uintE& ngh, const uintE& offset,
                  const std::optional<E>& val = std::nullopt) {
@@ -79,7 +80,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
     nghs.copy(o, map_f, gen);
   }, 1);
 
-  return vertexSubsetData<E>(G.n, std::move(edges));
+  return vertexSubsetData<E>(G.n, std::move(edges_seq));
 }
 
 // ============================= Edge Map Count ===============================

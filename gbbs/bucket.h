@@ -64,13 +64,13 @@ struct buckets {
   struct bucket {
     size_t id;
     size_t num_filtered;
-    parlay::sequence<ident_t> identifiers;
+    sequence<ident_t> identifiers;
     bucket(size_t _id, sequence<ident_t>&& _identifiers)
         : id(_id), identifiers(std::move(_identifiers)) {
     }
   };
 
-  using id_dyn_arr = parlay::sequence<ident_t>;
+  using id_dyn_arr = sequence<ident_t>;
 
   const bucket_id null_bkt = std::numeric_limits<bucket_id>::max();
 
@@ -94,8 +94,8 @@ struct buckets {
         num_elms(0),
         allocated(true) {
     // Initialize array consisting of the materialized buckets.
-    bkts = parlay::sequence<id_dyn_arr>(total_buckets);
-    prev_bkt_sizes = parlay::sequence<size_t>(total_buckets);
+    bkts = sequence<id_dyn_arr>(total_buckets);
+    prev_bkt_sizes = sequence<size_t>::uninitialized(total_buckets);
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
@@ -204,7 +204,7 @@ struct buckets {
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
-    auto hists_seq = parlay::sequence<bucket_id>::uninitialized((num_blocks + 1) * total_buckets * CACHE_LINE_S);
+    auto hists_seq = sequence<bucket_id>::uninitialized((num_blocks + 1) * total_buckets * CACHE_LINE_S);
     auto hists = hists_seq.begin();
 
     // 1. Compute per-block histograms
@@ -233,13 +233,14 @@ struct buckets {
     };
 
     size_t last_ind = (num_blocks * total_buckets);
-    auto outs = parlay::sequence<bucket_id>::uninitialized(last_ind + 1);
+    auto outs_seq = sequence<bucket_id>::uninitialized(last_ind + 1);
+    auto outs = outs_seq.begin();
     parallel_for(0, last_ind, [&] (size_t i) {
       outs[i] = get(i);
     });
     outs[last_ind] = 0;
 
-    parlay::scan_inplace(parlay::make_slice(outs), parlay::addm<bucket_id>());
+    parlay::scan_inplace(parlay::make_slice(outs_seq), parlay::addm<bucket_id>());
 
     // 3. Resize buckets based on the summed histogram.
     for (size_t i = 0; i < total_buckets; i++) {
@@ -302,15 +303,15 @@ struct buckets {
   bool allocated;
 
   size_t cur_range;
-  parlay::sequence<id_dyn_arr> bkts;
-  parlay::sequence<size_t> prev_bkt_sizes;
+  sequence<id_dyn_arr> bkts;
+  sequence<size_t> prev_bkt_sizes;
 
   inline bool curBucketNonEmpty() { return bkts[cur_bkt].size() > 0; }
 
   inline void unpack() {
     size_t m = bkts[open_buckets].size();
     auto A = bkts[open_buckets].begin();
-    auto tmp = parlay::sequence<ident_t>::from_function(m, [&] (size_t i) { return A[i]; });
+    auto tmp = sequence<ident_t>::from_function(m, [&] (size_t i) { return A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range
     } else {

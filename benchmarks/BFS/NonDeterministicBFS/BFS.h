@@ -24,6 +24,7 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
+#include "gbbs/sequence.h"
 
 namespace gbbs {
 
@@ -49,7 +50,7 @@ template <class Graph>
 inline sequence<uintE> BFS(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
   /* Creates Parents array, initialized to all -1, except for src. */
-  auto Parents = parlay::sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Parents = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
   std::cout << "degree = " << G.get_vertex(src).out_degree() << std::endl;
