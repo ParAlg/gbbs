@@ -33,10 +33,11 @@
 
 namespace gbbs {
 
-template <class data>
+template <class _data>
 struct vertexSubsetData {
-  using S = std::tuple<uintE, data>;
-  using D = std::tuple<bool, data>;
+  using Data = _data;
+  using S = std::tuple<uintE, Data>;
+  using D = std::tuple<bool, Data>;
 
   // An empty vertex set.
   vertexSubsetData(size_t _n) : n(_n), m(0), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
@@ -79,9 +80,9 @@ struct vertexSubsetData {
   }
 
   // Sparse
-  inline uintE& vtx(const uintE& i) const { return std::get<0>(s[i]); }
-  inline data& vtxData(const uintE& i) const { return std::get<1>(s[i]); }
-  inline std::tuple<uintE, data> vtxAndData(const uintE& i) const {
+  inline uintE& vtx(const uintE& i) { return std::get<0>(s[i]); }
+  inline Data& vtxData(const uintE& i) { return std::get<1>(s[i]); }
+  inline std::tuple<uintE, Data> vtxAndData(const uintE& i) const {
     return s[i];
   }
 
@@ -89,24 +90,24 @@ struct vertexSubsetData {
   __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
     return std::get<0>(d.begin()[v]);
   }
-  inline data& ithData(const uintE& v) const { return std::get<1>(d[v]); }
+  inline Data& ithData(const uintE& v) { return std::get<1>(d[v]); }
 
   // Returns (uintE) -> std::optional<std::tuple<vertex, vertex-data>>.
   auto get_fn_repr() const
-      -> std::function<std::optional<std::tuple<uintE, data>>(uintE)> {
-    std::function<std::optional<std::tuple<uintE, data>>(const uintE&)> fn;
+      -> std::function<std::optional<std::tuple<uintE, Data>>(uintE)> {
+    std::function<std::optional<std::tuple<uintE, Data>>(const uintE&)> fn;
     if (isDense) {
-      fn = [&](const uintE& v) -> std::optional<std::tuple<uintE, data>> {
+      fn = [&](const uintE& v) -> std::optional<std::tuple<uintE, Data>> {
         const auto& dv = d[v];
         if (std::get<0>(dv)) {
-          return std::optional<std::tuple<uintE, data>>(std::make_tuple(v, std::get<1>(d[v])));
+          return std::optional<std::tuple<uintE, Data>>(std::make_tuple(v, std::get<1>(d[v])));
         } else {
           return std::nullopt;
         }
       };
     } else {
-      fn = [&](const uintE& i) -> std::optional<std::tuple<uintE, data>> {
-        return std::optional<std::tuple<uintE, data>>(s[i]);
+      fn = [&](const uintE& i) -> std::optional<std::tuple<uintE, Data>> {
+        return std::optional<std::tuple<uintE, Data>>(s[i]);
       };
     }
     return fn;
@@ -123,8 +124,8 @@ struct vertexSubsetData {
 
   void toSparse() {
     if (s.size() == 0 && m > 0) {
-      auto f_seq = parlay::delayed_seq<D>(n, [&](size_t i) -> std::tuple<bool, data> { return d[i]; });
-      auto out = pbbslib::pack_index_and_data<uintE, data>(f_seq, n);
+      auto f_seq = parlay::delayed_seq<D>(n, [&](size_t i) -> std::tuple<bool, Data> { return d[i]; });
+      auto out = pbbslib::pack_index_and_data<uintE, Data>(f_seq, n);
       if (out.size() != m) {
         std::cout << "# m is " << m << " but out.size says" << out.size() << std::endl;
         std::cout << "# bad stored value of m"
@@ -158,6 +159,7 @@ struct vertexSubsetData {
 // Specialized version where data = gbbs::empty.
 template <>
 struct vertexSubsetData<gbbs::empty> {
+  using Data = gbbs::empty;
   using S = uintE;
   using D = bool;
 

@@ -50,7 +50,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
   auto dense_par = fl & dense_parallel;
 
   auto get_in = [x = vertexSubset.d.begin()] (uintE v) {
-    if constexpr (std::is_same<Data, gbbs::empty>()) {
+    if constexpr (std::is_same<typename VS::Data, gbbs::empty>()) {
       return x[v];
     } else {
       return std::get<0>(x[v]);
@@ -61,8 +61,8 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
     auto next = parlay::sequence<D>::from_function(n,
         [&] (size_t i) {
           if constexpr (std::is_same<Data, gbbs::empty>()) return 0;
-          else return {0, D()};
-      });
+          else return std::make_tuple<uintE, Data>(0, Data());
+        });
     auto g = get_emdense_gen<Data>((D*)next.begin());
     parallel_for(
         0, n,

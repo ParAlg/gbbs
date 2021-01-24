@@ -289,7 +289,6 @@ struct buckets {
     return num_elms - ne_before;
   }
 
-  size_t num_elms;
 
  private:
   size_t n;  // total number of identifiers in the system
@@ -299,6 +298,7 @@ struct buckets {
   size_t total_buckets;
   size_t cur_bkt;
   size_t max_bkt;
+  size_t num_elms;
   bool allocated;
 
   size_t cur_range;
