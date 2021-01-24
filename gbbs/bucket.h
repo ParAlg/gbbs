@@ -46,8 +46,7 @@
 #include "bridge.h"
 
 
-#define CACHE_LINE_S 64
-
+#define CACHE_LINE_S 128
 
 namespace gbbs {
 
@@ -96,6 +95,7 @@ struct buckets {
     // Initialize array consisting of the materialized buckets.
     bkts = sequence<id_dyn_arr>(total_buckets);
     prev_bkt_sizes = sequence<size_t>::uninitialized(total_buckets);
+    bkt_pointers = sequence<ident_t*>::uninitialized(total_buckets);
 
     // Set the current range being processed based on the order.
     if (order == increasing) {
@@ -248,6 +248,7 @@ struct buckets {
       size_t cur_size = bkts[i].size();
       prev_bkt_sizes[i] = cur_size;
       bkts[i].resize(cur_size + num_inc);
+      bkt_pointers[i] = bkts[i].begin();
       num_elms += num_inc;
     }
 
@@ -261,10 +262,11 @@ struct buckets {
     }, 1);
 
     size_t* const prev_sizes = prev_bkt_sizes.begin();
+    auto bkt_ptrs = bkt_pointers.begin();
 
     // 5. Iterate over blocks again. Insert (id, bkt) into bkt[hists[bkt]]
     // and increment hists[bkt].
-    par_for(0, num_blocks, 1, [&] (size_t block_id) {
+    parallel_for(0, num_blocks, [&] (size_t block_id) {
       size_t s = block_id * block_size;
       size_t e = std::min(s + block_size, k);
       // our buckets are now spread out, across outs
@@ -274,11 +276,11 @@ struct buckets {
         if (m.has_value() && bucket_id != null_bkt) {
           ident_t v = std::get<0>(*m);
           size_t ind = prev_sizes[bucket_id] + hists[(bucket_id * num_blocks + block_id) * CACHE_LINE_S];
-          bkts[bucket_id][ind] = v;
+          bkt_ptrs[bucket_id][ind] = v;
           hists[(bucket_id * num_blocks + block_id) * CACHE_LINE_S]++;
         }
       }
-    });
+    }, 1);
 
 //    // 6. Finally, update the size of each bucket.
 //    for (size_t i = 0; i < total_buckets; i++) {
@@ -305,6 +307,7 @@ struct buckets {
   size_t cur_range;
   sequence<id_dyn_arr> bkts;
   sequence<size_t> prev_bkt_sizes;
+  sequence<ident_t*> bkt_pointers;
 
   inline bool curBucketNonEmpty() { return bkts[cur_bkt].size() > 0; }
 

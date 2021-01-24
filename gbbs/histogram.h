@@ -153,7 +153,7 @@ struct hist_table {
       table = gbbs::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
       par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
-      debug(std::cout << "resized to: " << size << "\n";);
+      std::cout << "resized hist_table to: " << size << "\n";
     }
   }
 
@@ -217,8 +217,10 @@ inline parlay::sequence<O> histogram_medium(A& get_key, size_t n,
     }
   });
 
-  sequence<size_t> out_offs = sequence<size_t>::uninitialized(num_buckets + 1);
-  sequence<size_t> ht_offs = sequence<size_t>::uninitialized(num_buckets + 1);
+  sequence<size_t> out_offs_seq = sequence<size_t>::uninitialized(num_buckets + 1);
+  auto out_offs = out_offs_seq.begin();
+  sequence<size_t> ht_offs_seq = sequence<size_t>::uninitialized(num_buckets + 1);
+  auto ht_offs = ht_offs_seq.begin();
 
   // (2) process each bucket, compute the size of each HT and scan (seq)
   ht_offs[0] = 0;
@@ -397,8 +399,10 @@ inline parlay::sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   });
 
-  sequence<size_t> out_offs = sequence<size_t>::uninitialized(num_buckets + 1);
-  sequence<size_t> ht_offs = sequence<size_t>::uninitialized(num_buckets + 1);
+  sequence<size_t> out_offs_seq = sequence<size_t>::uninitialized(num_buckets + 1);
+  auto out_offs = out_offs_seq.begin();
+  sequence<size_t> ht_offs_seq = sequence<size_t>::uninitialized(num_buckets + 1);
+  auto ht_offs = ht_offs_seq.begin();
 
   using MO = std::optional<O>;
   MO heavy_cts_stk[128];
@@ -661,8 +665,10 @@ inline parlay::sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
     }
   });
 
-  sequence<size_t> out_offs = sequence<size_t>::uninitialized(num_buckets + 1);
-  sequence<size_t> ht_offs = sequence<size_t>::uninitialized(num_buckets + 1);
+  sequence<size_t> out_offs_seq = sequence<size_t>::uninitialized(num_buckets + 1);
+  auto out_offs = out_offs_seq.begin();
+  sequence<size_t> ht_offs_seq = sequence<size_t>::uninitialized(num_buckets + 1);
+  auto ht_offs = ht_offs_seq.begin();
 
   // (2) process each bucket, compute the size of each HT and scan (seq)
   ht_offs[0] = 0;
