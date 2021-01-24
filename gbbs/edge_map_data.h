@@ -49,7 +49,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
   size_t n = GA.n;
   auto dense_par = fl & dense_parallel;
 
-  auto get_in = [x = vertexSubset.d.begin()] (uintE v) {
+  auto get_in = [x = vertexSubset.d] (uintE v) {
     if constexpr (std::is_same<typename VS::Data, gbbs::empty>()) {
       return x[v];
     } else {

@@ -24,7 +24,6 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "gbbs/sequence.h"
 
 namespace gbbs {
 
@@ -62,7 +61,7 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
     reachable += Frontier.size();
     vertexSubset output =
         edgeMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
-    Frontier = output;  // TODO: assignment in vertexSubset
+    Frontier = std::move(output);
   }
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;

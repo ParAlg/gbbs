@@ -44,25 +44,20 @@ struct vertexSubsetData {
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData(size_t _n, sequence<S>&& indices)
-      : n(_n), m(indices.size()), s(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
-
-//  // A vertexSubset from a sequence.
-//  vertexSubsetData(size_t _n, sequence<S>& seq, bool transfer = true)
-//      : n(_n), m(seq.size()), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
-//    if (transfer) {
-//      s = seq.to_array();
-//    } else {
-//      s = seq.begin();
-//    }
-//  }
+      : n(_n), m(indices.size()), s_seq(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+    s = s_seq.begin();
+  }
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData(size_t _n, size_t _m, sequence<D>&& _d)
-      : n(_n), m(_m), d(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
+      : n(_n), m(_m), d_seq(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+    d = d_seq.begin();
+  }
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData(size_t _n, sequence<D>&& _d) : n(_n), d(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+  vertexSubsetData(size_t _n, sequence<D>&& _d) : n(_n), d_seq(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+    d = d_seq.begin();
     auto d_map = parlay::delayed_seq<size_t>(n, [&](size_t i) { return (size_t)std::get<0>(_d[i]); });
     m = pbbslib::reduce_add(d_map);
   }
@@ -88,7 +83,7 @@ struct vertexSubsetData {
 
   // Dense
   __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
-    return std::get<0>(d.begin()[v]);
+    return std::get<0>(d[v]);
   }
   inline Data& ithData(const uintE& v) { return std::get<1>(d[v]); }
 
@@ -125,22 +120,20 @@ struct vertexSubsetData {
   void toSparse() {
     if (s.size() == 0 && m > 0) {
       auto f_seq = parlay::delayed_seq<D>(n, [&](size_t i) -> std::tuple<bool, Data> { return d[i]; });
-      auto out = pbbslib::pack_index_and_data<uintE, Data>(f_seq, n);
-      if (out.size() != m) {
-        std::cout << "# m is " << m << " but out.size says" << out.size() << std::endl;
-        std::cout << "# bad stored value of m"
-                  << "\n";
+      auto s_seq = pbbslib::pack_index_and_data<uintE, Data>(f_seq, n);
+      if (s_seq.size() != m) {
         abort();
       }
-      s = out.to_array();
+      s = s_seq.begin();
     }
     isDense = false;
   }
 
   // Convert to dense but keep sparse representation if it exists.
   void toDense() {
-    if (d.size() == 0) {
-      d = sequence<D>(n);
+    if (d_seq.size() == 0) {
+      d_seq = sequence<D>(n);
+      d = d_seq.begin();
       par_for(0, n, [&](size_t i) { std::get<0>(d[i]) = false; });
       par_for(0, m, [&](size_t i) {
         d[std::get<0>(s[i])] = std::make_tuple(true, std::get<1>(s[i]));
@@ -150,8 +143,10 @@ struct vertexSubsetData {
   }
 
   size_t n, m;
-  sequence<S> s;
-  sequence<D> d;
+  sequence<S> s_seq;
+  S* s;
+  sequence<D> d_seq;
+  D* d;
   bool isDense;
   size_t sum_out_degrees;
 };
@@ -163,6 +158,33 @@ struct vertexSubsetData<gbbs::empty> {
   using S = uintE;
   using D = bool;
 
+  // Move constructor
+  vertexSubsetData<gbbs::empty>(vertexSubsetData<gbbs::empty>&& other) noexcept {
+    n = other.n;
+    m = other.m;
+    s_seq = std::move(other.s_seq);
+    s = s_seq.begin();
+    d_seq = std::move(other.d_seq);
+    d = d_seq.begin();
+    isDense = other.isDense;
+    sum_out_degrees = other.sum_out_degrees;
+  }
+
+  // Move assignment
+  vertexSubsetData<gbbs::empty>& operator=(vertexSubsetData<gbbs::empty>&& other) noexcept {
+    if (this != &other) {
+      n = other.n;
+      m = other.m;
+      s_seq = std::move(other.s_seq);
+      s = s_seq.begin();
+      d_seq = std::move(other.d_seq);
+      d = d_seq.begin();
+      isDense = other.isDense;
+      sum_out_degrees = other.sum_out_degrees;
+    }
+    return *this;
+  }
+
   // An empty vertex set.
   vertexSubsetData<gbbs::empty>(size_t _n)
       : n(_n), m(0), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
@@ -170,33 +192,28 @@ struct vertexSubsetData<gbbs::empty> {
   // A vertexSubset with a single vertex.
   vertexSubsetData<gbbs::empty>(size_t _n, uintE v)
       : n(_n), m(1), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
-    s = sequence<uintE>(1);
+    s_seq = sequence<uintE>(1);
+    s = s_seq.begin();
     s[0] = v;
   }
 
   // A vertexSubset from array of vertex indices.
   vertexSubsetData<gbbs::empty>(size_t _n, sequence<S>&& indices)
-      : n(_n), m(indices.size()), s(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
-
-//  // A vertexSubset from a sequence.
-//  vertexSubsetData<gbbs::empty>(size_t _n, sequence<S>& seq, bool transfer =
-//  true)
-//      : n(_n), m(seq.size()), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
-//    if (transfer) {
-//      s = seq.to_array();
-//    } else {
-//      s = seq.begin();
-//    }
-//  }
+      : n(_n), m(indices.size()), s_seq(std::move(indices)), isDense(0), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+    s = s_seq.begin();
+  }
 
   // A vertexSubset from boolean array giving number of true values.
   vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, sequence<bool>&& _d)
-      : n(_n), m(_m), d(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {}
+      : n(_n), m(_m), d_seq(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+    d = d_seq.begin();
+  }
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
   vertexSubsetData<gbbs::empty>(size_t _n, sequence<bool>&& _d)
-      : n(_n), d(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+      : n(_n), d_seq(std::move(_d)), isDense(1), sum_out_degrees(std::numeric_limits<size_t>::max()) {
+    d = d_seq.begin();
     auto d_map = parlay::delayed_seq<size_t>(n, [&](size_t i) { return d[i]; });
     m = pbbslib::reduce_add(d_map);
   }
@@ -260,16 +277,12 @@ struct vertexSubsetData<gbbs::empty> {
   bool dense() const { return isDense; }
 
   void toSparse() {
-    if (s.size() == 0 && m > 0) {
+    if (s_seq.size() == 0 && m > 0) {
       auto _d = d;
       auto f_in = parlay::delayed_seq<bool>(n, [&](size_t i) { return _d[i]; });
-      s = parlay::pack_index<uintE>(f_in);
-      if (s.size() != m) {
-        std::cout << "# m is " << m << " but s.size says" << s.size() << std::endl;
-        std::cout << "# bad stored value of m"
-                  << "\n";
-        std::cout << "# s.size = " << s.size() << " m = " << m << " n = " << n
-                  << "\n";
+      s_seq = parlay::pack_index<uintE>(f_in);
+      s = s_seq.begin();
+      if (s_seq.size() != m) {
         abort();
       }
     }
@@ -278,8 +291,9 @@ struct vertexSubsetData<gbbs::empty> {
 
   // Converts to dense but keeps sparse representation if it exists.
   void toDense() {
-    if (d.size() == 0) {
-      d = sequence<bool>(n);
+    if (d_seq.size() == 0) {
+      d_seq = sequence<bool>(n);
+      d = d_seq.begin();
       par_for(0, n, [&](size_t i) { d[i] = 0; });
       par_for(0, m, [&](size_t i) { d[s[i]] = 1; });
     }
@@ -287,8 +301,10 @@ struct vertexSubsetData<gbbs::empty> {
   }
 
   size_t n, m;
-  sequence<S> s;
-  sequence<bool> d;
+  sequence<S> s_seq;
+  S* s;
+  sequence<bool> d_seq;
+  D* d;
   bool isDense;
   size_t sum_out_degrees;
 };
