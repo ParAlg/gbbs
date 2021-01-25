@@ -204,7 +204,7 @@ parlay::sequence<parlay::sequence<DynamicEdge<weight_type>>> batch_dynamic_edge_
     auto edge_list_f = [&](std::size_t i) {return edge_list[i];};
     auto edge_list_seq = parlay::delayed_seq<D>(edge_list.size(), edge_list_f);
     sorted_edges = parlay::internal::sample_sort(parlay::make_slice(edge_list_seq), [](const DynamicEdge<weight_type>& a, const DynamicEdge<weight_type>& b){
-        return (a.batch_id < b.batch_id) || (a.batch_id == b.batch_id && a.insert > b.insert);
+        return (a.batch_id < b.batch_id); // || (a.batch_id == b.batch_id && a.insert > b.insert)
       }, true);
   } else {
     sorted_edges = batch_type::from_function(edge_list.size(), [&](std::size_t i){ return edge_list[i]; });
@@ -213,7 +213,7 @@ parlay::sequence<parlay::sequence<DynamicEdge<weight_type>>> batch_dynamic_edge_
   // Extract ranges of equal batch_ids
   auto filtered_mark_ids = GetBoundaryIndices<uintE>(
     sorted_edges.size(), [&](std::size_t i, std::size_t j) {
-      return sorted_edges[i].batch_id == sorted_edges[j].batch_id && sorted_edges[i].insert == sorted_edges[j].insert;
+      return sorted_edges[i].batch_id == sorted_edges[j].batch_id; //&& sorted_edges[i].insert == sorted_edges[j].insert
     });
   auto num_filtered_mark_ids = filtered_mark_ids.size() - 1;
 
