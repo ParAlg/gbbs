@@ -59,48 +59,64 @@ struct LDS {
       // TODO!
     }
 
-    template <class LDSSeq>
-    inline uintE affected_up_neighbors(LDSSeq& L) const {
-      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
-        uintE v = up.table[i];
-        if (v != UINT_E_MAX) {
-          uintE l_v = L[v].level;
-          if (desire_level < l_v) {
-            return (uintE)0;
-          } else if (level < l_v) {
-            return (uintE)1;
-          } else {  // level == l_v
-            return (uintE)(desire_level < L[v].desire_level);
-          }
-        }
-        return (uintE)0;
-      });
-      return parlay::reduce(bool_seq);
+//    template <class LDSSeq>
+//    inline uintE affected_up_neighbors(LDSSeq& L) const {
+//      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
+//        uintE v = up.table[i];
+//        if (v != UINT_E_MAX) {
+//          uintE l_v = L[v].level;
+//          if (desire_level < l_v) {
+//            return (uintE)0;
+//          } else if (level < l_v) {
+//            return (uintE)1;
+//          } else {  // level == l_v
+//            return (uintE)(desire_level < L[v].desire_level);
+//          }
+//        }
+//        return (uintE)0;
+//      });
+//      return parlay::reduce(bool_seq);
+//    }
+
+//    template <class LDSSeq, class OutputSeq>
+//    inline uintE emit_affected_up_neighbors(LDSSeq& L, OutputSeq output, uintE our_id) const {
+//      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
+//        uintE v = up.table[i];
+//        if (v != UINT_E_MAX) {
+//          uintE l_v = L[v].level;
+//          if (desire_level < l_v) {
+//            return (uintE)0;
+//          } else if (level < l_v) {
+//            return (uintE)1;
+//          } else {  // level == l_v
+//            return (uintE)(desire_level < L[v].desire_level);
+//          }
+//        }
+//        return (uintE)0;
+//      });
+//      // Could filter using filter, but let's do this seq. for now...
+//      size_t off = 0;
+//      for (size_t i=0; i<up.table.size(); i++) {
+//        if (bool_seq[i]) {
+//          uintE v = up.table[i];
+//          output[off++] = std::make_pair(v, our_id);
+//        }
+//      }
+//      return off;
+//    }
+
+    inline uintE num_up_neighbors() const {
+      return up.num_elms();
     }
 
-    template <class LDSSeq, class OutputSeq>
-    inline uintE emit_affected_up_neighbors(LDSSeq& L, OutputSeq output, uintE our_id) const {
-      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
-        uintE v = up.table[i];
-        if (v != UINT_E_MAX) {
-          uintE l_v = L[v].level;
-          if (desire_level < l_v) {
-            return (uintE)0;
-          } else if (level < l_v) {
-            return (uintE)1;
-          } else {  // level == l_v
-            return (uintE)(desire_level < L[v].desire_level);
-          }
-        }
-        return (uintE)0;
-      });
+    template <class OutputSeq>
+    inline uintE emit_up_neighbors(OutputSeq output, uintE our_id) const {
       // Could filter using filter, but let's do this seq. for now...
       size_t off = 0;
       for (size_t i=0; i<up.table.size(); i++) {
-        if (bool_seq[i]) {
-          uintE v = up.table[i];
+        uintE v = up.table[i];
+        if (v != UINT_E_MAX)
           output[off++] = std::make_pair(v, our_id);
-        }
       }
       return off;
     }
@@ -218,6 +234,48 @@ struct LDS {
     });
   }
 
+  // todo: move into LDSVertex?
+  // Neighbors is a slice of sorted (level, neighbor_id) pairs.
+  template <class Neighbors>
+  void insert_neighbors(uintE vtx, Neighbors neighbors) {
+    // Resize level containers. Can do this in parallel in many ways (e.g.,
+    // pack), but a simple way that avoids memory allocation is to map over
+    // everyone, and have the first index for each level search for the level.
+    // If we use a linear search the algorithm is work eff. and has depth
+    // proportional to the max incoming size of a level. We can also improve
+    // to log(n) depth by using a doubling search.
+    parallel_for(0, neighbors.size(), [&] (size_t i) {
+      if ((i == 0) || neighbors[i].first != neighbors[i-1].first) {  // start of a new level
+        uintE level_id = neighbors[i].first;
+        size_t j = i;
+        for (; j<neighbors.size(); j++) {
+          if (neighbors[j].first != level_id) break;
+        }
+        uintE num_in_level = j - i;
+
+        if (level_id != kUpLevel) {
+          L[vtx].down[level_id].resize(num_in_level);
+        } else {
+          L[vtx].up.resize(num_in_level);
+        }
+      }
+    });
+
+    // std::cout << "Starting insertions into hash tables" << std::endl;
+    // Insert neighbors into the correct level incident to us.
+    parallel_for(0, neighbors.size(), [&] (size_t i) {
+      auto [level_id, v] = neighbors[i];
+      if (level_id != kUpLevel) {
+        bool inserted = L[vtx].down[level_id].insert(v);
+        assert(inserted);
+      } else {
+        bool inserted = L[vtx].up.insert(v);
+        assert(inserted);
+      }
+    });
+  }
+
+
   // returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_insertions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
@@ -237,32 +295,41 @@ struct LDS {
       if (v != UINT_E_MAX && L[v].is_dirty(levels_per_group)) {
         desire_level = L[v].get_desire_level(levels_per_group);
         L[v].desire_level = desire_level;
+        assert(L[v].level == cur_level_id);
+        assert(desire_level > cur_level_id);
       }
       return std::make_pair(desire_level, v);
     });
+    // Dirty now contains (dl(v), v) pairs for all v \in the current level
+    // moving to dl(v) (their desire level).
     auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
       return lv.first != UINT_E_MAX;
     });
 
-    // Dirty now contains (dl(v), v) pairs for all v \in the current level
-    // moving to dl(v) (their desire level).
+    // todo: can get away with a uintE seq for dirty, right?
+    parallel_for(0, dirty.size(), [&] (size_t i) {
+      uintE v = dirty[i].second;
+      uintE desire_level = L[v].desire_level;
+      L[v].down.resize(desire_level);
+    });
 
     // Consider the neighbors N(u) of a vertex u moving from cur_level to dl(u) > cur_level.
-    // - {v \in N(u) | dl(u) < l(v)}: unaffected
+    // - {v \in N(u) | dl(u) < l(v)}: move u from cur_level -> dl(u) in v's Down
     // - {v \in N(u) | cur_level < l(v) <= dl(u)}:
     //     remove u from v's Down and insert into v's Up
     // - {v \in N(u) | l(v) == cur_level}:
     //     if dl(v) <= dl(u): unaffected (u is already in v's Up)
     //     else (dl(u) < dl(v)): remove u from v's Up and insert into v's Down
     //
-    // Let's emit a sequence of (u,v) edge tuples that are affected based on the
-    // calculations above, and sort by the recieving endpoint. The steps from
-    // this point onwards will be similar to the batch_insertions code.
+    // Let's emit a sequence of (u,v) edge tuples for all up_neighbors, and sort
+    // by the recieving endpoint. The steps the recieving vertex does will
+    // depend on the calculation above. Note that the following steps are very
+    // similar to the batch_insertion code. Is there some clean way of merging?
 
     // Compute the number of neighbors we affect.
     auto degrees = parlay::map(parlay::make_slice(dirty), [&] (auto lv) {
       auto v = lv.second;
-      return L[v].affected_up_neighbors(L);
+      return L[v].num_up_neighbors();
     });
     size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
 
@@ -276,7 +343,7 @@ struct LDS {
       size_t end_offset = (i == dirty.size()) ? sum_degrees : degrees[i+1];
 
       auto output = flipped.cut(offset, end_offset);
-      size_t written = L[v].emit_affected_up_neighbors(L, output, v);
+      size_t written = L[v].emit_up_neighbors(output, v);
       assert(written == (end_offset - offset));
     });
 
@@ -290,14 +357,92 @@ struct LDS {
     });
     auto starts = parlay::pack_index(bool_seq);
 
-    // Save the vertex ids. The next step will overwrite the edge pairs to store
-    // (neighbor, current_level).  (saving is not necessary if we modify + sort
-    // in a single parallel loop)
+    // Save the vertex ids (we will use this in update_levels).
     auto affected = sequence<uintE>::from_function(starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE vtx_id = flipped[idx].first;
       return vtx_id;
     });
+
+    // Map over the vertices being modified. Overwrite their incident edges with
+    // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
+    // correct size, and then insert in parallel.
+    parallel_for(0, starts.size() - 1, [&] (size_t i) {
+      size_t idx = starts[i];
+      uintE u = std::get<0>(flipped[idx]);
+      uintE incoming_degree = starts[i+1] - starts[i];
+      auto neighbors = parlay::make_slice(flipped.begin() + idx,
+          flipped.begin() + idx + incoming_degree);
+
+      uintE l_u = L[u].level;
+
+      if (l_u == cur_level_id) {
+        // vtx (u) is a vertex moving from the current level.
+        uintE dl_u = L[u].desire_level;
+        assert(dl_u != UINT_E_MAX);
+        assert(dl_u > l_u);
+
+        // Map the incident edges to (level, neighbor_id).
+        parallel_for(0, incoming_degree, [&] (size_t off) {
+          auto [u_dup, v] = neighbors[off];
+          assert(u == u_dup);
+          uintE dl_v = L[v].desire_level;  // using desire_level not level.
+          if (dl_v >= dl_u) { dl_v = kUpLevel; }  // stay in up
+          neighbors[off] = {dl_v, v};  // send to dl_v
+        });
+
+        // Sort neighbors by level.
+        parlay::sort_inplace(neighbors);
+
+        auto level_seq = parlay::delayed_seq<uintE>(neighbors.size(), [&] (size_t i) {
+          return neighbors[i].first;
+        });
+        // first key greater than or equal to kUpLevel
+        size_t upstart = parlay::internal::binary_search(level_seq, kUpLevel, std::less<uintE>());
+
+        if (upstart > 0) {  // stuff to delete from L[u].up
+          parallel_for(0, upstart, [&] (size_t j) {
+            uintE v = neighbors[j].second;
+            bool removed = L[u].up.remove(v);
+            assert(removed);
+          });
+          L[u].up.resize_down(upstart);
+
+          // No need to update stuff in [upstart, end), since they are already
+          // in u's Up.
+          auto lower_neighbors = neighbors.cut(0, upstart);
+          insert_neighbors(u, lower_neighbors);
+        }
+      } else {
+        assert(l_u > cur_level_id);
+
+        // Map the incident edges to (level, neighbor_id).
+        parallel_for(0, incoming_degree, [&] (size_t off) {
+          auto [u_dup, v] = neighbors[off];
+          assert(u == u_dup);
+          uintE dl_v = L[v].desire_level;  // using desire_level not level.
+          if (dl_v >= l_u) { dl_v = kUpLevel; }  // move to up
+          neighbors[off] = {dl_v, v};  // send to dl_v
+        });
+
+        // Sort neighbors by level.
+        parlay::sort_inplace(neighbors);
+
+        parallel_for(0, neighbors.size(), [&] (size_t i) {
+          uintE v = neighbors[i].second;
+          bool removed = L[u].down[cur_level_id].remove(v);
+          assert(removed);
+        });
+        // Every updated edge is removed from cur_level.
+        L[u].down[cur_level_id].resize_down(incoming_degree);
+
+        // Insert the neighbors to their new locations.
+        insert_neighbors(u, neighbors);
+      }
+
+
+    });
+
 
   }
 
@@ -367,41 +512,44 @@ struct LDS {
       // Sort neighbors by level.
       parlay::sort_inplace(neighbors);
 
-      // Resize level containers. Can do this in parallel in many ways (e.g.,
-      // pack), but a simple way that avoids memory allocation is to map over
-      // everyone, and have the first index for each level search for the level.
-      // If we use a linear search the algorithm is work eff. and has depth
-      // proportional to the max incoming size of a level. We can also improve
-      // to log(n) depth by using a doubling search.
-      parallel_for(0, neighbors.size(), [&] (size_t i) {
-        if ((i == 0) || neighbors[i].first != neighbors[i-1].first) {  // start of a new level
-          uintE level_id = neighbors[i].first;
-          size_t j = i;
-          for (; j<neighbors.size(); j++) {
-            if (neighbors[j].first != level_id) break;
-          }
-          uintE num_in_level = j - i;
 
-          if (level_id != kUpLevel) {
-            L[vtx].down[level_id].resize(num_in_level);
-          } else {
-            L[vtx].up.resize(num_in_level);
-          }
-        }
-      });
+      insert_neighbors(vtx, neighbors);
 
-      // std::cout << "Starting insertions into hash tables" << std::endl;
-      // Insert neighbors into the correct level incident to us.
-      parallel_for(0, neighbors.size(), [&] (size_t i) {
-        auto [level_id, v] = neighbors[i];
-        if (level_id != kUpLevel) {
-          bool inserted = L[vtx].down[level_id].insert(v);
-          assert(inserted);
-        } else {
-          bool inserted = L[vtx].up.insert(v);
-          assert(inserted);
-        }
-      });
+//      // Resize level containers. Can do this in parallel in many ways (e.g.,
+//      // pack), but a simple way that avoids memory allocation is to map over
+//      // everyone, and have the first index for each level search for the level.
+//      // If we use a linear search the algorithm is work eff. and has depth
+//      // proportional to the max incoming size of a level. We can also improve
+//      // to log(n) depth by using a doubling search.
+//      parallel_for(0, neighbors.size(), [&] (size_t i) {
+//        if ((i == 0) || neighbors[i].first != neighbors[i-1].first) {  // start of a new level
+//          uintE level_id = neighbors[i].first;
+//          size_t j = i;
+//          for (; j<neighbors.size(); j++) {
+//            if (neighbors[j].first != level_id) break;
+//          }
+//          uintE num_in_level = j - i;
+//
+//          if (level_id != kUpLevel) {
+//            L[vtx].down[level_id].resize(num_in_level);
+//          } else {
+//            L[vtx].up.resize(num_in_level);
+//          }
+//        }
+//      });
+//
+//      // std::cout << "Starting insertions into hash tables" << std::endl;
+//      // Insert neighbors into the correct level incident to us.
+//      parallel_for(0, neighbors.size(), [&] (size_t i) {
+//        auto [level_id, v] = neighbors[i];
+//        if (level_id != kUpLevel) {
+//          bool inserted = L[vtx].down[level_id].insert(v);
+//          assert(inserted);
+//        } else {
+//          bool inserted = L[vtx].up.insert(v);
+//          assert(inserted);
+//        }
+//      });
       // std::cout << "Finished insertions into hash tables" << std::endl;
 
     }, 10000000000);  // for testing

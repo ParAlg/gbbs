@@ -34,6 +34,7 @@ class sparse_set {
  public:
 
   static constexpr K kEmptyKey = std::numeric_limits<K>::max();
+  static constexpr K kTombstone = std::numeric_limits<K>::max() - 1;
   static constexpr double kSpaceMult = 1.25;
 
   uintE mask;  // table.size() - 1
@@ -78,6 +79,23 @@ class sparse_set {
     elms_in_table += incoming;
   }
 
+  void resize_down(size_t removed) {
+    size_t total = elms_in_table - removed;
+    if (total * kSpaceMult <= table.size() / 2) {
+      size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total)));
+      auto new_table = parlay::sequence<K>(new_size, kEmptyKey);
+      auto old_table = std::move(table);
+      table = std::move(new_table);
+      mask = table.size() - 1;
+      parallel_for(0, old_table.size(), [&] (size_t i) {
+        if (old_table[i] != kEmptyKey) {
+          insert(old_table[i]);
+        }
+      });
+    }
+    elms_in_table -= removed;
+  }
+
   sparse_set() : mask(0), elms_in_table(0) {}
 
   // Size is the maximum number of values the hash table will hold.
@@ -106,13 +124,30 @@ class sparse_set {
   bool insert(K k) {
     size_t h = firstIndex(k);
     while (true) {
-      if (table[h] == kEmptyKey) {
-        if (pbbslib::CAS(&table[h], kEmptyKey, k)) {
+      auto read = table[h];
+      if (read == kEmptyKey || read == kTombstone) {
+        if (pbbslib::CAS(&table[h], read, k)) {
           return true;
         }
       }
       if (table[h] == k) {
         return false;
+      }
+      h = incrementIndex(h);
+    }
+    return false;
+  }
+
+  bool remove(K k) {
+    size_t h = firstIndex(k);
+    while (true) {
+      auto read = table[h];
+      if (table[h] == kEmptyKey) {
+        return false;
+      }
+      if (table[h] == k) {
+        bool succ = pbbslib::CAS(&table[h], k, kTombstone);
+        return succ;
       }
       h = incrementIndex(h);
     }
