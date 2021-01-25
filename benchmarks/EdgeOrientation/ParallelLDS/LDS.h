@@ -217,6 +217,13 @@ struct LDS {
 //    return true;
 //  }
 
+
+  template <class Seq>
+  void settle(Seq&& affected) {
+    // use bucketing structure?
+
+  }
+
   template <class Seq>
   void batch_insertion(const Seq& insertions_unfiltered) {
     // Remove edges that already exist from the input.
@@ -251,13 +258,15 @@ struct LDS {
     // Save the vertex ids and starts (hypersparse CSR format). The next step
     // will overwrite the edge pairs to store (neighbor, current_level).
     // (saving is not necessary if we modify + sort in a single parallel loop)
-    auto vertex_and_starts = parlay::sequence<std::pair<uintE, size_t>>::from_function(starts.size(), [&] (size_t i) {
+    auto affected = parlay::sequence<uintE>::from_function(starts.size(), [&] (size_t i) {
       size_t idx = starts[i];
       uintE vtx_id = (i < insertions.size()) ? std::get<0>(insertions[idx]) : UINT_E_MAX;
-      return std::make_pair(vtx_id, idx);
+      return vtx_id;
     });
 
-
+    // Map over the vertices being modified. Overwrite their incident edges with
+    // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
+    // correct size, and then insert in parallel.
     parallel_for(0, starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE vtx = std::get<0>(insertions[idx]);
@@ -301,34 +310,24 @@ struct LDS {
         }
       });
 
-      // Insert neighbors into the correct level.
+      // Insert neighbors into the correct level incident to us.
       parallel_for(0, neighbors.size(), [&] (size_t i) {
         auto [level_id, v] = neighbors[i];
         if (level_id != kUpLevel) {
-          L[vtx].down[level_id].resize(num_in_level);
+          bool inserted = L[vtx].down[level_id].insert(v);
+          assert(inserted);
         } else {
-          L[vtx].up.resize(num_in_level);
+          bool inserted = L[vtx].up.insert(v);
+          assert(inserted);
         }
       });
 
     }, 10000000000);  // for testing
 
-    // TODO: initialize affected structure and peel
-
+    // New edges are done being inserted. Update the level structure.
+    // Interface: supply vertex seq -> process will settle everything.
+    settle(std::move(affected));
   }
-
-//  bool delete_edge(edge_type e) {
-//    if (!edge_exists(e)) return false;
-//    auto[u, v] = e;
-//    auto l_u = L[u].level;
-//    auto l_v = L[v].level;
-//    L[u].remove_neighbor(v, l_v);
-//    L[v].remove_neighbor(u, l_u);
-//
-//    Dirty.push(u); Dirty.push(v);
-//    fixup();
-//    return true;
-//  }
 
   void check_invariants() {
     bool invs_ok = true;
