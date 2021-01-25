@@ -101,6 +101,8 @@ class sparse_set {
     }
   }
 
+  // Can be called concurrently. Must ensure that the caller has called resize
+  // before concurrent insertions to update num_elms appropriately.
   bool insert(K k) {
     size_t h = firstIndex(k);
     while (true) {
@@ -115,6 +117,16 @@ class sparse_set {
       h = incrementIndex(h);
     }
     return false;
+  }
+
+  // Requires that no element in s is currently in the structure (s has been
+  // prefiltered using contains()).
+  template <class Seq>
+  void append(Seq& s) {
+    resize(s.size());  // resize updates num_elms.
+    parallel_for(0, s.size(), [&] (size_t i) {
+      insert(s[i]);
+    });
   }
 
   bool contains(K k) const {

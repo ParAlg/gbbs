@@ -54,6 +54,11 @@ struct LDS {
 
     LDSVertex() : level(0) {}
 
+    inline uintE desire_level(const size_t levels_per_group) const {
+      assert(false);
+      // TODO!
+    }
+
     inline double group_degree(size_t group) const {
       return pow(kOnePlusEpsilon, group);
     }
@@ -111,18 +116,20 @@ struct LDS {
   template <class Seq, class Buckets>
   void update_buckets(Seq&& possibly_dirty, Buckets& buckets) {
     using level_and_vtx = std::pair<uintE, uintE>;
-    // // Remap by level, sending vertices not wanting to move to UINT_E_MAX.
-    // parallel_for(0, possibly_dirty.size(), [&] (size_t i) {
-    //   auto v = possibly_dirty[i];
-    //   if (!L[v].is_dirty(levels_per_group)) possibly_dirty[i] = UINT_E_MAX;
-    // });
 
     // Compute dirty vertices, which have either lower / upper threshold
-    // violated.
+    // violated. Output this vertex as dirty only if it is not already in the
+    // bucketing structure.
     auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i) {
       uintE v = possibly_dirty[i];
       uintE level = UINT_E_MAX;
-      if (L[v].is_dirty(levels_per_group)) level = L[v].level;
+      if (L[v].is_dirty(levels_per_group)) {
+        auto our_level = L[v].level;
+        // Return only if the vertex is not in the bucketing structure.
+        if (our_level >= buckets.size() || !buckets[our_level].contains(v)) {
+          level = our_level;
+        }
+      }
       return std::make_pair(level, v);
     });
     auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
@@ -171,22 +178,26 @@ struct LDS {
       return total_moved;
 
     auto& cur_bucket = buckets[cur_bucket_id];
-    if (cur_bucket.size() == 0)
+    if (cur_bucket.num_elms() == 0)
       return rebalance_insertions(buckets, cur_bucket_id+1, total_moved);
 
     // 1. figure out the target level for each vertex in cur_bucket.
     using level_and_vtx = std::pair<uintE, uintE>;
 
-//    auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i) {
-//      uintE v = possibly_dirty[i];
-//      uintE level = UINT_E_MAX;
-//      if (L[v].is_dirty(levels_per_group)) level = L[v].level;
-//      return std::make_pair(level, v);
-//    });
-//    auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
-//      return lv.first != UINT_E_MAX;
-//    });
+    auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(cur_bucket.size(), [&] (size_t i) {
+      uintE v = cur_bucket.table[i];
+      uintE desire_level = UINT_E_MAX;
+      if (v != UINT_E_MAX && L[v].is_dirty(levels_per_group)) {
+        desire_level = L[v].desire_level(levels_per_group);
+      }
+      return std::make_pair(desire_level, v);
+    });
+    auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
+      return lv.first != UINT_E_MAX;
+    });
 
+    // Dirty now contains (dl(v), v) pairs for all v \in the current level
+    // moving to dl(v) (their desire level).
 
 
   }
@@ -299,7 +310,7 @@ struct LDS {
     // New edges are done being inserted. Update the level structure.
     // Interface: supply vertex seq -> process will settle everything.
 
-    using dirty_elts = sequence<uintE>;
+    using dirty_elts = sparse_set<uintE>;
     sequence<dirty_elts> buckets;
 
     // Place the affected vertices into buckets based on their current level.
