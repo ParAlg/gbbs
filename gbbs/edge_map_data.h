@@ -57,7 +57,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
     }
   };
   if (should_output(fl)) {
-    timer emt; emt.start();
+    gbbs::timer emt; emt.start();
     auto next = parlay::sequence<D>::from_function(n,
         [&] (size_t i) {
           if constexpr (std::is_same<Data, gbbs::empty>()) return 0;
@@ -165,7 +165,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
                ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
   } else {
-    timer emt; emt.start();
+    gbbs::timer emt; emt.start();
     auto vs_out = edgeMapChunked<Data, Graph, VS, F>(GA, vs, f, fl);
     emt.stop();
     emt.reportTotal("sparse time");

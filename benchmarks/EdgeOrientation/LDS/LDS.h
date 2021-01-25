@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "gbbs/gbbs.h"
+#include "gbbs/dynamic_graph_io.h"
 
 namespace gbbs {
 
@@ -262,10 +263,9 @@ struct LDS {
 };
 
 template <class Graph>
-inline void RunLDS(Graph& G) {
+inline void RunLDS(Graph& G, LDS& layers) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto layers = LDS(n);
   for (size_t i = 0; i < n; i++) {
     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
       if (u < v) {
@@ -301,6 +301,27 @@ inline void RunLDS(Graph& G) {
 
   std::cout << "Total level increases and decreases: " << layers.total_work
             << std::endl;
+}
+
+template <class W>
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, LDS& layers) {
+  for (std::size_t i = 0; i < batch_edge_list.edges.size(); i++) {
+    auto batch = batch_edge_list.edges[i];
+    parallel_for(0, batch.size(), [&](std::size_t j) {
+      if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
+      else layers.delete_edge({batch[j].from, batch[j].to});
+    });
+    layers.check_invariants();
+    std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+  }
+}
+
+template <class Graph, class W>
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list) {
+  uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
+  auto layers = LDS(max_vertex);
+  if (G.n > 0) RunLDS(G, layers);
+  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, layers);
 }
 
 }  // namespace gbbs
