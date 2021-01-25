@@ -254,10 +254,10 @@ struct LDS {
     // - {v \in N(u) | l(v) == cur_level}:
     //     if dl(v) <= dl(u): unaffected (u is already in v's Up)
     //     else (dl(u) < dl(v)): remove u from v's Up and insert into v's Down
-
-    // First, emit a sequence of (u,v) edge tuples that are affected based on
-    // the calculations above, and sort by the recieving endpoint. First compute
-    // the moved degree of each vertex:
+    //
+    // Let's emit a sequence of (u,v) edge tuples that are affected based on the
+    // calculations above, and sort by the recieving endpoint. The steps from
+    // this point onwards will be similar to the batch_insertions code.
 
     // Compute the number of neighbors we affect.
     auto degrees = parlay::map(parlay::make_slice(dirty), [&] (auto lv) {
@@ -268,19 +268,36 @@ struct LDS {
 
     // Write the affected (flipped) edges into an array of
     //   (affected_neighbor, moved_id)
-    // pairs.
-    auto flipped_edges = sequence<edge_type>::uninitialized(sum_degrees);
+    // edge pairs.
+    auto flipped = sequence<edge_type>::uninitialized(sum_degrees);
     parallel_for(0, dirty.size(), [&] (size_t i) {
       uintE v = dirty[i].second;
       size_t offset = degrees[i];
       size_t end_offset = (i == dirty.size()) ? sum_degrees : degrees[i+1];
 
-      auto output = flipped_edges.cut(offset, end_offset);
+      auto output = flipped.cut(offset, end_offset);
       size_t written = L[v].emit_affected_up_neighbors(L, output, v);
       assert(written == (end_offset - offset));
     });
 
-    // Now the code is quite similar to what we did earlier in batch_insertion.
+    // Sort based on the affected_neighbor. Note that there are no dup edges.
+    auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
+    parlay::sort_inplace(parlay::make_slice(flipped), compare_tup);
+
+    // Compute the starts of each (modified) vertex's new edges.
+    auto bool_seq = parlay::delayed_seq<bool>(flipped.size() + 1, [&] (size_t i) {
+      return (i == 0) || (i == flipped.size()) || (std::get<0>(flipped[i-1]) != std::get<0>(flipped[i]));
+    });
+    auto starts = parlay::pack_index(bool_seq);
+
+    // Save the vertex ids. The next step will overwrite the edge pairs to store
+    // (neighbor, current_level).  (saving is not necessary if we modify + sort
+    // in a single parallel loop)
+    auto affected = sequence<uintE>::from_function(starts.size() - 1, [&] (size_t i) {
+      size_t idx = starts[i];
+      uintE vtx_id = flipped[idx].first;
+      return vtx_id;
+    });
 
   }
 
@@ -316,9 +333,9 @@ struct LDS {
     });
     auto starts = parlay::pack_index(bool_seq);
 
-    // Save the vertex ids and starts (hypersparse CSR format). The next step
-    // will overwrite the edge pairs to store (neighbor, current_level).
-    // (saving is not necessary if we modify + sort in a single parallel loop)
+    // Save the vertex ids. The next step will overwrite the edge pairs to store
+    // (neighbor, current_level).  (saving is not necessary if we modify + sort
+    // in a single parallel loop)
     auto affected = sequence<uintE>::from_function(starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE vtx_id = std::get<0>(insertions[idx]);
