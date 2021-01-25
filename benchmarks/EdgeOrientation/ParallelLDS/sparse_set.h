@@ -37,11 +37,15 @@ class sparse_set {
   static constexpr double kSpaceMult = 1.25;
 
   uintE mask;  // table.size() - 1
-  uintE num_elms;
+  uintE elms_in_table;
   parlay::sequence<K> table;  // table.size() is a power of two
 
   size_t size() const {
     return table.size();
+  }
+
+  size_t num_elms() const {
+    return elms_in_table;
   }
 
   static void clearA(K* A, size_t n, K k) {
@@ -52,17 +56,18 @@ class sparse_set {
   inline size_t firstIndex(K& k) const { return hashToRange(parlay::hash32(k)); }
   inline size_t incrementIndex(size_t h) const { return hashToRange(h + 1); }
 
-  // Updates num_elms by the number of incoming elements (guaranteed not to be
+  // Updates elms_in_table by the number of incoming elements (guaranteed not to be
   // in the table).
   void resize(size_t incoming) {
-    size_t total = num_elms + incoming;
-    // std::cout << "total = " << total << " n_elms = " << num_elms << " incoming = " << incoming << std::endl;
+    size_t total = elms_in_table + incoming;
+    // std::cout << "total = " << total << " n_elms = " << elms_in_table << " incoming = " << incoming << std::endl;
     if (total * kSpaceMult >= table.size()) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total) + 1));
       // std::cout << "new_size = " << new_size << std::endl;
       auto new_table = parlay::sequence<K>(new_size, kEmptyKey);
       auto old_table = std::move(table);
       table = std::move(new_table);
+      mask = table.size() - 1;
       // std::cout << "old_table_size = " << old_table.size() << std::endl;
       parallel_for(0, old_table.size(), [&] (size_t i) {
         if (old_table[i] != kEmptyKey) {
@@ -70,10 +75,10 @@ class sparse_set {
         }
       });
     }
-    num_elms += incoming;
+    elms_in_table += incoming;
   }
 
-  sparse_set() : mask(0), num_elms(0) {}
+  sparse_set() : mask(0), elms_in_table(0) {}
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
