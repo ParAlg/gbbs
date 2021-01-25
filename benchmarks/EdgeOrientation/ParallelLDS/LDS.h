@@ -52,11 +52,50 @@ struct LDS {
     down_neighbors down; // The neighbors in levels < level, bucketed by their level.
     up_neighbors up;     // The neighbors in levels >= level.
 
-    LDSVertex() : level(0) {}
+    LDSVertex() : level(0), desire_level(UINT_E_MAX) {}
 
-    inline uintE get_desire_level(const size_t levels_per_group) const {
-      assert(false);
-      // TODO!
+    // Used when Invariant 1 (upper invariant) is violated.
+    template <class Levels>
+    inline uintE get_desire_level_upwards(Levels& L, const size_t levels_per_group) const {
+      assert(!upper_invariant(levels_per_group));
+      using LV = std::pair<uintE, uintE>;
+      auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
+        uintE v = up.table[i];
+        uintE l_v = UINT_E_MAX;
+        if (v != UINT_E_MAX) l_v = L[v].level;
+        return std::make_pair(l_v, v);
+      });
+
+      auto LVs = parlay::filter(LV_seq, [&] (const LV& lv) {
+        return lv.first != UINT_E_MAX;
+      });
+
+      parlay::sort_inplace(parlay::make_slice(LVs));
+
+      uintE new_level = UINT_E_MAX;
+      uintE max_level = 0;
+      // TODO: make search parallel
+      for (size_t i=0; i<LVs.size(); i++) {
+        if ((i == 0) || (LVs[i].first != LVs[i-1].first)) {
+          uintE level = LVs[i].first;
+          size_t degree_at_level = LVs.size() - i;
+
+          uintE group = level / levels_per_group;
+          uintE up_degree = kUpperConstant * group_degree(group);
+          max_level = level;
+          if (degree_at_level <= up_degree) {
+            new_level = level;
+            break;
+          }
+        }
+      }
+      // Could new_level still be UINT_E_MAX? possibly, e.g., if all up
+      // neighbors are on the same level, and there are too many on this level.
+      // In this case, the desired level is one larger than the max level.
+      if (new_level == UINT_E_MAX)
+        new_level = max_level + 1;
+
+      return new_level;
     }
 
 //    template <class LDSSeq>
@@ -175,7 +214,7 @@ struct LDS {
   }
 
 
-  // Input: sequence of (level, vertex_id) pairs.
+  // Input: sequence of vertex_ids
   template <class Seq, class Levels>
   void update_levels(Seq&& possibly_dirty, Levels& levels) {
     using level_and_vtx = std::pair<uintE, uintE>;
@@ -253,6 +292,7 @@ struct LDS {
         }
         uintE num_in_level = j - i;
 
+        std::cout << "vtx = " << vtx << " L[vtx].down size = " << L[vtx].down.size() << std::endl;
         if (level_id != kUpLevel) {
           L[vtx].down[level_id].resize(num_in_level);
         } else {
@@ -279,6 +319,9 @@ struct LDS {
   // returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_insertions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
+
+    std::cout << "[RebalanceInsertions]: cur_level = " << cur_level_id << " levels_available = " << levels.size() << std::endl;
+
     if (cur_level_id >= levels.size())
       return total_moved;
 
@@ -293,7 +336,7 @@ struct LDS {
       uintE v = cur_level.table[i];
       uintE desire_level = UINT_E_MAX;
       if (v != UINT_E_MAX && L[v].is_dirty(levels_per_group)) {
-        desire_level = L[v].get_desire_level(levels_per_group);
+        desire_level = L[v].get_desire_level_upwards(L, levels_per_group);
         L[v].desire_level = desire_level;
         assert(L[v].level == cur_level_id);
         assert(desire_level > cur_level_id);
@@ -306,12 +349,23 @@ struct LDS {
       return lv.first != UINT_E_MAX;
     });
 
+    std::cout << "Dirty: " << dirty.size() << " many dirty vertices." << std::endl;
+    // for (size_t i=0; i<dirty.size(); i++) {
+    //   std::cout << "desire_level = " << dirty[i].first << " v = " << dirty[i].second << std::endl;
+    //   std::cout << "cur_level = " << L[dirty[i].second].level << " stored desire_level = " << L[dirty[i].second].desire_level << std::endl;
+    // }
+
     // todo: can get away with a uintE seq for dirty, right?
     parallel_for(0, dirty.size(), [&] (size_t i) {
       uintE v = dirty[i].second;
       uintE desire_level = L[v].desire_level;
+      std::cout << "Resized v = " << v << "'s down to " << desire_level << std::endl;
       L[v].down.resize(desire_level);
     });
+
+    for (size_t i=0; i<20; i++) {
+      std::cout << "i = " << i << " level = " << L[i].level << " desire_level = " << L[i].desire_level << std::endl;
+    }
 
     // Consider the neighbors N(u) of a vertex u moving from cur_level to dl(u) > cur_level.
     // - {v \in N(u) | dl(u) < l(v)}: move u from cur_level -> dl(u) in v's Down
@@ -340,7 +394,7 @@ struct LDS {
     parallel_for(0, dirty.size(), [&] (size_t i) {
       uintE v = dirty[i].second;
       size_t offset = degrees[i];
-      size_t end_offset = (i == dirty.size()) ? sum_degrees : degrees[i+1];
+      size_t end_offset = (i == dirty.size()-1) ? sum_degrees : degrees[i+1];
 
       auto output = flipped.cut(offset, end_offset);
       size_t written = L[v].emit_up_neighbors(output, v);
@@ -376,7 +430,7 @@ struct LDS {
 
       uintE l_u = L[u].level;
 
-      if (l_u == cur_level_id) {
+      if (l_u == cur_level_id && L[u].desire_level != UINT_E_MAX) {
         // vtx (u) is a vertex moving from the current level.
         uintE dl_u = L[u].desire_level;
         assert(dl_u != UINT_E_MAX);
@@ -411,6 +465,8 @@ struct LDS {
           // No need to update stuff in [upstart, end), since they are already
           // in u's Up.
           auto lower_neighbors = neighbors.cut(0, upstart);
+
+          std::cout << "Inserting neighbors for u = " << u << " our new level will be: " << dl_u << std::endl;
           insert_neighbors(u, lower_neighbors);
         }
       } else {
@@ -439,11 +495,20 @@ struct LDS {
         // Insert the neighbors to their new locations.
         insert_neighbors(u, neighbors);
       }
-
-
     });
 
+    // Update current level for the dirty vertices, and reset
+    // the desire_level.
+    parallel_for(0, dirty.size(), [&] (size_t i) {
+      uintE v = dirty[i].second;
+      L[v].level = L[v].desire_level;
+      L[v].desire_level = UINT_E_MAX;
+    });
 
+    update_levels(std::move(affected), levels);
+
+    // TODO: update total_moved properly
+    return rebalance_insertions(levels, cur_level_id + 1, total_moved);
   }
 
 

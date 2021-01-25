@@ -81,7 +81,11 @@ class sparse_set {
 
   void resize_down(size_t removed) {
     size_t total = elms_in_table - removed;
-    if (total * kSpaceMult <= table.size() / 2) {
+    if (total == 0) {
+      auto old_table = std::move(table);
+      table = parlay::sequence<K>();
+      mask = 0;
+    } else if (total * kSpaceMult <= table.size() / 2) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total)));
       auto new_table = parlay::sequence<K>(new_size, kEmptyKey);
       auto old_table = std::move(table);
@@ -141,7 +145,6 @@ class sparse_set {
   bool remove(K k) {
     size_t h = firstIndex(k);
     while (true) {
-      auto read = table[h];
       if (table[h] == kEmptyKey) {
         return false;
       }
