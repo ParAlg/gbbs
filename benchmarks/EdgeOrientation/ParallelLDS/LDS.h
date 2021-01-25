@@ -47,17 +47,64 @@ struct LDS {
   using edge_type = std::pair<uintE, uintE>;
 
   struct LDSVertex {
-    uintE level;  // level of this vertex
-    down_neighbors
-        down;         // neighbors in levels < level, bucketed by their level.
-    up_neighbors up;  // neighbors
+    uintE level;         // The level of this vertex.
+    uintE desire_level;  // The desire level of this vertex (set only when moving this vertex).
+    down_neighbors down; // The neighbors in levels < level, bucketed by their level.
+    up_neighbors up;     // The neighbors in levels >= level.
 
     LDSVertex() : level(0) {}
 
-    inline uintE desire_level(const size_t levels_per_group) const {
+    inline uintE get_desire_level(const size_t levels_per_group) const {
       assert(false);
       // TODO!
     }
+
+    template <class LDSSeq>
+    inline uintE affected_up_neighbors(LDSSeq& L) const {
+      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
+        uintE v = up.table[i];
+        if (v != UINT_E_MAX) {
+          uintE l_v = L[v].level;
+          if (desire_level < l_v) {
+            return (uintE)0;
+          } else if (level < l_v) {
+            return (uintE)1;
+          } else {  // level == l_v
+            return (uintE)(desire_level < L[v].desire_level);
+          }
+        }
+        return (uintE)0;
+      });
+      return parlay::reduce(bool_seq);
+    }
+
+    template <class LDSSeq, class OutputSeq>
+    inline uintE emit_affected_up_neighbors(LDSSeq& L, OutputSeq output, uintE our_id) const {
+      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
+        uintE v = up.table[i];
+        if (v != UINT_E_MAX) {
+          uintE l_v = L[v].level;
+          if (desire_level < l_v) {
+            return (uintE)0;
+          } else if (level < l_v) {
+            return (uintE)1;
+          } else {  // level == l_v
+            return (uintE)(desire_level < L[v].desire_level);
+          }
+        }
+        return (uintE)0;
+      });
+      // Could filter using filter, but let's do this seq. for now...
+      size_t off = 0;
+      for (size_t i=0; i<up.table.size(); i++) {
+        if (bool_seq[i]) {
+          uintE v = up.table[i];
+          output[off++] = std::make_pair(v, our_id);
+        }
+      }
+      return off;
+    }
+
 
     inline double group_degree(size_t group) const {
       return pow(kOnePlusEpsilon, group);
@@ -113,8 +160,8 @@ struct LDS {
 
 
   // Input: sequence of (level, vertex_id) pairs.
-  template <class Seq, class Buckets>
-  void update_buckets(Seq&& possibly_dirty, Buckets& buckets) {
+  template <class Seq, class Levels>
+  void update_levels(Seq&& possibly_dirty, Levels& levels) {
     using level_and_vtx = std::pair<uintE, uintE>;
 
     // Compute dirty vertices, which have either lower / upper threshold
@@ -126,7 +173,7 @@ struct LDS {
       if (L[v].is_dirty(levels_per_group)) {
         auto our_level = L[v].level;
         // Return only if the vertex is not in the bucketing structure.
-        if (our_level >= buckets.size() || !buckets[our_level].contains(v)) {
+        if (our_level >= levels.size() || !levels[our_level].contains(v)) {
           level = our_level;
         }
       }
@@ -155,8 +202,8 @@ struct LDS {
     // using dirty_elts = sequence<uintE>;
     uintE max_current_level = dirty[level_starts[level_starts.size() - 1]].first + 1;
     std::cout << "max_current_level = " << max_current_level << std::endl;
-    if (buckets.size() < max_current_level) {
-      buckets.resize(max_current_level);
+    if (levels.size() < max_current_level) {
+      levels.resize(max_current_level);
     }
 
     parallel_for(0, level_starts.size() - 1, [&] (size_t i) {
@@ -167,28 +214,29 @@ struct LDS {
       auto stuff_in_level = parlay::delayed_seq<uintE>(num_in_level, [&] (size_t j) {
         return dirty[idx + j].second;
       });
-      buckets[level].append(stuff_in_level);
+      levels[level].append(stuff_in_level);
     });
   }
 
   // returns the total number of moved vertices
-  template <class Buckets>
-  size_t rebalance_insertions(Buckets&& buckets, size_t cur_bucket_id, size_t total_moved = 0) {
-    if (cur_bucket_id >= buckets.size())
+  template <class Levels>
+  size_t rebalance_insertions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
+    if (cur_level_id >= levels.size())
       return total_moved;
 
-    auto& cur_bucket = buckets[cur_bucket_id];
-    if (cur_bucket.num_elms() == 0)
-      return rebalance_insertions(buckets, cur_bucket_id+1, total_moved);
+    auto& cur_level = levels[cur_level_id];
+    if (cur_level.num_elms() == 0)
+      return rebalance_insertions(levels, cur_level_id+1, total_moved);
 
-    // 1. figure out the target level for each vertex in cur_bucket.
+    // Figure out the target level for each vertex in cur_level.
     using level_and_vtx = std::pair<uintE, uintE>;
 
-    auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(cur_bucket.size(), [&] (size_t i) {
-      uintE v = cur_bucket.table[i];
+    auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(cur_level.size(), [&] (size_t i) {
+      uintE v = cur_level.table[i];
       uintE desire_level = UINT_E_MAX;
       if (v != UINT_E_MAX && L[v].is_dirty(levels_per_group)) {
-        desire_level = L[v].desire_level(levels_per_group);
+        desire_level = L[v].get_desire_level(levels_per_group);
+        L[v].desire_level = desire_level;
       }
       return std::make_pair(desire_level, v);
     });
@@ -199,6 +247,40 @@ struct LDS {
     // Dirty now contains (dl(v), v) pairs for all v \in the current level
     // moving to dl(v) (their desire level).
 
+    // Consider the neighbors N(u) of a vertex u moving from cur_level to dl(u) > cur_level.
+    // - {v \in N(u) | dl(u) < l(v)}: unaffected
+    // - {v \in N(u) | cur_level < l(v) <= dl(u)}:
+    //     remove u from v's Down and insert into v's Up
+    // - {v \in N(u) | l(v) == cur_level}:
+    //     if dl(v) <= dl(u): unaffected (u is already in v's Up)
+    //     else (dl(u) < dl(v)): remove u from v's Up and insert into v's Down
+
+    // First, emit a sequence of (u,v) edge tuples that are affected based on
+    // the calculations above, and sort by the recieving endpoint. First compute
+    // the moved degree of each vertex:
+
+    // Compute the number of neighbors we affect.
+    auto degrees = parlay::map(parlay::make_slice(dirty), [&] (auto lv) {
+      auto v = lv.second;
+      return L[v].affected_up_neighbors(L);
+    });
+    size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
+
+    // Write the affected (flipped) edges into an array of
+    //   (affected_neighbor, moved_id)
+    // pairs.
+    auto flipped_edges = sequence<edge_type>::uninitialized(sum_degrees);
+    parallel_for(0, dirty.size(), [&] (size_t i) {
+      uintE v = dirty[i].second;
+      size_t offset = degrees[i];
+      size_t end_offset = (i == dirty.size()) ? sum_degrees : degrees[i+1];
+
+      auto output = flipped_edges.cut(offset, end_offset);
+      size_t written = L[v].emit_affected_up_neighbors(L, output, v);
+      assert(written == (end_offset - offset));
+    });
+
+    // Now the code is quite similar to what we did earlier in batch_insertion.
 
   }
 
@@ -311,13 +393,13 @@ struct LDS {
     // Interface: supply vertex seq -> process will settle everything.
 
     using dirty_elts = sparse_set<uintE>;
-    sequence<dirty_elts> buckets;
+    sequence<dirty_elts> levels;
 
-    // Place the affected vertices into buckets based on their current level.
-    update_buckets(std::move(affected), buckets);
+    // Place the affected vertices into levels based on their current level.
+    update_levels(std::move(affected), levels);
 
-    // Update the bucket structure.
-    size_t total_moved = rebalance_insertions(std::move(buckets), 0);
+    // Update the level structure (basically a sparse bucketing structure).
+    size_t total_moved = rebalance_insertions(std::move(levels), 0);
 
     std::cout << "During insertions, " << total_moved << " vertices moved." << std::endl;
   }
