@@ -48,6 +48,10 @@ public:
 		epsilon(epsilon), lambda(lambda), alpha(alpha), scheduler(fileName, updtype) {
 		initialize();
 	}
+
+	unsigned getNumNodes(){
+		return scheduler.numberOfNodes;
+	}
 	void run() {
 	//	FILE *ofpVal = fopen("StatFullyDynamicCoreValue.txt", "w");
 		FILE *ofpTime = fopen("StatFullyDynamicTime.txt", "w");

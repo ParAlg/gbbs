@@ -12,6 +12,7 @@
 #include "gbbs/gbbs.h"
 using namespace std;
 
+// #define OUTPUT_EDGES
 
 enum Update {INS, DEL};
 
@@ -32,6 +33,20 @@ inline vector<EdgeUpdate> shuffle_edges(Graph G, Update up){
     });
     edge_list.clear();
     // assert(edge_list_dedup.size() == m/2);
+
+#ifdef OUTPUT_EDGES
+	cout << "writing edges to edges_list.txt" << endl;
+	ofstream outputFile;
+	outputFile.open("edges_list.txt");
+
+	for (size_t i = 0; i< edge_list_dedup.size(); ++i) {
+		gbbs::uintE u = std::get<0>(edge_list_dedup[perm[i]]);
+		gbbs::uintE v = std::get<1>(edge_list_dedup[perm[i]]);
+		outputFile << "+ " << u << " " << v << " " << i << endl;
+	}
+	outputFile.close();
+	cout << "finish writing" << endl;
+#endif
     for (size_t i = 0; i< edge_list_dedup.size(); ++i) {
 		EdgeUpdate edgeUpdate;
 		gbbs::uintE u = std::get<0>(edge_list_dedup[perm[i]]);

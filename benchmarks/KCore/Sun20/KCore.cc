@@ -40,6 +40,20 @@
 
 // }  // namespace gbbs
 
+void output_answer(gbbs::FullyDynamic fullyDynamic, int nn = -1) {
+	cout << "writing edges to results.txt" << endl;
+	ofstream outputFile;
+	outputFile.open("results.txt");
+	int n = nn;
+	if(n == -1){
+		n = fullyDynamic.getNumNodes();
+	}
+	for (int i = 1; i <= n; ++i)
+		outputFile << i << " " << fullyDynamic.getApproxCoreVal(i) << endl;
+	outputFile.close();
+	cout << "finish writing" << endl;
+}
+
 int main(int argc, char **argv) {
 	double epsilon = atof(argv[1]);
 	double lambda = atof(argv[2]);
@@ -68,6 +82,7 @@ int main(int argc, char **argv) {
 //		cout << fullyDynamic.getApproxCoreVal(u) << endl;
 	// fullyDynamic.debug();
 	cerr << "Finished!!!" << endl;
+	output_answer(fullyDynamic);
 	// double mem = outputMemory();
 	// fprintf(ofp, "%f\n", mem);
 	fclose(ofp);
