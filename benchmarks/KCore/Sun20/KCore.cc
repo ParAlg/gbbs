@@ -22,19 +22,12 @@
 // SOFTWARE.
 
 // Usage:
-// numactl -i all ./KCore -rounds 3 -s -m com-orkut.ungraph.txt_SJ
+// numactl -i all ./KCore 0.1 0.1 1.1 com-orkut.ungraph.adj output.txt
 // flags:
-//   required:
-//     -s : indicates that the graph is symmetric
-//   optional:
-//     -m : indicate that the graph should be mmap'd
-//     -c : indicate that the graph is compressed
 //     -rounds : the number of times to run the algorithm
-//     -fa : run the fetch-and-add implementation of k-core
-//     -nb : the number of buckets to use in the bucketing implementation
 
 // #define OUTPUT_EDGES
-// #define OUTPUT_RESULT
+#define OUTPUT_RESULT
 
 #include "FullyDynamic.h"
 
