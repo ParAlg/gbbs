@@ -147,7 +147,7 @@ struct LDS {
     inline uintE emit_up_neighbors(OutputSeq output, uintE our_id) const {
       // Could filter using filter, but let's do this seq. for now...
       size_t off = 0;
-      for (size_t i=0; i<up.table.size(); i++) {
+      for (size_t i=0; i<up.table_seq.size(); i++) {
         uintE v = up.table[i];
         if (levelset::valid(v))
           output[off++] = std::make_pair(v, our_id);
@@ -161,9 +161,10 @@ struct LDS {
       auto all_up = up.entries();
       assert(desire_level != kNotMoving);
 
-      auto resize_sizes = parlay::sequence<uintE>(desire_level - level, (uintE)0);
+      auto resize_sizes_seq = parlay::sequence<uintE>(desire_level - level, (uintE)0);
+      auto resize_sizes = resize_sizes_seq.begin();
 
-      for (size_t i=0; i<up.table.size(); i++) {
+      for (size_t i=0; i<up.table_seq.size(); i++) {
         uintE v = up.table[i];
         if (levelset::valid(v)) {
           if (L[v].level == level && L[v].desire_level == kNotMoving) {
@@ -184,7 +185,7 @@ struct LDS {
       // Perform resizing.
       up.resize_down(removed);
       assert(down.size() > level);
-      for (size_t i=0; i<resize_sizes.size(); i++) {
+      for (size_t i=0; i<resize_sizes_seq.size(); i++) {
         auto l = level + i;
         down[l].resize(resize_sizes[i]);
       }
@@ -232,11 +233,13 @@ struct LDS {
 
   size_t n;  // number of vertices
   size_t levels_per_group;  // number of inner-levels per group,  O(\log n) many.
-  parlay::sequence<LDSVertex> L;
+  parlay::sequence<LDSVertex> L_seq;
+  LDSVertex* L;
 
   LDS(size_t n) : n(n) {
     levels_per_group = ceil(log(n) / log(kOnePlusEpsilon));
-    L = parlay::sequence<LDSVertex>(n);
+    L_seq = parlay::sequence<LDSVertex>(n);
+    L = L_seq.begin();
   }
 
   uintE get_level(uintE ngh) {
@@ -386,8 +389,7 @@ struct LDS {
 
     // Figure out the desire_level for each vertex in cur_level.
     // Sets the desire level for each vertex with a valid desire_level in L.
-    using level_and_vtx = std::pair<uintE, uintE>;
-    auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(cur_level.size(), [&] (size_t i) {
+    parallel_for(0, cur_level.size(), [&] (size_t i) {
       uintE v = cur_level.table[i];
       uintE desire_level = UINT_E_MAX;
       if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
@@ -396,22 +398,31 @@ struct LDS {
 
         desire_level = L[v].get_desire_level_upwards(v, L, levels_per_group);
         L[v].desire_level = desire_level;
+
         assert(L[v].level == cur_level_id);
         assert(desire_level > cur_level_id);
       }
-      return std::make_pair(desire_level, v);
+    });
+
+    auto vertex_seq = parlay::delayed_seq<uintE>(cur_level.size(), [&] (size_t i) {
+      uintE u = cur_level.table[i];
+      if (levelset::valid(u)) {
+        if (L[u].desire_level == kNotMoving) {
+          u = UINT_E_MAX;  // filter out, otherwise leave in
+        }
+      }
+      return u;
     });
     // Dirty now contains (dl(v), v) pairs for all v \in the current level
     // moving to dl(v) (their desire level).
-    auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
-      return lv.first != UINT_E_MAX;
+    auto dirty_seq = parlay::filter(vertex_seq, [&] (const uintE& u) {
+      return u != UINT_E_MAX;
     });
-
-    // std::cout << "Dirty: " << dirty.size() << " many dirty vertices." << std::endl;
+    auto dirty = dirty_seq.begin();
 
     // todo: can get away with a uintE seq for dirty.
-    parallel_for(0, dirty.size(), [&] (size_t i) {
-      uintE v = dirty[i].second;
+    parallel_for(0, dirty_seq.size(), [&] (size_t i) {
+      uintE v = dirty[i];
       uintE desire_level = L[v].desire_level;
       // std::cout << "Resized v = " << v << "'s down to " << desire_level << std::endl;
       L[v].down.resize(desire_level);
@@ -431,8 +442,7 @@ struct LDS {
     // similar to the batch_insertion code. Is there some clean way of merging?
 
     // Compute the number of neighbors we affect.
-    auto degrees = parlay::map(parlay::make_slice(dirty), [&] (auto lv) {
-      auto v = lv.second;
+    auto degrees = parlay::map(parlay::make_slice(dirty_seq), [&] (auto v) {
       return L[v].num_up_neighbors();
     });
     size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
@@ -441,10 +451,10 @@ struct LDS {
     //   (affected_neighbor, moved_id)
     // edge pairs.
     auto flipped = sequence<edge_type>::uninitialized(sum_degrees);
-    parallel_for(0, dirty.size(), [&] (size_t i) {
-      uintE v = dirty[i].second;
+    parallel_for(0, dirty_seq.size(), [&] (size_t i) {
+      uintE v = dirty[i];
       size_t offset = degrees[i];
-      size_t end_offset = (i == dirty.size()-1) ? sum_degrees : degrees[i+1];
+      size_t end_offset = (i == dirty_seq.size()-1) ? sum_degrees : degrees[i+1];
 
       auto output = flipped.cut(offset, end_offset);
       size_t written = L[v].emit_up_neighbors(output, v);
@@ -519,7 +529,7 @@ struct LDS {
           // in u's Up.
           auto lower_neighbors = neighbors.cut(0, upstart);
 
-          // std::cout << "Inserting neighbors for u = " << u << " our new level will be: " << dl_u << std::endl;
+          // Insert the neighbors to their new locations.
           insert_neighbors(u, lower_neighbors);
         }
       } else if (l_u > cur_level_id) {
@@ -556,15 +566,16 @@ struct LDS {
 
     // Update current level for the dirty vertices, and reset
     // the desire_level.
-    parallel_for(0, dirty.size(), [&] (size_t i) {
-      uintE v = dirty[i].second;
+    parallel_for(0, dirty_seq.size(), [&] (size_t i) {
+      uintE v = dirty[i];
       L[v].level = L[v].desire_level;
       L[v].desire_level = UINT_E_MAX;
     });
 
     update_levels(std::move(affected), levels);
 
-    // TODO: update total_moved properly
+    // TODO: update total_moved properly (not necessary for correctness, but
+    // interesting for logging / experimental evaluation).
     return rebalance_insertions(levels, cur_level_id + 1, total_moved);
   }
 
@@ -678,16 +689,6 @@ inline void RunLDS(Graph& G) {
   size_t n = G.n;
   auto layers = LDS(n);
 
-//  auto insertions = sequence<LDS::edge_type>::uninitialized(100);
-//  for (size_t i=0; i<10; i++) {
-//    size_t off = 10*i;
-//    for (size_t j=0; j<10; j++) {
-//      insertions[off + j] = {i, i + j + 1};
-//      // std::cout << "inserting : " << i << " " << (i + j + 1) << std::endl;
-//    }
-//  }
-//  layers.batch_insertion(insertions);
-
   auto edges = G.edges();
 
   size_t num_batches = 100;
@@ -728,96 +729,6 @@ inline void RunLDS(Graph& G) {
 
 }
 
-
-//  // Moving u from level to level - 1.
-//  template <class Levels>
-//  void level_decrease(uintE u, Levels& L) {
-//    uintE level = L[u].level;
-//    auto& up = L[u].up;
-//    assert(level > 0);
-//    auto& prev_level = L[u].down[level - 1];
-//
-//    for (const auto& ngh : prev_level) {
-//      up.insert(ngh);
-//    }
-//    L[u].down.pop_back();  // delete the last level in u's structure.
-//
-//    for (const auto& ngh : up) {
-//      if (get_level(ngh) == level) {
-//        L[ngh].up.erase(L[ngh].up.find(u));
-//        L[ngh].down[level-1].insert(u);
-//
-//      } else if (get_level(ngh) > level) {
-//        L[ngh].down[level].erase(L[ngh].down[level].find(u));
-//        L[ngh].down[level - 1].insert(u);
-//
-//        if (get_level(ngh) == level + 1) {
-//          Dirty.push(ngh);
-//        }
-//      } else {
-//        // u is still "up" for this ngh, no need to update.
-//        assert(get_level(ngh) == (level - 1));
-//      }
-//    }
-//    L[u].level--;  // decrease level
-//  }
-//
-//  // Moving u from level to level + 1.
-//  template <class Levels>
-//  void level_increase(uintE u, Levels& L) {
-//    uintE level = L[u].level;
-//    std::vector<uintE> same_level;
-//    auto& up = L[u].up;
-//
-//    for (auto it = up.begin(); it != up.end();) {
-//      uintE ngh = *it;
-//      if (L[ngh].level == level) {
-//        same_level.emplace_back(ngh);
-//        it = up.erase(it);
-//        // u is still "up" for this ngh, no need to update.
-//      } else {
-//        it++;
-//        // Must update ngh's accounting of u.
-//        if (L[ngh].level > level + 1) {
-//          L[ngh].down[level].erase(L[ngh].down[level].find(u));
-//          L[ngh].down[level + 1].insert(u);
-//        } else {
-//          assert(L[ngh].level == level + 1);
-//          L[ngh].down[level].erase(L[ngh].down[level].find(u));
-//          L[ngh].up.insert(u);
-//
-//          Dirty.push(ngh);
-//        }
-//      }
-//    }
-//    // We've now split L[u].up into stuff in the same level (before the
-//    // update) and stuff in levels >= level + 1. Insert same_level elms
-//    // into down.
-//    auto& down = L[u].down;
-//    down.emplace_back(std::unordered_set<uintE>());
-//    assert(down.size() == level + 1);  // [0, level)
-//    for (const auto& ngh : same_level) {
-//      down[level].insert(ngh);
-//    }
-//    L[u].level++;  // Increase level.
-//  }
-//
-//  void fixup() {
-//    while (!Dirty.empty()) {
-//      uintE u = Dirty.top();
-//      Dirty.pop();
-//      if (!L[u].upper_invariant(levels_per_group)) {
-//        // Move u to level i+1.
-//        level_increase(u, L);
-//        Dirty.push(u);  // u might need to move up more levels.
-//        // std::cout << "(move up) pushing u = " << u << std::endl;
-//      } else if (!L[u].lower_invariant(levels_per_group)) {
-//        level_decrease(u, L);
-//        Dirty.push(u);  // u might need to move down more levels.
-//        // std::cout << "(move down) pushing u = " << u << std::endl;
-//      }
-//    }
-//  }
 
 
 

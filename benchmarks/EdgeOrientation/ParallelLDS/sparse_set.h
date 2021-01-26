@@ -40,10 +40,11 @@ class sparse_set {
   uintE mask;  // table.size() - 1
   uintE elms_in_table;
   uintE tombstones_in_table;
-  parlay::sequence<K> table;  // table.size() is a power of two
+  parlay::sequence<K> table_seq;  // table.size() is a power of two
+  K* table;  // = table_seq.begin()
 
   size_t size() const {
-    return table.size();
+    return table_seq.size();
   }
 
   size_t num_elms() const {
@@ -67,18 +68,20 @@ class sparse_set {
   void resize(size_t incoming) {
     size_t total = elms_in_table + incoming;
     // std::cout << "total = " << total << " n_elms = " << elms_in_table << " incoming = " << incoming << std::endl;
-    if (total * kSpaceMult >= table.size()) {
+    if (total * kSpaceMult >= table_seq.size()) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total) + 1));
       new_size = std::max(new_size, (size_t)8);
       // std::cout << "new_size = " << new_size << std::endl;
       auto new_table = parlay::sequence<K>(new_size, kEmptyKey);
-      auto old_table = std::move(table);
-      table = std::move(new_table);
-      mask = table.size() - 1;
+      auto old_table = std::move(table_seq);
+      table_seq = std::move(new_table);
+      table = table_seq.begin();
+      mask = table_seq.size() - 1;
       // std::cout << "old_table_size = " << old_table.size() << std::endl;
+      auto old_tab = old_table.begin();
       parallel_for(0, old_table.size(), [&] (size_t i) {
-        if (valid(old_table[i])) {
-          insert(old_table[i]);
+        if (valid(old_tab[i])) {
+          insert(old_tab[i]);
         }
       });
     }
@@ -91,20 +94,22 @@ class sparse_set {
     tombstones_in_table += removed;
 
     if (total == 0) {
-      auto old_table = std::move(table);
-      table = parlay::sequence<K>();
+      auto old_table = std::move(table_seq);
+      table_seq = parlay::sequence<K>();
       mask = 0;
       tombstones_in_table = 0;
-    } else if (total * kSpaceMult <= table.size() / 2) {
+    } else if (total * kSpaceMult <= table_seq.size() / 2) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total)));
       new_size = std::max(new_size, (size_t)8);  // some minimal size
       auto new_table = parlay::sequence<K>(new_size, kEmptyKey);
-      auto old_table = std::move(table);
-      table = std::move(new_table);
-      mask = table.size() - 1;
+      auto old_table = std::move(table_seq);
+      table_seq = std::move(new_table);
+      table = table_seq.begin();
+      mask = table_seq.size() - 1;
+      auto old_tab = old_table.begin();
       parallel_for(0, old_table.size(), [&] (size_t i) {
-        if (valid(old_table[i])) {
-          insert(old_table[i]);
+        if (valid(old_tab[i])) {
+          insert(old_tab[i]);
         }
       });
       tombstones_in_table = 0;
@@ -113,7 +118,7 @@ class sparse_set {
 
     if ((tombstones_in_table + elms_in_table) > 0.8*elms_in_table) {
       auto elts = entries();
-      clearA(table.begin(), table.size(), kEmptyKey);
+      clearA(table_seq.begin(), table_seq.size(), kEmptyKey);
       parallel_for(0, elts.size(), [&] (size_t i) {
         insert(elts[i]);
       });
@@ -130,8 +135,9 @@ class sparse_set {
     double space_mult = 1.1;
     if (inp_space_mult != -1) space_mult = inp_space_mult;
     auto m = (size_t)1 << parlay::log2_up((size_t)(space_mult * _m) + 1);
+    m = std::max(m, (size_t)8);
     mask = m - 1;
-    table = parlay::sequence<K>(m, kEmptyKey);
+    table_seq = parlay::sequence<K>(m, kEmptyKey);
   }
 
   // Pre-condition: k must be present in T.
@@ -190,7 +196,7 @@ class sparse_set {
   }
 
   bool contains(K k) const {
-    if (table.size() > 0) {
+    if (table_seq.size() > 0) {
       size_t h = firstIndex(k);
       while (true) {
         if (table[h] == k) {
@@ -206,7 +212,7 @@ class sparse_set {
 
   sequence<K> entries() const {
     auto pred = [&](const K& k) { return valid(k); };
-    return parlay::filter(parlay::make_slice(table), pred);
+    return parlay::filter(parlay::make_slice(table_seq), pred);
   }
 
   void clear() {
