@@ -51,6 +51,8 @@ void output_answer(gbbs::FullyDynamic fullyDynamic, const char fileName[], int n
 }
 
 int main(int argc, char **argv) {
+	gbbs::commandLine P(argc, argv, " [-s] <inFile>");
+	size_t rounds = P.getOptionLongValue("-rounds", 3); 
 	double epsilon = atof(argv[1]);
 	double lambda = atof(argv[2]);
 	double alpha = atof(argv[3]);
@@ -67,26 +69,31 @@ int main(int argc, char **argv) {
 
 	gbbs::FullyDynamic fullyDynamic = gbbs::FullyDynamic(epsilon, lambda, alpha, fileName, updtype);
 
-	time_t t = clock();
+	// time_t t = clock();
+	pbbs::timer t; t.start();
 	fullyDynamic.run(INS);
-	t = clock() - t;
-	FILE *ofp = fopen("StatTimeMemoryIns.txt", "a");
-	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
-	cerr << ((float)t) / CLOCKS_PER_SEC << " s." << endl;
-	cerr << "Insertion Finished!!!" << endl;	
-	fclose(ofp);
+	// t = clock() - t;
+	t.next("Insertion Finished!!!");
+	// FILE *ofp = fopen("StatTimeMemoryIns.txt", "a");
+	// fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
+	// cout << CLOCKS_PER_SEC << endl;
+	// cerr << ((float)t) / CLOCKS_PER_SEC << " s." << endl;
+	// cerr << "Insertion Finished!!!" << endl;	
+	// fclose(ofp);
 
 #ifdef OUTPUT_RESULT
 	output_answer(fullyDynamic, outFileName);
 #endif
 
-	t = clock() - t;
+	// t = clock() - t;
+	t.next(" ");
 	fullyDynamic.run(DEL);
-	t = clock() - t;
-	ofp = fopen("StatTimeMemoryDel.txt", "a");
-	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
-	cerr << ((float)t) / CLOCKS_PER_SEC << " s." << endl;
-	cerr << "Deletion Finished!!!" << endl;
-	fclose(ofp);
+	t.next("Deletion Finished!!!");
+	// t = clock() - t;
+	// ofp = fopen("StatTimeMemoryDel.txt", "a");
+	// fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
+	// cerr << ((float)t) / CLOCKS_PER_SEC << " s." << endl;
+	// cerr << "Deletion Finished!!!" << endl;
+	// fclose(ofp);
 	return 0;
 }
