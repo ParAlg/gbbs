@@ -75,11 +75,11 @@ struct symmetric_graph {
 
   parlay::sequence<std::tuple<uintE, uintE, W>> edges() {
     using g_edge = std::tuple<uintE, uintE, W>;
-    auto degs = parlay::sequence<size_t>(
+    auto degs = parlay::sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
     size_t sum_degs = pbbslib::scan_add_inplace(parlay::make_slice(degs));
     assert(sum_degs == m);
-    auto edges = parlay::sequence<g_edge>(sum_degs);
+    auto edges = parlay::sequence<g_edge>::uninitialized(sum_degs);
     parallel_for(0, n, [&](size_t i) {
       size_t k = degs[i];
       auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
