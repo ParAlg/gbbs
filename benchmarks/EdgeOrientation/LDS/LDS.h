@@ -28,7 +28,8 @@
 #include <vector>
 
 #include "gbbs/gbbs.h"
-#include "gbbs/dynamic_graph_io.h"
+// #include "gbbs/dynamic_graph_io.h"
+using namespace std;
 
 namespace gbbs {
 
@@ -353,66 +354,88 @@ struct LDS {
   }
 };
 
+// template <class Graph>
+// inline void RunLDS(Graph& G, LDS& layers) {
+//   using W = typename Graph::weight_type;
+//   size_t n = G.n;
+//   for (size_t i = 0; i < n; i++) {
+//     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+//       if (u < v) {
+//         layers.insert_edge({u, v});
+//       }
+//     };
+//     G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
+//   }
+
+//   std::cout << "Finished all insertions!" << std::endl;
+//   layers.check_invariants();
+//   std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+
+//   for (size_t i = 0; i < n; i++) {
+//     auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+//       if (u < v) {
+//         layers.delete_edge({u, v});
+//       }
+//     };
+//     G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
+//   }
+
+//   std::cout << "Finished all deletions!" << std::endl;
+//   layers.check_invariants();
+
+//   std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+
+//   size_t sum_lev = 0;
+//   for (size_t i = 0; i < G.n; i++) {
+//     sum_lev += layers.L[i].level;
+//   }
+//   std::cout << "sum_lev = " << sum_lev << std::endl;
+
+//   std::cout << "Total level increases and decreases: " << layers.total_work
+//             << std::endl;
+// }
+
+// template <class W>
+// inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, LDS& layers) {
+//   for (std::size_t i = 0; i < batch_edge_list.edges.size(); i++) {
+//     auto batch = batch_edge_list.edges[i];
+//     parallel_for(0, batch.size(), [&](std::size_t j) {
+//       if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
+//       else layers.delete_edge({batch[j].from, batch[j].to});
+//     });
+//     layers.check_invariants();
+//     std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+//   }
+// }
+
+// template <class Graph, class W>
+// inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list) {
+//   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
+//   auto layers = LDS(max_vertex);
+//   if (G.n > 0) RunLDS(G, layers);
+//   if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, layers);
+// }
+
+
+inline void RunLDS(parlay::sequence<tuple<uintE, uintE>>& batch_edge_list, LDS& layers) {
+  timer t;t.start();
+  for (std::size_t i = 0; i < batch_edge_list.size(); i++) {
+    layers.insert_edge({get<0>(batch_edge_list[i]), get<1>(batch_edge_list[i])});
+  }
+  t.next("Insertion Finished!!!");
+    // layers.check_invariants();
+    // std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+  for (std::size_t i = batch_edge_list.size()-1; i > 0 ; i--) {
+    layers.delete_edge({get<0>(batch_edge_list[i]), get<1>(batch_edge_list[i])});
+  }
+  t.next("Deletion Finished!!!");
+}
+
 template <class Graph>
-inline void RunLDS(Graph& G, LDS& layers) {
-  using W = typename Graph::weight_type;
-  size_t n = G.n;
-  for (size_t i = 0; i < n; i++) {
-    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-      if (u < v) {
-        layers.insert_edge({u, v});
-      }
-    };
-    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
-  }
-
-  std::cout << "Finished all insertions!" << std::endl;
-  layers.check_invariants();
-  std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
-
-  for (size_t i = 0; i < n; i++) {
-    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-      if (u < v) {
-        layers.delete_edge({u, v});
-      }
-    };
-    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
-  }
-
-  std::cout << "Finished all deletions!" << std::endl;
-  layers.check_invariants();
-
-  std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
-
-  size_t sum_lev = 0;
-  for (size_t i = 0; i < G.n; i++) {
-    sum_lev += layers.L[i].level;
-  }
-  std::cout << "sum_lev = " << sum_lev << std::endl;
-
-  std::cout << "Total level increases and decreases: " << layers.total_work
-            << std::endl;
-}
-
-template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, LDS& layers) {
-  for (std::size_t i = 0; i < batch_edge_list.edges.size(); i++) {
-    auto batch = batch_edge_list.edges[i];
-    parallel_for(0, batch.size(), [&](std::size_t j) {
-      if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
-      else layers.delete_edge({batch[j].from, batch[j].to});
-    });
-    layers.check_invariants();
-    std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
-  }
-}
-
-template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list) {
-  uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
+inline void RunLDS(Graph& G, parlay::sequence<tuple<uintE, uintE>> &batch_edge_list) {
+  uintE max_vertex = uintE{G.n};
   auto layers = LDS(max_vertex);
-  if (G.n > 0) RunLDS(G, layers);
-  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, layers);
+  RunLDS(batch_edge_list, layers);
 }
 
 }  // namespace gbbs
