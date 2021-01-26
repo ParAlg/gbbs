@@ -39,6 +39,7 @@ class sparse_set {
 
   uintE mask;  // table.size() - 1
   uintE elms_in_table;
+  uintE tombstones_in_table;
   parlay::sequence<K> table;  // table.size() is a power of two
 
   size_t size() const {
@@ -68,6 +69,7 @@ class sparse_set {
     // std::cout << "total = " << total << " n_elms = " << elms_in_table << " incoming = " << incoming << std::endl;
     if (total * kSpaceMult >= table.size()) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total) + 1));
+      new_size = std::max(new_size, (size_t)8);
       // std::cout << "new_size = " << new_size << std::endl;
       auto new_table = parlay::sequence<K>(new_size, kEmptyKey);
       auto old_table = std::move(table);
@@ -86,10 +88,13 @@ class sparse_set {
   void resize_down(size_t removed) {
     if (removed == 0) return;
     size_t total = elms_in_table - removed;
+    tombstones_in_table += removed;
+
     if (total == 0) {
       auto old_table = std::move(table);
       table = parlay::sequence<K>();
       mask = 0;
+      tombstones_in_table = 0;
     } else if (total * kSpaceMult <= table.size() / 2) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total)));
       new_size = std::max(new_size, (size_t)8);  // some minimal size
@@ -102,11 +107,22 @@ class sparse_set {
           insert(old_table[i]);
         }
       });
+      tombstones_in_table = 0;
     }
     elms_in_table -= removed;
+
+    if ((tombstones_in_table + elms_in_table) > 0.8*elms_in_table) {
+      auto elts = entries();
+      clearA(table.begin(), table.size(), kEmptyKey);
+      parallel_for(0, elts.size(), [&] (size_t i) {
+        insert(elts[i]);
+      });
+      tombstones_in_table = 0;
+    }
+
   }
 
-  sparse_set() : mask(0), elms_in_table(0) {}
+  sparse_set() : mask(0), elms_in_table(0), tombstones_in_table(0) {}
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.

@@ -56,11 +56,9 @@ struct LDS {
 
     LDSVertex() : level(0), desire_level(kNotMoving) {}
 
-
-
     // Used when Invariant 1 (upper invariant) is violated.
     template <class Levels>
-    inline uintE get_desire_level_upwards(Levels& L, const size_t levels_per_group) const {
+    inline uintE get_desire_level_upwards(uintE vtx_id, Levels& L, const size_t levels_per_group) const {
       assert(!upper_invariant(levels_per_group));
       using LV = std::pair<uintE, uintE>;
       auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
@@ -77,76 +75,69 @@ struct LDS {
       parlay::sort_inplace(parlay::make_slice(LVs));
 
       uintE new_level = UINT_E_MAX;
-      uintE max_level = 0;
-      // TODO: make search parallel
+      uintE prev_level = level;
       for (size_t i=0; i<LVs.size(); i++) {
+        // Start of a new level among our up-neighbors
         if ((i == 0) || (LVs[i].first != LVs[i-1].first)) {
-          uintE level = LVs[i].first;
-          size_t degree_at_level = LVs.size() - i;
+          uintE cur_level = LVs[i].first;
+          if (cur_level == level) continue;  // we are surely not moving to the same level
 
-          uintE group = level / levels_per_group;
-          uintE up_degree = kUpperConstant * group_degree(group);
-          max_level = level;
-          if (degree_at_level <= up_degree) {
-            new_level = level;
-            break;
+          size_t degree_at_level = LVs.size() - i;
+          bool done = false;
+          // Consider all levels from prev_level to the cur_level.
+          for (uintE j = prev_level+1; j <= cur_level; j++) {
+            uintE group = j / levels_per_group;
+            uintE up_degree = kUpperConstant*group_degree(group);
+
+            if (degree_at_level <= up_degree) {
+              new_level = j;
+              done = true;
+              break;
+            }
           }
+          if (done) break;
+
+          prev_level = cur_level;
         }
       }
+
       // Could new_level still be UINT_E_MAX? possibly, e.g., if all up
       // neighbors are on the same level, and there are too many on this level.
       // In this case, the desired level is one larger than the max level.
       if (new_level == UINT_E_MAX)
-        new_level = max_level + 1;
+        new_level = prev_level + 1;
+
 
       return new_level;
-    }
 
-//    template <class LDSSeq>
-//    inline uintE affected_up_neighbors(LDSSeq& L) const {
-//      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
-//        uintE v = up.table[i];
-//        if (v != UINT_E_MAX) {
-//          uintE l_v = L[v].level;
-//          if (desire_level < l_v) {
-//            return (uintE)0;
-//          } else if (level < l_v) {
-//            return (uintE)1;
-//          } else {  // level == l_v
-//            return (uintE)(desire_level < L[v].desire_level);
+//      uintE new_level = UINT_E_MAX;
+//      uintE max_level = 0;
+//      // todo: make search parallel
+//      for (size_t i=0; i<LVs.size(); i++) {
+//        if ((i == 0) || (LVs[i].first != LVs[i-1].first)) {
+//          uintE level = LVs[i].first;
+//          size_t degree_at_level = LVs.size() - i;
+//
+//          uintE group = level / levels_per_group;
+//          uintE up_degree = kUpperConstant * group_degree(group);
+//          max_level = level;
+//          if (degree_at_level <= up_degree) {
+//            new_level = level;
+//            break;
 //          }
-//        }
-//        return (uintE)0;
-//      });
-//      return parlay::reduce(bool_seq);
-//    }
-
-//    template <class LDSSeq, class OutputSeq>
-//    inline uintE emit_affected_up_neighbors(LDSSeq& L, OutputSeq output, uintE our_id) const {
-//      auto bool_seq = parlay::delayed_seq<uintE>(up.table.size(), [&] (size_t i) {
-//        uintE v = up.table[i];
-//        if (v != UINT_E_MAX) {
-//          uintE l_v = L[v].level;
-//          if (desire_level < l_v) {
-//            return (uintE)0;
-//          } else if (level < l_v) {
-//            return (uintE)1;
-//          } else {  // level == l_v
-//            return (uintE)(desire_level < L[v].desire_level);
-//          }
-//        }
-//        return (uintE)0;
-//      });
-//      // Could filter using filter, but let's do this seq. for now...
-//      size_t off = 0;
-//      for (size_t i=0; i<up.table.size(); i++) {
-//        if (bool_seq[i]) {
-//          uintE v = up.table[i];
-//          output[off++] = std::make_pair(v, our_id);
 //        }
 //      }
-//      return off;
-//    }
+//
+//      // Could new_level still be UINT_E_MAX? possibly, e.g., if all up
+//      // neighbors are on the same level, and there are too many on this level.
+//      // In this case, the desired level is one larger than the max level.
+
+//
+//      if (new_level == UINT_E_MAX)
+//        new_level = max_level + 1;
+//
+//      return new_level;
+    }
 
     inline uintE num_up_neighbors() const {
       return up.num_elms();
@@ -165,31 +156,51 @@ struct LDS {
     }
 
     template <class Levels>
-    inline void filter_up_neighbors(Levels& L) {
+    inline void filter_up_neighbors(uintE vtx_id, Levels& L) {
       uintE removed = 0;
-
       auto all_up = up.entries();
+      assert(desire_level != kNotMoving);
+
+      auto resize_sizes = parlay::sequence<uintE>(desire_level - level, (uintE)0);
 
       for (size_t i=0; i<up.table.size(); i++) {
         uintE v = up.table[i];
         if (levelset::valid(v)) {
           if (L[v].level == level && L[v].desire_level == kNotMoving) {
-            up.table[i] = sparse_set<uintE>::kTombstone;
+            up.table[i] = levelset::kTombstone;
+            uintE norm_v = L[v].level - level;
+            resize_sizes[norm_v]++;
+            removed++;
+          } else if (L[v].level > level && L[v].level < desire_level) {
+            // Another case: L[v].level < desire_level
+            up.table[i] = levelset::kTombstone;
+            uintE norm_v = L[v].level - level;
+            resize_sizes[norm_v]++;
             removed++;
           }
         }
       }
+
+      // Perform resizing.
       up.resize_down(removed);
-
       assert(down.size() > level);
+      for (size_t i=0; i<resize_sizes.size(); i++) {
+        auto l = level + i;
+        down[l].resize(resize_sizes[i]);
+      }
 
-      down[level].resize(removed);
-      parallel_for(0, all_up.size(), [&] (size_t i) {
+      uintE inserted = 0;
+      for (size_t i=0; i<all_up.size(); i++) {
         uintE v = all_up[i];
         if (L[v].level == level && L[v].desire_level == kNotMoving) {
           down[level].insert(v);
+          inserted++;
+        } else if (L[v].level > level && L[v].level < desire_level) {
+          down[L[v].level].insert(v);
+          inserted++;
         }
-      });
+      }
+      assert(removed == inserted);
     }
 
     inline double group_degree(size_t group) const {
@@ -199,7 +210,6 @@ struct LDS {
     inline bool upper_invariant(const size_t levels_per_group) const {
       uintE group = level / levels_per_group;
       uintE up_degree = kUpperConstant * group_degree(group);
-      // std::cout << "up_size = " << up.num_elms() << " up_degree = " << up_degree << std::endl;
       return up.num_elms() <= up_degree;
     }
 
@@ -244,6 +254,25 @@ struct LDS {
     }
   }
 
+  // Invariant checking for an edge e that we expect to exist
+  bool check_both_directions(edge_type e) {
+    auto [u, v] = e;
+    auto l_u = L[u].level;
+    auto l_v = L[v].level;
+    bool ok = true;
+    if (l_u < l_v) {  // look in up(u)
+      ok &= L[u].up.contains(v); assert(ok);
+      ok &= L[v].down[l_u].contains(u); assert(ok);
+    } else if (l_v < l_u) {  // look in up(v)
+      ok &= L[v].up.contains(u); assert(ok);
+      ok &= L[u].down[l_v].contains(v); assert(ok);
+    } else {  // (l_v == l_u)
+      ok &= L[v].up.contains(u); assert(ok);
+      ok &= L[u].up.contains(v); assert(ok);
+    }
+    return ok;
+  }
+
 
   // Input: sequence of vertex_ids
   template <class Seq, class Levels>
@@ -256,7 +285,6 @@ struct LDS {
     auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i) {
       uintE v = possibly_dirty[i];
       uintE level = UINT_E_MAX;
-      // std::cout << "Checking if v = " << v << " is dirty, ans = " << L[v].is_dirty(levels_per_group) << std::endl;
       if (L[v].is_dirty(levels_per_group)) {
         auto our_level = L[v].level;
         // Return only if the vertex is not in the bucketing structure.
@@ -269,10 +297,6 @@ struct LDS {
     auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
       return lv.first != UINT_E_MAX;
     });
-    // std::cout << "Num dirty elms = " << dirty.size() << std::endl;
-    // for (size_t i=0; i<dirty.size(); i++) {
-    //   std::cout << dirty[i].first << " " << dirty[i].second << std::endl;
-    // }
 
     if (dirty.size() == 0) return;
 
@@ -288,12 +312,9 @@ struct LDS {
     assert(level_starts[level_starts.size() - 1] == dirty.size());
     assert(level_starts.size() >= 2);
 
-    // std::cout << "Number of affected levels is: " << (level_starts.size()-1) << std::endl;
 
-    // using dirty_elts = sequence<uintE>;
     assert(level_starts.size() >= 2);
     uintE max_current_level = dirty[level_starts[level_starts.size() - 2]].first + 1;
-    // std::cout << "max_current_level = " << max_current_level << std::endl;
     if (levels.size() < max_current_level) {
       levels.resize(max_current_level);
     }
@@ -329,7 +350,6 @@ struct LDS {
         }
         uintE num_in_level = j - i;
 
-        // std::cout << "vtx = " << vtx << " L[vtx].down size = " << L[vtx].down.size() << std::endl;
         if (level_id != kUpLevel) {
           L[vtx].down[level_id].resize(num_in_level);
         } else {
@@ -337,13 +357,6 @@ struct LDS {
         }
       }
     });
-
-    // if (vtx == 3080) {
-    //   for (size_t i=0; i<neighbors.size(); i++) {
-    //     auto [level_id, v] = neighbors[i];
-    //     std::cout << "3080's ngh = " << v << " level = " << level_id << std::endl;
-    //   }
-    // }
 
     // std::cout << "Starting insertions into hash tables" << std::endl;
     // Insert neighbors into the correct level incident to us.
@@ -363,7 +376,7 @@ struct LDS {
   // returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_insertions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
-    std::cout << "[RebalanceInsertions]: cur_level = " << cur_level_id << " levels_available = " << levels.size() << std::endl;
+    // std::cout << "[RebalanceInsertions]: cur_level = " << cur_level_id << " levels_available = " << levels.size() << std::endl;
     if (cur_level_id >= levels.size())
       return total_moved;
 
@@ -381,7 +394,7 @@ struct LDS {
         assert(L[v].lower_invariant(levels_per_group));
         assert(!L[v].upper_invariant(levels_per_group));
 
-        desire_level = L[v].get_desire_level_upwards(L, levels_per_group);
+        desire_level = L[v].get_desire_level_upwards(v, L, levels_per_group);
         L[v].desire_level = desire_level;
         assert(L[v].level == cur_level_id);
         assert(desire_level > cur_level_id);
@@ -394,7 +407,7 @@ struct LDS {
       return lv.first != UINT_E_MAX;
     });
 
-    std::cout << "Dirty: " << dirty.size() << " many dirty vertices." << std::endl;
+    // std::cout << "Dirty: " << dirty.size() << " many dirty vertices." << std::endl;
 
     // todo: can get away with a uintE seq for dirty.
     parallel_for(0, dirty.size(), [&] (size_t i) {
@@ -437,8 +450,8 @@ struct LDS {
       size_t written = L[v].emit_up_neighbors(output, v);
       assert(written == (end_offset - offset));
 
-      // Remove neighbors in up with level == current_level that are not moving.
-      L[v].filter_up_neighbors(L);
+      // Remove neighbors in up with level < desire_level that are not moving.
+      L[v].filter_up_neighbors(v, L);
     });
 
     // Sort based on the affected_neighbor. Note that there are no dup edges.
@@ -470,8 +483,8 @@ struct LDS {
 
       uintE l_u = L[u].level;
 
+      // (1) vtx (u) is a vertex moving from the current level.
       if (l_u == cur_level_id && L[u].desire_level != UINT_E_MAX) {
-        // vtx (u) is a vertex moving from the current level.
         uintE dl_u = L[u].desire_level;
         assert(dl_u != UINT_E_MAX);
         assert(dl_u > l_u);
@@ -624,43 +637,6 @@ struct LDS {
       // Insert moving neighbors.
       insert_neighbors(vtx, neighbors);
 
-//      // Resize level containers. Can do this in parallel in many ways (e.g.,
-//      // pack), but a simple way that avoids memory allocation is to map over
-//      // everyone, and have the first index for each level search for the level.
-//      // If we use a linear search the algorithm is work eff. and has depth
-//      // proportional to the max incoming size of a level. We can also improve
-//      // to log(n) depth by using a doubling search.
-//      parallel_for(0, neighbors.size(), [&] (size_t i) {
-//        if ((i == 0) || neighbors[i].first != neighbors[i-1].first) {  // start of a new level
-//          uintE level_id = neighbors[i].first;
-//          size_t j = i;
-//          for (; j<neighbors.size(); j++) {
-//            if (neighbors[j].first != level_id) break;
-//          }
-//          uintE num_in_level = j - i;
-//
-//          if (level_id != kUpLevel) {
-//            L[vtx].down[level_id].resize(num_in_level);
-//          } else {
-//            L[vtx].up.resize(num_in_level);
-//          }
-//        }
-//      });
-//
-//      // std::cout << "Starting insertions into hash tables" << std::endl;
-//      // Insert neighbors into the correct level incident to us.
-//      parallel_for(0, neighbors.size(), [&] (size_t i) {
-//        auto [level_id, v] = neighbors[i];
-//        if (level_id != kUpLevel) {
-//          bool inserted = L[vtx].down[level_id].insert(v);
-//          assert(inserted);
-//        } else {
-//          bool inserted = L[vtx].up.insert(v);
-//          assert(inserted);
-//        }
-//      });
-      // std::cout << "Finished insertions into hash tables" << std::endl;
-
     }, 1);
 
     // New edges are done being inserted. Update the level structure.
@@ -675,7 +651,7 @@ struct LDS {
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(std::move(levels), 0);
 
-    std::cout << "During insertions, " << total_moved << " vertices moved." << std::endl;
+    // std::cout << "During insertions, " << total_moved << " vertices moved." << std::endl;
   }
 
   void check_invariants() {
@@ -717,6 +693,7 @@ inline void RunLDS(Graph& G) {
   size_t num_batches = 100;
   size_t batch_size = edges.size() / num_batches;
   for (size_t i=0; i<num_batches; i++) {
+    std::cout << "===== Starting batch i = " << i << std::endl;
     size_t start = batch_size*i;
     size_t end = std::min(start + batch_size, edges.size());
 
@@ -727,6 +704,13 @@ inline void RunLDS(Graph& G) {
     });
 
     layers.batch_insertion(batch);
+
+//    for (size_t i=0; i<batch.size(); i++) {
+//      bool exists = layers.edge_exists(batch[i]);
+//      bool ok = layers.check_both_directions(batch[i]);
+//      assert(exists);
+//      assert(ok);
+//    }
   }
 
 //  for (size_t i = 0; i < n; i++) {
