@@ -41,11 +41,9 @@ template <class Weights,
 void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage) {
   using W = typename Weights::weight_type;  // potentially a more complex type than IW
 
-  // pq_elt: vtx_id * vtx_id * weight
   using pq_elt = std::tuple<uintE, uintE, W>;
   using edge = std::tuple<uintE, W>;
 
-  // using vertex = w_vertex<IW>; // UNUSED
   using clustered_graph = clustering::clustered_graph<Weights, IW, w_vertex>;
   using cluster_id = clustering::cluster_id;
 
@@ -93,14 +91,14 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
     auto [u, v, wgh] = pq.top();
     pq.pop();
 
-//    std::cout << "popped u = " << u << " v = " << v << " wgh = " << wgh << " from pq." << std::endl;
+    // std::cout << "popped u = " << u << " v = " << v << " wgh = " << wgh << " from pq." << std::endl;
 
     // Check if either u or v is already clustered.
     if (CG.is_clustered(u) || CG.is_clustered(v)) {
       continue;  // Edge is no longer valid; continue.
     }
 
-//    std::cout << "uniting u = " << u << " and v = " << v << std::endl;
+    // std::cout << "uniting u = " << u << " and v = " << v << std::endl;
     // Otherwise, merge u and v into the same cluster.
     unite_t.start();
     cluster_id uv = CG.unite_clusters(u, v, wgh, linkage);
