@@ -32,6 +32,89 @@
 
 namespace gbbs {
 
+struct Level {
+  std::unordered_set<uintE> set;
+  std::vector<uintE> vector;
+  static constexpr int high_boundary = 1000;
+  static constexpr int low_boundary = 500;
+  bool use_vector;
+
+  Level() : use_vector(true) {}
+
+  void set_to_vector() {
+    for (const auto& v : set) {
+      vector.push_back(v);
+    }
+    set.clear();
+    use_vector = true;
+  }
+
+  void vector_to_set() {
+    for (const auto& v : vector) {
+      set.insert(v);
+    }
+    vector.clear();
+    use_vector = false;
+  }
+
+  void erase(uintE v) {
+    if (use_vector) vector.erase(std::find(vector.begin(), vector.end(), v));
+    else {
+      set.erase(set.find(v));
+      if (set.size() < low_boundary) set_to_vector();
+    }
+  }
+
+  template <class Iterator>
+  void erase(Iterator it) {
+    if (use_vector) vector.erase(it);
+    else {
+      set.erase(it);
+      if (set.size() < low_boundary) set_to_vector();
+    }
+  }
+
+  void insert(uintE v) {
+    if (use_vector) {
+      vector.push_back(v);
+      if (vector.size() > high_boundary) vector_to_set();
+    } else set.insert(v);
+  }
+
+  template <class F>
+  void iterate(F f) {
+    if (use_vector) {
+      for (const auto& v : vector) {
+        f(v);
+      }
+    } else {
+      for (const auto& v : set) {
+        f(v);
+      }
+    }
+  }
+
+  template <class F>
+  void special_iterate(F f) {
+    if (use_vector) {
+      auto end = set.end();
+      for (auto it = vector.begin(); it != vector.end();) {
+        f(it, end);
+      }
+    } else {
+      auto end = vector.end();
+      for (auto it = set.begin(); it != set.end();) {
+        f(end, it);
+      }
+    }
+  }
+
+  size_t size() const {
+    if (use_vector) return vector.size();
+    return set.size();
+  }
+};
+
 struct LDS {
   size_t n;  // number of vertices
   static constexpr double delta = 9.0;
@@ -45,9 +128,9 @@ struct LDS {
 
   size_t total_work;
 
-  using level = std::unordered_set<uintE>;
-  using down_neighbors = std::vector<level>;
-  using up_neighbors = level;
+  //using level = std::unordered_set<uintE>;
+  using down_neighbors = std::vector<Level>;
+  using up_neighbors = Level;
   using edge_type = std::pair<uintE, uintE>;
 
   struct LDSVertex {
@@ -69,9 +152,9 @@ struct LDS {
 
     void remove_neighbor(uintE v, uintE l_v) {
       if (l_v < level) {
-        down[l_v].erase(down[l_v].find(v));
+        down[l_v].erase(v);
       } else {
-        up.erase(up.find(v));
+        up.erase(v);
       }
     }
 
@@ -115,18 +198,20 @@ struct LDS {
     assert(level > 0);
     auto& prev_level = L[u].down[level - 1];
 
-    for (const auto& ngh : prev_level) {
+    prev_level.iterate([&](const uintE& ngh) {
+    //for (const auto& ngh : prev_level) {
       up.insert(ngh);
-    }
+    });
     L[u].down.pop_back();  // delete the last level in u's structure.
 
-    for (const auto& ngh : up) {
+    up.iterate([&](const uintE& ngh) {
+    //for (const auto& ngh : up) {
       if (get_level(ngh) == level) {
-        L[ngh].up.erase(L[ngh].up.find(u));
+        L[ngh].up.erase(u);
         L[ngh].down[level - 1].insert(u);
 
       } else if (get_level(ngh) > level) {
-        L[ngh].down[level].erase(L[ngh].down[level].find(u));
+        L[ngh].down[level].erase(u);
         L[ngh].down[level - 1].insert(u);
 
         if (get_level(ngh) == level + 1) {
@@ -136,7 +221,7 @@ struct LDS {
         // u is still "up" for this ngh, no need to update.
         assert(get_level(ngh) == (level - 1));
       }
-    }
+    });
     L[u].level--;  // decrease level
   }
 
@@ -148,32 +233,38 @@ struct LDS {
     std::vector<uintE> same_level;
     auto& up = L[u].up;
 
-    for (auto it = up.begin(); it != up.end();) {
-      uintE ngh = *it;
+    up.special_iterate([&](std::vector<uintE>::iterator& vec_it, std::unordered_set<uintE>::iterator& set_it) {
+    //for (auto it = up.begin(); it != up.end();) {
+      bool use_vec = (vec_it != up.vector.end());
+      uintE ngh = use_vec ? *vec_it : *set_it; //*it;
       if (L[ngh].level == level) {
         same_level.emplace_back(ngh);
-        it = up.erase(it);
+        //it = up.erase(it);
+        if (use_vec) vec_it = up.vector.erase(vec_it);
+        else set_it = up.set.erase(set_it);
         // u is still "up" for this ngh, no need to update.
       } else {
-        it++;
+        //it++;
+        if (use_vec) vec_it++;
+        else set_it++;
         // Must update ngh's accounting of u.
         if (L[ngh].level > level + 1) {
-          L[ngh].down[level].erase(L[ngh].down[level].find(u));
+          L[ngh].down[level].erase(u);
           L[ngh].down[level + 1].insert(u);
         } else {
           assert(L[ngh].level == level + 1);
-          L[ngh].down[level].erase(L[ngh].down[level].find(u));
+          L[ngh].down[level].erase(u);
           L[ngh].up.insert(u);
 
           Dirty.push(ngh);
         }
       }
-    }
+    });
     // We've now split L[u].up into stuff in the same level (before the
     // update) and stuff in levels >= level + 1. Insert same_level elms
     // into down.
     auto& down = L[u].down;
-    down.emplace_back(std::unordered_set<uintE>());
+    down.emplace_back(Level());//std::unordered_set<uintE>());
     assert(down.size() == level + 1);  // [0, level)
     for (const auto& ngh : same_level) {
       down[level].insert(ngh);
@@ -198,7 +289,7 @@ struct LDS {
     }
   }
 
-  bool edge_exists(edge_type e) {
+  /*bool edge_exists(edge_type e) {
     auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
@@ -207,10 +298,10 @@ struct LDS {
     } else {  // look in up(v)
       return (L[v].up.find(u) != L[v].up.end());
     }
-  }
+  }*/
 
   bool insert_edge(edge_type e) {
-    if (edge_exists(e)) return false;
+    //if (edge_exists(e)) return false;
     auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
@@ -224,7 +315,7 @@ struct LDS {
   }
 
   bool delete_edge(edge_type e) {
-    if (!edge_exists(e)) return false;
+    //if (!edge_exists(e)) return false;
     auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
