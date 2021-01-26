@@ -1,9 +1,16 @@
 cc_library(
+  name = "fullyDynamic",
+  hdrs = ["Hypergraph.h", 
+    "GraphScheduler.h", 
+    "HypergraphCoreDecomp.h"],
+)
+
+cc_library(
   name = "KCore",
-  hdrs = ["KCore.h"],
+  hdrs = ["FullyDynamic.h"],
   deps = [
   "//gbbs:gbbs",
-  "//gbbs:julienne",
+  ":fullyDynamic"
   ]
 )
 

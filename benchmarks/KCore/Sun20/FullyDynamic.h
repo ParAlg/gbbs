@@ -49,8 +49,8 @@ public:
 		initialize();
 	}
 
-	unsigned getNumNodes(){
-		return scheduler.numberOfNodes;
+	unsigned maxNodeId(){
+		return scheduler.maxNodeId;
 	}
 	void run() {
 	//	FILE *ofpVal = fopen("StatFullyDynamicCoreValue.txt", "w");

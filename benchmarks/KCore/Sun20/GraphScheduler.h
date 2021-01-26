@@ -12,7 +12,6 @@
 #include "gbbs/gbbs.h"
 using namespace std;
 
-// #define OUTPUT_EDGES
 
 enum Update {INS, DEL};
 
@@ -93,6 +92,7 @@ public:
 		return position < updates.size();
 	}
 	unsigned numberOfNodes, maxDegree;
+	unsigned maxNodeId;
 	Update updtype;
 private:
 	void load(){
@@ -101,7 +101,12 @@ private:
 		// Only in C++11
 		updates.shrink_to_fit();
 		//edge_queue_no_time_.shrink_to_fit();
-		numberOfNodes = G.num_vertices();
+		maxNodeId = G.num_vertices();
+		auto degrees = pbbs::delayed_seq<unsigned>(maxNodeId, [&](unsigned i){ 
+			if(G.get_vertex(i).out_degree() > 0)return 1;
+			return 0; 
+		});
+		numberOfNodes = pbbs::reduce(degrees, pbbs::addm<size_t>());
 		maxDegree = get_max_deg(G);
 
 		cerr << "Finished. " << updates.size() << " updates." << endl;

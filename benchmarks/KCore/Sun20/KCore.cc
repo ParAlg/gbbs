@@ -33,6 +33,9 @@
 //     -fa : run the fetch-and-add implementation of k-core
 //     -nb : the number of buckets to use in the bucketing implementation
 
+// #define OUTPUT_EDGES
+// #define OUTPUT_RESULT
+
 #include "FullyDynamic.h"
 
 // namespace gbbs {
@@ -40,13 +43,13 @@
 
 // }  // namespace gbbs
 
-void output_answer(gbbs::FullyDynamic fullyDynamic, int nn = -1) {
-	cout << "writing edges to results.txt" << endl;
+void output_answer(gbbs::FullyDynamic fullyDynamic, const char fileName[], int nn = -1) {
+	cout << "writing edges to output file" << endl;
 	ofstream outputFile;
-	outputFile.open("results.txt");
+	outputFile.open(fileName);
 	int n = nn;
 	if(n == -1){
-		n = fullyDynamic.getNumNodes();
+		n = fullyDynamic.maxNodeId();
 	}
 	for (int i = 1; i <= n; ++i)
 		outputFile << i << " " << fullyDynamic.getApproxCoreVal(i) << endl;
@@ -59,7 +62,8 @@ int main(int argc, char **argv) {
 	double lambda = atof(argv[2]);
 	double alpha = atof(argv[3]);
 	char *fileName = argv[4];
-	int upd = atoi(argv[5]); // new, 1 for insert, 2 for delete
+	char *outFileName = argv[5];
+	int upd = atoi(argv[6]); // new, 1 for insert, 2 for delete
 
     Update updtype;
 	if(upd == 1){
@@ -76,15 +80,10 @@ int main(int argc, char **argv) {
 	FILE *ofp = fopen("StatTimeMemory.txt", "a");
 	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
 	cerr << t << " ms." << endl;
-//	fullyDynamic.debug();
-//	Node u;
-//	while (cin >> u)
-//		cout << fullyDynamic.getApproxCoreVal(u) << endl;
-	// fullyDynamic.debug();
 	cerr << "Finished!!!" << endl;
-	output_answer(fullyDynamic);
-	// double mem = outputMemory();
-	// fprintf(ofp, "%f\n", mem);
+#ifdef OUTPUT_RESULT
+	output_answer(fullyDynamic, outFileName);
+#endif
 	fclose(ofp);
 	return 0;
 }
