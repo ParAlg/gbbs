@@ -63,14 +63,14 @@ int main(int argc, char **argv) {
 	double alpha = atof(argv[3]);
 	char *fileName = argv[4];
 	char *outFileName = argv[5];
-	int upd = atoi(argv[6]); // new, 1 for insert, 2 for delete
+	// int upd = atoi(argv[6]); // new, 1 for insert, 2 for delete
 
-    Update updtype;
-	if(upd == 1){
-		updtype = INS;
-	}else{
-		updtype = DEL;
-	}
+    Update updtype = INS;//dummy and not used, always first insert then delete
+	// if(upd == 1){
+	// 	updtype = INS;
+	// }else{
+	// 	updtype = DEL;
+	// }
 
 	gbbs::FullyDynamic fullyDynamic = gbbs::FullyDynamic(epsilon, lambda, alpha, fileName, updtype);
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 	t = clock() - t;
 	FILE *ofp = fopen("StatTimeMemoryIns.txt", "a");
 	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
-	cerr << t << " ms." << endl;
+	cerr << ((float)t) / CLOCKS_PER_SEC << " s." << endl;
 	cerr << "Insertion Finished!!!" << endl;	
 	fclose(ofp);
 
@@ -87,12 +87,13 @@ int main(int argc, char **argv) {
 	output_answer(fullyDynamic, outFileName);
 #endif
 
+	t = clock() - t;
 	fullyDynamic.run(DEL);
 	t = clock() - t;
 	ofp = fopen("StatTimeMemoryDel.txt", "a");
 	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
-	cerr << t << " ms." << endl;
-	cerr << "Deletiontion Finished!!!" << endl;
+	cerr << ((float)t) / CLOCKS_PER_SEC << " s." << endl;
+	cerr << "Deletion Finished!!!" << endl;
 	fclose(ofp);
 	return 0;
 }
