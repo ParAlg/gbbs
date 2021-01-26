@@ -150,7 +150,7 @@ struct LDS {
         //
         // This is the current level of the node.
         uintE cur_level = level - 1;
-        uintE cur_num_up_neighbors = up.num_elms() + down[level-1].num_elms();
+        uintE cur_num_up_neighbors = num_up_star_neighbors();
         while (cur_level > 0) {
             if (upstar_degree_satisfies_invariant(cur_level, levels_per_group, cur_num_up_neighbors)) {
                 break;
@@ -164,6 +164,11 @@ struct LDS {
 
     inline uintE num_up_neighbors() const {
       return up.num_elms();
+    }
+
+    inline uintE num_up_star_neighbors() const {
+      if (level == 0) return up.num_elms();
+      return up.num_elms() + down[level - 1].num_elms();
     }
 
     template <class OutputSeq>
@@ -240,10 +245,10 @@ struct LDS {
     inline bool lower_invariant(const size_t levels_per_group) const {
       if (level == 0) return true;
       uintE lower_group = (level - 1) / levels_per_group;
-      auto up_size = up.num_elms();
-      auto prev_level_size = down[level - 1].num_elms();
+      //auto up_size = up.num_elms();
+      //auto prev_level_size = down[level - 1].num_elms();
       size_t our_group_degree = static_cast<size_t>(group_degree(lower_group));
-      return (up_size + prev_level_size) >= our_group_degree;
+      return num_up_star_neighbors() >= our_group_degree;
     }
 
     // Method for computing whether the updegree from cur_level is enough to
