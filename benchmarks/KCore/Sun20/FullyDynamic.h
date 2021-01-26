@@ -52,165 +52,60 @@ public:
 	unsigned maxNodeId(){
 		return scheduler.maxNodeId;
 	}
-	void run() {
-	//	FILE *ofpVal = fopen("StatFullyDynamicCoreValue.txt", "w");
-		FILE *ofpTime = fopen("StatFullyDynamicTime.txt", "w");
-	//	FILE *ofpDetail = fopen("StatFullyDynamicDetail.txt", "w");
+	// void run() {
+	// 	FILE *ofpTime = fopen("StatFullyDynamicTime.txt", "w");
+	// 	int cnt = 0;
+	// 	time_t t0 = clock(), totalTime = 0;
+	// 	int lastUpdTimestamp;
+	// 	while (scheduler.hasNext()) {
+	// 		EdgeUpdate edgeUpdate = scheduler.nextUpdate();
+	// 		if (edgeUpdate.updType == INS)
+	// 			insertEdge(edgeUpdate.e);
+	// 		else
+	// 			deleteEdge(edgeUpdate.e);
+	// 		++cnt;
+
+	// 		if (cnt % 100000 == 0) {
+	// 			cerr << cnt << "...\t";
+	// 			// Block: print all b[t][u] and c[u] every 100000 updates
+	// 			time_t t1 = clock();
+	// 			fprintf(ofpTime, "%d\n", t1 - t0);
+	// 			t0 = clock();
+	// 		}
+	// 	} // end of while loop
+	// 	fclose(ofpTime);
+	// } //end of run function
+
+	// if insert, inserting from 0 to end
+	// if deleting, deleting from end to 0
+	void run(Update updType) {
 		int cnt = 0;
 		time_t t0 = clock(), totalTime = 0;
-		int lastUpdTimestamp;
-		while (scheduler.hasNext()) {
-			EdgeUpdate edgeUpdate = scheduler.nextUpdate();
-			if (edgeUpdate.updType == INS)
-				// h.insertEdge(edgeUpdate.e);
+		
+		if(updType == INS){
+			while (scheduler.hasNext()) {
+				EdgeUpdate edgeUpdate = scheduler.nextUpdate();
 				insertEdge(edgeUpdate.e);
-			else
-				// h.deleteEdge(edgeUpdate.e);
+				++cnt;
+
+				if (cnt % 100000 == 0) {
+					cerr << cnt << "...\t";
+				}
+			} // end of while loop
+		}else{
+			while (scheduler.hasPrev()) {
+				EdgeUpdate edgeUpdate = scheduler.prevUpdate();
 				deleteEdge(edgeUpdate.e);
-			++cnt;
+				++cnt;
 
-			if (cnt % 100000 == 0) {
-				cerr << cnt << "...\t";
-				// Block: print all b[t][u] and c[u] every 100000 updates
-				time_t t1 = clock();
-				fprintf(ofpTime, "%d\n", t1 - t0);
-				// fprintf(ofpVal, "%d\n", cnt);
-
-				/*
-				// Block: observe gracefully degrading ratios (3-dimensional figures)
-				// Run the static exact algorithm
-				HypergraphCoreDecomp hcd(h);
-				hcd.solve();
-				unordered_map<int, int> coreCount, coreCountApprox;
-				for (auto& p: hcd.c) {
-					const Node u = p.first;
-					if (hcd.c[u] > 0) {
-						if (!coreCount.count(hcd.c[u]))
-							coreCount[hcd.c[u]] = 1;
-						else
-							++coreCount[hcd.c[u]];
-						if (!coreCountApprox.count(b[tau][u]))
-							coreCountApprox[b[tau][u]] = 1;
-						else
-							++coreCountApprox[b[tau][u]];
-					}
+				if (cnt % 100000 == 0) {
+					cerr << cnt << "...\t";
 				}
-				for (auto& p: coreCount)
-					fprintf(ofpVal, "%d %d\n", p.first, p.second);
-				fprintf(ofpVal, "-1\n");
-				for (auto& p: coreCountApprox)
-					fprintf(ofpVal, "%d %d\n", p.first, p.second);
-				fprintf(ofpVal, "-1\n");
-
-				vector<double> maxErr(tau + 1, 0), avgErr(tau + 1, 0);
-				int cntNonZero = 0;
-				for (auto& p: hcd.c) {
-					const Node u = p.first;
-					if (hcd.c[u] > 0) {
-						++cntNonZero;
-						for (int t = 1; t <= tau; ++t) {
-							double err = max(((double)hcd.c[u]) / b[t][u], ((double)b[t][u]) / hcd.c[u]);
-							if (maxErr[t] < err)
-								maxErr[t] = err;
-							avgErr[t] += err;
-						}
-					}
-				}
-				for (int t = 1; t <= tau; ++t)
-					avgErr[t] /= cntNonZero;
-				for (int t = 1; t <= tau; ++t)
-					fprintf(ofpDetail, "%.9f%c", maxErr[t], t == tau ? '\n' : ' ');
-				for (int t = 1; t <= tau; ++t)
-					fprintf(ofpDetail, "%.9f%c", avgErr[t], t == tau ? '\n' : ' ');
-				*/
-				t0 = clock();
-			}
-
-			/*
-			// Block: compare the hypergraph model with the normal graph model by examining the final snapshot in two models
-			// Construct the normal graph
-			Hypergraph normalG;
-			for (auto p: h.edge2id) {
-				Hyperedge hyperedge = p.first;
-				for (Hyperedge::iterator iter1 = hyperedge.begin(); iter1 != hyperedge.end(); ++iter1) {
-					for (Hyperedge::iterator iter2 = hyperedge.begin(); iter2 != iter1; ++iter2) {
-						Hyperedge e;
-						e.push_back(*iter2);
-						e.push_back(*iter1);
-						normalG.insertEdge(e);
-					}
-				}
-			}
-			// Compute core values
-			HypergraphCoreDecomp hcd(h), hcdn(normalG);
-			hcd.solve();
-			hcdn.solve();
-			char fileName[50] = "StatHyperAndNormalCoreValue.txt";
-			FILE *ofpCmpModel = fopen(fileName, "w");
-			for (auto& p: hcd.c) {
-				fprintf(ofpCmpModel, "%d\t%d\t%d\t%d\n", p.first, p.second, getApproxCoreVal(p.first), hcdn.c[p.first]);
-			}
-			fclose(ofpCmpModel);
-			*/
+			} // end of while loop
 		}
-	//	fclose(ofpVal);
-		fclose(ofpTime);
-	//	fclose(ofpDetail);
+	} //end of run function
 
-		/*
-		// Block: compare between different parameters
-		FILE *ofpComp = fopen("StatFullyDynamic.txt", "w");
-		fprintf(ofpComp, "alpha = %f\n", alpha);
-		fprintf(ofpComp, "lambda = %f\n", lambda);
-		fprintf(ofpComp, "total time = %d ms\n", clock());
-		fprintf(ofpComp, "total number of updates = %d\n", cnt);
-		double maxErr = 0, avgErr = 0;
-		int cntNonZero = 0;
-		HypergraphCoreDecomp hcd(h);
-		hcd.solve();
-		for (auto& p: hcd.c) {
-			const Node u = p.first;
-			assert((hcd.c[u] == 0 && b[tau][u] == 0) || (hcd.c[u] > 0 && b[tau][u] > 0));
-			if (hcd.c[u] > 0) {
-				++cntNonZero;
-				double err = max((double)hcd.c[u] / b[tau][u], (double)b[tau][u] / hcd.c[u]);
-				maxErr = max(maxErr, err);
-				avgErr += err;
-			}
-		}
-		avgErr /= cntNonZero;
-		fprintf(ofpComp, "max error = %.9f\n", maxErr);
-		fprintf(ofpComp, "avg error = %.9f\n", avgErr);
-		fclose(ofpComp);
-		*/
 
-		/*
-		// Block: show that a large tau is unnecessary
-		vector<double> maxErr(tau + 1, 0), avgErr(tau + 1, 0);
-		int cntNonZero = 0;
-		HypergraphCoreDecomp hcd(h);
-		hcd.solve();
-		for (auto& p: hcd.c) {
-			const Node u = p.first;
-			assert((hcd.c[u] == 0 && b[tau][u] == 0) || (hcd.c[u] > 0 && b[tau][u] > 0));
-			if (hcd.c[u] > 0) {
-				++cntNonZero;
-				for (int t = 1; t <= tau; ++t) {
-					if (maxErr[t] < max((double)hcd.c[u] / b[t][u], (double)b[t][u] / hcd.c[u]))
-						maxErr[t] = max((double)hcd.c[u] / b[t][u], (double)b[t][u] / hcd.c[u]);
-					avgErr[t] += max((double)hcd.c[u] / b[t][u], (double)b[t][u] / hcd.c[u]);
-				}
-			}
-		}
-		for (int t = 1; t <= tau; ++t)
-			avgErr[t] /= cntNonZero;
-
-		FILE *ofpLargeTau = fopen("LargeTauIsUnnecessaryFullyDynamic.txt", "w");
-		fprintf(ofpLargeTau, "%d\n", tau);
-		for (int t = 1; t <= tau; ++t)
-			fprintf(ofpLargeTau, "%.9f %.9f\n", maxErr[t], avgErr[t]);
-		fclose(ofpLargeTau);*/
-	}
 	unsigned getApproxCoreVal(Node u) {
 		return b[tau][u];
 	}

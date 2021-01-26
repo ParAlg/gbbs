@@ -75,15 +75,24 @@ int main(int argc, char **argv) {
 	gbbs::FullyDynamic fullyDynamic = gbbs::FullyDynamic(epsilon, lambda, alpha, fileName, updtype);
 
 	time_t t = clock();
-	fullyDynamic.run();
+	fullyDynamic.run(INS);
 	t = clock() - t;
-	FILE *ofp = fopen("StatTimeMemory.txt", "a");
+	FILE *ofp = fopen("StatTimeMemoryIns.txt", "a");
 	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
 	cerr << t << " ms." << endl;
-	cerr << "Finished!!!" << endl;
+	cerr << "Insertion Finished!!!" << endl;	
+	fclose(ofp);
+
 #ifdef OUTPUT_RESULT
 	output_answer(fullyDynamic, outFileName);
 #endif
+
+	fullyDynamic.run(DEL);
+	t = clock() - t;
+	ofp = fopen("StatTimeMemoryDel.txt", "a");
+	fprintf(ofp, "Round\t%.2f\t%f\t", epsilon, t / 1000.0);
+	cerr << t << " ms." << endl;
+	cerr << "Deletiontion Finished!!!" << endl;
 	fclose(ofp);
 	return 0;
 }

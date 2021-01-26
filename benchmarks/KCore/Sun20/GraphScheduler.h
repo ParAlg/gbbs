@@ -91,6 +91,15 @@ public:
 	inline bool hasNext() {
 		return position < updates.size();
 	}
+
+	inline bool hasPrev() {
+		return position > 0;
+	}
+
+	EdgeUpdate prevUpdate(){
+		return updates[--position];
+	}
+
 	unsigned numberOfNodes, maxDegree;
 	unsigned maxNodeId;
 	Update updtype;
