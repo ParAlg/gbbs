@@ -109,7 +109,10 @@ struct symmetric_graph {
   symmetric_graph()
       : n(0),
         m(0),
-        deletion_fn([]() {}) {}
+        deletion_fn([]() {}),
+        e0(parlay::make_slice((edge_type*) nullptr, (edge_type*) nullptr)),
+        e1(parlay::make_slice((edge_type*) nullptr, (edge_type*) nullptr)),
+        v_data(parlay::make_slice((vertex_data*) nullptr, (vertex_data*) nullptr)) {}
 
   symmetric_graph(gbbs::slice<vertex_data> v_data, size_t n, size_t m,
                   std::function<void()> _deletion_fn, gbbs::slice<edge_type> _e0,

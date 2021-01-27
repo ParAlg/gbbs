@@ -38,6 +38,7 @@ double LDS_runner(Graph& G, commandLine P) {
   const std::string kInputFlag{"-i"};
   const char* const input_file{P.getOptionValue(kInputFlag)};
   int batch_size = P.getOptionIntValue("-b", 1);
+  bool compare_exact = P.getOption("-stat");
 
   using W = typename Graph::weight_type;
 
@@ -46,11 +47,8 @@ double LDS_runner(Graph& G, commandLine P) {
     BatchDynamicEdges<W>{};
 
   timer t; t.start();
-
-  RunLDS(G, batch_edge_list, batch_size);
-//  auto cores = (fa) ? LDS_FA(G, num_buckets) : LDS(G, num_buckets);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact);
   double tt = t.stop();
-
   std::cout << "### Running Time: " << tt << std::endl;
 
   return tt;
