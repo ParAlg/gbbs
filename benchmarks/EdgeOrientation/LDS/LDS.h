@@ -422,6 +422,9 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
       // Run kcore on graph
       auto cores = KCore(graph, 16);
 
+      auto max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+      std::cout << "### Coreness Exact: " << max_core << std::endl;
+
       // Compare cores[v] to layers.core(v)
       auto approximation_error = parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float {
         auto exact_core = j >= graph.n ? 0 : cores[j];
@@ -434,11 +437,11 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
       });
       // Output min, max, and average error
       float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
-      std::cout << "### Average Coreness Error: " << sum_error / (float) batch_edge_list.max_vertex << std::endl; fflush(stdout);
       float max_error = parlay::reduce(approximation_error, parlay::maxm<float>());
       float min_error = parlay::reduce(approximation_error, parlay::minm<float>());
-      std::cout << "### Min Coreness Error: " << min_error << std::endl; fflush(stdout);
-      std::cout << "### Max Coreness Error: " << max_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Average Coreness Error: " << sum_error / (float) batch_edge_list.max_vertex << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
     }
   }
 }
