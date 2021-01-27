@@ -52,7 +52,7 @@ W weighted_avg_linkage(W w1, W w2) {
 template <class Graph>
 struct EmptyToFloatW {
   using weight_type = float;
-  using underlying_weight_type = pbbs::empty;
+  using underlying_weight_type = gbbs::empty;
   Graph& G;
 
   EmptyToFloatW(Graph& G) : G(G) {}
@@ -61,14 +61,18 @@ struct EmptyToFloatW {
     return (float)0;
   }
 
+  static weight_type combine(const weight_type& lhs, const weight_type& rhs) {
+    return std::max(lhs, rhs);
+  }
+
   static constexpr bool less(const weight_type& lhs, const weight_type& rhs) {
     return lhs < rhs;
   }
 
-  weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) {
+  weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) const {
     auto v_u = G.get_vertex(u);
     auto v_v = G.get_vertex(v);
-    return 1 + pbbs::log2_up(v_u.out_degree() + v_v.out_degree());  // [1, log(max_deg))
+    return 1 + parlay::log2_up(1 + v_u.out_degree() + v_v.out_degree());  // [1, log(max_deg))
   }
 };
 

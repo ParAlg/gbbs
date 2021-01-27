@@ -27,8 +27,7 @@
 #include <vector>
 
 #include "gbbs/gbbs.h"
-
-#include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
+#include "pam/pam.h"
 
 namespace gbbs {
 namespace clustering {
@@ -42,45 +41,68 @@ struct clustered_graph {
   using W = typename Weights::weight_type;
   using edge = std::pair<uintE, W>;
 
+  struct neighbor_entry {
+    using key_t = uintE;  // neighbor_id
+    using val_t = W;      // weight
+    using aug_t = W;      // aggregated weight
+    static inline bool comp(key_t a, key_t b) { return a < b; }
+    static aug_t get_empty() { return Weights::id(); }  // check
+    static aug_t from_entry(key_t k, val_t v) { return v; }  // v
+    static aug_t combine(aug_t a, aug_t b) { return Weights::combine(a, b); }  // max
+  };
+
+  using neighbor_map = aug_map<neighbor_entry>;
+
   struct clustered_vertex {
-    uintE staleness;  // tracks the last cluster update size
 
-    // An augmented map storing our neighbors. The augmented map stores our
-    // neighbors, with an augmented value of the *weight*, using
-    aug_map<entry> neighbors;
+    clustered_vertex() : staleness(0) {}
 
-    // if |ordered_edges| > 2*|neighbors|, clear and reinsert neighbors
-    // (amortized constant work)
-    // Todo: What did this comment mean?
-
-    // constexpr bool get_edge_priority(const edge& lhs, const edge& rhs) {
-    //   return Weights::less(lhs.second, rhs.second);
-    // };
-    // std::priority_queue<edge, std::vector<edge>, get_edge_priority> ordered_edges;
-
-    clustered_vertex(orig_vertex& vertex, const Weights& weights) {
-      cluster_size = vtx.out_degree();
+    clustered_vertex(uintE vtx_id, orig_vertex& vertex, const Weights& weights) {
+      auto cluster_size = vertex.out_degree();
       staleness = cluster_size;
 
+      auto edges = sequence<edge>::uninitialized(cluster_size);
+
+      size_t i = 0;
       auto map_f = [&] (const uintE& u, const uintE& v, const IW& wgh) {
         W true_weight = weights.get_weight(u, v, wgh);
-        neighbors.insert({v, true_weight});
-
-        ordered_edges.insert({v, true_weight});
+        edges[i++] = std::make_pair(v, true_weight);
+        if (vtx_id == 0) {
+          std::cout << "ngh = " << v << " " << true_weight << std::endl;
+        }
       };
       vertex.out_neighbors().map(map_f, /* parallel = */false);
+
+      neighbors = neighbor_map(edges);
+      if (vtx_id == 0) {
+        std::cout << "aug_val = " << neighbors.aug_val() << std::endl;
+      }
+    }
+
+    std::optional<edge> highest_priority_edge() {
+      if (size() == 0) return {};
+      W m = neighbors.aug_val();
+      auto f = [m](W v) { return v < m; };
+      auto entry = *neighbors.aug_select(f);
+      assert(entry.second == m);
+      return entry;
     }
 
     uintE size() {
       return neighbors.size();
     }
 
+    // Tracks the last cluster update size.
+    uintE staleness;
+    // An augmented map storing our neighbors + weights.
+    neighbor_map neighbors;
   };
 
   Graph& G;
+  Weights& weights;
   size_t n;
 
-  parlay::sequence<uintE> components;
+  // parlay::sequence<uintE> components;  // necessary?
   parlay::sequence<clustered_vertex> clusters;
 
   // union : (clustered_vertex* vtx_1, clustered_vertex* vtx_2)
@@ -89,6 +111,22 @@ struct clustered_graph {
   //
   // }
 
+  clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
+    n = G.n;
+    clusters = parlay::sequence<clustered_vertex>(n);
+
+    parallel_for(0, n, [&] (size_t i) {
+      auto orig = G.get_vertex(i);
+      clusters[i] = clustered_vertex(i, orig, weights);
+    });
+    std::cout << "Built all vertices" << std::endl;
+    for (size_t i=0; i<=100; i++) {
+      std::cout << clusters[i].size() << " " << G.get_vertex(i).out_degree() << std::endl;
+    }
+    parallel_for(0, n, [&] (size_t i) {
+      assert(clusters[i].size() == G.get_vertex(i).out_degree());
+    });
+  }
 
   // extract dendrogram
 

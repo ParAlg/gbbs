@@ -5,13 +5,13 @@ include $(ROOTDIR)makefile.variables
 
 ALL= HAC
 
-OTHER_OBJS = \
-  $(wildcard $(ROOTDIR)bin/benchmarks/Connectivity/*.o)
-OTHER = \
-  connectivity_objs
+#OTHER_OBJS = \
+#  $(wildcard $(ROOTDIR)bin/benchmarks/Connectivity/*.o)
+#OTHER = \
+#  connectivity_objs
 
-# For `benchmarks/Connectivity/UnionFind` dependency
-connectivity_objs:
-	make -C $(ROOTDIR)benchmarks/Connectivity/
+## For `benchmarks/Connectivity/UnionFind` dependency
+#connectivity_objs:
+#	make -C $(ROOTDIR)benchmarks/Connectivity/
 
 include $(ROOTDIR)benchmarks/makefile.benchmarks
