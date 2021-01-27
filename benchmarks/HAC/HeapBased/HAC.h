@@ -34,47 +34,50 @@ namespace greedy_exact {
 template <class ClusterGraph>
 void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
   assert(chain.size() > 0);
+
   while (chain.size() > 0) {
-    uintE T = chain.top();
-    assert(on_stack[T]);
-    auto edge_opt = CG.clusters[T].highest_priority_edge();
+    uintE top = chain.top();
+    assert(on_stack[top]);
+
+    auto edge_opt = CG.clusters[top].highest_priority_edge();
     assert(edge_opt.has_value());  // Must have at least one edge incident to it.
 
-    auto D = std::get<0>(*edge_opt);
-    auto top_weight = std::get<1>(*edge_opt);
+    auto nn = std::get<0>(*edge_opt);
+    auto top_weight __attribute__((unused)) = std::get<1>(*edge_opt);
 
-    // std::cout << "T is currently = " << T << " nearest neighbor is D = " << D << std::endl;
-    if (on_stack[D]) {
+    debug(std::cout << "top is currently = " << top
+          << " nearest neighbor is nn = " << nn << std::endl;);
+    if (on_stack[nn]) {
       // Found a reciprocal nearest neighbor.
+      assert(chain.size() > 1);  // nn is definitely on the stack.
       chain.pop();  // Remove top.
-      assert(chain.size() > 0);
-      uintE D_check = chain.top();
+      uintE r_nn = chain.top();  // Get our reciprocal nearest neighbor.
 
-      if (D_check != D) {
-//        std::cout << "Printing chain" << std::endl;
-        // std::cout << "D switched to: " << D_check << std::endl;
-        auto weight_opt = CG.clusters[T].neighbors.find(D_check);
-        // std::cout << "T's nghs has for D_check...: " << weight_opt.has_value() << " with weight = " << (*weight_opt) << std::endl;
-        // std::cout << "Top weight = " << std::get<1>(*edge_opt) << std::endl;
-
-        D = D_check;
-        // Multiple equal weight edges = back-edge further back in the chain.
+      // Multiple equal weight edges that go further back in the chain. It must
+      // be the case that there is an equal weight edge to the previous
+      // neighbor (r_nn), so assert this as a sanity check, and set nn to r_nn.
+      if (r_nn != nn) {
+        auto weight_opt __attribute__((unused)) = CG.clusters[top].neighbors.find(r_nn);
+        nn = r_nn;
         assert(top_weight == *weight_opt);
       }
-      // assert(D_check == D);  // Check reciprocal.
-      chain.pop();  // remove D.
+      chain.pop();  // remove nn.
 
-      // std::cout << "Found reciprocal edge between T " << T << " and D " << D << std::endl;
-      uintE merged_id = CG.unite(T, D);
-      // std::cout << "Done unite. Merged into " << merged_id << std::endl;
+      // Merge clusters top and nn.
+      uintE merged_id __attribute__((unused)) = CG.unite(top, nn);
+
+      debug(std::cout << "Found reciprocal edge between top "
+                      << top << " and nn " << nn << std::endl;
+      std::cout << "Done unite. Merged into " << merged_id << std::endl;);
+
       // Remove merged_id from on_stack.
-      assert(merged_id == D || merged_id == T);
-      on_stack[D] = false;
-      on_stack[T] = false;
+      assert(merged_id == nn || merged_id == top);
+      on_stack[top] = false;
+      on_stack[nn] = false;
     } else {
-      // D not already in chain. Push onto chain.
-      chain.push(D);
-      on_stack[D] = true;
+      // nn not yet in chain. Push onto chain.
+      chain.push(nn);
+      on_stack[nn] = true;
     }
   }
 }
