@@ -26,9 +26,11 @@
 #include <stack>
 #include <unordered_set>
 #include <vector>
+#include <stdlib.h>
 
 #include "gbbs/gbbs.h"
 #include "gbbs/dynamic_graph_io.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 namespace gbbs {
 
@@ -338,7 +340,7 @@ struct LDS {
       invs_ok &= upper_ok;
       invs_ok &= lower_ok;
     }
-    std::cout << "invs ok is: " << invs_ok << std::endl;
+    //std::cout << "invs ok is: " << invs_ok << std::endl;
   }
 
   uintE max_coreness() {
@@ -346,6 +348,14 @@ struct LDS {
     uintE max_level = pbbslib::reduce_max(levels);
     uintE max_group = group_for_level(max_level);
     return group_degree(max_group);
+  }
+
+  uintE core(uintE v) {
+    auto l = L[v].level;
+    uintE group = group_for_level(l);
+    // If l is not the highest level in the group, we drop to the previous group
+    if (l % levels_per_group != levels_per_group - 1) group--;
+    return group_degree(group);
   }
 
   inline uintE group_for_level(uintE level) const {
@@ -395,24 +405,53 @@ inline void RunLDS(Graph& G, LDS& layers) {
 }
 
 template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, LDS& layers) {
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool compare_exact, LDS& layers) {
   auto batch = batch_edge_list.edges;
   for (size_t i = 0; i < batch.size(); i += batch_size) {
+    timer t; t.start();
     for (size_t j = i; j < std::min(batch.size(), i + batch_size); j++) {
       if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
       else layers.delete_edge({batch[j].from, batch[j].to});
     }
     layers.check_invariants();
-    std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
+    double tt = t.stop();
+    std::cout << "### Batch Running Time: " << tt << std::endl;
+    std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
+    if (compare_exact) {
+      auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(), i + batch_size));
+      // Run kcore on graph
+      auto cores = KCore(graph, 16);
+
+      auto max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+      std::cout << "### Coreness Exact: " << max_core << std::endl;
+
+      // Compare cores[v] to layers.core(v)
+      auto approximation_error = parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float {
+        auto exact_core = j >= graph.n ? 0 : cores[j];
+        auto approx_core = layers.core(j);
+        if (exact_core == 0) {
+          if (approx_core != exact_core) return 1;
+          return 0;
+        }
+        return (float) abs(static_cast<int>(exact_core - approx_core)) / (float) exact_core;
+      });
+      // Output min, max, and average error
+      float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
+      float max_error = parlay::reduce(approximation_error, parlay::maxm<float>());
+      float min_error = parlay::reduce(approximation_error, parlay::minm<float>());
+      std::cout << "### Per Vertex Average Coreness Error: " << sum_error / (float) batch_edge_list.max_vertex << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
+    }
   }
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, int batch_size) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, int batch_size, bool compare_exact) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex);
   if (G.n > 0) RunLDS(G, layers);
-  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, layers);
+  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
 }
 
 }  // namespace gbbs

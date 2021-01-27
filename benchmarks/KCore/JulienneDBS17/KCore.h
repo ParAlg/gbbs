@@ -30,6 +30,8 @@ namespace gbbs {
 
 template <class Graph>
 inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
+  if (G.n == 0) return sequence<uintE>();
+  if (G.m == 0) return sequence<uintE>(G.n, 0);
   const size_t n = G.n;
   auto D = sequence<uintE>::from_function(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 

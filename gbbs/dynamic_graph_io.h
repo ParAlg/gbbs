@@ -136,6 +136,71 @@ BatchDynamicEdges<weight_type> read_batch_dynamic_edge_list(const char* filename
   return BatchDynamicEdges<weight_type>{std::move(edge_list), max_vertex};
 }
 
+template <class A>
+parlay::sequence<A> GetBoundaryIndices(
+    std::size_t num_keys,
+    const std::function<bool(std::size_t, std::size_t)>& key_eq_func) {
+  parlay::sequence<A> mark_keys(num_keys + 1);
+  auto null_key = std::numeric_limits<A>::max();
+  parallel_for(0, num_keys, [&](std::size_t i) {
+    if (i != 0 && key_eq_func(i, i - 1))
+      mark_keys[i] = null_key;
+    else
+      mark_keys[i] = i;
+  });
+  mark_keys[num_keys] = num_keys; 
+  return filter(mark_keys, [&null_key](A x) -> bool { return x != null_key; });
+}
+
+template <class weight_type>
+std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size) {
+  // For every delete, find the closest insert (to the left) that matches it and remove
+  // One way to do this would be to sort the edges with their index, and do a binary search for each delete;
+  // invalidate those, and then filter
+  using D = DynamicEdge<weight_type>;
+  using E = gbbs_io::Edge<weight_type>;
+  auto dynamic_edges_seq = parlay::delayed_seq<D>(dynamic_edges_size, [&](size_t i){ return dynamic_edges.edges[i]; });
+  //auto flag_seq = parlay::delayed_seq<bool>(dynamic_edges.edges.size(), [&](size_t i){ return !dynamic_edges.edges[i].insert; });
+  // Order all inserts before all deletes
+  //auto split_dynamic_edges = parlay::internal::split_two(dynamic_edges_seq, flag_seq);
+  // Sort with all insertions placed before deletions
+  auto sorted_dynamic_edges = parlay::internal::sample_sort(parlay::make_slice(dynamic_edges_seq), 
+    [](const D& a, const D& b){
+        return (a.from < b.from) || (a.from == b.from && a.to < b.to) || (a.from == b.from && a.to == b.to && a.insert < b.insert);
+      }, true);
+  
+  auto filtered_mark_ids = GetBoundaryIndices<uintE>(
+    sorted_dynamic_edges.size(), [&](std::size_t i, std::size_t j) {
+      return sorted_dynamic_edges[i].from == sorted_dynamic_edges[j].from && sorted_dynamic_edges[i].to == sorted_dynamic_edges[j].to;
+    });
+  auto num_filtered_mark_ids = filtered_mark_ids.size() - 1;
+
+  parlay::sequence<E> edges = parlay::sequence<E>(num_filtered_mark_ids, E{UINT_E_MAX, UINT_E_MAX});
+  parallel_for(0, num_filtered_mark_ids, [&](size_t i){
+    auto start_id_index = filtered_mark_ids[i];
+    auto end_id_index = filtered_mark_ids[i + 1];
+    // If the difference is odd, one edge exists
+    if ((end_id_index - start_id_index) % 2 != 0) {
+      auto edge = sorted_dynamic_edges[start_id_index];
+      edges[i] = E{edge.from, edge.to, edge.weight};
+    }
+  });
+  
+  // We must do a filter out
+  std::vector<E> filtered_edges(num_filtered_mark_ids);
+  size_t filtered_edges_size = parlay::internal::filter_out(parlay::make_slice(edges), parlay::make_slice(filtered_edges),
+    [&](E e) -> bool { return e.from != UINT_E_MAX || e.to != UINT_E_MAX; });
+  filtered_edges.resize(filtered_edges_size);
+  return filtered_edges;
+}
+
+template <class weight_type>
+symmetric_graph<symmetric_vertex, weight_type> dynamic_edge_list_to_symmetric_graph(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size) {
+  auto edge_list = dynamic_edge_list_to_edge_list(dynamic_edges, dynamic_edges_size);
+  return gbbs_io::edge_list_to_symmetric_graph(edge_list);
+}
+
 // something that will read dynamic edge list, and write to graph form (output)
+
 
 }  // namespace gbbs
