@@ -21,40 +21,77 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "LDS.h"
+// Usage:
+// numactl -i all ./HAC -s -m -rounds 3 twitter_wgh_SJ
+// flags:
+//   optional:
+//     -rounds : the number of times to run the algorithm
+//     -c : indicate that the graph is compressed
+//     -m : indicate that the graph should be mmap'd
+//     -s : indicate that the graph is symmetric
+
+#include "HAC.h"
 
 namespace gbbs {
+
+template <class W>
+W min_linkage(W w1, W w2) {
+  return std::min(w1, w2);
+}
+
+template <class W>
+W max_linkage(W w1, W w2) {
+  return std::max(w1, w2);
+}
+
+template <class W>
+W weighted_avg_linkage(W w1, W w2) {
+  return (w1 + w2) / static_cast<W>(2);
+}
+
 template <class Graph>
-double LDS_runner(Graph& G, commandLine P) {
-  std::cout << "### Application: LDS" << std::endl;
+struct EmptyToFloatW {
+  using weight_type = float;
+  using underlying_weight_type = pbbs::empty;
+  Graph& G;
+
+  EmptyToFloatW(Graph& G) : G(G) {}
+
+  static weight_type id() {
+    return (float)0;
+  }
+
+  static constexpr bool less(const weight_type& lhs, const weight_type& rhs) {
+    return lhs < rhs;
+  }
+
+  weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) {
+    auto v_u = G.get_vertex(u);
+    auto v_v = G.get_vertex(v);
+    return 1 + pbbs::log2_up(v_u.out_degree() + v_v.out_degree());  // [1, log(max_deg))
+  }
+};
+
+template <class Graph>
+double HAC_runner(Graph& G, commandLine P) {
+  std::cout << "### Application: HAC" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;
   std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: " <<  std::endl;
+  std::cout << "### Params: " << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
-  assert(P.getOption("-s"));
-
-  const std::string kInputFlag{"-i"};
-  const char* const input_file{P.getOptionValue(kInputFlag)};
-  int batch_size = P.getOptionIntValue("-b", 1);
-
-  using W = typename Graph::weight_type;
-
-  BatchDynamicEdges<W> batch_edge_list = (input_file && input_file[0]) ? 
-    read_batch_dynamic_edge_list<W>(input_file) : 
-    BatchDynamicEdges<W>{};
 
   timer t; t.start();
-
-  RunLDS(G, batch_edge_list, batch_size);
-//  auto cores = (fa) ? LDS_FA(G, num_buckets) : LDS(G, num_buckets);
+  auto W = EmptyToFloatW<Graph>(G);
+  auto ml = [] (float w1, float w2) { return std::min(w1, w2); };
+  greedy_exact::HAC(G, W, ml);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
-
   return tt;
 }
+
 }  // namespace gbbs
 
-generate_symmetric_main(gbbs::LDS_runner, false);
+generate_symmetric_main(gbbs::HAC_runner, false);
