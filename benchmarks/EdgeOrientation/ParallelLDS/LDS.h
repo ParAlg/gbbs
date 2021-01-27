@@ -722,7 +722,7 @@ struct LDS {
 
     }, 1);
 
-    // New edges are done being inserted. Update the level structure.
+    // New edges are done being deleted. Update the level structure.
     // Interface: supply vertex seq -> process will settle everything.
 
     using dirty_elts = sparse_set<uintE>;
@@ -818,6 +818,7 @@ struct LDS {
     sequence<dirty_elts> levels;
 
     // Place the affected vertices into levels based on their current level.
+    // QQ: note start from here. Currently the code compiles.
     update_levels(std::move(affected), levels);
 
     // Update the level structure (basically a sparse bucketing structure).
