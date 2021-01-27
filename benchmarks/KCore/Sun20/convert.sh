@@ -1,0 +1,2 @@
+sudo ./KCore -s -rounds 1 -o /ssd1/graphs/edge_orientation_exps/twitter_edges /ssd1/graphs/bench_experiments/twitter_sym.adj
+sudo ./KCore -s -rounds 1 -o /ssd1/graphs/edge_orientation_exps/orkut_edges /ssd1/graphs/bench_experiments/com-orkut.ungraph.adj
