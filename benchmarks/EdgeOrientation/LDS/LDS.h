@@ -429,19 +429,30 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
       auto approximation_error = parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float {
         auto exact_core = j >= graph.n ? 0 : cores[j];
         auto approx_core = layers.core(j);
-        if (exact_core == 0) {
-          if (approx_core != exact_core) return 1;
+        if (exact_core == 0 || approx_core == 0) {
+          //if (approx_core != exact_core) return 1;
           return 0;
         }
-        return (float) abs(static_cast<int>(exact_core - approx_core)) / (float) exact_core;
+        return (exact_core > approx_core) ? (float) exact_core / (float) approx_core : (float) approx_core / (float) exact_core;
+        //return (float) abs(static_cast<int>(exact_core - approx_core)) / (float) exact_core;
       });
       // Output min, max, and average error
       float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
       float max_error = parlay::reduce(approximation_error, parlay::maxm<float>());
-      float min_error = parlay::reduce(approximation_error, parlay::minm<float>());
-      std::cout << "### Per Vertex Average Coreness Error: " << sum_error / (float) batch_edge_list.max_vertex << std::endl; fflush(stdout);
-      std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
-      std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
+      float min_error = parlay::reduce(approximation_error, parlay::make_monoid([](float l, float r){
+        if (l == 0) return r;
+        if (r == 0) return l;
+        return std::min(r, l);
+      }, (float) 0));
+      float denominator = parlay::reduce(parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float{
+        auto exact_core = j >= graph.n ? 0 : cores[j];
+        auto approx_core = layers.core(j);
+        return (exact_core != 0) && (approx_core != 0);
+      }), parlay::addm<float>()); //(float) batch_edge_list.max_vertex
+      auto avg_error = (denominator == 0) ? 0 : sum_error / denominator;
+      std::cout << "### Per Vertex Average Coreness x Error: " << avg_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Min Coreness x Error: " << min_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Max Coreness x Error: " << max_error << std::endl; fflush(stdout);
     }
   }
 }
