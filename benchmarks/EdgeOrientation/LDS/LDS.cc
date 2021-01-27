@@ -37,17 +37,17 @@ double LDS_runner(Graph& G, commandLine P) {
 
   const std::string kInputFlag{"-i"};
   const char* const input_file{P.getOptionValue(kInputFlag)};
-  bool is_ordered{P.getOption("-o")};
+  int batch_size = P.getOptionIntValue("-b", 1);
 
   using W = typename Graph::weight_type;
 
   BatchDynamicEdges<W> batch_edge_list = (input_file && input_file[0]) ? 
-    read_batch_dynamic_edge_list<W>(input_file, is_ordered) : 
+    read_batch_dynamic_edge_list<W>(input_file) : 
     BatchDynamicEdges<W>{};
 
   timer t; t.start();
 
-  RunLDS(G, batch_edge_list);
+  RunLDS(G, batch_edge_list, batch_size);
 //  auto cores = (fa) ? LDS_FA(G, num_buckets) : LDS(G, num_buckets);
   double tt = t.stop();
 

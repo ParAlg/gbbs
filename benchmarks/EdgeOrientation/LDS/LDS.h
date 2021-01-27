@@ -395,24 +395,24 @@ inline void RunLDS(Graph& G, LDS& layers) {
 }
 
 template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, LDS& layers) {
-  for (std::size_t i = 0; i < batch_edge_list.edges.size(); i++) {
-    auto batch = batch_edge_list.edges[i];
-    parallel_for(0, batch.size(), [&](std::size_t j) {
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, LDS& layers) {
+  auto batch = batch_edge_list.edges;
+  for (size_t i = 0; i < batch.size(); i += batch_size) {
+    for (size_t j = i; j < std::min(batch.size(), i + batch_size); j++) {
       if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
       else layers.delete_edge({batch[j].from, batch[j].to});
-    });
+    }
     layers.check_invariants();
     std::cout << "Coreness estimate = " << layers.max_coreness() << std::endl;
   }
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, int batch_size) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex);
   if (G.n > 0) RunLDS(G, layers);
-  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, layers);
+  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, layers);
 }
 
 }  // namespace gbbs
