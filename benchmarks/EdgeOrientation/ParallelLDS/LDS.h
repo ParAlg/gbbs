@@ -50,11 +50,12 @@ struct LDS {
 
   struct LDSVertex {
     uintE level;         // The level of this vertex.
+    uintE prev_level;    // The previous level of this vertex before a move. This is used in rebalance_deletions.
     uintE desire_level;  // The desire level of this vertex (set only when moving this vertex).
     down_neighbors down; // The neighbors in levels < level, bucketed by their level.
     up_neighbors up;     // The neighbors in levels >= level.
 
-    LDSVertex() : level(0), desire_level(kNotMoving) {}
+    LDSVertex() : level(0), prev_level(0), desire_level(kNotMoving) {}
 
     // Used when Invariant 1 (upper invariant) is violated.
     template <class Levels>
@@ -171,9 +172,23 @@ struct LDS {
       return up.num_elms() + down[level - 1].num_elms();
     }
 
+    // Get the sum of the number of neighbors at or higher than start_level
+    //
+    // TODO: this can be optimized by making the summation parallel, currently
+    // it is sequential.
+    inline uintE num_neighbors_higher_than_level(uintE start_level) {
+        uintE num_flipped_neighbors = 0;
+        if (start_level < level) {
+            while (start_level < level) {
+                num_flipped_neighbors += down[start_level].num_elms();
+            }
+        }
+        return num_flipped_neighbors + up.num_elms();
+    }
+
     template <class OutputSeq>
     inline uintE emit_up_neighbors(OutputSeq output, uintE our_id) const {
-      // Could filter using filter, but let's do this seq. for now...
+      // TODO: Could filter using filter, but let's do this seq. for now...
       size_t off = 0;
       for (size_t i=0; i<up.table_seq.size(); i++) {
         uintE v = up.table[i];
@@ -182,6 +197,27 @@ struct LDS {
       }
       return off;
     }
+
+    template <class OutputSeq>
+    inline uintE emit_neighbors_higher_than_level(OutputSeq output, uintE our_id, uintE start_level) const {
+      // TODO: Could filter using filter, but let's do this seq. for now...
+      size_t off = 0;
+      for (size_t j = start_level; j < level; j++) {
+        for (size_t i=0; i < down[j].table_seq.size(); i++) {
+            uintE v = down[j].table[i];
+            if (levelset::valid(v))
+                output[off++] = std::make_pair(v, our_id);
+        }
+      }
+
+      for (size_t i = 0; i < up.table_seq.size(); i++) {
+        uintE v = up.table[i];
+        if (levelset::valid(v))
+            output[off++] = std::make_pair(v, our_id);
+      }
+      return off;
+    }
+
 
     template <class Levels>
     inline void filter_up_neighbors(uintE vtx_id, Levels& L) {
@@ -651,6 +687,69 @@ struct LDS {
     return rebalance_insertions(levels, cur_level_id + 1, total_moved);
   }
 
+  // Used to balance the level data structure for deletions
+  // Returns the total number of moved vertices
+  template <class Levels>
+  size_t rebalance_deletions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
+      if (cur_level_id >= levels.size())
+          return total_moved;
+
+      // Get vertices that have desire level equal to the current desire level
+      //
+      // TODO: need to optimize, this is not optimized
+      auto nodes_to_move = gbbs::sparse_set<uintE>();
+
+      // For deletion, we need to figure out all vertices that want to move to
+      // the current level.
+      //
+      // TODO: this is probably inefficient. We probably need to optimize this
+      // further. Right now it just figures out the desire level brute-force for
+      // every dirty vertex.
+      parallel_for(0, levels.size(), [&] (size_t i) {
+        parallel_for(0, levels[i].size(), [&] (size_t j) {
+            uintE v = levels[i].table[j];
+            uintE desire_level = UINT_E_MAX;
+
+            if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
+                assert(L[v].upper_invariant(levels_per_group));
+                assert(!L[v].lower_invariant(levels_per_group));
+
+                desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group);
+                L[v].desire_level = desire_level;
+
+                assert(L[v].level = i);
+                assert(desire_level < i);
+
+                if (desire_level == cur_level_id)
+                    nodes_to_move.insert(v);
+            }
+        });
+      });
+
+      // Turn nodes_to_move into a sequence
+      auto nodes_to_move_seq = nodes_to_move.entries();
+
+      // Compute the number of neighbors we affect
+      auto degrees = parlay::map(parlay::make_slice(nodes_to_move_seq), [&] (auto v) {
+          auto desire_level = L[v].desire_level;
+          assert(desire_level < L[v].level);
+          return L[v].num_neighbors_higher_than_level(desire_level + 1);
+      });
+      size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
+
+      // Write the affected neighbors into an array of (affected_neighbor,
+      // moved_id) edge pairs.
+      auto flipped = sequence<edge_type>::uninitialized(sum_degrees);
+      parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
+        uintE v = nodes_to_move_seq[i];
+        size_t offset = degrees[i];
+        size_t end_offset = ((i == nodes_to_move_seq.size() - 1) ? sum_degrees : degrees[i + 1]);
+
+        auto output = flipped.cut(offset, end_offset);
+        size_t written = L[v].emit_neighbors_higher_than_level(output, v, L[v].desire_level + 1);
+        assert(written == (end_offset - offset));
+      });
+  }
 
   template <class Seq>
   void batch_insertion(const Seq& insertions_unfiltered) {
@@ -806,7 +905,7 @@ struct LDS {
       // Sort neighbors by level.
       parlay::sort_inplace(neighbors);
 
-      // Insert moving neighbors.
+      // Delete moving neighbors.
       delete_neighbors(vtx, neighbors);
 
     }, 1);
@@ -815,14 +914,19 @@ struct LDS {
     // Interface: supply vertex seq -> process will settle everything.
 
     using dirty_elts = sparse_set<uintE>;
+
+    // Maintains the dirty vertices by their level
     sequence<dirty_elts> levels;
 
     // Place the affected vertices into levels based on their current level.
-    // QQ: note start from here. Currently the code compiles.
+    // For deletion, need to move only vertices that are going to the lowest
+    // level and then re-update the dirty vertices and repeat.
+    // First, start by finding all the dirty vertices via the below method that
+    // are adjacent to an edge deletion.
     update_levels(std::move(affected), levels);
 
     // Update the level structure (basically a sparse bucketing structure).
-    // size_t total_moved = rebalance_insertions(std::move(levels), 0);
+    size_t total_moved = rebalance_deletions(std::move(levels), 0);
 
     // std::cout << "During insertions, " << total_moved << " vertices moved." << std::endl;
   }
