@@ -23,12 +23,55 @@
 #pragma once
 
 #include <queue>
+#include <stack>
 #include <vector>
 #include "clustered_graph.h"
 #include "gbbs/gbbs.h"
 
 namespace gbbs {
 namespace greedy_exact {
+
+template <class ClusterGraph>
+void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
+  assert(chain.size() > 0);
+  while (chain.size() > 0) {
+    uintE T = chain.top();
+    assert(on_stack[T]);
+    auto edge_opt = CG.clusters[T].highest_priority_edge();
+    assert(edge_opt.has_value());  // Must have at least one edge incident to it.
+
+    auto D = std::get<0>(*edge_opt);
+    std::cout << "T is currently = " << T << " nearest neighbor is D = " << D << std::endl;
+    if (on_stack[D]) {
+      // Found a reciprocal nearest neighbor.
+      chain.pop();  // Remove top.
+      assert(chain.size() > 0);
+      uintE D_check = chain.top();
+      if (D_check != D) {
+        std::cout << "Printing chain" << std::endl;
+        while (chain.size() > 0) {
+          auto X = chain.top();
+          chain.pop();
+          std::cout << X << std::endl;
+        }
+      }
+      assert(D_check == D);  // Check reciprocal.
+      chain.pop();  // remove D.
+
+      std::cout << "Found reciprocal edge between T " << T << " and D " << D << std::endl;
+      uintE merged_id = CG.unite(T, D);
+      std::cout << "Done unite. Merged into " << merged_id << std::endl;
+      // Remove merged_id from on_stack.
+      assert(merged_id == D || merged_id == T);
+      on_stack[D] = false;
+      on_stack[T] = false;
+    } else {
+      // D not already in chain. Push onto chain.
+      chain.push(D);
+      on_stack[D] = true;
+    }
+  }
+}
 
 template <class Weights,
           // provides get_weight : () -> Weights::weight_type which is the
@@ -69,10 +112,27 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
     if (edge_option.has_value()) {
       min_neighbors[i] = edge_option.value();
     }
+  });
+
+  sequence<bool> on_stack(n, false);
+
+  std::cout << "Starting clustering" << std::endl;
+  std::stack<uintE> chain;
+  for (size_t v = 0; v < n; v++) {
+    // Cluster with non-zero number of outgoing edges.
+    if (CG.is_active(v) && CG.clusters[v].size() > 0) {
+      std::cout << "Starting new chain from v = " << v << std::endl;
+      chain.push(v);
+      assert(!on_stack[v]);
+      on_stack[v] = true;
+      run_chain(CG, chain, on_stack.begin());
+    }
   }
+  std::cout << "Finished clustering" << std::endl;
+
 
 //  // Insert the min-weight edges computed in the previous step into the PQ.
-//  timer pusht;
+//  gbbs::timer pusht;
 //  pusht.start();
 //  for (size_t i = 0; i < n; i++) {
 //    if (std::get<0>(min_neighbors[i]) != UINT_E_MAX) {
@@ -83,14 +143,13 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
 //  pusht.stop();
 //  pusht.reportTotal("push time");
 //  std::cout << "pq_size = " << pq.size() << std::endl;
-//
+
 //  size_t clusters_remaining = pq.size();
-//  timer get_t;
-//  timer unite_t;
+//  gbbs::timer get_t;
+//  gbbs::timer unite_t;
 //  while (clusters_remaining > 0 && pq.size() > 0) {
 //    auto [u, v, wgh] = pq.top();
 //    pq.pop();
-//
 //    // std::cout << "popped u = " << u << " v = " << v << " wgh = " << wgh << " from pq." << std::endl;
 //
 //    // Check if either u or v is already clustered.
@@ -101,21 +160,19 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
 //    // std::cout << "uniting u = " << u << " and v = " << v << std::endl;
 //    // Otherwise, merge u and v into the same cluster.
 //    unite_t.start();
-//    cluster_id uv = CG.unite_clusters(u, v, wgh, linkage);
+//    uintE uv = CG.unite_clusters(u, v, wgh, linkage);
 //    unite_t.stop();
 //
 //    // Extract the min-weight edge from the new cluster.
-//    auto uv_c = CG.get_cluster(uv);
-//    auto edge_option = uv_c.minWeightEdge();
+//    auto edge_option = CG.clusters[uv].highest_priority_edge();
 //    if (edge_option.has_value()) {
 //      auto [ngh, wgh] = edge_option.value();
 //      pq.push({uv, ngh, wgh});
 //    }
 //  }
+//
 //  get_t.reportTotal("get time");
 //  unite_t.reportTotal("unite_clusters time");
-//
-//  gbbs::clustering::union_t.reportTotal("total union time");
 }
 
 }  // namespace greedy_exact

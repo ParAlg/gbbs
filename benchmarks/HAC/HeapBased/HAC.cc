@@ -51,18 +51,27 @@ W weighted_avg_linkage(W w1, W w2) {
 
 template <class Graph>
 struct EmptyToFloatW {
-  using weight_type = float;
+  using weight_type = uintE;
   using underlying_weight_type = gbbs::empty;
   Graph& G;
+
+  static constexpr bool similarity_clustering = false;
+  // Used to specify whether we are doing similarity of dissimilarity
+  // clustering. Similarity means taking max (heavier weights are more similar)
+  // and dissimilarity means taking min (smaller edges are "closer")
+  static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
+    return std::min(lhs, rhs);   // similarity
+  }
 
   EmptyToFloatW(Graph& G) : G(G) {}
 
   static weight_type id() {
-    return (float)0;
+    return std::numeric_limits<weight_type>::max();
   }
 
-  static weight_type combine(const weight_type& lhs, const weight_type& rhs) {
-    return std::max(lhs, rhs);
+  // The linkage function.
+  static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
+    return std::min(lhs, rhs);
   }
 
   static constexpr bool less(const weight_type& lhs, const weight_type& rhs) {
@@ -85,6 +94,15 @@ double HAC_runner(Graph& G, commandLine P) {
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: " << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
+
+  // using W = typename Graph::weight_type;
+  // auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+  //   std::cout << u << " " << v << std::endl;
+  // };
+  // G.get_vertex(0).out_neighbors().map(map_f, false);
+
+  // std::cout << "1 edges" << std::endl;
+  // G.get_vertex(1).out_neighbors().map(map_f, false);
 
   timer t; t.start();
   auto W = EmptyToFloatW<Graph>(G);
