@@ -138,50 +138,6 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
     }
   }
   std::cout << "Finished clustering" << std::endl;
-
-
-//  // Insert the min-weight edges computed in the previous step into the PQ.
-//  gbbs::timer pusht;
-//  pusht.start();
-//  for (size_t i = 0; i < n; i++) {
-//    if (std::get<0>(min_neighbors[i]) != UINT_E_MAX) {
-//      auto[v, wgh] = min_neighbors[i];
-//      pq.push({i, v, wgh});
-//    }
-//  }
-//  pusht.stop();
-//  pusht.reportTotal("push time");
-//  std::cout << "pq_size = " << pq.size() << std::endl;
-
-//  size_t clusters_remaining = pq.size();
-//  gbbs::timer get_t;
-//  gbbs::timer unite_t;
-//  while (clusters_remaining > 0 && pq.size() > 0) {
-//    auto [u, v, wgh] = pq.top();
-//    pq.pop();
-//    // std::cout << "popped u = " << u << " v = " << v << " wgh = " << wgh << " from pq." << std::endl;
-//
-//    // Check if either u or v is already clustered.
-//    if (CG.is_clustered(u) || CG.is_clustered(v)) {
-//      continue;  // Edge is no longer valid; continue.
-//    }
-//
-//    // std::cout << "uniting u = " << u << " and v = " << v << std::endl;
-//    // Otherwise, merge u and v into the same cluster.
-//    unite_t.start();
-//    uintE uv = CG.unite_clusters(u, v, wgh, linkage);
-//    unite_t.stop();
-//
-//    // Extract the min-weight edge from the new cluster.
-//    auto edge_option = CG.clusters[uv].highest_priority_edge();
-//    if (edge_option.has_value()) {
-//      auto [ngh, wgh] = edge_option.value();
-//      pq.push({uv, ngh, wgh});
-//    }
-//  }
-//
-//  get_t.reportTotal("get time");
-//  unite_t.reportTotal("unite_clusters time");
 }
 
 }  // namespace greedy_exact
