@@ -413,6 +413,40 @@ struct LDS {
     });
   }
 
+  // Resize the tables
+  // Can probably be optimized more
+  template <class Neighbors>
+  void delete_neighbors(uintE vtx, Neighbors neighbors) {
+       // Delete neighbors from the adjacency list structures in parallel
+       parallel_for(0, neighbors.size(), [&] (size_t i){
+          auto [level_id, v] = neighbors[i];
+          if (level_id != kUpLevel) {
+              bool deleted = L[vtx].down[level_id].remove(v);
+              assert(deleted);
+          } else {
+              bool deleted = L[vtx].up.remove(v);
+              assert(deleted);
+          }
+      });
+
+      parallel_for(0, neighbors.size(), [&] (size_t i){
+        if ((i == 0) || neighbors[i].first != neighbors[i-1].first) { // start of a new level
+            uintE level_id = neighbors[i].first;
+            size_t j = i;
+            for (; j < neighbors.size(); j++) {
+                if (neighbors[j].first != level_id) break;
+            }
+            size_t num_deleted = j - i;
+            if (level_id != kUpLevel) {
+                L[vtx].down[level_id].resize_down(num_deleted);
+            } else {
+                L[vtx].up.resize_down(num_deleted);
+            }
+        }
+      });
+  }
+
+
 
   // returns the total number of moved vertices
   template <class Levels>
@@ -750,14 +784,18 @@ struct LDS {
       size_t idx = starts[i];
       uintE vtx = std::get<0>(deletions[idx]);
       uintE our_level = L[vtx].level;
-      uintE incoming_degree = starts[i+1] - starts[i];
+
+      // Number of edges deleted that are adjacent to vtx
+      uintE outgoing_degree = starts[i+1] - starts[i];
+
+      // Neighbors incident to deleted edges
       auto neighbors = parlay::make_slice(deletions.begin() + idx,
-          deletions.begin() + idx + incoming_degree);
+          deletions.begin() + idx + outgoing_degree);
 
       // std::cout << "Processing vtx = " << vtx << " idx = " << idx << " incoming_degree = " << incoming_degree << std::endl;
 
       // Map the incident edges to (level, neighbor_id).
-      parallel_for(0, incoming_degree, [&] (size_t off) {
+      parallel_for(0, outgoing_degree, [&] (size_t off) {
         auto [u, v] = neighbors[off];
         assert(vtx == u);
         uintE neighbor_level = L[v].level;
