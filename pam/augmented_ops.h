@@ -73,10 +73,20 @@ struct augmented_ops : Map {
   static node* aug_select(node* b, const Func& f) {
     if (b == NULL) return NULL;
     if (f(aug_val(b->lc))) {
-      if (f(Entry::from_entry(Map::get_entry(b))))
+      if (f(Entry::from_entry(Map::get_entry(b)))) {
 	return aug_select(b->rc, f);
+      }
       return b;
-    } return aug_select(b->lc, f);
+    }
+    return aug_select(b->lc, f);
+  }
+
+  static node* aug_eq(node* b, aug_t query) {
+    if (b == NULL) return NULL;
+    assert(aug_val(b) == query);
+    if (Entry::from_entry(Map::get_entry(b)) == query) return b;
+    else if (aug_val(b->lc) == query) return aug_eq(b->lc, query);
+    return aug_eq(b->rc, query);
   }
 
   template<class Func>
