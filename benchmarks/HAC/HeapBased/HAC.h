@@ -41,26 +41,32 @@ void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
     assert(edge_opt.has_value());  // Must have at least one edge incident to it.
 
     auto D = std::get<0>(*edge_opt);
-    std::cout << "T is currently = " << T << " nearest neighbor is D = " << D << std::endl;
+    auto top_weight = std::get<1>(*edge_opt);
+
+    // std::cout << "T is currently = " << T << " nearest neighbor is D = " << D << std::endl;
     if (on_stack[D]) {
       // Found a reciprocal nearest neighbor.
       chain.pop();  // Remove top.
       assert(chain.size() > 0);
       uintE D_check = chain.top();
+
       if (D_check != D) {
-        std::cout << "Printing chain" << std::endl;
-        while (chain.size() > 0) {
-          auto X = chain.top();
-          chain.pop();
-          std::cout << X << std::endl;
-        }
+//        std::cout << "Printing chain" << std::endl;
+        // std::cout << "D switched to: " << D_check << std::endl;
+        auto weight_opt = CG.clusters[T].neighbors.find(D_check);
+        // std::cout << "T's nghs has for D_check...: " << weight_opt.has_value() << " with weight = " << (*weight_opt) << std::endl;
+        // std::cout << "Top weight = " << std::get<1>(*edge_opt) << std::endl;
+
+        D = D_check;
+        // Multiple equal weight edges = back-edge further back in the chain.
+        assert(top_weight == *weight_opt);
       }
-      assert(D_check == D);  // Check reciprocal.
+      // assert(D_check == D);  // Check reciprocal.
       chain.pop();  // remove D.
 
-      std::cout << "Found reciprocal edge between T " << T << " and D " << D << std::endl;
+      // std::cout << "Found reciprocal edge between T " << T << " and D " << D << std::endl;
       uintE merged_id = CG.unite(T, D);
-      std::cout << "Done unite. Merged into " << merged_id << std::endl;
+      // std::cout << "Done unite. Merged into " << merged_id << std::endl;
       // Remove merged_id from on_stack.
       assert(merged_id == D || merged_id == T);
       on_stack[D] = false;

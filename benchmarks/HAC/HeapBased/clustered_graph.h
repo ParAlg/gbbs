@@ -112,10 +112,7 @@ struct clustered_graph {
   Weights& weights;
   size_t n;
 
-  // parlay::sequence<uintE> components;  // necessary?
   parlay::sequence<clustered_vertex> clusters;
-
-  // union : (clustered_vertex* vtx_1, clustered_vertex* vtx_2)
 
   // Returns whether this cluster is still active, or whether it has been merged
   // into a _larger_ cluster.
@@ -165,7 +162,9 @@ struct clustered_graph {
     // larger. If the neighbor, w, also has an edge to larger (a
     // smaller-larger-w triangle), then update the weight of this edge.
 
-    for (size_t i=0; i<smaller_keys.size(); i++) {
+    // TODO: check if parallel_for really helps here.
+    //for (size_t i=0; i<smaller_keys.size(); i++) {
+    parallel_for(0, smaller_keys.size(), [&] (size_t i) {
       uintE w = smaller_keys[i];
       assert(clusters[w].neighbors.contains(smaller));  // Sanity.
 
@@ -180,7 +179,7 @@ struct clustered_graph {
 
       // Move the neighbors back.
       clusters[w].neighbors = std::move(w_one);
-    }
+    });
     return larger;
   }
 
@@ -194,12 +193,9 @@ struct clustered_graph {
       clusters[i] = clustered_vertex(i, orig, weights);
     });
     std::cout << "Built all vertices" << std::endl;
-    for (size_t i=0; i<=100; i++) {
-      std::cout << clusters[i].size() << " " << G.get_vertex(i).out_degree() << std::endl;
-    }
-    parallel_for(0, n, [&] (size_t i) {
-      assert(clusters[i].size() == G.get_vertex(i).out_degree());
-    });
+    // parallel_for(0, n, [&] (size_t i) {
+    //   assert(clusters[i].size() == G.get_vertex(i).out_degree());
+    // });
   }
 
   // extract dendrogram
