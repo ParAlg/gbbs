@@ -782,7 +782,19 @@ struct LDS {
             auto neighbors = parlay::make_slice(flipped.begin() + idx,
                     flipped.begin() + idx + incoming_degree);
 
-            uintE l_u = L[u].level;
+            // All vertices in neighbors are moving to level cur_level
+            // Update down[cur_level] to contain these vertices
+            assert(cur_level_id < L[u].level);
+            L[u].down[cur_level_id].resize(neighbors.size());
+            parallel_for(0, neighbors.size(), [&] (size_t n) {
+                L[u].down[cur_level_id].insert(neighbors[n].second);
+            });
+
+            // Remove the vertices that moved from their previous levels in
+            // L[u].down.
+
+        } else {
+            int i = 0;
         }
       });
 
