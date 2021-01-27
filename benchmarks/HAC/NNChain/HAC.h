@@ -116,12 +116,14 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
   //Compute the min-weight edge incident to each original vertex
   parlay::sequence<edge> min_neighbors(
       n, std::make_tuple(UINT_E_MAX, std::numeric_limits<W>::max()));
-   parallel_for(0, n, [&](size_t i) {
-    auto edge_option = CG.clusters[i].highest_priority_edge();
-    if (edge_option.has_value()) {
-      min_neighbors[i] = edge_option.value();
-    }
-  });
+   //parallel_for(0, n, [&](size_t i) {
+   for (size_t i=0; i<n; i++) {
+     auto edge_option = CG.clusters[i].highest_priority_edge();
+     if (edge_option.has_value()) {
+       min_neighbors[i] = edge_option.value();
+     }
+   }
+//  });
 
   sequence<bool> on_stack(n, false);
 

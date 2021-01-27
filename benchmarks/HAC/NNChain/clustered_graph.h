@@ -72,21 +72,26 @@ struct clustered_graph {
       vertex.out_neighbors().map(map_f, /* parallel = */false);
 
       neighbors = neighbor_map(edges);
-      if (vtx_id == 0) {
-        std::cout << "aug_val = " << neighbors.aug_val() << std::endl;
-      }
     }
 
     std::optional<edge> highest_priority_edge() {
       if (size() == 0) return {};
       W m = neighbors.aug_val();
       edge entry;
-      if constexpr (Weights::similarity_clustering) {
-        auto f_sim = [m](W v) { return v < m; };
-        entry = *neighbors.aug_select(f_sim);
-      } else { // dissimilarity clustering
-        auto f_dissim = [m](W v) { return v > m; };
-        entry = *neighbors.aug_select(f_dissim);
+      // if constexpr (Weights::similarity_clustering) {
+      //   auto f_sim = [m](W v) { return v < m; };
+      //   entry = *neighbors.aug_select(f_sim);
+      // } else { // dissimilarity clustering
+      //   auto f_dissim = [m](W v) { return v > m; };
+      //   entry = *neighbors.aug_select(f_dissim);
+      // }
+      entry = *neighbors.aug_eq(m);
+      if (entry.second != m) {
+        // auto entries = neighbor_map::entries(neighbors);
+        // std::cout << "Num entries = " << entries.size() << std::endl;
+        // for (size_t i=0; i<entries.size(); i++) {
+        //   std::cout << entries[i].first << " " << entries[i].second.bundle_size << " " << entries[i].second.total_weight << std::endl;
+        // }
       }
       assert(entry.second == m);
       return entry;

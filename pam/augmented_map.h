@@ -56,6 +56,10 @@ public:
   maybe_E aug_select(Func f) {
     return Map::node_to_entry(Tree::aug_select(Map::root, f));};
 
+  maybe_E aug_eq(A aug_val) {
+    return Map::node_to_entry(Tree::aug_eq(Map::root, aug_val));
+  }
+
   static M insert_lazy(M m, const E& p) {
     auto replace = [] (const V& a, const V& b) {return b;};
     return M(Tree::insert_lazy(m.get_root(), p, replace)); }
@@ -107,6 +111,7 @@ public:
   template<class Ma, class F>
   static M map(Ma a, const F f) {return to_aug(Map::map(a, f));}
   static void entries(M m, E* out) { Map::entries(std::move(m),out);}
+  static parlay::sequence<E> entries(M m, size_t granularity=utils::node_limit) { return Map::entries(std::move(m));}
   template <class outItter>
   static void keys(M m, outItter out) {Map::keys(std::move(m),out);}
   static void keys_to_array(M m, K* out) {Map::keys_to_array(std::move(m),out);}

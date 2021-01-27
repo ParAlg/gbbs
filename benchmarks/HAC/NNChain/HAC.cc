@@ -31,6 +31,7 @@
 //     -s : indicate that the graph is symmetric
 
 #include "HAC.h"
+#include "HAC_configuration.h"
 
 namespace gbbs {
 
@@ -49,41 +50,33 @@ W weighted_avg_linkage(W w1, W w2) {
   return (w1 + w2) / static_cast<W>(2);
 }
 
-template <class Graph>
-struct EmptyToFloatW {
-  using weight_type = uintE;
-  using underlying_weight_type = gbbs::empty;
-  Graph& G;
+//template <class Graph, class GetWeight = EmptyToLogW>
+//struct DissimilarityMinLinkage : GetWeight::template GetWeight<Graph> {
+//
+//  using base = typename GetWeight::template GetWeight<Graph>;
+//  using weight_type = typename base::weight_type;
+//
+//  using base::base;
+//
+//  static constexpr bool similarity_clustering = false;
+//
+//  // Used to specify whether we are doing similarity of dissimilarity
+//  // clustering. Similarity means taking max (heavier weights are more similar)
+//  // and dissimilarity means taking min (smaller edges are "closer")
+//  static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
+//    return std::min(lhs, rhs);   // similarity
+//  }
+//
+//  static weight_type id() {
+//    return std::numeric_limits<weight_type>::max();
+//  }
+//
+//  // The linkage function.
+//  static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
+//    return std::min(lhs, rhs);
+//  }
+//};
 
-  static constexpr bool similarity_clustering = false;
-  // Used to specify whether we are doing similarity of dissimilarity
-  // clustering. Similarity means taking max (heavier weights are more similar)
-  // and dissimilarity means taking min (smaller edges are "closer")
-  static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
-    return std::min(lhs, rhs);   // similarity
-  }
-
-  EmptyToFloatW(Graph& G) : G(G) {}
-
-  static weight_type id() {
-    return std::numeric_limits<weight_type>::max();
-  }
-
-  // The linkage function.
-  static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
-    return std::min(lhs, rhs);
-  }
-
-  static constexpr bool less(const weight_type& lhs, const weight_type& rhs) {
-    return lhs < rhs;
-  }
-
-  weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) const {
-    auto v_u = G.get_vertex(u);
-    auto v_v = G.get_vertex(v);
-    return 1 + parlay::log2_up(1 + v_u.out_degree() + v_v.out_degree());  // [1, log(max_deg))
-  }
-};
 
 template <class Graph>
 double HAC_runner(Graph& G, commandLine P) {
@@ -105,7 +98,11 @@ double HAC_runner(Graph& G, commandLine P) {
   // G.get_vertex(1).out_neighbors().map(map_f, false);
 
   timer t; t.start();
-  auto W = EmptyToFloatW<Graph>(G);
+
+  auto W = MinLinkage<Graph>(G);
+  //auto W = MaxLinkage<Graph>(G);
+  //auto W = WeightedAverageLinkage<Graph>(G);
+  // auto W = AverageLinkage<Graph>(G);
   auto ml = [] (float w1, float w2) { return std::min(w1, w2); };
   greedy_exact::HAC(G, W, ml);
   double tt = t.stop();
