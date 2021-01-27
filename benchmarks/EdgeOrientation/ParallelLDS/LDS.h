@@ -749,6 +749,45 @@ struct LDS {
         size_t written = L[v].emit_neighbors_higher_than_level(output, v, L[v].desire_level + 1);
         assert(written == (end_offset - offset));
       });
+
+      // Sort by neighbor vertex index
+      auto compare_tup = [&] (const edge_type& l, const edge_type& r) {return l < r;};
+      parlay::sort_inplace(parlay::make_slice(flipped), compare_tup);
+
+      // Compute the starts of the neighbor vertex indices
+      auto bool_seq = parlay::delayed_seq<bool>(flipped.size() + 1, [&] (size_t i) {
+        return (i == 0) || (i == flipped.size()) ||
+            (std::get<0>(flipped[i-1]) != std::get<0>(flipped[i]));
+      });
+      auto starts = parlay::pack_index(bool_seq);
+
+      // Save the vertex ids of the vertices which did not move
+      auto affected = sequence<uintE>::from_function(starts.size() - 1, [&] (size_t i) {
+        size_t idx = starts[i];
+        uintE vtx_id = flipped[idx].first;
+        if (!nodes_to_move.contains(vtx_id))
+            return vtx_id;
+        else
+            return UINT_E_MAX;
+      });
+
+      // First, update the down-levels of vertices that do not move (not in
+      // nodes_to_move). Then, all vertices which moved to the same level should
+      // be both in each other's up adjacency lists.
+      parallel_for(0, starts.size() - 1, [&] (size_t i) {
+        size_t idx = starts[i];
+        uintE u = std::get<0>(flipped[idx]);
+        if (!nodes_to_move.contains(u)) {
+            uintE incoming_degree = starts[i+1] - starts[i];
+            auto neighbors = parlay::make_slice(flipped.begin() + idx,
+                    flipped.begin() + idx + incoming_degree);
+
+            uintE l_u = L[u].level;
+        }
+      });
+
+      // Move vertices in nodes_to_move to cur_level. Update the data structures
+      // of each moved vertex and neighbors in flipped.
   }
 
   template <class Seq>
