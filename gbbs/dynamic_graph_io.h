@@ -159,7 +159,7 @@ std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDyna
   // invalidate those, and then filter
   using D = DynamicEdge<weight_type>;
   using E = gbbs_io::Edge<weight_type>;
-  auto dynamic_edges_seq = parlay::delayed_seq<D>(dynamic_edges_size, [&](size_t i){ return dynamic_edges.edges[i]; });
+  auto dynamic_edges_seq = parlay::delayed_seq<D>(std::min(dynamic_edges_size, dynamic_edges.edges.size()), [&](size_t i){ return dynamic_edges.edges[i]; });
   //auto flag_seq = parlay::delayed_seq<bool>(dynamic_edges.edges.size(), [&](size_t i){ return !dynamic_edges.edges[i].insert; });
   // Order all inserts before all deletes
   //auto split_dynamic_edges = parlay::internal::split_two(dynamic_edges_seq, flag_seq);
