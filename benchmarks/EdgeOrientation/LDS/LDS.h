@@ -452,9 +452,9 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
         return (exact_core != 0) && (approx_core != 0);
       }), parlay::addm<float>()); //(float) batch_edge_list.max_vertex
       auto avg_error = (denominator == 0) ? 0 : sum_error / denominator;
-      std::cout << "### Per Vertex Average Coreness x Error: " << avg_error << std::endl; fflush(stdout);
-      std::cout << "### Per Vertex Min Coreness x Error: " << min_error << std::endl; fflush(stdout);
-      std::cout << "### Per Vertex Max Coreness x Error: " << max_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
+      std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
     }
   }
 }
