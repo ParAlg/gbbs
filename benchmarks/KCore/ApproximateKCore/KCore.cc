@@ -87,6 +87,7 @@ double KCore_runner(Graph& G, commandLine P) {
   double mult_appx = (2 + 2*eps);
   if (P.getOptionValue("-stats")) {
     auto true_cores = use_dynamic ? KCore(dynamic_graph, num_buckets) : KCore(G, num_buckets);
+    auto n = use_dynamic ? dynamic_graph.n : G.n;
 
     uintE max_true_core = parlay::reduce(true_cores, parlay::maxm<uintE>());
     std::cout << "### Coreness Exact: " << max_true_core << std::endl;
@@ -96,7 +97,7 @@ double KCore_runner(Graph& G, commandLine P) {
     double max_error = 0.0;
     double min_error = std::numeric_limits<double>::max();
     double denominator = 0;
-    for (size_t i=0; i<G.n; i++) {
+    for (size_t i=0; i<n; i++) {
       double true_core = true_cores[i];
       double appx_core = cores[i];
       if (appx_core > (mult_appx*true_core)) {
