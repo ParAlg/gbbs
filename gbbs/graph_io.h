@@ -478,7 +478,7 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     [=] () { gbbs::free_array(vertex_data, num_vertices);
       gbbs::free_array(edges_array, num_edges); },
     parlay::make_slice(edges_array, edges_array + num_edges),
-    parlay::make_slice((edge_type*) nullptr, (edge_type*) nullptr)};
+    parlay::make_slice(edges_array, edges_array + num_edges)};
 }
 
 // Write graph in adjacency graph format to file.

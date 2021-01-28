@@ -421,6 +421,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
     std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
     if (compare_exact) {
       auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(), i + batch_size));
+
       // Run kcore on graph
       auto cores = KCore(graph, 16);
 

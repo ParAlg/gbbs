@@ -61,17 +61,15 @@ double KCore_runner(Graph& G, commandLine P) {
   // Option to use dynamic graph instead of static
   const std::string kInputFlag{"-i"};
   const char* const input_file{P.getOptionValue(kInputFlag)};
-  size_t num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 1);
+  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 1);
 
   bool use_dynamic = (input_file && input_file[0]);
   
   using W = typename Graph::weight_type;
-  BatchDynamicEdges<W> batch_edge_list;
-  symmetric_graph<symmetric_vertex, W> dynamic_graph;
-  if (use_dynamic) {
-    batch_edge_list = read_batch_dynamic_edge_list<W>(input_file);
-    dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
-  }
+  BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
+    read_batch_dynamic_edge_list<W>(input_file) : BatchDynamicEdges<W>();
+  symmetric_graph<symmetric_vertex, W> dynamic_graph = 
+    dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
 
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();

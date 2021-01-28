@@ -196,6 +196,7 @@ std::vector<gbbs_io::Edge<weight_type>> dynamic_edge_list_to_edge_list(BatchDyna
 
 template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type> dynamic_edge_list_to_symmetric_graph(BatchDynamicEdges<weight_type>& dynamic_edges, size_t dynamic_edges_size) {
+  if (dynamic_edges_size == 0 || dynamic_edges.max_vertex == 0) return symmetric_graph<symmetric_vertex, weight_type>();
   auto edge_list = dynamic_edge_list_to_edge_list(dynamic_edges, dynamic_edges_size);
   return gbbs_io::edge_list_to_symmetric_graph(edge_list);
 }
