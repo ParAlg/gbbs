@@ -68,6 +68,7 @@ double KCore_runner(Graph& G, commandLine P) {
   using W = typename Graph::weight_type;
   BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
     read_batch_dynamic_edge_list<W>(input_file) : BatchDynamicEdges<W>();
+  if (use_dynamic && num_dynamic_edges == 0) num_dynamic_edges = batch_edge_list.edges.size();
   symmetric_graph<symmetric_vertex, W> dynamic_graph = 
     dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
 
@@ -114,8 +115,10 @@ double KCore_runner(Graph& G, commandLine P) {
         denominator++;
       }
     }
+    min_error = min_error == std::numeric_limits<double>::max() ? 0 : min_error;
+    auto avg_error = (denominator == 0) ? 0 : (total_error / denominator);
     std::cout << "### Num Bad: " << bad << std::endl;
-    std::cout << "### Per Vertex Average Coreness Error: " << (total_error / denominator) << std::endl;
+    std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl;
     std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl;
     std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl;
   }

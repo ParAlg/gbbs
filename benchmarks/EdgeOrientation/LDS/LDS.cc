@@ -44,10 +44,11 @@ double LDS_runner(Graph& G, commandLine P) {
   double delta = P.getOptionDoubleValue("-delta", 9);
 
   using W = typename Graph::weight_type;
-
-  BatchDynamicEdges<W> batch_edge_list = (input_file && input_file[0]) ? 
+  bool use_dynamic = (input_file && input_file[0]);
+  BatchDynamicEdges<W> batch_edge_list = use_dynamic ? 
     read_batch_dynamic_edge_list<W>(input_file) : 
     BatchDynamicEdges<W>{};
+  if (use_dynamic && batch_size == 0) batch_size = batch_edge_list.edges.size();
 
   timer t; t.start();
   RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta);
