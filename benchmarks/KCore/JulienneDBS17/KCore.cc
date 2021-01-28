@@ -34,6 +34,7 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "KCore.h"
+#include "gbbs/dynamic_graph_io.h"
 
 namespace gbbs {
 template <class Graph>
@@ -54,12 +55,34 @@ double KCore_runner(Graph& G, commandLine P) {
   }
   assert(P.getOption("-s"));
 
+  // Option to use dynamic graph instead of static
+  const std::string kInputFlag{"-i"};
+  const char* const input_file{P.getOptionValue(kInputFlag)};
+  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 1);
+
+  bool use_dynamic = (input_file && input_file[0]);
+  
+  using W = typename Graph::weight_type;
+  BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
+    read_batch_dynamic_edge_list<W>(input_file) : BatchDynamicEdges<W>();
+  if (use_dynamic && num_dynamic_edges == 0) num_dynamic_edges = batch_edge_list.edges.size();
+  symmetric_graph<symmetric_vertex, W> dynamic_graph = 
+    dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
+
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = (fa) ? KCore_FA(G, num_buckets) : KCore(G, num_buckets);
+  sequence<uintE> cores;
+  if (!use_dynamic)
+    cores = (fa) ? KCore_FA(G, num_buckets) : KCore(G, num_buckets);
+  else 
+    cores = (fa) ? KCore_FA(dynamic_graph, num_buckets) : KCore(dynamic_graph, num_buckets);
   double tt = t.stop();
 
-  std::cout << "### Running Time: " << tt << std::endl;
+  if (use_dynamic) std::cout << "### Batch Running Time: " << tt << std::endl;
+  uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+  std::cout << "### Coreness Exact: " << max_core << std::endl;
+
+  if (!use_dynamic) std::cout << "### Running Time: " << tt << std::endl;
 
   return tt;
 }
