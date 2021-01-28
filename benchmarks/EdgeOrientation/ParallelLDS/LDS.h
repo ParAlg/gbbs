@@ -795,7 +795,7 @@ struct LDS {
 
             std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
             auto my_level = L[u].level;
-            for (int i = 0; i < neighbors.size(); i++) {
+            for (size_t i = 0; i < neighbors.size(); i++) {
                 auto neighbor_id = neighbors[i].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
@@ -841,11 +841,11 @@ struct LDS {
       });
 
       // Compute the starts of the reverse flipped edges
-      bool_seq = parlay::delayed_seq<bool>(flipped_reverse.size() + 1, [&] (size_t i){
+      auto bool_seq_reverse = parlay::delayed_seq<bool>(flipped_reverse.size() + 1, [&] (size_t i){
         return (i == 0) || (i == flipped_reverse.size()) || (std::get<0>(flipped_reverse[i-1])
                 != std::get<0>(flipped_reverse[i]));
       });
-      starts = parlay::pack_index(bool_seq);
+      starts = parlay::pack_index(bool_seq_reverse);
 
       // Update the data structures (vertices kept at each level) of each vertex
       // that moved.
@@ -862,7 +862,7 @@ struct LDS {
         // NOTE: below should be parallelized
         std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
         auto my_level = L[moved_vertex_v].level;
-        for (int i = 0; i < neighbors.size(); i++) {
+        for (size_t i = 0; i < neighbors.size(); i++) {
             auto neighbor_id = neighbors[i].second;
             auto neighbor = L[neighbor_id];
             auto neighbor_level = neighbor.level;
@@ -1145,6 +1145,27 @@ inline void RunLDS(Graph& G) {
   layers.check_invariants();
   std::cout << "Finished check" << std::endl;
 
+  std::cout << "Testing deletions: " << std::endl;
+  for (size_t i=0; i<num_batches; i++) {
+    std::cout << "===== Starting batch i = " << i << std::endl;
+    size_t start = batch_size*i;
+    size_t end = std::min(start + batch_size, edges.size());
+
+    auto batch = parlay::delayed_seq<LDS::edge_type>(end - start, [&] (size_t i) {
+      uintE u = std::get<0>(edges[start + i]);
+      uintE v = std::get<1>(edges[start + i]);
+      return std::make_pair(u, v);
+    });
+
+    layers.batch_deletion(batch);
+
+//    for (size_t i=0; i<batch.size(); i++) {
+//      bool exists = layers.edge_exists(batch[i]);
+//      bool ok = layers.check_both_directions(batch[i]);
+//      assert(exists);
+//      assert(ok);
+//    }
+  }
 }
 
 
