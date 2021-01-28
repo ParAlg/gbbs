@@ -117,16 +117,18 @@ struct Level {
   }
 };
 
+inline double group_degree(size_t group, double epsilon) {
+  return pow(1 + epsilon, group);
+}
+
+inline double upper_constant(double delta) {
+  return (2 + static_cast<double>(3) / delta);
+}
+
 struct LDS {
   size_t n;  // number of vertices
-  static constexpr double delta = 9.0;
-  static constexpr double upper_constant = (2 + static_cast<double>(3) / delta);
-  static constexpr double epsilon = 3.0;
-  static constexpr double one_plus_eps = 1 + epsilon;
-
-  inline static double group_degree(size_t group) {
-    return pow(one_plus_eps, group);
-  }
+  double delta = 9.0;
+  double epsilon = 3.0;
 
   size_t total_work;
 
@@ -161,20 +163,20 @@ struct LDS {
     }
 
 
-    inline bool upper_invariant(const size_t levels_per_group) const {
+    inline bool upper_invariant(const size_t levels_per_group, double epsilon, double delta) const {
       uintE group = level / levels_per_group;
       return up.size() <=
-             static_cast<size_t>(upper_constant * group_degree(group));
+             static_cast<size_t>(upper_constant(delta) * group_degree(group, epsilon));
     }
 
-    inline bool lower_invariant(const size_t levels_per_group) const {
+    inline bool lower_invariant(const size_t levels_per_group, double epsilon) const {
       if (level == 0) return true;
       uintE lower_group = (level - 1) / levels_per_group;
       auto up_size = up.size();
       auto prev_level_size = down[level - 1].size();
       return (up_size + prev_level_size) >=
              static_cast<size_t>(
-                 group_degree(lower_group));  // needs a floor or ceil?
+                 group_degree(lower_group, epsilon));  // needs a floor or ceil?
     }
   };
 
@@ -183,8 +185,8 @@ struct LDS {
   parlay::sequence<LDSVertex> L;
   std::stack<uintE> Dirty;
 
-  LDS(size_t n) : n(n) {
-    levels_per_group = ceil(log(n) / log(one_plus_eps));
+  LDS(size_t _n, double _eps, double _delta) : n(_n), epsilon(_eps), delta(_delta) {
+    levels_per_group = ceil(log(n) / log(1 + epsilon));
     // levels_per_group = parlay::log2_up(n);
     L = parlay::sequence<LDSVertex>(n);
   }
@@ -278,12 +280,12 @@ struct LDS {
     while (!Dirty.empty()) {
       uintE u = Dirty.top();
       Dirty.pop();
-      if (!L[u].upper_invariant(levels_per_group)) {
+      if (!L[u].upper_invariant(levels_per_group, epsilon, delta)) {
         // Move u to level i+1.
         level_increase(u, L);
         Dirty.push(u);  // u might need to move up more levels.
         // std::cout << "(move up) pushing u = " << u << std::endl;
-      } else if (!L[u].lower_invariant(levels_per_group)) {
+      } else if (!L[u].lower_invariant(levels_per_group, epsilon)) {
         level_decrease(u, L);
         Dirty.push(u);  // u might need to move down more levels.
         // std::cout << "(move down) pushing u = " << u << std::endl;
@@ -333,8 +335,8 @@ struct LDS {
   void check_invariants() {
     bool invs_ok = true;
     for (size_t i = 0; i < n; i++) {
-      bool upper_ok = L[i].upper_invariant(levels_per_group);
-      bool lower_ok = L[i].lower_invariant(levels_per_group);
+      bool upper_ok = L[i].upper_invariant(levels_per_group, epsilon, delta);
+      bool lower_ok = L[i].lower_invariant(levels_per_group, epsilon);
       assert(upper_ok);
       assert(lower_ok);
       invs_ok &= upper_ok;
@@ -347,7 +349,7 @@ struct LDS {
     auto levels = parlay::delayed_seq<uintE>(n, [&] (size_t i) { return L[i].level; });
     uintE max_level = pbbslib::reduce_max(levels);
     uintE max_group = group_for_level(max_level);
-    return group_degree(max_group);
+    return group_degree(max_group, epsilon);
   }
 
   uintE core(uintE v) {
@@ -355,7 +357,7 @@ struct LDS {
     uintE group = group_for_level(l);
     // If l is not the highest level in the group, we drop to the previous group
     if (l % levels_per_group != levels_per_group - 1) group--;
-    return group_degree(group);
+    return group_degree(group, epsilon);
   }
 
   inline uintE group_for_level(uintE level) const {
@@ -458,9 +460,9 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, int batch_size, bool compare_exact) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, int batch_size, bool compare_exact, double eps, double delta) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
-  auto layers = LDS(max_vertex);
+  auto layers = LDS(max_vertex, eps, delta);
   if (G.n > 0) RunLDS(G, layers);
   if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
 }

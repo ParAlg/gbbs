@@ -40,6 +40,9 @@ double LDS_runner(Graph& G, commandLine P) {
   int batch_size = P.getOptionIntValue("-b", 1);
   bool compare_exact = P.getOption("-stat");
 
+  double eps = P.getOptionDoubleValue("-eps", 3);
+  double delta = P.getOptionDoubleValue("-delta", 9);
+
   using W = typename Graph::weight_type;
 
   BatchDynamicEdges<W> batch_edge_list = (input_file && input_file[0]) ? 
@@ -47,7 +50,7 @@ double LDS_runner(Graph& G, commandLine P) {
     BatchDynamicEdges<W>{};
 
   timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
