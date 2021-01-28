@@ -34,6 +34,7 @@
 //     -nb : the number of buckets to use in the bucketing implementation
 
 #include "KCore.h"
+#include "gbbs/dynamic_graph_io.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 namespace gbbs {
@@ -57,40 +58,72 @@ double KCore_runner(Graph& G, commandLine P) {
   }
   assert(P.getOption("-s"));
 
+  // Option to use dynamic graph instead of static
+  const std::string kInputFlag{"-i"};
+  const char* const input_file{P.getOptionValue(kInputFlag)};
+  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 1);
+
+  bool use_dynamic = (input_file && input_file[0]);
+  
+  using W = typename Graph::weight_type;
+  BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
+    read_batch_dynamic_edge_list<W>(input_file) : BatchDynamicEdges<W>();
+  if (use_dynamic && num_dynamic_edges == 0) num_dynamic_edges = batch_edge_list.edges.size();
+  symmetric_graph<symmetric_vertex, W> dynamic_graph = 
+    dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
+
   // runs the fetch-and-add based implementation if set.
   timer t; t.start();
-  auto cores = approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
+  auto cores = use_dynamic ? approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow) : 
+    approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
   double tt = t.stop();
+
+  if (use_dynamic) std::cout << "### Batch Running Time: " << tt << std::endl;
+
+  uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+  std::cout << "### Coreness Estimate: " << max_core << std::endl;
 
   double mult_appx = (2 + 2*eps);
   if (P.getOptionValue("-stats")) {
-    auto true_cores = KCore(G, num_buckets);
+    auto true_cores = use_dynamic ? KCore(dynamic_graph, num_buckets) : KCore(G, num_buckets);
+    auto n = use_dynamic ? dynamic_graph.n : G.n;
+
+    uintE max_true_core = parlay::reduce(true_cores, parlay::maxm<uintE>());
+    std::cout << "### Coreness Exact: " << max_true_core << std::endl;
+
     size_t bad = 0;
     double total_error = 0.0;
     double max_error = 0.0;
-    for (size_t i=0; i<G.n; i++) {
+    double min_error = std::numeric_limits<double>::max();
+    double denominator = 0;
+    for (size_t i=0; i<n; i++) {
       double true_core = true_cores[i];
       double appx_core = cores[i];
       if (appx_core > (mult_appx*true_core)) {
-        std::cout << "overappx, true_core = " << true_core << " appx_core = " << appx_core << std::endl;
+        //std::cout << "overappx, true_core = " << true_core << " appx_core = " << appx_core << std::endl;
         bad++;
       }
       if (appx_core < (true_core / mult_appx)) {
-        std::cout << "underappx, true_core = " << true_core << " appx_core = " << appx_core << std::endl;
+        //std::cout << "underappx, true_core = " << true_core << " appx_core = " << appx_core << std::endl;
         bad++;
       }
-      if (true_core != 0) {
+      if (true_core != 0 && appx_core != 0) {
         auto this_error = std::max(true_core, appx_core) / std::min(true_core, appx_core);
         total_error += this_error;
         max_error = std::max(max_error, this_error);
+        min_error = std::min(min_error, this_error);
+        denominator++;
       }
     }
-    std::cout << "num bad = " << bad << std::endl;
-    std::cout << "average error = " << (total_error / G.n) << std::endl;
-    std::cout << "max error = " << max_error << std::endl;
+    min_error = min_error == std::numeric_limits<double>::max() ? 0 : min_error;
+    auto avg_error = (denominator == 0) ? 0 : (total_error / denominator);
+    std::cout << "### Num Bad: " << bad << std::endl;
+    std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl;
+    std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl;
+    std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl;
   }
-
-  std::cout << "### Running Time: " << tt << std::endl;
+  
+  if (!use_dynamic) std::cout << "### Running Time: " << tt << std::endl;
 
   return tt;
 }
