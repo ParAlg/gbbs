@@ -78,7 +78,10 @@ double KCore_runner(Graph& G, commandLine P) {
     approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
   double tt = t.stop();
 
-  if (use_dynamic) std::cout << "### Batch Running Time: " << tt << std::endl;
+  if (use_dynamic) {
+    std::cout << "### Batch Running Time: " << tt << std::endl;
+    std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+  }
 
   uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
   std::cout << "### Coreness Estimate: " << max_core << std::endl;
