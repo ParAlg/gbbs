@@ -418,6 +418,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
     layers.check_invariants();
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
+    std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
     std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
     if (compare_exact) {
       auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(), i + batch_size));

@@ -59,27 +59,25 @@ else ifeq ($(OS), mac)
 	-Wthread-safety
 endif
 
-OMPFLAGS = -DOPENMP -fopenmp
-CILKFLAGS = -DCILK -fcilkplus
-HGFLAGS = -DHOMEGROWN -pthread
+OMPFLAGS = -DPARLAY_OPENMP -fopenmp
+CILKFLAGS = -DPARLAY_CILK -fcilkplus
+HGFLAGS = -pthread
+SERIALFLAGS = -DPARLAY_SEQUENTIAL
 
 ifdef CLANG
 CC = clang++
 PFLAGS = $(CILKFLAGS)
-else ifdef CILK
+else ifdef PARLAY_CILK
 CC = g++
 PFLAGS = $(CILKFLAGS)
 LFLAGS = -lcilkrts
-else ifdef OPENMP
+else ifdef PARLAY_OPENMP
 CC = g++
 PFLAGS = $(OMPFLAGS)
 LFLAGS = -fopenmp
-else ifdef HOMEGROWN
+else ifdef PARLAY_SEQUENTIAL
 CC = g++
-PFLAGS = $(HGFLAGS)
-else ifdef SERIAL
-CC = g++
-PFLAGS =
+PFLAGS = $(SERIALFLAGS)
 else # default is homegrown
 CC = g++
 PFLAGS = $(HGFLAGS)
