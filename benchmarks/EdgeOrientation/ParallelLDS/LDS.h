@@ -700,6 +700,7 @@ struct LDS {
   // Returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_deletions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
+      //std::cout<<"start procedure"<<std::endl;
       if (cur_level_id >= levels.size()) {
           return total_moved;
       }
@@ -707,6 +708,7 @@ struct LDS {
       // Get vertices that have desire level equal to the current desire level
       //
       // TODO: need to optimize, this is not optimized
+
       auto nodes_to_move = gbbs::sparse_set<uintE>();
 
       // For deletion, we need to figure out all vertices that want to move to
@@ -717,8 +719,11 @@ struct LDS {
       // every dirty vertex.
 
       auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
+      auto level_size = parlay::sequence<size_t>(levels.size());
 
+      //std::cout<<"starting level resizes" << std::endl;
       parallel_for(0, levels.size(), [&] (size_t i) {
+        auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -735,19 +740,42 @@ struct LDS {
                 assert(desire_level < i);
 
                 if (desire_level == cur_level_id) {
-                    nodes_to_move.resize(1);
+                    elements_this_level[j] = 1;
+                }
+            }
+        });
+        size_t num_this_level = parlay::scan_inplace(parlay::make_slice(elements_this_level));
+        level_size[i] = num_this_level;
+      });
+
+      //std::cout<<"end level resizes"<<std::endl;
+
+      size_t num_to_move = parlay::scan_inplace(parlay::make_slice(level_size));
+
+      nodes_to_move.resize(num_to_move);
+
+      //std::cout << "resized table"<<std::endl;
+
+      parallel_for(0, levels.size(), [&] (size_t i) {
+        parallel_for(0, levels[i].size(), [&] (size_t j) {
+            uintE v = levels[i].table[j];
+
+            if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
+                if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
                     level_resizes[i]++;
                 }
             }
         });
-
       });
 
+      //std::cout << "make the levels valid" << std::endl;
       parallel_for (0, level_resizes.size(), [&] (size_t i){
           levels[i].resize_down(level_resizes[i]);
       });
+
+      //std::cout << "finished level resizing" << std::endl;
 
       // Turn nodes_to_move into a sequence
       auto nodes_to_move_seq = nodes_to_move.entries();
@@ -791,10 +819,15 @@ struct LDS {
         return vtx_id;
       });
 
+      //std::cout<<"moving nodes concurrency issues" << std::endl;
       // First, update the down-levels of vertices that do not move (not in
       // nodes_to_move). Then, all vertices which moved to the same level should
       // be both in each other's up adjacency lists.
-      parallel_for(0, starts.size() - 1, [&] (size_t i) {
+      //parallel_for(0, starts.size() - 1, [&] (size_t i) {
+      //
+      //NOTE: this should be a parallel for loop (as above) but was running into
+      //concurrency issues.
+      for (size_t i = 0; i < starts.size() - 1; i++) {
         size_t idx = starts[i];
         uintE u = std::get<0>(flipped[idx]);
         if (!nodes_to_move.contains(u) && L[u].level > cur_level_id) {
@@ -852,8 +885,10 @@ struct LDS {
                     L[u].down[level_count.first].resize_down(level_count.second);
             }
         }
-      });
+      }
+      //});
 
+      //std::cout<<"moving second set of nodes concurrency issues" << std::endl;
       // Move vertices in nodes_to_move to cur_level. Update the data structures
       // of each moved vertex and neighbors in flipped.
       //
@@ -872,10 +907,13 @@ struct LDS {
       });
       starts = parlay::pack_index(bool_seq_reverse);
 
-      auto previous_up_degree = L[4838].num_neighbors_higher_than_level(cur_level_id);
       // Update the data structures (vertices kept at each level) of each vertex
       // that moved.
-      parallel_for(0, starts.size() - 1, [&] (size_t i) {
+      //parallel_for(0, starts.size() - 1, [&] (size_t i) {
+      //
+      //NOTE: this shsould be a parallel for loop (as above) but I was running
+      //into concurrency issues.
+      for (size_t i=0; i<starts.size() - 1; i++) {
         size_t idx = starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
         uintE num_neighbors = starts[i+1] - starts[i];
@@ -887,6 +925,7 @@ struct LDS {
 
         // NOTE: below should be parallelized
         std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
+        uintE num_new_up_neighbors = 0;
         auto my_level = L[moved_vertex_v].level;
         for (size_t i = 0; i < neighbors.size(); i++) {
             auto neighbor_id = neighbors[i].second;
@@ -897,8 +936,7 @@ struct LDS {
 
             if (neighbor_level < my_level) {
                 if (!L[moved_vertex_v].up.contains(neighbor_id)) {
-                    L[moved_vertex_v].up.resize(1);
-                    L[moved_vertex_v].up.insert(neighbor_id);
+                    num_new_up_neighbors++;
                 }
 
                 assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
@@ -913,13 +951,21 @@ struct LDS {
             }
         }
 
+        L[moved_vertex_v].up.resize(num_new_up_neighbors);
+        parallel_for(0, neighbors.size(), [&] (size_t i){
+            if (L[neighbors[i].second].level < my_level) {
+                L[moved_vertex_v].up.insert(neighbors[i].second);
+            }
+        });
+
         for (auto level_count : num_deleted_from_levels) {
             if (level_count.first == my_level)
                 L[moved_vertex_v].up.resize(incoming_degree);
             else
                 L[moved_vertex_v].down[level_count.first].resize_down(level_count.second);
         }
-      });
+      }
+      //});
 
       // Update current level of the moved vertices and reset the desired level
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
@@ -934,6 +980,7 @@ struct LDS {
       // update the levels with neighbors
       update_levels(std::move(affected), levels);
 
+      //std::cout << "rebalance concurrency issues" << std::endl;
       return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
   }
 
