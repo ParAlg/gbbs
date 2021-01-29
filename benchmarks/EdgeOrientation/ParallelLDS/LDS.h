@@ -145,19 +145,22 @@ struct LDS {
         assert(!lower_invariant(levels_per_group));
         assert(level > 0);
 
-        //std::cout << "started getting desire level" << std::endl;
         // Currently sequential going level by level but we probably want to
         // optimize later.
         //
         // This is the current level of the node.
         uintE cur_level = level - 1;
-        uintE cur_num_up_neighbors = num_up_star_neighbors();
+        if (cur_level == 0) return cur_level;
+        uintE num_up_neighbors = num_neighbors_higher_than_level((uintE) cur_level);
+        uintE num_up_star_neighbors = num_up_neighbors;
         while (cur_level > 0) {
-            if (upstar_degree_satisfies_invariant(cur_level, levels_per_group, cur_num_up_neighbors)) {
+            num_up_neighbors = num_up_star_neighbors;
+            num_up_star_neighbors += down[cur_level-1].num_elms();
+            if (upstar_degree_satisfies_invariant(cur_level, levels_per_group, num_up_star_neighbors,
+                        num_up_neighbors)) {
                 break;
             }
             cur_level -= 1;
-            cur_num_up_neighbors += down[cur_level].num_elms();
         }
 
         return cur_level;
@@ -176,14 +179,11 @@ struct LDS {
     //
     // TODO: this can be optimized by making the summation parallel, currently
     // it is sequential.
-    inline uintE num_neighbors_higher_than_level(uintE start_level) {
-        //std::cout << "started getting higher neighbors" << std::endl;
+    inline uintE num_neighbors_higher_than_level(uintE start_level) const {
         uintE num_flipped_neighbors = 0;
-        if (start_level < level) {
-            while (start_level < level) {
-                num_flipped_neighbors += down[start_level].num_elms();
-                start_level++;
-            }
+        while (start_level < level) {
+            num_flipped_neighbors += down[start_level].num_elms();
+            start_level++;
         }
         return num_flipped_neighbors + up.num_elms();
     }
@@ -292,11 +292,15 @@ struct LDS {
     // Method for computing whether the updegree from cur_level is enough to
     // satisfy Invariant 2.
     inline bool upstar_degree_satisfies_invariant(uintE cur_level, const size_t
-            levels_per_group, uintE cur_num_up_neighbors) const {
+            levels_per_group, uintE num_up_star_neighbors, uintE num_up_neighbors) const {
         if (cur_level == 0) return true;
         uintE group = (cur_level - 1) / levels_per_group;
         size_t our_group_degree = static_cast<size_t>(group_degree(group));
-        return cur_num_up_neighbors >= our_group_degree;
+        uintE upper_group = cur_level / levels_per_group;
+        size_t upper_group_degree = static_cast<size_t>(group_degree(upper_group));
+
+        return num_up_star_neighbors >= our_group_degree && num_up_neighbors
+            < kUpperConstant * upper_group_degree;
     }
 
     inline bool is_dirty(const size_t levels_per_group) const {
@@ -327,8 +331,14 @@ struct LDS {
     auto l_u = L[u].level;
     auto l_v = L[v].level;
     if (l_u < l_v) {  // look in up(u)
+      if (L[u].up.contains(v)) {
+        assert(L[v].down[l_u].contains(u));
+      }
       return L[u].up.contains(v);
     } else {  // look in up(v)
+      if (L[v].up.contains(u)) {
+          assert(L[u].up.contains(v) || L[u].down[l_v].contains(v));
+      }
       return L[v].up.contains(u);
     }
   }
@@ -356,8 +366,6 @@ struct LDS {
   // Input: sequence of vertex_ids
   template <class Seq, class Levels>
   void update_levels(Seq&& possibly_dirty, Levels& levels) {
-    //std::cout << "what levels start with: " << levels.size() << std::endl;
-
     using level_and_vtx = std::pair<uintE, uintE>;
 
     // Compute dirty vertices, which have either lower / upper threshold
@@ -398,33 +406,19 @@ struct LDS {
     uintE max_current_level = dirty[level_starts[level_starts.size() - 2]].first + 1;
     if (levels.size() < max_current_level) {
       levels.resize(max_current_level);
-      //std::cout << "the current max level: " << max_current_level << std::endl;
     }
-
-    //std::cout << "size of levels: " << levels.size() << std::endl;
 
     parallel_for(0, level_starts.size() - 1, [&] (size_t i) {
       uintE idx = level_starts[i];
       uintE level = dirty[idx].first;
       uintE num_in_level = level_starts[i+1] - idx;
-      //std::cout << "num in level: " << num_in_level << std::endl;
 
       auto stuff_in_level = parlay::delayed_seq<uintE>(num_in_level, [&] (size_t j) {
         return dirty[idx + j].second;
       });
 
-      //for (auto i = 0; i < stuff_in_level.size(); i++)
-      //  std::cout << "what I'm stuffing in level: " << stuff_in_level[i] << std::endl;
       levels[level].append(stuff_in_level);
     });
-
-    //for (size_t i; i < levels.size(); i++) {
-    //    for (size_t j; j < levels[i].size(); j++) {
-    //        std::cout << "ending update, things in level: " << levels[i].table[j] << std::endl;
-    //    }
-   // }
-
-    //std::cout << "finished updating levels" << std::endl;
   }
 
   // todo: move into LDSVertex?
@@ -454,8 +448,6 @@ struct LDS {
       }
     });
 
-    // std::cout << "Starting insertions into hash tables" << std::endl;
-    // Insert neighbors into the correct level incident to us.
     parallel_for(0, neighbors.size(), [&] (size_t i) {
       auto [level_id, v] = neighbors[i];
       if (level_id != kUpLevel) {
@@ -506,7 +498,6 @@ struct LDS {
   // returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_insertions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
-    // std::cout << "[RebalanceInsertions]: cur_level = " << cur_level_id << " levels_available = " << levels.size() << std::endl;
     if (cur_level_id >= levels.size())
       return total_moved;
 
@@ -551,7 +542,6 @@ struct LDS {
     parallel_for(0, dirty_seq.size(), [&] (size_t i) {
       uintE v = dirty[i];
       uintE desire_level = L[v].desire_level;
-      // std::cout << "Resized v = " << v << "'s down to " << desire_level << std::endl;
       L[v].down.resize(desire_level);
     });
 
@@ -710,15 +700,14 @@ struct LDS {
   // Returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_deletions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
-      if (cur_level_id >= levels.size())
+      if (cur_level_id >= levels.size()) {
           return total_moved;
-      //std::cout<< "started rebalance deletions" << std::endl;
+      }
 
       // Get vertices that have desire level equal to the current desire level
       //
       // TODO: need to optimize, this is not optimized
       auto nodes_to_move = gbbs::sparse_set<uintE>();
-      //std::cout<< "initialized nodes_to_move" << std::endl;
 
       // For deletion, we need to figure out all vertices that want to move to
       // the current level.
@@ -727,66 +716,49 @@ struct LDS {
       // further. Right now it just figures out the desire level brute-force for
       // every dirty vertex.
 
+      auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
+
       parallel_for(0, levels.size(), [&] (size_t i) {
-        //std::cout<< "level size: " << levels[i].size() << std::endl;
-        //std::cout<< "level index: " << i << std::endl;
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
-
-            //std::cout<< "vertex id: " << v << std::endl;
-            //std::cout<< "vertex index: " << j << std::endl;
 
             uintE desire_level = UINT_E_MAX;
 
             if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
-                //std::cout<< "vertex is dirty" << std::endl;
-
                 assert(L[v].upper_invariant(levels_per_group));
                 assert(!L[v].lower_invariant(levels_per_group));
 
-                //std::cout<<"passed asserts" << std::endl;
                 desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group);
-                //std::cout<<"got desired level" << std::endl;
                 L[v].desire_level = desire_level;
-                //std::cout<< "vertex desire level: " << desire_level << std::endl;
 
                 assert(L[v].level = i);
                 assert(desire_level < i);
-                //std::cout << "passed second asserts" << std::endl;
-
-                //std::cout<< "current level id: " << cur_level_id << std::endl;
 
                 if (desire_level == cur_level_id) {
-                    //std::cout<< "add to nodes to move: " << cur_level_id << std::endl;
-
                     nodes_to_move.resize(1);
                     nodes_to_move.insert(v);
-                    //std::cout<< "finished insert: " << cur_level_id << std::endl;
+                    levels[i].remove(v);
+                    level_resizes[i]++;
                 }
-                //std::cout<< "tried to remove " << v << std::endl;
-                levels[i].remove(v);
-                levels[i].resize_down(1);
-                //std::cout<< "finished removing " << v << std::endl;
             }
         });
-        //std::cout<< "finished level: " << i << std::endl;
+
       });
-      //std::cout<< "finished getting nodes to move" << std::endl;
+
+      parallel_for (0, level_resizes.size(), [&] (size_t i){
+          levels[i].resize_down(level_resizes[i]);
+      });
 
       // Turn nodes_to_move into a sequence
       auto nodes_to_move_seq = nodes_to_move.entries();
-      //for (size_t i; i < nodes_to_move_seq.size(); i++) {
-      //    std::cout << "node to move: " << nodes_to_move_seq[i] << std::endl;
-      //}
 
       // Compute the number of neighbors we affect
       auto degrees = parlay::map(parlay::make_slice(nodes_to_move_seq), [&] (auto v) {
           auto desire_level = L[v].desire_level;
           assert(desire_level < L[v].level);
-          return L[v].num_neighbors_higher_than_level(desire_level + 1);
+          return L[v].num_neighbors_higher_than_level(desire_level);
       });
       size_t sum_degrees = parlay::scan_inplace(parlay::make_slice(degrees));
-      //std::cout<< "finished getting sums of degrees" << std::endl;
 
       // Write the affected neighbors into an array of (affected_neighbor,
       // moved_id) edge pairs.
@@ -797,11 +769,10 @@ struct LDS {
         size_t end_offset = ((i == nodes_to_move_seq.size() - 1) ? sum_degrees : degrees[i + 1]);
 
         auto output = flipped.cut(offset, end_offset);
-        size_t written = L[v].emit_neighbors_higher_than_level(output, v, L[v].desire_level + 1);
+        size_t written = L[v].emit_neighbors_higher_than_level(output, v, L[v].desire_level);
         assert(written == (end_offset - offset));
       });
 
-      //std::cout<< "finished getting flipped edges" << std::endl;
       // Sort by neighbor vertex index
       auto compare_tup = [&] (const edge_type& l, const edge_type& r) {return l < r;};
       parlay::sort_inplace(parlay::make_slice(flipped), compare_tup);
@@ -812,7 +783,6 @@ struct LDS {
             (std::get<0>(flipped[i-1]) != std::get<0>(flipped[i]));
       });
       auto starts = parlay::pack_index(bool_seq);
-      //std::cout<< "finished flipped starts" << std::endl;
 
       // Save the vertex ids of the vertices which did not move
       auto affected = sequence<uintE>::from_function(starts.size() - 1, [&] (size_t i) {
@@ -821,21 +791,20 @@ struct LDS {
         return vtx_id;
       });
 
-      //std::cout<< "finished initial processing" << std::endl;
       // First, update the down-levels of vertices that do not move (not in
       // nodes_to_move). Then, all vertices which moved to the same level should
       // be both in each other's up adjacency lists.
       parallel_for(0, starts.size() - 1, [&] (size_t i) {
         size_t idx = starts[i];
         uintE u = std::get<0>(flipped[idx]);
-        if (!nodes_to_move.contains(u)) {
+        if (!nodes_to_move.contains(u) && L[u].level > cur_level_id) {
             uintE incoming_degree = starts[i+1] - starts[i];
             auto neighbors = parlay::make_slice(flipped.begin() + idx,
                     flipped.begin() + idx + incoming_degree);
 
             // All vertices in neighbors are moving to level cur_level
             // Update down[cur_level] to contain these vertices
-            assert(cur_level_id < L[u].level);
+            assert(cur_level_id <= L[u].level);
             L[u].down[cur_level_id].resize(neighbors.size());
             parallel_for(0, neighbors.size(), [&] (size_t n) {
                 L[u].down[cur_level_id].insert(neighbors[n].second);
@@ -853,6 +822,7 @@ struct LDS {
                 auto neighbor_id = neighbors[i].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
+                assert(neighbor_level >= cur_level_id);
 
                 if (neighbor_level < my_level) {
                     assert(L[u].down[neighbor_level].contains(neighbor_id));
@@ -874,6 +844,7 @@ struct LDS {
                     }
                 }
             }
+
             for (auto level_count : num_deleted_from_levels) {
                 if (level_count.first == my_level)
                     L[u].up.resize_down(level_count.second);
@@ -890,7 +861,7 @@ struct LDS {
 
       // Re-sort the flipped edges by endpoint which moved
       auto flipped_reverse = sequence<edge_type>::uninitialized(sum_degrees);
-      parallel_for(0, flipped.size(), [&] (size_t i){
+      parallel_for(0, flipped_reverse.size(), [&] (size_t i){
         flipped_reverse[i] = std::make_pair(flipped[i].second, flipped[i].first);
       });
 
@@ -901,7 +872,7 @@ struct LDS {
       });
       starts = parlay::pack_index(bool_seq_reverse);
 
-      //std::cout<< "finished moving neighbors" << std::endl;
+      auto previous_up_degree = L[4838].num_neighbors_higher_than_level(cur_level_id);
       // Update the data structures (vertices kept at each level) of each vertex
       // that moved.
       parallel_for(0, starts.size() - 1, [&] (size_t i) {
@@ -909,8 +880,8 @@ struct LDS {
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
         uintE num_neighbors = starts[i+1] - starts[i];
 
-        auto neighbors = parlay::make_slice(flipped_reverse.begin() + idx, flipped.begin() + idx +
-              num_neighbors);
+        auto neighbors = parlay::make_slice(flipped_reverse.begin() + idx,
+                flipped_reverse.begin() + idx + num_neighbors);
 
         uintE incoming_degree = 0;
 
@@ -921,12 +892,18 @@ struct LDS {
             auto neighbor_id = neighbors[i].second;
             auto neighbor = L[neighbor_id];
             auto neighbor_level = neighbor.level;
+            assert(neighbor_level >= cur_level_id);
+            assert(moved_vertex_v == neighbors[i].first);
 
             if (neighbor_level < my_level) {
+                if (!L[moved_vertex_v].up.contains(neighbor_id)) {
+                    L[moved_vertex_v].up.resize(1);
+                    L[moved_vertex_v].up.insert(neighbor_id);
+                }
+
                 assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
                 incoming_degree++;
                 L[moved_vertex_v].down[neighbor_level].remove(neighbor_id);
-                L[moved_vertex_v].up.insert(neighbor_id);
                 auto it = num_deleted_from_levels.find(neighbor_level);
                 if (it != num_deleted_from_levels.end()) {
                     it->second++;
@@ -950,9 +927,9 @@ struct LDS {
         L[v].level = cur_level_id;
         L[v].desire_level = UINT_E_MAX;
         L[v].down.resize(cur_level_id);
+        assert(L[v].upper_invariant(levels_per_group));
+        assert(L[v].lower_invariant(levels_per_group));
       });
-
-      //std::cout<< "finished rebalancing this level" << std::endl;
 
       // update the levels with neighbors
       update_levels(std::move(affected), levels);
@@ -1011,8 +988,6 @@ struct LDS {
       auto neighbors = parlay::make_slice(insertions.begin() + idx,
           insertions.begin() + idx + incoming_degree);
 
-      // std::cout << "Processing vtx = " << vtx << " idx = " << idx << " incoming_degree = " << incoming_degree << std::endl;
-
       // Map the incident edges to (level, neighbor_id).
       parallel_for(0, incoming_degree, [&] (size_t off) {
         auto [u, v] = neighbors[off];
@@ -1041,8 +1016,6 @@ struct LDS {
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(std::move(levels), 0);
-
-    // std::cout << "During insertions, " << total_moved << " vertices moved." << std::endl;
   }
 
   template <class Seq>
@@ -1069,18 +1042,12 @@ struct LDS {
     });
     auto deletions = parlay::pack(parlay::make_slice(deletions_dup), not_dup_seq);
 
-    //std::cout<< "finished processing deletion edges" << std::endl;
-
     // Compute the starts of each (modified) vertex's deleted edges.
     auto bool_seq = parlay::delayed_seq<bool>(deletions.size() + 1, [&] (size_t i) {
       return (i == 0) || (i == deletions.size()) ||
         (std::get<0>(deletions[i-1]) != std::get<0>(deletions[i]));
     });
     auto starts = parlay::pack_index(bool_seq);
-
-    //std::cout<< "finished processing starts edges" << std::endl;
-    //for (auto i = 0; i < starts.size(); i++)
-    //    std::cout << "all the starts: " << starts[i] << std::endl;
 
     // Save the vertex ids. The next step will overwrite the edge pairs to store
     // (neighbor, current_level).  (saving is not necessary if we modify + sort
@@ -1090,11 +1057,6 @@ struct LDS {
       uintE vtx_id = std::get<0>(deletions[idx]);
       return vtx_id;
     });
-
-    //for (auto i = 0; i < affected.size(); i++)
-    //    std::cout << "all the affected: " << affected[i] << std::endl;
-
-    //std::cout<< "finished saving deletion edges" << std::endl;
 
     // Map over the vertices being modified. Overwrite their incident edges with
     // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
@@ -1111,12 +1073,11 @@ struct LDS {
       auto neighbors = parlay::make_slice(deletions.begin() + idx,
           deletions.begin() + idx + outgoing_degree);
 
-      // std::cout << "Processing vtx = " << vtx << " idx = " << idx << " incoming_degree = " << incoming_degree << std::endl;
-
       // Map the incident edges to (level, neighbor_id).
       parallel_for(0, outgoing_degree, [&] (size_t off) {
         auto [u, v] = neighbors[off];
         assert(vtx == u);
+        //assert(edge_exists({vtx, v}) || edge_exists({v, vtx}));
         uintE neighbor_level = L[v].level;
         if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
         neighbors[off] = {neighbor_level, v};
@@ -1129,8 +1090,6 @@ struct LDS {
       delete_neighbors(vtx, neighbors);
 
     }, 1);
-
-    //std::cout<< "finished deleting neighbors edges" << std::endl;
 
     // New edges are done being inserted. Update the level structure.
     // Interface: supply vertex seq -> process will settle everything.
@@ -1146,20 +1105,9 @@ struct LDS {
     // First, start by finding all the dirty vertices via the below method that
     // are adjacent to an edge deletion.
     update_levels(std::move(affected), levels);
-    //for (size_t i; i < levels.size(); i++) {
-    //    for (size_t j; j < levels[i].size(); j++) {
-    //        std::cout << "after update, things in level: " << levels[i].table[j] << std::endl;
-    //    }
-    //}
-
-
-    //std::cout<< "finished updating levels" << std::endl;
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
-    //std::cout<< "finished rebalancing" << std::endl;
-
-    // std::cout << "During insertions, " << total_moved << " vertices moved." << std::endl;
   }
 
   void check_invariants() {
@@ -1167,8 +1115,6 @@ struct LDS {
     for (size_t i=0; i<n; i++) {
       bool upper_ok = L[i].upper_invariant(levels_per_group);
       bool lower_ok = L[i].lower_invariant(levels_per_group);
-      //std::cout << "upper invariant: " << upper_ok << std::endl;
-      //std::cout << "lower invariant: " << lower_ok << std::endl;
       assert(upper_ok);
       assert(lower_ok);
       invs_ok &= upper_ok;
@@ -1194,7 +1140,6 @@ inline void RunLDS(Graph& G) {
   size_t num_batches = 100;
   size_t batch_size = edges.size() / num_batches;
   for (size_t i=0; i<num_batches; i++) {
-    std::cout << "===== Starting batch i = " << i << std::endl;
     size_t start = batch_size*i;
     size_t end = std::min(start + batch_size, edges.size());
 
@@ -1229,7 +1174,6 @@ inline void RunLDS(Graph& G) {
 
   std::cout << "Testing deletions: " << std::endl;
   for (size_t i=0; i<num_batches; i++) {
-    std::cout << "===== Starting batch i = " << i << std::endl;
     size_t start = batch_size*i;
     size_t end = std::min(start + batch_size, edges.size());
 
@@ -1241,10 +1185,6 @@ inline void RunLDS(Graph& G) {
 
     layers.batch_deletion(batch);
 
-    std::cout << "Finished all deletions!" << std::endl;
-    layers.check_invariants();
-    std::cout << "Finished check" << std::endl;
-
 
 //    for (size_t i=0; i<batch.size(); i++) {
 //      bool exists = layers.edge_exists(batch[i]);
@@ -1253,6 +1193,10 @@ inline void RunLDS(Graph& G) {
 //      assert(ok);
 //    }
   }
+
+  std::cout << "Finished all deletions!" << std::endl;
+  layers.check_invariants();
+  std::cout << "Finished check" << std::endl;
 }
 
 
