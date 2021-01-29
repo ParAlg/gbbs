@@ -46,7 +46,7 @@ def main():
         for d in deltas:
           for b in batch_sizes:
             for nw in num_workers:
-              out_filename = write_dir + pre[file_idx] + "_" + e + "_" + d + "_" + b + "_" + nw + ".out"
+              out_filename = write_dir + pres[file_idx] + "_" + str(e) + "_" + str(d) + "_" + str(b) + "_" + str(nw) + ".out"
               batch_commands = []
               if is_dynamic[program_idx]:
                 batch_commands = ["-b " + str(b)]
@@ -57,7 +57,7 @@ def main():
                 ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
-                "-rounds 3 " + stats + " " + read_dir + empty_h)
+                "-rounds 3 " + stats + " " + read_dir + empty)
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
 
