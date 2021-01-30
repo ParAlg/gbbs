@@ -37,7 +37,7 @@ double LDS_runner(Graph& G, commandLine P) {
 
   const std::string kInputFlag{"-i"};
   const char* const input_file{P.getOptionValue(kInputFlag)};
-  int batch_size = P.getOptionIntValue("-b", 1);
+  long batch_size = P.getOptionLongValue("-b", 1);
   bool compare_exact = P.getOption("-stats");
 
   double eps = P.getOptionDoubleValue("-eps", 3);

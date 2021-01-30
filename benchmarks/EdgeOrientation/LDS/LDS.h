@@ -408,7 +408,7 @@ inline void RunLDS(Graph& G, LDS& layers) {
 }
 
 template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool compare_exact, LDS& layers) {
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers) {
   auto batch = batch_edge_list.edges;
   for (size_t i = 0; i < batch.size(); i += batch_size) {
     timer t; t.start();
@@ -473,7 +473,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, int batch_size, bool compare_exact, double eps, double delta) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex, eps, delta);
   if (G.n > 0) RunLDS(G, layers);
