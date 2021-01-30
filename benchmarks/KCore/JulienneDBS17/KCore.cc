@@ -103,7 +103,7 @@ double KCore_runner(Graph& G, commandLine P) {
   auto batch = batch_edge_list.edges;
   if (end_size == 0) end_size = batch.size();
   for (size_t i = start_size; i < end_size; i += batch_size) {
-    num_dynamic_edges = std::min(end_size, i + batch_size);
+    num_dynamic_edges = std::min((size_t)end_size, i + batch_size);
     auto dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
     timer t; t.start();
     auto cores = (fa) ? KCore_FA(dynamic_graph, num_buckets) : KCore(dynamic_graph, num_buckets);
