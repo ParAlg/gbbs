@@ -67,9 +67,9 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
       cur_inner_rounds = 0;
     }
 
-    std::cout << "cur_bkt = " << k << " peeled = " << active.size() << "vertices. inner_rounds = "
-      << cur_inner_rounds << " max_inner = " <<
-      max_inner_rounds << " remaining = " << (G.n - finished) << std::endl;
+    //std::cout << "cur_bkt = " << k << " peeled = " << active.size() << "vertices. inner_rounds = "
+    //  << cur_inner_rounds << " max_inner = " <<
+    //  max_inner_rounds << " remaining = " << (G.n - finished) << std::endl;
 
     // Check if we hit the threshold for inner peeling rounds.
     if (cur_inner_rounds == max_inner_rounds) {
@@ -118,7 +118,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
     rho++;
     cur_inner_rounds++;
   }
-  std::cout << "### rho = " << rho << " k_{max} = " << pow(1 + delta, k_max) << "\n";
+  //std::cout << "### rho = " << rho << " k_{max} = " << pow(1 + delta, k_max) << "\n";
   debug(bt.reportTotal("bucket time"););
 
   parallel_for(0, n, [&] (size_t i) {
