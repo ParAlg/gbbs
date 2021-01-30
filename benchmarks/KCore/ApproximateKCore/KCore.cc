@@ -38,58 +38,16 @@
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 namespace gbbs {
+
 template <class Graph>
-double KCore_runner(Graph& G, commandLine P) {
-  size_t num_buckets = P.getOptionLongValue("-nb", 16);
-  double eps = P.getOptionDoubleValue("-eps", 0.2);
-  double delta = P.getOptionDoubleValue("-delta", 0.1);
-  bool use_pow = P.getOptionValue("-use_pow");
-  std::cout << "### Application: KCore" << std::endl;
-  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
-  std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << G.n << std::endl;
-  std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### Params: -nb (num_buckets) = " << num_buckets << " epsilon = " << eps << " use_pow = " << use_pow << std::endl;
-  std::cout << "### ------------------------------------" << std::endl;
-  if (num_buckets != static_cast<size_t>((1 << pbbslib::log2_up(num_buckets)))) {
-    std::cout << "Number of buckets must be a power of two."
-              << "\n";
-    exit(-1);
-  }
-  assert(P.getOption("-s"));
-
-  // Option to use dynamic graph instead of static
-  const std::string kInputFlag{"-i"};
-  const char* const input_file{P.getOptionValue(kInputFlag)};
-  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 1);
-
-  bool use_dynamic = (input_file && input_file[0]);
-  
-  using W = typename Graph::weight_type;
-  BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
-    read_batch_dynamic_edge_list<W>(input_file) : BatchDynamicEdges<W>();
-  if (use_dynamic && num_dynamic_edges == 0) num_dynamic_edges = batch_edge_list.edges.size();
-  symmetric_graph<symmetric_vertex, W> dynamic_graph = 
-    dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
-
-  // runs the fetch-and-add based implementation if set.
-  timer t; t.start();
-  auto cores = use_dynamic ? approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow) : 
-    approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
-  double tt = t.stop();
-
-  if (use_dynamic) {
-    std::cout << "### Batch Running Time: " << tt << std::endl;
-    std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
-  }
-
+void print_stats(sequence<uintE>& cores, double eps, Graph& dynamic_graph, size_t num_buckets, bool use_stats){
   uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
   std::cout << "### Coreness Estimate: " << max_core << std::endl;
 
   double mult_appx = (2 + 2*eps);
-  if (P.getOptionValue("-stats")) {
-    auto true_cores = use_dynamic ? KCore(dynamic_graph, num_buckets) : KCore(G, num_buckets);
-    auto n = use_dynamic ? dynamic_graph.n : G.n;
+  if (use_stats) {
+    auto true_cores = KCore(dynamic_graph, num_buckets);
+    auto n = dynamic_graph.n;
 
     uintE max_true_core = parlay::reduce(true_cores, parlay::maxm<uintE>());
     std::cout << "### Coreness Exact: " << max_true_core << std::endl;
@@ -125,10 +83,78 @@ double KCore_runner(Graph& G, commandLine P) {
     std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl;
     std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl;
   }
-  
-  if (!use_dynamic) std::cout << "### Running Time: " << tt << std::endl;
+}
 
-  return tt;
+template <class Graph>
+double KCore_runner(Graph& G, commandLine P) {
+  size_t num_buckets = P.getOptionLongValue("-nb", 16);
+  double eps = P.getOptionDoubleValue("-eps", 0.2);
+  double delta = P.getOptionDoubleValue("-delta", 0.1);
+  bool use_pow = P.getOptionValue("-use_pow");
+  std::cout << "### Application: KCore" << std::endl;
+  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
+  std::cout << "### Threads: " << num_workers() << std::endl;
+  std::cout << "### n: " << G.n << std::endl;
+  std::cout << "### m: " << G.m << std::endl;
+  std::cout << "### Params: -nb (num_buckets) = " << num_buckets << " epsilon = " << eps << " use_pow = " << use_pow << std::endl;
+  std::cout << "### ------------------------------------" << std::endl;
+  if (num_buckets != static_cast<size_t>((1 << pbbslib::log2_up(num_buckets)))) {
+    std::cout << "Number of buckets must be a power of two."
+              << "\n";
+    exit(-1);
+  }
+  assert(P.getOption("-s"));
+
+  // Option to use dynamic graph instead of static
+  const std::string kInputFlag{"-i"};
+  const char* const input_file{P.getOptionValue(kInputFlag)};
+  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 0);
+  long batch_size = P.getOptionLongValue("-b", 1);
+  bool use_stats = P.getOptionValue("-stats");
+
+  bool use_dynamic = (input_file && input_file[0]);
+
+  if (!use_dynamic) {
+    timer t; t.start();
+    auto cores = approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
+    double tt = t.stop();
+    std::cout << "### Running Time: " << tt << std::endl;
+    return tt;
+  }
+  
+  using W = typename Graph::weight_type;
+  BatchDynamicEdges<W> batch_edge_list = read_batch_dynamic_edge_list<W>(input_file);
+
+  if (num_dynamic_edges != 0) {
+    symmetric_graph<symmetric_vertex, W> dynamic_graph = 
+      dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
+
+    // runs the fetch-and-add based implementation if set.
+    timer t; t.start();
+    auto cores = approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow);
+    double tt = t.stop();
+
+    std::cout << "### Batch Running Time: " << tt << std::endl;
+    std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+    print_stats(cores, eps, dynamic_graph, num_buckets, use_stats);
+    return tt;
+  }
+
+  timer t1; t1.start();
+  auto batch = batch_edge_list.edges;
+  for (size_t i = 0; i < batch.size(); i += batch_size) {
+    num_dynamic_edges = std::min(batch.size(), i + batch_size);
+    auto dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
+    timer t; t.start();
+    auto cores = approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow);
+    double tt = t.stop();
+    std::cout << "### Batch Running Time: " << tt << std::endl;
+    std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+    print_stats(cores, eps, dynamic_graph, num_buckets, use_stats);
+  }
+  double tt1 = t1.stop();
+  
+  return tt1;
 }
 }  // namespace gbbs
 
