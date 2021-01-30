@@ -37,6 +37,7 @@
 #include "gbbs/dynamic_graph_io.h"
 
 namespace gbbs {
+
 template <class Graph>
 double KCore_runner(Graph& G, commandLine P) {
   size_t num_buckets = P.getOptionLongValue("-nb", 16);
@@ -58,36 +59,62 @@ double KCore_runner(Graph& G, commandLine P) {
   // Option to use dynamic graph instead of static
   const std::string kInputFlag{"-i"};
   const char* const input_file{P.getOptionValue(kInputFlag)};
-  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 1);
+  long num_dynamic_edges = P.getOptionLongValue("-num_dynamic_edges", 0);
+  long batch_size = P.getOptionLongValue("-b", 1);
+  bool use_stats = P.getOptionValue("-stats");
 
   bool use_dynamic = (input_file && input_file[0]);
+
+  if (!use_dynamic) {
+    timer t; t.start();
+    auto cores = (fa) ? KCore_FA(G, num_buckets) : KCore(G, num_buckets);
+    double tt = t.stop();
+    uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+    std::cout << "### Coreness Exact: " << max_core << std::endl;
+    std::cout << "### Running Time: " << tt << std::endl;
+    return tt;
+  }
   
   using W = typename Graph::weight_type;
   BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
     read_batch_dynamic_edge_list<W>(input_file) : BatchDynamicEdges<W>();
-  if (use_dynamic && num_dynamic_edges == 0) num_dynamic_edges = batch_edge_list.edges.size();
-  symmetric_graph<symmetric_vertex, W> dynamic_graph = 
-    dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
+  
+  if (num_dynamic_edges != 0) {
+    symmetric_graph<symmetric_vertex, W> dynamic_graph = 
+      dynamic_edge_list_to_symmetric_graph(batch_edge_list, use_dynamic ? num_dynamic_edges : 0);
 
-  // runs the fetch-and-add based implementation if set.
-  timer t; t.start();
-  sequence<uintE> cores;
-  if (!use_dynamic)
-    cores = (fa) ? KCore_FA(G, num_buckets) : KCore(G, num_buckets);
-  else 
-    cores = (fa) ? KCore_FA(dynamic_graph, num_buckets) : KCore(dynamic_graph, num_buckets);
-  double tt = t.stop();
+    // runs the fetch-and-add based implementation if set.
+    timer t; t.start();
+    auto cores = (fa) ? KCore_FA(dynamic_graph, num_buckets) : KCore(dynamic_graph, num_buckets);
+    double tt = t.stop();
 
-  if (use_dynamic) {
     std::cout << "### Batch Running Time: " << tt << std::endl;
     std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+    if (use_stats) {
+      uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+      std::cout << "### Coreness Exact: " << max_core << std::endl;
+    }
+    return tt;
   }
-  uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
-  std::cout << "### Coreness Exact: " << max_core << std::endl;
 
-  if (!use_dynamic) std::cout << "### Running Time: " << tt << std::endl;
-
-  return tt;
+  timer t1; t1.start();
+  auto batch = batch_edge_list.edges;
+  for (size_t i = 0; i < batch.size(); i += batch_size) {
+    num_dynamic_edges = std::min(batch.size(), i + batch_size);
+    auto dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
+    timer t; t.start();
+    auto cores = (fa) ? KCore_FA(dynamic_graph, num_buckets) : KCore(dynamic_graph, num_buckets);
+    double tt = t.stop();
+    std::cout << "### Batch Running Time: " << tt << std::endl;
+    std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+    if (use_stats) {
+      uintE max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+      std::cout << "### Coreness Exact: " << max_core << std::endl;
+    }
+  }
+  double tt1 = t1.stop();
+  
+  return tt1;
 }
 }  // namespace gbbs
 
