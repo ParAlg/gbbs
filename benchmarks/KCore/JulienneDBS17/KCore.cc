@@ -63,6 +63,7 @@ double KCore_runner(Graph& G, commandLine P) {
   long batch_size = P.getOptionLongValue("-b", 1);
   bool use_stats = P.getOptionValue("-stats");
   long start_size = P.getOptionLongValue("-start_size", 0);
+  long end_size = P.getOptionLongValue("-end_size", 0);
 
   bool use_dynamic = (input_file && input_file[0]);
 
@@ -100,8 +101,9 @@ double KCore_runner(Graph& G, commandLine P) {
 
   timer t1; t1.start();
   auto batch = batch_edge_list.edges;
-  for (size_t i = start_size; i < batch.size(); i += batch_size) {
-    num_dynamic_edges = std::min(batch.size(), i + batch_size);
+  if (end_size == 0) end_size = batch.size();
+  for (size_t i = start_size; i < end_size; i += batch_size) {
+    num_dynamic_edges = std::min(end_size, i + batch_size);
     auto dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
     timer t; t.start();
     auto cores = (fa) ? KCore_FA(dynamic_graph, num_buckets) : KCore(dynamic_graph, num_buckets);
