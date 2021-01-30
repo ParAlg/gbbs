@@ -75,7 +75,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     bt.stop();
     rho++;
   }
-  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  //std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   bt.reportTotal("bucket time");
   emt.reportTotal("histogram time");
   return D;
@@ -146,7 +146,7 @@ inline sequence<uintE> KCore_FA(Graph& G,
     }
     rho++;
   }
-  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  //std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   return D_seq;
 }
 
@@ -205,7 +205,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16) {
 
     rho++;
   }
-  std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
+  //std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.reportTotal("bucket time"););
   debug(emt.reportTotal("histogram time"););
   return degeneracy_order;
