@@ -36,7 +36,7 @@ struct LDS {
 
   static constexpr double kDelta = 9.0;
   static constexpr double kUpperConstant = 2 + (static_cast<double>(3) / kDelta);
-  static constexpr double kEpsilon = 3.0;
+  static constexpr double kEpsilon = 0.2;
   static constexpr double kOnePlusEpsilon = 1 + kEpsilon;
 
   static constexpr uintE kUpLevel = UINT_E_MAX;
@@ -823,11 +823,11 @@ struct LDS {
       // First, update the down-levels of vertices that do not move (not in
       // nodes_to_move). Then, all vertices which moved to the same level should
       // be both in each other's up adjacency lists.
-      //parallel_for(0, starts.size() - 1, [&] (size_t i) {
+      //for (size_t i = 0; i < starts.size() - 1; i++) {
       //
       //NOTE: this should be a parallel for loop (as above) but was running into
       //concurrency issues.
-      for (size_t i = 0; i < starts.size() - 1; i++) {
+      parallel_for(0, starts.size() - 1, [&] (size_t i) {
         size_t idx = starts[i];
         uintE u = std::get<0>(flipped[idx]);
         if (!nodes_to_move.contains(u) && L[u].level > cur_level_id) {
@@ -846,12 +846,10 @@ struct LDS {
             // Remove the vertices that moved from their previous levels in
             // L[u].down.
             //
-            // NOTE: the below can also be optimized by making parallel (scan
-            // and prefix sum)
-
-            std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
+            //std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
             auto my_level = L[u].level;
-            for (size_t i = 0; i < neighbors.size(); i++) {
+            auto neighbor_levels = sequence<size_t>::uninitialized(neighbors.size());
+            parallel_for(0, neighbors.size(), [&] (size_t i) {
                 auto neighbor_id = neighbors[i].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
@@ -860,33 +858,34 @@ struct LDS {
                 if (neighbor_level < my_level) {
                     assert(L[u].down[neighbor_level].contains(neighbor_id));
                     L[u].down[neighbor_level].remove(neighbor_id);
-                    auto it = num_deleted_from_levels.find(neighbor_level);
-                    if (it != num_deleted_from_levels.end()) {
-                        it->second++;
-                    } else {
-                        num_deleted_from_levels[neighbor_level] = 1;
-                    }
+                    neighbor_levels[i] = neighbor_level;
                 } else {
                     assert(L[u].up.contains(neighbor_id));
                     L[u].up.remove(neighbor_id);
-                    auto it = num_deleted_from_levels.find(my_level);
-                    if (it != num_deleted_from_levels.end()) {
-                        it->second++;
-                    } else {
-                        num_deleted_from_levels[my_level] = 1;
-                    }
+                    neighbor_levels[i] = my_level;
                 }
-            }
+            });
 
-            for (auto level_count : num_deleted_from_levels) {
-                if (level_count.first == my_level)
-                    L[u].up.resize_down(level_count.second);
+            // Get the num deleted by sorting the levels of all neighbors
+            auto compare_tup = [&] (const size_t l, const size_t r) { return l < r; };
+            parlay::sort_inplace(parlay::make_slice(neighbor_levels), compare_tup);
+            auto new_bool_seq = parlay::delayed_seq<bool>(neighbor_levels.size() + 1, [&] (size_t i) {
+                      return (i == 0) || (i == neighbor_levels.size()) ||
+                             (neighbor_levels[i-1] != neighbor_levels[i]);
+                 });
+            auto new_starts = parlay::pack_index(new_bool_seq);
+
+            parallel_for (0, new_starts.size() - 1, [&] (size_t i){
+                size_t idx = new_starts[i];
+                size_t n_level = neighbor_levels[idx];
+                size_t num_deleted = new_starts[i+1] - idx;
+                if (n_level == my_level)
+                    L[u].up.resize_down(num_deleted);
                 else
-                    L[u].down[level_count.first].resize_down(level_count.second);
-            }
+                    L[u].down[n_level].resize_down(num_deleted);
+            });
         }
-      }
-      //});
+      });
 
       //std::cout<<"moving second set of nodes concurrency issues" << std::endl;
       // Move vertices in nodes_to_move to cur_level. Update the data structures
