@@ -36,7 +36,7 @@ struct LDS {
 
   static constexpr double kDelta = 9.0;
   static constexpr double kUpperConstant = 2 + (static_cast<double>(3) / kDelta);
-  static constexpr double kEpsilon = 0.2;
+  static constexpr double kEpsilon = 1.6;
   static constexpr double kOnePlusEpsilon = 1 + kEpsilon;
 
   static constexpr uintE kUpLevel = UINT_E_MAX;
@@ -706,8 +706,6 @@ struct LDS {
       }
 
       // Get vertices that have desire level equal to the current desire level
-      //
-      // TODO: need to optimize, this is not optimized
 
       auto nodes_to_move = gbbs::sparse_set<uintE>();
 
@@ -823,10 +821,6 @@ struct LDS {
       // First, update the down-levels of vertices that do not move (not in
       // nodes_to_move). Then, all vertices which moved to the same level should
       // be both in each other's up adjacency lists.
-      //for (size_t i = 0; i < starts.size() - 1; i++) {
-      //
-      //NOTE: this should be a parallel for loop (as above) but was running into
-      //concurrency issues.
       parallel_for(0, starts.size() - 1, [&] (size_t i) {
         size_t idx = starts[i];
         uintE u = std::get<0>(flipped[idx]);
@@ -846,7 +840,6 @@ struct LDS {
             // Remove the vertices that moved from their previous levels in
             // L[u].down.
             //
-            //std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
             auto my_level = L[u].level;
             auto neighbor_levels = sequence<size_t>::uninitialized(neighbors.size());
             parallel_for(0, neighbors.size(), [&] (size_t i) {
@@ -891,8 +884,6 @@ struct LDS {
       // Move vertices in nodes_to_move to cur_level. Update the data structures
       // of each moved vertex and neighbors in flipped.
       //
-      // NOTE: also need to parallelize the below.
-
       // Re-sort the flipped edges by endpoint which moved
       auto flipped_reverse = sequence<edge_type>::uninitialized(sum_degrees);
       parallel_for(0, flipped_reverse.size(), [&] (size_t i){
@@ -904,67 +895,47 @@ struct LDS {
         return (i == 0) || (i == flipped_reverse.size()) || (std::get<0>(flipped_reverse[i-1])
                 != std::get<0>(flipped_reverse[i]));
       });
-      starts = parlay::pack_index(bool_seq_reverse);
+      auto reverse_starts = parlay::pack_index(bool_seq_reverse);
 
       // Update the data structures (vertices kept at each level) of each vertex
       // that moved.
-      //parallel_for(0, starts.size() - 1, [&] (size_t i) {
       //
-      //NOTE: this shsould be a parallel for loop (as above) but I was running
+      //NOTE: this should be a parallel for loop (as above) but I was running
       //into concurrency issues.
-      for (size_t i=0; i<starts.size() - 1; i++) {
-        size_t idx = starts[i];
+      for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
+        size_t idx = reverse_starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
-        uintE num_neighbors = starts[i+1] - starts[i];
+        uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
 
         auto neighbors = parlay::make_slice(flipped_reverse.begin() + idx,
                 flipped_reverse.begin() + idx + num_neighbors);
 
-        uintE incoming_degree = 0;
-
-        // NOTE: below should be parallelized
-        std::unordered_map<size_t, size_t> num_deleted_from_levels = {};
-        uintE num_new_up_neighbors = 0;
         auto my_level = L[moved_vertex_v].level;
-        for (size_t i = 0; i < neighbors.size(); i++) {
-            auto neighbor_id = neighbors[i].second;
+        auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
+        parallel_for (0, neighbors.size(), [&] (size_t j) {
+            auto neighbor_id = neighbors[j].second;
             auto neighbor = L[neighbor_id];
             auto neighbor_level = neighbor.level;
             assert(neighbor_level >= cur_level_id);
-            assert(moved_vertex_v == neighbors[i].first);
+            assert(moved_vertex_v == neighbors[j].first);
 
             if (neighbor_level < my_level) {
-                if (!L[moved_vertex_v].up.contains(neighbor_id)) {
-                    num_new_up_neighbors++;
-                }
-
+                move_up_size[j] = 1;
                 assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
-                incoming_degree++;
-                L[moved_vertex_v].down[neighbor_level].remove(neighbor_id);
-                auto it = num_deleted_from_levels.find(neighbor_level);
-                if (it != num_deleted_from_levels.end()) {
-                    it->second++;
-                } else {
-                    num_deleted_from_levels[neighbor_level] = 1;
-                }
-            }
-        }
-
-        L[moved_vertex_v].up.resize(num_new_up_neighbors);
-        parallel_for(0, neighbors.size(), [&] (size_t i){
-            if (L[neighbors[i].second].level < my_level) {
-                L[moved_vertex_v].up.insert(neighbors[i].second);
+            } else {
+                move_up_size[j] = 0;
             }
         });
 
-        for (auto level_count : num_deleted_from_levels) {
-            if (level_count.first == my_level)
-                L[moved_vertex_v].up.resize(incoming_degree);
-            else
-                L[moved_vertex_v].down[level_count.first].resize_down(level_count.second);
-        }
+        size_t indegree_sum = parlay::scan_inplace(parlay::make_slice(move_up_size));
+
+        L[moved_vertex_v].up.resize(indegree_sum);
+        parallel_for(0, neighbors.size(), [&] (size_t k){
+            if (L[neighbors[k].second].level < my_level) {
+                L[moved_vertex_v].up.insert(neighbors[k].second);
+            }
+        });
       }
-      //});
 
       // Update current level of the moved vertices and reset the desired level
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
@@ -1183,7 +1154,7 @@ inline void RunLDS(Graph& G) {
 
   auto edges = G.edges();
 
-  size_t num_batches = 100;
+  size_t num_batches = 10000;
   size_t batch_size = edges.size() / num_batches;
   for (size_t i=0; i<num_batches; i++) {
     size_t start = batch_size*i;

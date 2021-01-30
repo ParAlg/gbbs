@@ -216,7 +216,7 @@ class sparse_set {
   }
 
   void clear() {
-    parallel_for(0, table.size(), [&] (size_t i) { table[i] = kEmptyKey; });
+    parallel_for(0, table_seq.size(), [&] (size_t i) { table[i] = kEmptyKey; });
   }
 };
 
