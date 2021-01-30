@@ -29,7 +29,7 @@ def main():
   # Configured for Test 1
   program_dir = "../benchmarks/"
   programs = ["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
-  program_pres = ["lds", "kcore"]
+  program_pres = ["lds", "kcore", "ekcore"]
   is_dynamic = [True, False, False]
   files = ["dblp_edges","orkut_edges"]
   pres = ["dblp","orkut"]
