@@ -357,7 +357,7 @@ struct LDS {
     auto l = L[v].level;
     uintE group = group_for_level(l);
     // If l is not the highest level in the group, we drop to the previous group
-    if (l % levels_per_group != levels_per_group - 1) group--;
+    if (l % levels_per_group != levels_per_group - 1 && group != 0) group--;
     return ceil(group_degree(group, epsilon));
   }
 
