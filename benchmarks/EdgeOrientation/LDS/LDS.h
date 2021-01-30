@@ -415,7 +415,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, int batch_size, bool c
       if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
       else layers.delete_edge({batch[j].from, batch[j].to});
     }
-    layers.check_invariants();
+    //layers.check_invariants();
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
     std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
