@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <math.h>
+
 #include "gbbs/gbbs.h"
 #include "gbbs/julienne.h"
 
@@ -82,7 +84,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
       Degrees[vtx].second = true;  // set to peeled
     });
 
-    uintE lower_bound = pow((1 + delta), k-1);
+    uintE lower_bound = ceil(pow((1 + delta), k-1));
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
         -> const std::optional<std::tuple<uintE, uintE> > {
       uintE v = std::get<0>(p), edges_removed = std::get<1>(p);
