@@ -27,6 +27,7 @@
 #include <unordered_set>
 #include <vector>
 #include <stdlib.h>
+#include <math.h>
 
 #include "gbbs/gbbs.h"
 #include "gbbs/dynamic_graph_io.h"
@@ -357,7 +358,7 @@ struct LDS {
     uintE group = group_for_level(l);
     // If l is not the highest level in the group, we drop to the previous group
     if (l % levels_per_group != levels_per_group - 1) group--;
-    return group_degree(group, epsilon);
+    return ceil(group_degree(group, epsilon));
   }
 
   inline uintE group_for_level(uintE level) const {
