@@ -48,7 +48,7 @@ struct EmptyToLogW {
 
 struct ActualWeight {
   struct data {};
-  template <class Graph, class WeightType>
+  template <class Graph, class WeightType=float>
   struct GetWeight {
     using weight_type = typename Graph::weight_type;
     using underlying_weight_type = typename Graph::weight_type;
@@ -172,6 +172,11 @@ struct WeightedAverageLinkage : ClusteringType::template WeightedClustering<Grap
   static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
     return (lhs + rhs) / static_cast<double>(2);
   }
+
+  static std::string AsString(const weight_type& wgh) {
+    return std::to_string(wgh);
+  }
+
 };
 
 template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
@@ -184,6 +189,11 @@ struct MaxLinkage : ClusteringType::template Clustering<Graph, GetWeight> {
   static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
     return std::max(lhs, rhs);
   }
+
+  static std::string AsString(const weight_type& wgh) {
+    return std::to_string(wgh);
+  }
+
 };
 
 template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
@@ -195,6 +205,10 @@ struct MinLinkage : ClusteringType::template Clustering<Graph, GetWeight> {
   // The linkage function.
   static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
     return std::min(lhs, rhs);
+  }
+
+  static std::string AsString(const weight_type& wgh) {
+    return std::to_string(wgh);
   }
 };
 
@@ -239,6 +253,10 @@ struct AverageLinkage : ClusteringType::template WeightedClustering<Graph, AvgLi
     size_t bundle_size = lhs.bundle_size + rhs.bundle_size;
     double total_weight = lhs.total_weight + rhs.total_weight;
     return weight_type(bundle_size, total_weight);
+  }
+
+  static std::string AsString(const weight_type& wgh) {
+    return std::to_string(wgh.get_weight());
   }
 };
 

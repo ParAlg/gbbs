@@ -25,14 +25,14 @@
 #include <queue>
 #include <stack>
 #include <vector>
-#include "clustered_graph.h"
+#include "ClusteredGraph.h"
 #include "gbbs/gbbs.h"
 
 namespace gbbs {
-namespace greedy_exact {
+namespace nn_chain {
 
-template <class ClusterGraph>
-void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
+template <class Weights, class ClusterGraph>
+void run_chain(Weights& weights, ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
   assert(chain.size() > 0);
 
   std::cout << std::endl;
@@ -73,7 +73,7 @@ void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
 
       debug(
       std::cout << "Found reciprocal edge between top "
-            << top << " (" << CG.clusters[top].get_current_id() << ") and nn " << nn << " (" << CG.clusters[nn].get_current_id() << ") with weight: " << top_weight << std::endl;
+            << top << " (" << CG.clusters[top].get_current_id() << ") and nn " << nn << " (" << CG.clusters[nn].get_current_id() << ") with weight: " << Weights::AsString(top_weight) << std::endl;
       std::cout << "Done unite. Merged into " << merged_id << std::endl;);
 
       // Remove merged_id from on_stack.
@@ -87,7 +87,7 @@ void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
 
       debug(
       std::cout << "Pushing onto stack from "
-            << top << " (" << CG.clusters[top].get_current_id() << ") and nn " << nn << " (" << CG.clusters[nn].get_current_id() << ") with weight: " << top_weight << std::endl;);
+            << top << " (" << CG.clusters[top].get_current_id() << ") and nn " << nn << " (" << CG.clusters[nn].get_current_id() << ") with weight: " << Weights::AsString(top_weight) << std::endl;);
     }
   }
 }
@@ -98,16 +98,14 @@ template <class Weights,
           // could involve more than simply storing the underlying weight, or
           // could internally be a representation like gbbs::empty.
           template <class WW> class w_vertex,
-          class IW,  // the weight type of the underlying graph
-          class LinkageFn>
-auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage) {
+          class IW>  // the weight type of the underlying graph
+auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
   using W = typename Weights::weight_type;  // potentially a more complex type than IW
 
   using pq_elt = std::tuple<uintE, uintE, W>;
   using edge = std::tuple<uintE, W>;
 
   using clustered_graph = gbbs::clustering::clustered_graph<Weights, IW, w_vertex>;
-  // using cluster_id = clustering::cluster_id;
 
   size_t n = G.n;
 
@@ -146,7 +144,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
       chain.push(v);
       assert(!on_stack[v]);
       on_stack[v] = true;
-      run_chain(CG, chain, on_stack.begin());
+      run_chain(weights, CG, chain, on_stack.begin());
     }
   }
   std::cout << "Finished clustering" << std::endl;
@@ -154,6 +152,6 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
   return CG.get_dendrogram();
 }
 
-}  // namespace greedy_exact
+}  // namespace nn_chain
 }  // namespace gbbs
 
