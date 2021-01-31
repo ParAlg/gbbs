@@ -1240,13 +1240,14 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     auto batch = batch_edge_list.edges;
     for (size_t i = 0; i < batch.size(); i += batch_size) {
         timer t; t.start();
+        auto end_size = std::min(i + batch_size, batch.size());
         auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
-                    batch.begin() + i + batch_size), [&] (const DynamicEdge<W>& edge){
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
             return edge.insert;
         });
 
         auto deletions = parlay::filter(parlay::make_slice(batch.begin() + i,
-                    batch.begin() + i + batch_size), [&] (const DynamicEdge<W>& edge){
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
             return !edge.insert;
         });
 
