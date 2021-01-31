@@ -27,6 +27,8 @@
 #include <stack>
 
 #include "gbbs/gbbs.h"
+#include "gbbs/dynamic_graph_io.h"
+#include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 #include "sparse_set.h"
 
@@ -34,10 +36,10 @@ namespace gbbs {
 
 struct LDS {
 
-  static constexpr double kDelta = 9.0;
-  static constexpr double kUpperConstant = 2 + (static_cast<double>(3) / kDelta);
-  static constexpr double kEpsilon = 1.6;
-  static constexpr double kOnePlusEpsilon = 1 + kEpsilon;
+  double delta = 48.0;
+  double UpperConstant = 2 + (static_cast<double>(3) / delta);
+  double eps = 1.6;
+  double OnePlusEps = 1 + eps;
 
   static constexpr uintE kUpLevel = UINT_E_MAX;
   // Used to indicate that this vertex is not moving.
@@ -58,8 +60,9 @@ struct LDS {
 
     // Used when Invariant 1 (upper invariant) is violated.
     template <class Levels>
-    inline uintE get_desire_level_upwards(uintE vtx_id, Levels& L, const size_t levels_per_group) const {
-      assert(!upper_invariant(levels_per_group));
+    inline uintE get_desire_level_upwards(uintE vtx_id, Levels& L, const size_t levels_per_group,
+            double upper_constant, double eps) const {
+      assert(!upper_invariant(levels_per_group, upper_constant, eps));
       using LV = std::pair<uintE, uintE>;
       auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
         uintE v = up.table[i];
@@ -87,7 +90,7 @@ struct LDS {
           // Consider all levels from prev_level to the cur_level.
           for (uintE j = prev_level+1; j <= cur_level; j++) {
             uintE group = j / levels_per_group;
-            uintE up_degree = kUpperConstant*group_degree(group);
+            uintE up_degree = upper_constant*group_degree(group, eps);
 
             if (degree_at_level <= up_degree) {
               new_level = j;
@@ -141,8 +144,9 @@ struct LDS {
 
     // Used when Invariant 2 (up* degree invariant) is violated.
     template <class Levels>
-    inline uintE get_desire_level_downwards(uintE vtx_id, Levels& L, const size_t levels_per_group) const {
-        assert(!lower_invariant(levels_per_group));
+    inline uintE get_desire_level_downwards(uintE vtx_id, Levels& L, const size_t levels_per_group,
+            double upper_constant, double eps) const {
+        assert(!lower_invariant(levels_per_group, eps));
         assert(level > 0);
 
         // Currently sequential going level by level but we probably want to
@@ -157,7 +161,7 @@ struct LDS {
             num_up_neighbors = num_up_star_neighbors;
             num_up_star_neighbors += down[cur_level-1].num_elms();
             if (upstar_degree_satisfies_invariant(cur_level, levels_per_group, num_up_star_neighbors,
-                        num_up_neighbors)) {
+                        num_up_neighbors, upper_constant, eps)) {
                 break;
             }
             cur_level -= 1;
@@ -270,42 +274,44 @@ struct LDS {
       assert(removed == inserted);
     }
 
-    inline double group_degree(size_t group) const {
-      return pow(kOnePlusEpsilon, group);
+    inline double group_degree(size_t group, double eps) const {
+      return pow(eps, group);
     }
 
-    inline bool upper_invariant(const size_t levels_per_group) const {
+    inline bool upper_invariant(const size_t levels_per_group, double upper_constant,
+             double eps) const {
       uintE group = level / levels_per_group;
-      uintE up_degree = kUpperConstant * group_degree(group);
+      uintE up_degree = upper_constant * group_degree(group, eps);
       return up.num_elms() <= up_degree;
     }
 
-    inline bool lower_invariant(const size_t levels_per_group) const {
+    inline bool lower_invariant(const size_t levels_per_group, double eps) const {
       if (level == 0) return true;
       uintE lower_group = (level - 1) / levels_per_group;
       //auto up_size = up.num_elms();
       //auto prev_level_size = down[level - 1].num_elms();
-      size_t our_group_degree = static_cast<size_t>(group_degree(lower_group));
+      size_t our_group_degree = static_cast<size_t>(group_degree(lower_group, eps));
       return num_up_star_neighbors() >= our_group_degree;
     }
 
     // Method for computing whether the updegree from cur_level is enough to
     // satisfy Invariant 2.
     inline bool upstar_degree_satisfies_invariant(uintE cur_level, const size_t
-            levels_per_group, uintE num_up_star_neighbors, uintE num_up_neighbors) const {
+            levels_per_group, uintE num_up_star_neighbors, uintE num_up_neighbors,
+            double upper_constant, double eps) const {
         if (cur_level == 0) return true;
         uintE group = (cur_level - 1) / levels_per_group;
-        size_t our_group_degree = static_cast<size_t>(group_degree(group));
+        size_t our_group_degree = static_cast<size_t>(group_degree(group, eps));
         uintE upper_group = cur_level / levels_per_group;
-        size_t upper_group_degree = static_cast<size_t>(group_degree(upper_group));
+        size_t upper_group_degree = static_cast<size_t>(group_degree(upper_group, eps));
 
         return num_up_star_neighbors >= our_group_degree && num_up_neighbors
-            < kUpperConstant * upper_group_degree;
+            < upper_constant * upper_group_degree;
     }
 
-    inline bool is_dirty(const size_t levels_per_group) const {
-      bool upper = upper_invariant(levels_per_group);
-      bool lower = lower_invariant(levels_per_group);
+    inline bool is_dirty(const size_t levels_per_group, double upper_constant, double eps) const {
+      bool upper = upper_invariant(levels_per_group, upper_constant, eps);
+      bool lower = lower_invariant(levels_per_group, eps);
       return !(upper && lower);
     }
 
@@ -317,7 +323,14 @@ struct LDS {
   LDSVertex* L;
 
   LDS(size_t n) : n(n) {
-    levels_per_group = ceil(log(n) / log(kOnePlusEpsilon));
+    levels_per_group = ceil(log(n) / log(OnePlusEps));
+    L_seq = parlay::sequence<LDSVertex>(n);
+    L = L_seq.begin();
+  }
+
+  LDS(size_t _n, double _eps, double _delta) : n(_n), eps(_eps), delta(_delta){
+    OnePlusEps = (1 + eps);
+    levels_per_group = ceil(log(n) / log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(n);
     L = L_seq.begin();
   }
@@ -374,7 +387,7 @@ struct LDS {
     auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i) {
       uintE v = possibly_dirty[i];
       uintE level = UINT_E_MAX;
-      if (L[v].is_dirty(levels_per_group)) {
+      if (L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
         auto our_level = L[v].level;
         // Return only if the vertex is not in the bucketing structure.
         if (our_level >= levels.size() || !levels[our_level].contains(v)) {
@@ -510,11 +523,11 @@ struct LDS {
     parallel_for(0, cur_level.size(), [&] (size_t i) {
       uintE v = cur_level.table[i];
       uintE desire_level = UINT_E_MAX;
-      if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
-        assert(L[v].lower_invariant(levels_per_group));
-        assert(!L[v].upper_invariant(levels_per_group));
+      if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
+        assert(L[v].lower_invariant(levels_per_group, eps));
+        assert(!L[v].upper_invariant(levels_per_group, UpperConstant, eps));
 
-        desire_level = L[v].get_desire_level_upwards(v, L, levels_per_group);
+        desire_level = L[v].get_desire_level_upwards(v, L, levels_per_group, UpperConstant, eps);
         L[v].desire_level = desire_level;
 
         assert(L[v].level == cur_level_id);
@@ -598,6 +611,7 @@ struct LDS {
       return vtx_id;
     });
 
+    //std::cout << "begin moving vertices" << std::endl;
     // Map over the vertices being modified. Overwrite their incident edges with
     // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
     // correct size, and then insert in parallel.
@@ -693,6 +707,7 @@ struct LDS {
 
     // TODO: update total_moved properly (not necessary for correctness, but
     // interesting for logging / experimental evaluation).
+    std::cout << "next rebalancing insertions" << std::endl;
     return rebalance_insertions(levels, cur_level_id + 1, total_moved);
   }
 
@@ -700,7 +715,7 @@ struct LDS {
   // Returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_deletions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
-      //std::cout<<"start procedure"<<std::endl;
+      std::cout<<"start procedure"<<std::endl;
       if (cur_level_id >= levels.size()) {
           return total_moved;
       }
@@ -719,7 +734,7 @@ struct LDS {
       auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
       auto level_size = parlay::sequence<size_t>(levels.size());
 
-      //std::cout<<"starting level resizes" << std::endl;
+      std::cout<<"starting level resizes" << std::endl;
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
@@ -727,11 +742,12 @@ struct LDS {
 
             uintE desire_level = UINT_E_MAX;
 
-            if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
-                assert(L[v].upper_invariant(levels_per_group));
-                assert(!L[v].lower_invariant(levels_per_group));
+            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
+                assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps));
+                assert(!L[v].lower_invariant(levels_per_group, eps));
 
-                desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group);
+                desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group, UpperConstant,
+                        eps);
                 L[v].desire_level = desire_level;
 
                 assert(L[v].level = i);
@@ -746,19 +762,19 @@ struct LDS {
         level_size[i] = num_this_level;
       });
 
-      //std::cout<<"end level resizes"<<std::endl;
+      std::cout<<"end level resizes"<<std::endl;
 
       size_t num_to_move = parlay::scan_inplace(parlay::make_slice(level_size));
 
       nodes_to_move.resize(num_to_move);
 
-      //std::cout << "resized table"<<std::endl;
+      std::cout << "resized table"<<std::endl;
 
       parallel_for(0, levels.size(), [&] (size_t i) {
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
-            if (levelset::valid(v) && L[v].is_dirty(levels_per_group)) {
+            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
@@ -768,12 +784,12 @@ struct LDS {
         });
       });
 
-      //std::cout << "make the levels valid" << std::endl;
+      std::cout << "make the levels valid" << std::endl;
       parallel_for (0, level_resizes.size(), [&] (size_t i){
           levels[i].resize_down(level_resizes[i]);
       });
 
-      //std::cout << "finished level resizing" << std::endl;
+      std::cout << "finished level resizing" << std::endl;
 
       // Turn nodes_to_move into a sequence
       auto nodes_to_move_seq = nodes_to_move.entries();
@@ -833,8 +849,8 @@ struct LDS {
             // Update down[cur_level] to contain these vertices
             assert(cur_level_id <= L[u].level);
             L[u].down[cur_level_id].resize(neighbors.size());
-            parallel_for(0, neighbors.size(), [&] (size_t n) {
-                L[u].down[cur_level_id].insert(neighbors[n].second);
+            parallel_for(0, neighbors.size(), [&] (size_t q) {
+                L[u].down[cur_level_id].insert(neighbors[q].second);
             });
 
             // Remove the vertices that moved from their previous levels in
@@ -880,7 +896,7 @@ struct LDS {
         }
       });
 
-      //std::cout<<"moving second set of nodes concurrency issues" << std::endl;
+      std::cout<<"moving second set of nodes concurrency issues" << std::endl;
       // Move vertices in nodes_to_move to cur_level. Update the data structures
       // of each moved vertex and neighbors in flipped.
       //
@@ -943,14 +959,14 @@ struct LDS {
         L[v].level = cur_level_id;
         L[v].desire_level = UINT_E_MAX;
         L[v].down.resize(cur_level_id);
-        assert(L[v].upper_invariant(levels_per_group));
+        assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps));
         assert(L[v].lower_invariant(levels_per_group));
       });
 
       // update the levels with neighbors
       update_levels(std::move(affected), levels);
 
-      //std::cout << "rebalance concurrency issues" << std::endl;
+      std::cout << "rebalance concurrency issues" << std::endl;
       return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
   }
 
@@ -1031,12 +1047,14 @@ struct LDS {
     // Place the affected vertices into levels based on their current level.
     update_levels(std::move(affected), levels);
 
+    std::cout << "Rebalancing insertions" << std::endl;
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(std::move(levels), 0);
   }
 
   template <class Seq>
   void batch_deletion(const Seq& deletions_unfiltered) {
+    std::cout << "started deletions " << std::endl; fflush(stdout);
     // Remove edges that do not exist in the graph.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
@@ -1124,14 +1142,15 @@ struct LDS {
     update_levels(std::move(affected), levels);
 
     // Update the level structure (basically a sparse bucketing structure).
+    std::cout << "rebalancing deletions " << std::endl; fflush(stdout);
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
   }
 
   void check_invariants() {
     bool invs_ok = true;
     for (size_t i=0; i<n; i++) {
-      bool upper_ok = L[i].upper_invariant(levels_per_group);
-      bool lower_ok = L[i].lower_invariant(levels_per_group);
+      bool upper_ok = L[i].upper_invariant(levels_per_group, UpperConstant, eps);
+      bool lower_ok = L[i].lower_invariant(levels_per_group, eps);
       assert(upper_ok);
       assert(lower_ok);
       invs_ok &= upper_ok;
@@ -1144,6 +1163,23 @@ struct LDS {
   inline uintE group_for_level(uintE level) const {
     return level / levels_per_group;
   }
+
+  uintE core(uintE v) const {
+    auto l = L[v].level;
+    uintE group = group_for_level(l);
+    if (l % levels_per_group != levels_per_group - 1 && group != 0) group--;
+    return ceil(L[v].group_degree(group, eps));
+  }
+
+
+  uintE max_coreness() const {
+    auto levels = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
+        return L[i].level;
+    });
+    uintE max_level = pbbslib::reduce_max(levels);
+    uintE max_group = group_for_level(max_level);
+    return L[0].group_degree(max_group, eps);
+  }
 };
 
 template <class Graph>
@@ -1154,7 +1190,7 @@ inline void RunLDS(Graph& G) {
 
   auto edges = G.edges();
 
-  size_t num_batches = 10000;
+  size_t num_batches = 1000;
   size_t batch_size = edges.size() / num_batches;
   for (size_t i=0; i<num_batches; i++) {
     size_t start = batch_size*i;
@@ -1167,13 +1203,7 @@ inline void RunLDS(Graph& G) {
     });
 
     layers.batch_insertion(batch);
-
-//    for (size_t i=0; i<batch.size(); i++) {
-//      bool exists = layers.edge_exists(batch[i]);
-//      bool ok = layers.check_both_directions(batch[i]);
-//      assert(exists);
-//      assert(ok);
-//    }
+    //std::cout << "Max coreness: " << layers.max_coreness() << std::endl;
   }
 
 //  for (size_t i = 0; i < n; i++) {
@@ -1201,7 +1231,14 @@ inline void RunLDS(Graph& G) {
     });
 
     layers.batch_deletion(batch);
+    //std::cout << "Max coreness: " << layers.max_coreness() << std::endl;
 
+    /*for (size_t i=0; i<batch.size(); i++) {
+        bool exists = layers.edge_exists(batch[i]);
+        //bool ok = layers.check_both_directions(batch[i]);
+        assert(!exists);
+        //assert(ok);
+    }*/
 
 //    for (size_t i=0; i<batch.size(); i++) {
 //      bool exists = layers.edge_exists(batch[i]);
@@ -1216,7 +1253,106 @@ inline void RunLDS(Graph& G) {
   std::cout << "Finished check" << std::endl;
 }
 
+template <class W>
+inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
+        LDS& layers) {
+    auto batch = batch_edge_list.edges;
+    for (size_t i = 0; i < batch.size(); i += batch_size) {
+        timer t; t.start();
+        auto insertions = parlay::filter(batch, [&] (const DynamicEdge<W>& edge){
+            return edge.insert;
+        });
 
+        auto deletions = parlay::filter(batch, [&] (const DynamicEdge<W>& edge){
+            return !edge.insert;
+        });
 
+        auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
+                [&] (size_t i) {
+            uintE vert1 = insertions[i].from;
+            uintE vert2 = insertions[i].to;
+            return std::make_pair(vert1, vert2);
+        });
+
+        auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
+            [&] (size_t i) {
+            uintE vert1 = deletions[i].from;
+            uintE vert2 = deletions[i].to;
+            return std::make_pair(vert1, vert2);
+        });
+
+        std::cout << "Successfully batched." << std::endl;
+
+        layers.batch_insertion(batch_insertions);
+
+        std::cout << "batch insertions successful" << std::endl;
+
+        layers.batch_deletion(batch_deletions);
+
+        double tt = t.stop();
+        std::cout << "### Batch Running Time: " << tt << std::endl;
+        std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
+        std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
+        if (compare_exact) {
+            auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(),
+                        i + batch_size));
+
+            // Run kcore on graph
+            auto cores = KCore(graph, 16);
+
+            auto max_core = parlay::reduce(cores, parlay::maxm<uintE>());
+            std::cout << "### Coreness Exact: " << max_core << std::endl;
+
+            // Compare cores[v] to layers.core(v)
+            auto approximation_error = parlay::delayed_seq<float>(batch_edge_list.max_vertex,
+                    [&] (size_t j) -> float {
+                auto exact_core = j >= graph.n ? 0 : cores[j];
+                auto approx_core = layers.core(j);
+                if (exact_core == 0 || approx_core == 0) {
+                    return 0;
+                }
+                return (exact_core > approx_core) ? (float) exact_core / (float) approx_core :
+                       (float) approx_core / (float) exact_core;
+            });
+
+            double mult_appx = (2 + 2*layers.eps);
+            float bad = parlay::reduce(parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float{
+                auto true_core = j >= graph.n ? 0 : cores[j];
+                auto appx_core = layers.core(j);
+                return (appx_core > (mult_appx * true_core)) + (appx_core < (true_core/mult_appx));
+            }), parlay::addm<float>());
+
+            // Output min, max, and average error
+            float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
+            float max_error = parlay::reduce(approximation_error, parlay::maxm<float>());
+            float min_error = parlay::reduce(approximation_error,
+              parlay::make_monoid([](float l, float r){
+                if (l == 0) return r;
+                if (r == 0) return l;
+                return std::min(r, l);
+            }, (float) 0));
+            float denominator = parlay::reduce(parlay::delayed_seq<float>(batch_edge_list.max_vertex,
+                        [&] (size_t j) -> float{
+                auto exact_core = j >= graph.n ? 0 : cores[j];
+                auto approx_core = layers.core(j);
+                return (exact_core != 0) && (approx_core != 0);
+            }), parlay::addm<float>());
+            auto avg_error = (denominator == 0) ? 0 : sum_error / denominator;
+            std::cout << "### Num Bad: " << bad << std::endl;
+            std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl; fflush(stdout);
+            std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
+            std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
+        }
+    }
+}
+
+template <class Graph, class W>
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
+        bool compare_exact, double eps, double delta) {
+    uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
+    auto layers = LDS(max_vertex, eps, delta);
+    if (G.n > 0) RunLDS(G);
+    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
+}
 
 }  // namespace gbbs
