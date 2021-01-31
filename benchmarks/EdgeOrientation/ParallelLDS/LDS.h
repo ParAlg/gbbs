@@ -764,7 +764,9 @@ struct LDS {
 
       nodes_to_move.resize(num_to_move);
 
+      auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
       parallel_for(0, levels.size(), [&] (size_t i) {
+        auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -772,14 +774,15 @@ struct LDS {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
-                    level_resizes[i]++;
+                    inner_level_sizes[i] = 1;
                 }
             }
         });
+        outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
       });
 
-      parallel_for (0, level_resizes.size(), [&] (size_t i){
-          levels[i].resize_down(level_resizes[i]);
+      parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
+          levels[i].resize_down(outer_level_sizes[i]);
       });
 
       // Turn nodes_to_move into a sequence
@@ -1264,7 +1267,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 
         layers.batch_insertion(batch_insertions);
 
-        layers.batch_deletion(batch_deletions);
+        //layers.batch_deletion(batch_deletions);
 
         double tt = t.stop();
         std::cout << "### Batch Running Time: " << tt << std::endl;
