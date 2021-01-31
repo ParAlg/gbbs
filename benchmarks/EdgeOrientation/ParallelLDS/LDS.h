@@ -275,7 +275,7 @@ struct LDS {
     }
 
     inline double group_degree(size_t group, double eps) const {
-      return pow(eps, group);
+      return pow((1 + eps), group);
     }
 
     inline bool upper_invariant(const size_t levels_per_group, double upper_constant,
