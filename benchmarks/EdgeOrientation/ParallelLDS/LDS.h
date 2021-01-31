@@ -329,9 +329,10 @@ struct LDS {
   }
 
   LDS(size_t _n, double _eps, double _delta) : n(_n), eps(_eps), delta(_delta){
-    OnePlusEps = (1 + eps);
+    OnePlusEps = (1 + _eps);
+    UpperConstant = 2 + ((double) 3 / _delta);
     levels_per_group = ceil(log(n) / log(OnePlusEps));
-    L_seq = parlay::sequence<LDSVertex>(n);
+    L_seq = parlay::sequence<LDSVertex>(_n);
     L = L_seq.begin();
   }
 
@@ -707,7 +708,7 @@ struct LDS {
 
     // TODO: update total_moved properly (not necessary for correctness, but
     // interesting for logging / experimental evaluation).
-    std::cout << "next rebalancing insertions" << std::endl;
+    //std::cout << "next rebalancing insertions" << std::endl;
     return rebalance_insertions(levels, cur_level_id + 1, total_moved);
   }
 
