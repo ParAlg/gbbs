@@ -61,6 +61,7 @@ struct clustered_graph {
       auto cluster_size = vertex.out_degree();
       staleness = cluster_size;
       active = true;
+      current_id = vtx_id;
 
       auto edges = sequence<edge>::uninitialized(cluster_size);
 
@@ -105,8 +106,19 @@ struct clustered_graph {
       return active;
     }
 
+    uintE get_current_id() {
+      return current_id;
+    }
+
+    void set_current_id(uintE id) {
+      current_id = id;
+    }
+
     // Tracks the last cluster update size.
     uintE staleness;
+    // The "current" id of this cluster, updated upon a merge that keeps this
+    // cluster active.
+    uintE current_id;
     // Active == false iff this cluster has not yet been clustered
     bool active;
     // An augmented map storing our neighbors + weights.
@@ -115,9 +127,12 @@ struct clustered_graph {
 
   Graph& G;
   Weights& weights;
-  size_t n;
+  uintE n;
+  uintE last_cluster_id;
+  uintE num_merges_performed;
 
   parlay::sequence<clustered_vertex> clusters;
+  parlay::sequence<std::pair<uintE, W>> dendrogram;
 
   // Returns whether this cluster is still active, or whether it has been merged
   // into a _larger_ cluster.
@@ -125,7 +140,13 @@ struct clustered_graph {
     return clusters[id].is_active();
   }
 
-  uintE unite(uintE a, uintE b) {
+  uintE new_cluster_id() {
+    uintE ret = last_cluster_id;
+    last_cluster_id++;
+    return ret;
+  }
+
+  uintE unite(uintE a, uintE b, W wgh) {
     assert(is_active(a));
     assert(is_active(b));
     // Identify smaller/larger clusters (will merge smaller -> larger).
@@ -163,6 +184,18 @@ struct clustered_graph {
         Weights::linkage);
     clusters[larger].neighbors = std::move(merged);
 
+    // Save that clusters a and b are merged.
+    uintE current_a = clusters[a].get_current_id();
+    uintE current_b = clusters[b].get_current_id();
+    uintE new_id = new_cluster_id();  // increments next_id
+    num_merges_performed++;
+
+    dendrogram[current_a] = {new_id, wgh};
+    dendrogram[current_b] = {new_id, wgh};
+
+    // Update the current id of the remaining vertex.
+    clusters[larger].current_id = new_id;
+
     // Map over _all_ of smaller's edges, and update its neighbors to point to
     // larger. If the neighbor, w, also has an edge to larger (a
     // smaller-larger-w triangle), then update the weight of this edge.
@@ -191,7 +224,10 @@ struct clustered_graph {
 
   clustered_graph(Graph& G, Weights& weights) : G(G), weights(weights) {
     n = G.n;
+    last_cluster_id = n;
+    num_merges_performed = 0;
     clusters = parlay::sequence<clustered_vertex>(n);
+    dendrogram = parlay::sequence<std::pair<uintE, W>>(2*n - 2, std::make_pair(UINT_E_MAX, W()));
 
     parallel_for(0, n, [&] (size_t i) {
       auto orig = G.get_vertex(i);
@@ -204,7 +240,44 @@ struct clustered_graph {
   }
 
   // extract dendrogram
+  sequence<std::pair<uintE, W>> get_dendrogram() {
 
+    std::cout << "num_merges_performed = " << num_merges_performed << std::endl;
+    std::cout << "n = " << n << std::endl;
+
+    if (num_merges_performed < n-1) {
+      size_t last_clust = last_cluster_id;
+      auto ids = parlay::delayed_seq<uintE>(last_clust + 1, [&] (size_t i) {
+        if (dendrogram[i].first == UINT_E_MAX) return (uintE)i;
+        return UINT_E_MAX;
+      });
+      auto bad = parlay::filter(ids, [&] (const uintE& e) { return e != UINT_E_MAX; });
+
+      std::cout << "num bad = " << bad.size() << std::endl;
+
+      std::queue<uintE> bad_queue;
+      for (size_t i=0; i<bad.size(); i++) {
+        bad_queue.push(bad[i]);
+      }
+
+      while (bad_queue.size() > 1) {
+        uintE fst = bad_queue.front();
+        bad_queue.pop();
+        uintE snd = bad_queue.front();
+        bad_queue.pop();
+
+        uintE new_id = new_cluster_id();  // increments next_id
+        dendrogram[fst] = {new_id, Weights::id()};
+        dendrogram[snd] = {new_id, Weights::id()};
+
+        std::cout << "Merged components for: " << fst << " " << snd << std::endl;
+
+        bad_queue.push(new_id);
+      }
+    }
+
+    return std::move(dendrogram);
+  }
 
 
 };
