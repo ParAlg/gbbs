@@ -68,7 +68,9 @@ class sparse_set {
   void resize(size_t incoming) {
     size_t total = elms_in_table + incoming;
     // std::cout << "total = " << total << " n_elms = " << elms_in_table << " incoming = " << incoming << std::endl;
-    if (total * kSpaceMult >= table_seq.size()) {
+    if (total * kSpaceMult + tombstones_in_table >= table_seq.size()) {
+      tombstones_in_table = 0;
+    //if (total * kSpaceMult >= table_seq.size()) {
       size_t new_size = (1 << parlay::log2_up((size_t)(kSpaceMult * total) + 1));
       new_size = std::max(new_size, (size_t)8);
       // std::cout << "new_size = " << new_size << std::endl;

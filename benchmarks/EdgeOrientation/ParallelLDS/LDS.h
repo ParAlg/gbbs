@@ -729,7 +729,6 @@ struct LDS {
       // further. Right now it just figures out the desire level brute-force for
       // every dirty vertex.
 
-      auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
       auto level_size = parlay::sequence<size_t>(levels.size());
 
       parallel_for(0, levels.size(), [&] (size_t i) {
@@ -764,7 +763,9 @@ struct LDS {
 
       nodes_to_move.resize(num_to_move);
 
+      auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
       parallel_for(0, levels.size(), [&] (size_t i) {
+        auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -772,14 +773,15 @@ struct LDS {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
-                    level_resizes[i]++;
+                    inner_level_sizes[i] = 1;
                 }
             }
         });
+        outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
       });
 
-      parallel_for (0, level_resizes.size(), [&] (size_t i){
-          levels[i].resize_down(level_resizes[i]);
+      parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
+          levels[i].resize_down(outer_level_sizes[i]);
       });
 
       // Turn nodes_to_move into a sequence
@@ -907,7 +909,8 @@ struct LDS {
       //
       //NOTE: this should be a parallel for loop (as above) but I was running
       //into concurrency issues.
-      for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
+      //for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
+      parallel_for(0, reverse_starts.size() - 1, [&] (size_t i) {
         size_t idx = reverse_starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
         uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
@@ -940,7 +943,8 @@ struct LDS {
                 L[moved_vertex_v].up.insert(neighbors[k].second);
             }
         });
-      }
+      });
+      //}
 
       // Update current level of the moved vertices and reset the desired level
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
