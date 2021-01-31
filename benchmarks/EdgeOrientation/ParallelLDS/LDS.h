@@ -37,7 +37,7 @@ namespace gbbs {
 struct LDS {
 
   double delta = 48.0;
-  double UpperConstant = 2 + (static_cast<double>(3) / delta);
+  double UpperConstant = 2 + ((double) 3 / delta);
   double eps = 1.6;
   double OnePlusEps = 1 + eps;
 
