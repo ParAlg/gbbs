@@ -24,7 +24,6 @@ cc_library(
   deps = [
   ":gbbs",
   ":bucket",
-  "//gbbs/pbbslib:dyn_arr",
   ]
 )
 

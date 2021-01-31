@@ -95,6 +95,56 @@ struct DissimilarityClustering {
 };
 
 
+struct SimilarityClustering {
+  struct data {};
+
+  template <class Graph, class GetWeight = EmptyToLogW>
+  struct Clustering : GetWeight::template GetWeight<Graph> {
+
+    using base = typename GetWeight::template GetWeight<Graph>;
+    using weight_type = typename base::weight_type;
+    using base::base;  // import constructors
+
+    static constexpr bool similarity_clustering = true;
+
+    // Used to specify whether we are doing similarity of dissimilarity
+    // clustering. Similarity means taking max (heavier weights are more similar)
+    // and dissimilarity means taking min (smaller edges are "closer")
+    static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
+      return std::max(lhs, rhs);   // similarity
+    }
+
+    static weight_type id() {
+      return std::numeric_limits<weight_type>::min();
+    }
+
+  };
+
+  template <class Graph, class WeightType, class GetWeight = EmptyToLogW>
+  struct WeightedClustering : GetWeight::template GetWeight<Graph, WeightType> {
+
+    using base = typename GetWeight::template GetWeight<Graph, WeightType>;
+    using weight_type = WeightType;
+    using base::base;  // import constructors
+
+    static constexpr bool similarity_clustering = true;
+
+    // Used to specify whether we are doing similarity of dissimilarity
+    // clustering. Similarity means taking max (heavier weights are more similar)
+    // and dissimilarity means taking min (smaller edges are "closer")
+    static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
+      return std::max(lhs, rhs);   // similarity
+    }
+
+    static weight_type id() {
+      return std::numeric_limits<weight_type>::min();
+    }
+  };
+
+};
+
+
+
 template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
 struct WeightedAverageLinkage : ClusteringType::template WeightedClustering<Graph, double, GetWeight> {
   using base = typename ClusteringType::template WeightedClustering<Graph, double, GetWeight>;
@@ -174,5 +224,53 @@ struct AverageLinkage : ClusteringType::template WeightedClustering<Graph, AvgLi
     return weight_type(bundle_size, total_weight);
   }
 };
+
+
+
+//
+//struct NormalizedAvgLinkWeight {
+//  uintE bundle_size;
+//  double total_weight;
+//  NormalizedAvgLinkWeight() : bundle_size(0), total_weight(0) {}
+//  NormalizedAvgLinkWeight(uintE single_edge_weight) : bundle_size(1), total_weight(single_edge_weight) {}
+//  NormalizedAvgLinkWeight(uintE bundle_size, double total_weight)
+//    : bundle_size(bundle_size), total_weight(total_weight) {}
+//  double get_weight() const { return total_weight / static_cast<double>(bundle_size); }
+//  void print() const { std::cout << "{" << bundle_size << ", " << total_weight << "}" << std::endl; }
+//};
+//bool operator< (const NormalizedAvgLinkWeight& l, const NormalizedAvgLinkWeight& r) {
+//  return l.get_weight() < r.get_weight();
+//}
+//bool operator<= (const NormalizedAvgLinkWeight& l, const NormalizedAvgLinkWeight& r) {
+//  return l.get_weight() <= r.get_weight();
+//}
+//bool operator> (const NormalizedAvgLinkWeight& l, const NormalizedAvgLinkWeight& r) {
+//  return l.get_weight() > r.get_weight();
+//}
+//bool operator>= (const NormalizedAvgLinkWeight& l, const NormalizedAvgLinkWeight& r) {
+//  return l.get_weight() >= r.get_weight();
+//}
+//bool operator== (const NormalizedAvgLinkWeight& l, const NormalizedAvgLinkWeight& r) {
+//  return l.get_weight() == r.get_weight();
+//}
+//bool operator!= (const NormalizedAvgLinkWeight& l, const NormalizedAvgLinkWeight& r) {
+//  return l.get_weight() != r.get_weight();
+//}
+//
+//
+//template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
+//struct NormalizedAverageLinkage : ClusteringType::template WeightedClustering<Graph, NormalizedAvgLinkWeight, GetWeight> {
+//  using base = typename ClusteringType::template WeightedClustering<Graph, NormalizedAvgLinkWeight, GetWeight>;
+//  using weight_type = NormalizedAvgLinkWeight;
+//  using base::base;
+//
+//  // The linkage function.
+//  static weight_type linkage(const weight_type& lhs, const weight_type& rhs) {
+//    size_t bundle_size = lhs.bundle_size + rhs.bundle_size;
+//    double total_weight = lhs.total_weight + rhs.total_weight;
+//    return weight_type(bundle_size, total_weight);
+//  }
+//};
+
 
 }  // namespace gbbs

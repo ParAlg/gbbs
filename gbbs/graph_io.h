@@ -143,7 +143,9 @@ symmetric_graph<symmetric_vertex, weight_type> read_weighted_symmetric_graph(
       parlay::make_slice(v_data, v_data + n),
       n, m,
       [=]() { gbbs::free_array(v_data, n); gbbs::free_array(edges, m); },
-      parlay::make_slice(edges, edges + m));
+      parlay::make_slice(edges, edges + m),
+      parlay::make_slice(edges, edges + m)
+      );
 }
 
 template <class weight_type>
@@ -646,9 +648,13 @@ parse_weighted_graph(
   parallel_for(0, n, [&] (size_t i) { offsets[i] = parlay::chars_to_ulong(tokens[i + 3]); });
   offsets[n] = m; /* make sure to set the last offset */
   parallel_for(0, m, [&] (size_t i) {
+    auto wgh = tokens[i + n + m + 3];
+    auto wgh_str = std::string(std::begin(wgh), std::end(wgh));
+
     edges[i] = std::make_tuple(
         parlay::chars_to_ulong(tokens[i + n + 3]),
-        string_to_weight<weight_type>(tokens[i + n + m + 3]));
+        std::stof(wgh_str));
+//        string_to_weight<weight_type>(tokens[i + n + m + 3]));
   });
   S.clear();
   tokens.clear();

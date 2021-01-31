@@ -35,6 +35,9 @@ template <class ClusterGraph>
 void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
   assert(chain.size() > 0);
 
+  std::cout << std::endl;
+  std::cout << "Starting chain from " << chain.top() << std::endl;
+
   while (chain.size() > 0) {
     uintE top = chain.top();
     assert(on_stack[top]);
@@ -59,15 +62,18 @@ void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
       if (r_nn != nn) {
         auto weight_opt __attribute__((unused)) = CG.clusters[top].neighbors.find(r_nn);
         nn = r_nn;
+        // using ngh_map = typename ClusterGraph::neighbor_map;
+        // auto top_entries = ngh_map::entries(CG.clusters[top].neighbors);
         assert(top_weight == *weight_opt);
       }
       chain.pop();  // remove nn.
 
       // Merge clusters top and nn.
-      uintE merged_id __attribute__((unused)) = CG.unite(top, nn);
+      uintE merged_id __attribute__((unused)) = CG.unite(top, nn, top_weight);
 
-      debug(std::cout << "Found reciprocal edge between top "
-                      << top << " and nn " << nn << std::endl;
+      debug(
+      std::cout << "Found reciprocal edge between top "
+            << top << " (" << CG.clusters[top].get_current_id() << ") and nn " << nn << " (" << CG.clusters[nn].get_current_id() << ") with weight: " << top_weight << std::endl;
       std::cout << "Done unite. Merged into " << merged_id << std::endl;);
 
       // Remove merged_id from on_stack.
@@ -78,6 +84,10 @@ void run_chain(ClusterGraph& CG, std::stack<uintE>& chain, bool* on_stack) {
       // nn not yet in chain. Push onto chain.
       chain.push(nn);
       on_stack[nn] = true;
+
+      debug(
+      std::cout << "Pushing onto stack from "
+            << top << " (" << CG.clusters[top].get_current_id() << ") and nn " << nn << " (" << CG.clusters[nn].get_current_id() << ") with weight: " << top_weight << std::endl;);
     }
   }
 }
@@ -90,7 +100,7 @@ template <class Weights,
           template <class WW> class w_vertex,
           class IW,  // the weight type of the underlying graph
           class LinkageFn>
-void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage) {
+auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage) {
   using W = typename Weights::weight_type;  // potentially a more complex type than IW
 
   using pq_elt = std::tuple<uintE, uintE, W>;
@@ -140,6 +150,8 @@ void HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, LinkageFn& linkage)
     }
   }
   std::cout << "Finished clustering" << std::endl;
+
+  return CG.get_dendrogram();
 }
 
 }  // namespace greedy_exact

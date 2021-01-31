@@ -308,24 +308,24 @@ inline auto get_pcm_state() { return (size_t)1; }
     gbbs::pcm_init();                                                         \
     if (compressed) {                                                         \
       if (symmetric) {                                                        \
-        auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>(  \
+        auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<float>(  \
             iFile, mmap, mmapcopy);                                           \
         gbbs::alloc_init(G);                                                  \
         run_app(G, APP, rounds)                                               \
       } else {                                                                \
-        auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<gbbs::intE>( \
+        auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<float>( \
             iFile, mmap, mmapcopy);                                           \
         gbbs::alloc_init(G);                                                  \
         run_app(G, APP, rounds)                                               \
       }                                                                       \
     } else {                                                                  \
       if (symmetric) {                                                        \
-        auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(    \
+        auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(    \
             iFile, mmap);                                                     \
         gbbs::alloc_init(G);                                                  \
         run_app(G, APP, rounds)                                               \
       } else {                                                                \
-        auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph<gbbs::intE>(   \
+        auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph<float>(   \
             iFile, mmap);                                                     \
         gbbs::alloc_init(G);                                                  \
         run_app(G, APP, rounds)                                               \
@@ -348,12 +348,12 @@ inline auto get_pcm_state() { return (size_t)1; }
     size_t rounds = P.getOptionLongValue("-rounds", 3);                        \
     gbbs::pcm_init();                                                          \
     if (compressed) {                                                          \
-      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::intE>(     \
+      auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<float>(     \
           iFile, mmap, mmapcopy);                                              \
       gbbs::alloc_init(G);                                                     \
       run_app(G, APP, rounds)                                                  \
     } else {                                                                   \
-      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<gbbs::intE>(iFile, \
+      auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(iFile, \
                                                                         mmap); \
       gbbs::alloc_init(G);                                                     \
       run_app(G, APP, rounds)                                                  \

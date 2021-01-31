@@ -46,6 +46,24 @@ struct EmptyToLogW {
   };
 };
 
+struct ActualWeight {
+  struct data {};
+  template <class Graph, class WeightType>
+  struct GetWeight {
+    using weight_type = typename Graph::weight_type;
+    using underlying_weight_type = typename Graph::weight_type;
+    Graph& G;
+
+    GetWeight(Graph& G) : G(G) {}
+
+    // Convert an underlying weight to an initial edge weight for this edge.
+    weight_type get_weight(const uintE& u, const uintE& v, const underlying_weight_type& wgh) const {
+      return wgh;
+    }
+  };
+};
+
+
 struct DissimilarityClustering {
   struct data {};
 
@@ -95,10 +113,59 @@ struct DissimilarityClustering {
 };
 
 
+struct SimilarityClustering {
+  struct data {};
+
+  template <class Graph, class GetWeight = EmptyToLogW>
+  struct Clustering : GetWeight::template GetWeight<Graph> {
+
+    using base = typename GetWeight::template GetWeight<Graph>;
+    using weight_type = typename base::weight_type;
+    using base::base;  // import constructors
+
+    static constexpr bool similarity_clustering = true;
+
+    // Used to specify whether we are doing similarity of dissimilarity
+    // clustering. Similarity means taking max (heavier weights are more similar)
+    // and dissimilarity means taking min (smaller edges are "closer")
+    static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
+      return std::max(lhs, rhs);   // similarity
+    }
+
+    static weight_type id() {
+      return (weight_type)0;
+    }
+
+  };
+
+  template <class Graph, class WeightType, class GetWeight = EmptyToLogW>
+  struct WeightedClustering : GetWeight::template GetWeight<Graph, WeightType> {
+
+    using base = typename GetWeight::template GetWeight<Graph, WeightType>;
+    using weight_type = WeightType;
+    using base::base;  // import constructors
+
+    static constexpr bool similarity_clustering = true;
+
+    // Used to specify whether we are doing similarity of dissimilarity
+    // clustering. Similarity means taking max (heavier weights are more similar)
+    // and dissimilarity means taking min (smaller edges are "closer")
+    static weight_type augmented_combine(const weight_type& lhs, const weight_type& rhs) {
+      return std::max(lhs, rhs);   // similarity
+    }
+
+    static weight_type id() {
+      return (weight_type)0;
+    }
+  };
+
+};
+
+
 template <class Graph, class ClusteringType = DissimilarityClustering, class GetWeight = EmptyToLogW>
-struct WeightedAverageLinkage : ClusteringType::template WeightedClustering<Graph, double, GetWeight> {
-  using base = typename ClusteringType::template WeightedClustering<Graph, double, GetWeight>;
-  using weight_type = double;
+struct WeightedAverageLinkage : ClusteringType::template WeightedClustering<Graph, float, GetWeight> {
+  using base = typename ClusteringType::template WeightedClustering<Graph, float, GetWeight>;
+  using weight_type = float;
   using base::base;
 
   // The linkage function.

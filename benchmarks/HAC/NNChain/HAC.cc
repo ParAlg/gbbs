@@ -99,8 +99,8 @@ double HAC_runner(Graph& G, commandLine P) {
 
   timer t; t.start();
 
-  auto W = MinLinkage<Graph>(G);
-  //auto W = MaxLinkage<Graph>(G);
+  // auto W = MinLinkage<Graph>(G);
+  auto W = MaxLinkage<Graph>(G);
   //auto W = WeightedAverageLinkage<Graph>(G);
   // auto W = AverageLinkage<Graph>(G);
   auto ml = [] (float w1, float w2) { return std::min(w1, w2); };
