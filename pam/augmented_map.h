@@ -110,6 +110,11 @@ public:
   static M upTo(M& a, K kr) {return to_aug(Map::upTo(a,kr));}
   template<class Ma, class F>
   static M map(Ma a, const F f) {return to_aug(Map::map(a, f));}
+  template<class F>
+  static void map_void(M& a, const F& f,
+		       size_t granularity=utils::node_limit) {
+    return Map::map_void(a, f, granularity);
+  }
   static void entries(M m, E* out) { Map::entries(std::move(m),out);}
   static parlay::sequence<E> entries(M m, size_t granularity=utils::node_limit) { return Map::entries(std::move(m));}
   template <class outItter>

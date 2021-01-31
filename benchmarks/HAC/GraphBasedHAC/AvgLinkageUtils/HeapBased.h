@@ -29,7 +29,9 @@
 #include "gbbs/gbbs.h"
 
 namespace gbbs {
-namespace heap_based {
+namespace approx_average_linkage {
+
+
 
 template <class Weights>
 struct heap_entry {
@@ -50,20 +52,20 @@ template <class Weights,
           // could internally be a representation like gbbs::empty.
           template <class WW> class w_vertex,
           class IW>  // the weight type of the underlying graph
-auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
+auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights, double epsilon = 0.1) {
   using W = typename Weights::weight_type;  // potentially a more complex type than IW
 
   using pq_elt = std::tuple<uintE, uintE, W>;
   using edge = std::pair<uintE, W>;
 
-  using clustered_graph = gbbs::clustering::clustered_graph<Weights, IW, w_vertex>;
+  using clustered_graph = gbbs::approx_average_linkage::clustered_graph<Weights, IW, w_vertex>;
   // using cluster_id = clustering::cluster_id;
 
   size_t n = G.n;
 
   // This object stores a representation of both the original clusters and the
   // clusters formed throughout the clustering process.
-  auto CG = clustered_graph(G, weights);
+  auto CG = clustered_graph(G, weights, epsilon);
 
 
   // PQ stores O(n) values --- one per cluster. The PQ values are (cluster,
@@ -115,13 +117,15 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
     uintE v = (*entry).second.first;
     W wgh = (*entry).second.second;
 
+    // std::cout << "Extracted (u,v) edge = " << u << ", " << v << std::endl;
+
     debug(assert(m == wgh););
     assert(CG.is_active(u));
 
     if (!CG.is_active(v)) {
       // Our (u's) highest-pri edge points to a cluster that has already been
       // merged.
-      assert(CG.clusters[u].size() > 0);
+      assert(CG.clusters[u].neighbor_size() > 0);
       auto min_edge = *(CG.clusters[u].highest_priority_edge());
       auto ent = std::make_pair(u, min_edge);
       assert(min_edge.first != v);
@@ -132,10 +136,60 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
       rem_u.insert(ent);
       the_heap = std::move(rem_u);
 
+      // std::cout << "Inactive neighbor: " << v << std::endl;
+
+      continue;
+    }
+    assert(CG.is_active(v));
+
+    // Get the current best edge from u and v. If the best edge is not (u,v),
+    // then update the heap and restart. The total work due to these steps can
+    // also be bounded as O(m\logn) * W(heap-update) = O(m\log^2n).
+    bool restart = false;
+    {
+      auto min_edge = *(CG.clusters[u].highest_priority_edge());
+      auto ngh_u = min_edge.first;
+      if (ngh_u != v && (min_edge.second > wgh)) {
+        auto true_v_wgh = *CG.clusters[u].neighbors.find(v);
+//        std::cout << "(u,v) = " << u <<"," << v << " but ngh_u = " << ngh_u << std::endl;
+//        std::cout << "wgh = " << Weights::AsString(wgh) << " but ngh_u wgh = " << Weights::AsString(min_edge.second) << " cur weight to v =" << Weights::AsString(true_v_wgh.second) << " weight comparison = " << (min_edge.second > wgh) << std::endl;
+        auto ent = std::make_pair(u, min_edge);
+        the_heap.insert(ent);  // replace
+        restart = true;
+
+//        using neighbor_map = typename clustered_graph::neighbor_map;
+//        auto entries_u = neighbor_map::entries(CG.clusters[u].neighbors);
+//        for (size_t i=0; i<entries_u.size(); i++) {
+//          std::cout << "ngh = " << entries_u[i].first << " " << entries_u[i].second.first << " wgh = " << Weights::AsString(entries_u[i].second.second) << std::endl;
+//        }
+
+        // exit(0);
+      }
+    }
+    {
+      auto min_edge = *(CG.clusters[v].highest_priority_edge());
+      auto ngh_v = min_edge.first;
+      if (ngh_v != u && (min_edge.second > wgh)) {
+//        std::cout << "(u,v) = " << u <<"," << v << " but ngh_v = " << ngh_v << std::endl;
+//        std::cout << "wgh = " << Weights::AsString(wgh) << " but ngh_v wgh = " << Weights::AsString(min_edge.second) << " weight comparison = " << (min_edge.second > wgh) << std::endl;
+        auto ent = std::make_pair(v, min_edge);
+        the_heap.insert(ent);  // replace
+
+//        using neighbor_map = typename clustered_graph::neighbor_map;
+//        auto entries_v= neighbor_map::entries(CG.clusters[v].neighbors);
+//        for (size_t i=0; i<entries_v.size(); i++) {
+//          std::cout << "ngh = " << entries_v[i].first << " " << entries_v[i].second.first << " wgh = " << Weights::AsString(entries_v[i].second.second) << std::endl;
+//        }
+
+
+        restart = true;
+      }
+    }
+    if (restart) {
+      std::cout << "Restarting!" << std::endl;
       continue;
     }
 
-    assert(CG.is_active(v));
 
     unites++;
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh);
@@ -164,6 +218,6 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
   return CG.get_dendrogram();
 }
 
-}  // namespace heap_based
+}  // namespace approx_average_linkage
 }  // namespace gbbs
 
