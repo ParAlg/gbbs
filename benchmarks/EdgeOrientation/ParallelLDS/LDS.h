@@ -612,7 +612,6 @@ struct LDS {
       return vtx_id;
     });
 
-    //std::cout << "begin moving vertices" << std::endl;
     // Map over the vertices being modified. Overwrite their incident edges with
     // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
     // correct size, and then insert in parallel.
@@ -708,7 +707,6 @@ struct LDS {
 
     // TODO: update total_moved properly (not necessary for correctness, but
     // interesting for logging / experimental evaluation).
-    //std::cout << "next rebalancing insertions" << std::endl;
     return rebalance_insertions(levels, cur_level_id + 1, total_moved);
   }
 
@@ -716,7 +714,6 @@ struct LDS {
   // Returns the total number of moved vertices
   template <class Levels>
   size_t rebalance_deletions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
-      std::cout<<"start procedure"<<std::endl;
       if (cur_level_id >= levels.size()) {
           return total_moved;
       }
@@ -735,7 +732,6 @@ struct LDS {
       auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
       auto level_size = parlay::sequence<size_t>(levels.size());
 
-      std::cout<<"starting level resizes" << std::endl;
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
@@ -763,13 +759,10 @@ struct LDS {
         level_size[i] = num_this_level;
       });
 
-      std::cout<<"end level resizes"<<std::endl;
 
       size_t num_to_move = parlay::scan_inplace(parlay::make_slice(level_size));
 
       nodes_to_move.resize(num_to_move);
-
-      std::cout << "resized table"<<std::endl;
 
       parallel_for(0, levels.size(), [&] (size_t i) {
         parallel_for(0, levels[i].size(), [&] (size_t j) {
@@ -785,12 +778,9 @@ struct LDS {
         });
       });
 
-      std::cout << "make the levels valid" << std::endl;
       parallel_for (0, level_resizes.size(), [&] (size_t i){
           levels[i].resize_down(level_resizes[i]);
       });
-
-      std::cout << "finished level resizing" << std::endl;
 
       // Turn nodes_to_move into a sequence
       auto nodes_to_move_seq = nodes_to_move.entries();
@@ -834,7 +824,6 @@ struct LDS {
         return vtx_id;
       });
 
-      //std::cout<<"moving nodes concurrency issues" << std::endl;
       // First, update the down-levels of vertices that do not move (not in
       // nodes_to_move). Then, all vertices which moved to the same level should
       // be both in each other's up adjacency lists.
@@ -897,7 +886,6 @@ struct LDS {
         }
       });
 
-      std::cout<<"moving second set of nodes concurrency issues" << std::endl;
       // Move vertices in nodes_to_move to cur_level. Update the data structures
       // of each moved vertex and neighbors in flipped.
       //
@@ -961,13 +949,12 @@ struct LDS {
         L[v].desire_level = UINT_E_MAX;
         L[v].down.resize(cur_level_id);
         assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps));
-        assert(L[v].lower_invariant(levels_per_group));
+        assert(L[v].lower_invariant(levels_per_group, eps));
       });
 
       // update the levels with neighbors
       update_levels(std::move(affected), levels);
 
-      std::cout << "rebalance concurrency issues" << std::endl;
       return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
   }
 
@@ -1048,17 +1035,16 @@ struct LDS {
     // Place the affected vertices into levels based on their current level.
     update_levels(std::move(affected), levels);
 
-    std::cout << "Rebalancing insertions" << std::endl;
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(std::move(levels), 0);
   }
 
   template <class Seq>
   void batch_deletion(const Seq& deletions_unfiltered) {
-    std::cout << "started deletions " << std::endl; fflush(stdout);
     // Remove edges that do not exist in the graph.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
+
 
     // Duplicate the edges in both directions and sort.
     auto deletions_dup = sequence<edge_type>::uninitialized(2*deletions_filtered.size());
@@ -1143,7 +1129,6 @@ struct LDS {
     update_levels(std::move(affected), levels);
 
     // Update the level structure (basically a sparse bucketing structure).
-    std::cout << "rebalancing deletions " << std::endl; fflush(stdout);
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
   }
 
@@ -1158,7 +1143,6 @@ struct LDS {
       invs_ok &= lower_ok;
     }
     assert(invs_ok);
-    std::cout << "invs ok is: " << invs_ok << std::endl;
   }
 
   inline uintE group_for_level(uintE level) const {
@@ -1179,7 +1163,7 @@ struct LDS {
     });
     uintE max_level = pbbslib::reduce_max(levels);
     uintE max_group = group_for_level(max_level);
-    return L[0].group_degree(max_group, eps);
+    return ceil(L[0].group_degree(max_group, eps));
   }
 };
 
@@ -1204,7 +1188,6 @@ inline void RunLDS(Graph& G) {
     });
 
     layers.batch_insertion(batch);
-    //std::cout << "Max coreness: " << layers.max_coreness() << std::endl;
   }
 
 //  for (size_t i = 0; i < n; i++) {
@@ -1216,11 +1199,8 @@ inline void RunLDS(Graph& G) {
 //    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
 //  }
 
-  std::cout << "Finished all insertions!" << std::endl;
   layers.check_invariants();
-  std::cout << "Finished check" << std::endl;
 
-  std::cout << "Testing deletions: " << std::endl;
   for (size_t i=0; i<num_batches; i++) {
     size_t start = batch_size*i;
     size_t end = std::min(start + batch_size, edges.size());
@@ -1232,7 +1212,6 @@ inline void RunLDS(Graph& G) {
     });
 
     layers.batch_deletion(batch);
-    //std::cout << "Max coreness: " << layers.max_coreness() << std::endl;
 
     /*for (size_t i=0; i<batch.size(); i++) {
         bool exists = layers.edge_exists(batch[i]);
@@ -1249,9 +1228,7 @@ inline void RunLDS(Graph& G) {
 //    }
   }
 
-  std::cout << "Finished all deletions!" << std::endl;
   layers.check_invariants();
-  std::cout << "Finished check" << std::endl;
 }
 
 template <class W>
@@ -1260,11 +1237,13 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     auto batch = batch_edge_list.edges;
     for (size_t i = 0; i < batch.size(); i += batch_size) {
         timer t; t.start();
-        auto insertions = parlay::filter(batch, [&] (const DynamicEdge<W>& edge){
+        auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
+                    batch.begin() + i + batch_size), [&] (const DynamicEdge<W>& edge){
             return edge.insert;
         });
 
-        auto deletions = parlay::filter(batch, [&] (const DynamicEdge<W>& edge){
+        auto deletions = parlay::filter(parlay::make_slice(batch.begin() + i,
+                    batch.begin() + i + batch_size), [&] (const DynamicEdge<W>& edge){
             return !edge.insert;
         });
 
@@ -1275,6 +1254,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             return std::make_pair(vert1, vert2);
         });
 
+
         auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
             [&] (size_t i) {
             uintE vert1 = deletions[i].from;
@@ -1282,11 +1262,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             return std::make_pair(vert1, vert2);
         });
 
-        std::cout << "Successfully batched." << std::endl;
-
         layers.batch_insertion(batch_insertions);
-
-        std::cout << "batch insertions successful" << std::endl;
 
         layers.batch_deletion(batch_deletions);
 
@@ -1352,6 +1328,9 @@ inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_si
         bool compare_exact, double eps, double delta) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta);
+    std::cout << "max vertex: " << max_vertex << std::endl;
+    std::cout << "eps: " << eps << std::endl;
+    std::cout << "delta: " << delta << std::endl;
     if (G.n > 0) RunLDS(G);
     if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
 }
