@@ -1328,9 +1328,6 @@ inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_si
         bool compare_exact, double eps, double delta) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta);
-    std::cout << "max vertex: " << max_vertex << std::endl;
-    std::cout << "eps: " << eps << std::endl;
-    std::cout << "delta: " << delta << std::endl;
     if (G.n > 0) RunLDS(G);
     if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
 }
