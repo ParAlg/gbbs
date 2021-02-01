@@ -28,20 +28,20 @@ def appendToFile(out, filename):
 def main():
   # Configured for Test 1
   program_dir = "../benchmarks/"
-  programs = ["EdgeOrientation/LDS/ParallelLDS"]
+  programs = ["EdgeOrientation/ParallelLDS/LDS"]
   #["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
-  program_pres = ["lds", "kcore", "ekcore"]
-  is_dynamic = [True, False, False]
-  files = ["dblp_edges","livejournal_edges"]
-  pres = ["dblp","livejournal"]
+  program_pres = ["plds"] #["lds", "kcore", "ekcore"]
+  is_dynamic = [True]
+  files = ["dblp_edges", "livejournal_edges"]
+  pres = ["dblp", "livejournal"]
   empty = "empty_h"
-  stats = ""
+  stats = "-stats"
   epss = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   deltas = [3, 6, 12, 24, 48, 96]
-  batch_sizes = [100, 1000, 10000, 100000, 1000000, 10000000]
+  batch_sizes = [100000, 1000000] #[100, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   read_dir = "/home/qliu19/dynamic_graph/"
-  write_dir = "/home/qliu19/k-decomp-out/"
+  write_dir = "/home/qliu19/dynamic-graph-out/"
   for file_idx, filename in enumerate(files):
     for program_idx, program in enumerate(programs):
       for e in epss:
@@ -62,6 +62,7 @@ def main():
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
                 "-rounds 1 " + stats + " " + read_dir + empty)
+		print ss
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
 
