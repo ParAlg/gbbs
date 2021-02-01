@@ -735,6 +735,7 @@ struct LDS {
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
+        //for (size_t j = 0; j < levels[i].size(); j++) {
             uintE v = levels[i].table[j];
 
             uintE desire_level = UINT_E_MAX;
@@ -754,6 +755,7 @@ struct LDS {
                     elements_this_level[j] = 1;
                 }
             }
+        //}
         });
         size_t num_this_level = parlay::scan_inplace(parlay::make_slice(elements_this_level));
         level_size[i] = num_this_level;
@@ -766,19 +768,21 @@ struct LDS {
 
       auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
       parallel_for(0, levels.size(), [&] (size_t i) {
-        auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
+        //auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
+        //for(size_t j = 0; j < levels[i].size(); j++) {
             uintE v = levels[i].table[j];
 
             if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
-                    inner_level_sizes[j] = 1;
+                    outer_level_sizes[i] += 1;
                 }
             }
         });
-        outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
+        //}
+        //outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
       });
 
       parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
@@ -851,8 +855,9 @@ struct LDS {
             //
             auto my_level = L[u].level;
             auto neighbor_levels = sequence<size_t>::uninitialized(neighbors.size());
-            parallel_for(0, neighbors.size(), [&] (size_t i) {
-                auto neighbor_id = neighbors[i].second;
+            for (size_t j = 0; j < neighbors.size(); j++) {
+            //parallel_for(0, neighbors.size(), [&] (size_t i) {
+                auto neighbor_id = neighbors[j].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
                 assert(neighbor_level >= cur_level_id);
@@ -860,13 +865,14 @@ struct LDS {
                 if (neighbor_level < my_level) {
                     assert(L[u].down[neighbor_level].contains(neighbor_id));
                     L[u].down[neighbor_level].remove(neighbor_id);
-                    neighbor_levels[i] = neighbor_level;
+                    neighbor_levels[j] = neighbor_level;
                 } else {
                     assert(L[u].up.contains(neighbor_id));
                     L[u].up.remove(neighbor_id);
-                    neighbor_levels[i] = my_level;
+                    neighbor_levels[j] = my_level;
                 }
-            });
+            //});
+            }
 
             // Get the num deleted by sorting the levels of all neighbors
             auto compare_tup = [&] (const size_t l, const size_t r) { return l < r; };
@@ -877,15 +883,17 @@ struct LDS {
                  });
             auto new_starts = parlay::pack_index(new_bool_seq);
 
-            parallel_for (0, new_starts.size() - 1, [&] (size_t i){
-                size_t idx = new_starts[i];
+            //parallel_for (0, new_starts.size() - 1, [&] (size_t j){
+            for (size_t j = 0; j < new_starts.size() - 1; j++) {
+                size_t idx = new_starts[j];
                 size_t n_level = neighbor_levels[idx];
-                size_t num_deleted = new_starts[i+1] - idx;
+                size_t num_deleted = new_starts[j+1] - idx;
                 if (n_level == my_level)
                     L[u].up.resize_down(num_deleted);
                 else
                     L[u].down[n_level].resize_down(num_deleted);
-            });
+            //});
+            }
         }
       });
 
@@ -925,25 +933,29 @@ struct LDS {
                 flipped_reverse.begin() + idx + num_neighbors);
 
         auto my_level = L[moved_vertex_v].level;
-        auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
+        //auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
+        size_t indegree_sum = 0;
+
         //parallel_for (0, neighbors.size(), [&] (size_t j) {
         for (size_t j = 0; j < neighbors.size(); j++) {
-            auto neighbor_id = neighbors[j].second;
-            auto neighbor = L[neighbor_id];
-            auto neighbor_level = neighbor.level;
+            //auto neighbor_id = neighbors[j].second;
+            //auto neighbor = L[neighbor_id];
+            //auto neighbor_level = neighbor.level;
             assert(neighbor_level >= cur_level_id);
             assert(moved_vertex_v == neighbors[j].first);
 
-            if (neighbor_level < my_level) {
-                move_up_size[j] = 1;
+            if (L[neighbors[j].second].level < my_level) {
+                //move_up_size[j] = 1;
+                indegree_sum++;
                 assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
-            } else {
-                move_up_size[j] = 0;
             }
+            //else {
+            //    move_up_size[j] = 0;
+            //}
         }
         //});
 
-        size_t indegree_sum = parlay::scan_inplace(parlay::make_slice(move_up_size));
+        //size_t indegree_sum = parlay::scan_inplace(parlay::make_slice(move_up_size));
 
         L[moved_vertex_v].up.resize(indegree_sum);
         //parallel_for(0, neighbors.size(), [&] (size_t k){
@@ -1023,13 +1035,15 @@ struct LDS {
           insertions.begin() + idx + incoming_degree);
 
       // Map the incident edges to (level, neighbor_id).
-      parallel_for(0, incoming_degree, [&] (size_t off) {
+      for (size_t off = 0; off < incoming_degree; off++) {
+      //parallel_for(0, incoming_degree, [&] (size_t off) {
         auto [u, v] = neighbors[off];
         assert(vtx == u);
         uintE neighbor_level = L[v].level;
         if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
         neighbors[off] = {neighbor_level, v};
-      });
+      //});
+      }
 
       // Sort neighbors by level.
       parlay::sort_inplace(neighbors);
@@ -1109,14 +1123,16 @@ struct LDS {
           deletions.begin() + idx + outgoing_degree);
 
       // Map the incident edges to (level, neighbor_id).
-      parallel_for(0, outgoing_degree, [&] (size_t off) {
+      //parallel_for(0, outgoing_degree, [&] (size_t off) {
+      for (size_t off = 0; off < outgoing_degree; off++) {
         auto [u, v] = neighbors[off];
         assert(vtx == u);
         //assert(edge_exists({vtx, v}) || edge_exists({v, vtx}));
         uintE neighbor_level = L[v].level;
         if (neighbor_level >= our_level) { neighbor_level = kUpLevel; }
         neighbors[off] = {neighbor_level, v};
-      });
+      //});
+      }
 
       // Sort neighbors by level.
       parlay::sort_inplace(neighbors);
@@ -1277,11 +1293,16 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         });
 
         layers.batch_insertion(batch_insertions);
+        double insertion_time = t.stop();
 
+        t.start();
         layers.batch_deletion(batch_deletions);
 
-        double tt = t.stop();
+        double deletion_time = t.stop();
+        double tt = insertion_time + deletion_time;
         std::cout << "### Batch Running Time: " << tt << std::endl;
+        std::cout << "### Insertion Running Time: " << insertion_time << std::endl;
+        std::cout << "### Deletion Running Time: " << deletion_time << std::endl;
         std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
         std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
         if (compare_exact) {
