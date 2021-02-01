@@ -734,6 +734,8 @@ struct LDS {
 
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
+        level_size[i] = 0;
+        //for (size_t j = 0; j < levels[i].size(); j++) {
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -751,22 +753,26 @@ struct LDS {
                 assert(desire_level < i);
 
                 if (desire_level == cur_level_id) {
-                    elements_this_level[j] = 1;
+                  //level_size[i]++;
+                  elements_this_level[j] = 1;
                 }
             }
         });
-        size_t num_this_level = parlay::scan_inplace(parlay::make_slice(elements_this_level));
-        level_size[i] = num_this_level;
+        level_size[i] = parlay::reduce(parlay::make_slice(elements_this_level), parlay::addm<size_t>{});
+        //parlay::scan_inplace(parlay::make_slice(elements_this_level));
+        //level_size[i] = num_this_level;
       });
 
 
-      size_t num_to_move = parlay::scan_inplace(parlay::make_slice(level_size));
+      size_t num_to_move = parlay::reduce(parlay::make_slice(level_size), parlay::addm<size_t>{});
+      //parlay::scan_inplace(parlay::make_slice(level_size));
 
       nodes_to_move.resize(num_to_move);
 
       auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
+        //for (size_t j = 0; j < levels[i].size(); j++){
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -775,10 +781,12 @@ struct LDS {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
                     inner_level_sizes[j] = 1;
+                    //outer_level_sizes[i]++;
                 }
             }
         });
-        outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
+        outer_level_sizes[i] = parlay::reduce(parlay::make_slice(inner_level_sizes), parlay::addm<size_t>{});
+        //parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
       });
 
       parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
@@ -852,6 +860,7 @@ struct LDS {
             auto my_level = L[u].level;
             auto neighbor_levels = sequence<size_t>::uninitialized(neighbors.size());
             parallel_for(0, neighbors.size(), [&] (size_t i) {
+            //for (size_t i = 0; i < neighbors.size(); i++) {
                 auto neighbor_id = neighbors[i].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
@@ -877,7 +886,8 @@ struct LDS {
                  });
             auto new_starts = parlay::pack_index(new_bool_seq);
 
-            parallel_for (0, new_starts.size() - 1, [&] (size_t i){
+            for (size_t i = 0; i < new_starts.size() - 1; i++) {
+            //parallel_for (0, new_starts.size() - 1, [&] (size_t i){
                 size_t idx = new_starts[i];
                 size_t n_level = neighbor_levels[idx];
                 size_t num_deleted = new_starts[i+1] - idx;
@@ -885,7 +895,7 @@ struct LDS {
                     L[u].up.resize_down(num_deleted);
                 else
                     L[u].down[n_level].resize_down(num_deleted);
-            });
+            }//);
         }
       });
 
@@ -925,7 +935,8 @@ struct LDS {
                 flipped_reverse.begin() + idx + num_neighbors);
 
         auto my_level = L[moved_vertex_v].level;
-        auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
+        size_t indegree_sum = 0;
+        //auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
         //parallel_for (0, neighbors.size(), [&] (size_t j) {
         for (size_t j = 0; j < neighbors.size(); j++) {
             auto neighbor_id = neighbors[j].second;
@@ -935,15 +946,17 @@ struct LDS {
             assert(moved_vertex_v == neighbors[j].first);
 
             if (neighbor_level < my_level) {
-                move_up_size[j] = 1;
+                indegree_sum++;
+                //move_up_size[j] = 1;
                 assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
-            } else {
-                move_up_size[j] = 0;
-            }
+            } //else {
+                //move_up_size[j] = 0;
+            //}
         }
         //});
 
-        size_t indegree_sum = parlay::scan_inplace(parlay::make_slice(move_up_size));
+        //size_t indegree_sum = parlay::reduce(parlay::make_slice(move_up_size), parlay::addm<size_t>{});
+        //parlay::scan_inplace(parlay::make_slice(move_up_size));
 
         L[moved_vertex_v].up.resize(indegree_sum);
         //parallel_for(0, neighbors.size(), [&] (size_t k){
