@@ -729,6 +729,7 @@ struct LDS {
       // further. Right now it just figures out the desire level brute-force for
       // every dirty vertex.
 
+      auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
       auto level_size = parlay::sequence<size_t>(levels.size());
 
       parallel_for(0, levels.size(), [&] (size_t i) {
@@ -773,7 +774,7 @@ struct LDS {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
-                    inner_level_sizes[i] = 1;
+                    inner_level_sizes[j] = 1;
                 }
             }
         });
@@ -909,8 +910,7 @@ struct LDS {
       //
       //NOTE: this should be a parallel for loop (as above) but I was running
       //into concurrency issues.
-      //for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
-      parallel_for(0, reverse_starts.size() - 1, [&] (size_t i) {
+      for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
         size_t idx = reverse_starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
         uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
@@ -943,8 +943,7 @@ struct LDS {
                 L[moved_vertex_v].up.insert(neighbors[k].second);
             }
         });
-      });
-      //}
+      }
 
       // Update current level of the moved vertices and reset the desired level
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
@@ -1241,13 +1240,14 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     auto batch = batch_edge_list.edges;
     for (size_t i = 0; i < batch.size(); i += batch_size) {
         timer t; t.start();
+        auto end_size = std::min(i + batch_size, batch.size());
         auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
-                    batch.begin() + i + batch_size), [&] (const DynamicEdge<W>& edge){
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
             return edge.insert;
         });
 
         auto deletions = parlay::filter(parlay::make_slice(batch.begin() + i,
-                    batch.begin() + i + batch_size), [&] (const DynamicEdge<W>& edge){
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
             return !edge.insert;
         });
 
