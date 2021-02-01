@@ -910,9 +910,13 @@ struct LDS {
       //
       //NOTE: this should be a parallel for loop (as above) but I was running
       //into concurrency issues.
-      for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
+      //for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
+      parallel_for(0, reverse_starts.size(), [&] (size_t i) {
         size_t idx = reverse_starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
+        size_t idx_plus = reverse_starts[i+1];
+        uintE next_v = std::get<0>(flipped_reverse[idx_plus]);
+        assert(moved_vertex_v < next_v);
         uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
 
         auto neighbors = parlay::make_slice(flipped_reverse.begin() + idx,
@@ -920,7 +924,8 @@ struct LDS {
 
         auto my_level = L[moved_vertex_v].level;
         auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
-        parallel_for (0, neighbors.size(), [&] (size_t j) {
+        //parallel_for (0, neighbors.size(), [&] (size_t j) {
+        for (size_t j = 0; j < neighbors.size(); j++) {
             auto neighbor_id = neighbors[j].second;
             auto neighbor = L[neighbor_id];
             auto neighbor_level = neighbor.level;
@@ -933,17 +938,20 @@ struct LDS {
             } else {
                 move_up_size[j] = 0;
             }
-        });
+        }
+        //});
 
         size_t indegree_sum = parlay::scan_inplace(parlay::make_slice(move_up_size));
 
         L[moved_vertex_v].up.resize(indegree_sum);
-        parallel_for(0, neighbors.size(), [&] (size_t k){
+        //parallel_for(0, neighbors.size(), [&] (size_t k){
+        for (size_t k = 0; k < neighbors.size(); k++) {
             if (L[neighbors[k].second].level < my_level) {
                 L[moved_vertex_v].up.insert(neighbors[k].second);
             }
-        });
-      }
+        }
+        //});
+      });
 
       // Update current level of the moved vertices and reset the desired level
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
