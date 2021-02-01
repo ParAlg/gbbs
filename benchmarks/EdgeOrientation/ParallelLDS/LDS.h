@@ -752,17 +752,16 @@ struct LDS {
                 assert(desire_level < i);
 
                 if (desire_level == cur_level_id) {
-                    elements_this_level[j] = 1;
+                  elements_this_level[j] = 1;
                 }
             }
         //}
         });
-        size_t num_this_level = parlay::scan_inplace(parlay::make_slice(elements_this_level));
-        level_size[i] = num_this_level;
+        level_size[i] = parlay::reduce(parlay::make_slice(elements_this_level), parlay::addm<size_t>{});
       });
 
 
-      size_t num_to_move = parlay::scan_inplace(parlay::make_slice(level_size));
+      size_t num_to_move = parlay::reduce(parlay::make_slice(level_size), parlay::addm<size_t>{});
 
       nodes_to_move.resize(num_to_move);
 
@@ -933,9 +932,8 @@ struct LDS {
                 flipped_reverse.begin() + idx + num_neighbors);
 
         auto my_level = L[moved_vertex_v].level;
-        //auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
         size_t indegree_sum = 0;
-
+        //auto move_up_size = sequence<size_t>::uninitialized(neighbors.size());
         //parallel_for (0, neighbors.size(), [&] (size_t j) {
         for (size_t j = 0; j < neighbors.size(); j++) {
             //auto neighbor_id = neighbors[j].second;
@@ -955,7 +953,8 @@ struct LDS {
         }
         //});
 
-        //size_t indegree_sum = parlay::scan_inplace(parlay::make_slice(move_up_size));
+        //size_t indegree_sum = parlay::reduce(parlay::make_slice(move_up_size), parlay::addm<size_t>{});
+        //parlay::scan_inplace(parlay::make_slice(move_up_size));
 
         L[moved_vertex_v].up.resize(indegree_sum);
         //parallel_for(0, neighbors.size(), [&] (size_t k){
