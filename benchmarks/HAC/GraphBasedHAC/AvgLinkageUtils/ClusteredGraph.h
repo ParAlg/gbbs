@@ -224,8 +224,8 @@ struct clustered_graph {
     // Map over _all_ of smaller's edges, and update its neighbors to point to
     // larger. If the neighbor, w, also has an edge to larger (a
     // smaller-larger-w triangle), then update the weight of this edge.
-    //for (size_t i=0; i<smaller_keys.size(); i++) {
-    parallel_for(0, smaller_keys.size(), [&] (size_t i) {
+    //parallel_for(0, smaller_keys.size(), [&] (size_t i) {
+    for (size_t i=0; i<smaller_keys.size(); i++) {
       uintE w = smaller_keys[i];
       assert(clusters[w].neighbors.contains(smaller));  // Sanity.
 
@@ -235,6 +235,7 @@ struct clustered_graph {
 
       // Insert larger, merging using Weights::linkage if it already exists in
       // the tree.
+      found_value.first = larger;
       auto new_value = Weights::UpdateWeight(clusters, found_value, new_cluster_size);
       auto larger_ent = std::make_pair(larger, new_value);
 
@@ -248,7 +249,8 @@ struct clustered_graph {
 
       // Move the neighbors back.
       clusters[w].neighbors = std::move(w_one);
-    });
+    }
+//    );
 
 
     // Staleness check.
@@ -268,8 +270,10 @@ struct clustered_graph {
         auto val = entry.second;
         uintE val_id = val.first;
         assert(ngh_id == val_id);
-        auto updated_val = Weights::UpdateWeight(clusters, val, new_cluster_size);
-        auto new_entry = std::make_pair(ngh_id, updated_val);
+
+        val.first = larger; // place our id
+        auto updated_val = Weights::UpdateWeight(clusters, val, new_cluster_size);  // update weight
+        auto new_entry = std::make_pair(larger, updated_val);
 
         // Now update our neighbor.
         assert(clusters[ngh_id].neighbors.contains(larger));
@@ -279,6 +283,7 @@ struct clustered_graph {
 
       // Update staleness.
       clusters[larger].staleness = clusters[larger].size();
+      std::cout << "Finished update." << std::endl;
     }
 
 

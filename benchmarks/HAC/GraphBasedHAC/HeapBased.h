@@ -137,11 +137,14 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
 
     assert(CG.is_active(v));
 
+    uintE current_id_u = CG.clusters[u].get_current_id();
+    uintE current_id_v = CG.clusters[v].get_current_id();
+
     unites++;
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh);
     debug(
-    std::cout << "Min weight edge of weight = " << Weights::AsString(wgh) << " between " << u << " " << v << std::endl;
-    std::cout << "Done unite. Merged into " << merged_id << std::endl;);
+    std::cout << "Min weight edge of weight = " << Weights::AsString(wgh) << " between " << current_id_u << " (" << u << ") and " << current_id_v << " (" << v << ")" << std::endl;
+    std::cout << "Done unite. Merged into " << CG.clusters[merged_id].current_id << " (" << merged_id << ")" << std::endl;);
 
     auto heap_save = std::move(the_heap);
     auto rem_u = heap_map::remove(std::move(heap_save), u);

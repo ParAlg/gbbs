@@ -115,12 +115,11 @@ double HAC_runner(Graph& G, commandLine P) {
   std::cout << "### ------------------------------------" << std::endl;
 
 
-  using W = typename Graph::weight_type;
-  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
-    std::cout << u << " " << v << " " << wgh << std::endl;
-  };
-  G.get_vertex(4).out_neighbors().map(map_f, false);
-
+//  using W = typename Graph::weight_type;
+//  auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//    std::cout << u << " " << v << " " << wgh << std::endl;
+//  };
+//  G.get_vertex(4).out_neighbors().map(map_f, false);
 //  std::cout << "0 edges" << std::endl;
 //  G.get_vertex(0).out_neighbors().map(map_f, false);
 //  exit(0);
@@ -129,56 +128,10 @@ double HAC_runner(Graph& G, commandLine P) {
   timer t; t.start();
   double tt;
 
-  if (heap_based) {
-//    if (linkage_opt == "weightedavg") {
-//      auto Wghs = WeightedAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = heap_based::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "complete") {
-//      auto Wghs = MinLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = heap_based::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "single") {
-//      auto Wghs = MaxLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = heap_based::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "normalizedavg") {
-//      auto Wghs = NormAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = heap_based::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "avg") {
-    if (linkage_opt == "avg") {
-      auto Wghs = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-      double epsilon = P.getOptionDoubleValue("-epsilon", 0.1);
-      auto dendrogram = approx_average_linkage::HAC(G, Wghs, epsilon);
+if (heap_based) {
+    if (linkage_opt == "weightedavg") {
+      auto Wghs = WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
       auto of = P.getOptionValue("-of", "");
@@ -187,64 +140,112 @@ double HAC_runner(Graph& G, commandLine P) {
         WriteDendrogramToDisk(Wghs, dendrogram, of);
         exit(0);
       }
+    } else if (linkage_opt == "complete") {
+      auto Wghs = MinLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = heap_based::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    } else if (linkage_opt == "single") {
+      auto Wghs = MaxLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = heap_based::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    } else if (linkage_opt == "normalizedavg") {
+      auto Wghs = NormAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = heap_based::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    }
+    else if (linkage_opt == "avg") {
+//  if (linkage_opt == "avg") {
+    auto Wghs = ApproxAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+    double epsilon = P.getOptionDoubleValue("-epsilon", 0.1);
+    auto dendrogram = approx_average_linkage::HAC(G, Wghs, epsilon);
+    tt = t.stop();
+    std::cout << "### Running Time: " << tt << std::endl;
+    auto of = P.getOptionValue("-of", "");
+    if (of != "") {
+      // write merges
+      WriteDendrogramToDisk(Wghs, dendrogram, of);
+      exit(0);
+    }
+  } else {
+    std::cerr << "Unknown linkage option: " << linkage_opt << std::endl;
+    exit(-1);
+  }
+}
+
+    else {
+    if (linkage_opt == "weightedavg") {
+      auto Wghs = WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = nn_chain::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    } else if (linkage_opt == "complete") {
+      auto Wghs = MinLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = nn_chain::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    } else if (linkage_opt == "single") {
+      auto Wghs = MaxLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = nn_chain::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    } else if (linkage_opt == "normalizedavg") {
+      auto Wghs = NormAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto dendrogram = nn_chain::HAC(G, Wghs);
+      tt = t.stop();
+      std::cout << "### Running Time: " << tt << std::endl;
+      auto of = P.getOptionValue("-of", "");
+      if (of != "") {
+        // write merges
+        WriteDendrogramToDisk(Wghs, dendrogram, of);
+        exit(0);
+      }
+    } else if (linkage_opt == "appx-avg") {
+      std::cout << "The approximate average linkage algorithm only supports the -heapbased option." << std::endl;
+      exit(-1);
     } else {
       std::cerr << "Unknown linkage option: " << linkage_opt << std::endl;
       exit(-1);
     }
   }
-//    else {
-//    if (linkage_opt == "weightedavg") {
-//      auto Wghs = WeightedAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = nn_chain::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "complete") {
-//      auto Wghs = MinLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = nn_chain::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "single") {
-//      auto Wghs = MaxLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = nn_chain::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "normalizedavg") {
-//      auto Wghs = NormAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
-//      auto dendrogram = nn_chain::HAC(G, Wghs);
-//      tt = t.stop();
-//      std::cout << "### Running Time: " << tt << std::endl;
-//      auto of = P.getOptionValue("-of", "");
-//      if (of != "") {
-//        // write merges
-//        WriteDendrogramToDisk(Wghs, dendrogram, of);
-//        exit(0);
-//      }
-//    } else if (linkage_opt == "appx-avg") {
-//      std::cout << "The approximate average linkage algorithm only supports the -heapbased option." << std::endl;
-//      exit(-1);
-//    } else {
-//      std::cerr << "Unknown linkage option: " << linkage_opt << std::endl;
-//      exit(-1);
-//    }
-//  }
 
 
 
