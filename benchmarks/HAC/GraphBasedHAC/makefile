@@ -3,7 +3,7 @@ ROOTDIR = $(strip $(shell git rev-parse --show-cdup))
 
 include $(ROOTDIR)makefile.variables
 
-ALL= HAC
+ALL= HACSimilarity HACDissimilarity
 
 #OTHER_OBJS = \
 #  $(wildcard $(ROOTDIR)bin/benchmarks/Connectivity/*.o)

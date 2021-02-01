@@ -54,7 +54,7 @@ W weightedavg_linkage(W w1, W w2) {
 }
 
 //template <class Graph, class GetWeight = EmptyToLogW>
-//struct DissimilarityMinLinkage : GetWeight::template GetWeight<Graph> {
+//struct SimilarityMinLinkage : GetWeight::template GetWeight<Graph> {
 //
 //  using base = typename GetWeight::template GetWeight<Graph>;
 //  using weight_type = typename base::weight_type;
@@ -130,7 +130,7 @@ double HAC_runner(Graph& G, commandLine P) {
 
 if (heap_based) {
     if (linkage_opt == "weightedavg") {
-      auto Wghs = WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = WeightedAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -141,7 +141,7 @@ if (heap_based) {
         exit(0);
       }
     } else if (linkage_opt == "complete") {
-      auto Wghs = MinLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = MinLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -152,7 +152,7 @@ if (heap_based) {
         exit(0);
       }
     } else if (linkage_opt == "single") {
-      auto Wghs = MaxLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = MaxLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -163,7 +163,7 @@ if (heap_based) {
         exit(0);
       }
     } else if (linkage_opt == "normalizedavg") {
-      auto Wghs = NormAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = NormAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = heap_based::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -176,7 +176,7 @@ if (heap_based) {
     }
     else if (linkage_opt == "avg") {
 //  if (linkage_opt == "avg") {
-    auto Wghs = ApproxAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+    auto Wghs = ApproxAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
     double epsilon = P.getOptionDoubleValue("-epsilon", 0.1);
     auto dendrogram = approx_average_linkage::HAC(G, Wghs, epsilon);
     tt = t.stop();
@@ -195,7 +195,7 @@ if (heap_based) {
 
     else {
     if (linkage_opt == "weightedavg") {
-      auto Wghs = WeightedAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = WeightedAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = nn_chain::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -206,7 +206,7 @@ if (heap_based) {
         exit(0);
       }
     } else if (linkage_opt == "complete") {
-      auto Wghs = MinLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = MinLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = nn_chain::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -217,7 +217,7 @@ if (heap_based) {
         exit(0);
       }
     } else if (linkage_opt == "single") {
-      auto Wghs = MaxLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = MaxLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = nn_chain::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
@@ -228,7 +228,7 @@ if (heap_based) {
         exit(0);
       }
     } else if (linkage_opt == "normalizedavg") {
-      auto Wghs = NormAverageLinkage<Graph, DissimilarityClustering, ActualWeight>(G);
+      auto Wghs = NormAverageLinkage<Graph, SimilarityClustering, ActualWeight>(G);
       auto dendrogram = nn_chain::HAC(G, Wghs);
       tt = t.stop();
       std::cout << "### Running Time: " << tt << std::endl;
