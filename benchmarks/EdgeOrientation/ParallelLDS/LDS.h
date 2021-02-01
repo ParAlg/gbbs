@@ -897,6 +897,8 @@ struct LDS {
       parallel_for(0, flipped_reverse.size(), [&] (size_t i){
         flipped_reverse[i] = std::make_pair(flipped[i].second, flipped[i].first);
       });
+      auto compare_flipped = [&] (const edge_type& l, const edge_type& r) { return l < r; };
+      parlay::sort_inplace(parlay::make_slice(flipped_reverse), compare_flipped);
 
       // Compute the starts of the reverse flipped edges
       auto bool_seq_reverse = parlay::delayed_seq<bool>(flipped_reverse.size() + 1, [&] (size_t i){
@@ -911,11 +913,11 @@ struct LDS {
       //NOTE: this should be a parallel for loop (as above) but I was running
       //into concurrency issues.
       //for (size_t i = 0; i < reverse_starts.size() - 1; i++) {
-      parallel_for(0, reverse_starts.size(), [&] (size_t i) {
+      parallel_for(0, reverse_starts.size() - 1, [&] (size_t i) {
         size_t idx = reverse_starts[i];
         uintE moved_vertex_v = std::get<0>(flipped_reverse[idx]);
         size_t idx_plus = reverse_starts[i+1];
-        uintE next_v = std::get<0>(flipped_reverse[idx_plus]);
+        uintE next_v = (idx_plus == flipped_reverse.size()) ? UINT_E_MAX : std::get<0>(flipped_reverse[idx_plus]);
         assert(moved_vertex_v < next_v);
         uintE num_neighbors = reverse_starts[i+1] - reverse_starts[i];
 
