@@ -734,8 +734,6 @@ struct LDS {
 
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
-        level_size[i] = 0;
-        //for (size_t j = 0; j < levels[i].size(); j++) {
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -753,26 +751,21 @@ struct LDS {
                 assert(desire_level < i);
 
                 if (desire_level == cur_level_id) {
-                  //level_size[i]++;
                   elements_this_level[j] = 1;
                 }
             }
         });
         level_size[i] = parlay::reduce(parlay::make_slice(elements_this_level), parlay::addm<size_t>{});
-        //parlay::scan_inplace(parlay::make_slice(elements_this_level));
-        //level_size[i] = num_this_level;
       });
 
 
       size_t num_to_move = parlay::reduce(parlay::make_slice(level_size), parlay::addm<size_t>{});
-      //parlay::scan_inplace(parlay::make_slice(level_size));
 
       nodes_to_move.resize(num_to_move);
 
       auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
       parallel_for(0, levels.size(), [&] (size_t i) {
         auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
-        //for (size_t j = 0; j < levels[i].size(); j++){
         parallel_for(0, levels[i].size(), [&] (size_t j) {
             uintE v = levels[i].table[j];
 
@@ -781,12 +774,10 @@ struct LDS {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
                     inner_level_sizes[j] = 1;
-                    //outer_level_sizes[i]++;
                 }
             }
         });
         outer_level_sizes[i] = parlay::reduce(parlay::make_slice(inner_level_sizes), parlay::addm<size_t>{});
-        //parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
       });
 
       parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
@@ -860,7 +851,6 @@ struct LDS {
             auto my_level = L[u].level;
             auto neighbor_levels = sequence<size_t>::uninitialized(neighbors.size());
             parallel_for(0, neighbors.size(), [&] (size_t i) {
-            //for (size_t i = 0; i < neighbors.size(); i++) {
                 auto neighbor_id = neighbors[i].second;
                 auto neighbor = L[neighbor_id];
                 auto neighbor_level = neighbor.level;
