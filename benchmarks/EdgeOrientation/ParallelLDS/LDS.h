@@ -1268,7 +1268,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 
         layers.batch_insertion(batch_insertions);
 
-        //layers.batch_deletion(batch_deletions);
+        layers.batch_deletion(batch_deletions);
 
         double tt = t.stop();
         std::cout << "### Batch Running Time: " << tt << std::endl;
