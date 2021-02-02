@@ -64,9 +64,9 @@ def main():
               else:
                 num_lines = sum(1 for line in open(read_dir + filename))
                 #batch_commands = ["-b "+str(b) +" -end_size "+str(x + 100*b) +" -start_size " + str(x) for x in range(0, num_lines, 100*b)]
-                batch_commands = ["-num_dynamic_edges "+str(x) for x in range(0, num_lines, b)]
-                if (num_lines % b != 0):
-                  batch_commands.append("-num_dynamic_edges " + str(num_lines))
+                batch_commands = ["-start_size "+str(x)+" -num_dynamic_edges "+str(x + b) for x in range(0, num_lines, b)]
+                #if (num_lines % b != 0):
+                #  batch_commands.append("-num_dynamic_edges " + str(num_lines))
               for bc in batch_commands:
                 ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
