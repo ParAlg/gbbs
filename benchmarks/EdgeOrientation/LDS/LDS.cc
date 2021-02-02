@@ -39,19 +39,20 @@ double LDS_runner(Graph& G, commandLine P) {
   const char* const input_file{P.getOptionValue(kInputFlag)};
   long batch_size = P.getOptionLongValue("-b", 1);
   bool compare_exact = P.getOption("-stats");
+  bool optimized_insertion = P.getOption("-ins-opt");
 
   double eps = P.getOptionDoubleValue("-eps", 3);
   double delta = P.getOptionDoubleValue("-delta", 9);
 
   using W = typename Graph::weight_type;
   bool use_dynamic = (input_file && input_file[0]);
-  BatchDynamicEdges<W> batch_edge_list = use_dynamic ? 
-    read_batch_dynamic_edge_list<W>(input_file) : 
+  BatchDynamicEdges<W> batch_edge_list = use_dynamic ?
+    read_batch_dynamic_edge_list<W>(input_file) :
     BatchDynamicEdges<W>{};
   if (use_dynamic && batch_size == 0) batch_size = batch_edge_list.edges.size();
 
   timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
