@@ -40,6 +40,7 @@ struct LDS {
   double UpperConstant = 2 + ((double) 3 / delta);
   double eps = 1.6;
   double OnePlusEps = 1 + eps;
+  bool optimized_insertion = false;
 
   static constexpr uintE kUpLevel = UINT_E_MAX;
   // Used to indicate that this vertex is not moving.
@@ -62,7 +63,7 @@ struct LDS {
     template <class Levels>
     inline uintE get_desire_level_upwards(uintE vtx_id, Levels& L, const size_t levels_per_group,
             double upper_constant, double eps) const {
-      assert(!upper_invariant(levels_per_group, upper_constant, eps));
+      //assert(!upper_invariant(levels_per_group, upper_constant, eps));
       using LV = std::pair<uintE, uintE>;
       auto LV_seq = parlay::delayed_seq<LV>(up.size(), [&] (size_t i) {
         uintE v = up.table[i];
@@ -279,9 +280,13 @@ struct LDS {
     }
 
     inline bool upper_invariant(const size_t levels_per_group, double upper_constant,
-             double eps) const {
+             double eps, bool optimized_insertion) const {
       uintE group = level / levels_per_group;
-      uintE up_degree = upper_constant * group_degree(group, eps);
+      uintE up_degree = 0;
+      if (!optimized_insertion)
+        up_degree = upper_constant * group_degree(group, eps);
+      else
+        up_degree = 1.1 * group_degree(group, eps);
       return up.num_elms() <= up_degree;
     }
 
@@ -309,8 +314,9 @@ struct LDS {
             < upper_constant * upper_group_degree;
     }
 
-    inline bool is_dirty(const size_t levels_per_group, double upper_constant, double eps) const {
-      bool upper = upper_invariant(levels_per_group, upper_constant, eps);
+    inline bool is_dirty(const size_t levels_per_group, double upper_constant, double eps,
+            bool optimized_insertion) const {
+      bool upper = upper_invariant(levels_per_group, upper_constant, eps, optimized_insertion);
       bool lower = lower_invariant(levels_per_group, eps);
       return !(upper && lower);
     }
@@ -322,15 +328,21 @@ struct LDS {
   parlay::sequence<LDSVertex> L_seq;
   LDSVertex* L;
 
-  LDS(size_t n) : n(n) {
+  LDS(size_t _n, bool _optimized_insertion) : n(_n), optimized_insertion(_optimized_insertion) {
+    if (optimized_insertion)
+        UpperConstant = 1.1;
     levels_per_group = ceil(log(n) / log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(n);
     L = L_seq.begin();
   }
 
-  LDS(size_t _n, double _eps, double _delta) : n(_n), eps(_eps), delta(_delta){
+  LDS(size_t _n, double _eps, double _delta, bool _optimized_insertion) : n(_n), eps(_eps),
+        delta(_delta), optimized_insertion(_optimized_insertion){
     OnePlusEps = (1 + _eps);
-    UpperConstant = 2 + ((double) 3 / _delta);
+    if (optimized_insertion)
+        UpperConstant = 1.1;
+    else
+        UpperConstant = 2 + ((double) 3 / _delta);
     levels_per_group = ceil(log(n) / log(OnePlusEps));
     L_seq = parlay::sequence<LDSVertex>(_n);
     L = L_seq.begin();
@@ -388,7 +400,7 @@ struct LDS {
     auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i) {
       uintE v = possibly_dirty[i];
       uintE level = UINT_E_MAX;
-      if (L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
+      if (L[v].is_dirty(levels_per_group, UpperConstant, eps, optimized_insertion)) {
         auto our_level = L[v].level;
         // Return only if the vertex is not in the bucketing structure.
         if (our_level >= levels.size() || !levels[our_level].contains(v)) {
@@ -524,9 +536,9 @@ struct LDS {
     parallel_for(0, cur_level.size(), [&] (size_t i) {
       uintE v = cur_level.table[i];
       uintE desire_level = UINT_E_MAX;
-      if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
+      if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps, optimized_insertion)) {
         assert(L[v].lower_invariant(levels_per_group, eps));
-        assert(!L[v].upper_invariant(levels_per_group, UpperConstant, eps));
+        assert(!L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
 
         desire_level = L[v].get_desire_level_upwards(v, L, levels_per_group, UpperConstant, eps);
         L[v].desire_level = desire_level;
@@ -740,8 +752,10 @@ struct LDS {
 
             uintE desire_level = UINT_E_MAX;
 
-            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
-                assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps));
+            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps,
+                        optimized_insertion)) {
+                assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps,
+                            optimized_insertion));
                 assert(!L[v].lower_invariant(levels_per_group, eps));
 
                 desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group, UpperConstant,
@@ -772,7 +786,8 @@ struct LDS {
         //for(size_t j = 0; j < levels[i].size(); j++) {
             uintE v = levels[i].table[j];
 
-            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps)) {
+            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps,
+                        optimized_insertion)) {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
@@ -972,7 +987,7 @@ struct LDS {
         L[v].level = cur_level_id;
         L[v].desire_level = UINT_E_MAX;
         L[v].down.resize(cur_level_id);
-        assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps));
+        assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
         assert(L[v].lower_invariant(levels_per_group, eps));
       });
 
@@ -1163,7 +1178,7 @@ struct LDS {
   void check_invariants() {
     bool invs_ok = true;
     for (size_t i=0; i<n; i++) {
-      bool upper_ok = L[i].upper_invariant(levels_per_group, UpperConstant, eps);
+      bool upper_ok = L[i].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion);
       bool lower_ok = L[i].lower_invariant(levels_per_group, eps);
       assert(upper_ok);
       assert(lower_ok);
@@ -1196,10 +1211,10 @@ struct LDS {
 };
 
 template <class Graph>
-inline void RunLDS(Graph& G) {
+inline void RunLDS(Graph& G, bool optimized_deletion) {
   // using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto layers = LDS(n);
+  auto layers = LDS(n, optimized_deletion);
 
   auto edges = G.edges();
 
@@ -1261,7 +1276,7 @@ inline void RunLDS(Graph& G) {
 
 template <class W>
 inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
-        LDS& layers) {
+        LDS& layers, bool optimized_insertion) {
     auto batch = batch_edge_list.edges;
     for (size_t i = 0; i < batch.size(); i += batch_size) {
         timer t; t.start();
@@ -1359,11 +1374,11 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 
 template <class Graph, class W>
 inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
-        bool compare_exact, double eps, double delta) {
+        bool compare_exact, double eps, double delta, bool optimized_insertion) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
-    auto layers = LDS(max_vertex, eps, delta);
-    if (G.n > 0) RunLDS(G);
-    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
+    auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
+    if (G.n > 0) RunLDS(G, optimized_insertion);
+    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion);
 }
 
 }  // namespace gbbs
