@@ -9,19 +9,19 @@ def main():
   # store average of average error, max of average error, total batch times, and average / max batch time
   # this is stored per epsilon and delta pair
   # Configured for Test 1 (1 round)
-  program_dir = "../benchmarks/"
-  programs = [ "KCore/ApproximateKCore/KCore"]# , "KCore/JulienneDBS17/KCore"]
-  is_dynamic = [True, False, False]
-  files = ["dblp_edges", "livejournal_edges"]
+  #program_dir = "../benchmarks/"
+  #programs = [ "KCore/ApproximateKCore/KCore"]# , "KCore/JulienneDBS17/KCore"]
+  #is_dynamic = [True, False, False]
+  #files = ["dblp_edges", "livejournal_edges"]
   program_pres = [ "kcore"]
-  pres = ["dblp"] #, "livejournal"
-  empty = "empty_h"
+  pres = "dblp"
+  #empty = "empty_h"
   num_rounds = 4
   e = 0.4
   d = 3
   batch_sizes = [100, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
-  read_dir = "/home/jeshi/dynamic_graph/"
+  #read_dir = "/home/jeshi/dynamic_graph/"
   write_dir = "/home/jeshi/dogfood-out/"
   actual_batch_size = 100
   total_batch_times = [0]*num_rounds
@@ -31,8 +31,8 @@ def main():
   for p_idx, p in enumerate(program_pres):
     print("", end = "\n")
     print(p, end = "\n")
-    read_filename = write_dir + str(p) + "_dblp" + "_" + str(e) + "_" + str(d) + "_" + str(actual_batch_size) + "_60.out"
-    num_lines = sum(1 for line in open(read_dir + "dblp_edges"))
+    read_filename = write_dir + str(p) + "_" + pres + "_" + str(e) + "_" + str(d) + "_" + str(actual_batch_size) + "_60.out"
+    #num_lines = sum(1 for line in open(read_dir + pres + "_edges"))
     # if you are dynamic...round changes when you see ### Application...batch changes when you see batch running time
     # if you are static...
     for b_idx, b in enumerate(batch_sizes):
@@ -51,11 +51,11 @@ def main():
           if split[0].startswith("### Batch Running Time"):
             prev_running_time[round_idx] += float(split[1])
           elif split[0].startswith("### Batch Num"):
-            if int(split[1]) % b == 0 or int(split[1]) == num_lines:
-              num_batches[round_idx] += 1
-              sum_runtime[round_idx] += prev_running_time[round_idx]
-              max_runtime[round_idx] = max(max_runtime[round_idx], prev_running_time[round_idx])
-              prev_running_time[round_idx] = 0
+            #if int(split[1]) % b == 0 or int(split[1]) == num_lines:
+            num_batches[round_idx] += 1
+            sum_runtime[round_idx] += prev_running_time[round_idx]
+            max_runtime[round_idx] = max(max_runtime[round_idx], prev_running_time[round_idx])
+            prev_running_time[round_idx] = 0
         for i in range(num_rounds):
           total_batch_times[i] = sum_runtime[i]
           avg_batch_times[i] = sum_runtime[i] if num_batches[i] == 0 else sum_runtime[i] / num_batches[i]
