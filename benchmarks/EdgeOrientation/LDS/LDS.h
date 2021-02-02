@@ -122,14 +122,18 @@ inline double group_degree(size_t group, double epsilon) {
   return pow(1 + epsilon, group);
 }
 
-inline double upper_constant(double delta) {
-  return (2 + static_cast<double>(3) / delta);
+inline double upper_constant(double delta, bool optimized) {
+  if (optimized)
+    return 1.1;
+  else
+    return (2 + static_cast<double>(3) / delta);
 }
 
 struct LDS {
   size_t n;  // number of vertices
   double delta = 9.0;
   double epsilon = 3.0;
+  bool optimized_insertion = false;
 
   size_t total_work;
 
@@ -164,10 +168,11 @@ struct LDS {
     }
 
 
-    inline bool upper_invariant(const size_t levels_per_group, double epsilon, double delta) const {
+    inline bool upper_invariant(const size_t levels_per_group, double epsilon, double delta,
+            bool optimized) const {
       uintE group = level / levels_per_group;
       return up.size() <=
-             static_cast<size_t>(upper_constant(delta) * group_degree(group, epsilon));
+             static_cast<size_t>(upper_constant(delta, optimized) * group_degree(group, epsilon));
     }
 
     inline bool lower_invariant(const size_t levels_per_group, double epsilon) const {
@@ -186,7 +191,8 @@ struct LDS {
   parlay::sequence<LDSVertex> L;
   std::stack<uintE> Dirty;
 
-  LDS(size_t _n, double _eps, double _delta) : n(_n), epsilon(_eps), delta(_delta) {
+  LDS(size_t _n, double _eps, double _delta, bool _optimized) : n(_n), epsilon(_eps),
+    delta(_delta), optimized_insertion(_optimized) {
     levels_per_group = ceil(log(n) / log(1 + epsilon));
     // levels_per_group = parlay::log2_up(n);
     L = parlay::sequence<LDSVertex>(n);
@@ -281,7 +287,7 @@ struct LDS {
     while (!Dirty.empty()) {
       uintE u = Dirty.top();
       Dirty.pop();
-      if (!L[u].upper_invariant(levels_per_group, epsilon, delta)) {
+      if (!L[u].upper_invariant(levels_per_group, epsilon, delta, optimized_insertion)) {
         // Move u to level i+1.
         level_increase(u, L);
         Dirty.push(u);  // u might need to move up more levels.
@@ -336,7 +342,7 @@ struct LDS {
   void check_invariants() {
     bool invs_ok = true;
     for (size_t i = 0; i < n; i++) {
-      bool upper_ok = L[i].upper_invariant(levels_per_group, epsilon, delta);
+      bool upper_ok = L[i].upper_invariant(levels_per_group, epsilon, delta, optimized_insertion);
       bool lower_ok = L[i].lower_invariant(levels_per_group, epsilon);
       assert(upper_ok);
       assert(lower_ok);
@@ -448,7 +454,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
         auto appx_core = layers.core(j);
         return (appx_core > (mult_appx*true_core)) + (appx_core < (true_core / mult_appx));
       }), parlay::addm<float>());
-      
+
 
       // Output min, max, and average error
       float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
@@ -473,9 +479,9 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta, bool optimized_insertion) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
-  auto layers = LDS(max_vertex, eps, delta);
+  auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
   if (G.n > 0) RunLDS(G, layers);
   if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
 }
