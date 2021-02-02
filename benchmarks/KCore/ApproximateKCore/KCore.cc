@@ -128,8 +128,8 @@ double KCore_runner(Graph& G, commandLine P) {
   BatchDynamicEdges<W> batch_edge_list = read_batch_dynamic_edge_list<W>(input_file);
 
   if (num_dynamic_edges != 0) {
-    if (num_dynamic_edges > batch.size()) num_dynamic_edges = batch.size();
     auto batch = batch_edge_list.edges;
+    if (num_dynamic_edges > batch.size()) num_dynamic_edges = batch.size();
     // Do an in-place sort for inserts and deletes in the range i to num_dynamic_edges
     auto compare_tup = [&] (const DynamicEdge<W>& l, const DynamicEdge<W>& r) { return l.insert > r.insert; };
     parlay::sort_inplace(parlay::make_slice(batch.data() + start_size, batch.data() + num_dynamic_edges), compare_tup);
