@@ -31,11 +31,11 @@ def main():
   for p_idx, p in enumerate(program_pres):
     print("", end = "\n")
     print(p, end = "\n")
-    read_filename = write_dir + str(p) + "_" + pres + "_" + str(e) + "_" + str(d) + "_" + str(actual_batch_size) + "_60.out"
+    for b_idx, b in enumerate(batch_sizes):
+      read_filename = write_dir + str(p) + "_" + pres + "_" + str(e) + "_" + str(d) + "_" + str(b) + "_60.out"
     #num_lines = sum(1 for line in open(read_dir + pres + "_edges"))
     # if you are dynamic...round changes when you see ### Application...batch changes when you see batch running time
     # if you are static...
-    for b_idx, b in enumerate(batch_sizes):
       with open(read_filename, "r") as read_file:
         sum_runtime = [0]*num_rounds
         max_runtime = [0]*num_rounds
