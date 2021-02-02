@@ -19,6 +19,15 @@ def shellGetOutput(str) :
   #    raise NameError(str+"\n"+output+err)
   return output
 
+def computeTimeout(out):
+  time = 0
+  for line in out.splitlines():
+    line = line.strip()
+    split = [x.strip() for x in line.split(':')]
+    if split[0].startswith("### Batch Running Time"):
+      time += float(split[1])
+  return time
+
 def appendToFile(out, filename):
   with open(filename, "a+") as out_file:
     out_file.writelines(out)
@@ -31,13 +40,13 @@ def main():
   programs = ["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
   program_pres = ["lds", "kcore", "ekcore"]
   is_dynamic = [True, False, False]
-  files = ["dblp_edges","orkut_edges"]
-  pres = ["dblp","orkut"]
+  files = ["dblp_edges","livejournal_edges"]
+  pres = ["dblp","livejournal"]
   empty = "empty_h"
   stats = ""
   epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
   deltas = [3] #[3, 6, 12, 24, 48, 96]
-  batch_sizes = [100, 1000, 10000, 100000, 1000000, 10000000]
+  batch_sizes = [100]#, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   read_dir = "/home/jeshi/dynamic_graph/"
   write_dir = "/home/jeshi/dogfood-out/"
@@ -47,22 +56,28 @@ def main():
         for d in deltas:
           for b in batch_sizes:
             for nw in num_workers:
+              time = 0
               out_filename = write_dir + program_pres[program_idx] + "_" + pres[file_idx] + "_" + str(e) + "_" + str(d) + "_" + str(b) + "_" + str(nw) + ".out"
               batch_commands = []
               if is_dynamic[program_idx]:
                 batch_commands = ["-b " + str(b)]
               else:
                 num_lines = sum(1 for line in open(read_dir + filename))
-                batch_commands = ["-num_dynamic_edges " + str(x) for x in range(b, num_lines + 1, b)]
+                #batch_commands = ["-b "+str(b) +" -end_size "+str(x + 100*b) +" -start_size " + str(x) for x in range(0, num_lines, 100*b)]
+                batch_commands = ["-dynamic_edges "+str(x) for x in range(0, num_lines, b)]
                 if (num_lines % b != 0):
-                  batch_commands.append(num_lines)
+                  batch_commands.append("-dynamic_edges " + str(num_lines))
               for bc in batch_commands:
-                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " " + program_dir + program + " -s -i"
+                ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
-                "-rounds 1 " + stats + " " + read_dir + empty)
+                "-rounds 4 " + stats + " " + read_dir + empty)
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
+                time += computeTimeout(out)
+                if (time > 21600):
+                  print("Timeout: " + ss)
+                  break
 
 if __name__ == "__main__":
   main()
