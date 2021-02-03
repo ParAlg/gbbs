@@ -13,17 +13,17 @@ def main():
   #programs = [ "KCore/ApproximateKCore/KCore"]# , "KCore/JulienneDBS17/KCore"]
   #is_dynamic = [True, False, False]
   #files = ["dblp_edges", "livejournal_edges"]
-  program_pres = [ "kcore"]
-  pres = "dblp"
+  program_pres = [ "lds"]
+  pres = "dblp_insertion_perf"
   #empty = "empty_h"
-  num_rounds = 4
-  e = 0.4
+  num_rounds = 2
+  e = 6.4
   d = 3
-  batch_sizes = [100, 1000, 10000, 100000, 1000000, 10000000]
+  batch_sizes = [ 100000]#100, 1000, 10000,, 1000000, 10000000
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
   #read_dir = "/home/jeshi/dynamic_graph/"
-  write_dir = "/home/jeshi/dogfood-out/"
-  actual_batch_size = 100
+  write_dir = "/home/sy/dogfood-out/"
+  actual_batch_size = 100000
   total_batch_times = [0]*num_rounds
   avg_batch_times = [0]*num_rounds
   max_batch_times = [0]*num_rounds
@@ -61,9 +61,9 @@ def main():
           avg_batch_times[i] = sum_runtime[i] if num_batches[i] == 0 else sum_runtime[i] / num_batches[i]
           max_batch_times[i] = max_runtime[i]
       # now we must output
-      min_idx = 0
-      min_total_batch_times = total_batch_times[0]
-      for i in range(num_rounds):
+      min_idx = 1
+      min_total_batch_times = total_batch_times[1]
+      for i in range(1, num_rounds):
         if (total_batch_times[i] < min_total_batch_times):
           min_total_batch_times = total_batch_times[i]
           min_idx = i
