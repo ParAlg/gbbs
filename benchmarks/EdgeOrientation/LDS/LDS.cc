@@ -22,6 +22,8 @@
 // SOFTWARE.
 
 #include "LDS.h"
+#include <sstream>
+#include <iomanip>
 
 namespace gbbs {
 template <class Graph>
@@ -39,10 +41,26 @@ double LDS_runner(Graph& G, commandLine P) {
   const char* const input_file{P.getOptionValue(kInputFlag)};
   long batch_size = P.getOptionLongValue("-b", 1);
   bool compare_exact = P.getOption("-stats");
+  bool write_out_estimate = P.getOption("-statsout"); //higher priority than stats
+  const std::string kOutputFlag{"-statsout"};
+  const char* const output_file{P.getOptionValue(kOutputFlag)};
+  
   bool optimized_insertion = P.getOption("-ins-opt");
 
   double eps = P.getOptionDoubleValue("-eps", 3);
   double delta = P.getOptionDoubleValue("-delta", 9);
+
+  auto precisionString = [&](double a) -> std::string {
+    std::stringstream precisionValue;
+    precisionValue << std::setprecision(3);
+      precisionValue << a;
+    return precisionValue.str();
+  };
+  std::string epsilonS = precisionString(eps);
+  std::string deltaS = precisionString(delta);
+  std::string suffix = "_" + epsilonS + "_" + deltaS;
+  std::string outFileName(output_file);
+	outFileName.append(suffix);
 
   using W = typename Graph::weight_type;
   bool use_dynamic = (input_file && input_file[0]);
@@ -52,7 +70,7 @@ double LDS_runner(Graph& G, commandLine P) {
   if (use_dynamic && batch_size == 0) batch_size = batch_edge_list.edges.size();
 
   timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion, write_out_estimate, outFileName);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 

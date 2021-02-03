@@ -28,6 +28,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <math.h>
+#include <iostream>
 
 #include "gbbs/gbbs.h"
 #include "gbbs/dynamic_graph_io.h"
@@ -414,7 +415,7 @@ inline void RunLDS(Graph& G, LDS& layers) {
 }
 
 template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers) {
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers, bool write_out_estimate = false, std::string outFileName = NULL) {
   auto batch = batch_edge_list.edges;
   for (size_t i = 0; i < batch.size(); i += batch_size) {
     timer t; t.start();
@@ -424,10 +425,21 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
     }
     //layers.check_invariants();
     double tt = t.stop();
+    long batch_num = std::min(batch.size(), i + batch_size);
     std::cout << "### Batch Running Time: " << tt << std::endl;
-    std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
+    std::cout << "### Batch Num: " << batch_num << std::endl;
     std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
-    if (compare_exact) {
+    if(write_out_estimate){
+      	std::cout << "writing core stats to output file ";
+        std::cout << outFileName + "_" + std::to_string(batch_num) << std::endl;
+        std::ofstream outputFile;
+        outputFile.open(outFileName + "_" + std::to_string(batch_num) + ".out");
+        for (int i = 0; i <= layers.n; ++i){
+          if(layers.core(i) != 0) outputFile << i << " " << layers.core(i) << std::endl;
+        }
+        outputFile.close();
+        std::cout << "finish writing" << std::endl;
+    }else if (compare_exact) {
       auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(), i + batch_size));
 
       // Run kcore on graph
@@ -479,11 +491,11 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta, bool optimized_insertion) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta, bool optimized_insertion, bool write_out_estimate = false, std::string outFileName = NULL) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
   if (G.n > 0) RunLDS(G, layers);
-  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
+  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, write_out_estimate, outFileName);
 }
 
 }  // namespace gbbs
