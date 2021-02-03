@@ -120,6 +120,7 @@ double KCore_runner(Graph& G, commandLine P) {
     timer t; t.start();
     auto cores = approximate_kcore::KCore(G, num_buckets, eps, delta, use_pow);
     double tt = t.stop();
+    if (use_stats) print_stats(cores, eps, G, num_buckets, use_stats);
     std::cout << "### Running Time: " << tt << std::endl;
     return tt;
   }
