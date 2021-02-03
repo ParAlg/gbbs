@@ -37,19 +37,21 @@ def appendToFile(out, filename):
 def main():
   # Configured for Test 1
   program_dir = "../benchmarks/"
-  programs = ["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
-  program_pres = ["lds", "kcore", "ekcore"]
-  is_dynamic = [True, False, False]
-  files = ["dblp_edges","livejournal_edges"]
-  pres = ["dblp","livejournal"]
+  programs = ["EdgeOrientation/ParallelLDS/LDS"]# , "KCore/JulienneDBS17/KCore" "KCore/ApproximateKCore/KCore", "EdgeOrientation/LDS/LDS", 
+  program_pres = ["plds"]#,"lds" "kcore", "ekcore" "kcore", "lds", 
+  is_dynamic = [True]#True, False, False, True, 
+  files = ["livejournal_insertion_edges"]#"dblp_insertion_edges",
+  pres = ["livejournal_insertion"]#,"livejournal"
   empty = "empty_h"
-  stats = ""
-  epss = [0.4] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+  stats = ""#
+  statsout = "-statsout"
+  stats_out_file = "/home/sy/dogfood-out/corenum/"
+  epss = [0.2, 0.1] #[0.2, 0.4, 0.8, 1.6, 3.2, 6.4]6.4, 3.2, 1.6, 0.8, 0.4,
   deltas = [3] #[3, 6, 12, 24, 48, 96]
-  batch_sizes = [100]#, 1000, 10000, 100000, 1000000, 10000000]
+  batch_sizes = [1000000]#, 1000, 10000, 100000, 1000000, 10000000]
   num_workers = [60]#[1, 2, 4, 8, 16, 32, 60]
-  read_dir = "/home/jeshi/dynamic_graph/"
-  write_dir = "/home/jeshi/dogfood-out/"
+  read_dir = "/home/sy/localdata/"
+  write_dir = "/home/sy/dogfood-out/"
   for file_idx, filename in enumerate(files):
     for program_idx, program in enumerate(programs):
       for e in epss:
@@ -57,6 +59,7 @@ def main():
           for b in batch_sizes:
             for nw in num_workers:
               time = 0
+              stats_out_file +=  program_pres[program_idx] + "_" + pres[file_idx] 
               out_filename = write_dir + program_pres[program_idx] + "_" + pres[file_idx] + "_" + str(e) + "_" + str(d) + "_" + str(b) + "_" + str(nw) + ".out"
               batch_commands = []
               if is_dynamic[program_idx]:
@@ -70,8 +73,9 @@ def main():
               for bc in batch_commands:
                 ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
-                "-delta " + str(d) + " " + bc + " "
-                "-rounds 4 " + stats + " " + read_dir + empty)
+                "-delta " + str(d) + " -ins-opt " + bc + " "
+                "-rounds 1 " + stats + " " +statsout + " " + stats_out_file + " " + read_dir + empty)
+                print ss
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
                 time += computeTimeout(out)

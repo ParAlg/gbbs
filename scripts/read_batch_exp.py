@@ -11,19 +11,19 @@ def main():
   # this is stored per epsilon and delta pair
   # Configured for Test 1 (1 round)
   program_dir = "../benchmarks/"
-  programs = [ "EdgeOrientation/ParallelLDS/LDS"]# , "KCore/JulienneDBS17/KCore"]
+  programs = ["EdgeOrientation/ParallelLDS/LDS"]# ,"KCore/ApproximateKCore/KCore","EdgeOrientation/LDS/LDS",   "KCore/JulienneDBS17/KCore"]
   is_dynamic = [True]
-  files = ["dblp_edges"] #["livejournal_edges"]
-  program_pres = [ "plds"]
-  pres = ["dblp"]
+  files = ["livejournal_insertion_edges"] #["dblp_edges"]
+  program_pres = ["plds"] #"kcore", "lds", 
+  pres = ["livejournal_insertion"]
   empty = "empty_h"
-  num_rounds = 100000
-  e = [0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
-  d = [3, 6, 12, 24, 48, 96]
-  batch_sizes = [100000] # 1000000]#[100, 1000, 10000, 100000, 1000000, 10000000]
-  num_workers = [1, 2, 4, 8, 16, 30, 60]
-  read_dir = "/home/qliu19/dynamic_graph/"
-  write_dir = "/home/qliu19/dynamic-graph-out-workers/"
+  num_rounds = 1000000
+  e = [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+  d = [3] #, 6, 12, 24, 48, 96
+  batch_sizes = [1000000] # 1000000]#[100, 1000, 10000, 100000, 1000000, 10000000]
+  num_workers = [60]
+  read_dir = "/home/sy/localdata/"
+  write_dir = "/home/sy/dogfood-out/"
   actual_batch_size = 1000000
   for file_name in pres:
     for eps in e:
@@ -58,10 +58,10 @@ def main():
                         max_core_error = max(max_core_estimates)
 
                         print(file_name, end = ",")
-                        #print(str(eps), end = ",")
-                        #print(str(l), end = ",")
-                        #print(avg_core_estimate, end = ",")
-                        #print(max_core_error, end = ",")
+                        print(str(eps), end = ",")
+                        print(str(l), end = ",")
+                        print(avg_core_estimate, end = ",")
+                        print(max_core_error, end = ",")
                         print(worker, end = ",")
                         print(total_runtime, end=",")
                         print(avg_runtime, end = ",")
