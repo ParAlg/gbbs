@@ -17,22 +17,24 @@ struct augmented_ops : Map {
   using GC = typename Map::GC;
   using K = typename Map::K;
   using aug_t = typename Entry::aug_t;
+  using ptr = typename GC::ptr;
 
   static inline aug_t aug_val(node* b) {
     return Seq::aug_val(b);
   }
 
-//  struct aug_sum_t {
-//    aug_t result;
-//    aug_sum_t() : result(Entry::get_empty()) {}
-//    void add_entry(ET e) {
-//      result = Entry::combine(result, Entry::from_entry(e));
-//    }
-//    void add_aug_val(aug_t av) {
-//      result = Entry::combine(result, av);
-//    }
-//  };
-//
+  struct aug_sum_t {
+    aug_t result;
+    aug_sum_t() : result(Entry::get_empty()) {}
+    void add_entry(ET e) {
+      result = Entry::combine(result, Entry::from_entry(e));
+    }
+    void add_aug_val(aug_t av) {
+      result = Entry::combine(result, av);
+    }
+  };
+
+// TODO
 //  template<class aug>
 //  // the sum right of or at key
 //  static void aug_sum_right(node* b, const K& key, aug& a) {
@@ -45,7 +47,7 @@ struct augmented_ops : Map {
 //      } else b = b->rc;
 //    }
 //  }
-//
+
 //  template<class aug>
 //  // the sum left of or at key
 //  static void aug_sum_left(node* b, const K& key, aug& a) {
@@ -59,6 +61,27 @@ struct augmented_ops : Map {
 //    }
 //  }
 //
+
+  template<class aug>
+  // the sum left of or at key
+  static void aug_sum_left(ptr b, const K& key, aug& a) {
+    if (!b.empty()) {
+      auto [lc, e, rc, m] = Seq::expose(std::move(b));
+      if (!Map::comp(key, Entry::get_key(e))) {
+        a.add_entry(e);
+        if (!lc.empty()) {  // extract aug_val from ptr
+          auto l = lc.node_ptr();
+          a.add_aug_val(Map::aug_val(l));  // TODO
+        }
+        aug_sum_left(std::move(rc), key, a);
+      } else {
+        GC::decrement(m);
+        return aug_sum_left(std::move(lc), key, a);
+      }
+    }
+  }
+
+
 //  template<class aug>
 //  static void aug_sum_range(node* b, const K& key_left, const K& key_right, aug& a) {
 //    node* r = Map::range_root(b, key_left, key_right);

@@ -33,11 +33,11 @@ public:
   // extract the augmented values
   A aug_val() { return Tree::aug_val(Map::root); }
 
-//  A aug_left (const K& key) {
-//    typename Tree::aug_sum_t a;
-//    Tree::aug_sum_left(Map::root, key, a);
-//    return a.result;}
-//
+  A aug_left (const K& key) {
+    typename Tree::aug_sum_t a;
+    Tree::aug_sum_left(Map::root, key, a);
+    return a.result;}
+
 //  A aug_right(const K& key) {
 //    typename Tree::aug_sum_t a;
 //    Tree::aug_sum_right(Map::root, key, a);
