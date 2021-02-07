@@ -131,30 +131,35 @@ double KCore_runner(Graph& G, commandLine P) {
   if (num_dynamic_edges != 0) {
     auto batch = batch_edge_list.edges;
     if (num_dynamic_edges > batch.size()) num_dynamic_edges = batch.size();
-    // Do an in-place sort for inserts and deletes in the range i to num_dynamic_edges
-    auto compare_tup = [&] (const DynamicEdge<W>& l, const DynamicEdge<W>& r) { return l.insert > r.insert; };
-    parlay::sort_inplace(parlay::make_slice(batch.data() + start_size, batch.data() + num_dynamic_edges), compare_tup);
-    // Find the first deletion
-    size_t j = start_size;
-    for (j = start_size; j < num_dynamic_edges; j++) {
-      if (!batch[j].insert) break;
-    }
+
+    auto compare_seq = parlay::delayed_seq<bool>(num_dynamic_edges - start_size, [&] (size_t i) {
+      return !batch[i].insert;
+    });
+    auto split = parlay::internal::split_two(parlay::make_slice(batch.data() + start_size, batch.data() + num_dynamic_edges), compare_seq);
+    // j is the index of the first delete
+    size_t j = split.second + start_size;
+    parallel_for(start_size, num_dynamic_edges, [&] (size_t i) {
+      batch[i] = split.first[i - start_size];
+    });
 
     timer t; t.start();
     // First do insertions
-    symmetric_graph<symmetric_vertex, W> dynamic_graph_insert = dynamic_edge_list_to_symmetric_graph(batch_edge_list, j);
-    auto cores_insert = approximate_kcore::KCore(dynamic_graph_insert, num_buckets, eps, delta, use_pow);
+    if (j != start_size) {
+      symmetric_graph<symmetric_vertex, W> dynamic_graph_insert = dynamic_edge_list_to_symmetric_graph(batch_edge_list, j);
+      auto cores_insert = approximate_kcore::KCore(dynamic_graph_insert, num_buckets, eps, delta, use_pow);
+      print_stats(cores_insert, eps, dynamic_graph_insert, num_buckets, use_stats);
+    }
 
     // Then do deletions
-    symmetric_graph<symmetric_vertex, W> dynamic_graph =  dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
-
-    // runs the fetch-and-add based implementation if set.
-    auto cores = approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow);
+    if (j != num_dynamic_edges){
+      symmetric_graph<symmetric_vertex, W> dynamic_graph =  dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
+      auto cores = approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow);
+      print_stats(cores, eps, dynamic_graph, num_buckets, use_stats);
+    }
     double tt = t.stop();
 
     std::cout << "### Batch Running Time: " << tt << std::endl;
     std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
-    print_stats(cores, eps, dynamic_graph, num_buckets, use_stats);
     return tt;
   }
 
@@ -166,16 +171,17 @@ double KCore_runner(Graph& G, commandLine P) {
     num_dynamic_edges = std::min((size_t)end_size, i + batch_size);
 
     // Do an in-place sort for inserts and deletes in the range i to num_dynamic_edges
-    auto compare_tup = [&] (const DynamicEdge<W>& l, const DynamicEdge<W>& r) { return l.insert > r.insert; };
-    parlay::sort_inplace(parlay::make_slice(batch.data() + i, batch.data() + num_dynamic_edges), compare_tup);
+    auto compare_seq = parlay::delayed_seq<bool>(num_dynamic_edges - i, [&] (size_t k) {
+      return !batch[k].insert;
+    });
+    auto split = parlay::internal::split_two(parlay::make_slice(batch.data() + i, batch.data() + num_dynamic_edges), compare_seq);
+    size_t j = split.second + i;
+    parallel_for(i, num_dynamic_edges, [&] (size_t k) {
+      batch[k] = split.first[k - i];
+    });
 
-    // Find the first delete
-    size_t j = i;
-    for (j = i; j < num_dynamic_edges; j++) {
-      if (!batch[j].insert) break;
-    }
-    end_seq[1 + 2 * ((i - start_size) / batch_size)] = j;
-    end_seq[1 + 2 * ((i - start_size) / batch_size) + 1] = num_dynamic_edges;
+    end_seq[1 + 2 * ((i - start_size) / batch_size)] = (j == i) ? UINT_E_MAX : j;
+    end_seq[1 + 2 * ((i - start_size) / batch_size) + 1] = (j == num_dynamic_edges) ? UINT_E_MAX : num_dynamic_edges;
   }
 
   timer t1; t1.start();
@@ -185,14 +191,16 @@ double KCore_runner(Graph& G, commandLine P) {
     if (i != 0 && (start == 0 || end == 0)) break;
   
     num_dynamic_edges = end;
-    auto dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
     timer t; t.start();
-    auto cores = approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow);
+    if (num_dynamic_edges != UINT_E_MAX) {
+      auto dynamic_graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, num_dynamic_edges);
+      auto cores = approximate_kcore::KCore(dynamic_graph, num_buckets, eps, delta, use_pow);
+      print_stats(cores, eps, dynamic_graph, num_buckets, use_stats);
+    }
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
     if (num_dynamic_edges % batch_size == 0 || num_dynamic_edges == batch.size())
       std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
-    print_stats(cores, eps, dynamic_graph, num_buckets, use_stats);
   }
   double tt1 = t1.stop();
   
