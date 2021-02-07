@@ -41,6 +41,8 @@ double LDS_runner(Graph& G, commandLine P) {
   bool compare_exact = P.getOption("-stats");
   bool optimized_insertion = P.getOption("-ins-opt");
 
+  const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
+
   double eps = P.getOptionDoubleValue("-eps", 3);
   double delta = P.getOptionDoubleValue("-delta", 9);
 
@@ -51,8 +53,14 @@ double LDS_runner(Graph& G, commandLine P) {
     BatchDynamicEdges<W>{};
   if (use_dynamic && batch_size == 0) batch_size = batch_edge_list.edges.size();
 
+  size_t offset = 0;
+  if (use_dynamic && init_graph_file) {
+    BatchDynamicEdges<W> init_graph_list = read_batch_dynamic_edge_list<W>(init_graph_file);
+    offset = prepend_dynamic_edge_list(batch_edge_list, init_graph_list);
+  }
+
   timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion);
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion, offset);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 

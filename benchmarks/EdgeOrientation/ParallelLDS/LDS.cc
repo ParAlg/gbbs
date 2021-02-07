@@ -44,20 +44,23 @@ double LDS_runner(Graph& G, commandLine P) {
   double eps = P.getOptionDoubleValue("-eps", 3);
   double delta = P.getOptionDoubleValue("-delta", 9);
 
+  const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
+
   using W = typename Graph::weight_type;
   bool use_dynamic = (input_file && input_file[0]);
   BatchDynamicEdges<W> batch_edge_list = use_dynamic ? read_batch_dynamic_edge_list<W>(input_file):
       BatchDynamicEdges<W>{};
   if (use_dynamic && batch_size == 0) batch_size = batch_edge_list.edges.size();
 
-  timer t; t.start();
-  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion);
-  double tt = t.stop();
-  //timer t; t.start();
+  size_t offset = 0;
+  if (use_dynamic && init_graph_file) {
+    BatchDynamicEdges<W> init_graph_list = read_batch_dynamic_edge_list<W>(init_graph_file);
+    offset = prepend_dynamic_edge_list(batch_edge_list, init_graph_list);
+  }
 
-  //RunLDS(G);
-//  auto cores = (fa) ? LDS_FA(G, num_buckets) : LDS(G, num_buckets);
-  //double tt = t.stop();
+  timer t; t.start();
+  RunLDS(G, batch_edge_list, batch_size, compare_exact, eps, delta, optimized_insertion, offset);
+  double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
 

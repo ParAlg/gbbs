@@ -201,6 +201,16 @@ symmetric_graph<symmetric_vertex, weight_type> dynamic_edge_list_to_symmetric_gr
   return gbbs_io::edge_list_to_symmetric_graph(edge_list);
 }
 
+template <class weight_type>
+size_t prepend_dynamic_edge_list(BatchDynamicEdges<weight_type>& dynamic_edges, BatchDynamicEdges<weight_type>& prepend) {
+  size_t prepend_size = prepend.edges.size();
+  dynamic_edges.max_vertex = std::max(dynamic_edges.max_vertex, prepend.max_vertex);
+  // append dynamic_edges to the back of prepend, destruct dynamic_edges
+  std::move(dynamic_edges.edges.begin(), dynamic_edges.edges.end(), std::back_inserter(prepend.edges));
+  dynamic_edges.edges.swap(prepend.edges);
+  return prepend_size;
+}
+
 // something that will read dynamic edge list, and write to graph form (output)
 
 

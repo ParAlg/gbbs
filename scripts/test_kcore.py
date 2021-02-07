@@ -40,7 +40,8 @@ def main():
   programs = ["EdgeOrientation/LDS/LDS", "KCore/ApproximateKCore/KCore", "KCore/JulienneDBS17/KCore"]
   program_pres = ["lds", "kcore", "ekcore"]
   is_dynamic = [True, False, False]
-  files = ["dblp_edges","livejournal_edges"]
+  files = ["dblp_deletion_edges","livejournal_deletion_edges"]
+  init_files = ["dblp_insertion_edges", "livejournal_insertion_edges"]
   pres = ["dblp","livejournal"]
   empty = "empty_h"
   stats = ""
@@ -72,7 +73,7 @@ def main():
                 ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
-                "-rounds " + str(num_rounds) + stats + " " + read_dir + empty)
+                "-rounds " + str(num_rounds) + " -init_graph_file " + init_files[file_idx]  + " " + stats + " " + read_dir + empty)
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
                 time += computeTimeout(out)

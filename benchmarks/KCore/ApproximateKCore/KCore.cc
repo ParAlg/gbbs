@@ -114,6 +114,8 @@ double KCore_runner(Graph& G, commandLine P) {
   long start_size = P.getOptionLongValue("-start_size", 0);
   long end_size = P.getOptionLongValue("-end_size", 0);
 
+  const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
+
   bool use_dynamic = (input_file && input_file[0]);
 
   if (!use_dynamic) {
@@ -127,13 +129,21 @@ double KCore_runner(Graph& G, commandLine P) {
   
   using W = typename Graph::weight_type;
   BatchDynamicEdges<W> batch_edge_list = read_batch_dynamic_edge_list<W>(input_file);
+  
+  size_t offset = 0;
+  if (init_graph_file) {
+    BatchDynamicEdges<W> init_graph_list = read_batch_dynamic_edge_list<W>(init_graph_file);
+    offset = prepend_dynamic_edge_list(batch_edge_list, init_graph_list);
+  }
 
   if (num_dynamic_edges != 0) {
     auto batch = batch_edge_list.edges;
+    num_dynamic_edges += offset;
     if (num_dynamic_edges > batch.size()) num_dynamic_edges = batch.size();
-
+    start_size += offset;
+    // Do an in-place sort for inserts and deletes in the range i to num_dynamic_edges
     auto compare_seq = parlay::delayed_seq<bool>(num_dynamic_edges - start_size, [&] (size_t i) {
-      return !batch[i].insert;
+      return !batch[i + start_size].insert;
     });
     auto split = parlay::internal::split_two(parlay::make_slice(batch.data() + start_size, batch.data() + num_dynamic_edges), compare_seq);
     // j is the index of the first delete
@@ -159,12 +169,14 @@ double KCore_runner(Graph& G, commandLine P) {
     double tt = t.stop();
 
     std::cout << "### Batch Running Time: " << tt << std::endl;
-    std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+    std::cout << "### Batch Num: " << num_dynamic_edges - offset << std::endl;
     return tt;
   }
 
   auto batch = batch_edge_list.edges;
-  if (end_size == 0 || end_size > batch.size()) end_size = batch.size();
+  end_size += offset;
+  if (end_size == offset || end_size > batch.size()) end_size = batch.size();
+  start_size += offset;
   auto end_seq = parlay::sequence<uintE>(3 + 2 * ((end_size - start_size) / batch_size), (uintE)0);
   end_seq[0] = start_size;
   for (size_t i = start_size; i < end_size; i += batch_size) {
@@ -172,7 +184,7 @@ double KCore_runner(Graph& G, commandLine P) {
 
     // Do an in-place sort for inserts and deletes in the range i to num_dynamic_edges
     auto compare_seq = parlay::delayed_seq<bool>(num_dynamic_edges - i, [&] (size_t k) {
-      return !batch[k].insert;
+      return !batch[k + i].insert;
     });
     auto split = parlay::internal::split_two(parlay::make_slice(batch.data() + i, batch.data() + num_dynamic_edges), compare_seq);
     size_t j = split.second + i;
@@ -200,7 +212,7 @@ double KCore_runner(Graph& G, commandLine P) {
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
     if (num_dynamic_edges % batch_size == 0 || num_dynamic_edges == batch.size())
-      std::cout << "### Batch Num: " << num_dynamic_edges << std::endl;
+      std::cout << "### Batch Num: " << num_dynamic_edges - offset << std::endl;
   }
   double tt1 = t1.stop();
   

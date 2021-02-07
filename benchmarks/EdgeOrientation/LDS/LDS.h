@@ -414,9 +414,16 @@ inline void RunLDS(Graph& G, LDS& layers) {
 }
 
 template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers) {
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers, size_t offset) {
   auto batch = batch_edge_list.edges;
-  for (size_t i = 0; i < batch.size(); i += batch_size) {
+  if (offset != 0) {
+    for (size_t i = 0; i < offset; i++) {
+      if (batch[i].insert) layers.insert_edge({batch[i].from, batch[i].to});
+      else layers.delete_edge({batch[i].from, batch[i].to});
+    }
+  }
+  
+  for (size_t i = offset; i < batch.size(); i += batch_size) {
     timer t; t.start();
     for (size_t j = i; j < std::min(batch.size(), i + batch_size); j++) {
       if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
@@ -425,7 +432,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
     //layers.check_invariants();
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
-    std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
+    std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) - offset << std::endl;
     std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
     if (compare_exact) {
       auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(), i + batch_size));
@@ -479,11 +486,12 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta, bool optimized_insertion) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta, bool optimized_insertion,
+  size_t offset) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
   if (G.n > 0) RunLDS(G, layers);
-  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers);
+  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, offset);
 }
 
 }  // namespace gbbs

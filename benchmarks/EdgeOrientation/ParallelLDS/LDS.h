@@ -1276,9 +1276,35 @@ inline void RunLDS(Graph& G, bool optimized_deletion) {
 
 template <class W>
 inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
-        LDS& layers, bool optimized_insertion) {
+        LDS& layers, bool optimized_insertion, size_t offset) {
     auto batch = batch_edge_list.edges;
-    for (size_t i = 0; i < batch.size(); i += batch_size) {
+    // First, insert / delete everything up to offset
+    if (offset != 0) {
+      auto insertions = parlay::filter(parlay::make_slice(batch.begin(),
+                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
+            return edge.insert;
+      });
+      auto deletions = parlay::filter(parlay::make_slice(batch.begin(),
+                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
+            return !edge.insert;
+      });
+      auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
+                [&] (size_t i) {
+            uintE vert1 = insertions[i].from;
+            uintE vert2 = insertions[i].to;
+            return std::make_pair(vert1, vert2);
+      });
+      auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
+            [&] (size_t i) {
+            uintE vert1 = deletions[i].from;
+            uintE vert2 = deletions[i].to;
+            return std::make_pair(vert1, vert2);
+      });
+      layers.batch_insertion(batch_insertions);
+      layers.batch_deletion(batch_deletions);
+    }
+    
+    for (size_t i = offset; i < batch.size(); i += batch_size) {
         timer t; t.start();
         auto end_size = std::min(i + batch_size, batch.size());
         auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
@@ -1317,7 +1343,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         std::cout << "### Batch Running Time: " << tt << std::endl;
         std::cout << "### Insertion Running Time: " << insertion_time << std::endl;
         std::cout << "### Deletion Running Time: " << deletion_time << std::endl;
-        std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) << std::endl;
+        std::cout << "### Batch Num: " << end_size - offset << std::endl;
         std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
         if (compare_exact) {
             auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(),
@@ -1374,11 +1400,11 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
 
 template <class Graph, class W>
 inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
-        bool compare_exact, double eps, double delta, bool optimized_insertion) {
+        bool compare_exact, double eps, double delta, bool optimized_insertion, size_t offset) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
     if (G.n > 0) RunLDS(G, optimized_insertion);
-    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion);
+    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
 }
 
 }  // namespace gbbs
