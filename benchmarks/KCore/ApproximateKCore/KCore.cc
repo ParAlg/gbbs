@@ -211,7 +211,7 @@ double KCore_runner(Graph& G, commandLine P) {
     }
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
-    if (num_dynamic_edges % batch_size == 0 || num_dynamic_edges == batch.size())
+    if (num_dynamic_edges - offset % batch_size == 0 || num_dynamic_edges == batch.size())
       std::cout << "### Batch Num: " << num_dynamic_edges - offset << std::endl;
   }
   double tt1 = t1.stop();
