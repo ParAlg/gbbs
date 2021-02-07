@@ -199,10 +199,47 @@ struct sequence_ops : Tree {
     GC::decrement(root);
   }
 
+  template <class Func>
+  static node* filter_bc(ptr b1, const Func& f) {
+    assert(b1.size() > 0);
+    ET stack[utils::kBaseCaseSize + 1];
+
+    auto b1_node = b1.node_ptr();
+    size_t offset = 0;
+    auto copy_f = [&] (const ET& a) {
+      stack[offset++] = a;
+    };
+    Tree::iterate_seq(b1_node, copy_f);
+    assert(offset <= utils::kBaseCaseSize);
+
+    Tree::decrement_recursive(b1_node);
+
+    size_t k = 0;
+    for (size_t i=0; i<offset; i++) {
+      if (f(stack[i])) {
+        if (i > k) {
+          stack[k++] = stack[i];
+        }
+      }
+    }
+
+    if (k < utils::compression_block_size) {
+      return to_tree_impl((ET*)stack, k);
+    } else {
+      // need to refactor
+      return Tree::make_compressed(stack, k);
+    }
+  }
+
   template<class Func>
   static node* filter(ptr b, const Func& f, size_t granularity=utils::node_limit) {
     if (b.empty()) return NULL;
     size_t n = b.size();
+
+    if (n <= utils::kBaseCaseSize) {
+      return filter_bc(std::move(b), f);
+    }
+
     auto[lc, e, rc, root] = expose(std::move(b));
 
     auto [l, r] = utils::fork<node*>(n >= granularity,

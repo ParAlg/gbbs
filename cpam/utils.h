@@ -17,6 +17,8 @@ namespace utils {
   //constexpr const size_t compression_block_size = 500;
   constexpr const size_t compression_block_size = 45;
 
+  static constexpr size_t kBaseCaseSize = 7*compression_block_size;
+
   // for granularity control
   // if the size of a node is smaller than this number then it
   // processed sequentially instead of in parallel

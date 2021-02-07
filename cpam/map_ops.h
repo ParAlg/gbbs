@@ -26,8 +26,6 @@ struct map_ops : Seq {
   //static K get_key(node *s) { return Entry::get_key(Seq::get_entry(s));}
   //static V get_val(node *s) { return Entry::get_val(Seq::get_entry(s));}
 
-  static constexpr size_t kBaseCaseSize = 7*utils::compression_block_size;
-
   static std::optional<ET> find(ptr b, const K& key) {
     if (b.empty()) return {};
     auto [lc, e, rc, m] = Seq::expose(std::move(b));
@@ -265,7 +263,7 @@ struct map_ops : Seq {
     if (b2.empty()) return b1.node_ptr();
 
     size_t n1 = b1.size(), n2 = b2.size();
-    if (n1 + n2 <= kBaseCaseSize) {
+    if (n1 + n2 <= utils::kBaseCaseSize) {
       return union_bc(std::move(b1), std::move(b2), op);
     }
 
@@ -298,7 +296,7 @@ struct map_ops : Seq {
     size_t n1 = Seq1::size(b1);
     size_t n2 = b2.size();
 
-    if (n1 + n2 <= kBaseCaseSize) {
+    if (n1 + n2 <= utils::kBaseCaseSize) {
       return intersect_bc(std::move(b1), std::move(b2), op);
     }
 
@@ -333,7 +331,7 @@ struct map_ops : Seq {
     if (!b2) return b1.node_ptr();
 
     size_t n1 = b1.size(), n2 = Seq::size(b2);
-    if (n1 + n2 <= kBaseCaseSize) {
+    if (n1 + n2 <= utils::kBaseCaseSize) {
       return difference_bc(std::move(b1), std::move(b2));
     }
 
@@ -864,7 +862,7 @@ struct map_ops : Seq {
     auto n_b1 = b1.node_ptr();
     auto n_b2 = b2.node_ptr();
 
-    ET stack[kBaseCaseSize + 1];
+    ET stack[utils::kBaseCaseSize + 1];
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
       stack[offset++] = a;
@@ -872,12 +870,12 @@ struct map_ops : Seq {
     Seq::iterate_seq(n_b1, copy_f);
     size_t offset_2 = offset;
     Seq::iterate_seq(n_b2, copy_f);
-    assert(offset <= kBaseCaseSize);
+    assert(offset <= utils::kBaseCaseSize);
 
     Seq::decrement_recursive(n_b1);
     Seq::decrement_recursive(n_b2);
 
-    ET output[kBaseCaseSize + 1];
+    ET output[utils::kBaseCaseSize + 1];
 
     // merge
     size_t nA = offset_2; size_t nB = offset;
@@ -922,7 +920,7 @@ struct map_ops : Seq {
     auto n_b1 = b1.node_ptr();
     auto n_b2 = b2.node_ptr();
 
-    ET stack[kBaseCaseSize + 1];
+    ET stack[utils::kBaseCaseSize + 1];
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
       stack[offset++] = a;
@@ -930,12 +928,12 @@ struct map_ops : Seq {
     Seq::iterate_seq(n_b1, copy_f);
     size_t offset_2 = offset;
     Seq::iterate_seq(n_b2, copy_f);
-    assert(offset <= kBaseCaseSize);
+    assert(offset <= utils::kBaseCaseSize);
 
     Seq::decrement_recursive(n_b1);
     Seq::decrement_recursive(n_b2);
 
-    ET output[kBaseCaseSize + 1];
+    ET output[utils::kBaseCaseSize + 1];
 
     // merge
     size_t nA = offset_2; size_t nB = offset;
@@ -972,7 +970,7 @@ struct map_ops : Seq {
     auto n_b1 = b1.node_ptr();
     auto n_b2 = b2.node_ptr();
 
-    ET stack[kBaseCaseSize + 1];
+    ET stack[utils::kBaseCaseSize + 1];
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
       stack[offset++] = a;
@@ -980,12 +978,12 @@ struct map_ops : Seq {
     Seq::iterate_seq(n_b1, copy_f);
     size_t offset_2 = offset;
     Seq::iterate_seq(n_b2, copy_f);
-    assert(offset <= kBaseCaseSize);
+    assert(offset <= utils::kBaseCaseSize);
 
     Seq::decrement_recursive(n_b1);
     Seq::decrement_recursive(n_b2);
 
-    ET output[kBaseCaseSize + 1];
+    ET output[utils::kBaseCaseSize + 1];
 
     // merge
     size_t nA = offset_2; size_t nB = offset;
