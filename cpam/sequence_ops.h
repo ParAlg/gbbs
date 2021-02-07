@@ -23,7 +23,9 @@ struct sequence_ops : Tree {
   static regular_node* to_tree_impl(ET* A, uint32_t n, uint32_t depth = 0) {
     if (n <= 0) return (regular_node*)Tree::empty();
     if (n == 1) return Tree::single(A[0]);
-    if (n == B && depth > 0) return (regular_node*)(Tree::make_single_compressed_node(A, n));
+    if (n == B && depth > 0) {
+      return (regular_node*)(Tree::make_single_compressed_node(A, n));
+    }
 
     size_t mid = n/2;
     regular_node* m = Tree::make_regular_node(A[mid]);
@@ -60,7 +62,22 @@ struct sequence_ops : Tree {
       return ret_tup;
     } else {
       // convert to tree
+//      if (print) {
+//        std::cout << "Hit a compressed node, converting to tree." << std::endl;
+//        auto fn = [&] (const auto& et) {
+//          std::cout << et.first << std::endl;
+//        };
+//        Tree::iterate_seq(p, fn);
+//      }
       regular_node* root = to_tree((compressed_node*)p);
+//      if (print) {
+//        auto fn = [&] (const auto& et) {
+//          std::cout << et.first << std::endl;
+//        };
+//
+//        std::cout << "printing new root" << std::endl;
+//        Tree::iterate_seq(root, fn);
+//      }
       return expose_tuple(ptr(root->lc, false), Tree::get_entry(root), ptr(root->rc, false), root);
     }
   }
@@ -89,20 +106,21 @@ struct sequence_ops : Tree {
     return Tree::is_balanced(a) && P.first && P.second;
   }
 
-// TODO: fix
-//  static std::optional<ET> select(ptr b, size_t rank) {
-//    if (b.empty()) return {};
-//    auto [lc, e, rc, m] = expose(std::move(b));
-//    GC::decrement(m);
-//    size_t left_size = lc.size();
-//    if (rank > left_size) {
-//      return select(std::move(rc), rank - left_size + 1);
-//    } else if (rank < left_size) {
-//      return select(std::move(lc), rank);
-//    } else {
-//      return e;
-//    }
-//  }
+  static std::optional<ET> select(ptr b, size_t rank) {
+    if (b.empty()) return {};
+    auto [lc, e, rc, m] = expose(std::move(b));
+    size_t left_size = lc.size();
+    std::optional<ET> ret;
+    if (rank > left_size) {
+      ret = select(std::move(rc), rank - left_size - 1);
+    } else if (rank < left_size) {
+      ret = select(std::move(lc), rank);
+    } else {
+      ret = e;
+    }
+    GC::decrement(m);
+    return ret;
+  }
 
 // TODO: fix.
 //  static node* take(node* b, size_t rank) {
@@ -207,7 +225,7 @@ struct sequence_ops : Tree {
     auto b1_node = b1.node_ptr();
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
-      stack[offset++] = a;
+      parlay::move_uninitialized(stack[offset++], a);
     };
     Tree::iterate_seq(b1_node, copy_f);
     assert(offset <= utils::kBaseCaseSize);
@@ -218,7 +236,7 @@ struct sequence_ops : Tree {
     for (size_t i=0; i<offset; i++) {
       if (f(stack[i])) {
         if (i > k) {
-          stack[k++] = stack[i];
+          stack[k++] = std::move(stack[i]);
         }
       }
     }
@@ -236,9 +254,9 @@ struct sequence_ops : Tree {
     if (b.empty()) return NULL;
     size_t n = b.size();
 
-    if (n <= utils::kBaseCaseSize) {
-      return filter_bc(std::move(b), f);
-    }
+    //if (n <= utils::kBaseCaseSize) {
+    //  return filter_bc(std::move(b), f);
+    //}
 
     auto[lc, e, rc, root] = expose(std::move(b));
 

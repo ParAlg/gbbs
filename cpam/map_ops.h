@@ -18,6 +18,7 @@ struct map_ops : Seq {
   using GC = typename Seq::GC;
   using K = typename Entry::key_t;
   using V = typename Entry::val_t;
+  using _Seq = Seq;
   using ptr = typename GC::ptr;
 
   static bool comp(K a, K b) { return Entry::comp(a,b);}
@@ -26,8 +27,23 @@ struct map_ops : Seq {
   //static K get_key(node *s) { return Entry::get_key(Seq::get_entry(s));}
   //static V get_val(node *s) { return Entry::get_val(Seq::get_entry(s));}
 
+  static std::optional<ET> find_compressed(ptr b, const K& key) {
+    std::optional<ET> ret;
+    auto find_f = [&] (const ET& et) {
+      if (!(Entry::comp(key, Entry::get_key(et)) || Entry::comp(Entry::get_key(et), key))) {
+        ret = et;
+      }
+    };
+    Seq::iterate_seq(b.node_ptr(), find_f);
+    // TODO: should probably use decode_cond or something like this.
+    return ret;
+  }
+
   static std::optional<ET> find(ptr b, const K& key) {
     if (b.empty()) return {};
+    if (b.is_compressed()) {
+      return find_compressed(std::move(b), key);
+    }
     auto [lc, e, rc, m] = Seq::expose(std::move(b));
     std::optional<ET> ret = {};
     if (Entry::comp(key, Entry::get_key(e))) {
@@ -301,7 +317,8 @@ struct map_ops : Seq {
     }
 
     auto [l2, e2, r2, m2] = Seq2::expose(std::move(b2));
-    auto sp1 = Seq1::split(b1, Seq2::Entry::get_key(e2));
+    auto key = Seq2::Entry::get_key(e2);
+    auto sp1 = Seq1::split(b1, key);
 
 #ifdef DEBUG
     Seq::check_structure(sp1.l); Seq::check_structure(sp1.r);
@@ -318,7 +335,7 @@ struct map_ops : Seq {
 
     Seq2::GC::decrement(m2);
     if (sp1.mid) {
-      ET e(Seq2::Entry::get_key(e2),
+      ET e(key,
            op(Seq1::Entry::get_val(*sp1.mid),
               Seq2::Entry::get_val(e)));
       return Seq::join(l, e, r, nullptr);
@@ -865,7 +882,7 @@ struct map_ops : Seq {
     ET stack[utils::kBaseCaseSize + 1];
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
-      stack[offset++] = a;
+      parlay::move_uninitialized(stack[offset++], a);
     };
     Seq::iterate_seq(n_b1, copy_f);
     size_t offset_2 = offset;
@@ -884,14 +901,14 @@ struct map_ops : Seq {
       const auto& k_a = Entry::get_key(stack[i]);
       const auto& k_b = Entry::get_key(stack[j]);
       if (comp(k_a, k_b)) {
-        output[out_off++] = std::move(stack[i]);
+        parlay::move_uninitialized(output[out_off++], stack[i]);
         i++;
       } else if (comp(k_b, k_a)) {
-        output[out_off++] = std::move(stack[j]);
+        parlay::move_uninitialized(output[out_off++], stack[j]);
         j++;
       } else {
-        output[out_off] = std::move(stack[i]);
-        ET re = output[out_off];
+        parlay::move_uninitialized(output[out_off], stack[i]);
+        ET& re = output[out_off];
         Entry::set_val(re, op(Entry::get_val(stack[j]), Entry::get_val(re)));
         out_off++;
         i++;
@@ -899,11 +916,11 @@ struct map_ops : Seq {
       }
     }
     while (i < nA) {
-      output[out_off++] = stack[i];
+      parlay::move_uninitialized(output[out_off++], stack[i]);
       i++;
     }
     while (j < nB) {
-      output[out_off++] = stack[j];
+      parlay::move_uninitialized(output[out_off++], stack[j]);
       j++;
     }
 
@@ -924,6 +941,7 @@ struct map_ops : Seq {
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
       stack[offset++] = a;
+      parlay::move_uninitialized(stack[offset++], a);
     };
     Seq::iterate_seq(n_b1, copy_f);
     size_t offset_2 = offset;
@@ -942,7 +960,7 @@ struct map_ops : Seq {
       const auto& k_a = Entry::get_key(stack[i]);
       const auto& k_b = Entry::get_key(stack[j]);
       if (comp(k_a, k_b)) {
-        output[out_off++] = std::move(stack[i]);
+        parlay::move_uninitialized(output[out_off++], stack[i]);
         i++;
       } else if (comp(k_b, k_a)) {
         j++;
@@ -952,7 +970,7 @@ struct map_ops : Seq {
       }
     }
     while (i < nA) {
-      output[out_off++] = stack[i];
+      parlay::move_uninitialized(output[out_off++], stack[i]);
       i++;
     }
 
@@ -973,7 +991,7 @@ struct map_ops : Seq {
     ET stack[utils::kBaseCaseSize + 1];
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
-      stack[offset++] = a;
+      parlay::move_uninitialized(stack[offset++], a);
     };
     Seq::iterate_seq(n_b1, copy_f);
     size_t offset_2 = offset;
@@ -996,7 +1014,7 @@ struct map_ops : Seq {
       } else if (comp(k_b, k_a)) {
         j++;
       } else {
-        output[out_off] = std::move(stack[i]);
+        parlay::move_uninitialized(output[out_off], stack[i]);
         ET& re = output[out_off];
         Entry::set_val(re, op(Entry::get_val(stack[j]), Entry::get_val(re)));
         out_off++;

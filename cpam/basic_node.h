@@ -63,7 +63,7 @@ struct basic_node {
     auto a = cast_to_regular(na);
     a->s = size(a->lc) + size(a->rc) + 1; }
 
-  static regular_node* make_regular_node(ET e) {
+  static regular_node* make_regular_node(const ET& e) {
     regular_node* o = allocator::alloc();
     o->r = 1;
     o->r |= kTopBit;
@@ -71,7 +71,7 @@ struct basic_node {
     return o;
   }
 
-  static regular_node* single(ET e) {
+  static regular_node* single(const ET& e) {
     regular_node* r = make_regular_node(e);
     r->lc = r->rc = NULL;
     r->s = 1;
@@ -121,8 +121,10 @@ struct basic_node {
     auto c = cast_to_compressed(a);
     assert(c);
     assert(!is_regular(c));
-    assert(B <= size(c) && size(c) <= 2*B);
-    return (!is_regular(c)) && (B <= size(c) && size(c) <= 2*B);
+    //assert(B <= size(c) && size(c) <= 2*B);
+    assert(size(c) <= 2*B);
+    //return (!is_regular(c)) && (B <= size(c) && size(c) <= 2*B);
+    return (!is_regular(c)) && (size(c) <= 2*B);
   }
 
   static bool will_be_compressed(size_t sz) {
@@ -185,7 +187,8 @@ struct basic_node {
     uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t));
     size_t i = 0;
     auto f = [&] (const ET& et) {
-      tmp_arr[i++] = et;
+      parlay::assign_uninitialized(tmp_arr[i++], et);
+      // tmp_arr[i++] = et;
     };
     EntryEncoder::decode(data_start, c->s, f);
     // TODO: can optimize in the case of a simple node (return c->arr)
@@ -294,30 +297,31 @@ struct basic_node {
     std::cout << std::endl;
   }
 
+  // TODO: fix when needed.
   static void print_rec_impl(node* a) {
-    if (!a) return;
-    if (is_regular(a)) {
-      auto r = cast_to_regular(a);
-      std::cout << get_entry(r).first << ". Size(" << size(a) << ") " << " RefCnt(" << ref_cnt(a) << ") " << std::endl;
-      print_rec_impl(r->lc);
-      print_rec_impl(r->rc);
-    } else {
-      auto c = cast_to_compressed(a);
-      std::cout << ((size_t)a) << " RefCnt(" << ref_cnt(a) << ") [ size = " << size(a) << "]" << std::endl;
-//      uint8_t* data_start = (((uint8_t*)c) + 2*sizeof(node_size_t));
-//      auto f = [&] (const ET& e) {
-//        EntryEncoder::print_info(e);
-//        std::cout << " ";
-//      };
-//      EntryEncoder::decode(data_start, c->s, f);
-////      for (size_t i=0; i<c->s; i++) {
-////        std::cout << c->arr[i].first;
-////        if (i < c->s - 1) {
-////          std::cout << " ";
-////        }
-////      }
-//      std::cout << "] " << std::endl;;
-    }
+//    if (!a) return;
+//    if (is_regular(a)) {
+//      auto r = cast_to_regular(a);
+////      std::cout << get_entry(r).first << ". Size(" << size(a) << ") " << " RefCnt(" << ref_cnt(a) << ") " << std::endl;
+//      print_rec_impl(r->lc);
+//      print_rec_impl(r->rc);
+//    } else {
+//      auto c = cast_to_compressed(a);
+////      std::cout << ((size_t)a) << " RefCnt(" << ref_cnt(a) << ") [ size = " << size(a) << "]" << std::endl;
+////      uint8_t* data_start = (((uint8_t*)c) + 2*sizeof(node_size_t));
+////      auto f = [&] (const ET& e) {
+////        EntryEncoder::print_info(e);
+////        std::cout << " ";
+////      };
+////      EntryEncoder::decode(data_start, c->s, f);
+//////      for (size_t i=0; i<c->s; i++) {
+//////        std::cout << c->arr[i].first;
+//////        if (i < c->s - 1) {
+//////          std::cout << " ";
+//////        }
+//////      }
+////      std::cout << "] " << std::endl;;
+//    }
   }
 
   static void print_rec(node* a) {

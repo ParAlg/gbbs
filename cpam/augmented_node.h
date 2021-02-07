@@ -36,6 +36,7 @@ struct aug_node :
   struct aug_compressed_node {
     node_size_t r;  // reference count, top-bit is always "0"
     node_size_t s;  // number of entries used (size)
+    node_size_t size_in_bytes;
     AT aug_val;
   };
 
@@ -57,6 +58,57 @@ struct aug_node :
     if (a->rc) av = Entry::combine(av, aug_val(a->rc));
     (a->entry).second = av;
   }
+
+  // Handles both regular and compressed nodes.
+  static void free_node(node* va) {
+    if (basic::is_regular(va)) {
+      auto a = basic::cast_to_regular(va);
+      std::get<0>((a->entry)).~ET();
+      allocator::free(a);
+    } else {
+      auto c = basic::cast_to_compressed(va);
+      uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t) + sizeof(AT));
+      AugEntryEncoder::destroy(data_start, c->s);
+      auto array_size = c->size_in_bytes;
+      utils::free_array<uint8_t>((uint8_t*)va, array_size);
+    }
+  }
+
+
+  // precondition: a is non-null, and caller has a reference count on a.
+  static bool decrement_count(node* a) {
+    if ((utils::fetch_and_add(&basic::generic_node(a)->r, -1) & basic::kLowBitMask) == 1) {
+      free_node(a);
+      return true;
+    }
+    return false;
+  }
+
+  // atomically decrement ref count and deletes node if zero
+  static bool decrement(node* t) {
+    if (t) {
+      return decrement_count(t);
+    }
+    return false;
+  }
+
+  // atomically decrement ref count and if zero:
+  //   delete node and recursively decrement the two children
+  static void decrement_recursive(node* t) {
+    if (!t) return;
+    if (basic::is_regular(t)) {
+      node* lsub = basic::cast_to_regular(t)->lc;
+      node* rsub = basic::cast_to_regular(t)->rc;
+      if (decrement(t)) {
+        utils::fork_no_result(basic::size(lsub) >= utils::node_limit,
+                              [&]() { decrement_recursive(lsub); },
+                              [&]() { decrement_recursive(rsub); });
+      }
+    } else {
+      decrement(t);
+    }
+  }
+
 
 // TODO
 //  // updates augmented value using f, instead of recomputing
@@ -88,7 +140,7 @@ struct aug_node :
       iterate_seq(r->rc, f);
     } else {
       auto c = basic::cast_to_compressed(a);
-      uint8_t* data_start = (((uint8_t*)c) + 2*sizeof(node_size_t) + sizeof(AT));
+      uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t) + sizeof(AT));
       AugEntryEncoder::decode(data_start, c->s, f);
     }
   }
@@ -117,13 +169,14 @@ struct aug_node :
     assert(s <= 2*B);
 
     size_t encoded_size = AugEntryEncoder::encoded_size(e, s);
-    size_t node_size = 2*sizeof(node_size_t) + sizeof(AT) + encoded_size;
+    size_t node_size = 3*sizeof(node_size_t) + sizeof(AT) + encoded_size;
     aug_compressed_node* c_node = (aug_compressed_node*)utils::new_array_no_init<uint8_t>(node_size);
 
     c_node->r = 1;
     c_node->s = s;
+    c_node->size_in_bytes = node_size;
 
-    uint8_t* encoded_data = (((uint8_t*)c_node) + 2*sizeof(node_size_t) + sizeof(AT));
+    uint8_t* encoded_data = (((uint8_t*)c_node) + 3*sizeof(node_size_t) + sizeof(AT));
     c_node->aug_val = AugEntryEncoder::encode(e, s, encoded_data);
 
     // basic::check_compressed_node(c_node);
@@ -143,7 +196,7 @@ struct aug_node :
   }
 
   static ET* compressed_node_elms(compressed_node* c, ET* tmp_arr) {
-    uint8_t* data_start = (((uint8_t*)c) + 2*sizeof(node_size_t) + sizeof(AT));
+    uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t) + sizeof(AT));
     size_t i = 0;
     auto f = [&] (const ET& et) {
       tmp_arr[i++] = et;

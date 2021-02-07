@@ -62,19 +62,19 @@ public:
   // destruct.
   ~map_() { clear(); }
 
-  // singleton
+  // singleton (TODO: finalize?)
   map_(const E& e) { GC::init(); root = Tree::single(e);}
 
   // construct from an array keeping one of the equal keys
   map_(E* s, E* e) { //, bool seq_inplace = false) {
     M empty = M();
-    root = multi_insert(empty, parlay::slice<E*,E*>(s,e)).get_root(); }
+    root = Tree::finalize(multi_insert(empty, parlay::slice<E*,E*>(s,e)).get_root()); }
 
   // construct from an array keeping one of the equal keys
   template<class Bin_Op>
   map_(E* s, E* e, Bin_Op f) { //, bool seq_inplace = false) {
     M empty = M();
-    root = multi_insert_combine(empty, parlay::slice<E*,E*>(s,e), f).get_root(); }
+    root = Tree::finalize(multi_insert_combine(empty, parlay::slice<E*,E*>(s,e), f).get_root()); }
 
   // construct from sequence keeping one of the equal keys
   //template<class Range>
@@ -82,7 +82,7 @@ public:
   // due to overloading cannot use the generic version on range
   map_(parlay::sequence<E> const &S) {
     M empty = M();
-    root = multi_insert(empty, parlay::make_slice(S)).get_root();
+    root = Tree::finalize(multi_insert(empty, parlay::make_slice(S)).get_root());
   }
 
   // construct from sequence, combining the values corresponding to equal keys with f
@@ -90,12 +90,12 @@ public:
   template<class Range, class Bin_Op>
   map_(Range S, Bin_Op f) {
     M empty = M();
-    root = multi_insert_combine(empty, parlay::make_slice(S), f).get_root(); }
+    root = Tree::finalize(multi_insert_combine(empty, parlay::make_slice(S), f).get_root()); }
 
   template<class Bin_Op>
   map_(std::initializer_list<E> L, Bin_Op f) {
     M empty = M();
-    root = multi_insert_combine(empty, L, f).get_root(); }
+    root = Tree::finalize(multi_insert_combine(empty, L, f).get_root()); }
 
   // clears contents, decrementing ref counts
   // has a read/destruct race if concurrent with a reader
@@ -356,6 +356,11 @@ public:
 				       A.begin(), A.size(), f));
   }
 
+  template <class Func>
+  void iterate_seq(const Func& f) {
+    Tree::iterate_seq(root, f);
+  }
+
   // insert multiple keys from an array, reduce duplicates with g
   // here g must have type: sequence<Val> -> V
   // if key in map, then replaced
@@ -365,6 +370,10 @@ public:
     parlay::sequence<E> A = Build::sort_reduce_duplicates(S, g);
     auto x =  M(Tree::multi_insert_sorted(m.get_root(),
 					  A.data(), A.size(), replace));
+    //auto print_fn = [&] (const E& e) {
+    //  std::cout << e.first << " " << e.second.size() << std::endl;
+    //};
+    //Tree::iterate_seq(x.root, print_fn);
     return x;
   }
 
@@ -412,7 +421,11 @@ public:
 //  size_t rank(const K& key) { return Tree::rank(root, key);}
 
   maybe_E select(const size_t rank) const {
-    return Tree::select(ptr(root, true), rank);
+    auto ret = Tree::select(ptr(root, true), rank);
+    auto unpack = *ret;
+    // std::cout << Entry::get_key(unpack) << std::endl;
+    // std::cout << Entry::get_val(unpack).size() << std::endl;
+    return ret;
   }
 
 // TODO

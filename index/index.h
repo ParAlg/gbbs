@@ -33,6 +33,7 @@ struct inv_index {
   };
 
   using post_list = aug_map<doc_entry>;
+  //using post_list = pam_map<doc_entry>;
 
   struct token_entry {
     using key_t = token;

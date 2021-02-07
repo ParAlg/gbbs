@@ -67,11 +67,11 @@ public:
 //  static M insert_lazy(M m, const E& p) {
 //    auto replace = [] (const V& a, const V& b) {return b;};
 //    return M(Tree::insert_lazy(m.get_root(), p, replace)); }
-//
-//  // for coercing a map to an aug_map, should be a better way
-//  static M to_aug(Map&& m) {
-//    aug_map_ x;
-//    x.root = m.root; m.root = NULL; return x;}
+
+  // for coercing a map to an aug_map, should be a better way
+  static M to_aug(Map&& m) {
+    aug_map_ x;
+    x.root = m.root; m.root = NULL; return x;}
   aug_map_() : Map() { }
   // install Map's constructors
   using Map::Map;
@@ -165,6 +165,7 @@ public:
   using Map::get_root;
   using Map::insert;
   using Map::check_balance;
+  using Map::root_is_compressed;
 };
 
 // creates a key-value pair for the entry, and redefines from_entry

@@ -124,6 +124,29 @@ int main(int argc, char** argv) {
       cout << "unique words = " << test_idx.idx.size() << endl;
   }
 
+  parlay::internal::memory_usage();
+  std::cout << "Per-bucket details: " << std::endl;
+  parlay::internal::get_default_allocator().print_stats();
+
+#ifndef USE_PAM
+
+  size_t good = 0;
+  size_t bad = 0;
+  size_t bad_size = 0;
+  auto fn = [&] (const auto& et) {
+    if (et.second.root_is_compressed()) {
+      good++;
+    } else {
+      bad++;
+      bad_size += et.second.size();
+    }
+  };
+  test_idx.idx.iterate_seq(fn);
+
+  std::cout << "Good = " << good << " Bad = " << bad << " Bad size = " << bad_size << std::endl;
+
+#endif
+
   using idx = typename inv_index::index;
 
   parlay::sequence<pair<token,token>> test_word_pairs(num_queries);
@@ -144,23 +167,35 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  //size_t ctr = 0;
+  //auto fn = [&] (const auto& et) {
+  //  std::cout << et.first << " " << et.second.size() << std::endl;
+  //  ctr++;
+  //  if (ctr > 200) { exit(0); }
+  //};
+  //test_idx.idx.iterate_seq(fn);
+  //common_words.iterate_seq(fn);
+
+
   parlay::random r(0);
   for(size_t i =0; i < num_queries; i++) {
     test_word_pairs[i].first = KV[r.ith_rand(i) % (n - 1)].first;
+    auto rank = r.ith_rand(num_queries+i)%num_common_words;
     test_word_pairs[i].second =
-      (*common_words.select(r.ith_rand(num_queries+i)%num_common_words)).first;
+      (*common_words.select(rank)).first;
   }
 
   // run the queries
   t.start();
   parlay::parallel_for(0, num_queries, [&] (size_t i) {
+  //for (size_t i=0; i<num_queries; i++) {
     post_list l1 = test_idx.get_list(test_word_pairs[i].first);
     post_list l2 = test_idx.get_list(test_word_pairs[i].second);
     size_in[i] = l1.size() + l2.size();
     post_list l3 = test_idx.And(l1,l2);
     //vector<post_elt> r = test_idx.top_k(l3,10);
     size_out[i] = l3.size(); // r.size();
-    });
+  });
   double t_query = t.stop();
   cout << "index query"
        << ", threads = " << threads
