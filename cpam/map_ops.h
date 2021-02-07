@@ -999,7 +999,7 @@ struct map_ops : Seq {
         j++;
       } else {
         output[out_off] = std::move(stack[i]);
-        ET re = output[out_off];
+        ET& re = output[out_off];
         Entry::set_val(re, op(Entry::get_val(stack[j]), Entry::get_val(re)));
         out_off++;
         i++;

@@ -28,7 +28,7 @@ public:
   // initializing, reserving and finishing
   static void init() { GC::init(); }
   static void reserve(size_t n, bool randomize=false) {
-    GC::reserve(n, randomize);};
+    GC::reserve(n/utils::compression_block_size, randomize);};
   static void finish() { GC::finish(); }
 
   void swap(map_& b) { std::swap(root, b.root); }

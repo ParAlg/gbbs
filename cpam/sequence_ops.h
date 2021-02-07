@@ -122,14 +122,18 @@ struct sequence_ops : Tree {
     if (b1.size() > b2.size()) {
       if (b1.is_compressed() || Tree::will_be_compressed(b1.size() + b2.size())) {
         auto ret = Tree::make_compressed(b1.node_ptr(), b2.node_ptr());
+#ifdef DEBUG
         Tree::check_structure(ret);
+#endif
         return ret;
       }
       auto[lc, e, rc, root] = expose(std::move(b1));
       node* l = lc.node_ptr();
       node* r = join2_i(std::move(rc), std::move(b2));
       auto ret = join(l, e, r, root);
+#ifdef DEBUG
       Tree::check_structure(ret);
+#endif
       return ret;
     } else {
       if (b2.is_compressed() || Tree::will_be_compressed(b1.size() + b2.size())) {
@@ -140,7 +144,9 @@ struct sequence_ops : Tree {
       assert(l != root);
       node* r = rc.node_ptr();
       auto ret = join(l, e, r, root);
+#ifdef DEBUG
       Tree::check_structure(ret);
+#endif
       return ret;
     }
   }
