@@ -1280,28 +1280,31 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     auto batch = batch_edge_list.edges;
     // First, insert / delete everything up to offset
     if (offset != 0) {
-      auto insertions = parlay::filter(parlay::make_slice(batch.begin(),
-                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
+      for (size_t i = 0; i < offset; i += batch_size) {
+        auto end_size = std::min(i + batch_size, offset);
+        auto insertions = parlay::filter(parlay::make_slice(batch.begin() + i,
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
             return edge.insert;
-      });
-      auto deletions = parlay::filter(parlay::make_slice(batch.begin(),
-                    batch.begin() + offset), [&] (const DynamicEdge<W>& edge){
+        });
+        auto deletions = parlay::filter(parlay::make_slice(batch.begin() + i,
+                    batch.begin() + end_size), [&] (const DynamicEdge<W>& edge){
             return !edge.insert;
-      });
-      auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
+        });
+        auto batch_insertions = parlay::delayed_seq<std::pair<uintE, uintE>>(insertions.size(),
                 [&] (size_t i) {
             uintE vert1 = insertions[i].from;
             uintE vert2 = insertions[i].to;
             return std::make_pair(vert1, vert2);
-      });
-      auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
+        });
+        auto batch_deletions = parlay::delayed_seq<std::pair<uintE, uintE>>(deletions.size(),
             [&] (size_t i) {
             uintE vert1 = deletions[i].from;
             uintE vert2 = deletions[i].to;
             return std::make_pair(vert1, vert2);
-      });
-      layers.batch_insertion(batch_insertions);
-      layers.batch_deletion(batch_deletions);
+        });
+        layers.batch_insertion(batch_insertions);
+        layers.batch_deletion(batch_deletions);
+      }
     }
     
     for (size_t i = offset; i < batch.size(); i += batch_size) {
