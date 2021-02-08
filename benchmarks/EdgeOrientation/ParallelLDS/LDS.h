@@ -548,6 +548,21 @@ struct LDS {
       }
     });
 
+    // jeshi: unoptimized resize code
+    size_t outer_level_sizes = 0;
+    //parallel_for(0, cur_level.size(), [&](size_t i) {
+    for (size_t i = 0; i < cur_level.size(); i++) {
+      uintE u = cur_level.table[i];
+      if (levelset::valid(u)) {
+        if (L[u].desire_level == kNotMoving) {
+          // *** jeshi: adding
+          cur_level.remove(u);
+          outer_level_sizes++;
+        }
+      }
+    }//);
+    cur_level.resize_down(outer_level_sizes);
+  
     auto vertex_seq = parlay::delayed_seq<uintE>(cur_level.size(), [&] (size_t i) {
       uintE u = cur_level.table[i];
       if (levelset::valid(u)) {
@@ -781,9 +796,8 @@ struct LDS {
 
       auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
       parallel_for(0, levels.size(), [&] (size_t i) {
-        //auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
+        auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
         parallel_for(0, levels[i].size(), [&] (size_t j) {
-        //for(size_t j = 0; j < levels[i].size(); j++) {
             uintE v = levels[i].table[j];
 
             if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps,
@@ -791,12 +805,11 @@ struct LDS {
                 if (L[v].desire_level == cur_level_id) {
                     nodes_to_move.insert(v);
                     levels[i].remove(v);
-                    outer_level_sizes[i] += 1;
+                    inner_level_sizes[j] += 1;
                 }
             }
         });
-        //}
-        //outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
+        outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
       });
 
       parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
