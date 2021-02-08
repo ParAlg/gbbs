@@ -1,4 +1,4 @@
-all: intervalTree_cpam intervalTree_pam
+all: intervalTree_pam intervalTree_cpam
 
 intervalTree_pam:		intervalTree.cpp
 	g++ -DNDEBUG -DUSE_PAM -O3 -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_pam intervalTree.cpp -L/usr/local/lib -ljemalloc

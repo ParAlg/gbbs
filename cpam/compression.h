@@ -205,14 +205,14 @@ struct default_entry_encoder {
         ET* ets = (ET*)bytes;
         parlay::move_uninitialized(ets[0], data[0]);
         AT av = Entry::from_entry(ets[0]);
-        size_t total_size = 0;
-        total_size += std::get<1>(ets[0]).size();
+        //size_t total_size = 0;
+        //total_size += std::get<1>(ets[0]).size();
         for (size_t i=1; i<size; i++) {
           parlay::move_uninitialized(ets[i], data[i]);
           av = Entry::combine(av, Entry::from_entry(ets[i]));
-          total_size += std::get<1>(ets[i]).size();
+          //total_size += std::get<1>(ets[i]).size();
         }
-        std::cout << "Total size in encoded block = " << total_size << std::endl;
+        //std::cout << "Total size in encoded block = " << total_size << std::endl;
         return av;
       } else {
         ET* ets = (ET*)bytes;
