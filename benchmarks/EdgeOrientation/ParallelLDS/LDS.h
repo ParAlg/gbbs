@@ -623,8 +623,12 @@ struct LDS {
     });
 
     // Sort based on the affected_neighbor. Note that there are no dup edges.
-    auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
-    parlay::sort_inplace(parlay::make_slice(flipped), compare_tup);
+    //auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
+    //parlay::sort_inplace(parlay::make_slice(flipped), compare_tup);
+    auto compare_tup_second = [&] (const edge_type& elm) { return elm.second; };
+    parlay::integer_sort_inplace(parlay::make_slice(flipped), compare_tup_second);
+    auto compare_tup_first = [&] (const edge_type& elm) { return elm.first; };
+    parlay::integer_sort_inplace(parlay::make_slice(flipped), compare_tup_first);
 
     // Compute the starts of each (modified) vertex's new edges.
     auto bool_seq = parlay::delayed_seq<bool>(flipped.size() + 1, [&] (size_t i) {
@@ -667,7 +671,9 @@ struct LDS {
         });
 
         // Sort neighbors by level.
-        parlay::sort_inplace(neighbors);
+        //parlay::sort_inplace(neighbors);
+        auto get_nbhr = [&] (const edge_type& elm) { return elm.first; };
+        parlay::integer_sort_inplace(parlay::make_slice(neighbors), get_nbhr);
 
         auto level_seq = parlay::delayed_seq<uintE>(neighbors.size(), [&] (size_t i) {
           return neighbors[i].first;
@@ -702,7 +708,9 @@ struct LDS {
         });
 
         // Sort neighbors by level.
-        parlay::sort_inplace(neighbors);
+        //parlay::sort_inplace(neighbors);
+        auto get_nbhr = [&] (const edge_type& elm) { return elm.first; };
+        parlay::integer_sort_inplace(parlay::make_slice(neighbors), get_nbhr);
 
         parallel_for(0, neighbors.size(), [&] (size_t i) {
           uintE v = neighbors[i].second;
