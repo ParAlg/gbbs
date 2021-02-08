@@ -45,7 +45,7 @@ struct sequence_ops : Tree {
     return to_tree_impl(arr, arr_size);
   }
 
-  static expose_tuple expose(ptr a, bool print = false) {
+  static expose_tuple expose(ptr a) {
     node* p = ptr::strip_flag(a.p);
     bool extra = a.extra();
     bool other_real_refs = (Tree::ref_cnt(p) > 1);
@@ -62,24 +62,23 @@ struct sequence_ops : Tree {
       return ret_tup;
     } else {
       // convert to tree
-      if (print) {
-        std::cout << "Hit a compressed node, converting to tree. Size = " << Tree::size(p) << std::endl;
-        size_t sz = 0;
-        auto fn = [&] (const auto& et) {
-          std::cout << et.first << " " << sz << std::endl;
-          sz++;
-        };
-        Tree::iterate_seq(p, fn);
-      }
+      //if (print) {
+      //  std::cout << "Hit a compressed node, converting to tree. Size = " << Tree::size(p) << std::endl;
+      //  size_t sz = 0;
+      //  auto fn = [&] (const auto& et) {
+      //    std::cout << std::get<0>(et) << " " << sz << std::endl;
+      //    sz++;
+      //  };
+      //  Tree::iterate_seq(p, fn);
+      //}
       regular_node* root = to_tree((compressed_node*)p);
-      if (print) {
-        auto fn = [&] (const auto& et) {
-          std::cout << et.first << std::endl;
-        };
-
-        std::cout << "printing new root" << std::endl;
-        Tree::iterate_seq(root, fn);
-      }
+      //if (print) {
+      //  auto fn = [&] (const auto& et) {
+      //    std::cout << et.first << std::endl;
+      //  };
+      //  std::cout << "printing new root" << std::endl;
+      //  Tree::iterate_seq(root, fn);
+      //}
       return expose_tuple(ptr(root->lc, false), Tree::get_entry(root), ptr(root->rc, false), root);
     }
   }

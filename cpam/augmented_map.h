@@ -95,13 +95,13 @@ public:
 //  static M multi_delete(M m, parlay::sequence<K> SS, bool seq_inplace = false) {  // ?? should it be &
 //    return to_aug(Map::multi_delete(std::move(m), SS, seq_inplace));}
 
-//  template<class Bin_Op>
-//  static M multi_insert_combine(M m, parlay::sequence<E> S, Bin_Op f,  // ?? should it be &
-//				bool seq_inplace = false) {
-//    return to_aug(Map::multi_insert_combine(std::move(m), S, f, seq_inplace));}
-//  template<class Val, class Reduce>
-//  static M multi_insert_reduce(M m, parlay::sequence<pair<K,Val>> S, Reduce g) {  // ?? should it be &
-//    return to_aug(Map::multi_insert_reduce(std::move(m), S, g)); }
+  template<class Bin_Op>
+  static M multi_insert_combine(M m, parlay::sequence<E> S, Bin_Op f,  // ?? should it be &
+				bool seq_inplace = false) {
+    return to_aug(Map::multi_insert_combine(std::move(m), S, f, seq_inplace));}
+  template<class Val, class Reduce>
+  static M multi_insert_reduce(M m, parlay::sequence<pair<K,Val>>& S, Reduce g) {  // ?? should it be &
+    return to_aug(Map::multi_insert_reduce(std::move(m), S, g)); }
 
   template<class M1, class M2, class F>
   static M map_intersect(M1 a, M2 b, const F& op) {
@@ -167,6 +167,7 @@ public:
   using Map::check_balance;
   using Map::root_is_compressed;
   using Map::check_structure;
+  using Map::size_in_bytes;
 };
 
 // creates a key-value pair for the entry, and redefines from_entry
@@ -175,12 +176,12 @@ struct aug_map_full_entry : entry {
   using val_t = typename entry::val_t;
   using key_t = typename entry::key_t;
   using aug_t = typename entry::aug_t;
-  using entry_t = std::pair<key_t,val_t>;
-  static inline key_t get_key(const entry_t& e) {return e.first;}
-  static inline val_t get_val(const entry_t& e) {return e.second;}
-  static inline void set_val(entry_t& e, const val_t& v) {e.second = v;}
+  using entry_t = std::tuple<key_t,val_t>;
+  static inline key_t get_key(const entry_t& e) {return std::get<0>(e);}
+  static inline val_t get_val(const entry_t& e) {return std::get<1>(e);}
+  static inline void set_val(entry_t& e, const val_t& v) {std::get<1>(e) = v;}
   static inline aug_t from_entry(const entry_t& e) {
-    return entry::from_entry(e.first, e.second);}
+    return entry::from_entry(std::get<0>(e), std::get<1>(e));}
 };
 
 template <class _Entry, class Balance = weight_balanced_tree, class Encoder=default_entry_encoder>

@@ -203,10 +203,10 @@ struct default_entry_encoder {
       if constexpr (is_aug) {
         using AT = typename Entry::aug_t;
         ET* ets = (ET*)bytes;
+        parlay::move_uninitialized(ets[0], data[0]);
         AT av = Entry::from_entry(ets[0]);
-        ets[0] = std::move(data[0]);
         for (size_t i=1; i<size; i++) {
-          ets[i] = std::move(data[i]);
+          parlay::move_uninitialized(ets[i], data[i]);
           av = Entry::combine(av, Entry::from_entry(ets[i]));
         }
         return av;

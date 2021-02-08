@@ -253,6 +253,21 @@ struct basic_node {
 
   /* ================================  Debug routines ================================ */
 
+  static size_t size_in_bytes(node* a) {
+    size_t total = 0;
+    if (!a) return total;
+    if (is_compressed(a)) {
+      auto c = cast_to_compressed(a);
+      total += c->size_in_bytes;
+    } else {
+      auto r = cast_to_regular(a);
+      total += size_in_bytes(r->lc);
+      total += size_in_bytes(r->rc);
+      total += sizeof(regular_node);
+    }
+    return total;
+  }
+
   static void print_node_info(node* a, std::string node_name) {
 //    if (!a) { std::cout << "Empty node!" << std::endl; return; }
 //    if (is_regular(a)) {

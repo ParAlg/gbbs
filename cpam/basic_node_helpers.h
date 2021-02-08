@@ -106,7 +106,9 @@ static typename Node::node* make_compressed(typename Node::node* l, typename Nod
   using ET = typename Node::ET;
   ET stack[7 * B];
   size_t offset = 0;
-  auto copy_f = [&](const ET& a) { stack[offset++] = a; };
+  auto copy_f = [&](const ET& a) {
+    parlay::assign_uninitialized(stack[offset++], a);
+  };
   Node::iterate_seq(l, copy_f);
   if (e) {
     copy_f(Node::get_entry(e));
