@@ -14,6 +14,7 @@ struct map_ops : Seq {
   using Entry = EntryT;
   using node = typename Seq::node;
   using regular_node = typename Seq::regular_node;
+  using compressed_node = typename Seq::compressed_node;
   using ET = typename Seq::ET;
   using GC = typename Seq::GC;
   using K = typename Entry::key_t;
@@ -182,14 +183,22 @@ struct map_ops : Seq {
 //    return split_inplace(bst, e);
 //  }
 
+  template <class BinaryOp>
+  static inline void combine_values(ET& re, ET e, bool reverse, const BinaryOp& op) {
+    if (reverse) Entry::set_val(re, op(Entry::get_val(e), Entry::get_val(re)));
+    else Entry::set_val(re, op(Entry::get_val(re), Entry::get_val(e)));
+  }
 
   template <class BinaryOp>
   static inline void combine_values(node* a, ET e, bool reverse, const BinaryOp& op) {
+//    ET& re = Seq::get_entry(a);
+//    combine_values(re, e, reverse, op);
     ET re = Seq::get_entry(a);
     if (reverse) Entry::set_val(re, op(Entry::get_val(e), Entry::get_val(re)));
     else Entry::set_val(re, op(Entry::get_val(re), Entry::get_val(e)));
     Seq::set_entry(a, re);
   }
+
 
 // TODO
 //  template <class VE, class BinaryOp>
@@ -538,16 +547,38 @@ struct map_ops : Seq {
     return x;
   }
 
-  template <class Func, class J, bool copy=false>
-  static node* insert_compressed(node* b, const ET& e, const Func& f, const J& join) {
-    exit(0);
-    return nullptr;
-    // TODO: update.
-//    if constexpr (copy) {
-//      return Seq::insert_elt(b, e, f);
-//    } else {
-//      return Seq::insert_elt_inplace(b, e, f);
-//    }
+  template <class Func, class J>
+  static node* insert_compressed(compressed_node* b, const ET& e, const Func& f) {
+    ET arr[2*B + 1];
+    Seq::compressed_node_elms(b, arr);
+    size_t n = Seq::size(b);
+    assert(n <= 2*B);
+    ET merged[2*B + 1];
+    size_t out_off = 0;
+    size_t k = 0;
+    K key = Entry::get_key(e);
+    bool placed = false;
+    while (k < n) {
+      if (Entry::comp(Entry::get_key(arr[k]), key)) {
+        parlay::move_uninitialized(merged[out_off++], arr[k++]);
+      } else if (Entry::comp(key, Entry::get_key(arr[k]))) {
+        parlay::assign_uninitialized(merged[out_off++], e);
+        placed = true;
+        break;
+      } else {  // arr[k] == key
+        parlay::assign_uninitialized(merged[out_off], arr[k++]);
+        combine_values(merged[out_off], e, true, f);
+        out_off++;
+        placed = true;
+        break;
+      }
+    }
+    while (k < n) {
+      parlay::move_uninitialized(merged[out_off++], arr[k++]);}
+    if (!placed) {
+      parlay::assign_uninitialized(merged[out_off++], e);
+    }
+    return Seq::make_compressed(merged, out_off);
   }
 
   // A specialized version of insert that will switch to the version with
@@ -563,9 +594,11 @@ struct map_ops : Seq {
         return r;
       }
     }
-
     if (Seq::is_compressed(b)) {
-      return insert_compressed<Func, J, copy>(b, e, f, join);
+      auto r = insert_compressed<Func, J>(Seq::cast_to_compressed(b), e, f);
+      if constexpr (!copy) {
+        GC::decrement_recursive(b);}
+      return r;
     }
 
     regular_node* br = Seq::cast_to_regular(b);
@@ -585,80 +618,85 @@ struct map_ops : Seq {
   }
 
   template <class Func>
-  static node* insert(node* b, const ET& e, const Func& f, bool extra_ptr=false) {
+  static node* insert(node* b, const ET& e, const Func& f) {
     auto join = [] (node* l, node* r, regular_node* m) {
       auto ret = Seq::node_join(l,r,m);
       return ret;
     };
-    if (extra_ptr) {
-      // TODO: Is this code-path exercised anywhere from map.h?
-      auto r = insert_tmpl<Func, decltype(join), true>(b, e, f, join);
-      GC::decrement_recursive(b);
-      return r;
-    }
     return insert_tmpl<Func, decltype(join), false>(b, e, f, join);
   }
 
-  template <class J, class F, bool copy=false>
-  static node* remove_compressed(node* b, const K& k, const J& join, const F& from_array) {
-    exit(0);
-    return nullptr;
-    // TODO: update
-//    if constexpr (copy) {
-//      return Seq::remove_elt(b, k);
-//    } else {
-//      return Seq::remove_elt_inplace(b, k, from_array);
-//    }
+  static node* remove_compressed(compressed_node* b, const K& key) {
+    ET arr[2*B];
+    Seq::compressed_node_elms(b, arr);
+    size_t n = Seq::size(b);
+    assert(n <= 2*B);
+    ET merged[2*B];
+    size_t k = 0;
+    size_t out_off = 0;
+    bool placed = false;
+    while (k < n) {
+      if (Entry::comp(Entry::get_key(arr[k]), key)) {
+        parlay::move_uninitialized(merged[out_off++], arr[k++]);
+      } else if (Entry::comp(key, Entry::get_key(arr[k]))) {
+        placed = true;
+        break;
+      } else {  // arr[k] == key
+        arr[k].~ET();
+        k++;
+        out_off++;
+        placed = true;
+        break;
+      }
+    }
+    while (k < n) {
+      parlay::move_uninitialized(merged[out_off++], arr[k++]);}
+    return Seq::make_compressed(merged, out_off);
   }
 
   // A specialized version of insert that will switch to the version with
   // copy=true once it hits a node with ref_cnt(node) > 1.
-  template <class J, class F, bool copy=false>
-  static node* remove_tmpl(node* b, const K& k, const J& join, const F& from_array) {
+  template <class J, bool copy=false>
+  static node* remove_tmpl(node* b, const K& k, const J& join) {
     if (!b) return Seq::empty();
 
     if constexpr (!copy) {
       if (Seq::ref_cnt(b) > 1) {
-        auto r = remove_tmpl<J, F, true>(b, k, join, from_array);
+        auto r = remove_tmpl<J, true>(b, k, join);
         GC::decrement_recursive(b);
         return r;
       }
     }
 
     if (Seq::is_compressed(b)) {
-      return remove_compressed<J, F, copy>(b, k, join, from_array);
+      auto r = remove_compressed(Seq::cast_to_compressed(b), k);
+      if constexpr (!copy) {
+        GC::decrement_recursive(b);}
+      return r;
     }
 
     regular_node* br = Seq::cast_to_regular(b);
     if (Entry::comp(get_key(br), k)) {
       regular_node* o = Seq::cast_to_regular(make_node_tmpl<copy>(b));
-      node* r = remove_tmpl<J, F, copy>(br->rc, k, join, from_array);
+      node* r = remove_tmpl<J, copy>(br->rc, k, join);
       return join(inc_tmpl<copy>(br->lc), r, o);
     } else if (Entry::comp(k, get_key(br))) {
       regular_node* o = Seq::cast_to_regular(make_node_tmpl<copy>(b));
-      node* l = remove_tmpl<J, F, copy>(br->lc, k, join, from_array);
+      node* l = remove_tmpl<J, copy>(br->lc, k, join);
       return join(l, inc_tmpl<copy>(br->rc), o);
     } else {
-      // TODO(NOW): do something with br?
+      auto lc = br->lc, rc = br->rc;
       GC::decrement(br);
-      return Seq::join2(inc_tmpl<copy>(br->lc), inc_tmpl<copy>(br->rc));
+      return Seq::join2(inc_tmpl<copy>(lc), inc_tmpl<copy>(rc));
     }
   }
 
-  static node* remove(node* b, const K& k, bool extra_ptr=false) {
+  static node* deletet(node* b, const K& k) {
     auto join = [] (node* l, node* r, regular_node* m) {
       auto ret = Seq::node_join(l,r,m);
       return ret;
     };
-    auto from_array = [] (ET* A, size_t s) {
-      return Seq::from_array(A, s);
-    };
-    if (extra_ptr) {
-      auto r = remove_tmpl<decltype(join), decltype(from_array), true>(b, k, join, from_array);
-      GC::decrement_recursive(b);
-      return r;
-    }
-    return remove_tmpl<decltype(join), decltype(from_array), false>(b, k, join, from_array);
+    return remove_tmpl<decltype(join), false>(b, k, join);
   }
 
 

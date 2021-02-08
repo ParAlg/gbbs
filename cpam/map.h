@@ -208,14 +208,14 @@ public:
 //  template <class Func>
 //  static M update(M m, const K& k, const Func& f) {
 //    return M(Tree::update(m.get_root(), k, f)); }
-//
-//  static M remove(M m, const K& k) {
-//    return M(Tree::deletet(m.get_root(), k)); }
-//
-//  // Remove entry with key k from the current map.
-//  void remove(const K& k) {
-//    root = Tree::remove(root, k);
-//  }
+
+  static M remove(M m, const K& k) {
+    return M(Tree::deletet(m.get_root(), k)); }
+
+  // Remove entry with key k from the current map.
+  void remove(const K& k) {
+    root = Tree::deletet(root, k);
+  }
 
   static M join2(M a, M b) {
     return M(Tree::join2(a.get_root(), b.get_root()));

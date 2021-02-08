@@ -181,8 +181,7 @@ struct basic_node {
     return make_compressed(l, r, nullptr);
   }
 
-
-
+  // TODO: change return type to void.
   static ET* compressed_node_elms(compressed_node* c, ET* tmp_arr) {
     uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t));
     size_t i = 0;
@@ -194,9 +193,6 @@ struct basic_node {
     // TODO: can optimize in the case of a simple node (return c->arr)
     return tmp_arr;
   }
-
-
-
 
   /* ================================ GC ================================== */
 
