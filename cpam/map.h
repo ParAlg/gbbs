@@ -85,6 +85,11 @@ public:
     root = Tree::finalize(multi_insert(empty, parlay::make_slice(S)).get_root());
   }
 
+  map_(parlay::slice<E*, E*> R) {
+    M empty = M();
+    root = Tree::finalize(multi_insert(empty, R).get_root());
+  }
+
   // construct from sequence, combining the values corresponding to equal keys with f
   // f should have type V x V -> V
   template<class Range, class Bin_Op>
@@ -568,6 +573,11 @@ public:
 	  return Seq_Tree::check_balance(root);
   }
 
+  template <class F>
+  size_t size_in_bytes(const F& f) const {
+    return Tree::size_in_bytes(root, f);
+  }
+
   size_t ref_cnt() const { return Tree::ref_cnt(root); }
   size_t root_is_compressed() const { return Tree::is_compressed(root); }
   void print_root_info() const {
@@ -592,12 +602,12 @@ template <class entry>
 struct map_full_entry : entry {
   using val_t = typename entry::val_t;
   using key_t = typename entry::key_t;
-  using entry_t = std::pair<key_t, val_t>;
-  static inline key_t get_key(const entry_t& e) { return e.first; }
-  static inline val_t get_val(const entry_t& e) { return e.second; }
-  static inline void set_val(entry_t& e, const val_t& v) { e.second = v; }
+  using entry_t = std::tuple<key_t, val_t>;
+  static inline key_t get_key(const entry_t& e) { return std::get<0>(e); }
+  static inline val_t get_val(const entry_t& e) { return std::get<1>(e); }
+  static inline void set_val(entry_t& e, const val_t& v) { std::get<1>(e) = v; }
   static inline entry_t to_entry(const key_t& k, const val_t& v) {
-    return std::make_pair(k, v);
+    return std::make_tuple(k, v);
   };
 };
 

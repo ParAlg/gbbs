@@ -253,6 +253,28 @@ struct basic_node {
 
   /* ================================  Debug routines ================================ */
 
+  // F applied to entries.
+  template <class F>
+  static size_t size_in_bytes(node* a, const F& f) {
+    size_t total = 0;
+    if (!a) return total;
+    if (is_compressed(a)) {
+      auto c = cast_to_compressed(a);
+      total += c->size_in_bytes;
+      auto fn = [&] (const auto& et) {
+        total += f(et);
+      };
+      iterate_seq(c, fn);
+    } else {
+      auto r = cast_to_regular(a);
+      total += size_in_bytes(r->lc, f);
+      total += size_in_bytes(r->rc, f);
+      total += sizeof(regular_node);
+      total += f(get_entry(r));
+    }
+    return total;
+  }
+
   static void print_node_info(node* a, std::string node_name) {
 //    if (!a) { std::cout << "Empty node!" << std::endl; return; }
 //    if (is_regular(a)) {
