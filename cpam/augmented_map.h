@@ -33,11 +33,11 @@ public:
   // extract the augmented values
   A aug_val() { return Tree::aug_val(Map::root); }
 
-//  A aug_left (const K& key) {
-//    typename Tree::aug_sum_t a;
-//    Tree::aug_sum_left(Map::root, key, a);
-//    return a.result;}
-//
+  A aug_left (const K& key) {
+    typename Tree::aug_sum_t a;
+    Tree::aug_sum_left(Map::root, key, a);  // NOT using ptr.
+    return a.result;}
+
 //  A aug_right(const K& key) {
 //    typename Tree::aug_sum_t a;
 //    Tree::aug_sum_right(Map::root, key, a);
@@ -67,11 +67,11 @@ public:
 //  static M insert_lazy(M m, const E& p) {
 //    auto replace = [] (const V& a, const V& b) {return b;};
 //    return M(Tree::insert_lazy(m.get_root(), p, replace)); }
-//
-//  // for coercing a map to an aug_map, should be a better way
-//  static M to_aug(Map&& m) {
-//    aug_map_ x;
-//    x.root = m.root; m.root = NULL; return x;}
+
+  // for coercing a map to an aug_map, should be a better way
+  static M to_aug(Map&& m) {
+    aug_map_ x;
+    x.root = m.root; m.root = NULL; return x;}
   aug_map_() : Map() { }
   // install Map's constructors
   using Map::Map;
@@ -160,11 +160,13 @@ public:
 //  using Map::next;
 //  using Map::previous;
 //  using Map::rank;
-//  using Map::select;
+  using Map::select;
   using Map::root;
   using Map::get_root;
   using Map::insert;
   using Map::check_balance;
+  using Map::root_is_compressed;
+  using Map::check_structure;
 };
 
 // creates a key-value pair for the entry, and redefines from_entry
