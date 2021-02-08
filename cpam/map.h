@@ -87,7 +87,7 @@ public:
 
   map_(parlay::slice<E*, E*> R) {
     M empty = M();
-    root = multi_insert(empty, R).get_root();
+    root = Tree::finalize(multi_insert(empty, R).get_root());
   }
 
   // construct from sequence, combining the values corresponding to equal keys with f
@@ -573,8 +573,9 @@ public:
 	  return Seq_Tree::check_balance(root);
   }
 
-  size_t size_in_bytes() const {
-    return Tree::size_in_bytes(root);
+  template <class F>
+  size_t size_in_bytes(const F& f) const {
+    return Tree::size_in_bytes(root, f);
   }
 
   size_t ref_cnt() const { return Tree::ref_cnt(root); }

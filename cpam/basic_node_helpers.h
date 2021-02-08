@@ -33,31 +33,31 @@ static typename Node::node* two_compressed_nodes(typename Node::ET* stack, size_
   return e;
 }
 
-template <class Node>
-static typename Node::node* four_compressed_nodes(typename Node::ET* stack, size_t tot,
-                                   typename Node::regular_node* e = nullptr) {
-  using ET = typename Node::ET;
-  using node = typename Node::node;
-  auto make_two_nodes = [](ET* start, size_t tot) -> node* {
-    // return two_compressed_nodes(start, tot);
-    //  TODO: refactor into above
-    assert(tot >= 2*B);
-    if (tot == 2*B) {
-      return Node::make_single_compressed_node(start, tot);
-    } else {
-      size_t lc_size = tot/2;
-      size_t rc_size = tot/2;
-      if (tot % 2 == 0) lc_size--;
-      auto c_l = Node::make_single_compressed_node(start, lc_size);
-      auto c_r = Node::make_single_compressed_node(start + lc_size + 1,
-      rc_size);
-      auto e = Node::make_regular_node(start[lc_size]);
-      e->lc = c_l;
-      e->rc = c_r;
-      Node::update(e);
-      return e;
-    }
-  };
+  template <class Node>
+  static typename Node::node* four_compressed_nodes(typename Node::ET* stack, size_t tot,
+                                     typename Node::regular_node* e = nullptr) {
+    using ET = typename Node::ET;
+    using node = typename Node::node;
+    auto make_two_nodes = [](ET* start, size_t tot) -> node* {
+      // return two_compressed_nodes(start, tot);
+      //  TODO: refactor into above
+      assert(tot >= 2*B);
+      if (tot == 2*B) {
+        return Node::make_single_compressed_node(start, tot);
+      } else {
+        size_t lc_size = tot/2;
+        size_t rc_size = tot/2;
+        if (tot % 2 == 0) lc_size--;
+        auto c_l = Node::make_single_compressed_node(start, lc_size);
+        auto c_r = Node::make_single_compressed_node(start + lc_size + 1,
+        rc_size);
+        auto e = Node::make_regular_node(start[lc_size]);
+        e->lc = c_l;
+        e->rc = c_r;
+        Node::update(e);
+        return e;
+      }
+    };
 
   auto lc_size = tot / 2, rc_size = tot / 2;
   if (tot % 2 == 0) lc_size--;
@@ -141,7 +141,7 @@ static typename Node::node* make_compressed_node(typename Node::node* b) {
   ET stack[2*B];
   size_t offset = 0;
   auto copy_f = [&] (const ET& e) {
-    parlay::move_uninitialized(stack[offset++], e);
+    parlay::assign_uninitialized(stack[offset++], e);
     // stack[offset++] = e;
   };
   Node::iterate_seq(b, copy_f);

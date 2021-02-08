@@ -20,7 +20,8 @@ struct symmetric_graph {
   using edge_tree = pam_map<edge_entry>;
 #else
   // todo: use diffencoding.
-  using edge_tree = cpam::pam_map<edge_entry>;
+  //using edge_tree = cpam::pam_map<edge_entry>;
+  using edge_tree = cpam::diff_encoded_map<edge_entry>;
 #endif
 
   struct vertex_entry {
@@ -32,15 +33,10 @@ struct symmetric_graph {
     static aug_t from_entry(const key_t& k, const val_t& v) {
       return v.size();}
     static aug_t combine(aug_t a, aug_t b) {return a + b;}
-    using entry_t = std::pair<key_t, val_t>;
   };
 
-#ifdef USE_PAM
   using vertex_tree = aug_map<vertex_entry>;
-#else
-  // todo: use diffencoding
-  using vertex_tree = cpam::aug_map<vertex_entry>;
-#endif
+
 
   using ngh_and_weight = std::tuple<vertex_id, weight>;
   using edge = std::pair<vertex_id, ngh_and_weight>;
@@ -86,8 +82,34 @@ struct symmetric_graph {
   }
 
   void print_stats() {
-    size_t size_in_bytes = V.size_in_bytes();
-    std::cout << "Graph representation requires " << size_in_bytes << " bytes." << std::endl;
+//    auto count_edges_fn = [&] (const auto& et) {
+////      return 0;
+//      //const auto& incident = std::get<1>(std::get<0>(et));
+//      const auto& incident = std::get<1>(et);
+//      return incident.size();
+//    };
+//    size_t edge_size = V.size_in_bytes(count_edges_fn);
+    size_t sz = 0;
+    size_t edges_bytes = 0;
+    auto f = [&] (const auto& et) {
+      const auto& incident = std::get<1>(et);
+      auto noop = [] (const auto& q) { return 0; };
+      size_t edges_size = incident.size();
+      edges_bytes += incident.size_in_bytes(noop);
+      if (edges_size < 2*cpam::utils::compression_block_size) {
+	assert(incident.root_is_compressed());
+      }
+    };
+    vertex_tree::foreach_seq(V, f);
+    std::cout << "num_edges = " << sz << std::endl;
+    std::cout << "edges_size = " << edges_bytes << std::endl;
+//    auto count_vertex_fn = [&] (const auto& et) {
+//      return 0;
+//    };
+//    size_t vertex_size = V.size_in_bytes(count_vertex_fn);
+//    edge_size -= vertex_size;
+//    std::cout << "Vertex tree requires " << vertex_size << " bytes." << std::endl;
+//    std::cout << "Edge trees require " << edge_size << " bytes." << std::endl;
   }
 
 };

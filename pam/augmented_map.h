@@ -142,6 +142,9 @@ public:
   static void foreach_index(M m, F f, size_t start=0,
 			    size_t granularity = utils::node_limit) {
     Map::foreach_index(m, f, start, granularity); }
+  template <class F>
+  static void foreach_seq(M m, F f) {
+    Map::foreach_seq(m, f); }
 public:
   using Map::from_sorted;
   using Map::size;

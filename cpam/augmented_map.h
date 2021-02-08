@@ -100,7 +100,7 @@ public:
 				bool seq_inplace = false) {
     return to_aug(Map::multi_insert_combine(std::move(m), S, f, seq_inplace));}
   template<class Val, class Reduce>
-  static M multi_insert_reduce(M m, parlay::sequence<pair<K,Val>>& S, Reduce g) {  // ?? should it be &
+  static M multi_insert_reduce(M m, const parlay::sequence<pair<K,Val>>& S, Reduce g) {  // ?? should it be &
     return to_aug(Map::multi_insert_reduce(std::move(m), S, g)); }
 
   template<class M1, class M2, class F>
@@ -168,6 +168,7 @@ public:
   using Map::root_is_compressed;
   using Map::check_structure;
   using Map::size_in_bytes;
+  using Map::iterate_seq;
 };
 
 // creates a key-value pair for the entry, and redefines from_entry

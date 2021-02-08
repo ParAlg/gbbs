@@ -13,4 +13,4 @@ test_cpam:		test.cpp
 #	g++ -O3 -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -o test test.cpp -L/usr/local/lib -ljemalloc
 
 clean:
-	rm -f test test_pam
+	rm -f test test_pam test_cpam

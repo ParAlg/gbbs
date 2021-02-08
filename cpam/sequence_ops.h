@@ -174,7 +174,7 @@ struct sequence_ops : Tree {
     return join2_i(ptr(b1), ptr(b2));
   }
 
-// TODO
+// TODO:
 //  template<class InTree, class Func>
 //  static node* map(typename InTree::node* b, const Func& f) {
 //    if (!b) return NULL;
@@ -184,9 +184,7 @@ struct sequence_ops : Tree {
 //       [&] () {return map<InTree>(b->rc, f);});
 //    auto y = f(InTree::get_entry(b));
 //	node* m = Tree::make_node(y);
-//    //node* r = join(P.first, y , P.second);
 //	return Tree::node_join(P.first, P.second, m);
-//    //return r;
 //  }
 
   // Written without any customization for the compressed case.

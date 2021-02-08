@@ -16,8 +16,7 @@ namespace cpam {
 //   from_entry(entry_t) -> aug_t;
 //   combine(aut_t, aug_t) -> aug_t;
 template<class balance, class Entry, class AugEntryEncoder>
-struct aug_node :
-  basic_node<balance,
+struct aug_node : private basic_node<balance,
     std::pair<typename Entry::entry_t, typename Entry::aug_t>,
     null_encoder> {
   using AT = typename Entry::aug_t;
@@ -28,6 +27,19 @@ struct aug_node :
   using compressed_node = typename basic::compressed_node;
   using aug = aug_node<balance, Entry, AugEntryEncoder>;
   using allocator = typename basic::allocator;
+
+
+  using basic::increment_count;
+  using basic::empty;
+  using basic::ref_cnt;
+  using basic::is_regular;
+  using basic::is_compressed;
+  using basic::cast_to_regular;
+  using basic::cast_to_compressed;
+  using basic::size;
+  using basic::will_be_compressed;
+  using basic::check_compressed_node;
+
 
   static ET& get_entry(node *a) {return basic::cast_to_regular(a)->entry.first;}
   static ET* get_entry_p(node *a) {return &basic::cast_to_regular(a)->entry.first;}
@@ -199,10 +211,34 @@ struct aug_node :
     uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t) + sizeof(AT));
     size_t i = 0;
     auto f = [&] (const ET& et) {
-      tmp_arr[i++] = et;
+      parlay::assign_uninitialized(tmp_arr[i++], et);
     };
     AugEntryEncoder::decode(data_start, c->s, f);
     return tmp_arr;
+  }
+
+  // F applied to entries.
+  template <class F>
+  static size_t size_in_bytes(node* a, const F& f) {
+    size_t total = 0;
+    if (!a) return total;
+    if (basic::is_compressed(a)) {
+      auto c = basic::cast_to_compressed(a);
+      total += c->size_in_bytes;
+      auto fn = [&] (const auto& et) {
+        total += f(et);
+      };
+      iterate_seq(c, fn);
+    } else {
+      auto r = basic::cast_to_regular(a);
+      size_t size = basic::size(r);
+      std::cout << "Node size = " << size << std::endl;
+      total += size_in_bytes(r->lc, f);
+      total += size_in_bytes(r->rc, f);
+      total += sizeof(regular_node);
+      total += f(get_entry(r));
+    }
+    return total;
   }
 
 // Unused now.
