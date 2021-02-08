@@ -50,23 +50,79 @@ struct augmented_ops : Map {
 
   template<class aug>
   // the sum left of or at key
-  static void aug_sum_left(ptr b, const K& key, aug& a) {
-    if (!b.empty()) {
-      auto [lc, e, rc, m] = Seq::expose(std::move(b));
-      if (!Map::comp(key, Entry::get_key(e))) {
-        a.add_entry(e);
-        if (!lc.empty()) {  // extract aug_val from ptr
-          auto l = lc.node_ptr();
-          a.add_aug_val(Map::aug_val(l));  // TODO
-        }
-        GC::decrement(m);
-        aug_sum_left(std::move(rc), key, a);
-      } else {
-        GC::decrement(m);
-        return aug_sum_left(std::move(lc), key, a);
+  static void aug_sum_left(node* b, const K& key, aug& a) {
+    while (b) {
+      if (Map::is_compressed(b)) {
+        bool lt = true;
+        auto fn = [&] (const auto& et) {
+          if (lt && Map::comp(Entry::get_key(et), key)) a.add_entry(et);
+          else lt = false;
+        };
+        Map::iterate_seq(b, fn);
+        return;
       }
+      auto rb = Map::cast_to_regular(b);
+      if (!Map::comp(key, Map::get_key(rb))) {
+	a.add_entry(Map::get_entry(rb));
+	if (rb->lc) a.add_aug_val(Map::aug_val(rb->lc));
+	b = rb->rc;
+      } else b = rb->lc;
     }
   }
+
+//  template<class aug>
+//  // the sum left of or at key
+//  static void aug_sum_left(ptr p_b, const K& key, aug& a) {
+//    if (p_b.empty()) return;
+//
+//    if (p_b.is_compressed()) {
+//      aug_sum_left_compressed(p_b.node_ptr(), key, a);
+//      return;
+//    }
+//
+//    auto b = Map::cast_to_regular(p_b.node_ptr());
+//
+//
+//
+//
+//    if (!b.empty()) {
+//      auto [lc, e, rc, m] = Seq::expose(std::move(b));
+//      if (!Map::comp(key, Entry::get_key(e))) {
+//        a.add_entry(e);
+//        if (!lc.empty()) {  // extract aug_val from ptr
+//          auto l = lc.node_ptr();
+//          a.add_aug_val(Map::aug_val(l));  // TODO
+//        }
+//        GC::decrement(m);
+//        aug_sum_left(std::move(rc), key, a);
+//      } else {
+//        GC::decrement(m);
+//        return aug_sum_left(std::move(lc), key, a);
+//      }
+//    }
+//  }
+
+
+
+//  template<class aug>
+//  // the sum left of or at key
+//  static void aug_sum_left(ptr b, const K& key, aug& a) {
+//    if (!b.empty()) {
+//      auto [lc, e, rc, m] = Seq::expose(std::move(b));
+//      if (!Map::comp(key, Entry::get_key(e))) {
+//        a.add_entry(e);
+//        if (!lc.empty()) {  // extract aug_val from ptr
+//          auto l = lc.node_ptr();
+//          a.add_aug_val(Map::aug_val(l));  // TODO
+//        }
+//        GC::decrement(m);
+//        aug_sum_left(std::move(rc), key, a);
+//      } else {
+//        GC::decrement(m);
+//        return aug_sum_left(std::move(lc), key, a);
+//      }
+//    }
+//  }
 
 
 //  template<class aug>

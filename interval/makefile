@@ -1,11 +1,11 @@
 all: intervalTree_cpam intervalTree_pam
 
 intervalTree_pam:		intervalTree.cpp
-	g++ -DUSE_PAM -O3 -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_pam intervalTree.cpp -L/usr/local/lib -ljemalloc
+	g++ -DNDEBUG -DUSE_PAM -O3 -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_pam intervalTree.cpp -L/usr/local/lib -ljemalloc
 #	g++ -DUSE_PAM -O0 -g -DDEBUG -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_pam intervalTree.cpp -L/usr/local/lib -ljemalloc
 
 intervalTree_cpam:		intervalTree.cpp
-	g++ -O3 -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_cpam intervalTree.cpp -L/usr/local/lib -ljemalloc
+	g++ -DNDEBUG -O3 -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_cpam intervalTree.cpp -L/usr/local/lib -ljemalloc
 #	g++ -O0 -g -DDEBUG -mcx16 -march=native -DHOMEGROWN -pthread -std=c++17 -Wall -I../parlaylib/include -I../ -o intervalTree_cpam intervalTree.cpp -L/usr/local/lib
 
 

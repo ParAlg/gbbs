@@ -35,7 +35,7 @@ public:
 
   A aug_left (const K& key) {
     typename Tree::aug_sum_t a;
-    Tree::aug_sum_left(ptr(Map::root, true), key, a);
+    Tree::aug_sum_left(Map::root, key, a);  // NOT using ptr.
     return a.result;}
 
 //  A aug_right(const K& key) {
@@ -160,7 +160,7 @@ public:
 //  using Map::next;
 //  using Map::previous;
 //  using Map::rank;
-//  using Map::select;
+  using Map::select;
   using Map::root;
   using Map::get_root;
   using Map::insert;
