@@ -73,7 +73,7 @@ def main():
                 ss = ("PARLAY_NUM_THREADS=" + str(nw) + " timeout 6h " + program_dir + program + " -s -i"
                 " " + read_dir + filename + " -eps " + str(e) + " "
                 "-delta " + str(d) + " " + bc + " "
-                "-rounds " + str(num_rounds) + " -init_graph_file " + init_files[file_idx]  + " " + stats + " " + read_dir + empty)
+                "-rounds " + str(num_rounds) + " -init_graph_file " + read_dir + init_files[file_idx]  + " " + stats + " " + read_dir + empty)
                 out = shellGetOutput(ss)
                 appendToFile(out, out_filename)
                 time += computeTimeout(out)
