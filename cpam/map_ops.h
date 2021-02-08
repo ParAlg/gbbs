@@ -822,6 +822,11 @@ struct map_ops : Seq {
     }
     if (n == 0) return b.node_ptr();
 
+    size_t tot = b.size() + n;
+    if (tot <= utils::kBaseCaseSize) {
+      return multiinsert_bc(std::move(b), A, n, op);
+    }
+
     auto [lc, e, rc, root] = Seq::expose(std::move(b));
     if (!root) root = Seq::single(e);
 
@@ -907,6 +912,68 @@ struct map_ops : Seq {
 //
 //    return Seq::template map_filter<Seq1>(b, g, granularity);
 //  }
+
+
+  template <class BinaryOp>
+  static node* multiinsert_bc(ptr b1, ET* A, size_t n, const BinaryOp& op) {
+    auto n_b1 = b1.node_ptr();
+
+    ET stack[utils::kBaseCaseSize + 1];
+    size_t offset = 0;
+    auto copy_f = [&] (const ET& a) {
+      parlay::move_uninitialized(stack[offset++], a);
+    };
+    Seq::iterate_seq(n_b1, copy_f);
+    size_t offset_2 = offset;
+    for (size_t i=0; i<n; i++) {
+      parlay::move_uninitialized(stack[offset++], A[i]);
+    }
+    assert(offset <= utils::kBaseCaseSize);
+
+    Seq::decrement_recursive(n_b1);
+
+    ET output[utils::kBaseCaseSize + 1];
+
+    // TODO: refactor merge code to share between union_bc and this code.
+
+    // merge
+    size_t nA = offset_2; size_t nB = offset;
+    size_t i = 0, j = offset_2, out_off = 0;
+    while (i < nA && j < nB) {
+      const auto& k_a = Entry::get_key(stack[i]);
+      const auto& k_b = Entry::get_key(stack[j]);
+      if (comp(k_a, k_b)) {
+        parlay::move_uninitialized(output[out_off++], stack[i]);
+        i++;
+      } else if (comp(k_b, k_a)) {
+        parlay::move_uninitialized(output[out_off++], stack[j]);
+        j++;
+      } else {
+        parlay::move_uninitialized(output[out_off], stack[i]);
+        ET& re = output[out_off];
+        Entry::set_val(re, op(Entry::get_val(stack[j]), Entry::get_val(re)));
+        out_off++;
+        i++;
+        j++;
+      }
+    }
+    while (i < nA) {
+      parlay::move_uninitialized(output[out_off++], stack[i]);
+      i++;
+    }
+    while (j < nB) {
+      parlay::move_uninitialized(output[out_off++], stack[j]);
+      j++;
+    }
+
+    // build tree
+    if (out_off < utils::compression_block_size) {
+      return Seq::to_tree_impl((ET*)output, out_off);
+    } else {
+      // need to refactor
+      return Seq::make_compressed(output, out_off);
+    }
+  }
 
 
   template <class BinaryOp>

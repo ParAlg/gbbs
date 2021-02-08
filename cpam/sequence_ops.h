@@ -294,6 +294,9 @@ struct sequence_ops : Tree {
 	  //cout << "from_array: " << n << endl;
     if (n <= 0) return Tree::empty();
     if (n == 1) return Tree::single(A[0]);
+    if (n >= B && n <= 2*B) {
+      return Tree::make_compressed(A, n);
+    }
     size_t mid = n/2;
 
     regular_node* m = Tree::make_regular_node(A[mid]);
