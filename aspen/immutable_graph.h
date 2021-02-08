@@ -4,18 +4,14 @@
 
 namespace aspen {
 
-
 template <class weight>
 struct symmetric_graph {
-
-  // using weight = empty;  // placeholder for now.
 
   struct edge_entry {
     using key_t = vertex_id;   // a vertex_id
     using val_t = weight;        // placeholder
     static inline bool comp(key_t a, key_t b) {return a < b;}
   };
-
 #ifdef USE_PAM
   using edge_tree = pam_map<edge_entry>;
 #else
@@ -34,24 +30,32 @@ struct symmetric_graph {
       return v.size();}
     static aug_t combine(aug_t a, aug_t b) {return a + b;}
   };
-
   using vertex_tree = aug_map<vertex_entry>;
 
+  struct vertex {
+    vertex_id id;
+    edge_tree neighbors;
+    size_t degree() { return neighbors.size(); }
+    vertex(vertex_id id, edge_tree&& neighbors) : id(id), neighbors(neighbors) {}
+    // todo: map, etc, necessary for edgeMap.
+  };
 
   using ngh_and_weight = std::tuple<vertex_id, weight>;
   using edge = std::pair<vertex_id, ngh_and_weight>;
-  using G = symmetric_graph;
+  using maybe_vertex = std::optional<vertex>;
+  using G = symmetric_graph<weight>;
 
 
   vertex_tree V;
 
-  // Build from a static graph (todo).
+  // Build from a static graph.
   template <class Graph>
-  symmetric_graph(Graph& G) {
+  symmetric_graph(Graph& GA) {
     using W = typename Graph::weight_type;
     static_assert(std::is_same<W, weight>());
-    auto edges = build::graph_to_edges(G);
+    auto edges = build::graph_to_edges(GA);
     std::cout << "Edges.size = " << edges.size() << std::endl;
+    G::reserve(GA.n, GA.m);
     V = from_edges(edges);
   }
 
@@ -69,12 +73,17 @@ struct symmetric_graph {
   }
 
   // Reserve space for n vertices and m edges.
-  void reserve(size_t n, size_t m) {
-    // todo
+  static void reserve(size_t n, size_t m) {
+    vertex_tree::reserve(n);
+    edge_tree::reserve(m);
   }
 
-  auto get_vertex(vertex_id v) {
-    // todo
+  maybe_vertex get_vertex(vertex_id v) {
+    auto opt = V.find(v);
+    if (opt.has_value()) {
+      return maybe_vertex(vertex(v, std::move(*opt)));
+    }
+    return maybe_vertex();
   }
 
   auto edge_exists(edge e) {
@@ -82,13 +91,6 @@ struct symmetric_graph {
   }
 
   void print_stats() {
-//    auto count_edges_fn = [&] (const auto& et) {
-////      return 0;
-//      //const auto& incident = std::get<1>(std::get<0>(et));
-//      const auto& incident = std::get<1>(et);
-//      return incident.size();
-//    };
-//    size_t edge_size = V.size_in_bytes(count_edges_fn);
     size_t sz = 0;
     size_t edges_bytes = 0;
     auto f = [&] (const auto& et) {
@@ -103,13 +105,6 @@ struct symmetric_graph {
     vertex_tree::foreach_seq(V, f);
     std::cout << "num_edges = " << sz << std::endl;
     std::cout << "edges_size = " << edges_bytes << std::endl;
-//    auto count_vertex_fn = [&] (const auto& et) {
-//      return 0;
-//    };
-//    size_t vertex_size = V.size_in_bytes(count_vertex_fn);
-//    edge_size -= vertex_size;
-//    std::cout << "Vertex tree requires " << vertex_size << " bytes." << std::endl;
-//    std::cout << "Edge trees require " << edge_size << " bytes." << std::endl;
   }
 
 };
