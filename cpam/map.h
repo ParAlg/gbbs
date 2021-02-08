@@ -279,7 +279,9 @@ public:
   static M multi_insert(M m, Seq const &SS) {
     auto replace = [] (const V& a, const V& b) {return b;};
     parlay::sequence<E> A = Build::sort_remove_duplicates(SS);
-    auto x = M(Tree::multi_insert_sorted(m.get_root(), A.data(), A.size(), replace));
+    M A_m = Tree::multi_insert_sorted(nullptr, A.data(), A.size(), replace);
+    auto x = M(Tree::uniont(m.get_root(), A_m.get_root(), replace));
+    //auto x = M(Tree::multi_insert_sorted(m.get_root(), A.data(), A.size(), replace));
     return x;
   }
 
