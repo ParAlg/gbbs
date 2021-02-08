@@ -634,18 +634,15 @@ struct map_ops : Seq {
     ET merged[2*B];
     size_t k = 0;
     size_t out_off = 0;
-    bool placed = false;
     while (k < n) {
       if (Entry::comp(Entry::get_key(arr[k]), key)) {
         parlay::move_uninitialized(merged[out_off++], arr[k++]);
       } else if (Entry::comp(key, Entry::get_key(arr[k]))) {
-        placed = true;
         break;
       } else {  // arr[k] == key
         arr[k].~ET();
         k++;
         out_off++;
-        placed = true;
         break;
       }
     }

@@ -564,7 +564,7 @@ public:
 
 
   // Some useful debugging utilities
-  bool check_balance() {
+  bool check_balance() const {
 	  return Seq_Tree::check_balance(root);
   }
 
@@ -577,7 +577,7 @@ public:
     //Tree::print_inorder(root);
     Tree::print_rec(root);
   }
-  bool check_structure() const {
+  bool check_structure() {
     return Tree::check_structure(root);
   }
   void print_stats() {

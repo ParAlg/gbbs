@@ -48,20 +48,6 @@ struct augmented_ops : Map {
 //    }
 //  }
 
-//  template<class aug>
-//  // the sum left of or at key
-//  static void aug_sum_left(node* b, const K& key, aug& a) {
-//    while (b) {
-//      if (!Map::comp(key, Map::get_key(b))) {
-//	a.add_entry(Map::get_entry(b));
-//	//if (b->lc) a.add_aug_val(aug_val(b->lc));
-//	if (b->lc) a.add_aug_val(b->lc->entry.second);
-//	b = b->rc;
-//      } else b = b->lc;
-//    }
-//  }
-//
-
   template<class aug>
   // the sum left of or at key
   static void aug_sum_left(ptr b, const K& key, aug& a) {
@@ -73,6 +59,7 @@ struct augmented_ops : Map {
           auto l = lc.node_ptr();
           a.add_aug_val(Map::aug_val(l));  // TODO
         }
+        GC::decrement(m);
         aug_sum_left(std::move(rc), key, a);
       } else {
         GC::decrement(m);
