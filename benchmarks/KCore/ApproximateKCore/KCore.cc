@@ -54,6 +54,8 @@
 //     -end_size : indicates the index of the dynamic edge given by -i in which
 //                 to stop performing dynamic updates (exclusive); default
 //                 value is the last edge in the dynamic graph
+//     -b : batch size (output includes time per batch, from start_size to
+//          end_size)
 //     -eps: epsilon
 //     -delta: delta
 //     -use_pow: indicates whether to give less granular approximations
