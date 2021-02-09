@@ -523,13 +523,18 @@ struct LDS {
 
   // returns the total number of moved vertices
   template <class Levels>
-  size_t rebalance_insertions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
+  size_t rebalance_insertions(Levels&& levels, size_t actual_cur_level_id, size_t total_moved = 0) {
+    size_t cur_level_id = actual_cur_level_id;
     if (cur_level_id >= levels.size())
       return total_moved;
 
+    while (cur_level_id < levels.size()) {
     auto& cur_level = levels[cur_level_id];
-    if (cur_level.num_elms() == 0)
-      return rebalance_insertions(levels, cur_level_id+1, total_moved);
+    if (cur_level.num_elms() == 0) {
+      //return rebalance_insertions(levels, cur_level_id+1, total_moved);
+      cur_level_id++;
+      continue;
+    }
 
     // Figure out the desire_level for each vertex in cur_level.
     // Sets the desire level for each vertex with a valid desire_level in L.
@@ -742,17 +747,21 @@ struct LDS {
 
     // TODO: update total_moved properly (not necessary for correctness, but
     // interesting for logging / experimental evaluation).
-    return rebalance_insertions(levels, cur_level_id + 1, total_moved);
+    //return rebalance_insertions(levels, cur_level_id + 1, total_moved);
+    cur_level_id++;
+    }
   }
 
   // Used to balance the level data structure for deletions
   // Returns the total number of moved vertices
   template <class Levels>
-  size_t rebalance_deletions(Levels&& levels, size_t cur_level_id, size_t total_moved = 0) {
-      if (cur_level_id >= levels.size()) {
-          return total_moved;
-      }
+  size_t rebalance_deletions(Levels&& levels, size_t actual_cur_level_id, size_t total_moved = 0) {
+    size_t cur_level_id = actual_cur_level_id;
+    if (cur_level_id >= levels.size()) {
+      return total_moved;
+    }
 
+    while (cur_level_id < levels.size()) {
       // Get vertices that have desire level equal to the current desire level
 
       auto nodes_to_move = gbbs::sparse_set<uintE>();
@@ -1015,7 +1024,10 @@ struct LDS {
       // update the levels with neighbors
       update_levels(std::move(affected), levels);
 
-      return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
+      total_moved += nodes_to_move_seq.size();
+      cur_level_id++;
+      //return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
+    }
   }
 
   template <class Seq>
