@@ -17,7 +17,7 @@ struct sequence_ops : Tree {
   using GC = gc<Tree>;
   using ptr = typename GC::ptr;
 
-  using expose_tuple = std::tuple<ptr, typename Tree::ET&, ptr, regular_node*>;
+  using expose_tuple = std::tuple<ptr, ET&, ptr, regular_node*>;
 
   // Takes a compressed node and returns the node's elements as a tree
   static regular_node* to_tree_impl(ET* A, uint32_t n, uint32_t depth = 0) {
@@ -192,6 +192,16 @@ struct sequence_ops : Tree {
   static void foreach_index(ptr a, size_t start, const F& f,
                             size_t granularity = utils::node_limit) {
     if (a.empty()) return;
+    if (a.is_compressed()) {
+      auto c = a.node_ptr();
+      size_t i = 0;
+      auto fn = [&] (ET a) {
+        f(a, start + i);
+        i++;
+      };
+      Tree::iterate_seq(c, fn);
+      return;
+    }
     auto[lc, e, rc, root] = expose(std::move(a));
     size_t lsize = lc.size();
     f(e, start + lsize);

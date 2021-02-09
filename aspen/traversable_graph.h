@@ -59,11 +59,48 @@ struct traversable_graph : private graph {
   }
 
   template <class Data, class VS, class F>
-  auto edgeMapSparse(VS& vs, const F& f, const flags& fl) {
+  auto edgeMapDense(VS& vs, const F& f, const flags& fl) {
     using D = typename vertexSubsetData<Data>::D;
-    size_t n = GA.n;
+    size_t n = num_vertices();
     assert(gbbs::should_output(fl));
+    auto dense_par = fl & gbbs::dense_parallel;
+    vs.toDense();
 
+    auto get_in = [x = vs.d] (vertex_id v) {
+      if constexpr (std::is_same<typename VS::Data, gbbs::empty>()) {
+        return x[v];
+      } else {
+        return std::get<0>(x[v]);
+      }
+    };
+
+    auto next = parlay::sequence<D>::from_function(n,
+        [&] (size_t i) {
+          if constexpr (std::is_same<Data, gbbs::empty>()) return 0;
+          else return std::make_tuple<vertex_id, Data>(0, Data());
+        });
+    auto g = gbbs::get_emdense_gen<Data>((D*)next.begin());
+
+    using vtx_entry_t = typename G::vertex_entry::entry_t;
+    using edge_entry_t = typename G::edge_entry::entry_t;
+    auto map_f = [&] (vtx_entry_t vtx_entry, size_t i) {
+      vertex_id v = std::get<0>(vtx_entry);
+      edge_tree& e_tree = std::get<1>(vtx_entry);
+      if (f.cond(v)) {
+	auto inner_map = [&] (edge_entry_t et, size_t j) {
+	  vertex_id ngh = std::get<0>(et);
+	  if (get_in(ngh)) {
+	    auto m = f.updateAtomic(ngh, v, std::get<1>(et));
+	    g(v, m);
+	  }
+        };
+	edge_tree::foreach_index(e_tree, inner_map);
+      }
+    };
+    auto& vertices = get_vertices();
+    vertices.foreach_index(vertices, map_f);
+
+    return vertexSubsetData<Data>(n, std::move(next));
   }
 
   template <class Data, class VS, class F>
@@ -88,7 +125,8 @@ struct traversable_graph : private graph {
     }
     if (out_degrees == 0) return vertexSubsetData<Data>(n);
     if (vs.size() + out_degrees > threshold && !(fl & gbbs::no_dense)) {
-      return edgeMapDense(vs, f, fl);
+      std::cout << "EdgeMapDense" << std::endl;
+      return edgeMapDense<Data, VS, F>(vs, f, fl);
     }
     return edgeMapSparse<Data, VS, F>(vs, f, fl);
   }
@@ -103,6 +141,7 @@ struct traversable_graph : private graph {
   using G::num_vertices;
   using G::num_edges;
   using G::get_vertex;
+  using G::get_vertices;
 };
 
 

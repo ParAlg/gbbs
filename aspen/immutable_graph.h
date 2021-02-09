@@ -11,6 +11,7 @@ struct symmetric_graph {
     using key_t = vertex_id;   // a vertex_id
     using val_t = weight;        // placeholder
     static inline bool comp(key_t a, key_t b) {return a < b;}
+    using entry_t = std::tuple<key_t, val_t>;
   };
 #ifdef USE_PAM
   using edge_tree = pam_map<edge_entry>;
@@ -29,6 +30,7 @@ struct symmetric_graph {
     static aug_t from_entry(const key_t& k, const val_t& v) {
       return v.size();}
     static aug_t combine(aug_t a, aug_t b) {return a + b;}
+    using entry_t = std::tuple<key_t, val_t>;
   };
   using vertex_tree = aug_map<vertex_entry>;
 
@@ -65,6 +67,10 @@ struct symmetric_graph {
   // Build from a sequence of edges.
   symmetric_graph(parlay::sequence<edge>& edges) {
     V = from_edges(edges);
+  }
+
+  vertex_tree& get_vertices() {
+    return V;
   }
 
   size_t num_vertices() {

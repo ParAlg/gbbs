@@ -43,19 +43,14 @@ double BFS_runner(Graph& G, commandLine P) {
   std::cout << "### Application: BFS" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
-  std::cout << "### n: " << G.n << std::endl;
-  std::cout << "### m: " << G.m << std::endl;
+  std::cout << "### n: " << G.num_vertices() << std::endl;
+  std::cout << "### m: " << G.num_edges() << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  timer bt; bt.start();
-  auto AG = aspen::symmetric_graph_from_static_graph(G);
-  AG.print_stats();
-  bt.stop(); bt.reportTotal("Build time");
-
   timer t; t.start();
-  auto parents = BFS(AG, src);
+  auto parents = BFS(G, src);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
@@ -64,4 +59,4 @@ double BFS_runner(Graph& G, commandLine P) {
 
 }  // namespace gbbs
 
-generate_main(gbbs::BFS_runner, false);
+generate_symmetric_aspen_main(gbbs::BFS_runner, false);
