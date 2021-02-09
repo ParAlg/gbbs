@@ -567,7 +567,7 @@ struct LDS {
       }
     }//);
     cur_level.resize_down(outer_level_sizes);
-  
+
     auto vertex_seq = parlay::delayed_seq<uintE>(cur_level.size(), [&] (size_t i) {
       uintE u = cur_level.table[i];
       if (levelset::valid(u)) {
@@ -921,7 +921,7 @@ struct LDS {
 
             // Get the num deleted by sorting the levels of all neighbors
             auto compare_tup = [&] (const size_t l, const size_t r) { return l < r; };
-            parlay::sort_inplace(parlay::make_slice(neighbor_levels), compare_tup);
+            parlay::integer_sort_inplace(parlay::make_slice(neighbor_levels));
             auto new_bool_seq = parlay::delayed_seq<bool>(neighbor_levels.size() + 1, [&] (size_t i) {
                       return (i == 0) || (i == neighbor_levels.size()) ||
                              (neighbor_levels[i-1] != neighbor_levels[i]);
@@ -1341,7 +1341,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         layers.batch_deletion(batch_deletions);
       }
     }
-    
+
     for (size_t i = offset; i < batch.size(); i += batch_size) {
         timer t; t.start();
         auto end_size = std::min(i + batch_size, batch.size());
