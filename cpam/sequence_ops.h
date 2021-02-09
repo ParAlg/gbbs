@@ -295,9 +295,9 @@ struct sequence_ops : Tree {
     if (b.empty()) return NULL;
     size_t n = b.size();
 
-    //if (n <= utils::kBaseCaseSize) {
-    //  return filter_bc(std::move(b), f);
-    //}
+    if (n <= utils::kBaseCaseSize) {
+      return filter_bc(std::move(b), f);
+    }
 
     auto[lc, e, rc, root] = expose(std::move(b));
 

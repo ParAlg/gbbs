@@ -35,9 +35,9 @@ struct symmetric_graph {
   using vertex_tree = aug_map<vertex_entry>;
 
   struct neighbors {
-    edge_tree& tree;
+    edge_tree tree;
     vertex_id id;
-    neighbors(vertex_id id, edge_tree& tree) : id(id), tree(tree) {}
+    neighbors(vertex_id id, edge_tree tree) : id(id), tree(std::move(tree)) {}
 
     template <class F, class G>
     void copy(size_t offset, F& f, G& g) {

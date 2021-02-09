@@ -33,6 +33,7 @@ struct inv_index {
   };
 
   using post_list = aug_map<doc_entry>;
+  using post_list_node = typename post_list::node;
   //using post_list = pam_map<doc_entry>;
 
   struct token_entry {
@@ -49,6 +50,7 @@ struct inv_index {
   using index_elt = pair<token, post_elt>;
   using index_list = pair<token, post_list>;
   using index = pam_map<token_entry>;
+  using index_node = typename index::node;
 
   index idx;
 
@@ -79,6 +81,38 @@ struct inv_index {
 
   static post_list And_Not(post_list a, post_list b) {
     return post_list::map_difference(a,b);}
+
+  void print_index_size() {
+#ifdef USE_PAM
+    size_t num_outer = 0;
+    size_t num_inner = 0;
+    auto fn = [&] (const auto& et) {
+      num_outer++;
+      num_inner += std::get<1>(et).size();
+    };
+    idx.foreach_seq(idx, fn);
+    size_t total_size = num_outer*sizeof(index_node) + num_inner*sizeof(post_list_node);
+    std::cout << "Num outer nodes = " << num_outer << " Num inner nodes = " << num_inner << std::endl;
+    std::cout << "Total size in bytes: " << total_size << std::endl;
+#else
+    auto fn_noop = [&] (const auto& et) {
+      return 0;
+    };
+    size_t outer_bytes = idx.size_in_bytes(fn_noop);
+    std::cout << "Outer bytes = " << outer_bytes << std::endl;
+
+    auto fn_inner = [&] (const auto& et) {
+      auto inner_noop = [&] (const auto& et) {
+        return 0;
+      };
+      size_t inner_size = std::get<1>(et).size_in_bytes(inner_noop);
+      return inner_size;
+    };
+    size_t inner_bytes = idx.size_in_bytes(fn_inner);
+    std::cout << "Inner bytes = " << inner_bytes << std::endl;
+    std::cout << "Total bytes = " << (outer_bytes + inner_bytes) << std::endl;
+#endif
+  }
 
 // Optional(todo).
 //  vector<post_elt> top_k(post_list a, int k) {

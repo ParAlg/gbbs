@@ -164,6 +164,17 @@ public:
     return out;
   }
 
+  template <class F>
+  size_t size_in_bytes(const F& f) const {
+    size_t n = size();
+    size_t total_size = sizeof(node) * n;
+    auto fn = [&] (const auto& et) {
+      total_size += fn(et);
+    };
+    foreach_seq(root, fn, true);
+    return total_size;
+  }
+
   // flatten all entries to an array
   static void entries(M m, E* out) {
     auto f = [&] (E& e, size_t i) {out[i] = e;};

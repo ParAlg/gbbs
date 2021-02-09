@@ -250,8 +250,6 @@ struct aug_node : private basic_node<balance,
       iterate_seq(c, fn);
     } else {
       auto r = basic::cast_to_regular(a);
-      size_t size = basic::size(r);
-      std::cout << "Node size = " << size << std::endl;
       total += size_in_bytes(r->lc, f);
       total += size_in_bytes(r->rc, f);
       total += sizeof(regular_node);

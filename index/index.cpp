@@ -29,7 +29,7 @@ long str_to_long(char* str) {
 using post_elt = inv_index::post_elt;
 using post_list = inv_index::post_list;
 using index_elt = inv_index::index_elt;
-using index_pair = pair<token,post_list>;
+using index_pair = std::tuple<token,post_list>;
 
 template <class Seq>
 parlay::sequence<index_elt> parse(Seq const &Str, bool verbose, timer t) {
@@ -128,24 +128,22 @@ int main(int argc, char** argv) {
   std::cout << "Per-bucket details: " << std::endl;
   parlay::internal::get_default_allocator().print_stats();
 
-#ifndef USE_PAM
-
-  size_t good = 0;
-  size_t bad = 0;
-  size_t bad_size = 0;
-  auto fn = [&] (const auto& et) {
-    if (et.second.root_is_compressed()) {
-      good++;
-    } else {
-      bad++;
-      bad_size += et.second.size();
-    }
-  };
-  test_idx.idx.iterate_seq(fn);
-
-  std::cout << "Good = " << good << " Bad = " << bad << " Bad size = " << bad_size << std::endl;
-
-#endif
+//#ifndef USE_PAM
+//  size_t good = 0;
+//  size_t bad = 0;
+//  size_t bad_size = 0;
+//  auto fn = [&] (const auto& et) {
+//    if (et.second.root_is_compressed()) {
+//      good++;
+//    } else {
+//      bad++;
+//      bad_size += et.second.size();
+//    }
+//  };
+//  test_idx.idx.iterate_seq(fn);
+//
+//  std::cout << "Good = " << good << " Bad = " << bad << " Bad size = " << bad_size << std::endl;
+//#endif
 
   using idx = typename inv_index::index;
 
@@ -156,7 +154,7 @@ int main(int argc, char** argv) {
   // Setup the queries
   // filters out any words which appear fewer than 100 times
   idx common_words = idx::filter(test_idx.idx, [] (index_pair e) {
-      return (e.second.size() > 100); });
+      return (std::get<1>(e).size() > 100); });
   if (verbose)
     cout << "filter size = " << common_words.size() << endl;
 
@@ -179,10 +177,10 @@ int main(int argc, char** argv) {
 
   parlay::random r(0);
   for(size_t i =0; i < num_queries; i++) {
-    test_word_pairs[i].first = KV[r.ith_rand(i) % (n - 1)].first;
+    test_word_pairs[i].first = std::get<0>(KV[r.ith_rand(i) % (n - 1)]);
     auto rank = r.ith_rand(num_queries+i)%num_common_words;
     test_word_pairs[i].second =
-      (*common_words.select(rank)).first;
+      std::get<0>((*common_words.select(rank)));
   }
 
   // run the queries
@@ -222,6 +220,8 @@ int main(int argc, char** argv) {
     cout << "Unique words = " << test_idx.idx.size() << endl;
     cout << "Map: ";  inv_index::index::GC::print_stats();
     cout << "Set: ";  post_list::GC::print_stats();
+
+    test_idx.print_index_size();
   }
 
   return 0;

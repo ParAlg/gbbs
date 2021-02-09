@@ -1042,7 +1042,6 @@ struct map_ops : Seq {
     ET stack[utils::kBaseCaseSize + 1];
     size_t offset = 0;
     auto copy_f = [&] (const ET& a) {
-      stack[offset++] = a;
       parlay::move_uninitialized(stack[offset++], a);
     };
     Seq::iterate_seq(n_b1, copy_f);

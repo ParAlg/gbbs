@@ -158,7 +158,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = parlay::filter(candidates, pred);
 
-      add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
+      add_to_vsubset<vertexSubset>(frontier, new_centers.begin(), new_centers.size());
 
       par_for(0, new_centers.size(), [&] (size_t i) {
         uintE new_center = new_centers[i];

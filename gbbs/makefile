@@ -9,7 +9,7 @@ $(info VAR is $(OBJDIR))
 $(info VAR is $(ROOTDIR))
 $(info VAR is $(CURDIR))
 
-ALL_PRE = benchmark bridge edge_map_blocked get_time graph_io io parse_command_line undirected_edge union_find vertex_subset
+ALL_PRE = benchmark bridge edge_map_blocked get_time graph_io io parse_command_line undirected_edge union_find
 ALL= $(addprefix $(OBJDIR), $(addsuffix .o, $(ALL_PRE))) $(addprefix $(OBJDIR), $(addsuffix .a, $(ALL_PRE)))
 
 all: $(ALL)
