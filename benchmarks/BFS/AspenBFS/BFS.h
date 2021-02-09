@@ -48,19 +48,19 @@ struct BFS_F {
 template <class Graph>
 inline sequence<uintE> BFS(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
+  size_t n = G.num_vertices();
   /* Creates Parents array, initialized to all -1, except for src. */
-  auto Parents = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Parents = sequence<uintE>::from_function(n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
   std::cout << "degree = " << G.get_vertex(src).out_degree() << std::endl;
 
-  vertexSubset Frontier(G.n, src);
+  vertexSubset Frontier(n, src);
   size_t reachable = 0;
   while (!Frontier.isEmpty()) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
-    vertexSubset output =
-        edgeMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
+    vertexSubset output = G.edgeMap(Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
     Frontier = std::move(output);
   }
   std::cout << "Reachable: " << reachable << "\n";

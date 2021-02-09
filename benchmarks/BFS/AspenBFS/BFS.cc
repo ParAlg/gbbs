@@ -49,16 +49,14 @@ double BFS_runner(Graph& G, commandLine P) {
   std::cout << "### ------------------------------------" << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  using W = typename Graph::weight_type;
   timer bt; bt.start();
-  auto aspen_graph = aspen::symmetric_graph<W>(G);
-  aspen_graph.print_stats();
+  auto AG = aspen::symmetric_graph_from_static_graph(G);
+  AG.print_stats();
   bt.stop(); bt.reportTotal("Build time");
 
   timer t; t.start();
-  auto parents = BFS(G, src);
+  auto parents = BFS(AG, src);
   double tt = t.stop();
-
 
   std::cout << "### Running Time: " << tt << std::endl;
   return tt;

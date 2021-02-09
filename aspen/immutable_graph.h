@@ -35,7 +35,10 @@ struct symmetric_graph {
   struct vertex {
     vertex_id id;
     edge_tree neighbors;
-    size_t degree() { return neighbors.size(); }
+    size_t out_degree() { return neighbors.size(); }
+    size_t in_degree() { return neighbors.size(); }
+    edge_tree& out_neighbors() { return neighbors; }
+    edge_tree& in_neighbors() { return neighbors; }
     vertex(vertex_id id, edge_tree&& neighbors) : id(id), neighbors(neighbors) {}
     // todo: map, etc, necessary for edgeMap.
   };
@@ -43,8 +46,8 @@ struct symmetric_graph {
   using ngh_and_weight = std::tuple<vertex_id, weight>;
   using edge = std::pair<vertex_id, ngh_and_weight>;
   using maybe_vertex = std::optional<vertex>;
+  using weight_type = weight;
   using G = symmetric_graph<weight>;
-
 
   vertex_tree V;
 
@@ -64,6 +67,26 @@ struct symmetric_graph {
     V = from_edges(edges);
   }
 
+  size_t num_vertices() {
+    return V.size();
+  }
+
+  size_t num_edges() {
+    return V.aug_val();
+  }
+
+  vertex get_vertex(vertex_id v) {
+    auto opt = V.find(v);
+    if (opt.has_value()) {
+      return vertex(v, std::move(*opt));
+    }
+    return vertex(v, edge_tree());
+  }
+
+  auto edge_exists(edge e) {
+    // todo
+  }
+
   static vertex_tree from_edges(parlay::sequence<edge>& edges) {
     auto reduce = [&] (parlay::slice<ngh_and_weight*,ngh_and_weight*> R) {
       return edge_tree(R);
@@ -78,19 +101,9 @@ struct symmetric_graph {
     edge_tree::reserve(m);
   }
 
-  maybe_vertex get_vertex(vertex_id v) {
-    auto opt = V.find(v);
-    if (opt.has_value()) {
-      return maybe_vertex(vertex(v, std::move(*opt)));
-    }
-    return maybe_vertex();
-  }
-
-  auto edge_exists(edge e) {
-    // todo
-  }
 
   void print_stats() {
+#ifndef USE_PAM
     size_t sz = 0;
     size_t edges_bytes = 0;
     auto f = [&] (const auto& et) {
@@ -105,6 +118,8 @@ struct symmetric_graph {
     vertex_tree::foreach_seq(V, f);
     std::cout << "num_edges = " << sz << std::endl;
     std::cout << "edges_size = " << edges_bytes << std::endl;
+#else
+#endif
   }
 
 };
