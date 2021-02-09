@@ -750,6 +750,7 @@ struct LDS {
     //return rebalance_insertions(levels, cur_level_id + 1, total_moved);
     cur_level_id++;
     }
+    return total_moved;
   }
 
   // Used to balance the level data structure for deletions
@@ -1028,6 +1029,7 @@ struct LDS {
       cur_level_id++;
       //return rebalance_deletions(levels, cur_level_id + 1, total_moved + nodes_to_move_seq.size());
     }
+    return total_moved;
   }
 
   template <class Seq>
