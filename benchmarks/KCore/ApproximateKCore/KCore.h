@@ -32,7 +32,8 @@ namespace gbbs {
 namespace approximate_kcore {
 
 template <class Graph>
-inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2, double delta = 0.1, bool use_pow = false) {
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16,
+  double eps = 0.2, double delta = 0.1, bool use_pow = false) {
   const size_t n = G.n;
 
   auto Degrees =
@@ -42,7 +43,8 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
   auto get_bucket = [&](size_t deg) -> uintE {
     return ceil(log(1 + deg) / one_plus_delta);
   };
-  auto D = sequence<uintE>::from_function(G.n, [&] (size_t i) { return get_bucket(Degrees[i].first); });
+  auto D = sequence<uintE>::from_function(G.n, [&] (size_t i) {
+    return get_bucket(Degrees[i].first); });
 
   auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
   auto b = make_vertex_buckets(n, D, increasing, num_buckets);
@@ -67,13 +69,10 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
       cur_inner_rounds = 0;
     }
 
-    //std::cout << "cur_bkt = " << k << " peeled = " << active.size() << "vertices. inner_rounds = "
-    //  << cur_inner_rounds << " max_inner = " <<
-    //  max_inner_rounds << " remaining = " << (G.n - finished) << std::endl;
-
     // Check if we hit the threshold for inner peeling rounds.
     if (cur_inner_rounds == max_inner_rounds) {
-      k++;  // new re-insertions will go to at least bucket k (one greater than before).
+      // new re-insertions will go to at least bucket k (one greater than before).
+      k++;
       cur_inner_rounds = 0;
     }
 
@@ -118,7 +117,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16, double eps = 0.2
     rho++;
     cur_inner_rounds++;
   }
-  //std::cout << "### rho = " << rho << " k_{max} = " << pow(1 + delta, k_max) << "\n";
+
   debug(bt.reportTotal("bucket time"););
 
   parallel_for(0, n, [&] (size_t i) {
