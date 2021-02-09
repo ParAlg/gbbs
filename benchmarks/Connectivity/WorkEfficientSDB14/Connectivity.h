@@ -39,9 +39,7 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
   permute |= (level > 0);
   timer ldd_t;
   ldd_t.start();
-  auto clusters_in = LDD(G, beta, permute);
-  auto s = clusters_in.to_array();
-  auto clusters = pbbs::sequence<parent>((parent*)s, n);
+  auto clusters = LDD(G, beta, permute);
   ldd_t.stop();
   debug(ldd_t.reportTotal("ldd time"););
 
@@ -65,7 +63,7 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
   if (GC.m == 0) return clusters;
 
   auto new_labels = CC_impl(GC, beta, level + 1);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  parallel_for(0, n, [&] (size_t i) {
     uintE cluster = clusters[i];
     uintE gc_cluster = flags[cluster];
     if (gc_cluster != flags[cluster + 1]) {  // was not a singleton
@@ -74,7 +72,6 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
       clusters[i] = mapping[new_labels[gc_cluster]];
     }
   });
-  GC.del();
   new_labels.clear();
   flags.clear();
   mapping.clear();
@@ -84,13 +81,13 @@ inline sequence<parent> CC_impl(Graph& G, double beta,
 template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
+  parallel_for(0, n, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }
   });
-  pbbslib::scan_add_inplace(flags);
+  parlay::scan_inplace(parlay::make_slice(flags));
   std::cout << "# n_cc = " << flags[n] << "\n";
   return flags[n];
 }
@@ -99,11 +96,11 @@ template <class Seq>
 inline size_t largest_cc(Seq& labels) {
   size_t n = labels.size();
   // could histogram to do this in parallel.
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }
-  size_t sz = pbbslib::reduce_max(flags);
+  size_t sz = pbbslib::reduce_max(parlay::make_slice(flags));
   std::cout << "# largest_cc has size: " << sz << "\n";
   return sz;
 }

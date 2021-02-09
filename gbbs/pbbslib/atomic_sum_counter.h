@@ -30,7 +30,8 @@ struct atomic_sum_counter {
 
   ~atomic_sum_counter() {
     if (entries != nullptr) {
-      gbbs::free_array(entries);
+      gbbs::free_array(entries, num_elms);
+      entries = nullptr;
     }
   }
 

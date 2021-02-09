@@ -214,6 +214,38 @@ struct sequence_ops : Tree {
     GC::decrement(root);
   }
 
+  // F : entry x index -> bool
+  template <typename F>
+  static bool foreach_cond(ptr a, size_t start, const F& f,
+                           size_t granularity = utils::node_limit) {
+    if (a.empty()) return true;
+    if (a.is_compressed()) {
+      auto c = a.node_ptr();
+      size_t i = 0;
+      auto fn = [&] (ET a) -> bool {
+        bool ret = f(a, start + i);
+        i++;
+        return ret;
+      };
+      return Tree::iterate_cond(c, fn);
+    }
+    auto[lc, e, rc, root] = expose(std::move(a));
+    size_t lsize = lc.size();
+    bool ret = f(e, start + lsize);
+    if (!ret) {
+      GC::decrement(root);
+      return false;
+    }
+    auto P = utils::fork<bool>(
+        lsize >= granularity,
+        [&]() { return foreach_cond(std::move(lc), start, f, granularity); },
+        [&]() {
+          return foreach_cond(std::move(rc), start + lsize + 1, f, granularity);
+    });
+    GC::decrement(root);
+    return P.first && P.second;
+  }
+
   // similar to above but sequential using in-order traversal
   // usefull if using 20th century constructs such as iterators
   template<typename F>

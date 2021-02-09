@@ -140,6 +140,14 @@ public:
     Tree::foreach_seq(ptr(m.get_root(), true), f);
   }
 
+  // apply function f on all entries sequentially. F returns a boolean
+  // indicating whether to proceed further or not.
+  template <class F>
+  static bool foreach_cond(M m, const F& f, size_t start=0,
+      size_t granularity = utils::node_limit) {
+    return Tree::foreach_cond(ptr(m.get_root(), true), start, f, granularity);
+  }
+
   // apply function f to all entries in the tree and flatten them to a sequence
   template <class OT, class F>
   static parlay::sequence<OT> to_seq(M m, const F& f,

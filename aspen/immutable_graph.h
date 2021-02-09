@@ -34,14 +34,58 @@ struct symmetric_graph {
   };
   using vertex_tree = aug_map<vertex_entry>;
 
+  struct neighbors {
+    edge_tree& tree;
+    vertex_id id;
+    neighbors(vertex_id id, edge_tree& tree) : id(id), tree(tree) {}
+
+    template <class F, class G>
+    void copy(size_t offset, F& f, G& g) {
+      auto map_f = [&] (const auto& et, size_t i) {
+        auto [ngh, wgh] = et;
+        auto val = f(id, ngh, wgh);
+        g(ngh, offset + i, val);
+      };
+      tree.foreach_index(tree, map_f);
+    }
+
+    template <class F>
+    void map_index(F& f) {
+      auto map_f = [&] (const auto& et, size_t i) {
+        auto [ngh, wgh] = et;
+        f(id, ngh, wgh, i);
+      };
+      tree.foreach_index(tree, map_f);
+    }
+
+    template <class F>
+    void map(F& f) {
+      auto map_f = [&] (const auto& et, size_t i) {
+        auto [ngh, wgh] = et;
+        auto val = f(id, ngh, wgh);
+      };
+      tree.foreach_index(tree, map_f);
+    }
+
+    template <class F>
+    void foreach_cond(F& f) {
+      auto map_f = [&] (const auto& et, size_t i) -> bool {
+        auto [ngh, wgh] = et;
+        return f(id, ngh, wgh);
+      };
+      tree.foreach_cond(tree, map_f);
+    }
+
+  };
+
   struct vertex {
     vertex_id id;
-    edge_tree neighbors;
-    size_t out_degree() { return neighbors.size(); }
-    size_t in_degree() { return neighbors.size(); }
-    edge_tree& out_neighbors() { return neighbors; }
-    edge_tree& in_neighbors() { return neighbors; }
-    vertex(vertex_id id, edge_tree&& neighbors) : id(id), neighbors(neighbors) {}
+    edge_tree tree;
+    size_t out_degree() { return tree.size(); }
+    size_t in_degree() { return tree.size(); }
+    auto out_neighbors() { return neighbors(id, tree); }
+    auto in_neighbors() { return neighbors(id, tree); }
+    vertex(vertex_id id, edge_tree&& tree) : id(id), tree(tree) {}
     // todo: map, etc, necessary for edgeMap.
   };
 
@@ -88,6 +132,18 @@ struct symmetric_graph {
     }
     return vertex(v, edge_tree());
   }
+
+  template <class F>
+  void map_vertices(F& f) {
+    using entry_t = typename vertex_entry::entry_t;
+    auto map_f = [&] (entry_t vtx_entry, size_t i) {
+      vertex_id v = std::get<0>(vtx_entry);
+      auto vtx = vertex(v, std::move(std::get<1>(vtx_entry)));
+      f(vtx);
+    };
+    V.foreach_index(V, map_f, 0, 1);
+  }
+
 
   auto edge_exists(edge e) {
     // todo

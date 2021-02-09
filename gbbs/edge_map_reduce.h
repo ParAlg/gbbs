@@ -50,7 +50,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
   long edgeCount = parlay::scan_inplace(parlay::make_slice(degrees));
 
   if (edgeCount == 0) {
-    return vertexSubsetData<E>(G.n);
+    return vertexSubsetData<E>(G.num_vertices());
   }
   auto edges_seq = parlay::sequence<S>::uninitialized(edgeCount);
   auto edges = edges_seq.begin();
@@ -80,7 +80,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
     nghs.copy(o, map_f, gen);
   }, 1);
 
-  return vertexSubsetData<E>(G.n, std::move(edges_seq));
+  return vertexSubsetData<E>(G.num_vertices(), std::move(edges_seq));
 }
 
 // ============================= Edge Map Count ===============================
@@ -293,7 +293,7 @@ struct EdgeMap {
                                                   Apply& apply_f, M id,
                                                   const flags fl) {
     size_t m = vs.size();
-    size_t n = G.n;
+    size_t n = G.num_vertices();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
     }
@@ -336,7 +336,7 @@ struct EdgeMap {
                                                  Map& map_f, Reduce& reduce_f,
                                                  Apply& apply_f, M id,
                                                  const flags fl) {
-    size_t n = G.n;
+    size_t n = G.num_vertices();
     size_t m = vs.size();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());
@@ -445,7 +445,7 @@ struct EdgeMap {
   template <class O, class Apply, class VS>
   inline vertexSubsetData<O> edgeMapCount_dense(VS& vs, Apply& apply_f,
                                                 const flags fl = 0) {
-    size_t n = G.n;
+    size_t n = G.num_vertices();
     size_t m = vs.size();
     if (m == 0) {
       return vertexSubsetData<O>(vs.numNonzeros());

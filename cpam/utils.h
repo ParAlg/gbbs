@@ -14,8 +14,8 @@ namespace utils {
 
   // The block size to use for compressed trees. TODO: we may want to make this
   // a runtime or template argument for maps.
-  //constexpr const size_t compression_block_size = 500;
-  constexpr const size_t compression_block_size = 35;
+  constexpr const size_t compression_block_size = 120;
+  //constexpr const size_t compression_block_size = 35;
 
   static constexpr size_t kBaseCaseSize = 7*compression_block_size;
 

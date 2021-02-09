@@ -111,6 +111,24 @@ struct basic_node {
     }
   }
 
+  template<typename F>
+  static bool iterate_cond(node* a, const F& f) {
+    if (!a) return true;
+    if (is_regular(a)) {
+      auto r = cast_to_regular(a);
+      bool ret = iterate_cond(r->lc, f);
+      if (!ret) return ret;
+      ret = f(get_entry(r));
+      if (!ret) return ret;
+      ret = iterate_cond(r->rc, f);
+      return ret;
+    } else {
+      auto c = cast_to_compressed(a);
+      uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t));
+      return EntryEncoder::decode_cond(data_start, c->s, f);
+    }
+  }
+
   // Used by GC to copy a compressed node. TODO: update to work correctly with
   // diff-encoding.
   static node* make_compressed_node(node* b) {

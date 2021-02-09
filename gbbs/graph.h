@@ -107,12 +107,13 @@ struct symmetric_graph {
 
   // ======================= Constructors and fields  ========================
   symmetric_graph()
-      : n(0),
-        m(0),
-        deletion_fn([]() {}),
+      : v_data(parlay::make_slice((vertex_data*) nullptr, (vertex_data*) nullptr)),
         e0(parlay::make_slice((edge_type*) nullptr, (edge_type*) nullptr)),
         e1(parlay::make_slice((edge_type*) nullptr, (edge_type*) nullptr)),
-        v_data(parlay::make_slice((vertex_data*) nullptr, (vertex_data*) nullptr)) {}
+        n(0),
+        m(0),
+        deletion_fn([]() {})
+        {}
 
   symmetric_graph(gbbs::slice<vertex_data> v_data, size_t n, size_t m,
                   std::function<void()> _deletion_fn, gbbs::slice<edge_type> _e0,
@@ -291,9 +292,11 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
         v_data[i].offset = 0;
         v_data[i].degree = 0;
       });
+      auto null_edges = parlay::make_slice((edge_type*) nullptr, (edge_type*) nullptr);
+
       return symmetric_graph<symmetric_vertex, Wgh>(
           parlay::make_slice(v_data, v_data + n), n, 0, [=]() { gbbs::free_array(v_data, n); },
-          gbbs::slice<edge_type>());
+          null_edges, null_edges);
     }
   }
 
@@ -302,6 +305,10 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   }
 
   auto starts = parlay::sequence<uintT>(n + 1, (uintT)0);
+
+//  for (size_t i=0; i<m; i++) {
+//    std::cout << get_u(A[i]) << " " << get_v(A[i]) << std::endl;
+//  }
 
   using neighbor = std::tuple<uintE, Wgh>;
   auto edges = gbbs::new_array_no_init<neighbor>(m);
@@ -323,6 +330,11 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     edges[i] = std::make_tuple(get_v(A[i]), get_w(A[i]));
   });
 
+  for (size_t i=0; i<starts.size(); i++) {
+    std::cout << "Starts " << i << " " << starts[i] << std::endl;
+  }
+  std::cout << "Edges.size = " << m << std::endl;
+
   auto v_data = gbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&](size_t i) {
     uintT o = starts[i];
@@ -330,9 +342,17 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     v_data[i].degree = (uintE)(((i == (n - 1)) ? m : starts[i + 1]) - o);
   });
 
-  return symmetric_graph<symmetric_vertex, Wgh>(
-      v_data, n, m, [=]() { gbbs::free_array(v_data, n); gbbs::free_array(edges, m); },
-      parlay::make_slice(edges, edges + m));
+  auto G = symmetric_graph<symmetric_vertex, Wgh>(
+      parlay::make_slice(v_data, v_data + n),
+      n, m, [=]() { gbbs::free_array(v_data, n); gbbs::free_array(edges, m); },
+      parlay::make_slice(edges, edges + m), parlay::make_slice(edges, edges + m));
+  for (size_t i=0; i<G.n; i++) {
+    auto map_fn = [&] (const uintE& u, const uintE& v, const Wgh& wgh) {
+      std::cout << u << " " << v << std::endl;
+    };
+    G.get_vertex(i).out_neighbors().map(map_fn, false);
+  }
+  return G;
 }
 
 template <class Wgh>

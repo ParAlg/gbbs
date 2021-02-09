@@ -157,6 +157,25 @@ struct aug_node : private basic_node<balance,
     }
   }
 
+  template<typename F>
+  static bool iterate_cond(node* a, const F& f) {
+    if (!a) return true;
+    if (is_regular(a)) {
+      auto r = cast_to_regular(a);
+      bool ret = iterate_cond(r->lc, f);
+      if (!ret) return ret;
+      ret = f(get_entry(r));
+      if (!ret) return ret;
+      ret = iterate_cond(r->rc, f);
+      return ret;
+    } else {
+      auto c = cast_to_compressed(a);
+      uint8_t* data_start = (((uint8_t*)c) + 3*sizeof(node_size_t) + sizeof(AT));
+      return AugEntryEncoder::decode_cond(data_start, c->s, f);
+    }
+  }
+
+
   static node* finalize(node* root) {
     auto sz = basic::size(root);
     assert(sz > 0);

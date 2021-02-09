@@ -24,7 +24,7 @@ struct traversable_graph : private graph {
   using flags = gbbs::flags;
 
   template <class Data, class VS, class F>
-  auto edgeMapSparse(VS& vs, const F& f, const flags& fl) {
+  auto edgeMapSparse(VS& vs, F& f, const flags& fl) {
     using S = typename vertexSubsetData<Data>::S;
     size_t n = num_vertices();
     assert(gbbs::should_output(fl));
@@ -42,14 +42,15 @@ struct traversable_graph : private graph {
       vertex_id v = vs.vtx(i);
       edge_id o = offsets[i];
       auto vtx = get_vertex(v);
-      auto& neighbors = (fl & gbbs::in_edges) ? vtx.out_neighbors() : vtx.in_neighbors();
+      auto neighbors = (fl & gbbs::in_edges) ? vtx.out_neighbors() : vtx.in_neighbors();
       S* out_edges = outEdges.begin();
       auto g = gbbs::get_emsparse_gen_full<Data>(out_edges);
-      auto map_f = [&] (const auto& et, size_t i) {
-	auto m = f.updateAtomic(v, std::get<0>(et), std::get<1>(et));
-	g(std::get<0>(et), o + i, m);
+
+      auto map_f = [&] (vertex_id v, vertex_id u, auto wgh, size_t i) {
+	auto m = f.updateAtomic(v, u, wgh);
+	g(u, o + i, m);
       };
-      neighbors.foreach_index(neighbors, map_f);
+      neighbors.map_index(map_f);
     });
     auto filtered = parlay::filter(outEdges, [&] (const auto& e) {
       return e != UINT_E_MAX;
@@ -59,7 +60,7 @@ struct traversable_graph : private graph {
   }
 
   template <class Data, class VS, class F>
-  auto edgeMapDense(VS& vs, const F& f, const flags& fl) {
+  auto edgeMapDense(VS& vs, F& f, const flags& fl) {
     using D = typename vertexSubsetData<Data>::D;
     size_t n = num_vertices();
     assert(gbbs::should_output(fl));
@@ -83,28 +84,33 @@ struct traversable_graph : private graph {
 
     using vtx_entry_t = typename G::vertex_entry::entry_t;
     using edge_entry_t = typename G::edge_entry::entry_t;
-    auto map_f = [&] (vtx_entry_t vtx_entry, size_t i) {
-      vertex_id v = std::get<0>(vtx_entry);
-      edge_tree& e_tree = std::get<1>(vtx_entry);
+
+    auto map_f = [&] (auto& vtx) {
+      vertex_id v = vtx.id;
       if (f.cond(v)) {
-	auto inner_map = [&] (edge_entry_t et, size_t j) {
-	  vertex_id ngh = std::get<0>(et);
+        auto neighbors = vtx.in_neighbors();
+
+	auto map_cond = [&] (vertex_id v, vertex_id ngh, auto wgh) -> bool {
 	  if (get_in(ngh)) {
-	    auto m = f.updateAtomic(ngh, v, std::get<1>(et));
+	    auto m = f.updateAtomic(ngh, v, wgh);
 	    g(v, m);
 	  }
+          return f.cond(v);
         };
-	edge_tree::foreach_index(e_tree, inner_map);
+	neighbors.foreach_cond(map_cond);
+	//edge_tree::foreach_cond(neighbors, inner_map, 0, 512);
       }
     };
-    auto& vertices = get_vertices();
-    vertices.foreach_index(vertices, map_f);
+    //auto& vertices = get_vertices();
+    //vertices.foreach_index(vertices, map_f);
+
+    map_vertices(map_f);
 
     return vertexSubsetData<Data>(n, std::move(next));
   }
 
   template <class Data, class VS, class F>
-  auto edgeMapData(VS& vs, const F& f, long threshold = -1, const flags& fl = 0) {
+  auto edgeMapData(VS& vs, F& f, long threshold = -1, const flags& fl = 0) {
     size_t n = num_vertices();
     size_t m = num_edges();
     if (threshold == -1) threshold = n / 20;
@@ -132,7 +138,7 @@ struct traversable_graph : private graph {
   }
 
   template <class VS, class F>
-  auto edgeMap(VS& vs, const F& f, long threshold = -1, const flags& fl = 0) {
+  auto edgeMap(VS& vs, F f, long threshold = -1, const flags& fl = 0) {
     return edgeMapData<Empty, VS, F>(vs, f, threshold, fl);
   }
 
@@ -141,7 +147,8 @@ struct traversable_graph : private graph {
   using G::num_vertices;
   using G::num_edges;
   using G::get_vertex;
-  using G::get_vertices;
+  using G::get_vertices;   // unused?
+  using G::map_vertices;
 };
 
 

@@ -103,6 +103,21 @@ struct diffencoded_entry_encoder {
       }
     }
 
+    template <class F>
+    static inline bool decode_cond(uint8_t* bytes, size_t size, const F& f) {
+      V* vals = (V*)bytes;
+      uint8_t* key_bytes = (bytes + size*sizeof(V));
+
+      K prev_key = *((K*)key_bytes);
+      f(Entry::to_entry(prev_key, vals[0]));
+      key_bytes += sizeof(K);
+      for (size_t i=1; i<size; i++) {
+        prev_key += decodeUnsigned<K>(key_bytes);
+        if (!f(Entry::to_entry(prev_key, vals[i]))) return false;
+      }
+      return true;
+    }
+
     static inline void destroy(uint8_t* bytes, size_t size) {
       V* vals = (V*)bytes;
       for (size_t i=0; i<size; i++) {
@@ -175,6 +190,10 @@ struct null_encoder {
   static inline void decode(uint8_t* bytes, size_t size, const F& f) {
     assert(false);
     exit(-1);}
+  template <class F>
+  static inline bool decode_cond(uint8_t* bytes, size_t size, const F& f) {
+    assert(false);
+    exit(-1);}
   static inline void destroy(uint8_t* bytes, size_t size) {
     assert(false);
     exit(-1);}
@@ -228,6 +247,15 @@ struct default_entry_encoder {
       for (size_t i=0; i<size; i++) {
         f(ets[i]);
       }
+    }
+
+    template <class F>
+    static inline bool decode_cond(uint8_t* bytes, size_t size, const F& f) {
+      ET* ets = (ET*)bytes;
+      for (size_t i=0; i<size; i++) {
+        if (!f(ets[i])) return false;
+      }
+      return true;
     }
 
     static inline void destroy(uint8_t* bytes, size_t size) {

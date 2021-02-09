@@ -283,7 +283,7 @@ class sparse_table {
 
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
-    auto table_seq = parlay::make_slice<T>(table, table + m);
+    auto table_seq = parlay::make_slice(table, table + m);
     return parlay::filter(table_seq, pred);
   }
 
