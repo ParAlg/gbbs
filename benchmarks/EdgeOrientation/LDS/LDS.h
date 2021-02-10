@@ -1,8 +1,3 @@
-// This code is part of the project "Theoretically Efficient Parallel Graph
-// Algorithms Can Be Fast and Scalable", presented at Symposium on Parallelism
-// in Algorithms and Architectures, 2018.
-// Copyright (c) 2018 Laxman Dhulipala, Guy Blelloch, and Julian Shun
-//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -182,7 +177,7 @@ struct LDS {
       auto prev_level_size = down[level - 1].size();
       return (up_size + prev_level_size) >=
              static_cast<size_t>(
-                 group_degree(lower_group, epsilon));  // needs a floor or ceil?
+                 group_degree(lower_group, epsilon));
     }
   };
 
@@ -210,7 +205,6 @@ struct LDS {
     auto& prev_level = L[u].down[level - 1];
 
     prev_level.iterate([&](const uintE& ngh) {
-    //for (const auto& ngh : prev_level) {
       up.insert(ngh);
     });
     L[u].down.pop_back();  // delete the last level in u's structure.
@@ -244,18 +238,16 @@ struct LDS {
     std::vector<uintE> same_level;
     auto& up = L[u].up;
 
-    up.special_iterate([&](std::vector<uintE>::iterator& vec_it, std::unordered_set<uintE>::iterator& set_it) {
-    //for (auto it = up.begin(); it != up.end();) {
+    up.special_iterate([&](std::vector<uintE>::iterator& vec_it,
+      std::unordered_set<uintE>::iterator& set_it) {
       bool use_vec = (vec_it != up.vector.end());
       uintE ngh = use_vec ? *vec_it : *set_it; //*it;
       if (L[ngh].level == level) {
         same_level.emplace_back(ngh);
-        //it = up.erase(it);
         if (use_vec) vec_it = up.vector.erase(vec_it);
         else set_it = up.set.erase(set_it);
         // u is still "up" for this ngh, no need to update.
       } else {
-        //it++;
         if (use_vec) vec_it++;
         else set_it++;
         // Must update ngh's accounting of u.
@@ -275,7 +267,7 @@ struct LDS {
     // update) and stuff in levels >= level + 1. Insert same_level elms
     // into down.
     auto& down = L[u].down;
-    down.emplace_back(Level());//std::unordered_set<uintE>());
+    down.emplace_back(Level());
     assert(down.size() == level + 1);  // [0, level)
     for (const auto& ngh : same_level) {
       down[level].insert(ngh);
@@ -291,28 +283,14 @@ struct LDS {
         // Move u to level i+1.
         level_increase(u, L);
         Dirty.push(u);  // u might need to move up more levels.
-        // std::cout << "(move up) pushing u = " << u << std::endl;
       } else if (!L[u].lower_invariant(levels_per_group, epsilon)) {
         level_decrease(u, L);
         Dirty.push(u);  // u might need to move down more levels.
-        // std::cout << "(move down) pushing u = " << u << std::endl;
       }
     }
   }
 
-  /*bool edge_exists(edge_type e) {
-    auto[u, v] = e;
-    auto l_u = L[u].level;
-    auto l_v = L[v].level;
-    if (l_u < l_v) {  // look in up(u)
-      return (L[u].up.find(v) != L[u].up.end());
-    } else {  // look in up(v)
-      return (L[v].up.find(u) != L[v].up.end());
-    }
-  }*/
-
   bool insert_edge(edge_type e) {
-    //if (edge_exists(e)) return false;
     auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
@@ -326,7 +304,6 @@ struct LDS {
   }
 
   bool delete_edge(edge_type e) {
-    //if (!edge_exists(e)) return false;
     auto[u, v] = e;
     auto l_u = L[u].level;
     auto l_v = L[v].level;
@@ -349,7 +326,6 @@ struct LDS {
       invs_ok &= upper_ok;
       invs_ok &= lower_ok;
     }
-    //std::cout << "invs ok is: " << invs_ok << std::endl;
   }
 
   uintE max_coreness() {
@@ -414,7 +390,8 @@ inline void RunLDS(Graph& G, LDS& layers) {
 }
 
 template <class W>
-inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact, LDS& layers, size_t offset) {
+inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size,
+  bool compare_exact, LDS& layers, size_t offset) {
   auto batch = batch_edge_list.edges;
   if (offset != 0) {
     for (size_t i = 0; i < offset; i++) {
@@ -429,44 +406,51 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
       if (batch[j].insert) layers.insert_edge({batch[j].from, batch[j].to});
       else layers.delete_edge({batch[j].from, batch[j].to});
     }
-    //layers.check_invariants();
+
     double tt = t.stop();
     std::cout << "### Batch Running Time: " << tt << std::endl;
-    std::cout << "### Batch Num: " << std::min(batch.size(), i + batch_size) - offset << std::endl;
+    std::cout << "### Batch Num: " <<
+      std::min(batch.size(), i + batch_size) - offset << std::endl;
     std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
     if (compare_exact) {
-      auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(), i + batch_size));
+      auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list,
+        std::min(batch.size(), i + batch_size));
 
-      // Run kcore on graph
+      // Run k-core on the graph
       auto cores = KCore(graph, 16);
 
       auto max_core = parlay::reduce(cores, parlay::maxm<uintE>());
       std::cout << "### Coreness Exact: " << max_core << std::endl;
 
       // Compare cores[v] to layers.core(v)
-      auto approximation_error = parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float {
+      auto approximation_error = parlay::delayed_seq<float>(
+        batch_edge_list.max_vertex, [&](size_t j) -> float {
         auto exact_core = j >= graph.n ? 0 : cores[j];
         auto approx_core = layers.core(j);
         if (exact_core == 0 || approx_core == 0) {
-          //if (approx_core != exact_core) return 1;
           return 0;
         }
-        return (exact_core > approx_core) ? (float) exact_core / (float) approx_core : (float) approx_core / (float) exact_core;
-        //return (float) abs(static_cast<int>(exact_core - approx_core)) / (float) exact_core;
+        return (exact_core > approx_core) ?
+          (float) exact_core / (float) approx_core :
+          (float) approx_core / (float) exact_core;
       });
 
       double mult_appx = (2 + 2*layers.epsilon);
-      float bad = parlay::reduce(parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float{
-        auto true_core = j >= graph.n ? 0 : cores[j];
-        auto appx_core = layers.core(j);
-        return (appx_core > (mult_appx*true_core)) + (appx_core < (true_core / mult_appx));
+      float bad = parlay::reduce(
+        parlay::delayed_seq<float>(
+          batch_edge_list.max_vertex, [&](size_t j) -> float{
+            auto true_core = j >= graph.n ? 0 : cores[j];
+            auto appx_core = layers.core(j);
+            return (appx_core > (mult_appx*true_core)) +
+              (appx_core < (true_core / mult_appx));
       }), parlay::addm<float>());
 
 
       // Output min, max, and average error
       float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
       float max_error = parlay::reduce(approximation_error, parlay::maxm<float>());
-      float min_error = parlay::reduce(approximation_error, parlay::make_monoid([](float l, float r){
+      float min_error = parlay::reduce(
+        approximation_error, parlay::make_monoid([](float l, float r){
         if (l == 0) return r;
         if (r == 0) return l;
         return std::min(r, l);
@@ -475,7 +459,7 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
         auto exact_core = j >= graph.n ? 0 : cores[j];
         auto approx_core = layers.core(j);
         return (exact_core != 0) && (approx_core != 0);
-      }), parlay::addm<float>()); //(float) batch_edge_list.max_vertex
+      }), parlay::addm<float>());
       auto avg_error = (denominator == 0) ? 0 : sum_error / denominator;
       std::cout << "### Num Bad: " << bad << std::endl;
       std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl; fflush(stdout);
@@ -486,12 +470,14 @@ inline void RunLDS(BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool 
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size, bool compare_exact, double eps, double delta, bool optimized_insertion,
-  size_t offset) {
+inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list,
+  long batch_size, bool compare_exact, double eps, double delta,
+  bool optimized_insertion, size_t offset) {
   uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
   auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
   if (G.n > 0) RunLDS(G, layers);
-  if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, offset);
+  if (batch_edge_list.max_vertex > 0)
+    RunLDS(batch_edge_list, batch_size, compare_exact, layers, offset);
 }
 
 }  // namespace gbbs
