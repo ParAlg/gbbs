@@ -42,13 +42,13 @@ Most optionality from the [Graph Based Benchmark Suite (GBBS)](https://github.co
 [ParlayLib](https://github.com/cmuparlay/parlaylib) apply. In particular, to compile benchmarks for graphs with
 more than 2^32 edges, the `LONG` command-line parameter should be set.
 
-# Using Standard Library Allocator
+### Using Standard Library Allocator
 
 The default compilation uses a scalable memory allocator developed at CMU
 (Parlay). However, it is also possible to use the C++ standard library,
 by adding the compile definition `-DPARLAY_USE_STD_ALLOC`.
 
-# Using Cilk, OpenMP, or TBB
+### Using Cilk, OpenMP, or TBB
 
 The default compilation uses a lightweight scheduler developed at CMU (Parlay)
 for parallelism, which results in comparable performance to Cilk Plus.
@@ -62,7 +62,7 @@ the appropriate compile definition as below.
 -DPARLAY_TBB
 ```
 
-# Graph Format
+### Graph Format
 
 The applications take dynamic graphs as input (in all three benchmarks) or 
 static graphs as input (in the static benchmark).
