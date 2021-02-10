@@ -1,0 +1,9 @@
+Input graph directory:
+Dynamic graphs:
+Output directory: ./
+Benchmarks: ParallelLDS, LDS, KCore
+Numbers of workers: 60
+Epsilons: 0.4
+Lambdas/Deltas: 3
+Batch sizes: 1000000
+Output stats: False
