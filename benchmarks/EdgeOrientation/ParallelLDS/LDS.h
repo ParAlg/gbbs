@@ -131,7 +131,9 @@ struct LDS {
         // optimize later.
         //
         // This is the current level of the node.
-        uintE cur_level = level - 1;
+        uintE cur_level = desire_level;
+        if (desire_level == kNotMoving)
+            cur_level = level - 1;
         if (cur_level == 0) return cur_level;
         uintE num_up_neighbors = num_neighbors_higher_than_level((uintE) cur_level);
         uintE num_up_star_neighbors = num_up_neighbors;
@@ -365,6 +367,104 @@ struct LDS {
     return ok;
   }
 
+  // Input: dirty vertices
+  // Output: Levels structure containing vertices at their desire-level
+  template <class Seq, class Levels>
+  void update_desire_levels(Seq&& possibly_dirty, Levels& levels) {
+    using level_and_vtx = std::pair<uintE, uintE>;
+
+    // Compute dirty vertices that violate lower threshold
+    auto level_and_vtx_seq = parlay::delayed_seq<level_and_vtx>(possibly_dirty.size(), [&] (size_t i){
+        uintE v = possibly_dirty[i];
+        uintE desire_level = UINT_E_MAX;
+        assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
+        if (!L[v].lower_invariant(levels_per_group, eps)) {
+            auto our_desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group, UpperConstant,
+                    eps);
+            // Only add it if it's not in the level structure
+            if (our_desire_level >= levels.size() || !levels[our_desire_level].contains(v)) {
+                desire_level = our_desire_level;
+            }
+        }
+        return std::make_pair(desire_level, v);
+    });
+
+    auto dirty = parlay::filter(level_and_vtx_seq, [&] (const level_and_vtx& lv) {
+      return lv.first != UINT_E_MAX;
+    });
+
+    if (dirty.size() == 0) return;
+
+    // Compute the removals from previous desire_levels
+    auto previous_desire_levels = parlay::delayed_seq<level_and_vtx>(dirty.size(), [&] (size_t i){
+        auto lv = dirty[i];
+        uintE v = lv.second;
+        uintE removal_level = UINT_E_MAX;
+        uintE prev_desire_level = L[v].desire_level;
+        if (prev_desire_level != lv.first && !(prev_desire_level >= levels.size())
+                && levels[prev_desire_level].contains(v)) {
+           removal_level = prev_desire_level;
+           // Remove from the previous level
+           levels[prev_desire_level].remove(v);
+        }
+        return std::make_pair(removal_level, v);
+    });
+
+    auto non_empty_levels = parlay::filter(previous_desire_levels, [&] (const level_and_vtx& old_level) {
+        return old_level.first != UINT_E_MAX;
+    });
+
+    // Sort by level.
+    auto get_key = [&] (const level_and_vtx& elm) { return elm.first; };
+    parlay::integer_sort_inplace(parlay::make_slice(dirty), get_key);
+
+    // Get unique levels.
+    auto bool_seq = parlay::delayed_seq<bool>(dirty.size() + 1, [&] (size_t i) {
+     if (i < dirty.size())
+        assert(dirty[i].first != UINT_E_MAX);
+      return (i == 0) || (i == dirty.size()) || (dirty[i].first != dirty[i-1].first);
+    });
+    auto level_starts = parlay::pack_index(bool_seq);
+    assert(level_starts[level_starts.size() - 1] == dirty.size());
+    assert(level_starts.size() >= 2);
+
+    parlay::integer_sort_inplace(parlay::make_slice(non_empty_levels), get_key);
+    auto bool_seq_2 = parlay::delayed_seq<bool>(non_empty_levels.size() + 1, [&] (size_t i) {
+      return (i == 0) || (i == non_empty_levels.size()) ||
+           (non_empty_levels[i].first != non_empty_levels[i-1].first);
+    });
+    auto prev_level_starts = parlay::pack_index(bool_seq_2);
+
+    uintE max_current_level = dirty[level_starts[level_starts.size() - 2]].first + 1;
+    if (levels.size() < max_current_level) {
+      levels.resize(max_current_level);
+    }
+
+    // Resize the previous levels
+    parallel_for(0, prev_level_starts.size() - 1, [&] (size_t i){
+        uintE idx = prev_level_starts[i];
+        uintE level = non_empty_levels[idx].first;
+        //assert (level < levels.size());
+        uintE num_in_level = level_starts[i+1] - idx;
+
+        if (level < levels.size())
+            levels[level].resize_down(num_in_level);
+    });
+
+    parallel_for(0, level_starts.size() - 1, [&] (size_t i) {
+      uintE idx = level_starts[i];
+      uintE level = dirty[idx].first;
+      uintE num_in_level = level_starts[i+1] - idx;
+
+      auto stuff_in_level = parlay::delayed_seq<uintE>(num_in_level, [&] (size_t j) {
+        L[dirty[idx+j].second].desire_level = dirty[idx + j].first;
+        assert(L[dirty[idx+j].second].desire_level != UINT_E_MAX);
+        return dirty[idx + j].second;
+      });
+
+      levels[level].append(stuff_in_level);
+    });
+  }
 
   // Input: sequence of vertex_ids
   template <class Seq, class Levels>
@@ -742,74 +842,15 @@ struct LDS {
     while (cur_level_id < levels.size()) {
       // Get vertices that have desire level equal to the current desire level
 
-      auto nodes_to_move = gbbs::sparse_set<uintE>();
 
       // For deletion, we need to figure out all vertices that want to move to
-      // the current level.
-      //
-      // TODO: this is probably inefficient. We probably need to optimize this
-      // further. Right now it just figures out the desire level brute-force for
-      // every dirty vertex.
+      // the current level. This is maintained in the levels data structure.
 
-      auto level_resizes = parlay::sequence<uintE>(levels.size(), (uintE) 0);
-      auto level_size = parlay::sequence<size_t>(levels.size());
-
-      parallel_for(0, levels.size(), [&] (size_t i) {
-        auto elements_this_level = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
-        parallel_for(0, levels[i].size(), [&] (size_t j) {
-        //for (size_t j = 0; j < levels[i].size(); j++) {
-            uintE v = levels[i].table[j];
-
-            uintE desire_level = UINT_E_MAX;
-
-            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps,
-                        optimized_insertion)) {
-                assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps,
-                            optimized_insertion));
-                assert(!L[v].lower_invariant(levels_per_group, eps));
-
-                desire_level = L[v].get_desire_level_downwards(v, L, levels_per_group, UpperConstant,
-                        eps);
-                L[v].desire_level = desire_level;
-
-                assert(L[v].level = i);
-                assert(desire_level < i);
-
-                if (desire_level == cur_level_id) {
-                  elements_this_level[j] = 1;
-                }
-            }
-        //}
-        });
-        level_size[i] = parlay::reduce(parlay::make_slice(elements_this_level), parlay::addm<size_t>{});
-      });
-
-
-      size_t num_to_move = parlay::reduce(parlay::make_slice(level_size), parlay::addm<size_t>{});
-
-      nodes_to_move.resize(num_to_move);
-
-      auto outer_level_sizes = parlay::sequence<size_t>(levels.size(), (size_t) 0);
-      parallel_for(0, levels.size(), [&] (size_t i) {
-        auto inner_level_sizes = parlay::sequence<size_t>(levels[i].size(), (size_t) 0);
-        parallel_for(0, levels[i].size(), [&] (size_t j) {
-            uintE v = levels[i].table[j];
-
-            if (levelset::valid(v) && L[v].is_dirty(levels_per_group, UpperConstant, eps,
-                        optimized_insertion)) {
-                if (L[v].desire_level == cur_level_id) {
-                    nodes_to_move.insert(v);
-                    levels[i].remove(v);
-                    inner_level_sizes[j] += 1;
-                }
-            }
-        });
-        outer_level_sizes[i] = parlay::scan_inplace(parlay::make_slice(inner_level_sizes));
-      });
-
-      parallel_for (0, outer_level_sizes.size(), [&] (size_t i){
-          levels[i].resize_down(outer_level_sizes[i]);
-      });
+      if (levels[cur_level_id].size() == 0) {
+        cur_level_id++;
+        continue;
+      }
+      auto nodes_to_move = levels[cur_level_id];
 
       // Turn nodes_to_move into a sequence
       auto nodes_to_move_seq = nodes_to_move.entries();
@@ -962,13 +1003,13 @@ struct LDS {
             //auto neighbor_id = neighbors[j].second;
             //auto neighbor = L[neighbor_id];
             //auto neighbor_level = neighbor.level;
-            assert(neighbor_level >= cur_level_id);
+            //assert(neighbor_level >= cur_level_id);
             assert(moved_vertex_v == neighbors[j].first);
 
             if (L[neighbors[j].second].level < my_level) {
                 //move_up_size[j] = 1;
                 indegree_sum++;
-                assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
+                //assert(L[moved_vertex_v].down[neighbor_level].contains(neighbor_id));
             }
             //else {
             //    move_up_size[j] = 0;
@@ -993,14 +1034,17 @@ struct LDS {
       parallel_for(0, nodes_to_move_seq.size(), [&] (size_t i){
         uintE v = nodes_to_move_seq[i];
         L[v].level = cur_level_id;
-        L[v].desire_level = UINT_E_MAX;
+        L[v].desire_level = kNotMoving;
         L[v].down.resize(cur_level_id);
         assert(L[v].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion));
         assert(L[v].lower_invariant(levels_per_group, eps));
       });
 
+      size_t size_down = levels[cur_level_id].num_elms();
+      levels[cur_level_id].clear();
+      levels[cur_level_id].resize_down(size_down);
       // update the levels with neighbors
-      update_levels(std::move(affected), levels);
+      update_desire_levels(std::move(affected), levels);
 
       total_moved += nodes_to_move_seq.size();
       cur_level_id++;
@@ -1181,7 +1225,7 @@ struct LDS {
     // level and then re-update the dirty vertices and repeat.
     // First, start by finding all the dirty vertices via the below method that
     // are adjacent to an edge deletion.
-    update_levels(std::move(affected), levels);
+    update_desire_levels(std::move(affected), levels);
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
