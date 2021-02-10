@@ -16,6 +16,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Usage (dynamic):
+// numactl -i all ./LDS -rounds 3 -s -eps 0.4 -delta 3 -i <dynamic graph> -b 1000 <static graph>
+// flags:
+//   required:
+//     -s : indicates that the graph is symmetric
+//   optional:
+//     -m : indicate that the graph should be mmap'd
+//     -c : indicate that the graph is compressed
+//     -rounds : the number of times to run the algorithm
+//     -i : file path to the dynamic graph, with a single dynamic edge on each
+//          line, in the format "<+/-> u v", where + denotes insertion, -
+//          denotes deletion, and (u, v) are the vertex ids denoting the edge
+//          (e.g., "+ 0 1")
+//     -b : batch size (output includes time per batch, from start_size to
+//          end_size)
+//     -eps: epsilon
+//     -delta: lambda
+//     -stats : indicates whether to output comparisons to exact coreness
+//              values
+//     -ins-opt : indicates whether to set lambda such that
+//                (2 + 3 / lambda) = 1.1
+// Note: The static graph is ignored if -i is specified.
+
 #include "LDS.h"
 
 namespace gbbs {

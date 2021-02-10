@@ -33,9 +33,6 @@
 //          end_size)
 //     -eps: epsilon
 //     -delta: lambda
-//     -use_pow: indicates whether to give less granular approximations
-//               by using 2^{peeled_bkt} as the coreness estimate
-//     -nb : the number of buckets to use in the bucketing implementation
 //     -stats : indicates whether to output comparisons to exact coreness
 //              values
 //     -ins-opt : indicates whether to set lambda such that
