@@ -17,6 +17,9 @@ implementation of the same algorithm.
 ![equation](https://latex.codecogs.com/gif.latex?%282&plus;%5Cdelta%29)-approximate
 k-core decomposition algorithm.
 
+`scripts/test_approx_kcore.py` is a script to run tests for ParallelLDS, 
+LDS, and KCore.
+
 Compilation
 --------
 
@@ -41,6 +44,28 @@ $ make clean  # removes executables for the current directory
 Most optionality from the [Graph Based Benchmark Suite (GBBS)](https://github.com/ParAlg/gbbs) and
 [ParlayLib](https://github.com/cmuparlay/parlaylib) apply. In particular, to compile benchmarks for graphs with
 more than 2^32 edges, the `LONG` command-line parameter should be set.
+
+### Using Testing Script
+
+To run the script `scripts/test_approx_kcore.py`, Python 3.5 or higher is
+required. Also, `scripts/approx_kcore_setup.txt` should be configured
+as follows.
+
+The entries `Input graph directory` and `Output directory` contain
+the directory where the dynamic graph files are stored and the desired output 
+directory respectively. `Dynamic graphs` contains a comma-separated
+list of the dynamic graph filenames.
+
+The `Benchmarks` entry is a comma-separated list of the desired programs 
+to run: ParallelLDS, LDS, or KCore.
+
+The `Numbers of workers`, `Epsilons`, `Lambdas/Deltas`, and `Batch sizes`
+entries are comma-separated lists of the desired input parameters
+on which to run the programs. The `Output stats` entry is either True or
+False, depending on if comparisons to exact k-core values is desired.
+
+Note that the script runs KCore given a dynamic graph, although KCore
+can be independently run using a static graph as well.
 
 ### Using Standard Library Allocator
 
