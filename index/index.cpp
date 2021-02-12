@@ -128,22 +128,18 @@ int main(int argc, char** argv) {
   std::cout << "Per-bucket details: " << std::endl;
   parlay::internal::get_default_allocator().print_stats();
 
-//#ifndef USE_PAM
-//  size_t good = 0;
-//  size_t bad = 0;
-//  size_t bad_size = 0;
-//  auto fn = [&] (const auto& et) {
-//    if (et.second.root_is_compressed()) {
-//      good++;
-//    } else {
-//      bad++;
-//      bad_size += et.second.size();
-//    }
-//  };
-//  test_idx.idx.iterate_seq(fn);
-//
-//  std::cout << "Good = " << good << " Bad = " << bad << " Bad size = " << bad_size << std::endl;
-//#endif
+#ifndef USE_PAM
+  size_t bad = 0;
+  auto fn = [&] (const auto& et) {
+    if (std::get<1>(et).size() < cpam::utils::compression_block_size) {
+      assert(std::get<1>(et).root_is_compressed());
+      if (!std::get<1>(et).root_is_compressed())
+        bad++;
+    }
+  };
+  test_idx.idx.iterate_seq(fn);
+  std::cout << "Num bad = " << bad << std::endl;
+#endif
 
   using idx = typename inv_index::index;
 
@@ -184,24 +180,26 @@ int main(int argc, char** argv) {
   }
 
   // run the queries
-  t.start();
-  parlay::parallel_for(0, num_queries, [&] (size_t i) {
-  //for (size_t i=0; i<num_queries; i++) {
-    post_list l1 = test_idx.get_list(test_word_pairs[i].first);
-    post_list l2 = test_idx.get_list(test_word_pairs[i].second);
-    size_in[i] = l1.size() + l2.size();
-    post_list l3 = test_idx.And(l1,l2);
-    //vector<post_elt> r = test_idx.top_k(l3,10);
-    size_out[i] = l3.size(); // r.size();
-  });
-  double t_query = t.stop();
-  cout << "index query"
-       << ", threads = " << threads
-       << ", rounds = 1"
-       << ", n = " << n
-       << ", q = " << num_queries
-       << ", time = " << t_query
-       << endl;
+  for (int i=0; i < rounds; i++) {
+    t.start();
+    parlay::parallel_for(0, num_queries, [&] (size_t i) {
+    //for (size_t i=0; i<num_queries; i++) {
+      post_list l1 = test_idx.get_list(test_word_pairs[i].first);
+      post_list l2 = test_idx.get_list(test_word_pairs[i].second);
+      size_in[i] = l1.size() + l2.size();
+      post_list l3 = test_idx.And(l1,l2);
+      //vector<post_elt> r = test_idx.top_k(l3,10);
+      size_out[i] = l3.size(); // r.size();
+    });
+    double t_query = t.stop();
+    cout << "index query"
+         << ", threads = " << threads
+         << ", rounds = 1"
+         << ", n = " << n
+         << ", q = " << num_queries
+         << ", time = " << t_query
+         << endl;
+  }
   size_t total_in = 0;
   size_t total_out = 0;
 

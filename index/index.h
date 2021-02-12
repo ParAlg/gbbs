@@ -32,7 +32,13 @@ struct inv_index {
     using entry_t = std::pair<key_t,val_t>;
   };
 
-  using post_list = aug_map<doc_entry>;
+  //using post_list = aug_map<doc_entry>;
+  //using post_list = aug_map<doc_entry>;
+#ifdef USE_DIFF_ENCODING
+  using post_list = diff_encoded_map<doc_entry>;
+#else
+  using post_list = pam_map<doc_entry>;
+#endif
   using post_list_node = typename post_list::node;
   //using post_list = pam_map<doc_entry>;
 
