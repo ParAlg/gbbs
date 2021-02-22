@@ -43,10 +43,10 @@ double EdgeOrientation_runner(Graph& G, commandLine P) {
   int k = P.getOptionIntValue("-k", 30);
 
   // Options not exposed to general users
-  const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
+  // const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
 
   // Options for the approximation algorithm
-  double eps = P.getOptionDoubleValue("-eps", 3);
+  // double eps = P.getOptionDoubleValue("-eps", 3);
 
   // Load the dynamic graph
   using W = typename Graph::weight_type;

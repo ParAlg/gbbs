@@ -80,7 +80,7 @@ inline void RunEdgeOrientation(Graph& G, EdgeQueues& q) {
 
 template <class W>
 inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch_size,
-  bool compare_exact, EdgeQueues& q, size_t offset) {
+  bool count_flips, EdgeQueues& q, size_t offset) {
   auto batch = batch_edge_list.edges;
   if (offset != 0) {
     for (size_t i = 0; i < offset; i++) {
@@ -106,12 +106,12 @@ inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch
 
 template <class Graph, class W>
 inline void RunEdgeOrientation(Graph& G, BatchDynamicEdges<W> batch_edge_list,
-  long batch_size, bool count_flips, int k) {
+  long batch_size, bool count_flips, size_t k) {
   uintE max_vertex = std::max( static_cast<uintE>(G.n), batch_edge_list.max_vertex);
   auto q = EdgeQueues(max_vertex, k, count_flips);
   // if (G.n > 0) RunLDS(G, layers);
   if (batch_edge_list.max_vertex > 0)
-    RunLDS(batch_edge_list, batch_size, count_flips, q);
+    RunEdgeOrientation(batch_edge_list, batch_size, count_flips, q, 0);
 }
 
 }  // namespace gbbs
