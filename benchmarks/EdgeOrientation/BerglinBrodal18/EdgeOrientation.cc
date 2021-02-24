@@ -41,7 +41,7 @@ double EdgeOrientation_runner(Graph& G, commandLine P) {
   long batch_size = P.getOptionLongValue("-b", 1);
   bool count_flips = P.getOption("-stats");
   int k = P.getOptionIntValue("-k", 30);
-
+  size_t max_degree = parlay::reduce(parlay::delayed_seq(G.n, [&](uintE i){return G.get_vertex(i).out_degree();}));
   // Options not exposed to general users
   // const char* const init_graph_file(P.getOptionValue("-init_graph_file"));
 
@@ -67,7 +67,7 @@ double EdgeOrientation_runner(Graph& G, commandLine P) {
 
   // Run EdgeOrientation
   timer t; t.start();
-  RunEdgeOrientation(G, batch_edge_list, batch_size, count_flips, k);
+  RunEdgeOrientation(G, batch_edge_list, batch_size, count_flips, k, max_degree);
   double tt = t.stop();
   std::cout << "### Running Time: " << tt << std::endl;
 
