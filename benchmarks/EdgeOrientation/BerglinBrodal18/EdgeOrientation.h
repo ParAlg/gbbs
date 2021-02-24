@@ -136,16 +136,17 @@ inline void RunEdgeOrientation(Graph& G, EdgeQueues& q) {
 
   std::cout << "Finished all insertions!" << std::endl;
 
-  for (size_t i = 0; i < n; i++) {
-    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-      if (u < v) {
-        q.delete_edge({u, v});
-      }
-    };
-    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
-  }
+  //TODO: add erase
+  // for (size_t i = 0; i < n; i++) {
+  //   auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
+  //     if (u < v) {
+  //       q.delete_edge({u, v});
+  //     }
+  //   };
+  //   G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
+  // }
 
-  std::cout << "Finished all deletions!" << std::endl;
+  // std::cout << "Finished all deletions!" << std::endl;
   std::cout << "### Num Flips: " << q.num_flips << std::endl;
 }
 
@@ -156,7 +157,7 @@ inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch
   if (offset != 0) {
     for (size_t i = 0; i < offset; i++) {
       if (batch[i].insert) q.insert_edge({batch[i].from, batch[i].to});
-      else q.delete_edge({batch[i].from, batch[i].to});
+      // else q.delete_edge({batch[i].fro .m, batch[i].to}); //TODO: add erase
     }
   }
   int batch_num = 0;
@@ -165,7 +166,7 @@ inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch
     timer t; t.start();
     for (size_t j = i; j < std::min(batch.size(), i + batch_size); j++) {
       if (batch[j].insert) q.insert_edge({batch[j].from, batch[j].to});
-      // else q.delete_edge({batch[j].from, batch[j].to}); //TODO: add erase
+      // else q.delete_edge({batch[j].from, batch[j].to});  //TODO: add erase
     }
 
     double tt = t.stop();
