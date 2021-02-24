@@ -26,7 +26,7 @@
 namespace gbbs {
 template <class Graph>
 double EdgeOrientation_runner(Graph& G, commandLine P) {
-  std::cout << "### Application: EdgeOrientatioin BB18" << std::endl;
+  std::cout << "### Application: EdgeOrientatioin BF99" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
   std::cout << "### Threads: " << num_workers() << std::endl;
   std::cout << "### n: " << G.n << std::endl;

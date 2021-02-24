@@ -16,33 +16,23 @@ namespace gbbs {
 struct EdgeQueues {
   size_t n;  // number of vertices;
   size_t m = 0;
-  size_t k;
+  size_t Delta;
   size_t num_flips = 0;
 
   using Q = std::set<uintE>; //can't use queue?
   using edge_type = std::pair<uintE, uintE>;
 
   parlay::sequence<Q> L;
-  parlay::sequence<std::set<uintE>> A;
+  // parlay::sequence<std::set<uintE>> A;
   parlay::sequence<size_t> out_degrees;
-  size_t max_out_degree = 0;
+  // size_t max_out_degree = 0;
 
 
-  EdgeQueues(size_t _n, size_t _k, size_t max_degree) : n(_n), k(_k){
+  EdgeQueues(size_t _n, size_t _Delta, size_t max_degree) : n(_n), Delta(_Delta){
     L = parlay::sequence<Q>(n);
-    A = parlay::sequence<std::set<uintE>>(max_degree);
+    // A = parlay::sequence<std::set<uintE>>(max_degree);
     out_degrees = parlay::sequence<size_t>(n, (size_t) 0);
   }
-
-  inline void flip_k(){
-    for(size_t i = 0; i < std::min(k, m); ++i){
-      uintE v = pop(A[max_out_degree]);
-      uintE u = remove_neighbor(v);
-      insert_neighbor(u, v);
-    }
-    num_flips += k;
-  }
-
   // qq can't be empty
   inline uintE pop(std::set<uintE> &qq){
     if(qq.empty()){
@@ -72,43 +62,45 @@ struct EdgeQueues {
     qq.push(u);
   }
 
-  inline uintE remove_neighbor(uintE v){
-    uintE u = pop(L[v]);
-    A[out_degrees[v]].erase(v);
-    if(out_degrees[v] <=0){
-      std::cout << "out_degree < 0" << std::endl;
+
+  inline bool remove_neighbor(uintE v, uintE u){
+    if(L[v].find(u)!=L[v].end()){
+      L[v].erase(u);
+      out_degrees[v] -= 1;
+      return true;
     }
-    out_degrees[v] -= 1;
-    A[out_degrees[v]].insert(v);
-    while(A[max_out_degree].empty()){ max_out_degree--;}
-    return u;
+    return false;
   }
 
-  inline uintE remove_neighbor(uintE v, uintE u){
-    L[v].erase(u);
-    A[out_degrees[v]].erase(v);
-    if(out_degrees[v] <=0){
-      std::cout << "out_degree < 0" << std::endl;
-    }
-    out_degrees[v] -= 1;
-    A[out_degrees[v]].insert(v);
-    while(A[max_out_degree].empty()){ max_out_degree--;}
-    return u;
-  }
-
+  // add u to be v's neighbor
   inline void insert_neighbor(uintE v, uintE u){
     insert(L[v], u);
-    A[out_degrees[v]].erase(v);
+    // A[out_degrees[v]].erase(v);
     out_degrees[v] += 1;
-    A[out_degrees[v]].insert(v);
-    if(out_degrees[v] > max_out_degree) max_out_degree = out_degrees[v];
+    // A[out_degrees[v]].insert(v);
+    // if(out_degrees[v] > max_out_degree) max_out_degree = out_degrees[v];
+    if(out_degrees[v] == Delta+1){
+      Q S = Q();
+      insert(S, v);
+      while(!S.empty()){
+        uintE w = pop(S);
+        num_flips += L[w].size();
+        for (auto it=L[w].begin(); it!=L[w].end(); ++it){
+          uintE x = *it;
+          insert(L[x], w);
+           out_degrees[x] += 1;
+          if(out_degrees[x] == Delta+1) insert(S, x);
+        }
+        L[w].clear();
+        out_degrees[w] = 0;
+      }
+    }
   }
 
   bool insert_edge(edge_type e) {
     auto[v, u] = e;
     m++;
     insert_neighbor(v, u);
-    flip_k();
     return true;
   }
 
@@ -116,7 +108,7 @@ struct EdgeQueues {
     auto[v, u] = e;
     m--;
     remove_neighbor(v, u);
-    flip_k();
+    remove_neighbor(u, v);
     return true;
   }
 
@@ -176,7 +168,7 @@ inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch
 
     if(count_flips){
       std::cout << "### Num Flips: " << q.num_flips << std::endl;
-      std::cout << "### Max Out Degree: " << q.max_out_degree << std::endl;
+      std::cout << "### Max Out Degree: " << *parlay::max_element(q.out_degrees, std::less<size_t>()) << std::endl;
     }
   }
 }
