@@ -30,12 +30,12 @@ struct EdgeQueues {
 
   EdgeQueues(size_t _n, size_t _k, size_t max_degree) : n(_n), k(_k){
     L = parlay::sequence<Q>(n);
-    A = parlay::sequence<std::stack<uintE>>(max_degree);
+    A = parlay::sequence<std::set<uintE>>(max_degree);
     out_degrees = parlay::sequence<size_t>(n, (size_t) 0);
   }
 
   inline void flip_k(){
-    for(size_t i = 0; i < min(k, m); ++i){
+    for(size_t i = 0; i < std::min(k, m); ++i){
       uintE v = pop(A[max_out_degree]);
       uintE u = remove_neighbor(v);
       insert_neighbor(u, v);
@@ -44,7 +44,7 @@ struct EdgeQueues {
   }
 
   // qq can't be empty
-  inline uintE pop(std::set<uintE> qq){
+  inline uintE pop(std::set<uintE> &qq){
     if(qq.empty()){
       std::cout << "popped from empty queue!" << std::endl;
       return -1;
@@ -52,25 +52,30 @@ struct EdgeQueues {
     return *(qq.begin());
   }
 
-  inline uintE pop(std::queue<uintE> qq){
+  inline uintE pop(std::queue<uintE> &qq){
      if(qq.empty()){
       std::cout << "popped from empty queue!" << std::endl;
       return -1;
     }
-    return qq.pop();
+    uintE u = qq.front();
+    qq.pop();
+    return u;
   }
 
-  inline uintE insert(std::set<uintE> qq, uintE u){
+  inline void insert(std::set<uintE> &qq, uintE u){
     qq.insert(u);
   }
 
-  inline uintE insert(std::queue<uintE> qq, uintE u){
+  inline void insert(std::queue<uintE> &qq, uintE u){
     qq.push(u);
   }
 
   inline uintE remove_neighbor(uintE v){
     uintE u = pop(L[v]);
     A[out_degrees[v]].erase(v);
+    if(out_degrees[v] <=0){
+      std::cout << "out_degree < 0" << std::endl;
+    }
     out_degrees[v] -= 1;
     A[out_degrees[v]].insert(v);
     while(A[max_out_degree].empty()){ max_out_degree--;}
@@ -80,6 +85,9 @@ struct EdgeQueues {
   inline uintE remove_neighbor(uintE v, uintE u){
     L[v].erase(u);
     A[out_degrees[v]].erase(v);
+    if(out_degrees[v] <=0){
+      std::cout << "out_degree < 0" << std::endl;
+    }
     out_degrees[v] -= 1;
     A[out_degrees[v]].insert(v);
     while(A[max_out_degree].empty()){ max_out_degree--;}
@@ -151,12 +159,13 @@ inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch
       else q.delete_edge({batch[i].from, batch[i].to});
     }
   }
-  
+  int batch_num = 0;
   for (size_t i = offset; i < batch.size(); i += batch_size) {
+    std::cout << "### Batch Num: " << batch_num++ << std::endl;
     timer t; t.start();
     for (size_t j = i; j < std::min(batch.size(), i + batch_size); j++) {
       if (batch[j].insert) q.insert_edge({batch[j].from, batch[j].to});
-      else q.delete_edge({batch[j].from, batch[j].to});
+      // else q.delete_edge({batch[j].from, batch[j].to}); //TODO: add erase
     }
 
     double tt = t.stop();
