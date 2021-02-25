@@ -1264,6 +1264,13 @@ struct LDS {
     return ceil(L[v].group_degree(group, eps));
   }
 
+  uintE max_degree() const {
+    auto outdegrees = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
+        return L[i].up.size();
+    });
+    uintE max_degree = pbbslib::reduce_max(outdegrees);
+    return max_degree;
+  }
 
   uintE max_coreness() const {
     auto levels = parlay::delayed_seq<uintE>(n, [&] (size_t i) {
@@ -1345,6 +1352,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
     auto batch = batch_edge_list.edges;
     size_t num_insertion_flips = 0;
     size_t num_deletion_flips = 0;
+    size_t max_degree = 0;
     // First, insert / delete everything up to offset
     if (offset != 0) {
       for (size_t i = 0; i < offset; i += batch_size) {
@@ -1408,6 +1416,8 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         t.start();
         num_deletion_flips += layers.batch_deletion(batch_deletions);
 
+        max_degree = layers.max_degree();
+
         double deletion_time = t.stop();
         double tt = insertion_time + deletion_time;
         std::cout << "### Batch Running Time: " << tt << std::endl;
@@ -1417,6 +1427,7 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
         std::cout << "### Number Insertion Flips: " << num_insertion_flips << std::endl;
         std::cout << "### Number Deletion Flips: " << num_deletion_flips << std::endl;
+        std::cout << "### Max Outdegree: " << max_degree << std::endl;
         if (compare_exact) {
             auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(),
                         i + batch_size));
