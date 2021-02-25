@@ -600,7 +600,8 @@ struct LDS {
 
   // returns the total number of moved vertices
   template <class Levels>
-  size_t rebalance_insertions(Levels&& levels, size_t actual_cur_level_id, size_t total_moved = 0) {
+  size_t rebalance_insertions(Levels&& levels, size_t actual_cur_level_id) {
+    size_t total_moved = 0;
     size_t cur_level_id = actual_cur_level_id;
     if (cur_level_id >= levels.size())
       return total_moved;
@@ -728,6 +729,7 @@ struct LDS {
     // Map over the vertices being modified. Overwrite their incident edges with
     // (level_id, neighbor_id) pairs, sort by level_id, resize each level to the
     // correct size, and then insert in parallel.
+    auto num_flips = parlay::sequence<size_t>(starts.size(), (size_t) 0);
     parallel_for(0, starts.size() - 1, [&] (size_t i) {
       size_t idx = starts[i];
       uintE u = std::get<0>(flipped[idx]);
@@ -778,6 +780,7 @@ struct LDS {
           // Insert the neighbors to their new locations.
           insert_neighbors(u, lower_neighbors);
         }
+        num_flips[i] = upstart;
       } else if (l_u > cur_level_id) {
 
         // Map the incident edges to (level, neighbor_id).
@@ -804,6 +807,7 @@ struct LDS {
 
         // Insert the neighbors to their new locations.
         insert_neighbors(u, neighbors);
+        num_flips[i] = neighbors.size();
       } else {
         assert(l_u == cur_level_id && L[u].desire_level == UINT_E_MAX);
         // Don't have to do anything for these vertices. They are staying put at
@@ -812,6 +816,7 @@ struct LDS {
       }
     });
 
+    total_moved += parlay::scan_inplace(parlay::make_slice(num_flips));
     // Update current level for the dirty vertices, and reset
     // the desire_level.
     parallel_for(0, dirty_seq.size(), [&] (size_t i) {
@@ -1054,7 +1059,7 @@ struct LDS {
   }
 
   template <class Seq>
-  void batch_insertion(const Seq& insertions_unfiltered) {
+  size_t batch_insertion(const Seq& insertions_unfiltered) {
     // Remove edges that already exist from the input.
     auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
         [&] (const edge_type& e) { return !edge_exists(e); });
@@ -1134,10 +1139,12 @@ struct LDS {
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(std::move(levels), 0);
+
+    return total_moved;
   }
 
   template <class Seq>
-  void batch_deletion(const Seq& deletions_unfiltered) {
+  size_t batch_deletion(const Seq& deletions_unfiltered) {
     // Remove edges that do not exist in the graph.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
@@ -1229,6 +1236,8 @@ struct LDS {
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
+
+    return total_moved;
   }
 
   void check_invariants() {
@@ -1334,6 +1343,8 @@ template <class W>
 inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
         LDS& layers, bool optimized_insertion, size_t offset) {
     auto batch = batch_edge_list.edges;
+    size_t num_insertion_flips = 0;
+    size_t num_deletion_flips = 0;
     // First, insert / delete everything up to offset
     if (offset != 0) {
       for (size_t i = 0; i < offset; i += batch_size) {
@@ -1358,8 +1369,8 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             uintE vert2 = deletions[i].to;
             return std::make_pair(vert1, vert2);
         });
-        layers.batch_insertion(batch_insertions);
-        layers.batch_deletion(batch_deletions);
+        num_insertion_flips += layers.batch_insertion(batch_insertions);
+        num_deletion_flips += layers.batch_deletion(batch_deletions);
       }
     }
 
@@ -1391,11 +1402,11 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             return std::make_pair(vert1, vert2);
         });
 
-        layers.batch_insertion(batch_insertions);
+        num_insertion_flips += layers.batch_insertion(batch_insertions);
         double insertion_time = t.stop();
 
         t.start();
-        layers.batch_deletion(batch_deletions);
+        num_deletion_flips += layers.batch_deletion(batch_deletions);
 
         double deletion_time = t.stop();
         double tt = insertion_time + deletion_time;
@@ -1404,6 +1415,8 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         std::cout << "### Deletion Running Time: " << deletion_time << std::endl;
         std::cout << "### Batch Num: " << end_size - offset << std::endl;
         std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
+        std::cout << "### Number Insertion Flips: " << num_insertion_flips << std::endl;
+        std::cout << "### Number Deletion Flips: " << num_deletion_flips << std::endl;
         if (compare_exact) {
             auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(),
                         i + batch_size));
