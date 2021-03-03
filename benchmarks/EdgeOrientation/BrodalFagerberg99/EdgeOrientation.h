@@ -24,14 +24,11 @@ struct EdgeQueues {
   using edge_type = std::pair<uintE, uintE>;
 
   parlay::sequence<Q> L;
-  // parlay::sequence<std::set<uintE>> A;
   parlay::sequence<size_t> out_degrees;
-  // size_t max_out_degree = 0;
 
 
   EdgeQueues(size_t _n, size_t _Delta, size_t max_degree) : n(_n), Delta(_Delta){
     L = parlay::sequence<Q>(n);
-    // A = parlay::sequence<std::set<uintE>>(max_degree);
     out_degrees = parlay::sequence<size_t>(n, (size_t) 0);
   }
   // qq can't be empty
@@ -199,6 +196,7 @@ template <class Graph, class W>
 inline void RunEdgeOrientation(Graph& G, BatchDynamicEdges<W> batch_edge_list,
   long batch_size, bool count_flips, size_t k, size_t max_degree) {
   uintE max_vertex = std::max( static_cast<uintE>(G.n), batch_edge_list.max_vertex);
+  std::cout << "Delta = " << k << std::endl;
   auto q = EdgeQueues(max_vertex, k, max_degree);
   // if (G.n > 0) RunLDS(G, layers);
   if (batch_edge_list.max_vertex > 0)

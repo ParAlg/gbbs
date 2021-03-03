@@ -1,6 +1,7 @@
 #pragma once
 
-#include <queue>
+// #include <queue>
+// #include <deque>
 #include <set>
 // #include <unordered_set>
 // #include <vector>
@@ -9,6 +10,7 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/dynamic_graph_io.h"
+#include "queue.h"
 // #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 
 namespace gbbs {
@@ -19,10 +21,11 @@ struct EdgeQueues {
   size_t k;
   size_t num_flips = 0;
 
-  using Q = std::set<uintE>; //can't use queue?
+  using Q = BBQueue<uintE>; 
   using edge_type = std::pair<uintE, uintE>;
 
   parlay::sequence<Q> L;
+  // parlay::sequence<Q::iterator>
   parlay::sequence<std::set<uintE>> A;
   parlay::sequence<size_t> out_degrees;
   size_t max_out_degree = 0;
@@ -49,18 +52,18 @@ struct EdgeQueues {
       std::cout << "popped from empty queue!" << std::endl;
       return -1;
     }
-    uintE u = *(qq.begin());
+    uintE u = *(qq.rbegin());
     qq.erase(u);
     return u;
   }
 
-  inline uintE pop(std::queue<uintE> &qq){
+  inline uintE pop(BBQueue<uintE> &qq){
      if(qq.empty()){
       std::cout << "popped from empty queue!" << std::endl;
       return -1;
     }
     uintE u = qq.front();
-    qq.pop();
+    qq.pop_front();
     return u;
   }
 
@@ -68,8 +71,8 @@ struct EdgeQueues {
     qq.insert(u);
   }
 
-  inline void insert(std::queue<uintE> &qq, uintE u){
-    qq.push(u);
+  inline void insert(BBQueue<uintE> &qq, uintE u){
+    qq.push_back(u);
   }
 
   inline uintE remove_neighbor(uintE v){
@@ -85,7 +88,8 @@ struct EdgeQueues {
   }
 
   inline uintE remove_neighbor(uintE v, uintE u){
-    L[v].erase(u);
+    bool succ = L[v].erase(u);
+    if(!succ)  std::cout << "remove invalid edge " << u << " " << v <<  std::endl;
     A[out_degrees[v]].erase(v);
     if(out_degrees[v] <=0){
       std::cout << "out_degree < 0" << std::endl;
@@ -177,6 +181,7 @@ inline void RunEdgeOrientation(BatchDynamicEdges<W>& batch_edge_list, long batch
     if(count_flips){
       std::cout << "### Num Flips: " << q.num_flips << std::endl;
       std::cout << "### Max Out Degree: " << q.max_out_degree << std::endl;
+      std::cout << "### Num Max Out Degree Nodes: " << q.A[q.max_out_degree].size() << std::endl;
     }
   }
 }
@@ -185,6 +190,7 @@ template <class Graph, class W>
 inline void RunEdgeOrientation(Graph& G, BatchDynamicEdges<W> batch_edge_list,
   long batch_size, bool count_flips, size_t k, size_t max_degree) {
   uintE max_vertex = std::max( static_cast<uintE>(G.n), batch_edge_list.max_vertex);
+  std::cout << "k = " << k << std::endl;
   auto q = EdgeQueues(max_vertex, k, max_degree);
   // if (G.n > 0) RunLDS(G, layers);
   if (batch_edge_list.max_vertex > 0)
