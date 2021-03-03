@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <set>
+#include <stack>
 // #include <unordered_set>
 // #include <vector>
 #include <stdlib.h>
@@ -54,11 +55,25 @@ struct EdgeQueues {
     return u;
   }
 
+  inline uintE pop(std::stack<uintE> &qq){
+     if(qq.empty()){
+      std::cout << "popped from empty stack!" << std::endl;
+      return -1;
+    }
+    uintE u = qq.top();
+    qq.pop();
+    return u;
+  }
+
   inline void insert(std::set<uintE> &qq, uintE u){
     qq.insert(u);
   }
 
   inline void insert(std::queue<uintE> &qq, uintE u){
+    qq.push(u);
+  }
+
+  inline void insert(std::stack<uintE> &qq, uintE u){
     qq.push(u);
   }
 
@@ -80,10 +95,13 @@ struct EdgeQueues {
     // A[out_degrees[v]].insert(v);
     // if(out_degrees[v] > max_out_degree) max_out_degree = out_degrees[v];
     if(out_degrees[v] == Delta+1){
-      Q S = Q();
+      std::stack<uintE> S = std::stack<uintE>();
       insert(S, v);
-      while(!S.empty()){
+      size_t count = 0;
+      while(!S.empty() && count < n){
         uintE w = pop(S);
+        if(out_degrees[w] <= Delta) continue;
+        count++;
         num_flips += L[w].size();
         for (auto it=L[w].begin(); it!=L[w].end(); ++it){
           uintE x = *it;
@@ -93,6 +111,10 @@ struct EdgeQueues {
         }
         L[w].clear();
         out_degrees[w] = 0;
+      }
+      if(count == n){
+        std::cout << "while loop reached n" << std::endl;
+        exit(1);
       }
     }
   }
