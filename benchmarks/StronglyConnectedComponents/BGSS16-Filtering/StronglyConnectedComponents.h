@@ -435,8 +435,10 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     auto centers_copy = centers;
     size_t centers_size = centers.size();
     auto in_f = vertexSubset(n, centers_size, centers.to_array());
-    auto [in_table, in_elts] =
+    auto [in_table_sb, in_elts_sb] =
         multi_search(PG, labels, bits, in_f, cur_label_offset, in_edges);
+    auto in_table = in_table_sb;
+    auto in_elts = in_elts_sb;
     std::cout << "Finished in search"
               << "\n";
 //    in_table.analyze();
@@ -444,7 +446,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     timer outs; outs.start();
     auto out_f = vertexSubset(n, centers_size, centers_copy.to_array());
-    auto [out_table, out_elts] = multi_search(PG, labels, bits, out_f, cur_label_offset);
+    auto [out_table_sb, out_elts_sb] = multi_search(PG, labels, bits, out_f, cur_label_offset);
+    auto out_table = out_table_sb;
+    auto out_elts = out_elts_sb;
     std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
               << "\n";
     std::cout << "out_table, m = " << out_table.m << " ne = " << out_table.ne
