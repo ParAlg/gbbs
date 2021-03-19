@@ -16,21 +16,21 @@
 <link rel="stylesheet" href="/gbbs/styles.9fcda6c4.css">
 
 
-<link rel="preload" href="/gbbs/styles.b3e934c1.js" as="script">
+<link rel="preload" href="/gbbs/styles.e8270999.js" as="script">
 
-<link rel="preload" href="/gbbs/runtime~main.42037aef.js" as="script">
+<link rel="preload" href="/gbbs/runtime~main.367b03ec.js" as="script">
 
-<link rel="preload" href="/gbbs/main.ed190ed4.js" as="script">
+<link rel="preload" href="/gbbs/main.904cfeee.js" as="script">
 
-<link rel="preload" href="/gbbs/1.cb25274f.js" as="script">
+<link rel="preload" href="/gbbs/1.656c97b8.js" as="script">
 
-<link rel="preload" href="/gbbs/43.16e8e66d.js" as="script">
+<link rel="preload" href="/gbbs/45.24d2cd00.js" as="script">
 
 <link rel="preload" href="/gbbs/736cb962.556af73e.js" as="script">
 
-<link rel="preload" href="/gbbs/17896441.3f7f82cd.js" as="script">
+<link rel="preload" href="/gbbs/17896441.de3f2e89.js" as="script">
 
-<link rel="preload" href="/gbbs/c4de80f8.393988bd.js" as="script">
+<link rel="preload" href="/gbbs/c4de80f8.bc5b1c3b.js" as="script">
 
 </head>
 <body>
@@ -54,24 +54,24 @@ the<code>-c opt</code> mode by default. You can build a debug binary by
 explicitly supplying the <code>-c dbg</code> option to bazel.</p><h4><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="using-make"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#using-make" title="Direct link to heading">#</a>Using Make:</h4><p>First set the appropriate environment variables, e.g., first run
 <code>export CILK=1</code> to compile with Cilk Plus.
 After that, build using <code>make</code>.</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-undefined codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain">$ cd benchmarks/BFS/NonDeterministicBFS  # go to a benchmark</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain">$ make -j  # build the benchmark with all threads</span></div></code></pre></div><h2><a aria-hidden="true" tabindex="-1" class="anchor enhancedAnchor_ZqCz" id="cleaning-the-build"></a><a aria-hidden="true" tabindex="-1" class="hash-link" href="#cleaning-the-build" title="Direct link to heading">#</a>Cleaning the Build</h2><p>The following commands cleans the directory:</p><div class="mdxCodeBlock_iHAB"><pre class="prism-code language-sh codeBlock_19pQ"><button type="button" aria-label="Copy code to clipboard" class="copyButton_1BYj">Copy</button><code class="codeBlockLines_2n9r" style="color:#bfc7d5;background-color:#292d3e"><div class="token-line" style="color:#bfc7d5"><span class="token plain"># For Bazel:</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain">$ bazel clean  # removes all executables</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain" style="display:inline-block">
-</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain"># For Make:</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain">$ make clean  # removes executables for the current directory</span></div></code></pre></div></div></article><div class="margin-vert--lg"><nav class="pagination-nav"><div class="pagination-nav__item"><a class="pagination-nav__link" href="/gbbs/docs/introduction"><h5 class="pagination-nav__link--sublabel">Previous</h5><h4 class="pagination-nav__link--label">« Introduction</h4></a></div><div class="pagination-nav__item pagination-nav__item--next"><a class="pagination-nav__link" href="/gbbs/docs/run"><h5 class="pagination-nav__link--sublabel">Next</h5><h4 class="pagination-nav__link--label">Running Benchmarks »</h4></a></div></nav></div></div></div><div class="col col--3"><div class="tableOfContents_TbNY"><ul class="contents contents__left-border"><li><a href="#requirements" class="contents__link">Requirements</a></li><li><a href="#installation" class="contents__link">Installation</a></li><li><a href="#compiling-the-benchmarks" class="contents__link">Compiling the Benchmarks</a></li><li><a href="#cleaning-the-build" class="contents__link">Cleaning the Build</a></li></ul></div></div></div></div></div></main></div></div><footer class="footer"><div class="container"><div class="row footer__links"><div class="col footer__col"><h4 class="footer__title">Docs</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/tutorial">Tutorial</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/introduction">Documentation</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/library/overview">Library</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/benchmarks/overview">Benchmark Specifications</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Community</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/contributors/">Contributors</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/research">Research Projects using GBBS</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Links</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" to="https://github.com/ParAlg/gbbs" href="https://github.com/ParAlg/gbbs">GitHub</a></li></ul></div></div><div class="text--center"><div>Copyright © 2020 GBBS Authors.</div></div></div></footer>
+</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain"># For Make:</span></div><div class="token-line" style="color:#bfc7d5"><span class="token plain">$ make clean  # removes executables for the current directory</span></div></code></pre></div></div></article><div class="margin-vert--lg"><nav class="pagination-nav"><div class="pagination-nav__item"><a class="pagination-nav__link" href="/gbbs/docs/introduction"><h5 class="pagination-nav__link--sublabel">Previous</h5><h4 class="pagination-nav__link--label">« Introduction</h4></a></div><div class="pagination-nav__item pagination-nav__item--next"><a class="pagination-nav__link" href="/gbbs/docs/run"><h5 class="pagination-nav__link--sublabel">Next</h5><h4 class="pagination-nav__link--label">Running Benchmarks »</h4></a></div></nav></div></div></div><div class="col col--3"><div class="tableOfContents_TbNY"><ul class="contents contents__left-border"><li><a href="#requirements" class="contents__link">Requirements</a></li><li><a href="#installation" class="contents__link">Installation</a></li><li><a href="#compiling-the-benchmarks" class="contents__link">Compiling the Benchmarks</a></li><li><a href="#cleaning-the-build" class="contents__link">Cleaning the Build</a></li></ul></div></div></div></div></div></main></div></div><footer class="footer"><div class="container"><div class="row footer__links"><div class="col footer__col"><h4 class="footer__title">Docs</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/tutorial">Tutorial</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/introduction">Documentation</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/library/overview">Library</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/benchmarks/overview">Benchmark Specifications</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Community</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/contributors">Contributors</a></li><li class="footer__item"><a class="footer__link-item" href="/gbbs/docs/research">Publications and Resources</a></li></ul></div><div class="col footer__col"><h4 class="footer__title">Links</h4><ul class="footer__items"><li class="footer__item"><a class="footer__link-item" to="https://github.com/ParAlg/gbbs" href="https://github.com/ParAlg/gbbs">GitHub</a></li></ul></div></div><div class="text--center"><div>Copyright © 2021 GBBS Authors.</div></div></div></footer>
 </div>
 
-<script src="/gbbs/styles.b3e934c1.js"></script>
+<script src="/gbbs/styles.e8270999.js"></script>
 
-<script src="/gbbs/runtime~main.42037aef.js"></script>
+<script src="/gbbs/runtime~main.367b03ec.js"></script>
 
-<script src="/gbbs/main.ed190ed4.js"></script>
+<script src="/gbbs/main.904cfeee.js"></script>
 
-<script src="/gbbs/1.cb25274f.js"></script>
+<script src="/gbbs/1.656c97b8.js"></script>
 
-<script src="/gbbs/43.16e8e66d.js"></script>
+<script src="/gbbs/45.24d2cd00.js"></script>
 
 <script src="/gbbs/736cb962.556af73e.js"></script>
 
-<script src="/gbbs/17896441.3f7f82cd.js"></script>
+<script src="/gbbs/17896441.de3f2e89.js"></script>
 
-<script src="/gbbs/c4de80f8.393988bd.js"></script>
+<script src="/gbbs/c4de80f8.bc5b1c3b.js"></script>
 
 
 </body>
