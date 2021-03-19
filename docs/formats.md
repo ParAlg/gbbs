@@ -1,10 +1,10 @@
 ---
 id: formats
-title: Input Formats
+title: Graph Formats
 ---
 
-# Input Formats
-GBBS supports the adjacency graph format used by the [Problem Based Benchmark suite](http://www.cs.cmu.edu/~pbbs/benchmarks/graphIO.html)
+We support the adjacency graph format used by the [Problem Based Benchmark
+suite](http://www.cs.cmu.edu/~pbbs/benchmarks/graphIO.html)
 and [Ligra](https://github.com/jshun/ligra).
 
 The adjacency graph format starts with a sequence of offsets one for each
@@ -35,9 +35,10 @@ Weighted graphs are represented in the weighted adjacency graph format. The file
 should start with the string "WeightedAdjacencyGraph". The m edge weights
 should be stored after all of the edge targets in the .adj file.
 
-# Using SNAP graphs
+**Using SNAP graphs**
 
-Graphs from the [SNAP dataset collection](https://snap.stanford.edu/data/index.html) are commonly used for
+Graphs from the [SNAP dataset
+collection](https://snap.stanford.edu/data/index.html) are commonly used for
 graph algorithm benchmarks. We provide a tool that converts the most common SNAP
 graph format to the adjacency graph format that GBBS accepts. Usage example:
 ```sh

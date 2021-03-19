@@ -74,11 +74,11 @@ module.exports = {
           items: [
             {
               label: 'Contributors',
-              to: 'contributors/',
+              to: 'docs/contributors',
             },
             {
-              label: 'Research Projects using GBBS',
-              to: 'research',
+              label: 'Publications and Resources',
+              to: 'docs/research',
             },
           ],
         },
