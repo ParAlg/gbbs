@@ -25,5 +25,5 @@ improvements and valuable feedback about the library.
 You can find a list of [publications built using GBBS here](research).
 
 If you find GBBS useful in your work, or have any
-questions about the library please email
+questions about the library or benchmark implementations please email
 [laxman@mit.edu](laxman@mit.edu)---we would love to hear from you!
