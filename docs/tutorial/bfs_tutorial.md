@@ -323,14 +323,11 @@ To use `make` you can copy the makefile from
 
 ### Testing
 
-Let's try running our program on one of the test-inputs provided by ligra in the `inputs/`
-directory. Regarding the flags,
-* The `-s` flag indicates that the graph is symmetric.
-* The `-rounds` flag indicates the number of times to run the benchmark.
-* The `-src` flag indicates the source vertex.
-
+Let's try running our program on one of the test-inputs provided by Ligra in the `inputs/`
+directory.
 ``` sh
-numactl -i all ./bazel-bin/benchmarks/BFS/NonDeterministicBFS/BFS_main -s -rounds 4 -src 0 inputs/rMatGraph_J_5_100
+$ numactl -i all ./bazel-bin/benchmarks/BFS/NonDeterministicBFS/BFS_main \
+    -s -rounds 4 -src 0 inputs/rMatGraph_J_5_100
 # list_alloc init_blocks: 1000
 # after init:
 # Used: 0, allocated: 79872, node size: 16392, bytes: 1309261824
@@ -352,6 +349,11 @@ Reachable: 125
 ### Running Time: 0.000113964
 ...
 ```
+
+The flags above indicate the following:
+* The `-s` flag indicates that the graph is symmetric.
+* The `-rounds` flag indicates the number of times to run the benchmark.
+* The `-src` flag indicates the source vertex.
 
 Great! We've successfully implemented a shared memory breadth-first
 search in GBBS. You should now have all of the pieces needed to

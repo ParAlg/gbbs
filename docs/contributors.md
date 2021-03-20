@@ -9,6 +9,7 @@ through the effort of a group of talented students.
 
 * [Guy Blelloch](http://www.cs.cmu.edu/~guyb/)
 * [Laxman Dhulipala](https://ldhulipala.github.io/)
+* [Quanquan Liu](http://quanquancliu.com/)
 * [Jessica Shi](http://web.mit.edu/jeshi/www/about/)
 * [Julian Shun](https://people.csail.mit.edu/jshun)
 * [Tom Tseng](https://www.tomhmtseng.com/)
