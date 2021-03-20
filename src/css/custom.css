@@ -5,9 +5,16 @@
  * work well for content-centric websites.
  */
 
+/* Font */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+:root {
+  --ifm-font-family-base: 'Open Sans';
+}
+
 /* You can override the default Infima variables here. */
 :root {
 
+/*
   --ifm-color-primary: #25c2a0;
   --ifm-color-primary-dark: rgb(33, 175, 144);
   --ifm-color-primary-darker: rgb(31, 165, 136);
@@ -15,6 +22,28 @@
   --ifm-color-primary-light: rgb(70, 203, 174);
   --ifm-color-primary-lighter: rgb(102, 212, 189);
   --ifm-color-primary-lightest: rgb(146, 224, 208);
+*/
+
+--ifm-color-primary: #d04134;
+--ifm-color-primary-dark: #be382c;
+--ifm-color-primary-darker: #b3352a;
+--ifm-color-primary-darkest: #942c22;
+--ifm-color-primary-light: #d55549;
+--ifm-color-primary-lighter: #d75f54;
+--ifm-color-primary-lightest: #df7c73;
+
+--ifm-background-color: #FFFFFF;
+/*--ifm-background-surface-color: #121212;
+
+/*
+--ifm-color-primary: #3578e5;
+--ifm-color-primary-dark: #1d68e1;
+--ifm-color-primary-darker: #1b62d4;
+--ifm-color-primary-darkest: #1751af;
+--ifm-color-primary-light: #4e89e8;
+--ifm-color-primary-lighter: #5a91ea;
+--ifm-color-primary-lightest: #80aaef;
+*/
 
 /*
   --ifm-color-primary: #004225;
@@ -30,8 +59,33 @@
   --ifm-hero-background-color: #ffffff;
   --ifm-hero-text-color: #004c2b;
   */
-  --ifm-code-font-size: 95%;
+  --ifm-code-font-size: 90%;
 }
+
+article {
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* Announcement Bar */
+div[class^='announcementBarContent'] {
+  background-color: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
+}
+
+div[class^='announcementBarContent'] a {
+  color: var(--ifm-link-color);
+  text-decoration: inherit;
+}
+
+div[class^='announcementBarContent'] a:hover {
+  color: var(--ifm-link-color);
+  text-decoration: underline;
+}
+
+
 
 .docusaurus-highlight-code-line {
   background-color: rgb(72, 77, 91);
