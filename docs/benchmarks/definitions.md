@@ -16,7 +16,7 @@ vertices $(u,v)$.
 
 When not specified, we assume that the underlying graph is *directed*.
 The concrete formats supported by GBBS for unweighted graphs can be
-found in the [formats page](formats)
+found in the [formats page](/docs/formats)
 
 #### Weighted Graphs
 We also consider weighted graphs in GBBS, which we refer to as

@@ -24,7 +24,7 @@ coreness value.
 
 We provide an implementation of $k$-core based on the work-efficient
 peeling algorithm from Julienne [1] in GBBS. We provide a tutorial on
-how to implement this $k$-core example in [our tutorial](tutorial/kcore_tutorial).
+how to implement this $k$-core example in [our tutorial](/docs/tutorial/kcore_tutorial).
 
 The code for our implemenation is available
 [here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/KCore/JulienneDBS17/).
