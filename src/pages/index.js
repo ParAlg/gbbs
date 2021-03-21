@@ -12,11 +12,12 @@ const features = [
     imageUrl: 'img/graph-figure.svg',
     description: (
       <>
-        Defines a graph-processing interface that extends the Ligra,
-        Ligra+, and Julienne graph processing interfaces with other
-        useful functional primitives, including map, reduce, and
-        filter, defined over both vertices and graphs. The API also
-        supports compression completely under the hood.
+        The GBBS library provides a graph-processing interface that
+        extends the Ligra, Ligra+, and Julienne graph processing
+        interfaces with other useful functional primitives, including
+        map, reduce, and filter, defined over both vertices and
+        graphs. The API also supports compression completely under the
+        hood.
       </>
     ),
   },
@@ -25,11 +26,12 @@ const features = [
     imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
-        Includes provably-efficient implementations for over 22
+        The GBBS benchmark, implemented using the GBBS library,
+        provides provably-efficient implementations for over 22
         fundamental graph problems including shortest-path problems,
-        connectivity problems, various data-mining problems, and many
-        more. Good theoretical bounds ensure consistent and
-        explainable performance across different inputs.
+        connectivity problems, and many data-mining problems. Good
+        theoretical bounds ensure consistent performance across
+        different inputs.
       </>
     ),
   },
@@ -38,11 +40,11 @@ const features = [
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        Implementations from GAB achieve state-of-the-art
-        performance. For example, our implementation of connectivity
-        solves the HyperLink2012 graph, the largest publicly-available
-        graph with over 3 billion vertices and over 200 billion edges
-        in 8.5 seconds on a 72-core machine.
+        GBBS implementations achieve state-of-the-art performance. For
+        example, our implementation of connectivity solves the
+        WebDataCommons Hyperlink2012 graph, the largest publicly-available graph with
+        over 3 billion vertices and over 200 billion edges in 8.5
+        seconds on a 72-core machine.
       </>
     ),
   },

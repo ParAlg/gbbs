@@ -2,6 +2,7 @@ module.exports = {
   docs: {
     Introduction : ['introduction', 'install',  'run', 'formats', 'python_bindings'],
     Tutorial : ['tutorial/bfs_tutorial'],
+    Research : ['research', 'contributors'],
     Library : ['library/overview'],
     "Benchmark Implementations" : [
       'benchmarks/overview',

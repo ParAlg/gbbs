@@ -12,14 +12,24 @@ module.exports = {
   baseUrl: '/gbbs/',
   themeConfig: {
    //  disableDarkMode: true,
+    colorMode: {
+      // "light" | "dark"
+      defaultMode: 'light',
+
+      // Hides the switch in the navbar
+      // Useful if you want to support a single color mode
+      disableSwitch: true,
+
+      respectPrefersColorScheme: false,
+    },
     navbar: {
       title: 'GBBS',
-/*      style: 'light', */
+      // style: 'light',
       logo: {
         alt: 'GBBS Logo',
         src: 'img/graph.svg',
       },
-      links: [
+      items: [
         {
           to: 'docs/introduction',
           activeBasePath: 'docs',
@@ -53,7 +63,7 @@ module.exports = {
           items: [
             {
               label: 'Tutorial',
-              to: 'docs/tutorial',
+              to: 'docs/tutorial/bfs_tutorial',
             },
             {
               label: 'Documentation',

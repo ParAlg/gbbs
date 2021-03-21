@@ -7,11 +7,12 @@ permalink: /docs/getting_started/introduction/
 
 The Graph-Based Benchmark Suite (GBBS) is an active research project
 to build *provably-efficient, scalable, single-machine* implementations
-of *fundamental* graph algorithms. Our approach is to design *simple*
-codes that rely on high-level functional APIs that have well-defined
-cost-bounds in terms of the work-depth model. The project is in
-development at both CMU and MIT, and has been used to implement over
-20 problems so far.
+for a broad set of *fundamental* graph problems. Our approach is to
+design *simple* algorithm implementations that rely on high-level
+functional grpah and vertex primitives that have well-defined
+cost-bounds in the work-depth model. The project is in development at
+both CMU and MIT, and has been used to implement over 20 problems so
+far.
 
 ## Getting Started
 This part of the site provides instructions for installing, compiling, and
@@ -23,7 +24,7 @@ formats supported by GBBS.
 * [Compilation](compile) explains how to compile benchmarks in
   GBBS using both our build-tool, `bazel`, and using `make`.
 * [Graph Formats](formats) describes the graph formats
-* supported by our implementations.
+  supported by our implementations.
 * [Running](run) explains how to run a benchmark on our
   graph inputs.
 * [Graph Inputs](inputs) describes the main graph inputs used in our
@@ -31,8 +32,8 @@ formats supported by GBBS.
 
 ## Benchmarks
 This part of the site provides a problem-based benchmark
-specifications for each of the problems supported by GBBS.
-We provide an overview of the benchmarks in the [overview
+specifications for each of the problems supported by GBBS.  We provide
+an overview of the benchmarks in the [overview
 page](/test_website/docs/benchmark/overview). Links to the benchmarks
 can also be found below:
 
@@ -72,4 +73,5 @@ can also be found below:
 
 ## References
 
-[1]
+A list of publications built using GBBS and contributing to the
+benchmark can be found [here](research).
