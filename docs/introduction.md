@@ -55,7 +55,7 @@ the benchmarks can be found below:
 ### Covering Problems
 * [Maximal Independent Set (MIS)](benchmarks/covering/maximal_independent_set)
 * [Maximal Matching](benchmarks/covering/maximal_matching)
-* [Graph Coloring](benchmarks/covering/coloring)
+* [Graph Coloring](benchmarks/covering/graph_coloring)
 * [Approximate Set Cover](benchmarks/covering/apx_set_cover)
 
 ### Substructure Problems
