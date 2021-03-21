@@ -1,6 +1,6 @@
 ---
 id: k_clique_counting
-title: kClique Counting
+title: k-Clique Counting
 ---
 
 ## Problem Specification

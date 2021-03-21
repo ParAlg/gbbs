@@ -1,6 +1,6 @@
 ---
 id: k_truss
-title: kTruss (Trussness)
+title: k-Truss (Trussness)
 ---
 
 This benchmark is currently in-progress (WIP).
