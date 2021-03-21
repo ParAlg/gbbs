@@ -53,7 +53,7 @@ numactl -i all ./bazel-bin/benchmarks/ApproximateSetCover/MANISBPT11/Approximate
 Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), 2011.
 
 [2] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
-*Julienne: A Framework for Parallel Graph Algorithms using Work-efficient Bucketing*<br/>
+[*Julienne: A Framework for Parallel Graph Algorithms using Work-efficient Bucketing*](https://ldhulipala.github.io/papers/Bucketing.pdf)<br/>
 Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 293-304, 2017.
 
 [3] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>

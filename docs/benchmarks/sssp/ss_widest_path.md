@@ -30,21 +30,26 @@ The wBFS-based implementation runs in $O(n + m)$ expected work and $O(\mathsf{Di
 
 The benchmark can be compiled by running:
 ```
-bazel build -c opt //benchmarks/SSWidestPAth/JulienneDBS17:SSWidestPath
+bazel build -c opt //benchmarks/SSWidestPath/JulienneDBS17:SSWidestPath
 ```
 
 It can then be run on a test input graph in the *uncompressed format* as follows:
 ```
-numactl -i all ./bazel-bin/benchmarks/SSWidestPAth/JulienneDBS17/SSWidestPath_main -s -m -src 1 inputs/rMatGraph_J_5_100
+numactl -i all ./bazel-bin/benchmarks/SSWidestPath/JulienneDBS17/SSWidestPath_main -s -m -src 1 inputs/rMatGraph_J_5_100
 ```
 
 It can then be run on a test input graph in the *compressed format* as follows:
 ```
-numactl -i all ./bazel-bin/benchmarks/SSWidestPAth/JulienneDBS17/SSWidestPath_main -s -c -m -src 1 inputs/rMatGraph_J_5_100.bytepda
+numactl -i all ./bazel-bin/benchmarks/SSWidestPath/JulienneDBS17/SSWidestPath_main -s -c -m -src 1 inputs/rMatGraph_J_5_100.bytepda
 ```
 
 ## References
 
-[1] Laxman Dhulipala, Guy E. Blelloch, and Julian Shun. [Julienne: A Framework for Parallel Graph Algorithms using Work-efficient Bucketing](https://ldhulipala.github.io/papers/Bucketing.pdf). Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 293-304, 2017.
+[1] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
+[*Julienne: A Framework for Parallel Graph Algorithms using Work-efficient Bucketing*](https://ldhulipala.github.io/papers/Bucketing.pdf)<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 293-304, 2017.
 
-[2] Laxman Dhulipala, Guy E. Blelloch, and Julian Shun. [Theoretically Efficient Parallel Graph Algorithms Can Be Fast and Scalable](https://arxiv.org/abs/1805.05208). Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 393-404, 2018.
+[2] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
+[*Theoretically Efficient Parallel Graph Algorithms Can Be Fast and Scalable*](https://ldhulipala.github.io/papers/gbbs_topc.pdf)<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 393-404, 2018. <br/>
+

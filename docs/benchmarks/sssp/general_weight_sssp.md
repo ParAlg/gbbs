@@ -5,10 +5,15 @@ title: General-Weight SSSP (Bellman-Ford)
 
 ## Problem Specification
 #### Input
-$G=(V, E, w)$, a weighted graph, and a source, $s \in V$. The input graph can either be undirected, or directed.
+$G=(V, E)$, an unweighted graph, and a source, $s \in V$. The input
+graph can either be undirected or directed.
 
 #### Output
-Output: $D$, a mapping where $D[v]$ is the shortest path distance from $s$ to $v$ in $G$ and $\infty$ if $v$ is unreachable.  If the graph contains any negative-weight cycles reachable from $s$, the vertices of these negative-weight cycles and vertices reachable from them must have a distance of $-\infty$.
+Output: $D$, a mapping where $D[v]$ is the shortest path distance from
+$s$ to $v$ in $G$ and $\infty$ if $v$ is unreachable.  If the graph
+contains any negative-weight cycles reachable from $s$, the vertices
+of these negative-weight cycles and vertices reachable from them must
+have a distance of $-\infty$.
 
 ## Algorithm Implementations
 
@@ -41,4 +46,6 @@ numactl -i all ./bazel-bin/benchmarks/GeneralWeightSSSP/BellmanFord/BellmanFord_
 
 ## References
 
-[1] Laxman Dhulipala, Guy E. Blelloch, and Julian Shun. [Theoretically Efficient Parallel Graph Algorithms Can Be Fast and Scalable](https://arxiv.org/abs/1805.05208). Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 393-404, 2018.
+[1] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
+[*Theoretically Efficient Parallel Graph Algorithms Can Be Fast and Scalable*](https://ldhulipala.github.io/papers/gbbs_topc.pdf)<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 393-404, 2018. <br/>

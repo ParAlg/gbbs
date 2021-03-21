@@ -6,7 +6,7 @@ title: BFS
 ## Problem Specification
 #### Input
 $G=(V, E)$, an unweighted graph, and a source, $s \in V$. The input
-graph can either be undirected, or directed.
+graph can either be undirected or directed.
 
 #### Output
 $P$, a [mapping](/docs/benchmarks/definitions) where $P[v]$ is the parent
@@ -16,10 +16,11 @@ of $v$ in the output BFS-tree rooted at $s$, and $P[s] = s$.
 
 We implement a non-deterministic parallel breadth-first search as our
 BFS implementation in GBBS. The implementation is based on the one
-from Ligra.
+from Ligra. More details about our implementation can be found in
+Section 6.1 of [1].
 
 We provide a tutorial on how to implement this BFS example in [our
-tutorial](tutorial/bfs_tutorial).
+tutorial](/docs/tutorial/bfs_tutorial).
 
 The code for our implemenation is available
 [here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/BFS/NonDeterministicBFS).
@@ -47,3 +48,8 @@ It can then be run on a test input graph in the *compressed format* as follows:
 numactl -i all ./bazel-bin/benchmarks/BFS/NonDeterministicBFS/BFS_main -s -c -m -src 1 inputs/rMatGraph_J_5_100.bytepda
 ```
 
+## References
+
+[1] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
+[*Theoretically Efficient Parallel Graph Algorithms Can Be Fast and Scalable*](https://ldhulipala.github.io/papers/gbbs_topc.pdf)<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 393-404, 2018. <br/>
