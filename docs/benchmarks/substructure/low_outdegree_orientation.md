@@ -5,43 +5,52 @@ title: Low-Outdegree Orientation
 
 ## Problem Specification
 #### Input
-$G=(V, E)$, an unweighted graph, and a source, $s \in V$. The input
-graph can either be undirected, or directed.
+$G=(V, E)$, an undirected graph.
 
 #### Output
-$P$, a [mapping](/docs/benchmarks/definitions) where $P[v]$ is the parent
-of $v$ in the output BFS-tree rooted at $s$, and $P[s] = s$.
+$S$, a total-ordering on the vertices s.t. orienting the edges of the
+graph based on $S$ yields an $O(\alpha)-$orientation of the graph. See
+below for the definitions of orientations.
+
+## Definitions
+
+The **arboricity**  ($\alpha$)} of a graph is the minimum number of
+spanning forests needed to cover the graph. $\alpha$ is upper bounded
+by $O(\sqrt{m})$ and lower bounded by $\Omega(1)$.
+
+An **$c$-orientation** of an undirected graph is a total ordering on
+the vertices, where the oriented out-degree of each vertex (the number
+of its neighbors higher than it in the ordering) is bounded by $c$.
 
 ## Algorithm Implementations
 
-We provide a single implementation of BFS in GBBS. The implementation
-is based on the non-deterministic BFS implementation in GBBS. We
-provide a tutorial on how to implement this BFS example in [our
-tutorial](tutorial/bfs_tutorial).
+We provide two implementations of low-outdegree orientation in GBBS. 
+The implementations are based on the low-outdegree orientation
+algorithms of Barenboim-Elkin and Goodrich-Pszona, which are efficient
+in the $\mathsf{CONGEST}$ and I/O models of computation respectively.
+We show that these algorithms can yield work-efficient and low-depth
+algorithms in [3].
 
-The code for our implemenation is available
-[here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/BFS/NonDeterministicBFS).
+The code for our implemenations is available
+[here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/DegeneracyOrder/).
 
 ## Cost Bounds
 
-The algorithm runs in $O(n + m)$ work and $O(\mathsf{D}(G) \log n)$
-depth, which follows from our bounds on the `edgeMap` primitive.
+Both algorithms run in $O(n + m)$ work and $O(\log^2 n)$ depth w.h.p.
+More details can be found in [3].
 
 
-## Compiling and Running
+## References
 
-The benchmark can be compiled by running:
-```
-bazel build -c opt //benchmarks/BFS/NonDeterministicBFS:BFS
-```
+[1] Leonid Barenboim and Michael Elkin<br/>
+*Sublogarithmic Distributed MIS Algorithm for Sparse Graphs using Nash-Williams Decomposition*<br/>
+Distributed Computing, 5(22), pp. 363-379, 2010
 
-It can then be run on a test input graph in the *uncompressed format* as follows:
-```
-numactl -i all ./bazel-bin/benchmarks/BFS/NonDeterministicBFS/BFS_main -s -m -src 1 inputs/rMatGraph_J_5_100
-```
+[2] Michael Goodrich and Pawel Pszona<br/>
+*External-Memory Network Analysis Algorithms for Naturally Sparse Graphs*<br/>
+Proceedings of the European Symposium on Algorithms, pp. 646-676, 2011
 
-It can then be run on a test input graph in the *compressed format* as follows:
-```
-numactl -i all ./bazel-bin/benchmarks/BFS/NonDeterministicBFS/BFS_main -s -c -m -src 1 inputs/rMatGraph_J_5_100.bytepda
-```
-
+[3] Jessica Shi, Laxman Dhulipala, and Julian Shun<br/>
+*Parallel Clique Counting and Peeling Algorithms*<br/>
+Under Submission<br/>
+[arXiv Version](https://arxiv.org/abs/2002.10047)
