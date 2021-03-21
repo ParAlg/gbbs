@@ -28,6 +28,7 @@ module.exports = {
           'benchmarks/connectivity/connectivity',
           'benchmarks/connectivity/low_diameter_decomposition',
           'benchmarks/connectivity/minimum_spanning_forest',
+          'benchmarks/connectivity/spanning_forest',
           'benchmarks/connectivity/strongly_connected_components'
         ],
       },

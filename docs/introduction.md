@@ -48,8 +48,9 @@ the benchmarks can be found below:
 * [Low-Diameter Decomposition](benchmarks/connectivity/low_diameter_decomposition)
 * [Connectivity](benchmarks/connectivity/connectivity)
 * [Biconnectivity](benchmarks/connectivity/biconnectivity)
-* [Strongly Connected Components](benchmarks/connectivity/strongly_connected_components)
+* [Spanning Forest](benchmarks/connectivity/spanning_forest)
 * [Minimum Spanning Forest](benchmarks/connectivity/minimum_spanning_forest)
+* [Strongly Connected Components](benchmarks/connectivity/strongly_connected_components)
 
 ### Covering Problems
 * [Maximal Independent Set (MIS)](benchmarks/covering/maximal_independent_set)

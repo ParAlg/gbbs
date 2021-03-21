@@ -10,23 +10,26 @@ $G=(V, E)$, an undirected graph on $n$ vertices. The input graph can
 either be weighted or unweighted.
 
 #### Output
-$C$, a [mapping](/docs/benchmarks/definitions) where $C[v]$ is a unique id
-between $[0, n)$ representing the component of $v$ s.t. $C[u] = C[v]$
-if and only if $u$ and $v$ are in the same connected component in $G$.
-
+$\mathcal{L}$, a [mapping](/docs/benchmarks/definitions) from each
+vertex to the label of its strongly connected component.
 
 ## Algorithm Implementations
-We provide multiple implementations of connectivity in GBBS. The
-primary implementation is based on the low-diameter decomposition
-based algorithm from [Shun et
-al.](https://dl.acm.org/doi/10.1145/2612669.2612692).
 
-The code for the primary implementation is available
-[here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/Connectivity/WorkEfficientSDB).
+We present the first implementation of the SCC algorithm from Blelloch
+et al. [1].
+The code for our implementation is available
+[here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16).
 
 
 ## Cost Bounds
 
-The algorithm runs in $O(n + m)$ expected work and $O(\log^{3} n)$
-depth w.h.p., and the proof can be found in the Shun et al. paper.
+The algorithm runs in $O(m\log n)$ expected work and
+$O(\mathsf{diam}(G) \log n)$ depth w.h.p. A detailed proof of the
+algorithm's theoretical costs can be found in [1].
 
+
+## References
+
+[1] Guy Blelloch, Yan Gu, Julian Shun, and Yihan Sun<br/>
+*Parallelism in Randomized Incremental Algorithms*<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 467-478, 2016.

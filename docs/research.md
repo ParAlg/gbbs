@@ -64,7 +64,7 @@ Proceedings of the SIAM Symposium on Algorithmic Principles of Computer Systems 
 
 Laxman Dhulipala, Changwan Hong, and Julian Shun<br/>
 ConnectIt: A Framework for Static and Incremental Parallel Graph Connectivity Algorithms<br/>
-Proceedings of the VLDB Endowment, 14(4), pp. 653-667, 2020.
+Proceedings of the VLDB Endowment, 14(4), pp. 653-667, 2020.<br/>
 [arXiv (Full Version)](https://arxiv.org/abs/2008.03909) | [Conference Version](http://www.vldb.org/pvldb/vol14/p653-dhulipala.pdf)
 
 Jessica Shi, Laxman Dhulipala, and Julian Shun<br/>

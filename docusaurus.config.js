@@ -43,6 +43,12 @@ module.exports = {
           position: 'left',
         },
         {
+          to: 'docs/research',
+          activeBasePath: 'docs',
+          label: 'Publications and Resources',
+          position: 'left',
+        },
+        {
           to: 'docs/benchmarks/overview',
           activeBasePath: 'docs/',
           label: 'Benchmark Implementations',

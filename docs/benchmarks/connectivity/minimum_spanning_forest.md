@@ -6,27 +6,24 @@ title: Minimum Spanning Forest
 
 ## Problem Specification
 #### Input
-$G=(V, E)$, an undirected graph on $n$ vertices. The input graph can
-either be weighted or unweighted.
+$G=(V, E)$, an undirected, weighted graph on $n$ vertices.
 
 #### Output
-$C$, a [mapping](/docs/benchmarks/definitions) where $C[v]$ is a unique id
-between $[0, n)$ representing the component of $v$ s.t. $C[u] = C[v]$
-if and only if $u$ and $v$ are in the same connected component in $G$.
+$T$, a set of edges representing a minimum spanning forest (MSF) of $G$.
 
 
 ## Algorithm Implementations
-We provide multiple implementations of connectivity in GBBS. The
-primary implementation is based on the low-diameter decomposition
-based algorithm from [Shun et
-al.](https://dl.acm.org/doi/10.1145/2612669.2612692).
+We present an implementation of Boruvka's algorithm that runs in
+$O(m\log n)$ work and $O(\log^2 n)$ depth w.h.p.  A detailed
+description of our algorithm can be found in Section 6.2 of [this
+paper](https://ldhulipala.github.io/papers/gbbs_topc.pdf).
 
 The code for the primary implementation is available
-[here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/Connectivity/WorkEfficientSDB).
+[here](https://github.com/ldhulipala/gbbs/tree/master/benchmarks/MinimumSpanningForest/Boruvka).
 
 
 ## Cost Bounds
 
-The algorithm runs in $O(n + m)$ expected work and $O(\log^{3} n)$
-depth w.h.p., and the proof can be found in the Shun et al. paper.
+The algorithm runs in $O(m\log n)$ work and $O(\log^{2} n)$ depth
+w.h.p.
 
