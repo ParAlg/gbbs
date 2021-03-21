@@ -32,10 +32,8 @@ formats supported by GBBS.
 
 ## Benchmarks
 This part of the site provides a problem-based benchmark
-specifications for each of the problems supported by GBBS.  We provide
-an overview of the benchmarks in the [overview
-page](/test_website/docs/benchmark/overview). Links to the benchmarks
-can also be found below:
+specifications for each of the problems supported by GBBS. Links to
+the benchmarks can be found below:
 
 ### Shortest Path Problems
 * [Breadth-First Search](benchmarks/sssp/breadth_first_search)
