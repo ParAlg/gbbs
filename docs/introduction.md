@@ -37,36 +37,37 @@ the benchmarks can be found below:
 
 ### Shortest Path Problems
 * [Breadth-First Search](benchmarks/sssp/breadth_first_search)
-* [Integral-Weight SSSP](sssp/integral_weight_sssp)
-* [Positive-Weight SSSP](sssp/positive_weight_sssp)
-* [General-Weight SSSP](sssp/general_weight_sssp)
-* [Single-Source Widest Path](sssp/ss_widest_path)
-* [Single-Source Betwenness Centrality](sssp/ss_betweenness_centrality)
-* [Graph Spanner](sssp/spanner)
+* [Integral-Weight SSSP](benchmarks/sssp/integral_weight_sssp)
+* [Positive-Weight SSSP](benchmarks/sssp/positive_weight_sssp)
+* [General-Weight SSSP](benchmarks/sssp/general_weight_sssp)
+* [Single-Source Widest Path](benchmarks/sssp/ss_widest_path)
+* [Single-Source Betwenness Centrality](benchmarks/sssp/ss_betweenness_centrality)
+* [Graph Spanner](benchmarks/sssp/spanner)
 
 ### Connectivity Problems
-* [Low-Diameter Decomposition](connectivity/low_diameter_decomposition)
-* [Connectivity](connectivity/connectivity)
-* [Biconnectivity](connectivity/biconnectivity)
-* [Strongly Connected Components](connectivity/strongly_connected_components)
-* [Minimum Spanning Forest](connectivity/minimum_spanning_forest)
+* [Low-Diameter Decomposition](benchmarks/connectivity/low_diameter_decomposition)
+* [Connectivity](benchmarks/connectivity/connectivity)
+* [Biconnectivity](benchmarks/connectivity/biconnectivity)
+* [Strongly Connected Components](benchmarks/connectivity/strongly_connected_components)
+* [Minimum Spanning Forest](benchmarks/connectivity/minimum_spanning_forest)
 
 ### Covering Problems
-* [Maximal Independent Set (MIS)](covering/maximal_independent_set)
-* [Maximal Matching](covering/maximal_matching)
-* [Graph Coloring](covering/coloring)
-* [Approximate Set Cover](covering/apx_set_cover)
+* [Maximal Independent Set (MIS)](benchmarks/covering/maximal_independent_set)
+* [Maximal Matching](benchmarks/covering/maximal_matching)
+* [Graph Coloring](benchmarks/covering/coloring)
+* [Approximate Set Cover](benchmarks/covering/apx_set_cover)
 
 ### Substructure Problems
-* [Triangle Counting](substructure/triangle_counting)
-* [$k$-Clique Counting](substructure/k_clique_counting)
-* [$k$-Core](substructure/k_core)
-* [$k$-Truss](substructure/k_truss)
-* [Approximate Densest Subgraph](substructure/apx_densest_subgraph)
-* [Low-Outdegree Orientation (Arboricity Ordering)](substructure/low_outdegree_orientation)
+* [Triangle Counting](benchmarks/substructure/triangle_counting)
+* [$k$-Clique Counting](benchmarks/substructure/k_clique_counting)
+* [$k$-Core](benchmarks/substructure/k_core)
+* [$k$-Truss](benchmarks/substructure/k_truss)
+* [Approximate Densest Subgraph](benchmarks/substructure/apx_densest_subgraph)
+* [Low-Outdegree Orientation (Arboricity Ordering)](benchmarks/substructure/low_outdegree_orientation)
 
 ### Eigenvector Problems
-* [PageRank](eigenvector/pagerank)
+* [PageRank](benchmarks/eigenvector/pagerank)
+* [CoSimRank](benchmarks/eigenvector/cosimrank)
 
 
 ## References
