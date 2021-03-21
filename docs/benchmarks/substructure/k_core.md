@@ -1,6 +1,6 @@
 ---
 id: k_core
-title: k-Core (coreness)
+title: k-Core (Coreness)
 ---
 
 ## Problem Specification
