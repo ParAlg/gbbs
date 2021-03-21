@@ -10,7 +10,7 @@ $G=(V, E)$, an undirected graph on $n$ vertices. The input graph can
 either be weighted or unweighted.
 
 #### Output
-$C$, a [mapping](/benchmarks/definitions/) where $C[v]$ is a unique id
+$C$, a [mapping](/docs/benchmarks/definitions) where $C[v]$ is a unique id
 between $[0, n)$ representing the component of $v$ s.t. $C[u] = C[v]$
 if and only if $u$ and $v$ are in the same connected component in $G$.
 

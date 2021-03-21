@@ -5,14 +5,15 @@ title: Publications and Resources
 
 Please cite our work if GBBS contributes to your academic publication:
 
-```
+``` bibtex
 @inproceedings{dhulipala2018theoretically,
   author    = {Laxman Dhulipala and
                Guy E. Blelloch and
                Julian Shun},
-  title     = {Theoretically Efficient Parallel Graph Algorithms Can Be Fast and
-               Scalable},
-  booktitle = {ACM Symposium on Parallelism in Algorithms and Architectures (SPAA)},
+  title     = {Theoretically Efficient Parallel Graph Algorithms
+               Can Be Fast and Scalable},
+  booktitle = {ACM Symposium on Parallelism in
+               Algorithms and Architectures (SPAA)},
   pages     = {293--304}
   year      = {2018},
 }
@@ -25,8 +26,9 @@ Please cite our work if GBBS contributes to your academic publication:
                Julian Shun},
   title     = {The Graph Based Benchmark Suite {(GBBS)}},
   year      = {2020},
-  booktitle = {International Workshop on Graph Data Management Experiences and Systems
-               (GRADES) and Network Data Analytics (NDA)},
+  booktitle = {International Workshop on Graph Data Management
+               Experiences and Systems (GRADES) and
+               Network Data Analytics (NDA)},
   pages     = {11:1--11:8}
 }
 ```

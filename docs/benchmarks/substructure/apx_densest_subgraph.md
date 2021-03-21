@@ -9,7 +9,7 @@ $G=(V, E)$, an unweighted graph, and a source, $s \in V$. The input
 graph can either be undirected, or directed.
 
 #### Output
-$P$, a [mapping](/benchmarks/definitions/) where $P[v]$ is the parent
+$P$, a [mapping](/docs/benchmarks/definitions) where $P[v]$ is the parent
 of $v$ in the output BFS-tree rooted at $s$, and $P[s] = s$.
 
 ## Algorithm Implementations
