@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[44],{115:function(e,n,s){"use strict";s.r(n);var t=s(0),a=s.n(t),c=s(2);s(128);n.default=function(){return a.a.createElement(c.c,{to:"/gbbs/docs/sage/sage"})}}}]);
