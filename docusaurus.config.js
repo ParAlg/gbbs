@@ -12,6 +12,9 @@ module.exports = {
   baseUrl: '/gbbs/',
   themeConfig: {
    //  disableDarkMode: true,
+    prism: {
+      theme: require('prism-react-renderer/themes/github'),
+    },
     colorMode: {
       // "light" | "dark"
       defaultMode: 'light',
