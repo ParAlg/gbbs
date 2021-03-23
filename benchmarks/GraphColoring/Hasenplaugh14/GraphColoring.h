@@ -154,8 +154,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
     auto new_roots = edgeMap(G, roots, coloring_f<W>(priorities.begin()), -1,
                              sparse_blocked);
     em_t.stop();
-    roots.del();
-    roots = new_roots;
+    roots = std::move(new_roots);
     rounds++;
   }
   std::cout << "### Total rounds = " << rounds << "\n";

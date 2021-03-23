@@ -81,8 +81,7 @@ inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
         edgeMap(G, Frontier, em_f, G.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
-    Frontier.del();
-    Frontier = output;
+    Frontier = std::move(output);
     round++;
   }
   auto dist_im_f = [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; };

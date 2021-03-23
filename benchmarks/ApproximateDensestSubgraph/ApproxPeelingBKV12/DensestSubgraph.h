@@ -37,7 +37,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   auto alive = sequence<bool>(n, [&](size_t i) { return true; });
 
   size_t round = 1;
-  uintE* last_arr = nullptr;
+  sequence<uintE> A;
   size_t remaining_offset = 0;
   size_t num_vertices_remaining = n;
 
@@ -59,16 +59,18 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       return !(D[i] <= target_density);
     });
 
-    auto split_vtxs_m = pbbs::split_two(vertices_remaining, keep_seq);
-    uintE* this_arr = split_vtxs_m.first.to_array();
-    size_t num_removed = split_vtxs_m.second;
-    auto vs = vertexSubset(n, num_removed, this_arr);
+    auto splits = pbbs::split_two(vertices_remaining, keep_seq);
+    A = std::move(splits.first);
+    size_t num_removed = splits.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
+    auto removed = sequence<uintE>::no_init(num_removed);
     parallel_for(0, num_removed, [&] (size_t i) {
-      auto v = this_arr[i];
+      auto v = A[i];
+      removed[i] = v;
       alive[v] = false;
     });
+    auto vs = vertexSubset(n, std::move(removed));
 
     auto cond_f = [&] (const uintE& u) {
       return alive[u];
@@ -84,18 +86,12 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     nghCount(G, vs, cond_f, apply_f, em, no_output);
 
     round++;
-    last_arr = this_arr;
     remaining_offset = num_removed;
     num_vertices_remaining -= num_removed;
-    if (vs.dense()) {
-      pbbs::free_array(vs.d);
-    }
   }
 
   while (num_vertices_remaining > 0) {
-    uintE* start = last_arr + remaining_offset;
-    uintE* end = start + num_vertices_remaining;
-    auto vtxs_remaining = pbbs::make_range(start, end);
+    auto vtxs_remaining = A.slice(remaining_offset, remaining_offset + num_vertices_remaining);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];
@@ -118,15 +114,17 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     });
 
     auto split_vtxs_m = pbbs::split_two(vtxs_remaining, keep_seq);
-    uintE* this_arr = split_vtxs_m.first.to_array();
+    A = std::move(split_vtxs_m.first);
     size_t num_removed = split_vtxs_m.second;
-    auto vs = vertexSubset(n, num_removed, this_arr);
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
+    auto removed = sequence<uintE>::no_init(num_removed);
     parallel_for(0, num_removed, [&] (size_t i) {
-      auto v = this_arr[i];
+      auto v = A[i];
       alive[v] = false;
+      removed[i] = v;
     });
+    auto vs = vertexSubset(n, std::move(removed));
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
@@ -144,17 +142,9 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     }
 
     round++;
-    pbbs::free_array(last_arr);
-    last_arr = this_arr;
     remaining_offset = num_removed;
-    if (vs.dense()) {
-      pbbs::free_array(vs.d);
-    }
   }
 
-  if (last_arr) {
-    pbbs::free_array(last_arr);
-  }
   std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
   return max_density;
 }

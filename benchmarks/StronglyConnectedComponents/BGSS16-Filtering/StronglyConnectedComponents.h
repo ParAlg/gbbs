@@ -84,8 +84,7 @@ inline bool* first_search(Graph& GA, Seq& zero, uintE start, const flags fl = 0)
   while (!frontier.isEmpty()) {
     vertexSubset output = edgeMap(
         GA, frontier, wrap_em_f<W>(make_first_search(Flags)), -1, fl);
-    frontier.del();
-    frontier = output;
+    frontier = std::move(output);
     rd++;
   }
   return Flags.to_array();
@@ -193,8 +192,7 @@ inline auto multi_search(Graph& GA,
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
     table.update_nelms();
-    frontier.del();
-    frontier = output;
+    frontier = std::move(output);
     rd++;
   }
   return std::make_pair(table, elts);
@@ -433,8 +431,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     multi_search_t.start();
     timer ins; ins.start();
     auto centers_copy = centers;
-    size_t centers_size = centers.size();
-    auto in_f = vertexSubset(n, centers_size, centers.to_array());
+    auto in_f = vertexSubset(n, std::move(centers));
     auto [in_table, in_elts] =
         multi_search(PG, labels, bits, in_f, cur_label_offset, in_edges);
     std::cout << "Finished in search"
@@ -443,7 +440,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     ins.stop(); ins.reportTotal("insearch time");
 
     timer outs; outs.start();
-    auto out_f = vertexSubset(n, centers_size, centers_copy.to_array());
+    auto out_f = vertexSubset(n, std::move(centers_copy));
     auto [out_table, out_elts] = multi_search(PG, labels, bits, out_f, cur_label_offset);
     std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
               << "\n";
@@ -514,8 +511,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     to_process_t.start();
     auto elts = to_process.entries();
     to_process.del();
-    in_elts.del();
-    out_elts.del();
     to_process_t.stop();
 
 //    size_t remaining = Q.size() - finished + vs_size;

@@ -173,15 +173,11 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
 
     vt.start();
     auto ldd_f = LDD_F<W, EO>(cluster_ids.begin(), oracle);
-    vertexSubset next_frontier =
-        edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
-    frontier.del();
-    frontier = next_frontier;
+    frontier = edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
     vt.stop();
 
     round++;
   }
-  frontier.del();
   debug(
   add_t.reportTotal("add vertices time");
   vt.reportTotal("edge map time"););

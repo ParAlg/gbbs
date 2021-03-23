@@ -113,7 +113,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   if (!largemem) fl |= no_dense;
   if (!no_blocked) fl |= sparse_blocked;
   while (bkt.id != b.null_bkt) {
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     emt.start();
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
@@ -129,8 +129,6 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.del();
-    active.del();
     bkt = b.next_bucket();
     bt.stop();
     rd++;

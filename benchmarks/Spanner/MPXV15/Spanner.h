@@ -257,8 +257,7 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, boo
     auto ldd_f = LDD_Parents_F<W>(clusters.begin());
     vertexSubset next_frontier =
         edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
-    frontier.del();
-    frontier = next_frontier;
+    frontier = std::move(next_frontier);
 
     round++;
   }

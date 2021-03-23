@@ -9,7 +9,7 @@ void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
   } else {
     const size_t vs_size = vs.numNonzeros();
     const size_t new_size = num_new_verts + vs_size;
-    uintE* all_verts = pbbslib::new_array_no_init<uintE>(new_size);
+    auto all_verts = sequence<uintE>(new_size);
     par_for(0, new_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
                     {
                       if (i < vs_size) {
@@ -18,12 +18,9 @@ void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
                         all_verts[i] = new_verts[i - vs_size];
                       }
                     });
-    uintE* old_s = vs.s;
+    auto old_s = std::move(vs.s);
     vs.s = all_verts;
     vs.m = new_size;
-    if (old_s) {
-      pbbslib::free_array(old_s);
-    }
   }
 }
 }  // namespace gbbs

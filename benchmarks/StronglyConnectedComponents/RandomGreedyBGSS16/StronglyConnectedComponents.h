@@ -146,8 +146,7 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
     vertexSubset output = edgeMap(
         GA, frontier, make_search_f<W>(table, labels, bits), -1, fl | no_dense);
     table.update_nelms();
-    frontier.del();
-    frontier = output;
+    frontier = std::move(output);
     rd++;
   }
   return table;
@@ -187,8 +186,7 @@ inline bool* first_search(Graph& GA, L& labels, uintE start,
   while (!frontier.isEmpty()) {
     vertexSubset output = edgeMap(
         GA, frontier, wrap_em_f<W>(make_first_search(Flags, labels)), -1, fl);
-    frontier.del();
-    frontier = output;
+    frontier = std::move(output);
     rd++;
   }
   return Flags.to_array();
@@ -325,8 +323,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     timer ins; ins.start();
     auto centers_2 = centers;
-    size_t centers_size = centers.size();
-    auto in_f = vertexSubset(n, centers_size, centers.to_array());
+    auto in_f = vertexSubset(n, std::move(centers));
     auto in_table =
         multi_search(GA, labels, bits, in_f, cur_label_offset, in_edges);
     std::cout << "Finished in search"
@@ -334,8 +331,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     ins.stop(); ins.reportTotal("insearch time");
 
     timer outs; outs.start();
-    size_t centers_2_size = centers_2.size();
-    auto out_f = vertexSubset(n, centers_2_size, centers_2.to_array());
+    auto out_f = vertexSubset(n, std::move(centers_2));
     auto out_table = multi_search(GA, labels, bits, out_f, cur_label_offset);
     std::cout << "in_table, m = " << in_table.m << " ne = " << in_table.ne
               << "\n";

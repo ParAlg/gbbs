@@ -120,7 +120,7 @@ namespace labelprop_sf {
           return Parents[i] != frequent_comp;
         });
       }
-      vs = vertexSubset(n, all.to_array());
+      vs = vertexSubset(n, std::move(all));
       std::cout << "### initial vs = " << vs.size() << std::endl;
 
       auto PrevParents = Parents;
@@ -146,8 +146,7 @@ namespace labelprop_sf {
         std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;
         add_to_vsubset(next_vs, new_vtxs.begin(), new_vtxs.size());
 
-        vs.del();
-        vs = next_vs;
+        vs = std::move(next_vs);
         vertexMap(vs, [&] (const uintE& u) {
           PrevParents[u] = Parents[u];
           changed[u] = unemitted;

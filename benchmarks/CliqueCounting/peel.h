@@ -357,7 +357,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
 
     // Retrieve next bucket
     auto bkt = b.next_bucket();
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     cur_bkt = bkt.id;
 
     finished += active.size();
@@ -414,8 +414,6 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
     b.update_buckets(apply_f, filter_size);
 
     parallel_for (0, active.size(), [&] (size_t j) {cliques[active.vtx(j)] = 0;}, 2048);
-
-    active.del();
 
     rounds++;
   }

@@ -18,10 +18,9 @@ template <class data  /* data associated with vertices in the output vertex_subs
 inline vertexSubsetData<data> edgeMapSparse(Graph& G,
                                             VS& indices, F& f,
                                             const flags fl) {
-  using S = std::tuple<uintE, data>;
+  using S = typename vertexSubsetData<data>::S;
   size_t n = indices.n;
   size_t m = indices.size();
-  S* outEdges;
 
   if (should_output(fl)) {
     auto offsets = sequence<uintT>(indices.size(), [&](size_t i) {
@@ -30,9 +29,9 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G,
     });
     size_t outEdgeCount = pbbslib::scan_add_inplace(offsets.slice());
 
-    outEdges = pbbslib::new_array_no_init<S>(outEdgeCount);
-    auto g = get_emsparse_gen_full<data>(outEdges);
-    auto h = get_emsparse_gen_empty<data>(outEdges);
+    auto outEdges = sequence<S>(outEdgeCount);
+    auto g = get_emsparse_gen_full<data>(outEdges.begin());
+    auto h = get_emsparse_gen_empty<data>(outEdges.begin());
     parallel_for(0, m, [&] (size_t i) {
       uintT v = indices.vtx(i);
       uintT o = offsets[i];
@@ -40,13 +39,11 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G,
       neighbors.decodeSparse(o, f, g, h);
     }, 1);
 
-    S* nextIndices = pbbslib::new_array_no_init<S>(outEdgeCount);
     auto p = [](std::tuple<uintE, data>& v) {
       return std::get<0>(v) != UINT_E_MAX;
     };
-    size_t nextM = pbbslib::filterf(outEdges, nextIndices, outEdgeCount, p);
-    pbbslib::free_array(outEdges);
-    return vertexSubsetData<data>(n, nextM, nextIndices);
+    auto nextIndices = pbbslib::filter(outEdges, p);
+    return vertexSubsetData<data>(n, std::move(nextIndices));
   }
 
   auto g = get_emsparse_nooutput_gen<data>();
@@ -66,11 +63,8 @@ template <class data  /* data associated with vertices in the output vertex_subs
 inline vertexSubsetData<data> edgeMapSparseNoOutput(Graph& G, VS& indices, F& f,
                                                     const flags fl) {
   size_t m = indices.numNonzeros();
-#ifdef SAGE
-  bool inner_parallel = false;
-#else
   bool inner_parallel = true;
-#endif
+
   auto n = G.n;
   auto g = get_emsparse_nooutput_gen<data>();
   auto h = get_emsparse_nooutput_gen_empty<data>();
@@ -328,7 +322,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   if (fl & no_output) {
     return edgeMapSparseNoOutput<data, Graph, VS, F>(G, indices, f, fl);
   }
-  using S = std::tuple<uintE, data>;
+  using S = typename vertexSubsetData<data>::S;
   size_t n = indices.n;
 
   auto block_f = [&](size_t i) -> size_t {
@@ -399,7 +393,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
         // output block even if all items in the work block are written out
         em_data_block* out_block = our_emhelper.get_block_and_offset_for_group(group_id);
         size_t offset = out_block->block_size;
-        auto out_block_data = (std::tuple<uintE, data>*)out_block->data;
+        auto out_block_data = (S*)out_block->data;
 
         auto g = get_emblock_gen<data>(out_block_data);
 
@@ -423,12 +417,12 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   size_t output_size = pbbslib::scan_add_inplace(block_offsets.slice());
   vertexSubsetData<data> ret(n);
   if (output_size > 0) {
-    S* out = pbbslib::new_array_no_init<S>(output_size);
+    auto out = sequence<S>(output_size);
 
     parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
       em_data_block* block = all_blocks[block_id];
       size_t block_size = block->block_size;
-      std::tuple<uintE, data>* block_data = (std::tuple<uintE, data>*)block->data;
+      auto block_data = (S*)block->data;
       size_t block_offset = block_offsets[block_id];
       for (size_t i=0; i<block_size; i++) {
         out[block_offset + i] = block_data[i];
@@ -436,7 +430,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
       // deallocate block to list_alloc
       data_block_allocator::free(block);
     }, 1);
-    ret = vertexSubsetData<data>(n, output_size, out);
+    ret = vertexSubsetData<data>(n, std::move(out));
   } else {
     parallel_for(0, all_blocks.size(), [&] (size_t block_id) {
       em_data_block* block = all_blocks[block_id];

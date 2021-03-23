@@ -53,11 +53,9 @@ void BFS_SpanningForest(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
     reachable += Frontier.size();
     vertexSubset output =
         edgeMap(G, Frontier, BFS_SpanningForest_F<W>(parents.begin()), -1, sparse_blocked | dense_parallel);
-    Frontier.del();
-    Frontier = output;
+    Frontier = std::move(output);
     rounds++;
   }
-  Frontier.del();
 }
 
 
@@ -125,11 +123,9 @@ void BFS_SpanningForest_Det(Graph& G, uintE src, pbbs::sequence<parent>& parents
     reachable += Frontier.size();
     edgeMap(G, Frontier, BFS_SpanningForest_Det_F<W>(parents, visited), -1, sparse_blocked | dense_parallel);
     auto output = edgeMap(G, Frontier, BFS_SpanningForest_Det_F_2<W>(parents, visited), -1, sparse_blocked | dense_parallel);
-    Frontier.del();
-    Frontier = output;
+    Frontier = std::move(output);
     rounds++;
   }
-  Frontier.del();
 }
 
 template <class Graph>

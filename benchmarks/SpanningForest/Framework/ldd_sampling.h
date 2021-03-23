@@ -79,8 +79,7 @@ inline std::pair<pbbs::sequence<uintE>, pbbs::sequence<edge>> LDD_sample_edges(G
     auto ldd_f = LDD_Edges_Fn<W>(Parents, Edges);
     vertexSubset next_frontier =
         edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
-    frontier.del();
-    frontier = next_frontier;
+    frontier = std::move(next_frontier);
 
     round++;
   }

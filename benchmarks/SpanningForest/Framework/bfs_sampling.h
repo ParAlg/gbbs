@@ -39,11 +39,9 @@ inline auto BFS_ComponentLabel(Graph& G, uintE src) {
     reachable += Frontier.size();
     vertexSubset output =
         edgeMap(G, Frontier, BFS_ComponentLabel_F<W>(Parents, src), -1, sparse_blocked | dense_parallel);
-    Frontier.del();
-    Frontier = output;
+    Frontier = std::move(output);
     rounds++;
   }
-  Frontier.del();
   parallel_for(0, G.n, [&] (size_t i) {
     uintE par = Parents[i];
     if (par != i) {

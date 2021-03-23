@@ -417,9 +417,8 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
   if (total_space > 0) {
     tmp = pbbs::new_array_no_init<uint8_t>(total_space);
   }
-  S* outV;
   if (should_output(fl)) {
-    outV = pbbslib::new_array_no_init<S>(vs.size());
+    auto outV = sequence<S>::no_init(vs.size());
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
       uint8_t* tmp_v = nullptr;
@@ -430,7 +429,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
       outV[i] = std::make_tuple(v, new_degree);
     }, 1);
     if (tmp) { pbbs::free_array(tmp); }
-    return vertexSubsetData<uintE>(n, m, outV);
+    return vertexSubsetData<uintE>(n, std::move(outV));
   } else {
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
@@ -459,25 +458,19 @@ inline vertexSubsetData<uintE> edgeMapFilter(Graph& G,
   if (vs.size() == 0) {
     return vertexSubsetData<uintE>(n);
   }
-  S* outV;
   if (should_output(fl)) {
-    outV = pbbslib::new_array_no_init<S>(vs.size());
-  }
-  if (should_output(fl)) {
+    auto outV = sequence<S>(vs.size());
     parallel_for(0, m, [&] (size_t i) {
       uintE v = vs.vtx(i);
       size_t ct = G.get_vertex(v).out_neighbors().count(p);
       outV[i] = std::make_tuple(v, ct);
     }, 1);
+    return vertexSubsetData<uintE>(n, std::move(outV));
   } else {
     parallel_for(0, m, [&] (size_t i) {
       uintE v = vs.vtx(i);
       G.get_vertex(v).out_neighbors().count(p);
     }, 1);
-  }
-  if (should_output(fl)) {
-    return vertexSubsetData<uintE>(n, m, outV);
-  } else {
     return vertexSubsetData<uintE>(n);
   }
 }

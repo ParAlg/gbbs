@@ -109,8 +109,7 @@ namespace workefficient_sf {
       auto ldd_f = LDD_Edge_F<W>(cluster_ids.begin(), parents.begin());
       vertexSubset next_frontier =
           edgeMap(G, frontier, ldd_f, -1, sparse_blocked);
-      frontier.del();
-      frontier = next_frontier;
+      frontier = std::move(next_frontier);
 
       round++;
     }

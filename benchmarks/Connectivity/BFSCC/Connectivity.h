@@ -64,11 +64,9 @@ void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
       if (output.size() > 0) {
         std::cout << "output.size = " << output.size() << std::endl;
       }
-      Frontier.del();
-      Frontier = output;
+      Frontier = std::move(output);
       rounds++;
     }
-    Frontier.del();
   }
 }
 

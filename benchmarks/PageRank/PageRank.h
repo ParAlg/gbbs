@@ -87,7 +87,7 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
 
   auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
-  vertexSubset Frontier(n,n,frontier.to_array());
+  vertexSubset Frontier(n,n, std::move(frontier));
 
   size_t iter = 0;
   while (iter++ < max_iters) {
@@ -110,7 +110,6 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
 
     debug(t.stop(); t.reportTotal("iteration time"););
   }
-  Frontier.del();
   auto max_pr = pbbslib::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
   for (size_t i=0; i<100; i++) {
@@ -137,7 +136,7 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
 
   auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
-  vertexSubset Frontier(n,n,frontier.to_array());
+  vertexSubset Frontier(n,n,std::move(frontier));
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
 
   auto cond_f = [&] (const uintE& v) { return true; };
@@ -176,7 +175,6 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
     std::swap(p_curr,p_next);
     t.stop(); t.reportTotal("iteration time");
   }
-  Frontier.del();
   auto max_pr = pbbslib::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
   for (size_t i=0; i<100; i++) {
@@ -336,9 +334,9 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
 
   auto get_degree = [&] (size_t i) { return G.get_vertex(i).out_degree(); };
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, (double)0.0), (size_t)G.m/1000);
-  vertexSubset Frontier(n,n,frontier.to_array());
+  vertexSubset Frontier(n,n,std::move(frontier));
   auto all = pbbs::sequence<bool>(n, true);
-  vertexSubset All(n,n,all.to_array()); //all vertices
+  vertexSubset All(n,n,std::move(all)); //all vertices
 
   size_t round = 0;
   while(round++ < max_iters) {
@@ -360,15 +358,13 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
     // Reset
     parallel_for(0, n, [&] (size_t i) { nghSum[i] = static_cast<double>(0); });
 
-    Frontier.del();
-    Frontier = active;
+    Frontier = std::move(active);
     debug(t.stop(); t.reportTotal("iteration time"););
   }
   auto max_pr = pbbslib::reduce_max(p);
   std::cout << "max_pr = " << max_pr << std::endl;
 
   std::cout << "Num rounds = " << round << std::endl;
-  Frontier.del(); All.del();
 }
 }  // namespace delta
 
