@@ -250,7 +250,6 @@ double BFS_runner(Graph& G, commandLine P) {
   std::cout << "### m: " << G.m << std::endl;
   std::cout << "### Params: -src = " << src << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
-  std::cout << "### ------------------------------------" << std::endl;
 
   timer t; t.start();
   auto parents = BFS(G, src);
@@ -331,7 +330,6 @@ $ numactl -i all ./bazel-bin/benchmarks/BFS/NonDeterministicBFS/BFS_main \
 ### n: 128
 ### m: 708
 ### Params: -src = 0
-### ------------------------------------
 ### ------------------------------------
 1
 8
