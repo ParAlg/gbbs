@@ -74,7 +74,7 @@ struct PR_Vertex_Reset {
 
 
 template <class Graph>
-void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
+sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   const uintE n = G.n;
   const double damping = 0.85;
 
@@ -112,13 +112,11 @@ void PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   }
   auto max_pr = pbbslib::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
-  for (size_t i=0; i<100; i++) {
-    std::cout << p_next[i] << std::endl;
-  }
+  return p_next;
 }
 
 template <class Graph>
-void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
+sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   using W = typename Graph::weight_type;
   const uintE n = G.n;
   const double damping = 0.85;
@@ -177,9 +175,7 @@ void PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 100) {
   }
   auto max_pr = pbbslib::reduce_max(p_next);
   std::cout << "max_pr = " << max_pr << std::endl;
-  for (size_t i=0; i<100; i++) {
-    std::cout << p_next[i] << std::endl;
-  }
+  return p_next;
 }
 
 namespace delta {
@@ -314,7 +310,7 @@ auto make_PR_Vertex_F(double* p, delta_and_degree* delta, double* nghSum, double
 }
 
 template <class Graph>
-void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t max_iters=100) {
+sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t max_iters=100) {
   const long n = G.n;
   const double damping = 0.85;
 
@@ -365,6 +361,7 @@ void PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0.01, size_t 
   std::cout << "max_pr = " << max_pr << std::endl;
 
   std::cout << "Num rounds = " << round << std::endl;
+  return p;
 }
 }  // namespace delta
 

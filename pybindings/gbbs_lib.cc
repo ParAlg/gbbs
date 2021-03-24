@@ -11,6 +11,7 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 #include "benchmarks/CoSimRank/CoSimRank.h"
+#include "benchmarks/PageRank/PageRank.h"
 #include "benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16/StronglyConnectedComponents.h"
 
 #include "pybind11/pybind11.h"
@@ -75,6 +76,11 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       uintE* arr = cores.to_array();
       return wrap_array(arr, G.n);
     })
+    .def("PageRank", [&] (graph& G) {
+      auto ranks = PageRank(G);
+      double* arr = ranks.to_array();
+      return wrap_array(arr, G.n);
+    })
     .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
       CoSimRank(G, src, dest);
       return 1.0;
@@ -96,10 +102,6 @@ void AsymVertexRegister(py::module& m, std::string vertex_name) {
     })
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = BFS(G, src);
-      return 1.0;
-    })
-    .def("CoSimRank", [&] (graph& G, const size_t u, const size_t v) {
-      CoSimRank(G, u, v);
       return 1.0;
     });
 }

@@ -7,11 +7,11 @@
 
 namespace gbbs {
 template <class Graph>
-struct PR_F {
+struct Co_PR_F {
   using W = typename Graph::weight_type;
   double* p_curr, *p_next;
   Graph& G;
-  PR_F(double* _p_curr, double* _p_next, Graph& G) :
+  Co_PR_F(double* _p_curr, double* _p_next, Graph& G) :
     p_curr(_p_curr), p_next(_p_next), G(G) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){ //update function applies PageRank equation
     p_next[d] += p_curr[s]/G.get_vertex(s).out_degree();
@@ -68,8 +68,8 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
-    auto Frontier_v_new = edgeMap(G,Frontier_v,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0);
-    auto Frontier_u_new = edgeMap(G,Frontier_u,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0); //, no_output
+    auto Frontier_v_new = edgeMap(G,Frontier_v,Co_PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0);
+    auto Frontier_u_new = edgeMap(G,Frontier_u,Co_PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0); //, no_output
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
 

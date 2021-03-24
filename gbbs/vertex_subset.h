@@ -102,7 +102,7 @@ struct vertexSubsetData {
         d(std::move(A)),
         isDense(1),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {
-    auto df = [&](size_t i) { return (size_t)std::get<0>(A[i]); };
+    auto df = [&](size_t i) { return (size_t)std::get<0>(d[i]); };
     auto d_map = pbbslib::make_sequence<size_t>(n, df);
     m = pbbslib::reduce_add(d_map);
   }
