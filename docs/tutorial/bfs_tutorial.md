@@ -181,7 +181,6 @@ while (!Frontier.isEmpty()) { // Loop until frontier is empty.
 
 ### The Final Algorithm
 
-The last step is to just free any memory allocated in the body of the BFS.
 Our finished BFS algorithm should look as follows:
 
 ``` cpp
@@ -221,7 +220,6 @@ inline sequence<uintE> BFS(Graph& G, uintE source) {
     reachable += Frontier.size();
     Frontier = edgeMap(G, Frontier, BFS_F<W>(Parents.begin()));
   }
-  Frontier.del();
   std::cout << "Reachable: " << reachable << std::endl;
   return Parents;
 }
