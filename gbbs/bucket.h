@@ -183,6 +183,14 @@ struct buckets {
     }
   }
 
+  inline size_t update_buckets(vertexSubsetData<uintE>& VS) {
+    if (VS.dense()) {
+      return update_buckets(VS.get_fn_repr(), VS.n);
+    } else {
+      return update_buckets(VS.get_fn_repr(), VS.size());
+    }
+  }
+
   // Updates k identifiers in the bucket structure. The i'th identifier and
   // its bucket_dest are given by F(i).
   template <class F>
