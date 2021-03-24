@@ -1,7 +1,7 @@
 module.exports = {
   docs: {
     Introduction : ['introduction', 'install', 'compile', 'run', 'formats', 'python_bindings'],
-    Tutorial : ['tutorial/bfs_tutorial'],
+    Tutorial : ['tutorial/bfs_tutorial', 'tutorial/kcore_tutorial'],
     Research : ['research', 'contributors'],
     Library : ['library/overview'],
     "Benchmark Implementations" : [

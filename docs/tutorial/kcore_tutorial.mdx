@@ -1,6 +1,6 @@
 ---
 id: kcore_tutorial
-title: KCore Tutorial
+title: KCore
 ---
 
 import useBaseUrl from '@docusaurus/useBaseUrl';
@@ -14,7 +14,8 @@ or the API reference.
 
 In this tutorial, we will introduce and use other parts of the GBBS
 library such as the *bucketing* data structure and the `nghCount`
-primitive in order to compute the *k-core* of a graph.
+primitive in order to compute the *k-core* of a graph. The
+implementation we describe is presented in more detail in [1, 2].
 
 
 
@@ -144,7 +145,7 @@ runs on a symmetric graph (either compressed or uncompressed), and
 requires a parameter called `num_buckets (-nb)` which we will discuss
 shortly.
 
-### Implementing the Parallel Peeling Algorithm
+## Implementing the Parallel Peeling Algorithm
 
 Add the following skeleton to `KCore.h`
 
@@ -235,7 +236,8 @@ of the bucket structure near the top of the function. This declaration
 constructs a helper data-structure used to perform the `nghCount`.
 
 ``` cpp
-auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
+auto em = hist_table<uintE, uintE>(
+    std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
 ```
 
 The `nghCount` primitive takes as input
@@ -291,18 +293,29 @@ auto apply_f = [&](const std::tuple<uintE, uintE>& p)
 };
 
 auto cond_f = [] (const uintE& u) { return true; };
-vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
+vertexSubsetData<uintE> moved = nghCount(
+    G, active, cond_f, apply_f, em, no_dense);
 ```
 
 Note that the code above makes use of the bucketing optimization
-described in the Julienne paper [1], which we will discuss later. The
-key point here is that instead of always returning the new bucket for
-this vertex, we call the `B.get_bucket` primitive corresponding to the
-new bucket for this vertex (`new_deg`). If the bucketing data
-structure does not need to move this vertex from its current bucket to
-the bucket corresponding to `new_deg` it returns a value of
-`UINT_E_MAX`, which the `wrap` primitive then ignores by returning
-`std::nullopt`. The other reason that a neighbor may not need to move
+described in the Julienne paper [1]. Specifically, the implementation
+is optimized for the case where only a small number of buckets are
+processed, which is typically the case in practice. Thus, instead of
+maintaining the identifiers stored in every single bucket, the
+implementation only explicitly represents a prefix of the next $C$
+many buckets, for some user-specified parameter $C$.
+
+The key point for our implementation is that we can potentially skip
+updating the bucketing structure for many vertices that had their
+degree decreased. To find out whether we need to actually move this
+vertex to a bucket currently in the open range, , we call the
+`B.get_bucket` primitive corresponding to the new bucket for this
+vertex (`new_deg`). If the bucketing data structure does not need to
+move this vertex from its current bucket to the bucket corresponding
+to `new_deg` it returns a value of `UINT_E_MAX`, which the `wrap`
+primitive then ignores by returning `std::nullopt`.
+
+Note that the other reason that a neighbor may not need to move
 buckets is if it has already been peeled.
 
 
@@ -316,7 +329,7 @@ b.update_buckets(moved);
 ```
 
 
-### The Finished Application
+## The Finished Application
 
 ``` cpp
 #pragma once
@@ -333,7 +346,8 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     return G.get_vertex(i).out_degree(); });
 
   auto B = make_vertex_buckets(n, D, increasing, num_buckets);
-  auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
+  auto em = hist_table<uintE, uintE>(
+      std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
 
   uintE finished = 0, rho = 0, k_max = 0;
   while (finished != n) {
@@ -357,7 +371,8 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     };
 
     auto cond_f = [] (const uintE& u) { return true; };
-    vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
+    vertexSubsetData<uintE> moved = nghCount(
+        G, active, cond_f, apply_f, em, no_dense);
 
     b.update_buckets(moved);
   }
@@ -369,7 +384,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
 ```
 
 
-### Compilation
+## Compilation
 
 Using Bazel you can compile the application the KCore application as follows:
 ```sh
@@ -380,7 +395,7 @@ To use `make` you can copy the makefile from
 `benchmarks/KCore/JulienneDBS17/makefile`, and run `make`.
 
 
-### Testing
+## Testing
 
 Let's try running our program on one of the test-inputs provided by Ligra in the `inputs/`
 directory.
@@ -405,7 +420,21 @@ $ numactl -i all ./bazel-bin/benchmarks/KCore/KCore_tutorial/KCore_main \
 The flags above indicate the following:
 * The `-s` flag indicates that the graph is symmetric.
 * The `-rounds` flag indicates the number of times to run the benchmark.
+* The `-nb` flag indicates the number of open buckets the bucketing implementation should maintain.
 
 Great! We've successfully implemented a work-efficient k-core
 algorithm in GBBS. You should now have all of the pieces necessary to
 implement your own bucketing-based algorithms in GBBS.
+
+
+## References
+
+[1] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
+[*Julienne: A Framework for Parallel Graph Algorithms using Work-efficient Bucketing*](https://ldhulipala.github.io/papers/Bucketing.pdf)<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 293-304, 2017.
+
+[2] Laxman Dhulipala, Guy Blelloch, and Julian Shun<br/>
+[*Theoretically Efficient Parallel Graph Algorithms Can Be Fast and Scalable*](https://ldhulipala.github.io/papers/gbbs_topc.pdf)<br/>
+Proceedings of the ACM Symposium on Parallelism in Algorithms and Architectures (SPAA), pp. 393-404, 2018. <br/>
+
+
