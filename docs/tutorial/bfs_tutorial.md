@@ -175,9 +175,7 @@ the current frontier is non-empty. In code:
 
 ``` cpp
 while (!Frontier.isEmpty()) { // Loop until frontier is empty.
-  vertexSubset output = edgeMap(GA, Frontier, BFS_F(Parents.begin()));
-  Frontier.del();
-  Frontier = output; //set new frontier
+  Frontier = edgeMap(GA, Frontier, BFS_F(Parents.begin()));
 }
 ```
 
@@ -221,9 +219,7 @@ inline sequence<uintE> BFS(Graph& G, uintE source) {
   while (!Frontier.isEmpty()) {
     std::cout << Frontier.size() << std::endl;
     reachable += Frontier.size();
-    vertexSubset output = edgeMap(G, Frontier, BFS_F<W>(Parents.begin()));
-    Frontier.del();
-    Frontier = output;
+    Frontier = edgeMap(G, Frontier, BFS_F<W>(Parents.begin()));
   }
   Frontier.del();
   std::cout << "Reachable: " << reachable << std::endl;

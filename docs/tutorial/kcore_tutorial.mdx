@@ -18,7 +18,7 @@ primitive in order to compute the *k-core* of a graph.
 
 
 
-## Definitions
+### Definitions
 Given $G = (V, E)$ the $k$-core of $G$ is the maximal set of vertices
 $S \subset V$ s.t. the degree for $v \in S$ in $G[S]$ (the induced
 subgraph of $G$ over $S$) is at least $k$. These objects have been
@@ -78,7 +78,7 @@ graph to an empty graph where each peeling step removes all minimum
 degree vertices.
 
 
-## Implementing the Parallel Peeling Algorithm
+### Getting Started
 
 Let's get started! `cd` into the `/benchmarks/kcore/` directory and
 create a new directory called `kcore_tutorial`. Create three files in
@@ -125,7 +125,6 @@ double KCore_runner(Graph& G, commandLine P) {
   std::cout << "### Params: -nb (num_buckets) = " << num_buckets << std::endl;
   std::cout << "### ------------------------------------" << std::endl;
 
-  // runs the fetch-and-add based implementation if set.
   timer t; t.start();
   auto cores = KCore(G, num_buckets);
   double tt = t.stop();
@@ -139,269 +138,274 @@ double KCore_runner(Graph& G, commandLine P) {
 generate_symmetric_main(gbbs::KCore_runner, false);
 ```
 
+Thus far we have simply set up the skeleton of the k-core
+implementation. The runner program in `KCore.cc` specifies that it
+runs on a symmetric graph (either compressed or uncompressed), and
+requires a parameter called `num_buckets (-nb)` which we will discuss
+shortly.
 
+### Implementing the Parallel Peeling Algorithm
 
-
-Last time we explicitly created a `vertexSubset`, we used a constructor that took a single
-vertex, $v$ and produced the subset $\{s\}$. The default representation of such a small subset
-is *sparse*. Here, we are creating a *dense* `vertexSubset`. The difference is that a `sparse`
-subset will represent a subset of size $k$ using an array containing $k$ vertex-ids, but a
-`dense` representation will just use an array of $n$ bits. For large subsets that are roughly
-$O(n)$, the dense implementation will be more space efficient, and will allow us to decide
-membership in a subset in $O(1)$.
-
-We also need to keep around an array containing the induced degrees of vertices.
+Add the following skeleton to `KCore.h`
 
 ``` cpp
-  long* Degrees = new long[n];
-  parallel_for(long i=0;i<n;i++) {
-    coreNumbers[i] = 0;
-    Degrees[i] = GA.V[i].getOutDegree();
-  }
-  long largestCore = -1;
-```
+#pragma once
 
-### Filtering vertices
+#include "gbbs/gbbs.h"
+#include "gbbs/julienne.h"
 
-Great! We now need to implement the logic that separates a `vertexSubset`
-into two sets:  vertices with degree $< k$ and vertices with induced degree
-$\geq k$. In order to do this, we will use a new part of the Ligra API:
-`vertexFilter`, which takes as input  a `vertexSubset` and a function
-that, given the id of a vertex, determines whether the vertex should be
-included in the returned vertexSubset or not. The function has the following
-signature:
+namespace gbbs {
 
-``` cpp
-template <class F>
-vertexSubset vertexFilter(vertexSubset V, F filter);
-```
+template <class Graph>
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
+  const uintE n = G.n;
+  auto D = sequence<uintE>(n, [&](size_t i) {
+    return G.get_vertex(i).out_degree(); });
 
-We need to supply it with a structure that is callable on values of the
-vertex-id type (in our case, `long`). We need to overload the `()` operator
-for the structure for a `long` argument. The most basic structure that
-can be passed to `vertexFilter` is:
-
-```
-struct Vertex_F {
-  inline bool operator () (long i) {
-    return true;
-  }
-};
-```
-
-Note that this leaves the input vertexSubset unchanged. We implement
-the structure to produce a `vertexSubset` containing vertices with degree
-$>= k$ as follows:
-
-``` cpp
-template<class vertex>
-struct Deg_AtLeast_K {
-  vertex* V;
-  long *Degrees;
-  long k;
-  Deg_AtLeast_K(vertex* _V, long* _Degrees, long _k) :
-    V(_V), k(_k), Degrees(_Degrees) {}
-  inline bool operator () (long i) {
-    return Degrees[i] >= k;
-  }
-};
-```
-
-The following structure will filter all vertices with degree $< k$. As vertices
-that satisfy this predicate are removed, we have to do some bookkeeping. In
-particular we
-
-* set their core-number to $k-1$
-* set their induced degree to $0$.
-
-``` cpp
-template<class vertex>
-struct Deg_LessThan_K {
-  vertex* V;
-  long* coreNumbers;
-  long* Degrees;
-  long k;
-  Deg_LessThan_K(vertex* _V, long* _Degrees, long* _coreNumbers, long _k) :
-    V(_V), k(_k), Degrees(_Degrees), coreNumbers(_coreNumbers) { }
-  inline bool operator () (long i) {
-    if(Degrees[i] < k) { coreNumbers[i] = k-1; Degrees[i] = 0; return true; }
-    else return false;
-  }
-};
-```
-
-### Updating induced degrees
-
-The last part of the implementation is to update the induced degrees of the
-neighbors of removed vertices. We can do this by using `edgeMap`. We'll pass
-the following struct to `edgeMap`.
-
-``` cpp
-struct Update_Deg {
-  long* Degrees;
-  Update_Deg(long* _Degrees) : Degrees(_Degrees) {}
-  inline bool update (long s, long d) {
-    Degrees[d]--;
-    return 1;
-  }
-  inline bool updateAtomic (long s, long d) {
-    writeAdd(&Degrees[d],(long)-1);
-    return 1;
-  }
-  inline bool cond (long d) { return Degrees[d] > 0; }
-};
-```
-
-### Putting it all together
-
-What should our loop do? Initially $k$ starts at one. We don't know what the
-*degeneracy* (recall, the maximum non-empty $k$-core) of the graph is, but have
-a simple upper bound of $n$.
-
-``` cpp
-  for (long k = 1; k <= n; k++) {
-    // TODO
-  }
-```
-
-What should we do inside of the loop? Inductively assume that we've computed the
-$k-1$ core, for some $1 < k < n$. In order to compute the $k$ core, we need to
-keep filtering vertices with induced degree $< k$ until either (1) there are
-no more vertices remaining in the graph or (2) all vertices have induced degree
-$>= k$. In code:
-
-``` cpp
-  for (long k = 1; k <= n; k++) {
-    while (true) {
-      vertexSubset toRemove =
-        vertexFilter(Frontier,Deg_LessThan_K<vertex>(GA.V,Degrees,coreNumbers,k));
-      vertexSubset remaining =
-        vertexFilter(Frontier,Deg_AtLeast_K<vertex>(GA.V,Degrees,k));
-      Frontier.del();
-      Frontier = remaining;
-      if (0 == toRemove.numNonzeros()) { // fixed point. found k-core
-      	toRemove.del();
-        break;
-      }
-      else {
-      	vertexSubset output = edgeMap(GA,toRemove,Update_Deg(Degrees));
-      	toRemove.del(); output.del();
-      }
-    }
-    if(Frontier.numNonzeros() == 0) { largestCore = k-1; break; }
-  }
-```
-
-### The finished application
-
-``` cpp
-#include "ligra.h"
-
-struct Update_Deg {
-  long* Degrees;
-  Update_Deg(long* _Degrees) : Degrees(_Degrees) {}
-  inline bool update (long s, long d) {
-    Degrees[d]--;
-    return 1;
-  }
-  inline bool updateAtomic (long s, long d){
-    writeAdd(&Degrees[d],-1);
-    return 1;
-  }
-  inline bool cond (long d) { return Degrees[d] > 0; }
-};
-
-template<class vertex>
-struct Deg_LessThan_K {
-  vertex* V;
-  long* coreNumbers;
-  long* Degrees;
-  long k;
-  Deg_LessThan_K(vertex* _V, long* _Degrees, long* _coreNumbers, long _k) :
-    V(_V), k(_k), Degrees(_Degrees), coreNumbers(_coreNumbers) {}
-  inline bool operator () (long i) {
-    if(Degrees[i] < k) { coreNumbers[i] = k-1; Degrees[i] = 0; return true; }
-    else return false;
-  }
-};
-
-template<class vertex>
-struct Deg_AtLeast_K {
-  vertex* V;
-  long *Degrees;
-  long k;
-  Deg_AtLeast_K(vertex* _V, long* _Degrees, long _k) :
-    V(_V), k(_k), Degrees(_Degrees) {}
-  inline bool operator () (long i) {
-    return Degrees[i] >= k;
-  }
-};
-
-template <class vertex>
-void Compute(graph<vertex>& GA, commandLine P) {
-  const long n = GA.n;
-  bool* active = new bool[n];
-  {parallel_for(long i=0;i<n;i++) active[i] = 1;}
-  vertexSubset Frontier(n, n, active);
-  long* coreNumbers = new long[n];
-  long* Degrees = new long[n];
-  {parallel_for(long i=0;i<n;i++) {
-      coreNumbers[i] = 0;
-      Degrees[i] = GA.V[i].getOutDegree();
-  }}
-  long largestCore = -1;
-  for (long k = 1; k <= n; k++) {
-    while (true) {
-      vertexSubset toRemove =
-        vertexFilter(Frontier,Deg_LessThan_K<vertex>(GA.V,Degrees,coreNumbers,k));
-      vertexSubset remaining =
-        vertexFilter(Frontier,Deg_AtLeast_K<vertex>(GA.V,Degrees,k));
-      Frontier.del();
-      Frontier = remaining;
-      if (0 == toRemove.numNonzeros()) { // fixed point. found k-core
-        toRemove.del();
-        break;
-      }
-      else {
-        vertexSubset output = edgeMap(GA,toRemove,Update_Deg(Degrees));
-        toRemove.del(); output.del();
-      }
-    }
-    if(Frontier.numNonzeros() == 0) { largestCore = k-1; break; }
-  }
-  cout << "Degeneracy is " << largestCore << endl;
-  Frontier.del(); free(coreNumbers); free(Degrees);
+  return D;
 }
 ```
 
+So far the code doesn't do much. The signature for the `KCore`
+function tells us that it accepts as input a graph and the number of
+buckets, and returns a sequence of integers representing the coreness
+number of each vertex. Inside the function body, the main point of
+interest is the array `D`, which will store the coreness values. The
+array initializes the coreness values to degree of each vertex in the
+graph.
+
+### Initializing the Bucketing Structure
+
+The next step in the algorithm before performing the peeling
+computation is to initialize a **bucketing structure** that will
+maintain a dynamic mapping between a set of identifiers (the vertices)
+and their bucket (representing their current induced degree).
+
+``` cpp
+auto B = make_vertex_buckets(n, D, increasing, num_buckets);
+```
+
+This declaration creates a bucketing structure, `B`, containing
+* `n` specifies the number of identifiers
+* `D` specifies the mapping from identifier to its current bucket number
+* `increasing` specifies that the buckets are processed in *increasing* order (smallest to largest)
+* `num_buckets` specifies the number of *open buckets* to maintain
+
+### Bucketing: NextBucket
+
+Next, now that the bucketing structure is initialized, we will
+implement the main peeling portion of the algorithm. The first step in
+peeling is to loop while all vertices have not yet been processed, and
+extract all of the vertices in the next non-empty bucket. Add the
+following loop after the initialization of the bucketing structure, `B`.
+
+``` cpp
+uintE finished = 0, rho = 0, k_max = 0;
+while (finished != n) {
+  auto bkt = B.next_bucket();
+  auto active = vertexSubset(n, std::move(bkt.identifiers));
+  uintE k = bkt.id;
+  k_max = k;
+  rho++;
+  finished += active.size();
+}
+```
+
+As described above, this code will loop until all vertices have been
+peeled (when `finished == n`). Each step of the loop extracts the
+identifiers in the next non-empty bucket using the `B.next_bucket()`
+primitive. This primitive returns a `bucket` object which consists the
+following:
+* `identifiers`: a sequence of identifiers contained in the extracted bucket
+* `id`: the id of the extracted bucket
+
+The code first initializes a `vertexSubset` using the extracted
+identifiers (vertices to be peeled), and increments the number of
+finished vertices by the number of extracted identifiers.
+
+
+### Updating the Induced Degrees
+
+The next step is to compute the effect of peeling these vertices from
+the graph has on their neighbors degrees. To do this we will use the
+`nghCount` primitive provided by GBBS.
+
+First add the following `EdgeMap` declaration after the initialization
+of the bucket structure near the top of the function. This declaration
+constructs a helper data-structure used to perform the `nghCount`.
+
+``` cpp
+auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
+```
+
+The `nghCount` primitive takes as input
+* `G`: an input graph
+* `active`: a `vertexSubset`
+* `cond_f`: a boolean function
+* `apply_f`: a function from std::tuple<uintE, uintE> -> std::optional<std::tuple<uintE, uintE>>
+* `em`: a reference to the helper EdgeMap struct
+* `flags`: an optional flags parameter
+
+It performs the following useful logic. It emits a value of $1$ for
+each edge $(u,v)$ where $u \in \mathsf{active}$ and $C(v) =
+\mathsf{true}$. Next, the mapped values for each such $v$ are reduced
+in parallel to obtain a single summed value, $R_v$. Finally, the
+`apply_f` function is called on the pair $(v, R_v)$ to obtain an
+optional result $O$. The vertex, augmented value pair $(v, o)$ is
+emitted to the output `vertexSubset` if and only if $O =
+\mathsf{Some}(o)$ (i.e., a non-null option was returned).
+
+
+<div style={{textAlign: 'center'}}>
+<img alt="kcore-figure" width="400" src={useBaseUrl('/img/kcore/ngh_count.svg')} />
+</div>
+&nbsp;
+
+For example, consider the figure above. The green vertices are the
+vertices in $\mathsf{active}$ in (1). Suppose `cond_f` returns
+$\mathsf{true}$ for $v_2, v_4, v_5$ and $\mathsf{false}$ for $v_3,
+v_6$, and `apply_f` simply returns $\mathsf{Some}(R_v)$. The counts
+associated with the red vertices in (2) show the vertices and their
+associated values in the `int vertexSubset` that is emitted by the
+`nghCount` primitive.
+
+Now that we understand the semantics of `nghCount`, we can use it to
+compute the number of neighbors removed from each vertex. The
+`apply_f` function will simply take the number of removed neighbors
+and perform the following steps:
+- potentially update the coreness of this vertex in `D`
+- return the new bucket that the neighbor should be moved to, or a
+  null option if the neighbor does not need to be moved
+
+``` cpp
+auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+    -> const std::optional<std::tuple<uintE, uintE> > {
+  uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+  uintE deg = D[v];
+  if (deg > k) {
+    uintE new_deg = std::max(deg - edgesRemoved, k);
+    D[v] = new_deg;
+    return wrap(v, B.get_bucket(new_deg));
+  }
+  return std::nullopt;
+};
+
+auto cond_f = [] (const uintE& u) { return true; };
+vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
+```
+
+Note that the code above makes use of the bucketing optimization
+described in the Julienne paper [1], which we will discuss later. The
+key point here is that instead of always returning the new bucket for
+this vertex, we call the `B.get_bucket` primitive corresponding to the
+new bucket for this vertex (`new_deg`). If the bucketing data
+structure does not need to move this vertex from its current bucket to
+the bucket corresponding to `new_deg` it returns a value of
+`UINT_E_MAX`, which the `wrap` primitive then ignores by returning
+`std::nullopt`. The other reason that a neighbor may not need to move
+buckets is if it has already been peeled.
+
+
+### Updating the Buckets
+
+The last step is to update the bucketing data structure with the new
+buckets for each of the affected neighbors.
+
+``` cpp
+b.update_buckets(moved);
+```
+
+
+### The Finished Application
+
+``` cpp
+#pragma once
+
+#include "gbbs/gbbs.h"
+#include "gbbs/julienne.h"
+
+namespace gbbs {
+
+template <class Graph>
+inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
+  const uintE n = G.n;
+  auto D = sequence<uintE>(n, [&](size_t i) {
+    return G.get_vertex(i).out_degree(); });
+
+  auto B = make_vertex_buckets(n, D, increasing, num_buckets);
+  auto em = hist_table<uintE, uintE>(std::make_tuple(UINT_E_MAX, 0), (size_t)G.m / 50);
+
+  uintE finished = 0, rho = 0, k_max = 0;
+  while (finished != n) {
+    auto bkt = B.next_bucket();
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
+    uintE k = bkt.id;
+    k_max = k;
+    rho++;
+    finished += active.size();
+
+    auto apply_f = [&](const std::tuple<uintE, uintE>& p)
+        -> const std::optional<std::tuple<uintE, uintE> > {
+      uintE v = std::get<0>(p), edgesRemoved = std::get<1>(p);
+      uintE deg = D[v];
+      if (deg > k) {
+        uintE new_deg = std::max(deg - edgesRemoved, k);
+        D[v] = new_deg;
+        return wrap(v, B.get_bucket(new_deg));
+      }
+      return std::nullopt;
+    };
+
+    auto cond_f = [] (const uintE& u) { return true; };
+    vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
+
+    b.update_buckets(moved);
+  }
+
+  std::cout << "### rho = " << rho << " k_{max} = " << k_max << std::endl;
+  return D;
+}
+
+```
+
+
 ### Compilation
 
-Compile the application by running `make`, which will produce a binary called
-`KCore`.
+Using Bazel you can compile the application the KCore application as follows:
+```sh
+$ bazel build //benchmarks/KCore/KCore_tutorial/...
+```
+
+To use `make` you can copy the makefile from
+`benchmarks/KCore/JulienneDBS17/makefile`, and run `make`.
+
 
 ### Testing
 
-Let's try computing the KCore of one of the input graphs.
-
-```
-$ ./KCore -s ../inputs/rMatGraph_J_5_100
-largestCore was 4
-Running time : 0.00594
-largestCore was 4
-Running time : 0.00559
-largestCore was 4
-Running time : 0.0057
-```
-
-Great! You can try running the KCore on more interesting examples, such
-as the twitter graph (note that `-b` indicates that the graph is stored
-as a binary, and `-rounds 1` indicates that the application should be run
-just once)
-
-```
-$ numactl -i all ./KCore -s -b -rounds 1 twitter_sym
-largestCore was 2488
-Running time : 280
+Let's try running our program on one of the test-inputs provided by Ligra in the `inputs/`
+directory.
+``` sh
+$ numactl -i all ./bazel-bin/benchmarks/KCore/KCore_tutorial/KCore_main \
+    -s -rounds 4 inputs/rMatGraph_J_5_100
+# list_alloc init_blocks: 1000
+# after init:
+# Used: 0, allocated: 79872, node size: 16392, bytes: 1309261824
+### Application: KCore
+### Graph: inputs/rMatGraph_J_5_100
+### Threads: 144
+### n: 128
+### m: 708
+### Params: -nb (num_buckets) = 16 -fa (use fetch_and_add) = 0
+### ------------------------------------
+### rho = 21 k_{max} = 4
+### Running Time: 0.000540018
+...
 ```
 
+The flags above indicate the following:
+* The `-s` flag indicates that the graph is symmetric.
+* The `-rounds` flag indicates the number of times to run the benchmark.
 
+Great! We've successfully implemented a work-efficient k-core
+algorithm in GBBS. You should now have all of the pieces necessary to
+implement your own bucketing-based algorithms in GBBS.
