@@ -2,7 +2,7 @@ from gbbs_lib import *
 import gbbs_lib
 import os
 
-def loadGraph(graphPath="",undirected=True, compressed=False):
+def loadGraph(graphPath="",undirected=True, compressed=False, binary=False):
   if (graphPath == ""):
     print("Expect a non-empty path to the graph input file")
     exit(0)
@@ -10,12 +10,12 @@ def loadGraph(graphPath="",undirected=True, compressed=False):
     if (compressed):
       return gbbs_lib.readCompressedSymmetricUnweightedGraph(graphPath)
     else:
-      return gbbs_lib.readSymmetricUnweightedGraph(graphPath)
+      return gbbs_lib.readSymmetricUnweightedGraph(graphPath, binary)
   else:
     if (compressed):
       return gbbs_lib.readCompressedAsymmetricUnweightedGraph(graphPath)
     else:
-      return gbbs_lib.readAsymmetricUnweightedGraph(graphPath)
+      return gbbs_lib.readAsymmetricUnweightedGraph(graphPath, binary)
 
 
 def loadSnap(graphPath="",undirected=True):

@@ -29,7 +29,7 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
   /* register vertex */
   py::class_<vertex>(m, vertex_name.c_str())
     .def("getDegree", [&] (vertex& v) {
-      return v.getOutDegree();
+      return v.out_degree();
     });
 }
 
@@ -153,18 +153,20 @@ PYBIND11_MODULE(gbbs_lib, m) {
   AsymGraphRegister<cav_bytepd_amortized, pbbs::empty>(m, "CompressedAsymmetricGraph");
 
   /* ============================== Graph IO ============================= */
-  m.def("readSymmetricUnweightedGraph", [&] (std::string& path) {
+  m.def("readSymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
     auto G = gbbs_io::read_unweighted_symmetric_graph(
         path.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        binary);
     alloc_init(G);
     return G;
   });
 
-  m.def("readAsymmetricUnweightedGraph", [&] (std::string& path) {
+  m.def("readAsymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
     auto G = gbbs_io::read_unweighted_asymmetric_graph(
         path.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        binary);
     alloc_init(G);
     return G;
   });
@@ -198,7 +200,8 @@ PYBIND11_MODULE(gbbs_lib, m) {
     }
     auto G = gbbs_io::read_unweighted_symmetric_graph(
         outpath.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        /* binary = */false);  /* TODO: use binary */
     alloc_init(G);
     return G;
   });
@@ -214,7 +217,8 @@ PYBIND11_MODULE(gbbs_lib, m) {
     }
     auto G = gbbs_io::read_unweighted_asymmetric_graph(
         outpath.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        /* binary = */ false);  /* TODO: use binary */
     alloc_init(G);
     return G;
   });
