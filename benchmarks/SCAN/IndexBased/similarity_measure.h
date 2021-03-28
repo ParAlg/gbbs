@@ -990,9 +990,9 @@ pbbs::sequence<EdgeSimilarity> DenseCosineSimilarity::AllEdges(
   // shared_weight_matrix[u * num_vertices + v] = numerator of similarity between u and v
   cblas_sgemm(
       CblasRowMajor, CblasNoTrans, CblasNoTrans,
-      num_vertices, num_vertices, num_vertices, 1.0,
-      adjacency_matrix, num_vertices, adjacency_matrix, num_vertices, 1.0,
-      shared_weight_matrix, num_vertices);
+      num_vertices, num_vertices, num_vertices,
+      1.0, adjacency_matrix, num_vertices, adjacency_matrix, num_vertices,
+      0.0, shared_weight_matrix, num_vertices);
   const pbbs::sequence<float> norms{num_vertices, [&](const uintE vertex_id) {
     return cblas_snrm2(num_vertices, adjacency_matrix + vertex_id * num_vertices, 1);
   }};
@@ -1015,6 +1015,9 @@ pbbs::sequence<EdgeSimilarity> DenseCosineSimilarity::AllEdges(
     graph->get_vertex(vertex_id).out_neighbors().map_with_index(
         compute_similarity);
   });
+
+  mkl_free(adjacency_matrix);
+  mkl_free(shared_weight_matrix);
   return similarities;
 }
 
