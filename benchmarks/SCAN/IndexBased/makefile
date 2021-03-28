@@ -4,9 +4,6 @@ SHELL = /bin/bash
 
 include $(ROOTDIR)makefile.variables
 
-CC=icpx
-CFLAGS+=-mkl
-
 ALL = run_scan
 
 SCAN_OBJDIR = $(ROOTDIR)bin/benchmarks/SCAN/IndexBased/
