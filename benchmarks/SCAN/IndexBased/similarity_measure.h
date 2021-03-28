@@ -13,6 +13,8 @@
 #include <limits>
 #include <type_traits>
 
+#include "mkl.h"
+
 #include "benchmarks/SCAN/IndexBased/intersect.h"
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 #include "gbbs/bridge.h"
@@ -140,6 +142,17 @@ struct ApproxJaccardSimilarity {
  private:
   const uint32_t num_samples_;
   const size_t random_seed_;
+};
+
+// uses matrix multiplication
+// only implemented for weighted graphs for now
+class DenseCosineSimilarity {
+ public:
+  DenseCosineSimilarity() = default;
+
+  template <template <typename> class VertexTemplate, typename Weight>
+  pbbs::sequence<EdgeSimilarity>
+  AllEdges(symmetric_graph<VertexTemplate, Weight>* graph) const;
 };
 
 //////////////
@@ -949,6 +962,60 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
   const size_t degree_threshold{static_cast<size_t>(1.0 * num_samples_)};
   return internal::ApproxJaccardEdgeSimilarities(
       graph, num_samples_, degree_threshold, random_seed_);
+}
+
+template <template <typename> class VertexTemplate, typename Weight>
+pbbs::sequence<EdgeSimilarity> DenseCosineSimilarity::AllEdges(
+    symmetric_graph<VertexTemplate, Weight>* graph) const {
+  const size_t num_vertices{graph->n};
+  const size_t matrix_size{num_vertices * num_vertices * sizeof(float)};
+  const int ALIGNMENT{64};
+  float* const adjacency_matrix =
+    static_cast<float*>(mkl_malloc(matrix_size, ALIGNMENT));
+  float* shared_weight_matrix =
+    static_cast<float*>(mkl_malloc(matrix_size, ALIGNMENT));
+  par_for(0, num_vertices * num_vertices, [&](const size_t i) {
+    adjacency_matrix[i] = 0.0;
+  });
+  par_for(0, num_vertices, [&](const uintE vertex_id) {
+    adjacency_matrix[vertex_id * num_vertices + vertex_id] = 1.0;
+  });
+  graph->mapEdges([&](const uintE u, const uintE v, const Weight weight) {
+    adjacency_matrix[u * num_vertices + v] = weight;
+  }, false /* parallel_inner_map */);
+  par_for(0, num_vertices * num_vertices, [&](const size_t i) {
+    shared_weight_matrix[i] = 0.0;
+  });
+
+  // shared_weight_matrix[u * num_vertices + v] = numerator of similarity between u and v
+  cblas_sgemm(
+      CblasRowMajor, CblasNoTrans, CblasNoTrans,
+      num_vertices, num_vertices, num_vertices, 1.0,
+      adjacency_matrix, num_vertices, adjacency_matrix, num_vertices, 1.0,
+      shared_weight_matrix, num_vertices);
+  const pbbs::sequence<float> norms{num_vertices, [&](const uintE vertex_id) {
+    return cblas_snrm2(num_vertices, adjacency_matrix + vertex_id * num_vertices, 1);
+  }};
+
+  pbbs::sequence<EdgeSimilarity> similarities(graph->m);
+  const pbbs::sequence<uintT> vertex_offsets{internal::VertexOutOffsets(graph)};
+  par_for(0, num_vertices, [&](const uintE vertex_id) {
+    const uintT vertex_offset{vertex_offsets[vertex_id]};
+    const auto compute_similarity([&](
+        const uintE v_id,
+        const uintE u_id,
+        const Weight,
+        const uintE v_to_u_index) {
+      const float similarity =
+        shared_weight_matrix[v_id * num_vertices + u_id] /
+        (norms[v_id] * norms[u_id]);
+      similarities[vertex_offset + v_to_u_index] =
+        {.source = v_id, .neighbor = u_id, .similarity = similarity};
+    });
+    graph->get_vertex(vertex_id).out_neighbors().map_with_index(
+        compute_similarity);
+  });
+  return similarities;
 }
 
 }  // namespace scan

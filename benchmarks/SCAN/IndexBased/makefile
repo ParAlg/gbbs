@@ -1,7 +1,11 @@
 # git root directory
 ROOTDIR = $(strip $(shell git rev-parse --show-cdup))
+SHELL = /bin/bash
 
 include $(ROOTDIR)makefile.variables
+
+CC=source /home/ubuntu/intel/oneapi/setvars.sh && icpx
+CFLAGS+=-mkl
 
 ALL = run_scan
 
