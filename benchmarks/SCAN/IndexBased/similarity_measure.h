@@ -972,7 +972,7 @@ pbbs::sequence<EdgeSimilarity> DenseCosineSimilarity::AllEdges(
   const int ALIGNMENT{64};
   float* const adjacency_matrix =
     static_cast<float*>(mkl_malloc(matrix_size, ALIGNMENT));
-  float* shared_weight_matrix =
+  float* const shared_weight_matrix =
     static_cast<float*>(mkl_malloc(matrix_size, ALIGNMENT));
   par_for(0, num_vertices * num_vertices, [&](const size_t i) {
     adjacency_matrix[i] = 0.0;
