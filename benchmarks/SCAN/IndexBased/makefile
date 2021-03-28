@@ -4,7 +4,7 @@ SHELL = /bin/bash
 
 include $(ROOTDIR)makefile.variables
 
-CC=source /home/ubuntu/intel/oneapi/setvars.sh && icpx
+CC=icpx
 CFLAGS+=-mkl
 
 ALL = run_scan
