@@ -47,9 +47,12 @@ CFLAGS = \
 	$(CONCEPTS) \
 	-DAMORTIZEDPD \
 	-DUSEMALLOC \
-        -mkl
+        -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
 # Add GCC-specific and Clang-specific flags
 ifeq ($(OS), linux)
+  CFLAGS += \
+       -Wno-free-nonheap-object \
+       -Wunused-but-set-parameter
 else ifeq ($(OS), mac)
   CFLAGS += \
 	-Wself-assign \
@@ -64,21 +67,21 @@ ifdef CLANG
 CC = clang++
 PFLAGS = $(CILKFLAGS)
 else ifdef CILK
-CC = icpx
+CC = g++
 PFLAGS = $(CILKFLAGS)
 LFLAGS = -lcilkrts
 else ifdef OPENMP
-CC = icpx
+CC = g++
 PFLAGS = $(OMPFLAGS)
 LFLAGS = -fopenmp
 else ifdef HOMEGROWN
-CC = icpx
+CC = g++
 PFLAGS = $(HGFLAGS)
 else ifdef SERIAL
-CC = icpx
+CC = g++
 PFLAGS =
 else # default is homegrown
-CC = icpx
+CC = g++
 PFLAGS = $(HGFLAGS)
 endif
 

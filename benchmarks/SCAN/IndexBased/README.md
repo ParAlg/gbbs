@@ -15,5 +15,5 @@ Define the `SCAN_DETAILED_TIMES` macro in order to output more detailed timings.
 ## MKL
 
 To use matrix multiplication on dense graphs, install Intel MKL (Math Kernel
-Library). The Bazel build file does not work with MKL, so build with `make`
+Library). The Bazel build file is not set up to work with MKL, so build with `make`
 instead. Source MKL's `setvars.sh` file before running `make`.
