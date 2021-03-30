@@ -980,8 +980,12 @@ pbbs::sequence<EdgeSimilarity> DenseCosineSimilarity::AllEdges(
   par_for(0, num_vertices, [&](const uintE vertex_id) {
     adjacency_matrix[vertex_id * num_vertices + vertex_id] = 1.0;
   });
-  graph->mapEdges([&](const uintE u, const uintE v, const Weight weight) {
-    adjacency_matrix[u * num_vertices + v] = weight;
+  graph->mapEdges([&](const uintE u, const uintE v, [[maybe_unused]] const Weight weight) {
+    if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+      adjacency_matrix[u * num_vertices + v] = 1.0;
+    } else {  // weighted case
+      adjacency_matrix[u * num_vertices + v] = weight;
+    }
   }, false /* parallel_inner_map */);
   par_for(0, num_vertices * num_vertices, [&](const size_t i) {
     shared_weight_matrix[i] = 0.0;
