@@ -3,6 +3,7 @@
 DATA_DIR=~/data
 RESULTS_DIR=~/scan-experiment-results
 RUN_PARALLEL="numactl -i all ./run_gbbs_mkl_experiments -s"
+RUN_SERIAL="MKL_NUM_THREADS=1 ./run_gbbs_mkl_experiments -s
 
 mkdir --parents ${RESULTS_DIR}
 
@@ -15,4 +16,8 @@ cd -
 for GRAPH in "${WEIGHTED_GRAPHS[@]}"
 do
   ${RUN_PARALLEL} -wf ${DATA_DIR}/${GRAPH}-csr 2>&1 | tee ${RESULTS_DIR}/${GRAPH}-gbbs-mkl.txt
+done
+for GRAPH in "${WEIGHTED_GRAPHS[@]}"
+do
+  ${RUN_SERIAL} -wf ${DATA_DIR}/${GRAPH}-csr 2>&1 | tee ${RESULTS_DIR}/${GRAPH}-gbbs-mkl-serial.txt
 done
