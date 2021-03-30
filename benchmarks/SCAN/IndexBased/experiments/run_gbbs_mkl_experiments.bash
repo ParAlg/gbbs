@@ -14,5 +14,5 @@ make
 cd -
 for GRAPH in "${WEIGHTED_GRAPHS[@]}"
 do
-  ${RUN_PARALLEL} -wf ${DATA_DIR}/${GRAPH}-csr 2>&1 | tee ${RESULTS_DIR}/${GRAPH}-gbbs.txt
+  ${RUN_PARALLEL} -wf ${DATA_DIR}/${GRAPH}-csr 2>&1 | tee ${RESULTS_DIR}/${GRAPH}-gbbs-mkl.txt
 done
