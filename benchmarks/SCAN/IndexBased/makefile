@@ -7,7 +7,7 @@ include $(ROOTDIR)makefile.variables
 ALL = run_scan
 
 SCAN_OBJDIR = $(ROOTDIR)bin/benchmarks/SCAN/IndexBased/
-OTHER_LOCAL = scan.o scan_helpers.o
+OTHER_LOCAL = scan.o scan_helpers.o similarity_measure.o
 OTHER_OBJS = \
   $(wildcard $(ROOTDIR)bin/benchmarks/Connectivity/*.o) \
   $(addprefix $(SCAN_OBJDIR), $(OTHER_LOCAL))

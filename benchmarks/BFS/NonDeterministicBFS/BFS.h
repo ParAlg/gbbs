@@ -31,7 +31,7 @@ template <class W>
 struct BFS_F {
   uintE* Parents;
   BFS_F(uintE* _Parents) : Parents(_Parents) {}
-  inline bool update(const uintE& s, const uintE& d, const W& w) const {
+  inline bool update(uintE s, uintE d, W w) {
     if (Parents[d] == UINT_E_MAX) {
       Parents[d] = s;
       return 1;
@@ -39,10 +39,10 @@ struct BFS_F {
       return 0;
     }
   }
-  inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) const {
+  inline bool updateAtomic(uintE s, uintE d, W w) {
     return (pbbslib::atomic_compare_and_swap(&Parents[d], UINT_E_MAX, s));
   }
-  inline bool cond(const uintE& d) const { return (Parents[d] == UINT_E_MAX); }
+  inline bool cond(uintE d) { return (Parents[d] == UINT_E_MAX); }
 };
 
 template <class Graph>
@@ -57,12 +57,8 @@ inline sequence<uintE> BFS(Graph& G, uintE src) {
   while (!Frontier.isEmpty()) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
-    vertexSubset output =
-        neighbor_map(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
-    Frontier.del();
-    Frontier = output;
+    Frontier = edgeMap(G, Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
   }
-  Frontier.del();
   std::cout << "Reachable: " << reachable << "\n";
   return Parents;
 }

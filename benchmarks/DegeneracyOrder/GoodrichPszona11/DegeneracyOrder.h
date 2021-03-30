@@ -69,12 +69,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
       D[v] -= edgesRemoved;
       return std::nullopt;
     };
-    size_t this_round_size = this_round.size();
-    auto this_round_vs = vertexSubset(n, this_round_size, this_round.to_array());
+    auto this_round_vs = vertexSubset(n, std::move(this_round));
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
-
-
-    moved.del();
   }
   pbbs::sequence<uintE> ret_seq(ret.A, n);
   ret.A = nullptr; ret.alloc = false; /* sketchy */
@@ -117,11 +113,15 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
       //}
       return std::nullopt;
     };
-    auto active =
-        vertexSubset(n, std::min(ns + start, n) - start, sortD.begin() + start);
-    auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
 
-    moved.del();
+    size_t num_removed = std::min(ns + start, n) - start;
+    auto removed = sequence<uintE>::no_init(num_removed);
+    parallel_for(0, num_removed, [&] (size_t i) {
+      removed[i] = sortD[start + i];
+    });
+    auto active =
+        vertexSubset(n, std::move(removed));
+    auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
   }
   auto ret = sequence<uintE>::no_init(n);
   parallel_for (0,n,[&] (size_t j) { ret[sortD[j]] = j; });

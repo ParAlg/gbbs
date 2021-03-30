@@ -89,7 +89,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   while (true) {
     nbt.start();
     auto bkt = b.next_bucket();
-    auto active = vertexSubset(G.n, bkt.identifiers);
+    auto active = vertexSubset(G.n, std::move(bkt.identifiers));
     size_t cur_bkt = bkt.id;
     if (cur_bkt == b.null_bkt) {
       break;
@@ -113,7 +113,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     };
     //auto still_active = vertexFilter_sparse(packed_vtxs, above_threshold);
     auto still_active = vertexFilter(packed_vtxs, above_threshold, no_dense);
-    packed_vtxs.del();
 
     permt.start();
     // Update the permutation for the sets that are active in this round.
@@ -153,8 +152,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
           return numWon >= low_threshold;
         }, no_dense);
     cover.copyInF([&](uintE i) { return inCover.vtx(i); }, inCover.size());
-    inCover.del();
-    activeAndCts.del();
 
     // 4. sets -> elements (Sets that joined the cover mark their neighboring
     // elements as covered. Sets that didn't reset any acquired elements)
@@ -185,8 +182,6 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     };
     debug(std::cout << "cover.size = " << cover.size << "\n");
     b.update_buckets(f, active.size());
-    active.del();
-    still_active.del();
     rounds++;
     bktt.stop();
     r = r.next();

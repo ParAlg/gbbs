@@ -45,23 +45,26 @@ template <class Data  /* per-vertex data in the emitted vertex_subset */,
           class F     /* edgeMap struct */>
 inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
                                            const flags fl) {
-  using D = std::tuple<bool, Data>;
+  using D = typename vertexSubsetData<Data>::D;
   size_t n = GA.n;
   auto dense_par = fl & dense_parallel;
   if (should_output(fl)) {
-    D* next = pbbslib::new_array_no_init<D>(n);
-    auto g = get_emdense_gen<Data>(next);
+    auto next = sequence<D>(n,
+      [&] (size_t i) {
+        if constexpr (std::is_same<Data, pbbslib::empty>()) return 0;
+        else return std::make_tuple<uintE, Data>(0, Data());
+    });
+    auto g = get_emdense_gen<Data>(next.begin());
     parallel_for(
         0, n,
         [&](size_t v) {
-          std::get<0>(next[v]) = 0;
           if (f.cond(v)) {
             auto neighbors = (fl & in_edges) ? GA.get_vertex(v).out_neighbors() : GA.get_vertex(v).in_neighbors();
             neighbors.decodeBreakEarly(vertexSubset, f, g, dense_par);
           }
         },
         (fl & fine_parallel) ? 1 : 2048);
-    return vertexSubsetData<Data>(n, next);
+    return vertexSubsetData<Data>(n, std::move(next));
   } else {
     auto g = get_emdense_nooutput_gen<Data>();
     parallel_for(0, n,
@@ -83,20 +86,25 @@ template <class Data  /* per-vertex data in the emitted vertex_subset */,
 inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F& f,
                                                   const flags fl) {
   debug(std::cout << "# dense forward" << std::endl;);
-  using D = std::tuple<bool, Data>;
+  using D = typename vertexSubsetData<Data>::D;
   size_t n = GA.n;
   if (should_output(fl)) {
-    D* next = pbbslib::new_array_no_init<D>(n);
-    auto g = get_emdense_forward_gen<Data>(next);
-    par_for(0, n, pbbslib::kSequentialForThreshold,
-            [&](size_t i) { std::get<0>(next[i]) = 0; });
+    auto next = sequence<D>(n);
+    auto g = get_emdense_forward_gen<Data>(next.begin());
+    if constexpr (std::is_same<Data, pbbslib::empty>()) {
+      par_for(0, n, pbbslib::kSequentialForThreshold,
+              [&](size_t i) { next[i] = 0; });
+    } else {
+      par_for(0, n, pbbslib::kSequentialForThreshold,
+              [&](size_t i) { std::get<0>(next[i]) = 0; });
+    }
     par_for(0, n, 1, [&](size_t i) {
       if (vertexSubset.isIn(i)) {
         auto neighbors = (fl & in_edges) ? GA.get_vertex(i).in_neighbors() : GA.get_vertex(i).out_neighbors();
         neighbors.decode(f, g);
       }
     });
-    return vertexSubsetData<Data>(n, next);
+    return vertexSubsetData<Data>(n, std::move(next));
   } else {
     auto g = get_emdense_forward_nooutput_gen<Data>();
     par_for(0, n, 1, [&](size_t i) {
