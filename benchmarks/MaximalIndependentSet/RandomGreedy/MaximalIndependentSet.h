@@ -142,8 +142,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   auto zero_map =
       pbbslib::make_sequence<bool>(n, zero_f);
   auto init = pbbslib::pack_index<uintE>(zero_map);
-  size_t init_size = init.size();
-  auto roots = vertexSubset(n, init_size, init.to_array());
+  auto roots = vertexSubset(n, std::move(init));
 
   auto in_mis = sequence<bool>(n, false);
   size_t finished = 0;
@@ -174,10 +173,8 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
     // update finished with roots and removed. update roots.
     finished += roots.size();
     finished += removed.size();
-    removed.del();
-    roots.del();
 
-    roots = new_roots;
+    roots = std::move(new_roots);
     rounds++;
   }
   return in_mis;

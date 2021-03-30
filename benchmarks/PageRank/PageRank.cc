@@ -50,11 +50,11 @@ double PageRank_runner(Graph& G, commandLine P) {
   double local_eps = P.getOptionDoubleValue("-leps", 0.01);
   size_t iters = P.getOptionLongValue("-iters", 100);
   if (P.getOptionValue("-em")) {
-    PageRank_edgeMap(G, eps, iters);
+    auto ret = PageRank_edgeMap(G, eps, iters);
   } else if (P.getOptionValue("-delta")) {
-    delta::PageRankDelta(G, eps, local_eps, iters);
+    auto ret = delta::PageRankDelta(G, eps, local_eps, iters);
   } else {
-    PageRank(G, eps, iters);
+    auto ret = PageRank(G, eps, iters);
   }
   double tt = t.stop();
 

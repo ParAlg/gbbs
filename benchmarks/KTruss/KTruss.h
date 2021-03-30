@@ -142,7 +142,9 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   initialize_trussness_values(GA, trussness_multi);
 
   // Initialize the bucket structure. #ids = trussness table size
-  auto get_bkt = pbbslib::make_sequence<uintE>(trussness_multi.size(), [&] (size_t i) {
+  std::cout << "multi_size = " << trussness_multi.size() << std::endl;
+  auto multi_size = trussness_multi.size();
+  auto get_bkt = pbbslib::make_sequence<uintE>(multi_size, [&] (size_t i) {
     auto table_value = std::get<1>(trussness_multi.big_table[i]); // the trussness.
     return (uintE)table_value;
   });
@@ -288,6 +290,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
         decr_seq[fst] = u;
         decr_seq[snd] = v;
       });
+      std::cout << "compacting 1, " << del_edges.size << std::endl;
 
       // returns only those vertices that have enough degree lost to warrant
       // packing them out. Again note that edge_t >= uintE
@@ -299,18 +302,22 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
         // compare with GA.V[id]. this is the current space used for this vtx.
         return std::nullopt;
       };
+      std::cout << "compacting 2, " << del_edges.size << std::endl;
 
       em_t.start();
-      auto vs = vertexSubset(GA.n, decr_seq.size(), decr_seq.begin());
+      auto vs = vertexSubset(GA.n, std::move(decr_seq));
+      std::cout << "compacting 3, " << del_edges.size << std::endl;
       auto cond_f = [&] (const uintE& u) { return true; };
-      nghCount(GA, vs, cond_f, apply_vtx_f, em);
+      nghCount(GA, vs, cond_f, apply_vtx_f, em, no_output);
       em_t.stop();
+      std::cout << "compacting 4, " << del_edges.size << std::endl;
 
       auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
       auto to_pack_seq = pbbs::filter(all_vertices, [&] (uintE u) {
         return 4*actual_degree[u] >= GA.get_vertex(u).out_degree();
       });
       auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));
+      std::cout << "compacting 5, " << del_edges.size << std::endl;
 
       auto pack_predicate = [&](const uintE& u, const uintE& ngh, const W& wgh) {
         // return true iff edge is still alive
@@ -323,6 +330,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 
       del_edges.size = 0; // reset dyn_arr
       ct.stop();
+      std::cout << "Finished compacting." << std::endl;
     }
   }
 

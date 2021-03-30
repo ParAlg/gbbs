@@ -46,8 +46,7 @@ void RemoveDuplicates(vertexSubset* vertex_subset) {
     pbbs::remove_duplicates_ordered(vertices, std::less<uintE>{})};
   vertexSubset deduped_vertex_subset{
     vertex_subset->n, std::move(deduped_vertices)};
-  vertex_subset->del();
-  *vertex_subset = deduped_vertex_subset;
+  *vertex_subset = std::move(deduped_vertex_subset);
 }
 
 

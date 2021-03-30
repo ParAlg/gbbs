@@ -11,6 +11,7 @@
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 #include "benchmarks/CoSimRank/CoSimRank.h"
+#include "benchmarks/PageRank/PageRank.h"
 #include "benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16/StronglyConnectedComponents.h"
 
 #include "pybind11/pybind11.h"
@@ -29,7 +30,7 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
   /* register vertex */
   py::class_<vertex>(m, vertex_name.c_str())
     .def("getDegree", [&] (vertex& v) {
-      return v.getOutDegree();
+      return v.out_degree();
     });
 }
 
@@ -75,6 +76,11 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       uintE* arr = cores.to_array();
       return wrap_array(arr, G.n);
     })
+    .def("PageRank", [&] (graph& G) {
+      auto ranks = PageRank(G);
+      double* arr = ranks.to_array();
+      return wrap_array(arr, G.n);
+    })
     .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
       CoSimRank(G, src, dest);
       return 1.0;
@@ -96,10 +102,6 @@ void AsymVertexRegister(py::module& m, std::string vertex_name) {
     })
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = BFS(G, src);
-      return 1.0;
-    })
-    .def("CoSimRank", [&] (graph& G, const size_t u, const size_t v) {
-      CoSimRank(G, u, v);
       return 1.0;
     });
 }
@@ -153,18 +155,20 @@ PYBIND11_MODULE(gbbs_lib, m) {
   AsymGraphRegister<cav_bytepd_amortized, pbbs::empty>(m, "CompressedAsymmetricGraph");
 
   /* ============================== Graph IO ============================= */
-  m.def("readSymmetricUnweightedGraph", [&] (std::string& path) {
+  m.def("readSymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
     auto G = gbbs_io::read_unweighted_symmetric_graph(
         path.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        binary);
     alloc_init(G);
     return G;
   });
 
-  m.def("readAsymmetricUnweightedGraph", [&] (std::string& path) {
+  m.def("readAsymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
     auto G = gbbs_io::read_unweighted_asymmetric_graph(
         path.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        binary);
     alloc_init(G);
     return G;
   });
@@ -198,7 +202,8 @@ PYBIND11_MODULE(gbbs_lib, m) {
     }
     auto G = gbbs_io::read_unweighted_symmetric_graph(
         outpath.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        /* binary = */false);  /* TODO: use binary */
     alloc_init(G);
     return G;
   });
@@ -214,7 +219,8 @@ PYBIND11_MODULE(gbbs_lib, m) {
     }
     auto G = gbbs_io::read_unweighted_asymmetric_graph(
         outpath.c_str(),
-        /* mmap = */true);
+        /* mmap = */true,
+        /* binary = */ false);  /* TODO: use binary */
     alloc_init(G);
     return G;
   });

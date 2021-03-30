@@ -96,7 +96,7 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
   bktt.stop();
   flags fl = no_dense;
   while (bkt.id != b.null_bkt) {
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     // The output of the edgeMap is a vertexSubsetData<uintE> where the value
     // stored with each vertex is its original distance in this round
     auto res = edgeMapData<uintE>(G, active, Visit_F(dists), G.m/20, fl);
@@ -107,7 +107,6 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.del();
     bkt = b.next_bucket();
     bktt.stop();
   }

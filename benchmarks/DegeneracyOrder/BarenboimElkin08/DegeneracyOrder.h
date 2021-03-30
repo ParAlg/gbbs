@@ -35,6 +35,14 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
       return D[sortD[i + start]] < deg_cutoff ? i + start : 0;});
     size_t end = pbbs::reduce(BS, pbbs::maxm<size_t>());
     if (end == start) end++; //TODO step?
+
+    auto num_removed = end-start;
+    auto removed = sequence<uintE>::no_init(num_removed);
+    parallel_for(0, num_removed, [&] (size_t i) {
+      removed[i] = sortD[start + i];
+    });
+    auto active = vertexSubset(n, std::move(removed));
+
     // least ns, from start to min(ns+start, n), is in order
     // update degrees based on peeled vert
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)
@@ -43,11 +51,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
         D[v] -= edgesRemoved;
       return std::nullopt;
     };
-    auto active =
-        vertexSubset(n, end - start, sortD.begin() + start);
     auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
 
-    moved.del();
     start = end;
   }
   auto ret = sequence<uintE>::no_init(n);

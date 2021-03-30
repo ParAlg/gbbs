@@ -23,9 +23,6 @@
 
 #pragma once
 
-//#include "gbbs/bucket.h"
-//#include "gbbs/edge_map_reduce.h"
-//#include "gbbs/pbbslib/dyn_arr.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/julienne.h"
 
@@ -46,7 +43,7 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
@@ -65,21 +62,14 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
 
     auto cond_f = [] (const uintE& u) { return true; };
     vertexSubsetData<uintE> moved = nghCount(G, active, cond_f, apply_f, em, no_dense);
-    bt.start();
-    if (moved.dense()) {
-      b.update_buckets(moved.get_fn_repr(), n);
-    } else {
-      b.update_buckets(moved.get_fn_repr(), moved.size());
-    }
 
+    bt.start();
+    b.update_buckets(moved);
     bt.stop();
-    moved.del();
-    active.del();
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.reportTotal("bucket time"););
-  b.del();
   return D;
 }
 
@@ -122,7 +112,7 @@ inline sequence<uintE> KCore_FA(Graph& G,
   size_t k_max = 0;
   while (finished != n) {
     auto bkt = b.next_bucket();
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
@@ -145,11 +135,8 @@ inline sequence<uintE> KCore_FA(Graph& G,
     } else {
       b.update_buckets(moved.get_fn_repr(), moved.size());
     }
-    moved.del();
-    active.del();
     rho++;
   }
-  b.del();
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   return D;
 }
@@ -172,7 +159,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     bt.start();
     auto bkt = b.next_bucket();
     bt.stop();
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     uintE k = bkt.id;
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
@@ -202,13 +189,10 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     }
 
     bt.stop();
-    moved.del();
-    active.del();
     rho++;
   }
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << "\n";
   debug(bt.reportTotal("bucket time"););
-  b.del();
   return degeneracy_order;
 }
 

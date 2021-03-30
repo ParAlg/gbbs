@@ -174,20 +174,17 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   });
   auto leafs = pbbslib::pack_index<uintE>(leaf_im);
 
-  auto vs = vertexSubset(n, leafs.size(), leafs.begin());
+  auto leafs_copy = leafs;
+  auto vs = vertexSubset(n, std::move(leafs_copy));
   size_t rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
-    auto output = edgeMap(
+    vs = edgeMap(
         Tree, vs, wrap_em_f<pbbslib::empty>(AugF(aug_sizes.begin(), cts.begin())),
         -1, in_edges | sparse_blocked | fine_parallel);
-    if (rds > 1) {
-      vs.del();  // don't delete leafs.
-    }
-    vs = output;
-    output.toSparse();
+    vs.toSparse();
   }
   augs.stop();
   debug(augs.reportTotal("aug size time"););
@@ -197,12 +194,11 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   // Use copy constructor
   sequence<uintE> s_copy(Sources);
-  size_t sources_size = Sources.size();
 
   timer pren;
   pren.start();
   auto PN = sequence<uintE>(n);
-  vs = vertexSubset(n, sources_size, s_copy.to_array());
+  vs = vertexSubset(n, std::move(s_copy));
   par_for(0, Sources.size(), [&] (size_t i) {
     uintE v = vs.vtx(i);
     PN[v] = 0;
@@ -250,9 +246,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
         });
       }
     });
-    vs.del();
-    size_t next_vs_size = next_vs.size();
-    vs = vertexSubset(n, next_vs_size, next_vs.to_array());
+    vs = vertexSubset(n, std::move(next_vs));
   }
   pren.stop();
   debug(pren.reportTotal("preorder number from sizes time"););
@@ -295,18 +289,15 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { cts[i] = Tree.get_vertex(i).out_degree(); });
 
-  size_t leafs_size = leafs.size();
-  vs = vertexSubset(n, leafs_size, leafs.to_array());
+  vs = vertexSubset(n, std::move(leafs));
   rds = 0, tv = 0;
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
     // histogram or write-add parents, produce next em.
-    auto output = edgeMap(
+    vs = edgeMap(
         Tree, vs, wrap_em_f<pbbslib::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
         in_edges | sparse_blocked | fine_parallel);
-    vs.del();
-    vs = output;
   }
   // Delete tree
   pbbslib::free_array(v_out);
@@ -345,11 +336,8 @@ inline uintE* multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
     Parents[v] = v;
   });
   while (!frontier.isEmpty()) {
-    vertexSubset output =
-        edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())), -1,
+    frontier = edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())), -1,
                 sparse_blocked);
-    frontier.del();
-    frontier = output;
   }
   return Parents.to_array();
 }
@@ -411,12 +399,8 @@ uintE* deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   while (!frontier.isEmpty()) {
     edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F(visited.begin(), Parents.begin())), -1,
                 sparse_blocked);
-    vertexSubset output =
-        edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
+    frontier = edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
                 sparse_blocked);
-
-    frontier.del();
-    frontier = output;
   }
   return Parents.to_array();
 }
@@ -485,7 +469,6 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   filterEdges(GA, pack_predicate);
 //  edgeMapFilter(GA, vs_active, pack_predicate, pack_edges | no_output);
   ft.stop(); debug(ft.reportTotal("filter edges time"););
-//  vs_active.del();
 
   // 2. Run CC on the graph with the critical edges removed to compute
   // a unique label for each biconnected component
@@ -557,7 +540,7 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
 
 //  auto Sources_copy = Sources.copy(Sources);
   auto Sources_copy = Sources; // Use copy constructor
-  auto Centers = vertexSubset(n, Sources_copy.size(), Sources.to_array());
+  auto Centers = vertexSubset(n, std::move(Sources));
 //  auto Parents = deterministic_multi_bfs(GA, Centers); // useful for debugging
   auto Parents = multi_bfs(GA, Centers);
   sc.stop();

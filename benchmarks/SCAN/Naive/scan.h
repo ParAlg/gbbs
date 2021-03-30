@@ -82,11 +82,8 @@ Clustering Cluster(
           core_frontier,
           internal::CoreBFSEdgeMapFunctions{
             similarities, clustering, epsilon})};
-      frontier.del();
-      core_frontier.del();
       frontier = std::move(next_frontier);
     }
-    frontier.del();
   }
 
   // Cluster all the non-cores by attaching them to the clusters of

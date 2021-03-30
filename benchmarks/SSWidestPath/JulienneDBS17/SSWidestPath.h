@@ -130,7 +130,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   if (!largemem) fl |= no_dense;
   if (!no_blocked) fl |= sparse_blocked;
   while (bkt.id != b.null_bkt) {
-    auto active = vertexSubset(n, bkt.identifiers);
+    auto active = vertexSubset(n, std::move(bkt.identifiers));
     emt.start();
     auto em_f = wrap_with_default<W, W>(widestpath::Visit_F(width), (W)1);
     auto res = edgeMapData<uintE>(G, active, em_f, G.m / 20, fl);
@@ -143,8 +143,6 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
     } else {
       b.update_buckets(res.get_fn_repr(), res.size());
     }
-    res.del();
-    active.del();
     bkt = b.next_bucket();
     bt.stop();
     rd++;
@@ -215,8 +213,7 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
         edgeMap(G, Frontier, em_f, G.m / 10, sparse_blocked | dense_forward);
     vertexMap(output, SSWidestPath_BF_Vertex_F(Visited.begin()));
     std::cout << output.size() << "\n";
-    Frontier.del();
-    Frontier = output;
+    Frontier = std::move(output);
     round++;
   }
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?

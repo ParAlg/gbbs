@@ -7,11 +7,11 @@
 
 namespace gbbs {
 template <class Graph>
-struct PR_F {
+struct Co_PR_F {
   using W = typename Graph::weight_type;
   double* p_curr, *p_next;
   Graph& G;
-  PR_F(double* _p_curr, double* _p_next, Graph& G) :
+  Co_PR_F(double* _p_curr, double* _p_next, Graph& G) :
     p_curr(_p_curr), p_next(_p_next), G(G) {}
   inline bool update(const uintE& s, const uintE& d, const W& wgh){ //update function applies PageRank equation
     p_next[d] += p_curr[s]/G.get_vertex(s).out_degree();
@@ -60,22 +60,21 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
   auto frontier_u = pbbs::sequence<bool>(n, false);
   frontier_u[u] = true;
 
-  vertexSubset Frontier_u(n,n,frontier_u.to_array());
-  vertexSubset Frontier_v(n,n,frontier_v.to_array());
+  vertexSubset Frontier_u(n,n,std::move(frontier_u));
+  vertexSubset Frontier_v(n,n,std::move(frontier_v));
 
   size_t iter = 0;
   double sim = u == v ? 1 : 0;
   while (iter++ < max_iters) {
     debug(timer t; t.start(););
     // SpMV
-    auto Frontier_v_new = edgeMap(G,Frontier_v,PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0);
-    auto Frontier_u_new = edgeMap(G,Frontier_u,PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0); //, no_output
+    auto Frontier_v_new = edgeMap(G,Frontier_v,Co_PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0);
+    auto Frontier_u_new = edgeMap(G,Frontier_u,Co_PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0); //, no_output
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
 
-    Frontier_u.del(); Frontier_v.del();
-    Frontier_v = Frontier_v_new;
-    Frontier_u = Frontier_u_new;
+    Frontier_v = std::move(Frontier_v_new);
+    Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
@@ -99,7 +98,6 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
     debug(t.stop(); t.reportTotal("iteration time"););
   }
-  Frontier_u.del(); Frontier_v.del();
 
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
@@ -129,8 +127,8 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
                  1000);
   frontier_u[u] = std::make_tuple(true, static_cast<double>(0));
 
-  vertexSubsetData<double> Frontier_u(n,n,frontier_u.to_array());
-  vertexSubsetData<double> Frontier_v(n,n,frontier_v.to_array());
+  vertexSubsetData<double> Frontier_u(n,n,std::move(frontier_u));
+  vertexSubsetData<double> Frontier_v(n,n,std::move(frontier_v));
 
   // read from special array of just degrees
 
@@ -171,9 +169,8 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
 
     sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
 
-    Frontier_u.del(); Frontier_v.del();
-    Frontier_v = Frontier_v_new;
-    Frontier_u = Frontier_u_new;
+    Frontier_v = std::move(Frontier_v_new);
+    Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
     auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
@@ -196,7 +193,6 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     std::swap(p_curr_u,p_next_u);
     t.stop(); //t.reportTotal("iteration time");
   }
-  Frontier_u.del(); Frontier_v.del();
   auto max_pr_v = pbbslib::reduce_max(p_next_v);
   auto max_pr_u = pbbslib::reduce_max(p_next_u);
 

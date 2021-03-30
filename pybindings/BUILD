@@ -18,6 +18,7 @@ pybind_extension(
       "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
       "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",
       "//benchmarks/CoSimRank:CoSimRank",
+      "//benchmarks/PageRank:PageRank",
       "//benchmarks/KCore/JulienneDBS17:KCore",
   ],
 )

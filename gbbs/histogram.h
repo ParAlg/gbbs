@@ -166,7 +166,7 @@ struct hist_table {
 
 // Parallelizes across buckets, but does not use light/heavy buckets
 template <class O, class K, class V, class A, class Apply>
-inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
+inline sequence<O> histogram_medium(A& get_key, size_t n,
                                               Apply& apply_f,
                                               hist_table<K, V>& ht) {
   using KV = std::tuple<K, V>;
@@ -287,9 +287,8 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
     out_offs[i] = s;
   }
   out_offs[num_buckets] = ct;
-  uintT num_distinct = ct;
 
-  O* res = pbbslib::new_array_no_init<O>(ct);
+  auto res = sequence<O>::no_init(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -312,12 +311,12 @@ inline std::pair<size_t, O*> histogram_medium(A& get_key, size_t n,
   pbbslib::free_array(elms);
   pbbslib::free_array(counts);
   pbbslib::free_array(bkt_counts);
-  return std::make_pair(num_distinct, res);
+  return res;
 }
 
 // Applies light/heavy buckets
 template <class O, class K, class V, class A, class Apply>
-inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
+inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
                                        hist_table<K, V>& ht) {
   using KV = std::tuple<K, V>;
   int nworkers = num_workers();
@@ -333,9 +332,14 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
       K k = get_key[i];
       ct += S.insertAdd(k);
     }
-    O* out = pbbslib::new_array_no_init<O>(ct);
-    size_t k = S.compactInto(apply_f, out);
-    return std::make_pair(k, out);
+    auto out = sequence<O>::no_init(ct);
+    size_t k = S.compactInto(apply_f, out.begin());
+    auto res = sequence<O>::no_init(k);
+    for (size_t i=0; i<k; i++) {
+      res[i] = out[i];
+    }
+    // TODO: update to use resize() once we switch to parlay
+    return res;
   }
 
   if (n < 5000000) {
@@ -534,9 +538,8 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
       }
     }
   }
-  uintT num_distinct = ct;
 
-  O* res = pbbslib::new_array_no_init<O>(ct);
+  auto res = sequence<O>::no_init(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -573,12 +576,12 @@ inline std::pair<size_t, O*> histogram(A& get_key, size_t n, Apply& apply_f,
     pbbslib::free_array(heavy_cts);
   }
 
-  return std::make_pair(num_distinct, res);
+  return res;
 }
 
 template <class E, class O, class K, class V, class A, class Reduce,
           class Apply>
-inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
+inline sequence<O> seq_histogram_reduce(A& get_elm, size_t n,
                                                   Reduce& reduce_f,
                                                   Apply& apply_f,
                                                   hist_table<K, V>& ht) {
@@ -592,7 +595,12 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
   }
   O* out = pbbslib::new_array_no_init<O>(n);
   size_t k = S.compactInto(apply_f, out);
-  return std::make_pair(k, out);
+  auto res = sequence<O>::no_init(k);
+  for (size_t i=0; i<k; i++) {
+    res[i] = out[i];
+  }
+  // TODO: update to use resize() once we've switched to parlay
+  return res;
 }
 
 // Issue: want to make the type that's count-sort'd independent of K,V
@@ -603,7 +611,7 @@ inline std::pair<size_t, O*> seq_histogram_reduce(A& get_elm, size_t n,
 // F : std::tuple<K, Elm> -> std::optional<uintE>
 template <class E, class O, class K, class V, class A, class B, class Reduce,
           class Apply>
-inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
+inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
                                               Reduce& reduce_f, Apply& apply_f,
                                               hist_table<K, V>& ht) {
   typedef std::tuple<K, V> KV;
@@ -722,9 +730,8 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
     out_offs[i] = s;
   }
   out_offs[num_buckets] = ct;
-  uintT num_distinct = ct;
 
-  O* res = pbbslib::new_array_no_init<O>(ct);
+  auto res = sequence<O>::no_init(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -747,7 +754,7 @@ inline std::pair<size_t, O*> histogram_reduce(A& get_elm, B& get_key, size_t n,
   pbbslib::free_array(counts);
   pbbslib::free_array(bkt_counts);
   pbbslib::free_array(out);
-  return std::make_pair(num_distinct, res);
+  return res;
 }
 
 }  // namespace gbbs

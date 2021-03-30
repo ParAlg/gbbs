@@ -38,47 +38,66 @@ Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to)
 std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes,
     size_t bytes_size) {
-  sequence<char*> tokens;
-  sequence<char> S;
 
-  if (bytes == nullptr) {
-    if (mmap) {
-      std::pair<char*, size_t> MM = mmapStringFromFile(fname);
-      S = sequence<char>(MM.second);
-      // Cannot mutate the graph unless we copy.
-      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { S[i] = MM.first[i]; });
-      if (munmap(MM.first, MM.second) == -1) {
-        perror("munmap");
-        exit(-1);
+  uintT* offsets;
+  uintE* edges;
+  uint64_t n, m;
+
+  if (!binary) {
+    sequence<char*> tokens;
+    sequence<char> S;
+
+    if (bytes == nullptr) {
+      if (mmap) {
+        std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+        S = sequence<char>(MM.second);
+        // Cannot mutate the graph unless we copy.
+        par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+                        { S[i] = MM.first[i]; });
+        if (munmap(MM.first, MM.second) == -1) {
+          perror("munmap");
+          exit(-1);
+        }
+      } else {
+        S = readStringFromFile(fname);
       }
-    } else {
-      S = readStringFromFile(fname);
     }
+    tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+
+    assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
+
+    n = atol(tokens[1]);
+    m = atol(tokens[2]);
+
+    debug(std::cout << "# n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
+    uint64_t len = tokens.size() - 1;
+    assert(len == n + m + 2););
+
+    offsets = pbbslib::new_array_no_init<uintT>(n+1);
+    edges = pbbslib::new_array_no_init<uintE>(m);
+
+    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                    { offsets[i] = atol(tokens[i + 3]); });
+    offsets[n] = m; /* make sure to set the last offset */
+    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+                    { edges[i] = atol(tokens[i + n + 3]); });
+    S.clear();
+    tokens.clear();
+  } else {
+    std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+
+    auto mmap_file = MM.first;
+
+    long* sizes = (long*)mmap_file;
+    n = sizes[0], m = sizes[1];
+
+    offsets = (uintT*)(mmap_file + 3 * sizeof(long));
+    uint64_t skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+    edges = (uintE*)(mmap_file + skip);
   }
-  tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-
-  assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
-
-  uint64_t n = atol(tokens[1]);
-  uint64_t m = atol(tokens[2]);
-
-  debug(std::cout << "# n = " << n << " m = " << m << " len = " << (tokens.size() - 1) << "\n";
-  uint64_t len = tokens.size() - 1;
-  assert(len == n + m + 2););
-
-  uintT* offsets = pbbslib::new_array_no_init<uintT>(n+1);
-  uintE* edges = pbbslib::new_array_no_init<uintE>(m);
-
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { offsets[i] = atol(tokens[i + 3]); });
-  offsets[n] = m; /* make sure to set the last offset */
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
-                  { edges[i] = atol(tokens[i + n + 3]); });
-  S.clear();
-  tokens.clear();
 
   return std::make_tuple(n, m, offsets, edges);
 }
@@ -86,40 +105,54 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
 symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes,
     size_t bytes_size) {
   size_t n, m;
   uintT* offsets;
   uintE* edges;
-  std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, bytes, bytes_size);
+  std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
 
   auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
-  pbbs::free_array(offsets);
+  if (!binary) {
+    pbbs::free_array(offsets);
+  }
 
   return symmetric_graph<symmetric_vertex, pbbs::empty>(
-      v_data, n, m, [=](){ pbbslib::free_arrays(v_data, edges); }, (std::tuple<uintE, pbbs::empty>*)edges);
+      v_data, n, m,
+      [=](){
+        pbbslib::free_array(v_data);
+        if (!binary) pbbslib::free_array(edges);
+      }, (std::tuple<uintE, pbbs::empty>*)edges);
 }
 
 asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes,
     size_t bytes_size) {
   size_t n, m;
   uintT* offsets;
   uintE* edges;
-  std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, bytes, bytes_size);
+  if (binary) {
+    std::cout << "Todo: implement binary support for asymmetric graphs" << std::endl;
+    exit(-1);
+  }
+  std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
 
   auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
-  pbbs::free_array(offsets);
+  if (!binary) {
+    pbbs::free_array(offsets);
+  }
 
   /* construct transpose of the graph */
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);

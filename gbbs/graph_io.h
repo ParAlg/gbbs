@@ -82,6 +82,7 @@ std::tuple<size_t, size_t, uintT*, std::tuple<uintE, weight_type>*>
 parse_weighted_graph(
   const char* fname,
   bool mmap,
+  bool binary,
   char* bytes = nullptr,
   size_t bytes_size = std::numeric_limits<size_t>::max());
 
@@ -108,12 +109,14 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
 symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
 asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
@@ -124,28 +127,36 @@ template <class weight_type>
 symmetric_graph<symmetric_vertex, weight_type> read_weighted_symmetric_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   size_t n, m;
   uintT* offsets;
   std::tuple<uintE, weight_type>* edges;
   std::tie(n, m, offsets, edges) =
-    internal::parse_weighted_graph<weight_type>(fname, mmap, bytes, bytes_size);
+    internal::parse_weighted_graph<weight_type>(fname, mmap, binary, bytes, bytes_size);
 
   auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
-  pbbs::free_array(offsets);
+  if (!binary) {
+    pbbs::free_array(offsets);
+  }
 
-  return symmetric_graph<symmetric_vertex, weight_type>(v_data, n, m, [=]() { pbbslib::free_arrays(v_data, edges); }, edges);
+  return symmetric_graph<symmetric_vertex, weight_type>(v_data, n, m,
+      [=]() {
+        pbbslib::free_array(v_data);
+        if (!binary) { pbbslib::free_array(edges); }
+      }, edges);
 }
 
 template <class weight_type>
 asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
     const char* fname,
     bool mmap,
+    bool binary,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max()) {
   using id_and_weight = std::tuple<uintE, weight_type>;
@@ -154,8 +165,12 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   size_t n, m;
   uintT* offsets;
   std::tuple<uintE, weight_type>* edges;
+  if (binary) {
+    std::cout << "Todo: implement binary support for asymmetric graphs" << std::endl;
+    exit(-1);
+  }
   std::tie(n, m, offsets, edges) =
-    internal::parse_weighted_graph<weight_type>(fname, mmap, bytes, bytes_size);
+    internal::parse_weighted_graph<weight_type>(fname, mmap, binary, bytes, bytes_size);
 
   auto v_data = pbbs::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
@@ -573,53 +588,70 @@ std::tuple<size_t, size_t, uintT*, std::tuple<uintE, weight_type>*>
 parse_weighted_graph(
   const char* fname,
   bool mmap,
+  bool binary,
   char* bytes,
   size_t bytes_size) {
-  sequence<char*> tokens;
-  sequence<char> S;
-  if (bytes == nullptr) {
-    if (mmap) {
-      std::pair<char*, size_t> MM = mmapStringFromFile(fname);
-      S = sequence<char>(MM.second);
-      // Cannot mutate the graph unless we copy.
-      par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
-                      { S[i] = MM.first[i]; });
-      if (munmap(MM.first, MM.second) == -1) {
-        perror("munmap");
-        exit(-1);
-      }
-    } else {
-      S = readStringFromFile(fname);
-    }
-  }
-  tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
-  assert(tokens[0] == internal::kWeightedAdjGraphHeader);
-
-  uint64_t len = tokens.size() - 1;
-  uint64_t n = atol(tokens[1]);
-  uint64_t m = atol(tokens[2]);
-  if (len != (n + 2 * m + 2)) {
-    std::cout << tokens[0] << "\n";
-    std::cout << "len = " << len << "\n";
-    std::cout << "n = " << n << " m = " << m << "\n";
-    std::cout << "should be : " << (n + 2 * m + 2) << "\n";
-    assert(false);  // invalid format
-  }
-
-  uintT* offsets = pbbslib::new_array_no_init<uintT>(n+1);
   using id_and_weight = std::tuple<uintE, weight_type>;
-  id_and_weight* edges = pbbslib::new_array_no_init<id_and_weight>(2 * m);
 
-  parallel_for(0, n, [&] (size_t i) { offsets[i] = atol(tokens[i + 3]); });
-  offsets[n] = m; /* make sure to set the last offset */
-  parallel_for(0, m, [&] (size_t i) {
-    edges[i] = std::make_tuple(
-        atol(tokens[i + n + 3]),
-        string_to_weight<weight_type>(tokens[i + n + m + 3]));
-  });
-  S.clear();
-  tokens.clear();
+  uintT* offsets;
+  id_and_weight* edges;
+  uint64_t n, m;
 
+  if (!binary) {
+    sequence<char*> tokens;
+    sequence<char> S;
+    if (bytes == nullptr) {
+      if (mmap) {
+        std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+        S = sequence<char>(MM.second);
+        // Cannot mutate the graph unless we copy.
+        par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+                        { S[i] = MM.first[i]; });
+        if (munmap(MM.first, MM.second) == -1) {
+          perror("munmap");
+          exit(-1);
+        }
+      } else {
+        S = readStringFromFile(fname);
+      }
+    }
+    tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    assert(tokens[0] == internal::kWeightedAdjGraphHeader);
+
+    uint64_t len = tokens.size() - 1;
+    n = atol(tokens[1]);
+    m = atol(tokens[2]);
+    if (len != (n + 2 * m + 2)) {
+      std::cout << tokens[0] << "\n";
+      std::cout << "len = " << len << "\n";
+      std::cout << "n = " << n << " m = " << m << "\n";
+      std::cout << "should be : " << (n + 2 * m + 2) << "\n";
+      assert(false);  // invalid format
+    }
+
+    offsets = pbbslib::new_array_no_init<uintT>(n+1);
+    edges = pbbslib::new_array_no_init<id_and_weight>(2 * m);
+
+    parallel_for(0, n, [&] (size_t i) { offsets[i] = atol(tokens[i + 3]); });
+    offsets[n] = m; /* make sure to set the last offset */
+    parallel_for(0, m, [&] (size_t i) {
+      edges[i] = std::make_tuple(
+          atol(tokens[i + n + 3]),
+          string_to_weight<weight_type>(tokens[i + n + m + 3]));
+    });
+    S.clear();
+    tokens.clear();
+  } else {
+    std::pair<char*, size_t> MM = mmapStringFromFile(fname);
+    auto mmap_file = MM.first;
+
+    long* sizes = (long*)mmap_file;
+    n = sizes[0], m = sizes[1];
+
+    offsets = (uintT*)(mmap_file + 3 * sizeof(long));
+    uint64_t skip = 3 * sizeof(long) + (n + 1) * sizeof(intT);
+    edges = (id_and_weight*)(mmap_file + skip);
+  }
   return std::make_tuple(n, m, offsets, edges);
 }
 

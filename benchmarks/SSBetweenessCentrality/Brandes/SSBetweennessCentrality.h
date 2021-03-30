@@ -116,10 +116,10 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
     vertexSubset output = edgeMap(G, Frontier, make_bc_f<W>(NumPaths, Visited),
                                   -1, sparse_blocked | fine_parallel);
     vertexMap(output, make_bc_vertex_f(Visited));  // mark visited
-    Levels.push_back(Frontier);                    // save frontier
-    Frontier = output;
+    Levels.push_back(std::move(Frontier));                    // save frontier
+    Frontier = std::move(output);
   }
-  Levels.push_back(Frontier);
+  Levels.push_back(std::move(Frontier));
 
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
@@ -127,10 +127,9 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  Levels[round].del();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Visited[i] = 0; });
-  Frontier = Levels[round - 1];
+  Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
 
   timer bt;
@@ -140,14 +139,11 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
     //      no_output | in_edges | dense_forward);
     edgeMap(G, Frontier, make_bc_f<W>(Dependencies, Visited), -1,
             no_output | in_edges | fine_parallel);
-    Frontier.del();
-    Frontier = Levels[r];
+    Frontier = std::move(Levels[r]);
      vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
   debug(bt.reportTotal("back total time"););
-
-  Frontier.del();
 
   // Update dependencies scores
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -244,10 +240,10 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
     vertexSubset output = sparse_fa_dense_em(G, EM, Frontier, NumPaths, Storage, Visited, 0);
 
     vertexMap(output, make_bc_vertex_f(Visited));  // mark visited
-    Levels.push_back(Frontier);                    // save frontier
-    Frontier = output;
+    Levels.push_back(std::move(Frontier));                    // save frontier
+    Frontier = std::move(output);
   }
-  Levels.push_back(Frontier);
+  Levels.push_back(std::move(Frontier));
   fwd.stop(); debug(fwd.reportTotal("forward time"));
 
   for (size_t i=0; i<100; i++) {
@@ -261,10 +257,9 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  Levels[round].del();
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Visited[i] = 0; });
-  Frontier = Levels[round - 1];
+  Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
 
   timer bt;
@@ -277,14 +272,12 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
 
     sparse_fa_dense_em(G, EM, Frontier, Dependencies, Storage, Visited, in_edges | no_output);
 
-    Frontier.del();
-    Frontier = Levels[r];
+    Frontier = std::move(Levels[r]);
     vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
   }
   bt.stop();
   debug(bt.reportTotal("back total time"););
 
-  Frontier.del();
 
   // Update dependencies scores
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
@@ -367,11 +360,11 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
         Visited[u] = 2; /* finished */
       });
 
-      Levels.push_back(next_frontier);                    // save frontier
-      Frontier = next_frontier;
+      Levels.push_back(std::move(Frontier));                    // save frontier
+      Frontier = std::move(next_frontier);
     }
   }
-  Levels.push_back(Frontier);
+  Levels.push_back(std::move(Frontier));
   fwd.stop(); fwd.reportTotal("forward time");
 
 
@@ -383,11 +376,10 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  Levels[round].del(); /* ignore last vs, which is empty. */
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
                   { Visited[i] = 0; });
-  Frontier = Levels[round - 1];
-  std::cout << "r-1 frontier: " << Frontier.s << " " << Frontier.m << std::endl;
+  Frontier = std::move(Levels[round - 1]);
+  std::cout << "r-1 frontier, m = " << Frontier.m << std::endl;
 
   timer bt;
   bt.start();
@@ -418,8 +410,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
       });
     };
     for (long r = round - 2; r >= 0; r--) {
-      Frontier.del();
-      Frontier = Levels[r];
+      Frontier = std::move(Levels[r]);
 
       reduce_dependencies(Frontier);
 
@@ -429,7 +420,6 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   bt.stop();
   debug(bt.reportTotal("back total time"););
 
-  Frontier.del();
 
   // Update dependencies scores
   par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {

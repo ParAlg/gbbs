@@ -440,15 +440,16 @@ int main(int argc, char* argv[]) {
   ASSERT(!is_graph_compressed);
   const bool is_graph_float_weighted{params.getOptionValue("-wf")};
   const bool should_mmap_graph{params.getOptionValue("-m")};
+  const bool is_graph_binary{params.getOptionValue("-b")};
   if (is_graph_float_weighted) {
     auto graph{gbbs::gbbs_io::read_weighted_symmetric_graph<float>(
-        input_graph_file, should_mmap_graph)};
+        input_graph_file, should_mmap_graph, is_graph_binary)};
     gbbs::alloc_init(graph);
     gbbs::RunScanWeighted(graph, params);
     graph.del();
   } else {
     auto graph{gbbs::gbbs_io::read_unweighted_symmetric_graph(
-        input_graph_file, should_mmap_graph)};
+        input_graph_file, should_mmap_graph, is_graph_binary)};
     gbbs::alloc_init(graph);
     gbbs::RunScanUnweighted(graph, params);
     graph.del();

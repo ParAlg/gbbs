@@ -59,7 +59,7 @@ double SSBetweennessCentrality_runner(Graph& G, commandLine P) {
       std::cout << scores[i] << std::endl;
     }
   } else {
-    /* no contention --- reduceNgh technique */
+    /* Default: no contention --- reduceNgh technique */
     auto scores = bc_bfs::SSBetweennessCentrality_BFS(G, src);
     for (size_t i=0; i<100; i++) {
       std::cout << scores[i] << std::endl;
