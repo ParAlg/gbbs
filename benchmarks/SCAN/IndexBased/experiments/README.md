@@ -15,6 +15,8 @@ To run the experiments:
 * Run `bash run_gbbs_experiments.bash` to run the experiments with the GBBS
   index-based SCAN implementation.
 * Run `bash run_ppscan_experiments.bash` to run timing experiments with ppSCAN.
+* To run matrix multiplication experiments, install Intel's MKL library, source
+  MKL's `setvars.sh`, and run `bash run_gbbs_mkl_experiments.bash`.
 
 We omit the code for running timing experiments with GS\*-Index since the
 GS\*-Index code is not publicly available. We received the source code for
