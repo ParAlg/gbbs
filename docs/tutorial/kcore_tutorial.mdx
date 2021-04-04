@@ -325,7 +325,7 @@ The last step is to update the bucketing data structure with the new
 buckets for each of the affected neighbors.
 
 ``` cpp
-b.update_buckets(moved);
+B.update_buckets(moved);
 ```
 
 
@@ -374,13 +374,14 @@ inline sequence<uintE> KCore(Graph& G, size_t num_buckets = 16) {
     vertexSubsetData<uintE> moved = nghCount(
         G, active, cond_f, apply_f, em, no_dense);
 
-    b.update_buckets(moved);
+    B.update_buckets(moved);
   }
 
   std::cout << "### rho = " << rho << " k_{max} = " << k_max << std::endl;
   return D;
 }
 
+}  // namespace gbbs
 ```
 
 
