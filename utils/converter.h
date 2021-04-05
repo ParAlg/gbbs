@@ -322,11 +322,11 @@ namespace bytepd {
 
     pbbs::timer t;
     t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
       return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { r[o[i]] = i; });
     t.stop();
     debug(t.reportTotal("Rank time"););
@@ -712,11 +712,11 @@ namespace bytepd_amortized {
 
     pbbs::timer t;
     t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
     pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
       return GA.get_vertex(u).out_degree() < GA.get_vertex(v).out_degree();
     });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { r[o[i]] = i; });
     t.stop();
     debug(t.reportTotal("Rank time"););

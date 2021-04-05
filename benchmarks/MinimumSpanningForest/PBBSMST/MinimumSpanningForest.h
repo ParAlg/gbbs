@@ -158,7 +158,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
 
     // 2. initialize reservations, copy edge info, and run UF step.
     auto R = pbbslib::new_array_no_init<res>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { R[i] = res(); });
     sequence<bool> mstFlags =
         sequence<bool>(n_edges, [](size_t i) { return 0; });

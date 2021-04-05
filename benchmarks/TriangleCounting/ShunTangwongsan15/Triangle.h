@@ -59,11 +59,11 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
   sequence<uintE> o(n);
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
     return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
   });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { r[o[i]] = i; });
   return r;
 }
@@ -173,7 +173,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   gt.start();
   uintT n = G.n;
   auto counts = sequence<size_t>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { counts[i] = 0; });
 
   // 1. Rank vertices based on degree
@@ -212,7 +212,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
   gt.start();
   uintT n = G.n;
   auto counts = sequence<size_t>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { counts[i] = 0; });
 
   timer rt; rt.start();

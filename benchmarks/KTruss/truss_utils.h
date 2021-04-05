@@ -56,7 +56,7 @@ namespace truss_utils {
     }
 
     static void clearA(V* A, long n, V kv) {
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, kDefaultGranularity, [&] (size_t i)
                       { A[i] = kv; });
     }
 

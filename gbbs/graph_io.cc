@@ -55,7 +55,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
         std::pair<char*, size_t> MM = mmapStringFromFile(fname);
         S = sequence<char>(MM.second);
         // Cannot mutate the graph unless we copy.
-        par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+        par_for(0, S.size(), kDefaultGranularity, [&] (size_t i)
                         { S[i] = MM.first[i]; });
         if (munmap(MM.first, MM.second) == -1) {
           perror("munmap");
@@ -79,10 +79,10 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     offsets = pbbslib::new_array_no_init<uintT>(n+1);
     edges = pbbslib::new_array_no_init<uintE>(m);
 
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { offsets[i] = atol(tokens[i + 3]); });
     offsets[n] = m; /* make sure to set the last offset */
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, kDefaultGranularity, [&] (size_t i)
                     { edges[i] = atol(tokens[i + n + 3]); });
     S.clear();
     tokens.clear();
@@ -156,10 +156,10 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
 
   /* construct transpose of the graph */
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   intPair* temp = pbbslib::new_array_no_init<intPair>(m);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     uintT o = v_data[i].offset;
     uintT deg = v_data[i].degree;
     for (uintT j = 0; j < deg; j++) {
@@ -173,7 +173,7 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   tOffsets[temp[0].first] = 0;
   uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
   inEdges[0] = temp[0].second;
-  par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(1, m, kDefaultGranularity, [&] (size_t i) {
     inEdges[i] = temp[i].second;
     if (temp[i].first != temp[i - 1].first) {
       tOffsets[temp[i].first] = i;
@@ -211,7 +211,7 @@ std::tuple<char*, size_t> parse_compressed_graph(
       debug(std::cout << "# Copying compressed graph due to mmapcopy being set."
                 << "\n";);
       char* next_bytes = pbbslib::new_array_no_init<char>(bytes_size);
-      par_for(0, bytes_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, bytes_size, kDefaultGranularity, [&] (size_t i)
                       { next_bytes[i] = bytes[i]; });
       if (munmap(bytes, bytes_size) == -1) {
         perror("munmap");

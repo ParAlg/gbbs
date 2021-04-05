@@ -335,7 +335,7 @@ struct buckets {
     size_t m = bkts[open_buckets].size;
     auto tmp = sequence<ident_t>(m);
     ident_t* A = bkts[open_buckets].A;
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, kDefaultGranularity, [&] (size_t i)
                     { tmp[i] = A[i]; });
     if (order == increasing) {
       cur_range++;  // increment range

@@ -124,10 +124,10 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -146,7 +146,7 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
   debug(bt.reportTotal("back total time"););
 
   // Update dependencies scores
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
@@ -254,10 +254,10 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -280,7 +280,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
 
 
   // Update dependencies scores
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
@@ -373,10 +373,10 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   /* Backwards pass */
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
   // Invert numpaths
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   std::cout << "r-1 frontier, m = " << Frontier.m << std::endl;
@@ -422,7 +422,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
 
 
   // Update dependencies scores
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;

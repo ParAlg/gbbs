@@ -180,10 +180,10 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   pbbs::free_array(offsets);
 
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n+1);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   triple* temp = pbbslib::new_array_no_init<triple>(m);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     uintT o = v_data[i].offset;
     uintE deg = v_data[i].degree;
     for (uintT j = 0; j < deg; j++) {
@@ -200,7 +200,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   id_and_weight* inEdges = pbbslib::new_array_no_init<id_and_weight>(m);
   inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
-  par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(1, m, kDefaultGranularity, [&] (size_t i) {
     inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
     if (temp[i].first != temp[i - 1].first) {
       tOffsets[temp[i].first] = i;
@@ -605,7 +605,7 @@ parse_weighted_graph(
         std::pair<char*, size_t> MM = mmapStringFromFile(fname);
         S = sequence<char>(MM.second);
         // Cannot mutate the graph unless we copy.
-        par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+        par_for(0, S.size(), kDefaultGranularity, [&] (size_t i)
                         { S[i] = MM.first[i]; });
         if (munmap(MM.first, MM.second) == -1) {
           perror("munmap");

@@ -22,7 +22,7 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
   }
 
   pbbs::sequence<gbbs_io::Edge<gbbs::empty>> edges_both_directions(2 * edgelistsize);
-  par_for(0, edgelistsize, pbbslib::kSequentialForThreshold, [&](const size_t i) {
+  par_for(0, edgelistsize, kDefaultGranularity, [&](const size_t i) {
       const gbbs_io::Edge<weight_type>& edge = edge_list[s+i];
       edges_both_directions[2 * i] = gbbs_io::Edge<gbbs::empty>{edge.from, edge.to, gbbs::empty()};
       edges_both_directions[2 * i + 1] =
@@ -42,7 +42,7 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
     gbbs_io::internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
   edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
-  par_for(0, num_edges, pbbslib::kSequentialForThreshold, [&](const size_t i) {
+  par_for(0, num_edges, kDefaultGranularity, [&](const size_t i) {
     const gbbs_io::Edge<gbbs::empty>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
   });
@@ -94,14 +94,14 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
   
   // change to our type
   pbbs::sequence<pair<EdgeT, bool>> updates(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&](const size_t i) {
+  par_for(0, n, kDefaultGranularity, [&](const size_t i) {
       updates[i] = toMyUpdateEdgeT<EdgeT, UT>(t_updates[s+i]);
   });
 
   // nullify, leave only the chronologically last update
   // sort indices instead of edges directly
   pbbs::sequence<size_t> inds = pbbs::sequence<size_t>::no_init(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {inds[i] = i;});
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {inds[i] = i;});
 
   pbbs::sample_sort_inplace(inds.slice(),  //check
     [&](const size_t i, const size_t j) {
@@ -109,7 +109,7 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
       }, true);
 
   pbbs::sequence<size_t> flag = pbbs::sequence<size_t>::no_init(n+1); // flag[i] == 1 if i is the last update of edge inds[i]
-  par_for(0, n-1, pbbslib::kSequentialForThreshold, [&] (const size_t i) {
+  par_for(0, n-1, kDefaultGranularity, [&] (const size_t i) {
       if(updates[inds[i]].first != updates[inds[i+1]].first){
         flag[i] = 1;
       }else{
@@ -124,7 +124,7 @@ inline pbbs::sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> 
   new_n --;
 
   pbbs::sequence<pair<EdgeT, bool>> updates_valid = pbbs::sequence<pair<EdgeT, bool>>::no_init(new_n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if(flag[i] != flag[i+1]){
         updates_valid[flag[i]] = updates[inds[i]];
       }
@@ -160,7 +160,7 @@ inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges,
     clearflag = true;
   }
   //find offsets of vertices
-  par_for(0, edgeL-1, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, edgeL-1, kDefaultGranularity, [&] (size_t i) {
     if(DBTGraph::getFirst(edges,i) != DBTGraph::getFirst(edges,i+1)){flag[i] = 1;
     }else{flag[i] = 0;}});
   flag[edgeL-1] = 1;
@@ -170,7 +170,7 @@ inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges,
   pbbs::sequence<VTX> vtxNew =  pbbs::sequence<VTX>::no_init(numVtx);
 
   // compute offsets
-  par_for(1, edgeL, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(1, edgeL, kDefaultGranularity, [&] (size_t i) {
   if(flag[i-1]!=flag[i]){
     uintE u = DBTGraph::getFirst(edges,i);
     vtxNew[flag[i]] = VTX(u,i);
@@ -181,7 +181,7 @@ inline pbbs::sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges,
   vtxMap[uu] = 0;
 
   //count D and insert D
-  par_for(0, edgeL-1, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, edgeL-1, kDefaultGranularity, [&] (size_t i) {
   if(DBTGraph::getFirst(edges,i) == DBTGraph::getFirst(edges,i+1) && edges[i].second && !edges[i+1].second){
     uintE u = DBTGraph::getFirst(edges,i);
     vtxNew[vtxMap[u]].setInsDeg(i + 1 - vtxNew[vtxMap[u]].offset);
@@ -211,7 +211,7 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, pbbs::seq
 
 
   //double edges
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, m, kDefaultGranularity, [&] (size_t i) {
     edges[2*i] = edgesIn[i];
     edges[2*i+1] = make_pair(EdgeT(DBTGraph::getSecond(edgesIn,i), DBTGraph::getFirst(edgesIn,i)), edgesIn[i].second);
   });
@@ -219,10 +219,10 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, pbbs::seq
   vtxNew = computeOffsets<EdgeT, DBTGraph::VtxUpdate>(edges.slice(), vtxMap.slice(), flag);
 
   //count lowD
-    par_for(0, 2*m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, 2*m, kDefaultGranularity, [&] (size_t i) {
       flag[i] = G->is_low_v(DBTGraph::getSecond(edges,i));
     });
-    par_for(0, vtxNew.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, vtxNew.size(), kDefaultGranularity, [&] (size_t i) {
       size_t s = vtxNew[i].offset;
       size_t s2 = vtxNew[i].insOffset();
       size_t e = vtxNew[i].end();
@@ -251,7 +251,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   }); 
   size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);  
 
-  par_for(0, num_vertices-1, pbbslib::kSequentialForThreshold, [&](const size_t i) {
+  par_for(0, num_vertices-1, kDefaultGranularity, [&](const size_t i) {
     vertex_data_array[i].degree = newDegrees[i+1]-newDegrees[i];
     vertex_data_array[i].offset = newDegrees[i];
   });    

@@ -386,7 +386,7 @@ template <class F, class VS,
           typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
 inline void vertexMap(VS& V, F f,
-                      size_t granularity = pbbslib::kSequentialForThreshold) {
+                      size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
     parallel_for(0, n,
@@ -409,7 +409,7 @@ template <class VS, class F,
           typename std::enable_if<std::is_same<VS, vertexSubset>::value,
                                   int>::type = 0>
 inline void vertexMap(VS& V, F f,
-                      size_t granularity = pbbslib::kSequentialForThreshold) {
+                      size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (V.dense()) {
     parallel_for(0, n,
@@ -427,7 +427,7 @@ inline void vertexMap(VS& V, F f,
 template <class F, class Data>
 inline vertexSubset vertexFilter_dense(
     vertexSubsetData<Data>& V, F filter,
-    size_t granularity = pbbslib::kSequentialForThreshold) {
+    size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows();
   V.toDense();
   auto d_out = sequence<bool>::no_init(n);
@@ -449,7 +449,7 @@ inline vertexSubset vertexFilter_dense(
 template <class F, class Data>
 inline vertexSubset vertexFilter_sparse(
     vertexSubsetData<Data>& V, F filter,
-    size_t granularity = pbbslib::kSequentialForThreshold) {
+    size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows(), m = V.numNonzeros();
   if (m == 0) {
     return vertexSubset(n);
@@ -500,7 +500,7 @@ void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts);
 //          typename std::enable_if<!std::is_same<VS, vertexSubset>::value,
 //                                  int>::type = 0>
 // void add_to_vsubset(VS& vs, uintE* new_verts, uintE num_new_verts, size_t
-// granulairty=pbbslib::kSequentialForThreshold) {
+// granulairty=kDefaultGranularity) {
 //  std::cout << "Currently unimplemented" << std::endl;
 //  exit(-1);
 //}

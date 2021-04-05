@@ -40,7 +40,7 @@ inline sequence<size_t> generate_shifts(size_t n, double beta) {
   // Create (ln n)/beta levels
   uintE last_round = total_rounds(n, beta);
   auto shifts = sequence<size_t>(last_round + 1);
-  par_for(0, last_round, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, last_round, kDefaultGranularity, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
   pbbslib::scan_add_inplace(shifts);
@@ -51,7 +51,7 @@ template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
     }
@@ -63,7 +63,7 @@ template <class Seq>
 inline void cluster_sizes(Seq& s) {
   size_t n = s.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       pbbs::write_add(&flags[s[i]], 1);
 //    if (!flags[s[i]]) {
 //      flags[s[i]] = 1;
@@ -81,7 +81,7 @@ inline void num_intercluster_edges(Graph& G, Seq& s) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
   auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
     };

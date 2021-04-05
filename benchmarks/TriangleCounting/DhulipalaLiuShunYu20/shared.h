@@ -30,7 +30,7 @@ using namespace std;
 
 namespace gbbs{
 namespace DBTGraph{
-    constexpr const size_t smallTasksForThreshold = pbbslib::kSequentialForThreshold;
+    constexpr const size_t smallTasksForThreshold = kDefaultGranularity;
     
     using EdgeT = pair<uintE, uintE>;
     using SymGraph = symmetric_graph<symmetric_vertex, gbbs::empty>;

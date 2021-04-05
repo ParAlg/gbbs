@@ -94,7 +94,7 @@ namespace mm {
     using edge = std::tuple<uintE, uintE, W>;
     auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
     auto out = sequence<edge>(E.non_zeros);
-    par_for(0, E.non_zeros, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, E.non_zeros, kDefaultGranularity, [&] (size_t i) {
                       out[i] = e_arr[perm[i]];  // gather or scatter?
                     });
     E.del();

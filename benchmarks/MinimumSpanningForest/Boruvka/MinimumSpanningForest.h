@@ -56,7 +56,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
   };
 
   uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) { edge_ids[i] = i; });
+  par_for(0, m, kDefaultGranularity, [&] (size_t i) { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
@@ -84,7 +84,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 1. write_min to select the minimum edge out of each component.
     timer min_t;
     min_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, kDefaultGranularity, [&] (size_t i) {
       uintE e_id = edge_ids[i];
       const Edge& e = edges[e_id];
       vtxid_wgh_pair cas_e(e_id, std::get<2>(e));
@@ -97,7 +97,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
     mark_t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       uintE v = vtxs[i];
       const auto& e = min_edges[v];
       if (e.first == UINT_E_MAX) {
@@ -166,7 +166,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 6. relabel the edges with the new roots.
     timer relab_t;
     relab_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, kDefaultGranularity, [&] (size_t i) {
       size_t e_id = edge_ids[i];
       Edge& e = edges[e_id];
       uintE u = std::get<0>(e);
@@ -237,14 +237,14 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   size_t m = G.m;
 
   auto vertex_offs = sequence<long>(G.n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vertex_offs[i] = G.get_vertex(i).out_degree(); });
   pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& left, const size_t& right) { return left <= right; };
 
-  par_for(0, sample_size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, sample_size, kDefaultGranularity, [&] (size_t i) {
         size_t sample_edge = r.ith_rand(i) % m;
         uintE vtx = pbbslib::binary_search(vertex_offs, sample_edge, lte);
         size_t ith = vertex_offs[vtx] - sample_edge - 1;
@@ -267,7 +267,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   size_t first_ind = 0;
   size_t last_ind = 0;
   size_t ssize = sample_edges.size();
-  par_for(0, ssize, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, ssize, kDefaultGranularity, [&] (size_t i) {
     if (std::get<2>(sample_edges[i]) == split_weight) {
       if (i == 0 || (std::get<2>(sample_edges[i - 1]) != split_weight)) {
         first_ind = i;
@@ -339,7 +339,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
 
   size_t n_active = n;
   uintE* vtxs = pbbslib::new_array_no_init<uintE>(n_active);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vtxs[i] = i; });
   uintE* next_vtxs = pbbslib::new_array_no_init<uintE>(n_active);
 
@@ -371,7 +371,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     // relabel edges
     auto edges = E.E;
     if (round > 0) {
-      par_for(0, n_edges, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, n_edges, kDefaultGranularity, [&] (size_t i) {
         edge& e = edges[i];
         uintE u = std::get<0>(e);
         uintE v = std::get<1>(e);
@@ -399,14 +399,14 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     pack_t.stop();
     debug(pack_t.reportTotal("reactivation pack"););
 
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (exhausted[i]) exhausted[i] = false;
     });
 
 
     // pointer jump: vertices that were made inactive could have had their
     // parents change.
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       size_t ctr = 0;
       while (parents[i] != parents[parents[i]]) {
         parents[i] = parents[parents[i]];

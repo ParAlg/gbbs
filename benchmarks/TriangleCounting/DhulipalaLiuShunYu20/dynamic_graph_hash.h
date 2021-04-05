@@ -1215,7 +1215,7 @@ class DyGraph {
     if (use_block_v(w)) {
       VtxUpdate wobj = VtxUpdate(w);
       if (vtxMap[w] != EMPTYVMAP) wobj = vtxNew[vtxMap[w]];
-      par_for(0, get_new_degree(wobj), pbbslib::kSequentialForThreshold,
+      par_for(0, get_new_degree(wobj), kDefaultGranularity,
               [&](size_t k) {
                 uintE v = getEArray(w, k);  // edges[w * block_size + k];
                 if (is_high_v(v) && u != v) {
@@ -1228,7 +1228,7 @@ class DyGraph {
       SetT* H = LH->find(w, (SetT*)NULL);
       if (H == NULL)
         return;  // we can check if H is NULL beforehand, but makes code messy
-      par_for(0, H->size(), pbbslib::kSequentialForThreshold, [&](size_t k) {
+      par_for(0, H->size(), kDefaultGranularity, [&](size_t k) {
         uintE v = get<0>(H->table[k]);
         if (H->not_empty(v) && u != v) {
           minorRbldeleteW(u, v);

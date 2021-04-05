@@ -3,7 +3,7 @@
 namespace gbbs {
 UnionFind::UnionFind(size_t _n) : n(_n) {
   parents = pbbslib::new_array_no_init<intT>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { parents[i] = -1; });
 }
 

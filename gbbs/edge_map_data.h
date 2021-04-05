@@ -92,10 +92,10 @@ inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F
     auto next = sequence<D>(n);
     auto g = get_emdense_forward_gen<Data>(next.begin());
     if constexpr (std::is_same<Data, gbbs::empty>()) {
-      par_for(0, n, pbbslib::kSequentialForThreshold,
+      par_for(0, n, kDefaultGranularity,
               [&](size_t i) { next[i] = 0; });
     } else {
-      par_for(0, n, pbbslib::kSequentialForThreshold,
+      par_for(0, n, kDefaultGranularity,
               [&](size_t i) { std::get<0>(next[i]) = 0; });
     }
     par_for(0, n, 1, [&](size_t i) {

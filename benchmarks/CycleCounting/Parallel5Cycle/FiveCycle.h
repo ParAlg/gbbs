@@ -98,7 +98,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   // vertex_to_order[i] = the newe label (order) for vertex i
   sequence<uintE> vertex_to_order = sequence<uintE>(n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&](size_t i) {
+  par_for(0, n, kDefaultGranularity, [&](size_t i) {
     vertex_to_order[order_to_vertex[i]] = i;
   });
 
@@ -184,12 +184,12 @@ inline sequence<uintT> orderNodesByDegree(Graph& G, size_t n) {
 
   timer t;
   t.start();
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) { o[i] = i; });
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
 
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
     return G.get_vertex(u).out_degree() > G.get_vertex(v).out_degree();
   });
-  //par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  //par_for(0, n, kDefaultGranularity, [&] (size_t i)
   //                { r[o[i]] = i; });
   t.stop();
   debug(t.reportTotal("Rank time"););
@@ -535,17 +535,17 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
   if (order_type == 0) {
     rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                 { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
     rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
   std::cout << "Rank abd Order done\n"; fflush(stdout);
@@ -567,7 +567,7 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
   sequence<ulong> cycleCounts = sequence<ulong>(72 * eltsPerCacheLine, [&](size_t s) { return 0; });
 
 
-  par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, GA.n, kDefaultGranularity, [&] (size_t i) {
     auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
     auto vi = GDO.get_vertex(i);
     uintE degree = vi.out_degree();
@@ -661,17 +661,17 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
   if (order_type == 0) {
     rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                 { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
     rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
   std::cout << "Rank abd Order done\n"; fflush(stdout);
@@ -697,7 +697,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
   timer t; t.start();
   ulong cycleCount = 0;
   auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
-  //par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  //par_for(0, GA.n, kDefaultGranularity, [&] (size_t i) {
   for (uintE i = 0; i < GA.n; i++) {
     ulong tmp = 0;
     //auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
@@ -841,17 +841,17 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
   if (order_type == 0) {
     rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                 { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
     order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t v)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
     rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
-    par_for(0, GA.n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, GA.n, kDefaultGranularity, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
   std::cout << "Rank abd Order done\n"; fflush(stdout);

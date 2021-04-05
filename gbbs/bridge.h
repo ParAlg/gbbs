@@ -68,14 +68,6 @@ namespace gbbs {
 
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
 
-}  // namespace gbbs
-
-
-// Bridge to pbbslib (c++17)
-namespace pbbslib {
-
-  constexpr const size_t kSequentialForThreshold = 2048;
-
   // ====================== utilities =======================
   using flags = pbbs::flags;
   const flags no_flag = pbbs::no_flag;
@@ -85,12 +77,6 @@ namespace pbbslib {
   const flags fl_conservative = pbbs::fl_conservative;
   const flags fl_inplace = pbbs::fl_inplace;
   const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
-
-  using pbbs::parallel_for;
-  using pbbs::par_do;
-  using pbbs::parallel_for_alloc;
-  using pbbs::num_workers;
-  using pbbs::worker_id;
 
   using pbbs::free_array;
   using pbbs::delete_array;

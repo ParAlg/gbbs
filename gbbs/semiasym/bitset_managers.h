@@ -341,7 +341,7 @@ inline size_t decode_block(uintE vtx_id, BM& block_manager, uintT o,
 //    return k;
 //  } else {
 //    // copy to tmp
-//    par_for(0, d, pbbslib::kSequentialForThreshold, [&] (size_t i) { tmp[i] =
+//    par_for(0, d, kDefaultGranularity, [&] (size_t i) { tmp[i] =
 //    nghs[i]; }); auto pc = [&](const std::tuple<uintE, W>& nw) {
 //      return p(vtx_id, std::get<0>(nw), std::get<1>(nw));
 //    };

@@ -286,7 +286,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { cts[i] = Tree.get_vertex(i).out_degree(); });
 
   vs = vertexSubset(n, std::move(leafs));

@@ -162,7 +162,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   } //end else (nort major rebalancing)
 
 
-  par_for(0, vtxNew.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, vtxNew.size(), kDefaultGranularity, [&] (size_t i) {
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
 

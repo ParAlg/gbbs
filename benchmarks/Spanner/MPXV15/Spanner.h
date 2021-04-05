@@ -243,7 +243,7 @@ inline pbbs::sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, boo
       auto pred = [&](uintE v) { return clusters[v].cluster == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-      par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold,
+      par_for(0, new_centers.size(), kDefaultGranularity,
         [&] (size_t i) {
             uintE v = new_centers[i];
             clusters[new_centers[i]] = cluster_and_parent(v, v);

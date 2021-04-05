@@ -29,15 +29,15 @@ namespace contract_sf {
     using T = typename Seq::value_type;
     size_t n = ids.size();
     auto inverse_map = sequence<T>(n + 1);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { inverse_map[i] = 0; });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
     pbbslib::scan_add_inplace(inverse_map);
 
     size_t new_n = inverse_map[n];
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { ids[i] = inverse_map[ids[i]]; });
     return new_n;
   }
@@ -175,7 +175,7 @@ namespace contract_sf {
     // Pack out singleton clusters
     auto flags = sequence<uintE>(num_clusters + 1, static_cast<uintE>(0));
 
-    par_for(0, edges_size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, edges_size, kDefaultGranularity, [&] (size_t i) {
                       auto e = std::get<0>(edges[i]);
                       uintE u = e.first;
                       uintE v = e.second;
@@ -186,7 +186,7 @@ namespace contract_sf {
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     auto mapping = sequence<uintE>(num_ns_clusters);
-    par_for(0, num_clusters, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
                       if (flags[i] != flags[i + 1]) {
                         mapping[flags[i]] = i;
                       }
