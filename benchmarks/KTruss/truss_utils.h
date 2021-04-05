@@ -304,7 +304,7 @@ namespace truss_utils {
 
   template <class Graph, class VS, class F>
   vertexSubset emdf(Graph& GA, VS& vs, F f, const flags& fl = 0) {
-    return edgeMapDenseForward<pbbslib::empty>(GA, vs, f, fl);
+    return edgeMapDenseForward<gbbs::empty>(GA, vs, f, fl);
   }
 
   template <class F, class Graph>

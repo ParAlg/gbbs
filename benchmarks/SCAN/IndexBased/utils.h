@@ -144,7 +144,7 @@ UnclusteredType DetermineUnclusteredType(
   // `kUnclustered` before such a cluster is found.
   uintE candidate_cluster{kUnclustered};
   const auto check_neighbor{[&](
-      const uintE v_id, const uintE neighbor_id, pbbslib::empty) {
+      const uintE v_id, const uintE neighbor_id, gbbs::empty) {
     const uintE neighbor_cluster{clustering[neighbor_id]};
     // If `candidate_cluster` is at its default value of `kUnclustered`, assign
     // `neighbor_cluster` to it. Otherwise, if it has a value differing from
@@ -180,7 +180,7 @@ double Modularity(
         return cluster_id == kUnclustered ? 0 : cluster_id;
       }))};
 
-  if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+  if constexpr (std::is_same<Weight, gbbs::empty>::value) {
     // unweighted case
 
     // Fraction of edges that fall within a cluster.
@@ -193,7 +193,7 @@ double Modularity(
             return 0;
           }
           const auto is_same_cluster{
-            [&](const uintE v_id, const uintE ngh_id, pbbslib::empty) {
+            [&](const uintE v_id, const uintE ngh_id, gbbs::empty) {
               return clustering[ngh_id] == cluster_id;
             }};
           return graph->get_vertex(vertex_id)

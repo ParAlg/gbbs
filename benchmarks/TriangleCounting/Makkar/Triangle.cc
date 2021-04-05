@@ -141,7 +141,7 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
 
     if (compressed) { exit(0); }
 
-    gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+    gbbs::symmetric_graph<gbbs::symmetric_vertex, gbbs::empty> G;
     if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap);
     if(shuffle) {
       updates = shuffle_edges(G, weight);

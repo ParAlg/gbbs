@@ -321,7 +321,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
 }
 
 template <template <class W> class vertex, class W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+          typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
 inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem = false) {
   using edge = std::tuple<uintE, uintE, W>;
@@ -445,7 +445,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
 
 template <
     template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   std::cout << "Unimplemented for unweighted graphs"
             << "\n";

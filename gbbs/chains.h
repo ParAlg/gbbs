@@ -85,12 +85,12 @@ inline auto remove_chains(Graph& G) {
   auto in_vs =
       (in_ends.size() > 0)
           ? vertexSubset(n, in_ends.size(),
-                         ((tuple<uintE, pbbslib::empty>*)in_ends.to_array()))
+                         ((tuple<uintE, gbbs::empty>*)in_ends.to_array()))
           : vertexSubset(n);
   auto out_vs =
       (out_ends.size() > 0)
           ? vertexSubset(n, out_ends.size(),
-                         ((tuple<uintE, pbbslib::empty>*)out_ends.to_array()))
+                         ((tuple<uintE, gbbs::empty>*)out_ends.to_array()))
           : vertexSubset(n);
 
   auto chains = sequence<bool>(n, false);

@@ -183,12 +183,12 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
       return NumPaths[d];
     };
     auto reduce_f = [&] (double l, double r) { return l + r; };
-    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, pbbs::empty>> {
+    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, gbbs::empty>> {
       const uintE& u = std::get<0>(k);
       const double& contribution = std::get<1>(k);
       if (contribution > 0) {
         Storage[u] = contribution;
-        return std::optional<std::tuple<uintE, pbbs::empty>>({u, pbbs::empty()});
+        return std::optional<std::tuple<uintE, gbbs::empty>>({u, gbbs::empty()});
       }
       return std::nullopt;
     };
@@ -197,7 +197,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
     flags dense_fl = fl;
     dense_fl ^= in_edges; // should be set if out_edges, unset if in_edges
     timer dt; dt.start();
-    vertexSubset output = EM.template edgeMapReduce_dense<pbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl);
+    vertexSubset output = EM.template edgeMapReduce_dense<gbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl);
 
     parallel_for(0, G.n, [&] (size_t i) {
       if (Storage[i] != 0) {

@@ -32,8 +32,8 @@ namespace gbbs{
 namespace DBTGraph{
     
     using EdgeT = pair<uintE, uintE>;
-    using SymGraph = symmetric_graph<symmetric_vertex, pbbs::empty>;
-    using StaticEdgeT = tuple<uintE, pbbs::empty>;
+    using SymGraph = symmetric_graph<symmetric_vertex, gbbs::empty>;
+    using StaticEdgeT = tuple<uintE, gbbs::empty>;
 
     inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> &edges, size_t i){
     return edges[i].first.first;
@@ -139,8 +139,8 @@ namespace DBTGraph{
         MakeEdgeEntryMajor(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
         StaticEdgeT operator ()(size_t i)const {
-            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, pbbslib::empty());
-            return make_tuple(get<0>(table[i]), pbbslib::empty());
+            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, gbbs::empty());
+            return make_tuple(get<0>(table[i]), gbbs::empty());
         }
     };
 

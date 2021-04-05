@@ -103,7 +103,7 @@ bool CheckClustering(
 //   expected_outliers
 //     List of vertices that we expect to be outliers.
 void CheckUnclusteredVertices(
-    symmetric_graph<symmetric_vertex, pbbslib::empty>* graph,
+    symmetric_graph<symmetric_vertex, gbbs::empty>* graph,
     const i::Clustering& clustering,
     const VertexList& expected_hubs,
     const VertexList& expected_outliers) {

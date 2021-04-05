@@ -353,7 +353,7 @@ class DyGraph {
       size_t k = 0;
       for (size_t i = 0; i < D[u]; ++i) {
         if (getEArrayVal(u, i) != DEL_EDGE) {
-          seq_out[offset + k] = make_tuple(getEArray(u, i), pbbs::empty());
+          seq_out[offset + k] = make_tuple(getEArray(u, i), gbbs::empty());
           k++;
         }
       }

@@ -28,7 +28,7 @@ struct IntersectReturn {
 };
 
 template <>
-struct IntersectReturn<pbbs::empty> {
+struct IntersectReturn<gbbs::empty> {
   using type = size_t;  // Return number of shared neighbors
 };
 
@@ -64,7 +64,7 @@ typename IntersectReturn<Weight>::type seq_merge_full(
   size_t i = 0, j = 0;
   ReturnType ct = 0;
   while (i < nA && j < nB) {
-    if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+    if constexpr (std::is_same<Weight, gbbs::empty>::value) {
       // unweighted case
       const uintE a_id = std::get<0>(unswapped_A[i]);
       const uintE b_id = std::get<0>(unswapped_B[j]);
@@ -115,7 +115,7 @@ typename IntersectReturn<Weight>::type seq_merge(
   ReturnType ct = 0;
   const auto B_ids = ProjectSequenceZero(B);
   for (size_t i=0; i < nA; i++) {
-    if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+    if constexpr (std::is_same<Weight, gbbs::empty>::value) {
       // unweighted case
       const uintE a_id = std::get<0>(A[i]);
       size_t mB = pbbslib::binary_search(B_ids, a_id, std::less<uintE>());

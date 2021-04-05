@@ -12,29 +12,29 @@ using namespace std;
 namespace DBTInternal{
 
 template <class weight_type>
-symmetric_graph<symmetric_vertex, pbbs::empty>
+symmetric_graph<symmetric_vertex, gbbs::empty>
 edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge_list, size_t num_vertices, size_t s, size_t e) {
-  using edge_type = typename symmetric_vertex<pbbs::empty>::edge_type;
+  using edge_type = typename symmetric_vertex<gbbs::empty>::edge_type;
 
   size_t edgelistsize = e-s;
   if (edge_list.empty() || edgelistsize == 0) {
-    return symmetric_graph<symmetric_vertex, pbbs::empty>{};
+    return symmetric_graph<symmetric_vertex, gbbs::empty>{};
   }
 
-  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> edges_both_directions(2 * edgelistsize);
+  pbbs::sequence<gbbs_io::Edge<gbbs::empty>> edges_both_directions(2 * edgelistsize);
   par_for(0, edgelistsize, pbbslib::kSequentialForThreshold, [&](const size_t i) {
       const gbbs_io::Edge<weight_type>& edge = edge_list[s+i];
-      edges_both_directions[2 * i] = gbbs_io::Edge<pbbs::empty>{edge.from, edge.to, pbbs::empty()};
+      edges_both_directions[2 * i] = gbbs_io::Edge<gbbs::empty>{edge.from, edge.to, gbbs::empty()};
       edges_both_directions[2 * i + 1] =
-        gbbs_io::Edge<pbbs::empty>{edge.to, edge.from, pbbs::empty()};
+        gbbs_io::Edge<gbbs::empty>{edge.to, edge.from, gbbs::empty()};
   });
   constexpr auto compare_endpoints = [](
-      const gbbs_io::Edge<pbbs::empty>& left,
-      const gbbs_io::Edge<pbbs::empty>& right) {
+      const gbbs_io::Edge<gbbs::empty>& left,
+      const gbbs_io::Edge<gbbs::empty>& right) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
-  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> t_edges = pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
-  pbbs::sequence<gbbs_io::Edge<pbbs::empty>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<pbbs::empty>& ee) {return ee.from  != ee.to;});
+  pbbs::sequence<gbbs_io::Edge<gbbs::empty>> t_edges = pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
+  pbbs::sequence<gbbs_io::Edge<gbbs::empty>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<gbbs::empty>& ee) {return ee.from  != ee.to;});
   t_edges.clear();
   const size_t num_edges = edges.size();
   // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
@@ -43,12 +43,12 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
 
   edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
   par_for(0, num_edges, pbbslib::kSequentialForThreshold, [&](const size_t i) {
-    const gbbs_io::Edge<pbbs::empty>& edge = edges[i];
+    const gbbs_io::Edge<gbbs::empty>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
   });
   edges.clear();
   auto vertex_data_array = vertex_data.to_array();
-  return symmetric_graph<symmetric_vertex, pbbs::empty>{
+  return symmetric_graph<symmetric_vertex, gbbs::empty>{
     vertex_data_array,
     num_vertices,
     num_edges,
@@ -236,7 +236,7 @@ pbbs::sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, pbbs::seq
 
 template <class Graph, class UT>
 void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t s, size_t e, size_t n, commandLine& P){
-  using W = pbbslib::empty;
+  using W = gbbs::empty;
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
   size_t num_vertices = n;

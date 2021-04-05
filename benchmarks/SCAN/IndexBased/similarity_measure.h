@@ -89,7 +89,7 @@ class JaccardSimilarity {
 
   template <template <typename> class VertexTemplate>
   pbbs::sequence<EdgeSimilarity>
-  AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
+  AllEdges(symmetric_graph<VertexTemplate, gbbs::empty>* graph) const;
 };
 
 // This is an approximate version of `CosineSimilarity`. Increasing
@@ -135,7 +135,7 @@ struct ApproxJaccardSimilarity {
   // When `random_seed` is fixed, the output of `AllEdges` is deterministic.
   template <template <typename> class VertexTemplate>
   pbbs::sequence<EdgeSimilarity>
-  AllEdges(symmetric_graph<VertexTemplate, pbbs::empty>* graph) const;
+  AllEdges(symmetric_graph<VertexTemplate, gbbs::empty>* graph) const;
 
  private:
   const uint32_t num_samples_;
@@ -156,7 +156,7 @@ struct EdgeCounter {
 };
 
 template <>
-struct EdgeCounter<pbbs::empty> {
+struct EdgeCounter<gbbs::empty> {
   using type = uintE;  // unweighted case
 };
 
@@ -214,7 +214,7 @@ VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
 //     should be symmetric, i.e., give the same output when u and v are swapped.
 template <template <typename> class VertexTemplate, class F>
 pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
-    symmetric_graph<VertexTemplate, pbbs::empty>* graph,
+    symmetric_graph<VertexTemplate, gbbs::empty>* graph,
     F&& neighborhood_sizes_to_similarity) {
   // Counting the neighbors shared between adjacent vertices u and v is the same
   // as counting the number of triangles that the edge {u, v} appears in.
@@ -245,7 +245,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
     const auto intersect{[&](
         const uintE v_id,
         const uintE neighbor_id,
-        pbbs::empty,
+        gbbs::empty,
         const uintE v_to_neighbor_index) {
       auto neighbor{directed_graph.get_vertex(neighbor_id)};
       const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
@@ -272,7 +272,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
-        pbbs::empty,
+        gbbs::empty,
         const uintE v_to_u_index) {
       const uintT counter_index{v_counter_offset + v_to_u_index};
       const uintE num_shared_neighbors{counters[counter_index]};
@@ -404,7 +404,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
           const uintE neighbor_id,
           [[maybe_unused]] const Weight weight) {
         for (size_t bit_id = 0; bit_id < max_bit_id; bit_id++) {
-          if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+          if constexpr (std::is_same<Weight, gbbs::empty>::value) {
             // unweighted case
             hyperplane_dot_products[bit_id] +=
               normals[num_samples * normals_indices[neighbor_id]
@@ -480,7 +480,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         graph->v_data[neighbor_id].degree >= degree_threshold};
       const uintT neighbor_counter_offset{counter_offsets[neighbor_id]};
 
-      if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+      if constexpr (std::is_same<Weight, gbbs::empty>::value) {
         // unweighted case
         const auto update_counters{[&](
             const uintE shared_neighbor,
@@ -522,7 +522,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   });
 
   const pbbs::sequence<double> norms{[&]() -> pbbs::sequence<double> {
-    if constexpr (std::is_same<Weight, pbbslib::empty>::value) {  // unweighted
+    if constexpr (std::is_same<Weight, gbbs::empty>::value) {  // unweighted
       return {};
     } else {  // weighted case
       return pbbs::sequence<double>{
@@ -571,7 +571,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
             pbbslib::reduce_add(fingerprint_xor) * M_PI / num_samples)};
         similarity = std::max(std::cos(angle_estimate), 0.0f);
       } else {  // exact similarity
-        if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+        if constexpr (std::is_same<Weight, gbbs::empty>::value) {
           // unweighted case
           const uintE num_shared_neighbors{counters[counter_index]};
           const uintE u_degree{graph->get_vertex(u_id).out_degree()};
@@ -607,11 +607,11 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 // degrees are low, it's cheap to compute the similarity exactly.)
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
-    symmetric_graph<VertexTemplate, pbbs::empty>* graph,
+    symmetric_graph<VertexTemplate, gbbs::empty>* graph,
     const uint32_t original_num_samples,
     const size_t degree_threshold,
     const size_t random_seed) {
-  using Weight = pbbs::empty;
+  using Weight = gbbs::empty;
   using Vertex = VertexTemplate<Weight>;
   // For edges between high degree vertices, estimate the Jaccard similarity
   // with a MinHash variant --- see paper "One Permutation Hashing for Efficient
@@ -675,7 +675,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     Vertex vertex{graph->get_vertex(vertex_id)};
     const size_t fingerprint_offset{fingerprint_index * num_samples};
     const auto update_fingerprint{
-      [&](uintE, const uintE neighbor, pbbs::empty) {
+      [&](uintE, const uintE neighbor, gbbs::empty) {
         const uintE permuted_neighbor{vertex_permutation[neighbor]};
         const uintE bucket_id{permuted_neighbor & bucket_mask};
         const uintE bucket_value{permuted_neighbor >> log_num_samples};
@@ -684,7 +684,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
             bucket_value,
             std::less<uintE>{});
       }};
-    update_fingerprint(vertex_id, vertex_id, pbbs::empty{});
+    update_fingerprint(vertex_id, vertex_id, gbbs::empty{});
     vertex.out_neighbors().map(update_fingerprint);
   });
 
@@ -720,7 +720,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     const auto intersect{[&](
         const uintE v_id,
         const uintE neighbor_id,
-        pbbs::empty,
+        gbbs::empty,
         const uintE v_to_neighbor_index) {
       auto neighbor{directed_graph.get_vertex(neighbor_id)};
       const bool neighbor_is_high_degree{
@@ -755,7 +755,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     const auto compute_similarity{[&](
         const uintE v_id,
         const uintE u_id,
-        pbbs::empty,
+        gbbs::empty,
         const uintE v_to_u_index) {
       const uintT counter_index{v_counter_offset + v_to_u_index};
       float similarity{-1};
@@ -809,7 +809,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
 template <template <typename> class VertexTemplate, typename Weight>
 pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, Weight>* graph) const {
-  if constexpr (std::is_same<Weight, pbbslib::empty>::value) {  // unweighted
+  if constexpr (std::is_same<Weight, gbbs::empty>::value) {  // unweighted
     constexpr auto similarity_func{
       [](const uintE neighborhood_size_1,
          const uintE neighborhood_size_2,
@@ -921,7 +921,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
 
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
-    symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
+    symmetric_graph<VertexTemplate, gbbs::empty>* graph) const {
   constexpr auto similarity_func{
     [](const uintE neighborhood_size_1,
        const uintE neighborhood_size_2,
@@ -945,7 +945,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
 
 template <template <typename> class VertexTemplate>
 pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
-    symmetric_graph<VertexTemplate, pbbs::empty>* graph) const {
+    symmetric_graph<VertexTemplate, gbbs::empty>* graph) const {
   const size_t degree_threshold{static_cast<size_t>(1.0 * num_samples_)};
   return internal::ApproxJaccardEdgeSimilarities(
       graph, num_samples_, degree_threshold, random_seed_);

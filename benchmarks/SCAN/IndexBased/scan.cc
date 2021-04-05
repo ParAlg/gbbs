@@ -15,13 +15,13 @@ namespace {
 
 using DirectedEdge = std::pair<uintE, uintE>;
 using VertexSet =
-  pbbslib::sparse_table<uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>;
+  pbbslib::sparse_table<uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>;
 
 // Creates a `VertexSet` for holding up to `capacity` elements.
 VertexSet MakeVertexSet(const size_t capacity) {
   return pbbslib::make_sparse_table<
-    uintE, pbbslib::empty, decltype(&pbbslib::hash64_2)>(
-      capacity, {UINT_E_MAX, pbbslib::empty{}}, pbbslib::hash64_2);
+    uintE, gbbs::empty, decltype(&pbbslib::hash64_2)>(
+      capacity, {UINT_E_MAX, gbbs::empty{}}, pbbslib::hash64_2);
 }
 
 // Identifies the clusters for the core vertices and populates `clustering`
@@ -46,7 +46,7 @@ void ClusterCores(
 
   VertexSet cores_set{MakeVertexSet(cores.size())};
   par_for(0, cores.size(), [&](const size_t i) {
-    cores_set.insert(std::make_pair(cores[i], pbbslib::empty{}));
+    cores_set.insert(std::make_pair(cores[i], gbbs::empty{}));
   });
 
   // Get connected components induced by sufficiently similar core-to-core
@@ -264,7 +264,7 @@ void Index::Cluster(
     // similar core-to-core edges
     par_for(previous_cores.size(), cores.size(), [&](const size_t j) {
       const uintE core{cores[j]};
-      cores_set.insert(std::make_pair(core, pbbslib::empty{}));
+      cores_set.insert(std::make_pair(core, gbbs::empty{}));
       clustering[core] = core;
     });
     constexpr auto find{find_variants::find_compress};

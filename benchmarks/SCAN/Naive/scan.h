@@ -38,7 +38,7 @@ using Clustering = pbbs::sequence<pbbs::sequence<uintE>>;
 // neighbor ID.
 template <template <typename> class VertexTemplate>
 Clustering Cluster(
-    symmetric_graph<VertexTemplate, pbbslib::empty>* graph,
+    symmetric_graph<VertexTemplate, gbbs::empty>* graph,
     const uint64_t mu,
     const float epsilon) {
   const size_t num_vertices{graph->n};

@@ -144,15 +144,15 @@ PYBIND11_MODULE(gbbs_lib, m) {
       return vs.dense();
     });
 
-  SymVertexRegister<symmetric_vertex, pbbs::empty>(m, "SymmetricVertexEmpty");
-  SymVertexRegister<csv_bytepd_amortized, pbbs::empty>(m, "CompressedSymmetricVertexEmpty");
-  SymGraphRegister<symmetric_vertex, pbbs::empty>(m, "SymmetricGraph");
-  SymGraphRegister<csv_bytepd_amortized, pbbs::empty>(m, "CompressedSymmetricGraph");
+  SymVertexRegister<symmetric_vertex, gbbs::empty>(m, "SymmetricVertexEmpty");
+  SymVertexRegister<csv_bytepd_amortized, gbbs::empty>(m, "CompressedSymmetricVertexEmpty");
+  SymGraphRegister<symmetric_vertex, gbbs::empty>(m, "SymmetricGraph");
+  SymGraphRegister<csv_bytepd_amortized, gbbs::empty>(m, "CompressedSymmetricGraph");
 
-  AsymVertexRegister<asymmetric_vertex, pbbs::empty>(m, "AsymmetricVertexEmpty");
-  AsymVertexRegister<cav_bytepd_amortized, pbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
-  AsymGraphRegister<asymmetric_vertex, pbbs::empty>(m, "AsymmetricGraph");
-  AsymGraphRegister<cav_bytepd_amortized, pbbs::empty>(m, "CompressedAsymmetricGraph");
+  AsymVertexRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricVertexEmpty");
+  AsymVertexRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
+  AsymGraphRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricGraph");
+  AsymGraphRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricGraph");
 
   /* ============================== Graph IO ============================= */
   m.def("readSymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
@@ -174,7 +174,7 @@ PYBIND11_MODULE(gbbs_lib, m) {
   });
 
   m.def("readCompressedSymmetricUnweightedGraph", [&] (std::string& path) {
-    auto G = gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(
+    auto G = gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(
         path.c_str(),
         /* mmap = */true,
         /* mmap_copy = */false);
@@ -183,7 +183,7 @@ PYBIND11_MODULE(gbbs_lib, m) {
   });
 
   m.def("readCompressedAsymmetricUnweightedGraph", [&] (std::string& path) {
-    auto G = gbbs_io::read_compressed_asymmetric_graph<pbbslib::empty>(
+    auto G = gbbs_io::read_compressed_asymmetric_graph<gbbs::empty>(
         path.c_str(),
         /* mmap = */true,
         /* mmap_copy = */false);

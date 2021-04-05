@@ -67,15 +67,15 @@ namespace spanning_forest {
     std::cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << std::endl;
   }
 
-  pbbs::sequence<std::tuple<uintE, uintE, pbbs::empty>> double_edges(pbbs::sequence<edge>& in) {
-    using weighted_edge = std::tuple<uintE, uintE, pbbs::empty>;
+  pbbs::sequence<std::tuple<uintE, uintE, gbbs::empty>> double_edges(pbbs::sequence<edge>& in) {
+    using weighted_edge = std::tuple<uintE, uintE, gbbs::empty>;
     auto double_in = pbbs::sequence<weighted_edge>(in.size() * 2, [&] (size_t i) {
       size_t ind = i/2;
       auto [u, v] = in[ind];
       if (i % 2 == 0) {
-        return std::make_tuple(u, v, pbbs::empty());
+        return std::make_tuple(u, v, gbbs::empty());
       } else {
-        return std::make_tuple(v, u, pbbs::empty());
+        return std::make_tuple(v, u, gbbs::empty());
       }
     });
     return double_in;

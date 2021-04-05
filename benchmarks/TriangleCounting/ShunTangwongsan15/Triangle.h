@@ -71,7 +71,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
 // Directly call edgemap dense-forward.
 template <class Graph, class VS, class F>
 inline vertexSubset emdf(Graph& G, VS& vs, F f, const flags& fl = 0) {
-  return edgeMapDenseForward<pbbslib::empty>(G, vs, f, fl);
+  return edgeMapDenseForward<gbbs::empty>(G, vs, f, fl);
 }
 
 template <class Graph>

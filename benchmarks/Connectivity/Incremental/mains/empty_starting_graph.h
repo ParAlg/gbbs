@@ -62,7 +62,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
   bool permute = P.getOptionValue("-permute");
   auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
 
-  auto FG = edge_array<pbbs::empty>();
+  auto FG = edge_array<gbbs::empty>();
   run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
   return 1;
 }

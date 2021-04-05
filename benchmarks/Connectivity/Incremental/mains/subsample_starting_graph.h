@@ -64,11 +64,11 @@ double Run(Graph& G, commandLine P) {
 
 //  if (insert_to_query != 1 && !permute) {
     auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
-    auto FG = gbbs::edge_array<pbbs::empty>();
+    auto FG = gbbs::edge_array<gbbs::empty>();
     run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
 //  } else {
 //    auto annotated_updates = annotate_updates_insert(updates, insert_to_query, n, permute);
-//    auto FG = gbbs::edge_array<pbbs::empty>();
+//    auto FG = gbbs::edge_array<gbbs::empty>();
 //    run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
   //}
 

@@ -200,14 +200,14 @@ struct vertexSubsetData {
   size_t sum_out_degrees;
 };
 
-// Specialized version where data = pbbslib::empty.
+// Specialized version where data = gbbs::empty.
 template <>
-struct vertexSubsetData<pbbslib::empty> {
+struct vertexSubsetData<gbbs::empty> {
   using S = uintE;
   using D = bool;
 
   // Move constructor
-  vertexSubsetData<pbbslib::empty>(vertexSubsetData<pbbslib::empty>&& other) noexcept {
+  vertexSubsetData<gbbs::empty>(vertexSubsetData<gbbs::empty>&& other) noexcept {
     n = other.n;
     m = other.m;
     s = std::move(other.s);
@@ -217,7 +217,7 @@ struct vertexSubsetData<pbbslib::empty> {
   }
 
   // Move assignment
-  vertexSubsetData<pbbslib::empty>& operator=(vertexSubsetData<pbbslib::empty>&& other) noexcept {
+  vertexSubsetData<gbbs::empty>& operator=(vertexSubsetData<gbbs::empty>&& other) noexcept {
     if (this != &other) {
       n = other.n;
       m = other.m;
@@ -230,14 +230,14 @@ struct vertexSubsetData<pbbslib::empty> {
   }
 
   // An empty vertex set.
-  vertexSubsetData<pbbslib::empty>(size_t _n)
+  vertexSubsetData<gbbs::empty>(size_t _n)
       : n(_n),
         m(0),
         isDense(0),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset with a single vertex.
-  vertexSubsetData<pbbslib::empty>(size_t _n, uintE v)
+  vertexSubsetData<gbbs::empty>(size_t _n, uintE v)
       : n(_n),
         m(1),
         isDense(0),
@@ -247,14 +247,14 @@ struct vertexSubsetData<pbbslib::empty> {
   }
 
   // A vertexSubset from array of vertex indices.
-  vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m, sequence<S>&& A)
+  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, sequence<S>&& A)
       : n(_n),
         m(_m),
         s(std::move(A)),
         isDense(0),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
-  vertexSubsetData<pbbslib::empty>(size_t n, sequence<S>&& A)
+  vertexSubsetData<gbbs::empty>(size_t n, sequence<S>&& A)
       : n(n),
         m(A.size()),
         s(std::move(A)),
@@ -262,7 +262,7 @@ struct vertexSubsetData<pbbslib::empty> {
         sum_out_degrees(std::numeric_limits<size_t>::max()) {}
 
   // A vertexSubset from boolean array giving number of true values.
-  vertexSubsetData<pbbslib::empty>(size_t _n, size_t _m, sequence<D>&& A)
+  vertexSubsetData<gbbs::empty>(size_t _n, size_t _m, sequence<D>&& A)
       : n(_n),
         m(_m),
         d(std::move(A)),
@@ -271,7 +271,7 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // A vertexSubset from boolean array giving number of true values. Calculate
   // number of nonzeros and store in m.
-  vertexSubsetData<pbbslib::empty>(size_t _n, sequence<D>&& A)
+  vertexSubsetData<gbbs::empty>(size_t _n, sequence<D>&& A)
       : n(_n),
         d(std::move(A)),
         isDense(1),
@@ -291,42 +291,42 @@ struct vertexSubsetData<pbbslib::empty> {
 
   // Sparse
   inline uintE& vtx(const uintE& i) { return s[i]; }
-  inline pbbslib::empty vtxData(const uintE& i) {
-    return pbbslib::empty();
+  inline gbbs::empty vtxData(const uintE& i) {
+    return gbbs::empty();
   }
-  inline std::tuple<uintE, pbbslib::empty> vtxAndData(const uintE& i) const {
-    return std::make_tuple(s[i], pbbslib::empty());
+  inline std::tuple<uintE, gbbs::empty> vtxAndData(const uintE& i) const {
+    return std::make_tuple(s[i], gbbs::empty());
   }
 
   // Dense
   __attribute__((always_inline)) inline bool isIn(const uintE& v) const {
     return d[v];
   }
-  inline pbbslib::empty ithData(const uintE& v) const {
-    return pbbslib::empty();
+  inline gbbs::empty ithData(const uintE& v) const {
+    return gbbs::empty();
   }
 
   // Returns (uintE) -> std::optional<std::tuple<vertex, vertex-data>>.
   auto get_fn_repr() const -> std::function<
-      std::optional<std::tuple<uintE, pbbslib::empty>>(uintE)> {
-    std::function<std::optional<std::tuple<uintE, pbbslib::empty>>(
+      std::optional<std::tuple<uintE, gbbs::empty>>(uintE)> {
+    std::function<std::optional<std::tuple<uintE, gbbs::empty>>(
         const uintE&)>
         fn;
     if (isDense) {
       fn = [&](
-          const uintE& v) -> std::optional<std::tuple<uintE, pbbslib::empty>> {
+          const uintE& v) -> std::optional<std::tuple<uintE, gbbs::empty>> {
         if (d[v]) {
-          return std::optional<std::tuple<uintE, pbbslib::empty>>(
-              std::make_tuple(v, pbbslib::empty()));
+          return std::optional<std::tuple<uintE, gbbs::empty>>(
+              std::make_tuple(v, gbbs::empty()));
         } else {
           return std::nullopt;
         }
       };
     } else {
       fn = [&](
-          const uintE& i) -> std::optional<std::tuple<uintE, pbbslib::empty>> {
-        return std::optional<std::tuple<uintE, pbbslib::empty>>(
-            std::make_tuple(s[i], pbbslib::empty()));
+          const uintE& i) -> std::optional<std::tuple<uintE, gbbs::empty>> {
+        return std::optional<std::tuple<uintE, gbbs::empty>>(
+            std::make_tuple(s[i], gbbs::empty()));
       };
     }
     return fn;
@@ -375,7 +375,7 @@ struct vertexSubsetData<pbbslib::empty> {
   bool isDense;
   size_t sum_out_degrees;
 };
-using vertexSubset = vertexSubsetData<pbbslib::empty>;
+using vertexSubset = vertexSubsetData<gbbs::empty>;
 
 /* ======================== Functions on VertexSubsets ====================== */
 
@@ -435,7 +435,7 @@ inline vertexSubset vertexFilter_dense(
   parallel_for(0, n,
                [&](size_t i) {
                  if
-                   constexpr(std::is_same<Data, pbbs::empty>::value) {
+                   constexpr(std::is_same<Data, gbbs::empty>::value) {
                      if (V.isIn(i)) d_out[i] = filter(i);
                    }
                  else {
@@ -460,7 +460,7 @@ inline vertexSubset vertexFilter_sparse(
                [&](size_t i) {
                  uintE v = V.vtx(i);
                  if
-                   constexpr(std::is_same<Data, pbbs::empty>::value) {
+                   constexpr(std::is_same<Data, gbbs::empty>::value) {
                      bits[i] = filter(v);
                    }
                  else {

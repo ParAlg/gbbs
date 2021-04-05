@@ -59,7 +59,7 @@ struct Edge {
 };
 
 template <>
-Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to);
+Edge<gbbs::empty>::Edge(const uintE _from, const uintE _to);
 
 namespace internal {  // Internal declarations
 
@@ -106,14 +106,14 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
-symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
+symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
     const char* fname,
     bool mmap,
     bool binary,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
-asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
+asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_graph(
     const char* fname,
     bool mmap,
     bool binary,
@@ -356,7 +356,7 @@ std::vector<Edge<weight_type>> read_weighted_edge_list(const char* filename) {
 //     <edge 3 first endpoint> <edge 3 second endpoint>
 //     ...
 //     <edge m first endpoint> <edge m second endpoint>
-std::vector<Edge<pbbslib::empty>>
+std::vector<Edge<gbbs::empty>>
 read_unweighted_edge_list(const char* filename);
 
 // Converts edge list into an asymmetric graph.
@@ -475,7 +475,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
   }
 
   constexpr bool is_weighted_graph{
-    !std::is_same<weight_type, pbbslib::empty>::value};
+    !std::is_same<weight_type, gbbs::empty>::value};
   const size_t num_vertices{graph.n};
   const size_t num_edges{graph.m};
 

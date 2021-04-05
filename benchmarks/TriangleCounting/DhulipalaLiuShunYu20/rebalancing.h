@@ -55,7 +55,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
     DyGraph<Graph>* DG, pbbs::sequence<pair<EdgeT, bool>>& edges,
     pbbs::sequence<VtxUpdate>& vtxNew, pbbs::sequence<size_t>& vtxMap,
     size_t num_vertices, commandLine& P) {
-  using W = pbbslib::empty;
+  using W = gbbs::empty;
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type;  // std::tuple<uintE, W>
   DyGraph<SymGraph>* DGnew;
@@ -112,7 +112,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
                  par_for(0, u.insert_degree, DBTGraph::smallTasksForThreshold,
                          [&](const size_t j) {
                            edges_array[offset + j] = std::make_tuple(
-                               getSecond(edges, u.offset + j), pbbs::empty());
+                               getSecond(edges, u.offset + j), gbbs::empty());
                          });
                },
                1);

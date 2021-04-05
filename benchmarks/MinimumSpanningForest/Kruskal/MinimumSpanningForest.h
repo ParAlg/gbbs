@@ -39,7 +39,7 @@ namespace gbbs {
 namespace MinimumSpanningForest_kruskal {
 
 template <template <class W> class vertex, class W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+          typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
 inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   using edge = std::tuple<uintE, uintE, W>;
@@ -74,7 +74,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
 
 template <
     template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   std::cout << "Unimplemented for unweighted graphs"
             << "\n";

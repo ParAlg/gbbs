@@ -25,8 +25,6 @@ inline void my_free(void* p) { my_mem_pool.afree(p); }
 
 namespace pbbs {
 
-struct empty {};
-
 typedef uint32_t flags;
 const flags no_flag = 0;
 const flags fl_sequential = 1;

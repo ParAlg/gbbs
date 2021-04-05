@@ -65,6 +65,9 @@ namespace gbbs {
   using range = pbbs::range<T>;
 
   using pbbs::timer;
+
+  struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
+
 }  // namespace gbbs
 
 
@@ -74,7 +77,6 @@ namespace pbbslib {
   constexpr const size_t kSequentialForThreshold = 2048;
 
   // ====================== utilities =======================
-  using empty = pbbs::empty;
   using flags = pbbs::flags;
   const flags no_flag = pbbs::no_flag;
   const flags fl_sequential = pbbs::fl_sequential;
