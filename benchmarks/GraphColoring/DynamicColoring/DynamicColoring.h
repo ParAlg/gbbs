@@ -26,12 +26,13 @@ struct Coloring {
     uintE first_color_id_; // Color id of the first color in the palette
     color_palette colors_; // Palette containing occupied and free colors
 
-    Palette(): v_(0), size_(0), color_(0) {}
+    Palette(): v_(0), size_(0), color_(0), cur_color_index(0) {}
 
     Palette(uintE vertex_id, uintE color_id,
             uintE palette_size, uintE first_color_id): v_(vertex_id), color_(color_id),
         size_(palette_size), first_color_id_(first_color_id) {
             colors_ = parlay::sequence<uintE>(size_);
+            cur_color_index_ = color_ - first_color_id_;
         }
 
     inline uintE mark_color_occupied(uintE color_id, size_t num_occupied) {
@@ -111,6 +112,10 @@ struct Coloring {
     layers_of_vertices_(LDS) {
     vertex_color_seq = parlay::sequence<LDSVertex>(num_vertices);
     VC = vertex_color_seq.begin();
+
+    parallel_for(0, num_vertices - 1, [&] (size_t i){
+        VC[i].v_ = i;
+    });
   }
 
   template <class Seq>
