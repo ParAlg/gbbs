@@ -247,25 +247,25 @@ TEST(ScanSubroutines, BasicUsage) {
     {
       const uint64_t kMu{2};
       const float kEpsilon{0.5};
-      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      const sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
       EXPECT_THAT(cores, UnorderedElementsAre(0, 1, 2, 3, 4, 5));
     }
     {
       const uint64_t kMu{2};
       const float kEpsilon{0.8};
-      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      const sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
       EXPECT_THAT(cores, UnorderedElementsAre(2, 3, 4));
     }
     {
       const uint64_t kMu{2};
       const float kEpsilon{0.88};
-      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      const sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
       EXPECT_THAT(cores, UnorderedElementsAre(2, 3));
     }
     {
       const uint64_t kMu{2};
       const float kEpsilon{0.9};
-      const pbbs::sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
+      const sequence<uintE> cores{core_order.GetCores(kMu, kEpsilon)};
       EXPECT_THAT(cores, IsEmpty());
     }
   }

@@ -131,7 +131,7 @@ bool run_multiple(Graph& G, size_t rounds,
 }
 
 template <class Graph, bool provides_initial_graph, class F>
-void run_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test_type, std::initializer_list<F> tests) {
+void run_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P, F test_type, std::initializer_list<F> tests) {
   for (auto test : tests) {
     test(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
@@ -152,7 +152,7 @@ inline void cc_check(S1& correct, S2& check);
 namespace connectit {
 
   template <class S>
-  void baseline_process_batch(pbbs::sequence<uintE>& parents, S& batch) {
+  void baseline_process_batch(sequence<uintE>& parents, S& batch) {
     auto F = connectit::get_find_function<find_compress>();
     auto U = connectit::get_unite_function<unite, decltype(F), find_compress>(parents.size(), F);
     for (size_t i=0; i<batch.size(); i++) {
@@ -163,7 +163,7 @@ namespace connectit {
     }
   }
 
-  void check_shortcut(pbbs::sequence<uintE>& parents, uintE u) {
+  void check_shortcut(sequence<uintE>& parents, uintE u) {
     uintE p_u = parents[u];
     while (p_u != parents[p_u]) {
       p_u = parents[p_u];
@@ -175,15 +175,15 @@ namespace connectit {
   auto run_abstract_alg(
       Graph& G,
       size_t n,
-      pbbs::sequence<incremental_update>& updates,
+      sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       bool check,
       Alg& alg) {
-    auto parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+    auto parents = sequence<uintE>(n, [&] (size_t i) { return i; });
 
 
-    pbbs::sequence<uintE> correct_parents;
+    sequence<uintE> correct_parents;
 
     /* compute initial components if nec. */
     if constexpr (provides_initial_graph) {

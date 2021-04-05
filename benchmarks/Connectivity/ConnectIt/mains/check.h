@@ -34,7 +34,7 @@ template <class Seq>
 inline void RelabelDet(Seq& ids) {
   using T = typename Seq::value_type;
   size_t n = ids.size();
-  auto component_map = pbbs::sequence<T>(n + 1, (T)0);
+  auto component_map = sequence<T>(n + 1, (T)0);
   T cur_comp = 0;
   for (size_t i=0; i<n; i++) {
     T comp = ids[i];

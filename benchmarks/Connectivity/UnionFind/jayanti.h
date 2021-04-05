@@ -74,7 +74,7 @@ namespace jayanti_rank {
     }
   }
 
-  inline uintE find(uintE x, pbbs::sequence<vdata>& vdatas) {
+  inline uintE find(uintE x, sequence<vdata>& vdatas) {
     uintE u = x;
     uintE pathlen = 1;
     while (!vdatas[u].is_root()) { // * on u.is_root()
@@ -85,7 +85,7 @@ namespace jayanti_rank {
     return u; // u is a root
   }
 
-  inline uintE find_twotry_splitting(uintE x, pbbs::sequence<vdata>& vdatas) {
+  inline uintE find_twotry_splitting(uintE x, sequence<vdata>& vdatas) {
     uintE u = x;
     uintE pathlen = 1;
     while (!vdatas[u].is_root()) { // * on u.is_root()
@@ -145,20 +145,20 @@ namespace jayanti_rank {
   struct JayantiTBUnite {
     G& GA;
     Find& find;
-    pbbs::sequence<vdata> vdatas;
+    sequence<vdata> vdatas;
     size_t n;
     JayantiTBUnite(G& GA, size_t n, Find& find) : GA(GA), find(find), n(n) {
-      vdatas = pbbs::sequence<vdata>(n);
+      vdatas = sequence<vdata>(n);
     }
 
-    void initialize(pbbs::sequence<parent>& parents) {
+    void initialize(sequence<parent>& parents) {
       parallel_for(0, n, [&] (uintE i) {
         vdatas[i] = vdata(/* parent */ parents[i], /* rank */ 1, /* is_root */ (i == parents[i]));
       });
     }
 
     template <SamplingOption sampling_option>
-    void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
+    void compute_components(sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
 
@@ -203,7 +203,7 @@ namespace jayanti_rank {
     }
 
     template <bool reorder_updates, class Seq>
-    void process_batch(pbbs::sequence<parent>& parents, Seq& batch) {
+    void process_batch(sequence<parent>& parents, Seq& batch) {
       static_assert(reorder_updates == false);
       auto r = pbbs::random();
 

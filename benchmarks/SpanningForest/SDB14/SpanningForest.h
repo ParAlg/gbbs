@@ -181,7 +181,7 @@ namespace workefficient_sf {
   // Algorithm maintains a map from edges in the current graph to original
   // edges (initially just identity).
   template <class Graph>
-  inline pbbs::sequence<edge> SpanningForest(Graph& G, double beta = 0.2,
+  inline sequence<edge> SpanningForest(Graph& G, double beta = 0.2,
                                         bool pack = false, bool permute = false) {
     std::function<edge(edge)> identity_mapping = [&] (edge e) {
       return e;

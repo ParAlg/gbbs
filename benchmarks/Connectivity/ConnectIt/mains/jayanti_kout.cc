@@ -32,12 +32,12 @@
 namespace gbbs {
 namespace connectit {
 template <class Graph>
-void jayanti_find_twotrysplit(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void jayanti_find_twotrysplit(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_jayanti_alg<Graph, sample_kout, find_twotrysplit>(G, rounds, correct,  P);
 }
 
 template <class Graph>
-void jayanti_find_simple(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void jayanti_find_simple(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_jayanti_alg<Graph, sample_kout, find_simple>(G, rounds, correct,  P);
 }
 
@@ -48,7 +48,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

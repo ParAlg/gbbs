@@ -39,10 +39,10 @@ void RemoveDuplicates(vertexSubset* vertex_subset) {
   if (vertex_subset->isDense) {
     return;
   }
-  pbbs::sequence<uintE> vertices(
+  sequence<uintE> vertices(
       vertex_subset->size(),
       [&](const size_t i) { return vertex_subset->vtx(i); });
-  pbbs::sequence<uintE> deduped_vertices{
+  sequence<uintE> deduped_vertices{
     pbbs::remove_duplicates_ordered(vertices, std::less<uintE>{})};
   vertexSubset deduped_vertex_subset{
     vertex_subset->n, std::move(deduped_vertices)};

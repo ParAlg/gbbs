@@ -70,7 +70,7 @@ inline uintE* degreeOrderNodes(Graph& G, size_t n) {
 }
 
 template <class Graph>
-pbbs::sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
+sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
   const size_t n = GA.n;
   if (order_type == 0) return goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
   else if (order_type == 1) return barenboimelkin_degen::DegeneracyOrder(GA, epsilon);

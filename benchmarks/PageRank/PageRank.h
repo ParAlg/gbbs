@@ -79,13 +79,13 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
   const double damping = 0.85;
 
   double one_over_n = 1/(double)n;
-  auto p_curr = pbbs::sequence<double>(n, one_over_n);
-  auto p_next = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier = pbbs::sequence<bool>(n, true);
+  auto p_curr = sequence<double>(n, one_over_n);
+  auto p_next = sequence<double>(n, static_cast<double>(0));
+  auto frontier = sequence<bool>(n, true);
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   vertexSubset Frontier(n,n, std::move(frontier));
 
@@ -123,16 +123,16 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
   const double addedConstant = (1 -damping)*(1/static_cast<double>(n));
 
   double one_over_n = 1/(double)n;
-  auto p_curr = pbbs::sequence<double>(n, one_over_n);
-  auto p_next = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier = pbbs::sequence<bool>(n, true);
-  auto p_div = pbbs::sequence<double>(n, [&] (size_t i) -> double {
+  auto p_curr = sequence<double>(n, one_over_n);
+  auto p_next = sequence<double>(n, static_cast<double>(0));
+  auto frontier = sequence<bool>(n, true);
+  auto p_div = sequence<double>(n, [&] (size_t i) -> double {
     return one_over_n / static_cast<double>(G.get_vertex(i).out_degree());
   });
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   vertexSubset Frontier(n,n,std::move(frontier));
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
@@ -315,10 +315,10 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
   const double damping = 0.85;
 
   double one_over_n = 1/(double)n;
-  auto p = pbbs::sequence<double>(n);
-  auto Delta = pbbs::sequence<delta_and_degree>(n);
-  auto nghSum = pbbs::sequence<double>(n);
-  auto frontier = pbbs::sequence<bool>(n);
+  auto p = sequence<double>(n);
+  auto Delta = sequence<delta_and_degree>(n);
+  auto nghSum = sequence<double>(n);
+  auto frontier = sequence<bool>(n);
   parallel_for(0, n, [&] (size_t i) {
     uintE degree = G.get_vertex(i).out_degree();
     p[i] = 0.0;//one_over_n;
@@ -331,7 +331,7 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
   auto get_degree = [&] (size_t i) { return G.get_vertex(i).out_degree(); };
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, (double)0.0), (size_t)G.m/1000);
   vertexSubset Frontier(n,n,std::move(frontier));
-  auto all = pbbs::sequence<bool>(n, true);
+  auto all = sequence<bool>(n, true);
   vertexSubset All(n,n,std::move(all)); //all vertices
 
   size_t round = 0;

@@ -41,9 +41,9 @@ namespace connectit {
   bool run_multiple_liu_tarjan_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<edge>& correct,
+      sequence<edge>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
+    auto test = [&] (Graph& G, commandLine P, sequence<edge>& correct) {
       timer tt; tt.start();
       auto edges =
           run_liu_tarjan_alg<
@@ -64,12 +64,12 @@ namespace connectit {
   }
 
   template <class Graph>
-  void liutarjan_R(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+  void liutarjan_R(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
     run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_RF(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+  void liutarjan_RF(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
     run_multiple_liu_tarjan_alg<Graph, no_sampling, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 }
@@ -79,7 +79,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<edge>();
+  auto correct = sequence<edge>();
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }

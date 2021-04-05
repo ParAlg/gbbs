@@ -33,7 +33,7 @@ namespace gbbs {
 namespace connectit {
 
 template <class Graph>
-double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+double t_gbbs_cc(Graph& G, commandLine P, sequence<parent>& correct) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
   double permute = P.getOptionDoubleValue("-permute", false);
   time(t, auto CC = workefficient_cc::CC(G, beta, false, permute));
@@ -44,7 +44,7 @@ double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
 }
 
 template <class Graph>
-void gbbscc_nosample(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void gbbscc_nosample(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple(G, rounds, correct, "gbbs_cc", P, t_gbbs_cc<Graph>);
 }
 
@@ -55,7 +55,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

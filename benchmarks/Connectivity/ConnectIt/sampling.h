@@ -18,7 +18,7 @@ template <
     Algorithm& algorithm;
     SamplingAlgorithmTemplate(Graph& G, Sampler& sampler, Algorithm& algorithm) : G(G), sampler(sampler), algorithm(algorithm) {}
 
-    pbbs::sequence<parent> components() {
+    sequence<parent> components() {
       timer sample_t; sample_t.start();
       auto parents = sampler.initial_components();
       sample_t.stop();
@@ -58,9 +58,9 @@ template <
     Algorithm& algorithm;
     NoSamplingAlgorithmTemplate(Graph& G, Algorithm& algorithm) : G(G), algorithm(algorithm) {}
 
-    pbbs::sequence<parent> components() {
+    sequence<parent> components() {
       size_t n = G.n;
-      auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+      auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
       algorithm.initialize(parents);
       algorithm.template compute_components<no_sampling>(parents);
       return parents;
@@ -86,7 +86,7 @@ struct KOutSamplingTemplate {
    }
 
 //  /* Used in Rem-CAS variants for splice */
-//  inline uintE my_split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+//  inline uintE my_split_atomic_one(uintE i, uintE x, sequence<parent>& parents) {
 //    parent v = parents[i];
 //    parent w = parents[v];
 //    if(v == w) return v;
@@ -97,7 +97,7 @@ struct KOutSamplingTemplate {
 //    }
 //  }
 
-  void link(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+  void link(uintE u, uintE v, sequence<parent>& parents) {
 //    uintE rx = u; uintE ry = v;
 //    while (parents[rx] != parents[ry]) {
 //      parent p_ry = parents[ry];
@@ -128,13 +128,13 @@ struct KOutSamplingTemplate {
   }
 
   /* The Hybrid version: kout-hybrid */
-  pbbs::sequence<parent> initial_components() {
+  sequence<parent> initial_components() {
     using W = typename G::weight_type;
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-    pbbs::sequence<uintE> hooks;
+    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    sequence<uintE> hooks;
 
     pbbs::random rnd;
     uintE granularity = 1024;
@@ -175,13 +175,13 @@ struct KOutSamplingTemplate {
    }
 
   /* The max-degree version */
-  pbbs::sequence<parent> initial_components_max_degree() {
+  sequence<parent> initial_components_max_degree() {
     using W = typename G::weight_type;
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-    pbbs::sequence<uintE> hooks;
+    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    sequence<uintE> hooks;
 
     pbbs::random rnd;
     uintE granularity = 1024;
@@ -232,12 +232,12 @@ struct KOutSamplingTemplate {
     return parents;
    }
 
-  pbbs::sequence<parent> initial_components_pure() {
+  sequence<parent> initial_components_pure() {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-    pbbs::sequence<uintE> hooks;
+    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    sequence<uintE> hooks;
 
     pbbs::random rnd;
     uintE granularity = 1024;
@@ -266,12 +266,12 @@ struct KOutSamplingTemplate {
     return parents;
    }
 
-  pbbs::sequence<parent> initial_components_afforest() {
+  sequence<parent> initial_components_afforest() {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-    pbbs::sequence<uintE> hooks;
+    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    sequence<uintE> hooks;
 
     uintE granularity = 1024;
     // Using random neighbor---some overhead (and faster for some graphs), also
@@ -345,10 +345,10 @@ struct BFSSamplingTemplate {
   BFSSamplingTemplate(G& GA, commandLine& P) :
    GA(GA) {}
 
-  pbbs::sequence<parent> initial_components() {
+  sequence<parent> initial_components() {
     size_t n = GA.n;
 
-    pbbs::sequence<parent> parents;
+    sequence<parent> parents;
 
     pbbs::random rnd;
     timer st; st.start();
@@ -385,14 +385,14 @@ struct LDDSamplingTemplate {
 
   LDDSamplingTemplate(G& GA, commandLine& P, double beta = 0.2, bool permute = false) : GA(GA), beta(beta), permute(permute) { }
 
-  pbbs::sequence<parent> initial_components() {
+  sequence<parent> initial_components() {
     size_t n = GA.n;
 
     timer lddt; lddt.start();
     auto clusters_in = LDD(GA, beta, permute);
     lddt.stop(); lddt.reportTotal("## ldd time");
     auto s = clusters_in.to_array();
-    auto clusters = pbbs::sequence((parent*)s, n);
+    auto clusters = make_sequence((parent*)s, n);
 
     return clusters;
   }

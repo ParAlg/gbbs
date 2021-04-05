@@ -77,7 +77,7 @@ namespace connectit {
     class Algorithm,
     AlgorithmType algorithm_type,
     SamplingOption sampling_option>
-  pbbs::sequence<parent> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
+  sequence<parent> compose_algorithm_and_sampling(Graph& G, commandLine& P, Algorithm& alg) {
     if constexpr (sampling_option == sample_kout) {
       using KOut = KOutSamplingTemplate<Graph>;
       auto sample = KOut(G, P);
@@ -113,7 +113,7 @@ namespace connectit {
     SamplingOption sampling_option,
     FindOption find_option,
     UniteOption unite_option>
-  pbbs::sequence<parent> run_uf_alg(
+  sequence<parent> run_uf_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
@@ -134,7 +134,7 @@ namespace connectit {
     FindOption find_option,
     UniteOption unite_option,
     SpliceOption splice_option>
-  pbbs::sequence<parent> run_uf_alg(
+  sequence<parent> run_uf_alg(
       Graph& G,
       commandLine& P) {
     static_assert(unite_option == unite_rem_cas || unite_option == unite_rem_lock);
@@ -154,7 +154,7 @@ namespace connectit {
     class Graph,
     SamplingOption sampling_option,
     JayantiFindOption find_option>
-  pbbs::sequence<parent> run_jayanti_alg(
+  sequence<parent> run_jayanti_alg(
       Graph& G,
       commandLine& P) {
     size_t n = G.n;
@@ -176,7 +176,7 @@ namespace connectit {
     SamplingOption sampling_option,
     template <class G> class Algorithm,
     AlgorithmType algorithm_type>
-  pbbs::sequence<parent> run_sample_only_alg(
+  sequence<parent> run_sample_only_alg(
       Graph& G,
       commandLine& P) {
     using ALG = Algorithm<Graph>;
@@ -197,7 +197,7 @@ namespace connectit {
     LiuTarjanUpdateOption   update_option,
     LiuTarjanShortcutOption shortcut_option,
     LiuTarjanAlterOption    alter_option>
-  pbbs::sequence<parent> run_liu_tarjan_alg(
+  sequence<parent> run_liu_tarjan_alg(
       Graph& G,
       commandLine& P) {
     auto alg_connect = lt::get_connect_function<connect_option>();
@@ -236,9 +236,9 @@ namespace connectit {
     LiuTarjanUpdateOption   update_option,
     LiuTarjanShortcutOption shortcut_option,
     LiuTarjanAlterOption    alter_option>
-  pbbs::sequence<parent> run_liu_tarjan_alg(
+  sequence<parent> run_liu_tarjan_alg(
       Graph& G,
-      pbbs::sequence<std::pair<uintE, uintE>>&& mutable_graph,
+      sequence<std::pair<uintE, uintE>>&& mutable_graph,
       commandLine& P) {
     auto alg_connect = lt::get_connect_function<connect_option>();
     auto alg_update = lt::get_update_function<update_option>();

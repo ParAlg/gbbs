@@ -52,14 +52,14 @@ struct UFAlgorithm {
   Find& find;
   UFAlgorithm(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
 
-  void initialize(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {}
+  void initialize(sequence<parent>& Parents, sequence<edge>& Edges) {}
 
   template <SamplingOption sampling_option>
-  void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
+  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
     constexpr bool provides_frequent_comp = sampling_option != no_sampling;
     size_t n = GA.n;
-    pbbs::sequence<parent> clusters;
+    sequence<parent> clusters;
 
     uintE granularity;
     if constexpr (provides_frequent_comp) {

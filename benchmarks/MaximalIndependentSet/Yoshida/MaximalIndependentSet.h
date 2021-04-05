@@ -94,9 +94,9 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
   auto RG = reorder_graph(G, get_vertex_pri);
 
   size_t max_query_length = 0;
-  auto mis = pbbs::sequence<bool>(n, false);
-  auto answered = pbbs::sequence<bool>(n, false);
-  auto total_work = pbbs::sequence<size_t>(n, (size_t)0);
+  auto mis = sequence<bool>(n, false);
+  auto answered = sequence<bool>(n, false);
+  auto total_work = sequence<size_t>(n, (size_t)0);
   parallel_for(0, n, [&] (size_t i) {
     auto [status, work] = mis_query(i, RG, 0, query_cutoff);
     mis[i] = (status == in);

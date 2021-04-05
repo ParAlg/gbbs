@@ -153,7 +153,7 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
 }
 
 template <class Graph, class E>
-vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::sequence<fType>& NumPaths, pbbs::sequence<fType>& Storage, pbbs::sequence<bool>& Visited,  const flags fl) {
+vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, sequence<fType>& NumPaths, sequence<fType>& Storage, sequence<bool>& Visited,  const flags fl) {
   using W = typename Graph::weight_type;
   size_t out_degrees = 0;
   if (Frontier.dense()) {
@@ -296,8 +296,8 @@ using fType = double;
 
 template <class W>
 struct BFS_F {
-  pbbs::sequence<uint8_t>& Visited;
-  BFS_F(pbbs::sequence<uint8_t>& Visited) : Visited(Visited) {}
+  sequence<uint8_t>& Visited;
+  BFS_F(sequence<uint8_t>& Visited) : Visited(Visited) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     Visited[d] = 1; /* first visit */
     return 1;

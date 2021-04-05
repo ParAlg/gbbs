@@ -32,22 +32,22 @@
 namespace gbbs {
 namespace connectit {
 template <class Graph>
-void unite_nd_find_compress(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_nd_find_compress(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_nd, find_compress>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_nd_find_naive(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_nd_find_naive(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_nd, find_naive>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_nd_find_atomic_split(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_nd_find_atomic_split(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_nd, find_atomic_split>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_nd_find_atomic_halve(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_nd_find_atomic_halve(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_nd, find_atomic_halve>(G, rounds, correct, P);
 }
 
@@ -57,7 +57,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

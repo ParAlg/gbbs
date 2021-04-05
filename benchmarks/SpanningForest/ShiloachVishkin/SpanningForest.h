@@ -35,10 +35,10 @@ struct SVAlgorithm {
   Graph& GA;
   SVAlgorithm(Graph& GA) : GA(GA) {}
 
-  void initialize(pbbs::sequence<parent>& P, pbbs::sequence<edge>& E) {}
+  void initialize(sequence<parent>& P, sequence<edge>& E) {}
 
   template <SamplingOption sampling_option>
-  void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
+  void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -47,7 +47,7 @@ struct SVAlgorithm {
 
     /* generate candidates based on frequent_comp (if using sampling) */
     size_t candidates_size = n;
-    pbbs::sequence<uintE> unhooked;
+    sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
       auto all_vertices = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
       unhooked = pbbs::filter(all_vertices, [&] (uintE v) {
@@ -117,10 +117,10 @@ struct SVAlgorithm {
 };
 
 template <class Graph>
-inline pbbs::sequence<edge> SpanningForest(Graph& G) {
+inline sequence<edge> SpanningForest(Graph& G) {
   size_t n = G.n;
-  auto Parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-  auto Edges = pbbs::sequence<edge>(n, empty_edge);
+  auto Parents = sequence<parent>(n, [&] (size_t i) { return i; });
+  auto Edges = sequence<edge>(n, empty_edge);
 
   auto alg = SVAlgorithm<Graph>(G);
   alg.template compute_spanning_forest<no_sampling>(Parents, Edges);

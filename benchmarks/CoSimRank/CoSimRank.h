@@ -26,9 +26,9 @@ struct Co_PR_F {
 
 template<class T>
 T inner_product(T* arr1, T* arr2, size_t len, T* tmp=nullptr) {
-  pbbs::sequence<T> prod;
-  if (tmp == nullptr) prod = pbbs::sequence<T>(len, static_cast<T>(0));
-  else prod = pbbs::sequence<T>(tmp, len);
+  sequence<T> prod;
+  if (tmp == nullptr) prod = sequence<T>(len, static_cast<T>(0));
+  else prod = sequence<T>(tmp, len);
 
   parallel_for(0, len, [&] (size_t i) { prod[i] = arr1[i] * arr2[i]; });
   auto sum = pbbslib::reduce_add(prod);
@@ -42,22 +42,22 @@ template <class Graph>
 void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.85, size_t max_iters = 100) {
   const uintE n = G.n;
 
-  auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
+  auto p_curr_v = sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
-  auto p_next_v = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier = pbbs::sequence<bool>(n, true);
+  auto p_next_v = sequence<double>(n, static_cast<double>(0));
+  auto frontier = sequence<bool>(n, true);
 
-  auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
+  auto p_curr_u = sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
-  auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
+  auto p_next_u = sequence<double>(n, static_cast<double>(0));
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
-  auto frontier_v = pbbs::sequence<bool>(n, false);
+  auto frontier_v = sequence<bool>(n, false);
   frontier_v[v] = true;
-  auto frontier_u = pbbs::sequence<bool>(n, false);
+  auto frontier_u = sequence<bool>(n, false);
   frontier_u[u] = true;
 
   vertexSubset Frontier_u(n,n,std::move(frontier_u));
@@ -111,18 +111,18 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
   using W = typename Graph::weight_type;
   const uintE n = G.n;
 
-  auto p_curr_v = pbbs::sequence<double>(n, static_cast<double>(0));
+  auto p_curr_v = sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
-  auto p_next_v = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_v = pbbs::sequence<std::tuple<bool, double>>::no_init(n);
+  auto p_next_v = sequence<double>(n, static_cast<double>(0));
+  auto frontier_v = sequence<std::tuple<bool, double>>::no_init(n);
   parallel_for(0, n, [&](size_t i) { frontier_v[i] = std::make_tuple(false, static_cast<double>(0)); },
                  1000);
   frontier_v[v] = std::make_tuple(true, static_cast<double>(0));
 
-  auto p_curr_u = pbbs::sequence<double>(n, static_cast<double>(0));
+  auto p_curr_u = sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
-  auto p_next_u = pbbs::sequence<double>(n, static_cast<double>(0));
-  auto frontier_u = pbbs::sequence<std::tuple<bool, double>>::no_init(n);
+  auto p_next_u = sequence<double>(n, static_cast<double>(0));
+  auto frontier_u = sequence<std::tuple<bool, double>>::no_init(n);
   parallel_for(0, n, [&](size_t i) { frontier_u[i] = std::make_tuple(false, static_cast<double>(0)); },
                  1000);
   frontier_u[u] = std::make_tuple(true, static_cast<double>(0));
@@ -132,7 +132,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
 
   // read from special array of just degrees
 
-  auto degrees = pbbs::sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto EM_v = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
   auto EM_u = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);

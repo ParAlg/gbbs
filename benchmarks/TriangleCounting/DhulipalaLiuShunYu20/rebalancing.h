@@ -52,8 +52,8 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
 // return new triangle counts
 template <class Graph>
 tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
-    DyGraph<Graph>* DG, pbbs::sequence<pair<EdgeT, bool>>& edges,
-    pbbs::sequence<VtxUpdate>& vtxNew, pbbs::sequence<size_t>& vtxMap,
+    DyGraph<Graph>* DG, sequence<pair<EdgeT, bool>>& edges,
+    sequence<VtxUpdate>& vtxNew, sequence<size_t>& vtxMap,
     size_t num_vertices, commandLine& P) {
   using W = gbbs::empty;
   using vertex_type = symmetric_vertex<W>;
@@ -77,8 +77,8 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
   // count new degrees
   vertex_data* vertex_data_array =
       pbbs::new_array_no_init<vertex_data>(num_vertices);
-  pbbs::sequence<size_t> newDegrees =
-      pbbs::sequence<size_t>(num_vertices, [&](const size_t i) {
+  sequence<size_t> newDegrees =
+      sequence<size_t>(num_vertices, [&](const size_t i) {
         if (vtxMap[i] == EMPTYVMAP) {
           return DG->get_degree(i);
         } else {
@@ -117,8 +117,8 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
                },
                1);
 
-  pbbs::sequence<edge_type> edges_seq =
-      pbbs::sequence<edge_type>(edges_array, num_edges);
+  sequence<edge_type> edges_seq =
+      sequence<edge_type>(edges_array, num_edges);
 
   // insert from tables
   if (DG->num_edges() != 0) {
@@ -163,15 +163,15 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
 /* Perform minor rebalancing and update the degrees arrays and status arrays in
  * DG */
 template <class Graph>
-size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew,
-                        pbbs::sequence<size_t>& vtxMap) {
+size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
+                        sequence<size_t>& vtxMap) {
   size_t n = DG->num_vertices();
   auto monoid = pbbslib::addm<size_t>();
-  pbbs::sequence<VtxUpdate> vtxChangeLH = pbbs::sequence<VtxUpdate>();
-  pbbs::sequence<VtxRbl> vtxRbl = pbbs::sequence<VtxRbl>();
-  pbbs::sequence<size_t> vtxRblMap = pbbs::sequence<size_t>();
-  pbbs::sequence<pair<EdgeT, bool>> rblEdges =
-      pbbs::sequence<pair<EdgeT, bool>>();
+  sequence<VtxUpdate> vtxChangeLH = sequence<VtxUpdate>();
+  sequence<VtxRbl> vtxRbl = sequence<VtxRbl>();
+  sequence<size_t> vtxRblMap = sequence<size_t>();
+  sequence<pair<EdgeT, bool>> rblEdges =
+      sequence<pair<EdgeT, bool>>();
   size_t numLtoH = 0;
   size_t numHtoL = 0;
   size_t newLowNum = DG->num_vertices_low();
@@ -182,19 +182,19 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew,
           [&](const size_t i) {
             if (DG->change_status(vtxNew[i])) vtxNew[i].change_status = true;
           });
-  pbbs::sequence<VtxUpdate> vtxChange = pbbslib::filter(
+  sequence<VtxUpdate> vtxChange = pbbslib::filter(
       vtxNew, [&](const VtxUpdate& u) { return u.change_status; });
 
   if (vtxChange.size() != 0) {  //  ============================= continue if
                                 //  there is changes. Otherwise go to degree
                                 //  updates   =============================
 
-    pbbs::sequence<bool> flag = pbbs::sequence<bool>(
+    sequence<bool> flag = sequence<bool>(
         vtxChange.size(),
         [&](const size_t i) { return DG->is_high_v(vtxChange[i].id); });
 
     // [0,numLtoH) are vertices that change from L to H, the rest from H to L
-    pair<pbbs::sequence<VtxUpdate>, size_t> vtxChangeLHsize =
+    pair<sequence<VtxUpdate>, size_t> vtxChangeLHsize =
         pbbs::split_two(vtxChange, flag);
     vtxChangeLH = move(vtxChangeLHsize.first);  // LtoH, then HtoL
     numLtoH = vtxChangeLHsize.second;
@@ -222,13 +222,13 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew,
 
     //  ============================= Count Rbled Degrees
     //  =============================
-    pbbs::sequence<size_t> newDegrees =
-        pbbs::sequence<size_t>(vtxChangeLH.size(), [&](size_t i) {
+    sequence<size_t> newDegrees =
+        sequence<size_t>(vtxChangeLH.size(), [&](size_t i) {
           return DG->get_new_degree(vtxChangeLH[i]);
         });  // TOCO: can optimize to delayed seq
     size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);
-    rblEdges = pbbs::sequence<pair<EdgeT, bool>>::no_init(rblN);
-    vtxRblMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
+    rblEdges = sequence<pair<EdgeT, bool>>::no_init(rblN);
+    vtxRblMap = sequence<size_t>(n, EMPTYVMAP);
     parallel_for(
         0, vtxChangeLH.size(),
         [&](size_t i) {
@@ -246,7 +246,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, pbbs::sequence<VtxUpdate>& vtxNew,
           }
         },
         1);
-    auto flagg = pbbs::sequence<size_t>();  // dump array
+    auto flagg = sequence<size_t>();  // dump array
     if (rblN != 0) {
       vtxRbl = DBTInternal::computeOffsets<EdgeT, VtxRbl>(
           rblEdges.slice(), vtxRblMap.slice(), flagg);

@@ -99,21 +99,21 @@ struct LiuTarjanAlgorithm {
   Update& update;
   Shortcut& shortcut;
   Alter& alter;
-  pbbs::sequence<uintE> messages;
-  pbbs::sequence<bool> flags;
+  sequence<uintE> messages;
+  sequence<bool> flags;
   LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
     GA(GA), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
 
-  void initialize(pbbs::sequence<parent>& P) {
-    messages = pbbs::sequence<uintE>(P.size());
+  void initialize(sequence<parent>& P) {
+    messages = sequence<uintE>(P.size());
     parallel_for(0, n, [&] (size_t i) {
       messages[i] = i;
     });
-    flags = pbbs::sequence<bool>(P.size(), false);
+    flags = sequence<bool>(P.size(), false);
   }
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
+  void compute_components(sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -163,7 +163,7 @@ struct LiuTarjanAlgorithm {
   }
 
   template <bool reorder_batch, class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+  void process_batch(sequence<parent>& parents, Seq& updates) {
 
     /* Must reorder updates since queries are not linearizable o.w. */
     auto ret = reorder_updates(updates);
@@ -173,7 +173,7 @@ struct LiuTarjanAlgorithm {
     auto queries = reordered_updates.slice(update_end, updates.size());
 
     using edge = std::pair<uintE, uintE>;
-    auto inserts = pbbs::sequence<edge>(insertions.size(), [&] (size_t i) {
+    auto inserts = sequence<edge>(insertions.size(), [&] (size_t i) {
       auto [u, v, typ] = insertions[i];
       (void)typ;
       return std::make_pair(u,v);
@@ -311,7 +311,7 @@ template <class Connect,
           LiuTarjanAlterOption alter_option>
 struct LiuTarjanAlgorithmCOO {
   using edge = std::pair<uintE, uintE>;
-  pbbs::sequence<edge> graph;
+  sequence<edge> graph;
   size_t n;
 
   Connect& connect;
@@ -319,26 +319,26 @@ struct LiuTarjanAlgorithmCOO {
   Shortcut& shortcut;
   Alter& alter;
 
-  pbbs::sequence<uintE> messages;
+  sequence<uintE> messages;
 
-  LiuTarjanAlgorithmCOO(pbbs::sequence<edge>&& graph, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
+  LiuTarjanAlgorithmCOO(sequence<edge>&& graph, size_t n, Connect& connect, Update& update, Shortcut& shortcut, Alter& alter) :
     graph(std::move(graph)), n(n), connect(connect), update(update), shortcut(shortcut), alter(alter) {}
 
-  void initialize(pbbs::sequence<parent>& P) {
-    messages = pbbs::sequence<uintE>(P.size());
+  void initialize(sequence<parent>& P) {
+    messages = sequence<uintE>(P.size());
     parallel_for(0, n, [&] (size_t i) {
       messages[i] = i;
     });
   }
 
-  void my_alter(pbbs::sequence<parent>& P) {
+  void my_alter(sequence<parent>& P) {
     parallel_for(0, graph.size(), [&] (size_t i) {
       edge& e = graph[i];
       e = std::make_pair((e.first == largest_comp) ? largest_comp : P[e.first], (e.second == largest_comp) ? largest_comp : P[e.second]);
     });
   }
 
-  bool my_connect(pbbs::sequence<parent>& P) {
+  bool my_connect(sequence<parent>& P) {
     bool parents_changed = false;
     parallel_for(0, graph.size(), [&] (size_t i) {
       const edge& e = graph[i];
@@ -352,20 +352,20 @@ struct LiuTarjanAlgorithmCOO {
     return parents_changed;
   }
 
-  void my_update(pbbs::sequence<parent>& P) {
+  void my_update(sequence<parent>& P) {
     parallel_for(0, n, [&] (size_t u) {
       update(u, P, messages);
     });
   }
 
-  void my_shortcut(pbbs::sequence<parent>& P) {
+  void my_shortcut(sequence<parent>& P) {
     parallel_for(0, n, [&] (size_t u) {
       shortcut(u, P);
     });
   }
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
+  void compute_components(sequence<parent>& P, parent frequent_comp = UINT_E_MAX) {
     auto parents_changed = true;
     static_assert(alter_option != no_alter);
     my_alter(P);
@@ -387,14 +387,14 @@ struct StergiouAlgorithm {
   StergiouAlgorithm(Graph& GA, size_t n) :
     GA(GA), n(n) { }
 
-  void initialize(pbbs::sequence<parent>& P) { }
+  void initialize(sequence<parent>& P) { }
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
+  void compute_components(sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
-    pbbs::sequence<parent> previous_parents(n);
+    sequence<parent> previous_parents(n);
 
     auto parents_changed = true;
     size_t rounds = 0;

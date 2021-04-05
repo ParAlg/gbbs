@@ -30,7 +30,7 @@ namespace naive_scan {
 // that S[i] is the IDs of clusters that vertex i is in. Some vertices might not
 // be a member of any cluster, and some "border" vertices may be a member of
 // many clusters.
-using Clustering = pbbs::sequence<pbbs::sequence<uintE>>;
+using Clustering = sequence<sequence<uintE>>;
 
 // Compute a SCAN clustering of a graph using SCAN parameters mu and epsilon.
 //
@@ -42,7 +42,7 @@ Clustering Cluster(
     const uint64_t mu,
     const float epsilon) {
   const size_t num_vertices{graph->n};
-  Clustering clustering(graph->n, pbbs::sequence<uintE>{});
+  Clustering clustering(graph->n, sequence<uintE>{});
 
   internal::StructuralSimilarities
     similarities{internal::ComputeStructuralSimilarities(graph)};
@@ -52,7 +52,7 @@ Clustering Cluster(
         kDefaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
       return similarities.find({u, v}, kDefaultSimilarity) >= epsilon;
     }};
-  const pbbs::sequence<bool> core_bitmap(
+  const sequence<bool> core_bitmap(
       num_vertices,
       [&](const size_t i) {
         // `+ 1` accounts for open vs. closed neighborhood
@@ -68,7 +68,7 @@ Clustering Cluster(
       continue;
     }
     const auto update_clustering_for_cores{[&](const uintE v) {
-      clustering[v] = pbbs::sequence<uintE>(1, root);
+      clustering[v] = sequence<uintE>(1, root);
     }};
 
     vertexSubset frontier(num_vertices, root);

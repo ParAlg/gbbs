@@ -89,21 +89,21 @@ struct LiuTarjanAlgorithm {
   Update& update;
   Shortcut& shortcut;
   using message = lt::message;
-  pbbs::sequence<message> messages;
+  sequence<message> messages;
   LiuTarjanAlgorithm(Graph& GA, size_t n, Connect& connect, Update& update, Shortcut& shortcut) :
     GA(GA), n(n), connect(connect), update(update), shortcut(shortcut) {
     static_assert(update_option == root_update); /* only works for root_update algorithms */
   }
 
-  void initialize(pbbs::sequence<parent>& P, pbbs::sequence<edge>& Edges) {
-    messages = pbbs::sequence<message>(P.size());
+  void initialize(sequence<parent>& P, sequence<edge>& Edges) {
+    messages = sequence<message>(P.size());
     parallel_for(0, n, [&] (size_t i) {
       messages[i] = message(i, empty_edge);
     });
   }
 
   template <SamplingOption sampling_option>
-  void compute_spanning_forest(pbbs::sequence<parent>& P, pbbs::sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
+  void compute_spanning_forest(sequence<parent>& P, sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 

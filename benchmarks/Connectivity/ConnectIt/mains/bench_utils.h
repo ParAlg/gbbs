@@ -35,7 +35,7 @@ double minf(double a, double b) {return (a < b) ? a : b;};
 double maxf(double a, double b) {return (a > b) ? a : b;};
 
 template<typename Graph, typename F>
-std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<parent>& correct, F test, commandLine& P) {
+std::vector<double> repeat(Graph& G, size_t rounds, sequence<parent>& correct, F test, commandLine& P) {
   std::vector<double> R;
   for (size_t i=0; i < rounds; i++) {
 #ifdef REPORT_PATH_LENGTHS
@@ -74,7 +74,7 @@ void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint,
 }
 
 template<typename Graph, typename F>
-bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<parent>& correct,
+bool run_multiple(Graph& G, size_t rounds, sequence<parent>& correct,
 		  std::string name, commandLine& P, F test) {
 #ifdef USE_PCM_LIB
   auto before_state = get_pcm_state();
@@ -98,7 +98,7 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<parent>& correct,
 }
 
 template <class F, class Graph>
-void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct,
+void run_tests(Graph& G, int rounds, commandLine& P, sequence<parent>& correct,
     F test_type,
     std::initializer_list<F> tests) {
   for (auto test : tests) {
@@ -113,7 +113,7 @@ inline void cc_check(S1& correct, S2& check);
 
 
 template <class Graph>
-double t_gbbs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+double t_gbbs_cc(Graph& G, commandLine P, sequence<parent>& correct) {
   double beta = P.getOptionDoubleValue("-beta", 0.2);
   double permute = P.getOptionDoubleValue("-permute", false);
   time(t, auto CC = workefficient_cc::CC(G, beta, false, permute));

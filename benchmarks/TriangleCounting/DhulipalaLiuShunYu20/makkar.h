@@ -23,7 +23,7 @@ inline size_t Makkar_Dynamic_Triangle(
 
   // Just convert to sequence for convenince.
   using Edge = gbbs::gbbs_io::Edge<int>;
-  pbbs::sequence<Edge> U(updates.size());
+  sequence<Edge> U(updates.size());
   timer t;
 
   if(weight == 1){ ////////////////////// insertions

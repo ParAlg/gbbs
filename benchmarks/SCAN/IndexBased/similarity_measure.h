@@ -46,7 +46,7 @@ std::ostream& operator<<(std::ostream& os, const EdgeSimilarity&);
 //   // between every adjacent pair of vertices in the graph. The neighbor lists
 //   // for each vertex of the graph must be sorted by ascending neighbor ID.
 //   template <class Graph>
-//   pbbs::sequence<EdgeSimilarity> AllEdges(Graph* graph) const;
+//   sequence<EdgeSimilarity> AllEdges(Graph* graph) const;
 
 
 // The cosine similarity between two adjacent vertices u and v is
@@ -74,7 +74,7 @@ class CosineSimilarity {
   CosineSimilarity() = default;
 
   template <template <typename> class VertexTemplate, typename Weight>
-  pbbs::sequence<EdgeSimilarity>
+  sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, Weight>* graph) const;
 };
 
@@ -88,7 +88,7 @@ class JaccardSimilarity {
   JaccardSimilarity() = default;
 
   template <template <typename> class VertexTemplate>
-  pbbs::sequence<EdgeSimilarity>
+  sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, gbbs::empty>* graph) const;
 };
 
@@ -114,7 +114,7 @@ struct ApproxCosineSimilarity {
 
   // When `random_seed` is fixed, the output of `AllEdges` is deterministic.
   template <template <typename> class VertexTemplate, typename Weight>
-  pbbs::sequence<EdgeSimilarity>
+  sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, Weight>* graph) const;
 
  private:
@@ -134,7 +134,7 @@ struct ApproxJaccardSimilarity {
 
   // When `random_seed` is fixed, the output of `AllEdges` is deterministic.
   template <template <typename> class VertexTemplate>
-  pbbs::sequence<EdgeSimilarity>
+  sequence<EdgeSimilarity>
   AllEdges(symmetric_graph<VertexTemplate, gbbs::empty>* graph) const;
 
  private:
@@ -169,7 +169,7 @@ DivideRoundingUp(const size_t numerator, const size_t denominator) {
 
 // Pseudorandomly generate `num_numbers` random normal numbers, each with zero
 // mean and unit variance.
-pbbs::sequence<float> RandomNormalNumbers(size_t num_numbers, pbbs::random rng);
+sequence<float> RandomNormalNumbers(size_t num_numbers, pbbs::random rng);
 
 // Create a directed version of `graph`, pointing edges from lower degree
 // vertices to higher degree vertices. This upper bounds the out-degree of each
@@ -189,9 +189,9 @@ auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
 // `edges` consisting of the out-edges of `*graph` sorted by source vertex, then
 // `vertex_offsets[i]` is the first appearance of vertex i as a source vertex.
 template <template <typename> class VertexTemplate, typename Weight>
-pbbs::sequence<uintT>
+sequence<uintT>
 VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
-  pbbs::sequence<uintT> vertex_offsets{
+  sequence<uintT> vertex_offsets{
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); }};
   pbbslib::scan_add_inplace(vertex_offsets);
@@ -213,7 +213,7 @@ VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
 //     the intersection of the two neighborhoods) as arguments. The function
 //     should be symmetric, i.e., give the same output when u and v are swapped.
 template <template <typename> class VertexTemplate, class F>
-pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
+sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
     symmetric_graph<VertexTemplate, gbbs::empty>* graph,
     F&& neighborhood_sizes_to_similarity) {
   // Counting the neighbors shared between adjacent vertices u and v is the same
@@ -227,10 +227,10 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   auto directed_graph{DirectGraphByDegree(graph)};
   // Each counter in `counters` holds the number of shared neighbors in `graph`
   // between u and v for some edge {u, v}.
-  pbbs::sequence<std::atomic<uintE>> counters(
+  sequence<std::atomic<uintE>> counters(
       directed_graph.m, [](size_t) { return std::atomic<uintE>{0}; });
   // We use `counter_offsets` to index into `counters` for each edge.
-  const pbbs::sequence<uintT> counter_offsets{
+  const sequence<uintT> counter_offsets{
     internal::VertexOutOffsets(&directed_graph)};
   // Find triangles of the following form:
   //        w
@@ -264,7 +264,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
     vertex.out_neighbors().map_with_index(intersect, kParallel);
   });
 
-  pbbs::sequence<EdgeSimilarity> similarities(graph->m);
+  sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
@@ -298,7 +298,7 @@ pbbs::sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
 // score between two vertices if their degrees are high enough. (When the
 // degrees are low, it's cheap to compute the similarity exactly.)
 template <template <typename> class VertexTemplate, typename Weight>
-pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
+sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     symmetric_graph<VertexTemplate, Weight>* graph,
     const uint32_t num_samples,
     const size_t degree_threshold,
@@ -330,8 +330,8 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 
   // Computing random normal numbers is expensive, so we precompute which
   // vertices need assignments of normal numbers for Minhash fingerprinting.
-  pbbs::sequence<uintE> needs_fingerprint_seq(graph->n, 0U);
-  pbbs::sequence<uintE> needs_normals_seq(graph->n, 0U);
+  sequence<uintE> needs_fingerprint_seq(graph->n, 0U);
+  sequence<uintE> needs_normals_seq(graph->n, 0U);
   par_for(0, graph->n, [&](const size_t vertex_id) {
     Vertex vertex{graph->get_vertex(vertex_id)};
     if (vertex.out_degree() >= degree_threshold) {
@@ -361,19 +361,19 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // repurpose `needs_normals_seq` to serve as the index of a vertex into
   // `normals`, and same with `needs_fingerprint_seq`
   const uintE num_needs_normals{pbbslib::scan_add_inplace(needs_normals_seq)};
-  const pbbs::sequence<uintE>& normals_indices{needs_normals_seq};
-  const pbbs::sequence<float> normals{RandomNormalNumbers(
+  const sequence<uintE>& normals_indices{needs_normals_seq};
+  const sequence<float> normals{RandomNormalNumbers(
       num_needs_normals * num_samples, pbbs::random{random_seed})};
   const uintE num_needs_fingerprint{
     pbbslib::scan_add_inplace(needs_fingerprint_seq)};
-  const pbbs::sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
+  const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
 
   const size_t num_vertices{graph->n};
   const size_t num_bit_arrays{
     internal::DivideRoundingUp(num_samples, kBitArraySize)};
   // Simhash fingerprints.
-  pbbs::sequence<BitArray> fingerprints{
-    pbbs::sequence<BitArray>::no_init(num_needs_fingerprint * num_bit_arrays)};
+  sequence<BitArray> fingerprints{
+    sequence<BitArray>::no_init(num_needs_fingerprint * num_bit_arrays)};
   par_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
     const bool needs_fingerprint{
@@ -438,7 +438,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // numbers, we still make the counter an integer type since
   // std::atomic<double> doesn't have an atomic increment operation in C++17,
   // and we instead round the edge weights to integers.
-  pbbs::sequence<std::atomic<Counter>> counters(
+  sequence<std::atomic<Counter>> counters(
       directed_graph.m, [](size_t) { return std::atomic<Counter>{0}; });
   // For floating-point-weighted graphs, we multiply all edge weights by this
   // factor and round to the nearest integer. Multiplying all edge weights by a
@@ -447,7 +447,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   constexpr int64_t kWeightFactor =
     std::is_floating_point<Weight>::value ? 1000 : 1;
   // We use `counter_offsets` to index into `counters` for each edge.
-  const pbbs::sequence<uintT> counter_offsets{
+  const sequence<uintT> counter_offsets{
     internal::VertexOutOffsets(&directed_graph)};
   // Find triangles of the following form:
   //        w
@@ -521,11 +521,11 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     vertex.out_neighbors().map_with_index(intersect, kParallel);
   });
 
-  const pbbs::sequence<double> norms{[&]() -> pbbs::sequence<double> {
+  const sequence<double> norms{[&]() -> sequence<double> {
     if constexpr (std::is_same<Weight, gbbs::empty>::value) {  // unweighted
       return {};
     } else {  // weighted case
-      return pbbs::sequence<double>{
+      return sequence<double>{
         graph->n,
         [&](const size_t vertex_id) {
           double norm = kWeightFactor * kWeightFactor;  // add self-loop weight
@@ -541,7 +541,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     }
   }()};
 
-  pbbs::sequence<EdgeSimilarity> similarities(graph->m);
+  sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
@@ -606,7 +606,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
 // score between two vertices if their degrees are high enough. (When the
 // degrees are low, it's cheap to compute the similarity exactly.)
 template <template <typename> class VertexTemplate>
-pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
+sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     symmetric_graph<VertexTemplate, gbbs::empty>* graph,
     const uint32_t original_num_samples,
     const size_t degree_threshold,
@@ -635,10 +635,10 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   const uintE bucket_mask{num_samples - 1};
   constexpr uintE kEmptyBucket{UINT_E_MAX};
   const size_t num_vertices{graph->n};
-  const pbbs::sequence<uintE> vertex_permutation{
+  const sequence<uintE> vertex_permutation{
     pbbs::random_permutation<uintE>(num_vertices, pbbs::random{random_seed})};
 
-  pbbs::sequence<uintE> needs_fingerprint_seq{
+  sequence<uintE> needs_fingerprint_seq{
       graph->n,
       [&](const size_t vertex_id) {
         Vertex vertex{graph->get_vertex(vertex_id)};
@@ -658,9 +658,9 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
       }};
   const uintE num_needs_fingerprint{
     pbbslib::scan_add_inplace(needs_fingerprint_seq)};
-  const pbbs::sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
+  const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
   // Compute MinHash fingerprints for high degree vertices.
-  pbbs::sequence<uintE> fingerprints(
+  sequence<uintE> fingerprints(
     num_needs_fingerprint * num_samples, kEmptyBucket);
   par_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
@@ -691,10 +691,10 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   auto directed_graph{DirectGraphByDegree(graph)};
   // Each counter in `counters` holds the number of shared neighbors in `graph`
   // between u and v for some edge {u, v}.
-  pbbs::sequence<std::atomic<uintE>> counters(
+  sequence<std::atomic<uintE>> counters(
       directed_graph.m, [](size_t) { return std::atomic<uintE>{0}; });
   // We use `counter_offsets` to index into `counters` for each edge.
-  const pbbs::sequence<uintT> counter_offsets{
+  const sequence<uintT> counter_offsets{
     internal::VertexOutOffsets(&directed_graph)};
   // Find triangles of the following form:
   //        w
@@ -744,7 +744,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
     vertex.out_neighbors().map_with_index(intersect, kParallel);
   });
 
-  pbbs::sequence<EdgeSimilarity> similarities(graph->m);
+  sequence<EdgeSimilarity> similarities(graph->m);
   // Convert shared neighbor counts into similarities for each edge.
   par_for(0, directed_graph.n, [&](const size_t vertex_id) {
     const uintT v_counter_offset{counter_offsets[vertex_id]};
@@ -807,7 +807,7 @@ pbbs::sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
 }  // namespace internal
 
 template <template <typename> class VertexTemplate, typename Weight>
-pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
+sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, Weight>* graph) const {
   if constexpr (std::is_same<Weight, gbbs::empty>::value) {  // unweighted
     constexpr auto similarity_func{
@@ -826,7 +826,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     auto directed_graph{internal::DirectGraphByDegree(graph)};
     // Each counter in `counters` will hold numerator of CosineSimilarity(u, v)
     // for some edge {u, v}.
-    pbbs::sequence<std::atomic<int64_t>> counters(
+    sequence<std::atomic<int64_t>> counters(
         directed_graph.m, [](size_t) { return std::atomic<int64_t>{0}; });
     // For floating-point-weighted graphs, we multiply all edge weights by this
     // factor and round to the nearest integer. Multiplying all edge weights by
@@ -835,7 +835,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     constexpr int64_t kWeightFactor =
       std::is_floating_point<Weight>::value ? 1000 : 1;
     // We use `counter_offsets` to index into `counters` for each edge.
-    const pbbs::sequence<uintT> counter_offsets{
+    const sequence<uintT> counter_offsets{
       internal::VertexOutOffsets(&directed_graph)};
     // Find triangles of the following form:
     //        w
@@ -874,7 +874,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
       vertex.out_neighbors().map_with_index(intersect, kParallel);
     });
 
-    const pbbs::sequence<double> norms{
+    const sequence<double> norms{
       graph->n,
       [&](const size_t vertex_id) {
         double norm = kWeightFactor * kWeightFactor;  // add self-loop weight
@@ -888,7 +888,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
         return std::sqrt(norm);
       }};
 
-    pbbs::sequence<EdgeSimilarity> similarities(graph->m);
+    sequence<EdgeSimilarity> similarities(graph->m);
     // Convert shared neighbor counts into similarities for each edge.
     par_for(0, directed_graph.n, [&](const size_t vertex_id) {
       const uintT v_counter_offset{counter_offsets[vertex_id]};
@@ -920,7 +920,7 @@ pbbs::sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
 }
 
 template <template <typename> class VertexTemplate>
-pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
+sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, gbbs::empty>* graph) const {
   constexpr auto similarity_func{
     [](const uintE neighborhood_size_1,
@@ -936,7 +936,7 @@ pbbs::sequence<EdgeSimilarity> JaccardSimilarity::AllEdges(
 }
 
 template <template <typename> class VertexTemplate, typename Weight>
-pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
+sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, Weight>* graph) const {
   const size_t degree_threshold{static_cast<size_t>(1.5 * num_samples_)};
   return internal::ApproxCosineEdgeSimilarities(
@@ -944,7 +944,7 @@ pbbs::sequence<EdgeSimilarity> ApproxCosineSimilarity::AllEdges(
 }
 
 template <template <typename> class VertexTemplate>
-pbbs::sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
+sequence<EdgeSimilarity> ApproxJaccardSimilarity::AllEdges(
     symmetric_graph<VertexTemplate, gbbs::empty>* graph) const {
   const size_t degree_threshold{static_cast<size_t>(1.0 * num_samples_)};
   return internal::ApproxJaccardEdgeSimilarities(

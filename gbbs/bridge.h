@@ -60,6 +60,12 @@ namespace gbbs {
   template<typename T>
   using sequence = pbbs::sequence<T>;
 
+  // TODO: refactor to avoid use.
+  template<typename T>
+  sequence<T> make_sequence(T* a, const size_t n) {
+    return sequence<T>(a, n);
+  }
+
   // Alias template so that range is exposed w/o namespacing
   template<typename T>
   using range = pbbs::range<T>;
@@ -67,6 +73,12 @@ namespace gbbs {
   using pbbs::timer;
 
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
+
+}  // namespace gbbs
+
+
+// Bridge to pbbslib (c++17)
+namespace pbbslib {
 
   // ====================== utilities =======================
   using flags = pbbs::flags;
@@ -77,6 +89,12 @@ namespace gbbs {
   const flags fl_conservative = pbbs::fl_conservative;
   const flags fl_inplace = pbbs::fl_inplace;
   const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
+
+  using pbbs::parallel_for;
+  using pbbs::par_do;
+  using pbbs::parallel_for_alloc;
+  using pbbs::num_workers;
+  using pbbs::worker_id;
 
   using pbbs::free_array;
   using pbbs::delete_array;

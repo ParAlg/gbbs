@@ -37,13 +37,13 @@ class DyGraph {
   double t1, t2;
   double threshold;
   size_t lowNum;
-  pbbs::sequence<size_t> D;
-  pbbs::sequence<bool> status;       // true if high
-  pbbs::sequence<bool> blockStatus;  // true if using block
-  pbbs::sequence<size_t> lowD;
-  // pbbs::sequence<size_t> rbledD;
-  pbbs::sequence<size_t> rbledLowD;
-  pbbs::sequence<pair<uintE, int>> edges;
+  sequence<size_t> D;
+  sequence<bool> status;       // true if high
+  sequence<bool> blockStatus;  // true if using block
+  sequence<size_t> lowD;
+  // sequence<size_t> rbledD;
+  sequence<size_t> rbledLowD;
+  sequence<pair<uintE, int>> edges;
   tableE* LL;
   tableE* HH;
   tableE* LH;
@@ -902,9 +902,9 @@ class DyGraph {
   DyGraph(int t_block_size, size_t a)
       : n(a), m(0), block_size(t_block_size), lowNum(0), alloc(false) {
     initParams();
-    D = pbbs::sequence<size_t>(n, (size_t)0);
+    D = sequence<size_t>(n, (size_t)0);
     lowD = move(D);
-    status = pbbs::sequence<bool>(n, false);
+    status = sequence<bool>(n, false);
     blockStatus = move(status);
   }
 
@@ -915,26 +915,26 @@ class DyGraph {
     if (G.num_vertices() == 0 || m == 0) {
       alloc = false;
       initParams();
-      D = pbbs::sequence<size_t>(n, (size_t)0);
+      D = sequence<size_t>(n, (size_t)0);
       lowD = move(D);
-      status = pbbs::sequence<bool>(n, false);
+      status = sequence<bool>(n, false);
       blockStatus = move(status);  // will copy here, and it's intended
       return;
     }
     initParams();
 
-    D = pbbs::sequence<size_t>(
+    D = sequence<size_t>(
         n, [&](size_t i) { return G.get_vertex(i).getOutDegree(); });
     timer init_t; init_t.start();
-    edges = pbbs::sequence<pair<uintE, int>>((size_t)(block_size * n),
+    edges = sequence<pair<uintE, int>>((size_t)(block_size * n),
                                              make_pair(EMPTYV, 0));
     init_t.stop(); init_t.reportTotal("Build DyGraph: init time");
     std::cout << "block_size = " << block_size << " n = " << n << " total = " << (block_size * n) << std::endl;
-    lowD = pbbs::sequence<size_t>::no_init(n);
-    status = pbbs::sequence<bool>(n, [&](size_t i) { return is_high(D[i]); });
+    lowD = sequence<size_t>::no_init(n);
+    status = sequence<bool>(n, [&](size_t i) { return is_high(D[i]); });
     blockStatus =
-        pbbs::sequence<bool>(n, [&](size_t i) { return use_block(D[i]); });
-    rbledLowD = pbbs::sequence<size_t>::no_init(n);
+        sequence<bool>(n, [&](size_t i) { return use_block(D[i]); });
+    rbledLowD = sequence<size_t>::no_init(n);
 
     timer ld; ld.start();
     // compute low degree
@@ -949,9 +949,9 @@ class DyGraph {
       rbledLowD[i] = lowD[i];
     });
 
-    pbbs::sequence<uintE> vArray = pbbs::sequence<uintE>::no_init(n);
+    sequence<uintE> vArray = sequence<uintE>::no_init(n);
     par_for(0, n, [&](size_t i) { vArray[i] = i; });
-    pbbs::sequence<uintE> highNodes =
+    sequence<uintE> highNodes =
         pbbs::filter(vArray, [=](size_t i) { return is_high_v(i); });
     lowNum = n - highNodes.size();
     vArray.clear();
@@ -1210,8 +1210,8 @@ class DyGraph {
   // delete all wedges (u,w,v) where v is now H
   // if u.v both change from H to L, update twice
   inline void minorRbldeleteWedgeHelper(uintE u, uintE w,
-                                        pbbs::sequence<VtxUpdate>& vtxNew,
-                                        pbbs::sequence<size_t>& vtxMap) {
+                                        sequence<VtxUpdate>& vtxNew,
+                                        sequence<size_t>& vtxMap) {
     if (use_block_v(w)) {
       VtxUpdate wobj = VtxUpdate(w);
       if (vtxMap[w] != EMPTYVMAP) wobj = vtxNew[vtxMap[w]];
@@ -1245,8 +1245,8 @@ class DyGraph {
   // delete all wedges (u,w,v) where v is now H and w is now L
   // if u.v both change from H to L, update twice
   void minorRblDeleteWedge(DBTGraph::VtxUpdate& u,
-                           pbbs::sequence<VtxUpdate>& vtxNew,
-                           pbbs::sequence<size_t>& vtxMap) {
+                           sequence<VtxUpdate>& vtxNew,
+                           sequence<size_t>& vtxMap) {
     if (get_new_low_degree(u) > 0) {
       if (use_block_v(u.id)) {
         parallel_for(0, get_new_degree(u),
@@ -1330,8 +1330,8 @@ class DyGraph {
   // AND BOTH u,v are not LtoH (i.e. they were originally high), otherwise u,w,v
   // are already counted in minorRblInsertWedge
   void minorRblInsertWedgeCenterArray(DBTGraph::VtxUpdate& w,
-                                      pbbs::sequence<VtxUpdate>& vtxNew,
-                                      pbbs::sequence<size_t>& vtxMap) {
+                                      sequence<VtxUpdate>& vtxNew,
+                                      sequence<size_t>& vtxMap) {
     for (size_t i = 0; i < D[w.id]; ++i) {  // bruteforce finding high ngh of w
       uintE u = getEArray(w.id, i);
       if (is_high_v(u) && (vtxMap[u] == EMPTYVMAP ||
@@ -1356,8 +1356,8 @@ class DyGraph {
   // AND BOTH u,v are not LtoH (i.e. they were originally high), otherwise u,w,v
   // are already counted in minorRblInsertWedge
   void minorRblInsertWedgeCenterTable(DBTGraph::VtxUpdate& w,
-                                      pbbs::sequence<VtxUpdate>& vtxNew,
-                                      pbbs::sequence<size_t>& vtxMap) {
+                                      sequence<VtxUpdate>& vtxNew,
+                                      sequence<size_t>& vtxMap) {
     SetT* H = LH->find(w.id, NULL);
     // if(H == NULL) return;
     par_for(0, H->size(), [&](size_t i) {
@@ -1384,8 +1384,8 @@ class DyGraph {
   // called after tables are rebalanced and status&degrees updated for
   // rebalancing
   void minorRblInsertWedgeCenter(DBTGraph::VtxUpdate& w,
-                                 pbbs::sequence<VtxUpdate>& vtxNew,
-                                 pbbs::sequence<size_t>& vtxMap) {
+                                 sequence<VtxUpdate>& vtxNew,
+                                 sequence<size_t>& vtxMap) {
     if (use_block_v(w.id)) {
       minorRblInsertWedgeCenterArray(w, vtxNew, vtxMap);
     } else {
@@ -1397,8 +1397,8 @@ class DyGraph {
   // u is now H (after update), called after tables AND DEGREES are rebalanced
   // degree is updated to after rebalanced
   inline void minorRblInsertWedge(DBTGraph::VtxUpdate& uobj,
-                                  pbbs::sequence<VtxUpdate>& vtxNew,
-                                  pbbs::sequence<size_t>& vtxMap) {
+                                  sequence<VtxUpdate>& vtxNew,
+                                  sequence<size_t>& vtxMap) {
     uintE u = uobj.id;
     if (lowD[u] > 0) {  //(u != HL->empty_key){
       if (use_block_v(u)) {
@@ -1423,8 +1423,8 @@ class DyGraph {
   // u is high, w is low
   // degree is updated to after rebalanced already
   inline void rblInsertT(DBTGraph::VtxUpdate& uobj, uintE w,
-                         pbbs::sequence<VtxUpdate>& vtxNew,
-                         pbbs::sequence<size_t>& vtxMap) {
+                         sequence<VtxUpdate>& vtxNew,
+                         sequence<size_t>& vtxMap) {
     if (use_block_v(w)) {
       par_for(0, D[w], [&](size_t k) {
         uintE v = getEArray(w, k);  // edges[w * block_size + k];
@@ -1445,8 +1445,8 @@ class DyGraph {
 
   // assume v is high
   inline void rblInsertW(DBTGraph::VtxUpdate& uobj, uintE v,
-                         pbbs::sequence<VtxUpdate>& vtxNew,
-                         pbbs::sequence<size_t>& vtxMap) {
+                         sequence<VtxUpdate>& vtxNew,
+                         sequence<size_t>& vtxMap) {
     uintE u = uobj.id;
     if (vtxMap[v] ==
         EMPTYVMAP) {  // v is not changed for L to H, must insert wedge

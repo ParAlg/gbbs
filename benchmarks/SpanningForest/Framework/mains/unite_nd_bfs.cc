@@ -31,22 +31,22 @@
 namespace gbbs {
 namespace connectit {
 template <class Graph>
-void unite_find_compress(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_find_compress(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, sample_bfs, unite_nd, find_compress>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_find_naive(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_find_naive(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, sample_bfs, unite_nd, find_naive>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_find_atomic_split(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_find_atomic_split(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, sample_bfs, unite_nd, find_atomic_split>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_find_atomic_halve(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_find_atomic_halve(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, sample_bfs, unite_nd, find_atomic_halve>(G, rounds, correct, P);
 }
 
@@ -57,7 +57,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<edge>();
+  auto correct = sequence<edge>();
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }

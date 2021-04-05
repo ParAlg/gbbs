@@ -38,7 +38,7 @@ double SF_runner(Graph& G, commandLine P) {
 
   timer t;
   t.start();
-  pbbs::sequence<edge> edges;
+  sequence<edge> edges;
   if (P.getOptionValue("-permute")) {
     edges = labelprop_sf::SpanningForest</*use_permutation=*/true>(G);
   } else {

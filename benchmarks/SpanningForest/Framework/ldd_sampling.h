@@ -5,10 +5,10 @@
 namespace gbbs {
 template <class W>
 struct LDD_Edges_Fn {
-  pbbs::sequence<uintE>& Parents;
-  pbbs::sequence<edge>& Edges;
+  sequence<uintE>& Parents;
+  sequence<edge>& Edges;
 
-  LDD_Edges_Fn(pbbs::sequence<uintE>& Parents, pbbs::sequence<edge>& Edges)
+  LDD_Edges_Fn(sequence<uintE>& Parents, sequence<edge>& Edges)
       : Parents(Parents), Edges(Edges) {}
 
   inline bool update(const uintE& s, const uintE& d, const W& wgh) {
@@ -31,21 +31,21 @@ struct LDD_Edges_Fn {
 
 // Returns a pair containing the clusters and edges.
 template <class Graph>
-inline std::pair<pbbs::sequence<uintE>, pbbs::sequence<edge>> LDD_sample_edges(Graph& G,
+inline std::pair<sequence<uintE>, sequence<edge>> LDD_sample_edges(Graph& G,
     double beta, bool permute = true, bool pack = false) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
 
-  pbbs::sequence<uintE> vertex_perm;
+  sequence<uintE> vertex_perm;
   if (permute) {
     vertex_perm = pbbslib::random_permutation<uintE>(n);
   }
   auto shifts = ldd_utils::generate_shifts(n, beta);
-  auto Parents = pbbs::sequence<uintE>(n);
+  auto Parents = sequence<uintE>(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Parents[i] = UINT_E_MAX; });
 
-  auto Edges = pbbs::sequence<edge>(n, empty_edge);
+  auto Edges = sequence<edge>(n, empty_edge);
 
   size_t round = 0, num_visited = 0;
   vertexSubset frontier(n);  // Initially empty

@@ -46,10 +46,10 @@ namespace labelprop_sf {
 
   template <class W>
   struct LabelProp_F {
-    pbbs::sequence<parent>& PrevParents;
-    pbbs::sequence<parent>& Parents;
-    pbbs::sequence<uint8_t>& changed;
-    LabelProp_F(pbbs::sequence<parent>& PrevParents, pbbs::sequence<parent>& Parents, pbbs::sequence<uint8_t>& changed) : PrevParents(PrevParents), Parents(Parents), changed(changed) {}
+    sequence<parent>& PrevParents;
+    sequence<parent>& Parents;
+    sequence<uint8_t>& changed;
+    LabelProp_F(sequence<parent>& PrevParents, sequence<parent>& Parents, sequence<uint8_t>& changed) : PrevParents(PrevParents), Parents(Parents), changed(changed) {}
     inline bool update(const uintE& s, const uintE& d, const W& w) {
       return updateAtomic(s, d, w);
     }
@@ -72,10 +72,10 @@ namespace labelprop_sf {
 
   template <class W>
   struct LabelProp_F_2 {
-    pbbs::sequence<parent>& PrevParents;
-    pbbs::sequence<parent>& Parents;
-    pbbs::sequence<edge>& Edges;
-    LabelProp_F_2(pbbs::sequence<parent>& PrevParents, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) : PrevParents(PrevParents), Parents(Parents), Edges(Edges) {}
+    sequence<parent>& PrevParents;
+    sequence<parent>& Parents;
+    sequence<edge>& Edges;
+    LabelProp_F_2(sequence<parent>& PrevParents, sequence<parent>& Parents, sequence<edge>& Edges) : PrevParents(PrevParents), Parents(Parents), Edges(Edges) {}
 
     inline bool update(const uintE& s, const uintE& d, const W& w) {
       return updateAtomic(s, d, w);
@@ -104,19 +104,19 @@ namespace labelprop_sf {
     Graph& GA;
     LPAlgorithm(Graph& GA) : GA(GA) {}
 
-    void initialize(pbbs::sequence<parent>& P, pbbs::sequence<edge>& E) {}
+    void initialize(sequence<parent>& P, sequence<edge>& E) {}
 
     template <SamplingOption sampling_option>
-    void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
+    void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, uintE frequent_comp = UINT_E_MAX) {
       using W = typename Graph::weight_type;
       size_t n = GA.n;
 
       auto vs = vertexSubset(n);
-      pbbs::sequence<bool> all;
+      sequence<bool> all;
       if constexpr (sampling_option == no_sampling) {
-        all = pbbs::sequence<bool>(n, true);
+        all = sequence<bool>(n, true);
       } else { /* frequent_comp provided */
-        all = pbbs::sequence<bool>(n, [&] (size_t i) -> bool {
+        all = sequence<bool>(n, [&] (size_t i) -> bool {
           return Parents[i] != frequent_comp;
         });
       }
@@ -126,7 +126,7 @@ namespace labelprop_sf {
       auto PrevParents = Parents;
 
       size_t rounds = 0;
-      auto changed = pbbs::sequence<uint8_t>(n, (uint8_t)0);
+      auto changed = sequence<uint8_t>(n, (uint8_t)0);
       size_t vertices_processed = 0;
       while (!vs.isEmpty()) {
         std::cout << "### vs size = " << vs.size() << std::endl;
@@ -161,12 +161,12 @@ namespace labelprop_sf {
   template <bool use_permutation, class Graph>
   inline sequence<edge> SpanningForest(Graph& G) {
     size_t n = G.n;
-    pbbs::sequence<parent> Parents;
-    pbbs::sequence<edge> Edges(n, empty_edge);
+    sequence<parent> Parents;
+    sequence<edge> Edges(n, empty_edge);
     if constexpr (use_permutation) {
       Parents = pbbs::random_permutation<uintE>(n);
     } else {
-      Parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+      Parents = sequence<parent>(n, [&] (size_t i) { return i; });
     }
     auto alg = LPAlgorithm<Graph>(G);
     alg.template compute_spanning_forest<no_sampling>(Parents, Edges);

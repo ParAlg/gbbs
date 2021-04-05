@@ -44,7 +44,7 @@ inline size_t Dynamic_Triangle(
 
   // Just convert to sequence for convenince.
   using Edge = gbbs::gbbs_io::Edge<int>;
-  pbbs::sequence<Edge> U(updates.size());
+  sequence<Edge> U(updates.size());
   parallel_for(0, updates.size(), [&] (size_t i) {
     U[i].from = updates[i].from;
     U[i].to = updates[i].to;

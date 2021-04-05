@@ -8,7 +8,7 @@ namespace gbbs {
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
 template <class Graph>
 double Run(Graph& G, commandLine P) {
@@ -49,7 +49,7 @@ double Run(Graph& G, commandLine P) {
   timer tt; tt.start();
   auto updates_arr = sampleEdges(G, update_pred);
   tt.stop(); tt.reportTotal("# sample edges time");
-  auto updates = pbbs::sequence<std::tuple<uintE, uintE>>((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
+  auto updates = sequence<std::tuple<uintE, uintE>>((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
   updates_arr.E = nullptr; /* relinquish memory */
 
 //  /* 2) call filter_graph to delete all deletions + updates from G */

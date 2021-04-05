@@ -58,8 +58,8 @@ template <
 
     auto spanning_forest() {
       size_t n = G.n;
-      auto Parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-      auto Edges = pbbs::sequence<edge>(n, empty_edge);
+      auto Parents = sequence<parent>(n, [&] (size_t i) { return i; });
+      auto Edges = sequence<edge>(n, empty_edge);
       algorithm.initialize(Parents, Edges);
       algorithm.template compute_spanning_forest<no_sampling>(Parents, Edges);
       return Edges;

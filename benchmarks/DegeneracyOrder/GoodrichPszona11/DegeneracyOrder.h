@@ -18,7 +18,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 
-  auto active = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+  auto active = sequence<uintE>(n, [&] (size_t i) { return i; });
 
   /* induced degrees sequence */
   auto D =
@@ -72,7 +72,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     auto this_round_vs = vertexSubset(n, std::move(this_round));
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
-  pbbs::sequence<uintE> ret_seq(ret.A, n);
+  sequence<uintE> ret_seq(ret.A, n);
   ret.A = nullptr; ret.alloc = false; /* sketchy */
   debug(
   kt.reportTotal("kth time");

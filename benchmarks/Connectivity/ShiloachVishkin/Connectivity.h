@@ -33,16 +33,16 @@ template <class Graph>
 struct SVAlgorithm {
   Graph& GA;
   SVAlgorithm(Graph& GA) : GA(GA) {}
-  pbbs::sequence<parent> prev_parents;
-  pbbs::sequence<bool> flags;
+  sequence<parent> prev_parents;
+  sequence<bool> flags;
 
-  void initialize(pbbs::sequence<parent>& P) {
+  void initialize(sequence<parent>& P) {
     prev_parents = P;
-    flags = pbbs::sequence<bool>(P.size(), false);
+    flags = sequence<bool>(P.size(), false);
   }
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
+  void compute_components(sequence<parent>& parents, parent frequent_comp = UINT_E_MAX) {
     using W = typename Graph::weight_type;
     size_t n = GA.n;
 
@@ -51,7 +51,7 @@ struct SVAlgorithm {
 
     /* generate candidates based on frequent_comp (if using sampling) */
     size_t candidates_size = n;
-    pbbs::sequence<uintE> unhooked;
+    sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
       auto all_vertices = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
       unhooked = pbbs::filter(all_vertices, [&] (uintE v) {
@@ -102,7 +102,7 @@ struct SVAlgorithm {
   }
 
   template <bool reorder_updates, class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+  void process_batch(sequence<parent>& parents, Seq& updates) {
     static_assert(reorder_updates == false);
     bool changed = true;
 
