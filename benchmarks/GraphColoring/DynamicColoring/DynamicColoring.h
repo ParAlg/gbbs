@@ -56,6 +56,12 @@ struct Coloring {
             }
     }
 
+    inline void unmark_all_colors() {
+        parallel_for(0, colors_.size() - 1, [&] (size_t i){
+            colors_[i] = 0;
+        });
+    }
+
     inline uintE find_random_color(random r) {
         auto free_colors = parlay::filter(colors_, [&] (const uintE& num_occupied) {
             return num_occupied == 0;
@@ -118,9 +124,77 @@ struct Coloring {
     });
   }
 
+  size_t get_color_palette_size(size_t level, size_t levels_per_group,
+          double one_plus_epsilon, double upper_constant) {
+    auto group = level / levels_per_group;
+    return 2 * upper_constant * pow(one_plus_epsilon, group);
+  }
+
+  size_t get_first_color(size_t level, size_t levels_per_group,
+          double one_plus_epsilon, double upper_constant) {
+    auto group = level / levels_per_group;
+    auto additional_levels = level - group * levels_per_group;
+    auto first_color = 0;
+    if (group > 0) {
+        first_color += 2 * levels_per_group * ((pow(one_plus_epsilon, group) - 1)/(one_plus_epsilon - 1));
+    }
+    first_color += additional_levels * get_color_palette_size(level, levels_per_group,
+            one_plus_epsilon, upper_constant);
+    return first_color;
+  }
+
   template <class Seq>
   void batch_insertion(const Seq& insertions_unfiltered) {
+    // Remove edges that already exist from the input.
+    auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
+        [&] (const edge_type& e) { return !edge_exists(e); });
 
+    // Duplicate the edges in both directions and sort.
+    auto insertions_dup = sequence<edge_type>::uninitialized(2*insertions_filtered.size());
+    parallel_for(0, insertions_filtered.size(), [&] (size_t i) {
+        auto [u, v] = insertions_filtered[i];
+        insertions_dup[2*i] = {u, v};
+        insertions_dup[2*i + 1] = {v, u};
+    });
+    auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
+    parlay::sort_inplace(parlay::make_slice(insertions_dup), compare_tup);
+
+    // Remove duplicate edges to get the insertions.
+    auto not_dup_seq = parlay::delayed_seq<bool>(insertions_dup.size(), [&] (size_t i) {
+        auto [u, v] = insertions_dup[i];
+        bool not_self_loop = u != v;
+        return not_self_loop && ((i == 0) || (insertions_dup[i] != insertions_dup[i-1]));
+    });
+    auto insertions = parlay::pack(parlay::make_slice(insertions_dup), not_dup_seq);
+
+    // Compute all color conflicts from edge insertions.
+    auto bool_conflict = parlay::delayed_seq<bool>(insertions.size(), [&] (size_t i) {
+        auto v_1 = std::get<0>(insertions[i]);
+        auto v_2 = std::get<1>(insertions[i]);
+        return VC[v_1].color_ == VC[v_2].color_;
+    });
+    auto color_indices = parlay::pack_index(bool_conflict);
+    auto color_conflicts = parlay::sequence<uintE>(2*color_indices.size(), (uintE)0);
+    parallel_for(0, color_indices.size() - 1, [&] (size_t i) {
+        color_conflicts[i] = std::get<0>(insertions[color_indices[i]]);
+        color_conflicts[i + color_indices.size()] = std::get<1>(insertions[color_indices[i]]);
+    });
+    parlay::integer_sort_inplace(parlay::make_slice(color_conflicts));
+    auto dedup_conflicts = parlay::delayed_seq<bool>(color_conflicts.size(), [&] (size_t i){
+        return (i == 0) || (color_conflicts[i] != color_conflicts[i-1]);
+    });
+    auto conflict_vertices = parlay::pack(parlay::make_slice(color_conflicts), dedup_conflicts);
+
+    layers_of_vertices.batch_insertion(insertions_unfiltered);
+    while (conflict_vertices.size() > 0) {
+        parallel_for(0, conflict_vertices.size() - 1, [&] (size_t i) {
+            auto v = conflict_vertices[i];
+            auto level = layers_of_vertices.get_level(v);
+            auto levels_per_group = layers_of_vertices.levels_per_group;
+            auto new_palette_size = get_color_palette_size(level, levels_per_group);
+            auto first_color_palette = get_first_color(level, levels_per_group);
+        });
+    }
   }
 
   template <class Seq>
