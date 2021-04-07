@@ -35,7 +35,7 @@ struct Coloring {
             cur_color_index_ = color_ - first_color_id_;
         }
 
-    inline uintE mark_color_occupied(uintE color_id, size_t num_occupied) {
+    inline uintE mark_color(uintE color_id, size_t num_occupied) {
         if (color_id >= first_color_id) {
             uintE palette_index = color_id - first_color_id_;
             if (palette_index <  size_) {
@@ -186,20 +186,106 @@ struct Coloring {
     auto conflict_vertices = parlay::pack(parlay::make_slice(color_conflicts), dedup_conflicts);
 
     layers_of_vertices.batch_insertion(insertions_unfiltered);
+    auto r = pbbs::random();
     while (conflict_vertices.size() > 0) {
         parallel_for(0, conflict_vertices.size() - 1, [&] (size_t i) {
             auto v = conflict_vertices[i];
             auto level = layers_of_vertices.get_level(v);
             auto levels_per_group = layers_of_vertices.levels_per_group;
-            auto new_palette_size = get_color_palette_size(level, levels_per_group);
-            auto first_color_palette = get_first_color(level, levels_per_group);
+            auto one_plus_eps = layers_of_vertices.OnePlusEps;
+            auto upper_constant = layers_of_vertices.UpperConstant;
+
+            auto new_palette_size = get_color_palette_size(level, levels_per_group, one_plus_eps, upper_constant);
+            auto first_color_palette = get_first_color(level, levels_per_group, one_plus_eps, upper_constant);
+
+            if (new_palette_size > VC[v].size_) {
+                VC[v].enlarge_palette(new_palette_size);
+            }
+
+            if (new_palette_size < VC[v].size_) {
+                VC[v].shrink_palette(new_palette_size);
+            }
+
+            auto up_neighbors = layers_of_vertices.L[v].up;
+            // Race condition here. TODO(qqliu): fix.
+            parallel_for(0, up_neighbors.size() - 1, [&] (size_t i){
+                auto neighbor = up_neighbors.table[i];
+                auto neighbor_color = VC[neighbor].color_;
+                // Below is a race condition. TODO(qqliu): fix.
+                VC[v].mark_color(neighbor_color, 1);
+            });
+
+            VC[v].find_random_color(r);
         });
+
+        auto conflict_vertices = parlay::filter(parlay::make_slice(conflict_vertices),
+                [&] (const uintE& v){
+            auto up_neighbors = layers_of_vertices.L[v].up;
+            parallel_for(0, up_neighbors.size() - 1, [&] (size_t i){
+                auto neighbor = up_neighbors.table[i];
+                auto neighbor_color = VC[neighbor].color_;
+                if (neighbor_color == VC[v].color_)
+                    return true;
+            });
+            return false;
+        });
+        r.next();
     }
   }
 
   template <class Seq>
   void batch_deletion(const Seq& deletions_unfiltered) {
+    // Remove edges that already exist from the input.
+    auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
+        [&] (const edge_type& e) { return !edge_exists(e); });
 
+    // Duplicate the edges in both directions and sort.
+    auto deletions_dup = sequence<edge_type>::uninitialized(2*deletions_filtered.size());
+    parallel_for(0, deletions_filtered.size(), [&] (size_t i) {
+        auto [u, v] = deletions_filtered[i];
+        deletions_dup[2*i] = {u, v};
+        deletions_dup[2*i + 1] = {v, u};
+    });
+    auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
+    parlay::sort_inplace(parlay::make_slice(deletions_dup), compare_tup);
+
+    // Remove duplicate edges to get the deletions.
+    auto not_dup_seq = parlay::delayed_seq<bool>(deletions_dup.size(), [&] (size_t i) {
+        auto [u, v] = deletions_dup[i];
+        bool not_self_loop = u != v;
+        return not_self_loop && ((i == 0) || (deletions_dup[i] != deletions_dup[i-1]));
+    });
+    auto deletions = parlay::pack(parlay::make_slice(deletions_dup), not_dup_seq);
+
+    // Compute all nodes that moved.
+    auto moved_nodes = parlay::sequence<uintE>(2*deletions.size(), (uintE)0);
+    parallel_for(0, deletions.size() - 1, [&] (size_t i) {
+        moved_nodes[i] = std::get<0>(deletions[i]);
+        moved_nodes[i + deletions.size()] = std::get<1>(deletions[i]);
+    });
+    parlay::integer_sort_inplace(parlay::make_slice(moved_nodes));
+    auto dedup_moved_nodes = parlay::delayed_seq<bool>(moved_nodes.size(), [&] (size_t i){
+        return (i == 0) || (moved_nodes[i] != moved_nodes[i-1]);
+    });
+    auto moved_nodes = parlay::pack(parlay::make_slice(deletions), dedup_moved_nodes);
+
+    layers_of_vertices.batch_deletion(deletions_unfiltered);
+
+    parallel_for(0, moved_nodes.size() - 1, [&] (size_t i){
+        auto old_size = VC[moved_nodes[i]].size_;
+        auto new_level = layers_of_vertices.get_level(moved_nodes[i]);
+        auto one_plus_eps = layers_of_vertices.OnePlusEps;
+        auto upper_constant = layers_of_vertices.UpperConstant;
+        auto levels_per_group = layers_of_vertices.levels_per_group;
+
+        auto new_size = get_color_palette_size(new_level, levels_per_group, one_plus_eps, upper_constant);
+        if (old_size > new_size){
+            VC[v].size_ = new_size;
+            VC[v].shrink_palette(new_size);
+        }
+    });
+    // TODO(qqliu): check that you don't need to recolor even after you
+    // resize the palette.
   }
 
   void check_invariants() {
