@@ -93,7 +93,7 @@ class sparse_additive_map {
     while (1) {
       if (std::get<0>(table[h]) == empty_key) {
         if (pbbslib::CAS(&std::get<0>(table[h]), empty_key, k)) {
-          std::get<1>(table[h]) = std::get<1>(kv);
+          pbbslib::write_add(&std::get<1>(table[h]), v);
           return 1;
         }
       }
