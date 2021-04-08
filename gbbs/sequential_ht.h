@@ -45,7 +45,13 @@ class sequentialHT {
   T* table;
 
   inline size_t toRange(size_t h) { return h & mask; }
-  inline size_t firstIndex(K v) { return toRange(parlay::hash64(v)); }
+  inline size_t firstIndex(K v) {
+    if constexpr (sizeof(K) <= 4) {
+      return toRange(parlay::hash32_3(v));
+    } else {
+      return toRange(parlay::hash64(v));
+    }
+  }
   inline size_t incrementIndex(size_t h) { return toRange(h + 1); }
 
   sequentialHT(T* _table, size_t size, float loadFactor,

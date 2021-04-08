@@ -46,7 +46,7 @@
 #include "bridge.h"
 
 
-#define CACHE_LINE_S 128
+#define CACHE_LINE_S 64
 
 namespace gbbs {
 
@@ -127,6 +127,14 @@ struct buckets {
     update_buckets(get_id_and_bkt, n);
   }
 
+
+  void report() {
+    t1.reportTotal("unpack time");
+    t4.reportTotal("nextbucket time");
+    t2.reportTotal("parallel bucket time");
+    t3.reportTotal("sequential bucket time");
+  }
+
   // Returns the next non-empty bucket from the bucket structure. The return
   // value's bkt_id is null_bkt when no further buckets remain.
   inline bucket next_bucket() {
@@ -175,6 +183,7 @@ struct buckets {
 
   template <class F>
   inline size_t update_buckets_seq(F& f, size_t k) {
+    t3.start();
     size_t ne_before = num_elms;
     for (size_t i = 0; i < k; i++) {
       auto m = f(i);
@@ -184,6 +193,7 @@ struct buckets {
         num_elms++;
       }
     }
+    t3.stop();
     return num_elms - ne_before;
   }
 
@@ -194,9 +204,9 @@ struct buckets {
     size_t num_blocks = k / 4096;
     int num_threads = num_workers();
     if (k < 4096 || num_threads == 1) {
-    // if (true) {
       return update_buckets_seq(f, k);
     }
+    t2.start();
 
     size_t ne_before = num_elms;
 
@@ -205,7 +215,7 @@ struct buckets {
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
     auto hists_seq = sequence<bucket_id>::uninitialized((num_blocks + 1) * total_buckets * CACHE_LINE_S);
-    auto hists = hists_seq.begin();
+    auto hists = hists_seq.data();
 
     // 1. Compute per-block histograms
     parallel_for(0, num_blocks, [&] (size_t block_id) {
@@ -234,7 +244,7 @@ struct buckets {
 
     size_t last_ind = (num_blocks * total_buckets);
     auto outs_seq = sequence<bucket_id>::uninitialized(last_ind + 1);
-    auto outs = outs_seq.begin();
+    auto outs = outs_seq.data();
     parallel_for(0, last_ind, [&] (size_t i) {
       outs[i] = get(i);
     });
@@ -242,13 +252,16 @@ struct buckets {
 
     parlay::scan_inplace(parlay::make_slice(outs_seq), parlay::addm<bucket_id>());
 
+    size_t* const prev_sizes = prev_bkt_sizes.data();
+    auto bkt_ptrs = bkt_pointers.data();
+
     // 3. Resize buckets based on the summed histogram.
     for (size_t i = 0; i < total_buckets; i++) {
       size_t num_inc = outs[(i + 1) * num_blocks] - outs[i * num_blocks];
       size_t cur_size = bkts[i].size();
-      prev_bkt_sizes[i] = cur_size;
+      prev_sizes[i] = cur_size;
       bkts[i].resize(cur_size + num_inc);
-      bkt_pointers[i] = bkts[i].begin();
+      bkt_ptrs[i] = bkts[i].data();
       num_elms += num_inc;
     }
 
@@ -261,8 +274,6 @@ struct buckets {
       }
     }, 1);
 
-    size_t* const prev_sizes = prev_bkt_sizes.begin();
-    auto bkt_ptrs = bkt_pointers.begin();
 
     // 5. Iterate over blocks again. Insert (id, bkt) into bkt[hists[bkt]]
     // and increment hists[bkt].
@@ -289,6 +300,7 @@ struct buckets {
 //      m += num_inc;
 //    }
 
+    t2.stop();
     return num_elms - ne_before;
   }
 
@@ -309,18 +321,25 @@ struct buckets {
   sequence<size_t> prev_bkt_sizes;
   sequence<ident_t*> bkt_pointers;
 
+  timer t1;
+  timer t2;
+  timer t3;
+  timer t4;
+
   inline bool curBucketNonEmpty() { return bkts[cur_bkt].size() > 0; }
 
   inline void unpack() {
+    t1.start();
     size_t m = bkts[open_buckets].size();
-    auto A = bkts[open_buckets].begin();
-    auto tmp = sequence<ident_t>::from_function(m, [&] (size_t i) { return A[i]; });
+    auto tmp_seq = std::move(bkts[open_buckets]);
+    auto tmp = tmp_seq.data();
+    bkts[open_buckets] = id_dyn_arr();
+
     if (order == increasing) {
       cur_range++;  // increment range
     } else {
       cur_range--;
     }
-    bkts[open_buckets].clear(); // reset size
 
     auto g = [&](ident_t i) -> std::optional<std::tuple<ident_t, bucket_id> > {
       ident_t v = tmp[i];
@@ -354,6 +373,7 @@ struct buckets {
       }
     }
     num_elms -= m;
+    t1.stop();
   }
 
   inline void _next_bucket() {
@@ -394,6 +414,7 @@ struct buckets {
   }
 
   inline bucket get_cur_bucket() {
+    t4.start();
     auto& bkt = bkts[cur_bkt];
     size_t size = bkt.size();
     num_elms -= size;
@@ -406,6 +427,7 @@ struct buckets {
     }
     auto ret = bucket(cur_bkt_num, std::move(out));
     ret.num_filtered = size;
+    t4.stop();
     return ret;
   }
 
