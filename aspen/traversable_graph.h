@@ -102,8 +102,9 @@ struct traversable_graph : private graph {
 	  }
           return f.cond(v);
         };
+        auto cond = [&] () { return f.cond(v); };
+	//neighbors.map_cond(map_cond, cond);
 	neighbors.foreach_cond(map_cond);
-	//edge_tree::foreach_cond(neighbors, inner_map, 0, 512);
       }
     };
     //auto& vertices = get_vertices();
@@ -112,20 +113,19 @@ struct traversable_graph : private graph {
     map_vertices(map_f);
     t.next("map_vertices time");
 
-
 //    for (size_t i=0; i<50; i++) {
 //      map_vertices(map_f);
 //      t.next("map_vertices time");
 //
-////      parlay::parallel_for(0, n, [&] (size_t i) {
-////        if constexpr (std::is_same<Data, gbbs::empty>()) next[i] = 0;
-////        else return next[i] = std::make_tuple<vertex_id, Data>(0, Data());
-////      });
+//      parlay::parallel_for(0, n, [&] (size_t i) {
+//        if constexpr (std::is_same<Data, gbbs::empty>()) next[i] = 0;
+//        else return next[i] = std::make_tuple<vertex_id, Data>(0, Data());
+//      });
 //    }
-////
-////    std::cout << "vertex node size = " << sizeof(typename vertex_tree::node) << std::endl;
-////
-////    exit(0);
+//
+//    std::cout << "vertex node size = " << sizeof(typename vertex_tree::node) << std::endl;
+//
+//    exit(0);
 
     return vertexSubsetData<Data>(n, std::move(next));
   }
@@ -134,9 +134,15 @@ struct traversable_graph : private graph {
   auto edgeMapData(VS& vs, F& f, long threshold = -1, const flags& fl = 0) {
     size_t n = num_vertices();
     size_t m = num_edges();
-    if (threshold == -1) threshold = n / 20;
-    if (vs.size() == 0) return vertexSubsetData<Data>(n);
+    if (threshold == -1) threshold = m / 20;
 
+    if (vs.isDense && vs.size() > n / 10) {
+//      return (fl & dense_forward)
+//        ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl) :
+          edgeMapDense<Data, VS, F>(vs, f, fl);
+    }
+
+    if (vs.size() == 0) return vertexSubsetData<Data>(n);
     size_t out_degrees = 0;
     if (vs.out_degrees_set()) {
       out_degrees = vs.get_out_degrees();

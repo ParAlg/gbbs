@@ -151,6 +151,10 @@ public:
   static void foreach_cond(M m, F f, size_t start=0,
 			    size_t granularity = utils::node_limit) {
     Map::foreach_cond(m, f, start, granularity); }
+  template <class F, class C>
+  static void foreach_cond_par(M m, F f, C c, size_t start=0,
+			    size_t granularity = utils::node_limit) {
+    Map::foreach_cond_par(m, f, c, start, granularity); }
 public:
   using Map::from_sorted;
   using Map::size;

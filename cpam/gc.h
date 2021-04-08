@@ -206,7 +206,7 @@ struct gc {
       return has_flag(p) || Node::ref_cnt(strip_flag(p)) > 1;
     }
 
-    size_t size() { return Node::size(strip_flag(p)); }
+    size_t size() const { return Node::size(strip_flag(p)); }
 
     ET entry() {
       return Node::get_entry(strip_flag(p));

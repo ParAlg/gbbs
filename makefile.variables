@@ -21,7 +21,7 @@ INTE = -DEDGELONG
 endif
 
 #OPT = -O3 -DNDEBUG
-OPT = -O3 -DNDEBUG
+OPT = -O3 -g -DNDEBUG
 #OPT = -O0 -g -DUSE_PAM
 #OPT = -O0 -g -DUSE_PAM
 #OPT = -O0 -g
@@ -49,8 +49,8 @@ CFLAGS = \
 	$(INTE) \
 	$(CONCEPTS) \
 	-DAMORTIZEDPD \
-#	-DPARLAY_USE_STD_ALLOC \
 	$(JEMALLOC)
+#	-DPARLAY_USE_STD_ALLOC \
 # Add GCC-specific and Clang-specific flags
 ifeq ($(OS), linux)
   CFLAGS += \

@@ -16,9 +16,10 @@ struct symmetric_graph {
 #ifdef USE_PAM
   using edge_tree = pam_map<edge_entry>;
 #else
-  // todo: use diffencoding.
-  //using edge_tree = cpam::pam_map<edge_entry>;
-  using edge_tree = cpam::diff_encoded_map<edge_entry>;
+  // map can either be uncompressed or compressed (using difference encoding, or
+  // another suitable compression scheme).
+  using edge_tree = cpam::pam_map<edge_entry>;
+  //using edge_tree = cpam::diff_encoded_map<edge_entry>;
 #endif
   using edge_node = typename edge_tree::node;
 
@@ -74,6 +75,18 @@ struct symmetric_graph {
       edge_tree tree;
       tree.root = edges;
       tree.foreach_index(tree, map_f);
+      tree.root = nullptr;
+    }
+
+    template <class F, class C>
+    void map_cond(F& f, C& c) {
+      auto map_f = [&] (const auto& et, size_t i) {
+        auto [ngh, wgh] = et;
+        return f(id, ngh, wgh);
+      };
+      edge_tree tree;
+      tree.root = edges;
+      tree.foreach_cond_par(tree, map_f, c);
       tree.root = nullptr;
     }
 
@@ -163,7 +176,7 @@ struct symmetric_graph {
       auto vtx = vertex(v, std::get<1>(vtx_entry).root);
       f(vtx);
     };
-    V.foreach_index(V, map_f);
+    V.foreach_index(V, map_f, 0, 8);
   }
 
 

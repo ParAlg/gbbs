@@ -229,7 +229,7 @@ struct sequence_ops : Tree {
       };
       return Tree::iterate_cond(c, fn);
     }
-    auto[lc, e, rc, root] = expose(std::move(a));
+    auto [lc, e, rc, root] = expose(std::move(a));
     size_t lsize = lc.size();
     bool ret = f(e, start + lsize);
     if (!ret) {
@@ -237,10 +237,45 @@ struct sequence_ops : Tree {
       return false;
     }
     auto P = utils::fork<bool>(
-        lsize >= granularity,
+        false,
         [&]() { return foreach_cond(std::move(lc), start, f, granularity); },
         [&]() {
           return foreach_cond(std::move(rc), start + lsize + 1, f, granularity);
+    });
+    GC::decrement(root);
+    return P.first && P.second;
+  }
+
+  // F : entry x index -> bool
+  template <typename F, typename C>
+  static bool foreach_cond_par(ptr a, size_t start, const F& f, const C& cond,
+                               size_t granularity = utils::node_limit) {
+    if (a.empty()) return true;
+    if (a.is_compressed()) {
+      auto c = a.node_ptr();
+      size_t i = 0;
+      auto fn = [&] (const ET& a) -> bool {
+        bool ret = f(a, start + i);
+        i++;
+        return ret;
+      };
+      return Tree::iterate_cond(c, fn);
+    }
+    auto [lc, e, rc, root] = expose(std::move(a));
+    size_t lsize = lc.size();
+    bool ret = cond();
+    if (ret) {
+      ret = f(e, start + lsize);
+    }
+    if (!ret) {
+      GC::decrement(root);
+      return false;
+    }
+    auto P = utils::fork<bool>(
+        true,
+        [&]() { return foreach_cond_par(std::move(lc), start, f, cond, granularity); },
+        [&]() {
+          return foreach_cond_par(std::move(rc), start + lsize + 1, f, cond, granularity);
     });
     GC::decrement(root);
     return P.first && P.second;
