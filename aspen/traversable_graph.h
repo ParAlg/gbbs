@@ -2,6 +2,7 @@
 
 #include "gbbs/vertex_subset.h"
 #include "gbbs/flags.h"
+#include "gbbs/edge_map_utils.h"
 
 namespace aspen {
 
@@ -31,8 +32,8 @@ struct traversable_graph : private graph {
 
     auto offsets = parlay::sequence<edge_id>::from_function(
         vs.size(), [&](size_t i) {
-      return (fl & gbbs::in_edges) ? get_vertex(vs.vtx(i)).in_degree()
-                             : get_vertex(vs.vtx(i)).out_degree();
+      return (fl & gbbs::in_edges) ? (*get_vertex(vs.vtx(i))).in_degree()
+                             : (*get_vertex(vs.vtx(i))).out_degree();
     });
     size_t outEdgeCount =
       parlay::scan_inplace(parlay::make_slice(offsets));
@@ -41,7 +42,7 @@ struct traversable_graph : private graph {
     parlay::parallel_for(0, vs.size(), [&] (size_t i) {
       vertex_id v = vs.vtx(i);
       edge_id o = offsets[i];
-      auto vtx = get_vertex(v);
+      auto vtx = *get_vertex(v);
       auto neighbors = (fl & gbbs::in_edges) ? vtx.out_neighbors() : vtx.in_neighbors();
       S* out_edges = outEdges.begin();
       auto g = gbbs::get_emsparse_gen_full<Data>(out_edges);
@@ -61,13 +62,16 @@ struct traversable_graph : private graph {
 
   template <class Data, class VS, class F>
   auto edgeMapDense(VS& vs, F& f, const flags& fl) {
+    std::cout << "Starting edgemap dense" << std::endl;
+    timer t; t.start();
     using D = typename vertexSubsetData<Data>::D;
     size_t n = num_vertices();
     assert(gbbs::should_output(fl));
     auto dense_par = fl & gbbs::dense_parallel;
     vs.toDense();
+    t.next("vertex conversion time");
 
-    auto get_in = [x = vs.d] (vertex_id v) {
+    auto get_in = [x = vs.d] (const vertex_id& v) -> bool {
       if constexpr (std::is_same<typename VS::Data, gbbs::empty>()) {
         return x[v];
       } else {
@@ -81,16 +85,17 @@ struct traversable_graph : private graph {
           else return std::make_tuple<vertex_id, Data>(0, Data());
         });
     auto g = gbbs::get_emdense_gen<Data>((D*)next.begin());
+    t.next("build next");
 
     using vtx_entry_t = typename G::vertex_entry::entry_t;
     using edge_entry_t = typename G::edge_entry::entry_t;
 
-    auto map_f = [&] (auto& vtx) {
+    auto map_f = [&] (const auto& vtx) {
       vertex_id v = vtx.id;
       if (f.cond(v)) {
         auto neighbors = vtx.in_neighbors();
 
-	auto map_cond = [&] (vertex_id v, vertex_id ngh, auto wgh) -> bool {
+	auto map_cond = [&] (const vertex_id& v, const vertex_id& ngh, const auto& wgh) -> bool {
 	  if (get_in(ngh)) {
 	    auto m = f.updateAtomic(ngh, v, wgh);
 	    g(v, m);
@@ -105,6 +110,22 @@ struct traversable_graph : private graph {
     //vertices.foreach_index(vertices, map_f);
 
     map_vertices(map_f);
+    t.next("map_vertices time");
+
+
+//    for (size_t i=0; i<50; i++) {
+//      map_vertices(map_f);
+//      t.next("map_vertices time");
+//
+////      parlay::parallel_for(0, n, [&] (size_t i) {
+////        if constexpr (std::is_same<Data, gbbs::empty>()) next[i] = 0;
+////        else return next[i] = std::make_tuple<vertex_id, Data>(0, Data());
+////      });
+//    }
+////
+////    std::cout << "vertex node size = " << sizeof(typename vertex_tree::node) << std::endl;
+////
+////    exit(0);
 
     return vertexSubsetData<Data>(n, std::move(next));
   }
@@ -122,7 +143,7 @@ struct traversable_graph : private graph {
     } else {
       vs.toSparse();
       auto degree_f = [&](size_t i) {
-        auto vertex = get_vertex(vs.vtx(i));
+        auto vertex = *get_vertex(vs.vtx(i));
         return (fl & gbbs::in_edges) ? vertex.in_degree() : vertex.out_degree();
       };
       auto degree_im = parlay::delayed_seq<size_t>(vs.size(), degree_f);
@@ -149,6 +170,7 @@ struct traversable_graph : private graph {
   using G::get_vertex;
   using G::get_vertices;   // unused?
   using G::map_vertices;
+//  using G::fetch_all_vertices;
 };
 
 

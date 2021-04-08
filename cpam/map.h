@@ -129,7 +129,7 @@ public:
 
   // apply function f on all entries
   template <class F>
-  static void foreach_index(M& m, const F& f, size_t start=0,
+  static void foreach_index(const M& m, const F& f, size_t start=0,
 			    size_t granularity = utils::node_limit) {
     Tree::foreach_index(ptr(m.root, true), start, f, granularity);
   }

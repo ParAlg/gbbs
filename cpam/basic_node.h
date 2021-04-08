@@ -37,6 +37,12 @@ struct basic_node {
     node_size_t size_in_bytes;  // space allocated in bytes.
   };
 
+  static bool is_complex(node* a) {
+    assert(is_regular(a));
+    return size(a) > 2*B; }
+  static bool is_simplex(node* a) {
+    return size(a) <= 2*B; }
+
   static bool is_regular(node* a) {
     return !a || ((regular_node*)a)->r & kTopBit; }
   static bool is_compressed(node* a) { return !is_regular(a); }

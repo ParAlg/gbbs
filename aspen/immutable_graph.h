@@ -20,6 +20,7 @@ struct symmetric_graph {
   //using edge_tree = cpam::pam_map<edge_entry>;
   using edge_tree = cpam::diff_encoded_map<edge_entry>;
 #endif
+  using edge_node = typename edge_tree::node;
 
   struct vertex_entry {
     using key_t = vertex_id;
@@ -35,9 +36,9 @@ struct symmetric_graph {
   using vertex_tree = aug_map<vertex_entry>;
 
   struct neighbors {
-    edge_tree tree;
+    edge_node* edges;
     vertex_id id;
-    neighbors(vertex_id id, edge_tree tree) : id(id), tree(std::move(tree)) {}
+    neighbors(vertex_id id, edge_node* edges) : id(id), edges(edges) {}
 
     template <class F, class G>
     void copy(size_t offset, F& f, G& g) {
@@ -46,7 +47,10 @@ struct symmetric_graph {
         auto val = f(id, ngh, wgh);
         g(ngh, offset + i, val);
       };
+      edge_tree tree;
+      tree.root = edges;
       tree.foreach_index(tree, map_f);
+      tree.root = nullptr;
     }
 
     template <class F>
@@ -55,7 +59,10 @@ struct symmetric_graph {
         auto [ngh, wgh] = et;
         f(id, ngh, wgh, i);
       };
+      edge_tree tree;
+      tree.root = edges;
       tree.foreach_index(tree, map_f);
+      tree.root = nullptr;
     }
 
     template <class F>
@@ -64,7 +71,10 @@ struct symmetric_graph {
         auto [ngh, wgh] = et;
         auto val = f(id, ngh, wgh);
       };
+      edge_tree tree;
+      tree.root = edges;
       tree.foreach_index(tree, map_f);
+      tree.root = nullptr;
     }
 
     template <class F>
@@ -73,19 +83,30 @@ struct symmetric_graph {
         auto [ngh, wgh] = et;
         return f(id, ngh, wgh);
       };
+      edge_tree tree;
+      tree.root = edges;
       tree.foreach_cond(tree, map_f);
+      tree.root = nullptr;
     }
 
   };
 
   struct vertex {
     vertex_id id;
-    edge_tree tree;
-    size_t out_degree() { return tree.size(); }
-    size_t in_degree() { return tree.size(); }
-    auto out_neighbors() { return neighbors(id, tree); }
-    auto in_neighbors() { return neighbors(id, tree); }
-    vertex(vertex_id id, edge_tree&& tree) : id(id), tree(tree) {}
+    edge_node* edges;
+    size_t out_degree() {
+      edge_tree tree;
+      tree.root = edges;
+      auto sz = tree.size();
+      tree.root = nullptr;
+      return sz;
+    }
+    size_t in_degree() {
+      return out_degree();
+    }
+    auto out_neighbors() const { return neighbors(id, edges); }
+    auto in_neighbors() const { return neighbors(id, edges); }
+    vertex(vertex_id id, edge_node* edges) : id(id), edges(edges) {}
     // todo: map, etc, necessary for edgeMap.
   };
 
@@ -125,23 +146,24 @@ struct symmetric_graph {
     return V.aug_val();
   }
 
-  vertex get_vertex(vertex_id v) {
+  std::optional<vertex> get_vertex(vertex_id v) {
     auto opt = V.find(v);
     if (opt.has_value()) {
-      return vertex(v, std::move(*opt));
+      const auto& in_opt = *opt;
+      return std::optional<vertex>(vertex(v, in_opt.root));
     }
-    return vertex(v, edge_tree());
+    return std::nullopt;
   }
 
   template <class F>
   void map_vertices(F& f) {
     using entry_t = typename vertex_entry::entry_t;
-    auto map_f = [&] (entry_t vtx_entry, size_t i) {
-      vertex_id v = std::get<0>(vtx_entry);
-      auto vtx = vertex(v, std::move(std::get<1>(vtx_entry)));
+    auto map_f = [&] (const entry_t& vtx_entry, size_t i) {
+      const vertex_id& v = std::get<0>(vtx_entry);
+      auto vtx = vertex(v, std::get<1>(vtx_entry).root);
       f(vtx);
     };
-    V.foreach_index(V, map_f, 0, 1);
+    V.foreach_index(V, map_f);
   }
 
 
@@ -162,6 +184,21 @@ struct symmetric_graph {
     vertex_tree::reserve(n);
     edge_tree::reserve(m);
   }
+
+//  parlay::sequence<edge_tree> fetch_all_vertices() {
+//    timer t; t.start();
+//    size_t n = num_vertices();
+//    auto vtxs = parlay::sequence<edge_tree>(n);
+//    auto map_f = [&] (const vertex_entry& entry, size_t ind) {
+//      const auto& v = std::get<0>(entry);
+////      const auto& el = std::get<1>(entry);
+////      vtxs[v] = el;
+//    };
+//    map_vertices(map_f);
+//    t.next("fetch time");
+////    cout << "fetched" << endl;
+//    return vtxs;
+//  }
 
 
   void print_stats() {

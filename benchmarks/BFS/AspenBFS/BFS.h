@@ -49,18 +49,21 @@ template <class Graph>
 inline sequence<uintE> BFS(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
   size_t n = G.num_vertices();
+//  auto snapshot = G.fetch_all_vertices();
   /* Creates Parents array, initialized to all -1, except for src. */
   auto Parents = sequence<uintE>::from_function(n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
-  std::cout << "degree = " << G.get_vertex(src).out_degree() << std::endl;
+  std::cout << "degree = " << (*G.get_vertex(src)).out_degree() << std::endl;
 
   vertexSubset Frontier(n, src);
   size_t reachable = 0;
   while (!Frontier.isEmpty()) {
     std::cout << Frontier.size() << "\n";
     reachable += Frontier.size();
+    timer emt; emt.start();
     vertexSubset output = G.edgeMap(Frontier, BFS_F<W>(Parents.begin()), -1, sparse_blocked | dense_parallel);
+    emt.stop(); emt.reportTotal("edge map time");
     Frontier = std::move(output);
   }
   std::cout << "Reachable: " << reachable << "\n";

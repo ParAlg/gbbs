@@ -109,6 +109,16 @@ struct balance_utils {
 
 /* ============================ Compressed Join =============================== */
 
+  static node* check_ret(node* ret) {
+#ifdef DEBUG
+      if (!Node::check_structure(ret)) {
+        Node::print_rec(ret);
+        assert(false);
+      }
+#endif
+    return ret;
+  }
+
   static node* right_join(node* t1_o, node* t2, regular_node* k) {
     if (Node::is_compressed(t1_o)) {
       return Node::make_compressed(t1_o, t2, k);
@@ -234,28 +244,10 @@ struct balance_utils {
       return ret;
     }
 
-    // 12/4/2020: I'm pretty sure this check below is unnecessary?
-    // if either child is compressed, make sure the root never participates in a
-    // double-rotate as a middle node.
-    //    if (!l_reg || !r_reg) {
-    //      if (Node::could_single_rotate(l, r)) {
-    //        auto ret = Node::make_compressed(l, r, e);
-    //        assert(Node::is_balanced(Node::cast_to_regular(ret)));
-    //        return ret;
-    //      }
-    //    }
-    // Standard balanced join.
-    // std::cout << "l_s = " << Node::size(l) << " r_s = " << Node::size(r) << "
-    // e_s = " << Node::size(e) << " tot should be = " << tot << std::endl;
     e->lc = l;
     e->rc = r;
     Node::update(e);
-    // std::cout << "After update: l_s = " << Node::size(l) << " r_s = " <<
-    // Node::size(r) << " e_s = " << Node::size(e) << " tot should be = " << tot
-    // << std::endl;
-    // std::cout << "After update: l_s = " << Node::size(e->lc) << " r_s = " <<
-    // Node::size(e->rc) << " e_s = " << Node::size(e) << " tot should be = " <<
-    // tot << std::endl;
+
     assert(Node::is_balanced(e));
     return e;
   }
@@ -268,27 +260,14 @@ struct balance_utils {
       return Node::make_compressed(t1, t2, k);
     }
     // check sizes of children
-
-#ifdef DEBUG
-//    auto size_t1 = Node::size(t1);
-//    auto size_t2 = Node::size(t2);
     assert(Node::size(t1) >= 2 * B || Node::size(t1) < B);
     assert(Node::size(t2) >= 2 * B || Node::size(t2) < B);
-#endif
+
     if (Node::is_left_heavy(t1, t2)) return right_join(t1, t2, k);
     if (Node::is_left_heavy(t2, t1)) return left_join(t1, t2, k);
     return balanced_join(t1, t2, k);
   }
 
-  static node* check_ret(node* ret) {
-#ifdef DEBUG
-      if (!Node::check_structure(ret)) {
-        Node::print_rec(ret);
-        assert(false);
-      }
-#endif
-    return ret;
-  }
 
   // main function
   // note that if k is not used (e.g., it gets put into a compressed node, we
