@@ -18,7 +18,7 @@ sequence<char> char_seq_from_file(
   char* bytes = new_array<char>(n+1);
   file.read (bytes,n);
   file.close();
-  return sequence<char>(bytes,n);
+  return sequence<char>::build_sequence(bytes,n);
 }
 
 bool is_space(char c) {
