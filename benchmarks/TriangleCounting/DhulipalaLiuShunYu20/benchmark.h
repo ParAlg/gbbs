@@ -17,7 +17,7 @@ namespace gbbs{
 namespace DBTInternal {
 
   // template <class EdgeT>
-  // pbbs::sequence<pair<EdgeT, bool>> generateEdgeUpdates(size_t nv, size_t numEdges, commandLine& P);
+  // sequence<pair<EdgeT, bool>> generateEdgeUpdates(size_t nv, size_t numEdges, commandLine& P);
 
   // ///// PRINTING UTILITIES //////
   // inline void PrintCaption(std::string t_in);

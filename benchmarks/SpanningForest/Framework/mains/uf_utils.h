@@ -12,9 +12,9 @@ namespace connectit {
   bool run_multiple_uf_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<edge>& correct,
+      sequence<edge>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
+    auto test = [&] (Graph& G, commandLine P, sequence<edge>& correct) {
       timer tt; tt.start();
       auto edges =
           run_uf_alg<
@@ -41,9 +41,9 @@ namespace connectit {
   bool run_multiple_uf_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<edge>& correct,
+      sequence<edge>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
+    auto test = [&] (Graph& G, commandLine P, sequence<edge>& correct) {
       timer tt; tt.start();
       auto edges =
           run_uf_alg<
@@ -69,9 +69,9 @@ namespace connectit {
   bool run_multiple_jayanti_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<edge>& correct,
+      sequence<edge>& correct,
       commandLine& P) {
-    auto test = [&] (Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
+    auto test = [&] (Graph& G, commandLine P, sequence<edge>& correct) {
       timer tt; tt.start();
       auto edges =
           run_jayanti_alg<

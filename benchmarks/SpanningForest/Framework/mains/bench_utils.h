@@ -34,7 +34,7 @@ double minf(double a, double b) {return (a < b) ? a : b;};
 double maxf(double a, double b) {return (a > b) ? a : b;};
 
 template<typename Graph, typename F>
-std::vector<double> repeat(Graph& G, size_t rounds, pbbs::sequence<edge>& correct, F test, commandLine& P) {
+std::vector<double> repeat(Graph& G, size_t rounds, sequence<edge>& correct, F test, commandLine& P) {
   std::vector<double> R;
   for (size_t i=0; i < rounds; i++) {
 #ifdef REPORT_PATH_LENGTHS
@@ -75,7 +75,7 @@ void print_cpu_stats(std::string& name, size_t rounds, double medt, double mint,
 
 
 template<typename Graph, typename F>
-bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<edge>& correct,
+bool run_multiple(Graph& G, size_t rounds, sequence<edge>& correct,
 		  std::string name, commandLine& P, F test) {
 #ifdef USE_PCM_LIB
   auto before_state = get_pcm_state();
@@ -102,7 +102,7 @@ bool run_multiple(Graph& G, size_t rounds, pbbs::sequence<edge>& correct,
 /* ************************* ***** *************************** */
 
 template <class F, class Graph>
-void run_tests(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct,
+void run_tests(Graph& G, int rounds, commandLine& P, sequence<edge>& correct,
     F test,
     std::initializer_list<F> tests) {
   for (auto test : tests) {

@@ -8,7 +8,7 @@ namespace gbbs {
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
 template <class Graph>
 double Run(Graph& G, commandLine P) {
@@ -47,10 +47,8 @@ double Run(Graph& G, commandLine P) {
     return hash_to_double(u,v) < update_pct; /* return in sample */
   };
   timer tt; tt.start();
-  auto updates_arr = sampleEdges(G, update_pred);
+  sequence<std::tuple<uintE, uintE, W>> updates = sampleEdges(G, update_pred).to_seq();
   tt.stop(); tt.reportTotal("# sample edges time");
-  auto updates = pbbs::sequence<std::tuple<uintE, uintE>>((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
-  updates_arr.E = nullptr; /* relinquish memory */
 
 //  /* 2) call filter_graph to delete all deletions + updates from G */
 //  auto delete_pred =  [&] (const uintE& u, const uintE& v, const W& wgh) {
@@ -64,11 +62,11 @@ double Run(Graph& G, commandLine P) {
 
 //  if (insert_to_query != 1 && !permute) {
     auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
-    auto FG = gbbs::edge_array<pbbs::empty>();
+    auto FG = gbbs::edge_array<gbbs::empty>();
     run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
 //  } else {
 //    auto annotated_updates = annotate_updates_insert(updates, insert_to_query, n, permute);
-//    auto FG = gbbs::edge_array<pbbs::empty>();
+//    auto FG = gbbs::edge_array<gbbs::empty>();
 //    run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
   //}
 

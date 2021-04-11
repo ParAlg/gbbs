@@ -124,10 +124,10 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -146,14 +146,14 @@ inline sequence<fType> SSBetweennessCentrality(Graph& G, const uintE& start) {
   debug(bt.reportTotal("back total time"););
 
   // Update dependencies scores
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
 }
 
 template <class Graph, class E>
-vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::sequence<fType>& NumPaths, pbbs::sequence<fType>& Storage, pbbs::sequence<bool>& Visited,  const flags fl) {
+vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, sequence<fType>& NumPaths, sequence<fType>& Storage, sequence<bool>& Visited,  const flags fl) {
   using W = typename Graph::weight_type;
   size_t out_degrees = 0;
   if (Frontier.dense()) {
@@ -183,12 +183,12 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
       return NumPaths[d];
     };
     auto reduce_f = [&] (double l, double r) { return l + r; };
-    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, pbbs::empty>> {
+    auto apply_f = [&] (std::tuple<uintE, double> k) -> std::optional<std::tuple<uintE, gbbs::empty>> {
       const uintE& u = std::get<0>(k);
       const double& contribution = std::get<1>(k);
       if (contribution > 0) {
         Storage[u] = contribution;
-        return std::optional<std::tuple<uintE, pbbs::empty>>({u, pbbs::empty()});
+        return std::optional<std::tuple<uintE, gbbs::empty>>({u, gbbs::empty()});
       }
       return std::nullopt;
     };
@@ -197,7 +197,7 @@ vertexSubset sparse_fa_dense_em(Graph& G, E& EM, vertexSubset& Frontier, pbbs::s
     flags dense_fl = fl;
     dense_fl ^= in_edges; // should be set if out_edges, unset if in_edges
     timer dt; dt.start();
-    vertexSubset output = EM.template edgeMapReduce_dense<pbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl);
+    vertexSubset output = EM.template edgeMapReduce_dense<gbbs::empty, double>(Frontier, cond_f, map_f, reduce_f, apply_f, id, dense_fl);
 
     parallel_for(0, G.n, [&] (size_t i) {
       if (Storage[i] != 0) {
@@ -254,10 +254,10 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
 
   // Invert numpaths
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   vertexMap(Frontier, make_bc_back_vertex_f(Visited, Dependencies, NumPaths));
@@ -280,7 +280,7 @@ inline sequence<fType> SSBetweennessCentrality_EM(Graph& G, const uintE& start) 
 
 
   // Update dependencies scores
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;
@@ -296,8 +296,8 @@ using fType = double;
 
 template <class W>
 struct BFS_F {
-  pbbs::sequence<uint8_t>& Visited;
-  BFS_F(pbbs::sequence<uint8_t>& Visited) : Visited(Visited) {}
+  sequence<uint8_t>& Visited;
+  BFS_F(sequence<uint8_t>& Visited) : Visited(Visited) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     Visited[d] = 1; /* first visit */
     return 1;
@@ -373,10 +373,10 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
   /* Backwards pass */
   auto Dependencies = sequence<fType>(n, [](size_t i) { return 0.0; });
   // Invert numpaths
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { NumPaths[i] = 1 / NumPaths[i]; });
 
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { Visited[i] = 0; });
   Frontier = std::move(Levels[round - 1]);
   std::cout << "r-1 frontier, m = " << Frontier.m << std::endl;
@@ -422,7 +422,7 @@ inline sequence<fType> SSBetweennessCentrality_BFS(Graph& G, const uintE& start)
 
 
   // Update dependencies scores
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     Dependencies[i] = (Dependencies[i] - NumPaths[i]) / NumPaths[i];
   });
   return Dependencies;

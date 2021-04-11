@@ -9,7 +9,7 @@
 
 namespace gbbs {
 namespace find_variants {
-  inline uintE find_naive(uintE i, pbbs::sequence<parent>& Parents) {
+  inline uintE find_naive(uintE i, sequence<parent>& Parents) {
     uintE pathlen = 1;
     while(i != Parents[i]) {
       i = Parents[i];
@@ -19,7 +19,7 @@ namespace find_variants {
     return i;
   }
 
-  inline uintE find_compress(uintE i, pbbs::sequence<parent>& Parents) {
+  inline uintE find_compress(uintE i, sequence<parent>& Parents) {
     uintE pathlen = 1;
     parent j = i;
     if (Parents[j] == j) return j;
@@ -35,7 +35,7 @@ namespace find_variants {
     return j;
   }
 
-  inline uintE find_atomic_split(uintE i, pbbs::sequence<parent>& Parents) {
+  inline uintE find_atomic_split(uintE i, sequence<parent>& Parents) {
     uintE pathlen = 1;
     while(1) {
       parent v = Parents[i];
@@ -53,7 +53,7 @@ namespace find_variants {
     }
   }
 
-  inline uintE find_atomic_halve(uintE i, pbbs::sequence<parent>& Parents) {
+  inline uintE find_atomic_halve(uintE i, sequence<parent>& Parents) {
     uintE pathlen = 1;
     while(1) {
       parent v = Parents[i];
@@ -75,7 +75,7 @@ namespace find_variants {
 namespace splice_variants {
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& Parents) {
+  inline uintE split_atomic_one(uintE i, uintE x, sequence<parent>& Parents) {
     parent v = Parents[i];
     parent w = Parents[v];
     if(v == w) return v;
@@ -87,7 +87,7 @@ namespace splice_variants {
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE halve_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& Parents) {
+  inline uintE halve_atomic_one(uintE i, uintE x, sequence<parent>& Parents) {
     parent v = Parents[i];
     parent w = Parents[v];
     if(v == w) return v;
@@ -99,7 +99,7 @@ namespace splice_variants {
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE splice_atomic(uintE u, uintE v, pbbs::sequence<parent>& Parents) {
+  inline uintE splice_atomic(uintE u, uintE v, sequence<parent>& Parents) {
     parent z = Parents[u];
     pbbs::atomic_compare_and_swap(&Parents[u], z, Parents[v]);
     return z;
@@ -114,7 +114,7 @@ namespace unite_variants {
     Find& find;
     Unite(Find& find) : find(find) { }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+    inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
       parent u = u_orig;
       parent v = v_orig;
       while(1) {
@@ -147,7 +147,7 @@ namespace unite_variants {
       pbbs::free_array(locks);
     }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+    inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
       parent rx = u_orig;
       parent ry = v_orig;
       parent z;
@@ -182,7 +182,7 @@ namespace unite_variants {
     Splice& splice;
     UniteRemCAS(Compress& compress, Splice& splice) : compress(compress), splice(splice) { }
 
-    inline void operator()(uintE x, uintE y, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+    inline void operator()(uintE x, uintE y, sequence<parent>& Parents, sequence<edge>& Edges) {
       uintE rx = x; uintE ry = y;
       uintE pathlen = 1;
       while (Parents[rx] != Parents[ry]) {
@@ -212,7 +212,7 @@ namespace unite_variants {
 
   struct UniteEarly {
     UniteEarly() {}
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+    inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
       uintE u = u_orig;
       uintE v = v_orig;
       while(u != v) {
@@ -233,12 +233,12 @@ namespace unite_variants {
   template <class Find>
   struct UniteND {
     Find find;
-    pbbs::sequence<uintE> hooks;
+    sequence<uintE> hooks;
     UniteND(size_t n, Find& find) : find(find) {
-      hooks = pbbs::sequence<uintE>(n, UINT_E_MAX);
+      hooks = sequence<uintE>(n, UINT_E_MAX);
     }
 
-    inline void operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+    inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
       parent u = u_orig;
       parent v = v_orig;
       while(1) {

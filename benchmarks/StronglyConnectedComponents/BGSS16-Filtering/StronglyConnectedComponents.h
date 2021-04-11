@@ -160,7 +160,7 @@ inline auto multi_search(Graph& GA,
   });
   table.update_nelms();
 
-  auto elts = pbbslib::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, pbbs::empty()), [&] (const K& k) { return pbbs::hash32(k); });
+  auto elts = pbbslib::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash32(k); });
 
   size_t rd = 0;
   size_t sum_frontiers = 0;
@@ -170,7 +170,7 @@ inline auto multi_search(Graph& GA,
     sum_frontiers += frontier.size();
     elts.resize(sum_frontiers);
     parallel_for(0, frontier.size(), [&] (size_t i) {
-      elts.insert({frontier.s[i], pbbs::empty()});
+      elts.insert({frontier.s[i], gbbs::empty()});
     });
 
     auto work_upperbound_seq = pbbs::delayed_seq<size_t>(frontier.size(), [&](size_t i) {
@@ -488,26 +488,26 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t remaining = Q.size() - finished + vs_size;
 
     to_process_t.start();
-    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, pbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
     to_process_t.stop();
 
-    auto in_insert_t = [&] (const std::tuple<K, pbbs::empty>& kev) {
+    auto in_insert_t = [&] (const std::tuple<K, gbbs::empty>& kev) {
       auto k = std::get<0>(kev);
       auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        to_process.insert(std::make_tuple(v, pbbs::empty()));
+        to_process.insert(std::make_tuple(v, gbbs::empty()));
       };
-      to_process.insert(std::make_tuple(k, pbbs::empty()));
+      to_process.insert(std::make_tuple(k, gbbs::empty()));
       // insert only out neighbors
       PG.get_vertex(k).out_neighbors().map(insert_fringe);
     };
     in_elts.map(in_insert_t);
 
-    auto out_insert_t = [&] (const std::tuple<K, pbbs::empty>& kev) {
+    auto out_insert_t = [&] (const std::tuple<K, gbbs::empty>& kev) {
       auto k = std::get<0>(kev);
       auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
-        to_process.insert(std::make_tuple(v, pbbs::empty()));
+        to_process.insert(std::make_tuple(v, gbbs::empty()));
       };
-      to_process.insert(std::make_tuple(k, pbbs::empty()));
+      to_process.insert(std::make_tuple(k, gbbs::empty()));
       // insert only in neighbors
       PG.get_vertex(k).in_neighbors().map(insert_fringe);
     };
@@ -519,17 +519,17 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     to_process_t.stop();
 
 //    size_t remaining = Q.size() - finished + vs_size;
-//    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, pbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
-//    auto to_process_out = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, pbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
-//    auto to_process_in = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, pbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+//    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+//    auto to_process_out = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+//    auto to_process_in = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
 //    auto in_insert_t = [&] (const std::tuple<K, V>& kev) {
 //      auto k = std::get<0>(kev);
 //      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
 //        if (!in_table.contains(v)) {
-//          to_process_in.insert(std::make_tuple(v, pbbs::empty()));
+//          to_process_in.insert(std::make_tuple(v, gbbs::empty()));
 //        }
 //      };
-//      if (to_process_in.insert(std::make_tuple(k, pbbs::empty()))) {
+//      if (to_process_in.insert(std::make_tuple(k, gbbs::empty()))) {
 //        // insert only out neighbors
 //        PG.get_vertex(k).out_neighbors().map(insert_fringe);
 //      }
@@ -540,20 +540,20 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      auto k = std::get<0>(kev);
 //      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {
 //        if (!out_table.contains(v)) {
-//          to_process_out.insert(std::make_tuple(v, pbbs::empty()));
+//          to_process_out.insert(std::make_tuple(v, gbbs::empty()));
 //        }
 //      };
-//      if (to_process_out.insert(std::make_tuple(k, pbbs::empty()))) {
+//      if (to_process_out.insert(std::make_tuple(k, gbbs::empty()))) {
 //        // insert only out neighbors
 //        PG.get_vertex(k).in_neighbors().map(insert_fringe);
 //      }
 //    };
 //    out_table.map(out_insert_t);
 //
-//    to_process_out.map([&] (const std::tuple<K, pbbs::empty>& kv) {
+//    to_process_out.map([&] (const std::tuple<K, gbbs::empty>& kv) {
 //      to_process.insert(kv);
 //    });
-//    to_process_in.map([&] (const std::tuple<K, pbbs::empty>& kv) {
+//    to_process_in.map([&] (const std::tuple<K, gbbs::empty>& kv) {
 //      to_process.insert(kv);
 //    });
 //    to_process_in.del();

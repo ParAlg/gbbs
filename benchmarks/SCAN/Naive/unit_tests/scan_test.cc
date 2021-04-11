@@ -16,7 +16,7 @@ namespace gt = graph_test;
 namespace n = naive_scan;
 
 // Like naive_scan::Clustering, but uses `std::vector` instead of
-// `pbbs::sequence` for convenience.
+// `sequence` for convenience.
 using ClusteringArray = std::vector<std::vector<uintE>>;
 
 namespace {

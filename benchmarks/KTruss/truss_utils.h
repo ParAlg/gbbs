@@ -56,7 +56,7 @@ namespace truss_utils {
     }
 
     static void clearA(V* A, long n, V kv) {
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, kDefaultGranularity, [&] (size_t i)
                       { A[i] = kv; });
     }
 
@@ -304,7 +304,7 @@ namespace truss_utils {
 
   template <class Graph, class VS, class F>
   vertexSubset emdf(Graph& GA, VS& vs, F f, const flags& fl = 0) {
-    return edgeMapDenseForward<pbbslib::empty>(GA, vs, f, fl);
+    return edgeMapDenseForward<gbbs::empty>(GA, vs, f, fl);
   }
 
   template <class F, class Graph>

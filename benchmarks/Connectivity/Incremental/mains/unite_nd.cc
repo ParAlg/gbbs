@@ -30,29 +30,29 @@
 namespace gbbs {
 namespace connectit {
   template <class Graph, bool provides_initial_graph>
-  void unite_nd_find_compress(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_nd_find_compress(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_nd, find_compress, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_nd_find_naive(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_nd_find_naive(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_nd, find_naive, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_nd_find_atomic_split(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_nd_find_atomic_split(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_nd, find_atomic_split, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
   template <class Graph, bool provides_initial_graph>
-  void unite_nd_find_atomic_halve(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void unite_nd_find_atomic_halve(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_uf_alg<Graph, unite_nd, find_atomic_halve, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 
 } // namespace connectit
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::unite_nd_find_compress<Graph, provides_initial_graph>,
       {

@@ -71,7 +71,7 @@ namespace workefficient_sf {
     }
     auto shifts = ldd_utils::generate_shifts(n, beta);
     auto cluster_ids = sequence<uintE>(n);
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { cluster_ids[i] = UINT_E_MAX; });
 
     auto parents = sequence<uintE>(n, UINT_E_MAX);
@@ -95,7 +95,7 @@ namespace workefficient_sf {
         auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
         auto new_centers = pbbslib::filter(candidates, pred);
         add_to_vsubset(frontier, new_centers.begin(), new_centers.size());
-        par_for(0, new_centers.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+        par_for(0, new_centers.size(), kDefaultGranularity, [&] (size_t i) {
           uintE v = new_centers[i];
           cluster_ids[v] = v;
           parents[v] = v;
@@ -181,12 +181,14 @@ namespace workefficient_sf {
   // Algorithm maintains a map from edges in the current graph to original
   // edges (initially just identity).
   template <class Graph>
-  inline pbbs::sequence<edge> SpanningForest(Graph& G, double beta = 0.2,
+  inline sequence<edge> SpanningForest(Graph& G, double beta = 0.2,
                                         bool pack = false, bool permute = false) {
     std::function<edge(edge)> identity_mapping = [&] (edge e) {
       return e;
     };
-    return SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute).to_seq();
+    auto sf = SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute);
+    auto output = sequence<edge>(sf.size, [&] (size_t i) { return sf.A[i]; });
+    return output;
   }
 
 }  // namespace workefficient_sf

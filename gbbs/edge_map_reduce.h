@@ -58,7 +58,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
                  const std::optional<E>& val = std::nullopt) {
     if (cond_f(ngh)) {
       if
-        constexpr(!std::is_same<E, pbbslib::empty>()) {
+        constexpr(!std::is_same<E, gbbs::empty>()) {
           edges[offset] = std::make_tuple(ngh, *val);
         }
       else {
@@ -66,7 +66,7 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
       }
     } else {
       if
-        constexpr(!std::is_same<E, pbbslib::empty>()) {
+        constexpr(!std::is_same<E, gbbs::empty>()) {
           edges[offset] = std::make_tuple(empty_key, *val);
         }
       else {
@@ -108,14 +108,14 @@ inline vertexSubsetData<O> edgeMapCount_sparse(Graph& GA, VS& vs,
       "Currently apply_f must emit the same type as the count-type (uintE)");
   using W = typename Graph::weight_type;
   auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
-    return pbbslib::empty();
+    return gbbs::empty();
   };
   size_t m = vs.size();
   if (m == 0) {
     return vertexSubsetData<O>(vs.numNonzeros());
   }
   uintE empty_key = std::get<0>(ht.empty);
-  auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(GA, vs, map_f, cond_f,
+  auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(GA, vs, map_f, cond_f,
                                                           empty_key, fl);
   oneHop.toSparse();
 
@@ -381,7 +381,7 @@ struct EdgeMap {
       auto out = sequence<OT>(n);
       parallel_for(0, n,
                    [&](size_t i) {
-                     if constexpr (!std::is_same<O, pbbslib::empty>()) {
+                     if constexpr (!std::is_same<O, gbbs::empty>()) {
                          std::get<0>(out[i]) = false;
                        } else {
                        out[i] = false;
@@ -394,7 +394,7 @@ struct EdgeMap {
                        auto tup = std::make_tuple(i, reduced_val);
                        auto applied_val = apply_f(tup);
                        if (applied_val.has_value()) {
-                         if constexpr (!std::is_same<O, pbbslib::empty>()) {
+                         if constexpr (!std::is_same<O, gbbs::empty>()) {
                            std::get<0>(out[i]) = true;
                            std::get<1>(out[i]) = std::get<1>(*applied_val);
                          } else {
@@ -454,7 +454,7 @@ struct EdgeMap {
   inline vertexSubsetData<O> edgeMapCount_sparse(VS& vs, Apply& apply_f,
                                                  const flags fl = 0) {
     auto map_f = [](const uintE& i, const uintE& j, const W& wgh) {
-      return pbbslib::empty();
+      return gbbs::empty();
     };
     size_t m = vs.size();
     if (m == 0) {
@@ -462,7 +462,7 @@ struct EdgeMap {
     }
     auto cond_f = [&](const uintE& u) { return true; };
     uintE empty_key = std::get<0>(ht.empty);
-    auto oneHop = edgeMapInduced<pbbslib::empty, Graph, VS>(
+    auto oneHop = edgeMapInduced<gbbs::empty, Graph, VS>(
         G, vs, map_f, cond_f, empty_key, fl);
     oneHop.toSparse();
 

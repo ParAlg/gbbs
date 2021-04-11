@@ -47,9 +47,9 @@ using DSymGraph = DBTGraph::DyGraph<DBTGraph::SymGraph>;
 // gbbs_io::write_graph_to_file
 
 template <class Graph, class F>
-inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>* DG, pbbs::sequence<size_t>& vtxMap, vector<gbbs_io::Edge<int>>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
+inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGraph<Graph>* DG, sequence<size_t>& vtxMap, vector<gbbs_io::Edge<int>>& updates, size_t C0, commandLine& P, size_t n, size_t s, size_t e) {
   using EdgeT = DBTGraph::EdgeT;
-  using UpdatesT = pbbs::sequence<pair<EdgeT, bool>>;
+  using UpdatesT = sequence<pair<EdgeT, bool>>;
   using UT = gbbs_io::Edge<int>;
   timer t; t.start();
   size_t m, m_ins;
@@ -83,7 +83,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   }
  // t.start(); //toCSR
   UpdatesT edges = UpdatesT::no_init(2*m);
-  pbbs::sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG->num_vertices()); // fill vtxMap and edges
+  sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG->num_vertices()); // fill vtxMap and edges
   t.next("count degrees");
 
   auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
@@ -124,7 +124,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     DBTGraph::VtxUpdate v = vtxNew[vtxMap[elocal.second]]; // must make a copy here, because countTriangles might swap variables
     DG->countTriangles(u,v,flag, tc);
   }, 1);
-  pbbs::sequence<size_t> triCounts = tc.report();  //TODO: reuse
+  sequence<size_t> triCounts = tc.report();  //TODO: reuse
   delta_triangles_pos = triCounts[0] + triCounts[1]/2 + triCounts[2]/3;
   delta_triangles_neg = triCounts[3] + triCounts[4]/2 + triCounts[5]/3;
   DBTInternal::PrintFunctionItem("6.", "# tri +", delta_triangles_pos);
@@ -162,7 +162,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   } //end else (nort major rebalancing)
 
 
-  par_for(0, vtxNew.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, vtxNew.size(), kDefaultGranularity, [&] (size_t i) {
     vtxMap[vtxNew[i].id] = EMPTYVMAP;
   });
 
@@ -191,7 +191,7 @@ inline size_t dynamicBatches(DBTGraph::DyGraph<Graph>* DG, vector<gbbs_io::Edge<
   int batch_proc = P.getOptionLongValue("-bp", num_batch+1);
   DSymGraph *DGold = new DSymGraph();
   DSymGraph *DGnew;
-  pbbs::sequence<size_t> vtxMap = pbbs::sequence<size_t>(n, EMPTYVMAP);
+  sequence<size_t> vtxMap = sequence<size_t>(n, EMPTYVMAP);
   for(int i = batch_offset; i<= batch_offset+ batch_proc; ++i){
     size_t batch_start = i*batch_size;
     if(all_del){

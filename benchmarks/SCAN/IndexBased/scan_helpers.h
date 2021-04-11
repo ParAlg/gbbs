@@ -53,8 +53,8 @@ class NeighborOrder {
  private:
   // Holds similarity scores for all edges, sorted by source and then by
   // similarity.
-  pbbs::sequence<EdgeSimilarity> similarities_;
-  pbbs::sequence<pbbs::range<EdgeSimilarity*>> similarities_by_source_;
+  sequence<EdgeSimilarity> similarities_;
+  sequence<pbbs::range<EdgeSimilarity*>> similarities_by_source_;
 };
 
 struct CoreThreshold {
@@ -71,11 +71,11 @@ class CoreOrder {
 
   // Return all vertices that are cores under SCAN parameters `mu` and
   // `epsilon`.
-  pbbs::sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
+  sequence<uintE> GetCores(uint64_t mu, float epsilon) const;
 
  private:
   size_t num_vertices_;
-  pbbs::sequence<pbbs::sequence<CoreThreshold>> order_{};
+  sequence<sequence<CoreThreshold>> order_{};
 };
 
 // Prints the total time captured by `timer` to stderr if macro
@@ -98,11 +98,11 @@ NeighborOrder::NeighborOrder(
         return std::tie(left.source, right.similarity) <
           std::tie(right.source, left.similarity);
       });
-  pbbs::sequence<uintT> vertex_offsets{
+  sequence<uintT> vertex_offsets{
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); }};
   pbbslib::scan_add_inplace(vertex_offsets);
-  similarities_by_source_ = pbbs::sequence<pbbs::range<EdgeSimilarity*>>(
+  similarities_by_source_ = sequence<pbbs::range<EdgeSimilarity*>>(
       graph->n,
       [&](const size_t i) {
         return similarities_.slice(
@@ -119,7 +119,7 @@ NeighborOrder::NeighborOrder(
 //
 // CO[0] and CO[1] are left empty --- when mu is less than 2, all vertices are
 // always cores and have a core threshold of 1.
-pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
+sequence<sequence<CoreThreshold>> ComputeCoreOrder(
     const NeighborOrder& neighbor_order);
 
 }  // namespace internal

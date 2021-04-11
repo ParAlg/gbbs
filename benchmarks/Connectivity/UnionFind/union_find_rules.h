@@ -9,14 +9,14 @@
 
 namespace gbbs {
 namespace find_variants {
-  inline uintE find_naive(uintE i, pbbs::sequence<parent>& parents) {
+  inline uintE find_naive(uintE i, sequence<parent>& parents) {
     while(i != parents[i]) {
       i = parents[i];
     }
     return i;
   }
 
-  inline uintE find_compress(uintE i, pbbs::sequence<parent>& parents) {
+  inline uintE find_compress(uintE i, sequence<parent>& parents) {
     parent j = i;
     if (parents[j] == j) return j;
     do {
@@ -29,7 +29,7 @@ namespace find_variants {
     return j;
   }
 
-  inline uintE find_atomic_split(uintE i, pbbs::sequence<parent>& parents) {
+  inline uintE find_atomic_split(uintE i, sequence<parent>& parents) {
     while(1) {
       parent v = parents[i];
       parent w = parents[v];
@@ -44,7 +44,7 @@ namespace find_variants {
     }
   }
 
-  inline uintE find_atomic_halve(uintE i, pbbs::sequence<parent>& parents) {
+  inline uintE find_atomic_halve(uintE i, sequence<parent>& parents) {
     while(1) {
       parent v = parents[i];
       parent w = parents[v];
@@ -63,7 +63,7 @@ namespace find_variants {
 namespace splice_variants {
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE split_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+  inline uintE split_atomic_one(uintE i, uintE x, sequence<parent>& parents) {
     parent v = parents[i];
     parent w = parents[v];
     if(v == w) return v;
@@ -75,7 +75,7 @@ namespace splice_variants {
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE halve_atomic_one(uintE i, uintE x, pbbs::sequence<parent>& parents) {
+  inline uintE halve_atomic_one(uintE i, uintE x, sequence<parent>& parents) {
     parent v = parents[i];
     parent w = parents[v];
     if(v == w) return v;
@@ -87,7 +87,7 @@ namespace splice_variants {
   }
 
   /* Used in Rem-CAS variants for splice */
-  inline uintE splice_atomic(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+  inline uintE splice_atomic(uintE u, uintE v, sequence<parent>& parents) {
     parent z = parents[u];
     pbbs::atomic_compare_and_swap(&parents[u], z, parents[v]);
     return z;
@@ -102,7 +102,7 @@ namespace unite_variants {
     Find& find;
     Unite(Find& find) : find(find) { }
 
-    inline uintE operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
+    inline uintE operator()(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
       parent u = u_orig;
       parent v = v_orig;
       while(1) {
@@ -123,11 +123,11 @@ namespace unite_variants {
   template <class Splice, class Compress, FindOption find_option>
   struct UniteRemLock {
     uintE n;
-    pbbs::sequence<bool> locks;
+    sequence<bool> locks;
     Compress& compress;
     Splice& splice;
     UniteRemLock(Compress& compress, Splice& splice, uintE n) : n(n), compress(compress), splice(splice) {
-      locks = pbbs::sequence<bool>(n, false);
+      locks = sequence<bool>(n, false);
     }
 
     inline void fence() {
@@ -145,7 +145,7 @@ namespace unite_variants {
       locks[u] = false;
     }
 
-    inline uintE operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
+    inline uintE operator()(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
       parent rx = u_orig;
       parent ry = v_orig;
       while (parents[rx] != parents[ry]) {
@@ -178,7 +178,7 @@ namespace unite_variants {
     Splice& splice;
     UniteRemCAS(Compress& compress, Splice& splice) : compress(compress), splice(splice) { }
 
-    inline uintE operator()(uintE x, uintE y, pbbs::sequence<parent>& parents) {
+    inline uintE operator()(uintE x, uintE y, sequence<parent>& parents) {
       uintE rx = x; uintE ry = y;
       while (parents[rx] != parents[ry]) {
         /* link high -> low */
@@ -207,7 +207,7 @@ namespace unite_variants {
   struct UniteEarly {
     Find& find;
     UniteEarly(Find& find) : find(find) {}
-    inline uintE operator()(uintE u, uintE v, pbbs::sequence<parent>& parents) {
+    inline uintE operator()(uintE u, uintE v, sequence<parent>& parents) {
       [[maybe_unused]] uintE u_orig = u, v_orig = v;
       uintE ret = UINT_E_MAX;
       while(u != v) {
@@ -233,12 +233,12 @@ namespace unite_variants {
   template <class Find>
   struct UniteND {
     Find find;
-    pbbs::sequence<uintE> hooks;
+    sequence<uintE> hooks;
     UniteND(size_t n, Find& find) : find(find) {
-      hooks = pbbs::sequence<uintE>(n, UINT_E_MAX);
+      hooks = sequence<uintE>(n, UINT_E_MAX);
     }
 
-    inline uintE operator()(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
+    inline uintE operator()(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
       parent u = u_orig;
       parent v = v_orig;
       while(1) {

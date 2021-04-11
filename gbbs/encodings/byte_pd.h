@@ -46,11 +46,11 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
 
 uintE get_num_blocks(uchar* edge_start,  uintE degree);
 
-// Read default weight (expects pbbslib::empty)
+// Read default weight (expects gbbs::empty)
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
 __attribute__((always_inline)) inline W eatWeight(uchar*& start) {
-  return (W)pbbslib::empty();
+  return (W)gbbs::empty();
 }
 
 template <class W,
@@ -239,7 +239,7 @@ struct simple_iter {
 // Decode unweighted edges
 template <
     class W, class T,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
   if (degree > 0) {
@@ -252,11 +252,11 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
     // Eat first edge, which is compressed specially
     {uintE ngh = eatFirstEdge(first_finger, source);
-    if (!t(source, ngh, pbbslib::empty(), 0)) return;
+    if (!t(source, ngh, gbbs::empty(), 0)) return;
     for (uintE edge_id = 1; edge_id < block_end; edge_id++) {
       // Eat the next 'edge', which is a difference, and reconstruct edge.
       ngh += eatEdge(first_finger);
-      if (!t(source, ngh, pbbslib::empty(), edge_id)) return;
+      if (!t(source, ngh, gbbs::empty(), edge_id)) return;
     }}
     // do remaining chunks in parallel
     par_for(1, num_blocks, 1, [&] (size_t i) {
@@ -265,11 +265,11 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
       uchar* finger = edge_start + block_offsets[i - 1];
       // Eat first edge, which is compressed specially
       uintE ngh = eatFirstEdge(finger, source);
-      if (!t(source, ngh, pbbslib::empty(), o)) end = 0;
+      if (!t(source, ngh, gbbs::empty(), o)) end = 0;
       for (size_t edge_id = o + 1; edge_id < end; edge_id++) {
         // Eat the next 'edge', which is a difference, and reconstruct edge.
         ngh += eatEdge(finger);
-        if (!t(source, ngh, pbbslib::empty(), edge_id)) break;
+        if (!t(source, ngh, gbbs::empty(), edge_id)) break;
       }
     }, par);
   }
@@ -277,7 +277,7 @@ inline void decode(T t, uchar* edge_start, const uintE& source,
 
 // Decode weighted edges
 template <class W, class T,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+          typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
 inline void decode(T t, uchar* edge_start, const uintE& source,
                    const uintT& degree, const bool par = true) {
@@ -491,7 +491,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 //inline uintE seq_intersect(seq_info u, seq_info v) {
 //  assert(false);  // not implemented
 //  return 0;
-//  //  decode_block<pbbslib::empty>(finger, (std::tuple<uintE, pbbslib::empty>*)ngh_u,
+//  //  decode_block<gbbs::empty>(finger, (std::tuple<uintE, gbbs::empty>*)ngh_u,
 //  //  0,
 //}
 //

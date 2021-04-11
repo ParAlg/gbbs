@@ -12,7 +12,7 @@ namespace spanning_forest {
   inline size_t num_cc(Seq& labels) {
     size_t n = labels.size();
     auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (!flags[labels[i]]) {
         flags[labels[i]] = 1;
       }
@@ -26,7 +26,7 @@ namespace spanning_forest {
   inline void RelabelDet(Seq& ids) {
     using T = typename Seq::value_type;
     size_t n = ids.size();
-    auto component_map = pbbs::sequence<T>(n + 1, (T)0);
+    auto component_map = sequence<T>(n + 1, (T)0);
     T cur_comp = 0;
     for (size_t i=0; i<n; i++) {
       T comp = ids[i];
@@ -67,21 +67,21 @@ namespace spanning_forest {
     std::cout << "# max_cor = " << max_cor << " max_chk = " << max_chk << std::endl;
   }
 
-  pbbs::sequence<std::tuple<uintE, uintE, pbbs::empty>> double_edges(pbbs::sequence<edge>& in) {
-    using weighted_edge = std::tuple<uintE, uintE, pbbs::empty>;
-    auto double_in = pbbs::sequence<weighted_edge>(in.size() * 2, [&] (size_t i) {
+  sequence<std::tuple<uintE, uintE, gbbs::empty>> double_edges(sequence<edge>& in) {
+    using weighted_edge = std::tuple<uintE, uintE, gbbs::empty>;
+    auto double_in = sequence<weighted_edge>(in.size() * 2, [&] (size_t i) {
       size_t ind = i/2;
       auto [u, v] = in[ind];
       if (i % 2 == 0) {
-        return std::make_tuple(u, v, pbbs::empty());
+        return std::make_tuple(u, v, gbbs::empty());
       } else {
-        return std::make_tuple(v, u, pbbs::empty());
+        return std::make_tuple(v, u, gbbs::empty());
       }
     });
     return double_in;
   }
 
-  void check_spanning_forest(size_t n, pbbs::sequence<edge>& correct, pbbs::sequence<edge>& check) {
+  void check_spanning_forest(size_t n, sequence<edge>& correct, sequence<edge>& check) {
     // check sizes
     if (correct.size() != check.size()) {
       std::cout << "## Correct forest has: " << correct.size() << " many edges, but supplied forest has: " << check.size() << " edges." << std::endl;

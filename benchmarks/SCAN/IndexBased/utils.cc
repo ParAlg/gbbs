@@ -31,7 +31,7 @@ std::string ClusteringToString(const Clustering& clustering) {
 
 size_t CompactClustering(Clustering* clustering) {
   const size_t num_vertices{clustering->size()};
-  pbbs::sequence<uintE> cluster_relabel_map(num_vertices, 0U);
+  sequence<uintE> cluster_relabel_map(num_vertices, 0U);
   par_for(0, num_vertices, [&](const size_t i) {
     const uintE cluster_id{(*clustering)[i]};
     if (cluster_id != kUnclustered && cluster_relabel_map[cluster_id] == 0) {

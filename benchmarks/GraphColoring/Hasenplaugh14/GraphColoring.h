@@ -41,7 +41,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     else
       bits = (bool*)s_bits;
 
-    par_for(0, deg, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, deg, kDefaultGranularity, [&] (size_t i)
                     { bits[i] = 0; });
     auto map_f = [&](uintE src, uintE ngh, const W& wgh) {
       uintE color = colors[ngh];

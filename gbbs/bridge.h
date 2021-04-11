@@ -60,21 +60,27 @@ namespace gbbs {
   template<typename T>
   using sequence = pbbs::sequence<T>;
 
+  // TODO: refactor to avoid use.
+  template<typename T>
+  sequence<T> make_sequence(T* a, const size_t n) {
+    return sequence<T>(a, n);
+  }
+
   // Alias template so that range is exposed w/o namespacing
   template<typename T>
   using range = pbbs::range<T>;
 
   using pbbs::timer;
+
+  struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
+
 }  // namespace gbbs
 
 
 // Bridge to pbbslib (c++17)
 namespace pbbslib {
 
-  constexpr const size_t kSequentialForThreshold = 2048;
-
   // ====================== utilities =======================
-  using empty = pbbs::empty;
   using flags = pbbs::flags;
   const flags no_flag = pbbs::no_flag;
   const flags fl_sequential = pbbs::fl_sequential;
@@ -208,6 +214,11 @@ namespace pbbslib {
   template <class T, class F>
   inline pbbs::delayed_sequence<T,F> make_sequence (size_t n, F f) {
     return pbbs::delayed_sequence<T,F>(n,f);
+  }
+
+  template <class T>
+  inline pbbs::range<T*> make_range (T* A, size_t n) {
+    return pbbs::range<T*>(A, A+n);
   }
 
   // TODO: call this make_range. make_sequence is bogus.

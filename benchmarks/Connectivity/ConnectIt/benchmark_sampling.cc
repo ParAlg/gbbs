@@ -34,10 +34,10 @@ void print_ldd_result(commandLine& P, std::string sampling_method, size_t rounds
 }
 
 template <class Graph>
-size_t intercomponent_edges(Graph& G, pbbs::sequence<parent>& parents) {
+size_t intercomponent_edges(Graph& G, sequence<parent>& parents) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto ic_edges = pbbs::sequence<size_t>(n, (size_t)0);
+  auto ic_edges = sequence<size_t>(n, (size_t)0);
   parallel_for(0, n, [&] (size_t u) {
     auto p_u = parents[u];
     auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {

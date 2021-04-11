@@ -51,7 +51,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
   if (should_output(fl)) {
     auto next = sequence<D>(n,
       [&] (size_t i) {
-        if constexpr (std::is_same<Data, pbbslib::empty>()) return 0;
+        if constexpr (std::is_same<Data, gbbs::empty>()) return 0;
         else return std::make_tuple<uintE, Data>(0, Data());
     });
     auto g = get_emdense_gen<Data>(next.begin());
@@ -91,11 +91,11 @@ inline vertexSubsetData<Data> edgeMapDenseForward(Graph& GA, VS& vertexSubset, F
   if (should_output(fl)) {
     auto next = sequence<D>(n);
     auto g = get_emdense_forward_gen<Data>(next.begin());
-    if constexpr (std::is_same<Data, pbbslib::empty>()) {
-      par_for(0, n, pbbslib::kSequentialForThreshold,
+    if constexpr (std::is_same<Data, gbbs::empty>()) {
+      par_for(0, n, kDefaultGranularity,
               [&](size_t i) { next[i] = 0; });
     } else {
-      par_for(0, n, pbbslib::kSequentialForThreshold,
+      par_for(0, n, kDefaultGranularity,
               [&](size_t i) { std::get<0>(next[i]) = 0; });
     }
     par_for(0, n, 1, [&](size_t i) {
@@ -169,7 +169,7 @@ template <class Graph /* graph type */, class VS /* vertex_subset type */,
           class F /* edgeMap struct */>
 inline vertexSubset edgeMap(Graph& GA, VS& vs, F f, intT threshold = -1,
                             const flags& fl = 0) {
-  return edgeMapData<pbbslib::empty>(GA, vs, f, threshold, fl);
+  return edgeMapData<gbbs::empty>(GA, vs, f, threshold, fl);
 }
 
 // Adds vertices to a vertexSubset vs.

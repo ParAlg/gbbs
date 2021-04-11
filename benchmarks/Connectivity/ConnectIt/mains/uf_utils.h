@@ -12,12 +12,12 @@ namespace connectit {
   bool run_multiple_uf_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<parent>& correct,
+      sequence<parent>& correct,
       commandLine& P) {
     auto test = [&] (
         Graph& graph, 
         commandLine params, 
-        pbbs::sequence<parent>& correct_cc) {
+        sequence<parent>& correct_cc) {
       timer tt; tt.start();
       auto CC =
           run_uf_alg<
@@ -44,12 +44,12 @@ namespace connectit {
   bool run_multiple_uf_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<parent>& correct,
+      sequence<parent>& correct,
       commandLine& P) {
     auto test = [&] (
         Graph& graph, 
         commandLine params, 
-        pbbs::sequence<parent>& correct_cc) {
+        sequence<parent>& correct_cc) {
       timer tt; tt.start();
       auto CC =
           run_uf_alg<
@@ -75,12 +75,12 @@ namespace connectit {
   bool run_multiple_jayanti_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<parent>& correct,
+      sequence<parent>& correct,
       commandLine& P) {
     auto test = [&] (
         Graph& graph, 
         commandLine params, 
-        pbbs::sequence<parent>& correct_cc) {
+        sequence<parent>& correct_cc) {
       timer tt; tt.start();
       auto CC =
           run_jayanti_alg<

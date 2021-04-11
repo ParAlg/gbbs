@@ -51,7 +51,7 @@ struct BFS_ComponentLabel_F {
 /* Returns a mapping from either i --> i, if i is not reached by the BFS, or
  * i --> src, if i is reachable from src in the BFS */
 template <class Graph>
-void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
+void BFS_ComponentLabel(Graph& G, uintE src, sequence<parent>& parents) {
   using W = typename Graph::weight_type;
   if (G.get_vertex(src).out_degree() > 0) {
     vertexSubset Frontier(G.n, src);
@@ -74,7 +74,7 @@ void BFS_ComponentLabel(Graph& G, uintE src, pbbs::sequence<parent>& parents) {
 template <class Graph>
 inline sequence<parent> CC(Graph& G) {
   size_t n = G.n;
-  auto parents = pbbs::sequence<parent>(n, UINT_E_MAX);
+  auto parents = sequence<parent>(n, UINT_E_MAX);
   for (size_t i=0; i<n; i++) {
     if (parents[i] == UINT_E_MAX) {
       BFS_ComponentLabel(G, i, parents);

@@ -82,7 +82,7 @@ class Index {
   // TODO(tomtseng) change std::function argument to a templated argument
   void Cluster(
       uint64_t mu,
-      const pbbs::sequence<float>& epsilons,
+      const sequence<float>& epsilons,
       const std::function<void(Clustering, size_t)> f,
       bool get_deterministic_result = false) const;
 

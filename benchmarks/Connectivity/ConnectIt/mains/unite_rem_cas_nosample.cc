@@ -34,60 +34,60 @@ namespace connectit {
 
 /* find_compress variants */
 template <class Graph>
-void unite_rem_cas_find_compress_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_compress_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_compress_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_compress_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_compress, halve_atomic_one>(G, rounds, correct, P);
 }
 
 /* find_atomic_split variants */
 template <class Graph>
-void unite_rem_cas_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_atomic_split_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_atomic_split_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_split, splice_atomic>(G, rounds, correct, P);
 }
 
 /* find_atomic_halve variants */
 template <class Graph>
-void unite_rem_cas_find_atomic_halve_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_atomic_halve_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_halve, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_atomic_halve, splice_atomic>(G, rounds, correct, P);
 }
 
 /* find_naive variants (noop for find) */
 template <class Graph>
-void unite_rem_cas_find_naive_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_naive_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_cas_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void unite_rem_cas_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_cas, find_naive, splice_atomic>(G, rounds, correct, P);
 }
 
@@ -98,7 +98,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

@@ -19,7 +19,7 @@ TEST(NondeterministicBFS, EdgelessGraph) {
   auto graph{graph_test::MakeUnweightedSymmetricGraph(kNumVertices, kEdges)};
 
   constexpr uintE source_vertex{1};
-  const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+  const sequence<uintE> bfsResult{BFS(graph, source_vertex)};
   EXPECT_THAT(bfsResult, ElementsAre(UINT_E_MAX, source_vertex, UINT_E_MAX));
 }
 
@@ -41,7 +41,7 @@ TEST(NondeterministicBFS, BasicUsage) {
 
   {
     constexpr uintE source_vertex{1};
-    const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+    const sequence<uintE> bfsResult{BFS(graph, source_vertex)};
     EXPECT_THAT(
         bfsResult,
         ElementsAre(
@@ -55,7 +55,7 @@ TEST(NondeterministicBFS, BasicUsage) {
   }
   {
     constexpr uintE source_vertex{2};
-    const pbbs::sequence<uintE> bfsResult{BFS(graph, source_vertex)};
+    const sequence<uintE> bfsResult{BFS(graph, source_vertex)};
     EXPECT_THAT(
         bfsResult,
         ElementsAre(

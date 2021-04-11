@@ -3,9 +3,9 @@
 namespace gbbs {
 template <class W>
 struct BFS_ComponentLabel_F {
-  pbbs::sequence<parent>& Parents;
+  sequence<parent>& Parents;
   uintE src;
-  BFS_ComponentLabel_F(pbbs::sequence<parent>& _Parents,uintE src) : Parents(_Parents),  src(src) {}
+  BFS_ComponentLabel_F(sequence<parent>& _Parents,uintE src) : Parents(_Parents),  src(src) {}
   inline bool update(const uintE& s, const uintE& d, const W& w) {
     if (Parents[d] != src) {
       Parents[d] = src;
@@ -29,8 +29,8 @@ template <class Graph>
 inline auto BFS_ComponentLabel(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
 
-  auto Edges = pbbs::sequence<edge>(G.n, empty_edge);
-  auto Parents = pbbs::sequence<parent>(G.n, [&](size_t i) { return i; });
+  auto Edges = sequence<edge>(G.n, empty_edge);
+  auto Parents = sequence<parent>(G.n, [&](size_t i) { return i; });
   Parents[src] = src;
 
   vertexSubset Frontier(G.n, src);
@@ -62,8 +62,8 @@ struct BFSSamplingTemplate {
   auto initial_spanning_forest() {
     size_t n = GA.n;
 
-    pbbs::sequence<parent> Parents;
-    pbbs::sequence<edge> Edges;
+    sequence<parent> Parents;
+    sequence<edge> Edges;
 
     pbbs::random rnd;
     timer st; st.start();

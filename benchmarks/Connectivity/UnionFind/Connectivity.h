@@ -51,14 +51,14 @@ struct UFAlgorithm {
   Find& find;
   UFAlgorithm(G& GA, Unite& unite, Find& find) : GA(GA), unite(unite), find(find) {}
 
-  void initialize(pbbs::sequence<parent>& P) {}
+  void initialize(sequence<parent>& P) {}
 
   template <SamplingOption sampling_option>
-  void compute_components(pbbs::sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
+  void compute_components(sequence<parent>& parents, uintE frequent_comp = UINT_E_MAX) {
     using W = typename G::weight_type;
     constexpr bool provides_frequent_comp = sampling_option != no_sampling;
     size_t n = GA.n;
-    pbbs::sequence<parent> clusters;
+    sequence<parent> clusters;
     uintE granularity;
     if constexpr (provides_frequent_comp) {
       clusters = parents;
@@ -98,7 +98,7 @@ struct UFAlgorithm {
   }
 
   template <bool reorder_batch, class Seq>
-  void process_batch(pbbs::sequence<parent>& parents, Seq& updates) {
+  void process_batch(sequence<parent>& parents, Seq& updates) {
     if constexpr (reorder_batch == true) {
       auto ret = reorder_updates(updates);
       auto reordered_updates = ret.first;
@@ -136,10 +136,10 @@ struct UFAlgorithm {
 
 /* default union_find algorithm using find_compress and unite */
 template <class Seq>
-pbbs::sequence<parent> find_compress_uf(size_t n, Seq& updates) {
+sequence<parent> find_compress_uf(size_t n, Seq& updates) {
   auto find = find_variants::find_compress;
   auto unite = unite_variants::Unite<decltype(find)>(find);
-  auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
+  auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
   parallel_for(0, updates.size(), [&] (size_t i) {
     auto [u, v] = updates[i];
     unite(u, v, parents);

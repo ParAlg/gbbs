@@ -33,61 +33,50 @@ template <class W>
 struct edge_array {
   using weight_type = W;
   using edge = std::tuple<uintE, uintE, W>;
-  edge* E;
-  // for sq matrices, num_rows == num_cols
-  size_t num_rows;  // n TODO: deprecate #rows/#cols
-  size_t num_cols;  // TODO deprecate
 
-  size_t n;
-  size_t m;
+  // A sequence of edge tuples.
+  sequence<edge> E;
 
-  // non_zeros is the #edges
-  size_t non_zeros;  // m TODO rename to "m"
-  void del() { pbbslib::free_array(E); }
-  edge_array(edge* _E, size_t r, size_t c, size_t nz)
-      : E(_E), num_rows(r), num_cols(c), non_zeros(nz) {
-    if (r != c) {
-      std::cout << "# edge_array format currently expects square matrix"
-                << std::endl;
-      exit(0);
-    }
-    n = r;
-    m = nz;
-  }
-  edge_array() {}
-  size_t size() { return non_zeros; }
+  size_t n;  // num vertices.
 
+  edge_array(sequence<edge>&& _E, size_t _n)
+      : E(_E), n(_n) { }
+
+  edge_array() { }
+
+  size_t size() { return E.size(); }
+
+  // Clears the edge array.
   pbbs::sequence<edge> to_seq() {
-    auto ret = pbbs::sequence<edge>(E, non_zeros);
-    non_zeros = 0;
-    E = nullptr;
-    return std::move(ret);
+    n = 0;
+    return std::move(E);
   }
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
-    parallel_for(0, m,
-                 [&](size_t i) {
-                   uintE u, v;
-                   W w;
-                   std::tie(u, v, w) = E[i];
-                   f(u, v, w);
-                 },
-                 512);
+    size_t m = size();
+    parallel_for(0, m, [&](size_t i) {
+      uintE u, v;
+      W w;
+      std::tie(u, v, w) = E[i];
+      f(u, v, w);
+    });
   }
 };
+
 
 template <class W, class Graph>
 inline edge_array<W> to_edge_array(Graph& G) {
   using edge = std::tuple<uintE, uintE, W>;
+
   size_t n = G.n;
-  auto sizes = pbbs::sequence<uintT>(n);
+  auto sizes = pbbs::sequence<uintT>::uninitialized(n);
   parallel_for(0, n,
                [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
   size_t m = pbbslib::scan_add_inplace(sizes.slice());
   assert(m == G.m);
 
-  edge* arr = pbbs::new_array_no_init<edge>(m);
+  auto arr = sequence<edge>::uninitialized(m);
   parallel_for(0, n, [&](size_t i) {
     size_t idx = 0;
     uintT offset = sizes[i];
@@ -97,7 +86,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
     };
     G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
   });
-  return edge_array<W>(arr, n, n, m);
+  return edge_array<W>(std::move(arr), n);
 }
 
 }  // namespace gbbs

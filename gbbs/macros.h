@@ -74,6 +74,9 @@ struct vertex_data {
   uintE degree; // possibly decreased by a (mutable) algorithm.
 };
 
+// Default granularity of a parallel for loop.
+constexpr const size_t kDefaultGranularity = 2048;
+
 // edgemap_sparse_blocked granularity macro
 constexpr const size_t kEMBlockSize = 4000;
 

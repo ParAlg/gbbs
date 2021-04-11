@@ -77,7 +77,7 @@ TEST(CosineSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
   const s::CosineSimilarity similarity_measure{};
   // Check `CosineSimilarity::AllEdges` output.
-  const pbbs::sequence<s::EdgeSimilarity> similarities{
+  const sequence<s::EdgeSimilarity> similarities{
     similarity_measure.AllEdges(&graph)};
   EXPECT_THAT(similarities,
       UnorderedElementsAre(
@@ -101,7 +101,7 @@ TEST(CosineSimilarity, AllEdges) {
   constexpr uint32_t kNumSamples{10};
   constexpr size_t kRandomSeed{0};
   constexpr size_t kDegreeThreshold{std::numeric_limits<size_t>::max()};
-  const pbbs::sequence<s::EdgeSimilarity> approx_similarities{
+  const sequence<s::EdgeSimilarity> approx_similarities{
     si::ApproxCosineEdgeSimilarities(
         &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));
@@ -116,7 +116,7 @@ TEST(ApproxCosineSimilarity, AllEdges) {
   constexpr uint32_t kNumSamples{400};
   constexpr size_t kRandomSeed{0};
   constexpr size_t kDegreeThreshold{0};  // Approximate all similarities
-  const pbbs::sequence<s::EdgeSimilarity> similarities{
+  const sequence<s::EdgeSimilarity> similarities{
     si::ApproxCosineEdgeSimilarities(
         &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   constexpr float kTolerance{0.1};
@@ -141,7 +141,7 @@ TEST(ApproxCosineSimilarity, AllEdges) {
 TEST(JaccardSimilarity, AllEdges) {
   auto graph{MakeBasicGraph()};
   constexpr s::JaccardSimilarity similarity_measure{};
-  const pbbs::sequence<s::EdgeSimilarity> similarities{
+  const sequence<s::EdgeSimilarity> similarities{
     similarity_measure.AllEdges(&graph)};
   EXPECT_THAT(similarities,
       UnorderedElementsAre(
@@ -165,7 +165,7 @@ TEST(JaccardSimilarity, AllEdges) {
   constexpr uint32_t kNumSamples{10};
   constexpr size_t kRandomSeed{0};
   constexpr size_t kDegreeThreshold{std::numeric_limits<size_t>::max()};
-  const pbbs::sequence<s::EdgeSimilarity> approx_similarities{
+  const sequence<s::EdgeSimilarity> approx_similarities{
     si::ApproxJaccardEdgeSimilarities(
         &graph, kNumSamples, kDegreeThreshold, kRandomSeed)};
   EXPECT_THAT(approx_similarities, UnorderedElementsAreArray(similarities));

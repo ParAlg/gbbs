@@ -53,7 +53,7 @@ pbbs::range<EdgeSimilarity*>* NeighborOrder::end() const {
   return similarities_by_source_.end();
 }
 
-pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
+sequence<sequence<CoreThreshold>> ComputeCoreOrder(
     const NeighborOrder& neighbor_order) {
   if (neighbor_order.empty()) {
     return {};
@@ -61,7 +61,7 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
 
   timer function_timer{"Compute core order time"};
 
-  pbbs::sequence<VertexDegree> vertex_degrees{
+  sequence<VertexDegree> vertex_degrees{
     pbbs::map_with_index<VertexDegree>(
         neighbor_order,
         [](const size_t v,
@@ -79,8 +79,8 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
 
   // `degree_offsets[j]` is the first index `i` at which
   // `vertex_degrees[i].degree >= j`.
-  pbbs::sequence<uintE> degree_offsets{
-    pbbs::sequence<uintE>::no_init(max_degree + 1)};
+  sequence<uintE> degree_offsets{
+    sequence<uintE>::no_init(max_degree + 1)};
   const size_t min_degree{vertex_degrees[0].degree};
   par_for(0, min_degree + 1, [&](const size_t j) {
     degree_offsets[j] = 0;
@@ -97,14 +97,14 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
 
   const auto get_core_order{[&](const size_t mu) {
     if (mu <= 1) {
-      return pbbs::sequence<CoreThreshold>{};
+      return sequence<CoreThreshold>{};
     }
 
     // Only vertices with high enough degree can be cores.
-    const pbbs::sequence<VertexDegree>& core_vertices{
+    const sequence<VertexDegree>& core_vertices{
       vertex_degrees.slice(degree_offsets[mu - 1], vertex_degrees.size())};
 
-    pbbs::sequence<CoreThreshold> core_thresholds{
+    sequence<CoreThreshold> core_thresholds{
       pbbs::map<CoreThreshold>(
         core_vertices,
         [&](const VertexDegree& vertex_degree) {
@@ -123,7 +123,7 @@ pbbs::sequence<pbbs::sequence<CoreThreshold>> ComputeCoreOrder(
     return core_thresholds;
   }};
 
-  pbbs::sequence<pbbs::sequence<CoreThreshold>> core_order(
+  sequence<sequence<CoreThreshold>> core_order(
       max_degree + 2, get_core_order);
   internal::ReportTime(function_timer);
   return core_order;
@@ -133,17 +133,17 @@ CoreOrder::CoreOrder(const NeighborOrder& neighbor_order)
     : num_vertices_{neighbor_order.size()}
     , order_{ComputeCoreOrder(neighbor_order)} {}
 
-pbbs::sequence<uintE>
+sequence<uintE>
 CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
   if (mu <= 1) {  // All vertices are cores.
     return
-      pbbs::sequence<uintE>{num_vertices_, [](const size_t i) { return i; }};
+      sequence<uintE>{num_vertices_, [](const size_t i) { return i; }};
   }
   if (mu >= order_.size()) {  // No vertices are cores.
     return {};
   }
 
-  const pbbs::sequence<CoreThreshold>& possible_cores(order_[mu]);
+  const sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
     pbbs::binary_search(
         possible_cores,

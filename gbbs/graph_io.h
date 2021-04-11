@@ -59,7 +59,7 @@ struct Edge {
 };
 
 template <>
-Edge<pbbslib::empty>::Edge(const uintE _from, const uintE _to);
+Edge<gbbs::empty>::Edge(const uintE _from, const uintE _to);
 
 namespace internal {  // Internal declarations
 
@@ -106,14 +106,14 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
-symmetric_graph<symmetric_vertex, pbbslib::empty> read_unweighted_symmetric_graph(
+symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
     const char* fname,
     bool mmap,
     bool binary,
     char* bytes = nullptr,
     size_t bytes_size = std::numeric_limits<size_t>::max());
 
-asymmetric_graph<asymmetric_vertex, pbbslib::empty> read_unweighted_asymmetric_graph(
+asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_graph(
     const char* fname,
     bool mmap,
     bool binary,
@@ -180,10 +180,10 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   pbbs::free_array(offsets);
 
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n+1);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   triple* temp = pbbslib::new_array_no_init<triple>(m);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     uintT o = v_data[i].offset;
     uintE deg = v_data[i].degree;
     for (uintT j = 0; j < deg; j++) {
@@ -200,7 +200,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   id_and_weight* inEdges = pbbslib::new_array_no_init<id_and_weight>(m);
   inEdges[0] = std::make_tuple(temp[0].second.first, temp[0].second.second);
 
-  par_for(1, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(1, m, kDefaultGranularity, [&] (size_t i) {
     inEdges[i] = std::make_tuple(temp[i].second.first, temp[i].second.second);
     if (temp[i].first != temp[i - 1].first) {
       tOffsets[temp[i].first] = i;
@@ -356,7 +356,7 @@ std::vector<Edge<weight_type>> read_weighted_edge_list(const char* filename) {
 //     <edge 3 first endpoint> <edge 3 second endpoint>
 //     ...
 //     <edge m first endpoint> <edge m second endpoint>
-std::vector<Edge<pbbslib::empty>>
+std::vector<Edge<gbbs::empty>>
 read_unweighted_edge_list(const char* filename);
 
 // Converts edge list into an asymmetric graph.
@@ -475,7 +475,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
   }
 
   constexpr bool is_weighted_graph{
-    !std::is_same<weight_type, pbbslib::empty>::value};
+    !std::is_same<weight_type, gbbs::empty>::value};
   const size_t num_vertices{graph.n};
   const size_t num_edges{graph.m};
 
@@ -605,7 +605,7 @@ parse_weighted_graph(
         std::pair<char*, size_t> MM = mmapStringFromFile(fname);
         S = sequence<char>(MM.second);
         // Cannot mutate the graph unless we copy.
-        par_for(0, S.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+        par_for(0, S.size(), kDefaultGranularity, [&] (size_t i)
                         { S[i] = MM.first[i]; });
         if (munmap(MM.first, MM.second) == -1) {
           perror("munmap");

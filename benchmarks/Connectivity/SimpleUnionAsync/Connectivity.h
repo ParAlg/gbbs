@@ -29,7 +29,7 @@
 namespace gbbs {
 namespace simple_union_find {
 
-inline uintE find_compress(uintE i, pbbs::sequence<parent>& parents) {
+inline uintE find_compress(uintE i, sequence<parent>& parents) {
   uintE pathlen = 1;
   parent j = i;
   if (parents[j] == j) return j;
@@ -45,7 +45,7 @@ inline uintE find_compress(uintE i, pbbs::sequence<parent>& parents) {
   return j;
 }
 
-void unite_impl(uintE u_orig, uintE v_orig, pbbs::sequence<parent>& parents) {
+void unite_impl(uintE u_orig, uintE v_orig, sequence<parent>& parents) {
   parent u = u_orig;
   parent v = v_orig;
   while(1) {
@@ -65,7 +65,7 @@ struct SimpleUnionAsyncStruct {
   size_t n;
   sequence<parent> parents;
   SimpleUnionAsyncStruct(size_t n) : n(n) {
-    parents = pbbs::sequence<uintE>(n, [&] (size_t i) { return (uintE)i; });
+    parents = sequence<uintE>(n, [&] (size_t i) { return (uintE)i; });
   }
   void unite(uintE u, uintE v) {
     unite_impl(u, v, parents);
@@ -102,7 +102,7 @@ template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
     }

@@ -71,7 +71,7 @@ inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+      par_for(0, n, kDefaultGranularity, [&] (size_t i)
                       { SP[i] = -(INT_E_MAX / 2); });
       break;
     }

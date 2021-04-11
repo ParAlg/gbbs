@@ -102,7 +102,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
   std::cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << std::endl;
 
-  auto counts = pbbs::sequence<size_t>(GA.n, (size_t)0);
+  auto counts = sequence<size_t>(GA.n, (size_t)0);
   parallel_for(0, GA.n, [&] (size_t i) {
     auto d_i = GA.get_vertex(i).out_degree();
     bool d_i_lt = d_i <= (1 << 15);
@@ -155,7 +155,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
-  auto actual_degree = pbbs::sequence<uintE>(GA.n, [&] (size_t i) {
+  auto actual_degree = sequence<uintE>(GA.n, [&] (size_t i) {
     return GA.get_vertex(i).out_degree();
   });
 
@@ -281,7 +281,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       // map over both endpoints, update counts using histogram
       // this is really a uintE seq, but edge_t >= uintE, and this way we can
       // re-use the same histogram structure.
-      auto decr_seq = pbbs::sequence<edge_t>(2*del_edges.size);
+      auto decr_seq = sequence<edge_t>(2*del_edges.size);
       parallel_for(0, del_edges.size, [&] (size_t i) {
         size_t fst = 2*i; size_t snd = fst+1;
         edge_t id = del_edges.A[i];

@@ -33,49 +33,49 @@ namespace connectit {
 
 /* find_atomic_split variants */
 template <class Graph>
-void unite_rem_lock_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_atomic_split_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_split_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_atomic_split_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_atomic_split_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_split, halve_atomic_one>(G, rounds, correct, P);
 }
 
 /* find_atomic_halve variants */
 template <class Graph>
-void unite_rem_lock_find_atomic_halve_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_atomic_halve_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_atomic_halve_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_atomic_halve_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_atomic_halve, halve_atomic_one>(G, rounds, correct, P);
 }
 
 /* find_naive variants (noop for find) */
 template <class Graph>
-void unite_rem_lock_find_naive_split_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_naive_split_atomic_one(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive, split_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_naive_halve_atomic_one(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive, halve_atomic_one>(G, rounds, correct, P);
 }
 
 template <class Graph>
-void unite_rem_lock_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void unite_rem_lock_find_naive_splice_atomic(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_uf_alg<Graph, no_sampling, unite_rem_lock, find_naive, halve_atomic_one>(G, rounds, correct, P);
 }
 
@@ -86,7 +86,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<edge>();
+  auto correct = sequence<edge>();
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }

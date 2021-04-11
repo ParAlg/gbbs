@@ -33,7 +33,7 @@ namespace gbbs {
 namespace connectit {
 
 template <class Graph>
-double t_bfs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
+double t_bfs_cc(Graph& G, commandLine P, sequence<parent>& correct) {
   time(t, auto CC = bfs_cc::CC(G));
   if (P.getOptionValue("-check")) {
     cc_check(correct, CC);
@@ -42,7 +42,7 @@ double t_bfs_cc(Graph& G, commandLine P, pbbs::sequence<parent>& correct) {
 }
 
 template <class Graph>
-void bfscc_nosample(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void bfscc_nosample(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple(G, rounds, correct, "bfs_cc", P, t_bfs_cc<Graph>);
 }
 
@@ -53,7 +53,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

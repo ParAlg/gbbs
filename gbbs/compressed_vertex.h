@@ -26,7 +26,7 @@
 // case of directed/asymmetric graphs).
 //
 // The classes have two templates, W and C:
-// W : the weight type of the underlying graph (pbbslib::empty if unweighted)
+// W : the weight type of the underlying graph (gbbs::empty if unweighted)
 // C : the compression format used. See encodings/decoders.h.
 //
 // To avoid duplication, a lot of the implementation is factored out into

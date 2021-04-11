@@ -39,10 +39,10 @@ template<
 bool run_multiple_sample_only_alg(
     Graph& G,
     size_t rounds,
-    pbbs::sequence<parent>& correct,
+    sequence<parent>& correct,
     commandLine& P,
     std::string name) {
-  auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
+  auto test = [&] (Graph& graph, commandLine params, sequence<parent>& correct_cc) {
     timer tt; tt.start();
     auto CC = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(graph, params);
     double t = tt.stop();
@@ -56,22 +56,22 @@ bool run_multiple_sample_only_alg(
 }
 
 template <class Graph>
-void labelprop_nosample(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void labelprop_nosample(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_sample_only_alg<Graph, no_sampling, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
 }
 
 template <class Graph>
-void labelprop_kout(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void labelprop_kout(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_sample_only_alg<Graph, sample_kout, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
 }
 
 template <class Graph>
-void labelprop_bfs(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void labelprop_bfs(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_sample_only_alg<Graph, sample_bfs, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
 }
 
 template <class Graph>
-void labelprop_ldd(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+void labelprop_ldd(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
   run_multiple_sample_only_alg<Graph, sample_ldd, labelprop_cc::LPAlgorithm, label_prop_type>(G, rounds, correct, P, "label_prop");
 }
 
@@ -82,7 +82,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

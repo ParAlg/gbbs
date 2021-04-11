@@ -45,11 +45,11 @@ inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
   return 0;
 }
 
-// Read default weight (expects pbbslib::empty)
+// Read default weight (expects gbbs::empty)
 template <class W,
           typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
 __attribute__((always_inline)) inline W eatWeight(uchar*& start) {
-  return (W)pbbslib::empty();
+  return (W)gbbs::empty();
 }
 
 template <class W,
@@ -282,7 +282,7 @@ struct simple_iter {
 
   // Decode unweighted edges
   template <class W, class T, typename std::enable_if<
-      std::is_same<W, pbbs::empty>::value, int>::type=0>
+      std::is_same<W, gbbs::empty>::value, int>::type=0>
   void decode(T& t, uchar* edge_start, const uintE &source,
                      const uintT &degree, const bool parallel=true) {
     if (degree > 0) {
@@ -291,7 +291,7 @@ struct simple_iter {
       uintE* block_offsets = (uintE*)(edge_start + sizeof(uintE));
       uchar* nghs_start = edge_start + (num_blocks-1)*sizeof(uintE) + sizeof(uintE); // block offs + virtual_degree
 
-      auto wgh = pbbs::empty();
+      auto wgh = gbbs::empty();
       {  // do first chunk
         uchar* finger = nghs_start;
         uintE start_offset = *((uintE*)finger);
@@ -346,7 +346,7 @@ struct simple_iter {
 
 // Decode weighted edges
 template <class W, class T, typename std::enable_if<
-    !std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    !std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline void decode(T& t, uchar* edge_start, const uintE& source,
     const uintT& degree, const bool par=true) {
   if (degree > 0) {
@@ -712,8 +712,8 @@ uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num);
 //  inline uintE seq_intersect(seq_info u, seq_info v) { uintE ngh_u[1000];
 //    uchar* finger = u.get_start_of_block(u.start);
 //    return 0;
-//  //  decode_block<pbbslib::empty>(finger, (std::tuple<uintE,
-//  pbbslib::empty>*)ngh_u, 0,
+//  //  decode_block<gbbs::empty>(finger, (std::tuple<uintE,
+//  gbbs::empty>*)ngh_u, 0,
 //  }
 //
 //  inline uintE intersect(seq_info u, seq_info v) {

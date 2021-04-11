@@ -38,10 +38,10 @@ template<
 bool run_multiple_sample_only_alg(
     Graph& G,
     size_t rounds,
-    pbbs::sequence<edge>& correct,
+    sequence<edge>& correct,
     commandLine& P,
     std::string name) {
-  auto test = [&] (Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
+  auto test = [&] (Graph& G, commandLine P, sequence<edge>& correct) {
     timer tt; tt.start();
     auto edges = run_sample_only_alg<Graph, sampling_option, Algorithm, algorithm_type>(G, P);
     double t = tt.stop();
@@ -55,22 +55,22 @@ bool run_multiple_sample_only_alg(
 }
 
 template <class Graph>
-void shiloachvishkin_nosample(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void shiloachvishkin_nosample(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_sample_only_alg<Graph, no_sampling, shiloachvishkin_sf::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "label_prop");
 }
 
 template <class Graph>
-void shiloachvishkin_kout(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void shiloachvishkin_kout(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_sample_only_alg<Graph, sample_kout, shiloachvishkin_sf::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "label_prop");
 }
 
 template <class Graph>
-void shiloachvishkin_bfs(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void shiloachvishkin_bfs(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_sample_only_alg<Graph, sample_bfs, shiloachvishkin_sf::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "label_prop");
 }
 
 template <class Graph>
-void shiloachvishkin_ldd(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void shiloachvishkin_ldd(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple_sample_only_alg<Graph, sample_ldd, shiloachvishkin_sf::SVAlgorithm, shiloach_vishkin_type>(G, rounds, correct, P, "label_prop");
 }
 
@@ -81,7 +81,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<edge>();
+  auto correct = sequence<edge>();
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }

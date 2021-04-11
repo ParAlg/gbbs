@@ -41,29 +41,30 @@ constexpr uintE VAL_MASK = INT_E_MAX;
 // the number of filtering steps to run
 constexpr size_t n_filter_steps = 5;
 
+// Returns edge ids of edges in the mst in the last argument (uintE* mst) and
+// returns the number of edges written out as n_in_mst.
 template <class W, class M, class P, class D>
-inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
+inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
                                  uintE*& next_vtxs, M& min_edges, P& parents,
-                                 D& exhausted, size_t& n) {
+                                 D& exhausted, size_t& n, uintE* mst) {
   using vtxid_wgh_pair = std::pair<uintE, W>;
 
   using Edge = std::tuple<uintE, uintE, W>;
-  size_t m = E.non_zeros;
-  auto edges = E.E;
+  size_t m = E.size();
+  auto& edges = E.E;
   auto less = [](const vtxid_wgh_pair& a, const vtxid_wgh_pair& b) {
     // returns true if (weight is <) or (weight = and index is <)
     return (a.second < b.second) || (a.second == b.second && a.first < b.first);
   };
 
   uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
-  par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) { edge_ids[i] = i; });
+  par_for(0, m, kDefaultGranularity, [&] (size_t i) { edge_ids[i] = i; });
   uintE* next_edge_ids = nullptr;
 
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
   auto is_root = sequence<bool>(n);
 
   // Stores edge indices that join the MinimumSpanningForest.
-  uintE* mst = pbbslib::new_array_no_init<uintE>(n);
   size_t n_in_mst = 0;
   size_t round = 0;
 
@@ -84,7 +85,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 1. write_min to select the minimum edge out of each component.
     timer min_t;
     min_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, kDefaultGranularity, [&] (size_t i) {
       uintE e_id = edge_ids[i];
       const Edge& e = edges[e_id];
       vtxid_wgh_pair cas_e(e_id, std::get<2>(e));
@@ -97,7 +98,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 2. test whether vertices found an edge incident to them
     timer mark_t;
     mark_t.start();
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       uintE v = vtxs[i];
       const auto& e = min_edges[v];
       if (e.first == UINT_E_MAX) {
@@ -166,7 +167,7 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 6. relabel the edges with the new roots.
     timer relab_t;
     relab_t.start();
-    par_for(0, m, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, m, kDefaultGranularity, [&] (size_t i) {
       size_t e_id = edge_ids[i];
       Edge& e = edges[e_id];
       uintE u = std::get<0>(e);
@@ -204,8 +205,9 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
             << "\n";
   pbbslib::free_array(edge_ids);
   pbbslib::free_array(next_edge_ids);
-  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
-  return mst_im;
+  return n_in_mst;
+//  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
+//  return mst_im;
 }
 
 constexpr size_t sample_size = 2000;
@@ -237,14 +239,14 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   size_t m = G.m;
 
   auto vertex_offs = sequence<long>(G.n);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vertex_offs[i] = G.get_vertex(i).out_degree(); });
   pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& left, const size_t& right) { return left <= right; };
 
-  par_for(0, sample_size, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, sample_size, kDefaultGranularity, [&] (size_t i) {
         size_t sample_edge = r.ith_rand(i) % m;
         uintE vtx = pbbslib::binary_search(vertex_offs, sample_edge, lte);
         size_t ith = vertex_offs[vtx] - sample_edge - 1;
@@ -267,7 +269,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   size_t first_ind = 0;
   size_t last_ind = 0;
   size_t ssize = sample_edges.size();
-  par_for(0, ssize, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, ssize, kDefaultGranularity, [&] (size_t i) {
     if (std::get<2>(sample_edges[i]) == split_weight) {
       if (i == 0 || (std::get<2>(sample_edges[i - 1]) != split_weight)) {
         first_ind = i;
@@ -321,7 +323,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
 }
 
 template <template <class W> class vertex, class W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+          typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
 inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem = false) {
   using edge = std::tuple<uintE, uintE, W>;
@@ -339,7 +341,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
 
   size_t n_active = n;
   uintE* vtxs = pbbslib::new_array_no_init<uintE>(n_active);
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vtxs[i] = i; });
   uintE* next_vtxs = pbbslib::new_array_no_init<uintE>(n_active);
 
@@ -364,14 +366,14 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
                                       : get_all_edges(GA);
     get_t.stop();
     debug(get_t.reportTotal("get time"););
-    size_t n_edges = E.non_zeros;
+    size_t n_edges = E.size();
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
 
     // relabel edges
-    auto edges = E.E;
+    auto& edges = E.E;
     if (round > 0) {
-      par_for(0, n_edges, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, n_edges, kDefaultGranularity, [&] (size_t i) {
         edge& e = edges[i];
         uintE u = std::get<0>(e);
         uintE v = std::get<1>(e);
@@ -383,12 +385,15 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     // run Boruvka on the prefix and add new edges to mst_edges
     timer bt;
     bt.start();
-    auto edge_ids =
-        Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active);
+    uintE* mst = pbbslib::new_array_no_init<uintE>(n);
+    size_t n_in_mst =
+        Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
+    auto edge_ids = pbbslib::make_range(mst, n_in_mst);
     bt.stop();
     debug(bt.reportTotal("boruvka time"););
     mst_edges.copyInF([&](size_t i) { return E.E[edge_ids[i]]; },
                       edge_ids.size());
+    pbbslib::free_array(mst);
 
     // reactivate vertices and reset exhausted
     timer pack_t;
@@ -399,14 +404,14 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     pack_t.stop();
     debug(pack_t.reportTotal("reactivation pack"););
 
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (exhausted[i]) exhausted[i] = false;
     });
 
 
     // pointer jump: vertices that were made inactive could have had their
     // parents change.
-    par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       size_t ctr = 0;
       while (parents[i] != parents[parents[i]]) {
         parents[i] = parents[parents[i]];
@@ -445,7 +450,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
 
 template <
     template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   std::cout << "Unimplemented for unweighted graphs"
             << "\n";

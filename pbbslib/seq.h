@@ -148,13 +148,15 @@ struct sequence {
             // if (n > 1000000000) std::cout << "make empty: " << s << std::endl;
         };
 
-  sequence(value_type* a, const size_t _n)
-      : s(a),
-        n(_n){
-            // std::cout << "dangerous" << std::endl;
-        };
-
   static sequence<T> no_init(const size_t n) {
+    sequence<T> r;
+    r.s = pbbs::new_array_no_init<T>(n);
+    // if (n > 1000000000) std::cout << "make no init: " << r.s << std::endl;
+    r.n = n;
+    return r;
+  };
+
+  static sequence<T> uninitialized(const size_t n) {
     sequence<T> r;
     r.s = pbbs::new_array_no_init<T>(n);
     // if (n > 1000000000) std::cout << "make no init: " << r.s << std::endl;
@@ -262,7 +264,19 @@ struct sequence {
     }
   }
 
+  // Temporary special constructor to create a sequence from an array.
+  static sequence<value_type> build_sequence(value_type* a, const size_t _n) {
+    return sequence(a, _n);
+  }
+
  private:
+
+  sequence(value_type* a, const size_t _n)
+      : s(a),
+        n(_n){
+            // std::cout << "dangerous" << std::endl;
+        };
+
   template <class Seq>
   void copy_here(Seq const& a, size_t an) {
     n = an;

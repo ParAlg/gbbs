@@ -180,7 +180,7 @@ size_t *transpose_buckets(E *From, E *To, s_size_t *counts, size_t n,
     t.next("trans");
     free_array(counts);
   } else {  // for larger input do cache efficient transpose
-    sequence<s_size_t> source_offsets(counts, m);
+    sequence<s_size_t> source_offsets = sequence<s_size_t>::build_sequence(counts, m);
     dest_offsets = sequence<s_size_t>(m);
     size_t total;
     transpose<s_size_t>(counts, dest_offsets.begin())

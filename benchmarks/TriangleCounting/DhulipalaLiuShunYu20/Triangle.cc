@@ -98,7 +98,7 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
   vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
     size_t m = G.num_edges();
     auto perm = pbbs::random_permutation<gbbs::uintE>(m/2);
-    pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
+    gbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
     auto edge_list_dedup = pbbs::filter(edge_list, [&](const std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type> & e){
       return std::get<0>(e) < std::get<1>(e);
     });
@@ -115,12 +115,12 @@ inline vector<gbbs::gbbs_io::Edge<int>> shuffle_edges(Graph G, int weight){
 
 
 template<class Graph>
-inline tuple<vector<gbbs::gbbs_io::Edge<int>>, vector<gbbs::gbbs_io::Edge<pbbs::empty>>> shuffle_edges_mix(Graph G, size_t batch_size){
+inline tuple<vector<gbbs::gbbs_io::Edge<int>>, vector<gbbs::gbbs_io::Edge<gbbs::empty>>> shuffle_edges_mix(Graph G, size_t batch_size){
   vector<gbbs::gbbs_io::Edge<int>> updates_shuffled;
-  vector<gbbs::gbbs_io::Edge<pbbs::empty>> base_graph;
+  vector<gbbs::gbbs_io::Edge<gbbs::empty>> base_graph;
     size_t m = G.num_edges();
     auto perm = pbbs::random_permutation<gbbs::uintE>(m/2);
-    pbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
+    gbbs::sequence<std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type>> edge_list = G.edges();
     auto edge_list_dedup = pbbs::filter(edge_list, [&](const std::tuple<gbbs::uintE, gbbs::uintE, typename Graph::weight_type> & e){
       return std::get<0>(e) < std::get<1>(e);
     });
@@ -137,7 +137,7 @@ inline tuple<vector<gbbs::gbbs_io::Edge<int>>, vector<gbbs::gbbs_io::Edge<pbbs::
       }
     }
     for (size_t i = end/2; i< end; ++i) {
-      base_graph.emplace_back(gbbs::gbbs_io::Edge<pbbs::empty>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]])));
+      base_graph.emplace_back(gbbs::gbbs_io::Edge<gbbs::empty>(std::get<0>(edge_list_dedup[perm[i]]), std::get<1>(edge_list_dedup[perm[i]])));
     }
 
     edge_list_dedup.clear();
@@ -235,7 +235,7 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
 
     bool makkar = P.getOptionValue("-makkar");
     if(makkar){
-      gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+      gbbs::symmetric_graph<gbbs::symmetric_vertex, gbbs::empty> G;
       if(shuffle) {
         G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap, /*binary=*/false);
         updates = shuffle_edges(G, weight);
@@ -248,19 +248,19 @@ std::vector<gbbs::gbbs_io::Edge<weight_type>> DBT_read_edge_list(const char* fil
 
     if (compressed) {
        cout << "not supporting compressed format" << endl;
-      //gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, pbbslib::empty> G;
-      //if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<pbbslib::empty>(iFile, mmap, mmapcopy);
+      //gbbs::symmetric_graph<gbbs::csv_bytepd_amortized, gbbs::empty> G;
+      //if(shuffle || start_graph) G = gbbs::gbbs_io::read_compressed_symmetric_graph<gbbs::empty>(iFile, mmap, mmapcopy);
       //if(shuffle) {
       //  updates = shuffle_edges(G, weight);
      // }
      // gbbs::alloc_init(G);
       //run_dynamic_app(G, updates, gbbs::Dynamic_Triangle_runner, rounds, batch_size)
     } else {
-      gbbs::symmetric_graph<gbbs::symmetric_vertex, pbbslib::empty> G;
+      gbbs::symmetric_graph<gbbs::symmetric_vertex, gbbs::empty> G;
       if(shuffle || start_graph) G = gbbs::gbbs_io::read_unweighted_symmetric_graph(iFile, mmap, /*binary=*/false);
       if(shuffle) {
         if(weight == 0){
-          vector<gbbs::gbbs_io::Edge<pbbs::empty>> base_graph;
+          vector<gbbs::gbbs_io::Edge<gbbs::empty>> base_graph;
           tie(updates, base_graph) = shuffle_edges_mix(G, batch_size);
           G.del();
           G = gbbs::gbbs_io::edge_list_to_symmetric_graph(base_graph);

@@ -33,7 +33,7 @@ namespace connectit {
   bool run_multiple_shiloach_vishkin(
       Graph& G,
       size_t n,
-      pbbs::sequence<incremental_update>& updates,
+      sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       size_t rounds,
@@ -51,13 +51,13 @@ namespace connectit {
   }
 
   template <class Graph, bool provides_initial_graph>
-  void shiloach_vishkin(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+  void shiloach_vishkin(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
     run_multiple_shiloach_vishkin<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P);
   }
 } // namespace connectit
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P) {
   run_tests<Graph, provides_initial_graph>(G, n, updates, batch_size, insert_to_query, rounds, P,
       connectit::shiloach_vishkin<Graph, provides_initial_graph>,
       {

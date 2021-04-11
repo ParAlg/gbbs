@@ -31,8 +31,8 @@ inline void xToString(char* s, std::pair<A,B> a) {
   xToString(s+l+1,a.second);
 }
 
-inline int xToStringLen(pbbs::empty a) { return 0;}
-inline void xToString(char* s, pbbs::empty a) {}
+inline int xToStringLen(gbbs::empty a) { return 0;}
+inline void xToString(char* s, gbbs::empty a) {}
 
 template <class A, class B, class C>
 inline int xToStringLen(std::tuple<A,B,C> a) {

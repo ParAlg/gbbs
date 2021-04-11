@@ -85,22 +85,22 @@ inline auto remove_chains(Graph& G) {
   auto in_vs =
       (in_ends.size() > 0)
           ? vertexSubset(n, in_ends.size(),
-                         ((tuple<uintE, pbbslib::empty>*)in_ends.to_array()))
+                         ((tuple<uintE, gbbs::empty>*)in_ends.to_array()))
           : vertexSubset(n);
   auto out_vs =
       (out_ends.size() > 0)
           ? vertexSubset(n, out_ends.size(),
-                         ((tuple<uintE, pbbslib::empty>*)out_ends.to_array()))
+                         ((tuple<uintE, gbbs::empty>*)out_ends.to_array()))
           : vertexSubset(n);
 
   auto chains = sequence<bool>(n, false);
   auto flags_in = sequence<bool>(n, false);
   auto flags_out = sequence<bool>(n, false);
 
-  par_for(0, in_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, in_vs.size(), kDefaultGranularity, [&] (size_t i)
                   { flags_in[in_vs.vtx(i)] = true; });
 
-  par_for(0, out_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, out_vs.size(), kDefaultGranularity, [&] (size_t i)
                   { flags_out[out_vs.vtx(i)] = true; });
 
   size_t nr = 0;
@@ -110,7 +110,7 @@ inline auto remove_chains(Graph& G) {
               << "\n";
     if (in_vs.size() > 0) {
       in_vs.toSparse();
-      par_for(0, in_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, in_vs.size(), kDefaultGranularity, [&] (size_t i) {
                         uintE v = in_vs.vtx(i);
                         assert(flags_in[v]);
                         if (!chains[v]) {
@@ -123,7 +123,7 @@ inline auto remove_chains(Graph& G) {
     }
     if (out_vs.size() > 0) {
       out_vs.toSparse();
-      par_for(0, out_vs.size(), pbbslib::kSequentialForThreshold, [&] (size_t i) {
+      par_for(0, out_vs.size(), kDefaultGranularity, [&] (size_t i) {
                         uintE v = out_vs.vtx(i);
                         assert(flags_out[v]);
                         if (!chains[v]) {

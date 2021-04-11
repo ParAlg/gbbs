@@ -160,7 +160,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       v_in[i].offset = i;
     }
   });
-  auto Tree = asymmetric_graph<asymmetric_vertex, pbbslib::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, pbbs::empty>*)nghs.begin(), (std::tuple<uintE, pbbs::empty>*)Parents);
+  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, gbbs::empty>*)nghs.begin(), (std::tuple<uintE, gbbs::empty>*)Parents);
 
   // 1. Leaffix for Augmented Sizes
   auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
@@ -182,7 +182,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     vs = edgeMap(
-        Tree, vs, wrap_em_f<pbbslib::empty>(AugF(aug_sizes.begin(), cts.begin())),
+        Tree, vs, wrap_em_f<gbbs::empty>(AugF(aug_sizes.begin(), cts.begin())),
         -1, in_edges | sparse_blocked | fine_parallel);
     vs.toSparse();
   }
@@ -286,7 +286,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   timer leaff;
   leaff.start();
   // 1. Leaffix to update min/max
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { cts[i] = Tree.get_vertex(i).out_degree(); });
 
   vs = vertexSubset(n, std::move(leafs));
@@ -296,7 +296,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     vs = edgeMap(
-        Tree, vs, wrap_em_f<pbbslib::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
+        Tree, vs, wrap_em_f<gbbs::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
         in_edges | sparse_blocked | fine_parallel);
   }
   // Delete tree

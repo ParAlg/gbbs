@@ -163,7 +163,7 @@ void OutputQueryTimes(
 
   // Output query times with fixed mu and varying epsilon.
   constexpr double kMu{5};
-  const pbbs::sequence<float> epsilons{.1, .2, .3, .4, .5, .6, .7, .8, .9};
+  const sequence<float> epsilons{.1, .2, .3, .4, .5, .6, .7, .8, .9};
   std::vector<double> total_query_times(num_rounds, 0);
   for (float epsilon : epsilons) {
     std::vector<double> query_times;
@@ -223,7 +223,7 @@ QueryInfo SearchForClusters(
     Graph* graph,
     const indexed_scan::Index index,
     const size_t max_degree) {
-  const pbbs::sequence<float> epsilons(
+  const sequence<float> epsilons(
       99, [](const size_t i) { return (i + 1) * .01; });
   double best_modularity{-2.0};
   uint64_t best_mu{0};

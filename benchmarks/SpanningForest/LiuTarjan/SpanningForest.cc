@@ -39,8 +39,8 @@ double SF_runner(Graph& G, commandLine P) {
   timer t;
   t.start();
   auto n = G.n;
-  auto parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-  auto edges = pbbs::sequence<edge>(n, empty_edge);
+  auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+  auto edges = sequence<edge>(n, empty_edge);
 
   auto opt_connect = lt::template get_connect_function<parent_connect>();
   auto opt_update = lt::template get_update_function<root_update>();

@@ -179,7 +179,7 @@ inline auto filter_graph(Graph& G, P& pred) -> decltype(G) {
 // 2 : remove from graph, return in edge array
 // Cost: O(n+m) work
 template <class Graph, class P>
-inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const flags fl = 0) {
+edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const flags fl = 0) {
   using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.num_vertices();
@@ -223,8 +223,8 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
   size_t output_size = std::get<1>(vtx_offs[n]);
   std::cout << "# tmp space to allocate = " << total_space
             << " output size = " << output_size << "\n";
-  auto arr = sequence<edge>(output_size);
-  auto tmp = sequence<std::tuple<uintE, W>>(total_space);
+  auto arr = sequence<edge>::uninitialized(output_size);
+  auto tmp = sequence<std::tuple<uintE, W>>::uninitialized(total_space);
 
   auto pred_two = [&](const uintE& src, const uintE& ngh, const W& wgh) {
     return pred(src, ngh, wgh) == 2;
@@ -265,13 +265,12 @@ inline edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, c
   G.m = pbbslib::reduce_add(degree_imap);
   std::cout << "# G.m is now = " << G.m << "\n";
 
-  auto arr_size = arr.size();
-  return edge_array<W>(arr.to_array(), n, n, arr_size);
+  return edge_array<W>(std::move(arr), n);
 }
 
 // Used by MaximalMatching.
 template <class Graph, class P>
-inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, flags fl = 0) {
+edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, flags fl = 0) {
   using W = typename Graph::weight_type;
   using edge = std::tuple<uintE, uintE, W>;
   size_t n = G.n;
@@ -308,8 +307,7 @@ inline edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, 
   }, 1);
   //  std::cout << "G.m = " << G.m << "arr.size = " << arr.size() << "\n";
   G.m = 0;
-  auto arr_size = arr.size();
-  return edge_array<W>(arr.to_array(), n, n, arr_size);
+  return edge_array<W>(std::move(arr), n);
 }
 
 // Similar to filter_edges, except we only filter (no packing). Any edge s.t.
@@ -365,10 +363,8 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
       }
     }, 1);
   }
-  auto output_arr_size = output_arr.size();
-  return edge_array<W>(output_arr.to_array(), n, n, output_arr_size);
+  return edge_array<W>(std::move(output_arr), n);
 }
-
 
 
 // Packs out the adjacency lists of all vertex in vs. A neighbor, ngh, is kept

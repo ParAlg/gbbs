@@ -18,7 +18,7 @@ struct KOutSamplingTemplate {
     neighbor_rounds = P.getOptionLongValue("-sample_rounds", 2L);
    }
 
-  void link(uintE u, uintE v, pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+  void link(uintE u, uintE v, sequence<parent>& Parents, sequence<edge>& Edges) {
     parent p1 = Parents[u];
     parent p2 = Parents[v];
     while (p1 != p2) {
@@ -41,8 +41,8 @@ struct KOutSamplingTemplate {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto Parents = pbbs::sequence<parent>(n, [&] (size_t i) { return i; });
-    auto Edges = pbbs::sequence<edge>(n, empty_edge);
+    auto Parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    auto Edges = sequence<edge>(n, empty_edge);
 
     pbbs::random rnd;
     uintE granularity = 1024;

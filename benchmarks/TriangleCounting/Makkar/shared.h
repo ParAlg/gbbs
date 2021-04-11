@@ -32,14 +32,14 @@ namespace gbbs{
 namespace DBTGraph{
     
     using EdgeT = pair<uintE, uintE>;
-    using SymGraph = symmetric_graph<symmetric_vertex, pbbs::empty>;
-    using StaticEdgeT = tuple<uintE, pbbs::empty>;
+    using SymGraph = symmetric_graph<symmetric_vertex, gbbs::empty>;
+    using StaticEdgeT = tuple<uintE, gbbs::empty>;
 
-    inline uintE getFirst(pbbs::sequence<pair<EdgeT,bool>> &edges, size_t i){
+    inline uintE getFirst(sequence<pair<EdgeT,bool>> &edges, size_t i){
     return edges[i].first.first;
     }
 
-    inline uintE getSecond(pbbs::sequence<pair<EdgeT,bool>> &edges, size_t i){
+    inline uintE getSecond(sequence<pair<EdgeT,bool>> &edges, size_t i){
     return edges[i].first.second;
     }
 
@@ -102,8 +102,8 @@ namespace DBTGraph{
     };
 
     struct VtxUpdateInsDeg{
-        pbbs::sequence<VtxUpdate> vtxNew;
-        VtxUpdateInsDeg(pbbs::sequence<VtxUpdate>& a):vtxNew(a){}
+        sequence<VtxUpdate> vtxNew;
+        VtxUpdateInsDeg(sequence<VtxUpdate>& a):vtxNew(a){}
 
         size_t operator ()(size_t i)const {
             return vtxNew[i].insert_degree;
@@ -139,8 +139,8 @@ namespace DBTGraph{
         MakeEdgeEntryMajor(uintE uu, T* t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
         StaticEdgeT operator ()(size_t i)const {
-            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, pbbslib::empty());
-            return make_tuple(get<0>(table[i]), pbbslib::empty());
+            if (get<1>(table[i]) == DEL_EDGE) return make_pair(empty_key, gbbs::empty());
+            return make_tuple(get<0>(table[i]), gbbs::empty());
         }
     };
 
@@ -186,14 +186,14 @@ namespace DBTGraph{
     };
 
     struct TriangleCounts{ // cache line size 64
-        pbbs::sequence<size_t> c; //c1, c2, c3, c4, c5, c6 ... padding to 64; c1, c2, c3, c4, c5, c6; ....padding to 64;
+        sequence<size_t> c; //c1, c2, c3, c4, c5, c6 ... padding to 64; c1, c2, c3, c4, c5, c6; ....padding to 64;
         size_t P;
         static constexpr size_t eltsPerCacheLine = 128 /sizeof(size_t);
         
         //TriangleCounts():c1(0),c2(0),c3(0), c4(0), c5(0), c6(0){
         TriangleCounts(){
             P = num_workers();
-            c = pbbs::sequence<size_t>::no_init(P * eltsPerCacheLine);
+            c = sequence<size_t>::no_init(P * eltsPerCacheLine);
             clear();
         }
 
@@ -207,8 +207,8 @@ namespace DBTGraph{
             c[eltsPerCacheLine * worker_id() + 2 + flag] += val;
         }
 
-        inline pbbs::sequence<size_t> report(){
-            pbbs::sequence<size_t> result = pbbs::sequence<size_t>(6, (size_t)0);
+        inline sequence<size_t> report(){
+            sequence<size_t> result = sequence<size_t>(6, (size_t)0);
             par_for(0, P, [&] (size_t i){
                 for(int j=0;j<6;++j){
                     result[j] += c[eltsPerCacheLine * i + j];

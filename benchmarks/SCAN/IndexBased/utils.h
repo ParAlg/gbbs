@@ -20,7 +20,7 @@ namespace gbbs {
 namespace scan {
 
 // A clustering is given by assigning each vertex a cluster ID.
-using Clustering = pbbs::sequence<uintE>;
+using Clustering = sequence<uintE>;
 
 // Value in `Clustering` for a vertex that does not belong to any cluster.
 constexpr uintE kUnclustered{UINT_E_MAX};
@@ -103,22 +103,22 @@ namespace internal {
 //   Must be such that keys returned by `get_key on elements of `seq` are in the
 //   range [0, `num_keys`).
 template <class Seq, class Key_fn, class Value_fn, class Monoid>
-pbbs::sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
+sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
     const Seq& seq,
     Key_fn&& get_key,
     Value_fn&& get_value,
     Monoid&& reduce_fn,
     size_t num_keys) {
   using Value = typename std::remove_reference_t<Monoid>::T;
-  pbbs::sequence<size_t> bucketed_indices{
+  sequence<size_t> bucketed_indices{
     seq.size(),
     [](const size_t i) { return i; }};
   const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
   integer_sort_inplace(bucketed_indices.slice(), index_to_key);
-  pbbs::sequence<size_t> key_offsets{
+  sequence<size_t> key_offsets{
     pbbs::get_counts(bucketed_indices, index_to_key, num_keys)};
   pbbslib::scan_add_inplace(key_offsets);
-  pbbs::sequence<Value> result{
+  sequence<Value> result{
     num_keys,
     [&](const size_t i) {
       const size_t values_start{key_offsets[i]};
@@ -144,7 +144,7 @@ UnclusteredType DetermineUnclusteredType(
   // `kUnclustered` before such a cluster is found.
   uintE candidate_cluster{kUnclustered};
   const auto check_neighbor{[&](
-      const uintE v_id, const uintE neighbor_id, pbbslib::empty) {
+      const uintE v_id, const uintE neighbor_id, gbbs::empty) {
     const uintE neighbor_cluster{clustering[neighbor_id]};
     // If `candidate_cluster` is at its default value of `kUnclustered`, assign
     // `neighbor_cluster` to it. Otherwise, if it has a value differing from
@@ -180,7 +180,7 @@ double Modularity(
         return cluster_id == kUnclustered ? 0 : cluster_id;
       }))};
 
-  if constexpr (std::is_same<Weight, pbbslib::empty>::value) {
+  if constexpr (std::is_same<Weight, gbbs::empty>::value) {
     // unweighted case
 
     // Fraction of edges that fall within a cluster.
@@ -193,7 +193,7 @@ double Modularity(
             return 0;
           }
           const auto is_same_cluster{
-            [&](const uintE v_id, const uintE ngh_id, pbbslib::empty) {
+            [&](const uintE v_id, const uintE ngh_id, gbbs::empty) {
               return clustering[ngh_id] == cluster_id;
             }};
           return graph->get_vertex(vertex_id)
@@ -215,7 +215,7 @@ double Modularity(
     const auto& clusters_and_degrees{degrees_split_result.first};
     const auto& num_unclustered_vertices{degrees_split_result.second};
     // degrees_by_cluster[i] == sum of degrees over vertices in cluster i
-    const pbbs::sequence<uintT> degrees_by_cluster{
+    const sequence<uintT> degrees_by_cluster{
       internal::CollectReduce(
         clusters_and_degrees.slice(
           num_unclustered_vertices, clusters_and_degrees.size()),
@@ -251,7 +251,7 @@ double Modularity(
     }};
     const pbbs::addm<double> add_weights{};
     // weighted_degrees[i] = sum of weights of incident edges on vertex i
-    const pbbs::sequence<double> weighted_degrees{
+    const sequence<double> weighted_degrees{
       graph->n,
       [&](const size_t i) {
         return graph->get_vertex(i)
@@ -293,7 +293,7 @@ double Modularity(
     const auto& num_unclustered_vertices{degrees_split_result.second};
     // degrees_by_cluster[i] == sum of weighted degrees over vertices in cluster
     // i
-    const pbbs::sequence<double> degrees_by_cluster{
+    const sequence<double> degrees_by_cluster{
       internal::CollectReduce(
         clusters_and_degrees.slice(
           num_unclustered_vertices, clusters_and_degrees.size()),

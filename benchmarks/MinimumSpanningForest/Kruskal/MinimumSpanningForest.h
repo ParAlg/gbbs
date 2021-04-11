@@ -39,13 +39,13 @@ namespace gbbs {
 namespace MinimumSpanningForest_kruskal {
 
 template <template <class W> class vertex, class W,
-          typename std::enable_if<!std::is_same<W, pbbslib::empty>::value,
+          typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
 inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   using edge = std::tuple<uintE, uintE, W>;
 
   size_t n = GA.n;
-  pbbs::sequence<edge> edges = GA.edges();
+  sequence<edge> edges = GA.edges();
 
   timer kt; kt.start();
   auto weight_seq = pbbs::delayed_seq<W>(edges.size(), [&] (size_t i) { return std::get<2>(edges[i]); });
@@ -56,7 +56,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   pbbslib::integer_sort_inplace(edges.slice(), [&] (const edge& e) { return std::get<2>(e); }, pbbs::log2_up(n));
   st.stop(); st.reportTotal("sort time");
 
-  auto components = pbbs::sequence<uintE>(n, [&] (size_t i) { return i; });
+  auto components = sequence<uintE>(n, [&] (size_t i) { return i; });
   constexpr auto find{find_variants::find_compress};
   auto unite{unite_variants::Unite<decltype(find)>{find}};
 
@@ -74,7 +74,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
 
 template <
     template <class W> class vertex, class W,
-    typename std::enable_if<std::is_same<W, pbbslib::empty>::value, int>::type = 0>
+    typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
 inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   std::cout << "Unimplemented for unweighted graphs"
             << "\n";

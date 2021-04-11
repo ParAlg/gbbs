@@ -8,7 +8,7 @@ namespace gbbs {
 bool print_batch_time = false;
 
 template <class Graph, bool provides_initial_graph>
-void run_all_tests(Graph& G, size_t n, pbbs::sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
+void run_all_tests(Graph& G, size_t n, sequence<incremental_update>& updates, size_t batch_size, size_t insert_to_query, size_t rounds, commandLine P);
 
 /* run synthetic coo */
 int RunEmptyStartingGraph(int argc, char* argv[]) {
@@ -33,7 +33,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     abort();
   }
   size_t m = tokens.size() / 2;
-  auto updates = pbbs::sequence<std::tuple<uintE, uintE>>(m);
+  auto updates = sequence<std::tuple<uintE, uintE, gbbs::empty>>(m);
 
 
   uintE n = 0;
@@ -46,7 +46,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     if (r > n) {
       pbbs::write_min<uintE>(&n, r, std::greater<uintE>());
     }
-    updates[i] = std::make_tuple(l, r);
+    updates[i] = std::make_tuple(l, r, gbbs::empty());
   });
   n = n + 1; /* 0 indexed */
 //  auto sort_f = [&] (const std::tuple<uintE, uintE>& l, const std::tuple<uintE, uintE>& r) {
@@ -62,7 +62,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
   bool permute = P.getOptionValue("-permute");
   auto annotated_updates = annotate_updates(updates, insert_to_query, n, permute);
 
-  auto FG = edge_array<pbbs::empty>();
+  auto FG = edge_array<gbbs::empty>();
   run_all_tests<decltype(FG), false>(FG, n, annotated_updates, batch_size, insert_to_query, rounds, P);
   return 1;
 }

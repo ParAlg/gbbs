@@ -215,7 +215,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
             << " vertices. Num remaining = " << P.size() << "\n";
 
   // Assign labels from [0...zero.size())
-  par_for(0, zero.size(), pbbslib::kSequentialForThreshold, [&] (size_t i)
+  par_for(0, zero.size(), kDefaultGranularity, [&] (size_t i)
                   { labels[zero[i]] = 1 + (i | TOP_BIT); });
 
   size_t step_size = 1, cur_offset = 0, finished = 0, cur_round = 0;
@@ -392,7 +392,7 @@ template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
   auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
-  par_for(0, n, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+  par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     // if (labels[i] == 0) {
     //   std::cout << "unlabeled"
     //             << "\n";

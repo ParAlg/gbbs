@@ -12,7 +12,7 @@ namespace connectit {
   bool run_multiple_uf_alg(
       Graph& G,
       size_t n,
-      pbbs::sequence<incremental_update>& updates,
+      sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       size_t rounds,
@@ -48,7 +48,7 @@ namespace connectit {
   bool run_multiple_uf_alg(
       Graph& G,
       size_t n,
-      pbbs::sequence<incremental_update>& updates,
+      sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       size_t rounds,
@@ -81,7 +81,7 @@ namespace connectit {
   bool run_multiple_jayanti_alg(
       Graph& G,
       size_t n,
-      pbbs::sequence<incremental_update>& updates,
+      sequence<incremental_update>& updates,
       size_t batch_size,
       size_t insert_to_query,
       size_t rounds,

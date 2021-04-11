@@ -10,7 +10,7 @@ void add_to_vsubset(vertexSubset& vs, uintE* new_verts, uintE num_new_verts) {
     const size_t vs_size = vs.numNonzeros();
     const size_t new_size = num_new_verts + vs_size;
     auto all_verts = sequence<uintE>(new_size);
-    par_for(0, new_size, pbbslib::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, new_size, kDefaultGranularity, [&] (size_t i)
                     {
                       if (i < vs_size) {
                         all_verts[i] = vs.s[i];

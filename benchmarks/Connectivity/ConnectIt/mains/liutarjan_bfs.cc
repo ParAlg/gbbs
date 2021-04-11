@@ -42,10 +42,10 @@ namespace connectit {
   bool run_multiple_liu_tarjan_alg(
       Graph& G,
       size_t rounds,
-      pbbs::sequence<parent>& correct,
+      sequence<parent>& correct,
       commandLine& P) {
     if constexpr (alter_option == no_alter) {
-      auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
+      auto test = [&] (Graph& graph, commandLine params, sequence<parent>& correct_cc) {
         timer tt; tt.start();
         auto CC =
             run_liu_tarjan_alg<
@@ -64,20 +64,17 @@ namespace connectit {
       auto name = liu_tarjan_options_to_string(sampling_option, connect_option, simple_update_option, shortcut_option, alter_option);
       return run_multiple(G, rounds, correct, name, P, test);
     } else {
-      auto test = [&] (Graph& graph, commandLine params, pbbs::sequence<parent>& correct_cc) {
+      auto test = [&] (Graph& graph, commandLine params, sequence<parent>& correct_cc) {
         if (graph.m > 10000000000UL) {
           return 0.0; /* too large to run in COO */
         }
         // Convert graph to COO format:
-        auto mutable_edges_raw = graph.edges();
+        auto mutable_edges = graph.edges();
         //using W = typename Graph::weight_type;
         //if (sizeof(W) > 0) {
         //  std::cout << "Do not use with a weighted graph!" << std::endl; // (trivial to in fact use it with a weighted graph, but avoid for benchmarking as it adds orthogonal overheads)
         //  abort();
         //}
-        auto mutable_edges_size = mutable_edges_raw.size();
-        std::pair<uintE, uintE>* mutable_edges_ptr = (std::pair<uintE, uintE>*)mutable_edges_raw.to_array();
-        pbbs::sequence<std::pair<uintE, uintE>> mutable_edges = pbbs::sequence(mutable_edges_ptr, mutable_edges_size);
         timer tt; tt.start();
         auto CC =
             run_liu_tarjan_alg<
@@ -100,82 +97,82 @@ namespace connectit {
 
 
   template <class Graph>
-  void liutarjan_CUSA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_CUSA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, simple_connect, simple_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_CRSA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_CRSA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, simple_connect, root_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PUSA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PUSA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PRSA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PRSA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PUS(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PUS(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PRS(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PRS(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_EUSA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_EUSA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_EUS(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_EUS(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_CUFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_CUFA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, simple_connect, simple_update, full_shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_CRFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_CRFA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, simple_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PUFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PUFA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, full_shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PRFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PRFA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, full_shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PUF(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PUF(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_PRF(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_PRF(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, parent_connect, root_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_EUFA(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_EUFA(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, full_shortcut, alter>(G, rounds, correct, P);
   }
 
   template <class Graph>
-  void liutarjan_EUF(Graph& G, int rounds, commandLine& P, pbbs::sequence<parent>& correct) {
+  void liutarjan_EUF(Graph& G, int rounds, commandLine& P, sequence<parent>& correct) {
     run_multiple_liu_tarjan_alg<Graph, sample_bfs, extended_connect, simple_update, full_shortcut, no_alter>(G, rounds, correct, P);
   }
 
@@ -185,7 +182,7 @@ template <class Graph>
 double Benchmark_runner(Graph& G, commandLine P) {
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<parent>();
+  auto correct = sequence<parent>();
   if (P.getOptionValue("-check")) {
     correct = workefficient_cc::CC(G, 0.2, false, true);
     RelabelDet(correct);

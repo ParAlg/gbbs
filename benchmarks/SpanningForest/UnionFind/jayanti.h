@@ -43,7 +43,7 @@ namespace jayanti_rank {
   };
 
   template <class S>
-  void link(uintE u, uintE v, S& vdatas, pbbs::random r, pbbs::sequence<edge>& Edges, edge orig_edge) {
+  void link(uintE u, uintE v, S& vdatas, pbbs::random r, sequence<edge>& Edges, edge orig_edge) {
     auto ud = vdatas[u];
     auto vd = vdatas[v];
     // spend two reads to abort early with no CASs if either of the
@@ -82,7 +82,7 @@ namespace jayanti_rank {
     }
   }
 
-  inline uintE find(uintE x, pbbs::sequence<vdata>& vdatas) {
+  inline uintE find(uintE x, sequence<vdata>& vdatas) {
     uintE u = x;
     uintE pathlen = 1;
     while (!vdatas[u].is_root()) { // * on u.is_root()
@@ -93,7 +93,7 @@ namespace jayanti_rank {
     return u; // u is a root
   }
 
-  inline uintE find_twotry_splitting(uintE x, pbbs::sequence<vdata>& vdatas) {
+  inline uintE find_twotry_splitting(uintE x, sequence<vdata>& vdatas) {
     uintE u = x;
     uintE pathlen = 1;
     while (!vdatas[u].is_root()) { // * on u.is_root()
@@ -133,7 +133,7 @@ namespace jayanti_rank {
   }
 
   template <class S, class Find>
-  void unite(uintE x, uintE y, S& vdatas, pbbs::random r, Find& find, pbbs::sequence<edge>& Edges) {
+  void unite(uintE x, uintE y, S& vdatas, pbbs::random r, Find& find, sequence<edge>& Edges) {
     uintE u = find(x, vdatas);
     uintE v = find(y, vdatas);
     uintE tries = 1;
@@ -155,20 +155,20 @@ namespace jayanti_rank {
   struct JayantiTBUnite {
     G& GA;
     Find& find;
-    pbbs::sequence<vdata> vdatas;
+    sequence<vdata> vdatas;
     size_t n;
     JayantiTBUnite(G& GA, size_t n, Find& find) : GA(GA), find(find), n(n) {
-      vdatas = pbbs::sequence<vdata>(n);
+      vdatas = sequence<vdata>(n);
     }
 
-    void initialize(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges) {
+    void initialize(sequence<parent>& Parents, sequence<edge>& Edges) {
       parallel_for(0, n, [&] (uintE i) {
         vdatas[i] = vdata(/* parent */ Parents[i], /* rank */ 1, /* is_root */ (i == Parents[i]));
       });
     }
 
     template <bool provides_frequent_comp>
-    void compute_spanning_forest(pbbs::sequence<parent>& Parents, pbbs::sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
+    void compute_spanning_forest(sequence<parent>& Parents, sequence<edge>& Edges, parent frequent_comp = UINT_E_MAX) {
       using W = typename G::weight_type;
       size_t n = GA.n;
 

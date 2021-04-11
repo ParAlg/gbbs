@@ -8,7 +8,7 @@ template <class Graph, class F>
 auto reorder_graph(Graph& G, F& edge_pri) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto offs = pbbs::sequence<size_t>(n+1);
+  auto offs = sequence<size_t>(n+1);
   parallel_for(0, n, [&] (size_t i) {
     offs[i] = G.get_vertex(i).out_degree();
   });

@@ -1,3 +1,6 @@
 [submodule "simdinter"]
 	path = external/simdinter
 	url = https://github.com/lemire/SIMDCompressionAndIntersection
+[submodule "parlaylib"]
+	path = parlaylib
+	url = git@github.com:cmuparlay/parlaylib.git

@@ -34,8 +34,8 @@ double TestEdgeGather(Graph& G, commandLine& P) {
   long rounds = P.getOptionLongValue("-r", 5);
   size_t n = G.n;
   auto test = [&] () {
-    auto arr = pbbs::sequence<size_t>(n, (size_t)1);
-    auto out = pbbs::sequence<size_t>(n);
+    auto arr = sequence<size_t>(n, (size_t)1);
+    auto out = sequence<size_t>(n);
 
     timer t;
     t.start();
@@ -73,7 +73,7 @@ double TestEdgeMap(Graph& G, commandLine& P) {
   long rounds = P.getOptionLongValue("-r", 5);
   size_t n = G.n;
   auto test = [&] () {
-    auto out = pbbs::sequence<size_t>(n);
+    auto out = sequence<size_t>(n);
 
     timer t;
     t.start();

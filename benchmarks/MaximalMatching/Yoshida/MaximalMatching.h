@@ -101,9 +101,9 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
   auto RG = reorder_graph(G, edge_to_priority);
 
   size_t max_query_length = 0;
-  auto matching_cts = pbbs::sequence<uintE>(n, (uintE)0);
-  auto total_work = pbbs::sequence<size_t>(n, (size_t)0);
-  auto got_answer = pbbs::sequence<size_t>(n, (size_t)0);
+  auto matching_cts = sequence<uintE>(n, (uintE)0);
+  auto total_work = sequence<size_t>(n, (size_t)0);
+  auto got_answer = sequence<size_t>(n, (size_t)0);
   auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
     if (u < v) {
       auto [in_mm, work] = mm_query(u, v, RG, 0, query_cutoff);

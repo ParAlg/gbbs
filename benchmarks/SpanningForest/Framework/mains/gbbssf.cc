@@ -33,7 +33,7 @@ namespace gbbs {
 namespace connectit {
 
 template <class Graph>
-double t_gbbs_sf(Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
+double t_gbbs_sf(Graph& G, commandLine P, sequence<edge>& correct) {
   time(t, auto edges = workefficient_sf::SpanningForest(G));
   if (P.getOptionValue("-check")) {
     spanning_forest::check_spanning_forest(G.n, correct, edges);
@@ -42,7 +42,7 @@ double t_gbbs_sf(Graph& G, commandLine P, pbbs::sequence<edge>& correct) {
 }
 
 template <class Graph>
-void gbbssf_nosample(Graph& G, int rounds, commandLine& P, pbbs::sequence<edge>& correct) {
+void gbbssf_nosample(Graph& G, int rounds, commandLine& P, sequence<edge>& correct) {
   run_multiple(G, rounds, correct, "gbbs_sf", P, t_gbbs_sf<Graph>);
 }
 
@@ -53,7 +53,7 @@ double Benchmark_runner(Graph& G, commandLine P) {
   int test_num = P.getOptionIntValue("-t", -1);
   int rounds = P.getOptionIntValue("-r", 5);
 
-  auto correct = pbbs::sequence<edge>();
+  auto correct = sequence<edge>();
   if (P.getOptionValue("-check")) {
     correct = bfs_sf::SpanningForestDet(G);
   }

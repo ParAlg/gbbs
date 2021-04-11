@@ -59,7 +59,7 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
     size_t ms = atol(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
-    par_for(0, ms, pbbslib::kSequentialForThreshold, [&] (size_t i) {
+    par_for(0, ms, kDefaultGranularity, [&] (size_t i) {
       matching[i] =
           std::make_tuple(atol(Words[1 + 2 * i]), atol(Words[2 * (i + 1)]));
     });

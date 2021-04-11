@@ -334,7 +334,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
-  par_for(0, indices.size(), pbbslib::kSequentialForThreshold,
+  par_for(0, indices.size(), kDefaultGranularity,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
   size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
@@ -343,13 +343,13 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   auto degrees = sequence<uintT>(num_blocks);
 
   // 2. Write each block to blocks and scan degree array.
-  par_for(0, indices.size(), pbbslib::kSequentialForThreshold, [&](size_t i) {
+  par_for(0, indices.size(), kDefaultGranularity, [&](size_t i) {
     size_t vtx_off = vertex_offs[i];
     size_t num_vertex_blocks = vertex_offs[i + 1] - vtx_off;
     uintE vtx_id = indices.vtx(i);
     assert(vtx_id < n);
     auto neighbors = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
-    par_for(0, num_vertex_blocks, pbbslib::kSequentialForThreshold, [&](size_t j) {
+    par_for(0, num_vertex_blocks, kDefaultGranularity, [&](size_t j) {
       size_t block_deg = neighbors.block_degree(j);
       // assert(block_deg <= PARALLEL_DEGREE); // only for compressed
       blocks[vtx_off + j] = block(i, j);  // j-th block of the i-th vertex.
