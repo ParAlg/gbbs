@@ -24,16 +24,9 @@ struct Co_PR_F {
   inline bool cond (intT d) { return cond_true(d); }
 };
 
-template<class T>
-T inner_product(T* arr1, T* arr2, size_t len, T* tmp=nullptr) {
-  sequence<T> prod;
-  if (tmp == nullptr) prod = sequence<T>(len, static_cast<T>(0));
-  else prod = sequence<T>(tmp, len);
-
-  parallel_for(0, len, [&] (size_t i) { prod[i] = arr1[i] * arr2[i]; });
+double inner_product(sequence<double>& arr1, sequence<double>& arr2) {
+  auto prod = pbbs::delayed_seq<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
   auto sum = pbbslib::reduce_add(prod);
-
-  if (tmp != nullptr) prod.to_array();
   return sum;
 }
 
@@ -71,7 +64,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     auto Frontier_v_new = edgeMap(G,Frontier_v,Co_PR_F<Graph>(p_curr_v.begin(),p_next_v.begin(),G), 0);
     auto Frontier_u_new = edgeMap(G,Frontier_u,Co_PR_F<Graph>(p_curr_u.begin(),p_next_u.begin(),G), 0); //, no_output
 
-    sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
+    sim += ((double) pow(c, iter) * inner_product(p_next_u, p_next_v));
 
     Frontier_v = std::move(Frontier_v_new);
     Frontier_u = std::move(Frontier_u_new);
@@ -167,7 +160,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     auto Frontier_u_new = EM_u.template edgeMapReduce_dense<double, double>(Frontier_u, cond_f, map_f_u, reduce_f, apply_f_u, 0.0, 0); //, no_output
     tt.stop(); //tt.reportTotal("em time");
 
-    sim += ((double) pow(c, iter) * inner_product<double>(p_next_u.begin(), p_next_v.begin(), n));
+    sim += ((double) pow(c, iter) * inner_product(p_next_u, p_next_v));
 
     Frontier_v = std::move(Frontier_v_new);
     Frontier_u = std::move(Frontier_u_new);

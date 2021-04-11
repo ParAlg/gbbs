@@ -707,7 +707,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
 
     if (degree == 0) continue; //return;
-    auto nghs_seq = sequence<uintE>(nghs, degree);
+    auto nghs_seq = pbbs::delayed_seq<uintE>(degree, [&] (size_t j) { return nghs[j]; });
 
 
     uintE viOutDegree  = OUTG.get_vertex(i).out_degree();
@@ -750,7 +750,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
       uintE vj_degree = GDO.get_vertex(vj).out_degree();
 
       if (vj_degree == 0) continue;
-      auto nghs_vj_seq = sequence<uintE>(nghs_vj, vj_degree);
+      auto nghs_vj_seq = pbbs::delayed_seq<uintE>(vj_degree, [&] (size_t k) { return nghs_vj[k]; });
 
 
       for (uintE k = 0; k < vjInDegree; k++) {
@@ -774,9 +774,6 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
         }
 
       }
-
-      nghs_vj = nghs_vj_seq.to_array();
-
     }
 
     // cycleCounts[worker_id()] += tmp;
@@ -806,7 +803,6 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
       }
     }
 
-    nghs = nghs_seq.to_array();
   }
 
   //ulong cycleCount = pbbslib::reduce_add(cycleCounts);
@@ -913,7 +909,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
 
 
       if (degree == 0) continue; //return;
-      auto nghs_seq = sequence<uintE>(nghs, degree);
+      auto nghs_seq = pbbs::delayed_seq<uintE>(degree, [&] (size_t j) { return nghs[j]; });
 
 
       uintE viOutDegree  = OUTG.get_vertex(i).out_degree();
@@ -952,7 +948,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
         uintE vj_degree = GDO.get_vertex(vj).out_degree();
 
         if (vj_degree == 0) continue;
-        auto nghs_vj_seq = sequence<uintE>(nghs_vj, vj_degree);
+        auto nghs_vj_seq = pbbs::delayed_seq<uintE>(vj_degree, [&] (size_t k) { return nghs_vj[k]; });
 
         for (uintE k = 0; k < vjInDegree; k++) {
           vk = innghs_vj[k];
@@ -974,7 +970,6 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
               && (nghs_vj_seq[index_leq_vl] == vl)) tmp--;
           }
         }
-        nghs_vj = nghs_vj_seq.to_array();
       }
       // cycleCounts[worker_id()] += tmp;
       cycleCounts[block_index * eltsPerCacheLine] += tmp;
@@ -1002,8 +997,6 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
           U[nghs_vj[k]] = 0;
         }
       }
-
-      nghs = nghs_seq.to_array();
     }
   };
 
