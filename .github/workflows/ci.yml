@@ -25,8 +25,8 @@ jobs:
     steps:
       - name: Checkout source tree
         uses: actions/checkout@v2
-        with:
-          submodules: recursive
+        #        with:
+        #          submodules: recursive
 
       - name: Cache Bazel artifacts
         uses: actions/cache@v2
