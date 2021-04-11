@@ -41,15 +41,17 @@ constexpr uintE VAL_MASK = INT_E_MAX;
 // the number of filtering steps to run
 constexpr size_t n_filter_steps = 5;
 
+// Returns edge ids of edges in the mst in the last argument (uintE* mst) and
+// returns the number of edges written out as n_in_mst.
 template <class W, class M, class P, class D>
-inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
+inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
                                  uintE*& next_vtxs, M& min_edges, P& parents,
-                                 D& exhausted, size_t& n) {
+                                 D& exhausted, size_t& n, uintE* mst) {
   using vtxid_wgh_pair = std::pair<uintE, W>;
 
   using Edge = std::tuple<uintE, uintE, W>;
-  size_t m = E.non_zeros;
-  auto edges = E.E;
+  size_t m = E.size();
+  auto& edges = E.E;
   auto less = [](const vtxid_wgh_pair& a, const vtxid_wgh_pair& b) {
     // returns true if (weight is <) or (weight = and index is <)
     return (a.second < b.second) || (a.second == b.second && a.first < b.first);
@@ -63,7 +65,6 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
   auto is_root = sequence<bool>(n);
 
   // Stores edge indices that join the MinimumSpanningForest.
-  uintE* mst = pbbslib::new_array_no_init<uintE>(n);
   size_t n_in_mst = 0;
   size_t round = 0;
 
@@ -204,8 +205,9 @@ inline sequence<uintE> Boruvka(edge_array<W>& E, uintE*& vtxs,
             << "\n";
   pbbslib::free_array(edge_ids);
   pbbslib::free_array(next_edge_ids);
-  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
-  return mst_im;
+  return n_in_mst;
+//  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
+//  return mst_im;
 }
 
 constexpr size_t sample_size = 2000;
@@ -364,12 +366,12 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
                                       : get_all_edges(GA);
     get_t.stop();
     debug(get_t.reportTotal("get time"););
-    size_t n_edges = E.non_zeros;
+    size_t n_edges = E.size();
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
 
     // relabel edges
-    auto edges = E.E;
+    auto& edges = E.E;
     if (round > 0) {
       par_for(0, n_edges, kDefaultGranularity, [&] (size_t i) {
         edge& e = edges[i];
@@ -383,12 +385,15 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     // run Boruvka on the prefix and add new edges to mst_edges
     timer bt;
     bt.start();
-    auto edge_ids =
-        Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active);
+    uintE* mst = pbbslib::new_array_no_init<uintE>(n);
+    size_t n_in_mst =
+        Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
+    auto edge_ids = pbbslib::make_range(mst, n_in_mst);
     bt.stop();
     debug(bt.reportTotal("boruvka time"););
     mst_edges.copyInF([&](size_t i) { return E.E[edge_ids[i]]; },
                       edge_ids.size());
+    pbbslib::free_array(mst);
 
     // reactivate vertices and reset exhausted
     timer pack_t;

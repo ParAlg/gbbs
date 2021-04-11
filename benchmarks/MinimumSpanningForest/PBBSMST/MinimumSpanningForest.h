@@ -93,7 +93,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
     return 0;
   };
   auto sampled_e = sample_edges(G, pred);
-  if (sampled_e.non_zeros == 0) {
+  if (sampled_e.size() == 0) {
     std::cout << "non_zeros = 0"
               << "\n";
     exit(0);
@@ -103,13 +103,12 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
                        const std::tuple<uintE, uintE, intE>& right) {
     return std::get<2>(left) < std::get<2>(right);
   };
-  pbbslib::sample_sort(pbbslib::make_sequence(sampled_e.E, sampled_e.non_zeros), cmp_by_wgh);
+  pbbslib::sample_sort_inplace(sampled_e.E.slice(), cmp_by_wgh);
 
   // 2. Get approximate splitter.
-  size_t ind = ((double)(k * sampled_e.non_zeros)) / G.m;
+  size_t ind = ((double)(k * sampled_e.size())) / G.m;
   auto splitter = sampled_e.E[ind];
   int32_t split_weight = std::get<2>(splitter);
-  sampled_e.del();
   std::cout << "split wgh is: " << split_weight << "\n";
 
   // 3. Filter edges based on splitter
@@ -147,12 +146,12 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
     auto edges = get_top_k(GA, split_idx, uf, r, (iter == 0));
     get_t.stop();
     get_t.reportTotal("get time");
-    size_t n_edges = edges.non_zeros;
+    size_t n_edges = edges.size();
     auto cmp_by_wgh = [](const std::tuple<uint32_t, uintE, W>& left,
                          const std::tuple<uintE, uintE, W>& right) {
       return std::get<2>(left) < std::get<2>(right);
     };
-    pbbslib::sample_sort(pbbslib::make_sequence(edges.E, n_edges), cmp_by_wgh);
+    pbbslib::sample_sort_inplace(edges.E.slice(), cmp_by_wgh);
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
 
@@ -174,7 +173,6 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
     auto edges_ret = pbbslib::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
-    edges.del();
     mstFlags.clear();
 
     timer pack_t;

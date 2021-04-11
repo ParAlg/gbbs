@@ -117,8 +117,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
                },
                1);
 
-  sequence<edge_type> edges_seq =
-      sequence<edge_type>(edges_array, num_edges);
+  auto edges_seq = pbbslib::make_range(edges_array, num_edges);
 
   // insert from tables
   if (DG->num_edges() != 0) {

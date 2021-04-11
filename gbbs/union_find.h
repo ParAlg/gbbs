@@ -60,11 +60,11 @@ struct UnionFindStep {
   UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf)
       : E(_E), R(_R), inST(ist), uf(_uf) {
     n = uf.n;
-    indices = pbbslib::new_array_no_init<storage>(E.non_zeros);
+    indices = pbbslib::new_array_no_init<storage>(E.size());
   }
 
   bool reserve(intT i) {
-    assert(i < E.non_zeros);
+    assert(i < E.size());
     auto e = E.E[i];
     intT u = uf.find(std::get<0>(e));
     intT v = uf.find(std::get<1>(e));
@@ -80,7 +80,7 @@ struct UnionFindStep {
   }
 
   bool commit(intT i) {
-    assert(i < E.non_zeros);
+    assert(i < E.size());
     // read back u and v from 'reserve'
     auto st = indices[i];
     intT u = std::get<0>(st), v = std::get<1>(st);

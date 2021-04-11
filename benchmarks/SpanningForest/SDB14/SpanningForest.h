@@ -186,7 +186,9 @@ namespace workefficient_sf {
     std::function<edge(edge)> identity_mapping = [&] (edge e) {
       return e;
     };
-    return SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute).to_seq();
+    auto sf = SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute);
+    auto output = sequence<edge>(sf.size, [&] (size_t i) { return sf.A[i]; });
+    return output;
   }
 
 }  // namespace workefficient_sf

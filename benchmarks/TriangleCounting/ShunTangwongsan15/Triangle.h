@@ -79,7 +79,7 @@ inline size_t CountDirected(Graph& DG, size_t* counts,
                             vertexSubset& Frontier) {
   using W = typename Graph::weight_type;
   emdf(DG, Frontier, wrap_em_f<W>(countF<Graph>(DG, counts)), no_output);
-  auto count_seq = sequence<size_t>(counts, DG.n);
+  auto count_seq = pbbs::delayed_seq<size_t>(DG.n, [&] (size_t i) { return counts[i]; });
   size_t count = pbbslib::reduce_add(count_seq);
   return count;
 }
@@ -252,9 +252,9 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
   } else if (ordering == "kcore") {
     auto ff = [&] (Graph& graph) -> sequence<uintE> {
       auto dyn_arr = DegeneracyOrder(graph);
-      auto arr = dyn_arr.A; dyn_arr.A = nullptr;
-      dyn_arr.alloc = false;
-      return sequence<uintE>(arr, graph.n);
+      auto ret = sequence<uintE>(graph.n, [&] (size_t i) { return dyn_arr.A[i]; });
+      dyn_arr.del();
+      return ret;
     };
     return Triangle_degeneracy_ordering<Graph, F>(G, f, ff);
   } else if (ordering == "barenboimelkin") {

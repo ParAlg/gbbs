@@ -186,7 +186,7 @@ sequence<edge> tree_and_intercluster_edges(Graph& G,
   debug(std::cout << "num_intercluster edges = " << intercluster.size() << std::endl;);
   edge_list.copyIn(intercluster, intercluster.size());
   size_t edge_list_size = edge_list.size;
-  return sequence<edge>(edge_list.A, edge_list_size);
+  return sequence<edge>(edge_list_size, [&] (size_t i) { return edge_list.A[i]; });
 }
 
 template <class W>
