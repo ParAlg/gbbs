@@ -85,20 +85,21 @@ namespace mm {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return !(matched[src] || matched[ngh]) && (src < ngh);
     };
-    auto E = filterAllEdges(G, pred);
+    edge_array<W> E = filterAllEdges(G, pred);
 
     timer perm_t;
     perm_t.start();
 
-    auto e_arr = E.E;
     using edge = std::tuple<uintE, uintE, W>;
-    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-    auto out = sequence<edge>(E.non_zeros);
-    par_for(0, E.non_zeros, kDefaultGranularity, [&] (size_t i) {
-                      out[i] = e_arr[perm[i]];  // gather or scatter?
-                    });
-    E.del();
-    E.E = out.to_array();
+    sequence<edge> e_arr = std::move(E.E);
+
+    auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
+    auto out = sequence<edge>(e_arr.size());
+    par_for(0, e_arr.size(), kDefaultGranularity, [&] (size_t i) {
+      out[i] = e_arr[perm[i]];  // gather or scatter?
+    });
+    E.E = std::move(out);
+    E.n = G.n;
     perm_t.stop();
     perm_t.reportTotal("permutation time");
     return E;
@@ -128,22 +129,22 @@ namespace mm {
     };
     timer fet;
     fet.start();
-    auto E = filterEdges(G, pred);
+    edge_array<W> E = filterEdges(G, pred);
     fet.stop();
     fet.reportTotal("Filter edges time");
 
     // permute the retrieved edges
 
-    auto e_arr = E.E;
+    auto e_arr = E.to_seq();
     timer perm_t;
     perm_t.start();
-    auto perm = pbbslib::random_permutation<uintT>(E.non_zeros);
-    auto out = sequence<edge>(E.non_zeros);
-    par_for(0, E.non_zeros, [&] (size_t i) {
-                      out[i] = e_arr[perm[i]];  // gather or scatter?
-                    });
-    E.del();
-    E.E = out.to_array();
+    auto perm = pbbslib::random_permutation<uintT>(e_arr.size());
+    auto out = sequence<edge>(e_arr.size());
+    par_for(0, e_arr.size(), [&] (size_t i) {
+      out[i] = e_arr[perm[i]];  // gather or scatter?
+    });
+    E.E = std::move(out);
+    E.n = G.n;
     perm_t.stop();
     perm_t.reportTotal("permutation time");
     return E;
@@ -174,19 +175,19 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   timer eff;
   while (G.m > 0) {
     gete.start();
-    auto e_arr = (round < mm::n_filter_steps)
+    edge_array<W> e_arr = (round < mm::n_filter_steps)
                      ? mm::get_edges(G, k, matched.begin(), r)
                      : mm::get_all_edges(G, matched.begin(), r);
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
-    auto eim = pbbslib::make_sequence<edge>(e_arr.non_zeros, eim_f);
+    auto eim = pbbslib::make_sequence<edge>(e_arr.size(), eim_f);
     gete.stop();
 
-    std::cout << "Got: " << e_arr.non_zeros << " edges "
+    std::cout << "Got: " << e_arr.size() << " edges "
               << " G.m is now: " << G.m << "\n";
-    mm::matchStep<W> mStep(e_arr.E, R.begin(), matched.begin());
+    mm::matchStep<W> mStep(e_arr.E.begin(), R.begin(), matched.begin());
     eff.start();
-    eff_for<uintE>(mStep, 0, e_arr.non_zeros, 50, 0, G.n);
+    eff_for<uintE>(mStep, 0, e_arr.size(), 50, 0, G.n);
     eff.stop();
 
     auto e_added =
@@ -213,12 +214,13 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     r = r.next();
   }
   std::cout << "matching size = " << matching.size << "\n";
-  auto ret = sequence<edge>(matching.A, matching.size); // allocated
+  auto output = sequence<edge>(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
   mt.stop();
+  matching.del();
   eff.reportTotal("eff for time");
   gete.reportTotal("get edges time");
   mt.reportTotal("Matching time");
-  return std::move(ret);
+  return output;
 }
 
 template <template <class W> class vertex, class W, class Seq>
