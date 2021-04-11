@@ -22,24 +22,36 @@ jobs:
     # Skip subsequent steps if commit message has "ci-skip" in it.
     if: "!contains(github.event.head_commit.message, 'ci-skip')"
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - name: Checkout source tree
+        uses: actions/checkout@v2
 
-      # Caches and restores the bazel build directory.
-      - name: Cache bazel build results
-        uses: actions/cache@v2.0.0
-        env:
-          cache-name: bazel-cache
+      - name: Cache Bazel artifacts
+        uses: actions/cache@v2
         with:
-          path: ~/.cache/bazel
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.ref }}
+          path: |
+            ~/.cache/bazel-disk
+            ~/.cache/bazel-repo
+          key: ${{ runner.os }}-bazel-build-${{ hashFiles('**/BUILD.bazel') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-master
+            ${{ runner.os }}-bazel-build-
 
-      - name: Install lib-numa
-        run: sudo apt-get -y install libnuma-dev
+      - name: Setup bazelisk
+        uses: ./.github/actions/setup-bazelisk
 
       - name: Build
+        run: bazel build --sandbox_debug --verbose_failures ...
+
+      - name: Test
         run: bazel test --sandbox_debug --verbose_failures --test_output=streamed ...
+
+#      # Caches and restores the bazel build directory.
+#      - name: Cache bazel build results
+#        uses: actions/cache@v2.0.0
+#        env:
+#          cache-name: bazel-cache
+#        with:
+#          path: ~/.cache/bazel
+#          key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.ref }}
+#          restore-keys: |
+#            ${{ runner.os }}-${{ env.cache-name }}-master
