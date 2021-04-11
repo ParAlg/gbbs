@@ -25,16 +25,17 @@ jobs:
     steps:
       - name: Checkout source tree
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Cache Bazel artifacts
         uses: actions/cache@v2
         with:
-          path: |
-            ~/.cache/bazel-disk
-            ~/.cache/bazel-repo
-          key: ${{ runner.os }}-bazel-build-${{ hashFiles('**/BUILD.bazel') }}
+          path: ~/.cache/bazel
+          # See https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows
+          key: ${{ runner.os }}-build-direct-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-bazel-build-
+            ${{ runner.os }}-build-direct-
 
       - name: Setup bazelisk
         uses: ./.github/actions/setup-bazelisk
