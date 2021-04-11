@@ -1,4 +1,4 @@
-# GBBS: Graph Based Benchmark Suite
+# GBBS: Graph Based Benchmark Suite  ![Bazel build](https://github.com/paralg/gbbs/workflows/CI/badge.svg)
 
 Organization
 --------

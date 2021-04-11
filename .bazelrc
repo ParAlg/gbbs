@@ -68,9 +68,3 @@ build:asan --cxxopt=-g
 build:asan --cxxopt=-fno-omit-frame-pointer
 build:asan --cxxopt=-Wno-macro-redefined
 build:asan --linkopt=-fsanitize=address
-
-# Build with NVRAM support.
-build:sage --cxxopt=-DSAGE
-build:sage --cxxopt=-lnuma
-build:sage --cxxopt=-lpmem
-build:sage --define use_numa=true

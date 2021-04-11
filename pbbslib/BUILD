@@ -1,16 +1,8 @@
-config_setting(
-  name = "numa_build",
-  values = {"define" : "use_numa=true"},
-)
-
 cc_library(
   name = "scheduler",
   hdrs = ["scheduler.h"],
   srcs = ["scheduler.cc"],
-  linkopts = select({
-    ":numa_build" : ["-pthread", "-lnuma"],
-    "//conditions:default" : ["-pthread"],
-  })
+  linkopts = ["-pthread"],
 )
 
 cc_library(
