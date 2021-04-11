@@ -46,6 +46,11 @@ jobs:
       - name: Test
         run: bazel test --sandbox_debug --verbose_failures --test_output=streamed ...
 
+      - name: Caching workaround
+        run: |
+          chmod -R a+rwx .
+          chmod -R a+rwx ~/.cache
+
 #      # Caches and restores the bazel build directory.
 #      - name: Cache bazel build results
 #        uses: actions/cache@v2.0.0
