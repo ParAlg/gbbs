@@ -419,13 +419,14 @@ struct buckets {
     ident_t* out = pbbslib::new_array_no_init<ident_t>(size);
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
-    size_t m = pbbslib::filterf(bkt.A, out, size, p);
+    auto bkt_seq = pbbslib::make_sequence<ident_t>(size, [&] (size_t i) { return out[i]; });
+    auto filtered = pbbs::filter(bkt_seq, p);
     bkts[cur_bkt].size = 0;
-    if (m == 0) {
+    if (filtered.size() == 0) {
       pbbslib::free_array(out);
       return next_bucket();
     }
-    auto ret = bucket(cur_bkt_num, sequence<ident_t>(out, m));
+    auto ret = bucket(cur_bkt_num, std::move(filtered));
     ret.num_filtered = size;
     return std::move(ret);
   }
