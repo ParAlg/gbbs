@@ -54,6 +54,7 @@ struct edge_array {
 
   template <class F>
   void map_edges(F f, bool parallel_inner_map = true) {
+    size_t m = size();
     parallel_for(0, m, [&](size_t i) {
       uintE u, v;
       W w;

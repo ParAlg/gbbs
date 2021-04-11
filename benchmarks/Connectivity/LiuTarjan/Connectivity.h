@@ -93,6 +93,9 @@ template <class Connect,
           LiuTarjanAlterOption alter_option,
           class Graph>
 struct LiuTarjanAlgorithm {
+
+  using W = typename Graph::weight_type;
+
   Graph& GA;
   size_t n;
   Connect& connect;
@@ -308,9 +311,10 @@ template <class Connect,
           class Shortcut,
           LiuTarjanShortcutOption shortcut_option,
           class Alter,
-          LiuTarjanAlterOption alter_option>
+          LiuTarjanAlterOption alter_option,
+          class W>
 struct LiuTarjanAlgorithmCOO {
-  using edge = std::pair<uintE, uintE>;
+  using edge = std::tuple<uintE, uintE, W>;
   sequence<edge> graph;
   size_t n;
 
@@ -334,7 +338,7 @@ struct LiuTarjanAlgorithmCOO {
   void my_alter(sequence<parent>& P) {
     parallel_for(0, graph.size(), [&] (size_t i) {
       edge& e = graph[i];
-      e = std::make_pair((e.first == largest_comp) ? largest_comp : P[e.first], (e.second == largest_comp) ? largest_comp : P[e.second]);
+      e = std::make_tuple((std::get<0>(e) == largest_comp) ? largest_comp : P[std::get<0>(e)], (std::get<1>(e) == largest_comp) ? largest_comp : P[std::get<1>(e)], W());
     });
   }
 
@@ -342,8 +346,8 @@ struct LiuTarjanAlgorithmCOO {
     bool parents_changed = false;
     parallel_for(0, graph.size(), [&] (size_t i) {
       const edge& e = graph[i];
-      if (e.first != e.second) {
-        bool updated = connect(e.first, e.second, P, messages);
+      if (std::get<0>(e) != std::get<1>(e)) {
+        bool updated = connect(std::get<0>(e), std::get<1>(e), P, messages);
         if (updated && !parents_changed) {
           parents_changed = true;
         }

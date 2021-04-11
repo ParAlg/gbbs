@@ -33,7 +33,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     abort();
   }
   size_t m = tokens.size() / 2;
-  auto updates = sequence<std::tuple<uintE, uintE>>(m);
+  auto updates = sequence<std::tuple<uintE, uintE, gbbs::empty>>(m);
 
 
   uintE n = 0;
@@ -46,7 +46,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     if (r > n) {
       pbbs::write_min<uintE>(&n, r, std::greater<uintE>());
     }
-    updates[i] = std::make_tuple(l, r);
+    updates[i] = std::make_tuple(l, r, gbbs::empty());
   });
   n = n + 1; /* 0 indexed */
 //  auto sort_f = [&] (const std::tuple<uintE, uintE>& l, const std::tuple<uintE, uintE>& r) {

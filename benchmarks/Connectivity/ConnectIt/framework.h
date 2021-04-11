@@ -238,7 +238,7 @@ namespace connectit {
     LiuTarjanAlterOption    alter_option>
   sequence<parent> run_liu_tarjan_alg(
       Graph& G,
-      sequence<std::pair<uintE, uintE>>&& mutable_graph,
+      sequence<std::tuple<uintE, uintE, typename Graph::weight_type>>&& mutable_graph,
       commandLine& P) {
     auto alg_connect = lt::get_connect_function<connect_option>();
     auto alg_update = lt::get_update_function<update_option>();
@@ -253,7 +253,8 @@ namespace connectit {
       decltype(alg_shortcut),
       shortcut_option,
       decltype(alg_alter),
-      alter_option>;
+      alter_option,
+      typename Graph::weight_type>;
     auto alg = LT(std::move(mutable_graph), G.n, alg_connect, alg_update, alg_shortcut, alg_alter);
 
     return compose_algorithm_and_sampling<

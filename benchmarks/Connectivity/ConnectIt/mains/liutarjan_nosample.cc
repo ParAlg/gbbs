@@ -69,15 +69,13 @@ namespace connectit {
           return 0.0; /* too large to run in COO */
         }
         // Convert graph to COO format:
-        auto mutable_edges_raw = graph.edges();
-        //using W = typename Graph::weight_type;
+        using W = typename Graph::weight_type;
+        using edge = std::tuple<uintE, uintE, W>;
+        sequence<edge> mutable_edges = graph.edges();
         //if (sizeof(W) > 0) {
         //  std::cout << "Do not use with a weighted graph!" << std::endl; // (trivial to in fact use it with a weighted graph, but avoid for benchmarking as it adds orthogonal overheads)
         //  abort();
         //}
-        auto mutable_edges_size = mutable_edges_raw.size();
-        std::pair<uintE, uintE>* mutable_edges_ptr = (std::pair<uintE, uintE>*)mutable_edges_raw.to_array();
-        sequence<std::pair<uintE, uintE>> mutable_edges = make_sequence(mutable_edges_ptr, mutable_edges_size);
         timer tt; tt.start();
         auto CC =
             run_liu_tarjan_alg<

@@ -47,10 +47,8 @@ double Run(Graph& G, commandLine P) {
     return hash_to_double(u,v) < update_pct; /* return in sample */
   };
   timer tt; tt.start();
-  auto updates_arr = sampleEdges(G, update_pred);
+  sequence<std::tuple<uintE, uintE, W>> updates = sampleEdges(G, update_pred).to_seq();
   tt.stop(); tt.reportTotal("# sample edges time");
-  auto updates = sequence<std::tuple<uintE, uintE>>((std::tuple<uintE, uintE>*)updates_arr.E, updates_arr.m);
-  updates_arr.E = nullptr; /* relinquish memory */
 
 //  /* 2) call filter_graph to delete all deletions + updates from G */
 //  auto delete_pred =  [&] (const uintE& u, const uintE& v, const W& wgh) {

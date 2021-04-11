@@ -386,14 +386,9 @@ struct LDDSamplingTemplate {
   LDDSamplingTemplate(G& GA, commandLine& P, double beta = 0.2, bool permute = false) : GA(GA), beta(beta), permute(permute) { }
 
   sequence<parent> initial_components() {
-    size_t n = GA.n;
-
     timer lddt; lddt.start();
-    auto clusters_in = LDD(GA, beta, permute);
+    auto clusters = LDD(GA, beta, permute);
     lddt.stop(); lddt.reportTotal("## ldd time");
-    auto s = clusters_in.to_array();
-    auto clusters = make_sequence((parent*)s, n);
-
     return clusters;
   }
 };
