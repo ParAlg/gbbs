@@ -41,7 +41,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
 
   using edge = std::tuple<uintE, W>;
 
-  auto out_edges = sequence<edge>(outEdgeCount);
+  auto out_edges = pbbslib::new_array_no_init<edge>(outEdgeCount);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(i);
@@ -49,7 +49,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
     uintE d = u.out_degree();
     if (d > 0) {
       edge* nghs = u.neighbors;
-      edge* dir_nghs = out_edges.begin() + out_offset;
+      edge* dir_nghs = out_edges + out_offset;
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
@@ -66,8 +66,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
   });
   outOffsets.clear();
 
-  auto out_edge_arr = out_edges.to_array();
-  return std::make_tuple(G.num_vertices(), outEdgeCount, out_vdata, out_edge_arr);
+  return std::make_tuple(G.num_vertices(), outEdgeCount, out_vdata, out_edges);
 }
 
 // byte version
@@ -113,7 +112,8 @@ inline auto filter_graph(Graph& G, P& pred) {
   size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
-  auto edges = sequence<uchar>(last_offset);
+  size_t edges_size = last_offset;
+  auto edges = pbbslib::new_array_no_init<uchar>(edges_size);
 
   parallel_for(0, n, [&] (size_t i) {
     uintE new_deg = degrees[i];
@@ -126,7 +126,7 @@ inline auto filter_graph(Graph& G, P& pred) {
       auto f_it =
           pbbslib::make_filter_iter<std::tuple<uintE, W>>(iter, app_pred);
       size_t nbytes = byte::sequentialCompressEdgeSet<W>(
-          edges.begin() + byte_offsets[i], 0, new_deg, i, f_it);
+          edges + byte_offsets[i], 0, new_deg, i, f_it);
       if (nbytes != (byte_offsets[i + 1] - byte_offsets[i])) {
         std::cout << "# degree is: " << new_deg << " nbytes should be: "
                   << (byte_offsets[i + 1] - byte_offsets[i])
@@ -146,10 +146,8 @@ inline auto filter_graph(Graph& G, P& pred) {
   auto deg_f = [&](size_t i) { return degrees[i]; };
   auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
-  size_t newM = edges.size();
-  auto edge_arr = edges.to_array();
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
-  return std::make_tuple(G.num_vertices(), newM, out_vdata, edge_arr);
+  return std::make_tuple(G.num_vertices(), edges_size, out_vdata, edges);
 }
 
 template <

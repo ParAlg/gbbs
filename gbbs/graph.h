@@ -489,7 +489,8 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   auto starts = sequence<uintT>(n + 1, (uintT)0);
 
   using neighbor = std::tuple<uintE, Wgh>;
-  auto edges = sequence<neighbor>(m, [&](size_t i) {
+  auto edges = pbbs::new_array_no_init<neighbor>(m);
+  parallel_for(0, m, [&](size_t i) {
     if (i == 0 || (get_u(A[i]) != get_u(A[i - 1]))) {
       starts[get_u(A[i])] = i;
     }
@@ -504,7 +505,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     if (i == (m - 1)) { /* last edge */
       parallel_for(get_u(A[i]) + 1, starts.size(), [&](size_t j) { starts[j] = m; });
     }
-    return std::make_tuple(get_v(A[i]), get_w(A[i]));
+    edges[i] = std::make_tuple(get_v(A[i]), get_w(A[i]));
   });
 
   auto v_data = pbbs::new_array_no_init<vertex_data>(n);
@@ -513,10 +514,9 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     v_data[i].offset = o;
     v_data[i].degree = (uintE)(((i == (n - 1)) ? m : starts[i + 1]) - o);
   });
-  auto new_edge_arr = edges.to_array();
   return symmetric_graph<symmetric_vertex, Wgh>(
-      v_data, n, m, [=]() { pbbslib::free_arrays(v_data, new_edge_arr); },
-      (edge_type*)new_edge_arr);
+      v_data, n, m, [=]() { pbbslib::free_arrays(v_data, edges); },
+      (edge_type*)edges);
 }
 
 template <class Wgh>
@@ -533,9 +533,10 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
 
 
 template <class Wgh, class EdgeSeq, class GetU, class GetV, class GetW>
-auto get_edges(EdgeSeq& A, pbbs::sequence<uintT>& starts, size_t m, const GetU& get_u, const GetV& get_v, const GetW& get_w) {
+std::tuple<uintE, Wgh>* get_edges(EdgeSeq& A, pbbs::sequence<uintT>& starts, size_t m, const GetU& get_u, const GetV& get_v, const GetW& get_w) {
   using neighbor = std::tuple<uintE, Wgh>;
-  auto edges = sequence<neighbor>(m, [&](size_t i) {
+  auto edges = pbbs::new_array_no_init<neighbor>(m);
+  parallel_for(0, m, [&](size_t i) {
     if (i == 0 || (get_u(A[i]) != get_u(A[i - 1]))) {
       starts[get_u(A[i])] = i;
     }
@@ -550,7 +551,7 @@ auto get_edges(EdgeSeq& A, pbbs::sequence<uintT>& starts, size_t m, const GetU& 
     if (i == (m - 1)) { /* last edge */
       parallel_for(get_u(A[i]) + 1, starts.size(), [&](size_t j) { starts[j] = m; });
     }
-    return std::make_tuple(get_v(A[i]), get_w(A[i]));
+    edges[i] = std::make_tuple(get_v(A[i]), get_w(A[i]));
   });
   return edges;
 }
@@ -625,11 +626,9 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
     out_v_data[i].offset = out_o;
     out_v_data[i].degree = (uintE)(((i == (n - 1)) ? m : out_starts[i + 1]) - out_o);
   }, 1024);
-  auto new_out_edge_arr = out_edges.to_array();
-  auto new_in_edge_arr = in_edges.to_array();
   return asymmetric_graph<asymmetric_vertex, Wgh>(
-      out_v_data, in_v_data, n, m, [=]() { pbbslib::free_arrays(in_v_data, out_v_data, new_in_edge_arr, new_out_edge_arr); },
-      (edge_type*)new_out_edge_arr, (edge_type*)new_in_edge_arr);
+      out_v_data, in_v_data, n, m, [=]() { pbbslib::free_arrays(in_v_data, out_v_data, in_edges, out_edges); },
+      (edge_type*)out_edges, (edge_type*)in_edges);
 }
 
 template <class Wgh>

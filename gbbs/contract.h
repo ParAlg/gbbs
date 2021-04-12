@@ -10,6 +10,7 @@ namespace gbbs {
 namespace contract {
 
   using edge = std::tuple<uintE, uintE>;
+  using edge_entry = std::tuple<edge, gbbs::empty>;  // type of hash table elements.
   constexpr size_t small_cluster_size = 2048;
   constexpr size_t m_upper_bound = small_cluster_size*small_cluster_size; // clique on small clusters
 
@@ -36,7 +37,7 @@ namespace contract {
 
   // Fetch edges when the numbers of clusters is < small_cluster_size
   template <class Graph, class C>
-  std::pair<edge*, size_t> fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters) {
+  sequence<edge_entry> fetch_intercluster_small(Graph& GA, C& clusters, size_t num_clusters) {
     debug(std::cout << "# Running fetch edges small" << std::endl;);
     using K = std::tuple<uintE, uintE>;
     using V = gbbs::empty;
@@ -71,13 +72,11 @@ namespace contract {
     ins_t.stop(); debug(ins_t.reportTotal("insertion time"););
     debug(std::cout << "# edges.size = " << edges.size() << std::endl);
 
-    size_t edge_size = edges.size();
-    edge* edge_ret = (edge*)edges.to_array();
-    return std::make_pair(edge_ret, edge_size);
+    return edges;
   }
 
   template <class Graph, class C>
-  std::pair<edge*, size_t> fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters) {
+  sequence<edge_entry> fetch_intercluster_te(Graph& GA, C& clusters, size_t num_clusters) {
     debug(std::cout << "# Running fetch edges te" << std::endl;);
     using K = std::tuple<uintE, uintE>;
     using V = gbbs::empty;
@@ -130,13 +129,12 @@ namespace contract {
     ins_t.stop();
     debug(ins_t.reportTotal("ins time"););
     debug(std::cout << "# edges.size = " << edges.size() << std::endl);
-    size_t edge_size = edges.size();
-    edge* edge_ret = (edge*)edges.to_array();
-    return std::make_pair(edge_ret, edge_size);
+
+    return edges;
   }
 
   template <class Graph, class C>
-  std::pair<edge*, size_t> fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters) {
+  sequence<edge_entry> fetch_intercluster(Graph& GA, C& clusters, size_t num_clusters) {
     using K = std::tuple<uintE, uintE>;
     using V = gbbs::empty;
     using KV = std::tuple<K, V>;
@@ -177,9 +175,8 @@ namespace contract {
     ins_t.stop();
     debug(ins_t.reportTotal("ins time"););
     debug(std::cout << "# edges.size = " << edges.size() << std::endl);
-    size_t edge_size = edges.size();
-    edge* edge_ret = (edge*)edges.to_array();
-    return std::make_pair(edge_ret, edge_size);
+
+    return edges;
   }
 
   // Given a graph and a vertex partitioning of the graph, returns a contracted
@@ -211,17 +208,15 @@ namespace contract {
     // Remove duplicates by hashing
     using K = std::tuple<uintE, uintE, gbbs::empty>;
 
-    edge* edges;
-    size_t edges_size;
-    std::tie(edges, edges_size) = (num_clusters < small_cluster_size) ?
+    auto edges = (num_clusters < small_cluster_size) ?
       fetch_intercluster_small(GA, clusters, num_clusters) :
       fetch_intercluster(GA, clusters, num_clusters);
 
     // Pack out singleton clusters
     auto flags = sequence<uintE>(num_clusters + 1, static_cast<uintE>(0));
 
-    par_for(0, edges_size, kDefaultGranularity, [&] (size_t i) {
-                      auto e = edges[i];
+    par_for(0, edges.size(), kDefaultGranularity, [&] (size_t i) {
+                      auto e = std::get<0>(edges[i]);
                       uintE u = std::get<0>(e);
                       uintE v = std::get<1>(e);
                       if (!flags[u]) flags[u] = 1;
@@ -237,20 +232,20 @@ namespace contract {
                       }
                     });
 
-    auto sym_edges = sequence<K>(2 * edges_size, [&](size_t i) {
+    auto sym_edges = sequence<K>(2 * edges.size(), [&](size_t i) {
       size_t src_edge = i / 2;
       if (i % 2) {
-        return std::make_tuple(flags[std::get<0>(edges[src_edge])],
-                               flags[std::get<1>(edges[src_edge])],
+        return std::make_tuple(flags[std::get<0>(std::get<0>(edges[src_edge]))],
+                               flags[std::get<1>(std::get<0>(edges[src_edge]))],
                                gbbs::empty());
       } else {
-        return std::make_tuple(flags[std::get<1>(edges[src_edge])],
-                               flags[std::get<0>(edges[src_edge])],
+        return std::make_tuple(flags[std::get<1>(std::get<0>(edges[src_edge]))],
+                               flags[std::get<0>(std::get<0>(edges[src_edge]))],
                                gbbs::empty());
       }
     });
 
-    pbbs::free_array(edges);
+    edges.clear();
 
     auto GC = sym_graph_from_edges<gbbs::empty>(/* edges = */sym_edges, /* n = */num_ns_clusters);
     return std::make_tuple(GC, std::move(flags), std::move(mapping));
