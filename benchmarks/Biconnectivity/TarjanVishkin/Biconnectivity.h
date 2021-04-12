@@ -97,7 +97,7 @@ struct MinMaxF {
 
 template <template <typename W> class vertex, class W, class Seq>
 inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<vertex, W>& GA,
-                                                           uintE* Parents,
+                                                           sequence<uintE>& Parents,
                                                            Seq& Sources) {
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
@@ -160,10 +160,11 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       v_in[i].offset = i;
     }
   });
-  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, gbbs::empty>*)nghs.begin(), (std::tuple<uintE, gbbs::empty>*)Parents);
+  auto Tree = asymmetric_graph<asymmetric_vertex, gbbs::empty>(v_out, v_in, n, nghs.size(), [](){}, (std::tuple<uintE, gbbs::empty>*)nghs.begin(), (std::tuple<uintE, gbbs::empty>*)Parents.begin());
 
   // 1. Leaffix for Augmented Sizes
-  auto aug_sizes = sequence<uintE>(n, [](size_t i) { return 1; });
+  auto aug_sizes = pbbslib::new_array_no_init<uintE>(n);
+  parallel_for(0, n, [&] (size_t i) { aug_sizes[i] = 1; });
   auto cts =
       sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
   auto leaf_im = pbbslib::make_sequence<bool>(n, [&](size_t i) {
@@ -182,7 +183,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     vs = edgeMap(
-        Tree, vs, wrap_em_f<gbbs::empty>(AugF(aug_sizes.begin(), cts.begin())),
+        Tree, vs, wrap_em_f<gbbs::empty>(AugF(aug_sizes, cts.begin())),
         -1, in_edges | sparse_blocked | fine_parallel);
     vs.toSparse();
   }
@@ -197,7 +198,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   timer pren;
   pren.start();
-  auto PN = sequence<uintE>(n);
+  auto PN = pbbslib::new_array_no_init<uintE>(n);
   vs = vertexSubset(n, std::move(s_copy));
   par_for(0, Sources.size(), [&] (size_t i) {
     uintE v = vs.vtx(i);
@@ -254,9 +255,10 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   timer map_e;
   map_e.start();
   // Map all edges and update labels.
-  auto MM = sequence<labels>(n, [&](size_t i) {
+  auto MM = pbbslib::new_array_no_init<labels>(n);
+  parallel_for(0, n, [&](size_t i) {
     uintE pn_i = PN[i];
-    return std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
+    MM[i] = std::make_tuple(pn_i, pn_i + aug_sizes[i] - 1);
   });
   // Note that we have to exclude tree edges: it's all edges spliced in with
   // the exception of tree edges.
@@ -296,7 +298,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
     tv += vs.size();
     // histogram or write-add parents, produce next em.
     vs = edgeMap(
-        Tree, vs, wrap_em_f<gbbs::empty>(MinMaxF(MM.begin(), cts.begin())), -1,
+        Tree, vs, wrap_em_f<gbbs::empty>(MinMaxF(MM, cts.begin())), -1,
         in_edges | sparse_blocked | fine_parallel);
   }
   // Delete tree
@@ -308,7 +310,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
 
   // Return the preorder numbers, the (min, max) for each subtree and the
   // augmented size for each subtree.
-  return std::make_tuple(MM.to_array(), PN.to_array(), aug_sizes.to_array());
+  return std::make_tuple(MM, PN, aug_sizes);
 }
 
 // Deterministic version
@@ -327,7 +329,7 @@ struct BC_BFS_F {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-inline uintE* multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
+inline sequence<uintE> multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
@@ -339,7 +341,7 @@ inline uintE* multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
     frontier = edgeMap(GA, frontier, wrap_em_f<W>(BC_BFS_F(Parents.begin())), -1,
                 sparse_blocked);
   }
-  return Parents.to_array();
+  return Parents;
 }
 
 // Deterministic version
@@ -386,7 +388,7 @@ struct DET_BFS_F_2 {
 };
 
 template <template <typename W> class vertex, class W, class VS>
-uintE* deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
+sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
   auto visited = sequence<bool>(n, [] (size_t i) { return false; });
   auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
@@ -402,7 +404,7 @@ uintE* deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
     frontier = edgeMap(GA, frontier, wrap_em_f<W>(DET_BFS_F_2(visited.begin(), Parents.begin())), -1,
                 sparse_blocked);
   }
-  return Parents.to_array();
+  return Parents;
 }
 
 
@@ -419,8 +421,8 @@ inline sequence<uintE> cc_sources(Seq& labels) {
 }
 
 template <template <class W> class vertex, class W>
-inline std::tuple<uintE*, uintE*> critical_connectivity(
-    symmetric_graph<vertex, W>& GA, uintE* Parents, labels* MM_A, uintE* PN_A,
+inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
+    symmetric_graph<vertex, W>& GA, sequence<uintE>&& Parents, labels* MM_A, uintE* PN_A,
     uintE* aug_sizes_A, char* out_f) {
   timer ccc;
   ccc.start();
@@ -517,14 +519,13 @@ inline std::tuple<uintE*, uintE*> critical_connectivity(
   pbbslib::free_array(aug_sizes_A);
   ccc.stop();
   debug(ccc.reportTotal("critical conn time"););
-  return std::make_tuple(Parents, cc.to_array());
+  return std::make_tuple(std::move(Parents), std::move(cc));
 }
 
 // CC -> BFS from one source from each component = set of BFS trees in a single
 // array
 template <template <class W> class vertex, class W>
-inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
-                                                 char* out_f = 0) {
+auto Biconnectivity(symmetric_graph<vertex, W>& GA, char* out_f = 0) {
   size_t n = GA.n;
 
   timer fcc;
@@ -558,7 +559,7 @@ inline std::tuple<uintE*, uintE*> Biconnectivity(symmetric_graph<vertex, W>& GA,
   pn.stop();
   debug(pn.reportTotal("preorder time"););
 
-  return critical_connectivity(GA, Parents, min_max, preorder_num, aug_sizes,
+  return critical_connectivity(GA, std::move(Parents), min_max, preorder_num, aug_sizes,
                                out_f);
 }
 

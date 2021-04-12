@@ -442,7 +442,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
 
   size_t round = 1;
-  uintE* last_arr = nullptr;
+  sequence<uintE> last_arr;
   size_t remaining_offset = 0;
   size_t num_vertices_remaining = n;
   double density_multiplier = (k+1)*(1.+eps);
@@ -471,9 +471,9 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
       return !(D[i] <= target_density);
     });
 
-    auto split_vtxs_m = pbbs::split_two(vertices_remaining, keep_seq);
-    uintE* this_arr = split_vtxs_m.first.to_array();
-    size_t num_removed = split_vtxs_m.second;
+    pbbs::sequence<uintE> this_arr;
+    size_t num_removed;
+    std::tie(this_arr, num_removed) = pbbs::split_two(vertices_remaining, keep_seq);
     size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
@@ -485,13 +485,13 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   //***************
 
     round++;
-    last_arr = this_arr;
+    last_arr = std::move(this_arr);
     remaining_offset = num_removed;
     num_vertices_remaining -= num_removed;
   }
 
   while (num_vertices_remaining > 0) {
-    uintE* start = last_arr + remaining_offset;
+    uintE* start = last_arr.begin() + remaining_offset;
     uintE* end = start + num_vertices_remaining;
     auto vtxs_remaining = pbbs::make_range(start, end);
 
@@ -512,9 +512,9 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 
-    auto split_vtxs_m = pbbs::split_two(vtxs_remaining, keep_seq);
-    uintE* this_arr = split_vtxs_m.first.to_array();
-    size_t num_removed = split_vtxs_m.second;
+    pbbs::sequence<uintE> this_arr;
+    size_t num_removed;
+    std::tie(this_arr, num_removed) = pbbs::split_two(vtxs_remaining, keep_seq);
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {
@@ -530,19 +530,14 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     }
 
     round++;
-    pbbs::free_array(last_arr);
-    last_arr = this_arr;
+    last_arr = std::move(this_arr);
     remaining_offset = num_removed;
   }
 
-  if (last_arr) {
-    pbbs::free_array(last_arr);
-  }
-
-double tt2 = t2.stop();
-std::cout << "### Peel Running Time: " << tt2 << std::endl;
-std::cout << "rho: " << round << std::endl;
- std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
+  double tt2 = t2.stop();
+  std::cout << "### Peel Running Time: " << tt2 << std::endl;
+  std::cout << "rho: " << round << std::endl;
+  std::cout << "### Density of (2(1+\eps))-Densest Subgraph is: " << max_density << std::endl;
 
   free(still_active);
 

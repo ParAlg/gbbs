@@ -160,8 +160,11 @@ namespace workefficient_sf {
     auto GC = GC_and_new_mapping.first;
     auto& new_mapping = GC_and_new_mapping.second; // sparse_table<edge, edge>
 
-    size_t edges_size = edges.size();
-    if (GC.m == 0) return pbbslib::dyn_arr<edge>(edges.to_array(), edges_size, edges_size, true);
+    if (GC.m == 0) {
+      auto D = pbbslib::dyn_arr<edge>(edges.size());
+      D.copyIn(edges, edges.size());
+      return std::move(D);
+    }
 
     auto empty_val = std::make_pair(UINT_E_MAX, UINT_E_MAX);
     std::function<edge(edge)> new_edge_mapping = [&] (edge e) {

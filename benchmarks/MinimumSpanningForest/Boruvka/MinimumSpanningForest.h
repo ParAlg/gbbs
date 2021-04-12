@@ -59,7 +59,7 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
 
   uintE* edge_ids = pbbslib::new_array_no_init<uintE>(m);
   par_for(0, m, kDefaultGranularity, [&] (size_t i) { edge_ids[i] = i; });
-  uintE* next_edge_ids = nullptr;
+  uintE* next_edge_ids = pbbslib::new_array_no_init<uintE>(m);
 
   auto new_mst_edges = sequence<uintE>(n, UINT_E_MAX);
   auto is_root = sequence<bool>(n);
@@ -189,13 +189,8 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
     auto self_loop_im = pbbslib::make_sequence<bool>(n, self_loop_f);
     auto edge_ids_im = pbbslib::make_sequence<uintE>(edge_ids, m);
-    if (round == 0) {
-      auto A = pbbslib::pack(edge_ids_im, self_loop_im);
-      m = A.size();
-      next_edge_ids = A.to_array();
-    } else {
-      m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m));
-    }
+    m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m));
+
     debug(std::cout << "filter, m is now " << m << " n is now " << n << "\n";);
     std::swap(edge_ids, next_edge_ids);
     round++;

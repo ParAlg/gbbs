@@ -74,8 +74,7 @@ template <class weight_type>
 size_t get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>&);
 
 template <class weight_type>
-pbbs::sequence<vertex_data> sorted_edges_to_vertex_data_array(
-    size_t, const pbbs::sequence<Edge<weight_type>>&);
+vertex_data* sorted_edges_to_vertex_data_array(size_t, const pbbs::sequence<Edge<weight_type>>&);
 
 template <class weight_type>
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, weight_type>*>
@@ -381,7 +380,7 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
         [&](const size_t i) { return edge_list[i]; }});
   const size_t num_edges = out_edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(out_edges);
-  pbbs::sequence<vertex_data> vertex_out_data =
+  vertex_data* vertex_out_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, out_edges);
 
   pbbs::sequence<Edge<weight_type>> in_edges =
@@ -394,7 +393,7 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
   pbbs::sample_sort_inplace(in_edges.slice(), compare_endpoints);
-  pbbs::sequence<vertex_data> vertex_in_data =
+  vertex_data* vertex_in_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, in_edges);
 
   edge_type* out_edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
@@ -406,14 +405,12 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     in_edges_array[i] = std::make_tuple(in_edge.to, in_edge.weight);
   });
 
-  auto vertex_out_data_array = vertex_out_data.to_array();
-  auto vertex_in_data_array = vertex_in_data.to_array();
   return asymmetric_graph<asymmetric_vertex, weight_type>{
-    vertex_out_data_array,
-    vertex_in_data_array,
+    vertex_out_data,
+    vertex_in_data,
     num_vertices,
     num_edges,
-    [=] () { pbbslib::free_arrays(vertex_out_data_array, vertex_in_data_array, out_edges_array, in_edges_array); },
+    [=] () { pbbslib::free_arrays(vertex_out_data, vertex_in_data, out_edges_array, in_edges_array); },
     out_edges_array,
     in_edges_array};
 }
@@ -445,7 +442,7 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     internal::sort_and_dedupe(std::move(edges_both_directions));
   const size_t num_edges = edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
-  pbbs::sequence<vertex_data> vertex_data =
+  vertex_data* vertex_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
   edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
@@ -454,12 +451,11 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
   });
 
-  auto vertex_data_array = vertex_data.to_array();
   return symmetric_graph<symmetric_vertex, weight_type>{
-    vertex_data_array,
+    vertex_data,
     num_vertices,
     num_edges,
-    [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
+    [=] () { pbbslib::free_arrays(vertex_data, edges_array); },
     edges_array};
 }
 
@@ -533,7 +529,7 @@ get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>& edges) {
 // Given a list of edges sorted by their first endpoint, return a corresponding
 // vertex_data array.
 template <class weight_type>
-pbbs::sequence<vertex_data> sorted_edges_to_vertex_data_array(
+vertex_data* sorted_edges_to_vertex_data_array(
     const size_t num_vertices,
     const pbbs::sequence<Edge<weight_type>>& edges) {
   if (edges.empty()) {
@@ -541,7 +537,7 @@ pbbs::sequence<vertex_data> sorted_edges_to_vertex_data_array(
   }
 
   const size_t num_edges = edges.size();
-  pbbs::sequence<vertex_data> data(num_vertices);
+  vertex_data* data = pbbslib::new_array_no_init<vertex_data>(num_vertices);
   par_for(0, edges[0].from + 1, [&](const size_t j) {
       data[j].offset = 0;
   });

@@ -29,7 +29,7 @@ namespace gbbs {
 struct U_FastReset {
   uintE* U = nullptr;
   uintE* distinct = nullptr;
-  ulong num_distinct = 0; 
+  ulong num_distinct = 0;
 
   void alloc(size_t n) {
     if (!U) U = (uintE*) calloc(n, sizeof(uintE)); //malloc(n * sizeof(uintE));
@@ -70,7 +70,7 @@ inline size_t _linear_search(T* I, const F& less, size_t n) {
 template <typename T, typename F>
 inline size_t _binary_search(T* I, const F& less, size_t n) {
   size_t start = 0;
-  size_t end = n; 
+  size_t end = n;
   while (end - start > binary_search_base) {
     size_t mid = start + (end - start) / 2;
     if (!less(I[mid]))
@@ -115,14 +115,14 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       return std::get<0>(e1) > std::get<0>(e2);
   };
 
-  auto out_edges = sequence<edge>(outEdgeCount);
+  auto out_edges = pbbslib::new_array_no_init<edge>(outEdgeCount);
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = G.get_vertex(order_to_vertex[i]);
     size_t out_offset = outOffsets[i];
     uintE d = u.out_degree();
     if (d > 0) {
       edge* nghs = u.neighbors;
-      edge* new_nghs = out_edges.begin() + out_offset;
+      edge* new_nghs = out_edges + out_offset;
       for (uintE j= 0; j < d; j++) {
         new_nghs[j] = std::make_tuple(vertex_to_order[std::get<0>(nghs[j])], std::get<1>(nghs[j]));
       }
@@ -139,11 +139,10 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   });
   outOffsets.clear();
 
-  auto out_edge_arr = out_edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, G.n, outEdgeCount,
-      [=] { pbbslib::free_arrays(out_vdata, out_edge_arr); },
-      out_edge_arr);
+      [=] { pbbslib::free_arrays(out_vdata, out_edges); },
+      out_edges);
 }
 
 // TODO: add relabel_graph with different signatures
@@ -226,9 +225,9 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
   uintE* U = V->U;
   auto vi = GDO.get_vertex(i);
   uintE degree = vi.out_degree();
-  uintE* nghs = (uintE*) vi.neighbors; 
-  
-  if (degree == 0) return 0; 
+  uintE* nghs = (uintE*) vi.neighbors;
+
+  if (degree == 0) return 0;
 
   // uintE viOutDegree = DGDO.get_vertex(i).out_degree();
   // uintE* outnghs_vi = (uintE*) DGDO.get_vertex(i).neighbors;
@@ -246,8 +245,8 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
       if (U[w] == 0) { V->distinct[V->num_distinct] = w; V->num_distinct++; }
       U[w] += 1;
     }
-  } // end of line 7. 
-  
+  } // end of line 7.
+
   for (uintE j = 0; (j < degree) && ((u = nghs[j]) > i); j++) {
     auto vu = GDO.get_vertex(u);
     uintE* nghs_u = (uintE*) vu.neighbors;
@@ -268,38 +267,17 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
       // stuff for binary search
       // auto outnghs_w_seq =  sequence<uintE>(outnghs_w, wOutDegree);
       auto custom_less_w = [&](uintE arg) { return w < arg; };
-      //uintE index_leq_i, index_leq_w; 
-      // // auto less_fn = std::less<size_t>();
-      // if (wOutDegree > 0
-      //       && (index_leq_i = _binary_search(outnghs_w, custom_less_i, wOutDegree)) < wOutDegree 
-      //        && outnghs_w[index_leq_i] == i) {
-      //   w_vi_neighbors = 1;
-      // } else if ((index_leq_w = _binary_search(outnghs_vi, custom_less_w, viOutDegree)) < viOutDegree   
-      //        && outnghs_vi[index_leq_w] == w) {
-      //   w_vi_neighbors = 1;
-      // }
       uintE index_leq_w;
-      if ((index_leq_w = _binary_search(nghs, custom_less_w, degree)) < degree 
+      if ((index_leq_w = _binary_search(nghs, custom_less_w, degree)) < degree
              && nghs[index_leq_w] == w) {
         w_vi_neighbors = 1;
       }
 
-
-
-      // for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) >= i); l++)  {
-      //   if (x == i) {w_vi_neighbors = 1; break;}
-      // }
-      // for (uintE l = 0; (l < viOutDegree) && ((x = outnghs_vi[l]) >= w); l++)  {
-      //   if (x == w) w_vi_neighbors = 1; 
-      // }
-      
       for (uintE l = 0; (l < wOutDegree) && ((x = outnghs_w[l]) > i); l++) {
         if (x != u) {
             temp += U[x] - w_vi_neighbors;
         }
       }
-
-      // auto wnghs = outnghs_w_seq.to_array();
     }
 
     for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
@@ -308,7 +286,6 @@ inline ulong Count5CycleVertex(Graph& GDO, Graph2& DGDO, U_FastReset* V, size_t 
 
   }
 
-  // auto inghs = outnghs_vi_seq.to_array();
 
   V->reset();
   return temp;
@@ -378,17 +355,17 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   auto run_intersection = [&](size_t start_ind, size_t end_ind, size_t block_index, U_FastReset* V){ //sequence<uintE>* V) {
 
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
-      ulong temp = Count5CycleVertex(GDO, DGDO, V, i); 
-      cycleCounts[block_index * eltsPerCacheLine] += temp;  
+      ulong temp = Count5CycleVertex(GDO, DGDO, V, i);
+      cycleCounts[block_index * eltsPerCacheLine] += temp;
 
       // for (uintE j = 0; (j < degree) && ((u = nghs[j]) > i); j++) {
       //   auto vu = GDO.get_vertex(u);
       //   uintE* nghs_u = (uintE*) vu.neighbors;
       //   uDegree = vu.out_degree();
       //   for (uintE k = 0; (k < uDegree) && ((w = nghs_u[k]) > i); k++) {
-      //     U[w] = 0; 
+      //     U[w] = 0;
       //   }
-      // } 
+      // }
     }
   };
 
@@ -462,10 +439,10 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
   timer t; t.start();
   ulong cycleCount = 0;
 
-  U_FastReset V1; 
-  U_FastReset* V = &V1; 
+  U_FastReset V1;
+  U_FastReset* V = &V1;
   V->alloc(GA.n);
-  for (size_t i = 0; i < GA.n; i++) { 
+  for (size_t i = 0; i < GA.n; i++) {
     auto temp = Count5CycleVertex(GDO, DGDO, V, i);
     cycleCount += temp;
   }
@@ -506,7 +483,7 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
 
   parallel_for_alloc<U_FastReset>(init_V, finish_V, 0, GA.n,   // Testing space reuse
                                       [&] (size_t i, U_FastReset* V) {
- 
+
       auto temp = Count5CycleVertex(GDO, DGDO, V, i);
       cycleCounts[i * eltsPerCacheLine] += temp;
 

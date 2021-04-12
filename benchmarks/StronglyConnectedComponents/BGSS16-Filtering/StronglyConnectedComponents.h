@@ -67,7 +67,7 @@ inline First_Search<V> make_first_search(V& visited) {
 }
 
 template <class Graph, class Seq>
-inline bool* first_search(Graph& GA, Seq& zero, uintE start, const flags fl = 0) {
+inline sequence<bool> first_search(Graph& GA, Seq& zero, uintE start, const flags fl = 0) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
 
@@ -87,7 +87,7 @@ inline bool* first_search(Graph& GA, Seq& zero, uintE start, const flags fl = 0)
     frontier = std::move(output);
     rd++;
   }
-  return Flags.to_array();
+  return Flags;
 }
 
 template <class W, class Seq, class Tab>
@@ -149,9 +149,9 @@ inline auto multi_search(Graph& GA,
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
-  auto table_backing = sequence<T>(backing_size);
+  auto table_backing = pbbslib::new_array_no_init<T>(backing_size);
   auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
-                                                       table_backing.to_array(), true);
+                                                       table_backing, true);
   frontier.toSparse();
   parallel_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
@@ -225,7 +225,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // TODO: necessary?
   auto ba = sequence<bool>(n, false);
-  auto bits = ba.to_array();
+  auto bits = ba.begin();
 
   // Split vertices into those with zero in/out degree (zero), and those with non-zero
   // in- and out-degree (non_zero).
@@ -421,8 +421,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
       CT.stop();
       std::cout << "PG.m is now: " << PG.m << std::endl;
 
-      pbbslib::free_array(visited_in);
-      pbbslib::free_array(visited_out);
       ft.stop();
       ft.reportTotal("first scc time");
       continue;

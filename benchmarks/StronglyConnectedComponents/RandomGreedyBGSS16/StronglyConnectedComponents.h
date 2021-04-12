@@ -107,9 +107,9 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
   // table stores (vertex, label) pairs
   T empty = std::make_tuple(UINT_E_MAX, UINT_E_MAX);
   size_t backing_size = 1 << pbbslib::log2_up(frontier.size() * 2);
-  auto table_backing = sequence<T>(backing_size);
+  auto table_backing = pbbslib::new_array_no_init<T>(backing_size);
   auto table = pbbslib::resizable_table<K, V, hash_kv>(backing_size, empty, hash_kv(),
-                                              table_backing.to_array(), true);
+                                              table_backing, true);
   frontier.toSparse();
   par_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
@@ -173,7 +173,7 @@ inline First_Search<V, L> make_first_search(V& visited, L& labels) {
 }
 
 template <class Graph, class L>
-inline bool* first_search(Graph& GA, L& labels, uintE start,
+inline sequence<bool> first_search(Graph& GA, L& labels, uintE start,
                           size_t label_start, const flags fl = 0) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
@@ -189,7 +189,7 @@ inline bool* first_search(Graph& GA, L& labels, uintE start,
     frontier = std::move(output);
     rd++;
   }
-  return Flags.to_array();
+  return Flags;
 }
 
 template <class Graph>
@@ -200,7 +200,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   // Everyone's initial label is 0 (all in the same subproblem)
   auto labels = sequence<label_type>(n, [](size_t) { return 0; });
   auto ba = sequence<bool>(n, false);
-  auto bits = ba.to_array();
+  auto bits = ba.begin();
 
   auto v_im = pbbslib::make_sequence<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
@@ -256,8 +256,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
           labels[i] = label; // Reachabel from the Big SCC, but not in it.
         }
       });
-      pbbslib::free_array(in_visits);
-      pbbslib::free_array(out_visits);
       label_offset += 1;
       hd.stop();
       hd.reportTotal("big scc time");
@@ -314,8 +312,6 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
           labels[i] = label;
         }
       });
-      pbbslib::free_array(in_visits);
-      pbbslib::free_array(out_visits);
       ft.stop();
       ft.reportTotal("first round time");
       continue;

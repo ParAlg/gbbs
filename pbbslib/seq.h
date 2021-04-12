@@ -220,6 +220,10 @@ struct sequence {
     return range<value_type*>(s + ss, s + ee);
   }
 
+  range<value_type*> cut(size_t ss, size_t ee) const {
+    return slice(ss, ee);
+  }
+
   range<std::reverse_iterator<value_type*>> rslice(size_t ss, size_t ee) const {
     auto i = std::make_reverse_iterator(s + n);
     return range<decltype(i)>(i + ss, i + ee);

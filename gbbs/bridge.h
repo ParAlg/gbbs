@@ -66,6 +66,11 @@ namespace gbbs {
     return sequence<T>(a, n);
   }
 
+  template<typename Seq>
+  auto make_slice(const Seq& S) {
+    return S.cut(0, S.size());
+  }
+
   // Alias template so that range is exposed w/o namespacing
   template<typename T>
   using range = pbbs::range<T>;

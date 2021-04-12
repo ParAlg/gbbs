@@ -38,7 +38,7 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
   t_edges.clear();
   const size_t num_edges = edges.size();
   // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
-  sequence<vertex_data> vertex_data =
+  vertex_data* data =
     gbbs_io::internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
   edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
@@ -47,12 +47,11 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
   });
   edges.clear();
-  auto vertex_data_array = vertex_data.to_array();
   return symmetric_graph<symmetric_vertex, gbbs::empty>{
-    vertex_data_array,
+    data,
     num_vertices,
     num_edges,
-    [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
+    [=] () { pbbslib::free_arrays(data, edges_array); },
     edges_array};
 }
 
@@ -77,8 +76,8 @@ inline bool dupEdge(const DBTGraph::DyGraph<Graph> *G, const pair<EdgeT, bool> &
 //   return G->haveEdgeDel(e.first, e.second) == e.second;
 // }
 
-// change graphio edge type into our edge type 
-// if (from > to), swap 
+// change graphio edge type into our edge type
+// if (from > to), swap
 template <class EdgeT, class UT>
 inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
   bool rev = e.to < e.from;
@@ -91,7 +90,7 @@ inline pair<EdgeT, bool> toMyUpdateEdgeT(UT e){
 template <class Graph, class EdgeT, class UT>
 inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, const std::vector<UT> &t_updates, size_t s, size_t e){
   size_t n = e-s;//t_updates.size();
-  
+
   // change to our type
   sequence<pair<EdgeT, bool>> updates(n);
   par_for(0, n, kDefaultGranularity, [&](const size_t i) {
@@ -118,7 +117,7 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
   });
   flag[n-1] = 1;
   flag[n] = 1;
-  
+
   auto monoid = pbbslib::addm<size_t>();
   size_t new_n = pbbs::scan_inplace(flag.slice(), monoid);
   new_n --;
@@ -129,7 +128,7 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
         updates_valid[flag[i]] = updates[inds[i]];
       }
   });
-  
+
   updates.clear();
   inds.clear();
 
@@ -150,7 +149,7 @@ template <class EdgeT, class VTX>
 inline sequence<VTX> computeOffsets(pbbs::range<pair<EdgeT,bool> *> edges, pbbs::range<size_t *> vtxMap, sequence<size_t> &flag ){
   pbbs::sample_sort_inplace(edges, [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
     if(i.first.first == j.first.first) return i.second && !j.second;
-      return i.first.first < j.first.first; 
+      return i.first.first < j.first.first;
     });
 
   size_t edgeL = edges.size();
@@ -240,21 +239,21 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   using vertex_type = symmetric_vertex<W>;
   using edge_type = vertex_type::edge_type; //std::tuple<uintE, W>
   size_t num_vertices = n;
-  auto monoid = pbbslib::addm<size_t>();  
+  auto monoid = pbbslib::addm<size_t>();
 
   // DBTGraph::SymGraph G = edge_list_to_symmetric_graph(edges, n, 0, e);
 
   // count new degrees
-  vertex_data *vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
+  vertex_data* vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
   sequence<size_t> newDegrees = sequence<size_t>(num_vertices, [&](const size_t i) {
     return DG->get_degree(i);
-  }); 
-  size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);  
+  });
+  size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);
 
   par_for(0, num_vertices-1, kDefaultGranularity, [&](const size_t i) {
     vertex_data_array[i].degree = newDegrees[i+1]-newDegrees[i];
     vertex_data_array[i].offset = newDegrees[i];
-  });    
+  });
   vertex_data_array[num_vertices-1].degree = num_edges - newDegrees[num_vertices-1];
   vertex_data_array[num_vertices-1].offset = newDegrees[num_vertices-1];
   newDegrees.clear();
@@ -265,16 +264,17 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   // }
 
   // put edges to array, first old edges, then new edges
-  sequence<edge_type> edges_seq = sequence<edge_type>(num_edges);
+  auto edges_seq = pbbslib::new_array_no_init<edge_type>(num_edges);
   for(size_t i=0; i< num_edges; ++i) {
     get<0>(edges_seq[i]) = 345;
   }
 
-  // insert from tables 
+  // insert from tables
+  auto edges_slice = pbbslib::make_sequence(edges_seq, num_edges);
   for(uintE u=0; u < num_vertices; ++u) {
     size_t offset = vertex_data_array[u].offset;
-    DG->get_neighbors_major(u, edges_seq.slice(), offset);
-    pbbs::sample_sort_inplace(edges_seq.slice(offset, offset + vertex_data_array[u].degree), 
+    DG->get_neighbors_major(u, edges_slice, offset);
+    pbbs::sample_sort_inplace(edges_slice.slice(offset, offset + vertex_data_array[u].degree),
     [&](const edge_type& a, const edge_type& b) {
       return get<0>(a) < get<0>(b);
     });
@@ -287,14 +287,12 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   //   }
   // }
 
-  edge_type *edges_array = edges_seq.to_array();
-
   DBTGraph::SymGraph G2 = DBTGraph::SymGraph(
     vertex_data_array,
     num_vertices,
     num_edges,
-    [=] () { pbbslib::free_arrays(vertex_data_array, edges_array); },
-    edges_array);
+    [=] () { pbbslib::free_arrays(vertex_data_array, edges_seq); },
+    edges_seq);
 
     auto f = [&] (uintE u, uintE v, uintE w) { };
   size_t c = Triangle_degree_ordering(G2, f);

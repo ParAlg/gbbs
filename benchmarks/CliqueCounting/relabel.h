@@ -85,7 +85,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
-  auto edges = sequence<uchar>(last_offset);
+  auto edges = pbbslib::new_array_no_init<uchar>(last_offset);
 
   // redo the sort from above, but now actually store your edges
   parallel_for(0, n, [&] (size_t i) {
@@ -109,7 +109,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
 
       auto iter = vertex_ops::get_iter(tmp_edges.begin(), deg);
       byte::sequentialCompressEdgeSet<W>(
-          edges.begin() + byte_offsets[rank[i]], 0, deg, rank[i], iter);
+          edges + byte_offsets[rank[i]], 0, deg, rank[i], iter);
     }
   }, 1);
 
@@ -123,11 +123,10 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   auto deg_f = [&](size_t i) { return degrees[i]; };
   auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
-  auto edge_arr = edges.to_array();
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
-                            [=]() {pbbslib::free_arrays(out_vdata, edge_arr); },
-                            edge_arr, edge_arr);
+                            [=]() {pbbslib::free_arrays(out_vdata, edges); },
+                            edges, edges);
 }
 
 
@@ -158,7 +157,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   using edge = std::tuple<uintE, W>;
 
-  auto out_edges = sequence<edge>(outEdgeCount);
+  auto out_edges = pbbslib::new_array_no_init<edge>(outEdgeCount);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = GA.get_vertex(i);
@@ -167,7 +166,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     uintE true_deg = outOffsets[rank[i]+1] - out_offset;
     if (d > 0) {
       edge* nghs = u.neighbors;
-      edge* dir_nghs = out_edges.begin() + out_offset;
+      edge* dir_nghs = out_edges + out_offset;
       auto pred_c = [&](const edge& e) {
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
@@ -188,11 +187,10 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   });
   outOffsets.clear();
 
-  auto out_edge_arr = out_edges.to_array();
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, GA.n, outEdgeCount,
-      [=]() {pbbslib::free_arrays(out_vdata, out_edge_arr); },
-      out_edge_arr);
+      [=]() {pbbslib::free_arrays(out_vdata, out_edges); },
+      out_edges);
 }
 
 
