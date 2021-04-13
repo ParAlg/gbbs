@@ -143,6 +143,9 @@ struct Coloring {
     return first_color;
   }
 
+  /* Currently there's a bug because I need to make sure that when a vertex
+   * moves up, I should also just change its color to the correct palette but
+   * maybe it's fine if I don't do it.*/
   template <class Seq>
   void batch_insertion(const Seq& insertions_unfiltered) {
     // Remove edges that already exist from the input.
@@ -290,9 +293,25 @@ struct Coloring {
 
   void check_invariants() {
     bool invs_ok = true;
-    for (size_t i=0; i<n; i++) {
-      bool upper_ok = L[i].upper_invariant(levels_per_group, UpperConstant, eps, optimized_insertion);
-      bool lower_ok = L[i].lower_invariant(levels_per_group, eps);
+    for (size_t i=0; i<num_vertices; i++) {
+      auto upper_neighbors = layers_of_vertices.L[i].up;
+      bool upper_ok = true;
+      for (size_t j = 0; j < upper_neighbors.size(); j++) {
+        if (VC[upper_neighbors.table[j]] == VC[i]) {
+            upper_ok = false;
+        }
+      }
+
+      bool lower_ok = true;
+      auto lower_levels = layers_of_vertices.L[i].down;
+      for (size_t level = 0; lower < lower_levels.size(); lower++) {
+        auto lower_neighbors = lower_levels[level];
+        for (size_t j = 0; j < lower_neighbors.size(); j++) {
+            if (VC[lower_neighbors.table[j]] == VC[i]) {
+                lower_ok = false;
+            }
+        }
+      }
       assert(upper_ok);
       assert(lower_ok);
       invs_ok &= upper_ok;
@@ -307,6 +326,7 @@ inline void RunColoring(Graph& G, bool optimized_deletion) {
   // using W = typename Graph::weight_type;
   size_t n = G.n;
   auto layers = LDS(n, optimized_deletion);
+  auto coloring = Coloring(n, layers);
 
   auto edges = G.edges();
 
@@ -323,18 +343,11 @@ inline void RunColoring(Graph& G, bool optimized_deletion) {
     });
 
     layers.batch_insertion(batch);
+    coloring.batch_insertion(batch);
   }
 
-//  for (size_t i = 0; i < n; i++) {
-//    auto map_f = [&](const uintE& u, const uintE& v, const W& wgh) {
-//      if (u < v) {
-//        layers.insert_edge({u, v});
-//      }
-//    };
-//    G.get_vertex(i).out_neighbors().map(map_f, /* parallel = */ false);
-//  }
-
   layers.check_invariants();
+  coloring.check_invariants();
 
   for (size_t i=0; i<num_batches; i++) {
     size_t start = batch_size*i;
@@ -347,28 +360,16 @@ inline void RunColoring(Graph& G, bool optimized_deletion) {
     });
 
     layers.batch_deletion(batch);
-
-    /*for (size_t i=0; i<batch.size(); i++) {
-        bool exists = layers.edge_exists(batch[i]);
-        //bool ok = layers.check_both_directions(batch[i]);
-        assert(!exists);
-        //assert(ok);
-    }*/
-
-//    for (size_t i=0; i<batch.size(); i++) {
-//      bool exists = layers.edge_exists(batch[i]);
-//      bool ok = layers.check_both_directions(batch[i]);
-//      assert(exists);
-//      assert(ok);
-//    }
+    coloring.batch_deletion(batch);
   }
-
   layers.check_invariants();
+  coloring.check_invariants();
 }
 
 template <class W>
-inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
+inline void RunLDS (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
         LDS& layers, bool optimized_insertion, size_t offset) {
+    auto coloring = Coloring(n, layers);
     auto batch = batch_edge_list.edges;
     // First, insert / delete everything up to offset
     if (offset != 0) {
@@ -395,7 +396,14 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
             return std::make_pair(vert1, vert2);
         });
         layers.batch_insertion(batch_insertions);
+        coloring.batch_insertion(batch_insertions);
+        layers.check_invariants();
+        coloring.check_invariants();
+
         layers.batch_deletion(batch_deletions);
+        coloring.batch_deletion(batch_deletions);
+        layers.check_invariants();
+        coloring.check_invariants();
       }
     }
 
@@ -428,10 +436,17 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         });
 
         layers.batch_insertion(batch_insertions);
+        coloring.batch_insertion(batch_insertions);
+        layers.check_invariants();
+        coloring.check_invariants();
+
         double insertion_time = t.stop();
 
         t.start();
         layers.batch_deletion(batch_deletions);
+        coloring.batch_deletion(batch_deletions);
+        layers.check_invariants();
+        coloring.check_invariants();
 
         double deletion_time = t.stop();
         double tt = insertion_time + deletion_time;
@@ -440,56 +455,6 @@ inline void RunLDS (BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool
         std::cout << "### Deletion Running Time: " << deletion_time << std::endl;
         std::cout << "### Batch Num: " << end_size - offset << std::endl;
         std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
-        if (compare_exact) {
-            auto graph = dynamic_edge_list_to_symmetric_graph(batch_edge_list, std::min(batch.size(),
-                        i + batch_size));
-
-            // Run kcore on graph
-            auto cores = KCore(graph, 16);
-
-            auto max_core = parlay::reduce(cores, parlay::maxm<uintE>());
-            std::cout << "### Coreness Exact: " << max_core << std::endl;
-
-            // Compare cores[v] to layers.core(v)
-            auto approximation_error = parlay::delayed_seq<float>(batch_edge_list.max_vertex,
-                    [&] (size_t j) -> float {
-                auto exact_core = j >= graph.n ? 0 : cores[j];
-                auto approx_core = layers.core(j);
-                if (exact_core == 0 || approx_core == 0) {
-                    return 0;
-                }
-                return (exact_core > approx_core) ? (float) exact_core / (float) approx_core :
-                       (float) approx_core / (float) exact_core;
-            });
-
-            double mult_appx = (2 + 2*layers.eps);
-            float bad = parlay::reduce(parlay::delayed_seq<float>(batch_edge_list.max_vertex, [&](size_t j) -> float{
-                auto true_core = j >= graph.n ? 0 : cores[j];
-                auto appx_core = layers.core(j);
-                return (appx_core > (mult_appx * true_core)) + (appx_core < (true_core/mult_appx));
-            }), parlay::addm<float>());
-
-            // Output min, max, and average error
-            float sum_error = parlay::reduce(approximation_error, parlay::addm<float>());
-            float max_error = parlay::reduce(approximation_error, parlay::maxm<float>());
-            float min_error = parlay::reduce(approximation_error,
-              parlay::make_monoid([](float l, float r){
-                if (l == 0) return r;
-                if (r == 0) return l;
-                return std::min(r, l);
-            }, (float) 0));
-            float denominator = parlay::reduce(parlay::delayed_seq<float>(batch_edge_list.max_vertex,
-                        [&] (size_t j) -> float{
-                auto exact_core = j >= graph.n ? 0 : cores[j];
-                auto approx_core = layers.core(j);
-                return (exact_core != 0) && (approx_core != 0);
-            }), parlay::addm<float>());
-            auto avg_error = (denominator == 0) ? 0 : sum_error / denominator;
-            std::cout << "### Num Bad: " << bad << std::endl;
-            std::cout << "### Per Vertex Average Coreness Error: " << avg_error << std::endl; fflush(stdout);
-            std::cout << "### Per Vertex Min Coreness Error: " << min_error << std::endl; fflush(stdout);
-            std::cout << "### Per Vertex Max Coreness Error: " << max_error << std::endl; fflush(stdout);
-        }
     }
 }
 
@@ -499,7 +464,8 @@ inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_si
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
     if (G.n > 0) RunLDS(G, optimized_insertion);
-    if (batch_edge_list.max_vertex > 0) RunLDS(batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
+    if (batch_edge_list.max_vertex > 0) RunLDS(max_vertex,
+            batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
 }
 
 }  // namespace gbbs
