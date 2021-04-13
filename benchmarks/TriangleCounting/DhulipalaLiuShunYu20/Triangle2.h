@@ -86,9 +86,9 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG->num_vertices()); // fill vtxMap and edges
   t.next("count degrees");
 
-  auto insertDegrees = pbbs::delayed_sequence<size_t, DBTGraph::VtxUpdateInsDeg>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
+  auto insertDegrees = pbbslib::make_delayed<size_t>(vtxNew.size(), DBTGraph::VtxUpdateInsDeg(vtxNew));
   auto monoid = pbbslib::addm<size_t>();
-  m_ins = pbbs::reduce(insertDegrees, monoid) / 2;
+  m_ins = pbbslib::reduce(insertDegrees, monoid) / 2;
   bool major_rebalanced = false;
   if(DG->majorRebalance(m_ins, m-m_ins)){
     major_rebalanced = true;;

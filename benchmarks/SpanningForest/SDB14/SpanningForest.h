@@ -133,9 +133,9 @@ namespace workefficient_sf {
     debug(ldd_t.reportTotal("ldd time"););
 
     // Filter out tree edges added this round (ids are in the current level)
-    auto delayed_edges = pbbs::delayed_seq<edge>(parents.size(), [&] (size_t i) {
+    auto delayed_edges = pbbslib::make_delayed<edge>(parents.size(), [&] (size_t i) {
         return std::make_pair(parents[i], i); });
-    auto edges = pbbs::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
+    auto edges = pbbslib::filter(delayed_edges, [&] (const edge& e) { return e.first != e.second; });
     // Apply the mapping to map
     par_for(0, edges.size(), [&] (size_t i) {
       auto e_i = edges[i];

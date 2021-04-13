@@ -54,12 +54,12 @@ namespace labelprop_cc {
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
       if (lp_less(Parents[s], Parents[d])) {
-        pbbs::write_min<uintE>(&Parents[d], Parents[s], lp_less);
-        return pbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
+        pbbslib::write_min<uintE>(&Parents[d], Parents[s], lp_less);
+        return pbbslib::write_min(&changed[d], emitted, std::greater<uint8_t>());
       } else if (lp_less(Parents[d], Parents[s])) {
-        if (pbbs::write_min<uintE>(&Parents[s], Parents[d], lp_less)) {
+        if (pbbslib::write_min<uintE>(&Parents[s], Parents[d], lp_less)) {
           if (changed[s] == unemitted) {
-            pbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
+            pbbslib::write_min(&changed[s], need_emit, std::greater<uint8_t>());
           }
         }
       }
@@ -103,10 +103,10 @@ namespace labelprop_cc {
         auto next_vs = edgeMap(GA, vs, LabelProp_F<W>(Parents, changed), -1, dense_forward);
 
         vs.toSparse();
-        auto this_vs = pbbs::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
+        auto this_vs = pbbslib::make_delayed<uintE>(vs.size(), [&] (size_t i) {
           return vs.vtx(i);
         });
-        auto new_vtxs = pbbs::filter(this_vs, [&] (uintE v) {
+        auto new_vtxs = pbbslib::filter(this_vs, [&] (uintE v) {
           return changed[v] == need_emit; /* emit those that need emitting */
         });
         std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;
@@ -126,7 +126,7 @@ namespace labelprop_cc {
     size_t n = G.n;
     sequence<parent> Parents;
     if constexpr (use_permutation) {
-      Parents = pbbs::random_permutation<uintE>(n);
+      Parents = pbbslib::random_permutation<uintE>(n);
     } else {
       Parents = sequence<parent>(n, [&] (size_t i) { return i; });
     }

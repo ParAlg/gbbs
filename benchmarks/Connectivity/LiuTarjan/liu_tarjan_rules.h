@@ -48,7 +48,7 @@ namespace lt {
       uintE min_v = lt_min(u, v);
       uintE max_v = lt_max(u, v);
       if (min_v != max_v) {
-        return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);
+        return pbbslib::write_min<uintE>(&messages[max_v], min_v, lt_less);
       }
       return false;
     }
@@ -61,7 +61,7 @@ namespace lt {
       auto min_v = lt_min(p_u, p_v);
       auto max_v = lt_max(p_u, p_v);
       if (min_v != max_v) {
-        return pbbs::write_min<uintE>(&messages[max_v], min_v, lt_less);
+        return pbbslib::write_min<uintE>(&messages[max_v], min_v, lt_less);
       }
       return false;
     }
@@ -75,11 +75,11 @@ namespace lt {
       bool updated = false;
       if (x == y) return updated;
       if (lt_less(y, x)) { /* send y to {v, x}*/
-        updated |= pbbs::write_min(&messages[v], y, lt_less);
-        updated |= pbbs::write_min(&messages[x], y, lt_less);
+        updated |= pbbslib::write_min(&messages[v], y, lt_less);
+        updated |= pbbslib::write_min(&messages[x], y, lt_less);
       } else if (lt_greater(y, x)) { /* send x to {y, w} */
-        updated |= pbbs::write_min(&messages[y], x, lt_less);
-        updated |= pbbs::write_min(&messages[w], x, lt_less);
+        updated |= pbbslib::write_min(&messages[y], x, lt_less);
+        updated |= pbbslib::write_min(&messages[w], x, lt_less);
       }
       return updated;
     }

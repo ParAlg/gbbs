@@ -29,7 +29,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
 
   auto ret = pbbslib::dyn_arr<uintE>(n);
 
-  pbbs::random r;
+  pbbslib::random r;
   timer kt, ft;
   while (active.size() > 0) {
     /* compute cutoff using kth-smallest */
@@ -55,8 +55,8 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     };
 
     ft.start();
-    auto this_round = pbbs::filter(active, lte_threshold);
-    active = pbbs::filter(active, gt_threshold);
+    auto this_round = pbbslib::filter(active, lte_threshold);
+    active = pbbslib::filter(active, gt_threshold);
     ft.stop();
 
     ret.copyInF([&] (size_t i) { return this_round[i]; }, this_round.size());

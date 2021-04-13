@@ -439,7 +439,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     timer t2; t2.start();
   const size_t n = G.n;
   auto D = sequence<size_t>(n, [&](size_t i) { return cliques[i]; });
-  auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
+  auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
 
   size_t round = 1;
   sequence<uintE> last_arr;
@@ -467,13 +467,13 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
-    auto keep_seq = pbbs::delayed_seq<bool>(n, [&] (size_t i) {
+    auto keep_seq = pbbslib::make_delayed<bool>(n, [&] (size_t i) {
       return !(D[i] <= target_density);
     });
 
     pbbs::sequence<uintE> this_arr;
     size_t num_removed;
-    std::tie(this_arr, num_removed) = pbbs::split_two(vertices_remaining, keep_seq);
+    std::tie(this_arr, num_removed) = pbbslib::split_two(vertices_remaining, keep_seq);
     size_t active_size = num_removed;
 
 // remove this_arr vertices ************************************************
@@ -508,13 +508,13 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     auto rho = target_density;
     if (current_density > max_density) max_density = current_density;
 
-    auto keep_seq = pbbs::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
+    auto keep_seq = pbbslib::make_delayed<bool>(vtxs_remaining.size(), [&] (size_t i) {
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 
     pbbs::sequence<uintE> this_arr;
     size_t num_removed;
-    std::tie(this_arr, num_removed) = pbbs::split_two(vtxs_remaining, keep_seq);
+    std::tie(this_arr, num_removed) = pbbslib::split_two(vtxs_remaining, keep_seq);
 
     num_vertices_remaining -= num_removed;
     if (num_vertices_remaining > 0) {

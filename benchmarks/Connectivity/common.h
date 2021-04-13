@@ -22,7 +22,7 @@ std::pair<sequence<incremental_update>, size_t> reorder_updates(Seq& updates) {
   auto bool_seq = pbbslib::make_sequence<bool>(updates.size(), [&] (size_t i) {
     return std::get<2>(updates[i]) == query_type;
   });
-  return pbbs::split_two(updates, bool_seq);
+  return pbbslib::split_two(updates, bool_seq);
 }
 
 template <class W>
@@ -44,7 +44,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE, W>>& updates, double insert_t
     abort();
   }
   auto result = sequence<std::tuple<uintE, uintE, UpdateType>>(result_size);
-  auto rnd = pbbs::random();
+  auto rnd = pbbslib::random();
   parallel_for(0, updates.size(), [&] (size_t i) {
     uintE u, v;
     W w;
@@ -58,7 +58,7 @@ annotate_updates(sequence<std::tuple<uintE, uintE, W>>& updates, double insert_t
     result[i] = std::make_tuple(u, v, query_type);
   });
   if (permute) {
-    return pbbs::random_shuffle(result);
+    return pbbslib::random_shuffle(result);
   }
   return result;
 }

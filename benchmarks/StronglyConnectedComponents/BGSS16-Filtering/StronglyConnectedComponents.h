@@ -173,7 +173,7 @@ inline auto multi_search(Graph& GA,
       elts.insert({frontier.s[i], gbbs::empty()});
     });
 
-    auto work_upperbound_seq = pbbs::delayed_seq<size_t>(frontier.size(), [&](size_t i) {
+    auto work_upperbound_seq = pbbslib::make_delayed<size_t>(frontier.size(), [&](size_t i) {
       uintE v = frontier.s[i];
       size_t n_labels = table.num_appearances(v);
       size_t effective_degree = (fl & in_edges) ? GA.get_vertex(v).in_degree()
@@ -296,7 +296,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //      });
 //
 //
-//      auto imap = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
+//      auto imap = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
 //
 //      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
 //      exit(0);
@@ -395,7 +395,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
         }
       });
 
-//      auto imap = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
+//      auto imap = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return (labels[i] == start_label); });
 //      std::cout << "num in start = " << pbbslib::reduce_add(imap) << std::endl;
 //      exit(0);
 
@@ -576,7 +576,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
     // Prune the graph.
     CT.start();
-    auto elts_seq = pbbs::delayed_seq<uintE>(elts.size(), [&] (size_t i) {
+    auto elts_seq = pbbslib::make_delayed<uintE>(elts.size(), [&] (size_t i) {
       return std::get<0>(elts[i]);
     });
 

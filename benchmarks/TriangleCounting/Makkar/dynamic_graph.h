@@ -100,7 +100,7 @@ namespace gbbs {
           G.get_vertex(i).out_neighbors().map(map_f, false);
           allocated[i] = false;
         } else {
-          A[i] = pbbs::new_array_no_init<uintE>(deg_i);
+          A[i] = pbbslib::new_array_no_init<uintE>(deg_i);
           auto map_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
             A[i][j] = v;
             j++;
@@ -123,10 +123,10 @@ namespace gbbs {
     // updates)
     template <class B>
     void process_batch(B& batch) {
-      auto insertions = pbbs::filter(batch, [&] (const auto& e) {
+      auto insertions = pbbslib::filter(batch, [&] (const auto& e) {
         return e.weight == 1;
       });
-      auto deletions = pbbs::filter(batch, [&] (const auto& e) {
+      auto deletions = pbbslib::filter(batch, [&] (const auto& e) {
         return e.weight == 0;
       });
 
@@ -182,7 +182,7 @@ namespace gbbs {
       }
       // otherwise allocate
       uintE* ngh_v = A[v];
-      uintE* new_array = pbbs::new_array_no_init<uintE>(max_new_degree);
+      uintE* new_array = pbbslib::new_array_no_init<uintE>(max_new_degree);
       size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, new_array);
       D[v] = new_degree; // update the degree in the table
       if (allocated[v]) { pbbs::free_array(ngh_v); } // free old neighbors if nec.
@@ -264,10 +264,10 @@ namespace gbbs {
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
-      auto duplicated_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
+      auto duplicated_batch_unweighted = pbbslib::make_delayed<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
         return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
-      auto untested_batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
+      auto untested_batch = pbbslib::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
         return ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
       });
 
@@ -277,11 +277,11 @@ namespace gbbs {
 //      std::cout << "end" << std::endl;
 
       // (iii) generate vertex offsets into the de-duplicated batch
-      auto untested_index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(untested_batch.size(), [&] (size_t i) {
+      auto untested_index_seq = pbbslib::make_delayed<std::pair<uintE, size_t>>(untested_batch.size(), [&] (size_t i) {
         return std::make_pair(untested_batch[i].first, i);
       });
       // starts contains (vertex id, indexof start in batch) pairs.
-      auto untested_starts = pbbs::filter(untested_index_seq, [&] (const std::pair<uintE, size_t>& p) {
+      auto untested_starts = pbbslib::filter(untested_index_seq, [&] (const std::pair<uintE, size_t>& p) {
         size_t ind = p.second;
         return ind == 0 || (untested_index_seq[ind].first != untested_index_seq[ind-1].first);
       });
@@ -301,14 +301,14 @@ namespace gbbs {
 
       // some edges may now be marked as "deleted". filter these out and
       // recompute starts.
-      auto batch = pbbs::filter(untested_batch, [&] (const pair<uintE, uintE>& p) {
+      auto batch = pbbslib::filter(untested_batch, [&] (const pair<uintE, uintE>& p) {
         return p.second != UINT_E_MAX;
       });
-      auto index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
+      auto index_seq = pbbslib::make_delayed<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
         return std::make_pair(batch[i].first, i);
       });
       // starts contains (vertex id, indexof start in batch) pairs.
-      auto starts = pbbs::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
+      auto starts = pbbslib::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
         size_t ind = p.second;
         return ind == 0 || (index_seq[ind].first != index_seq[ind-1].first);
       });
@@ -474,20 +474,20 @@ namespace gbbs {
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
-      auto duplicated_batch_unweighted = pbbs::delayed_seq<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
+      auto duplicated_batch_unweighted = pbbslib::make_delayed<std::pair<uintE, uintE>>(duplicated_batch.size(), [&] (const size_t i) {
         return std::make_pair(duplicated_batch[i].from, duplicated_batch[i].to);
       });
-      auto untested_batch = pbbs::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
+      auto untested_batch = pbbslib::filter_index(duplicated_batch_unweighted, [&] (const pair<uintE, uintE>& p, size_t ind) {
         bool not_zero_deg = D[p.first] > 0;
         return not_zero_deg && ((ind == 0) || (p != duplicated_batch_unweighted[ind-1])) && (p.first != p.second); // filter self-loops
       });
 
       // (iii) generate vertex offsets into the de-duplicated batch
-      auto untested_index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(untested_batch.size(), [&] (size_t i) {
+      auto untested_index_seq = pbbslib::make_delayed<std::pair<uintE, size_t>>(untested_batch.size(), [&] (size_t i) {
         return std::make_pair(untested_batch[i].first, i);
       });
       // starts contains (vertex id, indexof start in batch) pairs.
-      auto untested_starts = pbbs::filter(untested_index_seq, [&] (const std::pair<uintE, size_t>& p) {
+      auto untested_starts = pbbslib::filter(untested_index_seq, [&] (const std::pair<uintE, size_t>& p) {
         size_t ind = p.second;
         return ind == 0 || (untested_index_seq[ind].first != untested_index_seq[ind-1].first);
       });
@@ -511,10 +511,10 @@ namespace gbbs {
 
       // some edges may now be marked as "void". filter these out and
       // recompute starts.
-      auto batch = pbbs::filter(untested_batch, [&] (const pair<uintE, uintE>& p) {
+      auto batch = pbbslib::filter(untested_batch, [&] (const pair<uintE, uintE>& p) {
         return p.second != UINT_E_MAX;
       });
-      auto index_seq = pbbs::delayed_seq<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
+      auto index_seq = pbbslib::make_delayed<std::pair<uintE, size_t>>(batch.size(), [&] (size_t i) {
         return std::make_pair(batch[i].first, i);
       });
 
@@ -524,7 +524,7 @@ namespace gbbs {
 //      }
 
       // starts contains (vertex id, indexof start in batch) pairs.
-      auto starts = pbbs::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
+      auto starts = pbbslib::filter(index_seq, [&] (const std::pair<uintE, size_t>& p) {
         size_t ind = p.second;
         return ind == 0 || (index_seq[ind].first != index_seq[ind-1].first);
       });

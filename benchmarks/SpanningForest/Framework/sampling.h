@@ -41,7 +41,7 @@ template <
 
       return Edges;
       /* filter empty_edge pairs from Edge */
-      return pbbs::filter(Edges, [&] (const edge& e) {
+      return pbbslib::filter(Edges, [&] (const edge& e) {
         return e != empty_edge;
       });
     }
@@ -63,7 +63,7 @@ template <
       algorithm.initialize(Parents, Edges);
       algorithm.template compute_spanning_forest<no_sampling>(Parents, Edges);
       return Edges;
-      return pbbs::filter(Edges, [&] (const edge& e) {
+      return pbbslib::filter(Edges, [&] (const edge& e) {
         return e != empty_edge;
       });
     }

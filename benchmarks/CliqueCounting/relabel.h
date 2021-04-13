@@ -113,7 +113,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     }
   }, 1);
 
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
+  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = byte_offsets[i];
     out_vdata[rank[i]].degree = degrees[i];
@@ -180,7 +180,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     }
   }, 1);
 
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
+  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = outOffsets[i];
     out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];

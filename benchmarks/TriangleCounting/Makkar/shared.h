@@ -272,7 +272,7 @@ namespace DBTGraph{
         }
 
         inline size_t cleanUp(){
-            if(pbbs::atomic_compare_and_swap(&changing, false, true)){
+            if(pbbslib::atomic_compare_and_swap(&changing, false, true)){
             c1  = c1 + c2 + c3 -c4 -c5;
             c2 = 0;
             c3 = 0;

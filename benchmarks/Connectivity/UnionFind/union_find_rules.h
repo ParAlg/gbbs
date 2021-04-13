@@ -37,7 +37,7 @@ namespace find_variants {
         return v;
       }
       else {
-        pbbs::atomic_compare_and_swap(&parents[i],v,w);
+        pbbslib::atomic_compare_and_swap(&parents[i],v,w);
         // i = its parents
         i = v;
       }
@@ -51,7 +51,7 @@ namespace find_variants {
       if(v == w) {
         return v;
       } else {
-        pbbs::atomic_compare_and_swap(&parents[i],(parent)v,(parent)w);
+        pbbslib::atomic_compare_and_swap(&parents[i],(parent)v,(parent)w);
         // i = its grandparent
         i = parents[i];
       }
@@ -68,7 +68,7 @@ namespace splice_variants {
     parent w = parents[v];
     if(v == w) return v;
     else {
-      pbbs::atomic_compare_and_swap(&parents[i],v,w);
+      pbbslib::atomic_compare_and_swap(&parents[i],v,w);
       i = v;
       return i;
     }
@@ -80,7 +80,7 @@ namespace splice_variants {
     parent w = parents[v];
     if(v == w) return v;
     else {
-      pbbs::atomic_compare_and_swap(&parents[i],v,w);
+      pbbslib::atomic_compare_and_swap(&parents[i],v,w);
       i = w;
       return i;
     }
@@ -89,7 +89,7 @@ namespace splice_variants {
   /* Used in Rem-CAS variants for splice */
   inline uintE splice_atomic(uintE u, uintE v, sequence<parent>& parents) {
     parent z = parents[u];
-    pbbs::atomic_compare_and_swap(&parents[u], z, parents[v]);
+    pbbslib::atomic_compare_and_swap(&parents[u], z, parents[v]);
     return z;
   }
 } // namespace splice_variants
@@ -109,10 +109,10 @@ namespace unite_variants {
         u = find(u,parents);
         v = find(v,parents);
         if(u == v) break;
-        else if (u > v && parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) {
+        else if (u > v && parents[u] == u && pbbslib::atomic_compare_and_swap(&parents[u],u,v)) {
           return u;
         }
-        else if (v > u && parents[v] == v && pbbs::atomic_compare_and_swap(&parents[v],v,u)) {
+        else if (v > u && parents[v] == v && pbbslib::atomic_compare_and_swap(&parents[v],v,u)) {
           return v;
         }
       }
@@ -135,7 +135,7 @@ namespace unite_variants {
     }
 
     bool acquire_lock(uintE u) {
-      if (!locks[u] && pbbs::atomic_compare_and_swap(&locks[u], false, true)) {
+      if (!locks[u] && pbbslib::atomic_compare_and_swap(&locks[u], false, true)) {
         return true;
       }
       return false;
@@ -188,7 +188,7 @@ namespace unite_variants {
           std::swap(rx, ry);
           std::swap(p_rx, p_ry);
         }
-        if (rx == parents[rx] && pbbs::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
+        if (rx == parents[rx] && pbbslib::atomic_compare_and_swap(&parents[rx], rx, p_ry)) {
           if constexpr (find_option != find_naive) { /* aka find_none */
             compress(x, parents);
             compress(y, parents);
@@ -213,13 +213,13 @@ namespace unite_variants {
       while(u != v) {
         /* link high -> low */
         if(v > u) std::swap(u,v);
-        if (parents[u] == u && pbbs::atomic_compare_and_swap(&parents[u],u,v)) {
+        if (parents[u] == u && pbbslib::atomic_compare_and_swap(&parents[u],u,v)) {
           ret = u;
           break;
         }
         parent z = parents[u];
         parent w = parents[z];
-        pbbs::atomic_compare_and_swap(&parents[u],z,w);
+        pbbslib::atomic_compare_and_swap(&parents[u],z,w);
         u = w;
       }
       if constexpr (find_option != find_naive) {
@@ -247,7 +247,7 @@ namespace unite_variants {
         if(u == v) break;
         /* link high -> low */
         if(u < v) std::swap(u,v);
-        if (hooks[u] == UINT_E_MAX && pbbs::atomic_compare_and_swap(&hooks[u], UINT_E_MAX,v)) {
+        if (hooks[u] == UINT_E_MAX && pbbslib::atomic_compare_and_swap(&hooks[u], UINT_E_MAX,v)) {
           parents[u] = v;
           return u;
         }

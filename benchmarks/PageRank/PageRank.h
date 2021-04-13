@@ -97,10 +97,10 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
     vertexMap(Frontier,PR_Vertex_F(p_curr.begin(),p_next.begin(),damping,n));
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       return fabs(p_curr[i]-p_next[i]);
     });
-    double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
+    double L1_norm = pbbslib::reduce(differences, pbbslib::addm<double>());
     if(L1_norm < eps) break;
 
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
@@ -160,12 +160,12 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
     tt.stop(); tt.reportTotal("em time");
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       auto d = p_curr[i];
       p_curr[i] = 0;
       return fabs(d-p_next[i]);
     });
-    double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
+    double L1_norm = pbbslib::reduce(differences, pbbslib::addm<double>());
     if(L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 
@@ -202,7 +202,7 @@ struct PR_Delta_F {
     volatile double oldV, newV;
     do { //basically a fetch-and-add
       oldV = nghSum[d]; newV = oldV + Delta[s].delta_over_degree; // Delta[s]/V[s].out_degree();
-    } while(!pbbs::atomic_compare_and_swap(&nghSum[d],oldV,newV));
+    } while(!pbbslib::atomic_compare_and_swap(&nghSum[d],oldV,newV));
     return oldV == 0.0;
   }
   inline bool cond (uintE d) { return cond_true(d); }
@@ -344,10 +344,10 @@ sequence<double> PageRankDelta(Graph& G, double eps=0.000001, double local_eps=0
       vertexFilter(All,delta::make_PR_Vertex_F(p.begin(),Delta.begin(),nghSum.begin(),damping,local_eps,get_degree));
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       return fabs(Delta[i].delta);
     });
-    double L1_norm = pbbs::reduce(differences, pbbs::addm<double>());
+    double L1_norm = pbbslib::reduce(differences, pbbslib::addm<double>());
     if(L1_norm < eps) break;
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
 

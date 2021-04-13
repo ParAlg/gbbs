@@ -216,8 +216,10 @@ namespace pbbslib {
   using pbbs::pack_out;
   using pbbs::map;
   using pbbs::filter;
+  using pbbs::filter_index;
   using pbbs::filter_out;
   using pbbs::tokenize;
+  using pbbs::split_two;
   using pbbs::is_space;
 
   constexpr const size_t _log_block_size = 10;

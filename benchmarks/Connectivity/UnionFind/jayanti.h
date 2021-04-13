@@ -43,7 +43,7 @@ namespace jayanti_rank {
   };
 
   template <class S>
-  void link(uintE u, uintE v, S& vdatas, pbbs::random r) {
+  void link(uintE u, uintE v, S& vdatas, pbbslib::random r) {
     auto ud = vdatas[u];
     auto vd = vdatas[v];
     // spend two reads to abort early with no CASs if either of the
@@ -55,21 +55,21 @@ namespace jayanti_rank {
     if (ud.get_rank() < vd.get_rank()) { // u.r < v.r
       auto expected_u = vdata(ud.get_parent(), ud.get_rank(), /* is_root= */ true);
       auto new_u = vdata(v, ud.get_rank(), /* is_root= */ false);
-      pbbs::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
+      pbbslib::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
     } else if (ud.get_rank() > vd.get_rank()) { // v.r < u.r
       auto expected_v = vdata(vd.get_parent(), vd.get_rank(), /* is_root= */ true);
       auto new_v = vdata(u, vd.get_rank(), /* is_root= */ false);
-      pbbs::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
+      pbbslib::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
     } else { // u.r == v.r
       auto random_bit = r.rand() & 1;
       if (u < v) {
         auto expected_u = vdata(ud.get_parent(), ud.get_rank(), /* is_root= */ true);
         auto new_u = vdata(v, ud.get_rank() + 1, /* is_root= */ random_bit);
-        pbbs::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
+        pbbslib::atomic_compare_and_swap(&(vdatas[u]), expected_u, new_u);
       } else {
         auto expected_v = vdata(vd.get_parent(), vd.get_rank(), /* is_root= */ true);
         auto new_v = vdata(u, vd.get_rank() + 1, /* is_root= */ random_bit);
-        pbbs::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
+        pbbslib::atomic_compare_and_swap(&(vdatas[v]), expected_v, new_v);
       }
     }
   }
@@ -101,7 +101,7 @@ namespace jayanti_rank {
       uintE w = vd.get_parent();
       auto expected_u = vdata(v, ud.get_rank(), false);
       auto new_u = vdata(w, ud.get_rank(), false);
-      pbbs::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
+      pbbslib::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
 
       // read and check
       ud = vdatas[u]; v = ud.get_parent();
@@ -116,7 +116,7 @@ namespace jayanti_rank {
       // CAS 2
       expected_u = vdata(v, ud.get_rank(), false);
       new_u = vdata(w, ud.get_rank(), false);
-      pbbs::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
+      pbbslib::atomic_compare_and_swap<vdata>(&(vdatas[u]), expected_u, new_u);
 
       u = v;
     }
@@ -125,7 +125,7 @@ namespace jayanti_rank {
   }
 
   template <class S, class Find>
-  void unite(uintE x, uintE y, S& vdatas, pbbs::random r, Find& find) {
+  void unite(uintE x, uintE y, S& vdatas, pbbslib::random r, Find& find) {
     uintE u = find(x, vdatas);
     uintE v = find(y, vdatas);
     while (u != v) {
@@ -163,7 +163,7 @@ namespace jayanti_rank {
       size_t n = GA.n;
 
       timer ut; ut.start();
-      auto r = pbbs::random();
+      auto r = pbbslib::random();
 
       uintE granularity;
       constexpr bool provides_frequent_comp = (sampling_option != no_sampling);
@@ -205,7 +205,7 @@ namespace jayanti_rank {
     template <bool reorder_updates, class Seq>
     void process_batch(sequence<parent>& parents, Seq& batch) {
       static_assert(reorder_updates == false);
-      auto r = pbbs::random();
+      auto r = pbbslib::random();
 
       parallel_for(0, batch.size(), [&] (size_t i) {
         auto [u,v, utype] = batch[i];

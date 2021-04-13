@@ -34,14 +34,14 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
   sequence<gbbs_io::Edge<gbbs::empty>> t_edges = pbbs::remove_duplicates_ordered(edges_both_directions, compare_endpoints);
-  sequence<gbbs_io::Edge<gbbs::empty>> edges = pbbs::filter(t_edges, [&] (const gbbs_io::Edge<gbbs::empty>& ee) {return ee.from  != ee.to;});
+  sequence<gbbs_io::Edge<gbbs::empty>> edges = pbbslib::filter(t_edges, [&] (const gbbs_io::Edge<gbbs::empty>& ee) {return ee.from  != ee.to;});
   t_edges.clear();
   const size_t num_edges = edges.size();
   // const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
   vertex_data* data =
     gbbs_io::internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
-  edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
+  edge_type* edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
   par_for(0, num_edges, kDefaultGranularity, [&](const size_t i) {
     const gbbs_io::Edge<gbbs::empty>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
@@ -133,8 +133,8 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
   inds.clear();
 
   // remove inserts/deletes in/notin graph
-  sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& eee) {return !dupEdge(G, eee);});
-  // sequence<pair<EdgeT, bool>> updates_final = pbbs::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdgeDel(G, e);});
+  sequence<pair<EdgeT, bool>> updates_final = pbbslib::filter(updates_valid, [&] (const pair<EdgeT, bool>& eee) {return !dupEdge(G, eee);});
+  // sequence<pair<EdgeT, bool>> updates_final = pbbslib::filter(updates_valid, [&] (const pair<EdgeT, bool>& e) {return !dupEdgeDel(G, e);});
 
   flag.clear();
   updates_valid.clear();
@@ -244,7 +244,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   // DBTGraph::SymGraph G = edge_list_to_symmetric_graph(edges, n, 0, e);
 
   // count new degrees
-  vertex_data* vertex_data_array = pbbs::new_array_no_init<vertex_data>(num_vertices);
+  vertex_data* vertex_data_array = pbbslib::new_array_no_init<vertex_data>(num_vertices);
   sequence<size_t> newDegrees = sequence<size_t>(num_vertices, [&](const size_t i) {
     return DG->get_degree(i);
   });

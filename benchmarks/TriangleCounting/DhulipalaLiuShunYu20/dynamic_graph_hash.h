@@ -295,7 +295,7 @@ class DyGraph {
   size_t pack_neighbors_helper(SetT* tb, uintE u,
                                pbbs::range<E*> seq_out) const {
     auto pred = [&](const E& t) { return tb->not_empty(getFirst(t)); };
-    auto table_seq = pbbs::delayed_sequence<E, F>(
+    auto table_seq = pbbslib::make_delayed<E>(
         tb->size(), F(u, tb->table, tb->empty_key));
     return pbbslib::filter_out(table_seq, seq_out, pred);
   }
@@ -952,7 +952,7 @@ class DyGraph {
     sequence<uintE> vArray = sequence<uintE>::no_init(n);
     par_for(0, n, [&](size_t i) { vArray[i] = i; });
     sequence<uintE> highNodes =
-        pbbs::filter(vArray, [=](size_t i) { return is_high_v(i); });
+        pbbslib::filter(vArray, [=](size_t i) { return is_high_v(i); });
     lowNum = n - highNodes.size();
     vArray.clear();
     ld.stop(); ld.reportTotal("Build DyGraph: low degree time");

@@ -164,7 +164,7 @@ inline pbbslib::dyn_arr<uintE> DegeneracyOrder(Graph& G, size_t num_buckets = 16
     finished += active.size();
     k_max = std::max(k_max, bkt.id);
 
-    auto active_seq = pbbs::delayed_seq<uintE>(active.size(), [&] (size_t i) { return active.s[i]; });
+    auto active_seq = pbbslib::make_delayed<uintE>(active.size(), [&] (size_t i) { return active.s[i]; });
     degeneracy_order.copyIn(active_seq, active.size());
 
     auto apply_f = [&](const std::tuple<uintE, uintE>& p)

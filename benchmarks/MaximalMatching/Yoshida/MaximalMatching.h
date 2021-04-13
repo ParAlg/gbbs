@@ -108,7 +108,7 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
     if (u < v) {
       auto [in_mm, work] = mm_query(u, v, RG, 0, query_cutoff);
       pbbs::write_add(&total_work[v], work);
-      pbbs::write_max(&max_query_length, work, std::less<size_t>());
+      pbbslib::write_max(&max_query_length, work, std::less<size_t>());
       if (in_mm == in) {
         pbbs::write_add(&matching_cts[u], 1);
         pbbs::write_add(&matching_cts[v], 1);

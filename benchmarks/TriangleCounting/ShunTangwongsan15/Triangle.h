@@ -79,7 +79,7 @@ inline size_t CountDirected(Graph& DG, size_t* counts,
                             vertexSubset& Frontier) {
   using W = typename Graph::weight_type;
   emdf(DG, Frontier, wrap_em_f<W>(countF<Graph>(DG, counts)), no_output);
-  auto count_seq = pbbs::delayed_seq<size_t>(DG.n, [&] (size_t i) { return counts[i]; });
+  auto count_seq = pbbslib::make_delayed<size_t>(DG.n, [&] (size_t i) { return counts[i]; });
   size_t count = pbbslib::reduce_add(count_seq);
   return count;
 }

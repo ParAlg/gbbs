@@ -111,7 +111,7 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
     bktt.stop();
   }
   auto get_dist = [&] (size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = pbbs::delayed_seq<uintE>(n, get_dist);
+  auto dist_im = pbbslib::make_delayed<uintE>(n, get_dist);
   std::cout << "max_dist = " << pbbslib::reduce_max(dist_im) << std::endl;
   bktt.reportTotal("bucket time");
 }

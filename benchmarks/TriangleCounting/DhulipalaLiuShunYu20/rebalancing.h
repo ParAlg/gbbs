@@ -76,7 +76,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
 
   // count new degrees
   vertex_data* vertex_data_array =
-      pbbs::new_array_no_init<vertex_data>(num_vertices);
+      pbbslib::new_array_no_init<vertex_data>(num_vertices);
   sequence<size_t> newDegrees =
       sequence<size_t>(num_vertices, [&](const size_t i) {
         if (vtxMap[i] == EMPTYVMAP) {
@@ -102,7 +102,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
   newDegrees.clear();
 
   // put edges to array, first old edges, then new edges
-  edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
+  edge_type* edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
   // insert from arrays
   parallel_for(0, vtxNew.size(),
                [&](const size_t i) {
@@ -194,7 +194,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
 
     // [0,numLtoH) are vertices that change from L to H, the rest from H to L
     pair<sequence<VtxUpdate>, size_t> vtxChangeLHsize =
-        pbbs::split_two(vtxChange, flag);
+        pbbslib::split_two(vtxChange, flag);
     vtxChangeLH = move(vtxChangeLHsize.first);  // LtoH, then HtoL
     numLtoH = vtxChangeLHsize.second;
     numHtoL = vtxChange.size() - numLtoH;

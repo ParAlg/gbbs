@@ -159,15 +159,15 @@ sequence<edge> tree_and_intercluster_edges(Graph& G,
   auto edge_list = pbbslib::dyn_arr<edge>(2*n);
 
   // Compute and add in tree edges.
-  auto tree_edges_with_loops = pbbs::delayed_seq<edge>(n, [&] (size_t i) {
+  auto tree_edges_with_loops = pbbslib::make_delayed<edge>(n, [&] (size_t i) {
       return std::make_pair(i, cluster_and_parents[i].parent); });
-  auto tree_edges = pbbs::filter(tree_edges_with_loops, [&] (const edge& e) {
+  auto tree_edges = pbbslib::filter(tree_edges_with_loops, [&] (const edge& e) {
     return e.first != e.second;
   });
   edge_list.copyIn(tree_edges, tree_edges.size());
 
   // Compute inter-cluster using hashing.
-  auto clusters = pbbs::delayed_seq<uintE>(n, [&] (size_t i) {
+  auto clusters = pbbslib::make_delayed<uintE>(n, [&] (size_t i) {
     return cluster_and_parents[i].cluster;
   });
   sequence<bool> flags(n, false);
@@ -177,10 +177,10 @@ sequence<edge> tree_and_intercluster_edges(Graph& G,
       flags[cluster] = true;
     }
   });
-  auto cluster_size_seq = pbbs::delayed_seq<size_t>(n, [&] (size_t i) {
+  auto cluster_size_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) {
     return static_cast<size_t>(flags[i]);
   });
-  size_t num_clusters = pbbs::reduce(cluster_size_seq, pbbs::addm<size_t>());
+  size_t num_clusters = pbbslib::reduce(cluster_size_seq, pbbslib::addm<size_t>());
 
   auto intercluster = fetch_intercluster(G, clusters, num_clusters);
   debug(std::cout << "num_intercluster edges = " << intercluster.size() << std::endl;);

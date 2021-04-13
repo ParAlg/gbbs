@@ -41,10 +41,10 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     uintE l = std::atoi(tokens[2*i]);
     uintE r = std::atoi(tokens[2*i + 1]);
     if (l > n) {
-      pbbs::write_min<uintE>(&n, l, std::greater<uintE>());
+      pbbslib::write_min<uintE>(&n, l, std::greater<uintE>());
     }
     if (r > n) {
-      pbbs::write_min<uintE>(&n, r, std::greater<uintE>());
+      pbbslib::write_min<uintE>(&n, r, std::greater<uintE>());
     }
     updates[i] = std::make_tuple(l, r, gbbs::empty());
   });
