@@ -20,10 +20,10 @@ struct atomic_sum_counter {
 
   void initialize() {
     stride = 128/sizeof(T);
-    stride = pbbs::log2_up(stride);
+    stride = pbbslib::log2_up(stride);
     num_workers_ = num_workers();
     num_elms = num_workers_ << stride;
-    entries = pbbs::new_array_no_init<T>(num_elms);
+    entries = pbbslib::new_array_no_init<T>(num_elms);
     for (size_t i=0; i<num_workers_; i++) {
       entries[i << stride] = (T)0;
     }
@@ -31,7 +31,7 @@ struct atomic_sum_counter {
 
   ~atomic_sum_counter() {
     if (entries != nullptr) {
-      pbbs::free_array(entries);
+      pbbslib::free_array(entries);
     }
   }
 

@@ -169,7 +169,7 @@ DivideRoundingUp(const size_t numerator, const size_t denominator) {
 
 // Pseudorandomly generate `num_numbers` random normal numbers, each with zero
 // mean and unit variance.
-sequence<float> RandomNormalNumbers(size_t num_numbers, pbbs::random rng);
+sequence<float> RandomNormalNumbers(size_t num_numbers, pbbslib::random rng);
 
 // Create a directed version of `graph`, pointing edges from lower degree
 // vertices to higher degree vertices. This upper bounds the out-degree of each
@@ -181,7 +181,7 @@ auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
   auto directed_graph{filterGraph(*graph, filter_predicate)};
-  pbbs::free_array(vertex_degree_ranking);
+  pbbslib::free_array(vertex_degree_ranking);
   return directed_graph;
 }
 
@@ -363,7 +363,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   const uintE num_needs_normals{pbbslib::scan_add_inplace(needs_normals_seq)};
   const sequence<uintE>& normals_indices{needs_normals_seq};
   const sequence<float> normals{RandomNormalNumbers(
-      num_needs_normals * num_samples, pbbs::random{random_seed})};
+      num_needs_normals * num_samples, pbbslib::random{random_seed})};
   const uintE num_needs_fingerprint{
     pbbslib::scan_add_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
@@ -560,7 +560,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
         const size_t neighbor_fingerprint_offset{
           fingerprint_indices[u_id] * num_bit_arrays};
         const auto fingerprint_xor{
-          pbbs::delayed_seq<std::remove_const<decltype(num_samples)>::type>(
+          pbbslib::make_delayed<std::remove_const<decltype(num_samples)>::type>(
             num_bit_arrays,
             [&](const size_t i) {
               return __builtin_popcountll(
@@ -630,13 +630,13 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // For edges with a low degree vertex, compute the Jaccard similarity exactly
   // with triangle counting like in `AllEdgeNeighborhoodSimilarities()`.
   const uint32_t log_num_samples{
-    std::max<uint32_t>(pbbs::log2_up(original_num_samples), 1)};
+    std::max<uint32_t>(pbbslib::log2_up(original_num_samples), 1)};
   const uintE num_samples{static_cast<uintE>(1ULL << log_num_samples)};
   const uintE bucket_mask{num_samples - 1};
   constexpr uintE kEmptyBucket{UINT_E_MAX};
   const size_t num_vertices{graph->n};
   const sequence<uintE> vertex_permutation{
-    pbbs::random_permutation<uintE>(num_vertices, pbbs::random{random_seed})};
+    pbbslib::random_permutation<uintE>(num_vertices, pbbslib::random{random_seed})};
 
   sequence<uintE> needs_fingerprint_seq{
       graph->n,
@@ -679,7 +679,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
         const uintE permuted_neighbor{vertex_permutation[neighbor]};
         const uintE bucket_id{permuted_neighbor & bucket_mask};
         const uintE bucket_value{permuted_neighbor >> log_num_samples};
-        pbbs::write_min(
+        pbbslib::write_min(
             &(fingerprints[fingerprint_offset + bucket_id]),
             bucket_value,
             std::less<uintE>{});
@@ -764,7 +764,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
           fingerprint_indices[u_id] * num_samples};
         const uintE fingerprint_matches{
           pbbslib::reduce_add(
-            pbbs::delayed_seq<uintE>(
+            pbbslib::make_delayed<uintE>(
               num_samples,
               [&](const size_t i) {
                 return
@@ -774,7 +774,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
               }))};
         const uintE fingerprint_empty_count{
           pbbslib::reduce_add(
-            pbbs::delayed_seq<uintE>(
+            pbbslib::make_delayed<uintE>(
               num_samples,
               [&](const size_t i) {
                 return

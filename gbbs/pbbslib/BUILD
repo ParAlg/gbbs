@@ -6,7 +6,7 @@ cc_library(
   ],
   deps = [
     "//gbbs:macros",
-    "//pbbslib:utilities",
+    "//gbbs:bridge",
   ],
 )
 

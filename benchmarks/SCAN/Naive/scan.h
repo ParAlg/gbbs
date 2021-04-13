@@ -107,7 +107,7 @@ Clustering Cluster(
         }};
       constexpr bool kParallel{false};
       vertex.out_neighbors().map(get_neighboring_clusters, kParallel);
-      clustering[vertex_id] = pbbs::remove_duplicates_ordered(
+      clustering[vertex_id] = pbbslib::remove_duplicates_ordered(
           neighboring_clusters.slice(0, index), std::less<uintE>{});
     }
   });

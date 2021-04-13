@@ -32,7 +32,7 @@ void ReportTime([[maybe_unused]] const timer& t) {
 
 NeighborOrder::NeighborOrder() : similarities_{}, similarities_by_source_{} {}
 
-const pbbs::range<EdgeSimilarity*>&
+const pbbslib::range<EdgeSimilarity*>&
 NeighborOrder::operator[](size_t source) const {
   return similarities_by_source_[source];
 }
@@ -45,11 +45,11 @@ size_t NeighborOrder::size() const {
   return similarities_by_source_.size();
 }
 
-pbbs::range<EdgeSimilarity*>* NeighborOrder::begin() const {
+pbbslib::range<EdgeSimilarity*>* NeighborOrder::begin() const {
   return similarities_by_source_.begin();
 }
 
-pbbs::range<EdgeSimilarity*>* NeighborOrder::end() const {
+pbbslib::range<EdgeSimilarity*>* NeighborOrder::end() const {
   return similarities_by_source_.end();
 }
 
@@ -62,10 +62,10 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
   timer function_timer{"Compute core order time"};
 
   sequence<VertexDegree> vertex_degrees{
-    pbbs::map_with_index<VertexDegree>(
+    pbbslib::map_with_index<VertexDegree>(
         neighbor_order,
         [](const size_t v,
-           const pbbs::range<EdgeSimilarity*>& neighbors) {
+           const pbbslib::range<EdgeSimilarity*>& neighbors) {
           return VertexDegree{
             .vertex_id = static_cast<uintE>(v),
             .degree = static_cast<uintE>(neighbors.size())};
@@ -105,7 +105,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
       vertex_degrees.slice(degree_offsets[mu - 1], vertex_degrees.size())};
 
     sequence<CoreThreshold> core_thresholds{
-      pbbs::map<CoreThreshold>(
+      pbbslib::map<CoreThreshold>(
         core_vertices,
         [&](const VertexDegree& vertex_degree) {
           return CoreThreshold{
@@ -118,7 +118,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
       [](const CoreThreshold& a, const CoreThreshold& b) {
         return a.threshold > b.threshold;
       }};
-    pbbs::sample_sort_inplace(
+    pbbslib::sample_sort_inplace(
         core_thresholds.slice(), compare_threshold_descending);
     return core_thresholds;
   }};
@@ -145,12 +145,12 @@ CoreOrder::GetCores(const uint64_t mu, const float epsilon) const {
 
   const sequence<CoreThreshold>& possible_cores(order_[mu]);
   const size_t cores_end{
-    pbbs::binary_search(
+    pbbslib::binary_search(
         possible_cores,
         [epsilon](const internal::CoreThreshold& core_threshold) {
           return core_threshold.threshold >= epsilon;
         })};
-  return pbbs::map<uintE>(
+  return pbbslib::map<uintE>(
       possible_cores.slice(0, cores_end),
       [](const internal::CoreThreshold& core_threshold) {
         return core_threshold.vertex_id;

@@ -21,8 +21,8 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     abort();
   }
 
-  sequence<char> chars = pbbs::char_seq_from_file(in_file);
-  auto tokens = pbbs::tokenize(chars, [] (const char c) { return pbbs::is_space(c); });
+  sequence<char> chars = pbbslib::char_seq_from_file(in_file);
+  auto tokens = pbbslib::tokenize(chars, [] (const char c) { return pbbslib::is_space(c); });
   // parseback to ints
 
   assert(tokens.size() % 2 == 0); // m tuples, into two tokens each
@@ -41,10 +41,10 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     uintE l = std::atoi(tokens[2*i]);
     uintE r = std::atoi(tokens[2*i + 1]);
     if (l > n) {
-      pbbs::write_min<uintE>(&n, l, std::greater<uintE>());
+      pbbslib::write_min<uintE>(&n, l, std::greater<uintE>());
     }
     if (r > n) {
-      pbbs::write_min<uintE>(&n, r, std::greater<uintE>());
+      pbbslib::write_min<uintE>(&n, r, std::greater<uintE>());
     }
     updates[i] = std::make_tuple(l, r, gbbs::empty());
   });
@@ -52,7 +52,7 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
 //  auto sort_f = [&] (const std::tuple<uintE, uintE>& l, const std::tuple<uintE, uintE>& r) {
 //    return l < r;
 //  };
-//  pbbs::sample_sort_inplace(updates.slice(), sort_f);
+//  pbbslib::sample_sort_inplace(updates.slice(), sort_f);
 
   size_t batch_size = P.getOptionLongValue("-batch_size", 1000000); /* batch size */
 

@@ -11,6 +11,7 @@ cc_library(
   ":bridge",
   ":flags",
   ":graph",
+  ":get_time",
   ":interface",
   ":macros",
   ":vertex_subset",
@@ -33,6 +34,7 @@ cc_library(
   hdrs = ["bridge.h"],
   srcs = ["bridge.cc"],
   deps = [
+  ":get_time",
   "//pbbslib:binary_search",
   "//pbbslib:counting_sort",
   "//pbbslib:integer_sort",
@@ -43,6 +45,7 @@ cc_library(
   "//pbbslib:sample_sort",
   "//pbbslib:seq",
   "//pbbslib:sequence_ops",
+  "//pbbslib/strings:string_basics",
   "//pbbslib:utilities",
   ]
 )
@@ -119,12 +122,19 @@ cc_library(
 )
 
 cc_library(
+  name = "get_time",
+  hdrs = ["get_time.h"],
+  srcs = ["get_time.cc"],
+)
+
+cc_library(
   name = "graph_mutation",
   hdrs = ["graph_mutation.h"],
   deps = [
   ":bridge",
   ":compressed_vertex",
   ":edge_array",
+  ":get_time",
   ":vertex",
   ":vertex_subset",
   ]
@@ -199,7 +209,6 @@ cc_library(
   ":macros",
   ":vertex",
   "//pbbslib:sample_sort",
-  "//pbbslib/strings:string_basics",
   ]
 )
 

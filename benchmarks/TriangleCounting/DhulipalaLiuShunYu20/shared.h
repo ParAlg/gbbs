@@ -44,11 +44,11 @@ namespace DBTGraph{
     return edges[i].first.second;
     }
 
-    inline uintE getFirst(pbbs::range<pair<EdgeT,bool> *> edges, size_t i){
+    inline uintE getFirst(pbbslib::range<pair<EdgeT,bool> *> edges, size_t i){
     return edges[i].first.first;
     }
 
-    inline uintE getSecond(pbbs::range<pair<EdgeT,bool> *> edges, size_t i){
+    inline uintE getSecond(pbbslib::range<pair<EdgeT,bool> *> edges, size_t i){
     return edges[i].first.second;
     }
 
@@ -356,7 +356,7 @@ namespace DBTGraph{
         }
 
         inline size_t cleanUp(){
-            if(pbbs::atomic_compare_and_swap(&changing, false, true)){
+            if(pbbslib::atomic_compare_and_swap(&changing, false, true)){
             c1  = c1 + c2 + c3 -c4 -c5;
             c2 = 0;
             c3 = 0;
@@ -377,13 +377,13 @@ namespace DBTGraph{
 
 
     struct vertexHash { //TODO: check
-        uint64_t operator ()(const uintE& v) const {return pbbs::hash64_2(v);}
+        uint64_t operator ()(const uintE& v) const {return pbbslib::hash64_2(v);}
         int cmp(uintE v, uintE b) {return (v > b) ? 1 : ((v == b) ? 0 : -1);}
     };
 
     struct edgeHash { //TODO: check
         uint64_t operator ()(const EdgeT& v) const{
-            return pbbs::hash_combine(pbbs::hash64_2(v.first), pbbs::hash64_2(v.second));}
+            return pbbslib::hash_combine(pbbslib::hash64_2(v.first), pbbslib::hash64_2(v.second));}
         int cmp(EdgeT v, EdgeT b) {return (v > b) ? 1 : ((v == b) ? 0 : -1);}
 
     }; 

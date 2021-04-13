@@ -27,7 +27,7 @@ struct KOutSamplingTemplate {
       parent p_high = Parents[high];
       // Was already 'low' or succeeded in writing 'low'
       if (p_high == low) break;
-      if (p_high == high && pbbs::atomic_compare_and_swap(&Parents[high], high, low)) {
+      if (p_high == high && pbbslib::atomic_compare_and_swap(&Parents[high], high, low)) {
         Edges[high] = std::make_pair(u,v); // One write per root, store (u,v) in high.
         break;
       }
@@ -44,7 +44,7 @@ struct KOutSamplingTemplate {
     auto Parents = sequence<parent>(n, [&] (size_t i) { return i; });
     auto Edges = sequence<edge>(n, empty_edge);
 
-    pbbs::random rnd;
+    pbbslib::random rnd;
     uintE granularity = 1024;
     for (uint32_t r=0; r<neighbor_rounds; r++) {
       if (r == 0) {

@@ -505,7 +505,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     auto C = pbbslib::sequence_to_string(tups);
-    pbbs::char_seq_to_file(C, out_f);
+    pbbslib::char_seq_to_file(C, out_f);
     // benchIO::writeArrayToStream(out, tups.begin(), n);
     // for (size_t i = 0; i < n; i++) {
     //   out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";

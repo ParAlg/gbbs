@@ -113,7 +113,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     }
   }, 1);
 
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
+  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = byte_offsets[i];
     out_vdata[rank[i]].degree = degrees[i];
@@ -180,7 +180,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     }
   }, 1);
 
-  auto out_vdata = pbbs::new_array_no_init<vertex_data>(n);
+  auto out_vdata = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     out_vdata[i].offset = outOffsets[i];
     out_vdata[i].degree = outOffsets[i+1]-outOffsets[i];
@@ -201,7 +201,7 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   size_t n = GA.n;
   // Color vertices with denom colors
   uintE numColors = std::max((size_t) 1,denom);
-  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbs::hash64_2((uintE) seed+i) % numColors; });
+  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbslib::hash64_2((uintE) seed+i) % numColors; });
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (colors[u] == colors[v]) return 0;
     return 1;

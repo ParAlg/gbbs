@@ -59,7 +59,7 @@ double SF_runner(Graph& G, commandLine P) {
 
   alg.template compute_spanning_forest<no_sampling>(parents, edges);
 
-  auto filtered_edges = pbbs::filter(edges, [&] (const edge& e) {
+  auto filtered_edges = pbbslib::filter(edges, [&] (const edge& e) {
     return e != empty_edge;
   });
 

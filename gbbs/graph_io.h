@@ -36,7 +36,6 @@
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
 #include "pbbslib/sample_sort.h"
-#include "pbbslib/strings/string_basics.h"
 
 namespace gbbs {
 namespace gbbs_io {
@@ -71,10 +70,10 @@ const std::string kWeightedAdjGraphHeader = "WeightedAdjacencyGraph";
 void skip_ifstream_comments(std::ifstream* stream);
 
 template <class weight_type>
-size_t get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>&);
+size_t get_num_vertices_from_edges(const sequence<Edge<weight_type>>&);
 
 template <class weight_type>
-vertex_data* sorted_edges_to_vertex_data_array(size_t, const pbbs::sequence<Edge<weight_type>>&);
+vertex_data* sorted_edges_to_vertex_data_array(size_t, const sequence<Edge<weight_type>>&);
 
 template <class weight_type>
 std::tuple<size_t, size_t, uintT*, std::tuple<uintE, weight_type>*>
@@ -91,8 +90,8 @@ parse_weighted_graph(
 //
 // The argument is passed by value, so use `std::move` where appropriate.
 template <class weight_type>
-pbbs::sequence<Edge<weight_type>> sort_and_dedupe(
-  pbbs::sequence<Edge<weight_type>> edges);
+sequence<Edge<weight_type>> sort_and_dedupe(
+  sequence<Edge<weight_type>> edges);
 
 } // namespace internal
 
@@ -135,13 +134,13 @@ symmetric_graph<symmetric_vertex, weight_type> read_weighted_symmetric_graph(
   std::tie(n, m, offsets, edges) =
     internal::parse_weighted_graph<weight_type>(fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
   if (!binary) {
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
   }
 
   return symmetric_graph<symmetric_vertex, weight_type>(v_data, n, m,
@@ -171,12 +170,12 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   std::tie(n, m, offsets, edges) =
     internal::parse_weighted_graph<weight_type>(fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
-  pbbs::free_array(offsets);
+  pbbslib::free_array(offsets);
 
   uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n+1);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -193,7 +192,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   });
 
   auto temp_seq = pbbslib::make_sequence(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const triple& p) { return p.first; }, pbbs::log2_up(n));
+  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const triple& p) { return p.first; }, pbbslib::log2_up(n));
 
   tOffsets[temp[0].first] = 0;
   id_and_weight* inEdges = pbbslib::new_array_no_init<id_and_weight>(m);
@@ -215,12 +214,12 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   M.identity = m;
   pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
-  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
   });
-  pbbs::free_array(tOffsets);
+  pbbslib::free_array(tOffsets);
 
   return asymmetric_graph<asymmetric_vertex, weight_type>(v_data, v_in_data, n, m, [=]() { pbbslib::free_arrays(v_data, v_in_data, edges, inEdges); }, edges, inEdges);
 }
@@ -245,7 +244,7 @@ read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   skip += n * sizeof(intE);
   uchar* edges = (uchar*)(bytes + skip);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = Degrees[i];
@@ -297,8 +296,8 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   skip += n * sizeof(uintE);
   inEdges = (uchar*)(bytes+ skip);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
-  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
+  auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = Degrees[i];
@@ -374,8 +373,8 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     return asymmetric_graph<asymmetric_vertex, weight_type>{};
   }
 
-  const pbbs::sequence<Edge<weight_type>> out_edges = internal::sort_and_dedupe(
-      pbbs::sequence<Edge<weight_type>>{
+  const sequence<Edge<weight_type>> out_edges = internal::sort_and_dedupe(
+      sequence<Edge<weight_type>>{
         edge_list.size(),
         [&](const size_t i) { return edge_list[i]; }});
   const size_t num_edges = out_edges.size();
@@ -383,8 +382,8 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
   vertex_data* vertex_out_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, out_edges);
 
-  pbbs::sequence<Edge<weight_type>> in_edges =
-    pbbs::map<Edge<weight_type>>(out_edges, [&](const Edge<weight_type>& edge) {
+  sequence<Edge<weight_type>> in_edges =
+    pbbslib::map<Edge<weight_type>>(out_edges, [&](const Edge<weight_type>& edge) {
       return Edge<weight_type>{edge.to, edge.from, edge.weight};
     });
   constexpr auto compare_endpoints = [](
@@ -392,12 +391,12 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
       const Edge<weight_type>& right) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
-  pbbs::sample_sort_inplace(in_edges.slice(), compare_endpoints);
+  pbbslib::sample_sort_inplace(in_edges.slice(), compare_endpoints);
   vertex_data* vertex_in_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, in_edges);
 
-  edge_type* out_edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
-  edge_type* in_edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
+  edge_type* out_edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
+  edge_type* in_edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
   par_for(0, num_edges, [&](const size_t i) {
     const Edge<weight_type>& out_edge = out_edges[i];
     out_edges_array[i] = std::make_tuple(out_edge.to, out_edge.weight);
@@ -431,21 +430,21 @@ edge_list_to_symmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     return symmetric_graph<symmetric_vertex, weight_type>{};
   }
 
-  pbbs::sequence<Edge<weight_type>> edges_both_directions(2 * edge_list.size());
+  sequence<Edge<weight_type>> edges_both_directions(2 * edge_list.size());
   par_for(0, edge_list.size(), [&](const size_t i) {
       const Edge<weight_type>& edge = edge_list[i];
       edges_both_directions[2 * i] = edge;
       edges_both_directions[2 * i + 1] =
         Edge<weight_type>{edge.to, edge.from, edge.weight};
   });
-  const pbbs::sequence<Edge<weight_type>> edges =
+  const sequence<Edge<weight_type>> edges =
     internal::sort_and_dedupe(std::move(edges_both_directions));
   const size_t num_edges = edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(edges);
   vertex_data* vertex_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, edges);
 
-  edge_type* edges_array = pbbs::new_array_no_init<edge_type>(num_edges);
+  edge_type* edges_array = pbbslib::new_array_no_init<edge_type>(num_edges);
   par_for(0, num_edges, [&](const size_t i) {
     const Edge<weight_type>& edge = edges[i];
     edges_array[i] = std::make_tuple(edge.to, edge.weight);
@@ -475,7 +474,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
   const size_t num_vertices{graph.n};
   const size_t num_edges{graph.m};
 
-  pbbs::sequence<size_t> offsets{num_vertices,
+  sequence<size_t> offsets{num_vertices,
     [&](const size_t i) {
       return graph.get_vertex(i).out_degree();
     }};
@@ -517,8 +516,8 @@ template <class...> constexpr std::false_type always_false{};
 // return the minimal valid value of n.
 template <class weight_type>
 size_t
-get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>& edges) {
-  const auto max_endpoints = pbbs::delayed_seq<size_t>(
+get_num_vertices_from_edges(const sequence<Edge<weight_type>>& edges) {
+  const auto max_endpoints = pbbslib::make_delayed<size_t>(
     edges.size(),
     [&](const size_t i) {
       return std::max(edges[i].from, edges[i].to);
@@ -531,7 +530,7 @@ get_num_vertices_from_edges(const pbbs::sequence<Edge<weight_type>>& edges) {
 template <class weight_type>
 vertex_data* sorted_edges_to_vertex_data_array(
     const size_t num_vertices,
-    const pbbs::sequence<Edge<weight_type>>& edges) {
+    const sequence<Edge<weight_type>>& edges) {
   if (edges.empty()) {
     return {};
   }
@@ -611,7 +610,7 @@ parse_weighted_graph(
         S = readStringFromFile(fname);
       }
     }
-    tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    tokens = pbbslib::tokenize(S, [] (const char c) { return pbbslib::is_space(c); });
     assert(tokens[0] == internal::kWeightedAdjGraphHeader);
 
     uint64_t len = tokens.size() - 1;
@@ -652,8 +651,8 @@ parse_weighted_graph(
 }
 
 template <class weight_type>
-pbbs::sequence<Edge<weight_type>> sort_and_dedupe(
-  pbbs::sequence<Edge<weight_type>> edges) {
+sequence<Edge<weight_type>> sort_and_dedupe(
+  sequence<Edge<weight_type>> edges) {
   constexpr auto compare_endpoints{[](
       const Edge<weight_type>& left,
       const Edge<weight_type>& right) {
@@ -664,7 +663,7 @@ pbbs::sequence<Edge<weight_type>> sort_and_dedupe(
       const Edge<weight_type>& right) {
     return std::tie(left.from, left.to) != std::tie(right.from, right.to);
   }};
-  pbbs::sample_sort_inplace(edges.slice(), compare_endpoints);
+  pbbslib::sample_sort_inplace(edges.slice(), compare_endpoints);
   return pbbslib::pack(
       edges,
       pbbslib::make_sequence<bool>(

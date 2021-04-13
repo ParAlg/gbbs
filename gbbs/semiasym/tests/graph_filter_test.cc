@@ -10,7 +10,7 @@ namespace gbbs {
 
 symmetric_graph<symmetric_vertex, gbbs::empty> CreateStar(size_t n) {
   using edge = std::tuple<uintE, uintE, gbbs::empty>;
-  auto edges = pbbs::sequence<edge>(2*(n-1));
+  auto edges = sequence<edge>(2*(n-1));
   for (size_t i=0; i<(n-1); i++) {
     edges[2*i] = {0, i+1, gbbs::empty()};
     edges[2*i+1] = {i+1, 0, gbbs::empty()};
@@ -57,7 +57,7 @@ TEST(TestGraphFilter, TestFilter) {
 
 asymmetric_graph<asymmetric_vertex, gbbs::empty> CreateDirectedStar(size_t n) {
   using edge = std::tuple<uintE, uintE, gbbs::empty>;
-  auto edges = pbbs::sequence<edge>(n-1);
+  auto edges = sequence<edge>(n-1);
   for (size_t i=0; i<(n-1); i++) {
     edges[i] = {0, i+1, gbbs::empty()};  // directed arc from center -> satellite
     std::cout << "(" << 0 << "," << (i+1) << ")" << std::endl;

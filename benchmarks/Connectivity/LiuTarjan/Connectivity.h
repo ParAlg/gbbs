@@ -207,16 +207,16 @@ struct LiuTarjanAlgorithm {
         auto [u,v] = inserts[i];
         auto p_u = P[u];
         auto p_v = P[v];
-        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false && pbbslib::atomic_compare_and_swap(&flags[u], false, true)) {
           update(u, P, messages);
         }
-        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false && pbbslib::atomic_compare_and_swap(&flags[v], false, true)) {
           update(v, P, messages);
         }
-        if (flags[p_u] == false && pbbs::atomic_compare_and_swap(&flags[p_u], false, true)) {
+        if (flags[p_u] == false && pbbslib::atomic_compare_and_swap(&flags[p_u], false, true)) {
           update(p_u, P, messages);
         }
-        if (flags[p_v] == false && pbbs::atomic_compare_and_swap(&flags[p_v], false, true)) {
+        if (flags[p_v] == false && pbbslib::atomic_compare_and_swap(&flags[p_v], false, true)) {
           update(p_v, P, messages);
         }
       });
@@ -241,11 +241,11 @@ struct LiuTarjanAlgorithm {
       timer sc; sc.start();
       parallel_for(0, inserts.size(), [&] (size_t i) {
         auto [u,v] = inserts[i];
-        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false && pbbslib::atomic_compare_and_swap(&flags[u], false, true)) {
           shortcut(u, P);
           messages[u] = P[u];
         }
-        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false && pbbslib::atomic_compare_and_swap(&flags[v], false, true)) {
           shortcut(v, P);
           messages[v] = P[v];
         }
@@ -278,7 +278,7 @@ struct LiuTarjanAlgorithm {
           }
         });
 
-        auto new_inserts = pbbs::filter(inserts, [&] (const edge& e) {
+        auto new_inserts = pbbslib::filter(inserts, [&] (const edge& e) {
           return e != nullary_edge;
         });
         inserts = new_inserts;
@@ -416,10 +416,10 @@ struct StergiouAlgorithm {
           parent parent_v = previous_parents[v];
           bool updated = false;
           if (parents[v] > parent_u) {
-            updated |= pbbs::write_min(&parents[v], parent_u, std::less<parent>());
+            updated |= pbbslib::write_min(&parents[v], parent_u, std::less<parent>());
           }
           if (parents[u] > parent_v) {
-            updated |= pbbs::write_min(&parents[u], parent_v, std::less<parent>());
+            updated |= pbbslib::write_min(&parents[u], parent_v, std::less<parent>());
           }
           if (updated && !parents_changed) {
             parents_changed = true;

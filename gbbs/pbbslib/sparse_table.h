@@ -86,7 +86,7 @@ class sparse_table {
       auto old_table = table;
       size_t old_m = m;
       std::cout << "# Resizing table, was: " << m;
-      size_t new_size = 1 << pbbs::log2_up(2*(m + incoming));
+      size_t new_size = 1 << pbbslib::log2_up(2*(m + incoming));
       m = new_size;
       mask = m - 1;
       table = pbbslib::new_array_no_init<T>(m);

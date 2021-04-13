@@ -55,7 +55,7 @@ inline auto get_pcm_state() { return (size_t)1; }
 
 #define run_app(G, APP, rounds)                                            \
   auto before_state = gbbs::get_pcm_state();                               \
-  pbbs::timer st;                                                          \
+  gbbs::timer st;                                                          \
   double total_time = 0.0;                                                 \
   for (size_t r = 0; r < rounds; r++) {                                    \
     total_time += APP(G, P);                                               \

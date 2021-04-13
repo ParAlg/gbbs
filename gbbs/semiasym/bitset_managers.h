@@ -120,7 +120,7 @@ size_t seq_merge(SeqA& A, SeqB& B) {
 //size_t intersect_batch_seq(S& a, It& b) {
 //  size_t b_size = 128;
 //  uintE block[b_size];
-//  size_t n_blocks = pbbs::num_blocks(b.degree(), b_size);
+//  size_t n_blocks = pbbslib::num_blocks(b.degree(), b_size);
 //  size_t ans = 0;
 //  size_t i=0;
 //  size_t block_id=0;
@@ -411,7 +411,7 @@ struct uncompressed_bitset_neighbors {
 #ifndef SAGE
     return e0;
 #else
-    if (pbbs::numanode() == 0) {
+    if (pbbslib::numanode() == 0) {
       return e0;
     } else {
       return e1;
@@ -478,7 +478,7 @@ struct uncompressed_bitset_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto reduce_f = pbbs::addm<size_t>();
+    auto reduce_f = pbbslib::addm<size_t>();
     return reduce(f, reduce_f, parallel);
   }
 
@@ -620,8 +620,8 @@ struct uncompressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_space = pbbslib::new_array_no_init<uint8_t>(total_bytes);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
 
     // caller supplies:
@@ -713,8 +713,8 @@ struct uncompressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_space);
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space);
+      pbbslib::free_array(tmp_ints);
     }
   }
 
@@ -730,7 +730,7 @@ struct uncompressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     uintE old_vtx_num_blocks = vtx_num_blocks;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
     if (tmp) {
       tmp_ints = (uintE*)tmp;
@@ -809,11 +809,11 @@ struct uncompressed_bitset_neighbors {
     // Update offset values.
     auto ptr_seq = indirect_value_seq<uintE>(
         vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbs::no_flag, tmp_ints);
+    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbslib::no_flag, tmp_ints);
     vtx_degree = sum;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints);
     }
 
     // Update the degree in vtx_info.
@@ -1016,7 +1016,7 @@ struct compressed_bitset_neighbors {
 #ifndef SAGE
     return e0;
 #else
-    if (pbbs::numanode() == 0) {
+    if (pbbslib::numanode() == 0) {
       return e0;
     } else {
       return e1;
@@ -1077,7 +1077,7 @@ struct compressed_bitset_neighbors {
 
   template <class F>
   inline size_t count(F& f, bool parallel = true) {
-    auto reduce_f = pbbs::addm<size_t>();
+    auto reduce_f = pbbslib::addm<size_t>();
     return reduce(f, reduce_f, parallel);
   }
 
@@ -1227,8 +1227,8 @@ struct compressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_space = pbbslib::new_array_no_init<uint8_t>(total_bytes);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
 
     // caller supplies:
@@ -1318,8 +1318,8 @@ struct compressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_space);
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space);
+      pbbslib::free_array(tmp_ints);
     }
   }
 
@@ -1336,7 +1336,7 @@ struct compressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     uintE old_vtx_num_blocks = vtx_num_blocks;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
     if (tmp) {
       tmp_ints = (uintE*)tmp;
@@ -1431,11 +1431,11 @@ struct compressed_bitset_neighbors {
     // Update offset values.
     auto ptr_seq = indirect_value_seq<uintE>(
         vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbs::no_flag, (uintE*)tmp_ints);
+    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbslib::no_flag, (uintE*)tmp_ints);
     vtx_degree = sum;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints);
     }
 
     // Update the degree in vtx_info.

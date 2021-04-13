@@ -48,12 +48,12 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   sequence<edge> edges = GA.edges();
 
   timer kt; kt.start();
-  auto weight_seq = pbbs::delayed_seq<W>(edges.size(), [&] (size_t i) { return std::get<2>(edges[i]); });
+  auto weight_seq = pbbslib::make_delayed<W>(edges.size(), [&] (size_t i) { return std::get<2>(edges[i]); });
   std::cout << weight_seq[0] << std::endl;
   auto max_weight = pbbslib::reduce_max(weight_seq);
   std::cout << "max_weight = " << max_weight << std::endl;
   timer st; st.start();
-  pbbslib::integer_sort_inplace(edges.slice(), [&] (const edge& e) { return std::get<2>(e); }, pbbs::log2_up(n));
+  pbbslib::integer_sort_inplace(edges.slice(), [&] (const edge& e) { return std::get<2>(e); }, pbbslib::log2_up(n));
   st.stop(); st.reportTotal("sort time");
 
   auto components = sequence<uintE>(n, [&] (size_t i) { return i; });

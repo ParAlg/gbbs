@@ -55,7 +55,7 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
     auto S = gbbs_io::readStringFromFile(in_f);
-    auto Words = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    auto Words = pbbslib::tokenize(S, [] (const char c) { return pbbslib::is_space(c); });
     size_t ms = atol(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);

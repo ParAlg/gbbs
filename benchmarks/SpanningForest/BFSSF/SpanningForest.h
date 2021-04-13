@@ -38,7 +38,7 @@ struct BFS_SpanningForest_F {
     return 1;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    return (pbbs::atomic_compare_and_swap(&Parents[d], static_cast<parent>(UINT_E_MAX), static_cast<parent>(s)));
+    return (pbbslib::atomic_compare_and_swap(&Parents[d], static_cast<parent>(UINT_E_MAX), static_cast<parent>(s)));
   }
   inline bool cond(const uintE& d) { return (Parents[d] == UINT_E_MAX); }
 };
@@ -85,7 +85,7 @@ struct BFS_SpanningForest_Det_F {
     return false;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
-    pbbs::write_min<parent>(&Parents[d], static_cast<parent>(s), std::less<parent>());
+    pbbslib::write_min<parent>(&Parents[d], static_cast<parent>(s), std::less<parent>());
     return false;
   }
   inline bool cond(const uintE& d) { return (!visited[d]); }

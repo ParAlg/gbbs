@@ -56,12 +56,12 @@ namespace labelprop_sf {
 
     inline bool updateAtomic(const uintE& s, const uintE& d, const W& w) {
       if (lp_less(PrevParents[s], PrevParents[d])) {
-        pbbs::write_min<uintE>(&Parents[d], PrevParents[s], lp_less);
-        return pbbs::write_min(&changed[d], emitted, std::greater<uint8_t>());
+        pbbslib::write_min<uintE>(&Parents[d], PrevParents[s], lp_less);
+        return pbbslib::write_min(&changed[d], emitted, std::greater<uint8_t>());
       } else if (lp_less(PrevParents[d], PrevParents[s])) {
-        if (pbbs::write_min<uintE>(&Parents[s], PrevParents[d], lp_less)) {
+        if (pbbslib::write_min<uintE>(&Parents[s], PrevParents[d], lp_less)) {
           if (changed[s] == unemitted) {
-            pbbs::write_min(&changed[s], need_emit, std::greater<uint8_t>());
+            pbbslib::write_min(&changed[s], need_emit, std::greater<uint8_t>());
           }
         }
       }
@@ -85,12 +85,12 @@ namespace labelprop_sf {
       if (lp_less(PrevParents[s], PrevParents[d])) { // were not equal before this round
         if (Parents[d] == PrevParents[s]) { // ours was the winner
           auto prev_edge = Edges[d];
-          pbbs::atomic_compare_and_swap(&Edges[d], prev_edge, std::make_pair(s,d));
+          pbbslib::atomic_compare_and_swap(&Edges[d], prev_edge, std::make_pair(s,d));
         }
       } else if (lp_less(PrevParents[d], PrevParents[s])) { // were not equal before this round
         if (Parents[s] == PrevParents[d]) { // ours was the winner
           auto prev_edge = Edges[s];
-          pbbs::atomic_compare_and_swap(&Edges[s], prev_edge, std::make_pair(s,d));
+          pbbslib::atomic_compare_and_swap(&Edges[s], prev_edge, std::make_pair(s,d));
         }
       }
       return 0;
@@ -137,10 +137,10 @@ namespace labelprop_sf {
         edgeMap(GA, vs, LabelProp_F_2<W>(PrevParents, Parents, Edges), -1, dense_forward | no_output);
 
         vs.toSparse();
-        auto this_vs = pbbs::delayed_seq<uintE>(vs.size(), [&] (size_t i) {
+        auto this_vs = pbbslib::make_delayed<uintE>(vs.size(), [&] (size_t i) {
           return vs.vtx(i);
         });
-        auto new_vtxs = pbbs::filter(this_vs, [&] (uintE v) {
+        auto new_vtxs = pbbslib::filter(this_vs, [&] (uintE v) {
           return changed[v] == need_emit; /* emit those that need emitting */
         });
         std::cout << "### num acquired through need_emitted = " << new_vtxs.size() << std::endl;
@@ -164,14 +164,14 @@ namespace labelprop_sf {
     sequence<parent> Parents;
     sequence<edge> Edges(n, empty_edge);
     if constexpr (use_permutation) {
-      Parents = pbbs::random_permutation<uintE>(n);
+      Parents = pbbslib::random_permutation<uintE>(n);
     } else {
       Parents = sequence<parent>(n, [&] (size_t i) { return i; });
     }
     auto alg = LPAlgorithm<Graph>(G);
     alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
 
-    return pbbs::filter(Edges, [&] (const edge& e) {
+    return pbbslib::filter(Edges, [&] (const edge& e) {
       return e != empty_edge;
     });
   }

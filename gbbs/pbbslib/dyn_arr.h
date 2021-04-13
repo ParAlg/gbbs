@@ -52,9 +52,9 @@ namespace pbbslib {
       }
     }
 
-    pbbs::sequence<E> to_seq() {
+    sequence<E> to_seq() {
       assert(A);
-      auto ret = pbbs::sequence<E>(A, size);
+      auto ret = sequence<E>(A, size);
       size = 0;
       A = nullptr;
       return std::move(ret);

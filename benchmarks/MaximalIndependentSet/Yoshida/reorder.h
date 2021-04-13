@@ -18,7 +18,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
 
 
   using edge_w = std::tuple<uintE, W>;
-  auto edges = pbbs::new_array_no_init<edge_w>(m);
+  auto edges = pbbslib::new_array_no_init<edge_w>(m);
   parallel_for(0, n, [&] (size_t i) {
     size_t ctr = 0;
     size_t off = offs[i];
@@ -40,10 +40,10 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
       }
     };
     auto ngh_seq = pbbslib::make_sequence(edges + off, ctr);
-    pbbs::sample_sort_inplace(ngh_seq, comp_f);
+    pbbslib::sample_sort_inplace(ngh_seq, comp_f);
   }, 1);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     size_t o = offs[i];
     v_data[i].offset = o;

@@ -195,11 +195,7 @@ class tomb_table {
           return;
         }
         mask = m - 1;
-        // ne = 0;
-        // size_t line_size = 128;
-        // size_t bytes = ((m * sizeof(T)) / line_size + 1) * line_size;
-        // table = (T*)pbbs::aligned_alloc(line_size, bytes);
-        table = pbbs::new_array_no_init<T>(m);
+        table = pbbslib::new_array_no_init<T>(m);
         clearA(table, m, empty);
         parallel_for(0, old_m, [&] (size_t i) {
           if (std::get<0>(old_t[i]) != empty_key && std::get<0>(old_t[i]) != tomb_key) {

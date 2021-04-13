@@ -33,7 +33,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
 
   auto D = sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
-  auto vertices_remaining = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
+  auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
   auto alive = sequence<bool>(n, [&](size_t i) { return true; });
 
   size_t round = 1;
@@ -55,11 +55,11 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       max_density = current_density;
     }
 
-    auto keep_seq = pbbs::delayed_seq<bool>(n, [&] (size_t i) {
+    auto keep_seq = pbbslib::make_delayed<bool>(n, [&] (size_t i) {
       return !(D[i] <= target_density);
     });
 
-    auto splits = pbbs::split_two(vertices_remaining, keep_seq);
+    auto splits = pbbslib::split_two(vertices_remaining, keep_seq);
     A = std::move(splits.first);
     size_t num_removed = splits.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
@@ -109,11 +109,11 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       max_density = current_density;
     }
 
-    auto keep_seq = pbbs::delayed_seq<bool>(vtxs_remaining.size(), [&] (size_t i) {
+    auto keep_seq = pbbslib::make_delayed<bool>(vtxs_remaining.size(), [&] (size_t i) {
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 
-    auto split_vtxs_m = pbbs::split_two(vtxs_remaining, keep_seq);
+    auto split_vtxs_m = pbbslib::split_two(vtxs_remaining, keep_seq);
     A = std::move(split_vtxs_m.first);
     size_t num_removed = split_vtxs_m.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);

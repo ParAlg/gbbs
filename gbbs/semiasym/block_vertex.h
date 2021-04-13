@@ -114,7 +114,7 @@ size_t seq_merge(SeqA& A, SeqB& B) {
 //size_t intersect_batch_seq(S& a, It& b) {
 //  size_t b_size = 128;
 //  uintE block[b_size];
-//  size_t n_blocks = pbbs::num_blocks(b.degree(), b_size);
+//  size_t n_blocks = pbbslib::num_blocks(b.degree(), b_size);
 //  size_t ans = 0;
 //  size_t i=0;
 //  size_t block_id=0;

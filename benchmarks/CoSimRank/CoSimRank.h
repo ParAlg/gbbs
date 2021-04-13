@@ -18,14 +18,14 @@ struct Co_PR_F {
     return 1;
   }
   inline bool updateAtomic (const uintE& s, const uintE& d, const W& wgh) { //atomic Update
-    pbbs::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
+    pbbslib::fetch_and_add(&p_next[d],p_curr[s]/G.get_vertex(s).out_degree());
     return 1;
   }
   inline bool cond (intT d) { return cond_true(d); }
 };
 
 double inner_product(sequence<double>& arr1, sequence<double>& arr2) {
-  auto prod = pbbs::delayed_seq<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
+  auto prod = pbbslib::make_delayed<double>(arr1.size(), [&] (size_t i) { return arr1[i] * arr2[i]; });
   auto sum = pbbslib::reduce_add(prod);
   return sum;
 }
@@ -70,15 +70,15 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
     Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences_v = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       return fabs(p_curr_v[i]-p_next_v[i]);
     });
-    double L1_norm_v = pbbs::reduce(differences_v, pbbs::addm<double>());
+    double L1_norm_v = pbbslib::reduce(differences_v, pbbslib::addm<double>());
 
-    auto differences_u = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences_u = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       return fabs(p_curr_u[i]-p_next_u[i]);
     });
-    double L1_norm_u = pbbs::reduce(differences_u, pbbs::addm<double>());
+    double L1_norm_u = pbbslib::reduce(differences_u, pbbslib::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
     debug(std::cout << "L1_norm = " << L1_norm_v << ", " << L1_norm_u << std::endl;);
@@ -166,19 +166,19 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
     Frontier_u = std::move(Frontier_u_new);
 
     // Check convergence: compute L1-norm between p_curr and p_next
-    auto differences_v = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences_v = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       auto x = p_curr_v[i];
       p_curr_v[i] = 0;
       return fabs(x-p_next_v[i]);
     });
-    double L1_norm_v = pbbs::reduce(differences_v, pbbs::addm<double>());
+    double L1_norm_v = pbbslib::reduce(differences_v, pbbslib::addm<double>());
 
-    auto differences_u = pbbs::delayed_seq<double>(n, [&] (size_t i) {
+    auto differences_u = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       auto x = p_curr_u[i];
       p_curr_u[i] = 0;
       return fabs(x-p_next_u[i]);
     });
-    double L1_norm_u = pbbs::reduce(differences_u, pbbs::addm<double>());
+    double L1_norm_u = pbbslib::reduce(differences_u, pbbslib::addm<double>());
     if(L1_norm_v < eps && L1_norm_u < eps) break;
 
     // Reset p_curr

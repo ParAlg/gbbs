@@ -99,7 +99,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       return GA.get_vertex(i).out_degree() < (1 << 15); 
   });
   std::cout << "count = " << pbbslib::reduce_add(deg_lt) << std::endl;
-  auto deg_lt_ct = pbbs::delayed_seq<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
+  auto deg_lt_ct = pbbslib::make_delayed<size_t>(GA.n, [&] (size_t i) { if (GA.get_vertex(i).out_degree() < (1 << 15)) { return GA.get_vertex(i).out_degree(); } return (uintE)0;  });
   std::cout << "total degree = " << pbbslib::reduce_add(deg_lt_ct) << std::endl;
 
   auto counts = sequence<size_t>(GA.n, (size_t)0);
@@ -151,7 +151,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto b = make_buckets<edge_t, bucket_t>(trussness_multi.size(), get_bkt, increasing, num_buckets);
 
   // Stores edges idents that lose a triangle, including duplicates (MultiSet)
-  auto hash_edge_id = [&] (const edge_t& e) { return pbbs::hash32(e); };
+  auto hash_edge_id = [&] (const edge_t& e) { return pbbslib::hash32(e); };
   auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
@@ -221,7 +221,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       std::get<1>(decr_edges[i]) = b.get_bucket(current_deg, new_deg);
     });
 
-    auto rebucket_edges = pbbs::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
+    auto rebucket_edges = pbbslib::filter(decr_edges, [&] (const std::tuple<edge_t, uintE>& eb) {
       return std::get<1>(eb) != UINT_E_MAX;
     });
     auto edges_moved_f = [&] (size_t i) {
@@ -312,8 +312,8 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
       em_t.stop();
       std::cout << "compacting 4, " << del_edges.size << std::endl;
 
-      auto all_vertices = pbbs::delayed_seq<uintE>(GA.n, [&] (size_t i) { return i; });
-      auto to_pack_seq = pbbs::filter(all_vertices, [&] (uintE u) {
+      auto all_vertices = pbbslib::make_delayed<uintE>(GA.n, [&] (size_t i) { return i; });
+      auto to_pack_seq = pbbslib::filter(all_vertices, [&] (uintE u) {
         return 4*actual_degree[u] >= GA.get_vertex(u).out_degree();
       });
       auto to_pack = vertexSubset(GA.n, std::move(to_pack_seq));

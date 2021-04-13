@@ -64,10 +64,10 @@ inline void cc_check(S1& correct, S2& check) {
       abort();
     }
     if (correct[i] > max_cor) {
-      pbbs::write_max(&max_cor, correct[i], std::less<parent>());
+      pbbslib::write_max(&max_cor, correct[i], std::less<parent>());
     }
     if (check[i] > max_chk) {
-      pbbs::write_max(&max_chk, check[i], std::less<parent>());
+      pbbslib::write_max(&max_chk, check[i], std::less<parent>());
     }
   });
   std::cout << "# correctness check: " << is_correct << std::endl;

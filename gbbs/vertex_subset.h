@@ -38,9 +38,6 @@ struct vertexSubsetData {
   using S = std::tuple<uintE, data>;
   using D = std::tuple<bool, data>;
 
-  template <class T>
-  using sequence = pbbs::sequence<T>;
-
   // Move constructor
   vertexSubsetData<data>(vertexSubsetData<data>&& other) noexcept {
     n = other.n;

@@ -111,7 +111,7 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
     bktt.stop();
   }
   auto get_dist = [&] (size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = pbbs::delayed_seq<uintE>(n, get_dist);
+  auto dist_im = pbbslib::make_delayed<uintE>(n, get_dist);
   std::cout << "max_dist = " << pbbslib::reduce_max(dist_im) << std::endl;
   bktt.reportTotal("bucket time");
 }
@@ -121,7 +121,7 @@ void Compute(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src",0);
   uintE delta = P.getOptionLongValue("-delta",1);
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
-  if (num_buckets != (1 << pbbs::log2_up(num_buckets))) {
+  if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two" << std::endl;
     exit(-1);
   }

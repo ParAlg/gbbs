@@ -19,7 +19,10 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
+#include "pbbslib/strings/string_basics.h"
 #include "pbbslib/utilities.h"
+
+#include "get_time.h"
 
 namespace gbbs {
   // ================== parallel primitives ===================
@@ -75,8 +78,6 @@ namespace gbbs {
   template<typename T>
   using range = pbbs::range<T>;
 
-  using pbbs::timer;
-
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
 
 }  // namespace gbbs
@@ -87,7 +88,7 @@ namespace pbbslib {
 
   // ====================== utilities =======================
   using flags = pbbs::flags;
-  const flags no_flag = pbbs::no_flag;
+  const flags no_flag = pbbslib::no_flag;
   const flags fl_sequential = pbbs::fl_sequential;
   const flags fl_debug = pbbs::fl_debug;
   const flags fl_time = pbbs::fl_time;
@@ -110,6 +111,7 @@ namespace pbbslib {
   using pbbs::hash32_3;
   using pbbs::hash64;
   using pbbs::hash64_2;
+  using pbbs::hash_combine;
   using pbbs::atomic_compare_and_swap;
   using pbbs::fetch_and_add;
   using pbbs::write_add;
@@ -212,8 +214,30 @@ namespace pbbslib {
   using pbbs::pack;
   using pbbs::pack_index;
   using pbbs::pack_out;
+  using pbbs::map;
   using pbbs::filter;
+  using pbbs::filter_index;
   using pbbs::filter_out;
+  using pbbs::split_two;
+
+  using pbbs::tokenize;
+  using pbbs::is_space;
+  using pbbs::char_seq_from_file;
+  using pbbs::char_seq_to_file;
+  using pbbs::remove_duplicates_ordered;
+  using pbbs::get_counts;
+  using pbbs::approximate_kth_smallest;
+  using pbbs::map_with_index;
+
+  constexpr const size_t _log_block_size = 10;
+  constexpr const size_t _block_size = (1 << _log_block_size);
+
+  inline size_t num_blocks(size_t n, size_t block_size) {
+    if (n == 0)
+      return 0;
+    else
+      return (1 + ((n)-1) / (block_size));
+  }
 
   // used so second template argument can be inferred
   template <class T, class F>
@@ -221,9 +245,20 @@ namespace pbbslib {
     return pbbs::delayed_sequence<T,F>(n,f);
   }
 
+  // used so second template argument can be inferred
+  template <class T, class F>
+  inline pbbs::delayed_sequence<T,F> make_delayed (size_t n, F f) {
+    return pbbs::delayed_sequence<T,F>(n,f);
+  }
+
   template <class T>
   inline pbbs::range<T*> make_range (T* A, size_t n) {
     return pbbs::range<T*>(A, A+n);
+  }
+
+  template <class T>
+  inline pbbs::range<T*> make_range (T* start, T* end) {
+    return pbbs::range<T*>(start, end);
   }
 
   // TODO: call this make_range. make_sequence is bogus.
@@ -245,13 +280,13 @@ namespace pbbslib {
     -> typename std::remove_reference<In_Seq>::type::value_type {
     using T = typename std::remove_reference<In_Seq>::type::value_type;
     return pbbs::scan_inplace(
-        std::forward<In_Seq>(In), pbbs::addm<T>(), fl, tmp);
+        std::forward<In_Seq>(In), pbbslib::addm<T>(), fl, tmp);
   }
 
   template <class Seq>
   inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return pbbs::reduce(I, pbbs::addm<T>(), fl);
+    return pbbs::reduce(I, pbbslib::addm<T>(), fl);
   }
 
   template <class Seq>
@@ -279,7 +314,7 @@ namespace pbbslib {
     using Idx_Type = typename std::remove_reference<Out_Seq>::type::value_type;
     auto identity = [] (size_t i) {return (Idx_Type) i;};
     return pbbs::pack_out(
-        pbbs::delayed_seq<Idx_Type>(Fl.size(),identity),
+        make_delayed<Idx_Type>(Fl.size(),identity),
         Fl,
         std::forward<Out_Seq>(Out),
         fl);
@@ -314,17 +349,17 @@ namespace pbbslib {
 
   template <class T>
   void free_arrays(T* first) {
-    pbbs::free_array(first);
+    pbbslib::free_array(first);
   }
 
   template <class T, typename... Args>
   void free_arrays(T* first, Args... args) {
-    pbbs::free_array(first);
+    pbbslib::free_array(first);
     free_arrays(args...);
   }
 
   template <class Idx_Type, class D, class F>
-  inline pbbs::sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
+  inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {
     auto id_seq = pbbslib::make_sequence<std::tuple<Idx_Type, D> >(size,  [&](size_t i) {
       return std::make_tuple((Idx_Type)i, std::get<1>(f[i]));
@@ -348,7 +383,7 @@ namespace pbbslib {
   inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
     size_t b = _F_BSIZE;
     if (n < b) return filter_seq(In, Out, n, p);
-    size_t l = pbbs::num_blocks(n, b);
+    size_t l = num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
@@ -386,7 +421,7 @@ namespace pbbslib {
       }
       return k - out_off;
     }
-    size_t l = pbbs::num_blocks(n, b);
+    size_t l = num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
@@ -423,8 +458,8 @@ namespace pbbslib {
       }
       return ret;
     }
-    size_t l = pbbs::num_blocks(n, b);
-    b = pbbs::num_blocks(n, l);
+    size_t l = num_blocks(n, b);
+    b = num_blocks(n, l);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
 
     parallel_for(0, l, [&] (size_t i) {

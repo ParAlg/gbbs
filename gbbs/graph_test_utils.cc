@@ -11,7 +11,7 @@ symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
   using Edge = std::tuple<uintE, uintE, gbbs::empty>;
 
   constexpr gbbs::empty weight{};
-  pbbs::sequence<Edge> edge_sequence(edges.size() * 2);
+  sequence<Edge> edge_sequence(edges.size() * 2);
   auto edges_it{edges.cbegin()};
   for (size_t i = 0; i < edges.size(); i++) {
     edge_sequence[2 * i] =
@@ -30,7 +30,7 @@ symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
   // sorted, so we sort here. But maybe this sorting belongs in
   // `sym_graph_from_edges` or as an option to `sym_graph_from_edges`.
   // See https://github.com/ldhulipala/gbbs/pull/21.
-  pbbs::sample_sort_inplace(
+  pbbslib::sample_sort_inplace(
       edge_sequence.slice(),
       [](const Edge& left, const Edge& right) {
         return std::tie(std::get<0>(left), std::get<1>(left))

@@ -91,7 +91,7 @@ struct uncompressed_neighbors {
   uintE get_virtual_degree() { return degree; }
 
   uintE get_num_blocks() {
-    return pbbs::num_blocks(degree, vertex_ops::kBlockSize);
+    return pbbslib::num_blocks(degree, vertex_ops::kBlockSize);
   }
 
   uintE block_degree(uintE block_num) {

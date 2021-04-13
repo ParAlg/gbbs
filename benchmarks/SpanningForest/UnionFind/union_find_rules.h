@@ -45,7 +45,7 @@ namespace find_variants {
         return v;
       }
       else {
-        pbbs::atomic_compare_and_swap(&Parents[i],v,w);
+        pbbslib::atomic_compare_and_swap(&Parents[i],v,w);
         // i = its Parents
         i = v;
       }
@@ -62,7 +62,7 @@ namespace find_variants {
         report_pathlen(pathlen);
         return v;
       } else {
-        pbbs::atomic_compare_and_swap(&Parents[i],(parent)v,(parent)w);
+        pbbslib::atomic_compare_and_swap(&Parents[i],(parent)v,(parent)w);
         // i = its grandparent
         i = Parents[i];
       }
@@ -80,7 +80,7 @@ namespace splice_variants {
     parent w = Parents[v];
     if(v == w) return v;
     else {
-      pbbs::atomic_compare_and_swap(&Parents[i],v,w);
+      pbbslib::atomic_compare_and_swap(&Parents[i],v,w);
       i = v;
       return i;
     }
@@ -92,7 +92,7 @@ namespace splice_variants {
     parent w = Parents[v];
     if(v == w) return v;
     else {
-      pbbs::atomic_compare_and_swap(&Parents[i],v,w);
+      pbbslib::atomic_compare_and_swap(&Parents[i],v,w);
       i = w;
       return i;
     }
@@ -101,7 +101,7 @@ namespace splice_variants {
   /* Used in Rem-CAS variants for splice */
   inline uintE splice_atomic(uintE u, uintE v, sequence<parent>& Parents) {
     parent z = Parents[u];
-    pbbs::atomic_compare_and_swap(&Parents[u], z, Parents[v]);
+    pbbslib::atomic_compare_and_swap(&Parents[u], z, Parents[v]);
     return z;
   }
 } // namespace splice_variants
@@ -121,11 +121,11 @@ namespace unite_variants {
         u = find(u,Parents);
         v = find(v,Parents);
         if(u == v) break;
-        else if (u > v && Parents[u] == u && pbbs::atomic_compare_and_swap(&Parents[u],u,v)) {
+        else if (u > v && Parents[u] == u && pbbslib::atomic_compare_and_swap(&Parents[u],u,v)) {
           Edges[u] = std::make_pair(u_orig, v_orig);
           break;
         }
-        else if (v > u && Parents[v] == v && pbbs::atomic_compare_and_swap(&Parents[v],v,u)) {
+        else if (v > u && Parents[v] == v && pbbslib::atomic_compare_and_swap(&Parents[v],v,u)) {
           Edges[v] = std::make_pair(u_orig, v_orig);
           break;
         }
@@ -140,11 +140,11 @@ namespace unite_variants {
     Compress& compress;
     Splice& splice;
     UniteRemLock(Compress& compress, Splice& splice, uintE n) : n(n), compress(compress), splice(splice) {
-      locks = pbbs::new_array<std::mutex>(n);
+      locks = pbbslib::new_array<std::mutex>(n);
     }
 
     ~UniteRemLock() {
-      pbbs::free_array(locks);
+      pbbslib::free_array(locks);
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {
@@ -191,7 +191,7 @@ namespace unite_variants {
         if (Parents[rx] < p_ry) {
           std::swap(rx, ry);
         }
-        if (rx == Parents[rx] && pbbs::atomic_compare_and_swap(&Parents[rx], rx, p_ry)) {
+        if (rx == Parents[rx] && pbbslib::atomic_compare_and_swap(&Parents[rx], rx, p_ry)) {
           Edges[rx] = std::make_pair(x, y);
           // success
           if constexpr (find_option != find_naive) { /* aka find_none */
@@ -218,13 +218,13 @@ namespace unite_variants {
       while(u != v) {
         /* link high -> low */
         if(v > u) std::swap(u,v);
-        if (Parents[u] == u && pbbs::atomic_compare_and_swap(&Parents[u],u,v)) {
+        if (Parents[u] == u && pbbslib::atomic_compare_and_swap(&Parents[u],u,v)) {
           Edges[u] = std::make_pair(u_orig, v_orig);
           return;
         }
         parent z = Parents[u];
         parent w = Parents[z];
-        pbbs::atomic_compare_and_swap(&Parents[u],z,w);
+        pbbslib::atomic_compare_and_swap(&Parents[u],z,w);
         u = w;
       }
     }
@@ -247,7 +247,7 @@ namespace unite_variants {
         if(u == v) break;
         /* link high -> low */
         if(u < v) std::swap(u,v);
-        if (hooks[u] == UINT_E_MAX && pbbs::atomic_compare_and_swap(&hooks[u], UINT_E_MAX,v)) {
+        if (hooks[u] == UINT_E_MAX && pbbslib::atomic_compare_and_swap(&hooks[u], UINT_E_MAX,v)) {
           Edges[u] = std::make_pair(u_orig, v_orig);
           Parents[u] = v;
           break;

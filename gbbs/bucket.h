@@ -364,11 +364,11 @@ struct buckets {
     if(num_in_range == 0 && bkts[open_buckets].size > 0) {
       auto imap = pbbslib::make_sequence<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
       if(order == increasing) {
-        size_t minBkt = pbbs::reduce(imap, pbbs::minm<size_t>());
+        size_t minBkt = pbbslib::reduce(imap, pbbslib::minm<size_t>());
         cur_range = minBkt/open_buckets-1; //will be incremented in next unpack() call
       }
       else if(order == decreasing) {
-        size_t minBkt = pbbs::reduce(imap, pbbs::maxm<size_t>());
+        size_t minBkt = pbbslib::reduce(imap, pbbslib::maxm<size_t>());
         cur_range = (open_buckets+minBkt)/open_buckets+1; //will be decremented in next unpack() call
       }
     }
@@ -419,7 +419,7 @@ struct buckets {
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
     auto bkt_seq = pbbslib::make_sequence<ident_t>(size, [&] (size_t i) { return bkt.A[i]; });
-    auto filtered = pbbs::filter(bkt_seq, p);
+    auto filtered = pbbslib::filter(bkt_seq, p);
     bkts[cur_bkt].size = 0;
     if (filtered.size() == 0) {
       return next_bucket();

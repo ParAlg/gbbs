@@ -53,14 +53,14 @@ struct SVAlgorithm {
     size_t candidates_size = n;
     sequence<uintE> unhooked;
     if constexpr (sampling_option != no_sampling) {
-      auto all_vertices = pbbs::delayed_seq<uintE>(n, [&] (size_t i) { return i; });
-      unhooked = pbbs::filter(all_vertices, [&] (uintE v) {
+      auto all_vertices = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
+      unhooked = pbbslib::filter(all_vertices, [&] (uintE v) {
         return parents[v] != frequent_comp;
       });
       candidates_size = unhooked.size();
     }
 
-    auto candidates = pbbs::delayed_seq<uintE>(candidates_size, [&] (size_t i) {
+    auto candidates = pbbslib::make_delayed<uintE>(candidates_size, [&] (size_t i) {
       if constexpr (sampling_option == no_sampling) {
         return i;
       } else {
@@ -80,7 +80,7 @@ struct SVAlgorithm {
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
-            pbbs::write_min<parent>(&parents[h], l, std::less<parent>());
+            pbbslib::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         };
@@ -121,13 +121,13 @@ struct SVAlgorithm {
           parent l = std::min(p_u, p_v);
           parent h = std::max(p_u, p_v);
           if (l != h && h == prev_parents[h]) {
-            pbbs::write_min<parent>(&parents[h], l, std::less<parent>());
+            pbbslib::write_min<parent>(&parents[h], l, std::less<parent>());
             if (!changed) { changed = true; }
           }
         } /* ignore queries for now */
       });
 
-//      auto diff_map = pbbs::make_sequence<size_t>(parents.size(), [&] (size_t i) {
+//      auto diff_map = pbbslib::make_delayed<size_t>(parents.size(), [&] (size_t i) {
 //        return parents[i] != prev_parents[i];
 //      });
 
@@ -136,7 +136,7 @@ struct SVAlgorithm {
         uintE pathlen = 1;
         auto [u, v, utype] = updates[i];
         (void)utype;
-        if (flags[u] == false && pbbs::atomic_compare_and_swap(&flags[u], false, true)) {
+        if (flags[u] == false && pbbslib::atomic_compare_and_swap(&flags[u], false, true)) {
           while (parents[u] != parents[parents[u]]) {
             parents[u] = parents[parents[u]];
             pathlen++;
@@ -145,7 +145,7 @@ struct SVAlgorithm {
           report_pathlen(pathlen);
         }
 
-        if (flags[v] == false && pbbs::atomic_compare_and_swap(&flags[v], false, true)) {
+        if (flags[v] == false && pbbslib::atomic_compare_and_swap(&flags[v], false, true)) {
           while (parents[v] != parents[parents[v]]) {
             parents[v] = parents[parents[v]];
             pathlen++;

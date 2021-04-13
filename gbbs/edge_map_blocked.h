@@ -132,7 +132,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
+  size_t n_threads = pbbslib::num_blocks(outEdgeCount, kEMBlockSize);
   size_t* thread_offs = pbbslib::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   par_for(0, n_threads, 1, [&](size_t i) {  // TODO: granularity of 1?
@@ -225,15 +225,15 @@ struct emhelper {
   static constexpr size_t kThreadBlockStride = 1; //128/sizeof(thread_blocks);
 
   emhelper(size_t n_groups) : n_groups(n_groups) {
-    perthread_blocks = pbbs::new_array<thread_blocks>(n_groups*kThreadBlockStride);
-    perthread_counts = pbbs::new_array<size_t>(n_groups);
+    perthread_blocks = pbbslib::new_array<thread_blocks>(n_groups*kThreadBlockStride);
+    perthread_counts = pbbslib::new_array<size_t>(n_groups);
     alloc = true;
   }
 
   void del() {
     if (alloc) {
-      pbbs::free_array(perthread_blocks);
-      pbbs::free_array(perthread_counts);
+      pbbslib::free_array(perthread_blocks);
+      pbbslib::free_array(perthread_counts);
     }
   }
 
@@ -249,7 +249,7 @@ struct emhelper {
 
   auto get_all_blocks() {
     size_t total_blocks = scan_perthread_blocks();
-    auto all_blocks = pbbs::sequence<em_data_block*>(total_blocks);
+    auto all_blocks = sequence<em_data_block*>(total_blocks);
     if (total_blocks < 1000) { // handle sequentially
       size_t k=0;
       for (size_t i=0; i<n_groups; i++) {
@@ -362,9 +362,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // 3. Compute the number of threads, binary search for offsets.
   // try to use 8*p threads, fewer only if the blocksize guess is smaller than kEMBlockSize
-  size_t edge_block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
+  size_t edge_block_size_guess = pbbslib::num_blocks(outEdgeCount, num_workers() << 3);
   size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
-  size_t n_groups = pbbs::num_blocks(outEdgeCount, edge_block_size);
+  size_t n_groups = pbbslib::num_blocks(outEdgeCount, edge_block_size);
 
 //  std::cout << "outEdgeCount = " << outEdgeCount << std::endl;
 //  std::cout << "n_blocks = " << num_blocks << std::endl;
@@ -411,7 +411,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // scan the #output blocks/thread
   sequence<em_data_block*> all_blocks = our_emhelper.get_all_blocks();
-  auto block_offsets = pbbs::sequence<size_t>(all_blocks.size(), [&] (size_t i) {
+  auto block_offsets = sequence<size_t>(all_blocks.size(), [&] (size_t i) {
     return all_blocks[i]->block_size;
   });
   size_t output_size = pbbslib::scan_add_inplace(block_offsets.slice());

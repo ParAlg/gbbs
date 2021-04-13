@@ -39,7 +39,7 @@ double Run(Graph& G, commandLine P) {
   auto hash_to_double = [&] (const uintE& u, const uintE& v) -> double {
     auto min_v = std::min(u, v);
     auto max_v = std::max(u, v);
-    size_t hashed_v = pbbs::hash64((static_cast<size_t>(min_v) << 32UL) + static_cast<size_t>(max_v));
+    size_t hashed_v = pbbslib::hash64((static_cast<size_t>(min_v) << 32UL) + static_cast<size_t>(max_v));
     return static_cast<double>(hashed_v) / static_cast<double>(std::numeric_limits<size_t>::max());
   };
 

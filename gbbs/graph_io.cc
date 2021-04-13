@@ -2,8 +2,6 @@
 
 #include <sys/mman.h>
 
-#include "pbbslib/strings/string_basics.h"
-
 namespace gbbs {
 namespace gbbs_io {
 
@@ -65,7 +63,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
         S = readStringFromFile(fname);
       }
     }
-    tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    tokens = pbbslib::tokenize(S, [] (const char c) { return pbbslib::is_space(c); });
 
     assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
 
@@ -113,13 +111,13 @@ symmetric_graph<symmetric_vertex, gbbs::empty> read_unweighted_symmetric_graph(
   uintE* edges;
   std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
   if (!binary) {
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
   }
 
   return symmetric_graph<symmetric_vertex, gbbs::empty>(
@@ -145,13 +143,13 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   }
   std::tie(n, m, offsets, edges) = parse_unweighted_graph(fname, mmap, binary, bytes, bytes_size);
 
-  auto v_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_data[i].offset = offsets[i];
     v_data[i].degree = offsets[i+1]-v_data[i].offset;
   });
   if (!binary) {
-    pbbs::free_array(offsets);
+    pbbslib::free_array(offsets);
   }
 
   /* construct transpose of the graph */
@@ -168,7 +166,7 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   });
 
   auto temp_seq = pbbslib::make_sequence(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbs::log2_up(n));
+  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbslib::log2_up(n));
 
   tOffsets[temp[0].first] = 0;
   uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
@@ -189,12 +187,12 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   M.identity = m;
   pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
 
-  auto v_in_data = pbbs::new_array_no_init<vertex_data>(n);
+  auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
   });
-  pbbs::free_array(tOffsets);
+  pbbslib::free_array(tOffsets);
 
   return asymmetric_graph<asymmetric_vertex, gbbs::empty>(
       v_data, v_in_data, n, m, [=]() {pbbslib::free_arrays(v_data, v_in_data, inEdges, edges);},(std::tuple<uintE, gbbs::empty>*)edges, (std::tuple<uintE, gbbs::empty>*)inEdges);
