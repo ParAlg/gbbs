@@ -9,7 +9,7 @@ namespace {
   // Purely for the sake of quickly testing the _ptr_ graph objects.
   template <class Wgh>
   static inline symmetric_ptr_graph<symmetric_vertex, Wgh> sym_ptr_graph_from_edges(
-      pbbs::sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
+      sequence<std::tuple<uintE, uintE, Wgh>>& A, size_t n,
       bool is_sorted = false) {
     using edge = std::tuple<uintE, uintE, Wgh>;
     auto get_u = [&](const edge& e) { return std::get<0>(e); };
@@ -31,7 +31,7 @@ TEST(TestSymGraphFromEdges, TestBrokenPath) {
   using edge = std::tuple<uintE, uintE, int>;
   uintE n = 11;
   uintE last_vtx_id = n-1;
-  auto edges = pbbs::sequence<edge>((n-1)*2);
+  auto edges = sequence<edge>((n-1)*2);
   /* Builds a path 0--1--2--....--9--10 */
   for (size_t i=0; i<last_vtx_id; i++) {
     edges[2*i] = std::make_tuple(i, i+1, 1);
@@ -64,7 +64,7 @@ TEST(TestSymGraphFromEdges, TestGraphWithSingletons) {
   // 0 -- 1    2    3
   using edge = std::tuple<uintE, uintE, int>;
   const uintE n = 4;
-  pbbs::sequence<edge> edges(2);
+  sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   auto graph = sym_graph_from_edges(edges, n);
@@ -82,7 +82,7 @@ TEST(TestSymGraphCopy, TestCopyGraphWithSingletons) {
   // 0 -- 1    2    3
   using edge = std::tuple<uintE, uintE, int>;
   const uintE n = 4;
-  pbbs::sequence<edge> edges(2);
+  sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   auto graph = sym_graph_from_edges(edges, n);
@@ -108,7 +108,7 @@ TEST(TestSymPtrGraphFromEdges, TestGraphWithSingletons) {
   // 0 -- 1    2    3
   using edge = std::tuple<uintE, uintE, int>;
   const uintE n = 4;
-  pbbs::sequence<edge> edges(2);
+  sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   auto graph = sym_ptr_graph_from_edges(edges, n);
@@ -125,7 +125,7 @@ TEST(TestSymPtrGraphFromEdges, TestBrokenPath) {
   using edge = std::tuple<uintE, uintE, int>;
   uintE n = 11;
   uintE last_vtx_id = n-1;
-  auto edges = pbbs::sequence<edge>((n-1)*2);
+  auto edges = sequence<edge>((n-1)*2);
   /* Builds a path 0--1--2--....--9--10 */
   for (size_t i=0; i<last_vtx_id; i++) {
     edges[2*i] = std::make_tuple(i, i+1, 1);
@@ -158,7 +158,7 @@ TEST(TestSymPtrGraphCopy, TestGraphWithSingletons) {
   // 0 -- 1    2    3
   using edge = std::tuple<uintE, uintE, int>;
   const uintE n = 4;
-  pbbs::sequence<edge> edges(2);
+  sequence<edge> edges(2);
   edges[0] = std::make_tuple(0, 1, 1);
   edges[1] = std::make_tuple(1, 0, 1);
   auto graph = sym_ptr_graph_from_edges(edges, n);

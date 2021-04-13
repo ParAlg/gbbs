@@ -7,7 +7,7 @@ struct bitvector {
   uint8_t* data;
   bitvector(size_t n) : n(n) {
     size_t n_bytes = (n + 8 - 1) / 8;  // ceil(n/8);a
-    data = pbbs::new_array_no_init<uint8_t>(n_bytes);
+    data = pbbslib::new_array_no_init<uint8_t>(n_bytes);
     uint8_t zero = 0;
     parallel_for(0, n_bytes, [&](size_t i) { data[i] = zero; });
   }
@@ -49,7 +49,7 @@ struct bitvector {
 
   void del() {
     if (data) {
-      pbbs::free_array(data);
+      pbbslib::free_array(data);
       data = nullptr;
     }
   }

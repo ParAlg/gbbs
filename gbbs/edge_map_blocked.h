@@ -232,8 +232,8 @@ struct emhelper {
 
   void del() {
     if (alloc) {
-      pbbs::free_array(perthread_blocks);
-      pbbs::free_array(perthread_counts);
+      pbbslib::free_array(perthread_blocks);
+      pbbslib::free_array(perthread_counts);
     }
   }
 
@@ -249,7 +249,7 @@ struct emhelper {
 
   auto get_all_blocks() {
     size_t total_blocks = scan_perthread_blocks();
-    auto all_blocks = pbbs::sequence<em_data_block*>(total_blocks);
+    auto all_blocks = sequence<em_data_block*>(total_blocks);
     if (total_blocks < 1000) { // handle sequentially
       size_t k=0;
       for (size_t i=0; i<n_groups; i++) {
@@ -411,7 +411,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // scan the #output blocks/thread
   sequence<em_data_block*> all_blocks = our_emhelper.get_all_blocks();
-  auto block_offsets = pbbs::sequence<size_t>(all_blocks.size(), [&] (size_t i) {
+  auto block_offsets = sequence<size_t>(all_blocks.size(), [&] (size_t i) {
     return all_blocks[i]->block_size;
   });
   size_t output_size = pbbslib::scan_add_inplace(block_offsets.slice());

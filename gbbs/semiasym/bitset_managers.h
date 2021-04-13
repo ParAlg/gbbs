@@ -620,8 +620,8 @@ struct uncompressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_space = pbbslib::new_array_no_init<uint8_t>(total_bytes);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
 
     // caller supplies:
@@ -713,8 +713,8 @@ struct uncompressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_space);
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space);
+      pbbslib::free_array(tmp_ints);
     }
   }
 
@@ -730,7 +730,7 @@ struct uncompressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     uintE old_vtx_num_blocks = vtx_num_blocks;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
     if (tmp) {
       tmp_ints = (uintE*)tmp;
@@ -813,7 +813,7 @@ struct uncompressed_bitset_neighbors {
     vtx_degree = sum;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints);
     }
 
     // Update the degree in vtx_info.
@@ -1227,8 +1227,8 @@ struct compressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     size_t total_bytes = vtx_num_blocks * bytes_per_block;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_space = pbbs::new_array_no_init<uint8_t>(total_bytes);
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_space = pbbslib::new_array_no_init<uint8_t>(total_bytes);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
 
     // caller supplies:
@@ -1318,8 +1318,8 @@ struct compressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_space);
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space);
+      pbbslib::free_array(tmp_ints);
     }
   }
 
@@ -1336,7 +1336,7 @@ struct compressed_bitset_neighbors {
     uintE* tmp_ints = (uintE*)int_stk;
     uintE old_vtx_num_blocks = vtx_num_blocks;
     if ((tmp == nullptr) && (vtx_num_blocks > kBlockAllocThreshold)) {
-      tmp_ints = pbbs::new_array_no_init<uintE>(vtx_num_blocks);
+      tmp_ints = pbbslib::new_array_no_init<uintE>(vtx_num_blocks);
     }
     if (tmp) {
       tmp_ints = (uintE*)tmp;
@@ -1435,7 +1435,7 @@ struct compressed_bitset_neighbors {
     vtx_degree = sum;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbs::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints);
     }
 
     // Update the degree in vtx_info.

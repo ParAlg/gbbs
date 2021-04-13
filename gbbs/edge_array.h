@@ -47,7 +47,7 @@ struct edge_array {
   size_t size() { return E.size(); }
 
   // Clears the edge array.
-  pbbs::sequence<edge> to_seq() {
+  sequence<edge> to_seq() {
     n = 0;
     return std::move(E);
   }
@@ -70,7 +70,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
   using edge = std::tuple<uintE, uintE, W>;
 
   size_t n = G.n;
-  auto sizes = pbbs::sequence<uintT>::uninitialized(n);
+  auto sizes = sequence<uintT>::uninitialized(n);
   parallel_for(0, n,
                [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
   size_t m = pbbslib::scan_add_inplace(sizes.slice());

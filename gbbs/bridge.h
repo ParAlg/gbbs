@@ -221,6 +221,12 @@ namespace pbbslib {
     return pbbs::delayed_sequence<T,F>(n,f);
   }
 
+  // used so second template argument can be inferred
+  template <class T, class F>
+  inline pbbs::delayed_sequence<T,F> make_delayed (size_t n, F f) {
+    return pbbs::delayed_sequence<T,F>(n,f);
+  }
+
   template <class T>
   inline pbbs::range<T*> make_range (T* A, size_t n) {
     return pbbs::range<T*>(A, A+n);
@@ -279,7 +285,7 @@ namespace pbbslib {
     using Idx_Type = typename std::remove_reference<Out_Seq>::type::value_type;
     auto identity = [] (size_t i) {return (Idx_Type) i;};
     return pbbs::pack_out(
-        pbbs::delayed_seq<Idx_Type>(Fl.size(),identity),
+        make_delayed<Idx_Type>(Fl.size(),identity),
         Fl,
         std::forward<Out_Seq>(Out),
         fl);
@@ -314,17 +320,17 @@ namespace pbbslib {
 
   template <class T>
   void free_arrays(T* first) {
-    pbbs::free_array(first);
+    pbbslib::free_array(first);
   }
 
   template <class T, typename... Args>
   void free_arrays(T* first, Args... args) {
-    pbbs::free_array(first);
+    pbbslib::free_array(first);
     free_arrays(args...);
   }
 
   template <class Idx_Type, class D, class F>
-  inline pbbs::sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
+  inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {
     auto id_seq = pbbslib::make_sequence<std::tuple<Idx_Type, D> >(size,  [&](size_t i) {
       return std::make_tuple((Idx_Type)i, std::get<1>(f[i]));
