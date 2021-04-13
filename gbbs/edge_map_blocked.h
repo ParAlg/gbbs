@@ -132,7 +132,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
-  size_t n_threads = pbbs::num_blocks(outEdgeCount, kEMBlockSize);
+  size_t n_threads = pbbslib::num_blocks(outEdgeCount, kEMBlockSize);
   size_t* thread_offs = pbbslib::new_array_no_init<size_t>(n_threads + 1);
   auto lt = [](const uintT& l, const uintT& r) { return l < r; };
   par_for(0, n_threads, 1, [&](size_t i) {  // TODO: granularity of 1?
@@ -225,8 +225,8 @@ struct emhelper {
   static constexpr size_t kThreadBlockStride = 1; //128/sizeof(thread_blocks);
 
   emhelper(size_t n_groups) : n_groups(n_groups) {
-    perthread_blocks = pbbs::new_array<thread_blocks>(n_groups*kThreadBlockStride);
-    perthread_counts = pbbs::new_array<size_t>(n_groups);
+    perthread_blocks = pbbslib::new_array<thread_blocks>(n_groups*kThreadBlockStride);
+    perthread_counts = pbbslib::new_array<size_t>(n_groups);
     alloc = true;
   }
 
@@ -362,9 +362,9 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // 3. Compute the number of threads, binary search for offsets.
   // try to use 8*p threads, fewer only if the blocksize guess is smaller than kEMBlockSize
-  size_t edge_block_size_guess = pbbs::num_blocks(outEdgeCount, num_workers() << 3);
+  size_t edge_block_size_guess = pbbslib::num_blocks(outEdgeCount, num_workers() << 3);
   size_t edge_block_size = std::max(kEMBlockSize, edge_block_size_guess);
-  size_t n_groups = pbbs::num_blocks(outEdgeCount, edge_block_size);
+  size_t n_groups = pbbslib::num_blocks(outEdgeCount, edge_block_size);
 
 //  std::cout << "outEdgeCount = " << outEdgeCount << std::endl;
 //  std::cout << "n_blocks = " << num_blocks << std::endl;

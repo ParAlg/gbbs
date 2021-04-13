@@ -19,7 +19,10 @@
 #include "pbbslib/sample_sort.h"
 #include "pbbslib/seq.h"
 #include "pbbslib/sequence_ops.h"
+#include "pbbslib/strings/string_basics.h"
 #include "pbbslib/utilities.h"
+
+#include "get_time.h"
 
 namespace gbbs {
   // ================== parallel primitives ===================
@@ -75,8 +78,6 @@ namespace gbbs {
   template<typename T>
   using range = pbbs::range<T>;
 
-  using pbbs::timer;
-
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
 
 }  // namespace gbbs
@@ -87,7 +88,7 @@ namespace pbbslib {
 
   // ====================== utilities =======================
   using flags = pbbs::flags;
-  const flags no_flag = pbbs::no_flag;
+  const flags no_flag = pbbslib::no_flag;
   const flags fl_sequential = pbbs::fl_sequential;
   const flags fl_debug = pbbs::fl_debug;
   const flags fl_time = pbbs::fl_time;
@@ -110,6 +111,7 @@ namespace pbbslib {
   using pbbs::hash32_3;
   using pbbs::hash64;
   using pbbs::hash64_2;
+  using pbbs::hash_combine;
   using pbbs::atomic_compare_and_swap;
   using pbbs::fetch_and_add;
   using pbbs::write_add;
@@ -212,8 +214,21 @@ namespace pbbslib {
   using pbbs::pack;
   using pbbs::pack_index;
   using pbbs::pack_out;
+  using pbbs::map;
   using pbbs::filter;
   using pbbs::filter_out;
+  using pbbs::tokenize;
+  using pbbs::is_space;
+
+  constexpr const size_t _log_block_size = 10;
+  constexpr const size_t _block_size = (1 << _log_block_size);
+
+  inline size_t num_blocks(size_t n, size_t block_size) {
+    if (n == 0)
+      return 0;
+    else
+      return (1 + ((n)-1) / (block_size));
+  }
 
   // used so second template argument can be inferred
   template <class T, class F>
@@ -251,13 +266,13 @@ namespace pbbslib {
     -> typename std::remove_reference<In_Seq>::type::value_type {
     using T = typename std::remove_reference<In_Seq>::type::value_type;
     return pbbs::scan_inplace(
-        std::forward<In_Seq>(In), pbbs::addm<T>(), fl, tmp);
+        std::forward<In_Seq>(In), pbbslib::addm<T>(), fl, tmp);
   }
 
   template <class Seq>
   inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return pbbs::reduce(I, pbbs::addm<T>(), fl);
+    return pbbs::reduce(I, pbbslib::addm<T>(), fl);
   }
 
   template <class Seq>
@@ -354,7 +369,7 @@ namespace pbbslib {
   inline size_t filterf(T* In, T* Out, size_t n, PRED p) {
     size_t b = _F_BSIZE;
     if (n < b) return filter_seq(In, Out, n, p);
-    size_t l = pbbs::num_blocks(n, b);
+    size_t l = num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
@@ -392,7 +407,7 @@ namespace pbbslib {
       }
       return k - out_off;
     }
-    size_t l = pbbs::num_blocks(n, b);
+    size_t l = num_blocks(n, b);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
@@ -429,8 +444,8 @@ namespace pbbslib {
       }
       return ret;
     }
-    size_t l = pbbs::num_blocks(n, b);
-    b = pbbs::num_blocks(n, l);
+    size_t l = num_blocks(n, b);
+    b = num_blocks(n, l);
     size_t* Sums = new_array_no_init<size_t>(l + 1);
 
     parallel_for(0, l, [&] (size_t i) {

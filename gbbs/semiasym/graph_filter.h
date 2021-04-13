@@ -89,7 +89,7 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
 //  auto blocks_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) {
 //    uintE degree = (fl & in_edges) ? GA.get_vertex(i).in_degree() : GA.get_vertex(i).out_degree();
 //    if (degree == 0) { return static_cast<size_t>(0); }
-//    size_t nb = pbbs::num_blocks(degree, bs);
+//    size_t nb = pbbslib::num_blocks(degree, bs);
 //    return nb;
 //  });
 //  size_t total_blocks = pbbslib::reduce_add(blocks_seq);
@@ -113,7 +113,7 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
         size_t block_byte_offset = block_bytes_offs[v];
         size_t vtx_bytes = block_bytes_offs[v + 1] - block_byte_offset;
 
-        size_t num_blocks = pbbs::num_blocks(degree, bs);
+        size_t num_blocks = pbbslib::num_blocks(degree, bs);
         // set vertex_info for v
         VI[v] = vtx_info(degree, num_blocks, block_byte_offset);
 

@@ -67,7 +67,7 @@ static uintE bytes_for_degree_and_bs(uintE degree, uintE bs,
   if (degree == 0) {
     return 0;
   }
-  uintE num_blocks = pbbs::num_blocks(degree, bs);
+  uintE num_blocks = pbbslib::num_blocks(degree, bs);
   uintE full_blocks = num_blocks - 1;
   uintE rem = degree % bs;
   if (rem == 0) {

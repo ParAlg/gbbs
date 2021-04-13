@@ -36,7 +36,6 @@
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
 #include "pbbslib/sample_sort.h"
-#include "pbbslib/strings/string_basics.h"
 
 namespace gbbs {
 namespace gbbs_io {
@@ -193,7 +192,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   });
 
   auto temp_seq = pbbslib::make_sequence(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const triple& p) { return p.first; }, pbbs::log2_up(n));
+  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const triple& p) { return p.first; }, pbbslib::log2_up(n));
 
   tOffsets[temp[0].first] = 0;
   id_and_weight* inEdges = pbbslib::new_array_no_init<id_and_weight>(m);
@@ -384,7 +383,7 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
     internal::sorted_edges_to_vertex_data_array(num_vertices, out_edges);
 
   sequence<Edge<weight_type>> in_edges =
-    pbbs::map<Edge<weight_type>>(out_edges, [&](const Edge<weight_type>& edge) {
+    pbbslib::map<Edge<weight_type>>(out_edges, [&](const Edge<weight_type>& edge) {
       return Edge<weight_type>{edge.to, edge.from, edge.weight};
     });
   constexpr auto compare_endpoints = [](
@@ -392,7 +391,7 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
       const Edge<weight_type>& right) {
     return std::tie(left.from, left.to) < std::tie(right.from, right.to);
   };
-  pbbs::sample_sort_inplace(in_edges.slice(), compare_endpoints);
+  pbbslib::sample_sort_inplace(in_edges.slice(), compare_endpoints);
   vertex_data* vertex_in_data =
     internal::sorted_edges_to_vertex_data_array(num_vertices, in_edges);
 
@@ -611,7 +610,7 @@ parse_weighted_graph(
         S = readStringFromFile(fname);
       }
     }
-    tokens = pbbs::tokenize(S, [] (const char c) { return pbbs::is_space(c); });
+    tokens = pbbslib::tokenize(S, [] (const char c) { return pbbslib::is_space(c); });
     assert(tokens[0] == internal::kWeightedAdjGraphHeader);
 
     uint64_t len = tokens.size() - 1;
@@ -664,7 +663,7 @@ sequence<Edge<weight_type>> sort_and_dedupe(
       const Edge<weight_type>& right) {
     return std::tie(left.from, left.to) != std::tie(right.from, right.to);
   }};
-  pbbs::sample_sort_inplace(edges.slice(), compare_endpoints);
+  pbbslib::sample_sort_inplace(edges.slice(), compare_endpoints);
   return pbbslib::pack(
       edges,
       pbbslib::make_sequence<bool>(

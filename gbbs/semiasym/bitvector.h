@@ -26,7 +26,7 @@ struct bitvector {
     while (!bit_set && !ith_bit(val, offset_in_byte)) {
       val = data[byte_id];
       uint8_t new_val = val | (1 << offset_in_byte);
-      bit_set = pbbs::atomic_compare_and_swap(&data[byte_id], val, new_val);
+      bit_set = pbbslib::atomic_compare_and_swap(&data[byte_id], val, new_val);
     }
     return bit_set;
   }

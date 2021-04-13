@@ -57,7 +57,7 @@ long compressEdge(uchar* start, long curOffset, uintE e) {
 }
 
 uintE get_num_blocks(uchar* edge_start,  uintE degree) {
-  return pbbs::num_blocks(degree, PARALLEL_DEGREE);
+  return pbbslib::num_blocks(degree, PARALLEL_DEGREE);
 }
 
 uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num){

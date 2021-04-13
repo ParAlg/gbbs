@@ -3,6 +3,7 @@
 #include "bridge.h"
 #include "compressed_vertex.h"
 #include "edge_array.h"
+#include "get_time.h"
 #include "vertex.h"
 #include "vertex_subset.h"
 
@@ -196,7 +197,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const fl
                            std::get<1>(l) + std::get<1>(r));
   };
   auto red_monoid = pbbslib::make_monoid(red_f, id);
-  pbbs::timer reduce_t; reduce_t.start();
+  timer reduce_t; reduce_t.start();
   parallel_for(0, n, [&] (size_t i) {
     auto res = G.get_vertex(i).out_neighbors().reduce(map_f, red_monoid);
     if (std::get<0>(res) > 0 || std::get<1>(res) > 0) {
