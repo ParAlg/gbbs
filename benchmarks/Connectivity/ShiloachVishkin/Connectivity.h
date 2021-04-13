@@ -127,7 +127,7 @@ struct SVAlgorithm {
         } /* ignore queries for now */
       });
 
-//      auto diff_map = pbbs::make_sequence<size_t>(parents.size(), [&] (size_t i) {
+//      auto diff_map = pbbslib::make_delayed<size_t>(parents.size(), [&] (size_t i) {
 //        return parents[i] != prev_parents[i];
 //      });
 

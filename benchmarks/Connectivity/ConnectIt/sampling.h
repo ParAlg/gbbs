@@ -202,7 +202,7 @@ struct KOutSamplingTemplate {
                 return left;
               }
             };
-            auto reduce_m = pbbs::make_monoid(reduce_f, std::make_pair(0, 0));
+            auto reduce_m = pbbslib::make_monoid(reduce_f, std::make_pair(0, 0));
             auto [ngh, degree] = u_vtx.reduceOutNgh(u, map_f, reduce_m);
             (void)degree;
             link(u, ngh, parents);

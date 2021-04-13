@@ -34,7 +34,7 @@ enum mis_status {
 };
 
 size_t get_vertex_pri(uintE v) {
-  return pbbs::hash64(v);
+  return pbbslib::hash64(v);
 }
 
 /* returns pair of (in_matching, query_work) */

@@ -385,7 +385,7 @@ namespace truss_utils {
     trussness_t trussness_uv = k; edge_t uv_id = id;
 
     auto add_f = [&] (uintE* ct, const std::tuple<uintE, uintE>& tup) {
-      pbbs::fetch_and_add(ct, (uintE)1);
+      pbbslib::fetch_and_add(ct, (uintE)1);
     };
 
     size_t ctr = 0;

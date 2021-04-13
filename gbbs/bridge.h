@@ -218,9 +218,16 @@ namespace pbbslib {
   using pbbs::filter;
   using pbbs::filter_index;
   using pbbs::filter_out;
-  using pbbs::tokenize;
   using pbbs::split_two;
+
+  using pbbs::tokenize;
   using pbbs::is_space;
+  using pbbs::char_seq_from_file;
+  using pbbs::char_seq_to_file;
+  using pbbs::remove_duplicates_ordered;
+  using pbbs::get_counts;
+  using pbbs::approximate_kth_smallest;
+  using pbbs::map_with_index;
 
   constexpr const size_t _log_block_size = 10;
   constexpr const size_t _block_size = (1 << _log_block_size);
@@ -247,6 +254,11 @@ namespace pbbslib {
   template <class T>
   inline pbbs::range<T*> make_range (T* A, size_t n) {
     return pbbs::range<T*>(A, A+n);
+  }
+
+  template <class T>
+  inline pbbs::range<T*> make_range (T* start, T* end) {
+    return pbbs::range<T*>(start, end);
   }
 
   // TODO: call this make_range. make_sequence is bogus.

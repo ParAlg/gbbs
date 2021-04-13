@@ -85,8 +85,8 @@ namespace internal {
 // reduces over those values. Returns a sequence `R` such that `R[i]` is the
 // reduction result over values with key `i`.
 //
-// This function's interface matches the interface of `pbbs::collect_reduce`. We
-// don't use `pbbs::collect_reduce` because the implementation is broken at the
+// This function's interface matches the interface of `collect_reduce`. We
+// don't use `collect_reduce` because the implementation is broken at the
 // time of writing this comment.
 //
 // Arguments
@@ -116,7 +116,7 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
   const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
   integer_sort_inplace(bucketed_indices.slice(), index_to_key);
   sequence<size_t> key_offsets{
-    pbbs::get_counts(bucketed_indices, index_to_key, num_keys)};
+    pbbslib::get_counts(bucketed_indices, index_to_key, num_keys)};
   pbbslib::scan_add_inplace(key_offsets);
   sequence<Value> result{
     num_keys,

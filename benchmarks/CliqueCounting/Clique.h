@@ -60,7 +60,7 @@ inline uintE* degreeOrderNodes(Graph& G, size_t n) {
   sequence<uintE> o(n); // to hold vertex ids in degree order
   par_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
 
-  pbbs::integer_sort_inplace(o.slice(), [&] (size_t p) {
+  pbbslib::integer_sort_inplace(o.slice(), [&] (size_t p) {
     return G.get_vertex(p).out_degree();
   });
 
@@ -78,7 +78,7 @@ sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
     auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
     auto kcore = KCore(GA);
     auto get_core = [&](uintE p) -> uintE { return kcore[p]; };
-    pbbs::integer_sort_inplace(rank.slice(), get_core);
+    pbbslib::integer_sort_inplace(rank.slice(), get_core);
     return rank;
   }
   else if (order_type == 3) return pbbslib::make_sequence(degreeOrderNodes(GA, n), n);

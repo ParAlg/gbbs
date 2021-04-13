@@ -394,7 +394,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     timer pack_t;
     pack_t.start();
 
-    auto vtx_range = pbbs::make_range(vtxs+n_active, vtxs+n);
+    auto vtx_range = pbbslib::make_range(vtxs+n_active, vtxs+n);
     n_active += pbbslib::pack_index_out(exhausted.slice(), vtx_range);
     pack_t.stop();
     debug(pack_t.reportTotal("reactivation pack"););

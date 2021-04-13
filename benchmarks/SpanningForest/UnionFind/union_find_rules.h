@@ -140,11 +140,11 @@ namespace unite_variants {
     Compress& compress;
     Splice& splice;
     UniteRemLock(Compress& compress, Splice& splice, uintE n) : n(n), compress(compress), splice(splice) {
-      locks = pbbs::new_array<std::mutex>(n);
+      locks = pbbslib::new_array<std::mutex>(n);
     }
 
     ~UniteRemLock() {
-      pbbs::free_array(locks);
+      pbbslib::free_array(locks);
     }
 
     inline void operator()(uintE u_orig, uintE v_orig, sequence<parent>& Parents, sequence<edge>& Edges) {

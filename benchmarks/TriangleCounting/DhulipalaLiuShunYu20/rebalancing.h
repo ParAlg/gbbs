@@ -85,7 +85,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
           return DG->get_new_degree(vtxNew[vtxMap[i]]);
         }
       });
-  size_t num_edges = pbbs::scan_inplace(newDegrees.slice(), monoid);
+  size_t num_edges = pbbslib::scan_inplace(newDegrees.slice(), monoid);
   if (num_edges == 0) {
     DGnew = new DyGraph<SymGraph>(DG->get_block_size(), num_vertices);
     return make_tuple(0, DGnew);
@@ -126,7 +126,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
         [&](const size_t u) {
           size_t offset = vertex_data_array[u].offset;
           DG->get_neighbors_major(u, edges_seq.slice(), offset);
-          pbbs::sample_sort_inplace(
+          pbbslib::sample_sort_inplace(
               edges_seq.slice(offset, offset + vertex_data_array[u].degree),
               [&](const edge_type& a, const edge_type& b) {
                 return get<0>(a) < get<0>(b);
@@ -225,7 +225,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
         sequence<size_t>(vtxChangeLH.size(), [&](size_t i) {
           return DG->get_new_degree(vtxChangeLH[i]);
         });  // TOCO: can optimize to delayed seq
-    size_t rblN = pbbs::scan_inplace(newDegrees.slice(), monoid);
+    size_t rblN = pbbslib::scan_inplace(newDegrees.slice(), monoid);
     rblEdges = sequence<pair<EdgeT, bool>>::no_init(rblN);
     vtxRblMap = sequence<size_t>(n, EMPTYVMAP);
     parallel_for(

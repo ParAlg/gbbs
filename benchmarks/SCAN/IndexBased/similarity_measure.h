@@ -181,7 +181,7 @@ auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
   auto directed_graph{filterGraph(*graph, filter_predicate)};
-  pbbs::free_array(vertex_degree_ranking);
+  pbbslib::free_array(vertex_degree_ranking);
   return directed_graph;
 }
 
@@ -630,7 +630,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   // For edges with a low degree vertex, compute the Jaccard similarity exactly
   // with triangle counting like in `AllEdgeNeighborhoodSimilarities()`.
   const uint32_t log_num_samples{
-    std::max<uint32_t>(pbbs::log2_up(original_num_samples), 1)};
+    std::max<uint32_t>(pbbslib::log2_up(original_num_samples), 1)};
   const uintE num_samples{static_cast<uintE>(1ULL << log_num_samples)};
   const uintE bucket_mask{num_samples - 1};
   constexpr uintE kEmptyBucket{UINT_E_MAX};

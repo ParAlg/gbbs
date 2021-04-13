@@ -185,7 +185,7 @@ namespace gbbs {
       uintE* new_array = pbbslib::new_array_no_init<uintE>(max_new_degree);
       size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, new_array);
       D[v] = new_degree; // update the degree in the table
-      if (allocated[v]) { pbbs::free_array(ngh_v); } // free old neighbors if nec.
+      if (allocated[v]) { pbbslib::free_array(ngh_v); } // free old neighbors if nec.
       else { allocated[v] = true; } // update allocated[v] if nec.
       A[v] = new_array; // update to the new neighbors
     }
@@ -260,7 +260,7 @@ namespace gbbs {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbs::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+      pbbslib::sample_sort_inplace(duplicated_batch.slice(), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
@@ -470,7 +470,7 @@ namespace gbbs {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbs::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+      pbbslib::sample_sort_inplace(duplicated_batch.slice(), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch

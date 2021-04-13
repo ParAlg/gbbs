@@ -160,7 +160,7 @@ inline auto multi_search(Graph& GA,
   });
   table.update_nelms();
 
-  auto elts = pbbslib::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash32(k); });
+  auto elts = pbbslib::make_sparse_table(frontier.size(), std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash32(k); });
 
   size_t rd = 0;
   size_t sum_frontiers = 0;
@@ -486,7 +486,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t remaining = Q.size() - finished + vs_size;
 
     to_process_t.start();
-    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
     to_process_t.stop();
 
     auto in_insert_t = [&] (const std::tuple<K, gbbs::empty>& kev) {
@@ -517,9 +517,9 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     to_process_t.stop();
 
 //    size_t remaining = Q.size() - finished + vs_size;
-//    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
-//    auto to_process_out = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
-//    auto to_process_in = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbs::hash64(k); });
+//    auto to_process = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
+//    auto to_process_out = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
+//    auto to_process_in = pbbslib::make_sparse_table(remaining, std::make_tuple(UINT_E_MAX, gbbs::empty()), [&] (const K& k) { return pbbslib::hash64(k); });
 //    auto in_insert_t = [&] (const std::tuple<K, V>& kev) {
 //      auto k = std::get<0>(kev);
 //      auto insert_fringe = [&] (const uintE& u, const uintE& v, const W& wgh) {

@@ -40,7 +40,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
       }
     };
     auto ngh_seq = pbbslib::make_sequence(edges + off, ctr);
-    pbbs::sample_sort_inplace(ngh_seq, comp_f);
+    pbbslib::sample_sort_inplace(ngh_seq, comp_f);
   }, 1);
 
   auto v_data = pbbslib::new_array_no_init<vertex_data>(n);

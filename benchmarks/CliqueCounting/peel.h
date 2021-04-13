@@ -15,7 +15,7 @@ namespace gbbs {
 
 // Wrapper for a hash function
 struct hashtup {
-  inline size_t operator () (const uintE & a) const {return pbbs::hash64_2(a);}
+  inline size_t operator () (const uintE & a) const {return pbbslib::hash64_2(a);}
 };
 
 // For triangle peeling
@@ -471,7 +471,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
       return !(D[i] <= target_density);
     });
 
-    pbbs::sequence<uintE> this_arr;
+    sequence<uintE> this_arr;
     size_t num_removed;
     std::tie(this_arr, num_removed) = pbbslib::split_two(vertices_remaining, keep_seq);
     size_t active_size = num_removed;
@@ -493,7 +493,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
   while (num_vertices_remaining > 0) {
     uintE* start = last_arr.begin() + remaining_offset;
     uintE* end = start + num_vertices_remaining;
-    auto vtxs_remaining = pbbs::make_range(start, end);
+    auto vtxs_remaining = pbbslib::make_range(start, end);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];
@@ -512,7 +512,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
       return !(D[vtxs_remaining[i]] <= target_density);
     });
 
-    pbbs::sequence<uintE> this_arr;
+    sequence<uintE> this_arr;
     size_t num_removed;
     std::tie(this_arr, num_removed) = pbbslib::split_two(vtxs_remaining, keep_seq);
 

@@ -121,7 +121,7 @@ void Compute(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src",0);
   uintE delta = P.getOptionLongValue("-delta",1);
   size_t num_buckets = P.getOptionLongValue("-nb", 128);
-  if (num_buckets != (1 << pbbs::log2_up(num_buckets))) {
+  if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
     std::cout << "Please specify a number of buckets that is a power of two" << std::endl;
     exit(-1);
   }

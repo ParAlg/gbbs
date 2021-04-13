@@ -110,7 +110,7 @@ void AttachNoncoresToClusters(
       const uintE neighbor{neighbors[j].neighbor};
       auto* neighbor_cluster_address{&(*clustering)[neighbor]};
       if (*neighbor_cluster_address == kUnclustered) {
-        pbbs::atomic_compare_and_swap(
+        pbbslib::atomic_compare_and_swap(
             neighbor_cluster_address, kUnclustered, core_cluster);
       }
     }, kParallelizeInnerLoop);
@@ -193,12 +193,12 @@ Clustering Index::Cluster(
   }
 
   sequence<uintE> core_similar_edge_counts{
-      pbbs::map<uintE>(
+      pbbslib::map<uintE>(
           cores,
           [&](const uintE vertex) {
             // Get the number of neighbors of `vertex` that have at least
             // `epsilon` structural similarity with the vertex.
-            return pbbs::binary_search(
+            return pbbslib::binary_search(
                 neighbor_order_[vertex],
                 [epsilon](const internal::EdgeSimilarity& es) {
                   return es.similarity >= epsilon;
@@ -230,7 +230,7 @@ void Index::Cluster(
     epsilons.size(), [](const size_t i) { return i; }};
   // Sort epsilons in decreasing order --- as epsilon decreases, more
   // core-to-core edges appear.
-  pbbs::sample_sort_inplace(
+  pbbslib::sample_sort_inplace(
       sorted_epsilon_indices.slice(),
       [&](const size_t i, const size_t j) {
         return epsilons[i] > epsilons[j];
@@ -248,12 +248,12 @@ void Index::Cluster(
 
     sequence<uintE> cores{core_order_.GetCores(mu, epsilon)};
     sequence<uintE> core_similar_edge_counts{
-        pbbs::map<uintE>(
+        pbbslib::map<uintE>(
             cores,
             [&](const uintE vertex) {
               // Get the number of neighbors of `vertex` that have at least
               // `epsilon` structural similarity with the vertex.
-              return pbbs::binary_search(
+              return pbbslib::binary_search(
                   neighbor_order_[vertex],
                   [epsilon](const internal::EdgeSimilarity& es) {
                     return es.similarity >= epsilon;
