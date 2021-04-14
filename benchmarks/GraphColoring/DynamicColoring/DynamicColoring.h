@@ -9,12 +9,13 @@
 
 namespace gbbs {
 
-struct Coloring {
+struct DynamicColoring {
 
   using color_palette = parlay::sequence<uintE>;
   using color = uintE;
   using lds = gbbs::LDS;
-  using random = pbbs::random;
+  using random = parlay::random;
+  using edge_type = std::pair<uintE, uintE>;
 
   static constexpr uintE kColorNotUsed = UINT_E_MAX;
 
@@ -26,7 +27,7 @@ struct Coloring {
     uintE first_color_id_; // Color id of the first color in the palette
     color_palette colors_; // Palette containing occupied and free colors
 
-    Palette(): v_(0), size_(0), color_(0), cur_color_index(0) {}
+    Palette(): v_(0), size_(0), color_(0), cur_color_index_(0) {}
 
     Palette(uintE vertex_id, uintE color_id,
             uintE palette_size, uintE first_color_id): v_(vertex_id), color_(color_id),
@@ -36,7 +37,7 @@ struct Coloring {
         }
 
     inline uintE mark_color(uintE color_id, size_t num_occupied) {
-        if (color_id >= first_color_id) {
+        if (color_id >= first_color_id_) {
             uintE palette_index = color_id - first_color_id_;
             if (palette_index <  size_) {
                 colors_[palette_index] += num_occupied;
@@ -45,13 +46,13 @@ struct Coloring {
     }
 
     inline uintE unmark_color(uintE color_id, size_t num_unoccupied) {
-            if (color_id >= first_color_id)  {
+            if (color_id >= first_color_id_)  {
                     uintE palette_index = color_id - first_color_id_;
                     if (palette_index < size_) {
                         if (colors_[palette_index] > num_unoccupied)
                             colors_[palette_index] -= num_unoccupied;
                         else
-                            colors[palette_index] = 0;
+                            colors_[palette_index] = 0;
                     }
             }
     }
@@ -71,7 +72,7 @@ struct Coloring {
 
         auto r_v = r.fork(v_);
         auto random_index = r_v.rand();
-        auto mask = (1 << pbbs::log2_up(num_free_colors)) - 1;
+        auto mask = (1 << parlay::log2_up(num_free_colors)) - 1;
 
         random_index = random_index & mask;
         while (random_index >= num_free_colors) {
@@ -108,15 +109,14 @@ struct Coloring {
     }
   };
 
-  size_t num_vertices;
+  size_t num_vertices_;
   parlay::sequence<Palette> vertex_color_seq;
   Palette* VC;
-  lds layers_of_vertices;
+  lds layers_of_vertices_;
 
-  Coloring(): num_vertices_(0) {}
-  Coloring(size_t num_vertices, lds LDS): num_vertices_(num_vertices),
-    layers_of_vertices_(LDS) {
-    vertex_color_seq = parlay::sequence<LDSVertex>(num_vertices);
+  DynamicColoring(size_t num_vertices, lds layers): num_vertices_(num_vertices),
+    layers_of_vertices_(layers) {
+    vertex_color_seq = parlay::sequence<Palette>(num_vertices);
     VC = vertex_color_seq.begin();
 
     parallel_for(0, num_vertices - 1, [&] (size_t i){
@@ -150,7 +150,7 @@ struct Coloring {
   void batch_insertion(const Seq& insertions_unfiltered) {
     // Remove edges that already exist from the input.
     auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
-        [&] (const edge_type& e) { return !edge_exists(e); });
+        [&] (const edge_type& e) { return !layers_of_vertices_.edge_exists(e); });
 
     // Duplicate the edges in both directions and sort.
     auto insertions_dup = sequence<edge_type>::uninitialized(2*insertions_filtered.size());
@@ -188,15 +188,15 @@ struct Coloring {
     });
     auto conflict_vertices = parlay::pack(parlay::make_slice(color_conflicts), dedup_conflicts);
 
-    layers_of_vertices.batch_insertion(insertions_unfiltered);
-    auto r = pbbs::random();
+    layers_of_vertices_.batch_insertion(insertions_unfiltered);
+    auto r = random();
     while (conflict_vertices.size() > 0) {
         parallel_for(0, conflict_vertices.size() - 1, [&] (size_t i) {
             auto v = conflict_vertices[i];
-            auto level = layers_of_vertices.get_level(v);
-            auto levels_per_group = layers_of_vertices.levels_per_group;
-            auto one_plus_eps = layers_of_vertices.OnePlusEps;
-            auto upper_constant = layers_of_vertices.UpperConstant;
+            auto level = layers_of_vertices_.get_level(v);
+            auto levels_per_group = layers_of_vertices_.levels_per_group;
+            auto one_plus_eps = layers_of_vertices_.OnePlusEps;
+            auto upper_constant = layers_of_vertices_.UpperConstant;
 
             auto new_palette_size = get_color_palette_size(level, levels_per_group, one_plus_eps, upper_constant);
             auto first_color_palette = get_first_color(level, levels_per_group, one_plus_eps, upper_constant);
@@ -209,7 +209,7 @@ struct Coloring {
                 VC[v].shrink_palette(new_palette_size);
             }
 
-            auto up_neighbors = layers_of_vertices.L[v].up;
+            auto up_neighbors = layers_of_vertices_.L[v].up;
             // Race condition here. TODO(qqliu): fix.
             parallel_for(0, up_neighbors.size() - 1, [&] (size_t i){
                 auto neighbor = up_neighbors.table[i];
@@ -221,9 +221,9 @@ struct Coloring {
             VC[v].find_random_color(r);
         });
 
-        auto conflict_vertices = parlay::filter(parlay::make_slice(conflict_vertices),
+        auto next_conflict_vertices = parlay::filter(parlay::make_slice(conflict_vertices),
                 [&] (const uintE& v){
-            auto up_neighbors = layers_of_vertices.L[v].up;
+            auto up_neighbors = layers_of_vertices_.L[v].up;
             parallel_for(0, up_neighbors.size() - 1, [&] (size_t i){
                 auto neighbor = up_neighbors.table[i];
                 auto neighbor_color = VC[neighbor].color_;
@@ -233,6 +233,7 @@ struct Coloring {
             return false;
         });
         r.next();
+        conflict_vertices = next_conflict_vertices;
     }
   }
 
@@ -240,7 +241,7 @@ struct Coloring {
   void batch_deletion(const Seq& deletions_unfiltered) {
     // Remove edges that already exist from the input.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
-        [&] (const edge_type& e) { return !edge_exists(e); });
+        [&] (const edge_type& e) { return !layers_of_vertices_.edge_exists(e); });
 
     // Duplicate the edges in both directions and sort.
     auto deletions_dup = sequence<edge_type>::uninitialized(2*deletions_filtered.size());
@@ -270,16 +271,17 @@ struct Coloring {
     auto dedup_moved_nodes = parlay::delayed_seq<bool>(moved_nodes.size(), [&] (size_t i){
         return (i == 0) || (moved_nodes[i] != moved_nodes[i-1]);
     });
-    auto moved_nodes = parlay::pack(parlay::make_slice(deletions), dedup_moved_nodes);
+    auto reset_nodes = parlay::pack(parlay::make_slice(moved_nodes), dedup_moved_nodes);
 
-    layers_of_vertices.batch_deletion(deletions_unfiltered);
+    layers_of_vertices_.batch_deletion(deletions_unfiltered);
 
-    parallel_for(0, moved_nodes.size() - 1, [&] (size_t i){
-        auto old_size = VC[moved_nodes[i]].size_;
-        auto new_level = layers_of_vertices.get_level(moved_nodes[i]);
-        auto one_plus_eps = layers_of_vertices.OnePlusEps;
-        auto upper_constant = layers_of_vertices.UpperConstant;
-        auto levels_per_group = layers_of_vertices.levels_per_group;
+    parallel_for(0, reset_nodes.size() - 1, [&] (size_t i){
+        uintE v = reset_nodes[i];
+        auto old_size = VC[v].size_;
+        auto new_level = layers_of_vertices_.get_level(v);
+        auto one_plus_eps = layers_of_vertices_.OnePlusEps;
+        auto upper_constant = layers_of_vertices_.UpperConstant;
+        auto levels_per_group = layers_of_vertices_.levels_per_group;
 
         auto new_size = get_color_palette_size(new_level, levels_per_group, one_plus_eps, upper_constant);
         if (old_size > new_size){
@@ -293,21 +295,21 @@ struct Coloring {
 
   void check_invariants() {
     bool invs_ok = true;
-    for (size_t i=0; i<num_vertices; i++) {
-      auto upper_neighbors = layers_of_vertices.L[i].up;
+    for (size_t i=0; i<num_vertices_; i++) {
+      auto upper_neighbors = layers_of_vertices_.L[i].up;
       bool upper_ok = true;
       for (size_t j = 0; j < upper_neighbors.size(); j++) {
-        if (VC[upper_neighbors.table[j]] == VC[i]) {
+        if (VC[upper_neighbors.table[j]].color_ == VC[i].color_) {
             upper_ok = false;
         }
       }
 
       bool lower_ok = true;
-      auto lower_levels = layers_of_vertices.L[i].down;
-      for (size_t level = 0; lower < lower_levels.size(); lower++) {
+      auto lower_levels = layers_of_vertices_.L[i].down;
+      for (size_t level = 0; level < lower_levels.size(); level++) {
         auto lower_neighbors = lower_levels[level];
         for (size_t j = 0; j < lower_neighbors.size(); j++) {
-            if (VC[lower_neighbors.table[j]] == VC[i]) {
+            if (VC[lower_neighbors.table[j]].color_ == VC[i].color_) {
                 lower_ok = false;
             }
         }
@@ -322,11 +324,11 @@ struct Coloring {
 };
 
 template <class Graph>
-inline void RunColoring(Graph& G, bool optimized_deletion) {
+inline void RunDynamicColoring(Graph& G, bool optimized_deletion) {
   // using W = typename Graph::weight_type;
   size_t n = G.n;
   auto layers = LDS(n, optimized_deletion);
-  auto coloring = Coloring(n, layers);
+  auto coloring = DynamicColoring(n, layers);
 
   auto edges = G.edges();
 
@@ -367,9 +369,9 @@ inline void RunColoring(Graph& G, bool optimized_deletion) {
 }
 
 template <class W>
-inline void RunLDS (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
+inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
         LDS& layers, bool optimized_insertion, size_t offset) {
-    auto coloring = Coloring(n, layers);
+    auto coloring = DynamicColoring(n, layers);
     auto batch = batch_edge_list.edges;
     // First, insert / delete everything up to offset
     if (offset != 0) {
@@ -459,12 +461,12 @@ inline void RunLDS (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_s
 }
 
 template <class Graph, class W>
-inline void RunLDS(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
+inline void RunDynamicColoring(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
         bool compare_exact, double eps, double delta, bool optimized_insertion, size_t offset) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
     auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
-    if (G.n > 0) RunLDS(G, optimized_insertion);
-    if (batch_edge_list.max_vertex > 0) RunLDS(max_vertex,
+    if (G.n > 0) RunDynamicColoring(G, optimized_insertion);
+    if (batch_edge_list.max_vertex > 0) RunDynamicColoring(max_vertex,
             batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
 }
 
