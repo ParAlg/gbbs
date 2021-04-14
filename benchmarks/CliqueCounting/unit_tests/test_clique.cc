@@ -22,7 +22,7 @@ TEST(CliqueCounting, EdgelessGraph) {
       /* k = */ 4,
       /* order_type = */ 0,
       /* epsilon = */ 0.01,
-      /* space_type = */ 0,
+      /* space_type = */ 5,
       /* label = */ false,
       /* filter = */ false,
       /* use_base = */ false,
@@ -70,7 +70,7 @@ TEST(CliqueCounting, BasicUsage) {
       /* k = */ 3,
       /* order_type = */ 0,
       /* epsilon = */ 0.01,
-      /* space_type = */ 0,
+      /* space_type = */ 5,
       /* label = */ false,
       /* filter = */ false,
       /* use_base = */ false,
@@ -83,14 +83,14 @@ TEST(CliqueCounting, BasicUsage) {
       /* k = */ 4,
       /* order_type = */ 0,
       /* epsilon = */ 0.01,
-      /* space_type = */ 0,
+      /* space_type = */ 5,
       /* label = */ false,
       /* filter = */ false,
       /* use_base = */ false,
       /* recursive_level = */ 0,
       /* approx_peel = */ false,
       /* approx_eps = */ 0.01);
-  EXPECT_EQ(four_clique_count, 0);
+  EXPECT_EQ(four_clique_count, 5);
 }
 
 }  // namespace gbbs
