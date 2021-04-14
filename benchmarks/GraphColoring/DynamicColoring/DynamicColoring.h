@@ -148,10 +148,14 @@ struct DynamicColoring {
    * maybe it's fine if I don't do it.*/
   template <class Seq>
   void batch_insertion(const Seq& insertions_unfiltered) {
+    layers_of_vertices_.batch_insertion(insertions_unfiltered);
+
+    std::cout<<"insertions"<<std::endl;
     // Remove edges that already exist from the input.
     auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
         [&] (const edge_type& e) { return !layers_of_vertices_.edge_exists(e); });
 
+    std::cout<<"insertions"<<std::endl;
     // Duplicate the edges in both directions and sort.
     auto insertions_dup = sequence<edge_type>::uninitialized(2*insertions_filtered.size());
     parallel_for(0, insertions_filtered.size(), [&] (size_t i) {
@@ -162,6 +166,7 @@ struct DynamicColoring {
     auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
     parlay::sort_inplace(parlay::make_slice(insertions_dup), compare_tup);
 
+    std::cout<<"duplications"<<std::endl;
     // Remove duplicate edges to get the insertions.
     auto not_dup_seq = parlay::delayed_seq<bool>(insertions_dup.size(), [&] (size_t i) {
         auto [u, v] = insertions_dup[i];
@@ -169,6 +174,7 @@ struct DynamicColoring {
         return not_self_loop && ((i == 0) || (insertions_dup[i] != insertions_dup[i-1]));
     });
     auto insertions = parlay::pack(parlay::make_slice(insertions_dup), not_dup_seq);
+    std::cout<<"process dups"<<std::endl;
 
     // Compute all color conflicts from edge insertions.
     auto bool_conflict = parlay::delayed_seq<bool>(insertions.size(), [&] (size_t i) {
@@ -176,21 +182,28 @@ struct DynamicColoring {
         auto v_2 = std::get<1>(insertions[i]);
         return VC[v_1].color_ == VC[v_2].color_;
     });
-    auto color_indices = parlay::pack_index(bool_conflict);
-    auto color_conflicts = parlay::sequence<uintE>(2*color_indices.size(), (uintE)0);
-    parallel_for(0, color_indices.size() - 1, [&] (size_t i) {
-        color_conflicts[i] = std::get<0>(insertions[color_indices[i]]);
-        color_conflicts[i + color_indices.size()] = std::get<1>(insertions[color_indices[i]]);
+
+    std::cout<<"get bool conflicts"<<std::endl;
+    auto color_edges = parlay::pack(parlay::make_slice(insertions), bool_conflict);
+    auto color_conflicts = parlay::sequence<uintE>(2*color_edges.size(), (uintE)0);
+    parallel_for(0, color_edges.size() - 1, [&] (size_t i) {
+        std::cout<<"index: "<< i << std::endl;
+        color_conflicts[i] = std::get<0>(color_edges[i]);
+        std::cout<<"endpoint: "<< std::get<0>(color_edges[i]) << std::endl;
+        color_conflicts[i + color_edges.size()] = std::get<1>(color_edges[i]);
     });
+    std::cout<<"color conflicts"<<std::endl;
     parlay::integer_sort_inplace(parlay::make_slice(color_conflicts));
     auto dedup_conflicts = parlay::delayed_seq<bool>(color_conflicts.size(), [&] (size_t i){
         return (i == 0) || (color_conflicts[i] != color_conflicts[i-1]);
     });
     auto conflict_vertices = parlay::pack(parlay::make_slice(color_conflicts), dedup_conflicts);
+    std::cout<<"finished processing edges"<<std::endl;
 
-    layers_of_vertices_.batch_insertion(insertions_unfiltered);
+    std::cout<<"inserted insertions in layered data structure"<<std::endl;
     auto r = random();
     while (conflict_vertices.size() > 0) {
+        std::cout<<"conflict vertices"<<std::endl;
         parallel_for(0, conflict_vertices.size() - 1, [&] (size_t i) {
             auto v = conflict_vertices[i];
             auto level = layers_of_vertices_.get_level(v);
@@ -200,13 +213,10 @@ struct DynamicColoring {
 
             auto new_palette_size = get_color_palette_size(level, levels_per_group, one_plus_eps, upper_constant);
             auto first_color_palette = get_first_color(level, levels_per_group, one_plus_eps, upper_constant);
+            std::cout<<"processing conflict vertices"<<std::endl;
 
             if (new_palette_size > VC[v].size_) {
                 VC[v].enlarge_palette(new_palette_size);
-            }
-
-            if (new_palette_size < VC[v].size_) {
-                VC[v].shrink_palette(new_palette_size);
             }
 
             auto up_neighbors = layers_of_vertices_.L[v].up;
@@ -215,9 +225,11 @@ struct DynamicColoring {
                 auto neighbor = up_neighbors.table[i];
                 auto neighbor_color = VC[neighbor].color_;
                 // Below is a race condition. TODO(qqliu): fix.
+                std::cout<<"marking vertex"<<std::endl;
                 VC[v].mark_color(neighbor_color, 1);
             });
 
+            std::cout<<"finding random color"<<std::endl;
             VC[v].find_random_color(r);
         });
 
@@ -233,12 +245,16 @@ struct DynamicColoring {
             return false;
         });
         r.next();
+        std::cout<<"next conflicts"<<std::endl;
         conflict_vertices = next_conflict_vertices;
     }
   }
 
   template <class Seq>
   void batch_deletion(const Seq& deletions_unfiltered) {
+    layers_of_vertices_.batch_deletion(deletions_unfiltered);
+
+    std::cout<<"deletions"<<std::endl;
     // Remove edges that already exist from the input.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
         [&] (const edge_type& e) { return !layers_of_vertices_.edge_exists(e); });
@@ -272,8 +288,6 @@ struct DynamicColoring {
         return (i == 0) || (moved_nodes[i] != moved_nodes[i-1]);
     });
     auto reset_nodes = parlay::pack(parlay::make_slice(moved_nodes), dedup_moved_nodes);
-
-    layers_of_vertices_.batch_deletion(deletions_unfiltered);
 
     parallel_for(0, reset_nodes.size() - 1, [&] (size_t i){
         uintE v = reset_nodes[i];
