@@ -58,7 +58,7 @@ struct DynamicColoring {
     }
 
     inline void unmark_all_colors() {
-        parallel_for(0, colors_.size() - 1, [&] (size_t i){
+        parallel_for(0, colors_.size(), [&] (size_t i){
             colors_[i] = 0;
         });
     }
@@ -94,7 +94,7 @@ struct DynamicColoring {
 
     inline void enlarge_palette(size_t enlarged_size) {
         colors_.resize(enlarged_size);
-        parallel_for(size_, enlarged_size - 1, [&] (size_t i){
+        parallel_for(size_, enlarged_size, [&] (size_t i){
             colors_[i] = 0;
         });
         size_ = enlarged_size;
@@ -119,7 +119,7 @@ struct DynamicColoring {
     vertex_color_seq = parlay::sequence<Palette>(num_vertices);
     VC = vertex_color_seq.begin();
 
-    parallel_for(0, num_vertices - 1, [&] (size_t i){
+    parallel_for(0, num_vertices, [&] (size_t i){
         VC[i].v_ = i;
     });
   }
@@ -185,11 +185,12 @@ struct DynamicColoring {
 
     std::cout<<"get bool conflicts"<<std::endl;
     auto color_edges = parlay::pack(parlay::make_slice(insertions), bool_conflict);
+    std::cout << "size of color conflict edges: " << color_edges.size() << std::endl;
     auto color_conflicts = parlay::sequence<uintE>(2*color_edges.size(), (uintE)0);
-    parallel_for(0, color_edges.size() - 1, [&] (size_t i) {
+    parallel_for(0, color_edges.size(), [&] (size_t i) {
         std::cout<<"index: "<< i << std::endl;
         color_conflicts[i] = std::get<0>(color_edges[i]);
-        std::cout<<"endpoint: "<< std::get<0>(color_edges[i]) << std::endl;
+        //std::cout<<"endpoint: "<< std::get<0>(color_edges[i]) << std::endl;
         color_conflicts[i + color_edges.size()] = std::get<1>(color_edges[i]);
     });
     std::cout<<"color conflicts"<<std::endl;
@@ -204,7 +205,7 @@ struct DynamicColoring {
     auto r = random();
     while (conflict_vertices.size() > 0) {
         std::cout<<"conflict vertices"<<std::endl;
-        parallel_for(0, conflict_vertices.size() - 1, [&] (size_t i) {
+        parallel_for(0, conflict_vertices.size(), [&] (size_t i) {
             auto v = conflict_vertices[i];
             auto level = layers_of_vertices_.get_level(v);
             auto levels_per_group = layers_of_vertices_.levels_per_group;
@@ -221,7 +222,7 @@ struct DynamicColoring {
 
             auto up_neighbors = layers_of_vertices_.L[v].up;
             // Race condition here. TODO(qqliu): fix.
-            parallel_for(0, up_neighbors.size() - 1, [&] (size_t i){
+            parallel_for(0, up_neighbors.size(), [&] (size_t i){
                 auto neighbor = up_neighbors.table[i];
                 auto neighbor_color = VC[neighbor].color_;
                 // Below is a race condition. TODO(qqliu): fix.
@@ -236,7 +237,7 @@ struct DynamicColoring {
         auto next_conflict_vertices = parlay::filter(parlay::make_slice(conflict_vertices),
                 [&] (const uintE& v){
             auto up_neighbors = layers_of_vertices_.L[v].up;
-            parallel_for(0, up_neighbors.size() - 1, [&] (size_t i){
+            parallel_for(0, up_neighbors.size(), [&] (size_t i){
                 auto neighbor = up_neighbors.table[i];
                 auto neighbor_color = VC[neighbor].color_;
                 if (neighbor_color == VC[v].color_)
@@ -248,13 +249,14 @@ struct DynamicColoring {
         std::cout<<"next conflicts"<<std::endl;
         conflict_vertices = next_conflict_vertices;
     }
+    std::cout <<"finished insertions"<<std::endl;
   }
 
   template <class Seq>
   void batch_deletion(const Seq& deletions_unfiltered) {
+    std::cout<<"deletions"<<std::endl;
     layers_of_vertices_.batch_deletion(deletions_unfiltered);
 
-    std::cout<<"deletions"<<std::endl;
     // Remove edges that already exist from the input.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
         [&] (const edge_type& e) { return !layers_of_vertices_.edge_exists(e); });
@@ -279,7 +281,7 @@ struct DynamicColoring {
 
     // Compute all nodes that moved.
     auto moved_nodes = parlay::sequence<uintE>(2*deletions.size(), (uintE)0);
-    parallel_for(0, deletions.size() - 1, [&] (size_t i) {
+    parallel_for(0, deletions.size(), [&] (size_t i) {
         moved_nodes[i] = std::get<0>(deletions[i]);
         moved_nodes[i + deletions.size()] = std::get<1>(deletions[i]);
     });
@@ -289,7 +291,7 @@ struct DynamicColoring {
     });
     auto reset_nodes = parlay::pack(parlay::make_slice(moved_nodes), dedup_moved_nodes);
 
-    parallel_for(0, reset_nodes.size() - 1, [&] (size_t i){
+    parallel_for(0, reset_nodes.size(), [&] (size_t i){
         uintE v = reset_nodes[i];
         auto old_size = VC[v].size_;
         auto new_level = layers_of_vertices_.get_level(v);
