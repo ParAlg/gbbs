@@ -27,7 +27,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, u_out_nghs.get_neighbor(j), u_out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_sequence<int>(u.out_degree(), out_f);
+    auto out_im = pbbslib::make_delayed<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
       outOffsets[i] = pbbslib::reduce_add(out_im);
@@ -55,8 +55,8 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
-      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
+      auto n_im = pbbslib::make_delayed<edge>(d, n_im_f);
+      pbbslib::filter_out(n_im, pbbslib::make_range(dir_nghs, d), pred_c, pbbslib::no_flag);
     }
   }, 1);
 
@@ -145,7 +145,7 @@ inline auto filter_graph(Graph& G, P& pred) {
   byte_offsets.clear();
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
-  auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
+  auto deg_map = pbbslib::make_delayed<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return std::make_tuple(G.num_vertices(), edges_size, out_vdata, edges);
@@ -215,7 +215,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const fl
                            std::get<1>(l) + std::get<1>(r),
                            std::get<2>(l) + std::get<2>(r));
   };
-  pbbslib::scan_inplace(vtx_offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
+  pbbslib::scan_inplace(make_slice(vtx_offs), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0, 0)));
 
   size_t total_space =
       std::get<2>(vtx_offs[n]);  // total space needed for all vertices
@@ -258,7 +258,7 @@ edge_array<typename Graph::weight_type> filter_edges(Graph& G, P& pred, const fl
       }
     }
   }, 1);
-  auto degree_imap = pbbslib::make_sequence<size_t>(n,
+  auto degree_imap = pbbslib::make_delayed<size_t>(n,
       [&](size_t i) { return G.get_vertex(i).out_degree(); });
 
   G.m = pbbslib::reduce_add(degree_imap);
@@ -285,7 +285,7 @@ edge_array<typename Graph::weight_type> filter_all_edges(Graph& G, P& p, flags f
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
+  pbbslib::scan_inplace(make_slice(offs), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
   size_t total_space = std::get<1>(offs[n]);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
   std::cout << "# tmp space allocated = " << total_space << "\n";
@@ -339,7 +339,7 @@ edge_array<typename Graph::weight_type> sample_edges(Graph& G, P& pred) {
     return std::make_tuple(std::get<0>(l) + std::get<0>(r),
                            std::get<1>(l) + std::get<1>(r));
   };
-  pbbslib::scan_inplace(vtx_offs.slice(), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
+  pbbslib::scan_inplace(make_slice(vtx_offs), pbbslib::make_monoid(scan_f, std::make_tuple(0, 0)));
 
   size_t output_size = std::get<0>(vtx_offs[n]);
   auto output_arr = sequence<edge>(output_size);
@@ -423,7 +423,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
       uintE new_degree = G.packNeighbors(v, p, tmp_v);
       outV[i] = std::make_tuple(v, new_degree);
     }, 1);
-    if (tmp) { pbbslib::free_array(tmp); }
+    if (tmp) { pbbslib::free_array(tmp, total_space); }
     return vertexSubsetData<uintE>(n, std::move(outV));
   } else {
     parallel_for(0, m, [&](size_t i) {
@@ -434,7 +434,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
       }
       G.packNeighbors(v, p, tmp_v);
     }, 1);
-    if (tmp) { pbbslib::free_array(tmp); }
+    if (tmp) { pbbslib::free_array(tmp, total_space); }
     return vertexSubsetData<uintE>(n);
   }
 }

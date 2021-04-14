@@ -100,7 +100,7 @@ struct vertexSubsetData {
         isDense(1),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto df = [&](size_t i) { return (size_t)std::get<0>(d[i]); };
-    auto d_map = pbbslib::make_sequence<size_t>(n, df);
+    auto d_map = pbbslib::make_delayed<size_t>(n, df);
     m = pbbslib::reduce_add(d_map);
   }
 
@@ -165,7 +165,7 @@ struct vertexSubsetData {
   void toSparse() {
     if (s.size() == 0 && m > 0) {
       auto f = [&](size_t i) -> std::tuple<bool, data> { return d[i]; };
-      auto f_seq = pbbslib::make_sequence<D>(n, f);
+      auto f_seq = pbbslib::make_delayed<D>(n, f);
       s = pbbslib::pack_index_and_data<uintE, data>(f_seq, n);
       if (s.size() != m) {
         std::cout << "# m is " << m << " but out.size says" << s.size()
@@ -274,7 +274,7 @@ struct vertexSubsetData<gbbs::empty> {
         isDense(1),
         sum_out_degrees(std::numeric_limits<size_t>::max()) {
     auto d_f = [&](size_t i) { return d[i]; };
-    auto d_map = pbbslib::make_sequence<size_t>(n, d_f);
+    auto d_map = pbbslib::make_delayed<size_t>(n, d_f);
     m = pbbslib::reduce_add(d_map);
   }
 
@@ -341,7 +341,7 @@ struct vertexSubsetData<gbbs::empty> {
   void toSparse() {
     if (s.size() == 0 && m > 0) {
       auto f_in =
-          pbbslib::make_sequence<bool>(n, [&](size_t i) { return d[i]; });
+          pbbslib::make_delayed<bool>(n, [&](size_t i) { return d[i]; });
       s = pbbslib::pack_index<uintE>(f_in);
       if (s.size() != m) {
         std::cout << "# m is " << m << " but out.size says" << s.size()
@@ -466,9 +466,9 @@ inline vertexSubset vertexFilter_sparse(
                },
                granularity);
   auto v_imap =
-      pbbslib::make_sequence<uintE>(m, [&](size_t i) { return V.vtx(i); });
+      pbbslib::make_delayed<uintE>(m, [&](size_t i) { return V.vtx(i); });
   auto bits_m =
-      pbbslib::make_sequence<bool>(m, [&](size_t i) { return bits[i]; });
+      pbbslib::make_delayed<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbslib::pack(v_imap, bits_m);
   pbbslib::free_array(bits);
   return vertexSubset(n, std::move(out));

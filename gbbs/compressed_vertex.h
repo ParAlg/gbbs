@@ -39,7 +39,7 @@
 
 #include "encodings/decoders.h"
 #include "macros.h"
-#include "pbbslib/monoid.h"
+#include "bridge.h"
 
 namespace gbbs {
 

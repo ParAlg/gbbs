@@ -65,6 +65,7 @@ cc_library(
   hdrs = ["compressed_vertex.h"],
   deps = [
   ":macros",
+  ":bridge",
   "//pbbslib:monoid",
   "//gbbs/encodings:decoders"
   ]
@@ -310,6 +311,7 @@ cc_library(
   name = "vertex",
   hdrs = ["vertex.h"],
   deps = [
+  ":bridge",
   ":macros",
   ":speculative_for",
   ":uncompressed_intersection"

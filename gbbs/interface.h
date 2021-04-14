@@ -89,8 +89,9 @@ static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
   assert(newN == G.num_vertices());
   return symmetric_graph<symmetric_vertex, wgh_type>(
       newVData, newN, newM,
-      [newVData = newVData, newEdges = newEdges]() {
-        pbbslib::free_arrays(newVData, newEdges);
+      [=]() {
+        gbbs::free_array(newVData, newN);
+        gbbs::free_array(newEdges, newEdgesSize);
       }, newEdges);
 }
 
@@ -105,8 +106,9 @@ static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
   assert(newN == G.num_vertices());
   return symmetric_graph<csv_byte, wgh_type>(
       newVData, newN, newM,
-      [newVData = newVData, newEdges = newEdges]() {
-        pbbslib::free_arrays(newVData, newEdges);
+      [=]() {
+        gbbs::free_array(newVData, newN);
+        gbbs::free_array(newEdges, newEdgesSize);
       }, newEdges);
 }
 

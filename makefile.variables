@@ -58,9 +58,10 @@ else ifeq ($(OS), mac)
 	-Wthread-safety
 endif
 
-OMPFLAGS = -DOPENMP -fopenmp
-CILKFLAGS = -DCILK -fcilkplus
-HGFLAGS = -DHOMEGROWN -pthread
+OMPFLAGS = -DPARLAY_OPENMP -fopenmp
+CILKFLAGS = -DPARLAY_CILK -fcilkplus
+HGFLAGS = -pthread
+SERIALFLAGS = -DPARLAY_SEQUENTIAL
 
 ifdef CLANG
 CC = clang++

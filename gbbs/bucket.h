@@ -100,12 +100,12 @@ struct buckets {
     // Set the current range being processed based on the order.
     if (order == increasing) {
       auto imap_f = [&](size_t i) { return d[i]; };
-      auto imap = pbbslib::make_sequence<bucket_id>(n, imap_f);
+      auto imap = pbbslib::make_delayed<bucket_id>(n, imap_f);
       size_t min_b = pbbslib::reduce(imap, pbbslib::minm<bucket_id>());
       cur_range = min_b / open_buckets;
     } else if (order == decreasing) {
       auto imap_f = [&](size_t i) { return (d[i] == null_bkt) ? 0 : d[i]; };
-      auto imap = pbbslib::make_sequence<bucket_id>(n, imap_f);
+      auto imap = pbbslib::make_delayed<bucket_id>(n, imap_f);
       size_t max_b = pbbslib::reduce(imap, pbbslib::maxm<bucket_id>());
       cur_range = (max_b + open_buckets) / open_buckets;
     } else {
@@ -178,7 +178,7 @@ struct buckets {
       for (size_t i = 0; i < total_buckets; i++) {
         bkts[i].clear();
       }
-      pbbslib::free_array(bkts);
+      pbbslib::free_array(bkts, total_buckets);
       allocated = false;
     }
   }
@@ -207,8 +207,8 @@ struct buckets {
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
-    bucket_id* hists = pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) *
-                                                  total_buckets * CACHE_LINE_S);
+    size_t hists_size = (num_blocks + 1) * total_buckets * CACHE_LINE_S
+    bucket_id* hists = pbbslib::new_array_no_init<bucket_id>(hists_size);
 //    bucket_id* outs =
 //        pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) * total_buckets);
 
@@ -244,7 +244,7 @@ struct buckets {
     });
     outs[last_ind] = 0;
 
-    pbbslib::scan_inplace(outs.slice(), pbbslib::addm<bucket_id>());
+    pbbslib::scan_inplace(make_slice(outs), pbbslib::addm<bucket_id>());
 //    outs[num_blocks * total_buckets] = sum;
 
     // 3. Resize buckets based on the summed histogram.
@@ -288,7 +288,7 @@ struct buckets {
       m += num_inc;
     }
 
-    pbbslib::free_array(hists);
+    pbbslib::free_array(hists, hists_size);
     // pbbslib::free_array(outs);
     return num_elms - ne_before;
   }
@@ -362,7 +362,7 @@ struct buckets {
     size_t num_in_range = updated - bkts[open_buckets].size;
     //none in range
     if(num_in_range == 0 && bkts[open_buckets].size > 0) {
-      auto imap = pbbslib::make_sequence<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
+      auto imap = pbbslib::make_delayed<bucket_t>(bkts[open_buckets].size, [&] (size_t j) { return (size_t)d[bkts[open_buckets].A[j]]; });
       if(order == increasing) {
         size_t minBkt = pbbslib::reduce(imap, pbbslib::minm<size_t>());
         cur_range = minBkt/open_buckets-1; //will be incremented in next unpack() call
@@ -418,7 +418,7 @@ struct buckets {
     num_elms -= size;
     size_t cur_bkt_num = get_cur_bucket_num();
     auto p = [&](size_t i) { return d[i] == cur_bkt_num; };
-    auto bkt_seq = pbbslib::make_sequence<ident_t>(size, [&] (size_t i) { return bkt.A[i]; });
+    auto bkt_seq = pbbslib::make_delayed<ident_t>(size, [&] (size_t i) { return bkt.A[i]; });
     auto filtered = pbbslib::filter(bkt_seq, p);
     bkts[cur_bkt].size = 0;
     if (filtered.size() == 0) {

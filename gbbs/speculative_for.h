@@ -89,7 +89,7 @@ namespace gbbs {
       });
 
       // keep iterations that failed for next round. Written into Inext
-      numberKeep = pbbslib::pack_out(I.slice(0, size), keep, Inext.slice());
+      numberKeep = pbbslib::pack_out(I.cut(0, size), keep, make_slice(Inext));
 //      seq.set_allocated(false);
 //      numberKeep = seq.size();
       numberDone += size - numberKeep;
@@ -142,7 +142,7 @@ namespace gbbs {
       });
 
       // keep iterations that failed for next round. Written into Inext
-      numberKeep = pbbslib::pack_out(I.slice(0, size), keep, Inext.slice());
+      numberKeep = pbbslib::pack_out(I.cut(0, size), keep, make_slice(Inext));
 //      numberKeep = pbbslib::pack_out(I.slice(0, size), keep, pbbslib::no_flag, Inext.slice());
 //      seq.set_allocated(false);
 //      numberKeep = seq.size();

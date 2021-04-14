@@ -283,7 +283,7 @@ class sparse_table {
 
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
-    auto table_seq = pbbslib::make_sequence<T>(table, m);
+    auto table_seq = pbbslib::make_range<T>(table, m);
     return pbbslib::filter(table_seq, pred);
   }
 

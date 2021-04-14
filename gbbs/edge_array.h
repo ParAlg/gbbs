@@ -73,7 +73,7 @@ inline edge_array<W> to_edge_array(Graph& G) {
   auto sizes = sequence<uintT>::uninitialized(n);
   parallel_for(0, n,
                [&](size_t i) { sizes[i] = G.get_vertex(i).out_degree(); });
-  size_t m = pbbslib::scan_add_inplace(sizes.slice());
+  size_t m = pbbslib::scan_add_inplace(make_slice(sizes));
   assert(m == G.m);
 
   auto arr = sequence<edge>::uninitialized(m);

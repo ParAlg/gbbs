@@ -156,6 +156,8 @@ struct symmetric_packed_graph {
   size_t bs_in_bytes;
   size_t metadata_size;
 
+  size_t block_mem_to_alloc;
+
   template <
       bool bool_enable = true,
       typename std::enable_if<
@@ -249,8 +251,8 @@ struct symmetric_packed_graph {
 
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
-    pbbslib::free_array(VI);
-    pbbslib::free_array(blocks);
+    pbbslib::free_array(VI, n);
+    pbbslib::free_array(blocks, block_mem_to_alloc);
   }
 };
 
@@ -538,7 +540,7 @@ struct asymmetric_packed_graph {
 
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
-    pbbslib::free_arrays(out_VI, in_VI, out_blocks, in_blocks);
+    pbbslib::free_array(out_VI, in_VI, out_blocks, in_blocks);
   }
 
   private:

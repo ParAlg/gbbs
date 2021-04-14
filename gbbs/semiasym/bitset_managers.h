@@ -197,7 +197,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
             },
             parallel);
 
-    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    auto im = pbbslib::make_range(block_outputs, num_blocks);
     T res = pbbslib::reduce(im, reduce);
     if (num_blocks > 100) {
       pbbslib::free_array(block_outputs);
@@ -665,7 +665,7 @@ struct uncompressed_bitset_neighbors {
     }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
-    auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
+    auto new_locs = pbbslib::make_range(tmp_ints, vtx_num_blocks);
     auto tmp_metadata = (metadata*)tmp_space;
     parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
       new_locs[block_id] =
@@ -796,7 +796,7 @@ struct uncompressed_bitset_neighbors {
 
     // 2. Reduce to get the #empty_blocks
     auto full_block_seq =
-        pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
+        pbbslib::make_delayed<size_t>(vtx_num_blocks, [&](size_t i) {
           return static_cast<size_t>(block_metadata[i].offset > 0);
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
@@ -824,7 +824,7 @@ struct uncompressed_bitset_neighbors {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t ind) {
+    auto offsets_imap = pbbslib::make_delayed<size_t>(vtx_num_blocks, [&] (size_t ind) {
       return block_metadata[ind].offset;
     });
 
@@ -1271,7 +1271,7 @@ struct compressed_bitset_neighbors {
     }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
-    auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
+    auto new_locs = pbbslib::make_range(tmp_ints, vtx_num_blocks);
     auto tmp_metadata = (metadata*)tmp_space;
     parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
       new_locs[block_id] =
@@ -1417,7 +1417,7 @@ struct compressed_bitset_neighbors {
 
     // 2. Reduce to get the #empty_blocks
     auto full_block_seq =
-        pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
+        pbbslib::make_delayed<size_t>(vtx_num_blocks, [&](size_t i) {
           return static_cast<size_t>(block_metadata[i].offset > 0);
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
@@ -1445,7 +1445,7 @@ struct compressed_bitset_neighbors {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t ind) {
+    auto offsets_imap = pbbslib::make_delayed<size_t>(vtx_num_blocks, [&] (size_t ind) {
       return block_metadata[ind].offset;
     });
 

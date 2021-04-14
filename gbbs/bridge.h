@@ -9,29 +9,34 @@
 #include <type_traits>
 #include <utility>
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/counting_sort.h"
-#include "pbbslib/integer_sort.h"
-#include "pbbslib/monoid.h"
-#include "pbbslib/parallel.h"
-#include "pbbslib/random.h"
-#include "pbbslib/random_shuffle.h"
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/strings/string_basics.h"
-#include "pbbslib/utilities.h"
+#include "parlay/internal/binary_search.h"
+#include "parlay/primitives.h"
+#include "parlay/monoid.h"
+#include "parlay/parallel.h"
+#include "parlay/random.h"
+#include "parlay/delayed_sequence.h"
+#include "parlay/sequence.h"
+#include "parlay/slice.h"
+#include "parlay/range.h"
+#include "parlay/utilities.h"
 
 #include "get_time.h"
 
 namespace gbbs {
   // ================== parallel primitives ===================
 
-  using pbbs::parallel_for;
-  using pbbs::par_do;
-  using pbbs::parallel_for_alloc;
-  using pbbs::num_workers;
-  using pbbs::worker_id;
+  using parlay::parallel_for;
+  using parlay::par_do;
+  // using pbbs::parallel_for_alloc;  // TODO
+  using parlay::num_workers;
+  using parlay::worker_id;
+
+  template <class T>
+  using slice = parlay::slice<T*, T*>;
+
+  // TODO: check
+  template<typename T>
+  using range = parlay::slice<T*, T*>;
 
   template <typename F>
   static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {
@@ -59,24 +64,54 @@ namespace gbbs {
     }
   }
 
+  template <class E>
+  E* new_array_no_init(size_t n) {
+#ifndef PARLAY_USE_STD_ALLOC
+    auto allocator = parlay::allocator<E>();
+#else
+    auto allocator = std::allocator<E>();
+#endif
+    return allocator.allocate(n);
+  }
+
+  // Initializes in parallel
+  template <typename E>
+  E* new_array(size_t n) {
+    E* r = new_array_no_init<E>(n);
+    if (!std::is_trivially_default_constructible<E>::value) {
+      // if (!std::is_default_constructible<E>::value) {
+      if (n > 2048) {
+        auto f = [&](size_t i) { new ((void*)(r + i)) E; };
+        parallel_for(0, n, f);
+      } else
+        for (size_t i = 0; i < n; i++) new ((void*)(r + i)) E;
+    }
+    return r;
+  }
+
+  template <class E>
+  void free_array(E* e, size_t n) {
+#ifndef PARLAY_USE_STD_ALLOC
+    auto allocator = parlay::allocator<E>();
+#else
+    auto allocator = std::allocator<E>();
+#endif
+    allocator.deallocate(e, n);
+  }
+
   // Alias template so that sequence is exposed w/o namespacing
   template<typename T>
-  using sequence = pbbs::sequence<T>;
-
-  // TODO: refactor to avoid use.
-  template<typename T>
-  sequence<T> make_sequence(T* a, const size_t n) {
-    return sequence<T>(a, n);
-  }
+  using sequence = parlay::sequence<T>;
 
   template<typename Seq>
   auto make_slice(const Seq& S) {
-    return S.cut(0, S.size());
+    return parlay::make_slice(S.begin(), S.end());
   }
 
-  // Alias template so that range is exposed w/o namespacing
-  template<typename T>
-  using range = pbbs::range<T>;
+  template <class E, class T>
+  slice<E> make_slice(T* start, T* end) {
+    return parlay::make_slice((E*)start, (E*)end);
+  }
 
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
 
@@ -86,48 +121,44 @@ namespace gbbs {
 // Bridge to pbbslib (c++17)
 namespace pbbslib {
 
+
   // ====================== utilities =======================
-  using flags = pbbs::flags;
-  const flags no_flag = pbbslib::no_flag;
-  const flags fl_sequential = pbbs::fl_sequential;
-  const flags fl_debug = pbbs::fl_debug;
-  const flags fl_time = pbbs::fl_time;
-  const flags fl_conservative = pbbs::fl_conservative;
-  const flags fl_inplace = pbbs::fl_inplace;
-  const flags fl_scan_inclusive = pbbs::fl_scan_inclusive;
+  using empty = gbbs::empty;
 
-  using pbbs::parallel_for;
-  using pbbs::par_do;
-  using pbbs::parallel_for_alloc;
-  using pbbs::num_workers;
-  using pbbs::worker_id;
+  using flags = parlay::flags;
+  const flags no_flag = parlay::no_flag;
+  const flags fl_sequential = parlay::fl_sequential;
+  const flags fl_debug = parlay::fl_debug;
+  const flags fl_time = parlay::fl_time;
+  const flags fl_conservative = parlay::fl_conservative;
+  const flags fl_inplace = parlay::fl_inplace;
 
-  using pbbs::free_array;
-  using pbbs::delete_array;
-  using pbbs::new_array_no_init;
-  using pbbs::new_array;
-  using pbbs::hash32;
-  using pbbs::hash32_2;
-  using pbbs::hash32_3;
-  using pbbs::hash64;
-  using pbbs::hash64_2;
-  using pbbs::hash_combine;
-  using pbbs::atomic_compare_and_swap;
-  using pbbs::fetch_and_add;
-  using pbbs::write_add;
-  using pbbs::write_minus;
-  using pbbs::write_max;
-  using pbbs::write_min;
-  using pbbs::log2_up;
-  using pbbs::granularity;
+  using parlay::parallel_for;
+  using parlay::par_do;
+  // using parlay::parallel_for_alloc; // TODO
+  using parlay::num_workers;
+  using parlay::worker_id;
+
+  using pbbslib::free_array;
+  using gbbs::new_array_no_init;
+  using gbbs::new_array;
+  using parlay::hash32;
+  using parlay::hash32_2;
+  using parlay::hash32_3;
+  using parlay::hash64;
+  using parlay::hash64_2;
+
+  using parlay::log2_up;
 
   // Alias template so that sequence is exposed w/o namespacing
   template<typename T>
-  using sequence = pbbs::sequence<T>;
+  using sequence = parlay::sequence<T>;
 
-  // Alias template so that range is exposed w/o namespacing
   template<typename T>
-  using range = pbbs::range<T>;
+  using range = gbbs::range<T>;
+
+  template<typename T>
+  using slice = gbbs::slice<T>;
 
   template<typename T>
   inline void assign_uninitialized(T& a, const T& b) {
@@ -145,6 +176,171 @@ namespace pbbslib {
   //   return __sync_bool_compare_and_swap_16((__int128*)a, *((__int128*)&b),
   //                                          *((__int128*)&c));
   // }
+
+  template <typename ET>
+  inline bool atomic_compare_and_swap(ET* a, ET oldval, ET newval) {
+    if constexpr (sizeof(ET) == 1) {
+      uint8_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<uint8_t*>(a), r_oval,
+                                          r_nval);
+    } else if constexpr (sizeof(ET) == 4) {
+      uint32_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<uint32_t*>(a), r_oval,
+                                          r_nval);
+    } else if constexpr (sizeof(ET) == 8) {
+      uint64_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<uint64_t*>(a), r_oval,
+                                          r_nval);
+    } else if constexpr (sizeof(ET) == 16) {
+      __int128 r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap_16(reinterpret_cast<__int128*>(a),
+                                             r_oval, r_nval);
+    } else {
+      std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
+      exit(0);
+    }
+  }
+
+  template <typename ET>
+  inline bool atomic_compare_and_swap(volatile ET* a, ET oldval, ET newval) {
+    if (sizeof(ET) == 1) {
+      uint8_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint8_t*>(a),
+                                          r_oval, r_nval);
+    } else if (sizeof(ET) == 4) {
+      uint32_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint32_t*>(a),
+                                          r_oval, r_nval);
+    } else if (sizeof(ET) == 8) {
+      uint64_t r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap(reinterpret_cast<volatile uint64_t*>(a),
+                                          r_oval, r_nval);
+    } else if (sizeof(ET) == 16) {
+      __int128 r_oval, r_nval;
+      std::memcpy(&r_oval, &oldval, sizeof(ET));
+      std::memcpy(&r_nval, &newval, sizeof(ET));
+      return __sync_bool_compare_and_swap_16(
+          reinterpret_cast<volatile __int128*>(a), r_oval, r_nval);
+    } else {
+      std::cout << "Bad CAS Length" << sizeof(ET) << std::endl;
+      exit(0);
+    }
+  }
+
+  template <typename E, typename EV>
+  inline E fetch_and_add(E* a, EV b) {
+    volatile E newV, oldV;
+    do {
+      oldV = *a;
+      newV = oldV + b;
+    } while (!atomic_compare_and_swap(a, oldV, newV));
+    return oldV;
+  }
+
+  template <typename E, typename EV>
+  inline void write_add(E* a, EV b) {
+    // volatile E newV, oldV;
+    E newV, oldV;
+    do {
+      oldV = *a;
+      newV = oldV + b;
+    } while (!atomic_compare_and_swap(a, oldV, newV));
+  }
+
+  template <typename E, typename EV>
+  inline void write_add(std::atomic<E>* a, EV b) {
+    // volatile E newV, oldV;
+    E newV, oldV;
+    do {
+      oldV = a->load();
+      newV = oldV + b;
+    } while (!std::atomic_compare_exchange_strong(a, &oldV, newV));
+  }
+
+  template <typename E, typename EV>
+  inline void write_minus(E* a, EV b) {
+    // volatile E newV, oldV;
+    E newV, oldV;
+    do {
+      oldV = *a;
+      newV = oldV - b;
+    } while (!atomic_compare_and_swap(a, oldV, newV));
+  }
+
+
+  template <typename ET, typename F>
+  inline bool write_min(ET* a, ET b, F less) {
+    ET c;
+    bool r = 0;
+    do
+      c = *a;
+    while (less(b, c) && !(r = atomic_compare_and_swap(a, c, b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_min(volatile ET* a, ET b, F less) {
+    ET c;
+    bool r = 0;
+    do
+      c = *a;
+    while (less(b, c) && !(r = atomic_compare_and_swap(a, c, b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_min(std::atomic<ET>* a, ET b, F less) {
+    ET c;
+    bool r = 0;
+    do
+      c = a->load();
+    while (less(b, c) && !(r = std::atomic_compare_exchange_strong(a, &c, b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_max(ET* a, ET b, F less) {
+    ET c;
+    bool r = 0;
+    do
+      c = *a;
+    while (less(c, b) && !(r = atomic_compare_and_swap(a, c, b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_max(volatile ET* a, ET b, F less) {
+    ET c;
+    bool r = 0;
+    do
+      c = *a;
+    while (less(c, b) && !(r = atomic_compare_and_swap(a, c, b)));
+    return r;
+  }
+
+  template <typename ET, typename F>
+  inline bool write_max(std::atomic<ET>* a, ET b, F less) {
+    ET c;
+    bool r = 0;
+    do
+      c = a->load();
+    while (less(c, b) && !(r = std::atomic_compare_exchange_strong(a, &c, b)));
+    return r;
+  }
 
   template <typename ET>
   inline bool CAS(ET* ptr, const ET oldv, const ET newv) {
@@ -184,53 +380,68 @@ namespace pbbslib {
 
   template <typename ET>
   inline bool write_min(ET *a, ET b) {
-    return pbbs::write_min<ET>(a, b, std::less<ET>());
+    return write_min<ET>(a, b, std::less<ET>());
   }
 
   template <typename ET>
   inline bool write_max(ET *a, ET b) {
-    return pbbs::write_max<ET>(a, b, std::less<ET>());
+    return write_max<ET>(a, b, std::less<ET>());
+  }
+
+  // Combines two hash values.
+  inline uint64_t hash_combine(uint64_t hash_value_1, uint64_t hash_value_2) {
+    // This is the same as boost's 32-bit `hash_combine` implementation, but with
+    // 2 ^ 64 / (golden ratio) chosen as an arbitrary 64-bit additive magic number
+    // rather than 2 ^ 32 / (golden ratio).
+    return hash_value_1 ^ (hash_value_2 + 0x9e3779b97f4a7c15 + (hash_value_1 << 6)
+        + (hash_value_1 >> 2));
   }
 
   // ========================= monoid ==========================
 
-  using pbbs::make_monoid;
+  using parlay::make_monoid;
 
   template <class T>
-  using minm = pbbs::minm<T>;
+  using minm = parlay::minm<T>;
 
   template <class T>
-  using maxm = pbbs::maxm<T>;
+  using maxm = parlay::maxm<T>;
 
   template <class T>
-  using addm = pbbs::addm<T>;
+  using addm = parlay::addm<T>;
+
+  template <class T>
+  using xorm = parlay::xorm<T>;
 
 
   // ====================== sequence ops =======================
 
-  using pbbs::scan_inplace;
-  using pbbs::scan;
-  using pbbs::reduce;
-  using pbbs::pack;
-  using pbbs::pack_index;
-  using pbbs::pack_out;
-  using pbbs::map;
-  using pbbs::filter;
-  using pbbs::filter_index;
-  using pbbs::filter_out;
-  using pbbs::split_two;
+  using parlay::scan_inplace;
+  using parlay::scan;
+  using parlay::reduce;
+  using parlay::pack;
+  using parlay::pack_index;
+  using parlay::internal::pack_out;
+  using parlay::map;
+  using parlay::filter;
+  using parlay::internal::filter_out;
+  using parlay::internal::split_two;
+  // TODO: filter_index
 
-  using pbbs::tokenize;
-  using pbbs::is_space;
-  using pbbs::char_seq_from_file;
-  using pbbs::char_seq_to_file;
-  using pbbs::remove_duplicates_ordered;
-  using pbbs::get_counts;
-  using pbbs::approximate_kth_smallest;
-  using pbbs::map_with_index;
+  // TODO all below
+  // using pbbs::tokenize;
+  // using pbbs::is_space;
+  // using pbbs::char_seq_from_file;
+  // using pbbs::char_seq_to_file;
+  // using pbbs::remove_duplicates_ordered;
+  // using pbbs::get_counts;
+  // using pbbs::approximate_kth_smallest;
+  // using pbbs::map_with_index;
 
   constexpr const size_t _log_block_size = 10;
   constexpr const size_t _block_size = (1 << _log_block_size);
+
+  inline size_t granularity(size_t n) { return (n > 100) ? ceil(pow(n, 0.5)) : 100; }
 
   inline size_t num_blocks(size_t n, size_t block_size) {
     if (n == 0)
@@ -241,30 +452,23 @@ namespace pbbslib {
 
   // used so second template argument can be inferred
   template <class T, class F>
-  inline pbbs::delayed_sequence<T,F> make_sequence (size_t n, F f) {
-    return pbbs::delayed_sequence<T,F>(n,f);
-  }
-
-  // used so second template argument can be inferred
-  template <class T, class F>
-  inline pbbs::delayed_sequence<T,F> make_delayed (size_t n, F f) {
-    return pbbs::delayed_sequence<T,F>(n,f);
+  inline parlay::delayed_sequence<T,F> make_delayed(size_t n, F f) {
+    return parlay::delayed_sequence<T,F>(n,f);
   }
 
   template <class T>
-  inline pbbs::range<T*> make_range (T* A, size_t n) {
-    return pbbs::range<T*>(A, A+n);
+  auto make_delayed(T* A, size_t n) {
+    return make_delayed(n, [&] (size_t i) { return A[i]; });
   }
 
   template <class T>
-  inline pbbs::range<T*> make_range (T* start, T* end) {
-    return pbbs::range<T*>(start, end);
+  inline range<T*> make_range(T* A, size_t n) {
+    return range<T*>(A, A+n);
   }
 
-  // TODO: call this make_range. make_sequence is bogus.
   template <class T>
-  inline pbbs::range<T*> make_sequence (T* A, size_t n) {
-    return pbbs::range<T*>(A, A+n);
+  inline range<T*> make_range(T* start, T* end) {
+    return range<T*>(start, end);
   }
 
   // Scans the input sequence using the addm monoid.
@@ -272,48 +476,48 @@ namespace pbbslib {
   // This computes in-place an exclusive prefix sum on the input sequence, that is,
   //   Out[i] = In[0] + In[1] + ... + In[i - 1].
   // The return value is the sum over the whole input sequence.
-  template <RANGE In_Seq>
+  template <class In_Seq>
   inline auto scan_add_inplace(
       In_Seq&& In,
       flags fl = no_flag,
       typename std::remove_reference<In_Seq>::type::value_type* tmp = nullptr)
     -> typename std::remove_reference<In_Seq>::type::value_type {
     using T = typename std::remove_reference<In_Seq>::type::value_type;
-    return pbbs::scan_inplace(
-        std::forward<In_Seq>(In), pbbslib::addm<T>(), fl, tmp);
+    return scan_inplace(
+        std::forward<In_Seq>(In), addm<T>(), fl, tmp);
   }
 
   template <class Seq>
   inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return pbbs::reduce(I, pbbslib::addm<T>(), fl);
+    return reduce(make_slice(I), addm<T>(), fl);
   }
 
   template <class Seq>
   inline auto reduce_max(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return pbbs::reduce(I, pbbs::maxm<T>(), fl);
+    return reduce(make_slice(I), maxm<T>(), fl);
   }
 
   template <class Seq>
   inline auto reduce_min(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return pbbs::reduce(I, pbbs::minm<T>(), fl);
+    return reduce(make_slice(I), minm<T>(), fl);
   }
 
   template <class Seq>
   inline auto reduce_xor(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return pbbs::reduce(I, pbbs::xorm<T>(), fl);
+    return reduce(make_slice(I), xorm<T>(), fl);
   }
 
   // Writes the list of indices `i` where `Fl[i] == true` to range `Out`.
-  template <SEQ Bool_Seq, RANGE Out_Seq>
+  template <class Bool_Seq, class Out_Seq>
   size_t pack_index_out(Bool_Seq const &Fl, Out_Seq&& Out,
                 flags fl = no_flag) {
     using Idx_Type = typename std::remove_reference<Out_Seq>::type::value_type;
     auto identity = [] (size_t i) {return (Idx_Type) i;};
-    return pbbs::pack_out(
+    return pack_out(
         make_delayed<Idx_Type>(Fl.size(),identity),
         Fl,
         std::forward<Out_Seq>(Out),
@@ -322,23 +526,23 @@ namespace pbbslib {
 
   // ====================== binary search =======================
 
-  using pbbs::binary_search;
+  using parlay::internal::binary_search;
 
   // ====================== sample sort =======================
 
-  using pbbs::sample_sort;
-  using pbbs::sample_sort_inplace;
+  using parlay::internal::sample_sort;
+  using parlay::internal::sample_sort_inplace;
 
   // ====================== integer sort =======================
 
-  using pbbs::integer_sort_inplace;
-  using pbbs::integer_sort;
-  using pbbs::count_sort;
+  using parlay::integer_sort_inplace;
+  using parlay::integer_sort;
+  using parlay::internal::count_sort;
 
   // ====================== random shuffle =======================
-  using random = pbbs::random;
-  using pbbs::random_permutation;
-  using pbbs::random_shuffle;
+  using random = parlay::random;
+  using parlay::random_permutation;
+  using parlay::random_shuffle;
 }
 
 
@@ -347,26 +551,15 @@ namespace pbbslib {
 
   constexpr size_t _F_BSIZE = 2000;
 
-  template <class T>
-  void free_arrays(T* first) {
-    pbbslib::free_array(first);
-  }
-
-  template <class T, typename... Args>
-  void free_arrays(T* first, Args... args) {
-    pbbslib::free_array(first);
-    free_arrays(args...);
-  }
-
   template <class Idx_Type, class D, class F>
   inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
       F& f, size_t size, flags fl = no_flag) {
-    auto id_seq = pbbslib::make_sequence<std::tuple<Idx_Type, D> >(size,  [&](size_t i) {
+    auto id_seq = pbbslib::make_delayed<std::tuple<Idx_Type, D> >(size,  [&](size_t i) {
       return std::make_tuple((Idx_Type)i, std::get<1>(f[i]));
     });
-    auto flgs_seq = pbbslib::make_sequence<bool>(size, [&](size_t i) { return std::get<0>(f[i]); });
+    auto flgs_seq = pbbslib::make_delayed<bool>(size, [&](size_t i) { return std::get<0>(f[i]); });
 
-    return pbbs::pack(id_seq, flgs_seq, fl);
+    return pbbslib::pack(id_seq, flgs_seq, fl);
   }
 
   template <class T, class Pred>
@@ -384,7 +577,7 @@ namespace pbbslib {
     size_t b = _F_BSIZE;
     if (n < b) return filter_seq(In, Out, n, p);
     size_t l = num_blocks(n, b);
-    size_t* Sums = new_array_no_init<size_t>(l + 1);
+    auto Sums = sequence<size_t>::uninitialized(l + 1);
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
       size_t e = std::min(s + b, n);
@@ -394,8 +587,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
-    auto isums = make_sequence(Sums, l);
-    size_t m = scan_add_inplace(isums.slice());
+    size_t m = scan_add_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
       T* I = In + i * b;
@@ -404,7 +596,6 @@ namespace pbbslib {
         O[j] = I[j];
       }
     }, 1);
-    pbbslib::free_array(Sums);
     return m;
   }
 
@@ -422,7 +613,7 @@ namespace pbbslib {
       return k - out_off;
     }
     size_t l = num_blocks(n, b);
-    size_t* Sums = new_array_no_init<size_t>(l + 1);
+    auto Sums = sequence<size_t>::uninitialized(l + 1);
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
       size_t e = std::min(s + b, n);
@@ -432,8 +623,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
-    auto isums = make_sequence(Sums, l);
-    size_t m = scan_add_inplace(isums.slice());
+    size_t m = scan_add_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
       T* I = In + i * b;
@@ -442,7 +632,6 @@ namespace pbbslib {
         out(si + j, I[j]);
       }
     }, 1);
-    pbbslib::free_array(Sums);
     return m;
   }
 
@@ -460,7 +649,7 @@ namespace pbbslib {
     }
     size_t l = num_blocks(n, b);
     b = num_blocks(n, l);
-    size_t* Sums = new_array_no_init<size_t>(l + 1);
+    auto Sums = sequence<size_t>::uninitialized(l + 1);
 
     parallel_for(0, l, [&] (size_t i) {
       size_t s = i * b;
@@ -477,8 +666,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
-    auto isums = make_sequence(Sums, l);
-    size_t m = scan_add_inplace(isums.slice());
+    size_t m = scan_add_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
       T* I = In + (i * b);
@@ -490,7 +678,6 @@ namespace pbbslib {
         I[j] = empty;
       }
     }, 1);
-    pbbslib::free_array(Sums);
     return m;
   }
 
@@ -594,7 +781,7 @@ namespace pbbslib {
     auto S = sequence<size_t>(n, [&] (size_t i) {
       return t_to_stringlen(T[i])+1; // +1 for \n
     });
-    size_t m = pbbslib::scan_inplace(S.slice(), addm<size_t>());
+    size_t m = pbbslib::scan_inplace(make_slice(S), addm<size_t>());
 
     auto C = sequence<char>(m, [&] (size_t i) { return (char)0; });
     parallel_for(0, n-1, [&] (size_t i) {
