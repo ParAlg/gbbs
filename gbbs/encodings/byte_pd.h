@@ -556,7 +556,7 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
     auto bytes_imap = pbbslib::make_range(block_bytes, num_blocks);
-    size_t total_space = pbbslib::scan_add_inplace(bytes_imap);
+    size_t total_space = pbbslib::scan_inplace(bytes_imap);
 
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
@@ -712,7 +712,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
   uintE* block_offsets = (uintE*)edgeArray;
 
   auto bytes_imap = pbbslib::make_range(block_bytes, num_blocks + 1);
-  uintE total_space = pbbslib::scan_add_inplace(bytes_imap);
+  uintE total_space = pbbslib::scan_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
     std::cout << "# Space error!"

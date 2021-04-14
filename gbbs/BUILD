@@ -277,6 +277,7 @@ cc_library(
   hdrs = ["sequential_ht.h"],
   deps = [
   ":macros",
+  ":bridge",
   "//pbbslib:utilities"
   ]
 )

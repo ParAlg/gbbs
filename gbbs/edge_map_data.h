@@ -145,7 +145,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
       return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).in_degree()
                              : GA.get_vertex(vs.vtx(i)).out_degree();
     };
-e   auto degree_im = pbbslib::make_delayed<size_t>(vs.size(), degree_f);
+    auto degree_im = pbbslib::make_delayed<size_t>(vs.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_im);
     vs.set_out_degrees(out_degrees);
   }

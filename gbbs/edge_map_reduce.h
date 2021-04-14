@@ -47,12 +47,12 @@ inline vertexSubsetData<E> edgeMapInduced(Graph& G, VS& V, Map& map_f,
     uintE degree = (fl & in_edges) ? v.in_degree() : v.out_degree();
     degrees[i] = degree;
   });
-  long edgeCount = pbbslib::scan_add_inplace(degrees);
+  long edgeCount = pbbslib::scan_inplace(make_slice(degrees));
   if (edgeCount == 0) {
     return vertexSubsetData<E>(G.n);
   }
   using S = typename vertexSubsetData<E>::S;
-  auto edges = sequence<S>::no_init(edgeCount);
+  auto edges = sequence<S>::uninitialized(edgeCount);
 
   auto gen = [&](const uintE& ngh, const uintE& offset,
                  const std::optional<E>& val = std::nullopt) {
@@ -166,7 +166,7 @@ inline vertexSubsetData<O> edgeMapCount_dense(Graph& GA, VS& vs, Cond& cond_f,
                  1);
     return vertexSubsetData<O>(n);
   } else {
-    auto out = sequence<OT>::no_init(n);
+    auto out = sequence<OT>::uninitialized(n);
     std::cout << "Starting loop!" << std::endl;
     parallel_for(0, n,
                  [&](size_t i) {

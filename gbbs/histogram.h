@@ -47,6 +47,7 @@ struct get_bucket {
   size_t table_mask;
   size_t low_mask;
   size_t bucket_mask;
+  size_t hash_table_size;
   int num_buckets;
   int k;
   B& I;
@@ -77,6 +78,7 @@ struct get_bucket {
                                       size_t _table_mask) {
     using ttype = std::tuple<E, int>;
     auto table = pbbslib::new_array_no_init<ttype>(table_size);
+    hash_table_size = table_size;
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
@@ -102,6 +104,7 @@ struct get_bucket {
 
     if (k > 0) {
       hash_table = make_hash_table(sample, k, table_size, table_mask);
+      hash_table_size = table_size;
     }
     pbbslib::free_array(sample, count);
   }
@@ -288,7 +291,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
   }
   out_offs[num_buckets] = ct;
 
-  auto res = sequence<O>::no_init(ct);
+  auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -332,9 +335,9 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
       K k = get_key[i];
       ct += S.insertAdd(k);
     }
-    auto out = sequence<O>::no_init(ct);
+    auto out = sequence<O>::uninitialized(ct);
     size_t k = S.compactInto(apply_f, out.begin());
-    auto res = sequence<O>::no_init(k);
+    auto res = sequence<O>::uninitialized(k);
     for (size_t i=0; i<k; i++) {
       res[i] = out[i];
     }
@@ -539,7 +542,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   }
 
-  auto res = sequence<O>::no_init(ct);
+  auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -595,7 +598,7 @@ inline sequence<O> seq_histogram_reduce(A& get_elm, size_t n,
   }
   O* out = pbbslib::new_array_no_init<O>(n);
   size_t k = S.compactInto(apply_f, out);
-  auto res = sequence<O>::no_init(k);
+  auto res = sequence<O>::uninitialized(k);
   for (size_t i=0; i<k; i++) {
     res[i] = out[i];
   }
@@ -731,7 +734,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   }
   out_offs[num_buckets] = ct;
 
-  auto res = sequence<O>::no_init(ct);
+  auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {

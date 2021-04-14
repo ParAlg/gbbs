@@ -45,7 +45,6 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
   uint64_t n, m;
 
   if (!binary) {
-    sequence<char*> tokens;
     sequence<char> S;
 
     if (bytes == nullptr) {
@@ -63,7 +62,7 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
         S = readStringFromFile(fname);
       }
     }
-    sequence<slice<char*, char*>> tokens = parlay::map_tokens(parlay::make_slice(S),
+    sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
         [] (auto x) { return parlay::make_slice(x); });
 
     assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
@@ -78,10 +77,10 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     offsets = pbbslib::new_array_no_init<uintT>(n+1);
     edges = pbbslib::new_array_no_init<uintE>(m);
 
-    par_for(0, n, gbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, n, gbbs::kDefaultGranularity, [&] (size_t i)
                     { offsets[i] = parlay::internal::chars_to_int_t<unsigned long>(tokens[i + 3]); });
     offsets[n] = m; /* make sure to set the last offset */
-    par_for(0, m, gbbs::kSequentialForThreshold, [&] (size_t i)
+    par_for(0, m, gbbs::kDefaultGranularity, [&] (size_t i)
                     { edges[i] = parlay::internal::chars_to_int_t<unsigned long>(tokens[i + n + 3]); });
 
     S.clear();
@@ -155,7 +154,7 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   }
 
   /* construct transpose of the graph */
-  uintT* tOffsets = pbbslib::new_array_no_init<uintT>(n);
+  sequence<uintT> tOffsets = sequence<uintT>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   intPair* temp = pbbslib::new_array_no_init<intPair>(m);
@@ -168,7 +167,7 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
   });
 
   auto temp_seq = pbbslib::make_range(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq.slice(), [&] (const intPair& p) { return p.first; }, pbbslib::log2_up(n));
+  pbbslib::integer_sort_inplace(temp_seq, [&] (const intPair& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
   uintE* inEdges = pbbslib::new_array_no_init<uintE>(m);
@@ -184,19 +183,17 @@ asymmetric_graph<asymmetric_vertex, gbbs::empty> read_unweighted_asymmetric_grap
 
   // fill in offsets of degree 0 vertices by taking closest non-zero
   // offset to the right
-  auto forward_seq = pbbslib::make_delayed(tOffsets, n);
-  auto t_seq = make_slice(forward_seq.rbegin(), forward_seq.rend());
+  auto t_seq = parlay::make_slice(tOffsets.rbegin(), tOffsets.rend());
 
   auto M = pbbslib::minm<uintT>();
   M.identity = m;
-  pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_inclusive_inplace(t_seq, M);
 
   auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
   });
-  pbbslib::free_array(tOffsets, n);
 
   return asymmetric_graph<asymmetric_vertex, gbbs::empty>(
       v_data, v_in_data, n, m,

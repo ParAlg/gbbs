@@ -25,8 +25,8 @@
 
 #include <optional>
 
-#include "pbbslib/utilities.h"
 #include "macros.h"
+#include "bridge.h"
 
 namespace gbbs {
 

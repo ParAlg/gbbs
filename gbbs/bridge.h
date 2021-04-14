@@ -108,10 +108,22 @@ namespace gbbs {
     return parlay::make_slice(S.begin(), S.end());
   }
 
-  template <class E, class T>
-  slice<E> make_slice(T* start, T* end) {
+  template <class E>
+  slice<E> make_slice(E* start, E* end) {
     return parlay::make_slice((E*)start, (E*)end);
   }
+
+  // Create a slice from an explicit iterator range
+  template<typename It, typename S>
+  parlay::slice<It, S> make_slice(It it, S s) {
+    return parlay::make_slice<It, S>(it, s);
+  }
+
+//  // Create a slice from an explicit iterator range
+//  template<typename It, typename S>
+//  auto make_slice(It it, S s) {
+//    return parlay::slice<It, S>(it, s);
+//  }
 
   struct empty { };  // struct containing no data (used in conjunction with empty-base optimization)
 
@@ -139,7 +151,7 @@ namespace pbbslib {
   using parlay::num_workers;
   using parlay::worker_id;
 
-  using pbbslib::free_array;
+  using gbbs::free_array;
   using gbbs::new_array_no_init;
   using gbbs::new_array;
   using parlay::hash32;
@@ -416,8 +428,10 @@ namespace pbbslib {
 
   // ====================== sequence ops =======================
 
-  using parlay::scan_inplace;
   using parlay::scan;
+  using parlay::scan_inclusive;
+  using parlay::scan_inplace;
+  using parlay::scan_inclusive_inplace;
   using parlay::reduce;
   using parlay::pack;
   using parlay::pack_index;
@@ -458,17 +472,17 @@ namespace pbbslib {
 
   template <class T>
   auto make_delayed(T* A, size_t n) {
-    return make_delayed(n, [&] (size_t i) { return A[i]; });
+    return make_delayed<T>(n, [&] (size_t i) { return A[i]; });
   }
 
   template <class T>
-  inline range<T*> make_range(T* A, size_t n) {
-    return range<T*>(A, A+n);
+  inline range<T> make_range(T* A, size_t n) {
+    return range<T>(A, A+n);
   }
 
   template <class T>
-  inline range<T*> make_range(T* start, T* end) {
-    return range<T*>(start, end);
+  inline range<T> make_range(T* start, T* end) {
+    return range<T>(start, end);
   }
 
   // Scans the input sequence using the addm monoid.
@@ -488,27 +502,27 @@ namespace pbbslib {
   }
 
   template <class Seq>
-  inline auto reduce_add(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+  inline auto reduce_add(Seq const& I) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return reduce(make_slice(I), addm<T>(), fl);
+    return reduce(make_slice(I), addm<T>());
   }
 
   template <class Seq>
-  inline auto reduce_max(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+  inline auto reduce_max(Seq const& I) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return reduce(make_slice(I), maxm<T>(), fl);
+    return reduce(make_slice(I), maxm<T>());
   }
 
   template <class Seq>
-  inline auto reduce_min(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+  inline auto reduce_min(Seq const& I) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return reduce(make_slice(I), minm<T>(), fl);
+    return reduce(make_slice(I), minm<T>());
   }
 
   template <class Seq>
-  inline auto reduce_xor(Seq const& I, flags fl = no_flag) -> typename Seq::value_type {
+  inline auto reduce_xor(Seq const& I) -> typename Seq::value_type {
     using T = typename Seq::value_type;
-    return reduce(make_slice(I), xorm<T>(), fl);
+    return reduce(make_slice(I), xorm<T>());
   }
 
   // Writes the list of indices `i` where `Fl[i] == true` to range `Out`.

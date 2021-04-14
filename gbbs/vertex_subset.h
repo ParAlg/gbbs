@@ -427,7 +427,7 @@ inline vertexSubset vertexFilter_dense(
     size_t granularity = kDefaultGranularity) {
   size_t n = V.numRows();
   V.toDense();
-  auto d_out = sequence<bool>::no_init(n);
+  auto d_out = sequence<bool>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) { d_out[i] = 0; }, granularity);
   parallel_for(0, n,
                [&](size_t i) {
@@ -470,7 +470,7 @@ inline vertexSubset vertexFilter_sparse(
   auto bits_m =
       pbbslib::make_delayed<bool>(m, [&](size_t i) { return bits[i]; });
   auto out = pbbslib::pack(v_imap, bits_m);
-  pbbslib::free_array(bits);
+  pbbslib::free_array(bits, m);
   return vertexSubset(n, std::move(out));
 }
 

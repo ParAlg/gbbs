@@ -27,7 +27,7 @@ namespace contract {
     par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
-    pbbslib::scan_add_inplace(inverse_map);
+    pbbslib::scan_add_inplace(make_slice(inverse_map));
 
     size_t new_n = inverse_map[n];
     par_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -97,7 +97,7 @@ namespace contract {
     par_for(0, n, 1, [&] (size_t i)
                     { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); });
     deg_map[n] = 0;
-    pbbslib::scan_add_inplace(deg_map);
+    pbbslib::scan_add_inplace(make_slice(deg_map));
     count_t.stop();
     debug(count_t.reportTotal("count time"););
 

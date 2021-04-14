@@ -178,7 +178,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   });
   pbbslib::free_array(offsets, n+1);
 
-  auto tOffsets = parlay::sequence<uintT>::uninitialized(n+1);
+  auto tOffsets = sequence<uintT>::uninitialized(n+1);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { tOffsets[i] = INT_T_MAX; });
   triple* temp = pbbslib::new_array_no_init<triple>(m);
@@ -193,7 +193,7 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   });
 
   auto temp_seq = pbbslib::make_range(temp, m);
-  pbbslib::integer_sort_inplace(temp_seq, [&] (const triple& p) { return p.first; }, pbbslib::log2_up(n));
+  pbbslib::integer_sort_inplace(temp_seq, [&] (const triple& p) { return p.first; });
 
   tOffsets[temp[0].first] = 0;
   id_and_weight* inEdges = pbbslib::new_array_no_init<id_and_weight>(m);
@@ -213,14 +213,13 @@ asymmetric_graph<asymmetric_vertex, weight_type> read_weighted_asymmetric_graph(
   auto t_seq = make_slice(tOffsets.rbegin(), tOffsets.rend());
   auto M = pbbslib::minm<uintT>();
   M.identity = m;
-  pbbslib::scan_inplace(t_seq, M, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_inclusive_inplace(t_seq, M);
 
   auto v_in_data = pbbslib::new_array_no_init<vertex_data>(n);
   parallel_for(0, n, [&] (size_t i) {
     v_in_data[i].offset = tOffsets[i];
     v_in_data[i].degree = tOffsets[i+1]-v_in_data[i].offset;
   });
-  pbbslib::free_array(tOffsets, n+1);
 
   return asymmetric_graph<asymmetric_vertex, weight_type>(
       v_data, v_in_data, n, m,
@@ -265,7 +264,7 @@ read_compressed_symmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
   };
 
   if (mmap && !mmapcopy) {
-    deletion_fn = [v_data, bytes, bytes_size] () {
+    deletion_fn = [=] () {
       pbbslib::free_array(v_data, n);
       unmmap(bytes, bytes_size);
     };
@@ -325,7 +324,7 @@ read_compressed_asymmetric_graph(const char* fname, bool mmap, bool mmapcopy) {
     pbbslib::free_array(bytes, bytes_size);
   };
   if (mmap && !mmapcopy) {
-    deletion_fn = [v_data, v_in_data, bytes, bytes_size] () {
+    deletion_fn = [=] () {
       pbbslib::free_array(v_data, n);
       pbbslib::free_array(v_in_data, n);
       unmmap(bytes, bytes_size);
@@ -500,7 +499,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
     [&](const size_t i) {
       return graph.get_vertex(i).out_degree();
     }};
-  pbbslib::scan_add_inplace(offsets);
+  pbbslib::scan_add_inplace(make_slice(offsets));
 
   file << (is_weighted_graph
       ? internal::kWeightedAdjGraphHeader
@@ -651,7 +650,7 @@ parse_weighted_graph(
     offsets = pbbslib::new_array_no_init<uintT>(n+1);
     edges = pbbslib::new_array_no_init<id_and_weight>(2 * m);
 
-    parallel_for(0, n, [&] (size_t i) { offsets[i] = atol(tokens[i + 3]); });
+    parallel_for(0, n, [&] (size_t i) { offsets[i] = parlay::chars_to_ulong(tokens[i + 3]); });
     offsets[n] = m; /* make sure to set the last offset */
     parallel_for(0, m, [&] (size_t i) {
       auto wgh = tokens[i + n + m + 3];

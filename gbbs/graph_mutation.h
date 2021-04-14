@@ -36,7 +36,7 @@ inline std::tuple<size_t, size_t, vertex_data*, typename symmetric_vertex<W>::ed
   }, 1);
 
   outOffsets[n] = 0;
-  uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
+  uintT outEdgeCount = pbbslib::scan_inplace(outOffsets);
 
   // assert(G.m / 2 == outEdgeCount);
 
@@ -110,7 +110,7 @@ inline auto filter_graph(Graph& G, P& pred) {
     byte_offsets[i] = total_bytes;
   }, 1);
   byte_offsets[n] = 0;
-  size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
+  size_t last_offset = pbbslib::scan_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
   size_t edges_size = last_offset;
@@ -413,7 +413,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
     tmp = pbbslib::new_array_no_init<uint8_t>(total_space);
   }
   if (should_output(fl)) {
-    auto outV = sequence<S>::no_init(vs.size());
+    auto outV = sequence<S>::uninitialized(vs.size());
     parallel_for(0, m, [&](size_t i) {
       uintE v = vs.vtx(i);
       uint8_t* tmp_v = nullptr;

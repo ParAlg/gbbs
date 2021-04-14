@@ -24,6 +24,6 @@ intT UnionFind::find(int32_t i) {
 
 void UnionFind::link(intT u, intT v) { parents[u] = v; }
 
-void UnionFind::clear() { pbbslib::free_array(parents); }
+void UnionFind::clear() { pbbslib::free_array(parents, n); }
 
 }  // namespace gbbs
