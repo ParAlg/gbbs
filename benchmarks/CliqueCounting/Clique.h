@@ -250,7 +250,7 @@ inline size_t Clique_enum(Graph& GA, size_t k, long order_type, double epsilon,
   timer t; t.start();
   size_t count = 0;
   // Clique counting
-  count = induced_hybrid::CountCliquesEnum(DG, k, base_f, label);
+  count = induced_hybrid::CountCliquesEnum(DG, k-1, base_f, label);
 
   double tt = t.stop();
   std::cout << "### Count Running Time: " << tt << std::endl;
