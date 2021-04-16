@@ -52,7 +52,7 @@ inline void verify_mis(Graph& G, Fl& in_mis) {
   });
   auto mis_f = [&](size_t i) { return (size_t)in_mis[i]; };
   auto mis_int =
-      pbbslib::make_sequence<size_t>(G.n, mis_f);
+      pbbslib::make_delayed<size_t>(G.n, mis_f);
   size_t mis_size = pbbslib::reduce_add(mis_int);
   if (pbbslib::reduce_add(d) != (G.n - mis_size)) {
     std::cout << "MaximalIndependentSet incorrect"
@@ -140,7 +140,7 @@ inline sequence<bool> MaximalIndependentSet(Graph& G) {
   // compute the initial rootset
   auto zero_f = [&](size_t i) { return priorities[i] == 0; };
   auto zero_map =
-      pbbslib::make_sequence<bool>(n, zero_f);
+      pbbslib::make_delayed<bool>(n, zero_f);
   auto init = pbbslib::pack_index<uintE>(zero_map);
   auto roots = vertexSubset(n, std::move(init));
 
@@ -251,7 +251,7 @@ inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
     ok[i] = (mis[i]) ? (ct == 0) : (ct > 0);
   });
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_imap = pbbslib::make_sequence<size_t>(n, ok_f);
+  auto ok_imap = pbbslib::make_delayed<size_t>(n, ok_f);
   size_t n_ok = pbbslib::reduce_add(ok_imap);
   if (n_ok == n) {
     std::cout << "valid MaximalIndependentSet"

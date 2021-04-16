@@ -374,7 +374,7 @@ namespace bytepd {
         };
         vtx.out_neighbors().map(map_ngh_f, false);
 
-        auto new_ngh_seq = pbbslib::make_sequence(nghs, deg);
+        auto new_ngh_seq = pbbslib::make_range(nghs, deg);
         pbbs::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
 
         uintE our_new_id = rank[i];
@@ -764,7 +764,7 @@ namespace bytepd_amortized {
         };
         vtx.out_neighbors().map(map_ngh_f, false);
 
-        auto new_ngh_seq = pbbslib::make_sequence(nghs, deg);
+        auto new_ngh_seq = pbbslib::make_range(nghs, deg);
         pbbs::sample_sort_inplace(new_ngh_seq, std::less<uintE>());
 
         uintE our_new_id = rank[i];

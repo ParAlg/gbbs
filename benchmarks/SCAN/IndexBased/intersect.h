@@ -38,7 +38,7 @@ template <class Seq>
 auto ProjectSequenceZero(const Seq& sequence) {
   using Element =
     typename std::tuple_element<0, typename Seq::value_type>::type;
-  return pbbslib::make_sequence<Element>(
+  return pbbslib::make_delayed<Element>(
           sequence.size(),
           [&](const size_t i) { return std::get<0>(sequence[i]); });
 }
@@ -240,9 +240,9 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
   if constexpr (
       std::is_same<VertexTemplate<Weight>, symmetric_vertex<Weight>>::value) {
     using Neighbor = typename VertexTemplate<Weight>::edge_type;
-    const auto seqA{pbbslib::make_sequence<Neighbor>(
+    const auto seqA{pbbslib::make_delayed<Neighbor>(
         A->neighbors, A->out_degree())};
-    const auto seqB{pbbslib::make_sequence<Neighbor>(
+    const auto seqB{pbbslib::make_delayed<Neighbor>(
         B->neighbors, B->out_degree())};
     constexpr size_t kOffset{0};
     constexpr bool kAreSeqsSwapped{false};

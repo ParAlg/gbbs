@@ -956,11 +956,11 @@ class DyGraph {
                                              make_pair(EMPTYV, 0));
     init_t.stop(); init_t.reportTotal("Build DyGraph: init time");
     std::cout << "block_size = " << block_size << " n = " << n << " total = " << (block_size * n) << std::endl;
-    lowD = sequence<size_t>::no_init(n);
-    status = sequence<bool>(n, [&](size_t i) { return is_high(D[i]); });
+    lowD = sequence<size_t>::uninitialized(n);
+    status = sequence<bool>::from_function(n, [&](size_t i) { return is_high(D[i]); });
     blockStatus =
-        sequence<bool>(n, [&](size_t i) { return use_block(D[i]); });
-    rbledLowD = sequence<size_t>::no_init(n);
+        sequence<bool>::from_function(n, [&](size_t i) { return use_block(D[i]); });
+    rbledLowD = sequence<size_t>::uninitialized(n);
 
     timer ld; ld.start();
     // compute low degree
@@ -976,7 +976,7 @@ class DyGraph {
       rbledLowD[i] = lowD[i];
     });
 
-    sequence<uintE> vArray = sequence<uintE>::no_init(n);
+    sequence<uintE> vArray = sequence<uintE>::uninitialized(n);
     par_for(0, n, [&](size_t i) { vArray[i] = i; });
     sequence<uintE> highNodes =
         pbbslib::filter(vArray, [=](size_t i) { return is_high_v(i); });

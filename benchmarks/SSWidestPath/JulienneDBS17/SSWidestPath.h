@@ -101,7 +101,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   auto get_bkt = [&](const W& _width) -> uintE {
     return max_weight - _width + 1;
   };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> uintE {
+  auto get_ring = pbbslib::make_delayed<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = width[v];
     if (d == 0) { return UINT_E_MAX; }
     if (d == INT_E_MAX) { return 0; }
@@ -152,7 +152,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   std::cout << "n rounds = " << rd << "\n";
 
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == (uintE)(-1))) ? 0 : width[i]; }; // noop?
-  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
+  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
   return width;
 }
@@ -217,7 +217,7 @@ inline sequence<intE> SSWidestPathBF(Graph& G, const uintE& start) {
     round++;
   }
   auto dist_im_f = [&](size_t i) { return ((width[i] == INT_E_MAX) || (width[i] == static_cast<intE>(-1))) ? 0 : width[i]; }; // noop?
-  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
+  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << " xor = " << pbbslib::reduce_xor(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return width;

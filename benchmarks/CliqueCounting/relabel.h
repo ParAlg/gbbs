@@ -121,7 +121,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   byte_offsets.clear();
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
-  auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
+  auto deg_map = pbbslib::make_delayed<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
@@ -144,7 +144,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, out_nghs.get_neighbor(j), out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_sequence<int>(u.out_degree(), out_f);
+    auto out_im = pbbslib::make_delayed<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
       outOffsets[rank[i]] = pbbslib::reduce_add(out_im);
@@ -171,8 +171,8 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
-      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
+      auto n_im = pbbslib::make_delayed<edge>(d, n_im_f);
+      pbbslib::filter_out(n_im, pbbslib::make_range(dir_nghs, d), pred_c, pbbslib::no_flag);
       parallel_for(0, true_deg, [&] (size_t j) { dir_nghs[j] = std::make_tuple(rank[std::get<0>(dir_nghs[j])], std::get<1>(dir_nghs[j])); });
       pbbslib::sample_sort (dir_nghs, true_deg, [&](const edge left, const edge right) {
         return std::get<0>(left) < std::get<0>(right);

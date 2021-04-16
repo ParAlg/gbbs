@@ -91,7 +91,7 @@ namespace workefficient_sf {
           else
             return static_cast<uintE>(num_added + i);
         };
-        auto candidates = pbbslib::make_sequence<uintE>(num_to_add, candidates_f);
+        auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
         auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
         auto new_centers = pbbslib::filter(candidates, pred);
         add_to_vsubset(frontier, new_centers.begin(), new_centers.size());

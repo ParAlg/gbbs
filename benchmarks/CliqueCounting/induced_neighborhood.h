@@ -71,7 +71,7 @@ namespace induced_neighborhood {
         }
       });*/
 
-      auto deg_seq = pbbslib::make_sequence(new_induced_degs, induced->nn);
+      auto deg_seq = pbbslib::make_range(new_induced_degs, induced->nn);
       induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
 
       //uintE vtx = prev_induced[i];

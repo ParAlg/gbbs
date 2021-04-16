@@ -128,7 +128,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       }
 
       // neighbor with largest index first.
-      pbbslib::sample_sort_inplace(pbbslib::make_sequence(new_nghs, d), cmp_by_dest_order);
+      pbbslib::sample_sort_inplace(pbbslib::make_range(new_nghs, d), cmp_by_dest_order);
     }
   }, 1);
 

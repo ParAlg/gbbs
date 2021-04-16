@@ -366,7 +366,7 @@ class tomb_table {
 
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key && std::get<0>(t) != tomb_key; };
-    auto table_seq = pbbslib::make_sequence<T>(table, m);
+    auto table_seq = pbbslib::make_delayed<T>(table, m);
     return pbbslib::filter(table_seq, pred);
   }
 

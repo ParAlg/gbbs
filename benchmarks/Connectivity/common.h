@@ -19,7 +19,7 @@ void report_pathlen(uintE pathlen);
 
 template <class Seq>
 std::pair<sequence<incremental_update>, size_t> reorder_updates(Seq& updates) {
-  auto bool_seq = pbbslib::make_sequence<bool>(updates.size(), [&] (size_t i) {
+  auto bool_seq = pbbslib::make_delayed<bool>(updates.size(), [&] (size_t i) {
     return std::get<2>(updates[i]) == query_type;
   });
   return pbbslib::split_two(updates, bool_seq);
@@ -28,7 +28,7 @@ std::pair<sequence<incremental_update>, size_t> reorder_updates(Seq& updates) {
 template <class W>
 sequence<std::tuple<uintE, uintE, UpdateType>>
 annotate_updates_insert(sequence<std::tuple<uintE, uintE, W>>& updates, size_t n) {
-  auto seq = pbbslib::make_sequence<std::tuple<uintE, uintE, UpdateType>>(n, [&] (size_t i) {
+  auto seq = pbbslib::make_delayed<std::tuple<uintE, uintE, UpdateType>>(n, [&] (size_t i) {
       auto& ith = updates[i];
       return std::make_tuple(std::get<0>(ith), std::get<1>(ith), insertion_type);
   });

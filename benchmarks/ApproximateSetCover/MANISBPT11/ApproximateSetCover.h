@@ -194,7 +194,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   permt.reportTotal("perm");
   emt.reportTotal("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
-  auto elm_cov = pbbslib::make_sequence<uintE>(G.n, elm_cov_f);
+  auto elm_cov = pbbslib::make_delayed<uintE>(G.n, elm_cov_f);
   size_t elms_cov = pbbslib::reduce_add(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";

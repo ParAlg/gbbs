@@ -97,7 +97,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
       uintE v = vtxs_remaining[i];
       return static_cast<size_t>(D[v]);
     };
-    auto degree_seq = pbbslib::make_sequence<size_t>(vtxs_remaining.size(), degree_f);
+    auto degree_seq = pbbslib::make_delayed<size_t>(vtxs_remaining.size(), degree_f);
     long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // Update density

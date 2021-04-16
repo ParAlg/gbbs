@@ -78,7 +78,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
   vertex_data* vertex_data_array =
       pbbslib::new_array_no_init<vertex_data>(num_vertices);
   sequence<size_t> newDegrees =
-      sequence<size_t>(num_vertices, [&](const size_t i) {
+      sequence<size_t>::from_function(num_vertices, [&](const size_t i) {
         if (vtxMap[i] == EMPTYVMAP) {
           return DG->get_degree(i);
         } else {
@@ -188,7 +188,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
                                 //  there is changes. Otherwise go to degree
                                 //  updates   =============================
 
-    sequence<bool> flag = sequence<bool>(
+    sequence<bool> flag = sequence<bool>::from_function(
         vtxChange.size(),
         [&](const size_t i) { return DG->is_high_v(vtxChange[i].id); });
 
@@ -226,7 +226,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
           return DG->get_new_degree(vtxChangeLH[i]);
         });  // TOCO: can optimize to delayed seq
     size_t rblN = pbbslib::scan_inplace(newDegrees.slice(), monoid);
-    rblEdges = sequence<pair<EdgeT, bool>>::no_init(rblN);
+    rblEdges = sequence<pair<EdgeT, bool>>::uninitialized(rblN);
     vtxRblMap = sequence<size_t>(n, EMPTYVMAP);
     parallel_for(
         0, vtxChangeLH.size(),

@@ -167,7 +167,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   parallel_for(0, n, [&] (size_t i) { aug_sizes[i] = 1; });
   auto cts =
       sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
-  auto leaf_im = pbbslib::make_sequence<bool>(n, [&](size_t i) {
+  auto leaf_im = pbbslib::make_delayed<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
     size_t deg = s_n - s_i;
@@ -427,9 +427,9 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   timer ccc;
   ccc.start();
   size_t n = GA.n;
-  auto MM = pbbslib::make_sequence<labels>(MM_A, n);
-  auto PN = pbbslib::make_sequence<uintE>(PN_A, n);
-  auto aug_sizes = pbbslib::make_sequence<uintE>(aug_sizes_A, n);
+  auto MM = pbbslib::make_range<labels>(MM_A, n);
+  auto PN = pbbslib::make_range<uintE>(PN_A, n);
+  auto aug_sizes = pbbslib::make_range<uintE>(aug_sizes_A, n);
 
   par_for(0, n, [&] (size_t i) {
     uintE pi = Parents[i];

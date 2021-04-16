@@ -155,9 +155,9 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
     // 5. compact the vertices (pack out the roots)
     timer compact_t;
     compact_t.start();
-    auto vtxs_im = pbbslib::make_sequence<uintE>(vtxs, n);
+    auto vtxs_im = pbbslib::make_range<uintE>(vtxs, n);
 
-    n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_sequence(next_vtxs, m));
+    n = pbbslib::pack_out(vtxs_im, is_root, pbbslib::make_range(next_vtxs, m));
     std::swap(vtxs, next_vtxs);
     compact_t.stop();
     debug(compact_t.reportTotal("compact time"););
@@ -187,9 +187,9 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
 
     // 7. filter (or ignore) self-edges.
     auto self_loop_f = [&](size_t i) { return !(edge_ids[i] & TOP_BIT); };
-    auto self_loop_im = pbbslib::make_sequence<bool>(n, self_loop_f);
-    auto edge_ids_im = pbbslib::make_sequence<uintE>(edge_ids, m);
-    m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_sequence(next_edge_ids, m));
+    auto self_loop_im = pbbslib::make_delayed<bool>(n, self_loop_f);
+    auto edge_ids_im = pbbslib::make_range(edge_ids, m);
+    m = pbbslib::pack_out(edge_ids_im, self_loop_im, pbbslib::make_range(next_edge_ids, m));
 
     debug(std::cout << "filter, m is now " << m << " n is now " << n << "\n";);
     std::swap(edge_ids, next_edge_ids);
@@ -435,7 +435,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
   }
   std::cout << "#edges in output mst: " << mst_edges.size << "\n";
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = pbbslib::make_sequence<size_t>(
+  auto wgh_imap = pbbslib::make_delayed<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 

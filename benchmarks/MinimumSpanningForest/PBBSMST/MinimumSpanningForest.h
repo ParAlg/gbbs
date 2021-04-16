@@ -169,7 +169,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
     pbbslib::free_array(R);
     auto edge_imap_f = [&](size_t i) { return edges.E[i]; };
     auto edge_im =
-        pbbslib::make_sequence<edge_t>(n_edges, edge_imap_f);
+        pbbslib::make_delayed<edge_t>(n_edges, edge_imap_f);
     auto edges_ret = pbbslib::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
@@ -184,7 +184,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   }
   std::cout << "n in mst: " << mst_edges.size << "\n";
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = pbbslib::make_sequence<size_t>(
+  auto wgh_imap = pbbslib::make_delayed<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "wgh = " << pbbslib::reduce_add(wgh_imap) << "\n";
 

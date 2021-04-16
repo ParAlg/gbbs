@@ -99,7 +99,7 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
 
   // nullify, leave only the chronologically last update
   // sort indices instead of edges directly
-  sequence<size_t> inds = sequence<size_t>::no_init(n);
+  sequence<size_t> inds = sequence<size_t>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {inds[i] = i;});
 
   pbbslib::sample_sort_inplace(inds.slice(),  //check
@@ -107,7 +107,7 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
       return updates[i].first < updates[j].first;
       }, true);
 
-  sequence<size_t> flag = sequence<size_t>::no_init(n+1); // flag[i] == 1 if i is the last update of edge inds[i]
+  sequence<size_t> flag = sequence<size_t>::uninitialized(n+1); // flag[i] == 1 if i is the last update of edge inds[i]
   par_for(0, n-1, kDefaultGranularity, [&] (const size_t i) {
       if(updates[inds[i]].first != updates[inds[i+1]].first){
         flag[i] = 1;
@@ -122,7 +122,7 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
   size_t new_n = pbbslib::scan_inplace(flag.slice(), monoid);
   new_n --;
 
-  sequence<pair<EdgeT, bool>> updates_valid = sequence<pair<EdgeT, bool>>::no_init(new_n);
+  sequence<pair<EdgeT, bool>> updates_valid = sequence<pair<EdgeT, bool>>::uninitialized(new_n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if(flag[i] != flag[i+1]){
         updates_valid[flag[i]] = updates[inds[i]];
@@ -155,7 +155,7 @@ inline sequence<VTX> computeOffsets(pbbslib::range<pair<EdgeT,bool> *> edges, pb
   size_t edgeL = edges.size();
   bool clearflag = false;
   if(flag.empty()){
-    flag = sequence<size_t>::no_init(edgeL+1);
+    flag = sequence<size_t>::uninitialized(edgeL+1);
     clearflag = true;
   }
   //find offsets of vertices
@@ -166,7 +166,7 @@ inline sequence<VTX> computeOffsets(pbbslib::range<pair<EdgeT,bool> *> edges, pb
   flag[edgeL] = 1;
   auto monoid = pbbslib::addm<size_t>();
   size_t numVtx = pbbslib::scan_inplace(flag.slice(), monoid) - 1 ;
-  sequence<VTX> vtxNew =  sequence<VTX>::no_init(numVtx);
+  sequence<VTX> vtxNew =  sequence<VTX>::uninitialized(numVtx);
 
   // compute offsets
   par_for(1, edgeL, kDefaultGranularity, [&] (size_t i) {
@@ -204,8 +204,8 @@ template <class Graph, class EdgeT>
 sequence<DBTGraph::VtxUpdate> toCSR(DBTGraph::DyGraph<Graph>* G, sequence<size_t>& vtxMap, sequence<pair<EdgeT,bool>> &edgesIn, sequence<pair<EdgeT,bool>> &edges, size_t n){
   size_t m = edgesIn.size();
   sequence<DBTGraph::VtxUpdate> vtxNew;
-  // sequence<pair<EdgeT,bool>> edges = sequence<pair<EdgeT,bool>>::no_init(2*m);
-  sequence<size_t> flag = sequence<size_t>::no_init(2*m+1);
+  // sequence<pair<EdgeT,bool>> edges = sequence<pair<EdgeT,bool>>::uninitialized(2*m);
+  sequence<size_t> flag = sequence<size_t>::uninitialized(2*m+1);
   auto monoid = pbbslib::addm<size_t>();
 
 
@@ -245,7 +245,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
 
   // count new degrees
   vertex_data* vertex_data_array = pbbslib::new_array_no_init<vertex_data>(num_vertices);
-  sequence<size_t> newDegrees = sequence<size_t>(num_vertices, [&](const size_t i) {
+  sequence<size_t> newDegrees = sequence<size_t>::from_function(num_vertices, [&](const size_t i) {
     return DG->get_degree(i);
   });
   size_t num_edges = pbbslib::scan_inplace(newDegrees.slice(), monoid);
@@ -270,7 +270,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   }
 
   // insert from tables
-  auto edges_slice = pbbslib::make_sequence(edges_seq, num_edges);
+  auto edges_slice = pbbslib::make_range(edges_seq, num_edges);
   for(uintE u=0; u < num_vertices; ++u) {
     size_t offset = vertex_data_array[u].offset;
     DG->get_neighbors_major(u, edges_slice, offset);

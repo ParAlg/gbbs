@@ -239,7 +239,7 @@ inline sequence<cluster_and_parent> LDD_parents(Graph& G, double beta, bool perm
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = pbbslib::make_sequence<uintE>(num_to_add, candidates_f);
+      auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return clusters[v].cluster == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());

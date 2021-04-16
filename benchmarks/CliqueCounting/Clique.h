@@ -54,8 +54,8 @@
 namespace gbbs {
 
 template <class Graph>
-inline uintE* degreeOrderNodes(Graph& G, size_t n) {
-  uintE* r = pbbslib::new_array_no_init<uintE>(n); // to hold degree rank per vertex id
+inline sequence<uintE> degreeOrderNodes(Graph& G, size_t n) {
+  sequence<uintE> r = sequence<uintE>::uninitialized(n); // to hold degree rank per vertex id
 
   sequence<uintE> o(n); // to hold vertex ids in degree order
   par_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
@@ -81,7 +81,9 @@ sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
     pbbslib::integer_sort_inplace(rank.slice(), get_core);
     return rank;
   }
-  else if (order_type == 3) return pbbslib::make_sequence(degreeOrderNodes(GA, n), n);
+  else if (order_type == 3) {
+    return degreeOrderNodes(GA, n);
+  }
   else if (order_type == 4) {
     auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
     return rank;
@@ -200,7 +202,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     per_vert = inverse_per_vert;
   }
 
-  auto per_vert_seq = pbbslib::make_sequence<size_t>(n, [&] (size_t i) { return per_vert[i]; });
+  auto per_vert_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
   if (!approx_peel) {
   // Exact vertex peeling

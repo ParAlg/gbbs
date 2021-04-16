@@ -105,7 +105,7 @@ auto MaximalIndependentSet(Graph& G, size_t query_cutoff) {
     pbbslib::write_max(&max_query_length, work, std::less<size_t>());
   });
   size_t tot_work = pbbslib::reduce_add(total_work.slice());
-  auto answered_seq = pbbslib::make_sequence<size_t>(n, [&] (size_t i) { return static_cast<size_t>(answered[i]); });
+  auto answered_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return static_cast<size_t>(answered[i]); });
   size_t num_answered = pbbslib::reduce_add(answered_seq);
   double fraction_covered = static_cast<double>(num_answered) / static_cast<double>(n);
   std::cout << "# Max query length = " << max_query_length << std::endl;

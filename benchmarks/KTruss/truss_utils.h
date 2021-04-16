@@ -98,7 +98,7 @@ namespace truss_utils {
 
     sequence<V> entries() {
       auto pred = [&](V t) { return t != empty; };
-      auto table_seq = pbbslib::make_sequence<V>(table, m);
+      auto table_seq = pbbslib::make_delayed<V>(table, m);
       return pbbslib::filter(table_seq, pred);
     }
 

@@ -39,7 +39,7 @@ auto reorder_graph(Graph& G, F& edge_pri) {
         return std::get<0>(l) < std::get<0>(r);
       }
     };
-    auto ngh_seq = pbbslib::make_sequence(edges + off, ctr);
+    auto ngh_seq = pbbslib::make_range(edges + off, ctr);
     pbbslib::sample_sort_inplace(ngh_seq, comp_f);
   }, 1);
 
