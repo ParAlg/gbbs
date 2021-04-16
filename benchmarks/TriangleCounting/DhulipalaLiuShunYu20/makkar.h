@@ -116,8 +116,6 @@ inline void Makkar_Dynamic_Triangle(
 
 
 
-  return 0;
-
   t.stop();
   t.reportTotal("total processing time");
 }

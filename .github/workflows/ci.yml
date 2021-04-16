@@ -28,6 +28,11 @@ jobs:
         #        with:
         #          submodules: recursive
 
+      - name: GCC version
+        run: |
+          echo gcc version
+          gcc --version
+
       - name: Cache Bazel artifacts
         uses: actions/cache@v2
         with:
