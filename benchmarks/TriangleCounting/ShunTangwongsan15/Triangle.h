@@ -57,7 +57,7 @@ struct countF {
 template <class Graph>
 inline uintE* rankNodes(Graph& G, size_t n) {
   uintE* r = pbbslib::new_array_no_init<uintE>(n);
-  sequence<uintE> o(n);
+  sequence<uintE> o = sequence<uintE>::uninitialized(n);
 
   par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
   pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
@@ -105,7 +105,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
             << "\n";);
   size_t n = DG.n;
 
-  auto parallel_work = sequence<size_t>(n);
+  auto parallel_work = sequence<size_t>::uninitialized(n);
   {
     auto map_f = [&](uintE u, uintE v, W wgh) -> size_t {
       return DG.get_vertex(v).out_degree();
@@ -145,7 +145,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
     run_intersection(start_ind, end_ind);
   });
 
-  auto count_seq = pbbslib::make_sequence<size_t>(counts, DG.n);
+  auto count_seq = pbbslib::make_range<size_t>(counts, DG.n);
   size_t count = pbbslib::reduce_add(count_seq);
 
   return count;
@@ -172,7 +172,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   timer gt;
   gt.start();
   uintT n = G.n;
-  auto counts = sequence<size_t>(n);
+  auto counts = sequence<size_t>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { counts[i] = 0; });
 
@@ -211,7 +211,7 @@ inline size_t Triangle_degeneracy_ordering(Graph& G, const F& f, O ordering_fn) 
   timer gt;
   gt.start();
   uintT n = G.n;
-  auto counts = sequence<size_t>(n);
+  auto counts = sequence<size_t>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { counts[i] = 0; });
 
@@ -252,7 +252,7 @@ inline size_t Triangle(Graph& G, const F& f, const std::string& ordering, comman
   } else if (ordering == "kcore") {
     auto ff = [&] (Graph& graph) -> sequence<uintE> {
       auto dyn_arr = DegeneracyOrder(graph);
-      auto ret = sequence<uintE>(graph.n, [&] (size_t i) { return dyn_arr.A[i]; });
+      auto ret = sequence<uintE>::from_function(graph.n, [&] (size_t i) { return dyn_arr.A[i]; });
       dyn_arr.del();
       return ret;
     };
