@@ -86,7 +86,7 @@ namespace induced_neighborhood {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
-    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](FullSpace_orig_lw* induced) { induced->alloc(max_deg, k, DG.n); };
     auto finish_induced = [&](FullSpace_orig_lw* induced) { if (induced != nullptr) { delete induced; } };

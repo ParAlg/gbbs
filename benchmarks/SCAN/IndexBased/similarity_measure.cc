@@ -17,7 +17,7 @@ RandomNormalNumbers(const size_t num_numbers, const pbbslib::random rng) {
   constexpr float max_rng_val{
     static_cast<float>(std::numeric_limits<RngInt>::max())};
 
-  sequence<float> normals{sequence<float>::no_init(num_numbers)};
+  sequence<float> normals{sequence<float>::uninitialized(num_numbers)};
   // Generate normal numbers with the Box–Muller transform.
   par_for(0, (num_numbers + 1) / 2, [&](const size_t i) {
     const float uniform_1{rng.ith_rand(2 * i) / max_rng_val};

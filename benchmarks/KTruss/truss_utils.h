@@ -310,7 +310,7 @@ namespace truss_utils {
   template <class F, class Graph>
   void TCDirected(Graph& DG, F f) {
     size_t n = DG.n;
-    auto frontier = sequence<bool>::no_init(n);
+    auto frontier = sequence<bool>::uninitialized(n);
     par_for(0, n, [&] (size_t i) { frontier[i] = 1; });
     vertexSubset Frontier(n, n, std::move(frontier));
     emdf(DG, Frontier, countF<F, Graph>(DG, f), no_output);

@@ -373,7 +373,7 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
     internal::DivideRoundingUp(num_samples, kBitArraySize)};
   // Simhash fingerprints.
   sequence<BitArray> fingerprints{
-    sequence<BitArray>::no_init(num_needs_fingerprint * num_bit_arrays)};
+    sequence<BitArray>::uninitialized(num_needs_fingerprint * num_bit_arrays)};
   par_for(0, num_vertices, [&](const size_t vertex_id) {
     const uintE fingerprint_index{fingerprint_indices[vertex_id]};
     const bool needs_fingerprint{

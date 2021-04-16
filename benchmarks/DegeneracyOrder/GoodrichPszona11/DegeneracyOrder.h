@@ -115,7 +115,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
     };
 
     size_t num_removed = std::min(ns + start, n) - start;
-    auto removed = sequence<uintE>::no_init(num_removed);
+    auto removed = sequence<uintE>::uninitialized(num_removed);
     parallel_for(0, num_removed, [&] (size_t i) {
       removed[i] = sortD[start + i];
     });
@@ -123,7 +123,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
         vertexSubset(n, std::move(removed));
     auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
   }
-  auto ret = sequence<uintE>::no_init(n);
+  auto ret = sequence<uintE>::uninitialized(n);
   parallel_for (0,n,[&] (size_t j) { ret[sortD[j]] = j; });
   return ret;
 }

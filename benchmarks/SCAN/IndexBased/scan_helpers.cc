@@ -80,7 +80,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
   // `degree_offsets[j]` is the first index `i` at which
   // `vertex_degrees[i].degree >= j`.
   sequence<uintE> degree_offsets{
-    sequence<uintE>::no_init(max_degree + 1)};
+    sequence<uintE>::uninitialized(max_degree + 1)};
   const size_t min_degree{vertex_degrees[0].degree};
   par_for(0, min_degree + 1, [&](const size_t j) {
     degree_offsets[j] = 0;

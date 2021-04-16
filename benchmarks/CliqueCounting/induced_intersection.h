@@ -84,7 +84,7 @@ namespace induced_intersection {
   template <class Graph, class G, class F>
   inline size_t CountCliques(Graph& DG, size_t k, G use_f, F base_f, bool use_base=false) {
     using W = typename Graph::weight_type;
-    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
 
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](InducedSpace_lw* induced) { induced->alloc(max_deg, k, DG.n); };

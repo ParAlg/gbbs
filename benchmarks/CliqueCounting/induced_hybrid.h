@@ -67,7 +67,7 @@ if (recursive_level < k_idx || num_induced < 2) {
       }
     }
 } else {
-    sequence<size_t> tots = sequence<size_t>::no_init(num_induced);
+    sequence<size_t> tots = sequence<size_t>::uninitialized(num_induced);
     auto init_induced = [&](HybridSpace_lw* induced2) { induced2->alloc(induced->nn, k-k_idx, DG.n, false, induced->use_base, false); };
     auto finish_induced = [&](HybridSpace_lw* induced2) { if (induced2 != nullptr) { delete induced2; } };
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, num_induced, [&](size_t i, HybridSpace_lw* induced2) {
@@ -101,7 +101,7 @@ if (recursive_level < k_idx || num_induced < 2) {
     timer t2; t2.start();
 
     if (recursive_level != 1) {
-      sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+      sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
       size_t max_deg = get_max_deg(DG);
       auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
       auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
@@ -118,12 +118,12 @@ if (recursive_level < k_idx || num_induced < 2) {
     }
 
    size_t max_deg = get_max_deg(DG);
-   sequence<size_t> degs = sequence<size_t>::no_init(DG.n+1);
+   sequence<size_t> degs = sequence<size_t>::uninitialized(DG.n+1);
     parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).out_degree();});
     degs[DG.n] = 0;
     size_t num_edges = pbbslib::scan_add_inplace(degs.slice());
     num_edges = degs[DG.n];
-    sequence<size_t> tots = sequence<size_t>::no_init(num_edges);
+    sequence<size_t> tots = sequence<size_t>::uninitialized(num_edges);
 
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, use_base); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };

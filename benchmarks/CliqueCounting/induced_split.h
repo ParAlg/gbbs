@@ -32,7 +32,7 @@ namespace induced_split {
     std::cout << "##### Triangle scheduling: " << tt << std::endl;
 
     timer t2; t2.start();
-    sequence<size_t> tots = sequence<size_t>::no_init(n_blocks); //DG.n
+    sequence<size_t> tots = sequence<size_t>::uninitialized(n_blocks); //DG.n
     parallel_for(0, n_blocks, [&](size_t j) {
       size_t start = j * work_per_block;
       size_t end = (j + 1) * work_per_block;

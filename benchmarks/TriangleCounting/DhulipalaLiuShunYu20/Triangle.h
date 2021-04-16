@@ -82,7 +82,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     return make_tuple(C0, false, DG);
   }
  // t.start(); //toCSR
-  UpdatesT edges = UpdatesT::no_init(2*m);
+  UpdatesT edges = UpdatesT::uninitialized(2*m);
   sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG->num_vertices()); // fill vtxMap and edges
   t.next("count degrees");
 
