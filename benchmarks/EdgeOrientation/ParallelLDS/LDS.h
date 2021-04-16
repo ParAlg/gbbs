@@ -1054,7 +1054,7 @@ struct LDS {
   }
 
   template <class Seq>
-  void batch_insertion(const Seq& insertions_unfiltered) {
+  sequence<edge_type> batch_insertion(const Seq& insertions_unfiltered) {
     // Remove edges that already exist from the input.
     auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
         [&] (const edge_type& e) { return !edge_exists(e); });
@@ -1134,10 +1134,13 @@ struct LDS {
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_insertions(std::move(levels), 0);
+
+    std::cout << "Leveled data structure insertion size: " << insertions.size() << std::endl;
+    return insertions_filtered;
   }
 
   template <class Seq>
-  void batch_deletion(const Seq& deletions_unfiltered) {
+  sequence<edge_type> batch_deletion(const Seq& deletions_unfiltered) {
     // Remove edges that do not exist in the graph.
     auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
             [&] (const edge_type& e) { return edge_exists(e); });
@@ -1229,6 +1232,8 @@ struct LDS {
 
     // Update the level structure (basically a sparse bucketing structure).
     size_t total_moved = rebalance_deletions(std::move(levels), 0);
+
+    return deletions_filtered;
   }
 
   void check_invariants() {
