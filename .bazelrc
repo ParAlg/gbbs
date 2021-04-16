@@ -39,7 +39,7 @@ build --cxxopt=-Wno-unused-parameter
 build --cxxopt=-Wpointer-arith
 # Turning on -Wshadow rather than just -Wshadow=local would be nice, but the
 # codebase currently contains lots of instances of global shadowing.
-build --cxxopt=-Wshadow=local
+#build --cxxopt=-Wshadow=local
 build --cxxopt=-Wvla
 
 # Build without parallelism.
