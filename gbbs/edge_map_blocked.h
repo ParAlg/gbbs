@@ -409,7 +409,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // scan the #output blocks/thread
   sequence<em_data_block*> all_blocks = our_emhelper.get_all_blocks();
-  auto block_offsets = sequence<size_t>(all_blocks.size(), [&] (size_t i) {
+  auto block_offsets = sequence<size_t>::from_function(all_blocks.size(), [&] (size_t i) {
     return all_blocks[i]->block_size;
   });
   size_t output_size = pbbslib::scan_inplace(make_slice(block_offsets));

@@ -71,7 +71,7 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
 // internally sorted into num_buckets buckets.
 template <typename b_size_t, typename s_size_t, typename E, typename I,
           typename F>
-inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
+inline std::tuple<E*, s_size_t*, s_size_t, s_size_t> _count_sort(I& A, F& get_key,
                                                        s_size_t n,
                                                        s_size_t num_buckets) {
   // pad to 16 buckets to avoid false sharing (does not affect results)
@@ -87,7 +87,7 @@ inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
     E* B = new_array_no_init<E>(n);
     _seq_count_sort<b_size_t>(A, B, get_key, (s_size_t)0, n, counts,
                               num_buckets);
-    return std::make_tuple(B, counts, (s_size_t)1);
+    return std::make_tuple(B, counts, (s_size_t)1, num_buckets + 1);
   }
 
   s_size_t block_size = ((n - 1) / num_blocks) + 1;
@@ -95,7 +95,7 @@ inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
 
   // need new_array<E>(n) if E is not trivially constructable
   E* B = new_array_no_init<E>(n);
-  s_size_t* counts = new_array_no_init<s_size_t>(m, 1);
+  s_size_t* counts = new_array_no_init<s_size_t>(m);
 
   // sort each block
   parallel_for(0, num_blocks, [&] (size_t i) {
@@ -105,7 +105,7 @@ inline std::tuple<E*, s_size_t*, s_size_t> _count_sort(I& A, F& get_key,
                               counts + i * num_buckets, num_buckets);
   }, 1);
 
-  return std::make_tuple(B, counts, num_blocks);
+  return std::make_tuple(B, counts, num_blocks, m);
 }
 
 }  // namespace pbbslib

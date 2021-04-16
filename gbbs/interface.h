@@ -91,7 +91,7 @@ static inline symmetric_graph<symmetric_vertex, wgh_type> filterGraph(
       newVData, newN, newM,
       [=]() {
         gbbs::free_array(newVData, newN);
-        gbbs::free_array(newEdges, newEdgesSize);
+        gbbs::free_array(newEdges, newM);
       }, newEdges);
 }
 
@@ -108,7 +108,7 @@ static inline symmetric_graph<csv_byte, wgh_type> filterGraph(
       newVData, newN, newM,
       [=]() {
         gbbs::free_array(newVData, newN);
-        gbbs::free_array(newEdges, newEdgesSize);
+        gbbs::free_array(newEdges, newM);
       }, newEdges);
 }
 

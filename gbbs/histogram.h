@@ -189,11 +189,12 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
   K* elms;
   size_t* counts;
   size_t num_blocks;
+  size_t m;
   if (num_buckets <= 256) {
-    std::tie(elms, counts, num_blocks) =
+    std::tie(elms, counts, num_blocks, m) =
         pbbslib::_count_sort<uint8_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   } else {
-    std::tie(elms, counts, num_blocks) =
+    std::tie(elms, counts, num_blocks, m) =
         pbbslib::_count_sort<uint16_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   }
   size_t block_size = ((n - 1) / num_blocks) + 1;
@@ -369,11 +370,12 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
   K* elms;
   size_t* counts;
   size_t num_blocks;
+  size_t m;
   if (num_total_buckets <= 256) {
-    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint8_t, size_t, K>(
+    std::tie(elms, counts, num_blocks, m) = pbbslib::_count_sort<uint8_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   } else {
-    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint16_t, size_t, K>(
+    std::tie(elms, counts, num_blocks, m) = pbbslib::_count_sort<uint16_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   }
 
@@ -645,6 +647,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   // laid out as num_buckets (row), blocks (col)
   size_t* counts = std::get<1>(p);
   size_t num_blocks = std::get<2>(p);
+  size_t m = std::get<3>(p);
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
 #define S_STRIDE 64
@@ -683,7 +686,8 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   }
 
   ht.resize(ht_offs[num_buckets]);
-  O* out = pbbslib::new_array_no_init<O>(ht_offs[num_buckets]);
+  size_t out_size = ht_offs[num_buckets];
+  O* out = pbbslib::new_array_no_init<O>(out_size);
 
   // (3) insert elms into per-bucket hash table (par)
   {

@@ -49,7 +49,7 @@ template <class Graph>
 inline sequence<uintE> BFS(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
   /* Creates Parents array, initialized to all -1, except for src. */
-  auto Parents = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Parents = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
   Parents[src] = src;
 
   vertexSubset Frontier(G.n, src);
