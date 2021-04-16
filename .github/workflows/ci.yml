@@ -45,11 +45,16 @@ jobs:
       - name: Setup bazelisk
         uses: ./.github/actions/setup-bazelisk
 
-      - name: Build
-        run: bazel build --sandbox_debug --verbose_failures ...
+        #      - name: Build
+        #        run: bazel build --sandbox_debug --verbose_failures ...
+
+      - name: Bazel version
+        run: |
+          echo bazel version
+          bazel --version
 
       - name: Test
-        run: bazel test --sandbox_debug --verbose_failures --test_output=streamed ...
+        run: bazel test --sandbox_debug --verbose_failures --test_output=streamed //benchmarks/CliqueCounting/...
 
       - name: Caching workaround
         run: |
