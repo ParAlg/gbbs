@@ -90,7 +90,7 @@ TEST(CliqueCounting, BasicUsage) {
       /* recursive_level = */ 0,
       /* approx_peel = */ false,
       /* approx_eps = */ 0.01);
-  EXPECT_EQ(four_clique_count, 2);
+  EXPECT_EQ(four_clique_count, 5);
 }
 
 }  // namespace gbbs

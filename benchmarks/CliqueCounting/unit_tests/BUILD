@@ -10,4 +10,5 @@ gbbs_cc_test(
         "//gbbs:macros",
         "@googletest//:gtest_main",
     ],
+    size="small"
 )
