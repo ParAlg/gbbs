@@ -155,7 +155,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
-  auto actual_degree = sequence<uintE>(GA.n, [&] (size_t i) {
+  auto actual_degree = sequence<uintE>::from_function(GA.n, [&] (size_t i) {
     return GA.get_vertex(i).out_degree();
   });
 

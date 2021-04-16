@@ -65,7 +65,7 @@ struct SimpleUnionAsyncStruct {
   size_t n;
   sequence<parent> parents;
   SimpleUnionAsyncStruct(size_t n) : n(n) {
-    parents = sequence<uintE>(n, [&] (size_t i) { return (uintE)i; });
+    parents = sequence<uintE>::from_function(n, [&] (size_t i) { return (uintE)i; });
   }
   void unite(uintE u, uintE v) {
     unite_impl(u, v, parents);
@@ -101,7 +101,7 @@ inline sequence<parent> SimpleUnionAsync(Graph& G) {
 template <class Seq>
 inline size_t num_cc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[labels[i]]) {
       flags[labels[i]] = 1;
@@ -116,7 +116,7 @@ template <class Seq>
 inline size_t largest_cc(Seq& labels) {
   size_t n = labels.size();
   // could histogram to do this in parallel.
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     flags[labels[i]] += 1;
   }

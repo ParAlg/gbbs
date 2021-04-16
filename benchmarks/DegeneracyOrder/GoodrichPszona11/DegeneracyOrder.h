@@ -18,11 +18,11 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 
-  auto active = sequence<uintE>(n, [&] (size_t i) { return i; });
+  auto active = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });
 
   /* induced degrees sequence */
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
+      sequence<uintE>::from_function(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
 
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
@@ -72,7 +72,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     auto this_round_vs = vertexSubset(n, std::move(this_round));
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
-  auto output = sequence<uintE>(n, [&] (size_t i) { return ret.A[i]; });
+  auto output = sequence<uintE>::from_function(n, [&] (size_t i) { return ret.A[i]; });
   ret.del();
   debug(
   kt.reportTotal("kth time");
@@ -87,11 +87,11 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 
-  auto sortD = sequence<uintE>(n, [&](size_t i) {
+  auto sortD = sequence<uintE>::from_function(n, [&](size_t i) {
     return i;
   });
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
+      sequence<uintE>::from_function(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
   auto get_deg =

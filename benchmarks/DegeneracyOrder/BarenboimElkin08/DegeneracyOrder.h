@@ -17,11 +17,11 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1, bool appro
   double alpha = approx ? CharikarAppxDensestSubgraph(GA) : WorkEfficientDensestSubgraph(GA, epsilon);
   const size_t n = GA.n;
   const size_t deg_cutoff = std::max((size_t) (ceil(alpha * epsilon)), (size_t) 1);
-  auto sortD = sequence<uintE>(n, [&](size_t i) {
+  auto sortD = sequence<uintE>::from_function(n, [&](size_t i) {
     return i;
   });
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
+      sequence<uintE>::from_function(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 50);
   auto get_deg =

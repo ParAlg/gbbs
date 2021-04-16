@@ -86,7 +86,7 @@ namespace labelprop_cc {
       if constexpr (sampling_option == no_sampling) {
         all = sequence<bool>(n, true);
       } else { /* frequent_comp provided */
-        all = sequence<bool>(n, [&] (size_t i) -> bool {
+        all = sequence<bool>::from_function(n, [&] (size_t i) -> bool {
           return Parents[i] != frequent_comp;
         });
       }
@@ -128,7 +128,7 @@ namespace labelprop_cc {
     if constexpr (use_permutation) {
       Parents = pbbslib::random_permutation<uintE>(n);
     } else {
-      Parents = sequence<parent>(n, [&] (size_t i) { return i; });
+      Parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     }
     auto alg = LPAlgorithm<Graph>(G);
     alg.template compute_components<no_sampling>(Parents);

@@ -95,7 +95,7 @@ inline sequence<uintE> Coloring(Graph& G, bool lf = false) {
 
   // For each vertex count the number of out-neighbors with log-degree >= us
   auto priorities = sequence<intE>(n);
-  auto colors = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto colors = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
 
   if (lf) {
     std::cout << "### Running LF"

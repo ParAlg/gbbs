@@ -50,7 +50,7 @@ inline sequence<size_t> generate_shifts(size_t n, double beta) {
 template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
@@ -62,7 +62,7 @@ inline void num_clusters(Seq& s) {
 template <class Seq>
 inline void cluster_sizes(Seq& s) {
   size_t n = s.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       pbbslib::write_add(&flags[s[i]], 1);
 //    if (!flags[s[i]]) {
@@ -80,7 +80,7 @@ template <class Graph, class Seq>
 inline void num_intercluster_edges(Graph& G, Seq& s) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
+  auto ic_edges = sequence<size_t>::from_function(n, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];

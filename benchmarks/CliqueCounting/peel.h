@@ -321,8 +321,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t k, size_t* cliques, bool la
   size_t num_buckets=16) {
   timer t2; t2.start();
   const size_t n = G.n;
-  auto D = sequence<bucket_t>(n, [&](size_t i) { return cliques[i]; });
-  auto D_filter = sequence<std::tuple<uintE, bucket_t>>(n);
+  auto D = sequence<bucket_t>::from_function(n, [&](size_t i) { return cliques[i]; });
+  auto D_filter = sequence<std::tuple<uintE, bucket_t>>::uninitialized(n);
 
   auto b = make_vertex_custom_buckets<bucket_t>(n, D, increasing, num_buckets);
 
@@ -438,7 +438,7 @@ double ApproxPeel(Graph& G, Graph2& DG, size_t k, size_t* cliques, size_t num_cl
     std::cout << "eps: " << eps << "\n";
     timer t2; t2.start();
   const size_t n = G.n;
-  auto D = sequence<size_t>(n, [&](size_t i) { return cliques[i]; });
+  auto D = sequence<size_t>::from_function(n, [&](size_t i) { return cliques[i]; });
   auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
 
   size_t round = 1;

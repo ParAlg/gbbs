@@ -230,7 +230,7 @@ struct MaximalIndependentSetstep {
 template <class Graph>
 inline sequence<char> MaximalIndependentSet(Graph& G) {
   size_t n = G.n;
-  auto Flags = sequence<char>(n, [&](size_t i) { return 0; });
+  auto Flags = sequence<char>::from_function(n, [&](size_t i) { return 0; });
   auto FlagsNext = sequence<char>(n);
   auto mis = MaximalIndependentSetstep<Graph>(FlagsNext.begin(), Flags.begin(), G);
   eff_for<uintE>(mis, 0, n, 50);
@@ -242,7 +242,7 @@ template <class Graph, class Seq>
 inline void verify_MaximalIndependentSet(Graph& G, Seq& mis) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto ok = sequence<bool>(n, [&](size_t i) { return 1; });
+  auto ok = sequence<bool>::from_function(n, [&](size_t i) { return 1; });
   par_for(0, n, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return mis[ngh];

@@ -57,7 +57,7 @@ template <class Graph>
 inline sequence<uintE> degreeOrderNodes(Graph& G, size_t n) {
   sequence<uintE> r = sequence<uintE>::uninitialized(n); // to hold degree rank per vertex id
 
-  sequence<uintE> o(n); // to hold vertex ids in degree order
+  sequence<uintE> o = sequence<uintE>::uninitialized(n); // to hold vertex ids in degree order
   par_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
 
   pbbslib::integer_sort_inplace(o.slice(), [&] (size_t p) {
@@ -75,7 +75,7 @@ sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
   if (order_type == 0) return goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
   else if (order_type == 1) return barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
   else if (order_type == 2) {
-    auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
+    auto rank = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
     auto kcore = KCore(GA);
     auto get_core = [&](uintE p) -> uintE { return kcore[p]; };
     pbbslib::integer_sort_inplace(rank.slice(), get_core);
@@ -85,7 +85,7 @@ sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
     return degreeOrderNodes(GA, n);
   }
   else if (order_type == 4) {
-    auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
+    auto rank = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
     return rank;
   } else ABORT("Unexpected directed type: " << order_type);
 }
@@ -94,7 +94,7 @@ template <class Graph>
 inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
   const size_t n = DG.n;
   size_t count = 0;
-  auto counts = sequence<size_t>(n);
+  auto counts = sequence<size_t>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) { // if counting in total

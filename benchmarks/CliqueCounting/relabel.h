@@ -36,8 +36,8 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   using edge = std::tuple<uintE, W>;
 
   // 1. Calculate total size
-  auto degrees = sequence<uintE>(n);
-  auto byte_offsets = sequence<uintT>(n + 1);
+  auto degrees = sequence<uintE>::uninitialized(n);
+  auto byte_offsets = sequence<uintT>::uninitialized(n + 1);
   parallel_for(0, n, [&] (size_t i) {
     size_t total_bytes = 0;
     uintE last_ngh = 0;
@@ -46,7 +46,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
 
     size_t prev_deg = GA.get_vertex(i).out_degree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
-    auto tmp_edges = sequence<edge>(prev_deg);
+    auto tmp_edges = sequence<edge>::unitialized(prev_deg);
     auto f = [&](uintE u, uintE v, W w) {
       if (pred(u, v, w)) {
         tmp_edges[deg] = std::make_tuple(rank[v], w);
@@ -92,7 +92,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     uintE deg = degrees[i];
     if (deg > 0) {
       // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
-      auto tmp_edges = sequence<edge>(deg);
+      auto tmp_edges = sequence<edge>::uninitialized(deg);
       size_t j = 0;
       auto f = [&](uintE u, uintE v, W w) {
         if (pred(u, v, w)) {
@@ -136,7 +136,7 @@ template <template <class W> class vertex, class W, typename P,
 inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = GA.n;
-  auto outOffsets = sequence<uintT>(n + 1);
+  auto outOffsets = sequence<uintT>::uninitialized(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = GA.get_vertex(i);
@@ -201,7 +201,7 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   size_t n = GA.n;
   // Color vertices with denom colors
   uintE numColors = std::max((size_t) 1,denom);
-  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbslib::hash64_2((uintE) seed+i) % numColors; });
+  sequence<uintE> colors = sequence<uintE>::from_function(n, [&](size_t i){ return pbbslib::hash64_2((uintE) seed+i) % numColors; });
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (colors[u] == colors[v]) return 0;
     return 1;

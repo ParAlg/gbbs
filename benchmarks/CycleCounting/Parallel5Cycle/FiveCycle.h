@@ -211,7 +211,7 @@ inline auto Preprocess(Graph& GA, sequence<uintE>& rank, long order_type = 0, do
 
   if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GDO, epsilon);
   else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GDO, epsilon);
-  else if (order_type == 2) rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
+  else if (order_type == 2) rank = sequence<uintE>::from_function(GA.n, [&](size_t s) { return s; });
   std::cout << "Rank done\n"; fflush(stdout);
   return GDO;
 }
@@ -350,7 +350,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   timer t2; t2.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
   //sequence<ulong> cycleCounts = sequence<ulong>(GA.n * eltsPerCacheLine, [&](size_t s) { return 0; });
-  sequence<ulong> cycleCounts = sequence<ulong>(n_blocks * eltsPerCacheLine, [&](size_t s) { return 0; });
+  sequence<ulong> cycleCounts = sequence<ulong>::from_function(n_blocks * eltsPerCacheLine, [&](size_t s) { return 0; });
 
   auto run_intersection = [&](size_t start_ind, size_t end_ind, size_t block_index, U_FastReset* V){ //sequence<uintE>* V) {
 
@@ -427,7 +427,7 @@ inline ulong Count5Cycle_serial(Graph& GA, long order_type = 0, double epsilon =
 
   if (order_type == 0) rank = goodrichpszona_degen::DegeneracyOrder_intsort(GDO, epsilon);
   else if (order_type == 1) rank = barenboimelkin_degen::DegeneracyOrder(GDO, epsilon);
-  else if (order_type == 2) rank = sequence<uintE>(GA.n, [&](size_t s) { return s; });
+  else if (order_type == 2) rank = sequence<uintE>::from_function(GA.n, [&](size_t s) { return s; });
   std::cout << "Rank done\n"; fflush(stdout);
 
   auto direction = [&](const uintE& u, const uintE& v, const W& wgh) {
@@ -475,7 +475,7 @@ inline ulong Count5Cycle_no_scheduling(Graph& GA, long order_type = 0, double ep
 
   timer t2; t2.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
-  sequence<ulong> cycleCounts = sequence<ulong>(GA.n * eltsPerCacheLine, [&](size_t s) { return 0; });
+  sequence<ulong> cycleCounts = sequence<ulong>::from_function(GA.n * eltsPerCacheLine, [&](size_t s) { return 0; });
 
 
   auto init_V = [&](U_FastReset* V){ V->alloc(GA.n); };
@@ -511,17 +511,17 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
 
   if (order_type == 0) {
     rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
+    order_to_vertex = sequence<uintT>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                 { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
+    order_to_vertex = sequence<uintT>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
-    rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
+    rank = sequence<uintE>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
@@ -541,11 +541,11 @@ inline ulong Count5Cycle_experiment(Graph& GA, long order_type = 0, double epsil
 
   timer t; t.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
-  sequence<ulong> cycleCounts = sequence<ulong>(72 * eltsPerCacheLine, [&](size_t s) { return 0; });
+  sequence<ulong> cycleCounts = sequence<ulong>::from_function(72 * eltsPerCacheLine, [&](size_t s) { return 0; });
 
 
   par_for(0, GA.n, kDefaultGranularity, [&] (size_t i) {
-    auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
+    auto U = sequence<uintE>::from_function(GA.n, [&](size_t s) { return 0; });
     auto vi = GDO.get_vertex(i);
     uintE degree = vi.out_degree();
     // uintE* nghs = (uintE*) vi.neighbors;
@@ -637,17 +637,17 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
   if (order_type == 0) {
     rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
+    order_to_vertex = sequence<uintT>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                 { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
+    order_to_vertex = sequence<uintT>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
-    rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
+    rank = sequence<uintE>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
@@ -673,7 +673,7 @@ inline ulong Count5Cycle_ESCAPE(Graph& GA, long order_type = 0, double epsilon =
 
   timer t; t.start();
   ulong cycleCount = 0;
-  auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
+  auto U = sequence<uintE>::from_function(GA.n, [&](size_t s) { return 0; });
   //par_for(0, GA.n, kDefaultGranularity, [&] (size_t i) {
   for (uintE i = 0; i < GA.n; i++) {
     ulong tmp = 0;
@@ -813,17 +813,17 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
 
   if (order_type == 0) {
     rank = goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
+    order_to_vertex = sequence<uintT>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                 { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 1) {
     rank = barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
-    order_to_vertex = sequence<uintT>(GA.n, [&](size_t i){return 0;} );
+    order_to_vertex = sequence<uintT>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t v)
                { order_to_vertex[rank[v]] = v; });
   } else if (order_type == 2) {
     order_to_vertex = orderNodesByDegree(GA, GA.n);
-    rank = sequence<uintE>(GA.n, [&](size_t i){return 0;} );
+    rank = sequence<uintE>::from_function(GA.n, [&](size_t i){return 0;} );
     par_for(0, GA.n, kDefaultGranularity, [&] (size_t i)
                 { rank[order_to_vertex[i]] = i; });
   }
@@ -873,11 +873,11 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
   timer t2; t2.start();
   const size_t eltsPerCacheLine = 64/sizeof(ulong);
   //sequence<ulong> cycleCounts = sequence<ulong>(72 * eltsPerCacheLine, [&](size_t s) { return 0; });
-  sequence<ulong> cycleCounts = sequence<ulong>(n_blocks * eltsPerCacheLine, [&](size_t s) { return 0; });
+  sequence<ulong> cycleCounts = sequence<ulong>::from_function(n_blocks * eltsPerCacheLine, [&](size_t s) { return 0; });
 
   auto run_intersection = [&](size_t start_ind, size_t end_ind, size_t block_index) {
     for (size_t i = start_ind; i < end_ind; i++) {  // check LEQ
-      auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
+      auto U = sequence<uintE>::from_function(GA.n, [&](size_t s) { return 0; });
       ulong tmp = 0;
       //auto U = sequence<uintE>(GA.n, [&](size_t s) { return 0; });
       auto vi = GDO.get_vertex(i);

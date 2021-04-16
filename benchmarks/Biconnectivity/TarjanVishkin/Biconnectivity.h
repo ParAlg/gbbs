@@ -101,7 +101,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
                                                            Seq& Sources) {
   size_t n = GA.n;
   using edge = std::tuple<uintE, uintE>;
-  auto out_edges = sequence<edge>(
+  auto out_edges = sequence<edge>::from_function(
       n, [](size_t i) { return std::make_tuple(UINT_E_MAX, UINT_E_MAX); });
   par_for(0, n, [&] (size_t i) {
     uintE p_i = Parents[i];
@@ -116,7 +116,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
   pbbslib::sample_sort_inplace(edges.slice(), sort_tup, true);
 
-  auto starts = sequence<uintE>(n + 1, [](size_t i) { return UINT_E_MAX; });
+  auto starts = sequence<uintE>::from_function(n + 1, [](size_t i) { return UINT_E_MAX; });
   par_for(0, edges.size(), [&] (size_t i) {
     if (i == 0 || std::get<0>(edges[i]) != std::get<0>(edges[i - 1])) {
       starts[std::get<0>(edges[i])] = i;
@@ -134,7 +134,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   seq.stop();
   debug(seq.reportTotal("seq time"););
 
-  auto nghs = sequence<uintE>(
+  auto nghs = sequence<uintE>::from_function(
       edges.size(), [&](size_t i) { return std::get<1>(edges[i]); });
   edges.clear();
 
@@ -166,7 +166,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   auto aug_sizes = pbbslib::new_array_no_init<uintE>(n);
   parallel_for(0, n, [&] (size_t i) { aug_sizes[i] = 1; });
   auto cts =
-      sequence<intE>(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
+      sequence<intE>::from_function(n, [&](size_t i) { return Tree.get_vertex(i).out_degree(); });
   auto leaf_im = pbbslib::make_delayed<bool>(n, [&](size_t i) {
     auto s_i = starts[i];
     auto s_n = starts[i + 1];
@@ -209,12 +209,12 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
   while (!vs.isEmpty()) {
     rds++;
     tv += vs.size();
-    auto offsets = sequence<uintE>(vs.size(), [&](size_t i) {
+    auto offsets = sequence<uintE>::from_function(vs.size(), [&](size_t i) {
       uintE v = vs.s[i];
       return Tree.get_vertex(v).out_degree();
     });
     auto tot = pbbslib::scan_add_inplace(offsets);
-    auto next_vs = sequence<uintE>(tot);
+    auto next_vs = sequence<uintE>::uninitialized(tot);
     par_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
       uintE off = offsets[i];
@@ -233,7 +233,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
           next_vs[off + j] = ngh;
         }
       } else {
-        auto A = sequence<uintE>(deg_v);
+        auto A = sequence<uintE>::uninitialized(deg_v);
         par_for(0, deg_v, [&] (size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
@@ -331,7 +331,7 @@ struct BC_BFS_F {
 template <template <typename W> class vertex, class W, class VS>
 inline sequence<uintE> multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
-  auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto Parents = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
   par_for(0, frontier.size(), 2000, [&] (size_t i) {
     uintE v = frontier.s[i];
@@ -390,8 +390,8 @@ struct DET_BFS_F_2 {
 template <template <typename W> class vertex, class W, class VS>
 sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& frontier) {
   size_t n = GA.n;
-  auto visited = sequence<bool>(n, [] (size_t i) { return false; });
-  auto Parents = sequence<uintE>(n, [](size_t i) { return UINT_E_MAX; });
+  auto visited = sequence<bool>::from_function(n, [] (size_t i) { return false; });
+  auto Parents = sequence<uintE>::from_function(n, [](size_t i) { return UINT_E_MAX; });
   frontier.toSparse();
   par_for(0, frontier.size(), [&] (size_t i) {
     uintE v = frontier.s[i];
@@ -411,7 +411,7 @@ sequence<uintE> deterministic_multi_bfs(symmetric_graph<vertex, W>& GA, VS& fron
 template <class Seq>
 inline sequence<uintE> cc_sources(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return UINT_E_MAX; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return UINT_E_MAX; });
   par_for(0, n, [&] (size_t i) {
     uintE label = labels[i];
     pbbslib::write_min(&flags[label], (uintE)i);
@@ -500,7 +500,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
 //      exit(0);
 //    }
 
-    auto tups = sequence<std::pair<uintE, uintE>>(n);
+    auto tups = sequence<std::pair<uintE, uintE>>::uninitialized(n);
     par_for(0, n, [&] (size_t i) {
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 

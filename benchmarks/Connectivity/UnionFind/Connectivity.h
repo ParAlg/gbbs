@@ -139,7 +139,7 @@ template <class Seq>
 sequence<parent> find_compress_uf(size_t n, Seq& updates) {
   auto find = find_variants::find_compress;
   auto unite = unite_variants::Unite<decltype(find)>(find);
-  auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+  auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
   parallel_for(0, updates.size(), [&] (size_t i) {
     auto [u, v] = updates[i];
     unite(u, v, parents);

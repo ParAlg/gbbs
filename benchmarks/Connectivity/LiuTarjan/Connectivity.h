@@ -176,7 +176,7 @@ struct LiuTarjanAlgorithm {
     auto queries = reordered_updates.slice(update_end, updates.size());
 
     using edge = std::pair<uintE, uintE>;
-    auto inserts = sequence<edge>(insertions.size(), [&] (size_t i) {
+    auto inserts = sequence<edge>::from_function(insertions.size(), [&] (size_t i) {
       auto [u, v, typ] = insertions[i];
       (void)typ;
       return std::make_pair(u,v);

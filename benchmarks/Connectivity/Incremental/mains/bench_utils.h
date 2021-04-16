@@ -180,7 +180,7 @@ namespace connectit {
       size_t insert_to_query,
       bool check,
       Alg& alg) {
-    auto parents = sequence<uintE>(n, [&] (size_t i) { return i; });
+    auto parents = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });
 
 
     sequence<uintE> correct_parents;

@@ -46,7 +46,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
   // read from special array of just degrees
 
-  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>::from_function(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto frontier_v = sequence<bool>(n, false);
   frontier_v[v] = true;
@@ -125,7 +125,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
 
   // read from special array of just degrees
 
-  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>::from_function(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto EM_v = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
   auto EM_u = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);

@@ -335,7 +335,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
   par_for(0, indices.size(), kDefaultGranularity,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_add_inplace(make_slice(vertex_offs));
+  size_t num_blocks = pbbslib::scan_inplace(make_slice(vertex_offs));
 
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
