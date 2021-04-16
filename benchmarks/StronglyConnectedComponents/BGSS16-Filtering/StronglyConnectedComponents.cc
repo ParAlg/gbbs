@@ -42,7 +42,7 @@ inline size_t num_done(Seq& labels) {
   auto im_f = [&](size_t i) {
     return (size_t)(labels[i] != kUnfinished);
   };
-  auto im = pbbslib::make_sequence<size_t>(labels.size(), im_f);
+  auto im = pbbslib::make_delayed<size_t>(labels.size(), im_f);
 
   return pbbslib::reduce_add(im);
 }
