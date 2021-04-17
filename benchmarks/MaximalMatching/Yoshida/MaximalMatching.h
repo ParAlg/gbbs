@@ -119,7 +119,7 @@ auto MaximalMatching(Graph& G, size_t query_cutoff) {
     }
   };
   RG.mapEdges(map_f);
-  size_t tot_work = pbbslib::reduce_add(make_slice(total_work.slice));
+  size_t tot_work = pbbslib::reduce_add(make_slice(total_work));
   double fraction_covered = (static_cast<double>(pbbslib::reduce_add(make_slice(got_answer))) / (static_cast<double>(m)/2));
   std::cout << "# Max query length = " << max_query_length << std::endl;
   std::cout << "# Total work = " << tot_work << std::endl;

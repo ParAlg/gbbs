@@ -21,7 +21,8 @@ INTE = -DEDGELONG
 endif
 
 #OPT = -O3 -DNDEBUG -DPARLAY_USE_STD_ALLOC
-OPT = -O0 -g
+OPT = -O2 -g
+#OPT = -O0 -g
 
 CFLAGS = \
 	-U_FORTIFY_SOURCE \

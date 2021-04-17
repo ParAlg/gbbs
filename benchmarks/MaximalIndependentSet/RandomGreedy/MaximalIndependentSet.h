@@ -23,8 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/random_shuffle.h"
-
 #include "gbbs/gbbs.h"
 #include "gbbs/speculative_for.h"
 

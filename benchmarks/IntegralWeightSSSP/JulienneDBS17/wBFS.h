@@ -83,7 +83,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   init.start();
   size_t n = G.n;
 
-  auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });
+  auto dists = sequence<uintE>::from_function(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
   auto get_bkt = [&](const uintE& dist) -> uintE {

@@ -1,6 +1,6 @@
 #include "benchmarks/Connectivity/connectit.h"
 
-#include "pbbslib/assert.h"
+#include "gbbs/pbbslib/assert.h"
 
 namespace gbbs {
 

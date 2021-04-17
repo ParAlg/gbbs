@@ -1,4 +1,10 @@
 cc_library(
+  name = "assert",
+  hdrs = ["assert.h"],
+  deps = []
+)
+
+cc_library(
   name = "atomic_counter",
   hdrs = [
     "atomic_max_counter.h",

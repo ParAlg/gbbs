@@ -56,7 +56,7 @@ class sparse_table {
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(table);
+      pbbslib::free_array(table, m);
       alloc = false;
     }
   }

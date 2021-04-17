@@ -4,9 +4,6 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "pbbslib/integer_sort.h"
-#include "pbbslib/kth_smallest.h"
-#include "pbbslib/random.h"
 
 namespace gbbs {
 namespace goodrichpszona_degen {

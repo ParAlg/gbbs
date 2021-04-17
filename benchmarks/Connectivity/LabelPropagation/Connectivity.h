@@ -24,7 +24,6 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/random_shuffle.h"
 #include "benchmarks/Connectivity/common.h"
 
 namespace gbbs {

@@ -161,7 +161,19 @@ namespace pbbslib {
   using parlay::hash64;
   using parlay::hash64_2;
 
-  using parlay::log2_up;
+  template <class T>
+  size_t log2_up(T i) {
+    size_t a = 0;
+    T b = i - 1;
+    while (b > 0) {
+      b = b >> 1;
+      a++;
+    }
+    return a;
+  }
+
+
+
 
   // Alias template so that sequence is exposed w/o namespacing
   template<typename T>
@@ -565,6 +577,39 @@ namespace pbbslib {
     return pbbslib::pack(id_seq, flgs_seq);
   }
 
+
+  template <class Seq, class Compare>
+  typename Seq::value_type kth_smallest(Seq const &s, size_t k, Compare less,
+                                        random r = random()) {
+    using T = typename Seq::value_type;
+    size_t n = s.size();
+    T pivot = s[r[0] % n];
+    sequence<T> smaller = filter(s, [&](T a) { return less(a, pivot); });
+    if (k < smaller.size())
+      return kth_smallest(smaller, k, less, r.next());
+    else {
+      sequence<T> larger = filter(s, [&](T a) { return less(pivot, a); });
+      if (k >= n - larger.size())
+        return kth_smallest(larger, k - n + larger.size(), less, r.next());
+      else
+        return pivot;
+    }
+  }
+
+  template <class Seq, class Compare>
+  typename Seq::value_type approximate_kth_smallest(Seq const &S, size_t k,
+                                                    Compare less,
+                                                    random r = random()) {
+    // raise exception if empty sequence?
+    using T = typename Seq::value_type;
+    size_t n = S.size();
+    size_t num_samples = n / sqrt(n);
+    sequence<T> samples = sequence<T>::from_function(num_samples,
+                              [&](size_t i) -> T { return S[r[i] % n]; });
+    return sample_sort(make_slice(samples), less)[k * num_samples / n];
+    // kth_smallest(samples, k * num_samples / n, less);
+  }
+
   template <class T, class Pred>
   inline size_t filter_seq(T* in, T* out, size_t n, Pred p) {
     size_t k = 0;
@@ -781,12 +826,12 @@ namespace pbbslib {
   template <class TSeq>
   sequence<char> sequence_to_string(TSeq const &T) {
     size_t n = T.size();
-    auto S = sequence<size_t>(n, [&] (size_t i) {
+    auto S = sequence<size_t>::from_function(n, [&] (size_t i) {
       return t_to_stringlen(T[i])+1; // +1 for \n
     });
     size_t m = pbbslib::scan_inplace(make_slice(S), addm<size_t>());
 
-    auto C = sequence<char>(m, [&] (size_t i) { return (char)0; });
+    auto C = sequence<char>::from_function(m, [&] (size_t i) { return (char)0; });
     parallel_for(0, n-1, [&] (size_t i) {
       type_to_string(C.begin() + S[i], T[i]);
       C[S[i + 1] - 1] = '\n';

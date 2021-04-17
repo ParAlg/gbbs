@@ -482,7 +482,6 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
   }
 
   if (!is_sorted) {
-    size_t bits = pbbslib::log2_up(n);
     pbbslib::integer_sort_inplace(make_slice(A), get_u);
   }
 

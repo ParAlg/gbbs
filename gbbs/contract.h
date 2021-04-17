@@ -20,7 +20,7 @@ namespace contract {
   inline size_t RelabelIds(Seq& ids) {
     using T = typename Seq::value_type;
     size_t n = ids.size();
-    auto inverse_map = sequence<T>(n + 1);
+    auto inverse_map = sequence<T>::uninitialized(n + 1);
     par_for(0, n, kDefaultGranularity, [&] (size_t i)
                     { inverse_map[i] = 0; });
     par_for(0, n, kDefaultGranularity, [&] (size_t i) {
@@ -87,7 +87,7 @@ namespace contract {
     debug(std::cout << "# num_clusters = " << num_clusters << std::endl;);
     timer count_t;
     count_t.start();
-    auto deg_map = sequence<uintE>(n + 1);
+    auto deg_map = sequence<uintE>::uninitialized(n + 1);
     auto pred = [&](const uintE& src, const uintE& ngh, const W& w) {
       uintE c_src = clusters[src];
       uintE c_ngh = clusters[ngh];
@@ -224,14 +224,14 @@ namespace contract {
     pbbslib::scan_inplace(make_slice(flags));
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
-    auto mapping = sequence<uintE>(num_ns_clusters);
+    auto mapping = sequence<uintE>::uninitialized(num_ns_clusters);
     par_for(0, num_clusters, kDefaultGranularity, [&] (size_t i) {
                       if (flags[i] != flags[i + 1]) {
                         mapping[flags[i]] = i;
                       }
                     });
 
-    auto sym_edges = sequence<K>(2 * edges.size(), [&](size_t i) {
+    auto sym_edges = sequence<K>::from_function(2 * edges.size(), [&](size_t i) {
       size_t src_edge = i / 2;
       if (i % 2) {
         return std::make_tuple(flags[std::get<0>(std::get<0>(edges[src_edge]))],

@@ -25,8 +25,6 @@
 
 #include "gbbs/gbbs.h"
 
-#include "pbbslib/random_shuffle.h"
-
 namespace gbbs {
 namespace coloring {
 template <class Graph, class Seq>
@@ -54,7 +52,7 @@ inline uintE color(Graph& G, uintE v, Seq& colors) {
     auto im = pbbslib::make_delayed<uintE>(deg, im_f);
     uintE color = pbbslib::reduce(im, pbbslib::minm<uintE>());
     if (deg > 1000) {
-      pbbslib::free_array(bits);
+      pbbslib::free_array(bits, deg);
     }
     return (color == UINT_E_MAX) ? (deg + 1) : color;
   }
