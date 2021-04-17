@@ -95,7 +95,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
   debug(ins_t.reportTotal("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
-  auto edges = sequence<edge>(edge_pairs.size(), [&] (size_t i) {
+  auto edges = sequence<edge>::from_function(edge_pairs.size(), [&] (size_t i) {
     return std::get<1>(edge_pairs[i]);
   });
   return edges;
@@ -146,7 +146,7 @@ sequence<edge> fetch_intercluster(Graph& G, C& clusters, size_t num_clusters) {
   debug(ins_t.reportTotal("ins time"););
   debug(std::cout << "edges.size = " << edge_pairs.size() << std::endl);
 
-  auto edges = sequence<edge>(edge_pairs.size(), [&] (size_t i) {
+  auto edges = sequence<edge>::from_function(edge_pairs.size(), [&] (size_t i) {
     return std::get<1>(edge_pairs[i]);
   });
   return edges;
@@ -186,7 +186,7 @@ sequence<edge> tree_and_intercluster_edges(Graph& G,
   debug(std::cout << "num_intercluster edges = " << intercluster.size() << std::endl;);
   edge_list.copyIn(intercluster, intercluster.size());
   size_t edge_list_size = edge_list.size;
-  return sequence<edge>(edge_list_size, [&] (size_t i) { return edge_list.A[i]; });
+  return sequence<edge>::from_function(edge_list_size, [&] (size_t i) { return edge_list.A[i]; });
 }
 
 template <class W>

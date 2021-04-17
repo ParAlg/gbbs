@@ -24,8 +24,6 @@
 
 #include <algorithm>
 
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/monoid.h"
 #include "gbbs/gbbs.h"
 
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -201,7 +199,7 @@ inline size_t Triangle_degree_ordering(Graph& G, const F& f) {
   DG.del();
   ct.stop();
   ct.reportTotal("count time");
-  pbbslib::free_array(rank);
+  pbbslib::free_array(rank, G.n);
   return count;
 }
 

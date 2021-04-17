@@ -28,10 +28,6 @@
 #include "gbbs/union_find.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/random.h"
-#include "pbbslib/sample_sort.h"
-
 namespace gbbs {
 namespace MinimumSpanningForest_boruvka {
 
@@ -198,8 +194,8 @@ inline size_t Boruvka(edge_array<W>& E, uintE*& vtxs,
 
   std::cout << "Boruvka finished: total edges added to MinimumSpanningForest = " << n_in_mst
             << "\n";
-  pbbslib::free_array(edge_ids);
-  pbbslib::free_array(next_edge_ids);
+  pbbslib::free_array(edge_ids, m);
+  pbbslib::free_array(next_edge_ids, m);
   return n_in_mst;
 //  auto mst_im = sequence<uintE>(mst, n_in_mst); // allocated
 //  return mst_im;
@@ -236,7 +232,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   auto vertex_offs = sequence<long>(G.n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vertex_offs[i] = G.get_vertex(i).out_degree(); });
-  pbbslib::scan_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_inclusive_inplace(make_slice(vertex_offs));
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& left, const size_t& right) { return left <= right; };
@@ -328,8 +324,8 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
   std::cout << "n = " << n << "\n";
   auto r = pbbslib::random();
 
-  auto exhausted = sequence<bool>(n, [](size_t i) { return false; });
-  auto parents = sequence<uintE>(n, [](size_t i) { return i; });
+  auto exhausted = sequence<bool>::from_function(n, [](size_t i) { return false; });
+  auto parents = sequence<uintE>::from_function(n, [](size_t i) { return i; });
   auto mst_edges = pbbslib::dyn_arr<edge>(n);
 
   auto min_edges = pbbslib::new_array_no_init<vtxid_wgh_pair>(n);
@@ -388,7 +384,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     debug(bt.reportTotal("boruvka time"););
     mst_edges.copyInF([&](size_t i) { return E.E[edge_ids[i]]; },
                       edge_ids.size());
-    pbbslib::free_array(mst);
+    pbbslib::free_array(mst, n);
 
     // reactivate vertices and reset exhausted
     timer pack_t;
@@ -440,7 +436,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 
   mst_edges.clear();
-  pbbslib::free_array(min_edges);
+  pbbslib::free_array(min_edges, n);
 }
 
 template <

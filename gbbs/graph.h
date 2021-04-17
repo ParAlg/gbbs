@@ -61,6 +61,7 @@ struct symmetric_graph {
   template <class P>
   uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
     uintE new_degree = get_vertex(id).out_neighbors().pack(p, (std::tuple<uintE, W>*)tmp);
+//    std::cout << "Packed id = " << id << " old_degree = " << v_data[id].degree << " new_degree = " << new_degree << std::endl;
     v_data[id].degree = new_degree;  // updates the degree
     return new_degree;
   }

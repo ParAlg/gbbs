@@ -95,7 +95,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
       [&](uintE p) -> uintE { return D[p]; };
   for (size_t start = 0; start < n; start += ns) {
     // sort vertices in GA by degree, from start to n
-    integer_sort_inplace(sortD.slice(start, n), get_deg);
+    integer_sort_inplace(sortD.cut(start, n), get_deg);
     //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
     // uintE deg_max = D[sortD[std::min(ns + start, n)]];
 

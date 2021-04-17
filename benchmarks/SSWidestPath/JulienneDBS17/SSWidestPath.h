@@ -95,7 +95,7 @@ inline sequence<uintE> SSWidestPath(Graph& G, uintE src,
   init.start();
   size_t n = G.n;
 
-  auto width = sequence<uintE>(n, [&](size_t i) { return (uintE)0; });
+  auto width = sequence<uintE>::from_function(n, [&](size_t i) { return (uintE)0; });
   width[src] = INT_E_MAX;
 
   auto get_bkt = [&](const W& _width) -> uintE {

@@ -635,6 +635,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
+    Sums[l] = 0;
     size_t m = scan_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
@@ -671,6 +672,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
+    Sums[l] = 0;
     size_t m = scan_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
@@ -714,6 +716,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
+    Sums[l] = 0;
     size_t m = scan_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {

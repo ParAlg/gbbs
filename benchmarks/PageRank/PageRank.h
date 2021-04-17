@@ -85,7 +85,7 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
 
   // read from special array of just degrees
 
-  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>::from_function(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   vertexSubset Frontier(n,n, std::move(frontier));
 
@@ -100,7 +100,7 @@ sequence<double> PageRank_edgeMap(Graph& G, double eps = 0.000001, size_t max_it
     auto differences = pbbslib::make_delayed<double>(n, [&] (size_t i) {
       return fabs(p_curr[i]-p_next[i]);
     });
-    double L1_norm = pbbslib::reduce(differences, pbbslib::addm<double>());
+    double L1_norm = pbbslib::reduce(differences);
     if(L1_norm < eps) break;
 
     debug(std::cout << "L1_norm = " << L1_norm << std::endl;);
@@ -126,13 +126,13 @@ sequence<double> PageRank(Graph& G, double eps = 0.000001, size_t max_iters = 10
   auto p_curr = sequence<double>(n, one_over_n);
   auto p_next = sequence<double>(n, static_cast<double>(0));
   auto frontier = sequence<bool>(n, true);
-  auto p_div = sequence<double>(n, [&] (size_t i) -> double {
+  auto p_div = sequence<double>::from_function(n, [&] (size_t i) -> double {
     return one_over_n / static_cast<double>(G.get_vertex(i).out_degree());
   });
 
   // read from special array of just degrees
 
-  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>::from_function(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   vertexSubset Frontier(n,n,std::move(frontier));
   auto EM = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);

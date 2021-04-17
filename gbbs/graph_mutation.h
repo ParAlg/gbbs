@@ -411,6 +411,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
     tmp = pbbslib::new_array_no_init<uint8_t>(total_space);
+    debug(std::cout << "Allocated " << total_space << " temporary space." << std::endl;);
   }
   if (should_output(fl)) {
     auto outV = sequence<S>::uninitialized(vs.size());

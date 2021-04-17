@@ -20,8 +20,8 @@ ifdef EDGELONG
 INTE = -DEDGELONG
 endif
 
-#OPT = -O3 -DNDEBUG -DPARLAY_USE_STD_ALLOC
-OPT = -O2 -g
+OPT = -O3 -DNDEBUG -DPARLAY_USE_STD_ALLOC
+#OPT = -O2 -g
 #OPT = -O0 -g
 
 CFLAGS = \
@@ -80,7 +80,7 @@ CC = g++
 PFLAGS = $(HGFLAGS)
 else ifdef SERIAL
 CC = g++
-PFLAGS =
+PFLAGS = $(SERIALFLAGS)
 else # default is homegrown
 CC = g++
 PFLAGS = $(HGFLAGS)
