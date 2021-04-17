@@ -62,8 +62,8 @@ inline void _seq_count_sort(I& In, E* Out, F& get_key, s_size_t start,
     // otherwise equivalent to: Out[k+start] = In[j+start];
     pbbslib::move_uninitialized(Out[k + start], In[j + start]);
   }
-  pbbslib::free_array(offsets);
-  pbbslib::free_array(tmp);
+  pbbslib::free_array(offsets, num_buckets);
+  pbbslib::free_array(tmp, n);
 }
 
 // Parallel internal version that returns the un-transposed result

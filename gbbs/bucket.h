@@ -207,7 +207,7 @@ struct buckets {
     num_blocks = 1 << block_bits;
     size_t block_size = (k + num_blocks - 1) / num_blocks;
 
-    size_t hists_size = (num_blocks + 1) * total_buckets * CACHE_LINE_S
+    size_t hists_size = (num_blocks + 1) * total_buckets * CACHE_LINE_S;
     bucket_id* hists = pbbslib::new_array_no_init<bucket_id>(hists_size);
 //    bucket_id* outs =
 //        pbbslib::new_array_no_init<bucket_id>((num_blocks + 1) * total_buckets);

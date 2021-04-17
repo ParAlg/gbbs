@@ -68,7 +68,7 @@ namespace pbbslib {
         E* nA = pbbslib::new_array_no_init<E>(new_capacity);
         parallel_for(0, size, [&] (size_t i) { nA[i] = A[i]; });
         if (alloc) {
-          pbbslib::free_array(A);
+          pbbslib::free_array(A, capacity);
         }
         A = nA;
         capacity = new_capacity;
