@@ -31,7 +31,7 @@ symmetric_graph<symmetric_vertex, gbbs::empty> MakeUnweightedSymmetricGraph(
   // `sym_graph_from_edges` or as an option to `sym_graph_from_edges`.
   // See https://github.com/ldhulipala/gbbs/pull/21.
   pbbslib::sample_sort_inplace(
-      edge_sequence.slice(),
+      make_slice(edge_sequence),
       [](const Edge& left, const Edge& right) {
         return std::tie(std::get<0>(left), std::get<1>(left))
           < std::tie(std::get<0>(right), std::get<1>(right));

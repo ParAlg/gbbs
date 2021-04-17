@@ -65,7 +65,10 @@ std::tuple<size_t, size_t, uintT*, uintE*> parse_unweighted_graph(
     sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
         [] (auto x) { return parlay::make_slice(x); });
 
-    assert(tokens[0] == internal::kUnweightedAdjGraphHeader);
+    debug(
+    std::string header = std::string(tokens[0].begin(), tokens[0].size());
+    assert(header == internal::kUnweightedAdjGraphHeader);
+    );
 
     n = parlay::internal::chars_to_int_t<unsigned long>(tokens[1]);
     m = parlay::internal::chars_to_int_t<unsigned long>(tokens[2]);

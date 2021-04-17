@@ -636,8 +636,8 @@ parse_weighted_graph(
     assert(tokens[0].begin() == internal::kWeightedAdjGraphHeader);
 
     uint64_t len = tokens.size() - 1;
-    uint64_t n = parlay::chars_to_ulong(tokens[1]);
-    uint64_t m = parlay::chars_to_ulong(tokens[2]);
+    n = parlay::chars_to_ulong(tokens[1]);
+    m = parlay::chars_to_ulong(tokens[2]);
 
     if (len != (n + 2 * m + 2)) {
       std::cout << tokens[0] << "\n";

@@ -35,19 +35,18 @@ cc_library(
   srcs = ["bridge.cc"],
   deps = [
   ":get_time",
-  "//pbbslib:binary_search",
-  "//pbbslib:counting_sort",
-  "//pbbslib:integer_sort",
-  "//pbbslib:monoid",
-  "//pbbslib:parallel",
-  "//pbbslib:random",
-  "//pbbslib:random_shuffle",
-  "//pbbslib:sample_sort",
-  "//pbbslib:seq",
-  "//pbbslib:sequence_ops",
-  "//pbbslib/strings:string_basics",
-  "//pbbslib:utilities",
-  ]
+  "//parlaylib/include/parlay/internal:binary_search",
+  "//parlaylib/include/parlay:primitives",
+  "//parlaylib/include/parlay:monoid",
+  "//parlaylib/include/parlay:parallel",
+  "//parlaylib/include/parlay:random",
+  "//parlaylib/include/parlay:delayed_sequence",
+  "//parlaylib/include/parlay:sequence",
+  "//parlaylib/include/parlay:slice",
+  "//parlaylib/include/parlay:range",
+  "//parlaylib/include/parlay:utilities",
+  ],
+  linkopts = ["-pthread", "-L/usr/local/lib", "-ljemalloc"]
 )
 
 cc_library(
@@ -66,7 +65,6 @@ cc_library(
   deps = [
   ":macros",
   ":bridge",
-  "//pbbslib:monoid",
   "//gbbs/encodings:decoders"
   ]
 )
@@ -80,8 +78,6 @@ cc_library(
   ":edge_map_utils",
   ":flags",
   ":vertex_subset",
-  "//pbbslib:binary_search",
-  "//pbbslib:list_allocator",
   ]
 )
 
@@ -101,10 +97,9 @@ cc_library(
   hdrs = ["edge_map_utils.h"],
   deps = [
   ":macros",
-  "//pbbslib:binary_search",
-  "//pbbslib:utilities",
   ]
 )
+
 
 cc_library(
   name = "edge_array",
@@ -196,7 +191,6 @@ cc_library(
   ":vertex",
   ":graph",
   "//gbbs/pbbslib:sparse_table",
-  "//pbbslib:sequence_ops"
   ]
 )
 
@@ -209,7 +203,6 @@ cc_library(
   ":io",
   ":macros",
   ":vertex",
-  "//pbbslib:sample_sort",
   ]
 )
 
@@ -219,10 +212,10 @@ cc_library(
   srcs = ["graph_test_utils.cc"],
   deps = [
   ":graph",
+  ":bridge",
   ":macros",
   ":undirected_edge",
   ":vertex",
-  "//pbbslib:utilities",
   "@googletest//:gtest",
   ]
 )
@@ -254,7 +247,6 @@ cc_library(
   deps = [
   ":graph_io",
   ":parse_command_line",
-  "//pbbslib:assert",
   ]
 )
 
@@ -278,7 +270,6 @@ cc_library(
   deps = [
   ":macros",
   ":bridge",
-  "//pbbslib:utilities"
   ]
 )
 
@@ -336,7 +327,6 @@ cc_library(
   srcs = ["undirected_edge.cc"],
   deps = [
   ":macros",
-  "//pbbslib:utilities"
   ]
 )
 

@@ -15,6 +15,15 @@
 namespace gbbs {
 namespace gbbs_io {
 
+#ifdef PARLAY_USE_STD_ALLOC
+__mallopt::__mallopt() {
+  mallopt(M_MMAP_MAX, 0);
+  mallopt(M_TRIM_THRESHOLD, -1);
+}
+
+__mallopt __mallopt_var = __mallopt();
+#endif
+
 // returns a pointer and a length
 std::pair<char*, size_t> mmapStringFromFile(const char* filename) {
   struct stat sb;

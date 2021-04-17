@@ -7,7 +7,7 @@ cc_library(
 cc_binary(
   name = "BFS_main",
   srcs = ["BFS.cc"],
-  deps = [":BFS"]
+  deps = [":BFS"],
 )
 
 package(
