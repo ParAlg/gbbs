@@ -140,6 +140,11 @@ inline size_t Clique_count(Graph& DG, size_t k, long space_type, bool label, boo
 template <class Graph>
 inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long space_type, bool label, bool filter,
   bool use_base, long recursive_level, bool approx_peel, double approx_eps) {
+    std::cout << "n: " << GA.n << ", m: " << GA.m << std::endl;
+    std::cout << "k: " << k << ", order: " << order_type << std::endl;
+    std::cout << "space: " << space_type << std::endl;
+    std::cout << "label: " << label << std::endl;
+    fflush(stdout);
   if (k < 3) ABORT("k must be >= 3: " <<  k);
 
   using W = typename Graph::weight_type;
@@ -162,6 +167,21 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   auto DG = filter ? filterGraph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
   double tt_filter = t_filter.stop();
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
+
+
+  auto print = [&] (const uintE& u, const uintE& v, const gbbs::empty& wgh) {
+    std::cout << "D: " << u << " " << v << std::endl;
+  };
+   DG.get_vertex(0).out_neighbors().map(print, false);
+   DG.get_vertex(1).out_neighbors().map(print, false);
+   DG.get_vertex(2).out_neighbors().map(print, false);
+   DG.get_vertex(3).out_neighbors().map(print, false);
+   DG.get_vertex(4).out_neighbors().map(print, false);
+   std::cout << "dDeg 0: " << DG.get_vertex(0).out_degree() << std::endl;
+   std::cout << "dDeg 1: " << DG.get_vertex(1).out_degree() << std::endl;
+   std::cout << "dDeg 2: " << DG.get_vertex(2).out_degree() << std::endl;
+   std::cout << "dDeg 3: " << DG.get_vertex(3).out_degree() << std::endl;
+   std::cout << "dDeg 4: " << DG.get_vertex(4).out_degree() << std::endl;
 
 
   timer t; t.start();

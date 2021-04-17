@@ -37,6 +37,7 @@ struct HybridSpace_lw {
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
+    std::cout << "ALLOC" << std::endl; fflush(stdout);
     use_old_labels = _use_old_labels;
     use_base = _use_base;
     free_relabel = _free_relabel;
@@ -91,6 +92,7 @@ struct HybridSpace_lw {
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     nn = DG.get_vertex(i).out_degree();
+    std::cout << "NN: " << nn << std::endl; fflush(stdout);
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
