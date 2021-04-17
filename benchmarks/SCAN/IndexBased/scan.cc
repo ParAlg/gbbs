@@ -231,7 +231,7 @@ void Index::Cluster(
   // Sort epsilons in decreasing order --- as epsilon decreases, more
   // core-to-core edges appear.
   pbbslib::sample_sort_inplace(
-      sorted_epsilon_indices.slice(),
+      make_slice(sorted_epsilon_indices),
       [&](const size_t i, const size_t j) {
         return epsilons[i] > epsilons[j];
       });

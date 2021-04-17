@@ -83,7 +83,7 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
   block_bytes_offs[n] = 0;
 
   size_t block_mem_to_alloc =
-      pbbslib::scan_add_inplace(block_bytes_offs.slice());
+      pbbslib::scan_inplace(make_slice(block_bytes_offs));
   std::cout << "# total memory for block memory = " << block_mem_to_alloc << std::endl;
 
 //  auto blocks_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) {

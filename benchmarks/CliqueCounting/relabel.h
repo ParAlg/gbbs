@@ -82,7 +82,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     degrees[i] = deg;
   }, 1);
   byte_offsets[n] = 0;
-  size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
+  size_t last_offset = pbbslib::scan_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
   auto edges = pbbslib::new_array_no_init<uchar>(last_offset);
@@ -153,7 +153,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   }, 1);
 
   outOffsets[n] = 0;
-  uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
+  uintT outEdgeCount = pbbslib::scan_inplace(outOffsets);
 
   using edge = std::tuple<uintE, W>;
 

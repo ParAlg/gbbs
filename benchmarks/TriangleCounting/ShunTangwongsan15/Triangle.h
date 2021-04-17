@@ -60,7 +60,7 @@ inline uintE* rankNodes(Graph& G, size_t n) {
   sequence<uintE> o = sequence<uintE>::uninitialized(n);
 
   par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
-  pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
+  pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
     return G.get_vertex(u).out_degree() < G.get_vertex(v).out_degree();
   });
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -115,7 +115,7 @@ inline size_t CountDirectedBalanced(Graph& DG, size_t* counts,
       parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
   }
-  size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
+  size_t total_work = pbbslib::scan_inplace(make_slice(parallel_work));
 
   size_t block_size = 50000;
   size_t n_blocks = total_work/block_size + 1;

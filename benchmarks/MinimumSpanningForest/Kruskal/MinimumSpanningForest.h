@@ -53,7 +53,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   auto max_weight = pbbslib::reduce_max(weight_seq);
   std::cout << "max_weight = " << max_weight << std::endl;
   timer st; st.start();
-  pbbslib::integer_sort_inplace(edges.slice(), [&] (const edge& e) { return std::get<2>(e); }, pbbslib::log2_up(n));
+  pbbslib::integer_sort_inplace(make_slice(edges), [&] (const edge& e) { return std::get<2>(e); }, pbbslib::log2_up(n));
   st.stop(); st.reportTotal("sort time");
 
   auto components = sequence<uintE>(n, [&] (size_t i) { return i; });

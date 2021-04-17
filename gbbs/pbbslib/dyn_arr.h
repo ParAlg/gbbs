@@ -47,7 +47,7 @@ namespace pbbslib {
 
     void del() {
       if (alloc) {
-        pbbslib::free_array(A);
+        pbbslib::free_array(A, capacity);
         alloc = false;
       }
     }

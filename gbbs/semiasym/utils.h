@@ -29,9 +29,9 @@ struct indirect_value_sequence {
   indirect_value_sequence(size_t n, value_type v) : f([&] (size_t i) {return v;}), s(0), e(n) {};
   indirect_value_sequence(size_t s, size_t e, F _f) : f(_f), s(s), e(e) {};
   value_type& operator[] (size_t i) const {return *((f)(i+s));}
-  indirect_value_sequence<T,F> slice(size_t ss, size_t ee) const {
+  indirect_value_sequence<T,F> cut(size_t ss, size_t ee) const {
     return indirect_value_sequence<T,F>(s+ss,s+ee,f); }
-  indirect_value_sequence<T,F> slice() const {
+  indirect_value_sequence<T,F> cut() const {
     return indirect_value_sequence<T,F>(s,e,f); }
   size_t size() const { return e - s;}
 private:

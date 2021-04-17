@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/random_shuffle.h"
 #include "gbbs/gbbs.h"
 
 #include <cmath>
@@ -43,7 +42,7 @@ inline sequence<size_t> generate_shifts(size_t n, double beta) {
   par_for(0, last_round, kDefaultGranularity, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbslib::scan_add_inplace(shifts);
+  pbbslib::scan_inplace(shifts);
   return shifts;
 }
 

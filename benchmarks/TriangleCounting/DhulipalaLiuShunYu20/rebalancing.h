@@ -68,7 +68,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
                  [&](size_t i) {
                    DG->markEdgeDeletion(
                        vtxNew[i],
-                       edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+                       edges.cut(vtxNew[i].insOffset(), vtxNew[i].end()));
                  },
                  1);
   }
@@ -85,7 +85,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
           return DG->get_new_degree(vtxNew[vtxMap[i]]);
         }
       });
-  size_t num_edges = pbbslib::scan_inplace(newDegrees.slice(), monoid);
+  size_t num_edges = pbbslib::scan_inplace(make_slice(newDegrees), monoid);
   if (num_edges == 0) {
     DGnew = new DyGraph<SymGraph>(DG->get_block_size(), num_vertices);
     return make_tuple(0, DGnew);
@@ -125,9 +125,9 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
         0, num_vertices,
         [&](const size_t u) {
           size_t offset = vertex_data_array[u].offset;
-          DG->get_neighbors_major(u, edges_seq.slice(), offset);
+          DG->get_neighbors_major(u, make_slice(edges_seq), offset);
           pbbslib::sample_sort_inplace(
-              edges_seq.slice(offset, offset + vertex_data_array[u].degree),
+              edges_seq.cut(offset, offset + vertex_data_array[u].degree),
               [&](const edge_type& a, const edge_type& b) {
                 return get<0>(a) < get<0>(b);
               });
@@ -225,7 +225,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
         sequence<size_t>(vtxChangeLH.size(), [&](size_t i) {
           return DG->get_new_degree(vtxChangeLH[i]);
         });  // TOCO: can optimize to delayed seq
-    size_t rblN = pbbslib::scan_inplace(newDegrees.slice(), monoid);
+    size_t rblN = pbbslib::scan_inplace(make_slice(newDegrees), monoid);
     rblEdges = sequence<pair<EdgeT, bool>>::uninitialized(rblN);
     vtxRblMap = sequence<size_t>(n, EMPTYVMAP);
     parallel_for(
@@ -237,18 +237,18 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
           if (i < numLtoH) {
             DG->template get_neighbors_minor<
                 pair<EdgeT, bool>, MakeEdgeLtoH<typename DyGraph<Graph>::SetT>>(
-                vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, true);
+                vtxChangeLH[i], make_slice(rblEdges), ngh_s, ngh_e, true);
           } else {
             DG->template get_neighbors_minor<
                 pair<EdgeT, bool>, MakeEdgeHtoL<typename DyGraph<Graph>::SetT>>(
-                vtxChangeLH[i], rblEdges.slice(), ngh_s, ngh_e, false);
+                vtxChangeLH[i], make_slice(rblEdges), ngh_s, ngh_e, false);
           }
         },
         1);
     auto flagg = sequence<size_t>();  // dump array
     if (rblN != 0) {
       vtxRbl = DBTInternal::computeOffsets<EdgeT, VtxRbl>(
-          rblEdges.slice(), vtxRblMap.slice(), flagg);
+          make_slice(rblEdges), make_slice(vtxRblMap), flagg);
     }
     newDegrees.clear();
 
@@ -295,7 +295,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
                  [&](const size_t i) {
                    VtxRbl v = vtxRbl[i];
                    DG->minorRblMoveBottomTable(
-                       v.id, rblEdges.slice(v.offset, v.end()), true);
+                       v.id, rblEdges.cut(v.offset, v.end()), true);
                  },
                  1);
 
@@ -304,7 +304,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
                  [&](const size_t i) {
                    VtxRbl v = vtxRbl[i];
                    DG->minorRblMoveBottomTable(
-                       v.id, rblEdges.slice(v.offset, v.end()), false);
+                       v.id, rblEdges.cut(v.offset, v.end()), false);
                  },
                  1);
 

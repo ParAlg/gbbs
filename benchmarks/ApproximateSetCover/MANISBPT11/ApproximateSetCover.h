@@ -26,9 +26,6 @@
 #include "gbbs/gbbs.h" /* includes core gbbs libraries (graphs, graph operators, etc) */
 #include "gbbs/julienne.h" /* includes bucketing data structure */
 
-#include "pbbslib/random.h"
-#include "pbbslib/random_shuffle.h"
-
 namespace gbbs {
 
 namespace sc {
@@ -75,8 +72,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
   auto D = sequence<uintE>::from_function(G.n, [&](size_t i) { return get_bucket_clamped(G.get_vertex(i).out_degree()); });
-  auto d_slice = D.slice();
-  auto b = make_vertex_buckets(G.n, d_slice, decreasing, num_buckets);
+  auto b = make_vertex_buckets(G.n, D, decreasing, num_buckets);
 
   auto perm = sequence<uintE>::uninitialized(G.n);
   timer bktt, packt, permt, emt;

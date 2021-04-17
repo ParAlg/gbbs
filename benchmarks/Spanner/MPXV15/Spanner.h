@@ -62,7 +62,7 @@ sequence<edge> fetch_intercluster_te(Graph& G, C& clusters, size_t num_clusters)
   par_for(0, n, 1, [&] (size_t i)
                   { deg_map[i] = G.get_vertex(i).out_neighbors().count(pred); });
   deg_map[n] = 0;
-  pbbslib::scan_add_inplace(deg_map);
+  pbbslib::scan_inplace(deg_map);
   count_t.stop();
   debug(count_t.reportTotal("count time"););
 

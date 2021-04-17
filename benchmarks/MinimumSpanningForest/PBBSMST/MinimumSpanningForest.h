@@ -103,7 +103,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
                        const std::tuple<uintE, uintE, intE>& right) {
     return std::get<2>(left) < std::get<2>(right);
   };
-  pbbslib::sample_sort_inplace(sampled_e.E.slice(), cmp_by_wgh);
+  pbbslib::sample_sort_inplace(make_slice(sampled_e.E), cmp_by_wgh);
 
   // 2. Get approximate splitter.
   size_t ind = ((double)(k * sampled_e.size())) / G.m;
@@ -151,7 +151,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
                          const std::tuple<uintE, uintE, W>& right) {
       return std::get<2>(left) < std::get<2>(right);
     };
-    pbbslib::sample_sort_inplace(edges.E.slice(), cmp_by_wgh);
+    pbbslib::sample_sort_inplace(make_slice(edges.E), cmp_by_wgh);
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
 

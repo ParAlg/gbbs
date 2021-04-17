@@ -57,7 +57,7 @@ sequence<char> arrayToString(S& A) {
   auto AA = A.begin();
   size_t n = A.size();
   auto L = pbbs::sequence<size_t>(n, [&] (size_t i) { return xToStringLen(A[i])+1; });
-  size_t m = pbbslib::scan_add_inplace(L.slice());
+  size_t m = pbbslib::scan_add_inplace(make_slice(L));
   auto out = pbbs::sequence<char>(m, (char)0);
   parallel_for(0, n-1, [&] (size_t i) {
     xToString(out.begin() + L[i],AA[i]);

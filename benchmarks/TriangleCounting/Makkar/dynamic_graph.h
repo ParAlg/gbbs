@@ -260,7 +260,7 @@ namespace gbbs {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbslib::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+      pbbslib::sample_sort_inplace(make_slice(duplicated_batch), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
@@ -344,7 +344,7 @@ namespace gbbs {
         // assert(up == u);
         size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
         if (u_deg == 0) abort();
-        auto u_inserts = batch.slice(index, index + u_deg);
+        auto u_inserts = batch.cut(index, index + u_deg);
         return u_inserts;
       };
 
@@ -386,9 +386,9 @@ namespace gbbs {
         counts_three[b] = count;
       });
 
-      size_t first_count = pbbslib::reduce_add(counts_one.slice());
-      size_t second_count = pbbslib::reduce_add(counts_two.slice());
-      size_t third_count = pbbslib::reduce_add(counts_three.slice());
+      size_t first_count = pbbslib::reduce_add(make_slice(counts_one));
+      size_t second_count = pbbslib::reduce_add(make_slice(counts_two));
+      size_t third_count = pbbslib::reduce_add(make_slice(counts_three));
 
       size_t new_triangles = first_count - second_count + (third_count/3);
       T += new_triangles;
@@ -470,7 +470,7 @@ namespace gbbs {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbslib::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+      pbbslib::sample_sort_inplace(make_slice(duplicated_batch), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
@@ -505,7 +505,7 @@ namespace gbbs {
         size_t v_deg = ((i == untested_starts.size()-1) ? untested_batch.size() : untested_starts[i+1].second) - index;
         if (v_deg == 0) abort();
 
-        auto v_inserts = untested_batch.slice(index, index + v_deg);
+        auto v_inserts = untested_batch.cut(index, index + v_deg);
         merge_deletions(v, v_inserts);
       });
 
@@ -558,7 +558,7 @@ namespace gbbs {
         // assert(up == u);
         size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
         if (u_deg == 0) abort();
-        auto u_inserts = batch.slice(index, index + u_deg);
+        auto u_inserts = batch.cut(index, index + u_deg);
         return u_inserts;
       };
 
@@ -609,9 +609,9 @@ namespace gbbs {
         counts_three[b] = count;
       });
 
-      size_t first_count = pbbslib::reduce_add(counts_one.slice());
-      size_t second_count = pbbslib::reduce_add(counts_two.slice());
-      size_t third_count = pbbslib::reduce_add(counts_three.slice());
+      size_t first_count = pbbslib::reduce_add(make_slice(counts_one));
+      size_t second_count = pbbslib::reduce_add(make_slice(counts_two));
+      size_t third_count = pbbslib::reduce_add(make_slice(counts_three));
 
       size_t triangles_deleted = first_count + second_count + (third_count/3);
       T -= triangles_deleted;
@@ -629,7 +629,7 @@ namespace gbbs {
     void report_stats() {
       // compute reduction
        auto seq_copy = sequence<size_t>::from_function(n, [&] (size_t i) { return D[i]; });
-       size_t sum_deg = pbbslib::reduce_add(seq_copy.slice());
+       size_t sum_deg = pbbslib::reduce_add(make_slice(seq_copy));
        std::cout << "Deg = " << sum_deg << std::endl;
     }
 

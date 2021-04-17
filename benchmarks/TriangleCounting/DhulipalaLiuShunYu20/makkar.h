@@ -71,7 +71,7 @@ inline size_t Makkar_Dynamic_Triangle(
         size_t batch_start = (num_batches-i) * batch_size;
         size_t batch_end = std::min(updates.size(), batch_start + batch_size);
         if(batch_end <= batch_start) continue;
-        auto batch = U.slice(batch_start, batch_end);
+        auto batch = U.cut(batch_start, batch_end);
         timer bt; bt.start();
         DG.process_batch(batch);
         bt.stop(); bt.reportTotal("batch time");
@@ -87,7 +87,7 @@ inline size_t Makkar_Dynamic_Triangle(
       });
 
       t.start();
-      auto inserts = U.slice();
+      auto inserts = make_slice(U);
       auto DG = gbbs::DynamicGraph(n);
       DG.process_batch(inserts);
       t.next("graph initialized");
@@ -102,7 +102,7 @@ inline size_t Makkar_Dynamic_Triangle(
         size_t batch_start = (num_batches-i) * batch_size;
         size_t batch_end = std::min(updates.size(), batch_start + batch_size);
         if(batch_end <= batch_start) continue;
-        auto batch = U.slice(batch_start, batch_end);
+        auto batch = U.cut(batch_start, batch_end);
         timer bt; bt.start();
         DG.process_batch(batch);
         bt.stop(); bt.reportTotal("batch time");

@@ -33,7 +33,7 @@ void print_edge_list(Graph& GA, std::string& outfile, bool direct_sym, bool mult
     }
     offs[i] = ctr;
   });
-  size_t m_out = pbbslib::scan_add_inplace(offs.slice());
+  size_t m_out = pbbslib::scan_add_inplace(make_slice(offs));
 
   parallel_for(0, n, [&] (size_t i) {
     size_t off = offs[i];
@@ -88,7 +88,7 @@ void print_edge_list_matrixmarket(Graph& GA, std::string& outfile) {
       GA.get_vertex(i).out_neighbors().map(f, false);
     offs[i] = ctr;
   });
-  size_t m_out = pbbslib::scan_add_inplace(offs.slice());
+  size_t m_out = pbbslib::scan_add_inplace(make_slice(offs));
 
   parallel_for(0, n, [&] (size_t i) {
     size_t off = offs[i];

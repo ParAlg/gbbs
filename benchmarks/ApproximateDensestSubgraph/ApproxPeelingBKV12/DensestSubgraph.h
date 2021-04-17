@@ -91,7 +91,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   }
 
   while (num_vertices_remaining > 0) {
-    auto vtxs_remaining = A.slice(remaining_offset, remaining_offset + num_vertices_remaining);
+    auto vtxs_remaining = A.cut(remaining_offset, remaining_offset + num_vertices_remaining);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];

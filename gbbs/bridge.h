@@ -13,6 +13,7 @@
 #include "parlay/primitives.h"
 #include "parlay/monoid.h"
 #include "parlay/parallel.h"
+#include "parlay/io.h"
 #include "parlay/random.h"
 #include "parlay/delayed_sequence.h"
 #include "parlay/sequence.h"
@@ -443,6 +444,10 @@ namespace pbbslib {
   // TODO: filter_index
 
   // TODO all below
+  using parlay::tokens;
+  using parlay::chars_to_file;
+  using parlay::chars_from_file;
+  using parlay::internal::chars_to_int_t;
   // using pbbs::tokenize;
   // using pbbs::is_space;
   // using pbbs::char_seq_from_file;
@@ -483,22 +488,6 @@ namespace pbbslib {
   template <class T>
   inline range<T> make_range(T* start, T* end) {
     return range<T>(start, end);
-  }
-
-  // Scans the input sequence using the addm monoid.
-  //
-  // This computes in-place an exclusive prefix sum on the input sequence, that is,
-  //   Out[i] = In[0] + In[1] + ... + In[i - 1].
-  // The return value is the sum over the whole input sequence.
-  template <class In_Seq>
-  inline auto scan_add_inplace(
-      In_Seq&& In,
-      flags fl = no_flag,
-      typename std::remove_reference<In_Seq>::type::value_type* tmp = nullptr)
-    -> typename std::remove_reference<In_Seq>::type::value_type {
-    using T = typename std::remove_reference<In_Seq>::type::value_type;
-    return scan_inplace(
-        std::forward<In_Seq>(In), addm<T>(), fl, tmp);
   }
 
   template <class Seq>
@@ -567,13 +556,13 @@ namespace pbbslib {
 
   template <class Idx_Type, class D, class F>
   inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(
-      F& f, size_t size, flags fl = no_flag) {
+      F& f, size_t size) {
     auto id_seq = pbbslib::make_delayed<std::tuple<Idx_Type, D> >(size,  [&](size_t i) {
       return std::make_tuple((Idx_Type)i, std::get<1>(f[i]));
     });
     auto flgs_seq = pbbslib::make_delayed<bool>(size, [&](size_t i) { return std::get<0>(f[i]); });
 
-    return pbbslib::pack(id_seq, flgs_seq, fl);
+    return pbbslib::pack(id_seq, flgs_seq);
   }
 
   template <class T, class Pred>
@@ -601,7 +590,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
-    size_t m = scan_add_inplace(make_slice(Sums));
+    size_t m = scan_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
       T* I = In + i * b;
@@ -637,7 +626,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
-    size_t m = scan_add_inplace(make_slice(Sums));
+    size_t m = scan_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
       T* I = In + i * b;
@@ -680,7 +669,7 @@ namespace pbbslib {
       }
       Sums[i] = k - s;
     }, 1);
-    size_t m = scan_add_inplace(make_slice(Sums));
+    size_t m = scan_inplace(make_slice(Sums));
     Sums[l] = m;
     parallel_for(0, l, [&] (size_t i) {
       T* I = In + (i * b);

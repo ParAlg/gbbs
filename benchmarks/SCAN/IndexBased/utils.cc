@@ -38,7 +38,7 @@ size_t CompactClustering(Clustering* clustering) {
       cluster_relabel_map[cluster_id] = 1;
     }
   });
-  const size_t num_clusters{pbbslib::scan_add_inplace(cluster_relabel_map)};
+  const size_t num_clusters{pbbslib::scan_inplace(cluster_relabel_map)};
   par_for(0, num_vertices, [&](const size_t i) {
     const uintE cluster_id{(*clustering)[i]};
     if (cluster_id != kUnclustered) {

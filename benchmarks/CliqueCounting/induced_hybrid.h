@@ -121,7 +121,7 @@ if (recursive_level < k_idx || num_induced < 2) {
    sequence<size_t> degs = sequence<size_t>::uninitialized(DG.n+1);
     parallel_for(0, DG.n, [&] (size_t i) { degs[i] = DG.get_vertex(i).out_degree();});
     degs[DG.n] = 0;
-    size_t num_edges = pbbslib::scan_add_inplace(degs.slice());
+    size_t num_edges = pbbslib::scan_inplace(make_slice(degs));
     num_edges = degs[DG.n];
     sequence<size_t> tots = sequence<size_t>::uninitialized(num_edges);
 

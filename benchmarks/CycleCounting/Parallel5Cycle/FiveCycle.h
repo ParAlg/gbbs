@@ -108,7 +108,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     outOffsets[i] = G.get_vertex(order_to_vertex[i]).out_degree();
   }
   //
-  uintE outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
+  uintE outEdgeCount = pbbslib::scan_inplace(outOffsets);
 
   using edge = std::tuple<uintE, W>;
   auto cmp_by_dest_order = [](const edge& e1, const edge& e2) {
@@ -185,7 +185,7 @@ inline sequence<uintT> orderNodesByDegree(Graph& G, size_t n) {
   t.start();
   par_for(0, n, kDefaultGranularity, [&] (size_t i) { o[i] = i; });
 
-  pbbslib::sample_sort_inplace(o.slice(), [&](const uintE u, const uintE v) {
+  pbbslib::sample_sort_inplace(make_slice(o), [&](const uintE u, const uintE v) {
     return G.get_vertex(u).out_degree() > G.get_vertex(v).out_degree();
   });
   //par_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -337,7 +337,7 @@ inline ulong Count5Cycle(Graph& GA, long order_type = 0, double epsilon = 0.1) {
   //   });
   // }
 
-  size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
+  size_t total_work = pbbslib::scan_inplace(make_slice(parallel_work));
 
   size_t block_size = 5000000;
   size_t n_blocks = total_work/block_size + 1;
@@ -860,7 +860,7 @@ inline ulong Count5Cycle_ESCAPE_par(Graph& GA, long order_type = 0, double epsil
     });
   }
 
-  size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
+  size_t total_work = pbbslib::scan_inplace(make_slice(parallel_work));
 
   size_t block_size = 50000;
   size_t n_blocks = total_work/block_size + 1;

@@ -12,7 +12,7 @@ inline size_t num_cc(Seq& labels) {
       flags[labels[i]] = 1;
     }
   });
-  pbbslib::scan_add_inplace(flags);
+  pbbslib::scan_inplace(flags);
   std::cout << "# n_cc = " << flags[n] << "\n";
   return flags[n];
 }

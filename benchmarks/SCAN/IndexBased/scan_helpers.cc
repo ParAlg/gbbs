@@ -73,7 +73,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
   };
   // Sort `vertex_degrees` by ascending degree.
   integer_sort_inplace(
-      vertex_degrees.slice(),
+      make_slice(vertex_degrees),
       [](const VertexDegree& vertex_degree) { return vertex_degree.degree; });
   const size_t max_degree{vertex_degrees[vertex_degrees.size() - 1].degree};
 
@@ -119,7 +119,7 @@ sequence<sequence<CoreThreshold>> ComputeCoreOrder(
         return a.threshold > b.threshold;
       }};
     pbbslib::sample_sort_inplace(
-        core_thresholds.slice(), compare_threshold_descending);
+        make_slice(core_thresholds), compare_threshold_descending);
     return core_thresholds;
   }};
 

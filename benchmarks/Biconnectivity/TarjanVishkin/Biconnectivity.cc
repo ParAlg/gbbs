@@ -40,7 +40,6 @@
 
 #include "Biconnectivity.h"
 #include "gbbs/pbbslib/sparse_additive_map.h"
-#include "pbbslib/strings/string_basics.h"
 
 namespace gbbs {
 
@@ -48,12 +47,13 @@ template <template <typename W> class vertex, class W>
 void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                          uintE component_id = UINT_E_MAX) {
   size_t n = GA.n;
-  auto S = pbbslib::char_seq_from_file(s);
-  auto tokens = pbbslib::tokenize(S, [] (const char c) { return pbbslib::is_space(c); });
+  auto S = pbbslib::chars_from_file(s);
+  sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
+        [] (auto x) { return parlay::make_slice(x); });
   auto labels = sequence<std::tuple<uintE, uintE>>(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     labels[i] =
-        std::make_tuple(atol(tokens[2 * i]), atol(tokens[2 * i + 1]));
+        std::make_tuple(pbbslib::chars_to_int_t<uintE>(tokens[2 * i]), pbbslib::chars_to_int_t<uintE>(tokens[2 * i + 1]));
   });
 
   auto bits = sequence<uintE>(n, (uintE)0);
@@ -104,7 +104,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
                        const std::tuple<uintE, uintE>& r) {
       return std::get<1>(l) > std::get<1>(r);
     };
-    pbbslib::sample_sort_inplace(ET.slice(), cmp_snd, true);
+    pbbslib::sample_sort_inplace(make_slice(ET), cmp_snd);
     for (size_t i = 0; i < std::min((size_t)10, ET.size()); i++) {
       std::cout << std::get<0>(ET[i]) << " " << std::get<1>(ET[i]) << "\n";
     }
@@ -125,7 +125,7 @@ void BiconnectivityStats(symmetric_graph<vertex, W>& GA, char* s,
   // Note that this is the number of biconnected components excluding isolated
   // vertices (the definition maps edges -> components, so isolated vertices
   // don't contribute to any meaningful components).
-  uintE total_biccs = pbbslib::scan_add_inplace(bits);
+  uintE total_biccs = pbbslib::scan_inplace(bits);
   std::cout << "num biconnected components = " << total_biccs << "\n";
 }
 

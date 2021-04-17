@@ -499,7 +499,7 @@ void write_graph_to_file(const char* filename, Graph& graph) {
     [&](const size_t i) {
       return graph.get_vertex(i).out_degree();
     }};
-  pbbslib::scan_add_inplace(make_slice(offsets));
+  pbbslib::scan_inplace(make_slice(offsets));
 
   file << (is_weighted_graph
       ? internal::kWeightedAdjGraphHeader
@@ -692,7 +692,7 @@ sequence<Edge<weight_type>> sort_and_dedupe(
       const Edge<weight_type>& right) {
     return std::tie(left.from, left.to) != std::tie(right.from, right.to);
   }};
-  pbbslib::sample_sort_inplace(edges.slice(), compare_endpoints);
+  pbbslib::sample_sort_inplace(make_slice(edges), compare_endpoints);
   return pbbslib::pack(
       edges,
       pbbslib::make_delayed<bool>(

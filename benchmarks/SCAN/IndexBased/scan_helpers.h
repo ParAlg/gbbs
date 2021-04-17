@@ -92,7 +92,7 @@ NeighborOrder::NeighborOrder(
   timer function_timer{"Construct neighbor order"};
   similarities_ = similarity_measure.AllEdges(graph);
   pbbslib::sample_sort_inplace(
-      similarities_.slice(),
+      make_slice(similarities_),
       [](const EdgeSimilarity& left, const EdgeSimilarity& right) {
         // Sort by ascending source, then descending similarity.
         return std::tie(left.source, right.similarity) <
@@ -101,11 +101,11 @@ NeighborOrder::NeighborOrder(
   sequence<uintT> vertex_offsets{
       graph->n,
       [&](const size_t i) { return graph->get_vertex(i).out_degree(); }};
-  pbbslib::scan_add_inplace(vertex_offsets);
+  pbbslib::scan_inplace(vertex_offsets);
   similarities_by_source_ = sequence<pbbslib::range<EdgeSimilarity*>>(
       graph->n,
       [&](const size_t i) {
-        return similarities_.slice(
+        return similarities_.cut(
           vertex_offsets[i],
           i + 1 == graph->n ? similarities_.size() : vertex_offsets[i + 1]);
       });

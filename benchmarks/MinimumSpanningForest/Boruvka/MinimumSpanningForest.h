@@ -236,7 +236,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   auto vertex_offs = sequence<long>(G.n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vertex_offs[i] = G.get_vertex(i).out_degree(); });
-  pbbslib::scan_add_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
+  pbbslib::scan_inplace(vertex_offs, pbbslib::fl_scan_inclusive);
 
   auto sample_edges = sequence<edge>(sample_size);
   auto lte = [&](const size_t& left, const size_t& right) { return left <= right; };
@@ -254,7 +254,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
   auto cmp_by_wgh = [](const edge& left, const edge& right) {
     return std::get<2>(left) < std::get<2>(right);
   };
-  pbbslib::sample_sort_inplace(sample_edges.slice(), cmp_by_wgh);
+  pbbslib::sample_sort_inplace(make_slice(sample_edges), cmp_by_wgh);
 
   // 2. find approximate splitter.
   size_t ind = ((double)(k * sample_edges.size())) / G.m;
@@ -395,7 +395,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     pack_t.start();
 
     auto vtx_range = pbbslib::make_range(vtxs+n_active, vtxs+n);
-    n_active += pbbslib::pack_index_out(exhausted.slice(), vtx_range);
+    n_active += pbbslib::pack_index_out(make_slice(exhausted), vtx_range);
     pack_t.stop();
     debug(pack_t.reportTotal("reactivation pack"););
 

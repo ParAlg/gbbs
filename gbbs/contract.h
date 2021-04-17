@@ -4,7 +4,6 @@
 
 #include "gbbs/graph.h"
 #include "gbbs/pbbslib/sparse_table.h"
-#include "pbbslib/sequence_ops.h"
 
 namespace gbbs {
 namespace contract {
@@ -27,7 +26,7 @@ namespace contract {
     par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       if (!inverse_map[ids[i]]) inverse_map[ids[i]] = 1;
     });
-    pbbslib::scan_add_inplace(make_slice(inverse_map));
+    pbbslib::scan_inplace(make_slice(inverse_map));
 
     size_t new_n = inverse_map[n];
     par_for(0, n, kDefaultGranularity, [&] (size_t i)
@@ -97,7 +96,7 @@ namespace contract {
     par_for(0, n, 1, [&] (size_t i)
                     { deg_map[i] = GA.get_vertex(i).out_neighbors().count(pred); });
     deg_map[n] = 0;
-    pbbslib::scan_add_inplace(make_slice(deg_map));
+    pbbslib::scan_inplace(make_slice(deg_map));
     count_t.stop();
     debug(count_t.reportTotal("count time"););
 
@@ -222,7 +221,7 @@ namespace contract {
                       if (!flags[u]) flags[u] = 1;
                       if (!flags[v]) flags[v] = 1;
                     });
-    pbbslib::scan_add_inplace(make_slice(flags));
+    pbbslib::scan_inplace(make_slice(flags));
 
     size_t num_ns_clusters = flags[num_clusters];  // num non-singleton clusters
     auto mapping = sequence<uintE>(num_ns_clusters);

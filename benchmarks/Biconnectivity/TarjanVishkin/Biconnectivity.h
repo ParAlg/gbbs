@@ -27,9 +27,6 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "pbbslib/random.h"
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/strings/string_basics.h"
 
 namespace gbbs {
 namespace bc {
@@ -114,7 +111,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       out_edges, [](const edge& e) { return std::get<0>(e) != UINT_E_MAX; });
   out_edges.clear();
   auto sort_tup = [](const edge& l, const edge& r) { return l < r; };
-  pbbslib::sample_sort_inplace(edges.slice(), sort_tup, true);
+  pbbslib::sample_sort_inplace(make_slice(edges), sort_tup);
 
   auto starts = sequence<uintE>::from_function(n + 1, [](size_t i) { return UINT_E_MAX; });
   par_for(0, edges.size(), [&] (size_t i) {
@@ -213,7 +210,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
       uintE v = vs.s[i];
       return Tree.get_vertex(v).out_degree();
     });
-    auto tot = pbbslib::scan_add_inplace(offsets);
+    auto tot = pbbslib::scan_inplace(offsets);
     auto next_vs = sequence<uintE>::uninitialized(tot);
     par_for(0, vs.size(), 1, [&] (size_t i) {
       uintE v = vs.s[i];
@@ -238,7 +235,7 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
           uintE ngh = neighbors.get_neighbor(j);
           A[j] = aug_sizes[ngh];
         });
-        pbbslib::scan_add_inplace(A);
+        pbbslib::scan_inplace(A);
         par_for(0, deg_v, [&] (size_t j) {
           uintE ngh = neighbors.get_neighbor(j);
           uintE pn = preorder_number + A[j];
@@ -302,8 +299,8 @@ inline std::tuple<labels*, uintE*, uintE*> preorder_number(symmetric_graph<verte
         in_edges | sparse_blocked | fine_parallel);
   }
   // Delete tree
-  pbbslib::free_array(v_out);
-  pbbslib::free_array(v_in);
+  pbbslib::free_array(v_out, n);
+  pbbslib::free_array(v_in, n);
   nghs.clear();
   leaff.stop();
   debug(leaff.reportTotal("leaffix to update min max time"););
@@ -487,7 +484,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
 //     }
 //   });
 //   flags[n] = 0;
-//   pbbslib::scan_add_inplace(flags.slice());
+//   pbbslib::scan_inplace(make_slice(flags));
 //   size_t n_cc = flags[n];
 //   std::cout << "num biconnected components, including isolated vertices = "
 //   << flags[n] << "\n";
@@ -505,7 +502,7 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
         tups[i] = std::make_pair(Parents[i] & bc::VAL_MASK, cc[i]); });
 
     auto C = pbbslib::sequence_to_string(tups);
-    pbbslib::char_seq_to_file(C, out_f);
+    pbbslib::chars_to_file(C, out_f);
     // benchIO::writeArrayToStream(out, tups.begin(), n);
     // for (size_t i = 0; i < n; i++) {
     //   out << (Parents[i] & bc::VAL_MASK) << " " << cc[i] << "\n";
@@ -514,9 +511,9 @@ inline std::tuple<sequence<uintE>, sequence<uintE>> critical_connectivity(
   }
   debug(std::cout << "Bicc done"
             << "\n";);
-  pbbslib::free_array(MM_A);
-  pbbslib::free_array(PN_A);
-  pbbslib::free_array(aug_sizes_A);
+  pbbslib::free_array(MM_A, n);
+  pbbslib::free_array(PN_A, n);
+  pbbslib::free_array(aug_sizes_A, n);
   ccc.stop();
   debug(ccc.reportTotal("critical conn time"););
   return std::make_tuple(std::move(Parents), std::move(cc));

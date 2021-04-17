@@ -376,7 +376,7 @@ inline void packAllEdges(Graph& G, P& p, const flags& fl = 0) {
   parallel_for(0, n, [&] (size_t i) {
     space[i] = G.get_vertex(i).out_neighbors().calculateTemporarySpace();
   });
-  size_t total_space = pbbslib::scan_add_inplace(space);
+  size_t total_space = pbbslib::scan_inplace(space);
   auto tmp = sequence<std::tuple<uintE, W>>(total_space);
 
   auto for_inner = [&](size_t i) {
@@ -407,7 +407,7 @@ inline vertexSubsetData<uintE> packEdges(Graph& G,
     space[i] = G.get_vertex(v).out_neighbors().calculateTemporarySpaceBytes();
   });
   space[m] = 0;
-  size_t total_space = pbbslib::scan_add_inplace(space);
+  size_t total_space = pbbslib::scan_inplace(space);
   uint8_t* tmp = nullptr;
   if (total_space > 0) {
     tmp = pbbslib::new_array_no_init<uint8_t>(total_space);

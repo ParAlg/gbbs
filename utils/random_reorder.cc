@@ -20,7 +20,7 @@ void randomReorder(Graph& GA, std::string& outfile) {
   parallel_for(0, n, [&] (size_t i) {
     offs[perm[i]] = GA.get_vertex(i).out_degree();
   });
-  size_t tot = pbbslib::scan_add_inplace(offs.slice());
+  size_t tot = pbbslib::scan_add_inplace(make_slice(offs));
   std::cout << "m = " << m << " tot = " << tot << std::endl;
 
   parallel_for(0, n, [&] (size_t i) {
