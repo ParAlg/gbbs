@@ -1,8 +1,6 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/monoid.h"
 #include "dynamic_graph.h"
 
 namespace gbbs {
@@ -51,7 +49,8 @@ edge_list_to_symmetric_graph(const std::vector<gbbs_io::Edge<weight_type>>& edge
     data,
     num_vertices,
     num_edges,
-    [=] () { pbbslib::free_arrays(data, edges_array); },
+    [=] () { pbbslib::free_array(data, num_vertices);
+      pbbslib::free_array(edges_array, num_edges); },
     edges_array};
 }
 
@@ -102,10 +101,10 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
   sequence<size_t> inds = sequence<size_t>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {inds[i] = i;});
 
-  pbbslib::sample_sort_inplace(make_slice(inds),  //check
+  pbbslib::stable_sort_inplace(make_slice(inds),  //check
     [&](const size_t i, const size_t j) {
       return updates[i].first < updates[j].first;
-      }, true);
+      });
 
   sequence<size_t> flag = sequence<size_t>::uninitialized(n+1); // flag[i] == 1 if i is the last update of edge inds[i]
   par_for(0, n-1, kDefaultGranularity, [&] (const size_t i) {
@@ -146,7 +145,7 @@ inline sequence<pair<EdgeT, bool>> Preprocessing(DBTGraph::DyGraph<Graph> *G, co
 // true is before false
 // vtxNew is filled with offset, degree, and insert degree
 template <class EdgeT, class VTX>
-inline sequence<VTX> computeOffsets(pbbslib::range<pair<EdgeT,bool> *> edges, pbbslib::range<size_t *> vtxMap, sequence<size_t> &flag ){
+inline sequence<VTX> computeOffsets(pbbslib::range<pair<EdgeT,bool>> edges, pbbslib::range<size_t> vtxMap, sequence<size_t> &flag ){
   pbbslib::sample_sort_inplace(edges, [&](const pair<EdgeT,bool>& i, const pair<EdgeT,bool>& j) {
     if(i.first.first == j.first.first) return i.second && !j.second;
       return i.first.first < j.first.first;
@@ -274,7 +273,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
   for(uintE u=0; u < num_vertices; ++u) {
     size_t offset = vertex_data_array[u].offset;
     DG->get_neighbors_major(u, edges_slice, offset);
-    pbbslib::sample_sort_inplace(edges_slice.slice(offset, offset + vertex_data_array[u].degree),
+    pbbslib::sample_sort_inplace(edges_slice.cut(offset, offset + vertex_data_array[u].degree),
     [&](const edge_type& a, const edge_type& b) {
       return get<0>(a) < get<0>(b);
     });
@@ -291,7 +290,7 @@ void compare(DBTGraph::DyGraph<Graph>* DG, const std::vector<UT>& edges, size_t 
     vertex_data_array,
     num_vertices,
     num_edges,
-    [=] () { pbbslib::free_arrays(vertex_data_array, edges_seq); },
+    [=] () { pbbslib::free_array(vertex_data_array,num_vertices); pbbslib::free_array(edges_seq, num_edges); },
     edges_seq);
 
     auto f = [&] (uintE u, uintE v, uintE w) { };

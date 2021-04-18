@@ -2,7 +2,6 @@
 
 #include <tuple>
 #include "gbbs/gbbs.h"
-#include "pbbslib/monoid.h"
 // #include "sparse_table.h"
 // #include "gbbs/macros.h"
 
@@ -44,11 +43,11 @@ namespace DBTGraph{
     return edges[i].first.second;
     }
 
-    inline uintE getFirst(pbbslib::range<pair<EdgeT,bool> *> edges, size_t i){
+    inline uintE getFirst(pbbslib::range<pair<EdgeT,bool>> edges, size_t i){
     return edges[i].first.first;
     }
 
-    inline uintE getSecond(pbbslib::range<pair<EdgeT,bool> *> edges, size_t i){
+    inline uintE getSecond(pbbslib::range<pair<EdgeT,bool>> edges, size_t i){
     return edges[i].first.second;
     }
 

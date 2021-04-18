@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <cmath>
 #include "gbbs/gbbs.h"
-#include "pbbslib/sample_sort.h"
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 
 namespace gbbs {
@@ -184,8 +183,9 @@ namespace gbbs {
       uintE* ngh_v = A[v];
       uintE* new_array = pbbslib::new_array_no_init<uintE>(max_new_degree);
       size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, new_array);
+      auto old_degree = D[v];
       D[v] = new_degree; // update the degree in the table
-      if (allocated[v]) { pbbslib::free_array(ngh_v); } // free old neighbors if nec.
+      if (allocated[v]) { pbbslib::free_array(ngh_v, old_degree); } // free old neighbors if nec.
       else { allocated[v] = true; } // update allocated[v] if nec.
       A[v] = new_array; // update to the new neighbors
     }
@@ -293,7 +293,7 @@ namespace gbbs {
         size_t v_deg = ((i == untested_starts.size()-1) ? untested_batch.size() : untested_starts[i+1].second) - index;
         if (v_deg == 0) abort();
 
-        auto v_inserts = untested_batch.slice(index, index + v_deg);
+        auto v_inserts = untested_batch.cut(index, index + v_deg);
         merge_insertions(v, v_inserts);
       });
 

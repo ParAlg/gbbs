@@ -6,7 +6,6 @@ cc_library(
   "//gbbs:macros",
   "//gbbs/pbbslib:sparse_table",
   "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:sequence_ops"
   ]
 )
 

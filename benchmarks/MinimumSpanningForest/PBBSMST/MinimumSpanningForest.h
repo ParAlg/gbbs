@@ -29,10 +29,6 @@
 #include "gbbs/union_find.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/random.h"
-#include "pbbslib/sample_sort.h"
-
 namespace gbbs {
 namespace MinimumSpanningForest_spec_for {
 constexpr size_t sample_size = 10000;
@@ -166,7 +162,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
     speculative_for<uintE>(UFStep, 0, n_edges, 8);
 
     UFStep.clear();
-    pbbslib::free_array(R);
+    pbbslib::free_array(R, n);
     auto edge_imap_f = [&](size_t i) { return edges.E[i]; };
     auto edge_im =
         pbbslib::make_delayed<edge_t>(n_edges, edge_imap_f);

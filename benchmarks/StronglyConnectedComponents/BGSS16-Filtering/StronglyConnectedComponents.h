@@ -24,7 +24,6 @@
 #pragma once
 
 #include <limits>
-#include "pbbslib/random_shuffle.h"
 #include "gbbs/pbbslib/resizable_table.h"
 #include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/gbbs.h"
@@ -221,7 +220,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   size_t n = GA.n;
 
   // Everyone's initial label is "unfinished".
-  auto labels = sequence<label_type>(n, [](size_t) { return kUnfinished; });
+  auto labels = sequence<label_type>::from_function(n, [](size_t) { return kUnfinished; });
 
   // TODO: necessary?
   auto ba = sequence<bool>(n, false);

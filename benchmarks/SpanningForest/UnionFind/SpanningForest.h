@@ -25,7 +25,6 @@
 
 #include "gbbs/bridge.h"
 #include "gbbs/gbbs.h"
-#include "pbbslib/random.h"
 #include "union_find_rules.h"
 #include "benchmarks/SpanningForest/common.h"
 

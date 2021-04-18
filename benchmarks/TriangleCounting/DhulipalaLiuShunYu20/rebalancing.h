@@ -4,7 +4,6 @@
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 #include "dynamic_graph.h"
 #include "gbbs/gbbs.h"
-#include "pbbslib/monoid.h"
 #include "preprocess.h"
 #include "shared.h"
 #include "sparse_table.h"
@@ -139,7 +138,7 @@ tuple<size_t, DyGraph<SymGraph>*> majorRebalancing(
   timer sg; sg.start();
   SymGraph G =
       SymGraph(vertex_data_array, num_vertices, num_edges,
-               [=]() { pbbslib::free_array(vertex_data_array); },
+               [=]() { pbbslib::free_array(vertex_data_array, num_vertices); },
                edges_array);
   sg.stop(); sg.reportTotal("Major Rebalance: build sym graph time");
 
@@ -222,7 +221,7 @@ size_t minorRebalancing(DyGraph<Graph>* DG, sequence<VtxUpdate>& vtxNew,
     //  ============================= Count Rbled Degrees
     //  =============================
     sequence<size_t> newDegrees =
-        sequence<size_t>(vtxChangeLH.size(), [&](size_t i) {
+        sequence<size_t>::from_function(vtxChangeLH.size(), [&](size_t i) {
           return DG->get_new_degree(vtxChangeLH[i]);
         });  // TOCO: can optimize to delayed seq
     size_t rblN = pbbslib::scan_inplace(make_slice(newDegrees), monoid);

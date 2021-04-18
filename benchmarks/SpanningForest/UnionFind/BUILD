@@ -4,7 +4,6 @@ cc_library(
   deps = [
   ":jayanti",
   "//gbbs:bridge",
-  "//pbbslib:seq",
   "//benchmarks/Connectivity:common",
   ]
 )
@@ -14,7 +13,6 @@ cc_library(
   hdrs = ["jayanti.h"],
   deps = [
   "//gbbs:gbbs",
-  "//pbbslib:seq",
   "//benchmarks/Connectivity:common",
   ]
 )

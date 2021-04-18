@@ -31,10 +31,6 @@
 #include "benchmarks/Connectivity/common.h"
 #include "benchmarks/Connectivity/UnionFind/union_find_rules.h"
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/random.h"
-#include "pbbslib/sample_sort.h"
-
 namespace gbbs {
 namespace MinimumSpanningForest_kruskal {
 
@@ -53,10 +49,13 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   auto max_weight = pbbslib::reduce_max(weight_seq);
   std::cout << "max_weight = " << max_weight << std::endl;
   timer st; st.start();
-  pbbslib::integer_sort_inplace(make_slice(edges), [&] (const edge& e) { return std::get<2>(e); }, pbbslib::log2_up(n));
+  auto comp = [&] (const edge& l, const edge& r) {
+    return std::get<2>(l) < std::get<2>(r);
+  };
+  pbbslib::sample_sort_inplace(make_slice(edges), comp);
   st.stop(); st.reportTotal("sort time");
 
-  auto components = sequence<uintE>(n, [&] (size_t i) { return i; });
+  auto components = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });
   constexpr auto find{find_variants::find_compress};
   auto unite{unite_variants::Unite<decltype(find)>{find}};
 

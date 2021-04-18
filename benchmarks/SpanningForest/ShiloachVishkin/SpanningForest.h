@@ -119,7 +119,7 @@ struct SVAlgorithm {
 template <class Graph>
 inline sequence<edge> SpanningForest(Graph& G) {
   size_t n = G.n;
-  auto Parents = sequence<parent>(n, [&] (size_t i) { return i; });
+  auto Parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
   auto Edges = sequence<edge>(n, empty_edge);
 
   auto alg = SVAlgorithm<Graph>(G);

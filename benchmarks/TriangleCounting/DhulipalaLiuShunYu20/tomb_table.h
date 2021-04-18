@@ -68,7 +68,7 @@ class tomb_table {
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(table);
+      pbbslib::free_array(table, m);
       alloc = false;
     }
   }
@@ -204,7 +204,7 @@ class tomb_table {
         });
         // update_nelms();
         if (alloc) {
-          pbbslib::free_array(old_t);
+          pbbslib::free_array(old_t, old_m);
         }
         alloc = true;
       }

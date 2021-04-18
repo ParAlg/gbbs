@@ -510,6 +510,8 @@ namespace pbbslib {
   using parlay::filter;
   using parlay::internal::filter_out;
   using parlay::internal::split_two;
+  using parlay::internal::sliced_for;
+  using parlay::internal::pack_serial_at;
   // TODO: filter_index
 
   // TODO all below
@@ -638,6 +640,28 @@ namespace pbbslib {
   auto map_with_index(Seq const &A, Func&& f, flags fl = no_flag)
       -> sequence<OT> {
     return sequence<OT>(A.size(), [&](size_t i) { return f(i, A[i]); });
+  }
+
+  template <class In_Seq, class F>
+  auto filter_index(In_Seq const &In, F f, flags fl = no_flag)
+      -> sequence<typename In_Seq::value_type> {
+    using T = typename In_Seq::value_type;
+    size_t n = In.size();
+    size_t l = num_blocks(n, _block_size);
+    sequence<size_t> Sums(l);
+    sequence<bool> Fl(n);
+    sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      size_t r = 0;
+      for (size_t j = s; j < e; j++) r += (Fl[j] = f(In[j], j));
+      Sums[i] = r;
+    });
+    size_t m = scan_inplace(make_slice(Sums));
+    sequence<T> Out = sequence<T>::uninitialized(m);
+    sliced_for(n, _block_size, [&](size_t i, size_t s, size_t e) {
+      pack_serial_at(make_slice(In).cut(s, e), make_slice(Fl).cut(s, e),
+                     make_slice(Out).cut(Sums[i], (i == l - 1) ? m : Sums[i + 1]));
+    });
+    return Out;
   }
 
   template <class Idx_Type, class D, class F>

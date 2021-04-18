@@ -192,7 +192,7 @@ namespace contract_sf {
                       }
                     });
 
-    auto sym_edges = sequence<std::tuple<uintE, uintE, gbbs::empty>>(2 * edges.size(), [&](size_t i) {
+    auto sym_edges = sequence<std::tuple<uintE, uintE, gbbs::empty>>::from_function(2 * edges.size(), [&](size_t i) {
       size_t src_edge = i / 2;
       auto e0 = std::get<0>(edges[src_edge]);
       if (i % 2) {

@@ -43,7 +43,7 @@ inline size_t Makkar_Dynamic_Triangle(
     // process batch i
     size_t batch_start = i*batch_size;
     size_t batch_end = std::min(updates.size(), (i+1)*batch_size);
-    auto batch = U.slice(batch_start, batch_end);
+    auto batch = U.cut(batch_start, batch_end);
     timer bt; bt.start();
     DG.process_batch(batch);
     bt.stop(); bt.reportTotal("batch time");

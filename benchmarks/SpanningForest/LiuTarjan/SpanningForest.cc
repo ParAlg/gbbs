@@ -39,7 +39,7 @@ double SF_runner(Graph& G, commandLine P) {
   timer t;
   t.start();
   auto n = G.n;
-  auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+  auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
   auto edges = sequence<edge>(n, empty_edge);
 
   auto opt_connect = lt::template get_connect_function<parent_connect>();
@@ -59,7 +59,7 @@ double SF_runner(Graph& G, commandLine P) {
 
   alg.template compute_spanning_forest<no_sampling>(parents, edges);
 
-  auto filtered_edges = pbbslib::filter(edges, [&] (const edge& e) {
+  auto filtered_edges = pbbslib::filter(make_slice(edges), [&] (const edge& e) {
     return e != empty_edge;
   });
 

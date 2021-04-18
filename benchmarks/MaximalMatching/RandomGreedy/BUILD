@@ -14,7 +14,6 @@ cc_binary(
   srcs = ["MaximalMatching.cc"],
   deps = [
   ":MaximalMatching",
-  "//pbbslib/strings:string_basics"
   ]
 )
 

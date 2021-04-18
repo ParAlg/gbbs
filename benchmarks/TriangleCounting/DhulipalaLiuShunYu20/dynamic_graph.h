@@ -2,7 +2,6 @@
 
 #include <tuple>
 #include "gbbs/gbbs.h"
-#include "pbbslib/monoid.h"
 #include "shared.h"
 // #include "sparse_table.h"
 #include "tomb_table.h"
@@ -301,9 +300,9 @@ class DyGraph {
 
   // tb is a lower table.
   // put all entries v \in tb into seq_out as (v,u)
-  template <class E, class F>
+  template <class E, class F, class Seq>
   size_t pack_neighbors_helper(SetT* tb, uintE u,
-                               pbbslib::range<E*> seq_out) const {
+                               Seq seq_out) const {
     auto pred = [&](const E& t) { return tb->not_empty(getFirst(t)); };
     auto table_seq = pbbslib::make_delayed<E>(
         tb->size(), F(u, tb->table, tb->empty_key));
@@ -312,14 +311,14 @@ class DyGraph {
 
   size_t pack_neighbors_in(SetT* tb, uintE u, size_t s, size_t e) const {
     return pack_neighbors_helper<pair<uintE, int>, MakeEdgeEntry<SetT>>(
-        tb, u, edges.slice(s, e));
+        tb, u, make_slice(edges).cut(s, e));
   }
 
   // put the nghs of u into Ngh[ngh_s, ngh_e]. is_low_now is true is u is low
   // before updates (so in LL and/or LH)
   // assume edges array is already updated and packed
   template <class E, class F>
-  void get_neighbors_minor(DBTGraph::VtxUpdate& u, pbbslib::range<E*> Ngh,
+  void get_neighbors_minor(DBTGraph::VtxUpdate& u, pbbslib::range<E> Ngh,
                            size_t ngh_s, size_t ngh_e, bool is_low_now) const {
     size_t new_degree = ngh_e - ngh_s;
     if (use_block_v(u.id)) {
@@ -336,16 +335,16 @@ class DyGraph {
       size_t new_low_degree = get_new_low_degree(u);
       if (new_low_degree > 0) {
         pack_neighbors_helper<E, F>(tb1->find(u.id, NULL), u.id,
-                                    Ngh.slice(ngh_s, ngh_s + new_low_degree));
+                                    Ngh.cut(ngh_s, ngh_s + new_low_degree));
       }
       if (new_low_degree < new_degree) {
         pack_neighbors_helper<E, F>(tb2->find(u.id, NULL), u.id,
-                                    Ngh.slice(ngh_s + new_low_degree, ngh_e));
+                                    Ngh.cut(ngh_s + new_low_degree, ngh_e));
       }
     }
   }
 
-  void get_neighbors_major(uintE u, pbbslib::range<StaticEdgeT*> seq_out,
+  void get_neighbors_major(uintE u, pbbslib::range<StaticEdgeT> seq_out,
                            size_t offset) const {
     if (D[u] == 0) return;
     using F = MakeEdgeEntryMajor<SetT>;
@@ -367,11 +366,11 @@ class DyGraph {
       size_t tmp = 0;
       if (lowD[u] > 0) {
         tmp = pack_neighbors_helper<StaticEdgeT, F>(
-            tb1->find(u, NULL), u, seq_out.slice(offset, offset + D[u]));
+            tb1->find(u, NULL), u, seq_out.cut(offset, offset + D[u]));
       }
       if (lowD[u] < D[u]) {
         pack_neighbors_helper<StaticEdgeT, F>(
-            tb2->find(u, NULL), u, seq_out.slice(offset + tmp, offset + D[u]));
+            tb2->find(u, NULL), u, seq_out.cut(offset + tmp, offset + D[u]));
       }
     }
   }
@@ -381,7 +380,7 @@ class DyGraph {
   // assume there is enough space in array
   //  start from offset and end at u.insert_degree
   void markEdgeArrayInsertion(DBTGraph::VtxUpdate& u,
-                              pbbslib::range<pair<EdgeT, bool>*>& edgesInsert,
+                              pbbslib::range<pair<EdgeT, bool>>& edgesInsert,
                               int val, size_t offset) {
     // size_t offset = D[u.id];
     // par_for(0, u.insert_degree, [&](size_t i) { //can be parallel
@@ -396,7 +395,7 @@ class DyGraph {
   //  markEdgeInsertion
   // insert new edges into table
   void markEdgeTablesInsertion(DBTGraph::VtxUpdate& u,
-                               pbbslib::range<pair<EdgeT, bool>*>& edgesInsert,
+                               pbbslib::range<pair<EdgeT, bool>>& edgesInsert,
                                bool resize, int val) {
     tableE* tb1 = LL;
     tableE* tb2 = LH;
@@ -462,7 +461,7 @@ class DyGraph {
   // block size
   // must be called before deletion, because insertion inserts OLD_EDGE
   void markEdgeInsertion(DBTGraph::VtxUpdate& i,
-                         pbbslib::range<pair<EdgeT, bool>*> edgesI) {
+                         pbbslib::range<pair<EdgeT, bool>> edgesI) {
     if (edgesI.size() == 0) return;
     uintE u = i.id;
     size_t space = D[u] + i.insert_degree;
@@ -492,7 +491,7 @@ class DyGraph {
   ////////////////////////////////////////////////
 
   void markEdgeArrayDeletion(DBTGraph::VtxUpdate& u,
-                             pbbslib::range<pair<EdgeT, bool>*>& edgesDeletion) {
+                             pbbslib::range<pair<EdgeT, bool>>& edgesDeletion) {
     // par_for(0, edgesDeletion.size(), [&](size_t j) { //can be parallel
     for (size_t j = 0; j < edgesDeletion.size(); ++j) {
       for (size_t i = 0; i < D[u.id]; ++i) {
@@ -509,7 +508,7 @@ class DyGraph {
   // prereq: u is in tables and nghs in edgesM in tables/array
   // prereq true bc of preprocessing
   void markEdgeTables(DBTGraph::VtxUpdate& u,
-                      pbbslib::range<pair<EdgeT, bool>*>& edgesM, bool flag,
+                      pbbslib::range<pair<EdgeT, bool>>& edgesM, bool flag,
                       int val) {
     tableE* tb1 = LL;
     tableE* tb2 = LH;
@@ -539,7 +538,7 @@ class DyGraph {
 
   // mark array or tables of i with DEL_EDGE for neghs in edgesD
   void markEdgeDeletion(DBTGraph::VtxUpdate& i,
-                        pbbslib::range<pair<EdgeT, bool>*> edgesD) {
+                        pbbslib::range<pair<EdgeT, bool>> edgesD) {
     if (edgesD.size() == 0) return;
     uintE u = i.id;
     if (use_block_v(u)) {  // mark in array
@@ -592,7 +591,7 @@ class DyGraph {
   // for each update (w,u) where w is low and u is high
   //      for w's ngh high  v, check (u,v)
   void updateTable(DBTGraph::VtxUpdate& w,
-                   pbbslib::range<pair<EdgeT, bool>*> edgesID) {
+                   pbbslib::range<pair<EdgeT, bool>> edgesID) {
     if (is_low_v(w.id)) {  // w is low
       parallel_for(0, w.degree,
                    [&](size_t i) {  // loop over the udpate batch (w,u)
@@ -726,7 +725,7 @@ class DyGraph {
   // must be called before cleanUpEdgeTablesDeletion because
   // markEdgeArrayInsertion starts from D[u]
   void cleanUpEdgeInsertion(DBTGraph::VtxUpdate& i,
-                            pbbslib::range<pair<EdgeT, bool>*> edgesI) {
+                            pbbslib::range<pair<EdgeT, bool>> edgesI) {
     if (edgesI.size() == 0) return;
     uintE u = i.id;
     if (use_block_v(u)) {  // mark in array
@@ -744,7 +743,7 @@ class DyGraph {
   // not packing tables to array now because degrees can change in minor
   // rebalancing
   void cleanUpEdgeDeletion(DBTGraph::VtxUpdate& i,
-                           pbbslib::range<pair<EdgeT, bool>*> edgesD) {
+                           pbbslib::range<pair<EdgeT, bool>> edgesD) {
     if (edgesD.size() == 0) return;
     uintE u = i.id;
     if (use_block_v(u)) {  // pack array
@@ -786,7 +785,7 @@ class DyGraph {
   // for each update (w,u) where w is low and u is high
   //      for w's ngh high v, check (u,v)
   void cleanUpTable(DBTGraph::VtxUpdate& w,
-                    pbbslib::range<pair<EdgeT, bool>*> edgesID, bool del_flag) {
+                    pbbslib::range<pair<EdgeT, bool>> edgesID, bool del_flag) {
     if (is_low_v(w.id)) {  // w is low and w has high ngh
       // TODO(laxman, shangdi): there is a nested par_for here without
       // specifying the granularity. Should the outer par_for be a parallel_for
@@ -841,7 +840,7 @@ class DyGraph {
 
   // updates and deletes at the same time
   void cleanUpTable(DBTGraph::VtxUpdate& w,
-                    pbbslib::range<pair<EdgeT, bool>*> edgesID) {
+                    pbbslib::range<pair<EdgeT, bool>> edgesID) {
     if (is_low_v(w.id)) {  // w is low and w has high ngh
       // TODO(laxman, shangdi): there is a nested par_for here without
       // specifying the granularity. Should the outer par_for be a parallel_for
@@ -949,7 +948,7 @@ class DyGraph {
     }
     initParams();
 
-    D = sequence<size_t>(
+    D = sequence<size_t>::from_function(
         n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
     timer init_t; init_t.start();
     edges = sequence<pair<uintE, int>>((size_t)(block_size * n),
@@ -1229,7 +1228,7 @@ class DyGraph {
   // require: edges is updated and packed, tables are already resized, before
   // top tables moves
   void minorRblMoveBottomTable(uintE v,
-                               pbbslib::range<pair<EdgeT, bool>*> rblEdges,
+                               pbbslib::range<pair<EdgeT, bool>> rblEdges,
                                bool is_delete) {
     if (use_block_v(v)) return;
     tableE* tb1 = LL;

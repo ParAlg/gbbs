@@ -190,7 +190,7 @@ namespace workefficient_sf {
       return e;
     };
     auto sf = SpanningForest_Impl(G, beta, 0, identity_mapping, pack, permute);
-    auto output = sequence<edge>(sf.size, [&] (size_t i) { return sf.A[i]; });
+    auto output = sequence<edge>::from_function(sf.size, [&] (size_t i) { return sf.A[i]; });
     return output;
   }
 

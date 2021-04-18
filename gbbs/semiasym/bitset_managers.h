@@ -29,7 +29,6 @@
 #include "gbbs/macros.h"
 #include "gbbs/encodings/byte_pd.h"
 // #include "gbbs/encodings/byte_pd_amortized.h"
-#include "pbbslib/sequence_ops.h"
 
 #include "utils.h"
 
@@ -200,7 +199,7 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
     auto im = pbbslib::make_range(block_outputs, num_blocks);
     T res = pbbslib::reduce(im, reduce);
     if (num_blocks > 100) {
-      pbbslib::free_array(block_outputs);
+      pbbslib::free_array(block_outputs, num_blocks);
     }
     return res;
   } else {
@@ -713,8 +712,8 @@ struct uncompressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_space);
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space, total_bytes);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
   }
 
@@ -806,14 +805,21 @@ struct uncompressed_bitset_neighbors {
       repack_blocks_par(tmp, parallel);
     }
 
-    // Update offset values.
-    auto ptr_seq = indirect_value_seq<uintE>(
-        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_inplace(ptr_seq, pbbslib::no_flag, tmp_ints);
+//    // Update offset values.
+//    auto ptr_seq = indirect_value_seq<uintE>(
+//        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
+//    uintE sum = pbbslib::scan_inplace(ptr_seq, pbbslib::no_flag, tmp_ints);
+//    vtx_degree = sum;
+    uintE sum = 0;
+    for (size_t i=0; i<vtx_num_blocks; i++) {
+      uintE cur = block_metadata[i].offset;
+      block_metadata[i].offset = sum;
+      sum += cur;
+    }
     vtx_degree = sum;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
 
     // Update the degree in vtx_info.
@@ -1318,8 +1324,8 @@ struct compressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_space);
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space, total_bytes);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
   }
 
@@ -1429,13 +1435,22 @@ struct compressed_bitset_neighbors {
     }
 
     // Update offset values.
-    auto ptr_seq = indirect_value_seq<uintE>(
-        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_inplace(ptr_seq, pbbslib::no_flag, (uintE*)tmp_ints);
+//    auto ptr_seq = indirect_value_seq<uintE>(
+//        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
+//    uintE sum = pbbslib::scan_inplace(make_slice(ptr_seq), (uintE*)tmp_ints);
+//    vtx_degree = sum;
+
+    uintE sum = 0;
+    for (size_t i=0; i<vtx_num_blocks; i++) {
+      uintE cur = block_metadata[i].offset;
+      block_metadata[i].offset = sum;
+      sum += cur;
+    }
     vtx_degree = sum;
 
+
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
 
     // Update the degree in vtx_info.

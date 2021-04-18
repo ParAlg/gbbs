@@ -22,7 +22,7 @@
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gbbs/gbbs.h"
-#include "pbbslib/assert.h"
+#include "gbbs/pbbslib/assert.h"
 
 namespace gbbs {
 
