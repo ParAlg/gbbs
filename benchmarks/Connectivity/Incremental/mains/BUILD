@@ -194,7 +194,6 @@ cc_library(
     name = "empty_starting_graph",
     hdrs = ["empty_starting_graph.h"],
     deps = [
-        "//pbbslib/strings:string_basics",
     ],
 )
 

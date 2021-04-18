@@ -218,7 +218,7 @@ namespace connectit {
     for (size_t i=0; i<n_batches; i++) {
       size_t start = i*batch_size;
       size_t end = std::min((i+1)*batch_size, m);
-      auto update = updates.slice(start, end);
+      auto update = updates.cut(start, end);
       if (i % 10000 == 0) {
         std::cout << "# starting batch" << std::endl;
       }

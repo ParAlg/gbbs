@@ -76,7 +76,7 @@ struct symmetric_graph {
 
   sequence<std::tuple<uintE, uintE, W>> edges() {
     using g_edge = std::tuple<uintE, uintE, W>;
-    auto degs = sequence<size_t>(
+    auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
     size_t sum_degs = pbbslib::scan_inplace(make_slice(degs));
     assert(sum_degs == m);

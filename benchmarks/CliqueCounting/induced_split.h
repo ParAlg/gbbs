@@ -1,7 +1,6 @@
 #pragma once
 
 #include "intersect.h"
-#include "pbbslib/seq.h"
 
 /* TODO: describe what this file does */
 

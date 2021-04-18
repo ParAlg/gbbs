@@ -17,11 +17,6 @@ cc_library(
         "//gbbs:graph",
         "//gbbs:macros",
         "//gbbs/pbbslib:sparse_table",
-        "//pbbslib:binary_search",
-        "//pbbslib:get_time",
-        "//pbbslib:sample_sort",
-        "//pbbslib:seq",
-        "//pbbslib:utilities",
     ],
 )
 
@@ -40,13 +35,7 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph_mutation",
         "//gbbs:vertex",
-        "//pbbslib:assert",
-        "//pbbslib:binary_search",
-        "//pbbslib:monoid",
-        "//pbbslib:random",
-        "//pbbslib:seq",
-        "//pbbslib:sequence_ops",
-        "//pbbslib:utilities",
+        "//gbbs/pbbslib:assert",
     ],
 )
 
@@ -63,9 +52,6 @@ cc_library(
         "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:macros",
-        "//pbbslib:integer_sort",
-        "//pbbslib:monoid",
-        "//pbbslib:seq",
     ],
 )
 

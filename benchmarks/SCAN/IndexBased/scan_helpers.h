@@ -8,9 +8,6 @@
 
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "gbbs/graph.h"
-#include "pbbslib/get_time.h"
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace indexed_scan {

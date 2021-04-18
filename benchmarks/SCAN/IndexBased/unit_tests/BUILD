@@ -11,7 +11,6 @@ gbbs_cc_test(
         "//gbbs:graph_test_utils",
         "//gbbs:undirected_edge",
         "//gbbs:vertex",
-        "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
 )
@@ -34,7 +33,6 @@ gbbs_cc_test(
     deps = [
         "//benchmarks/SCAN/IndexBased:utils",
         "//gbbs:graph_test_utils",
-        "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
 )

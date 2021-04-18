@@ -17,11 +17,6 @@
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 #include "gbbs/bridge.h"
 #include "gbbs/graph_mutation.h"
-#include "pbbslib/monoid.h"
-#include "pbbslib/random.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/sequence_ops.h"
-#include "pbbslib/utilities.h"
 
 namespace gbbs {
 

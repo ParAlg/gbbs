@@ -19,7 +19,6 @@
 #include "gbbs/graph_test_utils.h"
 #include "gbbs/undirected_edge.h"
 #include "gbbs/vertex.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 

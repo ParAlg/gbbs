@@ -2,7 +2,6 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/graph.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 
@@ -46,7 +45,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
 
     size_t prev_deg = GA.get_vertex(i).out_degree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
-    auto tmp_edges = sequence<edge>::unitialized(prev_deg);
+    auto tmp_edges = sequence<edge>::uninitialized(prev_deg);
     auto f = [&](uintE u, uintE v, W w) {
       if (pred(u, v, w)) {
         tmp_edges[deg] = std::make_tuple(rank[v], w);
@@ -56,10 +55,10 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     };
     GA.get_vertex(i).out_neighbors().map(f, false);
     // need to sort tmp_edges
-    tmp_edges.shrink(deg);
-    pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
+    tmp_edges.resize(deg);
+    pbbslib::stable_sort_inplace(make_slice(tmp_edges), [&](const edge u, const edge v) {
       return std::get<0>(u) < std::get<0>(v);
-    }, true);
+    });
 
     // now need to compute total_bytes (TODO: this could be parallelized, b/c we know what last_ngh is)
     for (size_t j=0; j < deg; j++) {
@@ -103,9 +102,9 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
       };
       GA.get_vertex(i).out_neighbors().map(f, false);
       // need to sort tmp_edges
-      pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
+      pbbslib::stable_sort_inplace(make_slice(tmp_edges), [&](const edge u, const edge v) {
         return std::get<0>(u) < std::get<0>(v);
-      }, true);
+      });
 
       auto iter = vertex_ops::get_iter(tmp_edges.begin(), deg);
       byte::sequentialCompressEdgeSet<W>(
@@ -125,7 +124,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
-                            [=]() {pbbslib::free_arrays(out_vdata, edges); },
+                            [=]() {pbbslib::free_array(out_vdata,n); free_array(edges, last_offset); },
                             edges, edges);
 }
 
@@ -174,9 +173,9 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
       auto n_im = pbbslib::make_delayed<edge>(d, n_im_f);
       pbbslib::filter_out(n_im, pbbslib::make_range(dir_nghs, d), pred_c, pbbslib::no_flag);
       parallel_for(0, true_deg, [&] (size_t j) { dir_nghs[j] = std::make_tuple(rank[std::get<0>(dir_nghs[j])], std::get<1>(dir_nghs[j])); });
-      pbbslib::sample_sort (dir_nghs, true_deg, [&](const edge left, const edge right) {
+      pbbslib::stable_sort_inplace(pbbslib::make_range(dir_nghs, true_deg), [&](const edge left, const edge right) {
         return std::get<0>(left) < std::get<0>(right);
-      }, true);
+      });
     }
   }, 1);
 
@@ -189,7 +188,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, GA.n, outEdgeCount,
-      [=]() {pbbslib::free_arrays(out_vdata, out_edges); },
+      [=]() {pbbslib::free_array(out_vdata,n); pbbslib::free_array(out_edges, outEdgeCount); },
       out_edges);
 }
 

@@ -3,8 +3,6 @@
 #include <functional>
 #include <limits>
 
-#include "pbbslib/stlalgs.h"
-
 namespace gbbs {
 namespace naive_scan {
 
@@ -39,7 +37,7 @@ void RemoveDuplicates(vertexSubset* vertex_subset) {
   if (vertex_subset->isDense) {
     return;
   }
-  sequence<uintE> vertices(
+  sequence<uintE> vertices = sequence<uintE>::from_function(
       vertex_subset->size(),
       [&](const size_t i) { return vertex_subset->vtx(i); });
   sequence<uintE> deduped_vertices{

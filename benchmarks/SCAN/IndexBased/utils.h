@@ -12,9 +12,6 @@
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "pbbslib/integer_sort.h"
-#include "pbbslib/monoid.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace scan {

@@ -9,8 +9,6 @@
 #include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/undirected_edge.h"
 #include "gbbs/vertex_subset.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/utilities.h"
 
 namespace gbbs {
 namespace naive_scan {

@@ -3,7 +3,6 @@
 /* TODO: describe what this file does */
 
 #include "intersect.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace induced_hybrid {

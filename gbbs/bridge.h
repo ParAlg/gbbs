@@ -28,9 +28,12 @@ namespace gbbs {
 
   using parlay::parallel_for;
   using parlay::par_do;
-  // using pbbs::parallel_for_alloc;  // TODO
   using parlay::num_workers;
   using parlay::worker_id;
+  template <typename A, typename Af, typename Df, typename F>
+  static void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
+                                 long end, F f, long granularity = 0,
+                                 bool conservative = false);
 
   template <class T>
   using slice = parlay::slice<T*, T*>;
@@ -64,6 +67,60 @@ namespace gbbs {
       }
     }
   }
+
+
+#ifdef CILK
+  // TODO try parallel_for_1
+  template <typename A, typename Af, typename Df, typename F>
+  inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
+                                 long end, F f, long granularity,
+                                 bool conservative) {
+    alloc_holder<A> alloc;
+
+    parallel_for_1(start, end,
+                   [&](size_t i) {
+                     init_alloc(&alloc.imp_.view());
+                     f(i, &(alloc.imp_.view()));
+                     // finish_alloc(&(alloc.imp_.view()));
+                   },
+                   granularity, conservative);
+  }
+#else
+#ifdef OPENMP
+  template <typename A, typename Af, typename Df, typename F>
+  inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
+                                 long end, F f, long granularity,
+                                 bool conservative) {
+    A* alloc = nullptr;
+  #pragma omp parallel private(alloc)
+    {
+      alloc = new A();
+      init_alloc(alloc);
+      parallel_for_1(start, end, [&](size_t i) { f(i, alloc); }, granularity,
+                     conservative);
+      //#pragma omp for schedule(dynamic, 1) nowait
+      // for(long i=start; i<end; i++) f(i, alloc);
+      finish_alloc(alloc);
+    }
+  }
+#else
+  template <typename A, typename Af, typename Df, typename F>
+  inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
+                                 long end, F f, long granularity,
+                                 bool conservative) {
+    parallel_for(start, end,
+                 [&](long i) {
+                   static thread_local A* alloc = new A();
+                   init_alloc(alloc);
+                   f(i, alloc);
+                 },
+                 granularity, conservative);
+    // finish_alloc(alloc);
+  }
+#endif
+#endif
+
+
 
   template <class E>
   E* new_array_no_init(size_t n) {
@@ -460,13 +517,8 @@ namespace pbbslib {
   using parlay::chars_to_file;
   using parlay::chars_from_file;
   using parlay::internal::chars_to_int_t;
-  // using pbbs::tokenize;
-  // using pbbs::is_space;
-  // using pbbs::char_seq_from_file;
-  // using pbbs::char_seq_to_file;
-  // using pbbs::remove_duplicates_ordered;
-  // using pbbs::get_counts;
-  // using pbbs::approximate_kth_smallest;
+  using parlay::remove_duplicates_ordered;
+  using parlay::internal::get_counts;
   // using pbbs::map_with_index;
 
   constexpr const size_t _log_block_size = 10;
@@ -548,6 +600,9 @@ namespace pbbslib {
   using parlay::internal::sample_sort;
   using parlay::internal::sample_sort_inplace;
 
+  using parlay::stable_sort;
+  using parlay::stable_sort_inplace;
+
   // ====================== integer sort =======================
 
   using parlay::integer_sort_inplace;
@@ -565,6 +620,25 @@ namespace pbbslib {
 namespace pbbslib {
 
   constexpr size_t _F_BSIZE = 2000;
+
+  // Transforms input sequence `[a_0, a_1, ..., a_{n-1}]` to sequence `[f(0, a_0),
+  // f(1, a_1), ..., f(n-1, a_{n-1})]` using input function `f`.
+  //
+  // Arguments:
+  //   A: sequence-like object with elements of type `T`
+  //     Input array.
+  //   f: (size_t, T) -> OT
+  //     Function to apply to input array.
+  //
+  // Returns:
+  //   sequence<OT>
+  //     Result of applying `f` to each element of `A` along with the index of
+  //     that element in `A`.
+  template <class OT, class Seq, class Func>
+  auto map_with_index(Seq const &A, Func&& f, flags fl = no_flag)
+      -> sequence<OT> {
+    return sequence<OT>(A.size(), [&](size_t i) { return f(i, A[i]); });
+  }
 
   template <class Idx_Type, class D, class F>
   inline sequence<std::tuple<Idx_Type, D> > pack_index_and_data(

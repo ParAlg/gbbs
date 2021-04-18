@@ -15,8 +15,5 @@ cc_library(
         "//gbbs:undirected_edge",
         "//gbbs:vertex_subset",
         "//gbbs/pbbslib:sparse_table",
-        "//pbbslib:seq",
-        "//pbbslib:stlalgs",
-        "//pbbslib:utilities",
     ],
 )

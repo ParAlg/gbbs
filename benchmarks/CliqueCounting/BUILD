@@ -14,7 +14,6 @@ cc_library(
   hdrs = ["induced_intersection.h"],
   deps = [
   ":intersect",
-  "//pbbslib:seq",
   ]
 )
 
@@ -23,7 +22,6 @@ cc_library(
   hdrs = ["induced_neighborhood.h"],
   deps = [
   ":intersect",
-  "//pbbslib:seq",
   ]
 )
 
@@ -32,7 +30,6 @@ cc_library(
   hdrs = ["induced_hybrid.h"],
   deps = [
   ":intersect",
-  "//pbbslib:seq",
   ]
 )
 
@@ -41,7 +38,6 @@ cc_library(
   hdrs = ["induced_split.h"],
   deps = [
   ":intersect",
-  "//pbbslib:seq",
   ]
 )
 
@@ -56,8 +52,6 @@ cc_library(
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//gbbs/pbbslib:sparse_table",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
   ]
 )
 
@@ -67,7 +61,6 @@ cc_library(
   deps = [
   "//gbbs:gbbs",
   "//gbbs:graph",
-  "//pbbslib:seq",
   ]
 )
 
@@ -85,9 +78,7 @@ cc_library(
   "//gbbs:edge_map_reduce",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:assert",
-  "//pbbslib:list_allocator",
-  "//pbbslib:integer_sort",
+  "//gbbs/pbbslib:assert",
   "//benchmarks/DegeneracyOrder/BarenboimElkin08:DegeneracyOrder",
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore",

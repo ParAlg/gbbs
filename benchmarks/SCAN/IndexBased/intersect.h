@@ -10,9 +10,6 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/binary_search.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace scan {
