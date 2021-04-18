@@ -17,8 +17,6 @@
 // SOFTWARE.
 
 #include <algorithm>
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/monoid.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/graph.h"
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -141,7 +139,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, G.n, outEdgeCount,
-      [=] { pbbslib::free_arrays(out_vdata, out_edges); },
+      [=] { pbbslib::free_array(out_vdata,n); pbbslib::free_array(out_edges,outEdgeCount); },
       out_edges);
 }
 

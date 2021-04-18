@@ -67,7 +67,7 @@ class sparse_table {
   void resize_no_copy(size_t incoming) {
     if (incoming > m) {
       if (alloc) {
-        pbbslib::free_array(table);
+        pbbslib::free_array(table, m);
       }
       std::cout << "# Resizing decrement table, was: " << m;
       m = incoming;
@@ -100,7 +100,7 @@ class sparse_table {
       });
 
       if (old_alloc) {
-        pbbslib::free_array(old_table);
+        pbbslib::free_array(old_table, old_m);
       }
     }
   }

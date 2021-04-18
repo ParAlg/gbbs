@@ -6,9 +6,6 @@ cc_library(
   "//gbbs:speculative_for",
   "//gbbs:union_find",
   "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:binary_search",
-  "//pbbslib:random",
-  "//pbbslib:sample_sort",
   ]
 )
 

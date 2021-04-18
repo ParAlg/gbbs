@@ -20,9 +20,6 @@
 
 #pragma once
 
-#include "pbbslib/sample_sort.h"
-#include "pbbslib/utilities.h"
-
 namespace gbbs {
 namespace truss_utils {
 

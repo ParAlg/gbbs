@@ -12,8 +12,6 @@ cc_library(
         "//gbbs:gbbs",
         "//gbbs/pbbslib:dyn_arr",
         "//gbbs/pbbslib:sparse_table",
-        "//pbbslib:sample_sort",
-        "//pbbslib:utilities",
     ],
 )
 

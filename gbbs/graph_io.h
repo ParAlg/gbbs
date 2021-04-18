@@ -613,7 +613,6 @@ parse_weighted_graph(
   id_and_weight* edges;
   uint64_t n, m;
 
-  sequence<sequence<char>> tokens;
   sequence<char> S;
 
   if (!binary) {
@@ -632,15 +631,19 @@ parse_weighted_graph(
         S = readStringFromFile(fname);
       }
     }
-    tokens = parlay::tokens(make_slice(S));
-    assert(tokens[0].begin() == internal::kWeightedAdjGraphHeader);
+    auto tokens = parlay::map_tokens(parlay::make_slice(S),
+        [] (auto x) { return parlay::make_slice(x); });
+    debug(
+    std::string header = std::string(tokens[0].begin(), tokens[0].size());
+    assert(header == internal::kWeightedAdjGraphHeader);
+    );
 
     uint64_t len = tokens.size() - 1;
-    n = parlay::chars_to_ulong(tokens[1]);
-    m = parlay::chars_to_ulong(tokens[2]);
+
+    n = parlay::internal::chars_to_int_t<unsigned long>(tokens[1]);
+    m = parlay::internal::chars_to_int_t<unsigned long>(tokens[2]);
 
     if (len != (n + 2 * m + 2)) {
-      std::cout << tokens[0] << "\n";
       std::cout << "len = " << len << "\n";
       std::cout << "n = " << n << " m = " << m << "\n";
       std::cout << "should be : " << (n + 2 * m + 2) << "\n";
@@ -650,18 +653,14 @@ parse_weighted_graph(
     offsets = pbbslib::new_array_no_init<uintT>(n+1);
     edges = pbbslib::new_array_no_init<id_and_weight>(2 * m);
 
-    parallel_for(0, n, [&] (size_t i) { offsets[i] = parlay::chars_to_ulong(tokens[i + 3]); });
+    parallel_for(0, n, [&] (size_t i) { offsets[i] = parlay::internal::chars_to_int_t<unsigned long>(tokens[i + 3]); });
     offsets[n] = m; /* make sure to set the last offset */
     parallel_for(0, m, [&] (size_t i) {
-      auto wgh = tokens[i + n + m + 3];
-      auto wgh_str = std::string(std::begin(wgh), std::end(wgh));
+      auto& wgh = tokens[i + n + m + 3];
+      auto wgh_str = std::string(wgh.begin(), wgh.size());
       edges[i] = std::make_tuple(
-          parlay::chars_to_ulong(tokens[i + n + 3]),
+          parlay::internal::chars_to_int_t<uintE>(tokens[i + n + 3]),
           std::stof(wgh_str));
-// TODO: check
-//      edges[i] = std::make_tuple(
-//          atol(tokens[i + n + 3]),
-//          string_to_weight<weight_type>(tokens[i + n + m + 3]));
     });
     S.clear();
     tokens.clear();
