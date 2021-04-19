@@ -3,9 +3,7 @@
 #include <stdlib.h>
 #include <cmath>
 
-#include "pbbslib/random_shuffle.h"
 #include "gbbs/gbbs.h"
-#include "pbbslib/strings/string_basics.h"
 
 namespace gbbs {
 template <class Graph>
@@ -13,14 +11,14 @@ void randomReorder(Graph& GA, std::string& outfile) {
   using W = typename Graph::weight_type;
   size_t n = GA.n;
   size_t m = GA.m;
-  auto perm = pbbs::random_permutation<uintE>(n);
+  auto perm = pbbslib::random_permutation<uintE>(n);
 
-  auto edges = pbbs::sequence<uintE>(m);
-  auto offs = pbbs::sequence<uintT>(n);
+  auto edges = sequence<uintE>(m);
+  auto offs = sequence<uintT>(n);
   parallel_for(0, n, [&] (size_t i) {
     offs[perm[i]] = GA.get_vertex(i).out_degree();
   });
-  size_t tot = pbbslib::scan_add_inplace(make_slice(offs));
+  size_t tot = pbbslib::scan_inplace(make_slice(offs));
   std::cout << "m = " << m << " tot = " << tot << std::endl;
 
   parallel_for(0, n, [&] (size_t i) {

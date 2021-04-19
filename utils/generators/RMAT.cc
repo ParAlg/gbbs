@@ -1,7 +1,6 @@
 #include "rmat.h"
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/strings/string_basics.h"
 
 #include <iostream>
 #include <fstream>
@@ -30,7 +29,7 @@ int BuildRMAT(int argc, char* argv[]) {
   auto updates = rmat::generate_updates(n, m, seed, a, b, c);
   std::cout << "Generated updates" << std::endl;
 
-  if (n != (1UL << (pbbs::log2_up(n)))) {
+  if (n != (1UL << (pbbslib::log2_up(n)))) {
     std::cout << "n must be a power of two" << std::endl;
     abort();
   }

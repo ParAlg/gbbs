@@ -4,7 +4,6 @@
 #include "gbbs/gbbs.h"
 #include "gbbs/graph_test_utils.h"
 #include "gbbs/semiasym/graph_filter.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 

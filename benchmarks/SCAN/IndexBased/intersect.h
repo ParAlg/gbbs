@@ -10,6 +10,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
+#include "gbbs/pbbslib/assert.h"
 
 namespace gbbs {
 namespace scan {
@@ -150,13 +151,14 @@ typename IntersectReturn<Weight>::type seq_merge(
 // begins, and likewise for `offset_B`.
 template <typename Weight, class Seq, class F>
 typename IntersectReturn<Weight>::type merge(
-    const Seq& A,
-    const Seq& B,
+    const Seq& AA,
+    const Seq& BB,
     const size_t offset_A,
     const size_t offset_B,
     const bool are_sequences_swapped,
     const F& f) {
   using ReturnType = typename IntersectReturn<Weight>::type;
+  auto A = make_slice(AA); auto B = make_slice(BB);
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;
@@ -179,8 +181,8 @@ typename IntersectReturn<Weight>::type merge(
     par_do(
         [&]() {
           m_left = scan::internal::merge<Weight>(
-              A.slice(0, mA),
-              B.slice(0, mB),
+              A.cut(0, mA),
+              B.cut(0, mB),
               offset_A,
               offset_B,
               are_sequences_swapped,
@@ -188,8 +190,8 @@ typename IntersectReturn<Weight>::type merge(
         },
         [&]() {
           m_right = scan::internal::merge<Weight>(
-              A.slice(mA, nA),
-              B.slice(mB, nB),
+              A.cut(mA, nA),
+              B.cut(mB, nB),
               offset_A + mA,
               offset_B + mB,
               are_sequences_swapped,

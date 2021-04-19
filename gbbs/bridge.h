@@ -639,7 +639,12 @@ namespace pbbslib {
   template <class OT, class Seq, class Func>
   auto map_with_index(Seq const &A, Func&& f, flags fl = no_flag)
       -> sequence<OT> {
-    return sequence<OT>(A.size(), [&](size_t i) { return f(i, A[i]); });
+    return sequence<OT>::from_function(A.size(), [&](size_t i) { return f(i, A[i]); });
+  }
+
+  template <class OT, class Seq, class UnaryFunc>
+  auto map(Seq const &A, UnaryFunc f, flags fl = no_flag) -> sequence<OT> {
+    return sequence<OT>::from_function(A.size(), [&](size_t i) { return f(A[i]); });
   }
 
   template <class In_Seq, class F>

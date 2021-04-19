@@ -176,7 +176,7 @@ auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
     return vertex_degree_ranking[u] < vertex_degree_ranking[v];
   }};
   auto directed_graph{filterGraph(*graph, filter_predicate)};
-  pbbslib::free_array(vertex_degree_ranking);
+  pbbslib::free_array(vertex_degree_ranking, graph->n);
   return directed_graph;
 }
 
@@ -186,9 +186,9 @@ auto DirectGraphByDegree(symmetric_graph<VertexTemplate, Weight>* graph) {
 template <template <typename> class VertexTemplate, typename Weight>
 sequence<uintT>
 VertexOutOffsets(symmetric_graph<VertexTemplate, Weight>* graph) {
-  sequence<uintT> vertex_offsets{
+  auto vertex_offsets = sequence<uintT>::from_function(
       graph->n,
-      [&](const size_t i) { return graph->get_vertex(i).out_degree(); }};
+      [&](const size_t i) { return graph->get_vertex(i).out_degree(); });
   pbbslib::scan_inplace(vertex_offsets);
   return vertex_offsets;
 }
@@ -222,8 +222,8 @@ sequence<EdgeSimilarity> AllEdgeNeighborhoodSimilarities(
   auto directed_graph{DirectGraphByDegree(graph)};
   // Each counter in `counters` holds the number of shared neighbors in `graph`
   // between u and v for some edge {u, v}.
-  sequence<std::atomic<uintE>> counters(
-      directed_graph.m, [](size_t) { return std::atomic<uintE>{0}; });
+  auto counters = sequence<std::atomic<uintE>>(directed_graph.m);
+  parallel_for(0, directed_graph.m, [&] (size_t i) { counters[i] = 0; });
   // We use `counter_offsets` to index into `counters` for each edge.
   const sequence<uintT> counter_offsets{
     internal::VertexOutOffsets(&directed_graph)};
@@ -433,8 +433,8 @@ sequence<EdgeSimilarity> ApproxCosineEdgeSimilarities(
   // numbers, we still make the counter an integer type since
   // std::atomic<double> doesn't have an atomic increment operation in C++17,
   // and we instead round the edge weights to integers.
-  sequence<std::atomic<Counter>> counters(
-      directed_graph.m, [](size_t) { return std::atomic<Counter>{0}; });
+  auto counters = sequence<std::atomic<Counter>>(directed_graph.m);
+  parallel_for(0, directed_graph.m, [&] (size_t i) {counters[i] = 0;});
   // For floating-point-weighted graphs, we multiply all edge weights by this
   // factor and round to the nearest integer. Multiplying all edge weights by a
   // constant doesn't affect cosine similarities. The multiplication preserves
@@ -633,7 +633,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   const sequence<uintE> vertex_permutation{
     pbbslib::random_permutation<uintE>(num_vertices, pbbslib::random{random_seed})};
 
-  sequence<uintE> needs_fingerprint_seq{
+  auto needs_fingerprint_seq = sequence<uintE>::from_function(
       graph->n,
       [&](const size_t vertex_id) {
         Vertex vertex{graph->get_vertex(vertex_id)};
@@ -650,7 +650,7 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
           }};
         vertex.out_neighbors().map(check_degree_threshold);
         return needs_fingerprint;
-      }};
+      });
   const uintE num_needs_fingerprint{
     pbbslib::scan_inplace(needs_fingerprint_seq)};
   const sequence<uintE>& fingerprint_indices{needs_fingerprint_seq};
@@ -686,8 +686,8 @@ sequence<EdgeSimilarity> ApproxJaccardEdgeSimilarities(
   auto directed_graph{DirectGraphByDegree(graph)};
   // Each counter in `counters` holds the number of shared neighbors in `graph`
   // between u and v for some edge {u, v}.
-  sequence<std::atomic<uintE>> counters(
-      directed_graph.m, [](size_t) { return std::atomic<uintE>{0}; });
+  auto counters = sequence<std::atomic<uintE>>(directed_graph.m);
+  parallel_for(0, directed_graph.m, [&] (size_t i) { counters[i] = 0; });
   // We use `counter_offsets` to index into `counters` for each edge.
   const sequence<uintT> counter_offsets{
     internal::VertexOutOffsets(&directed_graph)};
@@ -821,8 +821,8 @@ sequence<EdgeSimilarity> CosineSimilarity::AllEdges(
     auto directed_graph{internal::DirectGraphByDegree(graph)};
     // Each counter in `counters` will hold numerator of CosineSimilarity(u, v)
     // for some edge {u, v}.
-    sequence<std::atomic<int64_t>> counters(
-        directed_graph.m, [](size_t) { return std::atomic<int64_t>{0}; });
+    auto counters = sequence<std::atomic<uintE>>(directed_graph.m);
+    parallel_for(0, directed_graph.m, [&] (size_t i) { counters[i] = 0; });
     // For floating-point-weighted graphs, we multiply all edge weights by this
     // factor and round to the nearest integer. Multiplying all edge weights by
     // a constant doesn't affect cosine similarities. The multiplication

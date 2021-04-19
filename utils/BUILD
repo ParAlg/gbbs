@@ -6,8 +6,6 @@ cc_binary(
         "//gbbs:io",
         "//gbbs:parse_command_line",
         "//gbbs/encodings:byte_pd_amortized",
-        "//pbbslib:random",
-        "//pbbslib:utilities",
     ],
 )
 
@@ -24,8 +22,6 @@ cc_binary(
     srcs = ["random_reorder.cc"],
     deps = [
         "//gbbs",
-        "//pbbslib:random_shuffle",
-        "//pbbslib/strings:string_basics",
     ],
 )
 
@@ -34,8 +30,6 @@ cc_binary(
     srcs = ["to_edge_list.cc"],
     deps = [
         "//gbbs",
-        "//pbbslib:random_shuffle",
-        "//pbbslib/strings:string_basics",
     ],
 )
 

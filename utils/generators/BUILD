@@ -4,7 +4,6 @@ cc_binary(
     deps = [
         "BarabasiAlbert_library",
         "//gbbs",
-        "//pbbslib/strings:string_basics",
     ],
 )
 
@@ -14,7 +13,6 @@ cc_binary(
     deps = [
         "RMAT_library",
         "//gbbs",
-        "//pbbslib/strings:string_basics",
     ],
 )
 
@@ -24,7 +22,6 @@ cc_library(
     deps = [
         "//gbbs",
         "//gbbs:macros",
-        "//pbbslib:random",
     ],
 )
 

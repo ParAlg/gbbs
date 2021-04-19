@@ -390,9 +390,9 @@ edge_list_to_asymmetric_graph(const std::vector<Edge<weight_type>>& edge_list) {
   }
 
   const sequence<Edge<weight_type>> out_edges = internal::sort_and_dedupe(
-      sequence<Edge<weight_type>>{
+      sequence<Edge<weight_type>>::from_function(
         edge_list.size(),
-        [&](const size_t i) { return edge_list[i]; }});
+        [&](const size_t i) { return edge_list[i]; }));
   const size_t num_edges = out_edges.size();
   const size_t num_vertices = internal::get_num_vertices_from_edges(out_edges);
   vertex_data* vertex_out_data =
@@ -495,10 +495,10 @@ void write_graph_to_file(const char* filename, Graph& graph) {
   const size_t num_vertices{graph.n};
   const size_t num_edges{graph.m};
 
-  sequence<size_t> offsets{num_vertices,
+  sequence<size_t> offsets = sequence<size_t>::from_function(num_vertices,
     [&](const size_t i) {
       return graph.get_vertex(i).out_degree();
-    }};
+    });
   pbbslib::scan_inplace(make_slice(offsets));
 
   file << (is_weighted_graph

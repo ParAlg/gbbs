@@ -205,7 +205,7 @@ void writeWeightedBytePDADirected(graph<vertex<W>>& GA, string& outfile) {
     calc_t.reportTotal("total size time");
 
     byte_offsets[n] = 0;
-    size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
+    size_t total_space = pbbs::scan_inplace(make_slice(byte_offsets));
     std::cout << "total space is: " << total_space << std::endl;
     auto edges = pbbs::sequence<uchar>(total_space);
     std::cout << "Allocated, compressing!" << std::endl;
@@ -300,7 +300,7 @@ void writeWeightedBytePDA(graph<vertex<W>>& GA, string& outfile,
   calc_t.reportTotal("total size time");
 
   byte_offsets[n] = 0;
-  size_t total_space = pbbs::scan_add(byte_offsets, byte_offsets);
+  size_t total_space = pbbs::scan_inplace(make_slice(byte_offsets));
   std::cout << "total space is: " << total_space << std::endl;
   auto edges = pbbs::sequence<uchar>(total_space);
 

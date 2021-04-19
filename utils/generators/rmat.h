@@ -29,7 +29,7 @@
 namespace gbbs {
 namespace rmat {
   double hashDouble(uintE i) {
-    return ((double) (pbbs::hash32(i))/((double) UINT_E_MAX));}
+    return ((double) (pbbslib::hash32(i))/((double) UINT_E_MAX));}
 
   struct rMat_gen {
     double a, ab, abc;
@@ -38,9 +38,9 @@ namespace rmat {
     rMat_gen(uintE _n, uintE _seed,
          double _a, double _b, double _c) {
       n = _n; a = _a; ab = _a + _b; abc = _a+_b+_c;
-      h = pbbs::hash64(_seed);
+      h = pbbslib::hash64(_seed);
       if (abc > 1) { std::cout << "in rMat: a + b + c add to more than 1\n"; abort();}
-      if ((1U << pbbs::log2_up(n)) != n) { std::cout << "in rMat: n not a power of 2"; exit(0); }
+      if ((1U << pbbslib::log2_up(n)) != n) { std::cout << "in rMat: n not a power of 2"; exit(0); }
     }
 
     std::tuple<uintE, uintE> rMatRec(uintE nn, uintE randStart, uintE randStride) {
@@ -56,17 +56,17 @@ namespace rmat {
     }
 
     std::tuple<uintE, uintE> operator() (uintE i) {
-      uintE randStart = (uintE)pbbs::hash64((uintE)(2*i)*h);
-      uintE randStride = (uintE)pbbs::hash64((uintE)(2*i+1)*h);
+      uintE randStart = (uintE)pbbslib::hash64((uintE)(2*i)*h);
+      uintE randStride = (uintE)pbbslib::hash64((uintE)(2*i+1)*h);
       return rMatRec(n, randStart, randStride);
     }
   };
 
-  pbbs::sequence<std::tuple<uintE, uintE>> generate_updates(
+  pbbslib::sequence<std::tuple<uintE, uintE>> generate_updates(
       uintE n, size_t m, uintE seed, float a = 0.5, float b = 0.1, float c = 0.1) {
-    uintE nn = (1 << pbbs::log2_up(n));
+    uintE nn = (1 << pbbslib::log2_up(n));
     rMat_gen g(nn,seed,a,b,c);
-    auto E = pbbs::sequence<std::tuple<uintE, uintE>>(m);
+    auto E = pbbslib::sequence<std::tuple<uintE, uintE>>(m);
     parallel_for(0, m, [&] (size_t i) {
       E[i] = g(i);
     });

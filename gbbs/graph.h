@@ -597,7 +597,7 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
   }
 
   // flip to create the in-edges
-  auto I = sequence<typename EdgeSeq::value_type>(A.size(), [&] (size_t i) {
+  auto I = sequence<typename EdgeSeq::value_type>::from_function(A.size(), [&] (size_t i) {
     using T = typename EdgeSeq::value_type;
     auto e = A[i];
     return T(get_v(e), get_u(e), get_w(e));
