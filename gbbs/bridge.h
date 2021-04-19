@@ -40,7 +40,7 @@ namespace gbbs {
 
   // TODO: check
   template<typename T>
-  using range = parlay::slice<T*, T*>;
+  using range = slice<T>;
 
   template <typename F>
   static void par_for(size_t start, size_t end, size_t granularity, F f, bool parallel=true) {

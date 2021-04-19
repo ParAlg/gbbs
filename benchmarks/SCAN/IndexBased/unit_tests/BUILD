@@ -1,20 +1,22 @@
-#load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
-#
-#gbbs_cc_test(
-#    name = "scan_test",
-#    srcs = ["scan_test.cc"],
-#    deps = [
-#        ":similarity_measure_test_utils",
-#        "//benchmarks/SCAN/IndexBased:scan",
-#        "//benchmarks/SCAN/IndexBased:similarity_measure",
-#        "//gbbs:graph",
-#        "//gbbs:graph_test_utils",
-#        "//gbbs:undirected_edge",
-#        "//gbbs:vertex",
-#        "@googletest//:gtest_main",
-#    ],
-#)
-#
+load("//internal_tools:build_defs.bzl", "gbbs_cc_test")
+
+gbbs_cc_test(
+    name = "scan_test",
+    srcs = ["scan_test.cc"],
+    deps = [
+        ":similarity_measure_test_utils",
+        "//benchmarks/SCAN/IndexBased:scan",
+        "//benchmarks/SCAN/IndexBased:similarity_measure",
+        "//gbbs:bridge",
+        "//gbbs:graph",
+        "//gbbs:graph_test_utils",
+        "//gbbs:undirected_edge",
+        "//gbbs:vertex",
+        "//parlaylib/include/parlay:sequence",
+        "@googletest//:gtest_main",
+    ],
+)
+
 #gbbs_cc_test(
 #    name = "similarity_measure_test",
 #    srcs = ["similarity_measure_test.cc"],
@@ -36,12 +38,12 @@
 #        "@googletest//:gtest_main",
 #    ],
 #)
-#
-#cc_library(
-#    name = "similarity_measure_test_utils",
-#    hdrs = ["similarity_measure_test_utils.h"],
-#    deps = [
-#        "//benchmarks/SCAN/IndexBased:similarity_measure",
-#        "@googletest//:gtest",
-#    ],
-#)
+
+cc_library(
+    name = "similarity_measure_test_utils",
+    hdrs = ["similarity_measure_test_utils.h"],
+    deps = [
+        "//benchmarks/SCAN/IndexBased:similarity_measure",
+        "@googletest//:gtest",
+    ],
+)
