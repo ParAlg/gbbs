@@ -29,3 +29,9 @@ def loadSnap(graphPath="",undirected=True):
     return gbbs_lib.loadAsymmetricEdgeListAsGraph(graphPath, graphName)
   print("Unsupported options")
   exit(0)
+
+def loadFromEdgeList(edges, symmetric=True, unweighted=True):
+  return gbbs_lib.numpyEdgeListToSymmetricUnweightedGraph(edges)
+
+#def test_numpy_array(np_arr):
+#  return gbbs_lib.testNumpyArray(np_arr)

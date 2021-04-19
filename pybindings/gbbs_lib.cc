@@ -23,6 +23,24 @@ namespace gbbs {
 namespace gbbs_lib {
 namespace py = ::pybind11;
 
+// Basic example of handling np arrays
+py::array_t<uint32_t> test_array(py::array_t<uint32_t> input) {
+  py::buffer_info buf1 = input.request();
+  py::array_t<uint32_t> result = py::array_t<uint32_t>(buf1.size);
+  py::buffer_info buf2 = result.request();
+  uint32_t *ptr1 = (uint32_t *) buf1.ptr,
+           *ptr2 = (uint32_t *) buf2.ptr;
+  int X = buf1.shape[0];
+  int Y = buf1.shape[1];
+  parallel_for(0, X, [&] (size_t i) {
+    for (size_t j=0; j<Y; j++) {
+      ptr2[i*Y + j] = ptr1[i*Y + j] + 1;
+    }
+  });
+  result.resize({X,Y});
+  return result;
+}
+
 /* Defines symmetric vertex functions */
 template <template <class W> class vertex_type, class W>
 void SymVertexRegister(py::module& m, std::string vertex_name) {
@@ -40,17 +58,11 @@ auto wrap_array(const Seq& S) {
   // Create a Python object that will free the allocated
   // memory when destroyed:
   size_t n = S.size();
-  size_t size = sizeof(size_t) + (n * sizeof(E));
-  auto byte_arr = pbbslib::new_array_no_init<uint8_t>(size);
-  *(reinterpret_cast<size_t*>(byte_arr)) = n;
-  auto arr = reinterpret_cast<E*>(byte_arr + sizeof(size_t));
+  auto arr = (E*)(malloc(n*sizeof(E)));
   parallel_for(0, n, [&] (size_t i) { pbbslib::assign_uninitialized(arr[i], S[i]); });
 
-  py::capsule free_when_done(byte_arr, [](void *f) {
-      auto byte_arr = reinterpret_cast<uint8_t*>(f) - sizeof(size_t);
-      size_t n = *(byte_arr);
-      pbbslib::free_array(byte_arr, n);
-      // TODO: should destruct non-trivial objects
+  py::capsule free_when_done(arr, [](void *f) {
+      free(f);
   });
 
   return py::array_t<E>(
@@ -128,11 +140,7 @@ void AsymGraphRegister(py::module& m, std::string graph_name) {
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = BFS(G, src);
       return 1.0;
-    }, py::arg("src"))
-    .def("StronglyConnectedComponents", [&] (graph& G) {
-      auto sccs = StronglyConnectedComponents(G);
-      return wrap_array(sccs);
-    });
+    }, py::arg("src"));
 }
 
 PYBIND11_MODULE(gbbs_lib, m) {
@@ -196,6 +204,37 @@ PYBIND11_MODULE(gbbs_lib, m) {
     alloc_init(G);
     return G;
   });
+
+  m.def("testNumpyArray", &test_array, "testing numpy array");
+
+  m.def("numpyEdgeListToSymmetricUnweightedGraph", [&] (py::array_t<uint32_t> input) {
+    py::buffer_info buf = input.request();
+    uint32_t* ptr = (uint32_t*)buf.ptr;
+
+
+    int m = buf.shape[0];
+    int Y = buf.shape[1];
+    if (Y < 2 || Y > 2) {
+      std::cout << "Expected [m x 2]-dim array of edges (in CSC format). Quitting." << std::endl;
+      exit(0);
+    }
+
+    using edge = gbbs::gbbs_io::Edge<gbbs::empty>;
+    std::vector<edge> edges;
+    edges.resize(m);
+
+    for (size_t i=0; i<m; i++) {
+      uint32_t u = ptr[i*2];
+      uint32_t v = ptr[i*2 + 1];
+      edges[i].from = u;
+      edges[i].to = v;
+    }
+
+    auto graph{gbbs_io::edge_list_to_symmetric_graph(edges)};
+
+    return graph;
+  });
+
 
   m.def("loadSymmetricEdgeListAsGraph", [&] (std::string& inpath, std::string& outpath) {
     struct stat buffer;
