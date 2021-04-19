@@ -56,9 +56,9 @@ template <class S>
 sequence<char> arrayToString(S& A) {
   auto AA = A.begin();
   size_t n = A.size();
-  auto L = pbbs::sequence<size_t>(n, [&] (size_t i) { return xToStringLen(A[i])+1; });
-  size_t m = pbbslib::scan_add_inplace(L.slice());
-  auto out = pbbs::sequence<char>(m, (char)0);
+  auto L = sequence<size_t>::from_function(n, [&] (size_t i) { return xToStringLen(A[i])+1; });
+  size_t m = pbbslib::scan_inplace(make_slice(L));
+  auto out = sequence<char>(m, (char)0);
   parallel_for(0, n-1, [&] (size_t i) {
     xToString(out.begin() + L[i],AA[i]);
     out[L[i+1] - 1] = '\n';
@@ -66,7 +66,7 @@ sequence<char> arrayToString(S& A) {
   xToString(out.begin() + L[n-1],A[n-1]);
   out[m-1] = '\n';
 
-  auto real_out = pbbs::filter(out, [&] (char c) { return c != (char)0; });
+  auto real_out = filter(out, [&] (char c) { return c != (char)0; });
   return std::move(real_out);
 }
 
@@ -78,7 +78,7 @@ void writeArrayToStream(std::ofstream& os, S& arr) {
   while (offset < n) {
     // Generates a string for a sequence of size at most BSIZE
     // and then wrties it to the output stream
-    auto arr_slice = arr.slice(offset, offset + std::min(BSIZE,n-offset));
+    auto arr_slice = arr.cut(offset, offset + std::min(BSIZE,n-offset));
     auto Q = arrayToString(arr_slice);
     os.write(Q.begin(), Q.size());
     offset += BSIZE;

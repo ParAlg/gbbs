@@ -2,8 +2,6 @@
 
 #ifdef EMPTY_STARTING_GRAPH
 
-#include "pbbslib/strings/string_basics.h"
-
 namespace gbbs {
 bool print_batch_time = false;
 
@@ -21,8 +19,9 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
     abort();
   }
 
-  sequence<char> chars = pbbslib::char_seq_from_file(in_file);
-  auto tokens = pbbslib::tokenize(chars, [] (const char c) { return pbbslib::is_space(c); });
+  sequence<char> S = pbbslib::chars_from_file(in_file);
+  sequence<slice<char>> tokens = parlay::map_tokens(parlay::make_slice(S),
+        [] (auto x) { return parlay::make_slice(x); });
   // parseback to ints
 
   assert(tokens.size() % 2 == 0); // m tuples, into two tokens each
@@ -38,8 +37,8 @@ int RunEmptyStartingGraph(int argc, char* argv[]) {
 
   uintE n = 0;
   parallel_for(0, m, [&] (size_t i) {
-    uintE l = std::atoi(tokens[2*i]);
-    uintE r = std::atoi(tokens[2*i + 1]);
+    uintE l = pbbslib::chars_to_int_t<uintE>(tokens[2*i]);
+    uintE r = pbbslib::chars_to_int_t<uintE>(tokens[2*i + 1]);
     if (l > n) {
       pbbslib::write_min<uintE>(&n, l, std::greater<uintE>());
     }

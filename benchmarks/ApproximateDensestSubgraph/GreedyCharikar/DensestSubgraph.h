@@ -62,8 +62,8 @@ double CharikarAppxDensestSubgraph(Graph& GA) {
     density_above[pos_u] = 2*GA.get_vertex(i).out_neighbors().count(vtx_f);
   });
 
-  size_t total_edges = pbbslib::scan_inplace(density_above.rslice(), pbbslib::addm<size_t>(),
-      pbbslib::fl_inplace);
+  auto density_rev = make_slice(density_above.rbegin(), density_above.rend());
+  size_t total_edges = pbbslib::scan_inplace(density_rev);
   if (total_edges != GA.m) {
     std::cout << "Assert failed: total_edges should be " << GA.m << " but is: " <<
       total_edges << std::endl;

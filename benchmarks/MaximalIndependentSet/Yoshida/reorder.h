@@ -13,7 +13,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
     offs[i] = G.get_vertex(i).out_degree();
   });
   offs[n] = 0;
-  size_t m = pbbslib::scan_add_inplace(offs.slice());
+  size_t m = pbbslib::scan_inplace(make_slice(offs));
   assert(G.m == m);
 
 
@@ -39,7 +39,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
         return std::get<0>(l) < std::get<0>(r);
       }
     };
-    auto ngh_seq = pbbslib::make_sequence(edges + off, ctr);
+    auto ngh_seq = pbbslib::make_range(edges + off, ctr);
     pbbslib::sample_sort_inplace(ngh_seq, comp_f);
   }, 1);
 
@@ -50,7 +50,7 @@ auto reorder_graph(Graph& G, F& vertex_pri) {
     v_data[i].degree = offs[i+1] - o;
   });
 
-  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {pbbslib::free_arrays(v_data, edges);}, edges);
+  return symmetric_graph<symmetric_vertex, W>(v_data, n, m, [=]() {pbbslib::free_array(v_data, n); pbbslib::free_array(edges, m);}, edges);
 }
 
 }  // namespace gbbs

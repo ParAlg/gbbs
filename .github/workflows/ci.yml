@@ -25,8 +25,9 @@ jobs:
     steps:
       - name: Checkout source tree
         uses: actions/checkout@v2
-        #        with:
-        #          submodules: recursive
+
+      - name: Checkout submodules
+        uses: textbook/git-checkout-submodule-action@master
 
       - name: Cache Bazel artifacts
         uses: actions/cache@v2
@@ -48,8 +49,8 @@ jobs:
 
       - name: Caching workaround
         run: |
-          chmod -R a+rwx .
-          chmod -R a+rwx ~/.cache
+          sudo chmod -R a+rwx .
+          sudo chmod -R a+rwx ~/.cache
 
 #      - name: GCC version
 #        run: |

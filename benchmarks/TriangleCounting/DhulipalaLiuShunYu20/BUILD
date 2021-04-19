@@ -19,7 +19,6 @@ cc_library(
   hdrs = ["shared.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid"
   ]
 )
 
@@ -28,7 +27,6 @@ cc_library(
   hdrs = ["dynamic_graph.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid",
     ":shared",
     ":sparse_table",
     ":tomb_table",
@@ -40,8 +38,6 @@ cc_library(
   hdrs = ["preprocess.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid",
-    "//pbbslib:sample_sort",
     ":dynamic_graph",
   ]
 )
@@ -51,7 +47,6 @@ cc_library(
   hdrs = ["rebalancing.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:monoid",
     ":shared",
     ":sparse_table",
     ":tomb_table",
@@ -76,8 +71,6 @@ cc_library(
   hdrs = ["Triangle.h"],
   deps = [
   "//gbbs:gbbs",
-  "//pbbslib:sample_sort",
-  "//pbbslib:monoid",
   "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
   ":shared",
   ":benchmark",
@@ -93,7 +86,6 @@ cc_library(
   hdrs = ["makkar_graph.h"],
   deps = [
     "//gbbs:gbbs",
-    "//pbbslib:sample_sort",
   ]
 )
 

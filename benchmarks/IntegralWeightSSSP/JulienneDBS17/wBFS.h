@@ -83,13 +83,13 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   init.start();
   size_t n = G.n;
 
-  auto dists = sequence<uintE>(n, [&](size_t i) { return INT_E_MAX; });
+  auto dists = sequence<uintE>::from_function(n, [&](size_t i) { return INT_E_MAX; });
   dists[src] = 0;
 
   auto get_bkt = [&](const uintE& dist) -> uintE {
     return (dist == INT_E_MAX) ? UINT_E_MAX : dist;
   };
-  auto get_ring = pbbslib::make_sequence<uintE>(n, [&](const size_t& v) -> uintE {
+  auto get_ring = pbbslib::make_delayed<uintE>(n, [&](const size_t& v) -> uintE {
     auto d = dists[v];
     return (d == INT_E_MAX) ? UINT_E_MAX : d;
   });
@@ -136,7 +136,7 @@ inline sequence<uintE> wBFS(Graph& G, uintE src,
   bt.reportTotal("bucket time");
   emt.reportTotal("edge map time");
   auto dist_f = [&](size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_f);
+  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << rd << "\n";
 

@@ -3,7 +3,6 @@ cc_library(
   hdrs = ["GraphColoring.h"],
   deps = [
   "//gbbs:gbbs",
-  "//pbbslib:random_shuffle"
   ]
 )
 

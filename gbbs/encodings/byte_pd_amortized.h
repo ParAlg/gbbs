@@ -535,10 +535,10 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
       block_outputs[i] = cur;
     }, par && (num_blocks > 2));
 
-    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    auto im = pbbslib::make_range(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, reduce);
     if (num_blocks > 100) {
-      pbbslib::free_array(block_outputs);
+      gbbs::free_array(block_outputs, num_blocks);
     }
     return res;
 //    return cur;
@@ -618,7 +618,7 @@ inline std::tuple<uintE, W> get_ith_neighbor(uchar* edge_start, uintE source,
                     : (*((uintE*)(edge_start + block_offsets[j])));
     return end;
   };
-  auto blocks_imap = pbbslib::make_sequence<size_t>(num_blocks, blocks_f);
+  auto blocks_imap = pbbslib::make_delayed<size_t>(num_blocks, blocks_f);
   // This is essentially searching a plus_scan'd, incl arr.
   auto lte = [&](const size_t& l, const size_t& r) { return l <= r; };
   size_t block = pbbslib::binary_search(blocks_imap, i, lte);
@@ -681,7 +681,7 @@ uintE get_block_degree(uchar* edge_start, uintE degree, uintE block_num);
 //
 //    uintE binary_search(uintE pivot) {
 //      uintE* offs = (uintE*)edge_start;
-//      auto start_im = pbbslib::make_sequence<uintE>(size(), [&] (size_t i) {
+//      auto start_im = pbbslib::make_delayed<uintE>(size(), [&] (size_t i) {
 //        uchar* finger = edge_start + offs[start + i];
 //        return eatFirstEdge(finger, source_id);
 //      });
@@ -803,8 +803,8 @@ inline void repack_sequential(const uintE& source, const uintE& degree,
   }
 
   // 2. Scan to compute block offsets
-  auto bytes_imap = pbbslib::make_sequence(offs, new_blocks + 1);
-  pbbslib::scan_add_inplace(bytes_imap);
+  auto bytes_imap = pbbslib::make_range(offs, new_blocks + 1);
+  pbbslib::scan_inplace(bytes_imap);
 
   // 3. Compress each block
   nghs_start = edge_start + (new_blocks - 1) * sizeof(uintE) + sizeof(uintE);
@@ -939,8 +939,8 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
 
     // 4. Scan to compute offset for each block
     offs[new_blocks] = 0;
-    auto bytes_imap = pbbslib::make_sequence(offs, new_blocks + 1);
-    pbbslib::scan_add_inplace(bytes_imap);
+    auto bytes_imap = make_slice(offs, offs + new_blocks + 1);
+    pbbslib::scan_inplace(bytes_imap);
 
     // 5. Repack each block
     uintE* virtual_degree_ptr = (uintE*)edge_start;
@@ -979,10 +979,10 @@ inline void repack(const uintE& source, const uintE& degree, uchar* edge_start,
     }, par);
 
     if ((new_blocks + 1) > 100) {
-      pbbslib::free_array(offs);
+      gbbs::free_array(offs, new_blocks + 1);
     }
     if (degree > 100) {
-      pbbslib::free_array(U);
+      gbbs::free_array(U, degree);
     }
   }
 }
@@ -1063,8 +1063,8 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
 
   // 2. Scan block_cts to get offsets within blocks
   block_cts[num_blocks] = 0;
-  auto scan_cts = pbbslib::make_sequence(block_cts, num_blocks + 1);
-  size_t deg_remaining = pbbslib::scan_add_inplace(scan_cts);
+  auto scan_cts = pbbslib::make_range(block_cts, num_blocks + 1);
+  size_t deg_remaining = pbbslib::scan_inplace(scan_cts);
 
   par_for(0, num_blocks, 1000, [&] (size_t i) {
     uchar* finger = (i > 0) ? (edge_start + block_offsets[i - 1]) : nghs_start;
@@ -1073,7 +1073,7 @@ inline size_t pack(P& pred, uchar* edge_start, const uintE& source,
   });
 
   if (num_blocks > 100) {
-    pbbslib::free_array(block_cts);
+    gbbs::free_array(block_cts, num_blocks + 1);
   }
 
   // Can comment out this call to avoid repacking; this can make algorithms,

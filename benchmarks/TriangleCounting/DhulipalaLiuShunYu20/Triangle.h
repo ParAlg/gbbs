@@ -82,7 +82,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
     return make_tuple(C0, false, DG);
   }
  // t.start(); //toCSR
-  UpdatesT edges = UpdatesT::no_init(2*m);
+  UpdatesT edges = UpdatesT::uninitialized(2*m);
   sequence<DBTGraph::VtxUpdate> vtxNew = DBTInternal::toCSR(DG, vtxMap, updates_final, edges, DG->num_vertices()); // fill vtxMap and edges
   t.next("count degrees");
 
@@ -100,8 +100,8 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // insertion must be before deletion, because when resizing write OLD_EDGE into tables
   // t.start(); //step 2 mark insert,  some array moves to tables
   parallel_for(0, vtxNew.size(), [&] (size_t i) {
-    DG->markEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset,      vtxNew[i].insOffset()));
-    DG->markEdgeDeletion(vtxNew[i],  edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+    DG->markEdgeInsertion(vtxNew[i], edges.cut(vtxNew[i].offset,      vtxNew[i].insOffset()));
+    DG->markEdgeDeletion(vtxNew[i],  edges.cut(vtxNew[i].insOffset(), vtxNew[i].end()));
   }, 1);
   t.next("2. 3. mark insertions + deletions");
 
@@ -109,7 +109,7 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // loop over the low degree vertices w, process if the other is high
   // only process each edge once
   parallel_for(0, vtxNew.size(), [&] (size_t i) {
-    DG->updateTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
+    DG->updateTable(vtxNew[i], edges.cut(vtxNew[i].offset, vtxNew[i].end()));
   }, 1);
   t.next("4. 5. update insertions and deletions");
 
@@ -136,21 +136,21 @@ inline tuple<size_t, bool, DSymGraph *> Dynamic_Triangle_Helper(DBTGraph::DyGrap
   // t.start(); //  first cleanup wedge tables, then re-mark inserts to OLD_EDGE, then remove
 // #ifdef DBT_TOMB_MERGE
 //   par_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T and delete if count is 0
-//     DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()));
+//     DG->cleanUpTable(vtxNew[i], edges.cut(vtxNew[i].offset, vtxNew[i].end()));
 //   });
 // #else
   parallel_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, called before tables are cleaned up
-    DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].end()), false);
+    DG->cleanUpTable(vtxNew[i], edges.cut(vtxNew[i].offset, vtxNew[i].end()), false);
   }, 1);
   parallel_for(0, vtxNew.size(), [&] (size_t i) { //cleanup T, delete 0 wedges
-    DG->cleanUpTable(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()), true);
+    DG->cleanUpTable(vtxNew[i], edges.cut(vtxNew[i].insOffset(), vtxNew[i].end()), true);
   }, 1);
 // #endif
   parallel_for(0, vtxNew.size(), [&] (size_t i) { // remark inserts, must be before remove deletes
-    DG->cleanUpEdgeInsertion(vtxNew[i], edges.slice(vtxNew[i].offset, vtxNew[i].insOffset()));
+    DG->cleanUpEdgeInsertion(vtxNew[i], edges.cut(vtxNew[i].offset, vtxNew[i].insOffset()));
   }, 1);
   parallel_for(0, vtxNew.size(), [&] (size_t i) { // remove deletes
-    DG->cleanUpEdgeDeletion(vtxNew[i], edges.slice(vtxNew[i].insOffset(), vtxNew[i].end()));
+    DG->cleanUpEdgeDeletion(vtxNew[i], edges.cut(vtxNew[i].insOffset(), vtxNew[i].end()));
   }, 1);
   t.next("7. clean up tables");
 

@@ -22,7 +22,7 @@
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gbbs/gbbs.h"
-#include "pbbslib/assert.h"
+#include "gbbs/pbbslib/assert.h"
 
 namespace gbbs {
 
@@ -109,7 +109,7 @@ void PrintClock() {
 
 template <class Graph>
 size_t GetMaxDegree(Graph* graph) {
-  return pbbslib::reduce_max(pbbslib::make_sequence<size_t>(
+  return pbbslib::reduce_max(pbbslib::make_delayed<size_t>(
     graph->n,
     [&](const size_t i) {
       return graph->get_vertex(i).out_degree();

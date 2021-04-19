@@ -47,6 +47,7 @@ struct get_bucket {
   size_t table_mask;
   size_t low_mask;
   size_t bucket_mask;
+  size_t hash_table_size;
   int num_buckets;
   int k;
   B& I;
@@ -77,6 +78,7 @@ struct get_bucket {
                                       size_t _table_mask) {
     using ttype = std::tuple<E, int>;
     auto table = pbbslib::new_array_no_init<ttype>(table_size);
+    hash_table_size = table_size;
     for (size_t i = 0; i < table_size; i++) table[i] = std::make_pair(0, -1);
     size_t n_distinct = 0;
     for (size_t i = 0; i < n; i++) {
@@ -102,13 +104,14 @@ struct get_bucket {
 
     if (k > 0) {
       hash_table = make_hash_table(sample, k, table_size, table_mask);
+      hash_table_size = table_size;
     }
-    pbbslib::free_array(sample);
+    pbbslib::free_array(sample, count);
   }
 
   ~get_bucket() {
     if (k > 0) {
-      pbbslib::free_array(hash_table);
+      pbbslib::free_array(hash_table, hash_table_size);
     }
   }
 
@@ -147,7 +150,7 @@ struct hist_table {
   void resize(size_t req_size) {
     if (req_size > size) {
       size_t rounded_size = (1L << pbbslib::log2_up<size_t>(req_size));
-      pbbslib::free_array(table);
+      pbbslib::free_array(table, size);
       table = pbbslib::new_array_no_init<KV>(rounded_size);
       size = rounded_size;
       par_for(0, size, 2048, [&] (size_t i) { table[i] = empty; });
@@ -157,7 +160,7 @@ struct hist_table {
 
   void del() {
     if (table) {
-      pbbslib::free_array(table);
+      pbbslib::free_array(table, size);
     }
   }
 };
@@ -186,11 +189,12 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
   K* elms;
   size_t* counts;
   size_t num_blocks;
+  size_t m;
   if (num_buckets <= 256) {
-    std::tie(elms, counts, num_blocks) =
+    std::tie(elms, counts, num_blocks, m) =
         pbbslib::_count_sort<uint8_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   } else {
-    std::tie(elms, counts, num_blocks) =
+    std::tie(elms, counts, num_blocks, m) =
         pbbslib::_count_sort<uint16_t, size_t, K>(get_key, gb, n, (uintE)num_buckets);
   }
   size_t block_size = ((n - 1) / num_blocks) + 1;
@@ -288,7 +292,7 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
   }
   out_offs[num_buckets] = ct;
 
-  auto res = sequence<O>::no_init(ct);
+  auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -308,9 +312,9 @@ inline sequence<O> histogram_medium(A& get_key, size_t n,
     }
   });
 
-  pbbslib::free_array(elms);
-  pbbslib::free_array(counts);
-  pbbslib::free_array(bkt_counts);
+  pbbslib::free_array(elms, n);
+  pbbslib::free_array(counts, m);
+  pbbslib::free_array(bkt_counts, num_buckets * S_STRIDE);
   return res;
 }
 
@@ -332,9 +336,9 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
       K k = get_key[i];
       ct += S.insertAdd(k);
     }
-    auto out = sequence<O>::no_init(ct);
+    auto out = sequence<O>::uninitialized(ct);
     size_t k = S.compactInto(apply_f, out.begin());
-    auto res = sequence<O>::no_init(k);
+    auto res = sequence<O>::uninitialized(k);
     for (size_t i=0; i<k; i++) {
       res[i] = out[i];
     }
@@ -366,11 +370,12 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
   K* elms;
   size_t* counts;
   size_t num_blocks;
+  size_t m;
   if (num_total_buckets <= 256) {
-    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint8_t, size_t, K>(
+    std::tie(elms, counts, num_blocks, m) = pbbslib::_count_sort<uint8_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   } else {
-    std::tie(elms, counts, num_blocks) = pbbslib::_count_sort<uint16_t, size_t, K>(
+    std::tie(elms, counts, num_blocks, m) = pbbslib::_count_sort<uint16_t, size_t, K>(
         get_key, gb, n, (uintE)num_total_buckets);
   }
 
@@ -539,7 +544,7 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   }
 
-  auto res = sequence<O>::no_init(ct);
+  auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -569,11 +574,11 @@ inline sequence<O> histogram(A& get_key, size_t n, Apply& apply_f,
     }
   }
 
-  pbbslib::free_array(elms);
-  pbbslib::free_array(counts);
-  pbbslib::free_array(bkt_counts);
+  pbbslib::free_array(elms, n);
+  pbbslib::free_array(counts, m);
+  pbbslib::free_array(bkt_counts, num_buckets * S_STRIDE);
   if (heavy && num_heavy > 128) {
-    pbbslib::free_array(heavy_cts);
+    pbbslib::free_array(heavy_cts, num_heavy);
   }
 
   return res;
@@ -595,7 +600,7 @@ inline sequence<O> seq_histogram_reduce(A& get_elm, size_t n,
   }
   O* out = pbbslib::new_array_no_init<O>(n);
   size_t k = S.compactInto(apply_f, out);
-  auto res = sequence<O>::no_init(k);
+  auto res = sequence<O>::uninitialized(k);
   for (size_t i=0; i<k; i++) {
     res[i] = out[i];
   }
@@ -642,6 +647,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   // laid out as num_buckets (row), blocks (col)
   size_t* counts = std::get<1>(p);
   size_t num_blocks = std::get<2>(p);
+  size_t m = std::get<3>(p);
   size_t block_size = ((n - 1) / num_blocks) + 1;
 
 #define S_STRIDE 64
@@ -680,7 +686,8 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   }
 
   ht.resize(ht_offs[num_buckets]);
-  O* out = pbbslib::new_array_no_init<O>(ht_offs[num_buckets]);
+  size_t out_size = ht_offs[num_buckets];
+  O* out = pbbslib::new_array_no_init<O>(out_size);
 
   // (3) insert elms into per-bucket hash table (par)
   {
@@ -731,7 +738,7 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
   }
   out_offs[num_buckets] = ct;
 
-  auto res = sequence<O>::no_init(ct);
+  auto res = sequence<O>::uninitialized(ct);
 
   // (5) map compacted hts to output, clear hts
   par_for(0, num_buckets, 1, [&] (size_t i) {
@@ -750,10 +757,10 @@ inline sequence<O> histogram_reduce(A& get_elm, B& get_key, size_t n,
     }
   });
 
-  pbbslib::free_array(elms);
-  pbbslib::free_array(counts);
-  pbbslib::free_array(bkt_counts);
-  pbbslib::free_array(out);
+  pbbslib::free_array(elms, n);
+  pbbslib::free_array(counts, m);
+  pbbslib::free_array(bkt_counts, num_buckets * S_STRIDE);
+  pbbslib::free_array(out, out_size);
   return res;
 }
 

@@ -137,7 +137,7 @@ struct HybridSpace_lw {
     DG.get_vertex(i).out_neighbors().map(map_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    auto deg_seq = pbbslib::make_range(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
@@ -195,7 +195,7 @@ struct HybridSpace_lw {
     DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    auto deg_seq = pbbslib::make_range(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
@@ -281,7 +281,7 @@ struct HybridSpace_lw {
     DG.get_vertex(l).out_neighbors().map(lremap_label_f, true);
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    auto deg_seq = pbbslib::make_range(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
@@ -355,7 +355,7 @@ struct HybridSpace_lw {
     for (size_t p=0; p < nn; j++) { induced[p] = p; }
 
     // Count total number of edges in induced neighborhood
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    auto deg_seq = pbbslib::make_range(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
 
@@ -498,7 +498,7 @@ struct FullSpace_orig_lw {
     };
     DG.get_vertex(i).out_neighbors().map(map_relabel_f, false);
 
-    auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
+    auto deg_seq = pbbslib::make_range(induced_degs, nn);
     num_edges[0] = pbbslib::reduce_add(deg_seq);
   }
 

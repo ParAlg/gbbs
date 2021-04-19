@@ -4,8 +4,6 @@ cc_library(
   deps = [
   "//gbbs:gbbs",
   "//gbbs:julienne",
-  "//pbbslib:random",
-  "//pbbslib:random_shuffle",
   ]
 )
 

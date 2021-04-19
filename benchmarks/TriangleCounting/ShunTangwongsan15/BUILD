@@ -6,8 +6,6 @@ cc_library(
   "//benchmarks/DegeneracyOrder/GoodrichPszona11:DegeneracyOrder",
   "//benchmarks/KCore/JulienneDBS17:KCore",
   "//gbbs:gbbs",
-  "//pbbslib:sample_sort",
-  "//pbbslib:monoid",
   ]
 )
 

@@ -60,7 +60,7 @@ template <
 
     sequence<parent> components() {
       size_t n = G.n;
-      auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+      auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
       algorithm.initialize(parents);
       algorithm.template compute_components<no_sampling>(parents);
       return parents;
@@ -133,7 +133,7 @@ struct KOutSamplingTemplate {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
     pbbslib::random rnd;
@@ -180,7 +180,7 @@ struct KOutSamplingTemplate {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
     pbbslib::random rnd;
@@ -236,7 +236,7 @@ struct KOutSamplingTemplate {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
     pbbslib::random rnd;
@@ -270,7 +270,7 @@ struct KOutSamplingTemplate {
     size_t n = GA.n;
     std::cout << "# neighbor_rounds = " << neighbor_rounds << std::endl;
 
-    auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+    auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     sequence<uintE> hooks;
 
     uintE granularity = 1024;
@@ -323,7 +323,7 @@ template <class Graph>
 inline sequence<parent> BFS_ComponentLabel(Graph& G, uintE src) {
   using W = typename Graph::weight_type;
   /* Creates Parents array, initialized to all -1, except for src. */
-  auto Parents = sequence<parent>(G.n, [&](size_t i) { return i; });
+  auto Parents = sequence<parent>::from_function(G.n, [&](size_t i) { return i; });
   Parents[src] = src;
 
   vertexSubset Frontier(G.n, src);

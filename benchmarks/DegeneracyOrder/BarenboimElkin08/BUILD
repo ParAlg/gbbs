@@ -5,7 +5,6 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:integer_sort",
   "//benchmarks/ApproximateDensestSubgraph/GreedyCharikar:DensestSubgraph",
   "//benchmarks/ApproximateDensestSubgraph/ApproxPeelingBKV12:DensestSubgraph",
   ]

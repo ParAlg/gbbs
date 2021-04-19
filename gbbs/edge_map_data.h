@@ -49,7 +49,7 @@ inline vertexSubsetData<Data> edgeMapDense(Graph& GA, VS& vertexSubset, F& f,
   size_t n = GA.n;
   auto dense_par = fl & dense_parallel;
   if (should_output(fl)) {
-    auto next = sequence<D>(n,
+    auto next = sequence<D>::from_function(n,
       [&] (size_t i) {
         if constexpr (std::is_same<Data, gbbs::empty>()) return 0;
         else return std::make_tuple<uintE, Data>(0, Data());
@@ -131,11 +131,15 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
   if (vs.size() == 0) return vertexSubsetData<Data>(numVertices);
 
   if (vs.isDense && vs.size() > numVertices / 10) {
-    return (fl & dense_forward)
+    timer dt; dt.start();
+    auto ret = (fl & dense_forward)
                ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
+    dt.stop(); debug(dt.reportTotal("dense time"););
+    return ret;
   }
 
+  timer st; st.start();
   size_t out_degrees = 0;
   if (vs.out_degrees_set()) {
     out_degrees = vs.get_out_degrees();
@@ -145,7 +149,7 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
       return (fl & in_edges) ? GA.get_vertex(vs.vtx(i)).in_degree()
                              : GA.get_vertex(vs.vtx(i)).out_degree();
     };
-    auto degree_im = pbbslib::make_sequence<size_t>(vs.size(), degree_f);
+    auto degree_im = pbbslib::make_delayed<size_t>(vs.size(), degree_f);
     out_degrees = pbbslib::reduce_add(degree_im);
     vs.set_out_degrees(out_degrees);
   }
@@ -153,11 +157,14 @@ inline vertexSubsetData<Data> edgeMapData(Graph& GA, VS& vs, F f,
   if (out_degrees == 0) return vertexSubsetData<Data>(numVertices);
   if (m + out_degrees > dense_threshold && !(fl & no_dense)) {
     vs.toDense();
-    return (fl & dense_forward)
+    auto ret = (fl & dense_forward)
                ? edgeMapDenseForward<Data, Graph, VS, F>(GA, vs, f, fl)
                : edgeMapDense<Data, Graph, VS, F>(GA, vs, f, fl);
+    st.stop(); debug(st.reportTotal("dense convert time"););
+    return ret;
   } else {
     auto vs_out = edgeMapChunked<Data, Graph, VS, F>(GA, vs, f, fl);
+    st.stop(); debug(st.reportTotal("sparse time"););
 //    auto vs_out = edgeMapBlocked<Data, Graph, VS, F>(GA, vs, f, fl);
 //    auto vs_out = edgeMapSparse<Data, Graph, VS, F>(GA, vs, f, fl);
     return vs_out;

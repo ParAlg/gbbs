@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-#include "pbbslib/utilities.h"
-
 namespace std {
 
 size_t hash<gbbs::UndirectedEdge>::operator()(const gbbs::UndirectedEdge& edge) const {

@@ -30,9 +30,7 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/integer_sort.h"
+#include "gbbs/pbbslib/assert.h"
 
 // Ordering files
 #include "benchmarks/DegeneracyOrder/BarenboimElkin08/DegeneracyOrder.h"
@@ -54,17 +52,17 @@
 namespace gbbs {
 
 template <class Graph>
-inline uintE* degreeOrderNodes(Graph& G, size_t n) {
-  uintE* r = pbbslib::new_array_no_init<uintE>(n); // to hold degree rank per vertex id
+inline sequence<uintE> degreeOrderNodes(Graph& G, size_t n) {
+  sequence<uintE> r = sequence<uintE>::uninitialized(n); // to hold degree rank per vertex id
 
-  sequence<uintE> o(n); // to hold vertex ids in degree order
+  sequence<uintE> o = sequence<uintE>::uninitialized(n); // to hold vertex ids in degree order
   par_for(0, n, kDefaultGranularity, [&](size_t i){ o[i] = i; });
 
-  pbbslib::integer_sort_inplace(o.slice(), [&] (size_t p) {
+  pbbslib::integer_sort_inplace(make_slice(o), [&] (size_t p) {
     return G.get_vertex(p).out_degree();
   });
 
-  par_for(0, n, kDefaultGranularity, 
+  par_for(0, n, kDefaultGranularity,
           [&](size_t i){ r[o[i]] = i; });
   return r;
 }
@@ -75,15 +73,17 @@ sequence<uintE> get_ordering(Graph& GA, long order_type, double epsilon = 0.1) {
   if (order_type == 0) return goodrichpszona_degen::DegeneracyOrder_intsort(GA, epsilon);
   else if (order_type == 1) return barenboimelkin_degen::DegeneracyOrder(GA, epsilon);
   else if (order_type == 2) {
-    auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
+    auto rank = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
     auto kcore = KCore(GA);
     auto get_core = [&](uintE p) -> uintE { return kcore[p]; };
-    pbbslib::integer_sort_inplace(rank.slice(), get_core);
+    pbbslib::integer_sort_inplace(make_slice(rank), get_core);
     return rank;
   }
-  else if (order_type == 3) return pbbslib::make_sequence(degreeOrderNodes(GA, n), n);
+  else if (order_type == 3) {
+    return degreeOrderNodes(GA, n);
+  }
   else if (order_type == 4) {
-    auto rank = sequence<uintE>(n, [&](size_t i) { return i; });
+    auto rank = sequence<uintE>::from_function(n, [&](size_t i) { return i; });
     return rank;
   } else ABORT("Unexpected directed type: " << order_type);
 }
@@ -92,7 +92,7 @@ template <class Graph>
 inline size_t TriClique_count(Graph& DG, bool use_base, size_t* per_vert) {
   const size_t n = DG.n;
   size_t count = 0;
-  auto counts = sequence<size_t>(n);
+  auto counts = sequence<size_t>::uninitialized(n);
   par_for(0, n, kDefaultGranularity, [&] (size_t i) { counts[i] = 0; });
 
   if (!use_base) { // if counting in total
@@ -190,7 +190,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   // TODO:
   // If the graph was relabeled, move counts back to correct vertices (deprecated)
   // Note that if we want to allow relabeling + peeling, then we should keep an undirected
-  // version of the graph that's also relabeled (or have a way to convert from relabeled 
+  // version of the graph that's also relabeled (or have a way to convert from relabeled
   // vertices to un-relabeled vertices, and use this to query an undirected version
   // of the graph)
   if (!filter) {
@@ -200,7 +200,7 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
     per_vert = inverse_per_vert;
   }
 
-  auto per_vert_seq = pbbslib::make_sequence<size_t>(n, [&] (size_t i) { return per_vert[i]; });
+  auto per_vert_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return per_vert[i]; });
   auto max_per_vert = pbbslib::reduce_max(per_vert_seq);
   if (!approx_peel) {
   // Exact vertex peeling

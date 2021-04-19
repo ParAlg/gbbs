@@ -10,9 +10,7 @@
 #include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
-#include "pbbslib/assert.h"
-#include "pbbslib/binary_search.h"
-#include "pbbslib/seq.h"
+#include "gbbs/pbbslib/assert.h"
 
 namespace gbbs {
 namespace scan {
@@ -38,7 +36,7 @@ template <class Seq>
 auto ProjectSequenceZero(const Seq& sequence) {
   using Element =
     typename std::tuple_element<0, typename Seq::value_type>::type;
-  return pbbslib::make_sequence<Element>(
+  return pbbslib::make_delayed<Element>(
           sequence.size(),
           [&](const size_t i) { return std::get<0>(sequence[i]); });
 }
@@ -153,13 +151,14 @@ typename IntersectReturn<Weight>::type seq_merge(
 // begins, and likewise for `offset_B`.
 template <typename Weight, class Seq, class F>
 typename IntersectReturn<Weight>::type merge(
-    const Seq& A,
-    const Seq& B,
+    const Seq& AA,
+    const Seq& BB,
     const size_t offset_A,
     const size_t offset_B,
     const bool are_sequences_swapped,
     const F& f) {
   using ReturnType = typename IntersectReturn<Weight>::type;
+  auto A = make_slice(AA); auto B = make_slice(BB);
   size_t nA = A.size();
   size_t nB = B.size();
   size_t nR = nA + nB;
@@ -182,8 +181,8 @@ typename IntersectReturn<Weight>::type merge(
     par_do(
         [&]() {
           m_left = scan::internal::merge<Weight>(
-              A.slice(0, mA),
-              B.slice(0, mB),
+              A.cut(0, mA),
+              B.cut(0, mB),
               offset_A,
               offset_B,
               are_sequences_swapped,
@@ -191,8 +190,8 @@ typename IntersectReturn<Weight>::type merge(
         },
         [&]() {
           m_right = scan::internal::merge<Weight>(
-              A.slice(mA, nA),
-              B.slice(mB, nB),
+              A.cut(mA, nA),
+              B.cut(mB, nB),
               offset_A + mA,
               offset_B + mB,
               are_sequences_swapped,
@@ -240,9 +239,9 @@ typename IntersectReturn<Weight>::type intersect_f_with_index_par(
   if constexpr (
       std::is_same<VertexTemplate<Weight>, symmetric_vertex<Weight>>::value) {
     using Neighbor = typename VertexTemplate<Weight>::edge_type;
-    const auto seqA{pbbslib::make_sequence<Neighbor>(
+    const auto seqA{pbbslib::make_delayed<Neighbor>(
         A->neighbors, A->out_degree())};
-    const auto seqB{pbbslib::make_sequence<Neighbor>(
+    const auto seqB{pbbslib::make_delayed<Neighbor>(
         B->neighbors, B->out_degree())};
     constexpr size_t kOffset{0};
     constexpr bool kAreSeqsSwapped{false};

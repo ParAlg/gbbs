@@ -29,7 +29,6 @@
 #include "gbbs/macros.h"
 #include "gbbs/encodings/byte_pd.h"
 // #include "gbbs/encodings/byte_pd_amortized.h"
-#include "pbbslib/sequence_ops.h"
 
 #include "utils.h"
 
@@ -197,10 +196,10 @@ inline auto map_reduce(uintE vtx_id, BM& block_manager, M& m, Monoid& reduce,
             },
             parallel);
 
-    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    auto im = pbbslib::make_range(block_outputs, num_blocks);
     T res = pbbslib::reduce(im, reduce);
     if (num_blocks > 100) {
-      pbbslib::free_array(block_outputs);
+      pbbslib::free_array(block_outputs, num_blocks);
     }
     return res;
   } else {
@@ -665,7 +664,7 @@ struct uncompressed_bitset_neighbors {
     }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
-    auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
+    auto new_locs = pbbslib::make_range(tmp_ints, vtx_num_blocks);
     auto tmp_metadata = (metadata*)tmp_space;
     parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
       new_locs[block_id] =
@@ -673,7 +672,7 @@ struct uncompressed_bitset_neighbors {
     });
 
     // 3. Scan new_locs to get new block indices for full blocks
-    size_t new_num_blocks = pbbslib::scan_add_inplace(new_locs);
+    size_t new_num_blocks = pbbslib::scan_inplace(new_locs);
 
     // 4. Copy saved blocks to new positions.
     auto real_metadata = (metadata*)blocks_start;
@@ -713,8 +712,8 @@ struct uncompressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_space);
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space, total_bytes);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
   }
 
@@ -796,7 +795,7 @@ struct uncompressed_bitset_neighbors {
 
     // 2. Reduce to get the #empty_blocks
     auto full_block_seq =
-        pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
+        pbbslib::make_delayed<size_t>(vtx_num_blocks, [&](size_t i) {
           return static_cast<size_t>(block_metadata[i].offset > 0);
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
@@ -806,14 +805,21 @@ struct uncompressed_bitset_neighbors {
       repack_blocks_par(tmp, parallel);
     }
 
-    // Update offset values.
-    auto ptr_seq = indirect_value_seq<uintE>(
-        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbslib::no_flag, tmp_ints);
+//    // Update offset values.
+//    auto ptr_seq = indirect_value_seq<uintE>(
+//        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
+//    uintE sum = pbbslib::scan_inplace(ptr_seq, pbbslib::no_flag, tmp_ints);
+//    vtx_degree = sum;
+    uintE sum = 0;
+    for (size_t i=0; i<vtx_num_blocks; i++) {
+      uintE cur = block_metadata[i].offset;
+      block_metadata[i].offset = sum;
+      sum += cur;
+    }
     vtx_degree = sum;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
 
     // Update the degree in vtx_info.
@@ -824,7 +830,7 @@ struct uncompressed_bitset_neighbors {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t ind) {
+    auto offsets_imap = pbbslib::make_delayed<size_t>(vtx_num_blocks, [&] (size_t ind) {
       return block_metadata[ind].offset;
     });
 
@@ -1271,7 +1277,7 @@ struct compressed_bitset_neighbors {
     }
 
     // 2. Write 1 to tmp_ints (new_locs) if full, 0 if empty
-    auto new_locs = pbbslib::make_sequence(tmp_ints, vtx_num_blocks);
+    auto new_locs = pbbslib::make_range(tmp_ints, vtx_num_blocks);
     auto tmp_metadata = (metadata*)tmp_space;
     parallel_for(0, vtx_num_blocks, [&](size_t block_id) {
       new_locs[block_id] =
@@ -1279,7 +1285,7 @@ struct compressed_bitset_neighbors {
     });
 
     // 3. Scan new_locs to get new block indices for full blocks
-    size_t new_num_blocks = pbbslib::scan_add_inplace(new_locs);
+    size_t new_num_blocks = pbbslib::scan_inplace(new_locs);
 
     // 4. Copy saved blocks to new positions.
     auto real_metadata = (metadata*)blocks_start;
@@ -1318,8 +1324,8 @@ struct compressed_bitset_neighbors {
     v_infos[vtx_id].vtx_num_blocks = new_num_blocks;
 
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_space);
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_space, total_bytes);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
   }
 
@@ -1417,7 +1423,7 @@ struct compressed_bitset_neighbors {
 
     // 2. Reduce to get the #empty_blocks
     auto full_block_seq =
-        pbbslib::make_sequence<size_t>(vtx_num_blocks, [&](size_t i) {
+        pbbslib::make_delayed<size_t>(vtx_num_blocks, [&](size_t i) {
           return static_cast<size_t>(block_metadata[i].offset > 0);
         });
     size_t full_blocks = pbbslib::reduce_add(full_block_seq);
@@ -1429,13 +1435,22 @@ struct compressed_bitset_neighbors {
     }
 
     // Update offset values.
-    auto ptr_seq = indirect_value_seq<uintE>(
-        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
-    uintE sum = pbbslib::scan_add_inplace(ptr_seq, pbbslib::no_flag, (uintE*)tmp_ints);
+//    auto ptr_seq = indirect_value_seq<uintE>(
+//        vtx_num_blocks, [&](size_t i) { return &(block_metadata[i].offset); });
+//    uintE sum = pbbslib::scan_inplace(make_slice(ptr_seq), (uintE*)tmp_ints);
+//    vtx_degree = sum;
+
+    uintE sum = 0;
+    for (size_t i=0; i<vtx_num_blocks; i++) {
+      uintE cur = block_metadata[i].offset;
+      block_metadata[i].offset = sum;
+      sum += cur;
+    }
     vtx_degree = sum;
 
+
     if ((tmp == nullptr) && (old_vtx_num_blocks > kBlockAllocThreshold)) {
-      pbbslib::free_array(tmp_ints);
+      pbbslib::free_array(tmp_ints, vtx_num_blocks);
     }
 
     // Update the degree in vtx_info.
@@ -1445,7 +1460,7 @@ struct compressed_bitset_neighbors {
 
   std::tuple<uintE, W> ith_neighbor(size_t i) {
     metadata* block_metadata = (metadata*)blocks_start;
-    auto offsets_imap = pbbslib::make_sequence<size_t>(vtx_num_blocks, [&] (size_t ind) {
+    auto offsets_imap = pbbslib::make_delayed<size_t>(vtx_num_blocks, [&] (size_t ind) {
       return block_metadata[ind].offset;
     });
 

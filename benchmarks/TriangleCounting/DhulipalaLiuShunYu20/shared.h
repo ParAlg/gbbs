@@ -2,7 +2,6 @@
 
 #include <tuple>
 #include "gbbs/gbbs.h"
-#include "pbbslib/monoid.h"
 // #include "sparse_table.h"
 // #include "gbbs/macros.h"
 
@@ -44,11 +43,11 @@ namespace DBTGraph{
     return edges[i].first.second;
     }
 
-    inline uintE getFirst(pbbslib::range<pair<EdgeT,bool> *> edges, size_t i){
+    inline uintE getFirst(pbbslib::range<pair<EdgeT,bool>> edges, size_t i){
     return edges[i].first.first;
     }
 
-    inline uintE getSecond(pbbslib::range<pair<EdgeT,bool> *> edges, size_t i){
+    inline uintE getSecond(pbbslib::range<pair<EdgeT,bool>> edges, size_t i){
     return edges[i].first.second;
     }
 
@@ -211,7 +210,7 @@ namespace DBTGraph{
         uintE u;T *table;K empty_key;
         MakeEdgeEntry(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
-        pair<uintE, int> operator ()(size_t i)const {
+        std::pair<uintE, int> operator ()(size_t i) const {
             return make_pair(get<0>(table[i]),get<1>(table[i]));
         }
     };
@@ -277,7 +276,7 @@ namespace DBTGraph{
         //TriangleCounts():c1(0),c2(0),c3(0), c4(0), c5(0), c6(0){
         TriangleCounts(){
             P = num_workers();
-            c = sequence<size_t>::no_init(P * eltsPerCacheLine);
+            c = sequence<size_t>::uninitialized(P * eltsPerCacheLine);
             clear();
         }
 

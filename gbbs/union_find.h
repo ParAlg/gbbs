@@ -55,7 +55,7 @@ struct UnionFindStep {
 
   size_t n;
 
-  void clear() { pbbslib::free_array(indices); }
+  void clear() { pbbslib::free_array(indices, E.size()); }
 
   UnionFindStep(Edges& _E, res* _R, ST& ist, UF& _uf)
       : E(_E), R(_R), inST(ist), uf(_uf) {

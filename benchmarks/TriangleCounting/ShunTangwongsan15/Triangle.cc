@@ -56,7 +56,7 @@ double Triangle_runner(Graph& G, commandLine P) {
       size_t deg = G.get_vertex(i).out_degree();
       return (deg * deg - 1) / 2;
     };
-    auto wedge_im = pbbslib::make_sequence<size_t>(G.n, wedge_im_f);
+    auto wedge_im = pbbslib::make_delayed<size_t>(G.n, wedge_im_f);
     size_t n_wedges = pbbslib::reduce_add(wedge_im);
     std::cout << "### n_wedges = " << n_wedges << "\n";
     std::cout << "### triangle density = " << ((3.0 * count) / n_wedges) << "\n";

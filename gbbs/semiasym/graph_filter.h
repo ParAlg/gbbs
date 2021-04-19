@@ -66,7 +66,7 @@ struct packed_symmetric_vertex {
 // Initializes the block memory for each vertex.
 // Returns a pair of (vtx_info*, blocks*)
 template <class Graph, class Pred>
-std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred, gbbs::flags fl= 0) {
+std::tuple<vtx_info*, uint8_t*, size_t> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, Pred& vtx_pred, gbbs::flags fl= 0) {
   timer ibm; ibm.start();
   size_t n = GA.n;
 
@@ -83,7 +83,7 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
   block_bytes_offs[n] = 0;
 
   size_t block_mem_to_alloc =
-      pbbslib::scan_add_inplace(block_bytes_offs.slice());
+      pbbslib::scan_inplace(make_slice(block_bytes_offs));
   std::cout << "# total memory for block memory = " << block_mem_to_alloc << std::endl;
 
 //  auto blocks_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) {
@@ -124,12 +124,12 @@ std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs
       });
 
   ibm.stop(); ibm.reportTotal("init block memory time");
-  return {VI, blocks};
+  return {VI, blocks, block_mem_to_alloc};
 }
 
 
 template <class Graph>
-std::pair<vtx_info*, uint8_t*> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, gbbs::flags fl= 0) {
+std::tuple<vtx_info*, uint8_t*, size_t> init_block_memory(Graph& GA, size_t bs, size_t bs_in_bytes, gbbs::flags fl= 0) {
   auto pred_true = [&] (const uintE& v) {
     return true;
   };
@@ -151,10 +151,13 @@ struct symmetric_packed_graph {
 
   vtx_info* VI;  // metadata for each vertex into the blocks structure
   uint8_t* blocks;  // stores the block information for each vertex's neighbors
+  size_t blocks_mem;
 
   size_t bs;  // number of vertices in each block
   size_t bs_in_bytes;
   size_t metadata_size;
+
+  size_t block_mem_to_alloc;
 
   template <
       bool bool_enable = true,
@@ -184,7 +187,7 @@ struct symmetric_packed_graph {
 
   symmetric_packed_graph(symmetric_graph<vertex_type, W>& GA) : n(GA.n), m(GA.m), GA(GA) {
     init_block_size_and_metadata();  // conditioned on vertex type; initializes bs, bs_in_bytes, metadata_size
-    std::tie(VI, blocks) = init_block_memory(GA, bs, bs_in_bytes);  // initializes VI and blocks based on bs and bs_in_bytes
+    std::tie(VI, blocks, blocks_mem) = init_block_memory(GA, bs, bs_in_bytes);  // initializes VI and blocks based on bs and bs_in_bytes
   }
 
   inline size_t out_degree(uintE v) {
@@ -249,8 +252,8 @@ struct symmetric_packed_graph {
 
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
-    pbbslib::free_array(VI);
-    pbbslib::free_array(blocks);
+    pbbslib::free_array(VI, n);
+    pbbslib::free_array(blocks, blocks_mem);
   }
 };
 
@@ -343,9 +346,11 @@ struct asymmetric_packed_graph {
 
   vtx_info* in_VI;  // metadata for each vertex into the in_blocks structure
   uint8_t* in_blocks;  // stores the block information for each vertex's in_neighbors
+  size_t in_blocks_mem;
 
   vtx_info* out_VI;  // metadata for each vertex into the out_blocks structure
   uint8_t* out_blocks;  // stores the block information for each vertex's out_neighbors
+  size_t out_blocks_mem;
 
   size_t bs;  // number of vertices in each block
   size_t bs_in_bytes;
@@ -381,15 +386,15 @@ struct asymmetric_packed_graph {
 
   asymmetric_packed_graph(asymmetric_graph<vertex_type, W>& GA) : n(GA.n), m(GA.m), GA(&GA) {
     init_block_size_and_metadata();  // conditioned on vertex type; initializes bs, bs_in_bytes, metadata_size
-    std::tie(in_VI, in_blocks) = init_block_memory(GA, bs, bs_in_bytes, in_edges);
-    std::tie(out_VI, out_blocks) = init_block_memory(GA, bs, bs_in_bytes);
+    std::tie(in_VI, in_blocks, in_blocks_mem) = init_block_memory(GA, bs, bs_in_bytes, in_edges);
+    std::tie(out_VI, out_blocks, out_blocks_mem) = init_block_memory(GA, bs, bs_in_bytes);
   }
 
   template <class P>
   asymmetric_packed_graph(asymmetric_graph<vertex_type, W>& GA, P vtx_pred) : n(GA.n), m(GA.m), GA(&GA) {
     init_block_size_and_metadata();  // conditioned on vertex type; initializes bs, bs_in_bytes, metadata_size
-    std::tie(in_VI, in_blocks) = init_block_memory(GA, bs, bs_in_bytes, vtx_pred, in_edges);
-    std::tie(out_VI, out_blocks) = init_block_memory(GA, bs, bs_in_bytes, vtx_pred);
+    std::tie(in_VI, in_blocks, in_blocks_mem) = init_block_memory(GA, bs, bs_in_bytes, vtx_pred, in_edges);
+    std::tie(out_VI, out_blocks, out_blocks_mem) = init_block_memory(GA, bs, bs_in_bytes, vtx_pred);
     auto degree_seq = pbbslib::make_delayed<size_t>(n, [&] (size_t i) { return out_VI[i].vtx_degree; });
     m = pbbslib::reduce_add(degree_seq);
   }
@@ -538,7 +543,10 @@ struct asymmetric_packed_graph {
 
   void del() {
     std::cout << "# deleting packed_graph" << std::endl;
-    pbbslib::free_arrays(out_VI, in_VI, out_blocks, in_blocks);
+    pbbslib::free_array(out_VI,n);
+    pbbslib::free_array(in_VI,n);
+    pbbslib::free_array(out_blocks,out_blocks_mem);
+    pbbslib::free_array(in_blocks,in_blocks_mem);
   }
 
   private:

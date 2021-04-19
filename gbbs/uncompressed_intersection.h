@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/sequence_ops.h"
 #include "macros.h"
 
 namespace gbbs {
@@ -126,8 +125,8 @@ size_t merge(const SeqA& A, const SeqB& B, const F& f) {
     size_t mB = pbbslib::binary_search(B, A[mA], std::less<T>());
     size_t m_left = 0;
     size_t m_right = 0;
-    par_do([&] () { m_left = intersection::merge(A.slice(0, mA), B.slice(0, mB), f);},
-     [&] () { m_right = intersection::merge(A.slice(mA, nA), B.slice(mB, nB), f);});
+    par_do([&] () { m_left = intersection::merge(A.cut(0, mA), B.cut(0, mB), f);},
+     [&] () { m_right = intersection::merge(A.cut(mA, nA), B.cut(mB, nB), f);});
     return m_left + m_right;
   }
 }
@@ -139,8 +138,8 @@ inline size_t intersect_f_par(Nghs* A, Nghs* B, const F& f) {
   uintE* nghB = (uintE*)(B->neighbors);
 
   // Will not work if W is not gbbs::empty, should assert.
-  auto seqA = pbbslib::make_sequence<uintE>(nghA, nA);
-  auto seqB = pbbslib::make_sequence<uintE>(nghB, nB);
+  auto seqA = pbbslib::make_range<uintE>(nghA, nA);
+  auto seqB = pbbslib::make_range<uintE>(nghB, nB);
 
   uintE a = A->id;
   uintE b = B->id;

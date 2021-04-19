@@ -8,7 +8,6 @@ gbbs_cc_test(
       "//gbbs:graph",
       "//gbbs/semiasym:graph_filter",
       "//gbbs:graph_test_utils",
-      "//pbbslib:seq",
       "@googletest//:gtest_main",
     ],
 )

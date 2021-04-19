@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/random_shuffle.h"
 #include "gbbs/pbbslib/resizable_table.h"
 #include "gbbs/gbbs.h"
 
@@ -133,7 +132,7 @@ inline pbbslib::resizable_table<K, V, hash_kv> multi_search(Graph& GA,
                                                 : GA.get_vertex(v).out_neighbors().count(pred);
       return effective_degree * n_labels;
     };
-    auto im = pbbslib::make_sequence<size_t>(frontier.size(), im_f);
+    auto im = pbbslib::make_delayed<size_t>(frontier.size(), im_f);
 
     size_t sum = pbbslib::reduce_add(im);
     table.maybe_resize(sum);
@@ -198,11 +197,11 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   initt.start();
   size_t n = GA.n;
   // Everyone's initial label is 0 (all in the same subproblem)
-  auto labels = sequence<label_type>(n, [](size_t) { return 0; });
+  auto labels = sequence<label_type>::from_function(n, [](size_t) { return 0; });
   auto ba = sequence<bool>(n, false);
   auto bits = ba.begin();
 
-  auto v_im = pbbslib::make_sequence<uintE>(n, [](size_t i) { return i; });
+  auto v_im = pbbslib::make_delayed<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
@@ -231,7 +230,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     auto deg_im_f = [&](size_t i) {
       return std::make_tuple(i, GA.get_vertex(i).out_degree());
     };
-    auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
+    auto deg_im = pbbslib::make_delayed<std::tuple<uintE, uintE>>(n, deg_im_f);
     auto red_f = [](const std::tuple<uintE, uintE>& l,
                     const std::tuple<uintE, uintE>& r) {
           return (std::get<1>(l) > std::get<1>(r)) ? l : r;
@@ -278,7 +277,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = pbbslib::make_sequence<uintE>(
+    auto centers_pre_filter = pbbslib::make_delayed<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
     auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return !(labels[v] & TOP_BIT); });
@@ -379,7 +378,7 @@ inline size_t num_done(Seq& labels) {
   auto im_f = [&](size_t i) {
     return ((size_t)((labels[i] & TOP_BIT) > 0));
   };
-  auto im = pbbslib::make_sequence<size_t>(labels.size(), im_f);
+  auto im = pbbslib::make_delayed<size_t>(labels.size(), im_f);
 
   return pbbslib::reduce_add(im);
 }
@@ -387,7 +386,7 @@ inline size_t num_done(Seq& labels) {
 template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     // if (labels[i] == 0) {
     //   std::cout << "unlabeled"
@@ -399,7 +398,7 @@ inline size_t num_scc(Seq& labels) {
       flags[label] = 1;
     }
   });
-  pbbslib::scan_add_inplace(flags);
+  pbbslib::scan_inplace(flags);
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;
@@ -408,7 +407,7 @@ inline size_t num_scc(Seq& labels) {
 template <class Seq>
 inline void scc_stats(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     size_t label = labels[i] & VAL_MASK;
     flags[label]++;

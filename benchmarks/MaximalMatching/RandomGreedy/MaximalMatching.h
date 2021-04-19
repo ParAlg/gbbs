@@ -164,8 +164,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
   size_t n = G.n;
   auto r = pbbslib::random();
 
-  auto R = sequence<uintE>(n, [&](size_t i) { return UINT_E_MAX; });
-  auto matched = sequence<bool>(n, [&](size_t i) { return false; });
+  auto R = sequence<uintE>::from_function(n, [&](size_t i) { return UINT_E_MAX; });
+  auto matched = sequence<bool>::from_function(n, [&](size_t i) { return false; });
 
   size_t k = ((3 * G.n) / 2);
   auto matching = pbbslib::dyn_arr<edge>(n);
@@ -180,7 +180,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
                      : mm::get_all_edges(G, matched.begin(), r);
 
     auto eim_f = [&](size_t i) { return e_arr.E[i]; };
-    auto eim = pbbslib::make_sequence<edge>(e_arr.size(), eim_f);
+    auto eim = pbbslib::make_delayed<edge>(e_arr.size(), eim_f);
     gete.stop();
 
     std::cout << "Got: " << e_arr.size() << " edges "
@@ -214,7 +214,7 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
     r = r.next();
   }
   std::cout << "matching size = " << matching.size << "\n";
-  auto output = sequence<edge>(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
+  auto output = sequence<edge>::from_function(matching.size, [&] (size_t i) { return matching.A[i]; }); // allocated
   mt.stop();
   matching.del();
   eff.reportTotal("eff for time");
@@ -226,8 +226,8 @@ inline sequence<std::tuple<uintE, uintE, W>> MaximalMatching(symmetric_graph<ver
 template <template <class W> class vertex, class W, class Seq>
 inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   size_t n = G.n;
-  auto ok = sequence<bool>(n, [](size_t i) { return 1; });
-  auto matched = sequence<uintE>(n, [](size_t i) { return 0; });
+  auto ok = sequence<bool>::from_function(n, [](size_t i) { return 1; });
+  auto matched = sequence<uintE>::from_function(n, [](size_t i) { return 0; });
 
   // Check that this is a valid matching
   par_for(0, matching.size(), [&] (size_t i) {
@@ -253,7 +253,7 @@ inline void verify_matching(symmetric_graph<vertex, W>& G, Seq& matching) {
   par_for(0, n, 1, [&] (size_t i) { G.get_vertex(i).out_neighbors().map(map2_f); });
 
   auto ok_f = [&](size_t i) { return ok[i]; };
-  auto ok_im = pbbslib::make_sequence<size_t>(n, ok_f);
+  auto ok_im = pbbslib::make_delayed<size_t>(n, ok_f);
   size_t n_ok = pbbslib::reduce_add(ok_im);
   if (n == n_ok) {
     std::cout << "Matching OK! matching size is: " << matching.size() << "\n";

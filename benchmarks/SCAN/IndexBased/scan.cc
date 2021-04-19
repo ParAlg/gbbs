@@ -134,9 +134,9 @@ void AttachNoncoresToClustersDeterministic(
 
   // for a non-core vertex v, `tentative_attachments[v]` represents (similarity
   // score, vertex ID) of the most similar adjacent core to v.
-  sequence<std::pair<float, uintE>> tentative_attachments{
+  auto tentative_attachments = sequence<std::pair<float, uintE>>::from_function(
     num_vertices,
-    [](const size_t i) { return std::make_pair(-1, UINT_E_MAX); }};
+    [](const size_t i) { return std::make_pair(-1, UINT_E_MAX); });
 
   par_for(0, cores.size(), [&](const uintE i) {
     const uintE core{cores[i]};
@@ -226,12 +226,12 @@ void Index::Cluster(
   // TODO(tomtseng): please refactor this. this is messy, copy-and-pasted code
   // written in a rush
 
-  sequence<size_t> sorted_epsilon_indices{
-    epsilons.size(), [](const size_t i) { return i; }};
+  sequence<size_t> sorted_epsilon_indices = sequence<size_t>::from_function(
+    epsilons.size(), [](const size_t i) { return i; });
   // Sort epsilons in decreasing order --- as epsilon decreases, more
   // core-to-core edges appear.
   pbbslib::sample_sort_inplace(
-      sorted_epsilon_indices.slice(),
+      make_slice(sorted_epsilon_indices),
       [&](const size_t i, const size_t j) {
         return epsilons[i] > epsilons[j];
       });
@@ -239,9 +239,9 @@ void Index::Cluster(
   sequence<uintE> previous_cores{};
   sequence<uintE> previous_core_similar_edge_counts{};
   VertexSet cores_set{MakeVertexSet(num_vertices_)};
-  Clustering previous_core_clustering{
+  Clustering previous_core_clustering = sequence<uintE>::from_function(
     num_vertices_,
-    [&](const size_t i) { return kUnclustered; }};
+    [&](const size_t i) { return kUnclustered; });
   for (size_t i{0}; i < epsilons.size(); i++) {
     const float epsilon{epsilons[sorted_epsilon_indices[i]]};
     Clustering clustering{std::move(previous_core_clustering)};

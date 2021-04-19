@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "pbbslib/random_shuffle.h"
 #include "gbbs/gbbs.h"
 
 #include <cmath>
@@ -43,14 +42,14 @@ inline sequence<size_t> generate_shifts(size_t n, double beta) {
   par_for(0, last_round, kDefaultGranularity, [&] (size_t i)
                   { shifts[i] = floor(exp(i * beta)); });
   shifts[last_round] = 0;
-  pbbslib::scan_add_inplace(shifts);
+  pbbslib::scan_inplace(shifts);
   return shifts;
 }
 
 template <class Seq>
 inline void num_clusters(Seq& s) {
   size_t n = s.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     if (!flags[s[i]]) {
       flags[s[i]] = 1;
@@ -62,7 +61,7 @@ inline void num_clusters(Seq& s) {
 template <class Seq>
 inline void cluster_sizes(Seq& s) {
   size_t n = s.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
       pbbslib::write_add(&flags[s[i]], 1);
 //    if (!flags[s[i]]) {
@@ -80,7 +79,7 @@ template <class Graph, class Seq>
 inline void num_intercluster_edges(Graph& G, Seq& s) {
   using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto ic_edges = sequence<size_t>(n, [&](size_t i) { return 0; });
+  auto ic_edges = sequence<size_t>::from_function(n, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     auto pred = [&](const uintE& src, const uintE& ngh, const W& wgh) {
       return s[src] != s[ngh];
@@ -156,7 +155,7 @@ inline sequence<uintE> LDD_impl(Graph& G, const EO& oracle,
         else
           return static_cast<uintE>(num_added + i);
       };
-      auto candidates = pbbslib::make_sequence<uintE>(num_to_add, candidates_f);
+      auto candidates = pbbslib::make_delayed<uintE>(num_to_add, candidates_f);
       auto pred = [&](uintE v) { return cluster_ids[v] == UINT_E_MAX; };
       auto new_centers = pbbslib::filter(candidates, pred);
       add_to_vsubset(frontier, new_centers.begin(), new_centers.size());

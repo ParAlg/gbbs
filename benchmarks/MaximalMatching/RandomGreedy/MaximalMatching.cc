@@ -34,7 +34,6 @@
 #include "MaximalMatching.h"
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/strings/string_basics.h"
 
 #include <fstream>
 #include <iostream>
@@ -54,14 +53,15 @@ double MaximalMatching_runner(symmetric_graph<vertex, W>& G, commandLine P) {
   assert(P.getOption("-s"));  // input graph must be symmetric
   auto in_f = P.getOptionValue("-if");
   if (in_f) {
-    auto S = gbbs_io::readStringFromFile(in_f);
-    auto Words = pbbslib::tokenize(S, [] (const char c) { return pbbslib::is_space(c); });
-    size_t ms = atol(Words[0]);
+    auto S = pbbslib::chars_from_file(in_f);
+    sequence<slice<char>> Words = parlay::map_tokens(parlay::make_slice(S),
+        [] (auto x) { return parlay::make_slice(x); });
+    size_t ms = pbbslib::chars_to_int_t<unsigned long>(Words[0]);
     using edge = std::tuple<uintE, uintE>;
     auto matching = sequence<edge>(ms);
     par_for(0, ms, kDefaultGranularity, [&] (size_t i) {
       matching[i] =
-          std::make_tuple(atol(Words[1 + 2 * i]), atol(Words[2 * (i + 1)]));
+        std::make_tuple(pbbslib::chars_to_int_t<uintE>(Words[1 + 2 * i]), pbbslib::chars_to_int_t<uintE>(Words[2 + 2 * i]));
     });
     verify_matching(G, matching);
     exit(0);

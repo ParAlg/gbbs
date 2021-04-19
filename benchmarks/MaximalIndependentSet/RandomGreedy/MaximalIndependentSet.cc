@@ -60,7 +60,7 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
     tt = t.stop();
     auto size_f = [&](size_t i) { return (MaximalIndependentSet[i] == 1); };
     auto size_imap =
-        pbbslib::make_sequence<size_t>(G.n, size_f);
+        pbbslib::make_delayed<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
       std::cout << "MaximalIndependentSet size: " << pbbslib::reduce_add(size_imap) << "\n";
     }
@@ -73,7 +73,7 @@ double MaximalIndependentSet_runner(Graph& G, commandLine P) {
     tt = t.stop();
     auto size_f = [&](size_t i) { return MaximalIndependentSet[i]; };
     auto size_imap =
-        pbbslib::make_sequence<size_t>(G.n, size_f);
+        pbbslib::make_delayed<size_t>(G.n, size_f);
     if (P.getOptionValue("-stats")) {
       std::cout << "MaximalIndependentSet size: " << pbbslib::reduce_add(size_imap) << "\n";
     }

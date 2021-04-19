@@ -61,6 +61,7 @@ struct symmetric_graph {
   template <class P>
   uintE packNeighbors(uintE id, P& p, uint8_t* tmp) {
     uintE new_degree = get_vertex(id).out_neighbors().pack(p, (std::tuple<uintE, W>*)tmp);
+//    std::cout << "Packed id = " << id << " old_degree = " << v_data[id].degree << " new_degree = " << new_degree << std::endl;
     v_data[id].degree = new_degree;  // updates the degree
     return new_degree;
   }
@@ -75,9 +76,9 @@ struct symmetric_graph {
 
   sequence<std::tuple<uintE, uintE, W>> edges() {
     using g_edge = std::tuple<uintE, uintE, W>;
-    auto degs = sequence<size_t>(
+    auto degs = sequence<size_t>::from_function(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
-    size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
+    size_t sum_degs = pbbslib::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
     auto edges = sequence<g_edge>(sum_degs);
     parallel_for(0, n, [&](size_t i) {
@@ -139,9 +140,9 @@ struct symmetric_graph {
     parallel_for(0, m, [&] (size_t i) {
       ed[i] = e0[i];
     });
-    return graph(vd, n, m, [vd, ed] () {
-      pbbslib::free_array(vd);
-      pbbslib::free_array(ed);
+    return graph(vd, n, m, [=] () {
+      pbbslib::free_array(vd, n);
+      pbbslib::free_array(ed, m);
     }, ed);
   }
 
@@ -206,7 +207,7 @@ struct symmetric_ptr_graph {
     using g_edge = std::tuple<uintE, uintE, W>;
     auto degs = sequence<size_t>(
         n, [&](size_t i) { return get_vertex(i).out_degree(); });
-    size_t sum_degs = pbbslib::scan_add_inplace(degs.slice());
+    size_t sum_degs = pbbslib::scan_inplace(make_slice(degs));
     assert(sum_degs == m);
     auto edges = sequence<g_edge>(sum_degs);
     parallel_for(0, n, [&](size_t i) {
@@ -260,7 +261,7 @@ struct symmetric_ptr_graph {
       offsets[i] = (edge_list_sizes == nullptr) ? V[i].out_degree() : edge_list_sizes[i];
     });
     offsets[n] = 0;
-    size_t total_space = pbbslib::scan_add_inplace(offsets.slice());
+    size_t total_space = pbbslib::scan_inplace(make_slice(offsets));
     edge_type* E = pbbslib::new_array_no_init<edge_type>(total_space);
     parallel_for(0, n, [&] (size_t i) {
       size_t offset = offsets[i];
@@ -278,9 +279,9 @@ struct symmetric_ptr_graph {
         });
       }
     });
-    return graph(n, m, V, [V, E] () {
-        pbbslib::free_array(V);
-        pbbslib::free_array(E);
+    return graph(n, m, V, [=] () {
+        pbbslib::free_array(V, n);
+        pbbslib::free_array(E, total_space);
     });
   }
 
@@ -477,13 +478,12 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
         v_data[i].degree = 0;
       });
       return symmetric_graph<symmetric_vertex, Wgh>(
-          v_data, n, 0, [=]() { pbbslib::free_array(v_data); }, nullptr);
+          v_data, n, 0, [=]() { pbbslib::free_array(v_data, n); }, nullptr);
     }
   }
 
   if (!is_sorted) {
-    size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(A.slice(), get_u, bits);
+    pbbslib::integer_sort_inplace(make_slice(A), get_u);
   }
 
   auto starts = sequence<uintT>(n + 1, (uintT)0);
@@ -515,7 +515,7 @@ static inline symmetric_graph<symmetric_vertex, Wgh> sym_graph_from_edges(
     v_data[i].degree = (uintE)(((i == (n - 1)) ? m : starts[i + 1]) - o);
   });
   return symmetric_graph<symmetric_vertex, Wgh>(
-      v_data, n, m, [=]() { pbbslib::free_arrays(v_data, edges); },
+      v_data, n, m, [=]() { pbbslib::free_array(v_data, n); pbbslib::free_array(edges, m); },
       (edge_type*)edges);
 }
 
@@ -592,21 +592,20 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
         v_out_data[i].degree = 0;
       });
       return asymmetric_graph<asymmetric_vertex, Wgh>(
-          v_out_data, v_in_data, n, 0, [=]() { pbbslib::free_arrays(v_out_data, v_in_data); }, nullptr, nullptr);
+          v_out_data, v_in_data, n, 0, [=]() { pbbslib::free_array(v_out_data, n); pbbslib::free_array(v_in_data, n); }, nullptr, nullptr);
     }
   }
 
   // flip to create the in-edges
-  auto I = sequence<typename EdgeSeq::value_type>(A.size(), [&] (size_t i) {
+  auto I = sequence<typename EdgeSeq::value_type>::from_function(A.size(), [&] (size_t i) {
     using T = typename EdgeSeq::value_type;
     auto e = A[i];
     return T(get_v(e), get_u(e), get_w(e));
   });
 
   if (!is_sorted) {
-    size_t bits = pbbslib::log2_up(n);
-    pbbslib::integer_sort_inplace(A.slice(), get_u, bits);
-    pbbslib::integer_sort_inplace(I.slice(), get_u, bits);
+    pbbslib::integer_sort_inplace(make_slice(A), get_u);
+    pbbslib::integer_sort_inplace(make_slice(I), get_u);
   }
 
   auto in_starts = sequence<uintT>(n + 1, (uintT)0);
@@ -627,7 +626,11 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
     out_v_data[i].degree = (uintE)(((i == (n - 1)) ? m : out_starts[i + 1]) - out_o);
   }, 1024);
   return asymmetric_graph<asymmetric_vertex, Wgh>(
-      out_v_data, in_v_data, n, m, [=]() { pbbslib::free_arrays(in_v_data, out_v_data, in_edges, out_edges); },
+      out_v_data, in_v_data, n, m, [=]() {
+        pbbslib::free_array(in_v_data, n);
+        pbbslib::free_array(out_v_data, n);
+        pbbslib::free_array(in_edges, m);
+        pbbslib::free_array(out_edges, m); },
       (edge_type*)out_edges, (edge_type*)in_edges);
 }
 

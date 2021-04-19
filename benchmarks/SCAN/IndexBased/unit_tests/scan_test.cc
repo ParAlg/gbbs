@@ -15,11 +15,11 @@
 #include "benchmarks/SCAN/IndexBased/utils.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "gbbs/bridge.h"
 #include "gbbs/graph.h"
 #include "gbbs/graph_test_utils.h"
 #include "gbbs/undirected_edge.h"
 #include "gbbs/vertex.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 
@@ -142,11 +142,13 @@ TEST(ScanSubroutines, EmptyGraph) {
 
   const ii::NeighborOrder neighbor_order{&graph, scan::CosineSimilarity{}};
   EXPECT_EQ(neighbor_order.size(), kNumVertices);
+
+  EXPECT_THAT(neighbor_order[0], IsEmpty());
   for (const auto& vertex_order : neighbor_order) {
     EXPECT_THAT(vertex_order, IsEmpty());
   }
 
-  const auto core_order{ii::ComputeCoreOrder(neighbor_order)};
+  auto core_order{ii::ComputeCoreOrder(neighbor_order)};
   ASSERT_EQ(core_order.size(), 2);
   EXPECT_THAT(core_order[0], IsEmpty());
   EXPECT_THAT(core_order[1], IsEmpty());
@@ -210,12 +212,12 @@ TEST(ScanSubroutines, BasicUsage) {
     EXPECT_THAT(core_order[1], IsEmpty());
     ASSERT_EQ(core_order[2].size(), 6);
     EXPECT_THAT(
-        core_order[2].slice(0, 2),
+        core_order[2].cut(0, 2),
         UnorderedElementsAre(
           CoreThresholdEq(2, 4.0 / sqrt(20)),
           CoreThresholdEq(3, 4.0 / sqrt(20))));
     EXPECT_THAT(
-        core_order[2].slice(2, core_order[2].size()),
+        core_order[2].cut(2, core_order[2].size()),
         ElementsAre(
           CoreThresholdEq(4, 3.0 / sqrt(12)),
           CoreThresholdEq(1, 3.0 / sqrt(16)),
@@ -224,17 +226,17 @@ TEST(ScanSubroutines, BasicUsage) {
     ASSERT_EQ(core_order[3].size(), 4);
     EXPECT_THAT(core_order[3][0], CoreThresholdEq(3, 3.0 / sqrt(12)));
     EXPECT_THAT(
-        core_order[3].slice(1, 3),
+        core_order[3].cut(1, 3),
         UnorderedElementsAre(
           CoreThresholdEq(2, 3.0 / sqrt(15)),
           CoreThresholdEq(4, 3.0 / sqrt(15))));
     EXPECT_THAT(
-        core_order[3].slice(3, core_order[3].size()),
+        core_order[3].cut(3, core_order[3].size()),
         ElementsAre(CoreThresholdEq(1, 2.0 / sqrt(8))));
     ASSERT_EQ(core_order[4].size(), 3);
     EXPECT_THAT(core_order[4][0], CoreThresholdEq(3, 3.0 / sqrt(16)));
     EXPECT_THAT(
-        core_order[4].slice(1, core_order[4].size()),
+        core_order[4].cut(1, core_order[4].size()),
         UnorderedElementsAre(
           CoreThresholdEq(1, 3.0 / sqrt(20)),
           CoreThresholdEq(2, 3.0 / sqrt(20))));
@@ -305,12 +307,12 @@ TEST(ScanSubroutines, DisconnectedGraph) {
   EXPECT_THAT(core_order[1], IsEmpty());
   ASSERT_EQ(core_order[2].size(), 5);
   EXPECT_THAT(
-      core_order[2].slice(0, 2),
+      core_order[2].cut(0, 2),
       UnorderedElementsAre(
         CoreThresholdEq(0, 1.0),
         CoreThresholdEq(1, 1.0)));
   EXPECT_THAT(
-      core_order[2].slice(2, core_order[2].size()),
+      core_order[2].cut(2, core_order[2].size()),
       UnorderedElementsAre(
         CoreThresholdEq(3, 2.0 / sqrt(6)),
         CoreThresholdEq(4, 2.0 / sqrt(6)),

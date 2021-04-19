@@ -1,7 +1,6 @@
 #pragma once
 
 #include "intersect.h"
-#include "pbbslib/seq.h"
 
 /* TODO: describe what this file does */
 
@@ -22,7 +21,7 @@ namespace induced_split {
       parallel_work[i] = DG.get_vertex(i).out_neighbors().reduce(map_f, monoid);
     });
     }
-    size_t total_work = pbbslib::scan_add_inplace(parallel_work.slice());
+    size_t total_work = pbbslib::scan_inplace(make_slice(parallel_work));
 
     size_t block_size = 50000;
     size_t n_blocks = total_work/block_size + 1;
@@ -32,7 +31,7 @@ namespace induced_split {
     std::cout << "##### Triangle scheduling: " << tt << std::endl;
 
     timer t2; t2.start();
-    sequence<size_t> tots = sequence<size_t>::no_init(n_blocks); //DG.n
+    sequence<size_t> tots = sequence<size_t>::uninitialized(n_blocks); //DG.n
     parallel_for(0, n_blocks, [&](size_t j) {
       size_t start = j * work_per_block;
       size_t end = (j + 1) * work_per_block;

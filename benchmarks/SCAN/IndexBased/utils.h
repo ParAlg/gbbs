@@ -12,9 +12,6 @@
 #include "gbbs/bridge.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "pbbslib/integer_sort.h"
-#include "pbbslib/monoid.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace scan {
@@ -110,15 +107,15 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
     Monoid&& reduce_fn,
     size_t num_keys) {
   using Value = typename std::remove_reference_t<Monoid>::T;
-  sequence<size_t> bucketed_indices{
+  sequence<size_t> bucketed_indices = sequence<size_t>::from_function(
     seq.size(),
-    [](const size_t i) { return i; }};
+    [](const size_t i) { return i; });
   const auto index_to_key{[&](const size_t i) { return get_key(seq[i]); }};
-  integer_sort_inplace(bucketed_indices.slice(), index_to_key);
+  integer_sort_inplace(make_slice(bucketed_indices), index_to_key);
   sequence<size_t> key_offsets{
-    pbbslib::get_counts(bucketed_indices, index_to_key, num_keys)};
-  pbbslib::scan_add_inplace(key_offsets);
-  sequence<Value> result{
+    pbbslib::get_counts(make_slice(bucketed_indices), index_to_key, num_keys)};
+  pbbslib::scan_inplace(key_offsets);
+  sequence<Value> result = sequence<Value>::from_function(
     num_keys,
     [&](const size_t i) {
       const size_t values_start{key_offsets[i]};
@@ -130,7 +127,7 @@ sequence<typename std::remove_reference_t<Monoid>::T> CollectReduce(
             return get_value(seq[bucketed_indices[values_start + j]]);
           })};
       return pbbslib::reduce(values, std::forward<Monoid>(reduce_fn));
-    }};
+    });
   return result;
 }
 
@@ -217,7 +214,7 @@ double Modularity(
     // degrees_by_cluster[i] == sum of degrees over vertices in cluster i
     const sequence<uintT> degrees_by_cluster{
       internal::CollectReduce(
-        clusters_and_degrees.slice(
+        clusters_and_degrees.cut(
           num_unclustered_vertices, clusters_and_degrees.size()),
         [&](const std::pair<uintE, uintT> p) { return p.first; },
         [&](const std::pair<uintE, uintT> p) { return p.second; },
@@ -295,7 +292,7 @@ double Modularity(
     // i
     const sequence<double> degrees_by_cluster{
       internal::CollectReduce(
-        clusters_and_degrees.slice(
+        clusters_and_degrees.cut(
           num_unclustered_vertices, clusters_and_degrees.size()),
         [&](const std::pair<uintE, double> p) { return p.first; },
         [&](const std::pair<uintE, double> p) { return p.second; },

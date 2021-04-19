@@ -10,7 +10,7 @@ cc_library(
   ],
   deps = [
   "//gbbs/pbbslib:atomic_counter",
-  "//pbbslib:assert",
+  "//gbbs/pbbslib:assert",
   ],
 )
 

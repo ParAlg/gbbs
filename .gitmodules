@@ -3,5 +3,5 @@
 	url = https://github.com/lemire/SIMDCompressionAndIntersection
 [submodule "parlaylib"]
         path = parlaylib
-        url = git@github.com:cmuparlay/parlaylib.git
+        url = https://github.com/cmuparlay/parlaylib
         branch = bazel

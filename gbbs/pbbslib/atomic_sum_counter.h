@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pbbslib/utilities.h"
 #include "gbbs/macros.h"
 
 namespace pbbslib {
@@ -31,7 +30,7 @@ struct atomic_sum_counter {
 
   ~atomic_sum_counter() {
     if (entries != nullptr) {
-      pbbslib::free_array(entries);
+      pbbslib::free_array(entries, num_elms);
     }
   }
 

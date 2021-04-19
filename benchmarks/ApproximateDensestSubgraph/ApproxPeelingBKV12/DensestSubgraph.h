@@ -31,10 +31,10 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
 
   double density_multiplier = (1+epsilon); // note that this is not (2+eps), since the density we compute includes edges in both directions already.
 
-  auto D = sequence<uintE>(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
+  auto D = sequence<uintE>::from_function(n, [&](size_t i) { return G.get_vertex(i).out_degree(); });
 //  auto vertices_remaining = sequence<uintE>(n, [&] (size_t i) { return i; });
   auto vertices_remaining = pbbslib::make_delayed<uintE>(n, [&] (size_t i) { return i; });
-  auto alive = sequence<bool>(n, [&](size_t i) { return true; });
+  auto alive = sequence<bool>::from_function(n, [&](size_t i) { return true; });
 
   size_t round = 1;
   sequence<uintE> A;
@@ -64,7 +64,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     size_t num_removed = splits.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
-    auto removed = sequence<uintE>::no_init(num_removed);
+    auto removed = sequence<uintE>::uninitialized(num_removed);
     parallel_for(0, num_removed, [&] (size_t i) {
       auto v = A[i];
       removed[i] = v;
@@ -91,13 +91,13 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
   }
 
   while (num_vertices_remaining > 0) {
-    auto vtxs_remaining = A.slice(remaining_offset, remaining_offset + num_vertices_remaining);
+    auto vtxs_remaining = A.cut(remaining_offset, remaining_offset + num_vertices_remaining);
 
     auto degree_f = [&] (size_t i) {
       uintE v = vtxs_remaining[i];
       return static_cast<size_t>(D[v]);
     };
-    auto degree_seq = pbbslib::make_sequence<size_t>(vtxs_remaining.size(), degree_f);
+    auto degree_seq = pbbslib::make_delayed<size_t>(vtxs_remaining.size(), degree_f);
     long edges_remaining = pbbslib::reduce_add(degree_seq);
 
     // Update density
@@ -118,7 +118,7 @@ double WorkEfficientDensestSubgraph(Graph& G, double epsilon = 0.001) {
     size_t num_removed = split_vtxs_m.second;
     debug(std::cout << "removing " << num_removed << " vertices" << std::endl;);
 
-    auto removed = sequence<uintE>::no_init(num_removed);
+    auto removed = sequence<uintE>::uninitialized(num_removed);
     parallel_for(0, num_removed, [&] (size_t i) {
       auto v = A[i];
       alive[v] = false;

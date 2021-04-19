@@ -7,7 +7,6 @@ gbbs_cc_test(
         "//benchmarks/SCAN/Naive:scan",
         "//gbbs:graph_test_utils",
         "//gbbs:undirected_edge",
-        "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
 )

@@ -411,10 +411,10 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
       block_outputs[i] = cur;
     }, par);
 
-    auto im = pbbslib::make_sequence(block_outputs, num_blocks);
+    auto im = pbbslib::make_range(block_outputs, num_blocks);
     E res = pbbslib::reduce(im, reduce);
     if (num_blocks > 1000) {
-      pbbslib::free_array(block_outputs);
+      gbbs::free_array(block_outputs, num_blocks);
     }
     return res;
   } else {
@@ -467,7 +467,7 @@ inline typename Monoid::T map_reduce(uchar* edge_start, const uintE& source, con
 //      uchar* finger = edge_start + offs[start + i];
 //      return eatFirstEdge(finger, source_id);
 //    };
-//    auto start_im = pbbslib::make_sequence<uintE>(size(), start_f);
+//    auto start_im = pbbslib::make_delayed<uintE>(size(), start_f);
 //    uintE ind =
 //        pbbslib::binary_search(start_im, pivot, std::greater<uintE>());  // check
 //    // ind is the first block index (from start) <= our pivot.
@@ -555,13 +555,13 @@ inline size_t compute_size_in_bytes(std::tuple<uintE, W>* edges, const uintE& so
       uintE end = start + std::min<uintE>(PARALLEL_DEGREE, d - start);
       block_bytes[i] = compute_block_size(edges, start, end, source);
     });
-    auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks);
-    size_t total_space = pbbslib::scan_add_inplace(bytes_imap);
+    auto bytes_imap = pbbslib::make_range(block_bytes, num_blocks);
+    size_t total_space = pbbslib::scan_inplace(bytes_imap);
 
     // add in space for storing offsets to the start of each block
     total_space += sizeof(uintE) * (num_blocks - 1);
     if (num_blocks > 100) {
-      pbbslib::free_array(block_bytes);
+      gbbs::free_array(block_bytes, num_blocks);
     }
     return total_space;
   } else {
@@ -711,8 +711,8 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
   uintE edges_offset = (num_blocks - 1) * sizeof(uintE);
   uintE* block_offsets = (uintE*)edgeArray;
 
-  auto bytes_imap = pbbslib::make_sequence(block_bytes, num_blocks + 1);
-  uintE total_space = pbbslib::scan_add_inplace(bytes_imap);
+  auto bytes_imap = pbbslib::make_range(block_bytes, num_blocks + 1);
+  uintE total_space = pbbslib::scan_inplace(bytes_imap);
 
   if (total_space > (last_finger - edgeArray)) {
     std::cout << "# Space error!"
@@ -748,7 +748,7 @@ inline void compress_edges(uchar* edgeArray, const uintE& source, const uintE& d
     }
   });
   if (num_blocks > 100) {
-    pbbslib::free_array(block_bytes);
+    gbbs::free_array(block_bytes, num_blocks + 1);
   }
 }
 

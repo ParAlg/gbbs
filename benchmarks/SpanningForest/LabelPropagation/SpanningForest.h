@@ -24,7 +24,6 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/random_shuffle.h"
 #include "benchmarks/SpanningForest/common.h"
 #include "benchmarks/Connectivity/connectit.h"
 
@@ -166,12 +165,12 @@ namespace labelprop_sf {
     if constexpr (use_permutation) {
       Parents = pbbslib::random_permutation<uintE>(n);
     } else {
-      Parents = sequence<parent>(n, [&] (size_t i) { return i; });
+      Parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
     }
     auto alg = LPAlgorithm<Graph>(G);
     alg.template compute_spanning_forest<no_sampling>(Parents, Edges);
 
-    return pbbslib::filter(Edges, [&] (const edge& e) {
+    return pbbslib::filter(make_slice(Edges), [&] (const edge& e) {
       return e != empty_edge;
     });
   }

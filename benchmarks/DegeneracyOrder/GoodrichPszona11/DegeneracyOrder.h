@@ -4,9 +4,6 @@
 #include "gbbs/edge_map_reduce.h"
 #include "gbbs/gbbs.h"
 #include "gbbs/pbbslib/dyn_arr.h"
-#include "pbbslib/integer_sort.h"
-#include "pbbslib/kth_smallest.h"
-#include "pbbslib/random.h"
 
 namespace gbbs {
 namespace goodrichpszona_degen {
@@ -18,11 +15,11 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 
-  auto active = sequence<uintE>(n, [&] (size_t i) { return i; });
+  auto active = sequence<uintE>::from_function(n, [&] (size_t i) { return i; });
 
   /* induced degrees sequence */
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
+      sequence<uintE>::from_function(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
 
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
@@ -34,7 +31,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
   while (active.size() > 0) {
     /* compute cutoff using kth-smallest */
 
-    auto active_degs = pbbslib::make_sequence<uintE>(active.size(), [&] (size_t i) {
+    auto active_degs = pbbslib::make_delayed<uintE>(active.size(), [&] (size_t i) {
       uintE v = active[i];
       return D[v];
     });
@@ -72,7 +69,7 @@ inline sequence<uintE> DegeneracyOrder(Graph& GA, double epsilon=0.1) {
     auto this_round_vs = vertexSubset(n, std::move(this_round));
     auto moved = em.template edgeMapCount_sparse<uintE>(this_round_vs, apply_f);
   }
-  auto output = sequence<uintE>(n, [&] (size_t i) { return ret.A[i]; });
+  auto output = sequence<uintE>::from_function(n, [&] (size_t i) { return ret.A[i]; });
   ret.del();
   debug(
   kt.reportTotal("kth time");
@@ -87,18 +84,18 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
   const size_t n = GA.n;
   const size_t ns = std::max((size_t) (ceil((n*epsilon) / (2+epsilon))), (size_t) 1);
 
-  auto sortD = sequence<uintE>(n, [&](size_t i) {
+  auto sortD = sequence<uintE>::from_function(n, [&](size_t i) {
     return i;
   });
   auto D =
-      sequence<uintE>(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
+      sequence<uintE>::from_function(n, [&](size_t i) { return GA.get_vertex(i).out_degree(); });
   auto em = EdgeMap<uintE, Graph>(GA, std::make_tuple(UINT_E_MAX, 0),
                                       (size_t)GA.m / 20);
   auto get_deg =
       [&](uintE p) -> uintE { return D[p]; };
   for (size_t start = 0; start < n; start += ns) {
     // sort vertices in GA by degree, from start to n
-    integer_sort_inplace(sortD.slice(start, n), get_deg);
+    integer_sort_inplace(sortD.cut(start, n), get_deg);
     //radix::parallelIntegerSort(sortD.begin() + start, n - start, get_deg);
     // uintE deg_max = D[sortD[std::min(ns + start, n)]];
 
@@ -115,7 +112,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
     };
 
     size_t num_removed = std::min(ns + start, n) - start;
-    auto removed = sequence<uintE>::no_init(num_removed);
+    auto removed = sequence<uintE>::uninitialized(num_removed);
     parallel_for(0, num_removed, [&] (size_t i) {
       removed[i] = sortD[start + i];
     });
@@ -123,7 +120,7 @@ inline sequence<uintE> DegeneracyOrder_intsort(Graph& GA, double epsilon=0.001) 
         vertexSubset(n, std::move(removed));
     auto moved = em.template edgeMapCount_sparse<uintE>(active, apply_f);
   }
-  auto ret = sequence<uintE>::no_init(n);
+  auto ret = sequence<uintE>::uninitialized(n);
   parallel_for (0,n,[&] (size_t j) { ret[sortD[j]] = j; });
   return ret;
 }

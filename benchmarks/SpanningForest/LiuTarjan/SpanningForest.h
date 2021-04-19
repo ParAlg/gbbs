@@ -25,7 +25,6 @@
 
 #include "gbbs/bridge.h"
 #include "gbbs/gbbs.h"
-#include "pbbslib/random.h"
 #include "liu_tarjan_rules.h"
 #include "benchmarks/Connectivity/common.h"
 
@@ -96,7 +95,7 @@ struct LiuTarjanAlgorithm {
   }
 
   void initialize(sequence<parent>& P, sequence<edge>& Edges) {
-    messages = sequence<message>(P.size());
+    messages = sequence<message>::uninitialized(P.size());
     parallel_for(0, n, [&] (size_t i) {
       messages[i] = message(i, empty_edge);
     });

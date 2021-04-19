@@ -34,13 +34,23 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
     });
 }
 
-template <class E>
-auto wrap_array(E* arr, size_t n) {
+template <class Seq>
+auto wrap_array(const Seq& S) {
+  using E = typename Seq::value_type;
   // Create a Python object that will free the allocated
   // memory when destroyed:
-  py::capsule free_when_done(arr, [](void *f) {
-      E* foo = reinterpret_cast<E*>(f);
-      pbbs::free_array(foo);
+  size_t n = S.size();
+  size_t size = sizeof(size_t) + (n * sizeof(E));
+  auto byte_arr = pbbslib::new_array_no_init<uint8_t>(size);
+  *(reinterpret_cast<size_t*>(byte_arr)) = n;
+  auto arr = reinterpret_cast<E*>(byte_arr + sizeof(size_t));
+  parallel_for(0, n, [&] (size_t i) { pbbslib::assign_uninitialized(arr[i], S[i]); });
+
+  py::capsule free_when_done(byte_arr, [](void *f) {
+      auto byte_arr = reinterpret_cast<uint8_t*>(f) - sizeof(size_t);
+      size_t n = *(byte_arr);
+      pbbslib::free_array(byte_arr, n);
+      // TODO: should destruct non-trivial objects
   });
 
   return py::array_t<E>(
@@ -68,18 +78,15 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     }, py::arg("src"))
     .def("Connectivity", [&] (graph& G) {
       auto ccs = workefficient_cc::CC(G);
-      uintE* arr = ccs.to_array();
-      return wrap_array(arr, G.n);
+      return wrap_array(ccs);
     })
     .def("KCore", [&] (graph& G) {
       auto cores = KCore(G);
-      uintE* arr = cores.to_array();
-      return wrap_array(arr, G.n);
+      return wrap_array(cores);
     })
     .def("PageRank", [&] (graph& G) {
       auto ranks = PageRank(G);
-      double* arr = ranks.to_array();
-      return wrap_array(arr, G.n);
+      return wrap_array(ranks);
     })
     .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
       CoSimRank(G, src, dest);
@@ -124,8 +131,7 @@ void AsymGraphRegister(py::module& m, std::string graph_name) {
     }, py::arg("src"))
     .def("StronglyConnectedComponents", [&] (graph& G) {
       auto sccs = StronglyConnectedComponents(G);
-      size_t* arr = sccs.to_array();
-      return wrap_array(arr, G.n);
+      return wrap_array(sccs);
     });
 }
 

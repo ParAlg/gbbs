@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include "gbbs/graph.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 

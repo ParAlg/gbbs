@@ -2,7 +2,6 @@ cc_library(
   name = "LowDiameterDecomposition",
   hdrs = ["LowDiameterDecomposition.h"],
   deps = [
-  "//pbbslib:random_shuffle",
   "//gbbs:gbbs",
   ]
 )

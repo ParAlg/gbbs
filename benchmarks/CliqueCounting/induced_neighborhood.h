@@ -3,7 +3,6 @@
 /* TODO: describe what this file does */
 
 #include "intersect.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 namespace induced_neighborhood {
@@ -71,7 +70,7 @@ namespace induced_neighborhood {
         }
       });*/
 
-      auto deg_seq = pbbslib::make_sequence(new_induced_degs, induced->nn);
+      auto deg_seq = pbbslib::make_range(new_induced_degs, induced->nn);
       induced->num_edges[k_idx] = pbbslib::reduce_add(deg_seq);
 
       //uintE vtx = prev_induced[i];
@@ -86,7 +85,7 @@ namespace induced_neighborhood {
 
   template <class Graph>
   inline size_t CountCliques(Graph& DG, size_t k) {
-    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](FullSpace_orig_lw* induced) { induced->alloc(max_deg, k, DG.n); };
     auto finish_induced = [&](FullSpace_orig_lw* induced) { if (induced != nullptr) { delete induced; } };

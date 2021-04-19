@@ -15,7 +15,6 @@ gbbs_cc_test(
     srcs = ["graph_test.cc"],
     deps = [
         "//gbbs:graph",
-        "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
 )

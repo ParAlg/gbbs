@@ -4,8 +4,6 @@
 #include "benchmarks/SCAN/IndexBased/similarity_measure.h"
 #include "gbbs/graph.h"
 #include "gbbs/macros.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/utilities.h"
 #include "benchmarks/SCAN/IndexBased/utils.h"
 
 namespace gbbs {

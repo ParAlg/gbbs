@@ -106,8 +106,9 @@ namespace pbbslib {
 
     void del() {
       if (alloc) {
-        pbbslib::free_array(table);
-        pbbslib::free_array(cts);
+        size_t workers = num_workers();
+        pbbslib::free_array(table, m);
+        pbbslib::free_array(cts, kResizableTableCacheLineSz * workers);
         alloc = false;
       }
     }
@@ -209,7 +210,7 @@ namespace pbbslib {
         });
         update_nelms();
         if (alloc) {
-          pbbslib::free_array(old_t);
+          pbbslib::free_array(old_t, old_m);
         }
         alloc = true;
       }
@@ -304,7 +305,7 @@ namespace pbbslib {
 
     sequence<T> entries() {
       auto pred = [&](T& t) { return std::get<0>(t) != empty_key; };
-      auto table_seq = pbbslib::make_sequence<T>(table, m);
+      auto table_seq = pbbslib::make_range<T>(table, m);
       return pbbslib::filter(table_seq, pred);
     }
 

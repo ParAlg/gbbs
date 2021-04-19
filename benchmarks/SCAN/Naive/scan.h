@@ -19,9 +19,6 @@
 #include "gbbs/gbbs.h"
 #include "gbbs/macros.h"
 #include "gbbs/vertex_subset.h"
-#include "pbbslib/seq.h"
-#include "pbbslib/stlalgs.h"
-#include "pbbslib/utilities.h"
 
 namespace gbbs {
 namespace naive_scan {
@@ -52,7 +49,7 @@ Clustering Cluster(
         kDefaultSimilarity{std::numeric_limits<float>::signaling_NaN()};
       return similarities.find({u, v}, kDefaultSimilarity) >= epsilon;
     }};
-  const sequence<bool> core_bitmap(
+  const sequence<bool> core_bitmap = sequence<bool>::from_function(
       num_vertices,
       [&](const size_t i) {
         // `+ 1` accounts for open vs. closed neighborhood
@@ -108,7 +105,7 @@ Clustering Cluster(
       constexpr bool kParallel{false};
       vertex.out_neighbors().map(get_neighboring_clusters, kParallel);
       clustering[vertex_id] = pbbslib::remove_duplicates_ordered(
-          neighboring_clusters.slice(0, index), std::less<uintE>{});
+          neighboring_clusters.cut(0, index), std::less<uintE>{});
     }
   });
 

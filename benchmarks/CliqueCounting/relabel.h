@@ -2,7 +2,6 @@
 
 #include "gbbs/gbbs.h"
 #include "gbbs/graph.h"
-#include "pbbslib/seq.h"
 
 namespace gbbs {
 
@@ -36,8 +35,8 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   using edge = std::tuple<uintE, W>;
 
   // 1. Calculate total size
-  auto degrees = sequence<uintE>(n);
-  auto byte_offsets = sequence<uintT>(n + 1);
+  auto degrees = sequence<uintE>::uninitialized(n);
+  auto byte_offsets = sequence<uintT>::uninitialized(n + 1);
   parallel_for(0, n, [&] (size_t i) {
     size_t total_bytes = 0;
     uintE last_ngh = 0;
@@ -46,7 +45,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
 
     size_t prev_deg = GA.get_vertex(i).out_degree();
     // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
-    auto tmp_edges = sequence<edge>(prev_deg);
+    auto tmp_edges = sequence<edge>::uninitialized(prev_deg);
     auto f = [&](uintE u, uintE v, W w) {
       if (pred(u, v, w)) {
         tmp_edges[deg] = std::make_tuple(rank[v], w);
@@ -56,10 +55,10 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     };
     GA.get_vertex(i).out_neighbors().map(f, false);
     // need to sort tmp_edges
-    tmp_edges.shrink(deg);
-    pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
+    tmp_edges.resize(deg);
+    pbbslib::stable_sort_inplace(make_slice(tmp_edges), [&](const edge u, const edge v) {
       return std::get<0>(u) < std::get<0>(v);
-    }, true);
+    });
 
     // now need to compute total_bytes (TODO: this could be parallelized, b/c we know what last_ngh is)
     for (size_t j=0; j < deg; j++) {
@@ -82,7 +81,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     degrees[i] = deg;
   }, 1);
   byte_offsets[n] = 0;
-  size_t last_offset = pbbslib::scan_add_inplace(byte_offsets);
+  size_t last_offset = pbbslib::scan_inplace(byte_offsets);
   std::cout << "# size is: " << last_offset << "\n";
 
   auto edges = pbbslib::new_array_no_init<uchar>(last_offset);
@@ -92,7 +91,7 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
     uintE deg = degrees[i];
     if (deg > 0) {
       // here write out all of G's outneighbors to an uncompressed array, and then relabel and sort
-      auto tmp_edges = sequence<edge>(deg);
+      auto tmp_edges = sequence<edge>::uninitialized(deg);
       size_t j = 0;
       auto f = [&](uintE u, uintE v, W w) {
         if (pred(u, v, w)) {
@@ -103,9 +102,9 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
       };
       GA.get_vertex(i).out_neighbors().map(f, false);
       // need to sort tmp_edges
-      pbbslib::sample_sort (tmp_edges, [&](const edge u, const edge v) {
+      pbbslib::stable_sort_inplace(make_slice(tmp_edges), [&](const edge u, const edge v) {
         return std::get<0>(u) < std::get<0>(v);
-      }, true);
+      });
 
       auto iter = vertex_ops::get_iter(tmp_edges.begin(), deg);
       byte::sequentialCompressEdgeSet<W>(
@@ -121,11 +120,11 @@ inline symmetric_graph<csv_byte, W> relabel_graph(symmetric_graph<vertex, W>& GA
   byte_offsets.clear();
 
   auto deg_f = [&](size_t i) { return degrees[i]; };
-  auto deg_map = pbbslib::make_sequence<size_t>(n, deg_f);
+  auto deg_map = pbbslib::make_delayed<size_t>(n, deg_f);
   uintT total_deg = pbbslib::reduce_add(deg_map);
   std::cout << "# Filtered, total_deg = " << total_deg << "\n";
   return symmetric_graph<csv_byte, W>(out_vdata, GA.n, total_deg,
-                            [=]() {pbbslib::free_arrays(out_vdata, edges); },
+                            [=]() {pbbslib::free_array(out_vdata,n); free_array(edges, last_offset); },
                             edges, edges);
 }
 
@@ -136,7 +135,7 @@ template <template <class W> class vertex, class W, typename P,
 inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex, W>& GA, uintE* rank, P& pred) {
   using w_vertex = vertex<W>;
   size_t n = GA.n;
-  auto outOffsets = sequence<uintT>(n + 1);
+  auto outOffsets = sequence<uintT>::uninitialized(n + 1);
 
   parallel_for(0, n, [&] (size_t i) {
     w_vertex u = GA.get_vertex(i);
@@ -144,7 +143,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
     auto out_f = [&](uintE j) {
       return static_cast<int>(pred(i, out_nghs.get_neighbor(j), out_nghs.get_weight(j)));
     };
-    auto out_im = pbbslib::make_sequence<int>(u.out_degree(), out_f);
+    auto out_im = pbbslib::make_delayed<int>(u.out_degree(), out_f);
 
     if (out_im.size() > 0)
       outOffsets[rank[i]] = pbbslib::reduce_add(out_im);
@@ -153,7 +152,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
   }, 1);
 
   outOffsets[n] = 0;
-  uintT outEdgeCount = pbbslib::scan_add_inplace(outOffsets);
+  uintT outEdgeCount = pbbslib::scan_inplace(outOffsets);
 
   using edge = std::tuple<uintE, W>;
 
@@ -171,12 +170,12 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
         return pred(i, std::get<0>(e), std::get<1>(e));
       };
       auto n_im_f = [&](size_t j) { return nghs[j]; };
-      auto n_im = pbbslib::make_sequence<edge>(d, n_im_f);
-      pbbslib::filter_out(n_im, pbbslib::make_sequence(dir_nghs, d), pred_c, pbbslib::no_flag);
+      auto n_im = pbbslib::make_delayed<edge>(d, n_im_f);
+      pbbslib::filter_out(n_im, pbbslib::make_range(dir_nghs, d), pred_c, pbbslib::no_flag);
       parallel_for(0, true_deg, [&] (size_t j) { dir_nghs[j] = std::make_tuple(rank[std::get<0>(dir_nghs[j])], std::get<1>(dir_nghs[j])); });
-      pbbslib::sample_sort (dir_nghs, true_deg, [&](const edge left, const edge right) {
+      pbbslib::stable_sort_inplace(pbbslib::make_range(dir_nghs, true_deg), [&](const edge left, const edge right) {
         return std::get<0>(left) < std::get<0>(right);
-      }, true);
+      });
     }
   }, 1);
 
@@ -189,7 +188,7 @@ inline symmetric_graph<symmetric_vertex, W> relabel_graph(symmetric_graph<vertex
 
   return symmetric_graph<symmetric_vertex, W>(
       out_vdata, GA.n, outEdgeCount,
-      [=]() {pbbslib::free_arrays(out_vdata, out_edges); },
+      [=]() {pbbslib::free_array(out_vdata,n); pbbslib::free_array(out_edges, outEdgeCount); },
       out_edges);
 }
 
@@ -201,7 +200,7 @@ auto clr_sparsify_graph(Graph& GA, size_t denom, long seed) {
   size_t n = GA.n;
   // Color vertices with denom colors
   uintE numColors = std::max((size_t) 1,denom);
-  sequence<uintE> colors = sequence<uintE>(n, [&](size_t i){ return pbbslib::hash64_2((uintE) seed+i) % numColors; });
+  sequence<uintE> colors = sequence<uintE>::from_function(n, [&](size_t i){ return pbbslib::hash64_2((uintE) seed+i) % numColors; });
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     if (colors[u] == colors[v]) return 0;
     return 1;

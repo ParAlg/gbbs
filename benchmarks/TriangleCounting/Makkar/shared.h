@@ -193,7 +193,7 @@ namespace DBTGraph{
         //TriangleCounts():c1(0),c2(0),c3(0), c4(0), c5(0), c6(0){
         TriangleCounts(){
             P = num_workers();
-            c = sequence<size_t>::no_init(P * eltsPerCacheLine);
+            c = sequence<size_t>::uninitialized(P * eltsPerCacheLine);
             clear();
         }
 

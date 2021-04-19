@@ -7,37 +7,36 @@ gbbs_cc_test(
         ":similarity_measure_test_utils",
         "//benchmarks/SCAN/IndexBased:scan",
         "//benchmarks/SCAN/IndexBased:similarity_measure",
+        "//gbbs:bridge",
         "//gbbs:graph",
         "//gbbs:graph_test_utils",
         "//gbbs:undirected_edge",
         "//gbbs:vertex",
-        "//pbbslib:seq",
         "@googletest//:gtest_main",
     ],
 )
 
-gbbs_cc_test(
-    name = "similarity_measure_test",
-    srcs = ["similarity_measure_test.cc"],
-    deps = [
-        ":similarity_measure_test_utils",
-        "//benchmarks/SCAN/IndexBased:similarity_measure",
-        "//gbbs:graph_test_utils",
-        "//gbbs:macros",
-        "@googletest//:gtest_main",
-    ],
-)
-
-gbbs_cc_test(
-    name = "utils_test",
-    srcs = ["utils_test.cc"],
-    deps = [
-        "//benchmarks/SCAN/IndexBased:utils",
-        "//gbbs:graph_test_utils",
-        "//pbbslib:seq",
-        "@googletest//:gtest_main",
-    ],
-)
+#gbbs_cc_test(
+#    name = "similarity_measure_test",
+#    srcs = ["similarity_measure_test.cc"],
+#    deps = [
+#        ":similarity_measure_test_utils",
+#        "//benchmarks/SCAN/IndexBased:similarity_measure",
+#        "//gbbs:graph_test_utils",
+#        "//gbbs:macros",
+#        "@googletest//:gtest_main",
+#    ],
+#)
+#
+#gbbs_cc_test(
+#    name = "utils_test",
+#    srcs = ["utils_test.cc"],
+#    deps = [
+#        "//benchmarks/SCAN/IndexBased:utils",
+#        "//gbbs:graph_test_utils",
+#        "@googletest//:gtest_main",
+#    ],
+#)
 
 cc_library(
     name = "similarity_measure_test_utils",

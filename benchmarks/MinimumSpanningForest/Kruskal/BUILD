@@ -7,9 +7,6 @@ cc_library(
   "//gbbs:union_find",
   "//gbbs/pbbslib:sparse_table",
   "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:binary_search",
-  "//pbbslib:random",
-  "//pbbslib:sample_sort",
   ]
 )
 

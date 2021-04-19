@@ -5,9 +5,6 @@ cc_library(
   "//gbbs:bucket",
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
-  "//pbbslib:integer_sort",
-  "//pbbslib:kth_smallest",
-  "//pbbslib:random",
   ]
 )
 

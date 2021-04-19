@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <cmath>
 #include "gbbs/gbbs.h"
-#include "pbbslib/sample_sort.h"
 #include "benchmarks/TriangleCounting/ShunTangwongsan15/Triangle.h"
 
 namespace gbbs {
@@ -64,9 +63,9 @@ namespace gbbs {
       A = sequence<uintE*>(num_vertices);
       D = sequence<uintE>(n);
       T = 0;
-      initial_vertex_memory = sequence<uintE>(num_vertices*initial_vertex_size);
-      allocated = sequence<bool>(n);
-      starts_offsets = sequence<size_t>(n);
+      initial_vertex_memory = sequence<uintE>::uninitialized(num_vertices*initial_vertex_size);
+      allocated = sequence<bool>::uninitialized(n);
+      starts_offsets = sequence<size_t>::uninitialized(n);
       parallel_for(0, n, [&] (size_t i) {
         A[i] = &(initial_vertex_memory[i*initial_vertex_size]);
         D[i] = 0;
@@ -80,12 +79,12 @@ namespace gbbs {
     DynamicGraph(Graph& G) {
       using W = typename Graph::weight_type;
       n = G.n;
-      A = sequence<uintE*>(n);
-      D = sequence<uintE>(n);
+      A = sequence<uintE*>::uninitialized(n);
+      D = sequence<uintE>::uninitialized(n);
       T = 0;
-      initial_vertex_memory = sequence<uintE>(n*initial_vertex_size);
-      allocated = sequence<bool>(n);
-      starts_offsets = sequence<size_t>(n);
+      initial_vertex_memory = sequence<uintE>::uninitialized(n*initial_vertex_size);
+      allocated = sequence<bool>::uninitialized(n);
+      starts_offsets = sequence<size_t>::uninitialized(n);
       parallel_for(0, n, [&] (size_t i) {
         uintE deg_i = G.get_vertex(i).out_degree();
         D[i] = deg_i;
@@ -184,8 +183,9 @@ namespace gbbs {
       uintE* ngh_v = A[v];
       uintE* new_array = pbbslib::new_array_no_init<uintE>(max_new_degree);
       size_t new_degree = do_merge_ins(ngh_v, current_degree, updates, new_array);
+      auto old_degree = D[v];
       D[v] = new_degree; // update the degree in the table
-      if (allocated[v]) { pbbslib::free_array(ngh_v); } // free old neighbors if nec.
+      if (allocated[v]) { pbbslib::free_array(ngh_v, old_degree); } // free old neighbors if nec.
       else { allocated[v] = true; } // update allocated[v] if nec.
       A[v] = new_array; // update to the new neighbors
     }
@@ -247,7 +247,7 @@ namespace gbbs {
     template <class B>
     void process_insertions(B& unsorted_batch) {
       if (unsorted_batch.size() == 0) { return; }
-      auto duplicated_batch = sequence<edge>(2*unsorted_batch.size());
+      auto duplicated_batch = sequence<edge>::uninitialized(2*unsorted_batch.size());
       parallel_for(0, unsorted_batch.size(), [&] (size_t i) {
         duplicated_batch[2*i] = unsorted_batch[i];
         duplicated_batch[2*i+1].from = unsorted_batch[i].to;
@@ -260,7 +260,7 @@ namespace gbbs {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbslib::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+      pbbslib::sample_sort_inplace(make_slice(duplicated_batch), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
@@ -293,7 +293,7 @@ namespace gbbs {
         size_t v_deg = ((i == untested_starts.size()-1) ? untested_batch.size() : untested_starts[i+1].second) - index;
         if (v_deg == 0) abort();
 
-        auto v_inserts = untested_batch.slice(index, index + v_deg);
+        auto v_inserts = untested_batch.cut(index, index + v_deg);
         merge_insertions(v, v_inserts);
       });
 
@@ -328,7 +328,7 @@ namespace gbbs {
       // graph, and updates the triangle counts
 
       // G(u) intersect G(v)
-      sequence<size_t> counts_one(batch.size());
+      sequence<size_t> counts_one = sequence<size_t>::uninitialized(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         if (u < v) {
@@ -344,12 +344,12 @@ namespace gbbs {
         // assert(up == u);
         size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
         if (u_deg == 0) abort();
-        auto u_inserts = batch.slice(index, index + u_deg);
+        auto u_inserts = batch.cut(index, index + u_deg);
         return u_inserts;
       };
 
       // truncated G(u) intersect G'(v) and truncated G(v) intersect G'(u)
-      sequence<size_t> counts_two(batch.size());
+      sequence<size_t> counts_two = sequence<size_t>::uninitialized(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         size_t count = 0;
@@ -370,7 +370,7 @@ namespace gbbs {
         counts_two[b] = count;
       });
 
-      sequence<size_t> counts_three(batch.size());
+      sequence<size_t> counts_three = sequence<size_t>::uninitialized(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         size_t count = 0;
@@ -386,9 +386,9 @@ namespace gbbs {
         counts_three[b] = count;
       });
 
-      size_t first_count = pbbslib::reduce_add(counts_one.slice());
-      size_t second_count = pbbslib::reduce_add(counts_two.slice());
-      size_t third_count = pbbslib::reduce_add(counts_three.slice());
+      size_t first_count = pbbslib::reduce_add(make_slice(counts_one));
+      size_t second_count = pbbslib::reduce_add(make_slice(counts_two));
+      size_t third_count = pbbslib::reduce_add(make_slice(counts_three));
 
       size_t new_triangles = first_count - second_count + (third_count/3);
       T += new_triangles;
@@ -457,7 +457,7 @@ namespace gbbs {
     template <class B>
     void process_deletions(B& unsorted_batch) {
       if (unsorted_batch.size() == 0) { return; }
-      auto duplicated_batch = sequence<edge>(2*unsorted_batch.size());
+      auto duplicated_batch = sequence<edge>::uninitialized(2*unsorted_batch.size());
       parallel_for(0, unsorted_batch.size(), [&] (size_t i) {
         duplicated_batch[2*i] = unsorted_batch[i];
         duplicated_batch[2*i+1].from = unsorted_batch[i].to;
@@ -470,7 +470,7 @@ namespace gbbs {
         return (l.from < r.from) || ((l.from == r.from) && (l.to < r.to));
       };
       timer sort_t; sort_t.start();
-      pbbslib::sample_sort_inplace(duplicated_batch.slice(), sort_f);
+      pbbslib::sample_sort_inplace(make_slice(duplicated_batch), sort_f);
 
       // (ii) define the unweighted version (with ins/del) dropped and filter to
       // remove duplicates in the batch
@@ -505,7 +505,7 @@ namespace gbbs {
         size_t v_deg = ((i == untested_starts.size()-1) ? untested_batch.size() : untested_starts[i+1].second) - index;
         if (v_deg == 0) abort();
 
-        auto v_inserts = untested_batch.slice(index, index + v_deg);
+        auto v_inserts = untested_batch.cut(index, index + v_deg);
         merge_deletions(v, v_inserts);
       });
 
@@ -542,7 +542,7 @@ namespace gbbs {
       // graph, and updates the triangle counts
 
       // G(u) intersect G(v)
-      sequence<size_t> counts_one(batch.size());
+      sequence<size_t> counts_one = sequence<size_t>::uninitialized(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         if (u < v) {
@@ -558,12 +558,12 @@ namespace gbbs {
         // assert(up == u);
         size_t u_deg = ((u_starts_offset == starts.size()-1) ? batch.size() : starts[u_starts_offset+1].second) - index;
         if (u_deg == 0) abort();
-        auto u_inserts = batch.slice(index, index + u_deg);
+        auto u_inserts = batch.cut(index, index + u_deg);
         return u_inserts;
       };
 
       // truncated G(u) intersect G'(v) and truncated G(v) intersect G'(u)
-      sequence<size_t> counts_two(batch.size());
+      sequence<size_t> counts_two = sequence<size_t>::uninitialized(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         size_t count = 0;
@@ -584,7 +584,7 @@ namespace gbbs {
         counts_two[b] = count;
       });
 
-      sequence<size_t> counts_three(batch.size());
+      sequence<size_t> counts_three = sequence<size_t>::uninitialized(batch.size());
       parallel_for(0, batch.size(), [&] (size_t b) {
         auto [u, v] = batch[b];
         size_t count = 0;
@@ -609,9 +609,9 @@ namespace gbbs {
         counts_three[b] = count;
       });
 
-      size_t first_count = pbbslib::reduce_add(counts_one.slice());
-      size_t second_count = pbbslib::reduce_add(counts_two.slice());
-      size_t third_count = pbbslib::reduce_add(counts_three.slice());
+      size_t first_count = pbbslib::reduce_add(make_slice(counts_one));
+      size_t second_count = pbbslib::reduce_add(make_slice(counts_two));
+      size_t third_count = pbbslib::reduce_add(make_slice(counts_three));
 
       size_t triangles_deleted = first_count + second_count + (third_count/3);
       T -= triangles_deleted;
@@ -628,8 +628,8 @@ namespace gbbs {
 
     void report_stats() {
       // compute reduction
-       auto seq_copy = sequence<size_t>(n, [&] (size_t i) { return D[i]; });
-       size_t sum_deg = pbbslib::reduce_add(seq_copy.slice());
+       auto seq_copy = sequence<size_t>::from_function(n, [&] (size_t i) { return D[i]; });
+       size_t sum_deg = pbbslib::reduce_add(make_slice(seq_copy));
        std::cout << "Deg = " << sum_deg << std::endl;
     }
 

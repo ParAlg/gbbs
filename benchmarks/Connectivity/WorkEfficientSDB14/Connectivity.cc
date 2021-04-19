@@ -59,7 +59,7 @@ double CC_runner(Graph& G, commandLine P) {
   if (P.getOption("-stats")) {
     auto cc_f = [&](size_t i) { return components[i]; };
     auto cc_im =
-        pbbslib::make_sequence<uintE>(G.n, cc_f);
+        pbbslib::make_delayed<uintE>(G.n, cc_f);
     workefficient_cc::num_cc(cc_im);
     workefficient_cc::largest_cc(cc_im);
   }

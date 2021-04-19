@@ -56,7 +56,7 @@ class sparse_table {
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(table);
+      pbbslib::free_array(table, m);
       alloc = false;
     }
   }
@@ -67,7 +67,7 @@ class sparse_table {
   void resize_no_copy(size_t incoming) {
     if (incoming > m) {
       if (alloc) {
-        pbbslib::free_array(table);
+        pbbslib::free_array(table, m);
       }
       std::cout << "# Resizing decrement table, was: " << m;
       m = incoming;
@@ -100,7 +100,7 @@ class sparse_table {
       });
 
       if (old_alloc) {
-        pbbslib::free_array(old_table);
+        pbbslib::free_array(old_table, old_m);
       }
     }
   }
@@ -283,7 +283,7 @@ class sparse_table {
 
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
-    auto table_seq = pbbslib::make_sequence<T>(table, m);
+    auto table_seq = pbbslib::make_range<T>(table, m);
     return pbbslib::filter(table_seq, pred);
   }
 

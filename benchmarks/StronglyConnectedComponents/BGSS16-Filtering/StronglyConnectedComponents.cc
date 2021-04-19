@@ -42,7 +42,7 @@ inline size_t num_done(Seq& labels) {
   auto im_f = [&](size_t i) {
     return (size_t)(labels[i] != kUnfinished);
   };
-  auto im = pbbslib::make_sequence<size_t>(labels.size(), im_f);
+  auto im = pbbslib::make_delayed<size_t>(labels.size(), im_f);
 
   return pbbslib::reduce_add(im);
 }
@@ -50,14 +50,14 @@ inline size_t num_done(Seq& labels) {
 template <class Seq>
 inline size_t num_scc(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   par_for(0, n, kDefaultGranularity, [&] (size_t i) {
     size_t label = labels[i];
     if ((label != kUnfinished) && !flags[label]) {
       flags[label] = 1;
     }
   });
-  pbbslib::scan_add_inplace(flags);
+  pbbslib::scan_inplace(flags);
   size_t n_scc = flags[n];
   std::cout << "n_scc = " << flags[n] << "\n";
   return n_scc;
@@ -66,7 +66,7 @@ inline size_t num_scc(Seq& labels) {
 template <class Seq>
 inline void scc_stats(Seq& labels) {
   size_t n = labels.size();
-  auto flags = sequence<uintE>(n + 1, [&](size_t i) { return 0; });
+  auto flags = sequence<uintE>::from_function(n + 1, [&](size_t i) { return 0; });
   for (size_t i = 0; i < n; i++) {
     size_t label = labels[i];
     if (label != kUnfinished)

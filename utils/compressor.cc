@@ -2,8 +2,6 @@
 #include "gbbs/gbbs.h"
 #include "gbbs/io.h"
 #include "gbbs/parse_command_line.h"
-#include "pbbslib/utilities.h"
-#include "pbbslib/random.h"
 
 #include <iostream>
 #include <fstream>
@@ -61,7 +59,7 @@ namespace gbbs {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_add_inplace(byte_offsets);
+      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -130,7 +128,7 @@ namespace gbbs {
         byte_offsets[i] = total_bytes;
       });
       byte_offsets[n] = 0;
-      size_t total_space = pbbslib::scan_add_inplace(byte_offsets);
+      size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
       std::cout << "total in-space = " << total_space << std::endl;
 
       // 2. Create compressed format in-memory
@@ -277,10 +275,10 @@ namespace gbbs {
       byte_offsets[i] = total_bytes;
     });
     byte_offsets[n] = 0;
-    size_t total_space = pbbslib::scan_add_inplace(byte_offsets);
+    size_t total_space = pbbslib::scan_inplace(make_slice(byte_offsets));
     std::cout << "total space = " << total_space << std::endl;
     auto deg_f = [&] (size_t i) { return degrees[i]; };
-    auto deg_im = pbbslib::make_sequence<size_t>(n, deg_f);
+    auto deg_im = pbbslib::make_delayed<size_t>(n, deg_f);
     std::cout << "sum degs = " << pbbslib::reduce_add(deg_im) << std::endl;
 
     // 2. Create compressed format in-memory

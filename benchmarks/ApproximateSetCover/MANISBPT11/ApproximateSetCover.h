@@ -26,9 +26,6 @@
 #include "gbbs/gbbs.h" /* includes core gbbs libraries (graphs, graph operators, etc) */
 #include "gbbs/julienne.h" /* includes bucketing data structure */
 
-#include "pbbslib/random.h"
-#include "pbbslib/random_shuffle.h"
-
 namespace gbbs {
 
 namespace sc {
@@ -70,15 +67,14 @@ template <class Graph>
 inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   using W = typename Graph::weight_type;
   timer it; it.start();
-  auto Elms = sequence<uintE>(G.n, [&](size_t i) { return UINT_E_MAX; });
+  auto Elms = sequence<uintE>::from_function(G.n, [&](size_t i) { return UINT_E_MAX; });
   auto get_bucket_clamped = [&](size_t deg) -> uintE {
     return (deg == 0) ? UINT_E_MAX : (uintE)floor(sc::x * log((double)deg));
   };
-  auto D = sequence<uintE>(G.n, [&](size_t i) { return get_bucket_clamped(G.get_vertex(i).out_degree()); });
-  auto d_slice = D.slice();
-  auto b = make_vertex_buckets(G.n, d_slice, decreasing, num_buckets);
+  auto D = sequence<uintE>::from_function(G.n, [&](size_t i) { return get_bucket_clamped(G.get_vertex(i).out_degree()); });
+  auto b = make_vertex_buckets(G.n, D, decreasing, num_buckets);
 
-  auto perm = sequence<uintE>(G.n);
+  auto perm = sequence<uintE>::uninitialized(G.n);
   timer bktt, packt, permt, emt;
 
   timer nbt;
@@ -194,7 +190,7 @@ inline pbbslib::dyn_arr<uintE> SetCover(Graph& G, size_t num_buckets = 512) {
   permt.reportTotal("perm");
   emt.reportTotal("emap");
   auto elm_cov_f = [&](uintE v) { return (uintE)(Elms[v] == sc::COVERED); };
-  auto elm_cov = pbbslib::make_sequence<uintE>(G.n, elm_cov_f);
+  auto elm_cov = pbbslib::make_delayed<uintE>(G.n, elm_cov_f);
   size_t elms_cov = pbbslib::reduce_add(elm_cov);
   std::cout << "|V| = " << G.n << " |E| = " << G.m << "\n";
   std::cout << "|cover|: " << cover.size << "\n";

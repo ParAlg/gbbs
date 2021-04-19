@@ -85,7 +85,7 @@ inline sequence<intE> BellmanFord(Graph& G, const uintE& start) {
     round++;
   }
   auto dist_im_f = [&](size_t i) { return (SP[i] == (INT_MAX / 2)) ? 0 : SP[i]; };
-  auto dist_im = pbbslib::make_sequence<size_t>(n, dist_im_f);
+  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;

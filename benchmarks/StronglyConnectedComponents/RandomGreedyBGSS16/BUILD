@@ -4,7 +4,6 @@ cc_library(
   deps = [
   "//gbbs:gbbs",
   "//gbbs/pbbslib:resizable_table",
-  "//pbbslib:random_shuffle"
   ]
 )
 

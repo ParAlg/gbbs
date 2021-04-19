@@ -4,8 +4,6 @@
 #include "edge_map_utils.h"
 #include "flags.h"
 #include "vertex_subset.h"
-#include "pbbslib/list_allocator.h"
-#include "pbbslib/binary_search.h"
 
 #include <vector>
 
@@ -27,7 +25,7 @@ inline vertexSubsetData<data> edgeMapSparse(Graph& G,
       return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).in_degree()
                              : G.get_vertex(indices.vtx(i)).out_degree();
     });
-    size_t outEdgeCount = pbbslib::scan_add_inplace(offsets.slice());
+    size_t outEdgeCount = pbbslib::scan_inplace(make_slice(offsets));
 
     auto outEdges = sequence<S>(outEdgeCount);
     auto g = get_emsparse_gen_full<data>(outEdges.begin());
@@ -101,14 +99,14 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
     return (fl & in_edges) ? G.get_vertex(indices.vtx(i)).in_neighbors().get_num_blocks()
                            : G.get_vertex(indices.vtx(i)).out_neighbors().get_num_blocks();
   };
-  auto block_imap = pbbslib::make_sequence<uintE>(indices.size(), block_f);
+  auto block_imap = pbbslib::make_delayed<uintE>(indices.size(), block_f);
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
   parallel_for(0, indices.size(),
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
+  size_t num_blocks = pbbslib::scan_inplace(make_slice(vertex_offs));
   std::cout << "# num_blocks = " << num_blocks << std::endl;
 
   auto blocks = sequence<block>(num_blocks);
@@ -128,7 +126,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
       degrees[vtx_off + j] = block_deg;
     });
   }, 1);
-  pbbslib::scan_add_inplace(degrees.slice(), pbbslib::fl_scan_inclusive);
+  pbbslib::scan_inclusive_inplace(make_slice(degrees));
   size_t outEdgeCount = degrees[num_blocks - 1];
 
   // 3. Compute the number of threads, binary search for offsets.
@@ -169,7 +167,7 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
     }
   });
   cts[n_threads] = 0;
-  size_t out_size = pbbslib::scan_add_inplace(cts.slice());
+  size_t out_size = pbbslib::scan_inplace(make_slice(cts));
 
   // 5. Use cts to get
   S* out = pbbslib::new_array_no_init<S>(out_size);
@@ -185,8 +183,8 @@ inline vertexSubsetData<data> edgeMapBlocked(Graph& G, VS& indices, F& f,
       }
     }
   });
-  pbbslib::free_array(outEdges);
-  pbbslib::free_array(thread_offs);
+  pbbslib::free_array(outEdges, outEdgeCount);
+  pbbslib::free_array(thread_offs, n_threads + 1);
   cts.clear();
   vertex_offs.clear();
   blocks.clear();
@@ -200,7 +198,7 @@ struct em_data_block {
   size_t block_size;
   uint8_t data[kDataBlockSizeBytes];
 };
-using data_block_allocator = pbbs::list_allocator<em_data_block>;
+using data_block_allocator = parlay::type_allocator<em_data_block>;
 
 
 // block format:
@@ -232,8 +230,8 @@ struct emhelper {
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(perthread_blocks);
-      pbbslib::free_array(perthread_counts);
+      pbbslib::free_array(perthread_blocks, n_groups*kThreadBlockStride);
+      pbbslib::free_array(perthread_counts, n_groups);
     }
   }
 
@@ -330,14 +328,14 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
     auto nghs = (fl & in_edges) ? G.get_vertex(vtx_id).in_neighbors() : G.get_vertex(vtx_id).out_neighbors();
     return nghs.get_num_blocks();
   };
-  auto block_imap = pbbslib::make_sequence<uintE>(indices.size(), block_f);
+  auto block_imap = pbbslib::make_delayed<uintE>(indices.size(), block_f);
 
   // 1. Compute the number of blocks each vertex is subdivided into.
   auto vertex_offs = sequence<uintE>(indices.size() + 1);
   par_for(0, indices.size(), kDefaultGranularity,
           [&](size_t i) { vertex_offs[i] = block_imap[i]; });
   vertex_offs[indices.size()] = 0;
-  size_t num_blocks = pbbslib::scan_add_inplace(vertex_offs.slice());
+  size_t num_blocks = pbbslib::scan_inplace(make_slice(vertex_offs));
 
   auto blocks = sequence<block>(num_blocks);
   auto degrees = sequence<uintT>(num_blocks);
@@ -356,7 +354,7 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
       degrees[vtx_off + j] = block_deg;
     });
   });
-  pbbslib::scan_add_inplace(degrees.slice(), pbbslib::fl_scan_inclusive);
+  pbbslib::scan_inclusive_inplace(make_slice(degrees));
   vertex_offs.clear();
   size_t outEdgeCount = degrees[num_blocks - 1];
 
@@ -411,10 +409,10 @@ inline vertexSubsetData<data> edgeMapChunked(Graph& G, VS& indices, F& f,
 
   // scan the #output blocks/thread
   sequence<em_data_block*> all_blocks = our_emhelper.get_all_blocks();
-  auto block_offsets = sequence<size_t>(all_blocks.size(), [&] (size_t i) {
+  auto block_offsets = sequence<size_t>::from_function(all_blocks.size(), [&] (size_t i) {
     return all_blocks[i]->block_size;
   });
-  size_t output_size = pbbslib::scan_add_inplace(block_offsets.slice());
+  size_t output_size = pbbslib::scan_inplace(make_slice(block_offsets));
   vertexSubsetData<data> ret(n);
   if (output_size > 0) {
     auto out = sequence<S>(output_size);

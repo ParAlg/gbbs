@@ -8,10 +8,10 @@
 
 #include "gtest/gtest.h"
 #include "gbbs/graph.h"
+#include "gbbs/bridge.h"
 #include "gbbs/macros.h"
 #include "gbbs/undirected_edge.h"
 #include "gbbs/vertex.h"
-#include "pbbslib/utilities.h"
 
 namespace gbbs {
 namespace graph_test {

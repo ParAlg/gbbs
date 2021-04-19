@@ -95,7 +95,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   using bucket_t = uintE;
   using trussness_t = uintE;
 
-  auto deg_lt = pbbslib::make_sequence<uintE>(GA.n, [&] (size_t i) {
+  auto deg_lt = pbbslib::make_delayed<uintE>(GA.n, [&] (size_t i) {
       return GA.get_vertex(i).out_degree() < (1 << 15); 
   });
   std::cout << "count = " << pbbslib::reduce_add(deg_lt) << std::endl;
@@ -144,7 +144,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   // Initialize the bucket structure. #ids = trussness table size
   std::cout << "multi_size = " << trussness_multi.size() << std::endl;
   auto multi_size = trussness_multi.size();
-  auto get_bkt = pbbslib::make_sequence<uintE>(multi_size, [&] (size_t i) {
+  auto get_bkt = pbbslib::make_delayed<uintE>(multi_size, [&] (size_t i) {
     auto table_value = std::get<1>(trussness_multi.big_table[i]); // the trussness.
     return (uintE)table_value;
   });
@@ -155,7 +155,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
   auto decr_source_table = pbbslib::make_sparse_table<edge_t, uintE>(1 << 20, std::make_tuple(std::numeric_limits<edge_t>::max(), (uintE)0), hash_edge_id);
 
   auto del_edges = pbbslib::dyn_arr<edge_t>(6*GA.n);
-  auto actual_degree = sequence<uintE>(GA.n, [&] (size_t i) {
+  auto actual_degree = sequence<uintE>::from_function(GA.n, [&] (size_t i) {
     return GA.get_vertex(i).out_degree();
   });
 
@@ -256,7 +256,7 @@ void KTruss_ht(Graph& GA, size_t num_buckets = 16) {
 //      ret.exists = true;
 //      return ret;
 //    };
-//    auto edges_moved_map = pbbslib::make_sequence<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
+//    auto edges_moved_map = pbbslib::make_delayed<Maybe<std::tuple<edge_t, bucket_t>>>(res.first, rebucket_f);
 //    auto edges_moved_f = [&] (size_t i) { return edges_moved_map[i]; };
 //    bt.start();
 //    b.update_buckets(edges_moved_f, edges_moved_map.size());

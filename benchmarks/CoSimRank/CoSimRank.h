@@ -46,7 +46,7 @@ void CoSimRank_edgeMap(Graph& G, uintE v, uintE u, double eps = 0.000001, double
 
   // read from special array of just degrees
 
-  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>::from_function(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto frontier_v = sequence<bool>(n, false);
   frontier_v[v] = true;
@@ -107,7 +107,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
   auto p_curr_v = sequence<double>(n, static_cast<double>(0));
   p_curr_v[v] = static_cast<double>(1);
   auto p_next_v = sequence<double>(n, static_cast<double>(0));
-  auto frontier_v = sequence<std::tuple<bool, double>>::no_init(n);
+  auto frontier_v = sequence<std::tuple<bool, double>>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) { frontier_v[i] = std::make_tuple(false, static_cast<double>(0)); },
                  1000);
   frontier_v[v] = std::make_tuple(true, static_cast<double>(0));
@@ -115,7 +115,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
   auto p_curr_u = sequence<double>(n, static_cast<double>(0));
   p_curr_u[u] = static_cast<double>(1);
   auto p_next_u = sequence<double>(n, static_cast<double>(0));
-  auto frontier_u = sequence<std::tuple<bool, double>>::no_init(n);
+  auto frontier_u = sequence<std::tuple<bool, double>>::uninitialized(n);
   parallel_for(0, n, [&](size_t i) { frontier_u[i] = std::make_tuple(false, static_cast<double>(0)); },
                  1000);
   frontier_u[u] = std::make_tuple(true, static_cast<double>(0));
@@ -125,7 +125,7 @@ void CoSimRank(Graph& G, uintE v, uintE u, double eps = 0.000001, double c = 0.8
 
   // read from special array of just degrees
 
-  auto degrees = sequence<uintE>(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
+  auto degrees = sequence<uintE>::from_function(n, [&] (size_t i) { return G.get_vertex(i).out_degree(); });
 
   auto EM_v = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);
   auto EM_u = EdgeMap<double, Graph>(G, std::make_tuple(UINT_E_MAX, static_cast<double>(0)), (size_t)G.m/1000);

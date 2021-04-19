@@ -68,7 +68,7 @@ class tomb_table {
 
   void del() {
     if (alloc) {
-      pbbslib::free_array(table);
+      pbbslib::free_array(table, m);
       alloc = false;
     }
   }
@@ -204,7 +204,7 @@ class tomb_table {
         });
         // update_nelms();
         if (alloc) {
-          pbbslib::free_array(old_t);
+          pbbslib::free_array(old_t, old_m);
         }
         alloc = true;
       }
@@ -366,7 +366,7 @@ class tomb_table {
 
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key && std::get<0>(t) != tomb_key; };
-    auto table_seq = pbbslib::make_sequence<T>(table, m);
+    auto table_seq = pbbslib::make_delayed<T>(table, m);
     return pbbslib::filter(table_seq, pred);
   }
 

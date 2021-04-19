@@ -14,7 +14,7 @@ void report_pathlen(uintE pathlen) {
 
 sequence<std::tuple<uintE, uintE, UpdateType>>
 annotate_updates_insert(sequence<std::tuple<uintE, uintE>>& updates, size_t n) {
-  auto seq = pbbslib::make_sequence<std::tuple<uintE, uintE, UpdateType>>(n, [&] (size_t i) {
+  auto seq = pbbslib::sequence<std::tuple<uintE, uintE, UpdateType>>::from_function(n, [&] (size_t i) {
       auto& ith = updates[i];
       return std::make_tuple(std::get<0>(ith), std::get<1>(ith), insertion_type);
   });

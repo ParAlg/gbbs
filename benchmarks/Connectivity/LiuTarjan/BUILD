@@ -12,7 +12,6 @@ cc_library(
   deps = [
   ":liu_tarjan_rules",
   "//gbbs:gbbs",
-  "//pbbslib:random",
   "//benchmarks/Connectivity:common",
   ]
 )

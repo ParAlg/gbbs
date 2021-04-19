@@ -24,7 +24,6 @@
 #pragma once
 
 #include <limits>
-#include "pbbslib/random_shuffle.h"
 #include "gbbs/pbbslib/resizable_table.h"
 #include "gbbs/pbbslib/sparse_table.h"
 #include "gbbs/gbbs.h"
@@ -221,7 +220,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
   size_t n = GA.n;
 
   // Everyone's initial label is "unfinished".
-  auto labels = sequence<label_type>(n, [](size_t) { return kUnfinished; });
+  auto labels = sequence<label_type>::from_function(n, [](size_t) { return kUnfinished; });
 
   // TODO: necessary?
   auto ba = sequence<bool>(n, false);
@@ -229,7 +228,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 
   // Split vertices into those with zero in/out degree (zero), and those with non-zero
   // in- and out-degree (non_zero).
-  auto v_im = pbbslib::make_sequence<uintE>(n, [](size_t i) { return i; });
+  auto v_im = pbbslib::make_delayed<uintE>(n, [](size_t i) { return i; });
   auto zero = pbbslib::filter(v_im, [&](size_t i) {
     return (GA.get_vertex(i).out_degree() == 0) || (GA.get_vertex(i).in_degree() == 0);
   });
@@ -266,7 +265,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
 //    auto deg_im_f = [&](size_t i) {
 //      return std::make_tuple(i, GA.get_vertex(i).out_degree() + GA.get_vertex(i).in_degree());
 //    };
-//    auto deg_im = pbbslib::make_sequence<std::tuple<uintE, uintE>>(n, deg_im_f);
+//    auto deg_im = pbbslib::make_delayed<std::tuple<uintE, uintE>>(n, deg_im_f);
 //    auto red_f = [](const std::tuple<uintE, uintE>& l,
 //                    const std::tuple<uintE, uintE>& r) {
 //          return (std::get<1>(l) > std::get<1>(r)) ? l : r;
@@ -361,7 +360,7 @@ inline sequence<label_type> StronglyConnectedComponents(Graph& GA, double beta =
     size_t round_offset = cur_offset;
     cur_offset += vs_size;
 
-    auto centers_pre_filter = pbbslib::make_sequence<uintE>(
+    auto centers_pre_filter = pbbslib::make_delayed<uintE>(
         vs_size, [&](size_t i) { return Q[round_offset + i]; });
     auto centers = pbbslib::filter(
         centers_pre_filter, [&](uintE v) { return labels[v] == kUnfinished; });

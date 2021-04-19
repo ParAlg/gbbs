@@ -24,7 +24,6 @@
 #pragma once
 
 #include "gbbs/gbbs.h"
-#include "pbbslib/random.h"
 #include "union_find_rules.h"
 #include "benchmarks/Connectivity/common.h"
 
@@ -103,8 +102,8 @@ struct UFAlgorithm {
       auto ret = reorder_updates(updates);
       auto reordered_updates = ret.first;
       size_t update_end = ret.second;
-      auto insertions = reordered_updates.slice(0, update_end);
-      auto queries = reordered_updates.slice(update_end, updates.size());
+      auto insertions = reordered_updates.cut(0, update_end);
+      auto queries = reordered_updates.cut(update_end, updates.size());
       /* run updates */
       parallel_for(0, insertions.size(), [&] (size_t i) {
         auto [u,v,optype] = insertions[i];
@@ -139,7 +138,7 @@ template <class Seq>
 sequence<parent> find_compress_uf(size_t n, Seq& updates) {
   auto find = find_variants::find_compress;
   auto unite = unite_variants::Unite<decltype(find)>(find);
-  auto parents = sequence<parent>(n, [&] (size_t i) { return i; });
+  auto parents = sequence<parent>::from_function(n, [&] (size_t i) { return i; });
   parallel_for(0, updates.size(), [&] (size_t i) {
     auto [u, v] = updates[i];
     unite(u, v, parents);

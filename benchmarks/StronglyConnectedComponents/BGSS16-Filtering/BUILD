@@ -6,7 +6,6 @@ cc_library(
   "//gbbs/pbbslib:resizable_table",
   "//gbbs/pbbslib:sparse_table",
   "//gbbs/semiasym:graph_filter",
-  "//pbbslib:random_shuffle"
   ]
 )
 

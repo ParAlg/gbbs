@@ -4,7 +4,6 @@ cc_library(
   deps = [
   "//benchmarks/Connectivity:common",
   "//gbbs:gbbs",
-  "//pbbslib:random_shuffle",
   ]
 )
 

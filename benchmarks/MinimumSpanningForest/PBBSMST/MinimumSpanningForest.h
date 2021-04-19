@@ -29,10 +29,6 @@
 #include "gbbs/union_find.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
-#include "pbbslib/binary_search.h"
-#include "pbbslib/random.h"
-#include "pbbslib/sample_sort.h"
-
 namespace gbbs {
 namespace MinimumSpanningForest_spec_for {
 constexpr size_t sample_size = 10000;
@@ -103,7 +99,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, UF& uf,
                        const std::tuple<uintE, uintE, intE>& right) {
     return std::get<2>(left) < std::get<2>(right);
   };
-  pbbslib::sample_sort_inplace(sampled_e.E.slice(), cmp_by_wgh);
+  pbbslib::sample_sort_inplace(make_slice(sampled_e.E), cmp_by_wgh);
 
   // 2. Get approximate splitter.
   size_t ind = ((double)(k * sampled_e.size())) / G.m;
@@ -151,7 +147,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
                          const std::tuple<uintE, uintE, W>& right) {
       return std::get<2>(left) < std::get<2>(right);
     };
-    pbbslib::sample_sort_inplace(edges.E.slice(), cmp_by_wgh);
+    pbbslib::sample_sort_inplace(make_slice(edges.E), cmp_by_wgh);
     std::cout << "Prefix size = " << split_idx << " #edges = " << n_edges
               << " G.m is now = " << GA.m << "\n";
 
@@ -166,10 +162,10 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
     speculative_for<uintE>(UFStep, 0, n_edges, 8);
 
     UFStep.clear();
-    pbbslib::free_array(R);
+    pbbslib::free_array(R, n);
     auto edge_imap_f = [&](size_t i) { return edges.E[i]; };
     auto edge_im =
-        pbbslib::make_sequence<edge_t>(n_edges, edge_imap_f);
+        pbbslib::make_delayed<edge_t>(n_edges, edge_imap_f);
     auto edges_ret = pbbslib::pack(edge_im, mstFlags);
     std::cout << "added " << edges_ret.size() << "\n";
     mst_edges.copyIn(edges_ret, edges_ret.size());
@@ -184,7 +180,7 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   }
   std::cout << "n in mst: " << mst_edges.size << "\n";
   auto wgh_imap_f = [&](size_t i) { return std::get<2>(mst_edges.A[i]); };
-  auto wgh_imap = pbbslib::make_sequence<size_t>(
+  auto wgh_imap = pbbslib::make_delayed<size_t>(
       mst_edges.size, wgh_imap_f);
   std::cout << "wgh = " << pbbslib::reduce_add(wgh_imap) << "\n";
 
