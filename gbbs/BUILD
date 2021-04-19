@@ -49,7 +49,7 @@ cc_library(
   "//parlaylib/include/parlay:io",
   "//parlaylib/include/parlay:utilities",
   ],
-  linkopts = ["-pthread", "-L/usr/local/lib", "-ljemalloc"]
+  linkopts = ["-pthread"]
 )
 
 cc_library(
