@@ -210,7 +210,7 @@ namespace DBTGraph{
         uintE u;T *table;K empty_key;
         MakeEdgeEntry(uintE uu, T*t_table, K _empty):u(uu), table(t_table), empty_key(_empty){}
 
-        pair<uintE, int> operator ()(size_t i)const {
+        std::pair<uintE, int> operator ()(size_t i) const {
             return make_pair(get<0>(table[i]),get<1>(table[i]));
         }
     };

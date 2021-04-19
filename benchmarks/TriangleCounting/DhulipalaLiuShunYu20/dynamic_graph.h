@@ -185,7 +185,7 @@ class DyGraph {
   //  degree1 is the number of entries we will check in edge[] if u is using
   //  block
   // find in u's table or array if v is u's ngh
-  int getEdgeVal(uintE u, uintE v, size_t space_u) const {
+  int getEdgeVal(uintE u, uintE v, size_t space_u) {
     if (u >= n || v >= n) {
       return false;
     }
@@ -302,14 +302,14 @@ class DyGraph {
   // put all entries v \in tb into seq_out as (v,u)
   template <class E, class F, class Seq>
   size_t pack_neighbors_helper(SetT* tb, uintE u,
-                               Seq seq_out) const {
+                               Seq seq_out) {
     auto pred = [&](const E& t) { return tb->not_empty(getFirst(t)); };
     auto table_seq = pbbslib::make_delayed<E>(
         tb->size(), F(u, tb->table, tb->empty_key));
     return pbbslib::filter_out(table_seq, seq_out, pred);
   }
 
-  size_t pack_neighbors_in(SetT* tb, uintE u, size_t s, size_t e) const {
+  size_t pack_neighbors_in(SetT* tb, uintE u, size_t s, size_t e) {
     return pack_neighbors_helper<pair<uintE, int>, MakeEdgeEntry<SetT>>(
         tb, u, make_slice(edges).cut(s, e));
   }
@@ -319,7 +319,7 @@ class DyGraph {
   // assume edges array is already updated and packed
   template <class E, class F>
   void get_neighbors_minor(DBTGraph::VtxUpdate& u, pbbslib::range<E> Ngh,
-                           size_t ngh_s, size_t ngh_e, bool is_low_now) const {
+                           size_t ngh_s, size_t ngh_e, bool is_low_now) {
     size_t new_degree = ngh_e - ngh_s;
     if (use_block_v(u.id)) {
       for (size_t i = 0; i < new_degree; ++i) {
@@ -345,7 +345,7 @@ class DyGraph {
   }
 
   void get_neighbors_major(uintE u, pbbslib::range<StaticEdgeT> seq_out,
-                           size_t offset) const {
+                           size_t offset) {
     if (D[u] == 0) return;
     using F = MakeEdgeEntryMajor<SetT>;
     if (use_block_v(u)) {

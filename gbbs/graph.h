@@ -604,7 +604,6 @@ static inline asymmetric_graph<asymmetric_vertex, Wgh> asym_graph_from_edges(
   });
 
   if (!is_sorted) {
-    size_t bits = pbbslib::log2_up(n);
     pbbslib::integer_sort_inplace(make_slice(A), get_u);
     pbbslib::integer_sort_inplace(make_slice(I), get_u);
   }
