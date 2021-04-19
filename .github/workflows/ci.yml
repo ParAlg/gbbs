@@ -49,8 +49,8 @@ jobs:
 
       - name: Caching workaround
         run: |
-          chmod -R a+rwx .
-          chmod -R a+rwx ~/.cache
+          sudo chmod -R a+rwx .
+          sudo chmod -R a+rwx ~/.cache
 
 #      - name: GCC version
 #        run: |
