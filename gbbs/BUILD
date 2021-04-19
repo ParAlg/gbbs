@@ -36,6 +36,8 @@ cc_library(
   deps = [
   ":get_time",
   "//parlaylib/include/parlay/internal:binary_search",
+  "//parlaylib/include/parlay/internal:file_map",
+  "//parlaylib/include/parlay/internal/posix:file_map_impl_posix",
   "//parlaylib/include/parlay:primitives",
   "//parlaylib/include/parlay:monoid",
   "//parlaylib/include/parlay:parallel",
@@ -44,6 +46,7 @@ cc_library(
   "//parlaylib/include/parlay:sequence",
   "//parlaylib/include/parlay:slice",
   "//parlaylib/include/parlay:range",
+  "//parlaylib/include/parlay:io",
   "//parlaylib/include/parlay:utilities",
   ],
   linkopts = ["-pthread", "-L/usr/local/lib", "-ljemalloc"]

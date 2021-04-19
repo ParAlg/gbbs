@@ -36,7 +36,7 @@
 #include "gbbs/macros.h"
 #include "gbbs/vertex.h"
 
-#include "parlay/io.h"
+#include "parlaylib/include/parlay/io.h"
 
 namespace gbbs {
 namespace gbbs_io {

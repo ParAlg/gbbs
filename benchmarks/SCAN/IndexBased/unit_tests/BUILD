@@ -12,7 +12,6 @@ gbbs_cc_test(
         "//gbbs:graph_test_utils",
         "//gbbs:undirected_edge",
         "//gbbs:vertex",
-        "//parlaylib/include/parlay:sequence",
         "@googletest//:gtest_main",
     ],
 )
