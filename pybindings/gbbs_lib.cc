@@ -41,6 +41,35 @@ py::array_t<uint32_t> test_array(py::array_t<uint32_t> input) {
   return result;
 }
 
+template <class W>
+auto edgeListToSymmetricWeightedGraph(py::array_t<W> input) {
+  py::buffer_info buf = input.request();
+  W* ptr = (W*)buf.ptr;
+
+  size_t m = buf.shape[0], cols = buf.shape[1];
+  if (cols != 3) {
+    std::cout << "Expected [m x 3]-dim array of edges (in CSC format). Quitting." << std::endl;
+    exit(0);
+  }
+
+  using edge = gbbs::gbbs_io::Edge<W>;
+  std::vector<edge> edges;
+  edges.resize(m);
+
+  for (size_t i=0; i<m; i++) {
+    uint32_t u = uint32_t(ptr[i*3]);
+    uint32_t v = uint32_t(ptr[i*3 + 1]);
+    edges[i].from = u;
+    edges[i].to = v;
+    edges[i].weight = ptr[i*3 + 2];
+  }
+
+  auto graph{gbbs_io::edge_list_to_symmetric_graph(edges)};
+
+  return graph;
+}
+
+
 /* Defines symmetric vertex functions */
 template <template <class W> class vertex_type, class W>
 void SymVertexRegister(py::module& m, std::string vertex_name) {
@@ -160,13 +189,16 @@ PYBIND11_MODULE(gbbs_lib, m) {
 
   SymVertexRegister<symmetric_vertex, gbbs::empty>(m, "SymmetricVertexEmpty");
   SymVertexRegister<csv_bytepd_amortized, gbbs::empty>(m, "CompressedSymmetricVertexEmpty");
-  SymGraphRegister<symmetric_vertex, gbbs::empty>(m, "SymmetricGraph");
-  SymGraphRegister<csv_bytepd_amortized, gbbs::empty>(m, "CompressedSymmetricGraph");
+  SymGraphRegister<symmetric_vertex, gbbs::empty>(m, "SymmetricGraphEmpty");
+  SymGraphRegister<csv_bytepd_amortized, gbbs::empty>(m, "CompressedSymmetricGraphEmpty");
+
+  SymVertexRegister<symmetric_vertex, uint32_t>(m, "SymmetricVertexInt");
+  SymGraphRegister<symmetric_vertex, uint32_t>(m, "SymmetricGraphInt");
 
   AsymVertexRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricVertexEmpty");
   AsymVertexRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
-  AsymGraphRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricGraph");
-  AsymGraphRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricGraph");
+  AsymGraphRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricGraphEmpty");
+  AsymGraphRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricGraphEmpty");
 
   /* ============================== Graph IO ============================= */
   m.def("readSymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
@@ -211,10 +243,8 @@ PYBIND11_MODULE(gbbs_lib, m) {
     py::buffer_info buf = input.request();
     uint32_t* ptr = (uint32_t*)buf.ptr;
 
-
-    int m = buf.shape[0];
-    int Y = buf.shape[1];
-    if (Y < 2 || Y > 2) {
+    size_t m = buf.shape[0], cols = buf.shape[1];
+    if (cols != 2) {
       std::cout << "Expected [m x 2]-dim array of edges (in CSC format). Quitting." << std::endl;
       exit(0);
     }
@@ -233,6 +263,11 @@ PYBIND11_MODULE(gbbs_lib, m) {
     auto graph{gbbs_io::edge_list_to_symmetric_graph(edges)};
 
     return graph;
+  });
+
+  // Integer weighted graphs.
+  m.def("numpyEdgeListToSymmetricWeightedGraph", [&] (py::array_t<uint32_t> input) {
+      return edgeListToSymmetricWeightedGraph(input);
   });
 
 

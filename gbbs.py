@@ -30,8 +30,15 @@ def loadSnap(graphPath="",undirected=True):
   print("Unsupported options")
   exit(0)
 
-def loadFromEdgeList(edges, symmetric=True, unweighted=True):
-  return gbbs_lib.numpyEdgeListToSymmetricUnweightedGraph(edges)
+def loadFromEdgeList(edges, symmetric=True, weighted=False):
+  if (symmetric):
+    if (not weighted):
+      return gbbs_lib.numpyEdgeListToSymmetricUnweightedGraph(edges)
+    else:
+      return gbbs_lib.numpyEdgeListToSymmetricWeightedGraph(edges)
+  else:
+    print("Currently unsupported.")
+    exit(0)
 
 #def test_numpy_array(np_arr):
 #  return gbbs_lib.testNumpyArray(np_arr)
