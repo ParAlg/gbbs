@@ -78,7 +78,7 @@ double AppKCore_runner(Graph& GA, commandLine P) {
   // These are debugging options (set to correct defaults for client)
   long order = P.getOptionLongValue("-o", 0); // directing type; values are 0 - 4, reflecting the above order
   long recursive_level = P.getOptionLongValue("-r", 0); // parallelism over recursive levels
-  bool use_base = P.getOptionValue("-b"); // same as use_base_str
+  bool use_base = P.getOptionValue("-ub"); // same as use_base_str
   bool filter = P.getOptionValue("-f"); // filter graph only -- required for vertex peeling
 
   long space = P.getOptionLongValue("-space", 5);

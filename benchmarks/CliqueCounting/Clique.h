@@ -220,4 +220,44 @@ inline size_t Clique(Graph& GA, size_t k, long order_type, double epsilon, long 
   return count;
 }
 
+
+// TODO: Features not included: different space types, peeling, approx
+// peeling, recursive levels, k = 3
+template <class Graph, class F>
+inline size_t Clique_enum(Graph& GA, size_t k, long order_type, double epsilon, 
+  bool label, bool filter, F base_f) {
+  if (k <= 3) ABORT("k must be > 3: " <<  k);
+
+  using W = typename Graph::weight_type;
+  const size_t n = GA.n;
+
+  // Obtain vertex ordering
+  timer t_rank; t_rank.start();
+  sequence<uintE> rank = get_ordering(GA, order_type, epsilon);
+  double tt_rank = t_rank.stop();
+  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
+
+  // Direct the graph based on ordering
+  timer t_filter; t_filter.start();
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return (rank[u] < rank[v]) && GA.get_vertex(u).out_degree() >= k-1 && GA.get_vertex(v).out_degree() >= k-1;
+  };
+  auto DG = filter ? filterGraph(GA, pack_predicate) : relabel_graph(GA, rank.begin(), pack_predicate);
+  double tt_filter = t_filter.stop();
+  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
+
+
+  timer t; t.start();
+  size_t count = 0;
+  // Clique counting
+  count = induced_hybrid::CountCliquesEnum(DG, k-1, base_f, label);
+
+  double tt = t.stop();
+  std::cout << "### Count Running Time: " << tt << std::endl;
+  std::cout << "### Num " << k << " cliques = " << count << "\n";
+
+  DG.del();
+  return count;
+}
+
 }  // namespace gbbs

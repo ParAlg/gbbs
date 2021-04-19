@@ -95,6 +95,62 @@ if (recursive_level < k_idx || num_induced < 2) {
   }
 
 
+  // TODO: This function does not support recursive levels > 0
+  // TODO: This function is very similar to the above (can probably be modularized)
+  template <class Graph, class F>
+  inline size_t KCliqueDir_fast_hybrid_rec_enum(Graph& DG, size_t k_idx,
+    size_t k, HybridSpace_lw* induced, F base_f, sequence<uintE>& base) {
+    size_t num_induced = induced->num_induced[k_idx-1];
+    if (num_induced == 0) return 0;
+    uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
+
+    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
+
+    if (k_idx + 1 == k) {
+      size_t counts = 0;
+      for (size_t i=0; i < num_induced; i++) {
+        uintE vtx = prev_induced[i];
+        //  get neighbors of vtx
+        uintE* intersect = induced->induced_edges + vtx * induced->nn;
+        size_t tmp_counts = 0;
+        base[k_idx] = induced->relabel[vtx];
+        for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
+          if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
+            base[k] = induced->relabel[intersect[j]];
+            tmp_counts++;
+            base_f(base);
+          }
+        }
+        counts += tmp_counts;
+      }
+      for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+      return counts;
+    }
+
+    size_t total_ct = 0;
+    for (size_t i=0; i < num_induced; ++i) {
+      uintE vtx = prev_induced[i];
+      uintE* intersect = induced->induced_edges + vtx * induced->nn;
+      uintE* out = induced->induced + induced->nn * k_idx;
+      uintE count = 0;
+      for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
+        if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
+          out[count] = intersect[j];
+          count++;
+        }
+      }
+      induced->num_induced[k_idx] = count;
+      if (induced->num_induced[k_idx] > k - k_idx - 1) {
+        base[k_idx] = induced->relabel[vtx];
+        auto curr_counts = KCliqueDir_fast_hybrid_rec_enum(DG, k_idx + 1, k, induced, base_f, base);
+        total_ct += curr_counts;
+      }
+    }
+    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+    return total_ct;
+  }
+
+
   template <class Graph, class F>
   inline size_t CountCliques(Graph& DG, size_t k, F base_f, bool use_base=false, bool label=true, long recursive_level=0) {
     timer t2; t2.start();
@@ -140,6 +196,28 @@ if (recursive_level < k_idx || num_induced < 2) {
     double tt2 = t2.stop();
     std::cout << "##### Actual counting: " << tt2 << std::endl;
 
+    return pbbslib::reduce_add(tots);
+  }
+
+
+  template <class Graph, class F>
+  inline size_t CountCliquesEnum(Graph& DG, size_t k, F base_f, bool label=true) {
+    timer t2; t2.start();
+
+    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    size_t max_deg = get_max_deg(DG);
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, true); };
+    auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+      if (DG.get_vertex(i).out_degree() != 0) {
+        induced->setup(DG, k, i);
+        auto base = sequence<uintE>(k + 1);
+        base[0] = i;
+        tots[i] = KCliqueDir_fast_hybrid_rec_enum(DG, 1, k, induced, base_f, base);
+      } else tots[i] = 0;
+    }, 1, false);
+    double tt2 = t2.stop();
+    std::cout << "##### Actual counting: " << tt2 << std::endl;
     return pbbslib::reduce_add(tots);
   }
 

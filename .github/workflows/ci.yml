@@ -51,6 +51,26 @@ jobs:
           chmod -R a+rwx .
           chmod -R a+rwx ~/.cache
 
+#      - name: GCC version
+#        run: |
+#          echo gcc version
+#          gcc --version
+
+#      - name: GCC install
+#        run: |
+#          sudo apt-get install -y software-properties-common
+#          sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+#          sudo apt update
+#          sudo apt install g++-7 -y
+#          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
+#                         --slave /usr/bin/g++ g++ /usr/bin/g++-7
+#          sudo update-alternatives --config gcc
+#          gcc --version
+#          g++ --version
+#      - name: Bazel version
+#        run: |
+#          echo bazel version
+#          bazel --version
 #       # Caches and restores the bazel build directory.
 #       - name: Cache bazel build results
 #         uses: actions/cache@v2.0.0

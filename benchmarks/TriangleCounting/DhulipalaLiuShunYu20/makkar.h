@@ -11,7 +11,7 @@
 namespace gbbs {
 
 template <class Graph>
-inline size_t Makkar_Dynamic_Triangle(
+inline void Makkar_Dynamic_Triangle(
     Graph& G,
     const vector<gbbs::gbbs_io::Edge<int>>& updates,
     // const F& f,
@@ -115,8 +115,6 @@ inline size_t Makkar_Dynamic_Triangle(
 
 
 
-
-  return 0;
 
   t.stop();
   t.reportTotal("total processing time");

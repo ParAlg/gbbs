@@ -221,7 +221,6 @@ inline auto get_pcm_state() { return (size_t)1; }
     bool mmap = P.getOptionValue("-m");                                     \
     bool mmapcopy = mutates;                                                \
     bool binary = P.getOptionValue("-b");                                   \
-    assert(!symmetric);                                                     \
     debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);               \
     size_t rounds = P.getOptionLongValue("-rounds", 3);                     \
     gbbs::pcm_init();                                                       \
