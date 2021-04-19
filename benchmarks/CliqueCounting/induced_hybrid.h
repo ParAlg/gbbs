@@ -204,7 +204,7 @@ if (recursive_level < k_idx || num_induced < 2) {
   inline size_t CountCliquesEnum(Graph& DG, size_t k, F base_f, bool label=true) {
     timer t2; t2.start();
 
-    sequence<size_t> tots = sequence<size_t>::no_init(DG.n);
+    sequence<size_t> tots = sequence<size_t>::uninitialized(DG.n);
     size_t max_deg = get_max_deg(DG);
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, label, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
