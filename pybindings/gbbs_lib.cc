@@ -82,6 +82,40 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
     });
 }
 
+template <class W>
+struct edge {
+  uint32_t u;
+  uint32_t v;
+  W wgh;
+};
+
+using uint_edge = edge<uint32_t>;
+using float_edge = edge<float>;
+using double_edge = edge<double>;
+
+
+template <class W, class EdgeType, class Seq>
+auto build_wgh_edgelist(const Seq& S) {
+  size_t n = S.size();
+  auto arr = (EdgeType*)(malloc(n*sizeof(EdgeType)));
+
+  parallel_for(0, n, [&] (size_t i) {
+    arr[i].u = std::get<0>(S[i]);
+    arr[i].v = std::get<1>(S[i]);
+    arr[i].wgh = std::get<2>(S[i]);
+  });
+
+  py::capsule free_when_done(arr, [](void *f) {
+    free(f);
+  });
+
+  return py::array_t<EdgeType>(
+    {n}, // shape
+    {sizeof(EdgeType)}, // C-style contiguous strides
+    arr, // the data pointer
+    free_when_done); // numpy array references this parent
+}
+
 template <class W, class Seq>
 auto build_edgelist(const Seq& S) {
   // Create a Python object that will free the allocated
@@ -96,15 +130,13 @@ auto build_edgelist(const Seq& S) {
       buf[2*i + 1] = S[i].second;
     });
     return result;
+  } else if constexpr (std::is_same<W, uint32_t>()) {
+    return build_wgh_edgelist<W, uint_edge>(S);
+  } else if constexpr (std::is_same<W, float>()) {
+    return build_wgh_edgelist<W, float_edge>(S);
   } else {
-    py::array_t<W> result = py::array_t<W>(3*n);
-    auto buf = (W*)result.request().ptr;
-    parallel_for(0, n, [&] (size_t i) {
-      buf[2*i] = std::get<0>(S[i]);
-      buf[2*i + 1] = std::get<1>(S[i]);
-      buf[2*i + 2] = std::get<2>(S[i]);
-    });
-    return result;
+    static_assert(std::is_same<W, double>());  // otherwise unknown type
+    return build_wgh_edgelist<W, double_edge>(S);
   }
 }
 
@@ -118,7 +150,7 @@ auto wrap_array(const Seq& S) {
   parallel_for(0, n, [&] (size_t i) { pbbslib::assign_uninitialized(arr[i], S[i]); });
 
   py::capsule free_when_done(arr, [](void *f) {
-      free(f);
+    free(f);
   });
 
   return py::array_t<E>(
@@ -208,6 +240,10 @@ void AsymGraphRegister(py::module& m, std::string graph_name) {
 PYBIND11_MODULE(gbbs_lib, m) {
   m.doc() = "Python module exporting core gbbs types and core data structures.";
 
+  PYBIND11_NUMPY_DTYPE(uint_edge, u, v, wgh);
+  PYBIND11_NUMPY_DTYPE(float_edge, u, v, wgh);
+  PYBIND11_NUMPY_DTYPE(double_edge, u, v, wgh);
+
   py::class_<vertexSubset>(m, "VertexSubset")
     .def(py::init<int>(), py::arg("n"))
     .def("size", [](const vertexSubset& vs) -> size_t {
@@ -227,6 +263,9 @@ PYBIND11_MODULE(gbbs_lib, m) {
 
   SymVertexRegister<symmetric_vertex, uint32_t>(m, "SymmetricVertexInt");
   SymGraphRegister<symmetric_vertex, uint32_t>(m, "SymmetricGraphInt");
+
+  SymVertexRegister<symmetric_vertex, float>(m, "SymmetricVertexFloat");
+  SymGraphRegister<symmetric_vertex, float>(m, "SymmetricGraphFloat");
 
   AsymVertexRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricVertexEmpty");
   AsymVertexRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
