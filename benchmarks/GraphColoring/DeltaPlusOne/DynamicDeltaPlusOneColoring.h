@@ -19,7 +19,7 @@ struct RandomBlankColor{
     using random = parlay::random;
     using edge_type = std::pair<uintE, uintE>;
     using neighborset = gbbs::sparse_set<uintE>;
-    using sequence = gbbs::sequence<uintE>;
+    using neighborsequence = gbbs::sequence<uintE>;
 
     struct Vertex {
         uintE v_;
@@ -38,14 +38,14 @@ struct RandomBlankColor{
             });
         }
 
-        void remove_neighbors(sequence neighbors) {
+        void remove_neighbors(neighborsequence neighbors) {
             parallel_for(0, neighbors.size(), [&] (size_t i){
                 neighbors_.remove(neighbors[i]);
             });
             neighbors_.resize_down(neighbors.size());
         }
 
-        void add_neighbors(sequence neighbors) {
+        void add_neighbors(neighborsequence neighbors) {
             neighbors_.resize(neighbors.size());
             parallel_for(0, neighbors.size(), [&] (size_t i){
                 neighbors_.insert(neighbors[i]);
@@ -60,26 +60,15 @@ struct RandomBlankColor{
             return neighbor.receive_color(color_, r, palette_size_factor);
         }
 
-        void find_new_color(random r, size_t palette_size_factor) {
-            sequence occupied_colors = gbbs::sequence<uintE>(neighbors.size());
-            parallel_for(0, neighbors.size(), [&] (size_t i){
-                occupied_colors[i] = neighbors[i].color_;
-            });
-            parlay::integer_sort_inplace(parlay::make_slice(occupied_colors));
-            auto bool_seq = parlay::delayed_seq<bool>(occupied_colors.size(), [&] (size_t i) {
-                return (i == 0) || (occupied_colors[i].color_ != occupied_colors[i-1].color_);
-            });
-            auto unique_color_starts = parlay::pack_index(bool_seq);
-            neighborset unique_color = gbbs::sparse_set<uintE>(unique_color_starts.size());
-            parallel_for(0, unique_color_starts.size(), [&] (size_t i){
-                unique_color.insert(occupied_colors[unique_color_starts[i]]);
-            });
-
-            sequence blank_colors = parlay::sequence<uintE>();
-            parallel_for(0, palette_size_factor * neighbors.size() + 1, [&] (size_t i){
+        void find_new_color(random r, size_t palette_size_factor, neighborset unique_color) {
+            parlay::sequence<bool> palette_colors = parlay::sequence<bool>(palette_size_factor * neighbors_.size() + 1);
+            parallel_for(0, palette_size_factor * neighbors_.size() + 1, [&] (size_t i){
                 if (!unique_color.contains(i))
-                    blank_colors.append(i);
+                    palette_colors[i] = true;
+                else
+                    palette_colors[i] = false;
             });
+            auto blank_colors = parlay::pack_index(palette_colors);
             auto r_v = r.fork(v_);
             auto random_index = r_v.rand();
             auto mask = (1 << parlay::log2_up(blank_colors.size())) - 1;
@@ -119,6 +108,7 @@ struct RandomBlankColor{
         }
     }
 
+    template <class Seq>
     void batch_insertion(const Seq& insertions_unfiltered) {
         auto insertions_filtered = parlay::filter(parlay::make_slice(insertions_unfiltered),
                         [&] (const edge_type& e) { return !edge_exists(e); });
@@ -127,7 +117,7 @@ struct RandomBlankColor{
                 auto [u, v] = insertions_filtered[i];
                 insertions_dup[2*i] = {u, v};
                 insertions_dup[2*i + 1] = {v, u};
-        }
+        });
         auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
         parlay::sort_inplace(parlay::make_slice(insertions_dup), compare_tup);
         auto not_dup_seq = parlay::delayed_seq<bool>(insertions_dup.size(), [&] (size_t i) {
@@ -152,7 +142,7 @@ struct RandomBlankColor{
             uintE vertex_index = vertex_starts[q];
             uintE vertex = insertion_vertices[vertex_index];
 
-            VC[vertex].neighbor_.resize(vertex_starts[q+1] - vertex_index);
+            VC[vertex].neighbors_.resize(vertex_starts[q+1] - vertex_index);
         });
 
         parallel_for(0, insertions.size(), [&] (size_t i){
@@ -171,7 +161,7 @@ struct RandomBlankColor{
 
         auto r = random();
         while (color_edges.size() > 0) {
-            auto color_conflicts = parlay::sequence<uintE>(2*conflicts.size(), (uintE)0);
+            auto color_conflicts = parlay::sequence<uintE>(2*color_edges.size(), (uintE)0);
             parallel_for(0, color_edges.size(), [&] (size_t i) {
                 color_conflicts[i] = std::get<0>(color_edges[i]);
                 color_conflicts[i + color_edges.size()] = std::get<1>(color_edges[i]);
@@ -184,7 +174,24 @@ struct RandomBlankColor{
 
             parallel_for(0, conflict_vertices.size(), [&] (size_t i){
                 uintE v = conflict_vertices[i];
-                VC[v].find_new_color(r, palette_size_factor_);
+                neighborsequence occupied_colors = gbbs::sequence<uintE>(VC[v].neighbors_.size());
+                parallel_for(0, VC[v].neighbors_.size(), [&] (size_t i){
+                    auto neighbor = VC[v].neighbors_.table[i];
+                    if (neighbor < vertex_colors.size()) {
+                        occupied_colors[i] = VC[neighbor].color_;
+                    }
+                });
+                parlay::integer_sort_inplace(parlay::make_slice(occupied_colors));
+                auto bool_seq = parlay::delayed_seq<bool>(occupied_colors.size(), [&] (size_t i) {
+                    return (i == 0) || (occupied_colors[i] != occupied_colors[i-1]);
+                });
+                auto unique_color_starts = parlay::pack_index(bool_seq);
+                neighborset unique_color = gbbs::sparse_set<uintE>(unique_color_starts.size());
+                parallel_for(0, unique_color_starts.size(), [&] (size_t i){
+                    unique_color.insert(occupied_colors[unique_color_starts[i]]);
+                });
+
+                VC[v].find_new_color(r, palette_size_factor_, unique_color);
             });
 
             auto new_color_edges = parlay::filter(parlay::make_slice(color_edges),
@@ -198,6 +205,7 @@ struct RandomBlankColor{
         }
     }
 
+    template <class Seq>
     void batch_deletion(const Seq& deletions_unfiltered) {
         auto deletions_filtered = parlay::filter(parlay::make_slice(deletions_unfiltered),
                         [&] (const edge_type& e) { return edge_exists(e); });
@@ -206,7 +214,7 @@ struct RandomBlankColor{
                 auto [u, v] = deletions_filtered[i];
                 deletions_dup[2*i] = {u, v};
                 deletions_dup[2*i + 1] = {v, u};
-        }
+        });
         auto compare_tup = [&] (const edge_type& l, const edge_type& r) { return l < r; };
         parlay::sort_inplace(parlay::make_slice(deletions_dup), compare_tup);
         auto not_dup_seq = parlay::delayed_seq<bool>(deletions_dup.size(), [&] (size_t i) {
@@ -242,17 +250,20 @@ struct RandomBlankColor{
             uintE vertex_index = vertex_starts[q];
             uintE vertex = deletion_vertices[vertex_index];
 
-            VC[vertex].neighbor_.resize_down(vertex_starts[q+1] - vertex_index);
+            VC[vertex].neighbors_.resize_down(vertex_starts[q+1] - vertex_index);
         });
     }
 
     void check_invariants() {
         bool invs_ok = true;
-        for (size_t i = 0; i < num_vertices_; i++) {
+        for (size_t i = 0; i < vertex_colors.size(); i++) {
             auto neighbors = VC[i].neighbors_;
             parallel_for(0, neighbors.size(), [&] (size_t j){
-                if (VC[neighbors[j]].color_ == VC[i].color_)
-                    invs_ok = false;
+                auto neighbor = neighbors.table[i];
+                if (neighbor < vertex_colors.size()) {
+                    if (VC[neighbor].color_ == VC[i].color_)
+                        invs_ok = false;
+                }
             });
             assert(invs_ok);
         }
@@ -261,8 +272,8 @@ struct RandomBlankColor{
 
     // Probably should make the below parallel for faster runtime
     size_t num_unique_colors() {
-        levelset colors = sparse_set<uintE>();
-        for (size_t i = 0; i < num_vertices_; i++) {
+        sparse_set<uintE> colors = sparse_set<uintE>();
+        for (size_t i = 0; i < vertex_colors.size(); i++) {
             if (!colors.contains(VC[i].color_)) {
                 colors.resize(1);
                 colors.insert(VC[i].color_);
@@ -285,7 +296,7 @@ inline void RunDynamicColoring(Graph& G, size_t palette_size_factor) {
     size_t start = batch_size*i;
     size_t end = std::min(start + batch_size, edges.size());
 
-    auto batch = parlay::delayed_seq<LDS::edge_type>(end - start, [&] (size_t i) {
+    auto batch = parlay::delayed_seq<RandomBlankColor::edge_type>(end - start, [&] (size_t i) {
       uintE u = std::get<0>(edges[start + i]);
       uintE v = std::get<1>(edges[start + i]);
       return std::make_pair(u, v);
@@ -299,7 +310,7 @@ inline void RunDynamicColoring(Graph& G, size_t palette_size_factor) {
     size_t start = batch_size*i;
     size_t end = std::min(start + batch_size, edges.size());
 
-    auto batch = parlay::delayed_seq<LDS::edge_type>(end - start, [&] (size_t i) {
+    auto batch = parlay::delayed_seq<RandomBlankColor::edge_type>(end - start, [&] (size_t i) {
       uintE u = std::get<0>(edges[start + i]);
       uintE v = std::get<1>(edges[start + i]);
       return std::make_pair(u, v);
@@ -390,7 +401,6 @@ inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, 
         std::cout << "### Insertion Running Time: " << insertion_time << std::endl;
         std::cout << "### Deletion Running Time: " << deletion_time << std::endl;
         std::cout << "### Batch Num: " << end_size - offset << std::endl;
-        std::cout << "### Coreness Estimate: " << layers.max_coreness() << std::endl;
         std::cout << "### Number of Unique Colors: " << coloring.num_unique_colors() << std::endl;
     }
 }
