@@ -28,6 +28,8 @@
 #include "gbbs/union_find.h"
 #include "gbbs/pbbslib/dyn_arr.h"
 
+#include "benchmarks/SpanningForest/SDB14/SpanningForest.h"
+
 namespace gbbs {
 namespace MinimumSpanningForest_boruvka {
 
@@ -316,7 +318,7 @@ inline edge_array<W> get_top_k(symmetric_graph<vertex, W>& G, size_t k, pbbslib:
 template <template <class W> class vertex, class W,
           typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
-inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem = false) {
+inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem = false) {
   using edge = std::tuple<uintE, uintE, W>;
   using vtxid_wgh_pair = std::pair<uintE, W>;
 
@@ -335,6 +337,14 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
   par_for(0, n, kDefaultGranularity, [&] (size_t i)
                   { vtxs[i] = i; });
   uintE* next_vtxs = pbbslib::new_array_no_init<uintE>(n_active);
+
+//  for (size_t i=0; i<n; i++) {
+//    auto v = GA.get_vertex(i);
+//    auto map_edges = [&] (const uintE& u, const uintE& v, const W& wgh) {
+//      std::cout << u << " " << v << " " << wgh << std::endl;
+//    };
+//    v.out_neighbors().map(map_edges, false);
+//  }
 
   size_t round = 0;
   while (GA.m > 0) {
@@ -377,13 +387,16 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
     timer bt;
     bt.start();
     uintE* mst = pbbslib::new_array_no_init<uintE>(n);
+    auto edges_save = E.E;  // copy
     size_t n_in_mst =
         Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
     auto edge_ids = pbbslib::make_range(mst, n_in_mst);
     bt.stop();
     debug(bt.reportTotal("boruvka time"););
-    mst_edges.copyInF([&](size_t i) { return E.E[edge_ids[i]]; },
+
+    mst_edges.copyInF([&](size_t i) { return edges_save[edge_ids[i]]; },
                       edge_ids.size());
+    edges_save.clear();
     pbbslib::free_array(mst, n);
 
     // reactivate vertices and reset exhausted
@@ -435,17 +448,20 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA, bool largemem 
       mst_edges.size, wgh_imap_f);
   std::cout << "total weight = " << pbbslib::reduce_add(wgh_imap) << "\n";
 
+  auto ret = sequence<edge>::from_function(mst_edges.size, [&] (size_t i) {
+    return mst_edges.A[i];
+  });
+
   mst_edges.clear();
   pbbslib::free_array(min_edges, n);
+  return ret;
 }
 
 template <
     template <class W> class vertex, class W,
     typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
-inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
-  std::cout << "Unimplemented for unweighted graphs"
-            << "\n";
-  exit(0);
+inline sequence<std::pair<uintE, uintE>> MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
+  return workefficient_sf::SpanningForest(GA);
 }
 
 }  // namespace MinimumSpanningForest_boruvka

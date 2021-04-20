@@ -9,6 +9,7 @@
 #include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
 #include "benchmarks/CliqueCounting/Clique.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+#include "benchmarks/MinimumSpanningForest/Boruvka/MinimumSpanningForest.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 #include "benchmarks/CoSimRank/CoSimRank.h"
 #include "benchmarks/PageRank/PageRank.h"
@@ -81,6 +82,32 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
     });
 }
 
+template <class W, class Seq>
+auto build_edgelist(const Seq& S) {
+  // Create a Python object that will free the allocated
+  // memory when destroyed:
+  size_t n = S.size();
+
+  if constexpr (std::is_same<W, gbbs::empty>()) {
+    py::array_t<uint32_t> result = py::array_t<uint32_t>(2*n);
+    auto buf = (uint32_t*)result.request().ptr;
+    parallel_for(0, n, [&] (size_t i) {
+      buf[2*i] = S[i].first;
+      buf[2*i + 1] = S[i].second;
+    });
+    return result;
+  } else {
+    py::array_t<W> result = py::array_t<W>(3*n);
+    auto buf = (W*)result.request().ptr;
+    parallel_for(0, n, [&] (size_t i) {
+      buf[2*i] = std::get<0>(S[i]);
+      buf[2*i + 1] = std::get<1>(S[i]);
+      buf[2*i + 2] = std::get<2>(S[i]);
+    });
+    return result;
+  }
+}
+
 template <class Seq>
 auto wrap_array(const Seq& S) {
   using E = typename Seq::value_type;
@@ -128,6 +155,12 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("PageRank", [&] (graph& G) {
       auto ranks = PageRank(G);
       return wrap_array(ranks);
+    })
+    .def("MinimumSpanningForest", [&] (graph& G) {
+      auto G_copy = G.copy();
+      auto edges = MinimumSpanningForest_boruvka::MinimumSpanningForest(G_copy);
+      G_copy.del();
+      return build_edgelist<W>(edges);
     })
     .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
       CoSimRank(G, src, dest);

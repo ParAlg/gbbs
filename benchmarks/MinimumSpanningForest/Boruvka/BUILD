@@ -6,6 +6,7 @@ cc_library(
   "//gbbs:union_find",
   "//gbbs/pbbslib:sparse_table",
   "//gbbs/pbbslib:dyn_arr",
+  "//benchmarks/SpanningForest/SDB14:SpanningForest",
   ]
 )
 

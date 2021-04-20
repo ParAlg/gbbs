@@ -37,7 +37,6 @@ def loadFromEdgeList(edges, symmetric=True, weighted=False):
     else:
       return gbbs_lib.numpyEdgeListToSymmetricWeightedGraph(edges)
   else:
-    print("Currently unsupported.")
     exit(0)
 
 #def test_numpy_array(np_arr):
