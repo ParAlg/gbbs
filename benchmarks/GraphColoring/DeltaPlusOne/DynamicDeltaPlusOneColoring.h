@@ -12,6 +12,9 @@ namespace gbbs {
 // Note: the following code is not always guaranteed to terminate.
 // Perhaps we can find some bounds for random inputs but it is not guaranteed to
 // terminate for worst-case inputs.
+//
+// palette_size_factor: determines whether we are choosing from a palette of
+// size 2 * \delta + 1 or \delta + 1...etc.
 struct RandomBlankColor{
     using random = parlay::random;
     using edge_type = std::pair<uintE, uintE>;
@@ -73,7 +76,7 @@ struct RandomBlankColor{
             });
 
             sequence blank_colors = parlay::sequence<uintE>();
-            parallel_for(0, palette_size_factor * neighbors.size(), [&] (size_t i){
+            parallel_for(0, palette_size_factor * neighbors.size() + 1, [&] (size_t i){
                 if (!unique_color.contains(i))
                     blank_colors.append(i);
             });
@@ -244,59 +247,36 @@ struct RandomBlankColor{
     }
 
     void check_invariants() {
-    bool invs_ok = true;
-    for (size_t i = 0; i < num_vertices_; i++) {
-      auto upper_neighbors = layers_of_vertices_.L[i].up;
-      bool upper_ok = true;
-      for (size_t j = 0; j < upper_neighbors.size(); j++) {
-        auto neighbor = upper_neighbors.table[j];
-        if (neighbor < num_vertices_) {
-            if (VC[neighbor].color_ == VC[i].color_) {
-                upper_ok = false;
+        bool invs_ok = true;
+        for (size_t i = 0; i < num_vertices_; i++) {
+            auto neighbors = VC[i].neighbors_;
+            parallel_for(0, neighbors.size(), [&] (size_t j){
+                if (VC[neighbors[j]].color_ == VC[i].color_)
+                    invs_ok = false;
+            });
+            assert(invs_ok);
+        }
+        assert(invs_ok);
+    }
+
+    // Probably should make the below parallel for faster runtime
+    size_t num_unique_colors() {
+        levelset colors = sparse_set<uintE>();
+        for (size_t i = 0; i < num_vertices_; i++) {
+            if (!colors.contains(VC[i].color_)) {
+                colors.resize(1);
+                colors.insert(VC[i].color_);
             }
         }
-      }
-
-      bool lower_ok = true;
-      auto lower_levels = layers_of_vertices_.L[i].down;
-      for (size_t level = 0; level < lower_levels.size(); level++) {
-        auto lower_neighbors = lower_levels[level];
-        for (size_t j = 0; j < lower_neighbors.size(); j++) {
-            auto neighbor = lower_neighbors.table[j];
-            if (neighbor < num_vertices_) {
-                if (VC[neighbor].color_ == VC[i].color_) {
-                    lower_ok = false;
-                }
-            }
-        }
-      }
-      assert(upper_ok);
-      assert(lower_ok);
-      invs_ok &= upper_ok;
-      invs_ok &= lower_ok;
+        return colors.num_elms();
     }
-    assert(invs_ok);
-  }
-
-  size_t num_unique_colors() {
-    levelset colors = sparse_set<uintE>();
-    for (size_t i = 0; i < num_vertices_; i++) {
-        if (!colors.contains(VC[i].color_)) {
-            colors.resize(1);
-            colors.insert(VC[i].color_);
-        }
-    }
-    return colors.num_elms();
-  }
 };
 
 template <class Graph>
-inline void RunDynamicColoring(Graph& G, bool optimized_deletion) {
+inline void RunDynamicColoring(Graph& G, size_t palette_size_factor) {
   // using W = typename Graph::weight_type;
   size_t n = G.n;
-  auto layers = LDS(n, optimized_deletion);
-  auto coloring = DynamicColoring(n, layers);
-
+  auto coloring = RandomBlankColor(n, palette_size_factor);
   auto edges = G.edges();
 
   size_t num_batches = 1000;
@@ -312,7 +292,6 @@ inline void RunDynamicColoring(Graph& G, bool optimized_deletion) {
     });
 
     coloring.batch_insertion(batch);
-    layers.check_invariants();
     coloring.check_invariants();
   }
 
@@ -327,15 +306,14 @@ inline void RunDynamicColoring(Graph& G, bool optimized_deletion) {
     });
 
     coloring.batch_deletion(batch);
-    layers.check_invariants();
     coloring.check_invariants();
   }
 }
 
 template <class W>
-inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_size, bool compare_exact,
-        LDS& layers, bool optimized_insertion, size_t offset) {
-    auto coloring = DynamicColoring(n, layers);
+inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, long batch_size,
+        size_t offset, size_t palette_size_factor) {
+    auto coloring = RandomBlankColor(n, palette_size_factor);
     auto batch = batch_edge_list.edges;
     // First, insert / delete everything up to offset
     if (offset != 0) {
@@ -362,11 +340,9 @@ inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, 
             return std::make_pair(vert1, vert2);
         });
         coloring.batch_insertion(batch_insertions);
-        layers.check_invariants();
         coloring.check_invariants();
 
         coloring.batch_deletion(batch_deletions);
-        layers.check_invariants();
         coloring.check_invariants();
       }
     }
@@ -400,14 +376,12 @@ inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, 
         });
 
         coloring.batch_insertion(batch_insertions);
-        layers.check_invariants();
         coloring.check_invariants();
 
         double insertion_time = t.stop();
 
         t.start();
         coloring.batch_deletion(batch_deletions);
-        layers.check_invariants();
         coloring.check_invariants();
 
         double deletion_time = t.stop();
@@ -423,12 +397,10 @@ inline void RunDynamicColoring (uintE n, BatchDynamicEdges<W>& batch_edge_list, 
 
 template <class Graph, class W>
 inline void RunDynamicColoring(Graph& G, BatchDynamicEdges<W> batch_edge_list, long batch_size,
-        bool compare_exact, double eps, double delta, bool optimized_insertion, size_t offset) {
+        size_t offset, size_t palette_size_factor) {
     uintE max_vertex = std::max(uintE{G.n}, batch_edge_list.max_vertex);
-    auto layers = LDS(max_vertex, eps, delta, optimized_insertion);
-    if (G.n > 0) RunDynamicColoring(G, optimized_insertion);
+    if (G.n > 0) RunDynamicColoring(G, palette_size_factor);
     if (batch_edge_list.max_vertex > 0) RunDynamicColoring(max_vertex,
-            batch_edge_list, batch_size, compare_exact, layers, optimized_insertion, offset);
+            batch_edge_list, batch_size, offset, palette_size_factor);
 }
-
 }  // namespace gbbs
