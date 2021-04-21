@@ -7,7 +7,7 @@
 
 #include "benchmarks/BFS/NonDeterministicBFS/BFS.h"
 #include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
-#include "benchmarks/CliqueCounting/Clique.h"
+#include "benchmarks/Clustering/SeqHAC/HAC_api.h"
 #include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
 #include "benchmarks/MinimumSpanningForest/Boruvka/MinimumSpanningForest.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
@@ -49,7 +49,7 @@ auto edgeListToSymmetricWeightedGraph(py::array_t<W> input) {
 
   size_t m = buf.shape[0], cols = buf.shape[1];
   if (cols != 3) {
-    std::cout << "Expected [m x 3]-dim array of edges (in CSC format). Quitting." << std::endl;
+    std::cerr << "Expected [m x 3]-dim array of edges (in CSC format). Quitting." << std::endl;
     exit(0);
   }
 
@@ -194,6 +194,16 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       G_copy.del();
       return build_edgelist<W>(edges);
     })
+    .def("HierarchicalAgglomerativeClustering", [&] (graph& G, std::string& linkage, bool similarity=true) {
+      if constexpr (!std::is_same<W, gbbs::empty>()) {
+          auto dendrogram = HAC(G, linkage, similarity);
+          auto test = sequence<uintE>(4);
+          return wrap_array(test);
+        } else {
+          std::cerr << "Only supported for weighted graphs." << std::endl;
+          exit(0);
+        }
+    })
     .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
       CoSimRank(G, src, dest);
       return 1.0;
@@ -317,7 +327,7 @@ PYBIND11_MODULE(gbbs_lib, m) {
 
     size_t m = buf.shape[0], cols = buf.shape[1];
     if (cols != 2) {
-      std::cout << "Expected [m x 2]-dim array of edges (in CSC format). Quitting." << std::endl;
+      std::cerr << "Expected [m x 2]-dim array of edges (in CSC format). Quitting." << std::endl;
       exit(0);
     }
 

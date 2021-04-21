@@ -14,7 +14,7 @@ pybind_extension(
       "//gbbs:vertex_subset",
       "//benchmarks/BFS/NonDeterministicBFS:BFS",
       "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity",
-      "//benchmarks/CliqueCounting:Clique",
+      "//benchmarks/Clustering/SeqHAC:HAC_api",
       "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
       "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
       "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",

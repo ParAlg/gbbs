@@ -5,6 +5,7 @@ cc_library(
   ":HAC_configuration",
   ":HeapBased",
   ":NNChainBased",
+  "//gbbs:gbbs",
   "//benchmarks/Clustering/SeqHAC/AvgLinkageUtils:HeapBased",
   ]
 )
