@@ -7,4 +7,4 @@
         branch = bazel
 [submodule "PAM"]
 	path = external/PAM
-	url = git@github.com:ldhulipala/PAM.git
+	url = https://github.com/ldhulipala/PAM
