@@ -2,6 +2,6 @@
 	path = external/simdinter
 	url = https://github.com/lemire/SIMDCompressionAndIntersection
 [submodule "parlaylib"]
-        path = parlaylib
+	path = external/parlaylib
         url = https://github.com/cmuparlay/parlaylib
         branch = bazel

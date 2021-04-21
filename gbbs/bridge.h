@@ -9,17 +9,17 @@
 #include <type_traits>
 #include <utility>
 
-#include "parlaylib/include/parlay/internal/binary_search.h"
-#include "parlaylib/include/parlay/primitives.h"
-#include "parlaylib/include/parlay/monoid.h"
-#include "parlaylib/include/parlay/parallel.h"
-#include "parlaylib/include/parlay/io.h"
-#include "parlaylib/include/parlay/random.h"
-#include "parlaylib/include/parlay/delayed_sequence.h"
-#include "parlaylib/include/parlay/sequence.h"
-#include "parlaylib/include/parlay/slice.h"
-#include "parlaylib/include/parlay/range.h"
-#include "parlaylib/include/parlay/utilities.h"
+#include "parlay/internal/binary_search.h"
+#include "parlay/primitives.h"
+#include "parlay/monoid.h"
+#include "parlay/parallel.h"
+#include "parlay/io.h"
+#include "parlay/random.h"
+#include "parlay/delayed_sequence.h"
+#include "parlay/sequence.h"
+#include "parlay/slice.h"
+#include "parlay/range.h"
+#include "parlay/utilities.h"
 
 #include "get_time.h"
 
