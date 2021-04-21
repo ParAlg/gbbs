@@ -205,7 +205,7 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     })
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = BFS(G, src);
-      return 1.0;
+      return wrap_array(parents);
     }, py::arg("src"))
     .def("Connectivity", [&] (graph& G) {
       auto ccs = workefficient_cc::CC(G);
