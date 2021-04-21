@@ -1,4 +1,4 @@
-INCLUDE_DIRS = -I$(ROOTDIR) -I$(ROOTDIR)parlaylib/include/
+INCLUDE_DIRS = -I$(ROOTDIR) -I$(ROOTDIR)external/parlaylib/include/
 
 .DEFAULT_GOAL := all
 
@@ -26,7 +26,7 @@ gbbs_encodings :
 	make -C $(ROOTDIR)gbbs/encodings/
 
 % : %.cc gbbs gbbs_encodings other
-	$(CC) $(INCLUDE_DIRS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LINKER_START_GROUP) $(ALL_OBJS) $(LINKER_END_GROUP) -pthread $(LFLAGS)
+	$(CC) $(INCLUDE_DIRS) $(OTHERFLAGS) $(CFLAGS) $(PFLAGS) -o $@ $< $(LINKER_START_GROUP) $(ALL_OBJS) $(LINKER_END_GROUP) -pthread $(LFLAGS)
 #-Wl,--whole-archive -lpthread -Wl,--no-whole-archive -Wl,-S -Wl,-no-as-needed -Wl,-z,relro,-z,now -lstdc++ -fuse-ld=gold
 
 .PHONY : clean
