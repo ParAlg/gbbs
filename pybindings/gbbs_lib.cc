@@ -31,8 +31,8 @@ py::array_t<uint32_t> test_array(py::array_t<uint32_t> input) {
   py::buffer_info buf2 = result.request();
   uint32_t *ptr1 = (uint32_t *) buf1.ptr,
            *ptr2 = (uint32_t *) buf2.ptr;
-  int X = buf1.shape[0];
-  int Y = buf1.shape[1];
+  size_t X = buf1.shape[0];
+  size_t Y = buf1.shape[1];
   parallel_for(0, X, [&] (size_t i) {
     for (size_t j=0; j<Y; j++) {
       ptr2[i*Y + j] = ptr1[i*Y + j] + 1;
@@ -80,6 +80,37 @@ void SymVertexRegister(py::module& m, std::string vertex_name) {
     .def("getDegree", [&] (vertex& v) {
       return v.out_degree();
     });
+}
+
+template <class W>
+struct parent_ptr {
+  uint32_t parent;
+  W wgh;
+};
+
+using uint_parent_ptr = parent_ptr<uint32_t>;
+using float_parent_ptr = parent_ptr<float>;
+
+template <class W>
+auto build_dendrogram(const sequence<std::pair<uintE, W>>& S) {
+  size_t n = S.size();
+  using par_type = parent_ptr<W>;
+  auto arr = (par_type*)(malloc(n*sizeof(par_type)));
+
+  parallel_for(0, n, [&] (size_t i) {
+    arr[i].parent = S[i].first;
+    arr[i].wgh = S[i].second;
+  });
+
+  py::capsule free_when_done(arr, [](void *f) {
+    free(f);
+  });
+
+  return py::array_t<par_type>(
+    {n}, // shape
+    {sizeof(par_type)}, // C-style contiguous strides
+    arr, // the data pointer
+    free_when_done); // numpy array references this parent
 }
 
 template <class W>
@@ -197,10 +228,9 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("HierarchicalAgglomerativeClustering", [&] (graph& G, std::string& linkage, bool similarity=true) {
       if constexpr (!std::is_same<W, gbbs::empty>()) {
           auto dendrogram = HAC(G, linkage, similarity);
-          auto test = sequence<uintE>(4);
-          return wrap_array(test);
+          return build_dendrogram<W>(dendrogram);
         } else {
-          std::cerr << "Only supported for weighted graphs." << std::endl;
+          std::cerr << "Only supported for weighted graphs. (HAC invoked with parameters " << linkage << " similarity = " << similarity << ")" << std::endl;
           exit(0);
         }
     })
