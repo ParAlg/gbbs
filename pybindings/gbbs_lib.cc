@@ -284,6 +284,9 @@ PYBIND11_MODULE(gbbs_lib, m) {
   PYBIND11_NUMPY_DTYPE(float_edge, u, v, wgh);
   PYBIND11_NUMPY_DTYPE(double_edge, u, v, wgh);
 
+  PYBIND11_NUMPY_DTYPE(uint_parent_ptr, parent, wgh);
+  PYBIND11_NUMPY_DTYPE(float_parent_ptr, parent, wgh);
+
   py::class_<vertexSubset>(m, "VertexSubset")
     .def(py::init<int>(), py::arg("n"))
     .def("size", [](const vertexSubset& vs) -> size_t {
