@@ -5,3 +5,6 @@
 	path = external/parlaylib
         url = https://github.com/cmuparlay/parlaylib
         branch = bazel
+[submodule "PAM"]
+	path = external/PAM
+	url = git@github.com:ldhulipala/PAM.git

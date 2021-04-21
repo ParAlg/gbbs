@@ -9,6 +9,11 @@ local_repository(
     path = "external/parlaylib/include",
 )
 
+local_repository(
+    name = "PAM",
+    path = "external/PAM/include",
+)
+
 new_git_repository(
   name = "simdinter",
   remote = "https://github.com/lemire/SIMDCompressionAndIntersection.git",
