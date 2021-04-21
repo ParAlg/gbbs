@@ -217,14 +217,14 @@ struct clustered_graph {
       auto orig = G.get_vertex(i);
       clusters[i] = clustered_vertex(i, orig, weights);
     });
-    std::cout << "Built all vertices" << std::endl;
+    debug(std::cout << "Built all vertices" << std::endl;);
   }
 
   // extract dendrogram
   sequence<std::pair<uintE, W>> get_dendrogram() {
 
-    std::cout << "num_merges_performed = " << num_merges_performed << std::endl;
-    std::cout << "n = " << n << std::endl;
+    debug(std::cout << "num_merges_performed = " << num_merges_performed << std::endl;);
+    debug(std::cout << "n = " << n << std::endl;);
 
     if (num_merges_performed < n-1) {
       size_t last_clust = last_cluster_id;
@@ -234,7 +234,7 @@ struct clustered_graph {
       });
       auto bad = parlay::filter(ids, [&] (const uintE& e) { return e != UINT_E_MAX; });
 
-      std::cout << "num bad = " << bad.size() << std::endl;
+      debug(std::cout << "num bad = " << bad.size() << std::endl;);
 
       std::queue<uintE> bad_queue;
       for (size_t i=0; i<bad.size(); i++) {
@@ -251,7 +251,7 @@ struct clustered_graph {
         dendrogram[fst] = {new_id, Weights::id()};
         dendrogram[snd] = {new_id, Weights::id()};
 
-        std::cout << "Merged components for: " << fst << " " << snd << std::endl;
+        debug(std::cout << "Merged components for: " << fst << " " << snd << std::endl;);
 
         bad_queue.push(new_id);
       }

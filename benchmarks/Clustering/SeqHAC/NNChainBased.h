@@ -36,8 +36,8 @@ void run_chain(Weights& weights, ClusterGraph& CG, std::stack<uintE>& chain,
                bool* on_stack) {
   assert(chain.size() > 0);
 
-  std::cout << std::endl;
-  std::cout << "Starting chain from " << chain.top() << std::endl;
+  debug(std::cout << std::endl;
+  std::cout << "Starting chain from " << chain.top() << std::endl;);
 
   while (chain.size() > 0) {
     uintE top = chain.top();
@@ -141,19 +141,19 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
 
   sequence<bool> on_stack(n, false);
 
-  std::cout << "Starting clustering" << std::endl;
+  debug(std::cout << "Starting clustering" << std::endl;);
   std::stack<uintE> chain;
   for (size_t v = 0; v < n; v++) {
     // Cluster with non-zero number of outgoing edges.
     if (CG.is_active(v) && CG.clusters[v].size() > 0) {
-      std::cout << "Starting new chain from v = " << v << std::endl;
+      debug(std::cout << "Starting new chain from v = " << v << std::endl;);
       chain.push(v);
       assert(!on_stack[v]);
       on_stack[v] = true;
       run_chain(weights, CG, chain, on_stack.begin());
     }
   }
-  std::cout << "Finished clustering" << std::endl;
+  debug(std::cout << "Finished clustering" << std::endl;);
 
   return CG.get_dendrogram();
 }

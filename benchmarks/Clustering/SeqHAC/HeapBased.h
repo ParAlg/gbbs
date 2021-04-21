@@ -86,7 +86,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
     }
   });
 
-  std::cout << "Starting clustering" << std::endl;
+  debug(std::cout << "Starting clustering" << std::endl;);
 
   // Build initial heap elements (min-weight edge incident to each vertex).
   using heap_map = aug_map<heap_entry<Weights>>;
@@ -103,7 +103,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
   // The augmented value is computed using max/min, based on whether we are in
   // the similarity or dissimilarity setting.
   auto the_heap = heap_map(initial_heap_elts);
-  std::cout << "heap size = " << the_heap.size() << std::endl;
+  debug(std::cout << "heap size = " << the_heap.size() << std::endl;);
 
   size_t unites = 0;
 
@@ -138,8 +138,8 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
 
     assert(CG.is_active(v));
 
-    uintE current_id_u = CG.clusters[u].get_current_id();
-    uintE current_id_v = CG.clusters[v].get_current_id();
+    debug(uintE current_id_u = CG.clusters[u].get_current_id();
+    uintE current_id_v = CG.clusters[v].get_current_id(););
 
     unites++;
     uintE merged_id __attribute__((unused)) = CG.unite(u, v, wgh);
@@ -166,7 +166,7 @@ auto HAC(symmetric_graph<w_vertex, IW>& G, Weights& weights) {
     the_heap = std::move(rem_v);
   }
 
-  std::cout << "Performed " << unites << " many merges. " << std::endl;
+  debug(std::cout << "Performed " << unites << " many merges. " << std::endl;);
 
   return CG.get_dendrogram();
 }
