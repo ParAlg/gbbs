@@ -21,6 +21,8 @@ struct RandomBlankColor{
     using neighborset = gbbs::sparse_set<uintE>;
     using neighborsequence = gbbs::sequence<uintE>;
 
+    static constexpr uintE kNotVertex = UINT_E_MAX;
+
     struct Vertex {
         uintE v_;
         uintE color_;
@@ -137,6 +139,9 @@ struct RandomBlankColor{
             return (i == 0) || (i == insertion_vertices.size()) || (insertion_vertices[i-1] != insertion_vertices[i]);
         });
         auto vertex_starts = parlay::pack_index(bool_seq);
+        // TODO(qqliu): Check to make sure this is once in either direction.
+        // I.e. an edge insertion (u, v) should show up as (u, v) or (v, u) but
+        // not both.
         auto num_insertions_per_vertex = parlay::sequence<std::pair<uintE, uintE>>(vertex_starts.size() - 1);
         parallel_for (0, vertex_starts.size() - 1, [&] (size_t q){
             uintE vertex_index = vertex_starts[q];
@@ -152,6 +157,7 @@ struct RandomBlankColor{
             VC[u].neighbors_.insert(v);
             VC[v].neighbors_.insert(u);
         });
+
         auto color_edges = parlay::filter(parlay::make_slice(insertions),
             [&] (const edge_type& e) {
                 auto u = e.first;
@@ -159,48 +165,72 @@ struct RandomBlankColor{
                 return VC[u].color_ == VC[v].color_;
         });
 
-        auto r = random();
-        while (color_edges.size() > 0) {
-            auto color_conflicts = parlay::sequence<uintE>(2*color_edges.size(), (uintE)0);
-            parallel_for(0, color_edges.size(), [&] (size_t i) {
-                color_conflicts[i] = std::get<0>(color_edges[i]);
-                color_conflicts[i + color_edges.size()] = std::get<1>(color_edges[i]);
-            });
-            parlay::integer_sort_inplace(parlay::make_slice(color_conflicts));
-            auto dedup_conflicts = parlay::delayed_seq<bool>(color_conflicts.size(), [&] (size_t i){
-                return (i == 0) || (color_conflicts[i] != color_conflicts[i-1]);
-            });
-            auto conflict_vertices = parlay::pack(parlay::make_slice(color_conflicts), dedup_conflicts);
+        auto color_conflicts = parlay::sequence<uintE>(2*color_edges.size(), (uintE)0);
+        parallel_for(0, color_edges.size(), [&] (size_t i) {
+            color_conflicts[i] = std::get<0>(color_edges[i]);
+            color_conflicts[i + color_edges.size()] = std::get<1>(color_edges[i]);
+        });
+        parlay::integer_sort_inplace(parlay::make_slice(color_conflicts));
+        auto dedup_conflicts = parlay::delayed_seq<bool>(color_conflicts.size(), [&] (size_t i){
+            return (i == 0) || (color_conflicts[i] != color_conflicts[i-1]);
+        });
+        auto conflict_vertices = parlay::pack(parlay::make_slice(color_conflicts), dedup_conflicts);
 
+        auto r = random();
+        while (conflict_vertices.size() > 0) {
             parallel_for(0, conflict_vertices.size(), [&] (size_t i){
                 uintE v = conflict_vertices[i];
                 neighborsequence occupied_colors = gbbs::sequence<uintE>(VC[v].neighbors_.size());
-                parallel_for(0, VC[v].neighbors_.size(), [&] (size_t i){
-                    auto neighbor = VC[v].neighbors_.table[i];
+                parallel_for(0, VC[v].neighbors_.size(), [&] (size_t j){
+                    auto neighbor = VC[v].neighbors_.table[j];
                     if (neighbor < vertex_colors.size()) {
-                        occupied_colors[i] = VC[neighbor].color_;
+                        occupied_colors[j] = VC[neighbor].color_;
+                    } else {
+                        occupied_colors[j] = kNotVertex;
                     }
                 });
                 parlay::integer_sort_inplace(parlay::make_slice(occupied_colors));
-                auto bool_seq = parlay::delayed_seq<bool>(occupied_colors.size(), [&] (size_t i) {
-                    return (i == 0) || (occupied_colors[i] != occupied_colors[i-1]);
+                auto bool_seq = parlay::delayed_seq<bool>(occupied_colors.size(),
+                        [&] (size_t j) {
+                    return ((j == 0) || (occupied_colors[j] != occupied_colors[j-1])) &&
+                        (occupied_colors[j] != kNotVertex);
                 });
                 auto unique_color_starts = parlay::pack_index(bool_seq);
-                neighborset unique_color = gbbs::sparse_set<uintE>(unique_color_starts.size());
-                parallel_for(0, unique_color_starts.size(), [&] (size_t i){
-                    unique_color.insert(occupied_colors[unique_color_starts[i]]);
+                neighborset unique_color = gbbs::sparse_set<uintE>();
+                unique_color.resize(unique_color_starts.size());
+                parallel_for(0, unique_color_starts.size(), [&] (size_t j){
+                    auto color = occupied_colors[unique_color_starts[j]];
+                    if (color < kNotVertex) {
+                        unique_color.insert(color);
+                    }
                 });
 
                 VC[v].find_new_color(r, palette_size_factor_, unique_color);
             });
 
-            auto new_color_edges = parlay::filter(parlay::make_slice(color_edges),
-                [&] (const edge_type& e) {
-                    auto u = e.first;
-                    auto v = e.second;
-                    return VC[u].color_ == VC[v].color_;
+            // TODO(qqliu): maybe this part can be more efficient.
+            auto new_conflict_vertices = parlay::filter(parlay::make_slice(conflict_vertices),
+                [&] (const uintE& u) {
+                auto neighbors = VC[u].neighbors_;
+                auto bool_conflict = parlay::sequence<bool>(neighbors.size(), (bool) false);
+                parallel_for(0, neighbors.size(), [&] (size_t q){
+                    auto neighbor = neighbors.table[q];
+                    if (neighbor < vertex_colors.size()) {
+                        auto neighbor_color = VC[neighbor].color_;
+                        if (neighbor_color == VC[u].color_)
+                            bool_conflict[q] = true;
+                    }
+                });
+
+                auto any_conflict = parlay::filter(bool_conflict, [&] (const bool& conflict){
+                        return conflict;
+                });
+                if (any_conflict.size() > 0)
+                    return true;
+                else
+                    return false;
             });
-            color_edges = new_color_edges;
+            conflict_vertices = new_conflict_vertices;
             r = r.next();
         }
     }
@@ -259,10 +289,11 @@ struct RandomBlankColor{
         for (size_t i = 0; i < vertex_colors.size(); i++) {
             auto neighbors = VC[i].neighbors_;
             parallel_for(0, neighbors.size(), [&] (size_t j){
-                auto neighbor = neighbors.table[i];
+                auto neighbor = neighbors.table[j];
                 if (neighbor < vertex_colors.size()) {
-                    if (VC[neighbor].color_ == VC[i].color_)
+                    if (VC[neighbor].color_ == VC[i].color_) {
                         invs_ok = false;
+                    }
                 }
             });
             assert(invs_ok);
