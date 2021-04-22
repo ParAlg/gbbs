@@ -12,6 +12,7 @@
 #include "benchmarks/MinimumSpanningForest/Boruvka/MinimumSpanningForest.h"
 #include "benchmarks/KCore/JulienneDBS17/KCore.h"
 #include "benchmarks/CoSimRank/CoSimRank.h"
+#include "benchmarks/GeneralWeightSSSP/BellmanFord/BellmanFord.h"
 #include "benchmarks/PageRank/PageRank.h"
 #include "benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16/StronglyConnectedComponents.h"
 
@@ -224,6 +225,10 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       auto edges = MinimumSpanningForest_boruvka::MinimumSpanningForest(G_copy);
       G_copy.del();
       return build_edgelist<W>(edges);
+    })
+    .def("SSSP", [&] (graph& G, uintE source) {
+      auto distances = BellmanFord(G, source);
+      return wrap_array(distances);
     })
     .def("HierarchicalAgglomerativeClustering", [&] (graph& G, std::string& linkage, bool similarity=true) {
       if constexpr (!std::is_same<W, gbbs::empty>()) {

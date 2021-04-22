@@ -16,6 +16,7 @@ pybind_extension(
       "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity",
       "//benchmarks/Clustering/SeqHAC:HAC_api",
       "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+      "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord",
       "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
       "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",
       "//benchmarks/CoSimRank:CoSimRank",
