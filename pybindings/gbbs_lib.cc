@@ -66,11 +66,13 @@ auto edgeListToSymmetricWeightedGraph(py::array_t<W> input) {
   edges.resize(m);
 
   parallel_for(0, m, [&] (size_t i) {
+//  for (size_t i=0; i<m; i++) {
     uint32_t u = uint32_t(ptr[i*3]);
     uint32_t v = uint32_t(ptr[i*3 + 1]);
     edges[i].from = u;
     edges[i].to = v;
     edges[i].weight = ptr[i*3 + 2];
+//    std::cout << u << " " << v << " " << edges[i].weight << std::endl;
   });
 
   auto graph{gbbs_io::edge_list_to_symmetric_graph(edges)};

@@ -69,6 +69,7 @@ cc_library(
   hdrs = ["MinimumSpanningForest_lib.h"],
   deps = [
     "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
+#    "//benchmarks/MinimumSpanningForest/Kruskal:MinimumSpanningForest",
     "//gbbs:gbbs",
   ]
 )

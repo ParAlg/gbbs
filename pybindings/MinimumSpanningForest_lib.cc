@@ -24,6 +24,7 @@
 #include "MinimumSpanningForest_lib.h"
 
 #include "benchmarks/MinimumSpanningForest/Boruvka/MinimumSpanningForest.h"
+//#include "benchmarks/MinimumSpanningForest/Kruskal/MinimumSpanningForest.h"
 
 #include "gbbs/gbbs.h"
 

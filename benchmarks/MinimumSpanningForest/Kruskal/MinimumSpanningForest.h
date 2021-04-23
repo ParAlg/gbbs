@@ -37,7 +37,7 @@ namespace MinimumSpanningForest_kruskal {
 template <template <class W> class vertex, class W,
           typename std::enable_if<!std::is_same<W, gbbs::empty>::value,
                                   int>::type = 0>
-inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
+inline sequence<std::tuple<uintE, uintE, W>> MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   using edge = std::tuple<uintE, uintE, W>;
 
   size_t n = GA.n;
@@ -60,24 +60,27 @@ inline void MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
   auto unite{unite_variants::Unite<decltype(find)>{find}};
 
   W weight = 0;
+  auto MST = sequence<edge>(n);
+  size_t k = 0;
   for (size_t i=0; i<edges.size(); i++) {
     auto [u,v,w] = edges[i];
     if (find(u, components) != find(v, components)) {
       unite(u, v, components);
       weight += w;
+      MST[k++] = {u,v,w};
     }
   }
   kt.stop(); kt.reportTotal("kruskal time (excluding G.get_edges() to convert graph to edge-list format)");
   std::cout << "MST weight = " << weight << std::endl;
+  MST.resize(k);
+  return MST;
 }
 
 template <
     template <class W> class vertex, class W,
     typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
-inline uint32_t* MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
-  std::cout << "Unimplemented for unweighted graphs"
-            << "\n";
-  exit(0);
+inline sequence<std::pair<uintE, uintE>> MinimumSpanningForest(symmetric_graph<vertex, W>& GA) {
+  return sequence<std::pair<uintE, uintE>>();
 }
 
 }  // namespace MinimumSpanningForest_kruskal

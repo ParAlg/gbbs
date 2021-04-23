@@ -373,6 +373,7 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
 
     // relabel edges
     auto& edges = E.E;
+    auto edges_save = E.E;  // copy
     if (round > 0) {
       par_for(0, n_edges, kDefaultGranularity, [&] (size_t i) {
         edge& e = edges[i];
@@ -387,7 +388,6 @@ inline sequence<std::tuple<uintE ,uintE, W>> MinimumSpanningForest(symmetric_gra
     timer bt;
     bt.start();
     uintE* mst = pbbslib::new_array_no_init<uintE>(n);
-    auto edges_save = E.E;  // copy
     size_t n_in_mst =
         Boruvka(E, vtxs, next_vtxs, min_edges, parents, exhausted, n_active, mst);
     auto edge_ids = pbbslib::make_range(mst, n_in_mst);
