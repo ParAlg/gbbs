@@ -1,6 +1,5 @@
 package(default_visibility = ["//visibility:public"])
 
-#load("@pybind11_bazel//:build_defs.bzl", "pybind_extension", "pybind_library")
 load("//internal_tools:py_extension.bzl", "py_extension")
 
 
@@ -78,29 +77,20 @@ py_extension(
   name = "gbbs_lib",
   srcs = ["gbbs_lib.cc"],
   deps = [
-      "@local_config_python//:python_headers",
-      "@pybind11",
-      ":BellmanFord_lib",
-      ":BFS_lib",
-      ":KCore_lib",
-      ":CC_lib",
-      ":HAC_lib",
-      ":PageRank_lib",
-      ":MinimumSpanningForest_lib",
-      "//gbbs:compressed_vertex",
-      "//gbbs:graph",
-      "//gbbs:graph_io",
-      "//gbbs:gbbs",
-      "//gbbs:vertex",
-      "//gbbs:vertex_subset",
-#      "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity",
-#      "//benchmarks/Clustering/SeqHAC:HAC_api",
-#      "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
-#      "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord",
-#      "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
-#      "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",
-#      "//benchmarks/CoSimRank:CoSimRank",
-#      "//benchmarks/PageRank:PageRank",
-#      "//benchmarks/KCore/JulienneDBS17:KCore",
+    "@local_config_python//:python_headers",
+    "@pybind11",
+    ":BellmanFord_lib",
+    ":BFS_lib",
+    ":KCore_lib",
+    ":CC_lib",
+    ":HAC_lib",
+    ":PageRank_lib",
+    ":MinimumSpanningForest_lib",
+    "//gbbs:compressed_vertex",
+    "//gbbs:graph",
+    "//gbbs:graph_io",
+    "//gbbs:gbbs",
+    "//gbbs:vertex",
+    "//gbbs:vertex_subset",
   ],
 )
