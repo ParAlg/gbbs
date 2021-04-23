@@ -35,7 +35,12 @@ def loadFromEdgeList(edges, symmetric=True, weighted=False):
     if (not weighted):
       return gbbs_lib.numpyEdgeListToSymmetricUnweightedGraph(edges)
     else:
-      return gbbs_lib.numpyEdgeListToSymmetricWeightedGraph(edges)
+      if (edges.dtype == "float64"):
+        return gbbs_lib.numpyFloatEdgeListToSymmetricWeightedGraph(edges)
+      else:
+        print("unknown edge type")
+        print(edges.dtype)
+        exit(0)
   else:
     exit(0)
 

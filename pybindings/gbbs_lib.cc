@@ -65,13 +65,13 @@ auto edgeListToSymmetricWeightedGraph(py::array_t<W> input) {
   std::vector<edge> edges;
   edges.resize(m);
 
-  for (size_t i=0; i<m; i++) {
+  parallel_for(0, m, [&] (size_t i) {
     uint32_t u = uint32_t(ptr[i*3]);
     uint32_t v = uint32_t(ptr[i*3 + 1]);
     edges[i].from = u;
     edges[i].to = v;
     edges[i].weight = ptr[i*3 + 2];
-  }
+  });
 
   auto graph{gbbs_io::edge_list_to_symmetric_graph(edges)};
 
@@ -389,17 +389,16 @@ PYBIND11_MODULE(gbbs_lib, m) {
   });
 
   // Uint weighted graph.
-  m.def("numpyEdgeListToSymmetricWeightedGraph", [&] (py::array_t<uint32_t> input) {
-    std::cout << "In uint weighted case" << std::endl;
-    return edgeListToSymmetricWeightedGraph(input);
+  m.def("numpyUintEdgeListToSymmetricWeightedGraph", [&] (py::array_t<uint32_t> input) {
+    std::cout << "Constructing uint weighted graph." << std::endl;
+    return edgeListToSymmetricWeightedGraph<uint32_t>(input);
   });
 
-//  // Integer weighted graphs.
-//  m.def("numpyEdgeListToSymmetricWeightedGraph", [&] (py::array_t<float> input) {
-//    std::cout << "In float weighted case" << std::endl;
-//      return floatEdgeListToSymmetricWeightedGraph(input);
-//  });
-
+  // Uint weighted graph.
+  m.def("numpyFloatEdgeListToSymmetricWeightedGraph", [&] (py::array_t<float> input) {
+    std::cout << "Constructing float weighted graph." << std::endl;
+    return edgeListToSymmetricWeightedGraph<float>(input);
+  });
 
   m.def("loadSymmetricEdgeListAsGraph", [&] (std::string& inpath, std::string& outpath) {
     struct stat buffer;
