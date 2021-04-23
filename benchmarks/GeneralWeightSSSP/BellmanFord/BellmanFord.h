@@ -47,7 +47,7 @@ struct BF_F {
     return 0;
   }
   inline bool updateAtomic(const uintE& s, const uintE& d,
-                           const intE& edgeLen) {
+                           const W& edgeLen) {
     Distance newDist;
     if constexpr (std::is_same<W, gbbs::empty>()) {
       newDist = SP[s] + 1;
@@ -71,7 +71,7 @@ struct BF_Vertex_F {
 template <class Graph>
 auto BellmanFord(Graph& G, uintE start) {
   using W = typename Graph::weight_type;
-  using Distance = typename std::conditional<std::is_same<W, gbbs::empty>::value, intE, W>::type;
+  using Distance = typename std::conditional<std::is_same<W, gbbs::empty>::value, uintE, W>::type;
 
   size_t n = G.n;
   auto Visited = sequence<int>(n, 0);

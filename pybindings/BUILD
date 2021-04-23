@@ -1,26 +1,106 @@
 package(default_visibility = ["//visibility:public"])
 
-load("@pybind11_bazel//:build_defs.bzl", "pybind_extension", "pybind_library")
+#load("@pybind11_bazel//:build_defs.bzl", "pybind_extension", "pybind_library")
+load("//internal_tools:py_extension.bzl", "py_extension")
 
-pybind_extension(
+
+cc_library(
+  name = "BFS_lib",
+  srcs = ["BFS_lib.cc"],
+  hdrs = ["BFS_lib.h"],
+  deps = [
+    "//benchmarks/BFS/NonDeterministicBFS:BFS",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
+  name = "CC_lib",
+  srcs = ["CC_lib.cc"],
+  hdrs = ["CC_lib.h"],
+  deps = [
+    "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
+  name = "KCore_lib",
+  srcs = ["KCore_lib.cc"],
+  hdrs = ["KCore_lib.h"],
+  deps = [
+    "//benchmarks/KCore/JulienneDBS17:KCore",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
+  name = "HAC_lib",
+  srcs = ["HAC_lib.cc"],
+  hdrs = ["HAC_lib.h"],
+  deps = [
+    "//benchmarks/Clustering/SeqHAC:HAC_api",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
+  name = "BellmanFord_lib",
+  srcs = ["BellmanFord_lib.cc"],
+  hdrs = ["BellmanFord_lib.h"],
+  deps = [
+    "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
+  name = "PageRank_lib",
+  srcs = ["PageRank_lib.cc"],
+  hdrs = ["PageRank_lib.h"],
+  deps = [
+    "//benchmarks/PageRank:PageRank",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
+  name = "MinimumSpanningForest_lib",
+  srcs = ["MinimumSpanningForest_lib.cc"],
+  hdrs = ["MinimumSpanningForest_lib.h"],
+  deps = [
+    "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
+    "//gbbs:gbbs",
+  ]
+)
+
+py_extension(
   name = "gbbs_lib",
   srcs = ["gbbs_lib.cc"],
   deps = [
+      "@local_config_python//:python_headers",
+      "@pybind11",
+      ":BellmanFord_lib",
+      ":BFS_lib",
+      ":KCore_lib",
+      ":CC_lib",
+      ":HAC_lib",
+      ":PageRank_lib",
+      ":MinimumSpanningForest_lib",
       "//gbbs:compressed_vertex",
       "//gbbs:graph",
       "//gbbs:graph_io",
       "//gbbs:gbbs",
       "//gbbs:vertex",
       "//gbbs:vertex_subset",
-      "//benchmarks/BFS/NonDeterministicBFS:BFS",
-      "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity",
-      "//benchmarks/Clustering/SeqHAC:HAC_api",
-      "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
-      "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord",
-      "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
-      "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",
-      "//benchmarks/CoSimRank:CoSimRank",
-      "//benchmarks/PageRank:PageRank",
-      "//benchmarks/KCore/JulienneDBS17:KCore",
+#      "//benchmarks/Biconnectivity/TarjanVishkin:Biconnectivity",
+#      "//benchmarks/Clustering/SeqHAC:HAC_api",
+#      "//benchmarks/Connectivity/WorkEfficientSDB14:Connectivity",
+#      "//benchmarks/GeneralWeightSSSP/BellmanFord:BellmanFord",
+#      "//benchmarks/MinimumSpanningForest/Boruvka:MinimumSpanningForest",
+#      "//benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16:StronglyConnectedComponents",
+#      "//benchmarks/CoSimRank:CoSimRank",
+#      "//benchmarks/PageRank:PageRank",
+#      "//benchmarks/KCore/JulienneDBS17:KCore",
   ],
 )

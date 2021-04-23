@@ -45,44 +45,6 @@ inline size_t get_virtual_degree(uintE d, uchar* ngh_arr) {
   return 0;
 }
 
-// Read default weight (expects gbbs::empty)
-template <class W,
-          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
-  return (W)gbbs::empty();
-}
-
-template <class W,
-          typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-__attribute__((always_inline)) inline void print_weight(W& wgh) {
-  std::cout << wgh << "\n";
-}
-
-template <class W,
-          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
-inline void print_weight(W& wgh) {}
-
-// Read integer weight
-template <class W,
-          typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
-__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
-  uchar fb = *start++;
-  intE edgeRead = (fb & 0x3f);
-  if (LAST_BIT_SET(fb)) {
-    int shiftAmount = 6;
-    while (1) {
-      uchar b = *start;
-      edgeRead |= ((b & 0x7f) << shiftAmount);
-      start++;
-      if (LAST_BIT_SET(b))
-        shiftAmount += EDGE_SIZE_PER_BYTE;
-      else
-        break;
-    }
-  }
-  return (fb & 0x40) ? -edgeRead : edgeRead;
-}
-
 __attribute__((always_inline)) inline uintE eatFirstEdge(uchar*& start, const uintE source) {
   uchar fb = *start++;
   uintE edgeRead = (fb & 0x3f);
@@ -119,6 +81,70 @@ __attribute__((always_inline)) inline uintE eatEdge(uchar*& start) {
   }
   return edgeRead;
 }
+
+// Read default weight (expects gbbs::empty)
+template <class W,
+          typename std::enable_if<std::is_same<W, gbbs::empty>::value, int>::type = 0>
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
+  return (W)gbbs::empty();
+}
+
+// Read integer weight
+template <class W,
+          typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
+  uchar fb = *start++;
+  intE edgeRead = (fb & 0x3f);
+  if (LAST_BIT_SET(fb)) {
+    int shiftAmount = 6;
+    while (1) {
+      uchar b = *start;
+      edgeRead |= ((b & 0x7f) << shiftAmount);
+      start++;
+      if (LAST_BIT_SET(b))
+        shiftAmount += EDGE_SIZE_PER_BYTE;
+      else
+        break;
+    }
+  }
+  return (fb & 0x40) ? -edgeRead : edgeRead;
+}
+
+// Read unsigned int weight
+template <class W,
+          typename std::enable_if<std::is_same<W, uint32_t>::value, int>::type = 0>
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
+  return eatEdge(start);
+}
+
+// Read float weight
+template <class W,
+          typename std::enable_if<std::is_same<W, float>::value, int>::type = 0>
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
+  float wgh = *((float*)start);
+  start += sizeof(float);
+  return wgh;
+}
+
+// Read double weight
+template <class W,
+          typename std::enable_if<std::is_same<W, double>::value, int>::type = 0>
+__attribute__((always_inline)) inline W eatWeight(uchar*& start) {
+  double wgh = *((double*)start);
+  start += sizeof(double);
+  return wgh;
+}
+
+template <class W,
+          typename std::enable_if<std::is_same<W, intE>::value, int>::type = 0>
+__attribute__((always_inline)) inline void print_weight(W& wgh) {
+  std::cout << wgh << "\n";
+}
+
+template <class W,
+          typename std::enable_if<!std::is_same<W, intE>::value, int>::type = 0>
+inline void print_weight(W& wgh) {}
+
 
 /*
   Compresses the first edge, writing target-source and a sign bit.

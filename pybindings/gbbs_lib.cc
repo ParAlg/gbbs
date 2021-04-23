@@ -5,16 +5,23 @@
 #include "gbbs/graph.h"
 #include "gbbs/graph_io.h"
 
-#include "benchmarks/BFS/NonDeterministicBFS/BFS.h"
-#include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
-#include "benchmarks/Clustering/SeqHAC/HAC_api.h"
-#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
-#include "benchmarks/MinimumSpanningForest/Boruvka/MinimumSpanningForest.h"
-#include "benchmarks/KCore/JulienneDBS17/KCore.h"
-#include "benchmarks/CoSimRank/CoSimRank.h"
-#include "benchmarks/GeneralWeightSSSP/BellmanFord/BellmanFord.h"
-#include "benchmarks/PageRank/PageRank.h"
-#include "benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16/StronglyConnectedComponents.h"
+#include "BFS_lib.h"
+#include "KCore_lib.h"
+#include "CC_lib.h"
+#include "BellmanFord_lib.h"
+#include "HAC_lib.h"
+#include "MinimumSpanningForest_lib.h"
+#include "PageRank_lib.h"
+
+//#include "benchmarks/Biconnectivity/TarjanVishkin/Biconnectivity.h"
+//#include "benchmarks/Clustering/SeqHAC/HAC_api.h"
+//#include "benchmarks/Connectivity/WorkEfficientSDB14/Connectivity.h"
+//#include "benchmarks/MinimumSpanningForest/Boruvka/MinimumSpanningForest.h"
+//#include "benchmarks/KCore/JulienneDBS17/KCore.h"
+//#include "benchmarks/CoSimRank/CoSimRank.h"
+//#include "benchmarks/GeneralWeightSSSP/BellmanFord/BellmanFord.h"
+//#include "benchmarks/PageRank/PageRank.h"
+//#include "benchmarks/StronglyConnectedComponents/RandomGreedyBGSS16/StronglyConnectedComponents.h"
 
 #include "pybind11/pybind11.h"
 #include "pybind11/numpy.h"
@@ -205,44 +212,44 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       return G.m;
     })
     .def("BFS", [&] (graph& G, const size_t src) {
-      auto parents = BFS(G, src);
+      auto parents = compiled::BFS(G, src);
       return wrap_array(parents);
     }, py::arg("src"))
     .def("Connectivity", [&] (graph& G) {
-      auto ccs = workefficient_cc::CC(G);
+      auto ccs = compiled::Connectivity(G);
       return wrap_array(ccs);
     })
     .def("KCore", [&] (graph& G) {
-      auto cores = KCore(G);
+      auto cores = compiled::KCore(G);
       return wrap_array(cores);
     })
     .def("PageRank", [&] (graph& G) {
-      auto ranks = PageRank(G);
+      auto ranks = compiled::PageRank(G);
       return wrap_array(ranks);
     })
     .def("MinimumSpanningForest", [&] (graph& G) {
       auto G_copy = G.copy();
-      auto edges = MinimumSpanningForest_boruvka::MinimumSpanningForest(G_copy);
+      auto edges = compiled::MinimumSpanningForest(G_copy);
       G_copy.del();
       return build_edgelist<W>(edges);
     })
     .def("SSSP", [&] (graph& G, uintE source) {
-      auto distances = BellmanFord(G, source);
+      auto distances = compiled::BellmanFord(G, source);
       return wrap_array(distances);
     })
     .def("HierarchicalAgglomerativeClustering", [&] (graph& G, std::string& linkage, bool similarity=true) {
       if constexpr (!std::is_same<W, gbbs::empty>()) {
-          auto dendrogram = HAC(G, linkage, similarity);
+          auto dendrogram = compiled::HAC(G, linkage, similarity);
           return build_dendrogram<W>(dendrogram);
         } else {
           std::cerr << "Only supported for weighted graphs. (HAC invoked with parameters " << linkage << " similarity = " << similarity << ")" << std::endl;
           exit(0);
         }
-    })
-    .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
-      CoSimRank(G, src, dest);
-      return 1.0;
-    }, py::arg("src"), py::arg("dest"));
+    });
+//    .def("CoSimRank", [&] (graph& G, const size_t src, const size_t dest) {
+//      CoSimRank(G, src, dest);
+//      return 1.0;
+//    }, py::arg("src"), py::arg("dest"));
 }
 
 /* Defines asymmetric vertex functions */
@@ -257,10 +264,6 @@ void AsymVertexRegister(py::module& m, std::string vertex_name) {
     })
     .def("numEdges", [](const graph& G) -> size_t {
       return G.m;
-    })
-    .def("BFS", [&] (graph& G, const size_t src) {
-      auto parents = BFS(G, src);
-      return 1.0;
     });
 }
 
@@ -277,7 +280,7 @@ void AsymGraphRegister(py::module& m, std::string graph_name) {
       return G.m;
     })
     .def("BFS", [&] (graph& G, const size_t src) {
-      auto parents = BFS(G, src);
+      auto parents = compiled::BFS(G, src);
       return 1.0;
     }, py::arg("src"));
 }
@@ -385,10 +388,17 @@ PYBIND11_MODULE(gbbs_lib, m) {
     return graph;
   });
 
-  // Integer weighted graphs.
+  // Uint weighted graph.
   m.def("numpyEdgeListToSymmetricWeightedGraph", [&] (py::array_t<uint32_t> input) {
-      return edgeListToSymmetricWeightedGraph(input);
+    std::cout << "In uint weighted case" << std::endl;
+    return edgeListToSymmetricWeightedGraph(input);
   });
+
+//  // Integer weighted graphs.
+//  m.def("numpyEdgeListToSymmetricWeightedGraph", [&] (py::array_t<float> input) {
+//    std::cout << "In float weighted case" << std::endl;
+//      return floatEdgeListToSymmetricWeightedGraph(input);
+//  });
 
 
   m.def("loadSymmetricEdgeListAsGraph", [&] (std::string& inpath, std::string& outpath) {
