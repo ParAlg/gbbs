@@ -251,7 +251,7 @@ struct clustered_graph {
         dendrogram[fst] = {new_id, Weights::id()};
         dendrogram[snd] = {new_id, Weights::id()};
 
-        std::cout << "Merged components for: " << fst << " " << snd << " dend_size = " << dendrogram.size() << std::endl;
+        debug(std::cout << "Merged components for: " << fst << " " << snd << " dend_size = " << dendrogram.size() << std::endl;);
 
         bad_queue.push(new_id);
       }
