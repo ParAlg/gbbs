@@ -15,7 +15,6 @@ sequence<std::pair<uintE, typename Graph::weight_type>> RunHAC(Graph& G, std::st
   if (linkage == "complete") {
     if constexpr (std::is_same<Sim, SimilarityClustering>()) {
       auto Wghs = MinLinkage<Graph, Sim, ActualWeight>(G);
-      //dendrogram = nn_chain::HAC(G, Wghs);
       dendrogram = nn_chain::HAC(G, Wghs);
     } else {
       auto Wghs = MaxLinkage<Graph, DissimilarityClustering, ActualWeight>(G);

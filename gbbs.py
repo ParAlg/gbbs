@@ -17,8 +17,16 @@ def loadGraph(graphPath="",undirected=True, compressed=False, binary=False):
     else:
       return gbbs_lib.readAsymmetricUnweightedGraph(graphPath, binary)
 
+def loadFloatGraph(graphPath="", undirected=True):
+  if (graphPath == ""):
+    print("Expect a non-empty path to the graph input file")
+    exit(0)
+  if (undirected):
+    return gbbs_lib.readSymmetricFloatWeightedGraph(graphPath, binary)
+  else:
+    return gbbs_lib.readAsymmetricFloatWeightedGraph(graphPath, binary)
 
-def loadSnap(graphPath="",undirected=True):
+def loadSnap(graphPath="", undirected=True):
   if (graphPath == ""):
     print("Expect a non-empty path to the graph input file")
     exit(0)
@@ -27,6 +35,17 @@ def loadSnap(graphPath="",undirected=True):
     return gbbs_lib.loadSymmetricEdgeListAsGraph(graphPath, graphName)
   else:
     return gbbs_lib.loadAsymmetricEdgeListAsGraph(graphPath, graphName)
+  print("Unsupported options")
+  exit(0)
+
+def loadFloatSnap(graphPath="", undirected=True):
+  if (graphPath == ""):
+    print("Expect a non-empty path to the graph input file")
+    exit(0)
+  if (undirected):
+    return gbbs_lib.loadSymmetricFloatEdgeListAsGraph(graphPath)
+  else:
+    return gbbs_lib.loadAsymmetricFloatEdgeListAsGraph(graphPath)
   print("Unsupported options")
   exit(0)
 

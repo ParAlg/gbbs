@@ -324,8 +324,15 @@ PYBIND11_MODULE(gbbs_lib, m) {
   SymGraphRegister<symmetric_vertex, float>(m, "SymmetricGraphFloat");
 
   AsymVertexRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricVertexEmpty");
-  AsymVertexRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
   AsymGraphRegister<asymmetric_vertex, gbbs::empty>(m, "AsymmetricGraphEmpty");
+
+  AsymVertexRegister<asymmetric_vertex, uint32_t>(m, "AsymmetricVertexInt");
+  AsymGraphRegister<asymmetric_vertex, uint32_t>(m, "AsymmetricGraphInt");
+
+  AsymVertexRegister<asymmetric_vertex, float>(m, "AsymmetricVertexFloat");
+  AsymGraphRegister<asymmetric_vertex, float>(m, "AsymmetricGraphFloat");
+
+  AsymVertexRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricVertexEmpty");
   AsymGraphRegister<cav_bytepd_amortized, gbbs::empty>(m, "CompressedAsymmetricGraphEmpty");
 
   /* ============================== Graph IO ============================= */
@@ -338,8 +345,26 @@ PYBIND11_MODULE(gbbs_lib, m) {
     return G;
   });
 
+  m.def("readSymmetricFloatWeightedGraph", [&] (std::string& path, bool binary=false) {
+    auto G = gbbs_io::read_weighted_symmetric_graph<float>(
+        path.c_str(),
+        /* mmap = */true,
+        binary);
+    alloc_init(G);
+    return G;
+  });
+
   m.def("readAsymmetricUnweightedGraph", [&] (std::string& path, bool binary=false) {
     auto G = gbbs_io::read_unweighted_asymmetric_graph(
+        path.c_str(),
+        /* mmap = */true,
+        binary);
+    alloc_init(G);
+    return G;
+  });
+
+  m.def("readAsymmetricFloatWeightedGraph", [&] (std::string& path, bool binary=false) {
+    auto G = gbbs_io::read_weighted_asymmetric_graph<float>(
         path.c_str(),
         /* mmap = */true,
         binary);
@@ -441,6 +466,20 @@ PYBIND11_MODULE(gbbs_lib, m) {
         /* binary = */ false);  /* TODO: use binary */
     alloc_init(G);
     return G;
+  });
+
+  m.def("loadSymmetricFloatEdgeListAsGraph", [&] (std::string& inpath) {
+    const auto edge_list{gbbs_io::read_weighted_edge_list<float>(inpath.c_str())};
+    auto graph{gbbs_io::edge_list_to_symmetric_graph(edge_list)};
+    alloc_init(graph);
+    return graph;
+  });
+
+  m.def("loadAsymmetricFloatEdgeListAsGraph", [&] (std::string& inpath) {
+    const auto edge_list{gbbs_io::read_weighted_edge_list<float>(inpath.c_str())};
+    auto graph{gbbs_io::edge_list_to_asymmetric_graph(edge_list)};
+    alloc_init(graph);
+    return graph;
   });
 
 }
