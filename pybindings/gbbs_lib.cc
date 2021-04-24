@@ -213,6 +213,9 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
     .def("numEdges", [](const graph& G) -> size_t {
       return G.m;
     })
+    .def("writeGraph", [] (graph& G, std::string& filename) -> void {
+      gbbs_io::write_graph_to_file(filename.c_str(), G);
+    })
     .def("BFS", [&] (graph& G, const size_t src) {
       auto parents = compiled::BFS(G, src);
       return wrap_array(parents);
@@ -393,13 +396,17 @@ PYBIND11_MODULE(gbbs_lib, m) {
   // Uint weighted graph.
   m.def("numpyUintEdgeListToSymmetricWeightedGraph", [&] (py::array_t<uint32_t> input) {
     std::cout << "Constructing uint weighted graph." << std::endl;
-    return edgeListToSymmetricWeightedGraph<uint32_t>(input);
+    auto G = edgeListToSymmetricWeightedGraph<uint32_t>(input);
+    alloc_init(G);
+    return G;
   });
 
   // Uint weighted graph.
   m.def("numpyFloatEdgeListToSymmetricWeightedGraph", [&] (py::array_t<float> input) {
     std::cout << "Constructing float weighted graph." << std::endl;
-    return edgeListToSymmetricWeightedGraph<float>(input);
+    auto G = edgeListToSymmetricWeightedGraph<float>(input);
+    alloc_init(G);
+    return G;
   });
 
   m.def("loadSymmetricEdgeListAsGraph", [&] (std::string& inpath, std::string& outpath) {

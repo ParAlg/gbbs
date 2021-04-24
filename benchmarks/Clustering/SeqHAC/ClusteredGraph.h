@@ -78,6 +78,7 @@ struct clustered_graph {
     std::optional<edge> highest_priority_edge() {
       if (size() == 0) return {};
       W m = neighbors.aug_val();
+      std::cout << "aug_val = " << aug_val << "
       edge entry;
       entry = *neighbors.aug_eq(m);
       assert(entry.second == m);
@@ -211,7 +212,7 @@ struct clustered_graph {
     last_cluster_id = n;
     num_merges_performed = 0;
     clusters = parlay::sequence<clustered_vertex>(n);
-    dendrogram = parlay::sequence<std::pair<uintE, W>>(2*n - 2, std::make_pair(UINT_E_MAX, W()));
+    dendrogram = parlay::sequence<std::pair<uintE, W>>(2*n - 1, std::make_pair(UINT_E_MAX, W()));
 
     parallel_for(0, n, [&] (size_t i) {
       auto orig = G.get_vertex(i);
@@ -251,7 +252,7 @@ struct clustered_graph {
         dendrogram[fst] = {new_id, Weights::id()};
         dendrogram[snd] = {new_id, Weights::id()};
 
-        debug(std::cout << "Merged components for: " << fst << " " << snd << std::endl;);
+        std::cout << "Merged components for: " << fst << " " << snd << " dend_size = " << dendrogram.size() << std::endl;
 
         bad_queue.push(new_id);
       }

@@ -74,8 +74,6 @@ struct DissimilarityClustering {
     using weight_type = typename base::weight_type;
     using base::base;  // import constructors
 
-    static constexpr bool similarity_clustering = false;
-
     // Used to specify whether we are doing similarity of dissimilarity
     // clustering. Similarity means taking max (heavier weights are more similar)
     // and dissimilarity means taking min (smaller edges are "closer")
@@ -95,8 +93,6 @@ struct DissimilarityClustering {
     using base = typename GetWeight::template GetWeight<Graph, WeightType>;
     using weight_type = WeightType;
     using base::base;  // import constructors
-
-    static constexpr bool similarity_clustering = false;
 
     // Used to specify whether we are doing similarity of dissimilarity
     // clustering. Similarity means taking max (heavier weights are more similar)
@@ -123,8 +119,6 @@ struct SimilarityClustering {
     using weight_type = typename base::weight_type;
     using base::base;  // import constructors
 
-    static constexpr bool similarity_clustering = true;
-
     // Used to specify whether we are doing similarity of dissimilarity
     // clustering. Similarity means taking max (heavier weights are more similar)
     // and dissimilarity means taking min (smaller edges are "closer")
@@ -144,8 +138,6 @@ struct SimilarityClustering {
     using base = typename GetWeight::template GetWeight<Graph, WeightType>;
     using weight_type = WeightType;
     using base::base;  // import constructors
-
-    static constexpr bool similarity_clustering = true;
 
     // Used to specify whether we are doing similarity of dissimilarity
     // clustering. Similarity means taking max (heavier weights are more similar)
