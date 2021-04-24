@@ -45,6 +45,7 @@ build --cxxopt=-Wvla
 
 # Build without parallelism.
 build:serial --cxxopt=-UHOMEGROWN
+build:serial --cxxopt=-DPARLAY_SEQUENTIAL
 
 # Build using CilkPlus for parallelism.
 build:cilk --cxxopt=-UHOMEGROWN
