@@ -78,7 +78,6 @@ struct clustered_graph {
     std::optional<edge> highest_priority_edge() {
       if (size() == 0) return {};
       W m = neighbors.aug_val();
-      std::cout << "aug_val = " << aug_val << "
       edge entry;
       entry = *neighbors.aug_eq(m);
       assert(entry.second == m);
