@@ -43,7 +43,7 @@ template <class Graph>
 double DeltaStepping_runner(Graph& G, commandLine P) {
   uintE src = P.getOptionLongValue("-src", 0);
   size_t num_buckets = P.getOptionLongValue("-nb", 32);
-  size_t delta = P.getOptionLongValue("-delta", 1);
+  double delta = P.getOptionDoubleValue("-delta", 1.0);
 
   std::cout << "### Application: DeltaStepping" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -59,7 +59,7 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
     exit(-1);
   }
   timer t; t.start();
-  DeltaStepping(G, src, delta, num_buckets);
+  dists = DeltaStepping(G, src, delta, num_buckets);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
@@ -68,4 +68,5 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
 
 }  // namespace gbbs
 
+//generate_float_main(gbbs::DeltaStepping_runner, false);
 generate_weighted_main(gbbs::DeltaStepping_runner, false);

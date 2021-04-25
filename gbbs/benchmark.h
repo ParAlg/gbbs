@@ -351,6 +351,48 @@ inline auto get_pcm_state() { return (size_t)1; }
   }
 
 /* Macro to generate binary for weighted graph applications that can ingest
+ * either symmetric or asymmetric graph inputs */
+#define generate_float_main(APP, mutates)                                  \
+  int main(int argc, char* argv[]) {                                          \
+    gbbs::commandLine P(argc, argv, " [-s] <inFile>");                        \
+    char* iFile = P.getArgument(0);                                           \
+    bool symmetric = P.getOptionValue("-s");                                  \
+    bool compressed = P.getOptionValue("-c");                                 \
+    bool mmap = P.getOptionValue("-m");                                       \
+    bool mmapcopy = mutates;                                                  \
+    bool binary = P.getOptionValue("-b");                                     \
+    debug(std::cout << "# mmapcopy = " << mmapcopy << "\n";);                 \
+    size_t rounds = P.getOptionLongValue("-rounds", 3);                       \
+    gbbs::pcm_init();                                                         \
+    if (compressed) {                                                         \
+      if (symmetric) {                                                        \
+        auto G = gbbs::gbbs_io::read_compressed_symmetric_graph<float>(  \
+            iFile, mmap, mmapcopy);                                           \
+        gbbs::alloc_init(G);                                                  \
+        run_app(G, APP, rounds)                                               \
+      } else {                                                                \
+        auto G = gbbs::gbbs_io::read_compressed_asymmetric_graph<float>( \
+            iFile, mmap, mmapcopy);                                           \
+        gbbs::alloc_init(G);                                                  \
+        run_app(G, APP, rounds)                                               \
+      }                                                                       \
+    } else {                                                                  \
+      if (symmetric) {                                                        \
+        auto G = gbbs::gbbs_io::read_weighted_symmetric_graph<float>(    \
+            iFile, mmap, binary);                                             \
+        gbbs::alloc_init(G);                                                  \
+        run_app(G, APP, rounds)                                               \
+      } else {                                                                \
+        auto G = gbbs::gbbs_io::read_weighted_asymmetric_graph<float>(   \
+            iFile, mmap, binary);                                             \
+        gbbs::alloc_init(G);                                                  \
+        run_app(G, APP, rounds)                                               \
+      }                                                                       \
+    }                                                                         \
+    gbbs::alloc_finish();                                                     \
+  }
+
+/* Macro to generate binary for weighted graph applications that can ingest
  * only symmetric graph inputs */
 #define generate_symmetric_weighted_main(APP, mutates)                     \
   int main(int argc, char* argv[]) {                                       \

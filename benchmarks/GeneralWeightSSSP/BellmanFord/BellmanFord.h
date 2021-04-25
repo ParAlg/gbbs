@@ -75,7 +75,7 @@ auto BellmanFord(Graph& G, uintE start) {
 
   size_t n = G.n;
   auto Visited = sequence<int>(n, 0);
-  auto SP = sequence<Distance>(n, std::numeric_limits<Distance>::max() / 2);
+  auto SP = sequence<Distance>(n, std::numeric_limits<Distance>::max());
   SP[start] = 0;
 
   vertexSubset Frontier(n, start);
@@ -83,8 +83,7 @@ auto BellmanFord(Graph& G, uintE start) {
   while (!Frontier.isEmpty()) {
     // Check for a negative weight cycle
     if (round == n) {
-      par_for(0, n, kDefaultGranularity, [&] (size_t i)
-                      { SP[i] = -(std::numeric_limits<Distance>::max() / 2); });
+      std::cout << " Found negative weight cycle." << std::endl;
       break;
     }
     auto em_f = BF_F<W, Distance>(SP.begin(), Visited.begin());
@@ -95,8 +94,8 @@ auto BellmanFord(Graph& G, uintE start) {
     Frontier = std::move(output);
     round++;
   }
-  auto dist_im_f = [&](size_t i) { return (SP[i] == (std::numeric_limits<Distance>::max() / 2)) ? 0 : SP[i]; };
-  auto dist_im = pbbslib::make_delayed<size_t>(n, dist_im_f);
+  auto dist_im_f = [&](size_t i) { return (SP[i] == (std::numeric_limits<Distance>::max())) ? 0 : SP[i]; };
+  auto dist_im = pbbslib::make_delayed<Distance>(n, dist_im_f);
   std::cout << "max dist = " << pbbslib::reduce_max(dist_im) << "\n";
   std::cout << "n rounds = " << round << "\n";
   return SP;

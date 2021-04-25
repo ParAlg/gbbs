@@ -29,37 +29,43 @@
 
 namespace gbbs {
 
-constexpr uintE TOP_BIT = ((uintE)INT_E_MAX) + 1;
-constexpr uintE VAL_MASK = INT_E_MAX;
-
+template <class W, class Distance>
 struct Visit_F {
-  sequence<uintE>& dists;
-  Visit_F(sequence<uintE>& _dists) : dists(_dists) {}
+  sequence<std::pair<Distance, bool>>& dists;
+  Visit_F(sequence<std::pair<Distance, bool>>& _dists) : dists(_dists) {}
 
-  inline std::optional<uintE> update(const uintE& s, const uintE& d, const intE& w) {
-    uintE oval = dists[d];
-    uintE dist = oval | TOP_BIT, n_dist = (dists[s] | TOP_BIT) + w;
+  inline std::optional<Distance> update(const uintE& s, const uintE& d, const W& w) {
+    Distance dist = dists[d].first;
+    Distance n_dist;
+    if constexpr (std::is_same<W, gbbs::empty>()) {
+      n_dist = dists[s].first + 1;
+    } else {
+      n_dist = dists[s].first + w;
+    }
     if (n_dist < dist) {
-      if (!(oval & TOP_BIT)) {  // First visitor
-        dists[d] = n_dist;
-        return std::optional<uintE>(oval);
+      if (!dists[d].second) {  // First visitor
+        dists[d] = {n_dist, true};
+        return std::optional<Distance>(dist);
       }
-      dists[d] = n_dist;
+      dists[d].first = n_dist;
     }
     return std::nullopt;
   }
 
-  inline std::optional<uintE> updateAtomic(const uintE& s, const uintE& d,
-                                   const intE& w) {
-    uintE oval = dists[d];
-    uintE dist = oval | TOP_BIT;
-    uintE n_dist = (dists[s] | TOP_BIT) + w;
+  inline std::optional<Distance> updateAtomic(const uintE& s, const uintE& d, const W& w) {
+    Distance dist = dists[d].first;
+    Distance n_dist;
+    if constexpr (std::is_same<W, gbbs::empty>()) {
+      n_dist = dists[s].first + 1;
+    } else {
+      n_dist = dists[s].first + w;
+    }
     if (n_dist < dist) {
-      if (!(oval & TOP_BIT) &&
-          pbbslib::atomic_compare_and_swap(&(dists[d]), oval, n_dist)) {  // First visitor
-        return std::optional<uintE>(oval);
+      pbbslib::write_min(&(dists[d].first), n_dist);
+      if (!dists[d].second &&
+          pbbslib::atomic_compare_and_swap(&dists[d].second, false, true)) {  // First visitor
+        return std::optional<Distance>(dist);
       }
-      pbbslib::write_min(&(dists[d]), n_dist);
     }
     return std::nullopt;
   }
@@ -69,25 +75,29 @@ struct Visit_F {
 
 
 template <class Graph>
-void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
+auto DeltaStepping(Graph& G, uintE src, double delta, size_t num_buckets=128) {
+  using W = typename Graph::weight_type;
+  using Distance = typename std::conditional<std::is_same<W, gbbs::empty>::value, uintE, W>::type;
+  constexpr Distance kMaxWeight = std::numeric_limits<Distance>::max();
   size_t n = G.n;
-  auto dists = sequence<uintE>::from_function(n, [&] (size_t i) { return INT_E_MAX; });
-  dists[src] = 0;
+  std::cout << "Using delta = " << delta << std::endl;
+  auto dists = sequence<std::pair<Distance, bool>>::from_function(n, [&] (size_t i) { return std::make_pair(kMaxWeight, false); });
+  dists[src] = {(Distance)0, false};
+  auto bkts = sequence<uintE>(n, UINT_E_MAX);
 
-  auto get_bkt = [&] (const uintE& dist) -> uintE {
-    return (dist == INT_E_MAX) ? UINT_E_MAX : (dist / delta); };
+  auto get_bkt = [&] (const Distance& dist) -> uintE {
+    return (dist == kMaxWeight) ? UINT_E_MAX : (uintE)(dist / delta); };
   auto get_ring = pbbslib::make_delayed<uintE>(n, [&] (const size_t& v) -> uintE {
-    auto d = dists[v];
-    return (d == INT_E_MAX) ? UINT_E_MAX : (d / delta); });
+    auto d = dists[v].first;
+    return (d == kMaxWeight) ? UINT_E_MAX : (uintE)(d / delta); });
   auto b = make_vertex_buckets(n, get_ring, increasing, num_buckets);
 
-  auto apply_f = [&] (const uintE v, uintE& oldDist) -> void {
-    uintE newDist = dists[v] & VAL_MASK;
-    dists[v] = newDist; // Remove the TOP_BIT in the distance.
+  auto apply_f = [&] (const uintE v, const Distance& oldDist) -> void {
+    Distance newDist = dists[v].first;
+    dists[v] = {newDist, false};  // reset flag
     // Compute the previous bucket and new bucket for the vertex.
     uintE prev_bkt = get_bkt(oldDist), new_bkt = get_bkt(newDist);
-    auto dest = b.get_bucket(prev_bkt, new_bkt);
-    oldDist = dest; // write back
+    bkts[v] = b.get_bucket(prev_bkt, new_bkt);
   };
 
   timer bktt;
@@ -95,43 +105,38 @@ void DeltaStepping(Graph& G, uintE src, uintE delta, size_t num_buckets=128) {
   auto bkt = b.next_bucket();
   bktt.stop();
   flags fl = no_dense;
+  size_t round = 0;
   while (bkt.id != b.null_bkt) {
+    round++;
     auto active = vertexSubset(n, std::move(bkt.identifiers));
-    // The output of the edgeMap is a vertexSubsetData<uintE> where the value
+    // The output of the edgeMap is a vertexSubsetData<Distance> where the value
     // stored with each vertex is its original distance in this round
-    auto res = edgeMapData<uintE>(G, active, Visit_F(dists), G.m/20, fl);
+    auto res = edgeMapData<Distance>(G, active, Visit_F<W, Distance>(dists), G.m/20, fl);
     vertexMap(res, apply_f);
     bktt.start();
     if (res.dense()) {
-      b.update_buckets(res.get_fn_repr(), n);
+      b.update_buckets([&] (size_t i) -> std::optional<std::tuple<uintE, uintE>> {
+        if (std::get<0>(res.d[i])) {
+          return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(i, bkts[i]));
+        } else {
+          return std::nullopt;
+        }
+      }, G.n);
     } else {
-      b.update_buckets(res.get_fn_repr(), res.size());
+      b.update_buckets([&] (size_t i) {
+        auto v = std::get<0>(res.s[i]);
+        return std::optional<std::tuple<uintE, uintE>>(std::make_tuple(v, bkts[v]));
+      }, res.size());
     }
     bkt = b.next_bucket();
     bktt.stop();
   }
-  auto get_dist = [&] (size_t i) { return (dists[i] == INT_E_MAX) ? 0 : dists[i]; };
-  auto dist_im = pbbslib::make_delayed<uintE>(n, get_dist);
+  auto get_dist = [&] (size_t i) { return (dists[i].first == kMaxWeight) ? 0 : dists[i].first; };
+  auto dist_im = pbbslib::make_delayed<Distance>(n, get_dist);
   std::cout << "max_dist = " << pbbslib::reduce_max(dist_im) << std::endl;
   bktt.reportTotal("bucket time");
-}
-
-template <class Graph>
-void Compute(Graph& G, commandLine P) {
-  uintE src = P.getOptionLongValue("-src",0);
-  uintE delta = P.getOptionLongValue("-delta",1);
-  size_t num_buckets = P.getOptionLongValue("-nb", 128);
-  if (num_buckets != (1 << pbbslib::log2_up(num_buckets))) {
-    std::cout << "Please specify a number of buckets that is a power of two" << std::endl;
-    exit(-1);
-  }
-  std::cout << "### Application: Delta-Stepping" << std::endl;
-  std::cout << "### Graph: " << P.getArgument(0) << std::endl;
-  std::cout << "### Buckets: " << num_buckets << std::endl;
-  std::cout << "### n: " << G.n << std::endl;
-  std::cout << "### m: " << G.m << std::endl;
-  std::cout << "### delta = " << delta << std::endl;
-  DeltaStepping(G, src, delta, num_buckets);
+  auto ret = sequence<Distance>::from_function(n, [&] (size_t i) { return dists[i].first; });
+  return ret;
 }
 
 }  // namespace gbbs

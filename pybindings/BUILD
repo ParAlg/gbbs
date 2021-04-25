@@ -54,6 +54,16 @@ cc_library(
 )
 
 cc_library(
+  name = "DeltaStepping_lib",
+  srcs = ["DeltaStepping_lib.cc"],
+  hdrs = ["DeltaStepping_lib.h"],
+  deps = [
+    "//benchmarks/PositiveWeightSSSP/DeltaStepping:DeltaStepping",
+    "//gbbs:gbbs",
+  ]
+)
+
+cc_library(
   name = "PageRank_lib",
   srcs = ["PageRank_lib.cc"],
   hdrs = ["PageRank_lib.h"],
@@ -82,6 +92,7 @@ py_extension(
     "@pybind11",
     ":BellmanFord_lib",
     ":BFS_lib",
+    ":DeltaStepping_lib",
     ":KCore_lib",
     ":CC_lib",
     ":HAC_lib",

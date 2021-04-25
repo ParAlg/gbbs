@@ -9,6 +9,7 @@
 #include "KCore_lib.h"
 #include "CC_lib.h"
 #include "BellmanFord_lib.h"
+#include "DeltaStepping_lib.h"
 #include "HAC_lib.h"
 #include "MinimumSpanningForest_lib.h"
 #include "PageRank_lib.h"
@@ -206,6 +207,9 @@ template <template <class W> class vertex_type, class W>
 void SymGraphRegister(py::module& m, std::string graph_name) {
   /* register graph */
   using graph = symmetric_graph<vertex_type, W>;
+
+  using Distance = typename std::conditional<std::is_same<W, gbbs::empty>::value, uintE, W>::type;
+
   py::class_<graph>(m, graph_name.c_str())
     .def("numVertices", [](const graph& G) -> size_t {
       return G.n;
@@ -238,8 +242,12 @@ void SymGraphRegister(py::module& m, std::string graph_name) {
       G_copy.del();
       return build_edgelist<W>(edges);
     })
-    .def("SSSP", [&] (graph& G, uintE source) {
+    .def("BellmanFord", [&] (graph& G, uintE source) {
       auto distances = compiled::BellmanFord(G, source);
+      return wrap_array(distances);
+    })
+    .def("DeltaStepping", [&] (graph& G, uintE source, Distance delta) {
+      auto distances = compiled::DeltaStepping(G, source, delta);
       return wrap_array(distances);
     })
     .def("HierarchicalAgglomerativeClustering", [&] (graph& G, std::string& linkage, bool similarity=true) {
