@@ -59,7 +59,7 @@ double DeltaStepping_runner(Graph& G, commandLine P) {
     exit(-1);
   }
   timer t; t.start();
-  dists = DeltaStepping(G, src, delta, num_buckets);
+  auto dists = DeltaStepping(G, src, delta, num_buckets);
   double tt = t.stop();
 
   std::cout << "### Running Time: " << tt << std::endl;
