@@ -221,11 +221,11 @@ inline bool atomic_compare_and_swap(volatile ET* a, ET oldval, ET newval) {
 
 long* global_cas_array;
 
-void init_global_cas_array() {
+inline void init_global_cas_array() {
   global_cas_array = new long[num_workers()];
 }
 
-long report_global_cas_array() {
+inline long report_global_cas_array() {
   long sum = 0;
   for (std::size_t i = 0; i < num_workers(); i++) {
     sum += global_cas_array[i];
