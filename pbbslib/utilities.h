@@ -219,6 +219,21 @@ inline bool atomic_compare_and_swap(volatile ET* a, ET oldval, ET newval) {
   }
 }
 
+long* global_cas_array;
+
+void init_global_cas_array() {
+  global_cas_array = new long[num_workers()];
+}
+
+long report_global_cas_array() {
+  long sum = 0;
+  for (std::size_t i = 0; i < num_workers(); i++) {
+    sum += global_cas_array[i];
+    global_cas_array[i] = 0;
+  }
+  return sum;
+}
+
 template <typename E, typename EV>
 inline E fetch_and_add(E* a, EV b) {
   volatile E newV, oldV;
@@ -236,6 +251,7 @@ inline void write_add(E* a, EV b) {
   do {
     oldV = *a;
     newV = oldV + b;
+    global_cas_array[worker_id()]++;
   } while (!atomic_compare_and_swap(a, oldV, newV));
 }
 
@@ -246,6 +262,7 @@ inline void write_add(std::atomic<E>* a, EV b) {
   do {
     oldV = a->load();
     newV = oldV + b;
+    global_cas_array[worker_id()]++;
   } while (!std::atomic_compare_exchange_strong(a, &oldV, newV));
 }
 
