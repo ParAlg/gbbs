@@ -243,6 +243,7 @@ inline E fetch_and_add(E* a, EV b) {
   do {
     oldV = *a;
     newV = oldV + b;
+    global_cas_array[worker_id()]++;
   } while (!atomic_compare_and_swap(a, oldV, newV));
   return oldV;
 }
