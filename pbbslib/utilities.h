@@ -219,7 +219,7 @@ inline bool atomic_compare_and_swap(volatile ET* a, ET oldval, ET newval) {
   }
 }
 
-long* global_cas_array;
+extern long* global_cas_array;
 
 inline void init_global_cas_array() {
   global_cas_array = new long[num_workers()];
