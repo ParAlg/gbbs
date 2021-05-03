@@ -223,11 +223,14 @@ extern long* global_cas_array;
 
 inline void init_global_cas_array() {
   global_cas_array = new long[num_workers()];
+  for (int i = 0; i < num_workers(); i++) {
+    global_cas_array[i] = 0;
+  }
 }
 
 inline long report_global_cas_array() {
   long sum = 0;
-  for (std::size_t i = 0; i < num_workers(); i++) {
+  for (int i = 0; i < num_workers(); i++) {
     sum += global_cas_array[i];
     global_cas_array[i] = 0;
   }
