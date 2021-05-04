@@ -3,7 +3,7 @@ ROOTDIR = $(strip $(shell git rev-parse --show-cdup))
 
 include $(ROOTDIR)makefile.variables
 
-ALL= HACSimilarity HACDissimilarity
+ALL= ParallelHAC
 
 OTHERFLAGS = -I$(ROOTDIR)external/PAM/include/
 
