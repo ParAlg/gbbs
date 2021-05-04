@@ -72,7 +72,36 @@ namespace clustering {
 
 template <class ClusteredGraph, class W>
 void ProcessEdgesComplete(ClusteredGraph& CG, sequence<std::tuple<uintE, uintE, W>>&& edges) {
-  using edge = std::tuple<uintE, uintE, W>;
+  // using edge = std::tuple<uintE, uintE, W>;
+
+  // Do we need to sort the edges / construct the graph in CSR format?
+  // - need to sample a random neighbor of a vertex (seems weird to implement
+  //   without sorted edges and offsets (CSR))
+  // - can simulate by using writeMin with random hashes (newly generated
+  //   per-round). Do a write
+
+  // 1. Compute the set of vertices that are active (incident to any edges).
+  //    This set shrinks over the course of this algorithm.
+  auto BoolSeq = sequence<bool>(CG.n, false);
+  parallel_for(0, edges.size(), [&] (size_t i) {
+    auto [u, v, wgh] = edges[i];
+    assert(u < CG.n);
+    assert(v < CG.n);
+    if (!BoolSeq[u]) BoolSeq[u] = true;
+    if (!BoolSeq[v]) BoolSeq[v] = true;
+  });
+  auto I = pack_index(BoolSeq);
+
+  // 2. Select red and blue vertices.
+  // TODO: use a better source of randomness (fresh per-round).
+  auto is_red = pbbslib::make_delayed<bool>(I.size(), [&] (size_t i) {
+    uintE u = I[i];
+    return (bool)(pbbslib::hash32_3(u) % 2); });
+  auto Split = parlay::internal::split_two(I, is_red);
+  auto& S = std::get<0>(Split);
+  auto R = S.cut(0, std::get<1>(Split));
+  auto B = S.cut(std::get<1>(Split), S.size());
+  std::cout << "I size = " << I.size() << " R size = " << R.size() << " B size = " << B.size() << std::endl;
 
 
 }
@@ -99,9 +128,9 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   //   - process active edges to obtain a sub-clustering at this level
   // - emit overall clustering
 
-  auto degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) { return CG.degree(i); });
-  size_t sum_degs = scan_inplace(make_slice(degrees));
-  std::cout << "sum_degs = " << sum_degs << std::endl;
+  //auto degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) { return CG.degree(i); });
+  //size_t sum_degs = scan_inplace(make_slice(degrees));
+  //std::cout << "sum_degs = " << sum_degs << std::endl;
 
   // Map-reduce to figure out the number of edges with weight > threshold.
   auto wgh_degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) {

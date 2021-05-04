@@ -86,7 +86,7 @@ struct clustered_graph {
       auto pred = [&] (edge e) -> size_t {
         return f(id, e.first, e.second);
       };
-      neighbor_map::map_reduce(neighbors, pred, Add());
+      return neighbor_map::map_reduce(neighbors, pred, Add());
     }
 
     template <class F>
