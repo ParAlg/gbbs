@@ -159,6 +159,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   long rounds = max((size_t)ceil(log(max_weight / min_weight) / log(one_plus_eps)), (size_t)1);
 
   while (rounds > 0) {
+    timer rt; rt.start();
     W lower_threshold = max_weight / one_plus_eps;
 
     std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
@@ -192,6 +193,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     });
 
     std::cout << "Extracted: " << edges.size() << " edges." << std::endl;
+    rt.next("Extract time");
 
     // All edges passing the threshold for this round now in edges. Now process
     // using random-mate-based algorithm.
@@ -199,6 +201,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     // The stuff above is generic for any linkage, but what comes next is specific
     // to the given linkage function.
     ProcessEdgesComplete(CG, std::move(edges));
+    rt.next("Process time");
 
     max_weight /= one_plus_eps;
     rounds--;
