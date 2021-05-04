@@ -148,7 +148,7 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   parallel_for(0, CG.n, [&] (size_t i) {
     auto f = [&] (const uintE& u, const uintE& v, const W& wgh) {
       if (wgh > max_weight) { pbbslib::write_max(&max_weight, wgh); }
-      if (wgh < min_weight) { pbbslib::write_min(&max_weight, wgh); }
+      if (wgh < min_weight) { pbbslib::write_min(&min_weight, wgh); }
     };
     CG.clusters[i].iterate(i, f);
   });
@@ -161,17 +161,18 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
   while (rounds > 0) {
     W lower_threshold = max_weight / one_plus_eps;
 
+    std::cout << "Round = " << rounds << ". Extracting edges with weight between " << lower_threshold << " and " << max_weight << std::endl;
+
     // Map-reduce to figure out the number of edges with weight > threshold.
     auto wgh_degrees = sequence<size_t>::from_function(CG.n, [&] (size_t i) {
-      // should only process active clusters
+      // TODO: should only process active clusters
       auto pred_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
         assert(wgh <= max_weight);
-        return (wgh >= lower_threshold) && (u < v);   // predicate
+        return (wgh >= lower_threshold) && (wgh <= max_weight) && (u < v);   // predicate
       };
       return CG.clusters[i].countNeighbors(i, pred_f);
     });
     size_t sum_wgh_degrees = scan_inplace(make_slice(wgh_degrees));
-    std::cout << "sum_wgh_degs = " << sum_wgh_degrees << std::endl;
 
     // Extract the edges.
     auto edges = sequence<edge>::uninitialized(sum_wgh_degrees);
@@ -190,6 +191,8 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
       }
     });
 
+    std::cout << "Extracted: " << edges.size() << " edges." << std::endl;
+
     // All edges passing the threshold for this round now in edges. Now process
     // using random-mate-based algorithm.
     //
@@ -198,8 +201,8 @@ auto ParallelUPGMA(symmetric_graph<w_vertex, IW>& G, Weights& weights, double ep
     ProcessEdgesComplete(CG, std::move(edges));
 
     max_weight /= one_plus_eps;
+    rounds--;
   }
-
 }
 
 
