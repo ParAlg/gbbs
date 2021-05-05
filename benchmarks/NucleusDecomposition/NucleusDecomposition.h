@@ -61,6 +61,813 @@ namespace gbbs {
     }
   };
 
+  struct MultiSizeTable {
+    using NextSizeTable = sequence<MultiSizeTable*>;
+    // TODO: This could be optimized, because only the level == max_level - 2
+    // needs sizetable to be an additive map (otherwise, we just want the # of 
+    // distinct entries on that level)
+    using SizeTable = pbbslib::sparse_additive_map<uintE, long>;
+    using NextSizeTableSE = pbbslib::sparse_table<uintE, MultiSizeTable*, std::hash<uintE>>;
+    using EndTable = pbbslib::sparse_table<unsigned __int128, long, hash128>;
+    SizeTable size_table;
+    NextSizeTable next_size_table;
+    NextSizeTableSE next_size_table_se;
+    uintE level;
+    uintE max_level;
+    bool is_hash;
+    bool use_se = false;
+
+    sequence<long> table_sizes;
+    uintE vtx;
+    sequence<EndTable*> end_tables;
+
+    MultiSizeTable* prev_size_table = nullptr;
+    std::tuple<unsigned __int128, long>* end_space;
+    long total_size;
+
+    void constructFinalTables(std::tuple<unsigned __int128, long>* space) {
+      if (level == max_level - 2) {
+        end_tables = sequence<EndTable*>(table_sizes.size() - 1, [](std::size_t i){return nullptr;});
+        parallel_for(0, table_sizes.size() - 1, [&](std::size_t i){
+          end_tables[i] = new EndTable(table_sizes[i+1] - table_sizes[i],
+            std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
+            hash128{},
+            space + table_sizes[i]);
+        });
+        return;
+      }
+
+      if (!use_se) {
+        table_sizes = sequence<long>(next_size_table.size(), [&](std::size_t i){ return 0; });
+        for (std::size_t i = 0; i < next_size_table.size(); i++) {
+          // Here pass only the space for this section
+          next_size_table[i]->constructFinalTables(space + table_sizes[i]);
+        }
+      } else {
+        table_sizes = sequence<long>(next_size_table_se.m, [&](std::size_t i){ return 0; });
+        for (std::size_t i = 0; i < next_size_table_se.m; i++) {
+          if (std::get<0>(next_size_table_se.table[i]) != next_size_table_se.empty_key) {
+            std::get<1>(next_size_table_se.table[i])->constructFinalTables(space + table_sizes[i]);
+          }
+        }
+      }
+
+    }
+
+    void constructFullTable() {
+      total_size = computeSizes();
+
+      // Allocate space for the last level tables
+      using X = std::tuple<unsigned __int128, long>;
+      end_space = pbbslib::new_array_no_init<X>(total_size);
+
+      constructFinalTables(end_space);
+    }
+
+    long computeSizes() {
+      if (level == max_level - 2) {
+        auto size_table_entries = size_table.entries();
+        table_sizes = sequence<long>(size_table_entries.size() + 1, [](std::size_t i){ return 0; });
+        parallel_for(0, size_table_entries.size(), [&](std::size_t i) {
+          auto m = (size_t)1 << pbbslib::log2_up((size_t)(1.1 * std::get<1>(size_table_entries[i])) + 1);
+          vtx = std::get<0>(size_table_entries[i]);
+          table_sizes[i] = m;
+        });
+        // Do a scan inplace
+        auto add_tuple_monoid = pbbs::make_monoid([](long a, long b){
+          return a + b;
+        }, long{0});
+        long total_size_table_entries = scan_inplace(table_sizes.slice(), add_tuple_monoid);
+        return total_size_table_entries;
+      }
+      if (!use_se) {
+        table_sizes = sequence<long>(next_size_table.size(), [&](std::size_t i){ return 0; });
+        for (std::size_t i = 0; i < next_size_table.size(); i++) {
+          table_sizes[i] = next_size_table[i]->computeSizes();
+        }
+      } else {
+        table_sizes = sequence<long>(next_size_table_se.m, [&](std::size_t i){ return 0; });
+        for (std::size_t i = 0; i < next_size_table_se.m; i++) {
+          if (std::get<0>(next_size_table_se.table[i]) != next_size_table_se.empty_key) {
+            table_sizes[i] = std::get<1>(next_size_table_se.table[i])->computeSizes();
+          }
+        }
+      }
+      auto add_tuple_monoid = pbbs::make_monoid([](long a, long b){
+        return a + b;
+      }, long{0});
+      long total_size_table_entries = scan_inplace(table_sizes.slice(), add_tuple_monoid);
+      return total_size_table_entries;
+    }
+
+    // Doing non space efficient is easy because we just call this, and then run
+    // r clique counting once, calling insertSize
+    void createMultiSizeTable(uintE _level, uintE _max_level, uintE n, sequence<bool>& is_array_level,
+      MultiSizeTable* _prev_size_table = nullptr) {
+      prev_size_table = _prev_size_table;
+      level = _level;
+      max_level = _max_level;
+      is_hash = !is_array_level[level] || level == max_level - 2;
+      if (is_hash) size_table = SizeTable(n, std::make_tuple(UINT_E_MAX, long{0}));
+      if (level == max_level - 2) return;
+      next_size_table = NextSizeTable(n, [](std::size_t i){
+        return new MultiSizeTable();
+      });
+      // TODO: This is space inefficient because we may not need size n, but I think
+      // it's computationally hard to do better (practically hard?)
+      // We need to do something like, for each hash level, re-do the level-clique counting,
+      // then iteratively start constructing the full multi level hash table, so that
+      // we don't use too much space
+      for (std::size_t i = 0; i < n; i++) {
+        next_size_table[i]->createMultiSizeTable(level + 1, max_level, n, is_array_level, this);
+      }
+    }
+
+    void insertSize(uintE* base, int r) {
+      if (level >= r) return;
+      if (is_hash) {
+        auto entry = std::make_tuple<uintE, long>(static_cast<uintE>(base[level]), long{1});
+        size_table.insert(entry);
+      }
+      if (level == max_level - 2) return;
+      next_size_table[base[level]]->insertSize(base, r);
+    }
+
+    // Zeroth level should always be an array level
+    // The idea here is for every level, if it's a hash level, run
+    // insertCurrSizeSE with r = level + 1
+    // Then run createNextMultiSizeTableSE if it's a hash level, and else
+    // run createNextMultiSizeTable
+    // Terminate after creating and inserting for level = max_level - 2
+    // TODO: modify clique counting to work for k = 2
+    void createMultiSizeTableSE(uintE _level, uintE _max_level, uintE n, sequence<bool>& is_array_level,
+      MultiSizeTable* _prev_size_table = nullptr) {
+      prev_size_table = _prev_size_table;
+      level = _level;
+      max_level = _max_level;
+      is_hash = !is_array_level[level] || level == max_level - 2;
+      use_se = is_hash;
+      if (is_hash) size_table = SizeTable(n, std::make_tuple(UINT_E_MAX, long{0}));
+    }
+    void insertCurrSizeSE(uintE* base, int r) {
+      if (level >= r) return;
+      if (is_hash && level + 1 == r) {
+        //std::cout << "Flag 1" << std::endl; fflush(stdout);
+        auto entry = std::make_tuple<uintE, long>(static_cast<uintE>(base[level]), long{1});
+        size_table.insert(entry);
+        return;
+      }
+      //std::cout << "Flag 2" << std::endl; fflush(stdout);
+      // TODO: figure out why this is not working
+      //if (!use_se) {
+      //  next_size_table[base[level]]->insertCurrSizeSE(base, r);
+      //  return;
+      //}
+      MultiSizeTable* next = next_size_table_se.find(base[level], static_cast<MultiSizeTable*>(nullptr));
+      assert(next != nullptr);
+      next->insertCurrSizeSE(base, r);
+    }
+    void createNextMultiSizeTable(uintE n, sequence<bool>& is_array_level) {
+      next_size_table = NextSizeTable(n, [](std::size_t i){
+        return new MultiSizeTable();
+      });
+      for (std::size_t i = 0; i < n; i++) {
+        next_size_table[i]->createMultiSizeTableSE(level + 1, max_level, n, is_array_level, this);
+      }
+    }
+    void createNextMultiSizeTableSE(uintE nn, sequence<bool>& is_array_level) {
+      auto entries = size_table.entries();
+      uintE n = entries.size();
+      use_se = true;
+      next_size_table_se = NextSizeTableSE(
+          n,
+          std::make_tuple<uintE, MultiSizeTable*>(UINT_E_MAX, static_cast<MultiSizeTable*>(nullptr)),
+          std::hash<uintE>()
+      );
+      for (std::size_t i = 0; i < n; i++) {
+        auto entry = entries[i];
+        MultiSizeTable* table = new MultiSizeTable();
+        table->createMultiSizeTableSE(level + 1, max_level, nn, is_array_level, this);
+        next_size_table_se.insert(std::make_tuple(std::get<0>(entry), table));
+      }
+    }
+
+    void insert(uintE* base, int curr_idx, int r, int k, std::string& bitmask) {
+      if (level == max_level - 2) {
+        auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
+          pbbs::fetch_and_add(ct, (long)1);
+        };
+        unsigned __int128 key = 0;
+        for (int i = curr_idx + 1; i < static_cast<int>(k)+1; ++i) {
+          if (bitmask[i]) {
+            key = key << 32;
+            key |= static_cast<int>(base[i]);
+          }
+        }
+        auto end_table = end_tables[base[curr_idx]];
+        end_table->insert_f(std::make_tuple(key, (long) 1), add_f);
+        return;
+      }
+      int next_idx = curr_idx;
+      for (int i = curr_idx + 1; i < static_cast<int>(k)+1; ++i) {
+        if (bitmask[i]) {
+          next_idx = i;
+          break;
+        }
+      }
+      if (!use_se) next_size_table[base[curr_idx]]->insert(base, next_idx, r, k, bitmask);
+      else {
+        auto next = next_size_table_se.find(base[curr_idx], nullptr);
+        next->insert(base, next_idx, r, k, bitmask);
+      }
+    }
+
+    void insert(sequence<uintE>& base, int r, int k) {
+        // Sort base
+        uintE base2[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base2[i] = base[i];
+        }
+        std::sort(base2, base2 + k + 1,std::less<uintE>());
+
+        std::string bitmask(r+1, 1); // K leading 1's
+        bitmask.resize(k+1, 0); // N-K trailing 0's
+
+        do {
+          unsigned __int128 key = 0;
+          for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+            if (bitmask[i]) {
+              insert(base2, i, r, k, bitmask);
+            }
+          }
+        } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+    }
+
+    std::tuple<unsigned __int128, long>* extract_indices(uintE* base, int curr_idx,
+      int r, int k, std::string& bitmask) {
+      if (level == max_level - 2) {
+        unsigned __int128 key = 0;
+        for (int i = curr_idx + 1; i < static_cast<int>(k)+1; ++i) {
+          if (bitmask[i]) {
+            key = key << 32;
+            key |= static_cast<int>(base[i]);
+          }
+        }
+        auto end_table = end_tables[base[curr_idx]];
+        return end_table->table + end_table->find_index(key);
+      }
+      int next_idx = curr_idx;
+      for (int i = curr_idx + 1; i < static_cast<int>(k)+1; ++i) {
+        if (bitmask[i]) {
+          next_idx = i;
+          break;
+        }
+      }
+      if (!use_se) return next_size_table[base[curr_idx]]->extract_indices(base, next_idx, r, k, bitmask);
+      else {
+        auto next = next_size_table_se.find(base[curr_idx], nullptr);
+        return next->extract_indices(base, next_idx, r, k, bitmask);
+      }
+    }
+
+    template<class I>
+    void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+        uintE base2[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base2[i] = base[i];
+        }
+        std::sort(base2, base2 + k + 1,std::less<uintE>());
+
+        std::string bitmask(r+1, 1); // K leading 1's
+        bitmask.resize(k+1, 0); // N-K trailing 0's
+        do {
+          unsigned __int128 key = 0;
+          for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+            if (bitmask[i]) {
+              // TODO: make sure this pointer arithmetic is fine
+              auto idx = extract_indices(base2, i, r, k, bitmask) - end_space;
+              func(idx);
+            }
+          }
+        } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+      }
+  
+    void extract_clique(sequence<uintE>& base, int base_idx) {
+      base[base_idx] = vtx;
+      if (prev_size_table != nullptr) prev_size_table->extract_clique(base, base_idx + 1);
+    }
+
+    template<class S, class Graph>
+    void extract_clique(S index, sequence<uintE>& base, Graph& G, int k, int rr) {
+      auto vert = std::get<0>(end_space[index]);
+      // TOOD: make sure this calc is correct
+      for (int j = 0; j < rr - max_level + 1; ++j) {
+        int extract = (int) vert;
+        assert(static_cast<uintE>(extract) < G.n);
+        base[j] = static_cast<uintE>(extract);
+        vert = vert >> 32;
+      }
+      base[rr - max_level + 1] = vtx;
+      if (prev_size_table != nullptr) prev_size_table->extract_clique(base, rr - max_level + 2);
+    }
+  };
+
+  template <class EndKey, class HashKey>
+  class MultilevelHash {
+    public:
+      //FullMultiTable<EndKey, HashKey> table;
+      int rr = 0;
+      uintE max_level;
+      MultiSizeTable multisize_table;
+
+      template<class Graph>
+      MultilevelHash(int r, Graph& DG, size_t max_deg, uintE _max_level, sequence<bool> is_array_level){
+        rr = r;
+        max_level = _max_level;
+        using W = typename Graph::weight_type;
+        // First, compute sizes for every level 0 to max_level - 1 (assume max_level is a size, e.g., twolevel sets max_level = 2)
+        // We only need sizes on non-array levels, indexed by the key given to the previous level
+        // First, create a MultiSizeTable
+        //MultiSizeTable multisize_table;
+        // TODO: If the last level is not a hash, max_level here can be the
+        // last index of a false in is_array_level
+        std::cout << "FLAG: start create" << std::endl; fflush(stdout);
+        multisize_table.createMultiSizeTableSE(0, max_level, DG.n, is_array_level);
+        std::cout << "FLAG: end create" << std::endl; fflush(stdout);
+        for (std::size_t i = 0; i < max_level - 1; i++) {
+          auto tmp_r = i + 1;
+          if (tmp_r == 1) {
+            std::cout << "FLAG: start tmp_r = 2" << std::endl; fflush(stdout);
+            parallel_for(0, DG.n, [&](std::size_t j) {
+              uintE base[2];
+              auto map_label_f = [&] (const uintE& u, const uintE& v, const W& wgh) {
+                base[0] = std::min(static_cast<uintE>(j), v);
+                base[1] = std::max(static_cast<uintE>(j), v);
+                multisize_table.insertCurrSizeSE(base, tmp_r);
+              };
+              DG.get_vertex(j).mapOutNgh(j, map_label_f, false);
+            });
+            std::cout << "FLAG: end tmp_r = 2" << std::endl; fflush(stdout);
+            std::cout << "FLAG: start next table" << std::endl; fflush(stdout);
+            if (is_array_level[i]) multisize_table.createNextMultiSizeTable(DG.n, is_array_level);
+            else multisize_table.createNextMultiSizeTableSE(DG.n, is_array_level);
+            std::cout << "FLAG: end next table" << std::endl; fflush(stdout);
+            continue;
+          }
+          std::cout << "FLAG: start tmp_r = " << tmp_r << std::endl; fflush(stdout);
+          auto base_f = [&](sequence<uintE>& base){
+            uintE base2[10];
+            for(std::size_t j = 0; j < rr; j++) { base2[j] = base[j]; }
+            std::sort(base2, base2 + rr,std::less<uintE>());
+            multisize_table.insertCurrSizeSE(base2, tmp_r);
+          };
+          auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, tmp_r, DG.n, true, true); };
+          auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+          parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+            if (DG.get_vertex(i).getOutDegree() != 0) {
+              induced->setup(DG, tmp_r, i);
+              auto base = sequence<uintE>(r);
+              base[0] = i;
+              NKCliqueDir_fast_hybrid_rec(DG, 1, tmp_r, induced, base_f, base);
+            }
+          }, 1, false);
+          std::cout << "FLAG: end tmp_r" << std::endl; fflush(stdout);
+          std::cout << "FLAG: start next table" << std::endl; fflush(stdout);
+          if (is_array_level[i]) multisize_table.createNextMultiSizeTable(DG.n, is_array_level);
+          else multisize_table.createNextMultiSizeTableSE(DG.n, is_array_level);
+          std::cout << "FLAG: end next table" << std::endl; fflush(stdout);
+        }
+        std::cout << "FLAG: end create loop" << std::endl; fflush(stdout);
+        // Now that the last layer has a hash table with the correct vertex counts,
+        // we must do prefix sums to figure out indices
+        // And allocate space
+        std::cout << "FLAG: start create full" << std::endl; fflush(stdout);
+        multisize_table.constructFullTable();
+        std::cout << "FLAG: end create full" << std::endl; fflush(stdout);
+
+      }
+
+      void insert(sequence<uintE>& base, int r, int k) {
+        multisize_table.insert(base, r, k);
+      }
+
+      std::size_t return_total() { return multisize_table.total_size; }
+
+      long get_count(std::size_t index) {
+        return std::get<1>(multisize_table.end_space[index]);
+      }
+
+      size_t update_count(std::size_t index, size_t update){
+        auto val = std::get<1>(multisize_table.end_space[index]) - update;
+        multisize_table.end_space[index] =
+          std::make_tuple(std::get<0>(multisize_table.end_space[index]), val);
+        return val;
+      }
+
+      void clear_count(std::size_t index) {
+        multisize_table.end_space[index] =
+          std::make_tuple(std::get<0>(multisize_table.end_space[index]), 0);
+      }
+
+      template<class I>
+      void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+        multisize_table.extract_indices(base, func, r, k);
+      }
+
+      template<class S, class Graph>
+      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+        multisize_table.extract_clique(index, base, G, k, rr);
+      }
+  };
+
+  // max_lvl should be set to # levels - 2
+  // two level hash is equiv to setting max_level to 0
+  struct MTable {
+    using NextMTable = pbbslib::sparse_table<uintE, MTable*, std::hash<uintE>>;
+    using EndTable = pbbslib::sparse_table<unsigned __int128, long, hash128>;
+    NextMTable mtable;
+    EndTable end_table;
+    uintE vtx;
+    uintE lvl;
+    uintE max_lvl;
+    MTable* prev_mtable = nullptr;
+    long total_size = 0;
+    sequence<long> table_sizes;
+    std::tuple<unsigned __int128, long>* end_space = nullptr;
+    bool set_table_size_flag = false;
+
+    void set_end_table_rec(std::tuple<unsigned __int128, long>* _end_space) {
+      end_space = _end_space;
+
+      if (lvl == max_lvl) {
+        // Allocate end_table here using end_space
+        end_table = EndTable(
+          total_size,
+          std::make_tuple<unsigned __int128, long>(std::numeric_limits<unsigned __int128>::max(), static_cast<long>(0)),
+          hash128{},
+          end_space
+        );
+
+      } else {
+        for (std::size_t i = 0; i < mtable.m; i++) {
+          if (std::get<0>(mtable.table[i]) != UINT_E_MAX) {
+            std::get<1>(mtable.table[i])->set_end_table_rec(end_space + table_sizes[i]);
+          }
+        }
+      }
+    }
+
+    void increment_size() {
+      assert(lvl == max_lvl);
+      total_size++;
+    }
+
+    long set_table_sizes() {
+      if (lvl != max_lvl) {
+        if (lvl + 1 == max_lvl) {
+          table_sizes = sequence<long>(mtable.m, [](std::size_t i){ return 0; });
+          parallel_for(0, mtable.m, [&](std::size_t i){
+            if (std::get<0>(mtable.table[i]) != UINT_E_MAX) {
+              auto tbl = std::get<1>(mtable.table[i]);
+              tbl->total_size = (size_t)1 << pbbslib::log2_up((size_t)(1.5 * tbl->total_size) + 1);
+              table_sizes[i] = tbl->total_size;
+            }
+          });
+          total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
+          return total_size;
+        }
+        table_sizes = sequence<long>(mtable.m, [&](std::size_t i){
+          if (std::get<0>(mtable.table[i]) == UINT_E_MAX) return long{0};
+          return std::get<1>(mtable.table[i])->total_size;
+        });
+        total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
+        return total_size;
+      }
+      //else if (set_table_size_flag == false) {
+      //  set_table_size_flag = true;
+      //  total_size = (size_t)1 << pbbslib::log2_up((size_t)(1.5 * total_size) + 1);
+      //  return total_size;
+      //}
+      return total_size;
+    }
+
+    void initialize(uintE _v, uintE _lvl, uintE _max_lvl, MTable* _prev_mtable = nullptr) {
+      vtx = _v;
+      lvl = _lvl;
+      max_lvl = _max_lvl;
+      prev_mtable = _prev_mtable;
+      total_size = 0;
+    }
+
+    // k_idx goes from 1 to k - 1 (inclusive)
+    void allocate(uintE count, size_t k_idx, size_t k) {
+      //lvl = k_idx - 1;
+      if (lvl != max_lvl) {
+        mtable = NextMTable(
+          count * 1.5,
+          std::make_tuple<uintE, MTable*>(UINT_E_MAX, static_cast<MTable*>(nullptr)),
+          std::hash<uintE>()
+        );
+      }
+    }
+    
+    MTable* next(uintE v, size_t k_idx, size_t k) {
+      if (lvl == max_lvl) return nullptr;
+      MTable* next_table = new MTable();
+      next_table->initialize(v, lvl + 1, max_lvl, this);
+      mtable.insert(std::make_tuple(v, next_table));
+      return next_table;
+    }
+
+    void insert(sequence<uintE>& base, int curr_idx, int r, int k, std::string& bitmask) {
+      if (lvl == max_lvl) {
+        assert(end_table.m > 0);
+        auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
+          pbbs::fetch_and_add(ct, (long)1);
+        };
+        unsigned __int128 key = 0;
+        for (int i = curr_idx; i < static_cast<int>(k)+1; ++i) {
+          if (bitmask[i]) {
+            key = key << 32;
+            key |= static_cast<int>(base[i]);
+          }
+        }
+        end_table.insert_f(std::make_tuple(key, (long) 1), add_f);
+        return;
+      }
+      int next_idx = curr_idx;
+      for (int i = curr_idx + 1; i < static_cast<int>(k)+1; ++i) {
+        if (bitmask[i]) {
+          next_idx = i;
+          break;
+        }
+      }
+      auto next = mtable.find(base[curr_idx], nullptr);
+      assert(next != nullptr);
+      next->insert(base, next_idx, r, k, bitmask);
+    }
+
+    void insert(sequence<uintE>& base, int r, int k) {
+        std::string bitmask(r+1, 1); // K leading 1's
+        bitmask.resize(k+1, 0); // N-K trailing 0's
+
+        do {
+          unsigned __int128 key = 0;
+          for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+            if (bitmask[i]) {
+              insert(base, i, r, k, bitmask);
+              break;
+            }
+          }
+        } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+    }
+
+//std::tuple<unsigned __int128, long>*
+    size_t extract_indices(sequence<uintE>& base, int curr_idx,
+      int r, int k, std::string& bitmask) {
+      if (lvl == max_lvl) {
+        unsigned __int128 key = 0;
+        for (int i = curr_idx; i < static_cast<int>(k)+1; ++i) {
+          if (bitmask[i]) {
+            key = key << 32;
+            key |= static_cast<int>(base[i]);
+          }
+        }
+        return end_table.find_index(key); // end_table.table + 
+      }
+      int next_idx = curr_idx;
+      for (int i = curr_idx + 1; i < static_cast<int>(k)+1; ++i) {
+        if (bitmask[i]) {
+          next_idx = i;
+          break;
+        }
+      }
+      auto next_mtable_index = mtable.find_index(base[curr_idx]);
+      auto next = std::get<1>(mtable.table[next_mtable_index]);
+      assert(next != nullptr);
+      return table_sizes[next_mtable_index] + next->extract_indices(base, next_idx, r, k, bitmask);
+    }
+
+    template<class I>
+    void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+      std::string bitmask(r+1, 1); // K leading 1's
+      bitmask.resize(k+1, 0); // N-K trailing 0's
+      do {
+        //unsigned __int128 key = 0;
+        for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+          if (bitmask[i]) {
+            // TODO: make sure this pointer arithmetic is fine
+            size_t idx = extract_indices(base, i, r, k, bitmask); // - end_space;
+            func(idx);
+            break;
+          }
+        }
+      } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+    }
+
+    template <class S>
+    long get_top_index(S index) {
+      // This gives the first i such that top_table_sizes[i] >= index
+      auto idx = pbbslib::binary_search(table_sizes.slice(), long{index}, std::less<long>());
+      if (idx >= table_sizes.size()) return table_sizes.size() - 1;
+      if (idx == 0) return idx;
+      if (table_sizes[idx] == index) {
+        while(table_sizes[idx] == index) {
+          idx--;
+        }
+        return idx++;
+      }
+      return idx - 1;
+    }
+  
+    //Fill base[k] ... base[k-r+1] and base[0]
+    template<class S>
+    void extract_clique(S index, sequence<uintE>& base, int base_idx, int rr, int k) {
+      if (lvl == max_lvl) {
+        if (lvl != 0) {
+          base[base_idx] = vtx;
+          if (base_idx == 0) base_idx = k - rr + 1;
+          else base_idx++;
+        }
+        assert(end_space != nullptr);
+        auto vert = std::get<0>(end_space[index]);
+        // TOOD: make sure this calc is correct
+        for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
+          int extract = (int) vert;
+          //assert(static_cast<uintE>(extract) < G.n);
+          base[j] = static_cast<uintE>(extract);
+          vert = vert >> 32;
+        }
+        return;
+      }
+      auto next_mtable_idx = get_top_index(index);
+      if (next_mtable_idx >= mtable.m) {
+        std::cout << "Idx: " << next_mtable_idx << std::endl;
+        std::cout << "m: " << mtable.m << std::endl;
+        fflush(stdout);
+      }
+      assert(next_mtable_idx < mtable.m);
+      assert(index >= table_sizes[next_mtable_idx]);
+      S next_index = index - table_sizes[next_mtable_idx];
+      if (lvl != 0) {
+        base[base_idx] = vtx;
+        if (base_idx == 0) base_idx = k - rr + 1;
+        else base_idx++;
+      }
+      if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) {
+        std::cout << "rr: " << rr << std::endl; fflush(stdout);
+        std::cout << "base_idx: " << base_idx << std::endl; fflush(stdout);
+        std::cout << "index: " << long{index} << std::endl; fflush(stdout);
+        std::cout << "top index: " << long{next_mtable_idx} << std::endl; fflush(stdout);
+        std::cout << "size: " << table_sizes[next_mtable_idx] << std::endl; fflush(stdout);
+      }
+      assert(std::get<1>(mtable.table[next_mtable_idx]) != nullptr);
+      std::get<1>(mtable.table[next_mtable_idx])->extract_clique(next_index, base, base_idx, rr, k);
+    }
+
+  };
+
+  template <class Graph, class Space>
+  inline size_t NKCliqueDir_fast_hybrid_rec_multi(Graph& DG, size_t k_idx, size_t k,
+  HybridSpace_lw* induced, Space* space) {
+    size_t num_induced = induced->num_induced[k_idx-1];
+    if (num_induced == 0) return 0;
+    uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
+
+    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
+
+    if (k_idx + 1 == k) {
+      size_t counts = 0;
+      space->allocate(num_induced, k_idx, k);
+      for (size_t i=0; i < num_induced; i++) {
+        uintE vtx = prev_induced[i];
+        //  get neighbors of vtx
+        uintE* intersect = induced->induced_edges + vtx * induced->nn;
+        size_t tmp_counts = 0;
+        //base[k_idx] = induced->relabel[vtx];
+        Space* next_space = space->next(induced->relabel[vtx], k_idx, k);
+        if (next_space == nullptr) next_space = space;
+        for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
+          if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
+            //base[k] = induced->relabel[intersect[j]];
+            tmp_counts++;
+            //base_f(base, space);
+            // TODO: This could be improved by collating on count before
+            // returning to recursive level of max_lvl
+            next_space->increment_size();
+          }
+        }
+        next_space->set_table_sizes();
+        counts += tmp_counts;
+      }
+      for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+      space->set_table_sizes();
+      return counts;
+    }
+
+    size_t total_ct = 0;
+    space->allocate(num_induced, k_idx, k);
+    for (size_t i=0; i < num_induced; ++i) {
+      uintE vtx = prev_induced[i];
+      uintE* intersect = induced->induced_edges + vtx * induced->nn;
+      uintE* out = induced->induced + induced->nn * k_idx;
+      uintE count = 0;
+      for (size_t j=0; j < induced->induced_degs[vtx]; j++) {
+        if (static_cast<size_t>(induced->labels[intersect[j]]) == k_idx) {
+          out[count] = intersect[j];
+          count++;
+        }
+      }
+      induced->num_induced[k_idx] = count;
+      
+      if (induced->num_induced[k_idx] > k - k_idx - 1) {
+        //base[k_idx] = induced->relabel[vtx];
+        Space* next_space = space->next(induced->relabel[vtx], k_idx, k);
+        if (next_space == nullptr) next_space = space;
+        auto curr_counts = NKCliqueDir_fast_hybrid_rec_multi(DG, k_idx + 1, k, induced, next_space);
+        total_ct += curr_counts;
+      }
+    }
+    for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx - 1; }
+    space->set_table_sizes();
+    return total_ct;
+  }
+
+  class MHash {
+    public:
+      using X = std::tuple<unsigned __int128, long>;
+      int rr = 0;
+      uintE max_lvl;
+      MTable mtable;
+      X* space;
+
+      template<class Graph>
+      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level){
+        std::cout << "Init MHash" << std::endl; fflush(stdout);
+        rr = r;
+        max_lvl = _max_level;
+        using W = typename Graph::weight_type;
+        
+        mtable.initialize(0, 0, max_lvl);
+        mtable.allocate(DG.n, 0, r-1);
+  
+        auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
+        auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+        parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+          if (DG.get_vertex(i).getOutDegree() != 0) {
+            auto next_space = mtable.next(i, 0, r-1);
+            if (next_space == nullptr) next_space = &mtable;
+            induced->setup(DG, r-1, i);
+            //auto base = sequence<uintE>(r);
+            //base[0] = i;
+            NKCliqueDir_fast_hybrid_rec_multi(DG, 1, r-1, induced, next_space);
+          }
+        }, 1, false);
+
+        std::cout << "End MHash Count" << std::endl; fflush(stdout);
+
+        long total = mtable.set_table_sizes();
+        space = pbbslib::new_array_no_init<X>(total);
+        mtable.set_end_table_rec(space);
+
+        std::cout << "End MHash" << std::endl; fflush(stdout);
+      }
+
+      void insert(sequence<uintE>& base, int r, int k) {
+        mtable.insert(base, r, k);
+      }
+
+      std::size_t return_total() { return mtable.total_size; }
+
+      long get_count(std::size_t index) {
+        return std::get<1>(space[index]);
+      }
+
+      size_t update_count(std::size_t index, size_t update){
+        auto val = std::get<1>(space[index]) - update;
+        space[index] =
+          std::make_tuple(std::get<0>(space[index]), val);
+        return val;
+      }
+
+      void clear_count(std::size_t index) {
+        space[index] = std::make_tuple(std::get<0>(space[index]), 0);
+      }
+
+      template<class I>
+      void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+        mtable.extract_indices(base, func, r, k);
+      }
+
+      //Fill base[k] ... base[k-r+1] and base[0]
+      template<class S, class Graph>
+      void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
+        mtable.extract_clique(index, base, 0, rr, k);
+      }
+  };
+
   struct EndTable {
     pbbslib::sparse_table<unsigned __int128, long, hash128> table;
     uintE vtx;
@@ -69,7 +876,7 @@ namespace gbbs {
 
   struct MidTable {
     pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>> table;
-    //MidTable* up_table;
+    sequence<EndTable*> arr;
   };
   
   class TwolevelHash {
@@ -119,11 +926,16 @@ namespace gbbs {
         // Allocate space for the second level tables
         space = pbbslib::new_array_no_init<X>(std::get<1>(total_top_table_sizes2));
         tmp_table.del();
-        top_table.table = pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>>(
+  
+        //*** for arr
+        top_table.arr = sequence<EndTable*>(DG.n, [](std::size_t i){return nullptr;});
+        top_table_sizes = sequence<long>(DG.n + 1, long{0});
+        /*top_table.table = pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>>(
           top_table_sizes2.size(),
           std::make_tuple<uintE, EndTable*>(UINT_E_MAX, static_cast<EndTable*>(nullptr)),
           std::hash<uintE>());
-        top_table_sizes = sequence<long>(top_table.table.m + 1, long{0});
+        top_table_sizes = sequence<long>(top_table.table.m + 1, long{0});*/
+  
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i){
           auto vtx = i == top_table_sizes2.size() - 1 ? std::get<0>(total_top_table_sizes2) : 
             std::get<0>(top_table_sizes2[i + 1]);
@@ -138,13 +950,12 @@ namespace gbbs {
             hash128{},
             space + std::get<1>(top_table_sizes2[i])
             );
-            //pbbslib::sparse_table<unsigned __int128, long, hash128>(
-            //size,
-            //std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
-            //hash128{});
-          top_table.table.insert(std::make_tuple(vtx, end_table));
+          /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
-          top_table_sizes[l] = end_table->table.m;
+          top_table_sizes[l] = end_table->table.m;*/
+          //***for arr
+          top_table.arr[vtx] = end_table;
+          top_table_sizes[vtx] = end_table->table.m;
         });
         total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
         /*for (std::size_t i = 1; i < top_table_sizes.size(); i++) {
@@ -167,8 +978,14 @@ namespace gbbs {
           pbbs::fetch_and_add(ct, (long)1);
         };
         // Sort base
-        sequence<uintE> base2(base);
-        pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        uintE base2[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base2[i] = base[i];
+        }
+        std::sort(base2, base2 + k + 1,std::less<uintE>());
+        //sequence<uintE> base2(base);
+        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -188,7 +1005,9 @@ namespace gbbs {
               }
             }
           }
-          EndTable* end_table = top_table.table.find(vtx, nullptr);
+          //EndTable* end_table = top_table.table.find(vtx, nullptr);
+          //***for arr
+          EndTable* end_table = top_table.arr[vtx];
           //assert(end_table != nullptr);
           (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
@@ -197,7 +1016,16 @@ namespace gbbs {
       std::size_t return_total() {return total;}
 
       size_t get_top_index(std::size_t index) {
+        // This gives the first i such that top_table_sizes[i] >= index
+        auto idx = pbbslib::binary_search(top_table_sizes, long{index}, std::less<long>());
+        if (idx >= top_table_sizes.size()) return top_table_sizes.size() - 1;
+        if (top_table_sizes[idx] == index) return idx;
+        //if (top_table_sizes[idx] > index) {
+          if (idx == 0) return idx;
+          return idx - 1;
+        //}
         //assert(top_table_sizes[0] == 0);
+        /*
         for (std::size_t i = 0; i < top_table_sizes.size(); i++) {
           //if (i > 0) {
           //  assert(top_table_sizes[i - 1] <= top_table_sizes[i]);
@@ -211,7 +1039,7 @@ namespace gbbs {
             return i - 1;
           }
         }
-        return top_table_sizes.size() - 1;
+        return top_table_sizes.size() - 1;*/
         //return pbbslib::binary_search(top_table_sizes, long{index}, std::greater<long>());
       }
 
@@ -233,7 +1061,9 @@ namespace gbbs {
           }
           assert(top_table_sizes[top_index + 1] >= index);
         }*/
-        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        //***for arr
+        //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        EndTable* end_table = top_table.arr[top_index];
         if (end_table == nullptr) return 0;
         size_t bottom_index = index - top_table_sizes[top_index];
         /*if (bottom_index >= (end_table->table).m) {
@@ -247,7 +1077,9 @@ namespace gbbs {
 
       size_t update_count(std::size_t index, size_t update){
         size_t top_index = get_top_index(index);
-        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        //***for arr
+        EndTable* end_table = top_table.arr[top_index];
         size_t bottom_index = index - top_table_sizes[top_index];
         auto val = std::get<1>((end_table->table).table[bottom_index]) - update;
         (end_table->table).table[bottom_index] = std::make_tuple(
@@ -258,7 +1090,9 @@ namespace gbbs {
 
       void clear_count(std::size_t index) {
         size_t top_index = get_top_index(index);
-        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        //***for arr
+        //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        EndTable* end_table = top_table.arr[top_index];
         size_t bottom_index = index - top_table_sizes[top_index];
         (end_table->table).table[bottom_index] = std::make_tuple(
           std::get<0>((end_table->table).table[bottom_index]), 0
@@ -267,8 +1101,14 @@ namespace gbbs {
 
       template<class I>
       void extract_indices(sequence<uintE>& base, I func, int r, int k) {
-        sequence<uintE> base2(base);
-        pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        uintE base2[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base2[i] = base[i];
+        }
+        std::sort(base2, base2 + k + 1,std::less<uintE>());
+        //sequence<uintE> base2(base);
+        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
         do {
@@ -288,9 +1128,12 @@ namespace gbbs {
           }
           // First, find index in top_table
           // This should populate into a prefix sum of sizes
-          auto top_index = top_table.table.find_index(vtx);
+          /*auto top_index = top_table.table.find_index(vtx);
           auto prefix = top_table_sizes[top_index];
-          EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+          EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
+          //***for arr
+          EndTable* end_table = top_table.arr[vtx];
+          auto prefix = top_table_sizes[vtx];
           auto index = (end_table->table).find_index(key);
           func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
@@ -301,8 +1144,11 @@ namespace gbbs {
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         // First, do a binary search for index in prefix
         size_t top_index = get_top_index(index);
-        base[0] = std::get<0>(top_table.table.table[top_index]);
-        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        /*base[0] = std::get<0>(top_table.table.table[top_index]);
+        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
+        //***for arr
+        base[0] = top_index;
+        EndTable* end_table = top_table.arr[top_index];
         size_t bottom_index = index - top_table_sizes[top_index];
         auto vert = std::get<0>((end_table->table).table[bottom_index]);
         for (int j = 0; j < rr - 1; ++j) {
@@ -346,8 +1192,14 @@ namespace gbbs {
           pbbs::fetch_and_add(ct, (long)1);
         };
         // Sort base
-        sequence<uintE> base2(base);
-        pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        uintE base2[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base2[i] = base[i];
+        }
+        std::sort(base2, base2 + k + 1,std::less<uintE>());
+        //sequence<uintE> base2(base);
+        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -390,8 +1242,14 @@ namespace gbbs {
       template<class I>
       void extract_indices(sequence<uintE>& base, I func, int r, int k) {
         // Sort base
-        sequence<uintE> base2(base);
-        pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        uintE base2[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base2[i] = base[i];
+        }
+        std::sort(base2, base2 + k + 1,std::less<uintE>());
+        //sequence<uintE> base2(base);
+        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
@@ -863,7 +1721,8 @@ inline size_t NucleusDecomposition(Graph& GA, size_t r, size_t s) {
   timer t; t.start();
 
   auto max_deg = get_max_deg3(DG);
-  TwolevelHash table(r, DG, max_deg);
+  //TwolevelHash table(r, DG, max_deg);
+  MHash table(r, DG, max_deg, 2);
 
   std::cout << "End table + start count" << std::endl;
   size_t count = CountCliquesNuc(DG, s, r, max_deg, &table);

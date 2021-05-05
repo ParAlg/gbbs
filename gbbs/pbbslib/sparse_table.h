@@ -245,6 +245,19 @@ class sparse_table {
     return default_value;
   }
 
+  size_t find_index(K k) const {
+    size_t h = firstIndex(k);
+    while (true) {
+      if (std::get<0>(table[h]) == k) {
+        return h;
+      } else if (std::get<0>(table[h]) == empty_key) {
+        return m;
+      }
+      h = incrementIndex(h);
+    }
+    return m;
+  }
+
   sequence<T> entries() const {
     auto pred = [&](const T& t) { return std::get<0>(t) != empty_key; };
     auto table_seq = pbbslib::make_sequence<T>(table, m);
