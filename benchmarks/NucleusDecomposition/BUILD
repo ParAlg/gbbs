@@ -1,4 +1,111 @@
+cc_library(
+  name = "commontable",
+  hdrs = ["commontable.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_additive_map",
+  "//pbbslib:assert",
+  "//pbbslib:list_allocator",
+  "//pbbslib:integer_sort",
+  ]
+)
 
+cc_library(
+  name = "onetable",
+  hdrs = ["onetable.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_additive_map",
+  "//pbbslib:assert",
+  "//pbbslib:list_allocator",
+  "//pbbslib:integer_sort",
+  ":commontable",
+  ]
+)
+
+cc_library(
+  name = "twotable",
+  hdrs = ["twotable.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_additive_map",
+  "//pbbslib:assert",
+  "//pbbslib:list_allocator",
+  "//pbbslib:integer_sort",
+  ":commontable",
+  ]
+)
+
+cc_library(
+  name = "multitable",
+  hdrs = ["multitable.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_additive_map",
+  "//pbbslib:assert",
+  "//pbbslib:list_allocator",
+  "//pbbslib:integer_sort",
+  ":commontable",
+  ]
+)
+
+cc_library(
+  name = "multitable_nosearch",
+  hdrs = ["multitable_nosearch.h"],
+  deps = [
+  "//benchmarks/CliqueCounting:relabel",
+  "//benchmarks/CliqueCounting:induced_neighborhood",
+  "//benchmarks/CliqueCounting:induced_intersection",
+  "//benchmarks/CliqueCounting:induced_hybrid",
+  "//benchmarks/CliqueCounting:induced_split",
+  "//benchmarks/CliqueCounting:intersect",
+  "//gbbs:bucket",
+  "//gbbs:edge_map_reduce",
+  "//gbbs:gbbs",
+  "//gbbs/pbbslib:dyn_arr",
+  "//gbbs/pbbslib:sparse_additive_map",
+  "//pbbslib:assert",
+  "//pbbslib:list_allocator",
+  "//pbbslib:integer_sort",
+  ":commontable",
+  ]
+)
 
 cc_library(
   name = "NucleusDecomposition",
@@ -23,6 +130,11 @@ cc_library(
   "//benchmarks/KCore/JulienneDBS17:KCore",
   "//benchmarks/TriangleCounting/ShunTangwongsan15:Triangle",
   "//benchmarks/CliqueCounting:Clique",
+  ":onetable",
+  ":twotable",
+  ":multitable",
+  ":multitable_nosearch",
+  ":commontable",
   ]
 )
 

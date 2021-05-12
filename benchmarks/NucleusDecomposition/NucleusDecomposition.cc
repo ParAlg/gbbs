@@ -41,6 +41,8 @@ template <class Graph>
 double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
   long r = P.getOptionLongValue("-r", 3); // k as in k-cliques
   long ss = P.getOptionLongValue("-ss", 4); // k as in k-cliques
+  long table_type = P.getOptionLongValue("-tt", 3); // 1 = 1 lvl, 2 = 2 lvls, 3 = multi
+  long num_levels = P.getOptionLongValue("-nl", 2); // only for multi, # levels
 
   std::cout << "### Application: Nucleus Decomposition" << std::endl;
   std::cout << "### Graph: " << P.getArgument(0) << std::endl;
@@ -53,7 +55,7 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
 
-  size_t count = NucleusDecomposition(GA, r, ss);
+  size_t count = NucleusDecomposition(GA, r, ss, table_type, num_levels);
 
   double tt = t.stop();
 
