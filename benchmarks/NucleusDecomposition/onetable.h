@@ -57,14 +57,12 @@ namespace onetable {
           pbbs::fetch_and_add(ct, (long)1);
         };
         // Sort base
-        uintE base2[10];
+        /*uintE base2[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
           base2[i] = base[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());
-        //sequence<uintE> base2(base);
-        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -74,7 +72,7 @@ namespace onetable {
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << 32;
-              key |= static_cast<int>(base2[i]);
+              key |= static_cast<int>(base[i]);
             }
           }
           table.insert_f(std::make_tuple(key, (long) 1), add_f);
@@ -107,14 +105,12 @@ namespace onetable {
       template<class I>
       void extract_indices(sequence<uintE>& base, I func, int r, int k) {
         // Sort base
-        uintE base2[10];
+        /*uintE base2[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
           base2[i] = base[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());
-        //sequence<uintE> base2(base);
-        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
@@ -123,7 +119,7 @@ namespace onetable {
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               key = key << 32;
-              key |= static_cast<int>(base2[i]);
+              key |= static_cast<int>(base[i]);
             }
           }
           auto index = table.find_index(key);

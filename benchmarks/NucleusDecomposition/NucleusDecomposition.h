@@ -434,7 +434,8 @@ inline size_t NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG, size_t r,
 }
 
 template <class Graph>
-inline size_t NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels) {
+inline size_t NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
+  bool relabel, bool contiguous_space) {
   // TODO: if r = 2
   using W = typename Graph::weight_type;
 
@@ -449,7 +450,8 @@ inline size_t NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_typ
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
     return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= r-1 && GA.get_vertex(v).getOutDegree() >= r-1;
   };
-  auto DG = filterGraph(GA, pack_predicate);
+  // Note: If relabeling, core #s must be translated back
+  auto DG = relabel ? relabel_graph(GA, rank.begin(), pack_predicate) : filterGraph(GA, pack_predicate);
   double tt_filter = t_filter.stop();
   std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
 
@@ -462,13 +464,13 @@ inline size_t NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_typ
     t.start();
     // Num levels matches, e.g., 2 for two level
     num_levels -= 1;
-    multitable::MHash table(r, DG, max_deg, num_levels);
+    multitable::MHash table(r, DG, max_deg, num_levels, contiguous_space);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
   } else if (table_type == 2) {
     t.start();
-    twotable::TwolevelHash table(r, DG, max_deg);
+    twotable::TwolevelHash table(r, DG, max_deg, contiguous_space);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);

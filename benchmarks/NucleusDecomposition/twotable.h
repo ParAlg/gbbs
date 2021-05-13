@@ -48,9 +48,11 @@ namespace twotable {
       int rr;
       std::size_t total = 0;
       X* space = nullptr;
+      bool contiguous_space;
   
       template <class Graph>
-      TwolevelHash(int r, Graph& DG, size_t max_deg) {
+      TwolevelHash(int r, Graph& DG, size_t max_deg, bool _contiguous_space) {
+        contiguous_space = _contiguous_space;
         rr = r;
         //top_table.up_table = nullptr;
         // How many vert in top level?
@@ -84,7 +86,7 @@ namespace twotable {
         }, std::make_tuple(UINT_E_MAX, 0));
         std::tuple<uintE, long> total_top_table_sizes2 = scan_inplace(top_table_sizes2.slice(), add_tuple_monoid);
         // Allocate space for the second level tables
-        space = pbbslib::new_array_no_init<X>(std::get<1>(total_top_table_sizes2));
+        if (contiguous_space) space = pbbslib::new_array_no_init<X>(std::get<1>(total_top_table_sizes2));
         tmp_table.del();
   
         //*** for arr
@@ -104,12 +106,16 @@ namespace twotable {
           auto size = upper_size - std::get<1>(top_table_sizes2[i]);
           EndTable* end_table = new EndTable();
           end_table->vtx = vtx;
-          end_table->table = pbbslib::sparse_table<unsigned __int128, long, hash128>(
+          end_table->table = contiguous_space ? pbbslib::sparse_table<unsigned __int128, long, hash128>(
             size, 
             std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
             hash128{},
             space + std::get<1>(top_table_sizes2[i])
-            );
+            ) :
+            pbbslib::sparse_table<unsigned __int128, long, hash128>(
+            size, 
+            std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
+            hash128{});
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
           top_table_sizes[l] = end_table->table.m;*/
@@ -138,14 +144,12 @@ namespace twotable {
           pbbs::fetch_and_add(ct, (long)1);
         };
         // Sort base
-        uintE base2[10];
+        /*uintE base2[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
           base2[i] = base[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());
-        //sequence<uintE> base2(base);
-        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -158,10 +162,10 @@ namespace twotable {
             if (bitmask[i]) {
               if (!use_vtx) {
                 use_vtx = true;
-                vtx = base2[i];
+                vtx = base[i];
               } else {
                 key = key << 32;
-                key |= static_cast<int>(base2[i]);
+                key |= static_cast<int>(base[i]);
               }
             }
           }
@@ -204,6 +208,7 @@ namespace twotable {
       }
 
       long get_count(std::size_t index) {
+        if (contiguous_space) return std::get<1>(space[index]);
         //assert(index < total);
         size_t top_index = get_top_index(index);
         //assert(top_index != top_table_sizes.size());
@@ -236,6 +241,12 @@ namespace twotable {
       }
 
       size_t update_count(std::size_t index, size_t update){
+        if (contiguous_space) {
+          auto val = std::get<1>(space[index]) - update;
+          space[index] =
+            std::make_tuple(std::get<0>(space[index]), val);
+          return val;
+        }
         size_t top_index = get_top_index(index);
         //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
         //***for arr
@@ -249,6 +260,10 @@ namespace twotable {
       }
 
       void clear_count(std::size_t index) {
+        if (contiguous_space) {
+          space[index] = std::make_tuple(std::get<0>(space[index]), 0);
+          return;
+        }
         size_t top_index = get_top_index(index);
         //***for arr
         //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
@@ -261,14 +276,12 @@ namespace twotable {
 
       template<class I>
       void extract_indices(sequence<uintE>& base, I func, int r, int k) {
-        uintE base2[10];
+        /*uintE base2[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
           base2[i] = base[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());
-        //sequence<uintE> base2(base);
-        //pbbs::sample_sort_inplace(base2.slice(), std::less<uintE>());
+        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
         do {
@@ -279,10 +292,10 @@ namespace twotable {
             if (bitmask[i]) {
               if (!use_vtx) {
                 use_vtx = true;
-                vtx = base2[i];
+                vtx = base[i];
               } else {
                 key = key << 32;
-                key |= static_cast<int>(base2[i]);
+                key |= static_cast<int>(base[i]);
               }
             }
           }

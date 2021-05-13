@@ -97,6 +97,24 @@ namespace multitable {
       }
     }
 
+    void set_end_table_rec() {
+      if (lvl == max_lvl) {
+        // Allocate end_table here
+        end_table = EndTable(
+          total_size,
+          std::make_tuple<unsigned __int128, long>(std::numeric_limits<unsigned __int128>::max(), static_cast<long>(0)),
+          hash128{}
+        );
+
+      } else {
+        for (std::size_t i = 0; i < mtable.m; i++) {
+          if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
+            std::get<1>(mtable.table[i])->set_end_table_rec();
+          }
+        }
+      }
+    }
+
     void increment_size(long s) {
       if (lvl == max_lvl) total_size += s;
     }
@@ -278,8 +296,8 @@ namespace multitable {
           if (base_idx == 0) base_idx = k - rr + 1;
           else base_idx++;
         }
-        assert(end_space != nullptr);
-        auto vert = std::get<0>(end_space[index]);
+        //assert(end_space != nullptr);
+        auto vert = std::get<0>(end_table.table[index]); //end_space[index]
         // TOOD: make sure this calc is correct
         for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
           int extract = (int) vert;
@@ -312,6 +330,32 @@ namespace multitable {
       }
       assert(std::get<1>(mtable.table[next_mtable_idx]) != nullptr);
       std::get<1>(mtable.table[next_mtable_idx])->extract_clique(next_index, base, base_idx, rr, k);
+    }
+
+    template<class S, class F>
+    void find_table_loc(S index, F func) {
+      if (lvl == max_lvl) {
+        F(&(end_table.table[index]));
+        return;
+      }
+      auto next_mtable_idx = get_top_index(index);
+      /*if (next_mtable_idx >= mtable.m) {
+        std::cout << "Idx: " << next_mtable_idx << std::endl;
+        std::cout << "m: " << mtable.m << std::endl;
+        fflush(stdout);
+      }
+      assert(next_mtable_idx < mtable.m);
+      assert(index >= table_sizes[next_mtable_idx]);*/
+      S next_index = index - table_sizes[next_mtable_idx];
+      /*if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) {
+        std::cout << "rr: " << rr << std::endl; fflush(stdout);
+        std::cout << "base_idx: " << base_idx << std::endl; fflush(stdout);
+        std::cout << "index: " << long{index} << std::endl; fflush(stdout);
+        std::cout << "top index: " << long{next_mtable_idx} << std::endl; fflush(stdout);
+        std::cout << "size: " << table_sizes[next_mtable_idx] << std::endl; fflush(stdout);
+      }
+      assert(std::get<1>(mtable.table[next_mtable_idx]) != nullptr);*/
+      std::get<1>(mtable.table[next_mtable_idx])->find_table_loc(next_index, func);
     }
 
   };
@@ -403,10 +447,12 @@ namespace multitable {
       int rr = 0;
       uintE max_lvl;
       MTable mtable;
-      X* space;
+      X* space = nullptr;
+      bool contiguous_space;
 
       template<class Graph>
-      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level){
+      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, bool _contiguous_space){
+        contiguous_space = _contiguous_space;
         std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
         max_lvl = _max_level;
@@ -431,8 +477,12 @@ namespace multitable {
         std::cout << "End MHash Count" << std::endl; fflush(stdout);
 
         long total = mtable.set_table_sizes();
-        space = pbbslib::new_array_no_init<X>(total);
-        mtable.set_end_table_rec(space);
+        if (contiguous_space) {
+          space = pbbslib::new_array_no_init<X>(total);
+          mtable.set_end_table_rec(space);
+        } else {
+          mtable.set_end_table_rec();
+        }
 
         std::cout << "End MHash" << std::endl; fflush(stdout);
       }
@@ -444,18 +494,41 @@ namespace multitable {
       std::size_t return_total() { return mtable.total_size; }
 
       long get_count(std::size_t index) {
-        return std::get<1>(space[index]);
+        if (contiguous_space) return std::get<1>(space[index]);
+
+        long count;
+        auto func = [&](std::tuple<unsigned __int128, long>* loc){
+          count = std::get<1>(*loc);
+        };
+        find_table_loc(index, func);
+        return count;
       }
 
       size_t update_count(std::size_t index, size_t update){
-        auto val = std::get<1>(space[index]) - update;
-        space[index] =
-          std::make_tuple(std::get<0>(space[index]), val);
+        if (contiguous_space) {
+          auto val = std::get<1>(space[index]) - update;
+          space[index] =
+            std::make_tuple(std::get<0>(space[index]), val);
+          return val;
+        }
+        size_t val;
+        auto func = [&](std::tuple<unsigned __int128, long>* loc){
+          val = std::get<1>(*loc) - update;
+          *loc = std::make_tuple(std::get<0>(*loc), val);
+        }
+        find_table_loc(index, func);
         return val;
       }
 
       void clear_count(std::size_t index) {
-        space[index] = std::make_tuple(std::get<0>(space[index]), 0);
+        if (contiguous_space) {
+          space[index] = std::make_tuple(std::get<0>(space[index]), 0);
+          return;
+        }
+        auto func = [&](std::tuple<unsigned __int128, long>* loc){
+          *loc = std::make_tuple(std::get<0>(*loc), 0);
+        }
+        find_table_loc(index, func);
       }
 
       template<class I>
