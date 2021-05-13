@@ -275,7 +275,7 @@ namespace multitable_nosearch {
         assert(end_space != nullptr);
         auto vert = std::get<0>(end_space[index]);
         // TOOD: make sure this calc is correct
-        for (int j = k; j > lvl + k - r - 1; --j) { //rr - 1, base_idx
+        for (int j = k; j > lvl + k - rr - 1; --j) { //rr - 1, base_idx
           int extract = (int) vert;
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);
@@ -308,8 +308,8 @@ namespace multitable_nosearch {
         max_val &= ~(1UL << (max_bit - 1));
         return reinterpret_cast<MTable*>(max_val);
       }
-      idx++;
-      idx = idx % mtable.m;
+      index++;
+      //index = index % mtable.m;
     }
   }
 
