@@ -103,7 +103,7 @@ namespace multitable {
         end_table = EndTable(
           total_size,
           std::make_tuple<unsigned __int128, long>(std::numeric_limits<unsigned __int128>::max(), static_cast<long>(0)),
-          hash128{}
+          hash128{}, 1
         );
 
       } else {
