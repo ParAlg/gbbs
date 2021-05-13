@@ -83,7 +83,8 @@ namespace multitable_nosearch {
       if (lvl == max_lvl) {
         unsigned __int128 max_val = reinterpret_cast<std::uintptr_t>(this); // std::numeric_limits<unsigned __int128>::max()
         std::size_t max_bit = sizeof(unsigned __int128) * 8;
-        max_val |= 1ULL << (max_bit - 1);
+        unsigned __int128 one = 1;
+        max_val |= one << (max_bit - 1);
 
         // Allocate end_table here using end_space
         end_table = EndTable(
@@ -265,17 +266,17 @@ namespace multitable_nosearch {
     template<class S>
     void extract_clique(S index, sequence<uintE>& base, int base_idx, int rr, int k) {
       if (lvl == max_lvl) {
-        base_idx = lvl + k - rr - 1;
+        //base_idx = lvl + k - rr - 1;
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
           base[base_idx] = vtx;
-          if (base_idx == k - rr + 1) base_idx = 0;
-          else base_idx--;
+          if (base_idx == 0) base_idx = k - rr + 1;
+          else base_idx++;
         }
         assert(end_space != nullptr);
         auto vert = std::get<0>(end_space[index]);
         // TOOD: make sure this calc is correct
-        for (int j = k; j > lvl + k - rr - 1; --j) { //rr - 1, base_idx
+        for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
           int extract = (int) vert;
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);
@@ -288,8 +289,8 @@ namespace multitable_nosearch {
       }
       if (lvl != 0) {
         base[base_idx] = vtx;
-        if (base_idx == k - rr + 1) base_idx = 0;
-        else base_idx--;
+        if (base_idx == 0) base_idx = k - rr + 1;
+        else base_idx++;
         if (prev_mtable != nullptr) {
           prev_mtable->extract_clique(index, base, base_idx, rr, k);
         }
@@ -300,12 +301,14 @@ namespace multitable_nosearch {
 
   template<class S, class EndSpace>
   MTable* get_mtable(S index, EndSpace* end_space) {
+    using X = std::tuple<unsigned __int128, long>;
     while (true) {
-      auto max_val = std::get<0>(end_space[index]);
+      auto max_val = std::get<0>(static_cast<X>(end_space[index]);
       std::size_t max_bit = sizeof(unsigned __int128) * 8;
-      auto check_bit = (max_val >> (max_bit - 1)) & 1U;
-      if (check_bit) {
-        max_val &= ~(1UL << (max_bit - 1));
+      unsigned __int128 one = 1;
+      unsigned __int128 check_bit = (max_val >> (max_bit - 1)) & 1U;
+      if (check_bit != 0) {
+        max_val &= ~(one << (max_bit - 1));
         return reinterpret_cast<MTable*>(max_val);
       }
       index++;
@@ -464,7 +467,7 @@ namespace multitable_nosearch {
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         auto last_mtable = get_mtable(index, space);
-        last_mtable->extract_clique(index, base, k, rr, k);
+        last_mtable->extract_clique(index, base, 0, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
       }
   };
