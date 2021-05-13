@@ -324,7 +324,7 @@ namespace twotable {
         base[0] = top_index;
         EndTable* end_table = top_table.arr[top_index];
         size_t bottom_index = index - top_table_sizes[top_index];
-        auto vert = std::get<0>((end_table->table).table[bottom_index]);
+        auto vert = contiguous_space ? std::get<0>(space[index]) : std::get<0>((end_table->table).table[bottom_index]);
         for (int j = 0; j < rr - 1; ++j) {
           int extract = (int) vert; // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
