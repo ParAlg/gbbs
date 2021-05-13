@@ -265,7 +265,7 @@ namespace multitable_nosearch {
     template<class S>
     void extract_clique(S index, sequence<uintE>& base, int base_idx, int rr, int k) {
       if (lvl == max_lvl) {
-        base_idx = lvl + k - r - 1;
+        base_idx = lvl + k - rr - 1;
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
           base[base_idx] = vtx;
@@ -463,7 +463,7 @@ namespace multitable_nosearch {
       //Fill base[k] ... base[k-r+1] and base[0]
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
-        auto last_mtable = mtable.get_mtable(index, space);
+        auto last_mtable = get_mtable(index, space);
         last_mtable.extract_clique(index, base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
       }
