@@ -500,7 +500,7 @@ namespace multitable {
         auto func = [&](std::tuple<unsigned __int128, long>* loc){
           count = std::get<1>(*loc);
         };
-        find_table_loc(index, func);
+        mtable.find_table_loc(index, func);
         return count;
       }
 
@@ -516,7 +516,7 @@ namespace multitable {
           val = std::get<1>(*loc) - update;
           *loc = std::make_tuple(std::get<0>(*loc), val);
         }
-        find_table_loc(index, func);
+        mtable.find_table_loc(index, func);
         return val;
       }
 
@@ -528,7 +528,7 @@ namespace multitable {
         auto func = [&](std::tuple<unsigned __int128, long>* loc){
           *loc = std::make_tuple(std::get<0>(*loc), 0);
         }
-        find_table_loc(index, func);
+        mtable.find_table_loc(index, func);
       }
 
       template<class I>
