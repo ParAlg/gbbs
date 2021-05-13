@@ -28,21 +28,6 @@ namespace gbbs {
 
 namespace multitable_nosearch {
 
-  template<class S, class EndSpace>
-  MTable* get_mtable(S index, EndSpace* end_space) {
-    while (true) {
-      auto max_val = std::get<0>(end_space[index]);
-      std::size_t max_bit = sizeof(unsigned __int128) * 8;
-      auto check_bit = (max_val >> (max_bit - 1)) & 1U;
-      if (check_bit) {
-        max_val &= ~(1UL << (max_bit - 1));
-        return reinterpret_cast<MTable*>(max_val);
-      }
-      idx++;
-      idx = idx % mtable.m;
-    }
-  }
-
   inline bool is_uint_e_max(uintE max_val) {
 //#ifdef NUCLEUS_USE_VERTEX
     return max_val == UINT_E_MAX;
@@ -312,6 +297,21 @@ namespace multitable_nosearch {
     }
 
   };
+
+  template<class S, class EndSpace>
+  MTable* get_mtable(S index, EndSpace* end_space) {
+    while (true) {
+      auto max_val = std::get<0>(end_space[index]);
+      std::size_t max_bit = sizeof(unsigned __int128) * 8;
+      auto check_bit = (max_val >> (max_bit - 1)) & 1U;
+      if (check_bit) {
+        max_val &= ~(1UL << (max_bit - 1));
+        return reinterpret_cast<MTable*>(max_val);
+      }
+      idx++;
+      idx = idx % mtable.m;
+    }
+  }
 
   template <class Graph, class Space>
   inline size_t NKCliqueDir_fast_hybrid_rec_multi(Graph& DG, size_t k_idx, size_t k,
