@@ -463,7 +463,7 @@ namespace multitable_nosearch {
       //Fill base[k] ... base[k-r+1] and base[0]
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
-        auto last_mtable = get_mtable(index, space);
+        auto last_mtable = mtable.get_mtable(index, space);
         last_mtable.extract_clique(index, base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
       }
