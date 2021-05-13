@@ -103,11 +103,11 @@ namespace multitable_nosearch {
         // Allocate end_table here using end_space
         end_table = EndTable(
           total_size - 1,
-          std::make_tuple<unsigned __int128, long>(max_val, static_cast<long>(0)),
+          std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(max_val), static_cast<long>(0)),
           hash128{},
           end_space
         );
-        end_space[total_size - 1] = std::make_tuple<unsigned __int128, long>(max_val, static_cast<long>(0));
+        end_space[total_size - 1] = std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(max_val), static_cast<long>(0));
 
       } else {
         for (std::size_t i = 0; i < mtable.m; i++) {

@@ -335,7 +335,7 @@ namespace multitable {
     template<class S, class F>
     void find_table_loc(S index, F func) {
       if (lvl == max_lvl) {
-        F(&(end_table.table[index]));
+        F(static_cast<std::tuple<unsigned __int128, long>*>(&(end_table.table[index])));
         return;
       }
       auto next_mtable_idx = get_top_index(index);
