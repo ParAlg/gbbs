@@ -303,7 +303,7 @@ namespace multitable_nosearch {
   MTable* get_mtable(S index, EndSpace* end_space) {
     using X = std::tuple<unsigned __int128, long>;
     while (true) {
-      auto max_val = std::get<0>(static_cast<X>(end_space[index]);
+      auto max_val = std::get<0>(static_cast<X>(end_space[index]));
       std::size_t max_bit = sizeof(unsigned __int128) * 8;
       unsigned __int128 one = 1;
       unsigned __int128 check_bit = (max_val >> (max_bit - 1)) & 1U;
