@@ -60,7 +60,8 @@ namespace twotable {
         auto tmp_table = pbbslib::sparse_additive_map<uintE, long>(
           DG.n, std::make_tuple(UINT_E_MAX, long{0}));
         auto base_f = [&](sequence<uintE>& base){
-          auto min_vert = pbbslib::reduce_min(base);
+          //auto min_vert = pbbslib::reduce_min(base);
+          auto min_vert = base[0];
           auto tmp = std::make_tuple<uintE, long>(static_cast<uintE>(min_vert), long{1});
           tmp_table.insert(tmp);
         };
