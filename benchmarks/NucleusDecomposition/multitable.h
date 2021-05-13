@@ -347,6 +347,7 @@ namespace multitable {
       assert(next_mtable_idx < mtable.m);
       assert(index >= table_sizes[next_mtable_idx]);*/
       S next_index = index - table_sizes[next_mtable_idx];
+      if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) return;
       /*if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) {
         std::cout << "rr: " << rr << std::endl; fflush(stdout);
         std::cout << "base_idx: " << base_idx << std::endl; fflush(stdout);
@@ -496,7 +497,7 @@ namespace multitable {
       long get_count(std::size_t index) {
         if (contiguous_space) return std::get<1>(space[index]);
 
-        long count;
+        long count = 0;
         auto func = [&](std::tuple<unsigned __int128, long>* loc){
           count = std::get<1>(*loc);
         };
@@ -511,7 +512,7 @@ namespace multitable {
             std::make_tuple(std::get<0>(space[index]), val);
           return val;
         }
-        size_t val;
+        size_t val = 0;
         auto func = [&](std::tuple<unsigned __int128, long>* loc){
           val = std::get<1>(*loc) - update;
           *loc = std::make_tuple(std::get<0>(*loc), val);
