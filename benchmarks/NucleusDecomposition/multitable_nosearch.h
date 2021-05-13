@@ -264,9 +264,9 @@ namespace multitable_nosearch {
 
     //Fill base[k] ... base[k-r+1] and base[0]
     template<class S>
-    void extract_clique(S index, sequence<uintE>& base, int base_idx, int rr, int k) {
+    void extract_clique(S vert, sequence<uintE>& base, int base_idx, int rr, int k) {
       if (lvl == max_lvl) {
-        base_idx = lvl + k - rr - 1;
+        base_idx = lvl + k - rr;
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
           base[base_idx] = vtx;
@@ -274,16 +274,16 @@ namespace multitable_nosearch {
           else base_idx--;
         }
         assert(end_space != nullptr);
-        auto vert = std::get<0>(end_space[index]);
+        //auto vert = std::get<0>(end_space[index]);
         // TOOD: make sure this calc is correct
-        for (int j = k; j > lvl + k - rr - 1; --j) { //rr - 1, base_idx
+        for (int j = k; j > lvl + k - rr; --j) { //rr - 1, base_idx
           int extract = (int) vert;
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);
           vert = vert >> 32;
         }
         if (prev_mtable != nullptr) {
-          prev_mtable->extract_clique(index, base, base_idx, rr, k);
+          prev_mtable->extract_clique(vert, base, base_idx, rr, k);
         }
         return;
       }
@@ -292,7 +292,7 @@ namespace multitable_nosearch {
         if (base_idx == k - rr + 1) base_idx = 0;
         else base_idx--;
         if (prev_mtable != nullptr) {
-          prev_mtable->extract_clique(index, base, base_idx, rr, k);
+          prev_mtable->extract_clique(vert, base, base_idx, rr, k);
         }
       }
     }
@@ -467,7 +467,7 @@ namespace multitable_nosearch {
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         auto last_mtable = get_mtable(index, space);
-        last_mtable->extract_clique(index, base, k, rr, k);
+        last_mtable->extract_clique(std::get<0>(space[index]), base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
       }
   };
