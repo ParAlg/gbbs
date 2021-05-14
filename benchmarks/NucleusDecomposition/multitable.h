@@ -281,7 +281,7 @@ namespace multitable {
         while(table_sizes[idx] == index) {
           idx--;
         }
-        return idx++;
+        return idx+1;
       }
       return idx - 1;
     }

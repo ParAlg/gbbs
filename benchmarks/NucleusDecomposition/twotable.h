@@ -188,7 +188,7 @@ namespace twotable {
           while(top_table_sizes[idx] == index) {
             idx--;
           }
-          return idx++;
+          return idx+1;
         }
         return idx - 1;
       }
