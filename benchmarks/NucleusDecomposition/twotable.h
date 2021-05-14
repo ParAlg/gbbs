@@ -186,9 +186,9 @@ namespace twotable {
         if (idx == 0) return idx;
         if (top_table_sizes[idx] == index) {
           while(top_table_sizes[idx] == index) {
-            idx--;
+            idx++;
           }
-          return idx+1;
+          return idx-1;
         }
         return idx - 1;
       }
