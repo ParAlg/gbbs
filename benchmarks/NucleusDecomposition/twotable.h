@@ -115,7 +115,7 @@ namespace twotable {
             pbbslib::sparse_table<unsigned __int128, long, hash128>(
             size, 
             std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
-            hash128{}, 1);
+            hash128{}, 1, true);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
           top_table_sizes[l] = end_table->table.m;*/

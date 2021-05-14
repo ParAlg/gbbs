@@ -86,13 +86,17 @@ class sparse_table {
 
   // Size is the maximum number of values the hash table will hold.
   // Overfilling the table could put it into an infinite loop.
-  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1)
+  sparse_table(size_t _m, T _empty, KeyHash _key_hash, long inp_space_mult=-1, bool exact=false)
       : empty(_empty),
         empty_key(std::get<0>(empty)),
         key_hash(_key_hash) {
-    double space_mult = 1.1;
-    if (inp_space_mult != -1) space_mult = inp_space_mult;
-    m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m) + 1);
+    if (exact) {
+      m = _m;
+    } else {
+      double space_mult = 1.1;
+      if (inp_space_mult != -1) space_mult = inp_space_mult;
+      m = (size_t)1 << pbbslib::log2_up((size_t)(space_mult * _m) + 1);
+    }
     mask = m - 1;
     table = pbbslib::new_array_no_init<T>(m);
     clearA(table, m, empty);
