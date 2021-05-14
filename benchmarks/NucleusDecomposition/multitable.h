@@ -281,9 +281,9 @@ namespace multitable {
       if (idx == 0) return idx;
       if (table_sizes[idx] == index) {
         while(table_sizes[idx] == index) {
-          idx--;
+          idx++;
         }
-        return idx + 1;
+        return idx - 1;
       }
       return idx - 1;
     }
