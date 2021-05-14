@@ -75,16 +75,18 @@ namespace twotable {
           }
         }, 1, false);
         auto top_table_sizes2 = tmp_table.entries();
+        sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
           auto m = (size_t)1 << pbbslib::log2_up((size_t)(1.1 * std::get<1>(top_table_sizes2[i])) + 1);
-          top_table_sizes2[i] = std::make_tuple(std::get<0>(top_table_sizes2[i]), m);
+          actual_sizes[i] = m;
         });
+        actual_sizes[top_table_sizes2.size()] = 0;
         // Do a scan inplace
-        auto add_tuple_monoid = pbbs::make_monoid([](std::tuple<uintE, long> a, std::tuple<uintE, long> b){
-          return std::make_tuple(std::get<0>(b), std::get<1>(a) + std::get<1>(b));
-        }, std::make_tuple(UINT_E_MAX, 0));
-        std::tuple<uintE, long> total_top_table_sizes2 = scan_inplace(top_table_sizes2.slice(), add_tuple_monoid);
+        //auto add_tuple_monoid = pbbs::make_monoid([](std::tuple<uintE, long> a, std::tuple<uintE, long> b){
+        //  return std::make_tuple(std::get<0>(b), std::get<1>(a) + std::get<1>(b));
+        //}, std::make_tuple(UINT_E_MAX, 0));
+        long total_top_table_sizes2 = scan_inplace(actual_sizes.slice(), pbbs::addm<long>());
         // Allocate space for the second level tables
         if (contiguous_space) space = pbbslib::new_array_no_init<X>(std::get<1>(total_top_table_sizes2));
         tmp_table.del();
@@ -99,18 +101,16 @@ namespace twotable {
         top_table_sizes = sequence<long>(top_table.table.m + 1, long{0});*/
   
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i){
-          auto vtx = i == top_table_sizes2.size() - 1 ? std::get<0>(total_top_table_sizes2) : 
-            std::get<0>(top_table_sizes2[i + 1]);
-          auto upper_size = i == top_table_sizes2.size() - 1 ? std::get<1>(total_top_table_sizes2) : 
-            std::get<1>(top_table_sizes2[i + 1]);
-          auto size = upper_size - std::get<1>(top_table_sizes2[i]);
+          auto vtx = std::get<0>(top_table_sizes2[i]);
+          auto upper_size = actual_sizes[i + 1];
+          auto size = upper_size - actual_sizes[i];
           EndTable* end_table = new EndTable();
           end_table->vtx = vtx;
           end_table->table = contiguous_space ? pbbslib::sparse_table<unsigned __int128, long, hash128>(
             size, 
             std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
             hash128{},
-            space + std::get<1>(top_table_sizes2[i])
+            space + actual_sizes[i]
             ) :
             pbbslib::sparse_table<unsigned __int128, long, hash128>(
             size, 
@@ -304,13 +304,13 @@ namespace twotable {
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         unsigned __int128 vert;
+        // First, do a binary search for index in prefix
+        size_t top_index = get_top_index(index);
+        /*base[0] = std::get<0>(top_table.table.table[top_index]);
+        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
+        //***for arr
+        base[0] = top_index;
         if (!contiguous_space) {
-          // First, do a binary search for index in prefix
-          size_t top_index = get_top_index(index);
-          /*base[0] = std::get<0>(top_table.table.table[top_index]);
-          EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
-          //***for arr
-          base[0] = top_index;
           EndTable* end_table = top_table.arr[top_index];
           size_t bottom_index = index - top_table_sizes[top_index];
           vert = std::get<0>((end_table->table).table[bottom_index]);
