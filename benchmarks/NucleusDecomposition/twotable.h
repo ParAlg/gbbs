@@ -88,7 +88,7 @@ namespace twotable {
         //}, std::make_tuple(UINT_E_MAX, 0));
         long total_top_table_sizes2 = scan_inplace(actual_sizes.slice(), pbbs::addm<long>());
         // Allocate space for the second level tables
-        if (contiguous_space) space = pbbslib::new_array_no_init<X>(std::get<1>(total_top_table_sizes2));
+        if (contiguous_space) space = pbbslib::new_array_no_init<X>(total_top_table_sizes2);
         tmp_table.del();
   
         //*** for arr
