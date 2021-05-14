@@ -122,7 +122,7 @@ namespace multitable {
     long set_table_sizes() {
       if (lvl != max_lvl) {
         if (lvl + 1 == max_lvl) {
-          table_sizes = sequence<long>(mtable.m, [](std::size_t i){ return 0; });
+          table_sizes = sequence<long>(mtable.m + 1, [](std::size_t i){ return 0; });
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
@@ -130,13 +130,15 @@ namespace multitable {
               table_sizes[i] = tbl->total_size;
             }
           });
+          table_sizes[mtable.m] = 0;
           total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
           return total_size;
         }
-        table_sizes = sequence<long>(mtable.m, [&](std::size_t i){
+        table_sizes = sequence<long>(mtable.m + 1, [&](std::size_t i){
           if (is_uint_e_max(std::get<0>(mtable.table[i]))) return long{0};
           return std::get<1>(mtable.table[i])->total_size;
         });
+        table_sizes[mtable.m] = 0;
         total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
         return total_size;
       }
@@ -275,13 +277,13 @@ namespace multitable {
     long get_top_index(S index) {
       // This gives the first i such that top_table_sizes[i] >= index
       auto idx = pbbslib::binary_search(table_sizes.slice(), long{index}, std::less<long>());
-      if (idx >= table_sizes.size()) return table_sizes.size() - 1;
+      if (idx >= table_sizes.size()) return table_sizes.size() - 2;
       if (idx == 0) return idx;
       if (table_sizes[idx] == index) {
         while(table_sizes[idx] == index) {
           idx--;
         }
-        return idx+1;
+        return idx + 1;
       }
       return idx - 1;
     }
@@ -426,11 +428,12 @@ namespace multitable {
       if (induced->num_induced[k_idx] > k - k_idx - 1) {
         //base[k_idx] = induced->relabel[vtx];
         Space* next_space = space->next(induced->relabel[vtx], k_idx, k);
+        bool next_valid_space = true;
         if (next_space == nullptr) {
           next_space = space;
-          valid_space = false;
+          next_valid_space = false;
         }
-        auto curr_counts = NKCliqueDir_fast_hybrid_rec_multi(DG, k_idx + 1, k, induced, next_space, induced->relabel[vtx], valid_space);
+        auto curr_counts = NKCliqueDir_fast_hybrid_rec_multi(DG, k_idx + 1, k, induced, next_space, induced->relabel[vtx], next_valid_space);
         total_ct += curr_counts;
       }
     }
