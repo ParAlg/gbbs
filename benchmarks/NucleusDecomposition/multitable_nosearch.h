@@ -111,7 +111,7 @@ namespace multitable_nosearch {
     long set_table_sizes() {
       if (lvl != max_lvl) {
         if (lvl + 1 == max_lvl) {
-          table_sizes = sequence<long>(mtable.m + 1, [](std::size_t i){ return 0; });
+          table_sizes = sequence<long>(mtable.m, [](std::size_t i){ return 0; });
           parallel_for(0, mtable.m, [&](std::size_t i){
             if (!is_uint_e_max(std::get<0>(mtable.table[i]))) {
               auto tbl = std::get<1>(mtable.table[i]);
@@ -119,15 +119,13 @@ namespace multitable_nosearch {
               table_sizes[i] = tbl->total_size;
             }
           });
-          table_sizes[mtable.m] = 0;
           total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
           return total_size;
         }
-        table_sizes = sequence<long>(mtable.m + 1, [&](std::size_t i){
+        table_sizes = sequence<long>(mtable.m, [&](std::size_t i){
           if (is_uint_e_max(std::get<0>(mtable.table[i]))) return long{0};
           return std::get<1>(mtable.table[i])->total_size;
         });
-        table_sizes[mtable.m] = 0;
         total_size = scan_inplace(table_sizes.slice(), pbbs::addm<long>());
         return total_size;
       }
