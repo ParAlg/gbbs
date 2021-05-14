@@ -183,13 +183,13 @@ namespace twotable {
         // This gives the first i such that top_table_sizes[i] >= index
         auto idx = pbbslib::binary_search(top_table_sizes, long{index}, std::less<long>());
         if (idx >= top_table_sizes.size()) return top_table_sizes.size() - 1;
-        if (idx == 0) return idx;
         if (top_table_sizes[idx] == index) {
           while(top_table_sizes[idx] == index) {
             idx++;
           }
           return idx-1;
         }
+        if (idx == 0) return idx;
         return idx - 1;
       }
 

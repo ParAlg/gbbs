@@ -276,13 +276,13 @@ namespace multitable {
       // This gives the first i such that top_table_sizes[i] >= index
       auto idx = pbbslib::binary_search(table_sizes.slice(), long{index}, std::less<long>());
       if (idx >= table_sizes.size()) return table_sizes.size() - 1;
-      if (idx == 0) return idx;
       if (table_sizes[idx] == index) {
         while(table_sizes[idx] == index) {
           idx++;
         }
         return idx - 1;
       }
+      if (idx == 0) return idx;
       return idx - 1;
     }
   
