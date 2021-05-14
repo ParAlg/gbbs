@@ -184,28 +184,14 @@ namespace twotable {
         // This gives the first i such that top_table_sizes[i] >= index
         auto idx = pbbslib::binary_search(top_table_sizes, long{index}, std::less<long>());
         if (idx >= top_table_sizes.size()) return top_table_sizes.size() - 1;
-        if (top_table_sizes[idx] == index) return idx;
-        //if (top_table_sizes[idx] > index) {
-          if (idx == 0) return idx;
-          return idx - 1;
-        //}
-        //assert(top_table_sizes[0] == 0);
-        /*
-        for (std::size_t i = 0; i < top_table_sizes.size(); i++) {
-          //if (i > 0) {
-          //  assert(top_table_sizes[i - 1] <= top_table_sizes[i]);
-          //  EndTable* end_table = std::get<1>(top_table.table.table[i - 1]);
-          //  if (end_table != nullptr) assert(top_table_sizes[i] - top_table_sizes[i - 1] == (end_table->table).m);
-          //}
-          if (top_table_sizes[i] == index) {
-            return i;
-          } else if (top_table_sizes[i] > index) {
-            if (i == 0) return i;
-            return i - 1;
+        if (idx == 0) return idx;
+        if (top_table_sizes[idx] == index) {
+          while(top_table_sizes[idx] == index) {
+            idx--;
           }
+          return idx++;
         }
-        return top_table_sizes.size() - 1;*/
-        //return pbbslib::binary_search(top_table_sizes, long{index}, std::greater<long>());
+        return idx - 1;
       }
 
       long get_count(std::size_t index) {
@@ -316,15 +302,20 @@ namespace twotable {
       // Given an index, get the clique
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
-        // First, do a binary search for index in prefix
-        size_t top_index = get_top_index(index);
-        /*base[0] = std::get<0>(top_table.table.table[top_index]);
-        EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
-        //***for arr
-        base[0] = top_index;
-        EndTable* end_table = top_table.arr[top_index];
-        size_t bottom_index = index - top_table_sizes[top_index];
-        auto vert = contiguous_space ? std::get<0>(space[index]) : std::get<0>((end_table->table).table[bottom_index]);
+        unsigned __int128 vert;
+        if (!contiguous_space) {
+          // First, do a binary search for index in prefix
+          size_t top_index = get_top_index(index);
+          /*base[0] = std::get<0>(top_table.table.table[top_index]);
+          EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
+          //***for arr
+          base[0] = top_index;
+          EndTable* end_table = top_table.arr[top_index];
+          size_t bottom_index = index - top_table_sizes[top_index];
+          vert = std::get<0>((end_table->table).table[bottom_index]);
+        } else {
+          vert = std::get<0>(space[index]);
+        }
         for (int j = 0; j < rr - 1; ++j) {
           int extract = (int) vert; // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
