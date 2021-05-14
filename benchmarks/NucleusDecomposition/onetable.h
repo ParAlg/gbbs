@@ -52,17 +52,18 @@ namespace onetable {
           std::make_tuple(static_cast<unsigned __int128>(0), long{0}), hash128{});
       }
 
-      void insert(sequence<uintE>& base, int r, int k) {
+      void insert(sequence<uintE>& base2, int r, int k) {
         auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
           pbbs::fetch_and_add(ct, (long)1);
         };
+
         // Sort base
-        /*uintE base2[10];
+        uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
-          base2[i] = base[i];
+          base[i] = base2[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
+        std::sort(base, base + k + 1,std::less<uintE>());
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -103,14 +104,16 @@ namespace onetable {
       }
 
       template<class I>
-      void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
         // Sort base
-        /*uintE base2[10];
+        // Sort base
+        uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
-          base2[i] = base[i];
+          base[i] = base2[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
+        std::sort(base, base + k + 1,std::less<uintE>());
+
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
 

@@ -51,7 +51,7 @@ namespace twotable {
       bool contiguous_space;
   
       template <class Graph>
-      TwolevelHash(int r, Graph& DG, size_t max_deg, bool _contiguous_space) {
+      TwolevelHash(int r, Graph& DG, size_t max_deg, bool _contiguous_space, bool relabel) {
         contiguous_space = _contiguous_space;
         rr = r;
         //top_table.up_table = nullptr;
@@ -60,8 +60,7 @@ namespace twotable {
         auto tmp_table = pbbslib::sparse_additive_map<uintE, long>(
           DG.n, std::make_tuple(UINT_E_MAX, long{0}));
         auto base_f = [&](sequence<uintE>& base){
-          //auto min_vert = pbbslib::reduce_min(base);
-          auto min_vert = base[0];
+          auto min_vert = relabel ? base[0] : pbbslib::reduce_min(base);
           auto tmp = std::make_tuple<uintE, long>(static_cast<uintE>(min_vert), long{1});
           tmp_table.insert(tmp);
         };
@@ -140,17 +139,17 @@ namespace twotable {
         assert(top_table_sizes[0] == 0);*/
       }
   
-      void insert(sequence<uintE>& base, int r, int k) {
+      void insert(sequence<uintE>& base2, int r, int k) {
         auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
           pbbs::fetch_and_add(ct, (long)1);
         };
         // Sort base
-        /*uintE base2[10];
+        uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
-          base2[i] = base[i];
+          base[i] = base2[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
+        std::sort(base, base + k + 1,std::less<uintE>());
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -262,13 +261,15 @@ namespace twotable {
       }
 
       template<class I>
-      void extract_indices(sequence<uintE>& base, I func, int r, int k) {
-        /*uintE base2[10];
+      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+        // Sort base
+        uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
-          base2[i] = base[i];
+          base[i] = base2[i];
         }
-        std::sort(base2, base2 + k + 1,std::less<uintE>());*/
+        std::sort(base, base + k + 1,std::less<uintE>());
+
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
         do {

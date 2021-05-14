@@ -57,11 +57,10 @@ double AppNucleusDecomposition_runner(Graph& GA, commandLine P) {
 
   timer t; t.start();
 
-  size_t count = NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space);
+  auto count = NucleusDecomposition(GA, r, ss, table_type, num_levels, relabel, contiguous_space);
 
   double tt = t.stop();
 
-  std::cout << "count: " << count << std::endl;
   std::cout << "### Running Time: " << tt << std::endl;
 
   return tt;

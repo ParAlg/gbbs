@@ -185,7 +185,7 @@ namespace multitable {
       return next_table;
     }
 
-    void insert(sequence<uintE>& base, int curr_idx, int r, int k, std::string& bitmask) {
+    void insert(uintE* base, int curr_idx, int r, int k, std::string& bitmask) {
       if (lvl == max_lvl) {
         assert(end_table.m > 0);
         auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
@@ -213,7 +213,7 @@ namespace multitable {
       next->insert(base, next_idx, r, k, bitmask);
     }
 
-    void insert(sequence<uintE>& base, int r, int k) {
+    void insert(uintE* base, int r, int k) {
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
@@ -229,7 +229,7 @@ namespace multitable {
     }
 
 //std::tuple<unsigned __int128, long>*
-    size_t extract_indices(sequence<uintE>& base, int curr_idx,
+    size_t extract_indices(uintE* base, int curr_idx,
       int r, int k, std::string& bitmask) {
       if (lvl == max_lvl) {
         unsigned __int128 key = 0;
@@ -255,7 +255,7 @@ namespace multitable {
     }
 
     template<class I>
-    void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+    void extract_indices(uintE* base, I func, int r, int k) {
       std::string bitmask(r+1, 1); // K leading 1's
       bitmask.resize(k+1, 0); // N-K trailing 0's
       do {
@@ -442,6 +442,7 @@ namespace multitable {
     return total_ct;
   }
 
+  template <class F>
   class MHash {
     public:
       using X = std::tuple<unsigned __int128, long>;
@@ -450,9 +451,12 @@ namespace multitable {
       MTable mtable;
       X* space = nullptr;
       bool contiguous_space;
+      bool relabel;
+      F sort_func;
 
       template<class Graph>
-      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, bool _contiguous_space){
+      MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, bool _contiguous_space,
+        F _rank_func) : sort_func(_rank_func) {
         contiguous_space = _contiguous_space;
         std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
@@ -488,7 +492,13 @@ namespace multitable {
         std::cout << "End MHash" << std::endl; fflush(stdout);
       }
 
-      void insert(sequence<uintE>& base, int r, int k) {
+      void insert(sequence<uintE>& base2, int r, int k) {
+        uintE base[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + k + 1,sort_func);
         mtable.insert(base, r, k);
       }
 
@@ -533,7 +543,13 @@ namespace multitable {
       }
 
       template<class I>
-      void extract_indices(sequence<uintE>& base, I func, int r, int k) {
+      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+        uintE base[10];
+        assert(10 > k);
+        for(std::size_t i = 0; i < k + 1; i++) {
+          base[i] = base2[i];
+        }
+        std::sort(base, base + k + 1,sort_func);
         mtable.extract_indices(base, func, r, k);
       }
 
