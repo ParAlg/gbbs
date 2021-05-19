@@ -239,6 +239,12 @@ namespace twotable_nosearch {
       }
 
       size_t update_count(std::size_t index, size_t update){
+        if (get_count(index) < update) {
+          std::cout << "i: " << index << ", count: " << get_count(index) << ", update: " << update << std::endl;
+          fflush(stdout);
+          exit(0);
+        }
+
         auto val = std::get<1>(space[index]) - update;
         space[index] =
           std::make_tuple(std::get<0>(space[index]), val);
