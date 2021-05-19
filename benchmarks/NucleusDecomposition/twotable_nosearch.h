@@ -129,7 +129,7 @@ namespace twotable_nosearch {
           auto size = upper_size - actual_sizes[i];
           EndTableY* end_table = new EndTableY();
 
-          Y max_val = reinterpret_cast<std::uintptr_t>(vtx); 
+          Y max_val = reinterpret_cast<Y>(vtx); 
           std::size_t max_bit = sizeof(Y) * 8;
           Y one = 1;
           max_val |= one << (max_bit - 1);
