@@ -233,6 +233,7 @@ namespace twotable_nosearch {
           if (end_table != nullptr) {
             assert(end_table->vtx == vtx);
             assert((end_table->table).m + 1 == top_table_sizes[vtx + 1] - top_table_sizes[vtx]);
+            assert((end_table->table).table == space + prefix);
           }
           auto index = (end_table->table).find_index(key);
           uintE vtest = get_mtable<Y>(index + prefix, space);
