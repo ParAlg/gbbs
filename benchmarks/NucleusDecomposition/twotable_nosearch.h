@@ -117,7 +117,7 @@ namespace twotable_nosearch {
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
           auto m = 1 + ((size_t)1 << pbbslib::log2_up((size_t)(1.1 * std::get<1>(top_table_sizes2[i])) + 1));
-          actual_sizes[i] = m + 1;
+          actual_sizes[i] = m;
         });
         actual_sizes[top_table_sizes2.size()] = 0;
         // Do a scan inplace
@@ -165,7 +165,7 @@ namespace twotable_nosearch {
           top_table_sizes[l] = end_table->table.m;*/
           //***for arr
           top_table.arr[vtx] = end_table;
-          top_table_sizes[vtx] = end_table->table.m;
+          top_table_sizes[vtx] = 1 + end_table->table.m;
         });
         total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
         /*for (std::size_t i = 1; i < top_table_sizes.size(); i++) {
