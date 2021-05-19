@@ -249,8 +249,8 @@ namespace twotable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), 0);
       }
 
-      template<class I>
-      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+      template<class HH, class HG, class I>
+      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -258,6 +258,10 @@ namespace twotable_nosearch {
           base[i] = base2[i];
         }
         std::sort(base, base + k + 1,std::less<uintE>());
+
+        std::vector<size_t> indices;
+        size_t num_active = 0;
+        bool use_func = true;
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -285,8 +289,20 @@ namespace twotable_nosearch {
           EndTableY* end_table = top_table.arr[vtx];
           auto prefix = top_table_sizes[vtx];
           auto index = (end_table->table).find_index(key);
-          func(prefix + index);
+
+          indices.push_back(prefix + index);
+          if (is_active(prefix + index)) num_active++;
+          if (is_inactive(prefix + index)) use_func = false;
+          //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+
+        assert(num_active != 0);
+        if (use_func) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active(indices[i]) && !is_inactive(indices[i]))
+              func(indices[i], 1.0 / (double) num_active);
+          }
+        }
       }
 
       // Given an index, get the clique
