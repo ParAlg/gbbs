@@ -99,10 +99,11 @@ namespace onetable {
 
       std::size_t return_total() {return table.m;}
       long get_count(std::size_t i) {
-        if (std::get<0>((table.table)[i]) == 0) return 0;
+        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0;
         return std::get<1>((table.table)[i]);
       }
       size_t update_count(std::size_t i, size_t update){
+        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0;
         auto val = std::get<1>(table.table[i]) - update;
         table.table[i] = std::make_tuple(std::get<0>(table.table[i]), val);
         return val;
