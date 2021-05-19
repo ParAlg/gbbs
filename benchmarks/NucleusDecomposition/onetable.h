@@ -97,7 +97,7 @@ namespace onetable {
 
 auto index = table.find_index(key);
 assert(index < table.m);
-sequence<uintE> base3 = sequence<uintE>(k + 1);
+sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
 extract_clique(index, base3, k, k);
 int base3_idx = 0;
 for (int i = 0; i < static_cast<int>(k)+1; ++i) {
