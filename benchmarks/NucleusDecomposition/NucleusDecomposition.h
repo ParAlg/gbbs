@@ -59,6 +59,10 @@
 #include "commontable.h"
 #include "multitable_nosearch.h"
 
+// list buffer is to collate indices of r-cliques with changed s-clique counts while peeling
+// we use per processor arrays to collate updated clique counts for r-cliques
+// this helps with contention, without having to allocate large hash tables
+
 namespace gbbs {
 
   template <class Graph, class T>

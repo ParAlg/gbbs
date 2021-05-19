@@ -54,6 +54,9 @@ namespace onetable {
         table = pbbslib::sparse_table<Y, long, H>(
           pre_count,
           std::make_tuple(static_cast<Y>(0), long{0}), H{});
+        
+        size_t data_structure_size = sizeof(*this) + table.m * sizeof(table.T);
+        std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
 
       void insert(sequence<uintE>& base2, int r, int k) {
