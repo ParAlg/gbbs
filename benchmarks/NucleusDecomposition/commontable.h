@@ -65,6 +65,17 @@ namespace gbbs {
     if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
 
+    if (k_idx == k) {
+      size_t tmp_counts = 0;
+      for (size_t i=0; i < num_induced; i++) {
+        uintE vtx = prev_induced[i];
+        base[k] = induced->relabel[vtx];
+        base_f(base);
+        tmp_counts++;
+      }
+      return tmp_counts;
+    }
+
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
 
     if (k_idx + 1 == k) {
