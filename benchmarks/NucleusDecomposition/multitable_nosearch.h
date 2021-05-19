@@ -92,7 +92,7 @@ namespace multitable_nosearch {
         end_table = EndTable(
           total_size - 1,
           std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0)),
-          H,
+          H{},
           end_space
         );
         end_space[total_size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));

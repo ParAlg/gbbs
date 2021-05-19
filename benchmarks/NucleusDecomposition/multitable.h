@@ -80,7 +80,7 @@ namespace multitable {
         end_table = EndTable(
           total_size,
           std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
-          H,
+          H{},
           end_space
         );
 
@@ -99,7 +99,7 @@ namespace multitable {
         end_table = EndTable(
           total_size,
           std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
-          H, 1, true
+          H{}, 1, true
         );
 
       } else {
