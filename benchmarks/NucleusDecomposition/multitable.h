@@ -473,7 +473,7 @@ namespace multitable {
             }
             auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
               next_space->allocate(DG.get_vertex(i).getOutDegree(), r-2, r-1, i);
-              Space* next_next_space = next_space->next(ngh, r-2, r-1);
+              auto next_next_space = next_space->next(ngh, r-2, r-1);
               bool next_next_valid_space = true;
               if (next_next_space == nullptr) {
                 next_next_space = space;
