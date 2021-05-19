@@ -537,7 +537,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
 
   int num_bits_in_n = pbbslib::log2_up(DG.n + 1);
   int num_bytes_needed = round_up<int>(((std::max(static_cast<int>(1), 
-    static_cast<int>(r - (num_levels - 1))) * num_bites_in_n) + 1), 8);
+    static_cast<int>(r - (num_levels - 1))) * num_bits_in_n) + 1), 8);
   int shift_factor = num_bits_in_n; //32
 
   std::cout << "Num bytes needed: " << num_bytes_needed << std::endl;
