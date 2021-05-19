@@ -489,7 +489,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
-  } /*else if (table_type == 4) {
+  } else if (table_type == 4) {
     // Num levels matches, e.g., 2 for two level
     num_levels -= 1;
     if (!relabel) {
@@ -505,7 +505,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     }
-  } */else if (table_type == 5) {
+  } else if (table_type == 5) {
     t.start();
     twotable_nosearch::TwolevelHash<T, H> table(r, DG, max_deg, relabel, shift_factor);
     double tt = t.stop();

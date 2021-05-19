@@ -247,8 +247,8 @@ namespace multitable_nosearch {
       return table_sizes[next_mtable_index] + next->extract_indices(base, next_idx, r, k, bitmask);
     }
 
-    template<class I>
-    void extract_indices(uintE* base, I func, int r, int k) {
+    template<class I, class HH>
+    void extract_indices(uintE* base, I func, int r, int k, HH& h_func) {
       std::string bitmask(r+1, 1); // K leading 1's
       bitmask.resize(k+1, 0); // N-K trailing 0's
       do {
@@ -256,7 +256,7 @@ namespace multitable_nosearch {
           if (bitmask[i]) {
             // TODO: make sure this pointer arithmetic is fine
             size_t idx = extract_indices(base, i, r, k, bitmask); // - end_space;
-            func(idx);
+            h_func(idx);
             break;
           }
         }
@@ -271,7 +271,7 @@ namespace multitable_nosearch {
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
           base[base_idx] = vtx;
-          if (base_idx == k - rr + 1) base_idx = 0;
+          if (base_idx == k - rr + 2) base_idx = 0;
           else base_idx--;
         }
         assert(end_space != nullptr);
@@ -291,7 +291,7 @@ namespace multitable_nosearch {
       }
       if (lvl != 0) {
         base[base_idx] = vtx;
-        if (base_idx == k - rr + 1) base_idx = 0;
+        if (base_idx == k - rr + 2) base_idx = 0;
         else base_idx--;
         if (prev_mtable != nullptr) {
           prev_mtable->extract_clique(vert, base, base_idx, rr, k);
@@ -325,6 +325,23 @@ namespace multitable_nosearch {
     size_t num_induced = induced->num_induced[k_idx-1];
     if (num_induced == 0) return 0;
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
+
+    if (k_idx == k) {
+      size_t tmp_counts = 0;
+      for (size_t i=0; i < num_induced; i++) {
+        uintE vtx = prev_induced[i];
+        base[k] = induced->relabel[vtx];
+        if (base[k] != UINT_E_MAX) {
+          base_f(base);
+          tmp_counts++;
+        }
+      }
+      space->increment_size(tmp_counts);
+      if (valid_space) {
+        space->set_table_sizes();
+      }
+      return tmp_counts;
+    }
 
     for (size_t i=0; i < num_induced; i++) { induced->labels[prev_induced[i]] = k_idx; }
 
@@ -470,15 +487,35 @@ namespace multitable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), 0);
       }
 
-      template<class I>
-      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+      template<class HH, class HG, class I>
+      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
           base[i] = base2[i];
         }
         std::sort(base, base + k + 1,sort_func);
-        mtable.extract_indices(base, func, r, k);
+
+        std::vector<size_t> indices;
+        size_t num_active = 0;
+        bool use_func = true;
+
+        auto h_func = [&](std::size_t idx){
+          indices.push_back(idx);
+          if (is_active(idx)) num_active++;
+          if (is_inactive(idx)) use_func = false;
+        };
+
+        mtable.extract_indices(base, func, r, k, h_func);
+
+        assert(num_active != 0);
+
+        if (use_func) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active(indices[i]) && !is_inactive(indices[i]))
+              func(indices[i], 1.0 / (double) num_active);
+          }
+        }
       }
 
       //Fill base[k] ... base[k-r+1] and base[0]
