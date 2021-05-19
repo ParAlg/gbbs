@@ -477,13 +477,13 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     }
-  } else if (table_type == 2) {
+  } else*/ if (table_type == 2) {
     t.start();
     twotable::TwolevelHash<T, H> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
-  } else */if (table_type == 1) {
+  } else if (table_type == 1) {
     t.start();
     onetable::OnelevelHash<T, H> table(r, DG, max_deg, shift_factor);
     double tt = t.stop();

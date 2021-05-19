@@ -72,6 +72,20 @@ namespace twotable {
           auto tmp = std::make_tuple<uintE, long>(static_cast<uintE>(min_vert), long{1});
           tmp_table.insert(tmp);
         };
+
+        if (r == 2) {
+          parallel_for(0, DG.n, [&](std::size_t i){
+            if (DG.get_vertex(i).getOutDegree() != 0) {
+              auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+                auto base = sequence<uintE>(r);
+                base[0] = i;
+                base[1] = ngh;
+                base_f(base);
+              };
+              DG.get_vertex(i).mapOutNgh(i, map_f, false);
+            }
+          });
+        } else {
         auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
         auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
         parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
@@ -82,6 +96,8 @@ namespace twotable {
             NKCliqueDir_fast_hybrid_rec(DG, 1, r-1, induced, base_f, base);
           }
         }, 1, false);
+        }
+
         auto top_table_sizes2 = tmp_table.entries();
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
@@ -268,8 +284,8 @@ namespace twotable {
         );
       }
 
-      template<class I>
-      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+      template<class HH, class HG, class I>
+      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         uintE base[10];
         assert(10 > k);
@@ -277,6 +293,10 @@ namespace twotable {
           base[i] = base2[i];
         }
         std::sort(base, base + k + 1,std::less<uintE>());
+
+        std::vector<size_t> indices;
+        size_t num_active = 0;
+        bool use_func = true;
 
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
@@ -304,8 +324,20 @@ namespace twotable {
           EndTableY* end_table = top_table.arr[vtx];
           auto prefix = top_table_sizes[vtx];
           auto index = (end_table->table).find_index(key);
-          func(prefix + index);
+
+          indices.push_back(prefix + index);
+          if (is_active(prefix + index)) num_active++;
+          if (is_inactive(prefix + index)) use_func = false;
+          //func(prefix + index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+
+        assert(num_active != 0);
+        if (use_func) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active(indices[i]) && !is_inactive(indices[i]))
+              func(indices[i], 1.0 / (double) num_active);
+          }
+        }
       }
 
       // Given an index, get the clique
