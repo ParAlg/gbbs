@@ -227,9 +227,9 @@ namespace twotable_nosearch {
           uintE vtest1 = get_mtable<Y>(index2, (end_table->table).table);
           assert(vtest1 == vtx);
 
-          EndTableY* end_table2 = top_table.arr[vtx];
+          //EndTableY* end_table2 = top_table.arr[vtx];
           auto prefix = top_table_sizes[vtx];
-          auto index = (end_table2->table).find_index(key);
+          auto index = (end_table->table).find_index(key);
           uintE vtest = get_mtable<Y>(index + prefix, space);
           assert(vtest == vtx);
 
