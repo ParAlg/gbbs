@@ -453,12 +453,13 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     num_levels -= 1;
     if (!relabel) {
       auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable::MHash<T, H> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
+      multitable::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     } else {
-      multitable::MHash<T, H> table(r, DG, max_deg, num_levels, contiguous_space, std::less<uintE>());
+      auto rank_func = std::less<uintE>();
+      multitable::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
@@ -480,12 +481,13 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     num_levels -= 1;
     if (!relabel) {
       auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable_nosearch::MHash<T, H> table(r, DG, max_deg, num_levels, rank_func);
+      multitable_nosearch::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     } else {
-      multitable_nosearch::MHash<T, H> table(r, DG, max_deg, num_levels, std::less<uintE>());
+      auto rank_func = std::less<uintE>();
+      multitable_nosearch::MHash<T, H, decltype(rank_func)> table(r, DG, max_deg, num_levels, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
