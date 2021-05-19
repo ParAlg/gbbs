@@ -127,7 +127,7 @@ class list_buffer {
     }
 
     template <class I>
-    size_t filter(I update_changed, sequence<size_t>& per_processor_counts) {
+    size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
         for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
@@ -162,7 +162,7 @@ template <class Graph, class Graph2, class F, class I, class T>
 inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t r, 
 size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   size_t granularity, char* still_active, sequence<uintE> &rank, 
-  sequence<size_t>& per_processor_counts, 
+  sequence<double>& per_processor_counts, 
   bool do_update_changed, I update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
@@ -193,9 +193,12 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
   // Collate clique counts by processor
   //count_idxs[0] = 0;
+  auto is_active = [&](size_t index) {
+    return still_active[index] == 1;
+  };
   auto update_d = [&](sequence<uintE>& base){
-    cliques->extract_indices(base, [&](std::size_t index){
-      size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), 1);
+    cliques->extract_indices(base, is_active, [&](std::size_t index, double val){
+      size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0) count_idxs.add(index);
     }, r, k);
   };
@@ -278,7 +281,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
   auto b = make_vertex_custom_buckets<bucket_t>(num_entries, D, increasing, num_buckets);
 
-  auto per_processor_counts = sequence<size_t>(num_entries , static_cast<size_t>(0));
+  auto per_processor_counts = sequence<double>(num_entries , static_cast<double>(0));
   
   list_buffer count_idxs(num_entries);
   //auto count_idxs = sequence<size_t>(num_entries + 1 + 
@@ -428,7 +431,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
   sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
 
-  if (table_type == 3) {
+  /*if (table_type == 3) {
     t.start();
     // Num levels matches, e.g., 2 for two level
     num_levels -= 1;
@@ -451,13 +454,13 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
-  } else if (table_type == 1) {
+  } else */if (table_type == 1) {
     t.start();
     onetable::OnelevelHash<T, H> table(r, DG, max_deg, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
-  } else if (table_type == 4) {
+  } /*else if (table_type == 4) {
     // Num levels matches, e.g., 2 for two level
     num_levels -= 1;
     if (!relabel) {
@@ -479,7 +482,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
-  } 
+  } */
   return count;
 }
 

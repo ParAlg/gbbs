@@ -103,11 +103,13 @@ namespace onetable {
         return std::get<1>((table.table)[i]);
       }
       size_t update_count(std::size_t i, size_t update){
-        /*if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0;
-        if (get_count(i) <= update) {
-          clear_count(i);
-          return 0;
+        /*if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0
         }*/
+        if (get_count(i) <= update) {
+          std::cout << "i: " << i << ", count: " << get_count(i) << ", update: " << update << std::endl;
+          fflush(stdout);
+          exit(0);
+        }
         auto val = std::get<1>(table.table[i]) - update;
         table.table[i] = std::make_tuple(std::get<0>(table.table[i]), val);
         return val;
@@ -116,8 +118,8 @@ namespace onetable {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),0);
       }
 
-      template<class I>
-      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+      template<class H, class I>
+      void extract_indices(sequence<uintE>& base2, H is_active, I func, int r, int k) {
         // Sort base
         // Sort base
         uintE base[10];
@@ -130,6 +132,9 @@ namespace onetable {
         std::string bitmask(r+1, 1); // K leading 1's
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
+        std::vector<size_t> indices;
+        size_t num_active = 0;
+
         do {
           Y key = 0;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
@@ -139,8 +144,14 @@ namespace onetable {
             }
           }
           auto index = table.find_index(key);
-          func(index);
+          indices.push_back(index);
+          if (is_active(index)) num_active++;
+          //func(index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+
+        for (std::size_t i = 0; i < indices.size(); i++) {
+          func(indices[index], 1.0 / (double) num_active);
+        }
       }
     
     template<class S, class Graph>
