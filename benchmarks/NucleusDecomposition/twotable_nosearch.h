@@ -51,7 +51,7 @@ namespace twotable_nosearch {
       Y one = 1;
       Y check_bit = (max_val >> (max_bit - 1)) & 1U;
       if (check_bit != 0) {
-        max_val &= ~(1ULL << (max_bit - 1));
+        max_val &= ~(one << (max_bit - 1));
         return static_cast<uintE>(max_val);
       }
       index++;
@@ -317,7 +317,11 @@ namespace twotable_nosearch {
         Y vert;
         uintE v = get_mtable<Y>(index, space);
 
-        uintE v2 = get_top_index(index); assert(v == v2);
+        uintE v2 = get_top_index(index); 
+        if (v != v2) {
+          std::cout << "v: " << v << ", v2: " << v2 << std::endl; fflush(stdout);
+        }
+        assert(v == v2);
         base[0] = v;
         vert = std::get<0>(space[index]);
         for (int j = 0; j < rr - 1; ++j) {
