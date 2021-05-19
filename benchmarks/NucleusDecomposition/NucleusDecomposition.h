@@ -158,6 +158,16 @@ class list_buffer {
     }
 };
 
+template <class Graph>
+bool is_edge(Graph& DG, uintE v, uintE u) {
+  bool is = false;
+  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+    if (vv == u) is = true;
+    };
+    DG.get_vertex(v).mapOutNgh(v, map_f, false);
+    return is;
+}
+
 template <class Graph, class Graph2, class F, class I, class T>
 inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t r, 
 size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
@@ -200,6 +210,10 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     return still_active[index] == 2;
   };
   auto update_d = [&](sequence<uintE>& base){
+    // check that base[0] to base[k+1] are all edges
+    for (int i = 0; i <= k; i++) {
+      assert(is_edge(G, base[i], base[i+1]));
+    }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0) count_idxs.add(index);
@@ -338,7 +352,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           return;
         }
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
-        else if (still_active[v] == 0){
+        else{ // if (still_active[v] == 0)
 
           double intpart;
           if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
