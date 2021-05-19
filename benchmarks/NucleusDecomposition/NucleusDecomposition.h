@@ -422,7 +422,7 @@ t_update.start();
 
   std::cout.precision(17);
   std::cout << "rho: " << rounds << std::endl;
-  std::cout << "clique core: " << static_cast<uintE>(max_bkt) << std::endl;
+  std::cout << "clique core: " << max_bkt << std::endl;
   if (use_max_density) std::cout << "max density: " << max_density << std::endl;
 
   b.del();
