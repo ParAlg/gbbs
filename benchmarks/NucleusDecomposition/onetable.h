@@ -186,7 +186,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
       auto vert = std::get<0>(table.table[index]);
       for (int j = 0; j < rr; ++j) {
         uintE mask = (1UL << shift_factor) - 1;
-        uintE extract = (uintE) vert & mask; // vert & mask
+        uintE extract = vert & mask; // vert & mask
         //if (static_cast<uintE>(extract) >= G.n) {
         //  std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
         //}
