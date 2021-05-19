@@ -443,7 +443,8 @@ T round_up(T dividend, T divisor)
 template <class T, class H, class Graph, class Graph2>
 inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor) {
-    sequence<size_t> count;
+  timer t; 
+  sequence<size_t> count;
 
   if (table_type == 3) {
     t.start();
@@ -522,7 +523,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
 
   auto max_deg = get_max_deg3(DG);
 
-  timer t; 
+
   sequence<size_t> count;
 
   // unsigned __int128 is 16 bytes
