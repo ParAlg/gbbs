@@ -222,6 +222,14 @@ namespace twotable_nosearch {
           EndTableY* end_table = top_table.arr[vtx];
           //assert(end_table != nullptr);
           (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
+
+          EndTableY* end_table = top_table.arr[vtx];
+          auto prefix = top_table_sizes[vtx];
+          auto index = (end_table->table).find_index(key);
+          uintE vtest = get_mtable<Y>(index + prefix, space);
+          assert(vtest == vtx);
+
+
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
       }
 
