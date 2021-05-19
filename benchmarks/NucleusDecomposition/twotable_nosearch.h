@@ -129,7 +129,7 @@ namespace twotable_nosearch {
           auto size = upper_size - actual_sizes[i];
           EndTableY* end_table = new EndTableY();
 
-          Y max_val = reinterpret_cast<Y>(vtx); 
+          Y max_val = static_cast<Y>(vtx); 
           std::size_t max_bit = sizeof(Y) * 8;
           Y one = 1;
           max_val |= one << (max_bit - 1);
@@ -137,7 +137,7 @@ namespace twotable_nosearch {
           end_table->vtx = vtx;
           end_table->table = pbbslib::sparse_table<Y, long, H>(
             size - 1, 
-            std::make_tuple<Y, long>(max_val, static_cast<long>(0)),
+            std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0)),
             H{},
             space + actual_sizes[i]
             );
