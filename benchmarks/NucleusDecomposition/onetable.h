@@ -150,7 +150,7 @@ namespace onetable {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
         for (std::size_t i = 0; i < indices.size(); i++) {
-          func(indices[index], 1.0 / (double) num_active);
+          func(indices[i], 1.0 / (double) num_active);
         }
       }
     
