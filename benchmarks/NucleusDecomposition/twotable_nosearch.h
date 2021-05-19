@@ -90,13 +90,15 @@ namespace twotable_nosearch {
         };
         if (r == 2) {
           parallel_for(0, DG.n, [&](std::size_t i){
-            auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
-              auto base = sequence<uintE>(r);
-              base[0] = i;
-              base[1] = ngh;
-              base_f(base);
-            };
-            DG.get_vertex(i).mapOutNgh(i, map_f, true);
+            if (DG.get_vertex(i).getOutDegree() != 0) {
+              auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+                auto base = sequence<uintE>(r);
+                base[0] = i;
+                base[1] = ngh;
+                base_f(base);
+              };
+              DG.get_vertex(i).mapOutNgh(i, map_f, false);
+            }
           });
         } else {
           auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
