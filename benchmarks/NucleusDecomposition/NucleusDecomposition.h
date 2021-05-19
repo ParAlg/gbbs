@@ -342,8 +342,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       return active.vtx(j); };
 
     if (active_size == 0 || D[get_active(0)] == 0) continue;
-    //std::cout << "PEEL" << std::endl;
-    //fflush(stdout);
+    std::cout << "PEEL" << std::endl;
+    fflush(stdout);
+    std::cout << "1469207: " << D[1469207] << std::endl; fflush(stdout); 
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
 
     size_t filter_size = 0;
