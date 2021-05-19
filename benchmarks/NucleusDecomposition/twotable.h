@@ -59,6 +59,7 @@ namespace twotable {
   
       template <class Graph>
       TwolevelHash(int r, Graph& DG, size_t max_deg, bool _contiguous_space, bool relabel, int _shift_factor) {
+        using W = typename Graph::weight_type;
         shift_factor = _shift_factor;
         contiguous_space = _contiguous_space;
         rr = r;
