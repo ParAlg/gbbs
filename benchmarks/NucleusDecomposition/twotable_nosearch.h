@@ -51,7 +51,7 @@ namespace twotable_nosearch {
       Y one = 1;
       Y check_bit = (max_val >> (max_bit - 1)) & 1U;
       if (check_bit != 0) {
-        max_val &= ~(one << (max_bit - 1));
+        max_val &= ~(1ULL << (max_bit - 1));
         return static_cast<uintE>(max_val);
       }
       index++;
