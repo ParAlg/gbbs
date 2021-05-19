@@ -325,6 +325,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   bucket_t max_bkt = 0;
   double max_density = 0;
   bool use_max_density = false;
+  size_t iter = 0;
 
   while (finished != num_entries) {
     t_extract.start();
@@ -341,7 +342,10 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     auto get_active = [&](size_t j) -> unsigned __int128 { //return (bkt.identifiers)[j]; };
       return active.vtx(j); };
 
-    if (active_size == 0 || D[get_active(0)] == 0) continue;
+    if (active_size == 0 || D[get_active(0)] == 0 || finished == num_entries) continue;
+
+    std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
+    iter++;
     //std::cout << "PEEL" << std::endl;
     //fflush(stdout);
     //std::cout << "1469207: " << D[1469207] << std::endl; fflush(stdout); 

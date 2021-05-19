@@ -250,7 +250,7 @@ namespace multitable {
     }
 
     template<class I, class HH>
-    void extract_indices(uintE* base, I func, int r, int k, HH h_func) {
+    void extract_indices(uintE* base, I func, int r, int k, HH& h_func) {
       std::string bitmask(r+1, 1); // K leading 1's
       bitmask.resize(k+1, 0); // N-K trailing 0's
       do {
