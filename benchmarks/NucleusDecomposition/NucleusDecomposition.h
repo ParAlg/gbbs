@@ -158,11 +158,11 @@ class list_buffer {
     }
 };
 
-template <class Graph, class Graph2, class F, class H, class I, class T>
+template <class Graph, class Graph2, class F, class I, class T>
 inline size_t cliqueUpdate(Graph& G, Graph2& DG, size_t r, 
 size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   size_t granularity, char* still_active, sequence<uintE> &rank, 
-  sequence<size_t>& per_processor_counts, H update,
+  sequence<size_t>& per_processor_counts, 
   bool do_update_changed, I update_changed,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
@@ -285,9 +285,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   //  count_buffer * num_workers(), static_cast<size_t>(0));
 
   char* still_active = (char*) calloc(num_entries, sizeof(char));
-  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
-  //auto update_idxs = sequence<uintE>(max_deg);
-  size_t n = num_entries;
+  size_t max_deg = induced_hybrid::get_max_deg(DG); // could instead do max_deg of active?
 
   timer t_extract;
   timer t_count;
@@ -300,17 +298,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   bucket_t max_bkt = 0;
   double max_density = 0;
   bool use_max_density = false;
-  // Peel each bucket
-  auto update_clique = [&](sequence<size_t>& ppc, size_t j, uintE v) {
-    if (j == 0) return;
-    ppc[v] += ppc[j*n + v];
-    ppc[j*n + v] = 0;
-  };
-  while (finished != n) {
+
+  while (finished != num_entries) {
     t_extract.start();
     // Retrieve next bucket
     auto bkt = b.next_bucket();
-    auto active = vertexSubset(n, bkt.identifiers);
+    //auto active = vertexSubset(num_entries, bkt.identifiers);
     auto active_size = (bkt.identifiers).size();
     cur_bkt = bkt.id;
     t_extract.stop();
@@ -318,28 +311,12 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     finished += active_size;
     max_bkt = std::max(cur_bkt, max_bkt);
 
-    auto get_active = [&](size_t j) -> unsigned __int128 { //return (bkt.identifiers)[j]; };
-      return active.vtx(j); };
+    auto get_active = [&](size_t j) -> unsigned __int128 { return (bkt.identifiers)[j]; };
+      //return active.vtx(j); };
 
     if (active_size == 0 || D[get_active(0)] == 0) continue;
     //std::cout << "PEEL" << std::endl;
     //fflush(stdout);
-
-    // TESTING EXTRACTION OF KEy
-    /*
-    for (int i = 0; i < static_cast<int>(active_size); i++){
-    auto x = get_active(i);
-    auto key = std::get<0>((cliques->table)[x]);
-       for (int j = 0; j < static_cast<int>(r)+1; ++j) {
-          int extract = (int) key;
-          if (static_cast<uintE>(extract) >= DG.n) {
-            std::cout << "Extract: " << static_cast<uintE>(extract) << ", n: " << DG.n << std::endl;
-          }
-          assert(static_cast<uintE>(extract) < DG.n);
-        key = key >> 32;
-      }
-    }*/
-
     size_t granularity = (cur_bkt * active_size < 10000) ? 1024 : 1;
 
     size_t filter_size = 0;
@@ -370,7 +347,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     t_count.start();
      filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
      granularity, still_active, rank, per_processor_counts,
-      update_clique, true, update_changed, cliques, num_entries, count_idxs, t_x);
+      true, update_changed, cliques, num_entries, count_idxs, t_x);
       t_count.stop();
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
