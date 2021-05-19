@@ -285,7 +285,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   //  count_buffer * num_workers(), static_cast<size_t>(0));
 
   char* still_active = (char*) calloc(num_entries, sizeof(char));
-  size_t max_deg = induced_hybrid::get_max_deg(DG); // could instead do max_deg of active?
+  size_t max_deg = induced_hybrid::get_max_deg(G); // could instead do max_deg of active?
 
   timer t_extract;
   timer t_count;
