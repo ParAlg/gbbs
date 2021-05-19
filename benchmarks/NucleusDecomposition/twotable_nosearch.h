@@ -52,7 +52,7 @@ namespace twotable_nosearch {
       Y check_bit = (max_val >> (max_bit - 1)) & 1U;
       if (check_bit != 0) {
         max_val &= ~(one << (max_bit - 1));
-        return reinterpret_cast<uintE>(max_val);
+        return static_cast<uintE>(max_val);
       }
       index++;
       //index = index % mtable.m;
