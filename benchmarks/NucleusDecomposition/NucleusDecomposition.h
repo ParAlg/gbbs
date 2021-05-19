@@ -70,9 +70,9 @@ namespace gbbs {
     k--; r--;
     timer t2; t2.start();
 
-    auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
+    /*auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
       pbbs::fetch_and_add(ct, (long)1);
-    };
+    };*/
 // Nested hash tables where the first level you hash the first vertex, second level you hash the second, etc.
 // Saves space if cliques share vertices
 // Renumber vert by which is in the most r-cliques
@@ -279,6 +279,11 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
   auto D = sequence<bucket_t>(num_entries, [&](size_t i) -> bucket_t { 
     return cliques->get_count(i);
   });
+  long all = 0;
+  for (std::size_t i = 0; i < num_entries; i++) {
+    all += D[i];
+  }
+  std::cout << "all: " << all << std::endl; fflush(stdout);
 
   auto D_filter = sequence<std::tuple<uintE, bucket_t>>(num_entries);
 
