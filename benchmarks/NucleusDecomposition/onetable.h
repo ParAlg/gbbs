@@ -118,8 +118,8 @@ namespace onetable {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),0);
       }
 
-      template<class H, class I>
-      void extract_indices(sequence<uintE>& base2, H is_active, I func, int r, int k) {
+      template<class HH, class I>
+      void extract_indices(sequence<uintE>& base2, HH is_active, I func, int r, int k) {
         // Sort base
         // Sort base
         uintE base[10];
