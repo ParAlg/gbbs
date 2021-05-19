@@ -440,7 +440,7 @@ T round_up(T dividend, T divisor)
     return (dividend + (divisor - 1)) / divisor;
 }
 
-template <class T, class Graph, class Graph2>
+template <class T, class H, class Graph, class Graph2>
 inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor) {
     sequence<size_t> count;
@@ -490,7 +490,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     }
   } else if (table_type == 5) {
     t.start();
-    twotable_nosearch::TwolevelHash<T> table(r, DG, max_deg, relabel, shift_factor);
+    twotable_nosearch::TwolevelHash<T, H> table(r, DG, max_deg, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
@@ -545,15 +545,15 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
 
   if (num_bytes_needed <= 4) {
     // unsigned __int32
-    count = runner<unsigned __int32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+    count = runner<unsigned __int32, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
-    count = runner<unsigned __int64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+    count = runner<unsigned __int64, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
   } else {
     // unsigned__int128
-    count = runner<unsigned __int128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+    count = runner<unsigned __int128, hash128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
   }
 

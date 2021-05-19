@@ -28,16 +28,16 @@ namespace gbbs {
 
 namespace twotable_nosearch {
 
-  template <class Y>
+  template <class Y, class H>
   struct EndTable {
-    pbbslib::sparse_table<Y, long, hash128> table;
+    pbbslib::sparse_table<Y, long, H> table;
     uintE vtx;
     //MidTable* up_table;
   };
 
-  template <class Y>
+  template <class Y, class H>
   struct MidTable {
-    using EndTableY = EndTable<Y>;
+    using EndTableY = EndTable<Y, H>;
     pbbslib::sparse_table<uintE, EndTableY*, std::hash<uintE>> table;
     sequence<EndTableY*> arr;
   };
@@ -59,13 +59,13 @@ namespace twotable_nosearch {
     }
   }
   
-  template <class Y>
+  template <class Y, class H>
   class TwolevelHash {
     public:
-      using T = pbbslib::sparse_table<Y, long, hash128>;
+      using T = pbbslib::sparse_table<Y, long, H>;
       using X = std::tuple<Y, long>;
-      using EndTableY = EndTable<Y>;
-      using MidTableY = MidTable<Y>;
+      using EndTableY = EndTable<Y, H>;
+      using MidTableY = MidTable<Y, H>;
       MidTableY top_table;
       sequence<long> top_table_sizes;
       int rr;
@@ -135,10 +135,10 @@ namespace twotable_nosearch {
           max_val |= one << (max_bit - 1);
 
           end_table->vtx = vtx;
-          end_table->table = pbbslib::sparse_table<Y, long, hash128>(
+          end_table->table = pbbslib::sparse_table<Y, long, H>(
             size - 1, 
             std::make_tuple<Y, long>(max_val, static_cast<long>(0)),
-            hash128{},
+            H{},
             space + actual_sizes[i]
             );
           space[size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));

@@ -33,6 +33,18 @@ namespace gbbs {
     }
   };
 
+  struct nhash64 {
+    inline size_t operator () (unsigned __int64 t) const {
+      return pbbslib::hash64_2(t);
+    }
+  };
+
+  struct nhash32 {
+    inline size_t operator () (unsigned __int32 t) const {
+      return pbbslib::hash32(t);
+    }
+  };
+
 
   template<class Graph>
   size_t get_max_deg3(Graph& DG) {
