@@ -117,7 +117,7 @@ namespace twotable_nosearch {
         auto top_table_sizes2 = tmp_table.entries();
         // sort by key
         pbbslib::sample_sort (top_table_sizes2, [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
-          return std::get<0>(u) > std::get<0>(v);
+          return std::get<0>(u) < std::get<0>(v);
         }, true);
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
@@ -146,6 +146,7 @@ namespace twotable_nosearch {
   
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i){
           auto vtx = std::get<0>(top_table_sizes2[i]);
+          if (i != top_table_sizes2.size() - 1) assert(vtx < std::get<0>(top_table_sizes2[i + 1]));
           auto upper_size = actual_sizes[i + 1];
           auto size = upper_size - actual_sizes[i];
           EndTableY* end_table = new EndTableY();
