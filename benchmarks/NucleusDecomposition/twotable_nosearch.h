@@ -316,6 +316,8 @@ namespace twotable_nosearch {
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         Y vert;
         uintE v = get_mtable<Y>(index, space);
+
+        uintE v2 = get_top_index(index); assert(v == v2);
         base[0] = v;
         vert = std::get<0>(space[index]);
         for (int j = 0; j < rr - 1; ++j) {
