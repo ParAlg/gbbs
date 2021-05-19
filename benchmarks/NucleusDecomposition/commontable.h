@@ -70,8 +70,10 @@ namespace gbbs {
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
         base[k] = induced->relabel[vtx];
-        base_f(base);
-        tmp_counts++;
+        if (base[k] != UINT_E_MAX) {
+          base_f(base);
+          tmp_counts++;
+        }
       }
       return tmp_counts;
     }

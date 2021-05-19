@@ -108,9 +108,13 @@ struct HybridSpace_lw {
       // Set up label for intersection
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
-      } else old_labels[ngh] = 0;
+        if (use_base) { relabel[o] = ngh; }
+      } else {
+        old_labels[ngh] = 0;
+        if (use_base) { relabel[o] = UINT_E_MAX; }
+      }
       // Set up relabeling if counting per vertex
-      if (use_base) { relabel[o] = ngh; }
+      //if (use_base) { relabel[o] = ngh; }
       o++;
     };
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
@@ -230,7 +234,11 @@ struct HybridSpace_lw {
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Return if edge is invalid
-      if (!f(src, ngh)) {o++; return;}
+      if (!f(src, ngh)) {
+        if (use_base) { relabel[o] = UINT_E_MAX; }
+        o++;
+        return;
+      }
       // Set up label for intersection
       old_labels[ngh] = o + 1;
       // Set up relabeling if counting per vertex
