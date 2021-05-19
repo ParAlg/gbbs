@@ -85,6 +85,8 @@ namespace onetable {
             }
           }
           table.insert_f(std::make_tuple(key, (long) 1), add_f);
+          auto index = table.find_index(key);
+          assert(index < table.m);
           // TESTING EXTRACTION OF KEy
           /*for (int j = 0; j < static_cast<int>(r)+1; ++j) {
             int extract = (int) key;
