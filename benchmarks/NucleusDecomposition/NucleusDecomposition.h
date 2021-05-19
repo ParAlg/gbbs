@@ -160,6 +160,7 @@ class list_buffer {
 
 template <class Graph>
 bool is_edge(Graph& DG, uintE v, uintE u) {
+  using W = typename Graph::weight_type;
   bool is = false;
   auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
     if (vv == u) is = true;
