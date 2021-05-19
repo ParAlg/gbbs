@@ -34,13 +34,13 @@ namespace gbbs {
   };
 
   struct nhash64 {
-    inline size_t operator () (unsigned __int64 t) const {
+    inline size_t operator () (unsigned long long t) const {
       return pbbslib::hash64_2(t);
     }
   };
 
   struct nhash32 {
-    inline size_t operator () (unsigned __int32 t) const {
+    inline size_t operator () (unsigned int t) const {
       return pbbslib::hash32(t);
     }
   };

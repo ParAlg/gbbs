@@ -546,11 +546,11 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
 
   if (num_bytes_needed <= 4) {
     // unsigned __int32
-    count = runner<unsigned __int32, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+    count = runner<unsigned int, nhash32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
   } else if (num_bytes_needed <= 8) {
     // unsigned __int64
-    count = runner<unsigned __int64, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+    count = runner<unsigned long long, nhash64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
       max_deg, rank, shift_factor);
   } else {
     // unsigned__int128
