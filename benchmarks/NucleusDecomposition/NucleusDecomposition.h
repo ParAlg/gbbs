@@ -341,7 +341,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         else if (still_active[v] == 0){
 
           double intpart;
-          assert(std::modf(ppc[v], &intpart) == 0.0);
+          if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
+          //assert(std::modf(ppc[v], &intpart) == 0.0);
           auto val = cliques->update_count(v, (size_t) ppc[v]);
         ppc[v] = 0;
         bucket_t deg = D[v];
