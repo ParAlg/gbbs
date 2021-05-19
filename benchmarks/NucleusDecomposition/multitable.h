@@ -476,7 +476,7 @@ namespace multitable {
               auto next_next_space = next_space->next(ngh, r-2, r-1);
               bool next_next_valid_space = true;
               if (next_next_space == nullptr) {
-                next_next_space = space;
+                next_next_space = next_space;
                 next_next_valid_space = false;
               }
               next_next_space->increment_size(1);
