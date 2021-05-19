@@ -108,14 +108,13 @@ struct HybridSpace_lw {
       // Set up label for intersection
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
-        if (use_base) { relabel[o] = ngh; }
+        if (k-r == 1) o++;
       } else {
         old_labels[ngh] = 0;
-        if (use_base) { relabel[o] = UINT_E_MAX; }
       }
       // Set up relabeling if counting per vertex
-      //if (use_base) { relabel[o] = ngh; }
-      o++;
+      if (use_base) { relabel[o] = ngh; }
+      if (k-r != 1) o++;
     };
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
@@ -124,6 +123,16 @@ struct HybridSpace_lw {
     parallel_for(0, nn, [&] (size_t j) { induced_degs[j] = 0; });
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
+
+    if (k-r == 1) {
+      // Reset the array used for intersecting
+    auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      old_labels[ngh] = 0;
+    };
+    DG.get_vertex(base[k]).mapOutNgh(base[k], map_relabel_f, false);
+    num_edges = 0;
+    return;
+    }
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
@@ -235,7 +244,7 @@ struct HybridSpace_lw {
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Return if edge is invalid
       if (!f(src, ngh)) {
-        if (use_base) { relabel[o] = UINT_E_MAX; }
+        //if (use_base) { relabel[o] = UINT_E_MAX; }
         o++;
         return;
       }
