@@ -324,7 +324,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
 
     size_t filter_size = 0;
 
-      auto update_changed = [&](sequence<size_t>& ppc, size_t i, uintE v){
+      auto update_changed = [&](sequence<double>& ppc, size_t i, uintE v){
         /* Update the clique count for v, and zero out first worker's count */
         //auto index = cliques->find_index(v);
         //auto val = std::get<1>((cliques->table)[index]) - ppc[v];
@@ -336,7 +336,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         }
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else {
-          auto val = cliques->update_count(v, ppc[v]);
+          auto val = cliques->update_count(v, (size_t) ppc[v]);
         ppc[v] = 0;
         bucket_t deg = D[v];
         if (deg > cur_bkt) {
