@@ -336,6 +336,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     cur_bkt = bkt.id;
     t_extract.stop();
 
+    if (active_size == 0) continue;
+
     finished += active_size;
     max_bkt = std::max(cur_bkt, max_bkt);
 
