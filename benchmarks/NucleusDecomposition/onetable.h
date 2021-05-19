@@ -44,7 +44,8 @@ namespace onetable {
         timer t_pre; t_pre.start();
         size_t pre_count = 0;
         // Clique counting
-        if (r == 3) pre_count = TriClique_count(DG, false, nullptr);
+        if (r == 2) pre_count = DG.m;
+        else if (r == 3) pre_count = TriClique_count(DG, false, nullptr);
         else pre_count = Clique_count(DG, r, 5, true, false, 0, nullptr);
         //std::cout << "Pre count " << r << ": " << pre_count << std::endl;
         double tt_pre = t_pre.stop();
