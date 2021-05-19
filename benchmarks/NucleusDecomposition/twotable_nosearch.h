@@ -223,6 +223,10 @@ namespace twotable_nosearch {
           //assert(end_table != nullptr);
           (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
 
+          auto index2 = (end_table->table).find_index(key);
+          uintE vtest1 = get_mtable<Y>(index2, end_table.m);
+          assert(vtest1 == vtx);
+
           EndTableY* end_table2 = top_table.arr[vtx];
           auto prefix = top_table_sizes[vtx];
           auto index = (end_table2->table).find_index(key);
