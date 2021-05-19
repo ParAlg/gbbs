@@ -338,7 +338,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           return;
         }
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
-        else {
+        else if (still_active[v] == 0){
 
           double intpart;
           assert(std::modf(ppc[v], &intpart) == 0.0);
