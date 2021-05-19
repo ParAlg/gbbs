@@ -90,7 +90,7 @@ namespace gbbs {
         } else tots[i] = 0;
     }, 1, false);
     double tt2 = t2.stop();
-    std::cout << "##### Actual counting: " << tt2 << std::endl;
+    //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
     return pbbslib::reduce_add(tots);
   }
@@ -417,11 +417,11 @@ template <class Graph, class DirectedGraph, class Table>
 inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG, size_t r, size_t s, Table& table, 
   size_t max_deg, sequence<uintE>& rank) {
 
-  std::cout << "Start count" << std::endl;
+  //std::cout << "Start count" << std::endl;
   timer t; t.start();
   size_t count = CountCliquesNuc(DG, s, r, max_deg, &table);
   double tt = t.stop();
-  std::cout << "End count" << std::endl;
+  //std::cout << "End count" << std::endl;
 
   std::cout << "### Count Running Time: " << tt << std::endl;
   std::cout << "### Num " << s << " cliques = " << count << "\n";
