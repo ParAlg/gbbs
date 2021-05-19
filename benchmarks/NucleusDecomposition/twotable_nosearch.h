@@ -172,6 +172,7 @@ namespace twotable_nosearch {
           top_table_sizes[vtx] = size; //1 + end_table->table.m;
         });
         total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
+        assert(total == total_top_table_sizes2);
         /*for (std::size_t i = 1; i < top_table_sizes.size(); i++) {
           assert(top_table_sizes[i - 1] <= top_table_sizes[i]);
           EndTable* end_table = std::get<1>(top_table.table.table[i - 1]);
