@@ -156,7 +156,7 @@ namespace twotable_nosearch {
             H{},
             space + actual_sizes[i]
             );
-          space[size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
+          space[actual_sizes[i] + size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
 
           uintE vtest = get_mtable<Y>(actual_sizes[i], space);
           assert(vtest == vtx);
