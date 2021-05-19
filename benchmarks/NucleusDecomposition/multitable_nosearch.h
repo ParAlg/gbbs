@@ -330,9 +330,7 @@ namespace multitable_nosearch {
       size_t tmp_counts = 0;
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
-        base[k] = induced->relabel[vtx];
-        if (base[k] != UINT_E_MAX) {
-          base_f(base);
+        if (induced->relabel[vtx] != UINT_E_MAX) {
           tmp_counts++;
         }
       }
