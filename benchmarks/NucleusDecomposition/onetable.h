@@ -154,9 +154,10 @@ namespace onetable {
         assert(num_active != 0);
         if (use_func) {
 
-        for (std::size_t i = 0; i < indices.size(); i++) {
-          func(indices[i], 1.0 / (double) num_active);
-        }
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active[indices[i]] && !is_inactive[indices[i]])
+              func(indices[i], 1.0 / (double) num_active);
+          }
         }
       }
     
