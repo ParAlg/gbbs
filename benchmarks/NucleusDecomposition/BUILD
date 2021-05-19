@@ -14,6 +14,7 @@ cc_library(
   "//gbbs:gbbs",
   "//gbbs/pbbslib:dyn_arr",
   "//gbbs/pbbslib:sparse_additive_map",
+  "//gbbs/pbbslib:sparse_table",
   "//pbbslib:assert",
   "//pbbslib:list_allocator",
   "//pbbslib:integer_sort",
