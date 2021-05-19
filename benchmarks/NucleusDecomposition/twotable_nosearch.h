@@ -159,13 +159,15 @@ namespace twotable_nosearch {
           space[actual_sizes[i] + size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
 
           uintE vtest = get_mtable<Y>(actual_sizes[i], space);
+          uintE vtest = get_mtable<Y>(actual_sizes[i] + size - 1, space);
           assert(vtest == vtx);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
           top_table_sizes[l] = end_table->table.m;*/
           //***for arr
           top_table.arr[vtx] = end_table;
-          top_table_sizes[vtx] = 1 + end_table->table.m;
+          assert(size == 1 + end_table->table.m);
+          top_table_sizes[vtx] = size; //1 + end_table->table.m;
         });
         total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
         /*for (std::size_t i = 1; i < top_table_sizes.size(); i++) {
