@@ -395,7 +395,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
       auto v = std::get<0>(D_filter[i]);
       bucket_t bucket = std::get<1>(D_filter[i]);
       if (v != num_entries + 1) {
-        if (still_active[v] != 2) return wrap(v, bucket);
+        if (still_active[v] != 2 && still_active[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
     };
