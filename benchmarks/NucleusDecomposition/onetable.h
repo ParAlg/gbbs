@@ -145,6 +145,7 @@ namespace onetable {
             }
           }
           auto index = table.find_index(key);
+          assert(index < table.m);
           indices.push_back(index);
           if (is_active(index)) num_active++;
           if (is_inactive(index)) use_func = false;
