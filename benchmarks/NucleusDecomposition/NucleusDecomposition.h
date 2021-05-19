@@ -406,7 +406,7 @@ t_update.start();
     parallel_for (0, active_size, [&] (size_t j) {
       auto index = get_active(j);
       //auto index = cliques->find_index(v);
-      cliques->clear_count(index);
+      cliques->update_count(index, 1);
       //cliques[active.vtx(j)] = 0;
       }, 2048);
       t_update.stop();
