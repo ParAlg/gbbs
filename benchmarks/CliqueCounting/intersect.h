@@ -108,13 +108,11 @@ struct HybridSpace_lw {
       // Set up label for intersection
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
-        if (use_base) { relabel[o] = ngh; }
-      } else {
-        old_labels[ngh] = 0;
-        if (use_base) { relabel[o] = UINT_E_MAX; }
-      }
+        o++;
+      } else old_labels[ngh] = 0;
       // Set up relabeling if counting per vertex
-      o++;
+      if (use_base) { relabel[o] = ngh; }
+      //o++;
     };
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
