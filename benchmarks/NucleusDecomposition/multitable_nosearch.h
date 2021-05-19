@@ -270,6 +270,7 @@ namespace multitable_nosearch {
         base_idx = lvl + k - rr;
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
+          if (base_idx < k - rr + 2) base_idx = 0;
           base[base_idx] = vtx;
           if (base_idx == k - rr + 2) base_idx = 0;
           else base_idx--;
