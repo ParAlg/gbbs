@@ -55,7 +55,7 @@ namespace onetable {
           pre_count,
           std::make_tuple(static_cast<Y>(0), long{0}), H{});
         
-        size_t data_structure_size = sizeof(*this) + table.m * sizeof(table.T);
+        size_t data_structure_size = sizeof(*this) + table.m * sizeof(std::tuple<Y, long>);
         std::cout << "Data Structure Size: " << data_structure_size << std::endl;
       }
 
