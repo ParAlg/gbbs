@@ -72,11 +72,13 @@ namespace twotable_nosearch {
       std::size_t total = 0;
       X* space = nullptr;
       int shift_factor;
+      size_t nx;
   
       template <class Graph>
       TwolevelHash(int r, Graph& DG, size_t max_deg, bool relabel, int _shift_factor) {
         using W = typename Graph::weight_type;
         shift_factor = _shift_factor;
+        nx = DG.n;
         rr = r;
         //top_table.up_table = nullptr;
         // How many vert in top level?
@@ -321,6 +323,8 @@ namespace twotable_nosearch {
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         Y vert;
         uintE v = get_mtable<Y>(index, space);
+
+        assert(v < nx);
 
         uintE v2 = get_top_index(index); 
         if (v != v2) {
