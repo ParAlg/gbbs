@@ -317,7 +317,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     finished += active_size;
     max_bkt = std::max(cur_bkt, max_bkt);
 
-    auto get_active = [&](size_t j) -> unsigned __int128 { r//eturn (bkt.identifiers)[j]; };
+    auto get_active = [&](size_t j) -> unsigned __int128 { //return (bkt.identifiers)[j]; };
       return active.vtx(j); };
 
     if (active_size == 0 || D[get_active(0)] == 0) continue;
