@@ -336,15 +336,21 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     cur_bkt = bkt.id;
     t_extract.stop();
 
+    auto get_active = [&](size_t j) -> unsigned __int128 { //return (bkt.identifiers)[j]; };
+      return active.vtx(j); };
+
     if (active_size == 0) continue;
 
     finished += active_size;
 
     max_bkt = std::max(cur_bkt, max_bkt);
-    if (cur_bkt == 0 || finished == num_entries) continue;
-
-    auto get_active = [&](size_t j) -> unsigned __int128 { //return (bkt.identifiers)[j]; };
-      return active.vtx(j); };
+    if (cur_bkt == 0 || finished == num_entries) {
+      parallel_for (0, active_size, [&] (size_t j) {
+        auto index = get_active(j);
+        cliques->set_count(index, std::numeric_limits<int>::max());
+      }, 2048);
+      continue;
+    }
 
     std::cout << "k = " << cur_bkt << " iter = " << iter << " #edges = " << active_size << std::endl;
     iter++;
@@ -366,11 +372,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           return;
         }
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
-        else if (still_active[v] == 0) {
-
-          //double intpart;
-          //if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
-          //assert(std::modf(ppc[v], &intpart) == 0.0);
+        else { //if (still_active[v] == 0)
           // deg = D[v];
         bucket_t deg = cliques->get_count(v);
         auto val = cliques->update_count(v, (size_t) ppc[v]);
@@ -406,10 +408,11 @@ t_update.start();
     parallel_for (0, active_size, [&] (size_t j) {
       auto index = get_active(j);
       //auto index = cliques->find_index(v);
+      //cliques->clear_count(index);
       cliques->update_count(index, 1);
       //cliques[active.vtx(j)] = 0;
-      }, 2048);
-      t_update.stop();
+    }, 2048);
+    t_update.stop();
 
     //active.del();
 
