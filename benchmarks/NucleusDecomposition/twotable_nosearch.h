@@ -158,7 +158,7 @@ namespace twotable_nosearch {
             );
           space[size - 1] = std::make_tuple<Y, long>(static_cast<Y>(max_val), static_cast<long>(0));
 
-          uintE vtest = get_mtable(actual_sizes[i], space);
+          uintE vtest = get_mtable<Y>(actual_sizes[i], space);
           assert(vtest == vtx);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
