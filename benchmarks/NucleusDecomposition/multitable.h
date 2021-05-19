@@ -458,7 +458,6 @@ namespace multitable {
         //std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
         max_lvl = _max_level;
-        using W = typename Graph::weight_type;
         
         mtable.initialize(0, 0, max_lvl);
         mtable.allocate(DG.n, 0, r-1, 0);
