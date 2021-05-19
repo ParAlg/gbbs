@@ -54,6 +54,7 @@
 
 #include "multitable.h"
 #include "twotable.h"
+#include "twotable_nosearch.h"
 #include "onetable.h"
 #include "commontable.h"
 #include "multitable_nosearch.h"
@@ -433,32 +434,16 @@ inline sequence<size_t> NucleusDecompositionRunner(Graph& GA, DirectedGraph& DG,
   return peel;
 }
 
-template <class Graph>
-inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
-  bool relabel, bool contiguous_space) {
-  // TODO: if r = 2
-  using W = typename Graph::weight_type;
+template<class T>
+T round_up(T dividend, T divisor)
+{
+    return (dividend + (divisor - 1)) / divisor;
+}
 
-  // Obtain vertex ordering
-  timer t_rank; t_rank.start();
-  sequence<uintE> rank = get_ordering(GA, 3, 0.1); // in clique counting
-  double tt_rank = t_rank.stop();
-  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
-
-  // Direct the graph based on ordering
-  timer t_filter; t_filter.start();
-  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= r-1 && GA.get_vertex(v).getOutDegree() >= r-1;
-  };
-  // Note: If relabeling, core #s must be translated back
-  auto DG = relabel ? relabel_graph(GA, rank.begin(), pack_predicate) : filterGraph(GA, pack_predicate);
-  double tt_filter = t_filter.stop();
-  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
-
-  auto max_deg = get_max_deg3(DG);
-
-  timer t; 
-  sequence<size_t> count = 0;
+template <class T, class Graph, class Graph2>
+inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long table_type, long num_levels,
+  bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor) {
+    sequence<size_t> count;
 
   if (table_type == 3) {
     t.start();
@@ -503,7 +488,76 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     }
+  } else if (table_type == 5) {
+    t.start();
+    twotable_nosearch::TwolevelHash<T> table(r, DG, max_deg, relabel, shift_factor);
+    double tt = t.stop();
+    std::cout << "### Table Running Time: " << tt << std::endl;
+    count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
   } 
+  return count;
+}
+
+template <class Graph>
+inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long table_type, long num_levels,
+  bool relabel, bool contiguous_space) {
+  // TODO: if r = 2
+  using W = typename Graph::weight_type;
+
+  // Obtain vertex ordering
+  timer t_rank; t_rank.start();
+  sequence<uintE> rank = get_ordering(GA, 3, 0.1); // in clique counting
+  double tt_rank = t_rank.stop();
+  std::cout << "### Rank Running Time: " << tt_rank << std::endl;
+
+  // Direct the graph based on ordering
+  timer t_filter; t_filter.start();
+  auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
+    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= r-1 && GA.get_vertex(v).getOutDegree() >= r-1;
+  };
+  // Note: If relabeling, core #s must be translated back
+  auto DG = relabel ? relabel_graph(GA, rank.begin(), pack_predicate) : filterGraph(GA, pack_predicate);
+  double tt_filter = t_filter.stop();
+  std::cout << "### Filter Graph Running Time: " << tt_filter << std::endl;
+
+  auto max_deg = get_max_deg3(DG);
+
+  timer t; 
+  sequence<size_t> count;
+
+  // unsigned __int128 is 16 bytes
+  // unsigned __int32 is 4 bytes
+  // unsigned __int64 is 8 bytes
+
+  // Let X be the number of bits needed to express max vertex
+  // We have (r, s)
+  // round_up<int>(((max(1, (r - (num_levels - 1))) * X) + 1), 8)
+  // use whichever type is >= bytes than this
+
+  int num_bits_in_n = pbbslib::log2_up(DG.n + 1);
+  int num_bytes_needed = round_up<int>(((std::max(static_cast<int>(1), 
+    static_cast<int>(r - (num_levels - 1))) * num_bites_in_n) + 1), 8);
+  int shift_factor = num_bits_in_n; //32
+
+  std::cout << "Num bytes needed: " << num_bytes_needed << std::endl;
+  std::cout << "Num bits in n: " << shift_factor << std::endl;
+  fflush(stdout);
+
+  if (num_bytes_needed <= 4) {
+    // unsigned __int32
+    count = runner<unsigned __int32>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor);
+  } else if (num_bytes_needed <= 8) {
+    // unsigned __int64
+    count = runner<unsigned __int64>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor);
+  } else {
+    // unsigned__int128
+    count = runner<unsigned __int128>(GA, DG, r, s, table_type, num_levels, relabel, contiguous_space,
+      max_deg, rank, shift_factor);
+  }
+
+   
 
   //table.del();
   DG.del();
