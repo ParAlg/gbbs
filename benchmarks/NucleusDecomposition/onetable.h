@@ -105,7 +105,7 @@ namespace onetable {
       size_t update_count(std::size_t i, size_t update){
         /*if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0
         }*/
-        if (get_count(i) <= update) {
+        if (get_count(i) < update) {
           std::cout << "i: " << i << ", count: " << get_count(i) << ", update: " << update << std::endl;
           fflush(stdout);
           exit(0);
