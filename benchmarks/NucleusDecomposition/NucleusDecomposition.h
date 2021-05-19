@@ -355,8 +355,8 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else{ // if (still_active[v] == 0)
 
-          double intpart;
-          if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
+          //double intpart;
+          //if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
           //assert(std::modf(ppc[v], &intpart) == 0.0);
           auto val = cliques->update_count(v, (size_t) ppc[v]);
         ppc[v] = 0;
