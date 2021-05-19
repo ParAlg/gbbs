@@ -212,7 +212,7 @@ t1.start();
       // Fill base[k] ... base[k-r+1] and base[0]
       induced->setup_nucleus(G, DG, k, base, r);
       // Need to fix so that k_idx is 1, but ends as if it was r
-      NKCliqueDir_fast_hybrid_rec(G, 1, k-r, induced, update_d, base);
+      NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
   }, granularity, false);
 t1.stop();
 
