@@ -267,7 +267,7 @@ namespace multitable_nosearch {
     template<class S>
     void extract_clique(S vert, sequence<uintE>& base, int base_idx, int rr, int k) {
       if (lvl == max_lvl) {
-        base_idx = lvl + k - rr - 2;
+        base_idx = lvl + k - rr;
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
           base[base_idx] = vtx;
@@ -277,7 +277,7 @@ namespace multitable_nosearch {
         assert(end_space != nullptr);
         //auto vert = std::get<0>(end_space[index]);
         // TOOD: make sure this calc is correct
-        for (int j = k; j > lvl + k - rr - 2; --j) { //rr - 1, base_idx
+        for (int j = k; j > lvl + k - rr; --j) { //rr - 1, base_idx
           uintE mask = (1UL << nd_global_shift_factor) - 1;
           uintE extract = (uintE) vert & mask; // vert & mask
           //assert(static_cast<uintE>(extract) < G.n);
