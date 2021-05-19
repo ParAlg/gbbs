@@ -116,9 +116,9 @@ namespace twotable_nosearch {
         }
         auto top_table_sizes2 = tmp_table.entries();
         // sort by key
-        pbbslib::sample_sort_inplace (top_table_sizes2, [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
+        pbbslib::sample_sort_inplace (top_table_sizes2.slice(), [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
           return std::get<0>(u) < std::get<0>(v);
-        }, true);
+        });
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
