@@ -93,8 +93,8 @@ namespace twotable_nosearch {
             if (DG.get_vertex(i).getOutDegree() != 0) {
               auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
                 auto base = sequence<uintE>(r);
-                base[0] = i;
-                base[1] = ngh;
+                base[0] = std::min<uintE>(static_cast<uintE>(i), ngh);
+                base[1] = std::max<uintE>(static_cast<uintE>(i), ngh);
                 base_f(base);
               };
               DG.get_vertex(i).mapOutNgh(i, map_f, false);
