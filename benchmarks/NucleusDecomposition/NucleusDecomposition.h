@@ -445,6 +445,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
   bool relabel, bool contiguous_space, size_t max_deg, sequence<uintE>& rank, int shift_factor) {
   timer t; 
   sequence<size_t> count;
+  nd_global_shift_factor = shift_factor;
 
   if (table_type == 3) {
     t.start();
@@ -452,25 +453,25 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     num_levels -= 1;
     if (!relabel) {
       auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable::MHash table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
+      multitable::MHash<T, H> table(r, DG, max_deg, num_levels, contiguous_space, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     } else {
-      multitable::MHash table(r, DG, max_deg, num_levels, contiguous_space, std::less<uintE>());
+      multitable::MHash<T, H> table(r, DG, max_deg, num_levels, contiguous_space, std::less<uintE>());
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     }
   } else if (table_type == 2) {
     t.start();
-    twotable::TwolevelHash table(r, DG, max_deg, contiguous_space, relabel);
+    twotable::TwolevelHash<T, H> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
   } else if (table_type == 1) {
     t.start();
-    onetable::OnelevelHash table(r, DG, max_deg);
+    onetable::OnelevelHash<T, H> table(r, DG, max_deg, shift_factor);
     double tt = t.stop();
     std::cout << "### Table Running Time: " << tt << std::endl;
     count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
@@ -479,12 +480,12 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
     num_levels -= 1;
     if (!relabel) {
       auto rank_func = [&](uintE a, uintE b){ return rank[a] < rank[b]; };
-      multitable_nosearch::MHash table(r, DG, max_deg, num_levels, rank_func);
+      multitable_nosearch::MHash<T, H> table(r, DG, max_deg, num_levels, rank_func);
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     } else {
-      multitable_nosearch::MHash table(r, DG, max_deg, num_levels, std::less<uintE>());
+      multitable_nosearch::MHash<T, H> table(r, DG, max_deg, num_levels, std::less<uintE>());
       double tt = t.stop();
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);

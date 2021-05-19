@@ -28,30 +28,38 @@ namespace gbbs {
 
 namespace twotable {
 
+  template <class Y, class H>
   struct EndTable {
-    pbbslib::sparse_table<unsigned __int128, long, hash128> table;
+    pbbslib::sparse_table<Y, long, H> table;
     uintE vtx;
     //MidTable* up_table;
   };
 
+  template <class Y, class H>
   struct MidTable {
-    pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>> table;
-    sequence<EndTable*> arr;
+    using EndTableY = EndTable<Y, H>;
+    pbbslib::sparse_table<uintE, EndTableY*, std::hash<uintE>> table;
+    sequence<EndTableY*> arr;
   };
   
+  template <class Y, class H>
   class TwolevelHash {
     public:
-      using T = pbbslib::sparse_table<unsigned __int128, long, hash128>;
-      using X = std::tuple<unsigned __int128, long>;
-      MidTable top_table;
+      using T = pbbslib::sparse_table<Y, long, H>;
+      using X = std::tuple<Y, long>;
+      using EndTableY = EndTable<Y, H>;
+      using MidTableY = MidTable<Y, H>;
+      MidTableY top_table;
       sequence<long> top_table_sizes;
       int rr;
       std::size_t total = 0;
       X* space = nullptr;
       bool contiguous_space;
+      int shift_factor;
   
       template <class Graph>
-      TwolevelHash(int r, Graph& DG, size_t max_deg, bool _contiguous_space, bool relabel) {
+      TwolevelHash(int r, Graph& DG, size_t max_deg, bool _contiguous_space, bool relabel, int _shift_factor) {
+        shift_factor = _shift_factor;
         contiguous_space = _contiguous_space;
         rr = r;
         //top_table.up_table = nullptr;
@@ -92,7 +100,7 @@ namespace twotable {
         tmp_table.del();
   
         //*** for arr
-        top_table.arr = sequence<EndTable*>(DG.n, [](std::size_t i){return nullptr;});
+        top_table.arr = sequence<EndTableY*>(DG.n, [](std::size_t i){return nullptr;});
         top_table_sizes = sequence<long>(DG.n + 1, long{0});
         /*top_table.table = pbbslib::sparse_table<uintE, EndTable*, std::hash<uintE>>(
           top_table_sizes2.size(),
@@ -104,18 +112,18 @@ namespace twotable {
           auto vtx = std::get<0>(top_table_sizes2[i]);
           auto upper_size = actual_sizes[i + 1];
           auto size = upper_size - actual_sizes[i];
-          EndTable* end_table = new EndTable();
+          EndTableY* end_table = new EndTableY();
           end_table->vtx = vtx;
-          end_table->table = contiguous_space ? pbbslib::sparse_table<unsigned __int128, long, hash128>(
+          end_table->table = contiguous_space ? pbbslib::sparse_table<Y, long, H>(
             size, 
-            std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
-            hash128{},
+            std::make_tuple<Y, long>(static_cast<Y>(0), static_cast<long>(0)),
+            H{},
             space + actual_sizes[i]
             ) :
-            pbbslib::sparse_table<unsigned __int128, long, hash128>(
+            pbbslib::sparse_table<Y, long, H>(
             size, 
-            std::make_tuple<unsigned __int128, long>(static_cast<unsigned __int128>(0), static_cast<long>(0)),
-            hash128{}, 1, true);
+            std::make_tuple<Y, long>(static_cast<Y>(0), static_cast<long>(0)),
+            H{}, 1, true);
           /*top_table.table.insert(std::make_tuple(vtx, end_table));
           std::size_t l = top_table.table.find_index(vtx);
           top_table_sizes[l] = end_table->table.m;*/
@@ -140,7 +148,7 @@ namespace twotable {
       }
   
       void insert(sequence<uintE>& base2, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
+        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
           pbbs::fetch_and_add(ct, (long)1);
         };
         // Sort base
@@ -157,21 +165,21 @@ namespace twotable {
         do {
           bool use_vtx = false;
           uintE vtx = 0;
-          unsigned __int128 key = 0;
+          Y key = 0;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               if (!use_vtx) {
                 use_vtx = true;
                 vtx = base[i];
               } else {
-                key = key << 32;
+                key = key << shift_factor;
                 key |= static_cast<int>(base[i]);
               }
             }
           }
           //EndTable* end_table = top_table.table.find(vtx, nullptr);
           //***for arr
-          EndTable* end_table = top_table.arr[vtx];
+          EndTableY* end_table = top_table.arr[vtx];
           //assert(end_table != nullptr);
           (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
@@ -214,7 +222,7 @@ namespace twotable {
         }*/
         //***for arr
         //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
-        EndTable* end_table = top_table.arr[top_index];
+        EndTableY* end_table = top_table.arr[top_index];
         if (end_table == nullptr) return 0;
         size_t bottom_index = index - top_table_sizes[top_index];
         /*if (bottom_index >= (end_table->table).m) {
@@ -236,7 +244,7 @@ namespace twotable {
         size_t top_index = get_top_index(index);
         //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
         //***for arr
-        EndTable* end_table = top_table.arr[top_index];
+        EndTableY* end_table = top_table.arr[top_index];
         size_t bottom_index = index - top_table_sizes[top_index];
         auto val = std::get<1>((end_table->table).table[bottom_index]) - update;
         (end_table->table).table[bottom_index] = std::make_tuple(
@@ -253,7 +261,7 @@ namespace twotable {
         size_t top_index = get_top_index(index);
         //***for arr
         //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
-        EndTable* end_table = top_table.arr[top_index];
+        EndTableY* end_table = top_table.arr[top_index];
         size_t bottom_index = index - top_table_sizes[top_index];
         (end_table->table).table[bottom_index] = std::make_tuple(
           std::get<0>((end_table->table).table[bottom_index]), 0
@@ -275,14 +283,14 @@ namespace twotable {
         do {
           bool use_vtx = false;
           uintE vtx = 0;
-          unsigned __int128 key = 0;
+          Y key = 0;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               if (!use_vtx) {
                 use_vtx = true;
                 vtx = base[i];
               } else {
-                key = key << 32;
+                key = key << shift_factor;
                 key |= static_cast<int>(base[i]);
               }
             }
@@ -293,7 +301,7 @@ namespace twotable {
           auto prefix = top_table_sizes[top_index];
           EndTable* end_table = std::get<1>(top_table.table.table[top_index]);*/
           //***for arr
-          EndTable* end_table = top_table.arr[vtx];
+          EndTableY* end_table = top_table.arr[vtx];
           auto prefix = top_table_sizes[vtx];
           auto index = (end_table->table).find_index(key);
           func(prefix + index);
@@ -303,7 +311,7 @@ namespace twotable {
       // Given an index, get the clique
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
-        unsigned __int128 vert;
+        Y vert;
         // First, do a binary search for index in prefix
         size_t top_index = get_top_index(index);
         /*base[0] = std::get<0>(top_table.table.table[top_index]);
@@ -311,20 +319,21 @@ namespace twotable {
         //***for arr
         base[0] = top_index;
         if (!contiguous_space) {
-          EndTable* end_table = top_table.arr[top_index];
+          EndTableY* end_table = top_table.arr[top_index];
           size_t bottom_index = index - top_table_sizes[top_index];
           vert = std::get<0>((end_table->table).table[bottom_index]);
         } else {
           vert = std::get<0>(space[index]);
         }
         for (int j = 0; j < rr - 1; ++j) {
-          int extract = (int) vert; // vert & mask
+          uintE mask = (1UL << shift_factor) - 1;
+          uintE extract = (uintE) vert & mask; // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
             std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
           }*/
           assert(static_cast<uintE>(extract) < G.n);
           base[k - j] = static_cast<uintE>(extract);
-          vert = vert >> 32;
+          vert = vert >> shift_factor;
         }
       }
   };

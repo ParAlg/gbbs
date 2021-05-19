@@ -1,6 +1,7 @@
 cc_library(
   name = "commontable",
   hdrs = ["commontable.h"],
+  srcs = ["commontable.cc"],
   deps = [
   "//benchmarks/CliqueCounting:relabel",
   "//benchmarks/CliqueCounting:induced_neighborhood",

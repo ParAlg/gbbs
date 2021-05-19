@@ -28,13 +28,17 @@ namespace gbbs {
 
 namespace onetable {
 
+  template <class Y, class H>
   class OnelevelHash {
     public:
-      using T = pbbslib::sparse_table<unsigned __int128, long, hash128>;
+      using T = pbbslib::sparse_table<Y, long, H>;
       T table;
       int rr;
+      int shift_factor;
+
       template <class Graph>
-      OnelevelHash(int r, Graph& DG, size_t max_deg) {
+      OnelevelHash(int r, Graph& DG, size_t max_deg, int _shift_factor) {
+        shift_factor = _shift_factor;
         rr = r;
         // count cliques
         timer t_pre; t_pre.start();
@@ -47,13 +51,13 @@ namespace onetable {
         std::cout << "### Pre count: " << tt_pre << std::endl;
 
         std::cout << "Start table" << std::endl;
-        table = pbbslib::sparse_table<unsigned __int128, long, hash128>(
+        table = pbbslib::sparse_table<Y, long, H>(
           pre_count,
-          std::make_tuple(static_cast<unsigned __int128>(0), long{0}), hash128{});
+          std::make_tuple(static_cast<Y>(0), long{0}), H{});
       }
 
       void insert(sequence<uintE>& base2, int r, int k) {
-        auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
+        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
           pbbs::fetch_and_add(ct, (long)1);
         };
 
@@ -69,10 +73,10 @@ namespace onetable {
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
         do {
-          unsigned __int128 key = 0;
+          Y key = 0;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
-              key = key << 32;
+              key = key << shift_factor;
               key |= static_cast<int>(base[i]);
             }
           }
@@ -118,10 +122,10 @@ namespace onetable {
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
         do {
-          unsigned __int128 key = 0;
+          Y key = 0;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
-              key = key << 32;
+              key = key << shift_factor;
               key |= static_cast<int>(base[i]);
             }
           }
@@ -134,14 +138,15 @@ namespace onetable {
     void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
       auto vert = std::get<0>(table.table[index]);
       for (int j = 0; j < rr; ++j) {
-        int extract = (int) vert; // vert & mask
+        uintE mask = (1UL << shift_factor) - 1;
+        uintE extract = (uintE) vert & mask; // vert & mask
         //if (static_cast<uintE>(extract) >= G.n) {
         //  std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
         //}
         assert(static_cast<uintE>(extract) < G.n);
         if (j == rr - 1) base[0] = static_cast<uintE>(extract);
         else base[k - j] = static_cast<uintE>(extract);
-        vert = vert >> 32;
+        vert = vert >> shift_factor;
       }
     }
   };

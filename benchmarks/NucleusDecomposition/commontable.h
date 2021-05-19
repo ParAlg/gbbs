@@ -23,6 +23,8 @@
 #include "benchmarks/CliqueCounting/relabel.h"
   
 namespace gbbs {
+
+  extern int nd_global_shift_factor;
   
   struct hash128 {
     inline size_t operator () (unsigned __int128 t) const {

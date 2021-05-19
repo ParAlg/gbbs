@@ -29,27 +29,23 @@ namespace gbbs {
 namespace multitable {
 
   inline bool is_uint_e_max(uintE max_val) {
-//#ifdef NUCLEUS_USE_VERTEX
     return max_val == UINT_E_MAX;
-/*#else
-    std::size_t max_bit = sizeof(uintE) * 8;
-    auto check_bit = (max_val >> (max_bit - 1)) & 1U;
-    return check_bit;
-#endif*/
   }
 
   // max_lvl should be set to # levels - 2
   // two level hash is equiv to setting max_level to 0
+  template <class Y, class H>
   struct MTable {
-    using NextMTable = pbbslib::sparse_table<uintE, MTable*, std::hash<uintE>>;
-    using EndTable = pbbslib::sparse_table<unsigned __int128, long, hash128>;
+    using MTableY = MTable<Y, H>;
+    using NextMTable = pbbslib::sparse_table<uintE, MTableY*, std::hash<uintE>>;
+    using EndTable = pbbslib::sparse_table<Y, long, H>;
     NextMTable mtable;
     EndTable end_table;
     uintE lvl;
     uintE max_lvl;
     long total_size = 0;
     sequence<long> table_sizes;
-    std::tuple<unsigned __int128, long>* end_space = nullptr;
+    std::tuple<Y, long>* end_space = nullptr;
 
 //#ifdef NUCLEUS_USE_VERTEX
     uintE vtx;
@@ -76,15 +72,15 @@ namespace multitable {
     }
 #endif*/
 
-    void set_end_table_rec(std::tuple<unsigned __int128, long>* _end_space) {
+    void set_end_table_rec(std::tuple<Y, long>* _end_space) {
       end_space = _end_space;
 
       if (lvl == max_lvl) {
         // Allocate end_table here using end_space
         end_table = EndTable(
           total_size,
-          std::make_tuple<unsigned __int128, long>(std::numeric_limits<unsigned __int128>::max(), static_cast<long>(0)),
-          hash128{},
+          std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
+          H,
           end_space
         );
 
@@ -102,8 +98,8 @@ namespace multitable {
         // Allocate end_table here
         end_table = EndTable(
           total_size,
-          std::make_tuple<unsigned __int128, long>(std::numeric_limits<unsigned __int128>::max(), static_cast<long>(0)),
-          hash128{}, 1, true
+          std::make_tuple<Y, long>(std::numeric_limits<Y>::max(), static_cast<long>(0)),
+          H, 1, true
         );
 
       } else {
@@ -148,7 +144,7 @@ namespace multitable {
       return total_size;
     }
 
-    void initialize(uintE _v, uintE _lvl, uintE _max_lvl, MTable* _prev_mtable = nullptr) {
+    void initialize(uintE _v, uintE _lvl, uintE _max_lvl, MTableY* _prev_mtable = nullptr) {
 //#ifdef NUCLEUS_USE_VERTEX
       vtx = _v;
 //#endif
@@ -171,15 +167,15 @@ namespace multitable {
 #endif*/
         mtable = NextMTable(
           count * 1.5,
-          std::make_tuple<uintE, MTable*>(uintE{max_val}, static_cast<MTable*>(nullptr)),
+          std::make_tuple<uintE, MTableY*>(uintE{max_val}, static_cast<MTableY*>(nullptr)),
           std::hash<uintE>()
         );
       }
     }
     
-    MTable* next(uintE v, size_t k_idx, size_t k) {
+    MTableY* next(uintE v, size_t k_idx, size_t k) {
       if (lvl == max_lvl) return nullptr;
-      MTable* next_table = new MTable();
+      MTableY* next_table = new MTableY();
       next_table->initialize(v, lvl + 1, max_lvl, this);
       mtable.insert(std::make_tuple(v, next_table));
       return next_table;
@@ -188,13 +184,13 @@ namespace multitable {
     void insert(uintE* base, int curr_idx, int r, int k, std::string& bitmask) {
       if (lvl == max_lvl) {
         assert(end_table.m > 0);
-        auto add_f = [&] (long* ct, const std::tuple<unsigned __int128, long>& tup) {
+        auto add_f = [&] (long* ct, const std::tuple<Y, long>& tup) {
           pbbs::fetch_and_add(ct, (long)1);
         };
-        unsigned __int128 key = 0;
+        Y key = 0;
         for (int i = curr_idx; i < static_cast<int>(k)+1; ++i) {
           if (bitmask[i]) {
-            key = key << 32;
+            key = key << nd_global_shift_factor;
             key |= static_cast<int>(base[i]);
           }
         }
@@ -218,7 +214,7 @@ namespace multitable {
         bitmask.resize(k+1, 0); // N-K trailing 0's
 
         do {
-          unsigned __int128 key = 0;
+          Y key = 0;
           for (int i = 0; i < static_cast<int>(k)+1; ++i) {
             if (bitmask[i]) {
               insert(base, i, r, k, bitmask);
@@ -228,14 +224,13 @@ namespace multitable {
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
     }
 
-//std::tuple<unsigned __int128, long>*
     size_t extract_indices(uintE* base, int curr_idx,
       int r, int k, std::string& bitmask) {
       if (lvl == max_lvl) {
-        unsigned __int128 key = 0;
+        Y key = 0;
         for (int i = curr_idx; i < static_cast<int>(k)+1; ++i) {
           if (bitmask[i]) {
-            key = key << 32;
+            key = key << nd_global_shift_factor;
             key |= static_cast<int>(base[i]);
           }
         }
@@ -259,7 +254,6 @@ namespace multitable {
       std::string bitmask(r+1, 1); // K leading 1's
       bitmask.resize(k+1, 0); // N-K trailing 0's
       do {
-        //unsigned __int128 key = 0;
         for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           if (bitmask[i]) {
             // TODO: make sure this pointer arithmetic is fine
@@ -300,10 +294,11 @@ namespace multitable {
         auto vert = std::get<0>(end_table.table[index]); //end_space[index]
         // TOOD: make sure this calc is correct
         for (int j = k; j >= base_idx; --j) { //rr - 1, base_idx
-          int extract = (int) vert;
+          uintE mask = (1UL << nd_global_shift_factor) - 1;
+          uintE extract = (uintE) vert & mask; // vert & mask
           //assert(static_cast<uintE>(extract) < G.n);
           base[j] = static_cast<uintE>(extract);
-          vert = vert >> 32;
+          vert = vert >> nd_global_shift_factor;
         }
         return;
       }
@@ -443,13 +438,14 @@ namespace multitable {
     return total_ct;
   }
 
-  template <class F>
+  template <class Y, class H, class F>
   class MHash {
     public:
-      using X = std::tuple<unsigned __int128, long>;
+      using X = std::tuple<Y, long>;
+      using MTableY = MTable<Y, H>;
       int rr = 0;
       uintE max_lvl;
-      MTable mtable;
+      MTableY mtable;
       X* space = nullptr;
       bool contiguous_space;
       bool relabel;
@@ -509,7 +505,7 @@ namespace multitable {
         if (contiguous_space) return std::get<1>(space[index]);
 
         long count = 0;
-        auto func = [&](std::tuple<unsigned __int128, long>* loc){
+        auto func = [&](std::tuple<Y, long>* loc){
           count = std::get<1>(*loc);
         };
         mtable.find_table_loc(index, func);
@@ -524,7 +520,7 @@ namespace multitable {
           return val;
         }
         size_t val = 0;
-        auto func = [&](std::tuple<unsigned __int128, long>* loc){
+        auto func = [&](std::tuple<Y, long>* loc){
           val = std::get<1>(*loc) - update;
           *loc = std::make_tuple(std::get<0>(*loc), val);
         };
@@ -537,7 +533,7 @@ namespace multitable {
           space[index] = std::make_tuple(std::get<0>(space[index]), 0);
           return;
         }
-        auto func = [&](std::tuple<unsigned __int128, long>* loc){
+        auto func = [&](std::tuple<Y, long>* loc){
           *loc = std::make_tuple(std::get<0>(*loc), 0);
         };
         mtable.find_table_loc(index, func);
