@@ -230,7 +230,7 @@ t1.start();
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1);
     cliques->extract_clique(x, base, G, k);
-      // Fill base[k] ... base[k-r+1] and base[0]
+      // Fill base[k] ... base[k-r+2] and base[0]
       induced->setup_nucleus(G, DG, k, base, r);
       // Need to fix so that k_idx is 1, but ends as if it was r
       NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);

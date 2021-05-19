@@ -109,7 +109,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
     }
     assert(base[i] == base3[base3_idx]);
     base3_idx++;
-    if (base3_idx == 1) base3_idx = k - rr + 1;
+    if (base3_idx == 1) base3_idx = k - rr + 2;
   }
 }
 
