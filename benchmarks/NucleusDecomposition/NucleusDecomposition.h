@@ -310,7 +310,7 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
     // Retrieve next bucket
     auto bkt = b.next_bucket();
     auto active = vertexSubset(num_entries, bkt.identifiers);
-    auto active_size = (bkt.identifiers).size();
+    auto active_size = active.size();
     cur_bkt = bkt.id;
     t_extract.stop();
 
