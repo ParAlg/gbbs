@@ -371,9 +371,10 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
           //double intpart;
           //if (std::modf(ppc[v], &intpart) != 0.0 ) {std::cout << "ppcv: " << ppc[v] << std::endl; fflush(stdout);}
           //assert(std::modf(ppc[v], &intpart) == 0.0);
-          auto val = cliques->update_count(v, (size_t) ppc[v]);
+          // deg = D[v];
+        bucket_t deg = cliques->get_count(v);
+        auto val = cliques->update_count(v, (size_t) ppc[v]);
         ppc[v] = 0;
-        bucket_t deg = D[v];
         if (deg > cur_bkt) {
           bucket_t new_deg = std::max((bucket_t) val, (bucket_t) cur_bkt);
           //D[v] = new_deg;
