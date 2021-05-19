@@ -118,8 +118,8 @@ namespace onetable {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),0);
       }
 
-      template<class HH, class I>
-      void extract_indices(sequence<uintE>& base2, HH is_active, I func, int r, int k) {
+      template<class HH, class HG, class I>
+      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base
         // Sort base
         uintE base[10];
@@ -134,6 +134,7 @@ namespace onetable {
 
         std::vector<size_t> indices;
         size_t num_active = 0;
+        bool use_func = true;
 
         do {
           Y key = 0;
@@ -146,11 +147,16 @@ namespace onetable {
           auto index = table.find_index(key);
           indices.push_back(index);
           if (is_active(index)) num_active++;
+          if (is_inactive(index)) use_func = false;
           //func(index);
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
 
+        assert(num_active != 0);
+        if (use_func) {
+
         for (std::size_t i = 0; i < indices.size(); i++) {
           func(indices[i], 1.0 / (double) num_active);
+        }
         }
       }
     
