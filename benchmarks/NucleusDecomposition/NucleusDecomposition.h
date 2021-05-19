@@ -212,7 +212,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
   auto update_d = [&](sequence<uintE>& base){
     // check that base[0] to base[k+1] are all edges
-    for (int i = 0; i <= k; i++) {
+    for (int i = 0; i < k; i++) {
       assert(is_edge(G, base[i], base[i+1]));
     }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){

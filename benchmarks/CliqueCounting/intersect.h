@@ -82,7 +82,7 @@ struct HybridSpace_lw {
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
-    auto nn0 = DG.get_vertex(base[k]).getOutDegree();
+    auto nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
 
     for (size_t j = 0; j < r; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -108,13 +108,14 @@ struct HybridSpace_lw {
       // Set up label for intersection
       if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
-        if (k-r == 1) o++;
+        if (use_base) { relabel[o] = ngh; }
       } else {
         old_labels[ngh] = 0;
+        if (use_base) { relabel[o] = UINT_E_MAX; }
       }
       // Set up relabeling if counting per vertex
-      if (use_base) { relabel[o] = ngh; }
-      if (k-r != 1) o++;
+      //if (use_base) { relabel[o] = ngh; }
+      o++;
     };
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
@@ -149,7 +150,7 @@ struct HybridSpace_lw {
           induced_degs[j]++;
         }
       };
-      if (old_labels[v] > 0) DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
+      if (old_labels[v] > 0 && old_labels[v] < nn0) DG2.get_vertex(v).mapOutNgh(v, map_nbhrs_f, false);
       j++;
     };
     DG.get_vertex(i).mapOutNgh(i, map_f, false);
