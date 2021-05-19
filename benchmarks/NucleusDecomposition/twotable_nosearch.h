@@ -115,6 +115,10 @@ namespace twotable_nosearch {
           }, 1, false);
         }
         auto top_table_sizes2 = tmp_table.entries();
+        // sort by key
+        pbbslib::sample_sort (top_table_sizes2, [&](const std::tuple<uintE, long>& u, const std::tuple<uintE, long>&  v) {
+      return std::get<0>(u) < std::get<0>(v);
+    }, true);
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized
         parallel_for(0, top_table_sizes2.size(), [&](std::size_t i) {
@@ -170,6 +174,7 @@ namespace twotable_nosearch {
           top_table.arr[vtx] = end_table;
           assert(size == 1 + end_table->table.m);
           top_table_sizes[vtx] = size; //1 + end_table->table.m;
+          //assert((end_table->table).table == space + actual_sizes[i]);
         });
         total = scan_inplace(top_table_sizes.slice(), pbbs::addm<long>());
         assert(total == total_top_table_sizes2);
@@ -221,7 +226,7 @@ namespace twotable_nosearch {
           //EndTable* end_table = top_table.table.find(vtx, nullptr);
           //***for arr
           EndTableY* end_table = top_table.arr[vtx];
-          //assert(end_table != nullptr);
+          assert(end_table != nullptr);
           (end_table->table).insert_f(std::make_tuple(key, (long) 1), add_f);
 
           auto index2 = (end_table->table).find_index(key);
