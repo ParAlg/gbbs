@@ -303,27 +303,27 @@ namespace multitable {
         return;
       }
       auto next_mtable_idx = get_top_index(index);
-      if (next_mtable_idx >= mtable.m) {
+      /*if (next_mtable_idx >= mtable.m) {
         std::cout << "Idx: " << next_mtable_idx << std::endl;
         std::cout << "m: " << mtable.m << std::endl;
         fflush(stdout);
       }
       assert(next_mtable_idx < mtable.m);
-      assert(index >= table_sizes[next_mtable_idx]);
+      assert(index >= table_sizes[next_mtable_idx]);*/
       S next_index = index - table_sizes[next_mtable_idx];
       if (lvl != 0) {
         base[base_idx] = get_vtx(next_mtable_idx);
         if (base_idx == 0) base_idx = k - rr + 1;
         else base_idx++;
       }
-      if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) {
+      /*if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) {
         std::cout << "rr: " << rr << std::endl; fflush(stdout);
         std::cout << "base_idx: " << base_idx << std::endl; fflush(stdout);
         std::cout << "index: " << long{index} << std::endl; fflush(stdout);
         std::cout << "top index: " << long{next_mtable_idx} << std::endl; fflush(stdout);
         std::cout << "size: " << table_sizes[next_mtable_idx] << std::endl; fflush(stdout);
       }
-      assert(std::get<1>(mtable.table[next_mtable_idx]) != nullptr);
+      assert(std::get<1>(mtable.table[next_mtable_idx]) != nullptr);*/
       std::get<1>(mtable.table[next_mtable_idx])->extract_clique(next_index, base, base_idx, rr, k);
     }
 
@@ -455,7 +455,7 @@ namespace multitable {
       MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, bool _contiguous_space,
         F _rank_func) : sort_func(_rank_func) {
         contiguous_space = _contiguous_space;
-        std::cout << "Init MHash" << std::endl; fflush(stdout);
+        //std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
         max_lvl = _max_level;
         using W = typename Graph::weight_type;
@@ -476,7 +476,7 @@ namespace multitable {
           }
         }, 1, false);
 
-        std::cout << "End MHash Count" << std::endl; fflush(stdout);
+        //std::cout << "End MHash Count" << std::endl; fflush(stdout);
 
         long total = mtable.set_table_sizes();
         if (contiguous_space) {
@@ -486,7 +486,7 @@ namespace multitable {
           mtable.set_end_table_rec();
         }
 
-        std::cout << "End MHash" << std::endl; fflush(stdout);
+        //std::cout << "End MHash" << std::endl; fflush(stdout);
       }
 
       void insert(sequence<uintE>& base2, int r, int k) {

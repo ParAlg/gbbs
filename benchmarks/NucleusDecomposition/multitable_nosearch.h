@@ -414,7 +414,7 @@ namespace multitable_nosearch {
 
       template<class Graph>
       MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, F _rank_func) : sort_func(_rank_func) {
-        std::cout << "Init MHash" << std::endl; fflush(stdout);
+        //std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
         max_lvl = _max_level;
         using W = typename Graph::weight_type;
@@ -435,13 +435,13 @@ namespace multitable_nosearch {
           }
         }, 1, false);
 
-        std::cout << "End MHash Count" << std::endl; fflush(stdout);
+        //std::cout << "End MHash Count" << std::endl; fflush(stdout);
 
         long total = mtable.set_table_sizes();
         space = pbbslib::new_array_no_init<X>(total);
         mtable.set_end_table_rec(space);
 
-        std::cout << "End MHash" << std::endl; fflush(stdout);
+        //std::cout << "End MHash" << std::endl; fflush(stdout);
       }
 
       void insert(sequence<uintE>& base2, int r, int k) {

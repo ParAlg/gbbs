@@ -46,11 +46,11 @@ namespace onetable {
         // Clique counting
         if (r == 3) pre_count = TriClique_count(DG, false, nullptr);
         else pre_count = Clique_count(DG, r, 5, true, false, 0, nullptr);
-        std::cout << "Pre count " << r << ": " << pre_count << std::endl;
+        //std::cout << "Pre count " << r << ": " << pre_count << std::endl;
         double tt_pre = t_pre.stop();
-        std::cout << "### Pre count: " << tt_pre << std::endl;
+        //std::cout << "### Pre count: " << tt_pre << std::endl;
 
-        std::cout << "Start table" << std::endl;
+        //std::cout << "Start table" << std::endl;
         table = pbbslib::sparse_table<Y, long, H>(
           pre_count,
           std::make_tuple(static_cast<Y>(0), long{0}), H{});
