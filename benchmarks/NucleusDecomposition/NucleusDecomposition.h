@@ -339,6 +339,9 @@ sequence<bucket_t> Peel(Graph& G, Graph2& DG, size_t r, size_t k,
         }
         if (ppc[v] == 0) D_filter[i] = std::make_tuple(num_entries + 1, 0);
         else {
+
+          double intpart;
+          assert(std::modf(ppc[v], &intpart) == 0.0);
           auto val = cliques->update_count(v, (size_t) ppc[v]);
         ppc[v] = 0;
         bucket_t deg = D[v];
