@@ -165,6 +165,23 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           }
           auto index = table.find_index(key);
           assert(index < table.m);
+
+sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
+extract_clique(index, base3, k, k);
+int base3_idx = 0;
+for (int i = 0; i < static_cast<int>(k)+1; ++i) {
+  if (bitmask[i]) {
+    if (base[i] != base3[base3_idx]) {
+      std::cout << "base3idx: " << base3_idx << ", base3: " << base3[base3_idx] << std::endl;
+      std::cout << "base: " << base[i] << std::endl;
+      fflush(stdout);
+    }
+    assert(base[i] == base3[base3_idx]);
+    base3_idx++;
+    if (base3_idx == 1) base3_idx = k - rr + 2;
+  }
+}
+
           indices.push_back(index);
           if (is_active(index)) num_active++;
           if (is_inactive(index)) use_func = false;
