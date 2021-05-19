@@ -282,8 +282,8 @@ namespace twotable_nosearch {
         base[0] = v;
         vert = std::get<0>(space[index]);
         for (int j = 0; j < rr - 1; ++j) {
-          int mask = (1UL << shift_factor) - 1;
-          int extract = (int) vert & mask; // vert & mask
+          uintE mask = (1UL << shift_factor) - 1;
+          uintE extract = (uintE) vert & mask; // vert & mask
           /*if (static_cast<uintE>(extract) >= G.n) {
             std::cout << "Vert: " << static_cast<uintE>(extract) << ", n: " << G.n << std::endl;
           }*/
