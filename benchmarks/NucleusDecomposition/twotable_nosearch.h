@@ -75,6 +75,7 @@ namespace twotable_nosearch {
   
       template <class Graph>
       TwolevelHash(int r, Graph& DG, size_t max_deg, bool relabel, int _shift_factor) {
+        using W = typename Graph::weight_type;
         shift_factor = _shift_factor;
         rr = r;
         //top_table.up_table = nullptr;
@@ -87,16 +88,28 @@ namespace twotable_nosearch {
           auto tmp = std::make_tuple<uintE, long>(static_cast<uintE>(min_vert), long{1});
           tmp_table.insert(tmp);
         };
-        auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
-        auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
-        parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-          if (DG.get_vertex(i).getOutDegree() != 0) {
-            induced->setup(DG, r-1, i);
-            auto base = sequence<uintE>(r);
-            base[0] = i;
-            NKCliqueDir_fast_hybrid_rec(DG, 1, r-1, induced, base_f, base);
-          }
-        }, 1, false);
+        if (r == 2) {
+          parallel_for(0, DG.n, [&](std::size_t i){
+            auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+              auto base = sequence<uintE>(r);
+              base[0] = i;
+              base[1] = ngh;
+              base_f(base);
+            };
+            DG.get_vertex(i).mapOutNgh(i, map_f, true);
+          });
+        } else {
+          auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
+          auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
+          parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+            if (DG.get_vertex(i).getOutDegree() != 0) {
+              induced->setup(DG, r-1, i);
+              auto base = sequence<uintE>(r);
+              base[0] = i;
+              NKCliqueDir_fast_hybrid_rec(DG, 1, r-1, induced, base_f, base);
+            }
+          }, 1, false);
+        }
         auto top_table_sizes2 = tmp_table.entries();
         sequence<long> actual_sizes(top_table_sizes2.size() + 1);
         // Modify top_table_sizes2 to be appropriately oversized

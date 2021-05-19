@@ -454,6 +454,7 @@ namespace multitable {
       template<class Graph>
       MHash(int r, Graph& DG, size_t max_deg, uintE _max_level, bool _contiguous_space,
         F _rank_func) : sort_func(_rank_func) {
+        using W = typename Graph::weight_type;
         contiguous_space = _contiguous_space;
         //std::cout << "Init MHash" << std::endl; fflush(stdout);
         rr = r;
@@ -461,6 +462,34 @@ namespace multitable {
         
         mtable.initialize(0, 0, max_lvl);
         mtable.allocate(DG.n, 0, r-1, 0);
+
+        if (r == 2) {
+          parallel_for(0, DG.n, [&](std::size_t i){
+            auto next_space = mtable.next(i, 0, r-1);
+            bool valid_space = true;
+            if (next_space == nullptr) {
+              valid_space = false;
+              next_space = &mtable;
+            }
+            auto map_f = [&](const uintE& src, const uintE& ngh, const W& wgh) {
+              next_space->allocate(DG.get_vertex(i).getOutDegree(), r-2, r-1, i);
+              Space* next_next_space = next_space->next(ngh, r-2, r-1);
+              bool next_next_valid_space = true;
+              if (next_next_space == nullptr) {
+                next_next_space = space;
+                next_next_valid_space = false;
+              }
+              next_next_space->increment_size(1);
+              if (next_next_valid_space) {
+                next_next_space->set_table_sizes();
+              }
+            };
+            DG.get_vertex(i).mapOutNgh(i, map_f, true);
+            if (valid_space) {
+              next_space->set_table_sizes();
+            }
+          });
+        } else {
   
         auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, r-1, DG.n, true, true); };
         auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
@@ -474,6 +503,8 @@ namespace multitable {
             NKCliqueDir_fast_hybrid_rec_multi(DG, 1, r-1, induced, next_space, i);
           }
         }, 1, false);
+
+        }
 
         //std::cout << "End MHash Count" << std::endl; fflush(stdout);
 
