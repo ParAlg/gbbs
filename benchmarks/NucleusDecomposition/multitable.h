@@ -249,8 +249,8 @@ namespace multitable {
       return table_sizes[next_mtable_index] + next->extract_indices(base, next_idx, r, k, bitmask);
     }
 
-    template<class I>
-    void extract_indices(uintE* base, I func, int r, int k) {
+    template<class I, class HH>
+    void extract_indices(uintE* base, I func, int r, int k, HH h_func) {
       std::string bitmask(r+1, 1); // K leading 1's
       bitmask.resize(k+1, 0); // N-K trailing 0's
       do {
@@ -258,7 +258,7 @@ namespace multitable {
           if (bitmask[i]) {
             // TODO: make sure this pointer arithmetic is fine
             size_t idx = extract_indices(base, i, r, k, bitmask); // - end_space;
-            func(idx);
+            h_func(idx);
             break;
           }
         }
@@ -287,7 +287,7 @@ namespace multitable {
         if (lvl != 0) {
           // TODO: not sure if we should be doing 0...
           base[base_idx] = get_vtx(0);
-          if (base_idx == 0) base_idx = k - rr + 1;
+          if (base_idx == 0) base_idx = k - rr + 2;
           else base_idx++;
         }
         //assert(end_space != nullptr);
@@ -313,7 +313,7 @@ namespace multitable {
       S next_index = index - table_sizes[next_mtable_idx];
       if (lvl != 0) {
         base[base_idx] = get_vtx(next_mtable_idx);
-        if (base_idx == 0) base_idx = k - rr + 1;
+        if (base_idx == 0) base_idx = k - rr + 2;
         else base_idx++;
       }
       /*if (std::get<1>(mtable.table[next_mtable_idx]) == nullptr) {
@@ -569,18 +569,38 @@ namespace multitable {
         mtable.find_table_loc(index, func);
       }
 
-      template<class I>
-      void extract_indices(sequence<uintE>& base2, I func, int r, int k) {
+      template<class HH, class HG, class I>
+      void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         uintE base[10];
         assert(10 > k);
         for(std::size_t i = 0; i < k + 1; i++) {
           base[i] = base2[i];
         }
         std::sort(base, base + k + 1,sort_func);
-        mtable.extract_indices(base, func, r, k);
+
+        std::vector<size_t> indices;
+        size_t num_active = 0;
+        bool use_func = true;
+
+        auto h_func = [&](std::size_t idx){
+          indices.push_back(idx);
+          if (is_active(idx)) num_active++;
+          if (is_inactive(idx)) use_func = false;
+        };
+
+        mtable.extract_indices(base, func, r, k, h_func);
+
+        assert(num_active != 0);
+
+        if (use_func) {
+          for (std::size_t i = 0; i < indices.size(); i++) {
+            if (!is_active(indices[i]) && !is_inactive(indices[i]))
+              func(indices[i], 1.0 / (double) num_active);
+          }
+        }
       }
 
-      //Fill base[k] ... base[k-r+1] and base[0]
+      //Fill base[k] ... base[k-r+2] and base[0]
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
         mtable.extract_clique(index, base, 0, rr, k);

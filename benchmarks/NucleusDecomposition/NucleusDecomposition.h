@@ -460,7 +460,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
   sequence<size_t> count;
   nd_global_shift_factor = shift_factor;
 
-  /*if (table_type == 3) {
+  if (table_type == 3) {
     t.start();
     // Num levels matches, e.g., 2 for two level
     num_levels -= 1;
@@ -477,7 +477,7 @@ inline sequence<size_t> runner(Graph& GA, Graph2& DG, size_t r, size_t s, long t
       std::cout << "### Table Running Time: " << tt << std::endl;
       count = NucleusDecompositionRunner(GA, DG, r, s, table, max_deg, rank);
     }
-  } else*/ if (table_type == 2) {
+  } else if (table_type == 2) {
     t.start();
     twotable::TwolevelHash<T, H> table(r, DG, max_deg, contiguous_space, relabel, shift_factor);
     double tt = t.stop();
