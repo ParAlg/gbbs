@@ -303,6 +303,7 @@ namespace multitable_nosearch {
 
   template<class Y, class H, class S, class EndSpace>
   MTable<Y, H>* get_mtable(S index, EndSpace* end_space) {
+    using MTableY = MTable<Y, H>;
     using X = std::tuple<Y, long>;
     while (true) {
       auto max_val = std::get<0>(static_cast<X>(end_space[index]));
