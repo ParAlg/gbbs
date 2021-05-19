@@ -301,8 +301,8 @@ namespace multitable_nosearch {
 
   }; // when we put in 3, max_lvl = 2, which is actually a 
 
-  template<class S, class EndSpace>
-  MTableY* get_mtable(S index, EndSpace* end_space) {
+  template<class Y, class H, class S, class EndSpace>
+  MTable<Y, H>* get_mtable(S index, EndSpace* end_space) {
     using X = std::tuple<Y, long>;
     while (true) {
       auto max_val = std::get<0>(static_cast<X>(end_space[index]));
@@ -484,7 +484,7 @@ namespace multitable_nosearch {
       //Fill base[k] ... base[k-r+1] and base[0]
       template<class S, class Graph>
       void extract_clique(S index, sequence<uintE>& base, Graph& G, int k) {
-        auto last_mtable = get_mtable(index, space);
+        auto last_mtable = get_mtable<Y, H>(index, space);
         last_mtable->extract_clique(std::get<0>(space[index]), base, k, rr, k);
         //mtable.extract_clique(index, base, 0, rr, k);
       }
