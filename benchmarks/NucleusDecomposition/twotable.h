@@ -285,6 +285,21 @@ namespace twotable {
         );
       }
 
+      void set_count(std::size_t index, size_t update) {
+        if (contiguous_space) {
+          space[index] = std::make_tuple(std::get<0>(space[index]), update);
+          return;
+        }
+        size_t top_index = get_top_index(index);
+        //***for arr
+        //EndTable* end_table = std::get<1>(top_table.table.table[top_index]);
+        EndTableY* end_table = top_table.arr[top_index];
+        size_t bottom_index = index - top_table_sizes[top_index];
+        (end_table->table).table[bottom_index] = std::make_tuple(
+          std::get<0>((end_table->table).table[bottom_index]), update
+        );
+      }
+
       template<class HH, class HG, class I>
       void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base

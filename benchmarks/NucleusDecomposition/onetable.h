@@ -137,6 +137,10 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
         table.table[index] = std::make_tuple(std::get<0>(table.table[index]),0);
       }
 
+      void set_count(std::size_t index, size_t update) {
+        table.table[index] = std::make_tuple(std::get<0>(table.table[index]),update);
+      }
+
       template<class HH, class HG, class I>
       void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         // Sort base

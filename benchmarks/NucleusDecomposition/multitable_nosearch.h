@@ -486,6 +486,10 @@ namespace multitable_nosearch {
         space[index] = std::make_tuple(std::get<0>(space[index]), 0);
       }
 
+      void set_count(std::size_t index, size_t update) {
+        space[index] = std::make_tuple(std::get<0>(space[index]), update);
+      }
+
       template<class HH, class HG, class I>
       void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         uintE base[10];

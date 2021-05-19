@@ -569,6 +569,17 @@ namespace multitable {
         mtable.find_table_loc(index, func);
       }
 
+      void set_count(std::size_t index, size_t update) {
+        if (contiguous_space) {
+          space[index] = std::make_tuple(std::get<0>(space[index]), update);
+          return;
+        }
+        auto func = [&](std::tuple<Y, long>* loc){
+          *loc = std::make_tuple(std::get<0>(*loc), update);
+        };
+        mtable.find_table_loc(index, func);
+      }
+
       template<class HH, class HG, class I>
       void extract_indices(sequence<uintE>& base2, HH is_active, HG is_inactive, I func, int r, int k) {
         uintE base[10];
