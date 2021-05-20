@@ -83,11 +83,11 @@ struct HybridSpace_lw {
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     auto nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
-    auto kmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+    /*auto kmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = nn0 + 1;
     };
-    DG.get_vertex(base[k]).mapOutNgh(base[k], kmap_label_f, true);
-/*
+    DG.get_vertex(base[k]).mapOutNgh(base[k], kmap_label_f, true);*/
+
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
@@ -101,7 +101,7 @@ struct HybridSpace_lw {
       //}
       assert(base[k-j] < DG.n);
       DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, true);
-    }*/
+    }
 
     //assert(base[0] < DG.n);
     //if (base[0] >= DG.n) {
@@ -110,7 +110,7 @@ struct HybridSpace_lw {
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
-      if (old_labels[ngh] == nn0 + 1) {
+      if (old_labels[ngh] == nn0 + r) {
         old_labels[ngh] = o + 1;
         if (use_base) { relabel[o] = ngh; }
       } else {

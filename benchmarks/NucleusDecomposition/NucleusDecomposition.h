@@ -261,7 +261,7 @@ t1.start();
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
     auto x = get_active(i);
-    auto base = sequence<uintE>(k + 1);
+    auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
