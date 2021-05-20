@@ -71,6 +71,7 @@ namespace gbbs {
         uintE vtx = prev_induced[i];
         base[k] = induced->relabel[vtx];
         if (base[k] != UINT_E_MAX) {
+          std::cout << "Exists base" << std::endl; fflush(stdout);
           base_f(base);
           tmp_counts++;
         }
