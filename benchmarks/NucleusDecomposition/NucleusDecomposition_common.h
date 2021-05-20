@@ -601,7 +601,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
 
       // Check that the clique counts match up
       if (cliques->get_count(vtx) != cliques2->get_count(vtx2)) {
-        std::cout << "Vtx1: " << vtx << ", vtx2: " << vtx2 << std::endl;
+        std::cout << "Vtx1: " << static_cast<long>(vtx) << ", vtx2: " << static_cast<long>(vtx2) << std::endl;
         std::cout << "count1: " << cliques->get_count(vtx) << ", count2: " << cliques2->get_count(vtx2) << std::endl;
         std::cout << "Vert in 1: " << std::endl;
         for (size_t j = 0; j < r + 1; j++) {
