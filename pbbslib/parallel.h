@@ -241,7 +241,7 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                  init_alloc(alloc);
                  f(i, alloc);
                },
-               granularity, conservative);
+               512, conservative);
   // finish_alloc(alloc);
 }
 
