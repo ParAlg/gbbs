@@ -178,7 +178,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   T* cliques, size_t n, list_buffer& count_idxs, timer& t1) {
 
   // Set up space for clique counting
-  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r+1, G.n, true, true); };
+  auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true); };
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
   // Mark every vertex in the active set
@@ -239,7 +239,7 @@ t1.start();
       // Fill base[k] ... base[k-r+2] and base[0]
       induced->setup_nucleus(G, DG, k, base, r);
       // Need to fix so that k_idx is 1, but ends as if it was r
-      NKCliqueDir_fast_hybrid_rec(DG, 1, k-r+1, induced, update_d, base);
+      //NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
   }, granularity, false);
 t1.stop();
 
