@@ -255,6 +255,8 @@ using W = typename Graph::weight_type;
     assert(k-r == 1);
     assert(r + 1 == k);
 
+    assert(induced->worker_in_use == worker_id());
+    assert(induced->old_labels != nullptr);
 
     //sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
     auto intersect_arr = induced->old_labels;
@@ -262,9 +264,6 @@ using W = typename Graph::weight_type;
       size_t idx = k - j;
       if (j == r) idx = 0;
       auto vert = base2[idx];
-      if (idx == 1) {
-        std::cout << "k: " << k << ", r: " << r << ", j: " << j << std::endl;
-      }
       assert(idx != 1);
       assert(base2[idx] < G.n);
       auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
@@ -272,6 +271,9 @@ using W = typename Graph::weight_type;
       };
       G.get_vertex(vert).mapOutNgh(vert, map_f, false);
     }
+
+    assert(induced->worker_in_use == worker_id());
+
     for (size_t j = 0; j < G.n; j++) {
       if (intersect_arr[j] == r + 1) {
         base2[1] = j;
