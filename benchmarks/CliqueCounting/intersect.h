@@ -84,6 +84,10 @@ struct HybridSpace_lw {
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     auto nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
 
+    for (std::size_t j = 0; j < DG.n; j++) {
+      old_labels[j] = 0;
+    }
+
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
