@@ -370,9 +370,9 @@ t_update.start();
 //*************************************************************VERIFICATION CODE**********
 
 
-template <typename bucket_t, class Graph, class Graph2, class T>
+template <typename bucket_t, class Graph, class Graph2, class T, class T2>
 sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k, 
-  T* cliques, T* cliques2, sequence<uintE> &rank, size_t num_rounds_verify=2,
+  T* cliques, T2* cliques2, sequence<uintE> &rank, size_t num_rounds_verify=2,
   size_t num_buckets=16) {
     k--; r--;
   timer t2; t2.start();
@@ -412,7 +412,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
   size_t rounds = 0;
   size_t finished = 0;
   bucket_t cur_bkt = 0;
-  bucket cur_bkt2 = 0;
+  bucket_t cur_bkt2 = 0;
   bucket_t max_bkt = 0;
   size_t iter = 0;
 
@@ -574,7 +574,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       auto v = std::get<0>(D_filter2[i]);
       bucket_t bucket = std::get<1>(D_filter2[i]);
       if (v != num_entries2 + 1) {
-        if (still_active2[v] != 2 && still_activ2[v] != 1) return wrap(v, bucket);
+        if (still_active2[v] != 2 && still_active2[v] != 1) return wrap(v, bucket);
       }
       return std::nullopt;
     };
