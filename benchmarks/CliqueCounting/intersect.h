@@ -138,7 +138,7 @@ struct HybridSpace_lw {
     DG.get_vertex(base[0]).mapOutNgh(base[0], map_label_f, false); //r
     auto i = base[0];
 
-    for (std::size_t i = 0; i < o; i++) {
+    for (std::size_t i = 0; i < o - 1; i++) {
       if (relabel[o] != UINT_E_MAX) assert(is_edge2(DG, base[0], relabel[o]));
     }
 
