@@ -150,6 +150,7 @@ struct HybridSpace_lw {
     auto i = base[0];
 
     assert(o <= minduced);
+    sequence<uintE> save_induced(o, [&](size_t l){ return relabel[l]; });
 
     for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
@@ -169,7 +170,8 @@ struct HybridSpace_lw {
     num_induced[0] = nn;
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
-    for (std::size_t x = 0; x < nn; x++) {
+    for (std::size_t x = 0; x < o; x++) {
+      assert(save_induced[x] == relabel[x]);
       if (relabel[x] != UINT_E_MAX) {
         if(!(is_edge2(DG2, base[0], relabel[x]))) {
           std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
