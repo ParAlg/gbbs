@@ -462,6 +462,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
     if (iter >= num_rounds_verify) exit(0);
     iter++;
 
+    // Verify active set
     for (size_t i = 0; i < active_size; i++) {
       auto vtx = get_active(i);
       // Check that vtx exists in cliques2
@@ -561,6 +562,61 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
       granularity, still_active2, rank, per_processor_counts2,
       true, update_changed2, cliques2, num_entries2, count_idxs2, t_x);
     t_count.stop();
+
+    std::cout << "Finished verifying active set; starting verifying updates" << std::endl;
+    fflush(stdout);
+
+    // Verify updated vertices from D_filter
+    for (size_t i = 0; i < filter_size; i++) {
+      auto vtx = std::get<0>(D_filter[i]);
+      if (vtx == num_entries + 1) continue;
+      // Check that vtx exists in cliques2
+      sequence<uintE> base(k + 1);
+      // Vertices will be in inclusive k, ..., k - r + 1, 0
+      cliques->extract_clique(vtx, base, G, k);
+      sequence<uintE> actual_base(r + 1);
+      for (size_t j = 0; j <= r; j++) {
+        auto base_idx = k - j;
+        if (j == r) base_idx = 0;
+        actual_base[j] = base[base_idx];
+      }
+
+      // Check that extracting a clique from cliques and turning it back to an index works
+      auto check_vtx = cliques->extract_indices_check(actual_base, r);
+      assert(check_vtx == vtx);
+
+      auto vtx2 = cliques2->extract_indices_check(actual_base, r);
+      sequence<uintE> base2(k + 1);
+      cliques2->extract_clique(vtx2, base2, G, k);
+      sequence<uintE> actual_base2(r + 1);
+      for (size_t j = 0; j <= r; j++) {
+        auto base_idx = k - j;
+        if (j == r) base_idx = 0;
+        actual_base2[j] = base2[base_idx];
+      }
+
+      // Check that extracting a clique from cliques2 and turning it back to an index works
+      auto check_vtx2 = cliques2->extract_indices_check(actual_base2, r);
+      assert(check_vtx2 == vtx2);
+
+      // Check that the clique counts match up
+      assert(cliques->get_count(vtx) == cliques2->get_count(vtx2));
+      // On first round, degree should be 1
+      if (iter == 1) {
+        assert(cliques->get_count(vtx) == 1);
+      }
+
+      // Check that cliques and cliques2 are thinking about the same clique
+      pbbslib::sample_sort_inplace (actual_base.slice(), [&](const uintE& u, const uintE&  v) {
+          return u < v;
+      });
+      pbbslib::sample_sort_inplace (actual_base2.slice(), [&](const uintE& u, const uintE&  v) {
+          return u < v;
+      });
+      for (size_t j = 0; j < r + 1; j++) {
+        assert(actual_base[j] == actual_base2[j]);
+      }
+    }
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
       auto v = std::get<0>(D_filter[i]);
