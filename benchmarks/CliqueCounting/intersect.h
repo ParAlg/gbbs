@@ -123,7 +123,7 @@ struct HybridSpace_lw {
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
-    auto nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
+    uintE nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
     /*auto kmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = nn0 + 1;
     };
@@ -134,7 +134,9 @@ struct HybridSpace_lw {
       // Set up label for intersection
         assert(ngh < DG.n);
         assert(ngh < nnx);
-        if (j == 0) old_labels[ngh] = nn0 + 1;
+        if (j == 0) {
+          old_labels[ngh] = nn0 + 1;
+        }
         else if (old_labels[ngh] > 0) old_labels[ngh]++;
         //else if (old_labels[ngh] == nn0 + j) old_labels[ngh]++;
       };
