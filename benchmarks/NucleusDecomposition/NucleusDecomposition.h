@@ -256,13 +256,13 @@ t1.start();
     for (size_t j = 0; i <= r - 1; j++) {
       size_t idx = k - j;
       if (j == r - 1) idx = 0;
-      auto vert = base[idx];
+      auto vert = base2[idx];
       intersect_arr[vert]++;
     }
     for (size_t j = 0; j < G.n; j++) {
       if (intersect_arr[vert] == r) {
-        base[1] = vert;
-        update_d(base);
+        base2[1] = vert;
+        update_d(base2);
       }
     }
     
