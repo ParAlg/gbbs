@@ -59,7 +59,7 @@ namespace gbbs {
   }
 
   template <class Graph, class F>
-  inline size_t NKCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced, F base_f,
+  inline size_t NKCliqueDir_fast_hybrid_rec(Graph& DG, size_t k_idx, size_t k, HybridSpace_lw* induced, F& base_f,
   sequence<uintE>& base) {
     size_t num_induced = induced->num_induced[k_idx-1];
     if (num_induced == 0) return 0;
