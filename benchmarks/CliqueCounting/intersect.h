@@ -269,7 +269,6 @@ struct HybridSpace_lw {
   // Perform first level recursion, using linear space to intersect
   template <class Graph, class Graph2, class F>
   void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
-    std::cout << "S" << std::endl; fflush(stdout);
     using W = typename Graph::weight_type;
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
