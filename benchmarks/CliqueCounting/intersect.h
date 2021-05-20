@@ -87,7 +87,7 @@ struct HybridSpace_lw {
       old_labels[ngh] = nn0 + 1;
     };
     DG.get_vertex(base[k]).mapOutNgh(base[k], kmap_label_f, true);
-
+/*
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
@@ -101,7 +101,7 @@ struct HybridSpace_lw {
       //}
       assert(base[k-j] < DG.n);
       DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, true);
-    }
+    }*/
 
     //assert(base[0] < DG.n);
     //if (base[0] >= DG.n) {
@@ -110,7 +110,7 @@ struct HybridSpace_lw {
     size_t o = 0;
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
-      if (old_labels[ngh] == nn0 + r) {
+      if (old_labels[ngh] == nn0 + 1) {
         old_labels[ngh] = o + 1;
         if (use_base) { relabel[o] = ngh; }
       } else {
