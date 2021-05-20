@@ -21,6 +21,10 @@ bool is_edge2(Graph& DG, uintE v, uintE u) {
     if (vv == u) is = true;
     };
     DG.get_vertex(v).mapOutNgh(v, map_f, false);
+  auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+    if (vv == v) is = true;
+    };
+    DG.get_vertex(u).mapOutNgh(u, map_f, false);
     return is;
 }
 
@@ -140,11 +144,11 @@ struct HybridSpace_lw {
 
     for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
-        if(!(is_edge2(DG, base[0], relabel[x]))) {
+        if(!(is_edge2(DG2, base[0], relabel[x]))) {
           std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
           std::cout << "i: " << x << std::endl; fflush(stdout);
         }
-        assert(is_edge2(DG, base[0], relabel[x]));
+        assert(is_edge2(DG2, base[0], relabel[x]));
       }
     }
     //std::cout << "o: "<< o << std::endl; fflush(stdout);
