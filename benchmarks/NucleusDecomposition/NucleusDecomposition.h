@@ -77,13 +77,17 @@ namespace gbbs {
 
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+    //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+    for(size_t i =0; i < DG.n; i++) {
+      HybridSpace_lw* induced = new HybridSpace_lw();
+      init_induced(induced);
         if (DG.get_vertex(i).getOutDegree() != 0) {
           induced->setup(DG, k, i);
           auto base = sequence<uintE>(k + 1);
           base[0] = i;
           tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base);
         } else tots[i] = 0;
+      finish_induced(induced);
     }, 1, false);
     double tt2 = t2.stop();
 
@@ -219,15 +223,17 @@ t1.start();
 
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
-  HybridSpace_lw* induced = new HybridSpace_lw();
   for(size_t i =0; i < active_size; i++) {
+    HybridSpace_lw* induced = new HybridSpace_lw();
     init_induced(induced);
+
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+1] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
+    finish_induced(induced);
   }//, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
