@@ -248,7 +248,7 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
     allocs[i] = new A();
     init_alloc(allocs[i]);
   }
-  char* taken = (char*) calloc(num_workers() * sizeof(char));
+  char* taken = (char*) calloc(num_workers(), sizeof(char));
   parallel_for(start, end,
                [&](long i) {
                  //static thread_local A* alloc = new A();
