@@ -223,7 +223,18 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   auto is_inactive = [&](size_t index) {
     return still_active[index] == 2;
   };
-  auto update_d = [&](sequence<uintE>& base){
+
+t1.start();
+  // Clique count updates
+  //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
+  //assert(k-r == 1);
+  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+  //                                   [&](size_t i, HybridSpace_lw* induced) {
+  //parallel_for(0, active_size, [&](size_t i){
+  HybridSpace_lw* induced = new HybridSpace_lw();
+  for (std::size_t i = 0; i < active_size; i++ ){
+
+    auto update_d = [&](sequence<uintE>& base){
     // check that base[0] to base[k+1] are all edges
     /*for (int i = 0; i < k + 1; i++) {
       int i1 = (i + 1) % (k + 1);
@@ -247,27 +258,17 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
       }
     }, r, k);
   };
-
-t1.start();
-  // Clique count updates
-  //std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
-  //assert(k-r == 1);
-  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-  //                                   [&](size_t i, HybridSpace_lw* induced) {
-  //parallel_for(0, active_size, [&](size_t i){
-  HybridSpace_lw* induced = new HybridSpace_lw();
-  for (std::size_t i = 0; i < active_size; i++ ){
     
     init_induced(induced);
 
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
     auto x = get_active(i);
-    auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
-    cliques->extract_clique(x, base, G, k);
+    auto base2 = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
+    cliques->extract_clique(x, base2, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
     //assert(induced->worker_in_use == worker_id());
-    induced->setup_nucleus(G, DG, k, base, r);
+    induced->setup_nucleus(G, DG, k, base2, r);
 
     //assert(induced->checked);
     //assert(induced->worker_in_use == worker_id());
@@ -284,12 +285,12 @@ t1.start();
     assert(induced->worker_in_use == worker_id());*/
 
     // Need to fix so that k_idx is 1, but ends as if it was r
-    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
 
     induced->worker_in_use = UINT_E_MAX;
 
-    finish_induced(induced);
   }//, 1, true); //granularity
+  finish_induced(induced);
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
