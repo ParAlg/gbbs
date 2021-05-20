@@ -142,6 +142,10 @@ struct HybridSpace_lw {
         old_labels[ngh] = 0;
         if (use_base) { relabel[o] = UINT_E_MAX; }
       }
+
+      if (relabel[o] != UINT_E_MAX) {
+        assert(is_edge2(DG2, base[0], relabel[o]));
+      }
       // Set up relabeling if counting per vertex
       //if (use_base) { relabel[o] = ngh; }
       o++;
