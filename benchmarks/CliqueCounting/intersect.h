@@ -159,6 +159,7 @@ struct HybridSpace_lw {
     for (std::size_t x = 0; x < o; x++) {
       if (relabel[x] != UINT_E_MAX) {
         if(!(is_edge2(DG2, base[0], relabel[x]))) {
+          std::cout << "o: " << o << std::endl;
           std::cout << "base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
           std::cout << "i: " << x << std::endl; fflush(stdout);
         }
