@@ -249,7 +249,7 @@ t1.start();
     // This fills base[0] and base[k]...base[k-r+1] (inclusive) with vertices
     cliques->extract_clique(x, base2, G, k);
     assert(k-r == 1);
-    assert(r == k + 1);
+    assert(r + 1 == k);
 
     sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
     for (size_t j = 0; j <= r; j++) {
@@ -261,11 +261,13 @@ t1.start();
       }
       assert(idx != 1);
       assert(base2[idx] < G.n);
-      intersect_arr[vert]++;
+      auto map_f = [&] (const uintE& src, const uintE& vv, const W& wgh) {
+        intersect_arr[vv]++;
+      };
+      DG.get_vertex(vert).mapOutNgh(vert, map_f, false);
     }
     for (size_t j = 0; j < G.n; j++) {
       if (intersect_arr[j] == r + 1) {
-        std::cout << "check" << std::endl; fflush(stdout);
         base2[1] = j;
         update_d(base2);
       }
