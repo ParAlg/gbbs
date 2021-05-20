@@ -81,20 +81,23 @@ namespace gbbs {
 
     auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
-    parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
-
+    //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
+    parallel_for(0, DG.n, [&](size_t i){
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
     };
         if (DG.get_vertex(i).getOutDegree() != 0) {
+  HybridSpace_lw* induced = new HybridSpace_lw();
+  init_induced(induced);
           induced->setup(DG, k, i);
           auto base2 = sequence<uintE>(k + 1);
           base2[0] = i;
           //auto base_f2 = [&](uintE vtx, size_t _count) {};
           //tots[i] = induced_hybrid::KCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f2, 0);
           tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
+    finish_induced(induced);
         } else tots[i] = 0;
-    }, 1, false);
+    }, 1, true);
     double tt2 = t2.stop();
     //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
