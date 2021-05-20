@@ -170,7 +170,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           auto index = table.find_index(key);
           assert(index < table.m);
  
- /*
+ 
 sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
 extract_clique(index, base3, k, k);
 int base3_idx = 0;
@@ -186,7 +186,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
     if (base3_idx == 1) base3_idx = k - rr + 2;
   }
 }
-*/
+
 
           indices.push_back(index);
           if (is_active(index)) num_active++;
