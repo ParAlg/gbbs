@@ -122,7 +122,7 @@ class list_buffer {
       next = 0;
     }
     void add(size_t index) {
-      std::cout << "Add: " << index << std::endl; fflush(stdout);
+      //std::cout << "Add: " << index << std::endl; fflush(stdout);
       size_t use_next = pbbs::fetch_and_add(&next, 1);
       list[use_next] = index;
       /*size_t worker = worker_id();
