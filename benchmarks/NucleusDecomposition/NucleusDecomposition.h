@@ -143,7 +143,7 @@ class list_buffer {
         //assert(per_processor_counts[list[worker]] != 0);
         update_changed(per_processor_counts, worker, list[worker]);
       }//);
-      return next;
+      return ss;
 /*
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
