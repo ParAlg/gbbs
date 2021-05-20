@@ -259,24 +259,20 @@ t1.start();
   // Clique count updates
   std::cout << "Start setup nucleus" << std::endl; fflush(stdout);
   assert(k-r == 1);
-  parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
-                                     [&](size_t i, HybridSpace_lw* induced) {
-  /*parallel_for(0, active_size, [&](size_t i){
+  //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
+  //                                   [&](size_t i, HybridSpace_lw* induced) {
+  parallel_for(0, active_size, [&](size_t i){
     HybridSpace_lw* induced = new HybridSpace_lw();
-    init_induced(induced);*/
+    init_induced(induced);
 
     // TODO: THIS PART IS WRONG
     // you wanna start from the clique given by vert
-     assert(!induced->checked);
     auto x = get_active(i);
     auto base = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
     cliques->extract_clique(x, base, G, k);
     // Fill base[k] ... base[k-r+2] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
-
-    assert(induced->checked);
-
-    induced->checked = false;
+    
 
     for (std::size_t xx = 0; xx < induced->nn; xx++) {
       if (induced->relabel[xx] != UINT_E_MAX) {
@@ -290,7 +286,7 @@ t1.start();
 
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
-    //finish_induced(induced);
+    finish_induced(induced);
   }, granularity, false);
   std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
