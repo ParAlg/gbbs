@@ -235,6 +235,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     for (int i = 0; i < k + 1; i++) {
       int i1 = (i + 1) % (k + 1);
       if (!is_edge(G, base[i], base[i1])) {
+        std::cout << "Flip: " << is_edge(G, base[i1], base[i]) << std::endl;
         std::cout << "i: " << i << ", i1: " << i1 << ", base i: "<< base[i] << ", base i1: " << base[i1] << std::endl;
         fflush(stdout);
       }
