@@ -235,8 +235,8 @@ inline int worker_id() { return pbbs::global_scheduler.worker_id(); }
 
 inline bool charCAS(char* a, char oldval, char newval) {
     uint8_t r_oval, r_nval;
-    std::memcpy(&r_oval, &oldval, sizeof(ET));
-    std::memcpy(&r_nval, &newval, sizeof(ET));
+    std::memcpy(&r_oval, &oldval, sizeof(char));
+    std::memcpy(&r_nval, &newval, sizeof(char));
     return __sync_bool_compare_and_swap(reinterpret_cast<uint8_t*>(a), r_oval,
                                         r_nval);
 }
