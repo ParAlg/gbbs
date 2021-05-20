@@ -69,7 +69,7 @@ namespace gbbs {
       size_t tmp_counts = 0;
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
-        base[k] = induced->relabel[vtx];
+        base[k] = induced->relabel[i];
         if (base[k] != UINT_E_MAX) {
           //std::cout << "Exists base" << std::endl; fflush(stdout);
           base_f(base);
