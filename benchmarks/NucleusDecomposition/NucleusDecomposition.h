@@ -269,11 +269,11 @@ t1.start();
     // Fill base[k] ... base[k-r+2] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
 
-    for (std::size_t x = 0; x < induced->nn; x++) {
-      if (relabel[x] != UINT_E_MAX) {
-        if(!(is_edge(G, base[0], relabel[x]))) {
-          std::cout << "outside_setup base0: " << base[0] << ", relabel: " << relabel[x] << std::endl;
-          std::cout << "i: " << x << std::endl; fflush(stdout);
+    for (std::size_t xx = 0; xx < induced->nn; xx++) {
+      if (relabel[xx] != UINT_E_MAX) {
+        if(!(is_edge(G, base[0], relabel[xx]))) {
+          std::cout << "outside_setup base0: " << base[0] << ", relabel: " << relabel[xx] << std::endl;
+          std::cout << "i: " << xx << std::endl; fflush(stdout);
         }
         assert(is_edge2(G, base[0], relabel[x]));
       }
