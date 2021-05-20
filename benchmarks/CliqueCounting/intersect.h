@@ -126,6 +126,7 @@ struct HybridSpace_lw {
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     if (k-r == 1) {
+      std::cout << "CHECK " << std::endl; fflush(stdout);
       // Reset the array used for intersecting
     auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       old_labels[ngh] = 0;
