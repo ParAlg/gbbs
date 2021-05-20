@@ -138,7 +138,7 @@ class list_buffer {
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       //std::cout << "Next: "<< next << std::endl;
       //parallel_for(0, ss, [&](size_t worker) {
-      for (size_t worker = 0; worker < next; worker++) {
+      for (size_t worker = 0; worker < ss; worker++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
         update_changed(per_processor_counts, worker, worker); //list[worker]
@@ -212,21 +212,6 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     auto index = get_active(j); //cliques->find_index(get_active(j));
     still_active[index] = 1;
     }, 2048);
-
-  // Hash table to contain clique count updates
-  //size_t edge_table_size = (size_t) (n);
-  //auto edge_table = pbbslib::sparse_table<uintE, bool, hashtup>(edge_table_size, std::make_tuple(0, false), hashtup());
-
-  // Function that dictates which edges to consider in first level of recursion
-  //auto ignore_f = [&](const uintE& u, const uintE& v) {
-  //  return true;
-    //auto index_u = cliques->find_index(u);
-    //auto index_v = cliques->find_index(v);
-    //auto status_u = still_active[index_u]; auto status_v = still_active[index_v];
-    //if (status_u == 2 || status_v == 2) return false; // deleted edge
-    //if (status_v == 0) return true; // non-deleted, non-active edge
-    //return rank[u] < rank[v]; // orient edges if in active set
-  //};
 
   // Collate clique counts by processor
   //count_idxs[0] = 0;
