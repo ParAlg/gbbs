@@ -294,7 +294,7 @@ struct HybridSpace_lw {
         o++;
         return;
       }
-      std::cout << "ngh: " << ngh << std::endl; fflush(stdout);
+
       // Set up label for intersection
       assert(ngh < DG.n);
       old_labels[ngh] = o + 1;
@@ -303,11 +303,9 @@ struct HybridSpace_lw {
       o++;
     };
     assert(i < DG.n);
-    std::cout << "i: " << i << std::endl; fflush(stdout);
+  
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
-
-    if (to_check) assert(worker_in_use == worker_id());
-
+/*
     if (k == 1) {
       // Reset the array used for intersecting
       auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -316,7 +314,7 @@ struct HybridSpace_lw {
       DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
       num_edges = 0;
       return;
-    }
+    }*/
 
     for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
 
