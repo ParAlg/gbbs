@@ -256,8 +256,8 @@ inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                  //static thread_local A* alloc = new A();
                  while(true) {
                    auto id = worker_id();
-                   bool try = charCAS(&(taken[id]), 0, 1);
-                   if (try) {
+                   bool try2 = charCAS(&(taken[id]), 0, 1);
+                   if (try2) {
                      A* alloc = allocs[id];
                      init_alloc(alloc);
                      f(i, alloc);
