@@ -261,7 +261,8 @@ t1.start();
   //assert(k-r == 1);
   //parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, active_size,
   //                                   [&](size_t i, HybridSpace_lw* induced) {
-  parallel_for(0, active_size, [&](size_t i){
+  //parallel_for(0, active_size, [&](size_t i){
+  for (size_t i = 0; i < active_size; i++) {
     HybridSpace_lw* induced = new HybridSpace_lw();
     init_induced(induced);
 
@@ -293,7 +294,7 @@ t1.start();
 
     induced->worker_in_use = UINT_E_MAX;
     finish_induced(induced);
-  }, 1, true); //granularity
+  }//, 1, true); //granularity
   //std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
