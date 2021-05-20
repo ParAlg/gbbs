@@ -66,6 +66,7 @@ namespace gbbs {
     uintE* prev_induced = induced->induced + induced->nn * (k_idx - 1);
 
     if (k_idx == k) {
+      std::cout << "XX" << std::endl; fflush(stdout);
       size_t tmp_counts = 0;
       for (size_t i=0; i < num_induced; i++) {
         uintE vtx = prev_induced[i];
