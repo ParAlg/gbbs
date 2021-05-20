@@ -288,7 +288,7 @@ t1.start();
     // Need to fix so that k_idx is 1, but ends as if it was r
     NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base);
     //finish_induced(induced);
-  }, granularity, false);
+  }, 1, true); //granularity
   std::cout << "End setup nucleus" << std::endl; fflush(stdout);
 t1.stop();
 
