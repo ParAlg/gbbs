@@ -53,15 +53,23 @@ struct HybridSpace_lw {
 
   size_t worker_in_use = UINT_E_MAX;
   bool checked = false;
+  bool to_check = false;
   size_t minduced = 0;
   HybridSpace_lw () {}
 
+  void turn_on_check() {
+    to_check = true;
+  }
+
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
-    bool checking = pbbslib::CAS(&worker_in_use, static_cast<size_t>(UINT_E_MAX), static_cast<size_t>(worker_id()));
-    if (!checking) {
-      std::cout << "ParForAlloc Thread err" << std::endl; fflush(stdout);
+    if (to_check) {
+      bool checking = pbbslib::CAS(&worker_in_use, static_cast<size_t>(UINT_E_MAX), static_cast<size_t>(worker_id()));
+      if (!checking) {
+        std::cout << "ParForAlloc Thread err" << std::endl; fflush(stdout);
+      }
+      assert(checking);
     }
-    assert(checking);
+    
     minduced = max_induced;
     use_old_labels = _use_old_labels;
     use_base = _use_base;
