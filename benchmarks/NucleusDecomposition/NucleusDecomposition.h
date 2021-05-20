@@ -79,13 +79,15 @@ namespace gbbs {
 
     auto tots = sequence<size_t>(DG.n, size_t{0});
 
-    auto init_induced = [&](HybridSpace_lw* induced) { induced->turn_on_check(); induced->alloc(max_deg, k, DG.n, true, true); };
+    auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k, DG.n, true, true); };
     auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } }; //induced->del();
     parallel_for_alloc<HybridSpace_lw>(init_induced, finish_induced, 0, DG.n, [&](size_t i, HybridSpace_lw* induced) {
     //parallel_for(0, DG.n, [&](size_t i){
     auto base_f = [&](sequence<uintE>& base){
       table->insert(base, r, k);
     };
+      induced->turn_on_check(); 
+      
         if (DG.get_vertex(i).getOutDegree() != 0) {
   //HybridSpace_lw* induced = new HybridSpace_lw();
   //init_induced(induced);
@@ -214,7 +216,6 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
   // Set up space for clique counting
   auto init_induced = [&](HybridSpace_lw* induced) { induced->alloc(max_deg, k-r, G.n, true, true, true); };
-  //induced->turn_on_check(); 
   auto finish_induced = [&](HybridSpace_lw* induced) { if (induced != nullptr) { delete induced; } };
 
   // Mark every vertex in the active set
@@ -244,6 +245,8 @@ using W = typename Graph::weight_type;
       }, r, k);
     };
 
+    induced->turn_on_check();
+
     auto x = get_active(i);
     auto base2 = sequence<uintE>(k + 1, [](size_t j){return UINT_E_MAX;});
 
@@ -252,6 +255,7 @@ using W = typename Graph::weight_type;
     assert(k-r == 1);
     assert(r + 1 == k);
 
+/*
     sequence<uintE> intersect_arr(G.n, [](size_t l){return 0;});
     for (size_t j = 0; j <= r; j++) {
       size_t idx = k - j;
@@ -272,12 +276,12 @@ using W = typename Graph::weight_type;
         base2[1] = j;
         update_d(base2);
       }
-    }
+    }*/
     
     // Fill base[1] with the intersection, and call update_d
-    /*induced->setup_nucleus(G, DG, k, base2, r);
+    induced->setup_nucleus(G, DG, k, base2, r);
     assert(induced->worker_in_use == worker_id());
-    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);*/
+    NKCliqueDir_fast_hybrid_rec(DG, 1, k-r, induced, update_d, base2);
 
     induced->worker_in_use = UINT_E_MAX;
   }, 1, true); //granularity
