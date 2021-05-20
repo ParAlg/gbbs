@@ -125,6 +125,7 @@ class list_buffer {
       //std::cout << "Add: " << index << std::endl; fflush(stdout);
       size_t use_next = pbbs::fetch_and_add(&next, 1);
       list[use_next] = index;
+      assert(per_processor_counts[index] != 0);
       /*size_t worker = worker_id();
       list[starts[worker]] = index;
       starts[worker]++;
