@@ -288,6 +288,7 @@ struct HybridSpace_lw {
     if (to_check) assert(worker_in_use == worker_id());
 
     size_t o = 0;
+    assert(old_labels != nullptr);
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Return if edge is invalid
       if (!f(src, ngh)) {
