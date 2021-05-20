@@ -242,7 +242,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
 
     }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
-      size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
+      double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
         count_idxs.add(index);
         std::cout << "Index: "<< index << ", Val: "<< val << std::endl;
