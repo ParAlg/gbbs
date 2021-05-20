@@ -134,10 +134,11 @@ struct HybridSpace_lw {
         else if (old_labels[ngh] > 0) old_labels[ngh]++;
         //else if (old_labels[ngh] == nn0 + j) old_labels[ngh]++;
       };
-      //if (base[k-j] >= DG.n) {
-      //  std::cout << "Base: " << base[k-j] << ", n: " << DG.n << std::endl;
-      //}
-      //assert(base[k-j] < DG.n);
+      if (base[k-j] >= DG.n) {
+        std::cout << "Base: " << base[k-j] << ", n: " << DG.n << ", idx: " << k-j << std::endl;
+        fflush(stdout);
+      }
+      assert(base[k-j] < DG.n);
       DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, false);
     }
 
