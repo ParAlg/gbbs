@@ -138,7 +138,7 @@ class list_buffer {
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       //std::cout << "Next: "<< next << std::endl;
       //parallel_for(0, ss, [&](size_t worker) {
-      for (size_t worker = 0; worker < ss; worker++) {
+      for (size_t worker = 0; worker < next; worker++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
         update_changed(per_processor_counts, worker, list[worker]);
