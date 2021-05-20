@@ -91,12 +91,11 @@ namespace gbbs {
         tots[i] = NKCliqueDir_fast_hybrid_rec(DG, 1, k, induced, base_f, base2);
       } else tots[i] = 0;
 
-      induced->worker_in_use = UINT_E_MAX;
+      //induced->worker_in_use = UINT_E_MAX;
       finish_induced(induced);
     }//, 1, true);
     
     double tt2 = t2.stop();
-    //std::cout << "##### Actual counting: " << tt2 << std::endl;
 
     return pbbslib::reduce_add(tots);
   }

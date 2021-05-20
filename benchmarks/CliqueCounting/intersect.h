@@ -269,7 +269,6 @@ struct HybridSpace_lw {
     auto deg_seq = pbbslib::make_sequence(induced_degs, nn);
     num_edges = pbbslib::reduce_add(deg_seq);
   }
-
   // Perform first level recursion, using linear space to intersect
   template <class Graph, class Graph2, class F>
   void setup_labels(Graph& DG, Graph2& DG2, size_t k, size_t i, F f) {
@@ -288,7 +287,6 @@ struct HybridSpace_lw {
     if (to_check) assert(worker_in_use == worker_id());
 
     size_t o = 0;
-    assert(old_labels != nullptr);
     auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Return if edge is invalid
       if (!f(src, ngh)) {
@@ -296,17 +294,12 @@ struct HybridSpace_lw {
         o++;
         return;
       }
-      std::cout << "ngh: " << ngh << std::endl; fflush(stdout);
       // Set up label for intersection
-      assert(ngh < DG.n);
-      assert(old_labels != nullptr);
       old_labels[ngh] = o + 1;
       // Set up relabeling if counting per vertex
       if (use_base) { relabel[o] = ngh; }
       o++;
     };
-    assert(i < DG.n);
-    std::cout << "i: " << i << std::endl; fflush(stdout);
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
 
     if (to_check) assert(worker_in_use == worker_id());
