@@ -118,7 +118,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
 
       std::size_t return_total() {return table.m;}
       long get_count(std::size_t i) {
-        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return UINT_E_MAX;
+        if (std::get<0>((table.table)[i]) == std::numeric_limits<Y>::max()) return 0;
         return std::get<1>((table.table)[i]);
       }
       size_t update_count(std::size_t i, size_t update){
