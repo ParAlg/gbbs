@@ -136,7 +136,7 @@ class list_buffer {
 
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
-
+      std::cout << "Next: "<< next << std::endl;
       parallel_for(0, next, [&](size_t worker) {
         assert(list[worker] != UINT_E_MAX);
         assert(per_processor_counts[list[worker]] != 0);
@@ -285,7 +285,7 @@ t1.stop();
 
   // Perform update_changed on each vertex with changed clique counts
   std::size_t num_count_idxs = 0;
-  if (do_update_changed) {
+  //if (do_update_changed) {
     /*parallel_for(0, changed_vtxs.size(), [&] (size_t i) {
       auto index = cliques->find_index(std::get<0>(changed_vtxs[i]));
       update_changed(per_processor_counts, i, index);
@@ -299,7 +299,7 @@ t1.stop();
       update_changed(per_processor_counts, i, count_idxs.pack[i]);//count_idxs[i + 1]
     });*/
     
-  }
+  //}
 
   // Mark every vertex in the active set as deleted
   parallel_for (0, active_size, [&] (size_t j) {
