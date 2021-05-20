@@ -223,23 +223,24 @@ inline void parallel_run(Job job, int num_threads = 0) {
   job();
 }
 
+inline int num_workers() { return pbbs::global_scheduler.num_workers(); }
+
+inline int worker_id() { return pbbs::global_scheduler.worker_id(); }
+
 template <typename A, typename Af, typename Df, typename F>
 inline void parallel_for_alloc(Af init_alloc, Df finish_alloc, long start,
                                long end, F f, long granularity,
                                bool conservative) {
-  thread_local A* alloc = new A();
+  sequence<A*> allocs(num_workers(), [](size_t i){ return new A(); });
   parallel_for(start, end,
                [&](long i) {
+                 A* alloc = allocs[worker_id()];
                  init_alloc(alloc);
                  f(i, alloc);
                },
                granularity, conservative);
   // finish_alloc(alloc);
 }
-
-inline int num_workers() { return pbbs::global_scheduler.num_workers(); }
-
-inline int worker_id() { return pbbs::global_scheduler.worker_id(); }
 
 #ifdef SAGE
 inline int numanode() { return pbbs::global_scheduler.numanode(); }
