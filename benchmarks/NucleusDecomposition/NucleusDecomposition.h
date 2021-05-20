@@ -232,7 +232,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
   };
   auto update_d = [&](sequence<uintE>& base){
     // check that base[0] to base[k+1] are all edges
-    /*for (int i = 0; i < k + 1; i++) {
+    for (int i = 0; i < k + 1; i++) {
       int i1 = (i + 1) % (k + 1);
       if (!is_edge(G, base[i], base[i1])) {
         std::cout << "i: " << i << ", i1: " << i1 << ", base i: "<< base[i] << ", base i1: " << base[i1] << std::endl;
@@ -240,7 +240,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
       }
       assert(is_edge(G, base[i], base[i1]));
 
-    }*/
+    }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
       double ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
       if (ct == 0 && val != 0) {
