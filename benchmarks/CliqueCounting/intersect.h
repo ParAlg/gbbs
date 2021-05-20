@@ -111,6 +111,7 @@ struct HybridSpace_lw {
 
   template <class Graph, class Graph2>
   void setup_nucleus(Graph& DG, Graph2& DG2, size_t k, sequence<uintE>& base, size_t r) {
+    assert(!to_check);
     if (to_check) assert(worker_in_use == worker_id());
 
     using W = typename Graph::weight_type;
@@ -297,6 +298,7 @@ struct HybridSpace_lw {
 
       // Set up label for intersection
       assert(ngh < DG.n);
+
       old_labels[ngh] = o + 1;
       // Set up relabeling if counting per vertex
       if (use_base) { relabel[o] = ngh; }
@@ -305,7 +307,7 @@ struct HybridSpace_lw {
     assert(i < DG.n);
   
     DG.get_vertex(i).mapOutNgh(i, map_label_f, false);
-/*
+
     if (k == 1) {
       // Reset the array used for intersecting
       auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
@@ -314,11 +316,9 @@ struct HybridSpace_lw {
       DG.get_vertex(i).mapOutNgh(i, map_relabel_f, false);
       num_edges = 0;
       return;
-    }*/
+    }
 
     for (std::size_t j = 0; j < nn; j++) {induced_degs[j] = 0;}
-
-    if (to_check) assert(worker_in_use == worker_id());
 
     size_t j = 0;
     auto map_f = [&] (const uintE& src, const uintE& v, const W& wgh) {
