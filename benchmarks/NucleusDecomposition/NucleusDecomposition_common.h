@@ -105,12 +105,11 @@ class list_buffer {
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
       //std::cout << "Next: "<< next << std::endl;
-      //parallel_for(0, next, [&](size_t worker) {
-      for (size_t worker = 0; worker < next; worker++) {
+      parallel_for(0, next, [&](size_t worker) {
         assert(list[worker] != UINT_E_MAX);
         assert(per_processor_counts[list[worker]] != 0);
         update_changed(per_processor_counts, worker, list[worker]);
-      }//);
+      });
       return next;
 /*
       parallel_for(0, num_workers2, [&](size_t worker) {
@@ -533,7 +532,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
             D_filter[i] = std::make_tuple(v, b.get_bucket(deg, new_deg));
         } else D_filter[i] = std::make_tuple(num_entries + 1, 0);
       }
-      ppc[v] = 0;
+      //ppc[v] = 0;
     };
     auto update_changed2 = [&](sequence<double>& ppc, size_t i, uintE v){
       if (v == UINT_E_MAX) {
@@ -552,7 +551,7 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
             D_filter2[i] = std::make_tuple(v, b2.get_bucket(deg, new_deg));
         } else D_filter2[i] = std::make_tuple(num_entries2 + 1, 0);
       }
-      ppc[v] = 0;
+      //ppc[v] = 0;
     };
     t_count.start();
     size_t filter_size = cliqueUpdate(G, DG, r, k, max_deg, true, get_active, active_size, 
@@ -612,6 +611,8 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
         for (size_t j = 0; j < r + 1; j++) {
           std::cout << actual_base2[j] << ", " << std::endl;
         }
+        std::cout << "ppc1: " << per_processor_counts[vtx] << std::endl;
+        std::cout << "ppc2: " << per_processor_counts2[vtx2] << std::endl;
         fflush(stdout);
       }
       assert(cliques->get_count(vtx) == cliques2->get_count(vtx2));
@@ -627,6 +628,13 @@ sequence<bucket_t> Peel_verify(Graph& G, Graph2& DG, size_t r, size_t k,
         assert(actual_base[j] == actual_base2[j]);
       }
     }
+
+    parallel_for 0, num_entries, [&](size_t i) {
+      per_processor_counts[i] = 0;
+    });
+    parallel_for 0, num_entries2, [&](size_t i) {
+      per_processor_counts2[i] = 0;
+    });
 
     auto apply_f = [&](size_t i) -> std::optional<std::tuple<unsigned __int128, bucket_t>> {
       auto v = std::get<0>(D_filter[i]);
