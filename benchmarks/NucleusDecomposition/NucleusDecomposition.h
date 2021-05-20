@@ -111,7 +111,8 @@ class list_buffer {
       num_workers2 = num_workers();
       buffer = 64;
       int buffer2 = 64;
-      list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(0));
+      list = sequence<size_t>(s + buffer2 * num_workers2, static_cast<size_t>(UINT_E_MAX));
+      std::cout << "list size: " << list.size() << std::endl;
       starts = sequence<size_t>(num_workers2, [&](size_t i){return i * buffer2;});
       next = num_workers2 * buffer2;
       to_pack = sequence<bool>(s + buffer2 * num_workers2, true);
@@ -136,7 +137,7 @@ class list_buffer {
       });
       // Pack out 0 to next of list into pack
       parallel_for(0, next, [&] (size_t i) {
-        if (to_pack[i])
+        if (list[i] != UINT_E_MAX)//(to_pack[i])
           update_changed(per_processor_counts, i, list[i]);
         else
           update_changed(per_processor_counts, i, UINT_E_MAX);
@@ -223,8 +224,7 @@ size_t k, size_t max_deg, bool label, F get_active, size_t active_size,
     }
     cliques->extract_indices(base, is_active, is_inactive, [&](std::size_t index, double val){
     size_t ct = pbbs::fetch_and_add(&(per_processor_counts[index]), val);
-    //if (ct == 0)
-    count_idxs.add(index);
+    if (ct == 0) count_idxs.add(index);
     }, r, k);
   };
 
