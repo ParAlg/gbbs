@@ -95,7 +95,7 @@ namespace onetable {
           key = key >> 32;
         }*/
 
-auto index = table.find_index(key);
+/*auto index = table.find_index(key);
 assert(index < table.m);
 sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
 extract_clique(index, base3, k, k);
@@ -111,7 +111,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
     base3_idx++;
     if (base3_idx == 1) base3_idx = k - rr + 2;
   }
-}
+}*/
 
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
       }
@@ -170,6 +170,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
           auto index = table.find_index(key);
           assert(index < table.m);
  
+ /*
 sequence<uintE> base3 = sequence<uintE>(k + 1, [](std::size_t i){return UINT_E_MAX;});
 extract_clique(index, base3, k, k);
 int base3_idx = 0;
@@ -185,6 +186,7 @@ for (int i = 0; i < static_cast<int>(k)+1; ++i) {
     if (base3_idx == 1) base3_idx = k - rr + 2;
   }
 }
+*/
 
           indices.push_back(index);
           if (is_active(index)) num_active++;
