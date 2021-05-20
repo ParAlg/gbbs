@@ -107,7 +107,9 @@ class list_buffer {
     sequence<bool> to_pack;
     size_t next;
     size_t num_workers2;
+    size_t ss;
     list_buffer(size_t s){
+      ss = s;
       num_workers2 = num_workers();
       buffer = 64;
       int buffer2 = 64;
@@ -129,6 +131,12 @@ class list_buffer {
 
     template <class I>
     size_t filter(I update_changed, sequence<double>& per_processor_counts) {
+
+      parallel_for(0, ss, [&](size_t worker) {
+        update_changed(per_processor_counts, worker, list[worker]);
+      });
+      return ss;
+
       parallel_for(0, num_workers2, [&](size_t worker) {
         size_t divide = starts[worker] / buffer;
         for (size_t j = starts[worker]; j < (divide + 1) * buffer; j++) {
@@ -154,6 +162,9 @@ class list_buffer {
     void reset() {
       parallel_for (0, num_workers2, [&] (size_t j) {
         starts[j] = j * buffer;
+      });
+      parallel_for (0, ss + buffer2 * num_workers2, [&] (size_t j) {
+        list[j] = UINT_E_MAX;
       });
       next = num_workers2 * buffer;
     }
