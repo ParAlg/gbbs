@@ -83,11 +83,15 @@ struct HybridSpace_lw {
 
     // Set up first level induced neighborhood (neighbors of vertex i, relabeled from 0 to degree of i)
     auto nn0 = DG.get_vertex(base[0]).getOutDegree() + DG.get_vertex(base[k]).getOutDegree();
+    auto kmap_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
+      old_labels[ngh] = nn0 + 1;
+    };
+    DG.get_vertex(base[k]).mapOutNgh(base[k], kmap_label_f, true);
 
     for (size_t j = 0; j <= r - 1; j++){
       auto map_label_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
       // Set up label for intersection
-      //assert(ngh < DG.n);
+        assert(ngh < DG.n);
         if (j == 0) old_labels[ngh] = nn0 + 1;
         else if (old_labels[ngh] > 0) old_labels[ngh]++;
         //else if (old_labels[ngh] == nn0 + j) old_labels[ngh]++;
@@ -95,7 +99,7 @@ struct HybridSpace_lw {
       //if (base[k-j] >= DG.n) {
       //  std::cout << "Base: " << base[k-j] << ", n: " << DG.n << std::endl;
       //}
-      //assert(base[k-j] < DG.n);
+      assert(base[k-j] < DG.n);
       DG.get_vertex(base[k-j]).mapOutNgh(base[k-j], map_label_f, true);
     }
 
