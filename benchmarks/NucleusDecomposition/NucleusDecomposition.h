@@ -578,7 +578,7 @@ inline sequence<size_t> NucleusDecomposition(Graph& GA, size_t r, size_t s, long
   // Direct the graph based on ordering
   timer t_filter; t_filter.start();
   auto pack_predicate = [&](const uintE& u, const uintE& v, const W& wgh) {
-    return (rank[u] < rank[v]) && GA.get_vertex(u).getOutDegree() >= r-1 && GA.get_vertex(v).getOutDegree() >= r-1;
+    return (rank[u] < rank[v]);// && GA.get_vertex(u).getOutDegree() >= r-1 && GA.get_vertex(v).getOutDegree() >= r-1;
   };
   // Note: If relabeling, core #s must be translated back
   auto DG = relabel ? relabel_graph(GA, rank.begin(), pack_predicate) : filterGraph(GA, pack_predicate);
