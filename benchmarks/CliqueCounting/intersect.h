@@ -49,6 +49,8 @@ struct HybridSpace_lw {
   bool free_relabel = true; // if true, take ownership of induced_edges, induced_degs, and relabel
   uintE* relabel = nullptr; // if counting per vertex, must undo local relabeling for 0 to alpha indices
   bool use_base = false; // if true, counting per vertex
+
+  bool checked = false;
   HybridSpace_lw () {}
 
   void alloc(size_t max_induced, size_t k, size_t n, bool _use_old_labels, bool _use_base, bool _free_relabel=true) {
@@ -164,6 +166,7 @@ struct HybridSpace_lw {
     parallel_for(0, nn, [&] (size_t j) { induced[j] = j; });
 
     if (k-r == 1) {
+      checked = true;
       // Reset the array used for intersecting
       auto map_relabel_f = [&] (const uintE& src, const uintE& ngh, const W& wgh) {
         old_labels[ngh] = 0;

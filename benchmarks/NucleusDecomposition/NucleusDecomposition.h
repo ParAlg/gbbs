@@ -273,6 +273,8 @@ t1.start();
     // Fill base[k] ... base[k-r+2] and base[0]
     induced->setup_nucleus(G, DG, k, base, r);
 
+    assert(induced->checked);
+
     for (std::size_t xx = 0; xx < induced->nn; xx++) {
       if (induced->relabel[xx] != UINT_E_MAX) {
         if(!(is_edge(G, base[0], induced->relabel[xx]))) {
