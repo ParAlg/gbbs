@@ -143,6 +143,11 @@ class list_buffer {
       for (size_t i = 0; i < ss; i++) {
         //assert(list[worker] != UINT_E_MAX);
         //assert(per_processor_counts[list[worker]] != 0);
+        if (list[i] != UINT_E_MAX) {
+          assert(i < next);
+        } else {
+          assert(i >= next);
+        }
         update_changed(per_processor_counts, i, i);
       }//);
       return ss;
